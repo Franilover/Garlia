@@ -1,295 +1,502 @@
 "use client";
-
-import { useEffect, useRef } from "react";
-import { db } from "@/lib/api/client/db";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/lib/api/client/supabase";
+import { useDataCache } from "@/providers/DataProvider";
+import { db } from "@/lib/api/client/db";
+import { enqueueOperation, isReallyOnline, onSyncDone } from "@/hooks/data/useOfflineSync";
+import { personajesQueries }   from "@/lib/api/queries/wiki/personajes";
+import { criaturasQueries }    from "@/lib/api/queries/wiki/criaturas";
+import { itemsQueries }        from "@/lib/api/queries/wiki/items";
+import { librosQueries }       from "@/lib/api/queries/wiki/libros";
+import { recetasQueries }      from "@/lib/api/queries/personal/cocina/recetas";
+import { tareasQueries }       from "@/lib/api/queries/personal/tareas";
+import { eventosQueries }      from "@/lib/api/queries/personal/eventos";
+import { ingredientesQueries } from "@/lib/api/queries/personal/cocina/ingredientes";
+import { ropaQueries }         from "@/lib/api/queries/personal/ropa";
+import { cancionesQueries }    from "@/lib/api/queries/wiki/canciones";
+import { comprasQueries }      from "@/lib/api/queries/personal/cocina/carrito";
 
-const SYNC_TABLES: Record<string, {
-  supabaseTable: string;
-  excludeFields?: string[];
-}> = {
-  notas:              { supabaseTable: "notas",              excludeFields: ["status", "deleted"] },
-  ensayos:            { supabaseTable: "ensayos",            excludeFields: ["status", "deleted"] },
-  secciones_cancion:  { supabaseTable: "secciones_cancion",  excludeFields: ["status", "deleted"] },
-  capitulos:          { supabaseTable: "capitulos",          excludeFields: ["status", "deleted"] },
-  tareas:             { supabaseTable: "tareas",             excludeFields: ["status", "deleted"] },
-  eventos:            { supabaseTable: "eventos",            excludeFields: ["status", "deleted"] },
-  rutinas:            { supabaseTable: "rutinas",            excludeFields: ["status", "deleted"] },
-  ejercicios_rutina:  { supabaseTable: "ejercicios_rutina",  excludeFields: ["status", "deleted"] },
-  recetas:            { supabaseTable: "recetas",            excludeFields: ["status", "deleted"] },
-  ingredientes:       { supabaseTable: "ingredientes",       excludeFields: ["status", "deleted"] },
-  compras:            { supabaseTable: "compras",            excludeFields: ["status", "deleted"] },
-  ropa:               { supabaseTable: "ropa",               excludeFields: ["status", "deleted"] },
-  ropa_outfits:       { supabaseTable: "ropa_outfits",       excludeFields: ["status", "deleted"] },
-  diario_fotos:       { supabaseTable: "diario_fotos",       excludeFields: ["status", "deleted"] },
-  dibujos:            { supabaseTable: "dibujos",            excludeFields: ["status", "deleted"] },
-  personajes:         { supabaseTable: "personajes",         excludeFields: ["status", "deleted"] },
-  criaturas:          { supabaseTable: "criaturas",          excludeFields: ["status", "deleted"] },
-  criatura_variantes: { supabaseTable: "criatura_variantes", excludeFields: ["status", "deleted"] },
-  items:              { supabaseTable: "items",              excludeFields: ["status", "deleted"] },
-  reinos:             { supabaseTable: "reinos",             excludeFields: ["status", "deleted"] },
-  relaciones:         { supabaseTable: "relaciones",         excludeFields: ["status", "deleted"] },
+// ─── Constantes ───────────────────────────────────────────────────────────────
+const FETCH_TIMEOUT_MS       = 12_000;
+const UPDATE_TIMEOUT_MS      = 10_000;
+const REVALIDATE_THROTTLE_MS = 30_000;
+const RETRY_POLLING_MS       = 30_000;
+
+const QUERIES_MAP: Record<string, any> = {
+  personajes:   personajesQueries,
+  criaturas:    criaturasQueries,
+  items:        itemsQueries,
+  libros:       librosQueries,
+  recetas:      recetasQueries,
+  tareas:       tareasQueries,
+  eventos:      eventosQueries,
+  ingredientes: ingredientesQueries,
+  ropa:         ropaQueries,
+  ropa_outfits: ropaQueries,
+  canciones:    cancionesQueries,
+  compras:      comprasQueries,
 };
 
-const MAX_RETRIES    = 3;
-const SYNC_DEBOUNCE_MS = 500;
+const DEXIE_TABLES = new Set([
+  "personajes", "criaturas", "criatura_variantes", "items",
+  "libros", "canciones", "reinos", "relaciones",
+  "secciones_cancion", "capitulos",
+  "tareas", "eventos", "recetas", "ingredientes",
+  "ropa", "ropa_outfits", "diario_fotos", "dibujos",
+  "compras", "notas", "ensayos", "rutinas", "ejercicios_rutina",
+  "reino_detalles",
+]);
 
-// ─── Callbacks globales ───────────────────────────────────────────────────────
-type SyncDoneCallback = () => void;
-const syncDoneCallbacks = new Set<SyncDoneCallback>();
+const OFFLINE_WRITABLE = new Set([
+  "notas", "ensayos", "secciones_cancion", "capitulos", "libros",
+  "tareas", "eventos", "rutinas", "ejercicios_rutina",
+  "recetas", "ingredientes", "compras",
+  "ropa", "ropa_outfits", "diario_fotos", "dibujos",
+  "personajes", "criaturas", "criatura_variantes", "items", "reinos", "relaciones",
+]);
 
-export function onSyncDone(cb: SyncDoneCallback): () => void {
-  syncDoneCallbacks.add(cb);
-  return () => syncDoneCallbacks.delete(cb);
+// Tablas con ID numérico autogenerado por la DB — no se pueden crear offline
+const NUMERIC_ID_TABLES = new Set(["diario_fotos", "dibujos"]);
+
+// ─── Tipos ────────────────────────────────────────────────────────────────────
+interface UseSupabaseOptions {
+  select?: string;
+  order?: { campo: string; asc?: boolean };
+  isAdmin?: boolean;
+  [key: string]: any;
 }
 
-function notifySyncDone() {
-  for (const cb of syncDoneCallbacks) {
-    try { cb(); } catch {}
-  }
-}
-
-// ─── Verificación real de conectividad ───────────────────────────────────────
-export async function isReallyOnline(): Promise<boolean> {
-  if (!navigator.onLine) return false;
-  return new Promise<boolean>((resolve) => {
-    const controller = new AbortController();
-    const timeoutId  = setTimeout(() => { controller.abort(); resolve(false); }, 4_000);
-
-    fetch("https://supabase.com/favicon.ico", {
-      method: "HEAD",
-      mode:   "no-cors",
-      cache:  "no-store",
-      signal: controller.signal,
-    })
-      .then(() => { clearTimeout(timeoutId); resolve(true); })
-      .catch(() => {
-        // BUG A FIX: cualquier error en el fetch significa sin conexión.
-        // Antes se resolvía true para errores distintos de AbortError/TypeError
-        // (ej. DOMException por CORS), causando sync en falso con error de red.
-        clearTimeout(timeoutId);
-        resolve(false);
-      });
+// ─── Helpers puros (fuera del hook para no recrearse) ─────────────────────────
+function generateUUID(): string {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    return (c === "x" ? r : (r & 0x3) | 0x8).toString(16);
   });
 }
 
-function cleanPayload(payload: any, exclude: string[] = []): any {
-  const clean = { ...payload };
-  for (const field of exclude) delete clean[field];
-  return clean;
+function isNetworkError(err: any): boolean {
+  if (err?.name === "AbortError") return true;
+  const msg = (err?.message ?? "").toLowerCase();
+  return (
+    msg === "failed to fetch"              ||
+    msg.includes("networkerror")           ||
+    msg.includes("network request failed") ||
+    msg.includes("network error")          ||
+    (msg.includes("timeout") && !msg.includes("update timeout"))
+  );
 }
 
-export async function dexiePut(table: string, data: any): Promise<void> {
-  try { if (db) await (db as any)[table]?.put(data); }
-  catch (e) { console.warn(`[Dexie] put failed on '${table}':`, e); }
+async function getDexieRow(tabla: string, id: string | number): Promise<any> {
+  try {
+    if (!db || !DEXIE_TABLES.has(tabla)) return null;
+    return (await (db as any)[tabla]?.get(id)) ?? null;
+  } catch {
+    return null;
+  }
 }
 
-export async function dexieUpdate(table: string, id: string | number, data: any): Promise<void> {
-  try { if (db) await (db as any)[table]?.update(id, data); }
-  catch (e) { console.warn(`[Dexie] update failed on '${table}':`, e); }
+async function readFromDexie<T>(tabla: string): Promise<T[]> {
+  try {
+    if (!db || !DEXIE_TABLES.has(tabla)) return [];
+    const table = (db as any)[tabla];
+    if (!table) return [];
+    const rows = (await table.toArray()) as any[];
+    return rows.filter((r: any) => !r.deleted) as T[];
+  } catch {
+    return [];
+  }
 }
 
-export async function dexieDelete(table: string, id: string | number): Promise<void> {
-  try { if (db) await (db as any)[table]?.delete(id); }
-  catch (e) { console.warn(`[Dexie] delete failed on '${table}':`, e); }
+async function writeToDexie(tabla: string, rows: any[]): Promise<void> {
+  try {
+    if (!db || !DEXIE_TABLES.has(tabla) || rows.length === 0) return;
+    const table = (db as any)[tabla];
+    if (!table) return;
+    await table.bulkPut(rows);
+  } catch (e) {
+    console.warn(`[Dexie] No se pudo guardar en '${tabla}':`, e);
+  }
 }
 
-// ─── Estado global del sync (singleton) ──────────────────────────────────────
-let globalSyncPromise: Promise<void> | null = null;
-let lastSyncTime   = 0;
-// FIX #1: flag para coordinar el re-run sin crear un sync paralelo.
-// El problema era: finally ponía globalSyncPromise=null, y si el setTimeout
-// del re-run ya había ejecutado (microtask timing), entraba un segundo sync
-// mientras el primero todavía estaba en su finally. Con el flag, el re-run
-// solo ocurre después del finally, de forma controlada.
-let pendingRerun = false;
+async function syncDexieWithRemote(tabla: string, remoteRows: any[]): Promise<void> {
+  try {
+    if (!db || !DEXIE_TABLES.has(tabla)) return;
+    const table = (db as any)[tabla];
+    if (!table) return;
+    const localRows: any[] = await table.toArray();
+    const pendingIds = new Set(
+      localRows.filter((r: any) => r.status === "pending").map((r: any) => String(r.id))
+    );
+    const remoteIds = new Set(remoteRows.map((r: any) => String(r.id)));
+    const toUpsert = remoteRows
+      .filter((r: any) => !pendingIds.has(String(r.id)))
+      .map((r: any) => ({ ...r, status: "synced" }));
+    if (toUpsert.length > 0) await table.bulkPut(toUpsert);
+    const hasSynced = localRows.some((r: any) => r.status !== "pending");
+    if (remoteRows.length === 0 && hasSynced) return;
+    const toDelete = localRows
+      .filter((r: any) => !remoteIds.has(String(r.id)) && r.status !== "pending")
+      .map((r: any) => r.id);
+    if (toDelete.length > 0) await table.bulkDelete(toDelete);
+  } catch (e) {
+    console.warn(`[Dexie] No se pudo sincronizar '${tabla}':`, e);
+  }
+}
 
-export async function runSync(): Promise<void> {
-  if (globalSyncPromise) return globalSyncPromise;
+function mergeWithPending<T>(remoteData: T[], localData: T[]): T[] {
+  const pendingRows = localData.filter((r: any) => r.status === "pending");
+  if (pendingRows.length === 0) return remoteData;
+  const pendingIds = new Set(pendingRows.map((r: any) => String(r.id)));
+  return [
+    ...remoteData.filter((r: any) => !pendingIds.has(String(r.id))),
+    ...pendingRows,
+  ] as T[];
+}
 
-  const now = Date.now();
-  if (now - lastSyncTime < SYNC_DEBOUNCE_MS) return;
+function makePendingRow(
+  id: string | number,
+  updates: any,
+  existing: any = null,
+  extra: Record<string, any> = {},
+): Record<string, any> {
+  return { ...(existing ?? {}), ...updates, ...extra, id, status: "pending" };
+}
 
-  // NEW-1: reservar el slot ANTES del await para evitar la race condition
-  // donde dos llamadas simultáneas pasan el guard de globalSyncPromise=null
-  // antes de que la primera asigne la promesa. El check de online va dentro.
-  lastSyncTime = Date.now();
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(`${label} timeout`)), ms)
+    ),
+  ]);
+}
 
-  globalSyncPromise = (async () => {
+function clearTimer(ref: React.MutableRefObject<ReturnType<typeof setTimeout> | null>): void {
+  if (ref.current) {
+    clearTimeout(ref.current);
+    ref.current = null;
+  }
+}
+
+// ─── Hook principal ───────────────────────────────────────────────────────────
+export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOptions = {}) {
+  const { cache, updateCache } = useDataCache();
+  const [data,      setData]      = useState<T[]>(cache[tabla] ?? []);
+  const [loading,   setLoading]   = useState(tabla !== "__skip__");
+  const [error,     setError]     = useState<string | null>(null);
+  const [isOffline, setIsOffline] = useState(false);
+
+  const isMounted        = useRef(true);
+  const retryCount       = useRef(0);
+  const pollingRef       = useRef<ReturnType<typeof setInterval> | null>(null);
+  const lastFetchRef     = useRef<number>(0);
+  const lastVisibleRef   = useRef<number>(Date.now());
+  const channelRef       = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const retryTimerRef    = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const fetchTimeoutRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const updateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const optionsRef       = useRef<UseSupabaseOptions>(opciones);
+  useEffect(() => { optionsRef.current = opciones; });
+
+  // ─── fetchData ──────────────────────────────────────────────────────────────
+  const fetchData = useCallback(async () => {
+    if (!isMounted.current || tabla === "__skip__") return;
+    setError(null);
+
+    const localData    = await readFromDexie<T>(tabla);
+    const hasLocalData = localData.length > 0;
+    if (!isMounted.current) return;
+
+    if (hasLocalData) {
+      setData(localData);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+
     const online = await isReallyOnline();
-    if (!online) return;
-    try {
-      const queue = await db.offline_queue.orderBy("timestamp").toArray();
+    if (!isMounted.current) return;
 
-      // FIX #2: notificar siempre al terminar, incluso con cola vacía.
-      // Sin esto, al reconectar sin ops pendientes, los hooks nunca reciben
-      // la señal de revalidación y los datos quedan stale indefinidamente.
-      if (queue.length === 0) {
-        // BUG B FIX: resetear pendingRerun aquí también para evitar re-runs
-        // infinitos cuando la cola ya estaba vacía desde el inicio.
-        pendingRerun = false;
-        notifySyncDone();
+    if (!online) {
+      if (!hasLocalData) setLoading(false);
+      setIsOffline(true);
+      return;
+    }
+
+    setIsOffline(false);
+
+    try {
+      const opts = optionsRef.current;
+      const fetchPromise = (): Promise<any> => {
+        if (QUERIES_MAP[tabla]) return QUERIES_MAP[tabla].getAll(opts);
+        let query = supabase.from(tabla).select(opts.select ?? "*");
+        if (opts.order) {
+          query = query.order(opts.order.campo, { ascending: opts.order.asc ?? true });
+        }
+        return query as unknown as Promise<any>;
+      };
+
+      clearTimer(fetchTimeoutRef);
+      const result = await Promise.race([
+        fetchPromise(),
+        new Promise<"timeout">((resolve) => {
+          fetchTimeoutRef.current = setTimeout(() => resolve("timeout"), FETCH_TIMEOUT_MS);
+        }),
+      ]);
+      clearTimer(fetchTimeoutRef);
+
+      if (result === "timeout") {
+        if (!isMounted.current) return;
+        setLoading(false);
+        setIsOffline(true);
+        clearTimer(retryTimerRef);
+        retryTimerRef.current = setTimeout(
+          () => { if (isMounted.current) fetchData(); },
+          hasLocalData ? 15_000 : 8_000,
+        );
         return;
       }
 
-      console.log(`[Sync] Procesando ${queue.length} operaciones pendientes...`);
+      const res       = result as any;
+      const finalData = Array.isArray(res) ? res : (res?.data ?? []);
+      if (res?.error) throw res.error;
+      if (!isMounted.current) return;
 
-      for (const op of queue) {
-        const config = SYNC_TABLES[op.table];
-        if (!config) {
-          await db.offline_queue.delete(op.id!);
-          continue;
-        }
+      const merged = mergeWithPending<T>(finalData, localData);
+      setData(merged);
+      updateCache(tabla, merged);
+      retryCount.current   = 0;
+      lastFetchRef.current = Date.now();
+      setLoading(false);
+      setIsOffline(false);
+      syncDexieWithRemote(tabla, finalData).catch(() => {});
 
-        try {
-          let error: any = null;
+    } catch (err: any) {
+      clearTimer(fetchTimeoutRef);
+      if (!isMounted.current) return;
 
-          if (op.operation === "delete") {
-            ({ error } = await supabase.from(config.supabaseTable).delete().eq("id", op.recordId));
-            if (!error) {
-              try { await (db as any)[op.table]?.delete(op.recordId); } catch {}
-            }
-          } else if (op.operation === "upsert") {
-            const payload = cleanPayload(op.payload, config.excludeFields);
-            // NEW-3: guardia — no upsert con payload vacío (perdería datos en el servidor)
-            if (!payload || Object.keys(payload).length === 0) {
-              console.warn(`[Sync] ⚠ Payload vacío para upsert en ${op.table}/${op.recordId}, descartando`);
-              await db.offline_queue.delete(op.id!);
-              continue;
-            }
-            ({ error } = await supabase.from(config.supabaseTable).upsert(payload));
-          } else if (op.operation === "update") {
-            const payload = cleanPayload(op.payload, config.excludeFields);
-            if (!payload || Object.keys(payload).length === 0) {
-              console.warn(`[Sync] ⚠ Payload vacío para update en ${op.table}/${op.recordId}, descartando`);
-              await db.offline_queue.delete(op.id!);
-              continue;
-            }
-            ({ error } = await supabase
-              .from(config.supabaseTable)
-              .update(payload)
-              .eq("id", op.recordId));
-          }
-
-          if (error) throw error;
-
-          try {
-            const table = (db as any)[op.table];
-            if (table && op.operation !== "delete") {
-              await table.update(op.recordId, { status: "synced" });
-            }
-          } catch {}
-
-          await db.offline_queue.delete(op.id!);
-          console.log(`[Sync] ✓ ${op.table}/${op.recordId}`);
-
-        } catch (err: any) {
-          // NEW-4: distinguir errores permanentes (4xx de Supabase) de transitorios (red).
-          // Un 409 de constraint o un 400 de validación nunca se va a resolver reintentando;
-          // descartarlo inmediatamente en vez de consumir MAX_RETRIES y bloquear la cola.
-          const statusCode = err?.code ? parseInt(err.code, 10) : null;
-          const isPermanentError = (
-            (statusCode !== null && statusCode >= 400 && statusCode < 500) ||
-            err?.message?.includes("violates") ||
-            err?.message?.includes("duplicate") ||
-            err?.message?.includes("invalid input")
-          );
-          const retries = (op.retries ?? 0) + 1;
-          if (isPermanentError || retries >= MAX_RETRIES) {
-            const reason = isPermanentError ? "error permanente" : `${MAX_RETRIES} intentos`;
-            console.warn(`[Sync] ✗ Descartando ${op.table}/${op.recordId} por ${reason}:`, err?.message);
-            await db.offline_queue.delete(op.id!);
-          } else {
-            await db.offline_queue.update(op.id!, { retries });
-          }
-        }
+      if (isNetworkError(err) && retryCount.current < 5) {
+        retryCount.current++;
+        const delay = Math.min(2000 * 2 ** (retryCount.current - 1), 32_000);
+        clearTimer(retryTimerRef);
+        retryTimerRef.current = setTimeout(
+          () => { if (isMounted.current) fetchData(); },
+          delay,
+        );
+        if (!hasLocalData) setLoading(false);
+        setIsOffline(true);
+        return;
       }
 
-      // NEW-5: notificar aunque hayan quedado ops con errores — los hooks
-      // deben revalidar igualmente para mostrar el estado actualizado.
-      // El remaining check determina si hay que re-intentar pronto.
-      const remaining = await db.offline_queue.count();
-      if (remaining > 0) pendingRerun = true;
-      notifySyncDone();
-
-    } finally {
-      // FIX #1 (cont.): primero null, luego re-run. El orden importa:
-      // si pusieramos el setTimeout antes del null, runSync() encontraría
-      // globalSyncPromise todavía seteado y descartaría el re-run.
-      globalSyncPromise = null;
-
-      if (pendingRerun) {
-        pendingRerun = false;
-        // Esperamos debounce+100ms para asegurar que pasamos el guard de lastSyncTime
-        setTimeout(() => runSync(), SYNC_DEBOUNCE_MS + 100);
-      }
+      if (!hasLocalData) setError(err.message);
+      if (isNetworkError(err)) setIsOffline(true);
+      setLoading(false);
     }
-  })();
+  }, [tabla, updateCache]);
 
-  const syncPromise = globalSyncPromise;
-  return syncPromise ?? Promise.resolve();
-}
+  // ─── Mutaciones ──────────────────────────────────────────────────────────────
+  const addRow = useCallback(async (newData: any) => {
+    const online = await isReallyOnline();
+    if (!online) {
+      if (NUMERIC_ID_TABLES.has(tabla)) {
+        return { data: null, error: "Esta tabla requiere conexión para crear registros." };
+      }
+      if (OFFLINE_WRITABLE.has(tabla)) {
+        const id  = newData.id ?? generateUUID();
+        const row = makePendingRow(id, newData);
+        await writeToDexie(tabla, [row]);
+        try { await enqueueOperation(tabla, "upsert", String(id), row); }
+        catch { console.error(`[addRow] No se pudo encolar upsert ${tabla}/${id}`); }
+        setData(prev => [...prev, row as any]);
+        return { data: row, error: null };
+      }
+      return { data: null, error: "Sin conexión" };
+    }
+    try {
+      const res = QUERIES_MAP[tabla]?.create
+        ? await QUERIES_MAP[tabla].create(newData)
+        : await supabase.from(tabla).insert([newData]).select().single();
+      if (res?.error) return { data: null, error: res.error };
+      const created = res?.data ?? res;
+      if (created?.id) {
+        writeToDexie(tabla, [{ ...created, status: "synced" }]);
+        setData(prev => [...prev, { ...created, status: "synced" } as any]);
+      }
+      return { data: created, error: null };
+    } catch (err: any) {
+      if (OFFLINE_WRITABLE.has(tabla) && !NUMERIC_ID_TABLES.has(tabla)) {
+        const id  = newData.id ?? generateUUID();
+        const row = makePendingRow(id, newData);
+        await writeToDexie(tabla, [row]);
+        try { await enqueueOperation(tabla, "upsert", String(id), row); } catch {}
+        setData(prev => [...prev, row as any]);
+        return { data: row, error: null };
+      }
+      return { data: null, error: err.message };
+    }
+  }, [tabla]);
 
-export function useOfflineSync() {
-  const debounceRef    = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // FIX #3: ref estable para el event listener.
-  // Si triggerSync fuera una función definida en el cuerpo del hook y se pasara
-  // directamente a addEventListener/removeEventListener, podría haber mismatch
-  // de referencias. El wrapper estable garantiza que add/remove usan la misma fn.
-  const triggerSyncRef = useRef<() => void>(() => {});
+  const updateRow = useCallback(async (id: string | number, updates: any) => {
+    const online = await isReallyOnline();
+    if (!online && OFFLINE_WRITABLE.has(tabla)) {
+      const existing = await getDexieRow(tabla, id);
+      const row = makePendingRow(id, updates, existing);
+      await writeToDexie(tabla, [row]);
+      try { await enqueueOperation(tabla, "update", String(id), row); } catch {}
+      setData(prev => prev.map((r: any) => r.id === id ? row : r));
+      return { data: row, error: null };
+    }
+    try {
+      const updatePromise = QUERIES_MAP[tabla]?.update
+        ? QUERIES_MAP[tabla].update(id, updates)
+        : supabase.from(tabla).update(updates).eq("id", id).select().single();
+      const res = await withTimeout(updatePromise, UPDATE_TIMEOUT_MS, "update");
+      if ((res as any)?.error) return { data: null, error: (res as any).error };
+      const updated   = (res as any)?.data ?? null;
+      const savedData = updated ?? { id, ...updates };
+      if (savedData?.id !== undefined) {
+        writeToDexie(tabla, [{ ...savedData, status: "synced" }]);
+        setData(prev => prev.map((r: any) => r.id === id ? { ...r, ...savedData } : r));
+      }
+      return { data: updated, error: null };
+    } catch (err: any) {
+      if (OFFLINE_WRITABLE.has(tabla)) {
+        const existing = await getDexieRow(tabla, id);
+        const row = makePendingRow(id, updates, existing);
+        await writeToDexie(tabla, [row]);
+        try { await enqueueOperation(tabla, "update", String(id), row); } catch {}
+        setData(prev => prev.map((r: any) => r.id === id ? row : r));
+        return { data: row, error: null };
+      }
+      return { data: null, error: err.message };
+    }
+  }, [tabla]);
 
+  const deleteRow = useCallback(async (id: string | number) => {
+    const online = await isReallyOnline();
+    const offlineDelete = async () => {
+      const existing = await getDexieRow(tabla, id);
+      if (existing) {
+        await writeToDexie(tabla, [makePendingRow(id, {}, existing, { deleted: true })]);
+      }
+      try { await enqueueOperation(tabla, "delete", String(id)); } catch {}
+      setData(prev => prev.filter((r: any) => r.id !== id));
+      return { error: null };
+    };
+    if (!online && OFFLINE_WRITABLE.has(tabla)) return offlineDelete();
+    try {
+      const res = QUERIES_MAP[tabla]?.delete
+        ? await QUERIES_MAP[tabla].delete(id)
+        : await supabase.from(tabla).delete().eq("id", id);
+      if (!res?.error) {
+        setData(prev => prev.filter((r: any) => r.id !== id));
+        try {
+          if (db && DEXIE_TABLES.has(tabla)) await (db as any)[tabla]?.delete(id);
+        } catch {}
+      }
+      return { error: res?.error ?? null };
+    } catch (err: any) {
+      if (OFFLINE_WRITABLE.has(tabla)) return offlineDelete();
+      return { error: err.message };
+    }
+  }, [tabla]);
+
+  // ─── Realtime ─────────────────────────────────────────────────────────────
+  const subscribeChannel = useCallback(() => {
+    if (channelRef.current) {
+      const old = channelRef.current;
+      channelRef.current = null;
+      if (pollingRef.current) { clearInterval(pollingRef.current); pollingRef.current = null; }
+      supabase.removeChannel(old).catch(() => {});
+    }
+    if (!isMounted.current) return;
+    const channel = supabase
+      .channel(`rt-${tabla}-${Date.now()}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: tabla }, () => {
+        fetchData();
+      })
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          if (pollingRef.current) { clearInterval(pollingRef.current); pollingRef.current = null; }
+          return;
+        }
+        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+          if (!pollingRef.current) {
+            pollingRef.current = setInterval(() => {
+              if (isMounted.current) fetchData();
+            }, RETRY_POLLING_MS);
+          }
+        }
+      });
+    channelRef.current = channel;
+  }, [tabla, fetchData]);
+
+  // ─── Efectos ─────────────────────────────────────────────────────────────
   useEffect(() => {
-    // BUG D FIX: el setTimeout de 500ms aquí era redundante con SYNC_DEBOUNCE_MS
-    // dentro de runSync, causando ~1000ms de delay total en eventos online.
-    // El debounce del hook se elimina; runSync ya tiene su propio guard.
-    triggerSyncRef.current = () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-      debounceRef.current = setTimeout(() => { runSync(); }, 100);
-    };
+    isMounted.current = true;
+    fetchData();
+    subscribeChannel();
 
-    const handleOnline = () => triggerSyncRef.current();
-
-    runSync();
-    window.addEventListener("online", handleOnline);
-    return () => {
-      window.removeEventListener("online", handleOnline);
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
-  }, []);
-
-  return { syncAll: runSync };
-}
-
-export async function enqueueOperation(
-  table: string,
-  operation: "upsert" | "update" | "delete",
-  recordId: string,
-  payload?: any,
-): Promise<void> {
-  try {
-    await db.offline_queue.add({
-      table,
-      operation,
-      recordId,
-      payload:   payload ?? {},
-      timestamp: Date.now(),
-      retries:   0,
+    const unsubSyncDone = onSyncDone(() => {
+      if (isMounted.current) setTimeout(() => { if (isMounted.current) fetchData(); }, 800);
     });
-    console.log(`[Queue] Encolado: ${operation} en ${table}/${recordId}`);
-    // BUG C FIX: intentar sync inmediatamente después de encolar.
-    // Antes la op quedaba en la queue hasta el próximo evento online/mount,
-    // aunque el usuario estuviera conectado en ese momento.
-    runSync().catch(() => {});
-  } catch (e) {
-    console.error(`[Queue] Error al encolar ${operation} en ${table}/${recordId}:`, e);
-    throw e;
-  }
-}
 
-export async function getPendingCount(): Promise<number> {
-  try {
-    return await db.offline_queue.count();
-  } catch {
-    return 0;
-  }
+    const handleOnline = async () => {
+      retryCount.current = 0;
+      clearTimer(retryTimerRef);
+      const online = await isReallyOnline();
+      if (!online || !isMounted.current) return;
+      setIsOffline(false);
+      subscribeChannel();
+      setTimeout(() => { if (isMounted.current) fetchData(); }, 1_000);
+    };
+
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        const now        = Date.now();
+        const hidden     = now - lastVisibleRef.current;
+        const sinceFetch = now - lastFetchRef.current;
+        if (hidden > REVALIDATE_THROTTLE_MS || sinceFetch > REVALIDATE_THROTTLE_MS) {
+          retryCount.current = 0;
+          subscribeChannel();
+          setTimeout(() => { if (isMounted.current) fetchData(); }, 500);
+        }
+        lastVisibleRef.current = now;
+      } else {
+        lastVisibleRef.current = Date.now();
+      }
+    };
+
+    window.addEventListener("online", handleOnline);
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      isMounted.current = false;
+      clearTimer(retryTimerRef);
+      clearTimer(fetchTimeoutRef);
+      clearTimer(updateTimeoutRef);
+      if (pollingRef.current) { clearInterval(pollingRef.current); pollingRef.current = null; }
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current).catch(() => {});
+        channelRef.current = null;
+      }
+      window.removeEventListener("online", handleOnline);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      unsubSyncDone();
+    };
+  }, [tabla, fetchData, subscribeChannel]);
+
+  return {
+    data,
+    setData,
+    loading,
+    error,
+    isOffline,
+    refetch: fetchData,
+    mutate:  fetchData,
+    addRow,
+    updateRow,
+    deleteRow,
+  };
 }
