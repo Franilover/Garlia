@@ -3,6 +3,7 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import {
   Loader2, Eye, EyeOff, Plus, Search, X, SlidersHorizontal, Sparkles,
+  Wand2, ScrollText, FileText, Zap,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
@@ -241,15 +242,26 @@ function MundoSectionCard({
 
 // ─── AddCommandMenu ───────────────────────────────────────────────────────────
 // Floating menu triggered when user types "add" and presses Enter
+
+export type MagicAddKey = "hechizos" | "runas" | "notas";
+
+const MAGIC_ADD_ITEMS: { key: MagicAddKey; label: string; Icon: React.ElementType; abbr: string }[] = [
+  { key: "hechizos", label: "Hechizo",  Icon: Wand2,      abbr: "HZ" },
+  { key: "runas",    label: "Runa",     Icon: Zap,         abbr: "RN" },
+  { key: "notas",    label: "Nota",     Icon: FileText,    abbr: "NT" },
+];
+
 function AddCommandMenu({
   open,
   anchorRef,
   onAdd,
+  onAddMagic,
   onClose,
 }: {
   open: boolean;
   anchorRef: React.RefObject<HTMLDivElement | null>;
   onAdd: (tab: Exclude<TabKey, "mundo">) => void;
+  onAddMagic?: (key: MagicAddKey) => void;
   onClose: () => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -271,6 +283,29 @@ function AddCommandMenu({
 
   if (!open) return null;
 
+  const btnBase = {
+    borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)",
+    color: "color-mix(in srgb, var(--primary) 45%, transparent)",
+  };
+  const btnHover = (isAccent?: boolean) => ({
+    enter: (e: React.MouseEvent) => {
+      const el = e.currentTarget as HTMLElement;
+      el.style.background = isAccent
+        ? "color-mix(in srgb, var(--accent) 10%, transparent)"
+        : "color-mix(in srgb, var(--primary) 8%, transparent)";
+      el.style.color = isAccent ? "var(--accent)" : "var(--primary)";
+      el.style.borderColor = isAccent
+        ? "color-mix(in srgb, var(--accent) 35%, transparent)"
+        : "color-mix(in srgb, var(--primary) 35%, transparent)";
+    },
+    leave: (e: React.MouseEvent) => {
+      const el = e.currentTarget as HTMLElement;
+      el.style.background = "transparent";
+      el.style.color = "color-mix(in srgb, var(--primary) 45%, transparent)";
+      el.style.borderColor = "color-mix(in srgb, var(--primary) 15%, transparent)";
+    },
+  });
+
   return (
     <div
       ref={ref}
@@ -283,6 +318,7 @@ function AddCommandMenu({
         transformOrigin: "top center",
       }}
     >
+      {/* Header */}
       <div
         className="px-3 py-2 flex items-center gap-2 border-b"
         style={{
@@ -293,38 +329,84 @@ function AddCommandMenu({
         <Sparkles size={10} className="text-primary/30" />
         <p className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/30">Añadir nueva entrada</p>
       </div>
+
+      {/* Entity tabs — 2 col grid */}
       <div className="p-2 grid grid-cols-2 gap-1">
-        {tabs.map(([key, cfg]) => (
-          <button
-            key={key}
-            onClick={() => { onAdd(key); onClose(); }}
-            className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-left transition-all group border border-dashed"
-            style={{
-              borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)",
-              color: "color-mix(in srgb, var(--primary) 45%, transparent)",
-            }}
-            onMouseEnter={e => {
-              (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 8%, transparent)";
-              (e.currentTarget as HTMLElement).style.color = "var(--primary)";
-              (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 35%, transparent)";
-            }}
-            onMouseLeave={e => {
-              (e.currentTarget as HTMLElement).style.background = "transparent";
-              (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--primary) 45%, transparent)";
-              (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 15%, transparent)";
-            }}
-          >
-            <span
-              className="shrink-0 w-6 h-6 rounded-lg flex items-center justify-center"
-              style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
+        {tabs.map(([key, cfg]) => {
+          const hv = btnHover(false);
+          return (
+            <button
+              key={key}
+              onClick={() => { onAdd(key); onClose(); }}
+              className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-left transition-all group border border-dashed"
+              style={btnBase}
+              onMouseEnter={hv.enter}
+              onMouseLeave={hv.leave}
             >
-              <cfg.Icon size={11} />
-            </span>
-            <span className="text-[10px] font-black uppercase tracking-widest">{cfg.label}</span>
-            <Plus size={8} className="ml-auto opacity-40" />
-          </button>
-        ))}
+              <span
+                className="shrink-0 w-6 h-6 rounded-lg flex items-center justify-center"
+                style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
+              >
+                <cfg.Icon size={11} />
+              </span>
+              <span className="text-[10px] font-black uppercase tracking-widest">{cfg.label}</span>
+              <Plus size={8} className="ml-auto opacity-40" />
+            </button>
+          );
+        })}
       </div>
+
+      {/* Divider + Magia section */}
+      <div
+        className="px-3 py-1.5 flex items-center gap-2 border-t border-b"
+        style={{
+          background: "color-mix(in srgb, var(--accent) 4%, transparent)",
+          borderColor: "color-mix(in srgb, var(--accent) 10%, transparent)",
+        }}
+      >
+        <Sparkles size={9} style={{ color: "color-mix(in srgb, var(--accent) 50%, transparent)" }} />
+        <p className="text-[8px] font-black uppercase tracking-[0.3em]"
+          style={{ color: "color-mix(in srgb, var(--accent) 45%, transparent)" }}>
+          Magia &amp; Notas
+        </p>
+      </div>
+      <div className="p-2 grid grid-cols-3 gap-1">
+        {MAGIC_ADD_ITEMS.map(({ key, label, Icon, abbr }) => {
+          const hv = btnHover(true);
+          return (
+            <button
+              key={key}
+              onClick={() => { onAddMagic?.(key); onClose(); }}
+              className="flex flex-col items-center gap-1.5 px-2 py-2.5 rounded-xl text-center transition-all border border-dashed"
+              style={{
+                borderColor: "color-mix(in srgb, var(--accent) 18%, transparent)",
+                color: "color-mix(in srgb, var(--accent) 45%, transparent)",
+              }}
+              onMouseEnter={e => {
+                const el = e.currentTarget as HTMLElement;
+                el.style.background = "color-mix(in srgb, var(--accent) 10%, transparent)";
+                el.style.color = "var(--accent)";
+                el.style.borderColor = "color-mix(in srgb, var(--accent) 40%, transparent)";
+              }}
+              onMouseLeave={e => {
+                const el = e.currentTarget as HTMLElement;
+                el.style.background = "transparent";
+                el.style.color = "color-mix(in srgb, var(--accent) 45%, transparent)";
+                el.style.borderColor = "color-mix(in srgb, var(--accent) 18%, transparent)";
+              }}
+            >
+              <span
+                className="w-7 h-7 rounded-lg flex items-center justify-center"
+                style={{ background: "color-mix(in srgb, var(--accent) 10%, transparent)" }}
+              >
+                <Icon size={12} />
+              </span>
+              <span className="text-[9px] font-black uppercase tracking-widest leading-none">{label}</span>
+            </button>
+          );
+        })}
+      </div>
+
       <style>{`
         @keyframes popIn {
           from { opacity: 0; transform: scale(0.92) translateY(-4px); }
@@ -345,6 +427,7 @@ export function GlobalSearchBar({
   activeMundoSection,
   onSelect,
   onAdd,
+  onAddMagic,
   onNavigateTab,
   onSelectMundoSection,
   onSelectMundoSubTab,
@@ -359,6 +442,7 @@ export function GlobalSearchBar({
   activeMundoSection: MundoSectionKey | null;
   onSelect: (item: any, tab: Exclude<TabKey, "mundo">) => void;
   onAdd: (tab: Exclude<TabKey, "mundo">) => void;
+  onAddMagic?: (key: MagicAddKey) => void;
   onNavigateTab?: (tab: Exclude<TabKey, "mundo">) => void;
   onSelectMundoSection: (s: MundoSectionKey) => void;
   onSelectMundoSubTab?: (section: MundoSectionKey, subTab: string) => void;
@@ -600,6 +684,7 @@ export function GlobalSearchBar({
           open={addMenuOpen}
           anchorRef={wrapRef}
           onAdd={(tab) => { onAdd(tab); close(); }}
+          onAddMagic={(key) => { onAddMagic?.(key); close(); }}
           onClose={() => { setAddMenuOpen(false); setQuery(""); setFocused(false); inputRef.current?.blur(); }}
         />
 
