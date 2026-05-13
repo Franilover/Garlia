@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { Loader2, CheckCircle2, AlertCircle, WifiOff } from "lucide-react";
+import { Loader2, CheckCircle2, AlertCircle, WifiOff, Eye, Edit3, Columns } from "lucide-react";
 import { DraftRestoreBanner, useDraftRestore } from "@/hooks/useEditorShared";
 import { dexieSecGet } from "../../lib/seccionesDb";
 import { IDIOMAS, IDLE_STATE } from "../../constants";
@@ -136,6 +136,7 @@ export const SeccionTextarea = ({
   const [texto,     setTexto]     = useState(serverVal);
   const [st,        setSt]        = useState<ColState>(IDLE_STATE);
   const [countMode, setCountMode] = useState<CountMode>("silabas");
+  const [viewMode,  setViewMode]  = useState<"edit" | "split" | "preview">("split");
 
   const timer    = useRef<ReturnType<typeof setTimeout> | null>(null);
   const draftKey = `sec-draft-${sec.id}-${idioma}`;
@@ -219,22 +220,46 @@ export const SeccionTextarea = ({
         </div>
       )}
 
-      {/* ── Toggle sílabas / vocales ── */}
+      {/* ── Toggle sílabas / vocales + modo vista ── */}
       <div className="flex items-center justify-between">
-        <div className="flex gap-0.5 p-0.5 bg-primary/5 rounded-lg border border-primary/10 w-fit">
-          {(["silabas", "vocales"] as CountMode[]).map(m => (
-            <button
-              key={m}
-              onClick={() => setCountMode(m)}
-              className={`px-2 py-1 rounded-md text-[8px] font-black uppercase tracking-widest transition-all ${
-                countMode === m
-                  ? "bg-primary text-bg-main"
-                  : "text-primary/30 hover:text-primary/60"
-              }`}
-            >
-              {m === "silabas" ? "síl" : "voc"}
-            </button>
-          ))}
+        <div className="flex items-center gap-1">
+          <div className="flex gap-0.5 p-0.5 bg-primary/5 rounded-lg border border-primary/10 w-fit">
+            {(["silabas", "vocales"] as CountMode[]).map(m => (
+              <button
+                key={m}
+                onClick={() => setCountMode(m)}
+                className={`px-2 py-1 rounded-md text-[8px] font-black uppercase tracking-widest transition-all ${
+                  countMode === m
+                    ? "bg-primary text-bg-main"
+                    : "text-primary/30 hover:text-primary/60"
+                }`}
+              >
+                {m === "silabas" ? "síl" : "voc"}
+              </button>
+            ))}
+          </div>
+
+          {/* Botones edit / split / preview */}
+          <div className="flex gap-0.5 p-0.5 bg-primary/5 rounded-lg border border-primary/10">
+            {([
+              { id: "edit",    Icon: Edit3,   title: "Editar" },
+              { id: "split",   Icon: Columns, title: "Split" },
+              { id: "preview", Icon: Eye,     title: "Vista previa" },
+            ] as { id: "edit"|"split"|"preview"; Icon: React.ElementType; title: string }[]).map(({ id, Icon, title }) => (
+              <button
+                key={id}
+                onClick={() => setViewMode(id)}
+                title={title}
+                className={`p-1 rounded-md transition-all ${
+                  viewMode === id
+                    ? "bg-primary text-bg-main"
+                    : "text-primary/30 hover:text-primary/60"
+                }`}
+              >
+                <Icon size={10} />
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Indicadores de estado flotantes (fuera del editor) */}
@@ -247,12 +272,13 @@ export const SeccionTextarea = ({
       </div>
 
       {/* ── Editor markdown con overlay de contadores ── */}
-      <div className={`rounded-xl overflow-hidden ${statusRingClass}`}>
+      <div className={statusRingClass}>
         <MarkdownEditor
           value={texto}
           onChange={onChange}
           placeholder={`Letra en ${IDIOMAS.find(i => i.id === idioma)?.nombre}…`}
-          defaultMode="split"
+          toolbar={false}
+          mode={viewMode}
           autoResize
           rows={3}
           sectionTitle={nombreSeccion}

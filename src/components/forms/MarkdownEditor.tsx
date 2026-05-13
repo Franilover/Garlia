@@ -233,7 +233,7 @@ export function renderMathInElement(el: HTMLElement | null) {
 
 // ── Estilos de vista previa ──────────────────────────────────────────────────
 export const PROSE_STYLES = `
-  .prose-mundo h1 { font-size:1.4rem;font-weight:900;margin:1rem 0 .4rem;letter-spacing:.15em;text-transform:uppercase;color:var(--color-primary,#7c6af7);border-bottom:2px solid color-mix(in srgb,var(--color-primary,#7c6af7) 20%,transparent);padding-bottom:.3rem }
+  .prose-mundo h1 { font-size:.8rem;font-weight:800;margin:.6rem 0 .2rem;letter-spacing:.12em;text-transform:uppercase;color:color-mix(in srgb,var(--color-primary,#7c6af7) 55%,transparent);padding-bottom:.2rem }
   .prose-mundo h2 { font-size:1.1rem;font-weight:800;margin:.9rem 0 .35rem;letter-spacing:.1em;text-transform:uppercase;color:color-mix(in srgb,var(--color-primary,#7c6af7) 80%,white) }
   .prose-mundo h3 { font-size:.9rem;font-weight:700;margin:.7rem 0 .25rem;color:color-mix(in srgb,var(--color-primary,#7c6af7) 60%,white) }
   .prose-mundo p  { margin:.45rem 0;font-size:.85rem;line-height:1.65;color:var(--color-input-text,#d1c9ff) }
@@ -768,6 +768,8 @@ interface MarkdownEditorProps {
   className?: string;
   toolbar?: boolean;
   defaultMode?: ViewMode;
+  /** Modo controlado externamente. Si se pasa, sobreescribe el estado interno. */
+  mode?: ViewMode;
   extraCommands?: CommandItem[];
   /** Ref opcional: se le asigna una función insertAtCursor(text) para uso externo */
   insertRef?: React.MutableRefObject<((text: string) => void) | null>;
@@ -802,7 +804,9 @@ export function MarkdownEditor({
   placeholder,
   rows = 6,
   className = "",
+  toolbar = true,
   defaultMode = "split",
+  mode: modeProp,
   extraCommands = [],
   insertRef,
   onSnippetAction,
@@ -812,7 +816,8 @@ export function MarkdownEditor({
   renderOverlay,
   sectionTitle,
 }: MarkdownEditorProps) {
-  const [mode, setMode] = useState<ViewMode>(defaultMode);
+  const [modeInternal, setMode] = useState<ViewMode>(modeProp ?? defaultMode);
+  const mode = modeProp ?? modeInternal;
   const taRef = useRef<HTMLTextAreaElement>(null);
   const pvRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -1464,17 +1469,18 @@ export function MarkdownEditor({
       {/* ── Contenedor principal ── */}
       <div
         style={{
-          border: "1px solid color-mix(in srgb, var(--foreground) 8%, transparent)",
-          borderRadius: 8,
+          border: toolbar ? "1px solid color-mix(in srgb, var(--foreground) 8%, transparent)" : "none",
+          borderRadius: toolbar ? 8 : 0,
           display: "flex",
           flexDirection: "column",
           flex: 1,
           minHeight: 0,
-          background: "color-mix(in srgb, var(--bg-menu) 40%, transparent)",
+          background: toolbar ? "color-mix(in srgb, var(--bg-menu) 40%, transparent)" : "transparent",
           position: "relative",
         }}
       >
-        {/* ── Toolbar de vista (barra real, no flota sobre el contenido) ── */}
+        {/* ── Toolbar de vista ── */}
+        {toolbar && (
         <div
           style={{
             display: "flex",
@@ -1557,6 +1563,7 @@ export function MarkdownEditor({
           })}
           </div>
         </div>
+        )}
 
         {/* ── Panel Buscar y Reemplazar ── */}
         {findReplace.open && (
