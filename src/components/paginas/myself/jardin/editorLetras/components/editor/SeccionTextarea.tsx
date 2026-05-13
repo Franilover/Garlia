@@ -191,6 +191,12 @@ export const SeccionTextarea = ({
   const refCampo  = refIdioma ? IDIOMAS.find(i => i.id === refIdioma)?.campo : null;
   const refLineas = refCampo ? ((sec[refCampo] as string) || "").split("\n") : null;
 
+  // ── Rows dinámico: crece con el contenido sin depender del flex layout ───
+  // autoResize de MarkdownEditor mide scrollHeight, pero dentro de un flex
+  // container con min-h-0 queda atrapado. Calculamos rows desde el nº de
+  // líneas para que minHeight del textarea sea siempre correcto.
+  const dynamicRows = Math.max(3, texto.split("\n").length + 1);
+
   // ── Border según estado ──────────────────────────────────────────────────
   // El MarkdownEditor usa su propio borde; lo sobreescribimos vía className
   // en el div contenedor para indicar estado de guardado.
@@ -237,8 +243,8 @@ export const SeccionTextarea = ({
           placeholder={`Letra en ${IDIOMAS.find(i => i.id === idioma)?.nombre}…`}
           toolbar={false}
           mode="edit"
-          autoResize
-          rows={1}
+          autoResize={false}
+          rows={dynamicRows}
           renderOverlay={(val) => (
             <SyllableOverlay
               texto={val}
