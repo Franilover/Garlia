@@ -2002,6 +2002,40 @@ export function EditorMundo({
 }
 
 
+// ─── Componentes auxiliares de PanelListas (definidos fuera para evitar re-montaje) ──
+function ColHeader({ label, count, Icon, color }: { label: string; count: number; Icon: React.ElementType; color?: string }) {
+  return (
+    <div className="shrink-0 flex items-center gap-2 px-3 pt-3 pb-2"
+      style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" }}>
+      <Icon size={11} style={{ color: color ?? "color-mix(in srgb, var(--primary) 35%, transparent)" }} className="shrink-0" />
+      <p className="text-[10px] font-black uppercase tracking-[0.25em] text-primary/50 flex-1">{label}</p>
+      {count > 0 && (
+        <span className="text-[8px] font-black px-1.5 py-0.5 rounded-full"
+          style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)", color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>
+          {count}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function SearchInput({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder: string }) {
+  return (
+    <div className="shrink-0 px-2 py-1.5">
+      <div className="relative">
+        <Search size={9} className="absolute left-2 top-1/2 -translate-y-1/2 text-primary/25" />
+        <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
+          className="w-full bg-primary/4 border border-primary/8 rounded-lg pl-6 pr-5 py-1 text-[10px] font-medium outline-none focus:border-primary/20 text-primary placeholder:text-primary/25" />
+        {value && (
+          <button onClick={() => onChange("")} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-primary/25 hover:text-primary">
+            <X size={8} />
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── PanelListas: columnas side-by-side (reinos, criaturas, objetos, personajes, hechizos, dones) ──
 function PanelListas({ initialSubTab, initialItemId }: { initialSubTab?: string; initialItemId?: string }) {
   const { reinos,    setReinos,    loading: loadingReinos    } = useReinos();
@@ -2096,39 +2130,6 @@ function PanelListas({ initialSubTab, initialItemId }: { initialSubTab?: string;
 
   const colBorder = "border-r last:border-r-0";
   const colStyle = { borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" };
-
-  function ColHeader({ label, count, Icon, color }: { label: string; count: number; Icon: React.ElementType; color?: string }) {
-    return (
-      <div className="shrink-0 flex items-center gap-2 px-3 pt-3 pb-2"
-        style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" }}>
-        <Icon size={11} style={{ color: color ?? "color-mix(in srgb, var(--primary) 35%, transparent)" }} className="shrink-0" />
-        <p className="text-[10px] font-black uppercase tracking-[0.25em] text-primary/50 flex-1">{label}</p>
-        {count > 0 && (
-          <span className="text-[8px] font-black px-1.5 py-0.5 rounded-full"
-            style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)", color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>
-            {count}
-          </span>
-        )}
-      </div>
-    );
-  }
-
-  function SearchInput({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder: string }) {
-    return (
-      <div className="shrink-0 px-2 py-1.5">
-        <div className="relative">
-          <Search size={9} className="absolute left-2 top-1/2 -translate-y-1/2 text-primary/25" />
-          <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
-            className="w-full bg-primary/4 border border-primary/8 rounded-lg pl-6 pr-5 py-1 text-[10px] font-medium outline-none focus:border-primary/20 text-primary placeholder:text-primary/25" />
-          {value && (
-            <button onClick={() => onChange("")} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-primary/25 hover:text-primary">
-              <X size={8} />
-            </button>
-          )}
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="flex-1 flex min-h-0 overflow-hidden relative">

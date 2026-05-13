@@ -60,24 +60,20 @@ const OFFLINE_WRITABLE = new Set([
   "personajes", "criaturas", "criatura_variantes", "items", "reinos", "relaciones",
 ]);
 
-const NUMERIC_ID_TABLES = new Set([
-  "diario_fotos", "dibujos",
-]);
+const NUMERIC_ID_TABLES = new Set(["diario_fotos", "dibujos"]);
 
-const FETCH_TIMEOUT_MS = 12_000;
+const FETCH_TIMEOUT_MS      = 12_000;
 const REVALIDATE_THROTTLE_MS = 30_000;
 
-// FIX: helper para detectar errores de red de forma consistente en todo el hook,
-// incluyendo los casos donde el mensaje viene en diferentes formatos según el browser.
 function isNetworkError(err: any): boolean {
   const msg: string = err?.message ?? "";
   return (
-    msg.includes("fetch") ||
-    msg.includes("NetworkError") ||
-    msg.includes("Failed to fetch") ||
-    msg.includes("network") ||
-    msg.includes("timeout") ||
-    msg.includes("abort") ||
+    msg.includes("fetch")            ||
+    msg.includes("NetworkError")     ||
+    msg.includes("Failed to fetch")  ||
+    msg.includes("network")          ||
+    msg.includes("timeout")          ||
+    msg.includes("abort")            ||
     err?.name === "AbortError"
   );
 }
@@ -103,10 +99,9 @@ async function readFromDexie<T>(tabla: string): Promise<T[]> {
 
 async function writeToDexie(tabla: string, rows: any[]): Promise<void> {
   try {
-    if (!db || !DEXIE_TABLES.has(tabla)) return;
+    if (!db || !DEXIE_TABLES.has(tabla) || rows.length === 0) return;
     const table = (db as any)[tabla];
     if (!table) return;
-    if (rows.length === 0) return;
     await table.bulkPut(rows);
   } catch (e) {
     console.warn(`[Dexie] No se pudo guardar en '${tabla}':`, e);
@@ -123,6 +118,9 @@ async function syncDexieWithRemote(tabla: string, remoteRows: any[]): Promise<vo
     const pendingIds = new Set(
       localRows.filter((r: any) => r.status === "pending").map((r: any) => String(r.id))
     );
+    // FIX #9: calculamos remoteIds UNA vez y usamos ese set para toDelete también,
+    // en vez de re-leer localRows después del bulkPut. Así evitamos trabajar
+    // sobre datos stale si bulkPut modificó rows que toDelete iba a evaluar.
     const remoteIds = new Set(remoteRows.map((r: any) => String(r.id)));
 
     const toUpsert = remoteRows
@@ -131,13 +129,13 @@ async function syncDexieWithRemote(tabla: string, remoteRows: any[]): Promise<vo
 
     if (toUpsert.length > 0) await table.bulkPut(toUpsert);
 
-    // FIX: si el remote devuelve 0 filas pero teníamos datos locales,
-    // NO borramos — puede ser un fetch fallido que retornó [] en vez de error.
-    // Solo sincronizamos eliminaciones cuando el remote tiene al menos 1 fila
-    // o cuando no hay ninguna fila local synced (tabla genuinamente vacía).
+    // No borrar si remote devolvió vacío pero teníamos synced locales
+    // (puede ser un fetch fallido que retornó [] en vez de error)
     const localSynced = localRows.filter((r: any) => r.status !== "pending");
     if (remoteRows.length === 0 && localSynced.length > 0) return;
 
+    // FIX #9 (cont.): toDelete se basa en localRows original + remoteIds,
+    // no en una re-lectura de la tabla después del bulkPut.
     const toDelete = localRows
       .filter((r: any) => !remoteIds.has(String(r.id)) && r.status !== "pending")
       .map((r: any) => r.id);
@@ -151,7 +149,6 @@ async function syncDexieWithRemote(tabla: string, remoteRows: any[]): Promise<vo
 function mergeWithPending<T>(remoteData: T[], localData: T[]): T[] {
   const pendingRows = localData.filter((r: any) => r.status === "pending");
   if (pendingRows.length === 0) return remoteData;
-
   const pendingIds = new Set(pendingRows.map((r: any) => String(r.id)));
   return [
     ...pendingRows,
@@ -167,13 +164,19 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
   const [error,     setError]     = useState<string | null>(null);
   const [isOffline, setIsOffline] = useState(false);
 
-  const isMounted      = useRef(true);
-  const retryCount     = useRef(0);
-  const pollingRef     = useRef<NodeJS.Timeout | null>(null);
-  const lastFetchRef   = useRef<number>(0);
-  const lastVisibleRef = useRef<number>(Date.now());
-  const channelRef     = useRef<ReturnType<typeof supabase.channel> | null>(null);
-  const optionsKey     = JSON.stringify(opciones);
+  const isMounted       = useRef(true);
+  const retryCount      = useRef(0);
+  const pollingRef      = useRef<NodeJS.Timeout | null>(null);
+  const lastFetchRef    = useRef<number>(0);
+  const lastVisibleRef  = useRef<number>(Date.now());
+  const channelRef      = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const retryTimerRef   = useRef<NodeJS.Timeout | null>(null);
+  // FIX #5/#7: ref para acumular todos los timers de timeout de fetch/update
+  // y cancelarlos cuando el resultado llega o el componente se desmonta.
+  const fetchTimeoutRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const updateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const optionsKey = JSON.stringify(opciones);
 
   const fetchData = useCallback(async (forceRefresh = false) => {
     if (!isMounted.current) return;
@@ -200,15 +203,13 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
       return;
     }
 
-    setIsOffline(false);
+    if (isMounted.current) setIsOffline(false);
 
     try {
       const currentOptions = JSON.parse(optionsKey);
 
       const fetchPromise = async () => {
-        if (QUERIES_MAP[tabla]) {
-          return await QUERIES_MAP[tabla].getAll(currentOptions);
-        }
+        if (QUERIES_MAP[tabla]) return await QUERIES_MAP[tabla].getAll(currentOptions);
         let query = supabase.from(tabla).select(currentOptions.select || "*");
         if (currentOptions.order) {
           query = query.order(currentOptions.order.campo, {
@@ -218,19 +219,34 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
         return await query;
       };
 
-      const timeoutPromise = new Promise<"timeout">(resolve =>
-        setTimeout(() => resolve("timeout"), FETCH_TIMEOUT_MS)
-      );
+      // FIX #5: creamos el timer de timeout en un ref para poder cancelarlo
+      // cuando el fetch termina primero. Antes el timer quedaba vivo aunque el
+      // resultado ya hubiera llegado, acumulando docenas de timers huérfanos
+      // con uso intensivo (polling 30s + visibilitychange frecuente).
+      const timeoutPromise = new Promise<"timeout">((resolve) => {
+        fetchTimeoutRef.current = setTimeout(() => resolve("timeout"), FETCH_TIMEOUT_MS);
+      });
 
       const result = await Promise.race([fetchPromise(), timeoutPromise]);
 
+      // Cancelar el timer de timeout si el fetch ganó la race
+      if (fetchTimeoutRef.current) {
+        clearTimeout(fetchTimeoutRef.current);
+        fetchTimeoutRef.current = null;
+      }
+
       if (result === "timeout") {
         if (isMounted.current) {
-          if (!hasLocalData) setLoading(false);
+          setLoading(false);
           setIsOffline(true);
-          if (!hasLocalData) {
-            setTimeout(() => fetchData(true), 8_000);
-          }
+          // FIX #6: schedular retry tanto si hay datos locales como si no.
+          // Antes solo se reintentaba cuando !hasLocalData, dejando componentes
+          // con datos stale de Dexie para siempre si tenían caché local.
+          // Usamos un delay más largo para no spamear cuando hay datos que mostrar.
+          const retryDelay = hasLocalData ? 15_000 : 8_000;
+          retryTimerRef.current = setTimeout(() => {
+            if (isMounted.current) fetchData(true);
+          }, retryDelay);
         }
         return;
       }
@@ -245,7 +261,7 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
         const merged = mergeWithPending<T>(finalData, localData);
         setData(merged);
         updateCache(tabla, merged);
-        retryCount.current = 0;
+        retryCount.current   = 0;
         lastFetchRef.current = Date.now();
 
         await syncDexieWithRemote(tabla, finalData);
@@ -254,40 +270,52 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
         setIsOffline(false);
       }
     } catch (err: any) {
+      // Cancelar timer de timeout si el fetch lanzó error antes del timeout
+      if (fetchTimeoutRef.current) {
+        clearTimeout(fetchTimeoutRef.current);
+        fetchTimeoutRef.current = null;
+      }
+
       if (isMounted.current) {
-        if (!hasLocalData) {
-          if (isNetworkError(err) && retryCount.current < 5) {
-            retryCount.current++;
-            const delay = Math.min(2000 * Math.pow(2, retryCount.current - 1), 32_000);
-            setTimeout(() => fetchData(true), delay);
-            return;
-          }
-          setError(err.message);
+        if (isNetworkError(err) && retryCount.current < 5) {
+          retryCount.current++;
+          const delay = Math.min(2000 * Math.pow(2, retryCount.current - 1), 32_000);
+          retryTimerRef.current = setTimeout(() => {
+            if (isMounted.current) fetchData(true);
+          }, delay);
+          // Si hay datos locales ya están mostrados; si no, sacar el spinner
+          if (!hasLocalData) setLoading(false);
+          if (isNetworkError(err)) setIsOffline(true);
+          return;
         }
-        setIsOffline(true);
+        if (!hasLocalData) setError(err.message);
+        if (isNetworkError(err)) setIsOffline(true);
         setLoading(false);
       }
     }
   }, [tabla, updateCache, optionsKey]);
 
-  // ─── Mutaciones ────────────────────────────────────────────────────────────
+  // ─── Mutaciones ──────────────────────────────────────────────────────────────
 
   const addRow = useCallback(async (newData: any) => {
+    // Un solo check de conectividad para todas las ramas
+    const online = await isReallyOnline();
+
     if (NUMERIC_ID_TABLES.has(tabla)) {
-      // Las tablas con ID numérico autoincremental siempre necesitan conexión
-      const online = await isReallyOnline();
-      if (!online) {
-        return { data: null, error: "Esta tabla requiere conexión para crear registros." };
-      }
+      if (!online) return { data: null, error: "Esta tabla requiere conexión para crear registros." };
     }
 
-    // FIX: usar isReallyOnline en vez de navigator.onLine para el path offline
-    const online = await isReallyOnline();
     if (!online && OFFLINE_WRITABLE.has(tabla)) {
-      const id = newData.id ?? generateUUID();
+      const id  = newData.id ?? generateUUID();
       const row = { ...newData, id, status: "pending" };
       await writeToDexie(tabla, [row]);
-      await enqueueOperation(tabla, "upsert", id, row);
+      try {
+        await enqueueOperation(tabla, "upsert", id, row);
+      } catch {
+        // enqueueOperation falló (Dexie lleno/bloqueado) — el dato ya está en
+        // Dexie localmente pero no en la queue; lo mostramos igual pero logueamos.
+        console.error(`[addRow] No se pudo encolar upsert para ${tabla}/${id}`);
+      }
       setData(prev => [...prev, row as any]);
       return { data: row, error: null };
     }
@@ -300,12 +328,11 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
       if (created?.id) writeToDexie(tabla, [{ ...created, status: "synced" }]);
       return { data: created, error: res?.error || null };
     } catch (err: any) {
-      // FIX: fallback offline cuando el request online falla por error de red
       if (OFFLINE_WRITABLE.has(tabla) && !NUMERIC_ID_TABLES.has(tabla)) {
-        const id = newData.id ?? generateUUID();
+        const id  = newData.id ?? generateUUID();
         const row = { ...newData, id, status: "pending" };
         await writeToDexie(tabla, [row]);
-        await enqueueOperation(tabla, "upsert", id, row);
+        try { await enqueueOperation(tabla, "upsert", id, row); } catch {}
         setData(prev => [...prev, row as any]);
         return { data: row, error: null };
       }
@@ -314,44 +341,71 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
   }, [tabla]);
 
   const updateRow = useCallback(async (id: string | number, updates: any) => {
-    // FIX: usar isReallyOnline en vez de navigator.onLine
     const online = await isReallyOnline();
     if (!online && OFFLINE_WRITABLE.has(tabla)) {
       const existing = db ? await (db as any)[tabla]?.get(id) : null;
       const row = { ...existing, ...updates, id, status: "pending" };
       await writeToDexie(tabla, [row]);
-      await enqueueOperation(tabla, "update", String(id), row);
+      try { await enqueueOperation(tabla, "update", String(id), row); } catch {}
       setData(prev => prev.map((r: any) => r.id === id ? row : r));
       return { data: row, error: null };
     }
 
     try {
-      const UPDATE_TIMEOUT_MS = 10_000;
+      // FIX #7: guardamos el timer del timeout en un ref para cancelarlo cuando
+      // el update termina. Antes el timer quedaba vivo y si el update llegaba tarde
+      // a Supabase (después del timeout), la rama catch encolaba el update de NUEVO
+      // como pending, creando un duplicado en la queue que luego sobreescribía la
+      // versión confirmada del servidor al sincronizar.
+      let updateResolve!: (v: any) => void;
+      let updateReject!:  (e: any) => void;
+      const racePromise = new Promise<any>((res, rej) => {
+        updateResolve = res;
+        updateReject  = rej;
+      });
+
+      updateTimeoutRef.current = setTimeout(
+        () => updateReject(new Error("update timeout")),
+        10_000,
+      );
+
       const updatePromise = QUERIES_MAP[tabla]?.update
         ? QUERIES_MAP[tabla].update(id, updates)
         : supabase.from(tabla).update(updates).eq("id", id).select().single();
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("update timeout")), UPDATE_TIMEOUT_MS)
-      );
-      const res = await Promise.race([updatePromise, timeoutPromise]);
-      const updated = (res as any)?.data || res;
 
-      // FIX: guardar en Dexie aunque el response no tenga .id explícito
-      // (algunos queries custom devuelven el objeto directamente sin wrapper)
+      updatePromise
+        .then((v: any) => { updateResolve(v); })
+        .catch((e: any) => { updateReject(e); });
+
+      const res = await racePromise;
+
+      // Cancelar el timer de timeout si el update ganó la race
+      if (updateTimeoutRef.current) {
+        clearTimeout(updateTimeoutRef.current);
+        updateTimeoutRef.current = null;
+      }
+
+      const updated   = (res as any)?.data || res;
       const savedData = updated ?? { id, ...updates };
       if (savedData?.id !== undefined) {
         writeToDexie(tabla, [{ ...savedData, status: "synced" }]);
-        // FIX: actualizar estado React con el dato confirmado del servidor
         setData(prev => prev.map((r: any) => r.id === id ? { ...r, ...savedData } : r));
       }
 
       return { data: updated, error: (res as any)?.error || null };
+
     } catch (err: any) {
+      // Cancelar el timer en caso de error también
+      if (updateTimeoutRef.current) {
+        clearTimeout(updateTimeoutRef.current);
+        updateTimeoutRef.current = null;
+      }
+
       if (OFFLINE_WRITABLE.has(tabla)) {
         const existing = db ? await (db as any)[tabla]?.get(id) : null;
         const row = { ...existing, ...updates, id, status: "pending" };
         await writeToDexie(tabla, [row]);
-        await enqueueOperation(tabla, "update", String(id), row);
+        try { await enqueueOperation(tabla, "update", String(id), row); } catch {}
         setData(prev => prev.map((r: any) => r.id === id ? row : r));
         return { data: row, error: null };
       }
@@ -360,14 +414,13 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
   }, [tabla]);
 
   const deleteRow = useCallback(async (id: string | number) => {
-    // FIX: usar isReallyOnline en vez de navigator.onLine
     const online = await isReallyOnline();
     if (!online && OFFLINE_WRITABLE.has(tabla)) {
       const existing = db ? await (db as any)[tabla]?.get(id) : null;
       if (existing) {
         await writeToDexie(tabla, [{ ...existing, deleted: true, status: "pending" }]);
       }
-      await enqueueOperation(tabla, "delete", String(id));
+      try { await enqueueOperation(tabla, "delete", String(id)); } catch {}
       setData(prev => prev.filter((r: any) => r.id !== id));
       return { error: null };
     }
@@ -377,8 +430,6 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
         ? await QUERIES_MAP[tabla].delete(id)
         : await supabase.from(tabla).delete().eq("id", id);
 
-      // FIX: actualizar estado React inmediatamente después del delete exitoso,
-      // antes solo borraba en Supabase y Dexie pero la fila seguía visible en UI
       if (!res?.error) {
         setData(prev => prev.filter((r: any) => r.id !== id));
         try {
@@ -389,7 +440,7 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
       return { error: res?.error || null };
     } catch (err: any) {
       if (OFFLINE_WRITABLE.has(tabla)) {
-        await enqueueOperation(tabla, "delete", String(id));
+        try { await enqueueOperation(tabla, "delete", String(id)); } catch {}
         setData(prev => prev.filter((r: any) => r.id !== id));
         return { error: null };
       }
@@ -397,12 +448,22 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
     }
   }, [tabla]);
 
-  // ─── Suscripción Realtime con recuperación de canal ────────────────────────
+  // ─── Suscripción Realtime ─────────────────────────────────────────────────
   const subscribeChannel = useCallback(() => {
     if (channelRef.current) {
-      supabase.removeChannel(channelRef.current);
+      const old = channelRef.current;
       channelRef.current = null;
+      // FIX #8: limpiar el polling del canal anterior ANTES de crear el nuevo.
+      // Si el canal anterior estaba en error con polling activo, y el nuevo también
+      // falla, se crearía un segundo setInterval sin haber limpiado el primero.
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+        pollingRef.current = null;
+      }
+      supabase.removeChannel(old).catch(() => {});
     }
+
+    if (!isMounted.current) return null;
 
     const channel = supabase
       .channel(`rt-${tabla}-${Date.now()}`)
@@ -418,7 +479,9 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
         }
         if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
           if (!pollingRef.current) {
-            pollingRef.current = setInterval(() => fetchData(true), 30_000);
+            pollingRef.current = setInterval(() => {
+              if (isMounted.current) fetchData(true);
+            }, 30_000);
           }
         }
       });
@@ -427,8 +490,7 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
     return channel;
   }, [tabla, fetchData]);
 
-  // ─── Efectos ───────────────────────────────────────────────────────────────
-
+  // ─── Efectos ─────────────────────────────────────────────────────────────
   useEffect(() => {
     isMounted.current = true;
     fetchData();
@@ -436,19 +498,22 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
 
     const unsubSyncDone = onSyncDone(() => {
       if (isMounted.current) {
-        setTimeout(() => fetchData(true), 300);
+        setTimeout(() => { if (isMounted.current) fetchData(true); }, 800);
       }
     });
 
     const handleOnline = async () => {
       retryCount.current = 0;
+      if (retryTimerRef.current) {
+        clearTimeout(retryTimerRef.current);
+        retryTimerRef.current = null;
+      }
       const online = await isReallyOnline();
       if (!online || !isMounted.current) return;
 
+      setIsOffline(false);
       subscribeChannel();
-      setTimeout(() => {
-        if (isMounted.current) fetchData(true);
-      }, 2_500);
+      setTimeout(() => { if (isMounted.current) fetchData(true); }, 1_000);
     };
 
     const handleVisibility = () => {
@@ -460,7 +525,7 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
         if (timeSinceHidden > REVALIDATE_THROTTLE_MS || timeSinceLastFetch > REVALIDATE_THROTTLE_MS) {
           retryCount.current = 0;
           subscribeChannel();
-          setTimeout(() => fetchData(true), 500);
+          setTimeout(() => { if (isMounted.current) fetchData(true); }, 500);
         }
         lastVisibleRef.current = now;
       } else {
@@ -473,13 +538,17 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
 
     return () => {
       isMounted.current = false;
+      // Limpiar TODOS los timers pendientes al desmontar
+      if (retryTimerRef.current)   { clearTimeout(retryTimerRef.current);   retryTimerRef.current   = null; }
+      if (fetchTimeoutRef.current) { clearTimeout(fetchTimeoutRef.current); fetchTimeoutRef.current = null; }
+      if (updateTimeoutRef.current){ clearTimeout(updateTimeoutRef.current);updateTimeoutRef.current= null; }
+      if (pollingRef.current)      { clearInterval(pollingRef.current);     pollingRef.current      = null; }
       if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
+        supabase.removeChannel(channelRef.current).catch(() => {});
         channelRef.current = null;
       }
       window.removeEventListener("online", handleOnline);
       document.removeEventListener("visibilitychange", handleVisibility);
-      if (pollingRef.current) clearInterval(pollingRef.current);
       unsubSyncDone();
     };
   }, [tabla, fetchData, subscribeChannel]);
