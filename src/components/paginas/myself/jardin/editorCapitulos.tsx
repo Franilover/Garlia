@@ -262,20 +262,36 @@ function useCapitulos(libroId: string | null) {
       }
 
       const { data, error } = result as any;
-      if (error) throw error;
+      if (error) {
+        // FIX: solo marcar offline si es error de red, no de API/permisos
+        const isNetworkError =
+          error?.message?.toLowerCase().includes("failed to fetch") ||
+          error?.message?.toLowerCase().includes("network") ||
+          error?.code === "PGRST000";
+        if (isNetworkError) setIsOffline(true);
+        setLoading(false);
+        return;
+      }
       const caps = (data || []) as Capitulo[];
       setCapitulos(caps);
+      setIsOffline(false);
       await dexieCapWrite(caps.map((c) => ({ ...c, status: "synced" })));
-    } catch {
+    } catch (err: any) {
+      // FIX: solo marcar offline si es realmente error de red
+      const msg = err?.message?.toLowerCase() ?? "";
+      const isNetworkError =
+        msg.includes("failed to fetch") ||
+        msg.includes("network") ||
+        msg.includes("load failed");
+      setIsOffline(isNetworkError);
       if (local.length === 0) setCapitulos(await dexieCapRead(id));
-      setIsOffline(true);
     }
     setLoading(false);
   }, []);
 
   useEffect(() => {
     if (libroId) load(libroId);
-    else setCapitulos([]);
+    else { setCapitulos([]); setIsOffline(false); }
   }, [libroId, load]);
 
   useEffect(() => {
@@ -306,6 +322,7 @@ function useCapituloEditor(capId: string | null) {
       setLoading(false);
       return;
     }
+    // Optimistic: asumimos online hasta que comprobemos lo contrario
     setIsOffline(false);
 
     try {
@@ -314,13 +331,28 @@ function useCapituloEditor(capId: string | null) {
       const result = await Promise.race([fetchPromise, timeout]);
 
       if (result === "timeout") {
+        // Solo marcamos offline si no tenemos datos locales para mostrar
         setIsOffline(!local);
         setLoading(false);
         return;
       }
 
       const { data, error } = result as any;
-      if (error) throw error;
+      if (error) {
+        // FIX: distinguir error de red vs error de API (permisos, RLS, 400, etc.)
+        // Un error de API NO es "offline" — tenemos conexión, solo falló la query
+        const isNetworkError =
+          error?.message?.toLowerCase().includes("failed to fetch") ||
+          error?.message?.toLowerCase().includes("network") ||
+          error?.code === "PGRST000";
+        if (isNetworkError) {
+          setIsOffline(true);
+        }
+        // En cualquier caso (network o API error), si tenemos datos locales los mostramos
+        // pero NO marcamos offline por un error de permisos o similar
+        setLoading(false);
+        return;
+      }
 
       if (local?.status === "pending" && local.contenido !== data.contenido) {
         setCap({ ...data, contenido: local.contenido, status: "pending" });
@@ -328,16 +360,24 @@ function useCapituloEditor(capId: string | null) {
         setCap(data as Capitulo);
         await dexieCapWrite([{ ...data, status: "synced" }]);
       }
-    } catch {
+      // Llegamos aquí = fetch exitoso = estamos online
+      setIsOffline(false);
+    } catch (err: any) {
+      // FIX: solo marcar offline si es realmente un error de red
+      const msg = err?.message?.toLowerCase() ?? "";
+      const isNetworkError =
+        msg.includes("failed to fetch") ||
+        msg.includes("network") ||
+        msg.includes("load failed");
+      setIsOffline(isNetworkError);
       if (!local) setCap(await dexieCapGet(id));
-      setIsOffline(true);
     }
     setLoading(false);
   }, []);
 
   useEffect(() => {
     if (capId) load(capId);
-    else setCap(null);
+    else { setCap(null); setIsOffline(false); }
   }, [capId, load]);
 
   useEffect(() => {
