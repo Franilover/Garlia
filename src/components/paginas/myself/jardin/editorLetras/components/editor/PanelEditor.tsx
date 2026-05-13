@@ -41,6 +41,7 @@ export const PanelEditor = ({ cancionId }: { cancionId: string }) => {
   const [showLector,    setShowLector]    = useState(false);
   const [activeTab,     setActiveTab]     = useState<EditorTab>("letras");
   const [viewMode,      setViewMode]      = useState<"edit" | "preview">("edit");
+  const [countMode,     setCountMode]     = useState<"silabas" | "vocales">("silabas");
   const [mobileActionsOpen, setMobileActionsOpen] = useState(false);
   const [headerExpanded,    setHeaderExpanded]     = useState(false);
 
@@ -353,6 +354,21 @@ export const PanelEditor = ({ cancionId }: { cancionId: string }) => {
                   {viewMode === "edit" ? <Eye size={12} /> : <Edit3 size={12} />}
                 </button>
 
+                {/* Toggle síl / voc global */}
+                <div className="flex gap-0.5 p-0.5 bg-primary/5 rounded-xl border border-primary/10 shrink-0">
+                  {(["silabas", "vocales"] as const).map(m => (
+                    <button
+                      key={m}
+                      onClick={() => setCountMode(m)}
+                      className={`px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${
+                        countMode === m ? "bg-primary text-bg-main" : "text-primary/30 hover:text-primary/60"
+                      }`}
+                    >
+                      {m === "silabas" ? "síl" : "voc"}
+                    </button>
+                  ))}
+                </div>
+
                 {/* Idioma B — solo en split */}
                 {splitMode && (
                   <>
@@ -462,6 +478,7 @@ export const PanelEditor = ({ cancionId }: { cancionId: string }) => {
                       idiomaB={idiomaB}
                       splitMode={splitMode}
                       viewMode={viewMode}
+                      countMode={countMode}
                       onSaveField={handleSaveField}
                       onSaveNombre={handleSaveNombre}
                       onDelete={handleDelete}

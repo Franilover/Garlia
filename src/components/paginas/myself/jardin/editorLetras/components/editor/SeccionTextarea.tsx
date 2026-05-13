@@ -120,7 +120,7 @@ function SyllableOverlay({
 // ── Componente principal ─────────────────────────────────────────────────────
 
 export const SeccionTextarea = ({
-  sec, idioma, refIdioma, onSave, nombreSeccion, viewMode,
+  sec, idioma, refIdioma, onSave, nombreSeccion, viewMode, countMode,
 }: {
   sec:           Seccion;
   idioma:        IdiomaKey;
@@ -128,13 +128,13 @@ export const SeccionTextarea = ({
   onSave:        (id: string, updates: Partial<Seccion>) => Promise<void>;
   nombreSeccion?: string;
   viewMode:      "edit" | "preview";
+  countMode:     "silabas" | "vocales";
 }) => {
   const campo     = IDIOMAS.find(i => i.id === idioma)!.campo;
   const serverVal = (sec[campo] as string) || "";
 
-  const [texto,     setTexto]     = useState(serverVal);
-  const [st,        setSt]        = useState<ColState>(IDLE_STATE);
-  const [countMode, setCountMode] = useState<CountMode>("silabas");
+  const [texto, setTexto] = useState(serverVal);
+  const [st,    setSt]    = useState<ColState>(IDLE_STATE);
 
   const timer    = useRef<ReturnType<typeof setTimeout> | null>(null);
   const draftKey = `sec-draft-${sec.id}-${idioma}`;
@@ -218,25 +218,8 @@ export const SeccionTextarea = ({
         </div>
       )}
 
-      {/* ── Toggle sílabas / vocales ── */}
-      <div className="flex items-center justify-between">
-        <div className="flex gap-0.5 p-0.5 bg-primary/5 rounded-lg border border-primary/10 w-fit">
-          {(["silabas", "vocales"] as CountMode[]).map(m => (
-            <button
-              key={m}
-              onClick={() => setCountMode(m)}
-              className={`px-2 py-1 rounded-md text-[8px] font-black uppercase tracking-widest transition-all ${
-                countMode === m
-                  ? "bg-primary text-bg-main"
-                  : "text-primary/30 hover:text-primary/60"
-              }`}
-            >
-              {m === "silabas" ? "síl" : "voc"}
-            </button>
-          ))}
-        </div>
-
-        {/* Indicadores de estado */}
+      {/* ── Indicadores de estado ── */}
+      <div className="flex justify-end">
         <span className="flex items-center gap-1.5 pr-1">
           {st.saving                           && <Loader2      size={11} className="animate-spin text-primary/30" />}
           {st.saved                            && <CheckCircle2 size={11} className="text-emerald-400" />}
