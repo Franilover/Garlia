@@ -41,7 +41,6 @@ export const PanelEditor = ({ cancionId }: { cancionId: string }) => {
   const [showLector,    setShowLector]    = useState(false);
   const [activeTab,     setActiveTab]     = useState<EditorTab>("letras");
   const [mobileActionsOpen, setMobileActionsOpen] = useState(false);
-  const [mobileIdiomaOpen,  setMobileIdiomaOpen]  = useState(false);
   const [headerExpanded,    setHeaderExpanded]     = useState(false);
 
   const handleSaveField = useCallback(async (id: string, updates: Partial<Seccion>) => {
@@ -398,59 +397,30 @@ export const PanelEditor = ({ cancionId }: { cancionId: string }) => {
               )}
             </div>
 
-            {/* Controles idioma mobile — colapsables */}
+            {/* Controles idioma mobile — una sola fila siempre visible */}
             {activeTab === "letras" && (
-              <div className="mt-2">
+              <div className="mt-2 flex items-center gap-1.5 flex-nowrap overflow-x-auto no-scrollbar">
+                <IdiomaTab value={idiomaA} onChange={changeIdiomaA} exclude={splitMode ? idiomaB : undefined} />
+
+                {/* Botón split — solo ícono */}
                 <button
-                  onClick={() => setMobileIdiomaOpen(o => !o)}
-                  className="w-full flex items-center justify-between px-3 py-2 rounded-xl border border-primary/10 text-[9px] font-black uppercase tracking-widest text-primary/40 hover:text-primary hover:border-primary/20 transition-all"
+                  onClick={() => setSplitMode(m => !m)}
+                  title="Vista dividida"
+                  className={`p-2 rounded-xl border transition-all shrink-0 ${
+                    splitMode
+                      ? "bg-primary text-bg-main border-primary shadow-md shadow-primary/20"
+                      : "border-primary/20 text-primary/30 hover:text-primary hover:border-primary/30"
+                  }`}
                 >
-                  <span className="flex items-center gap-1.5">
-                    <Music size={9} />
-                    {IDIOMAS.find(i => i.id === idiomaA)?.label}
-                    {splitMode && (
-                      <span className="text-primary/25"> · {IDIOMAS.find(i => i.id === idiomaB)?.label}</span>
-                    )}
-                    {splitMode && <span className="text-primary/20 ml-0.5">÷</span>}
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <span className="text-primary/25">{conLetra}/{secciones.length}</span>
-                    <ChevronDown
-                      size={10}
-                      className={`transition-transform duration-200 ${mobileIdiomaOpen ? "rotate-180" : ""}`}
-                    />
-                  </span>
+                  <Columns2 size={13} />
                 </button>
-                <AnimatePresence>
-                  {mobileIdiomaOpen && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.18 }}
-                      className="overflow-hidden"
-                    >
-                      <div className="pt-2 space-y-2">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <IdiomaTab value={idiomaA} onChange={changeIdiomaA} exclude={splitMode ? idiomaB : undefined} />
-                          <button
-                            onClick={() => setSplitMode(m => !m)}
-                            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${
-                              splitMode
-                                ? "bg-primary text-bg-main border-primary shadow-md shadow-primary/20"
-                                : "border-primary/20 text-primary/40 hover:text-primary hover:border-primary/30"
-                            }`}
-                          >
-                            <Columns2 size={12} /> Dividir
-                          </button>
-                        </div>
-                        {splitMode && (
-                          <IdiomaTab value={idiomaB} onChange={changeIdiomaB} exclude={idiomaA} />
-                        )}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+
+                {splitMode && (
+                  <>
+                    <div className="w-px h-4 bg-primary/15 shrink-0" />
+                    <IdiomaTab value={idiomaB} onChange={changeIdiomaB} exclude={idiomaA} />
+                  </>
+                )}
               </div>
             )}
           </div>
