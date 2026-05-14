@@ -245,13 +245,23 @@ function MundoSectionCard({
 
 export type MagicAddKey = "hechizos" | "dones" | "runas" | "notas" | "acontecimiento";
 
-const MAGIC_ADD_ITEMS: { key: MagicAddKey; label: string; Icon: React.ElementType; abbr: string }[] = [
-  { key: "hechizos",      label: "Hechizo",       Icon: Wand2,     abbr: "HZ" },
-  { key: "dones",         label: "Don",            Icon: Sparkles,  abbr: "DN" },
-  { key: "runas",         label: "Runa",           Icon: Zap,       abbr: "RN" },
-  { key: "notas",         label: "Nota",           Icon: FileText,  abbr: "NT" },
-  { key: "acontecimiento",label: "Acontecimiento", Icon: Clock,     abbr: "AC" },
-];
+// Colores individuales por tipo — todos con la misma lógica color-mix
+const ADD_ITEM_COLOR: Record<string, string> = {
+  personajes:      "var(--primary)",
+  criaturas:       "var(--primary)",
+  items:           "var(--primary)",
+  reinos:          "var(--primary)",
+  hechizos:        "oklch(0.65 0.18 290)",
+  dones:           "oklch(0.72 0.16 55)",
+  runas:           "oklch(0.62 0.17 195)",
+  notas:           "var(--primary)",
+  acontecimiento:  "var(--primary)",
+};
+
+// Todas las entradas del menú en orden unificado
+type AddEntry =
+  | { kind: "tab";   key: Exclude<TabKey, "mundo">; label: string; Icon: React.ElementType }
+  | { kind: "magic"; key: MagicAddKey;               label: string; Icon: React.ElementType };
 
 function AddCommandMenu({
   open,
@@ -267,7 +277,20 @@ function AddCommandMenu({
   onClose: () => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
-  const tabs = Object.entries(TAB_CONFIG) as [Exclude<TabKey, "mundo">, typeof TAB_CONFIG[Exclude<TabKey, "mundo">]][];
+
+  // Entidades principales
+  const tabEntries: AddEntry[] = (
+    Object.entries(TAB_CONFIG) as [Exclude<TabKey, "mundo">, typeof TAB_CONFIG[Exclude<TabKey, "mundo">]][]
+  ).map(([key, cfg]) => ({ kind: "tab", key, label: cfg.label, Icon: cfg.Icon }));
+
+  // Magia + notas — sin duplicar hechizos/dones/runas que ya están en tabEntries
+  const magicEntries: AddEntry[] = [
+    { kind: "magic", key: "hechizos",       label: "Hechizo",       Icon: Wand2    },
+    { kind: "magic", key: "dones",          label: "Don",           Icon: Sparkles },
+    { kind: "magic", key: "runas",          label: "Runa",          Icon: Zap      },
+    { kind: "magic", key: "notas",          label: "Nota",          Icon: FileText },
+    { kind: "magic", key: "acontecimiento", label: "Acontecimiento",Icon: Clock    },
+  ];
 
   useEffect(() => {
     if (!open) return;
@@ -285,28 +308,46 @@ function AddCommandMenu({
 
   if (!open) return null;
 
-  const btnBase = {
-    borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)",
-    color: "color-mix(in srgb, var(--primary) 45%, transparent)",
+  const renderEntry = (entry: AddEntry) => {
+    const color = ADD_ITEM_COLOR[entry.key] ?? "var(--primary)";
+    const handleClick = () => {
+      if (entry.kind === "tab") onAdd(entry.key as Exclude<TabKey, "mundo">);
+      else onAddMagic?.(entry.key as MagicAddKey);
+      onClose();
+    };
+    return (
+      <button
+        key={entry.key}
+        onClick={handleClick}
+        className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left transition-all border border-dashed"
+        style={{
+          borderColor: `color-mix(in srgb, ${color} 18%, transparent)`,
+          color: `color-mix(in srgb, ${color} 50%, transparent)`,
+        }}
+        onMouseEnter={e => {
+          const el = e.currentTarget as HTMLElement;
+          el.style.background = `color-mix(in srgb, ${color} 9%, transparent)`;
+          el.style.color = color;
+          el.style.borderColor = `color-mix(in srgb, ${color} 38%, transparent)`;
+        }}
+        onMouseLeave={e => {
+          const el = e.currentTarget as HTMLElement;
+          el.style.background = "transparent";
+          el.style.color = `color-mix(in srgb, ${color} 50%, transparent)`;
+          el.style.borderColor = `color-mix(in srgb, ${color} 18%, transparent)`;
+        }}
+      >
+        <span
+          className="shrink-0 w-6 h-6 rounded-lg flex items-center justify-center"
+          style={{ background: `color-mix(in srgb, ${color} 11%, transparent)` }}
+        >
+          <entry.Icon size={11} />
+        </span>
+        <span className="flex-1 text-[10px] font-black uppercase tracking-widest">{entry.label}</span>
+        <Plus size={8} className="opacity-35" />
+      </button>
+    );
   };
-  const btnHover = (isAccent?: boolean) => ({
-    enter: (e: React.MouseEvent) => {
-      const el = e.currentTarget as HTMLElement;
-      el.style.background = isAccent
-        ? "color-mix(in srgb, var(--accent) 10%, transparent)"
-        : "color-mix(in srgb, var(--primary) 8%, transparent)";
-      el.style.color = isAccent ? "var(--accent)" : "var(--primary)";
-      el.style.borderColor = isAccent
-        ? "color-mix(in srgb, var(--accent) 35%, transparent)"
-        : "color-mix(in srgb, var(--primary) 35%, transparent)";
-    },
-    leave: (e: React.MouseEvent) => {
-      const el = e.currentTarget as HTMLElement;
-      el.style.background = "transparent";
-      el.style.color = "color-mix(in srgb, var(--primary) 45%, transparent)";
-      el.style.borderColor = "color-mix(in srgb, var(--primary) 15%, transparent)";
-    },
-  });
 
   return (
     <div
@@ -314,8 +355,8 @@ function AddCommandMenu({
       className="absolute left-3 right-3 top-full mt-1.5 z-50 rounded-2xl overflow-hidden"
       style={{
         background: "var(--bg-main)",
-        border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
-        boxShadow: "0 12px 40px color-mix(in srgb, var(--primary) 22%, transparent)",
+        border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+        boxShadow: "0 12px 40px color-mix(in srgb, var(--primary) 18%, transparent)",
         animation: "popIn 140ms cubic-bezier(0.34, 1.56, 0.64, 1)",
         transformOrigin: "top center",
       }}
@@ -324,90 +365,34 @@ function AddCommandMenu({
       <div
         className="px-3 py-2 flex items-center gap-2 border-b"
         style={{
-          background: "color-mix(in srgb, var(--primary) 4%, transparent)",
-          borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
+          background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+          borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)",
         }}
       >
-        <Sparkles size={10} className="text-primary/30" />
+        <Plus size={10} className="text-primary/30" />
         <p className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/30">Añadir nueva entrada</p>
       </div>
 
-      {/* Entity tabs — 2 col grid */}
-      <div className="p-2 grid grid-cols-2 gap-1">
-        {tabs.map(([key, cfg]) => {
-          const hv = btnHover(false);
-          return (
-            <button
-              key={key}
-              onClick={() => { onAdd(key); onClose(); }}
-              className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-left transition-all group border border-dashed"
-              style={btnBase}
-              onMouseEnter={hv.enter}
-              onMouseLeave={hv.leave}
-            >
-              <span
-                className="shrink-0 w-6 h-6 rounded-lg flex items-center justify-center"
-                style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
-              >
-                <cfg.Icon size={11} />
-              </span>
-              <span className="text-[10px] font-black uppercase tracking-widest">{cfg.label}</span>
-              <Plus size={8} className="ml-auto opacity-40" />
-            </button>
-          );
-        })}
-      </div>
+      <div className="p-2 space-y-3">
+        {/* Entidades — 2 columnas */}
+        <div className="grid grid-cols-2 gap-1">
+          {tabEntries.map(renderEntry)}
+        </div>
 
-      {/* Divider + Magia section */}
-      <div
-        className="px-3 py-1.5 flex items-center gap-2 border-t border-b"
-        style={{
-          background: "color-mix(in srgb, var(--accent) 4%, transparent)",
-          borderColor: "color-mix(in srgb, var(--accent) 10%, transparent)",
-        }}
-      >
-        <Sparkles size={9} style={{ color: "color-mix(in srgb, var(--accent) 50%, transparent)" }} />
-        <p className="text-[8px] font-black uppercase tracking-[0.3em]"
-          style={{ color: "color-mix(in srgb, var(--accent) 45%, transparent)" }}>
-          Magia &amp; Notas
-        </p>
-      </div>
-      <div className="p-2 grid grid-cols-1 gap-1">
-        {MAGIC_ADD_ITEMS.map(({ key, label, Icon, abbr }) => {
-          const hv = btnHover(true);
-          return (
-            <button
-              key={key}
-              onClick={() => { onAddMagic?.(key); onClose(); }}
-              className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-left transition-all border border-dashed"
-              style={{
-                borderColor: "color-mix(in srgb, var(--accent) 18%, transparent)",
-                color: "color-mix(in srgb, var(--accent) 45%, transparent)",
-              }}
-              onMouseEnter={e => {
-                const el = e.currentTarget as HTMLElement;
-                el.style.background = "color-mix(in srgb, var(--accent) 10%, transparent)";
-                el.style.color = "var(--accent)";
-                el.style.borderColor = "color-mix(in srgb, var(--accent) 40%, transparent)";
-              }}
-              onMouseLeave={e => {
-                const el = e.currentTarget as HTMLElement;
-                el.style.background = "transparent";
-                el.style.color = "color-mix(in srgb, var(--accent) 45%, transparent)";
-                el.style.borderColor = "color-mix(in srgb, var(--accent) 18%, transparent)";
-              }}
-            >
-              <span
-                className="shrink-0 w-6 h-6 rounded-lg flex items-center justify-center"
-                style={{ background: "color-mix(in srgb, var(--accent) 10%, transparent)" }}
-              >
-                <Icon size={11} />
-              </span>
-              <span className="text-[10px] font-black uppercase tracking-widest">{label}</span>
-              <Plus size={8} className="ml-auto opacity-40" />
-            </button>
-          );
-        })}
+        {/* Separador */}
+        <div
+          className="flex items-center gap-2 px-1"
+          style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }}
+        >
+          <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
+          <span className="text-[7px] font-black uppercase tracking-[0.3em]">Magia &amp; Notas</span>
+          <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
+        </div>
+
+        {/* Magia + notas — 1 columna */}
+        <div className="grid grid-cols-1 gap-1">
+          {magicEntries.map(renderEntry)}
+        </div>
       </div>
 
       <style>{`
@@ -524,8 +509,8 @@ export function ModalAcontecimiento({ onClose, onSaved }: {
         {/* Header */}
         <div className="flex items-center gap-3 px-4 py-3 border-b"
           style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}>
-          <div className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0"
-            style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)" }}>
+          <div className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0 border"
+            style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 18%, transparent)" }}>
             <Clock size={12} className="text-primary/50" />
           </div>
           <div className="flex-1 min-w-0">
