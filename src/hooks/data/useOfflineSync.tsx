@@ -50,28 +50,33 @@ function notifySyncDone() {
 }
 
 // ─── Verificación real de conectividad ───────────────────────────────────────
-// FIX #3: ping al endpoint REST de tu propio proyecto Supabase con CORS normal.
-// El modo "no-cors" anterior devolvía respuestas opacas que siempre resolvían
-// como éxito (true) incluso sin conexión real en algunas redes/navegadores.
-// Ahora verificamos que Supabase específicamente sea alcanzable.
+// FIX: Cloudflare bloqueaba el HEAD sin Authorization devolviendo un rechazo
+// a nivel de red (throw) en vez de una respuesta HTTP, por lo que el catch
+// resolvía false aunque hubiera conexión real. Ahora usamos GET con las dos
+// cabeceras que Supabase/CF esperan; cualquier respuesta < 500 = online.
 export async function isReallyOnline(): Promise<boolean> {
   if (!navigator.onLine) return false;
   return new Promise<boolean>((resolve) => {
     const controller = new AbortController();
     const timeoutId  = setTimeout(() => { controller.abort(); resolve(false); }, 4_000);
 
+    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
+
     fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/`, {
-      method:  "HEAD",
-      headers: { apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "" },
-      cache:   "no-store",
-      signal:  controller.signal,
+      method:  "GET",
+      headers: {
+        apikey:        anonKey,
+        Authorization: `Bearer ${anonKey}`,
+      },
+      cache:  "no-store",
+      signal: controller.signal,
     })
       .then((res) => {
         clearTimeout(timeoutId);
         // Cualquier respuesta HTTP (incluso 4xx) indica que el servidor es alcanzable
         resolve(res.status < 500);
       })
-      .catch((e) => {
+      .catch(() => {
         clearTimeout(timeoutId);
         resolve(false);
       });
@@ -248,6 +253,10 @@ export function useOfflineSync() {
   return { syncAll: runSync };
 }
 
+// ─── Encolar operación con deduplicación ──────────────────────────────────────
+// FIX: antes se añadía una entrada nueva por cada save timeout, acumulando
+// el mismo recordId varias veces. Ahora, si ya existe una entrada pendiente
+// para la misma tabla + recordId + operation, se actualiza en vez de duplicar.
 export async function enqueueOperation(
   table: string,
   operation: "upsert" | "update" | "delete",
@@ -255,6 +264,22 @@ export async function enqueueOperation(
   payload?: any,
 ): Promise<void> {
   try {
+    const existing = await db.offline_queue
+      .where("recordId")
+      .equals(recordId)
+      .and((op) => op.table === table && op.operation === operation)
+      .toArray();
+
+    if (existing.length > 0) {
+      await db.offline_queue.update(existing[0].id!, {
+        payload:   payload ?? {},
+        timestamp: Date.now(),
+        retries:   0,
+      });
+      console.log(`[Queue] Actualizado (dedup): ${operation} en ${table}/${recordId}`);
+      return;
+    }
+
     await db.offline_queue.add({
       table,
       operation,
