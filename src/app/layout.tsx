@@ -9,7 +9,6 @@ import { OfflineSyncActivator } from "@/providers/OfflineSyncActivator";
 import { ThemeProvider } from "@/providers/ThemeProvider";
 import { cn } from "@/lib/utils";
 
-// --- CONFIGURACIÓN DE FUENTES ---
 const geist = Geist({ subsets: ['latin'], variable: '--font-sans' });
 const montserrat = Montserrat({ subsets: ['latin'], display: 'swap', variable: '--font-montserrat' });
 const pixelifySans = Pixelify_Sans({ subsets: ['latin'], weight: ['400', '700'], variable: '--font-pixelify', display: 'swap' });
@@ -43,7 +42,7 @@ export const metadata: Metadata = {
     siteName: 'Garlia',
     images: [
       {
-        url: '/icon.jpg', // Esta imagen aparecerá al compartir el link
+        url: '/icon.jpg', 
         width: 800,
         height: 800,
         alt: 'Icono de Garlia',
@@ -51,7 +50,7 @@ export const metadata: Metadata = {
     ],
   },
   twitter: {
-    card: 'summary', // 'summary' es mejor para imágenes cuadradas tipo logo
+    card: 'summary', 
     images: ['/icon.jpg'],
   },
 };
