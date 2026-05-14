@@ -26,13 +26,33 @@ export const metadata: Metadata = {
   keywords: ['wiki', 'libros', 'biblioteca', 'lectura', 'historias', 'franilover', 'arte', 'fantasia', ],
   authors: [{ name: 'Franilover' }],
   metadataBase: new URL('https://franilover.vercel.app/'), 
+
+  icons: {
+    icon: '/icon.jpg',      
+    shortcut: '/icon.jpg',  
+    apple: '/icon.jpg',     
+  },
+
   verification: {
     google: 'Wil88vfT-qaSn4IBTlmk7MKlhxcjQYX0V0zhVS5_E_A',
   },
   openGraph: {
     type: 'website',
     locale: 'es_ES',
+    url: 'https://franilover.vercel.app/',
     siteName: 'Garlia',
+    images: [
+      {
+        url: '/icon.jpg', // Esta imagen aparecerá al compartir el link
+        width: 800,
+        height: 800,
+        alt: 'Icono de Garlia',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary', // 'summary' es mejor para imágenes cuadradas tipo logo
+    images: ['/icon.jpg'],
   },
 };
 
