@@ -50,22 +50,30 @@ function notifySyncDone() {
 }
 
 // ─── Verificación real de conectividad ───────────────────────────────────────
+// FIX #3: ping al endpoint REST de tu propio proyecto Supabase con CORS normal.
+// El modo "no-cors" anterior devolvía respuestas opacas que siempre resolvían
+// como éxito (true) incluso sin conexión real en algunas redes/navegadores.
+// Ahora verificamos que Supabase específicamente sea alcanzable.
 export async function isReallyOnline(): Promise<boolean> {
   if (!navigator.onLine) return false;
   return new Promise<boolean>((resolve) => {
     const controller = new AbortController();
     const timeoutId  = setTimeout(() => { controller.abort(); resolve(false); }, 4_000);
 
-    fetch("https://supabase.com/favicon.ico", {
-      method: "HEAD",
-      mode:   "no-cors",
-      cache:  "no-store",
-      signal: controller.signal,
+    fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/`, {
+      method:  "HEAD",
+      headers: { apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "" },
+      cache:   "no-store",
+      signal:  controller.signal,
     })
-      .then(() => { clearTimeout(timeoutId); resolve(true); })
+      .then((res) => {
+        clearTimeout(timeoutId);
+        // Cualquier respuesta HTTP (incluso 4xx) indica que el servidor es alcanzable
+        resolve(res.status < 500);
+      })
       .catch((e) => {
         clearTimeout(timeoutId);
-        resolve(!(e?.name === "AbortError" || e instanceof TypeError));
+        resolve(false);
       });
   });
 }

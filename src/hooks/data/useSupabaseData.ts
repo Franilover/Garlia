@@ -19,8 +19,11 @@ import { comprasQueries }      from "@/lib/api/queries/personal/cocina/carrito";
 // ─── Constantes ───────────────────────────────────────────────────────────────
 const FETCH_TIMEOUT_MS       = 12_000;
 const UPDATE_TIMEOUT_MS      = 10_000;
-const REVALIDATE_THROTTLE_MS = 30_000;
+// FIX #4: bajado de 30s → 15s para detectar pérdida de canal más rápido
+const REVALIDATE_THROTTLE_MS = 15_000;
 const RETRY_POLLING_MS       = 30_000;
+// FIX #1: delay antes de reconectar el canal tras un error
+const CHANNEL_RECONNECT_MS   = 5_000;
 
 const QUERIES_MAP: Record<string, any> = {
   personajes:   personajesQueries,
@@ -187,16 +190,18 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
   const [error,     setError]     = useState<string | null>(null);
   const [isOffline, setIsOffline] = useState(false);
 
-  const isMounted        = useRef(true);
-  const retryCount       = useRef(0);
-  const pollingRef       = useRef<ReturnType<typeof setInterval> | null>(null);
-  const lastFetchRef     = useRef<number>(0);
-  const lastVisibleRef   = useRef<number>(Date.now());
-  const channelRef       = useRef<ReturnType<typeof supabase.channel> | null>(null);
-  const retryTimerRef    = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const fetchTimeoutRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const updateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const optionsRef       = useRef<UseSupabaseOptions>(opciones);
+  const isMounted           = useRef(true);
+  const retryCount          = useRef(0);
+  const pollingRef          = useRef<ReturnType<typeof setInterval> | null>(null);
+  const lastFetchRef        = useRef<number>(0);
+  const lastVisibleRef      = useRef<number>(Date.now());
+  const channelRef          = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const retryTimerRef       = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const fetchTimeoutRef     = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const updateTimeoutRef    = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // FIX #1: ref para el timer de reconexión del canal
+  const channelReconnectRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const optionsRef          = useRef<UseSupabaseOptions>(opciones);
   useEffect(() => { optionsRef.current = opciones; });
 
   // ─── fetchData ──────────────────────────────────────────────────────────────
@@ -215,6 +220,7 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
       setLoading(true);
     }
 
+    // FIX #3: ping al endpoint real de Supabase en vez de supabase.com/favicon.ico con no-cors
     const online = await isReallyOnline();
     if (!isMounted.current) return;
 
@@ -404,13 +410,20 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
 
   // ─── Realtime ─────────────────────────────────────────────────────────────
   const subscribeChannel = useCallback(() => {
+    // Limpiar canal anterior si existe
     if (channelRef.current) {
       const old = channelRef.current;
       channelRef.current = null;
       if (pollingRef.current) { clearInterval(pollingRef.current); pollingRef.current = null; }
       supabase.removeChannel(old).catch(() => {});
     }
+    // FIX #1: cancelar cualquier reconexión pendiente para evitar duplicados
+    if (channelReconnectRef.current) {
+      clearTimeout(channelReconnectRef.current);
+      channelReconnectRef.current = null;
+    }
     if (!isMounted.current) return;
+
     const channel = supabase
       .channel(`rt-${tabla}-${Date.now()}`)
       .on("postgres_changes", { event: "*", schema: "public", table: tabla }, () => {
@@ -418,14 +431,25 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
       })
       .subscribe((status) => {
         if (status === "SUBSCRIBED") {
+          // Canal activo: parar polling de respaldo si estaba corriendo
           if (pollingRef.current) { clearInterval(pollingRef.current); pollingRef.current = null; }
           return;
         }
+
         if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+          // FIX #1: activar polling de respaldo mientras se reconecta
           if (!pollingRef.current) {
             pollingRef.current = setInterval(() => {
               if (isMounted.current) fetchData();
             }, RETRY_POLLING_MS);
+          }
+          // FIX #1: destruir el canal muerto y reconectar tras un delay
+          // (evitar reconexión inmediata infinita)
+          if (!channelReconnectRef.current) {
+            channelReconnectRef.current = setTimeout(() => {
+              channelReconnectRef.current = null;
+              if (isMounted.current) subscribeChannel();
+            }, CHANNEL_RECONNECT_MS);
           }
         }
       });
@@ -455,13 +479,18 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
     const handleVisibility = () => {
       if (document.visibilityState === "visible") {
         const now        = Date.now();
-        const hidden     = now - lastVisibleRef.current;
         const sinceFetch = now - lastFetchRef.current;
-        if (hidden > REVALIDATE_THROTTLE_MS || sinceFetch > REVALIDATE_THROTTLE_MS) {
+
+        // FIX #2: reconectar el canal SIEMPRE al volver a la pestaña
+        // (es barato si ya está SUBSCRIBED; si está muerto, lo revive)
+        subscribeChannel();
+
+        // FIX #4: refetch si pasaron más de 15s desde el último fetch
+        if (sinceFetch > REVALIDATE_THROTTLE_MS) {
           retryCount.current = 0;
-          subscribeChannel();
           setTimeout(() => { if (isMounted.current) fetchData(); }, 500);
         }
+
         lastVisibleRef.current = now;
       } else {
         lastVisibleRef.current = Date.now();
@@ -476,6 +505,11 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
       clearTimer(retryTimerRef);
       clearTimer(fetchTimeoutRef);
       clearTimer(updateTimeoutRef);
+      // FIX #1: limpiar el timer de reconexión del canal al desmontar
+      if (channelReconnectRef.current) {
+        clearTimeout(channelReconnectRef.current);
+        channelReconnectRef.current = null;
+      }
       if (pollingRef.current) { clearInterval(pollingRef.current); pollingRef.current = null; }
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current).catch(() => {});
