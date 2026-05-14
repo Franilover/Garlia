@@ -648,6 +648,179 @@ export function ModalAcontecimiento({ onClose, onSaved }: {
   );
 }
 
+// ─── ModalMagicNombre ─────────────────────────────────────────────────────────
+// Modal para crear Hechizo, Don o Runa pidiendo el nombre directamente
+
+type MagicNombreKey = "hechizos" | "dones" | "runas";
+
+const MAGIC_NOMBRE_CONFIG: Record<MagicNombreKey, {
+  tabla: string; label: string; labelSing: string;
+  Icon: React.ElementType; color: string; placeholder: string;
+}> = {
+  hechizos: {
+    tabla: "hechizos", label: "Hechizos", labelSing: "Hechizo",
+    Icon: Wand2, color: "oklch(0.65 0.18 290)",
+    placeholder: "Nombre del hechizo…",
+  },
+  dones: {
+    tabla: "dones", label: "Dones", labelSing: "Don",
+    Icon: Sparkles, color: "oklch(0.7 0.16 55)",
+    placeholder: "Nombre del don…",
+  },
+  runas: {
+    tabla: "runas", label: "Runas", labelSing: "Runa",
+    Icon: Zap, color: "oklch(0.68 0.16 195)",
+    placeholder: "Nombre de la runa…",
+  },
+};
+
+export function ModalMagicNombre({
+  tipo,
+  onClose,
+  onCreated,
+}: {
+  tipo: MagicNombreKey;
+  onClose: () => void;
+  onCreated?: (item: any) => void;
+}) {
+  const cfg = MAGIC_NOMBRE_CONFIG[tipo];
+  const [nombre,  setNombre]  = useState("");
+  const [saving,  setSaving]  = useState(false);
+  const [saved,   setSaved]   = useState(false);
+  const [error,   setError]   = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setTimeout(() => inputRef.current?.focus(), 80);
+  }, []);
+
+  useEffect(() => {
+    const k = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", k);
+    return () => document.removeEventListener("keydown", k);
+  }, [onClose]);
+
+  const canSave = nombre.trim().length > 0;
+
+  const handleSave = async () => {
+    if (!canSave || saving) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const { data, error: err } = await supabase
+        .from(cfg.tabla)
+        .insert([{ nombre: nombre.trim() }])
+        .select("id, nombre, explicacion")
+        .single();
+      if (err) throw err;
+      setSaved(true);
+      onCreated?.(data);
+      setTimeout(onClose, 700);
+    } catch (e: any) {
+      setError(e?.message ?? "Error al crear");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const INPUT = "w-full px-3 py-2 rounded-xl text-xs font-medium text-primary bg-transparent border transition-all outline-none placeholder:text-primary/25 focus:border-primary/40 focus:bg-primary/3";
+
+  return (
+    <div
+      className="fixed inset-0 z-[80] flex items-center justify-center p-4"
+      style={{ background: "color-mix(in srgb, var(--primary) 30%, transparent)", backdropFilter: "blur(6px)" }}
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl"
+        style={{
+          background: "var(--bg-main)",
+          border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
+          animation: "popIn 160ms cubic-bezier(0.34, 1.56, 0.64, 1)",
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div
+          className="flex items-center gap-3 px-4 py-3 border-b"
+          style={{
+            borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
+            background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+          }}
+        >
+          <div
+            className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0 border"
+            style={{
+              background: `color-mix(in srgb, ${cfg.color} 12%, transparent)`,
+              borderColor: `color-mix(in srgb, ${cfg.color} 25%, transparent)`,
+            }}
+          >
+            <cfg.Icon size={12} style={{ color: cfg.color }} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/40">
+              Nuevo {cfg.labelSing}
+            </p>
+          </div>
+          <button onClick={onClose} className="text-primary/25 hover:text-primary transition-colors">
+            <X size={15} />
+          </button>
+        </div>
+
+        <div className="p-4 space-y-3">
+          <div className="space-y-1.5">
+            <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">
+              Nombre
+            </label>
+            <input
+              ref={inputRef}
+              value={nombre}
+              onChange={e => setNombre(e.target.value)}
+              placeholder={cfg.placeholder}
+              className={`${INPUT} border-primary/15`}
+              onKeyDown={e => { if (e.key === "Enter") handleSave(); }}
+            />
+          </div>
+
+          {error && (
+            <p className="text-[10px] text-red-400 font-medium px-1">{error}</p>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div
+          className="flex items-center justify-end gap-2 px-4 py-3 border-t"
+          style={{
+            borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
+            background: "color-mix(in srgb, var(--primary) 2%, transparent)",
+          }}
+        >
+          <button
+            onClick={onClose}
+            className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest text-primary/40 hover:text-primary hover:bg-primary/6 transition-all border border-transparent hover:border-primary/10"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={!canSave || saving}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all disabled:opacity-40"
+            style={{
+              background: saved
+                ? "color-mix(in srgb, #22c55e 80%, transparent)"
+                : `color-mix(in srgb, ${cfg.color} 85%, transparent)`,
+              color: "var(--btn-text, white)",
+            }}
+          >
+            {saving ? <Loader2 size={10} className="animate-spin" /> : saved ? <Check size={10} /> : <cfg.Icon size={10} />}
+            {saved ? "Creado" : saving ? "Creando…" : `Crear ${cfg.labelSing}`}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── GlobalSearchBar ──────────────────────────────────────────────────────────
 export function GlobalSearchBar({
   allItems,
@@ -680,10 +853,11 @@ export function GlobalSearchBar({
   onSelectMagic?: (subTab: "hechizos" | "dones" | "runas", item: any) => void;
   onToggleOculto?: (id: string, oculto: boolean) => void;
 }) {
-  const [query,       setQuery]       = useState("");
-  const [open,        setOpen]        = useState(false);
-  const [focused,     setFocused]     = useState(false);
-  const [addMenuOpen, setAddMenuOpen] = useState(false);
+  const [query,           setQuery]           = useState("");
+  const [open,            setOpen]            = useState(false);
+  const [focused,         setFocused]         = useState(false);
+  const [addMenuOpen,     setAddMenuOpen]     = useState(false);
+  const [magicNombreModal, setMagicNombreModal] = useState<"hechizos" | "dones" | "runas" | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const wrapRef  = useRef<HTMLDivElement>(null);
 
@@ -798,6 +972,16 @@ export function GlobalSearchBar({
     close();
     inputRef.current?.blur();
   }, [onSelectMagic, close]);
+
+  // Intercept magic add: hechizos/dones/runas → ask for name first
+  const handleAddMagicWithModal = useCallback((key: MagicAddKey) => {
+    if (key === "hechizos" || key === "dones" || key === "runas") {
+      close();
+      setMagicNombreModal(key);
+    } else {
+      onAddMagic?.(key);
+    }
+  }, [onAddMagic, close]);
 
   useEffect(() => {
     if (!open) return;
@@ -915,9 +1099,23 @@ export function GlobalSearchBar({
           open={addMenuOpen}
           anchorRef={wrapRef}
           onAdd={(tab) => { onAdd(tab); close(); }}
-          onAddMagic={(key) => { onAddMagic?.(key); close(); }}
+          onAddMagic={handleAddMagicWithModal}
           onClose={() => { setAddMenuOpen(false); setQuery(""); setFocused(false); inputRef.current?.blur(); }}
         />
+
+        {/* Modal nombre para Hechizo / Don / Runa */}
+        {magicNombreModal && (
+          <ModalMagicNombre
+            tipo={magicNombreModal}
+            onClose={() => setMagicNombreModal(null)}
+            onCreated={(item) => {
+              // Navegar a la sección de magia y seleccionar el item recién creado
+              onAddMagic?.(magicNombreModal);
+              onSelectMagic?.(magicNombreModal, item);
+              setMagicNombreModal(null);
+            }}
+          />
+        )}
 
         {/* Dropdown de búsqueda */}
         {open && focused && !addMenuOpen && (
