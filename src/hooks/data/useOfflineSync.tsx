@@ -50,37 +50,11 @@ function notifySyncDone() {
 }
 
 // ─── Verificación real de conectividad ───────────────────────────────────────
-// FIX: Cloudflare bloqueaba el HEAD sin Authorization devolviendo un rechazo
-// a nivel de red (throw) en vez de una respuesta HTTP, por lo que el catch
-// resolvía false aunque hubiera conexión real. Ahora usamos GET con las dos
-// cabeceras que Supabase/CF esperan; cualquier respuesta < 500 = online.
+// Cloudflare rechaza cualquier ping directo a Supabase a nivel de red (CORS),
+// así que no lo usamos como señal. navigator.onLine es suficiente: si hay red
+// intentamos el sync y dejamos que los errores de Supabase se manejen solos.
 export async function isReallyOnline(): Promise<boolean> {
-  if (!navigator.onLine) return false;
-  return new Promise<boolean>((resolve) => {
-    const controller = new AbortController();
-    const timeoutId  = setTimeout(() => { controller.abort(); resolve(false); }, 4_000);
-
-    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
-
-    fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/`, {
-      method:  "GET",
-      headers: {
-        apikey:        anonKey,
-        Authorization: `Bearer ${anonKey}`,
-      },
-      cache:  "no-store",
-      signal: controller.signal,
-    })
-      .then((res) => {
-        clearTimeout(timeoutId);
-        // Cualquier respuesta HTTP (incluso 4xx) indica que el servidor es alcanzable
-        resolve(res.status < 500);
-      })
-      .catch(() => {
-        clearTimeout(timeoutId);
-        resolve(false);
-      });
-  });
+  return navigator.onLine;
 }
 
 function cleanPayload(payload: any, exclude: string[] = []): any {
