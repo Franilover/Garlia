@@ -911,10 +911,12 @@ export function MarkdownEditor({
     return () => document.removeEventListener("mousedown", handler);
   }, [wikiMenu.open]);
 
-  // En móvil, forzamos "edit"
+  // En móvil, forzamos "edit" y ocultamos el botón split
+  const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 639px)");
     const check = (e: MediaQueryListEvent | MediaQueryList) => {
+      setIsMobile(e.matches);
       if (e.matches && mode === "split") setMode("edit");
     };
     check(mq);
@@ -1530,7 +1532,7 @@ export function MarkdownEditor({
               overflow: "hidden",
             }}
           >
-          {(["edit", "split", "preview"] as ViewMode[]).map((m) => {
+          {(["edit", "split", "preview"] as ViewMode[]).filter(m => !(isMobile && m === "split")).map((m) => {
             const Icon = m === "edit" ? Edit3 : m === "split" ? Columns : Eye;
             const isActive = mode === m;
             return (
