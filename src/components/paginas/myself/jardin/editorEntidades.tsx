@@ -83,11 +83,14 @@ function useAllEntidades() {
 
   const load = useCallback(async () => {
     // 1. Leer de Dexie primero para respuesta inmediata
-    const [localP, localC, localI, localR] = await Promise.all([
+    const [localP, localC, localI, localR, localH, localD, localRu] = await Promise.all([
       dexieReadAll<Personaje>("personajes"),
       dexieReadAll<Criatura>("criaturas"),
       dexieReadAll<Item>("items"),
       dexieReadAll<Reino>("reinos"),
+      dexieReadAll<Hechizo>("hechizos"),
+      dexieReadAll<Don>("dones"),
+      dexieReadAll<Runa>("runas"),
     ]);
 
     const hasLocal =
@@ -101,6 +104,9 @@ function useAllEntidades() {
         criaturas:  localC,
         items:      localI,
         reinos:     localR,
+        hechizos:   localH,
+        dones:      localD,
+        runas:      localRu,
       }));
       setLoadingAll(false); // mostrar datos locales de inmediato, sin bloquear UI
     }
@@ -144,6 +150,9 @@ function useAllEntidades() {
         dexieWriteAll("criaturas",  remote.criaturas),
         dexieWriteAll("items",      remote.items),
         dexieWriteAll("reinos",     remote.reinos),
+        dexieWriteAll("hechizos",   remote.hechizos),
+        dexieWriteAll("dones",      remote.dones),
+        dexieWriteAll("runas",      remote.runas),
       ]);
     } catch {
       setIsOffline(true);
@@ -481,7 +490,6 @@ export default function EditorEntidades() {
         <ModalAcontecimiento
           onClose={() => setShowAcontecimiento(false)}
           onSaved={() => {
-            // Si el usuario está en Historia, navegar ahí para que vea el evento nuevo
             setTab("mundo");
             setMundoSection("historia");
             setRequestedSubTab("historia");
