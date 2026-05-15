@@ -15,7 +15,6 @@ import { MarkdownEditor, WikiEntity } from "../../../../forms/MarkdownEditor";
 import { useWikilink } from "../../../../forms/WikilinkContext";
 import { BloqueHechizos } from "./BloqueHechizos";
 import { BloqueDones } from "./BloqueDones";
-import { BloqueDrops } from "./BloqueDrops";
 
 // ─── Dexie helpers ────────────────────────────────────────────────────────────
 async function dexiePut(tabla: string, row: any): Promise<void> {
@@ -113,17 +112,22 @@ type NaturalItem = {
   itemImg?: string | null;
 };
 
-function useNaturalItems(criaturaId: string) {
+function useNaturalItems(criaturaId: string, varianteId?: string | null) {
   const [items, setItems] = useState<NaturalItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const { data } = await supabase
+    let query = supabase
       .from("criatura_drops")
       .select(`id, item_id, items!item_id(nombre, imagen_url)`)
-      .eq("criatura_id", criaturaId)
-      .is("variante_id", null);
+      .eq("criatura_id", criaturaId);
+    if (varianteId) {
+      query = query.eq("variante_id", varianteId);
+    } else {
+      query = query.is("variante_id", null);
+    }
+    const { data } = await query;
 
     setItems(
       (data ?? []).map((r: any) => ({
@@ -134,7 +138,7 @@ function useNaturalItems(criaturaId: string) {
       }))
     );
     setLoading(false);
-  }, [criaturaId]);
+  }, [criaturaId, varianteId]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -142,14 +146,13 @@ function useNaturalItems(criaturaId: string) {
     if (items.some(i => i.itemId === item.id)) return;
     const { data, error } = await supabase
       .from("criatura_drops")
-      .insert([{ item_id: item.id, criatura_id: criaturaId, variante_id: null }])
+      .insert([{ item_id: item.id, criatura_id: criaturaId, variante_id: varianteId ?? null }])
       .select().single();
     if (!error && data) {
       setItems(prev => [...prev, {
         dropId: data.id, itemId: item.id,
         itemName: item.nombre, itemImg: item.imagen_url ?? null,
       }]);
-      // Marcar el ítem como Natural → Criatura automáticamente
       await supabase.from("items").update({ origen: "Natural", sub_origen: "Criatura" }).eq("id", item.id);
     }
   };
@@ -165,12 +168,13 @@ function useNaturalItems(criaturaId: string) {
 // ─── Bloque de ítems naturales (drops base de la criatura) ────────────────────
 
 function BloqueItemsNaturales({
-  criaturaId, onSelectItem,
+  criaturaId, varianteId, onSelectItem,
 }: {
   criaturaId: string;
+  varianteId?: string | null;
   onSelectItem?: (itemId: string) => void;
 }) {
-  const { items, loading, add, remove } = useNaturalItems(criaturaId);
+  const { items, loading, add, remove } = useNaturalItems(criaturaId, varianteId);
   const [allItems, setAllItems] = useState<{ id: string; nombre: string; imagen_url?: string | null }[]>([]);
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -511,10 +515,16 @@ function VarianteEditor({
               </div>
             </div>
 
-            {/* Drops */}
-            <div className="sm:shrink-0 sm:w-52 space-y-1.5">
-              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/30">Drops</p>
-              <BloqueDrops criaturaId={criaturaId} varianteId={form.id} />
+            {/* Naturales + Creaciones */}
+            <div className="sm:shrink-0 sm:w-52 space-y-3">
+              <div className="space-y-1.5">
+                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/30 flex items-center gap-1"><Leaf size={9} /> Naturales</p>
+                <BloqueItemsNaturales criaturaId={criaturaId} varianteId={form.id} />
+              </div>
+              <div className="space-y-1.5">
+                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/30 flex items-center gap-1"><Wrench size={9} /> Creaciones</p>
+                <BloqueItemsCraftedos criaturaId={criaturaId} />
+              </div>
             </div>
 
 
