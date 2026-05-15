@@ -10,7 +10,7 @@ import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { MUNDO_SECTIONS, type MundoSectionKey, type SaveStatus, type Reino, type Personaje, type Nota } from "./types";
-import { SaveIndicator } from "./UIComponents";
+import { SaveIndicator, SelectorImagen } from "./UIComponents";
 import { MarkdownEditor } from "../../../../forms/MarkdownEditor";
 import { useWikilink } from "../../../../forms/WikilinkContext";
 import { EditorReino } from "./EditorReino";
@@ -68,6 +68,7 @@ type Runa = {
   id: string;
   nombre: string;
   explicacion?: string;
+  imagen_url?: string | null;
 };
 
 type CriaturaMin = { id: string; nombre: string; imagen_url?: string; habitat?: string };
@@ -235,7 +236,7 @@ function useRunas() {
     const local = await dexieReadAll<Runa>("runas");
     if (local.length) { setItems(local); setLoading(false); }
     if (!navigator.onLine) { if (!local.length) setLoading(false); return; }
-    const { data } = await supabase.from("runas").select("id, nombre, explicacion").order("nombre");
+    const { data } = await supabase.from("runas").select("id, nombre, explicacion, imagen_url").order("nombre");
     const result = (data ?? []) as Runa[];
     setItems(result); setLoading(false);
     await dexieWriteAll("runas", result);
@@ -511,6 +512,7 @@ function FormularioRuna({ item, onSaved, onDeleted }: {
       const { error } = await supabase.from("runas").update({
         nombre: form.nombre,
         explicacion: form.explicacion || null,
+        imagen_url: form.imagen_url || null,
       }).eq("id", form.id);
       if (error) throw error;
       setStatus("saved");
@@ -534,9 +536,14 @@ function FormularioRuna({ item, onSaved, onDeleted }: {
       <div className="shrink-0 flex flex-col gap-2 px-4 py-3 border-b"
         style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}>
         <div className="flex items-center gap-3 min-w-0">
-          <div className="shrink-0 w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center border"
-            style={{ background: `color-mix(in srgb, ${cfg.color} 12%, transparent)`, borderColor: `color-mix(in srgb, ${cfg.color} 25%, transparent)` }}>
-            <cfg.Icon size={15} style={{ color: cfg.color }} />
+          <div className="shrink-0 w-9 h-9">
+            <SelectorImagen
+              label=""
+              value={form.imagen_url ?? ""}
+              onChange={url => setForm(f => ({ ...f, imagen_url: url }))}
+              aspect="square"
+              placeholder={<cfg.Icon size={15} style={{ color: cfg.color }} />}
+            />
           </div>
           <input
             value={form.nombre ?? ""}
@@ -592,7 +599,7 @@ function PanelRunas() {
     try {
       const { data, error } = await supabase.from("runas")
         .insert([{ nombre: "Nueva Runa" }])
-        .select("id, nombre, explicacion")
+        .select("id, nombre, explicacion, imagen_url")
         .single();
       if (error) throw error;
       setItems(prev => [data, ...prev]);
@@ -635,10 +642,16 @@ function PanelRunas() {
             </p>
           ) : filtered.map(item => (
             <button key={item.id} onClick={() => setSelectedId(item.id)}
-              className={`w-full text-left px-2.5 py-2 rounded-xl transition-all border ${
+              className={`w-full text-left flex items-center gap-2.5 px-2.5 py-2 rounded-xl transition-all border ${
                 selectedId === item.id ? "border-primary/20 bg-primary/10" : "border-transparent hover:bg-primary/6 hover:border-primary/10"
               }`}>
-              <p className={`text-[11px] font-bold truncate ${selectedId === item.id ? "text-primary" : "text-primary/70"}`}>
+              <div className="shrink-0 w-7 h-7 rounded-lg overflow-hidden border flex items-center justify-center"
+                style={{ background: "color-mix(in srgb, var(--primary) 6%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 14%, transparent)" }}>
+                {item.imagen_url
+                  ? <img src={item.imagen_url} alt={item.nombre} className="w-full h-full object-cover" />
+                  : <ScrollText size={11} className="text-primary/40" />}
+              </div>
+              <p className={`text-[11px] font-bold truncate flex-1 min-w-0 ${selectedId === item.id ? "text-primary" : "text-primary/70"}`}>
                 {item.nombre}
               </p>
             </button>
@@ -2513,9 +2526,11 @@ function PanelListas({ initialSubTab, initialItemId }: { initialSubTab?: string;
                 : filteredRu.map(r => (
                   <button key={r.id} onClick={() => setSelectedRuna(r)}
                     className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-primary/6 border border-transparent hover:border-primary/10 transition-all rounded-xl group">
-                    <div className="shrink-0 w-8 h-8 rounded-xl border flex items-center justify-center"
+                    <div className="shrink-0 w-8 h-8 rounded-xl border overflow-hidden flex items-center justify-center"
                       style={{ background: "color-mix(in srgb, var(--primary) 6%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 14%, transparent)" }}>
-                      <ScrollText size={13} className="text-primary/40" />
+                      {r.imagen_url
+                        ? <img src={r.imagen_url} alt={r.nombre} className="w-full h-full object-cover" />
+                        : <ScrollText size={13} className="text-primary/40" />}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-[11px] font-bold text-primary/85 truncate">{r.nombre}</p>
