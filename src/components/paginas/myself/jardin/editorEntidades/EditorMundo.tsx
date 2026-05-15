@@ -1860,7 +1860,7 @@ function resolveInitialTab(activeSection: MundoSectionKey, initialMundoTab?: str
     return "magia";
   }
   // geografia
-  const listsKeys = ["reinos", "criaturas", "objetos", "personajes", "hechizos", "dones", "runas"];
+  const listsKeys = ["listas", "reinos", "criaturas", "objetos", "personajes", "hechizos", "dones", "runas", "notas"];
   if (initialMundoTab && listsKeys.includes(initialMundoTab)) return "listas";
   return "mundo";
 }
