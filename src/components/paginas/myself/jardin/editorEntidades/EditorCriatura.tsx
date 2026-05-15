@@ -105,7 +105,12 @@ function useCraftedItems(criaturaId: string) {
 
 // ─── Bloque de ítems que crea una criatura ────────────────────────────────────
 
-function BloqueItemsCraftedos({ criaturaId }: { criaturaId: string }) {
+function BloqueItemsCraftedos({
+  criaturaId, onSelectItem,
+}: {
+  criaturaId: string;
+  onSelectItem?: (itemId: string) => void;
+}) {
   const { items, loading, add, remove } = useCraftedItems(criaturaId);
   const [allItems, setAllItems] = useState<{ id: string; nombre: string; imagen_url?: string | null }[]>([]);
   const [open, setOpen] = useState(false);
@@ -128,27 +133,46 @@ function BloqueItemsCraftedos({ criaturaId }: { criaturaId: string }) {
   );
 
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-2">
       {items.length === 0 && (
-        <p className="text-[9px] text-primary/20 italic">Sin ítems creados</p>
+        <p className="text-[9px] text-primary/20 italic py-2">Sin ítems creados</p>
       )}
-      {items.map(it => (
-        <div key={it.crafterId}
-          className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg group transition-colors"
-          style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-          <div className="shrink-0 w-5 h-5 rounded-md overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
-            {it.itemImg
-              ? <img src={it.itemImg} alt={it.itemName} className="w-full h-full object-cover" />
-              : <Package size={9} className="text-primary/20" />}
-          </div>
-          <span className="flex-1 text-[10px] font-bold text-primary/65 truncate">{it.itemName}</span>
-          <button onClick={() => remove(it.crafterId)}
-            className="shrink-0 opacity-0 group-hover:opacity-100 transition-all p-0.5 rounded text-red-400/50 hover:text-red-400">
-            <X size={9} />
-          </button>
-        </div>
-      ))}
 
+      {/* Grid de 2 columnas */}
+      {items.length > 0 && (
+        <div className="grid grid-cols-2 gap-1.5">
+          {items.map(it => (
+            <div key={it.crafterId} className="relative group">
+              {/* Tarjeta clickeable */}
+              <button
+                onClick={() => onSelectItem?.(it.itemId)}
+                className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-left transition-all hover:scale-[1.02] active:scale-[0.98]"
+                style={{
+                  background: "color-mix(in srgb, var(--primary) 4%, transparent)",
+                  border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+                }}
+              >
+                <div className="shrink-0 w-7 h-7 rounded-md overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
+                  {it.itemImg
+                    ? <img src={it.itemImg} alt={it.itemName} className="w-full h-full object-cover" />
+                    : <Package size={11} className="text-primary/20" />}
+                </div>
+                <span className="flex-1 text-[10px] font-bold text-primary/65 truncate leading-tight">{it.itemName}</span>
+              </button>
+
+              {/* Botón quitar flotante */}
+              <button
+                onClick={e => { e.stopPropagation(); remove(it.crafterId); }}
+                className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all bg-red-500/10 hover:bg-red-500/20 text-red-400/60 hover:text-red-400 border border-red-500/20"
+              >
+                <X size={8} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Dropdown para añadir */}
       <div className="relative">
         <button onClick={() => setOpen(o => !o)}
           className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg border border-dashed border-primary/15 text-[9px] font-black uppercase tracking-widest text-primary/30 hover:text-primary/60 hover:border-primary/30 transition-all">
@@ -368,9 +392,10 @@ function VarianteEditor({
 
 // ─── EditorCriatura ───────────────────────────────────────────────────────────
 export function EditorCriatura({
-  item, onSaved, onDeleted, entities = [],
+  item, onSaved, onDeleted, entities = [], onSelectItem,
 }: {
   item: Criatura; onSaved: (c: Criatura) => void; onDeleted: (id: string) => void; entities?: WikiEntity[];
+  onSelectItem?: (itemId: string) => void;
 }) {
   const [form,   setForm]   = useState<Criatura>(item);
   const [status, setStatus] = useState<SaveStatus>("idle");
@@ -522,7 +547,7 @@ export function EditorCriatura({
                     <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/30 flex items-center gap-1">
                       <Wrench size={9} /> Ítems que crea
                     </label>
-                    <BloqueItemsCraftedos criaturaId={form.id} />
+                    <BloqueItemsCraftedos criaturaId={form.id} onSelectItem={onSelectItem} />
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Descripción</label>

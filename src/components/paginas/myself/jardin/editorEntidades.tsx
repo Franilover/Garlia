@@ -459,7 +459,12 @@ export default function EditorEntidades() {
           ) : selected ? (
             <>
               {tab === "personajes" && <EditorPersonaje key={selected.id} item={selected as Personaje} onSaved={handleSaved} onDeleted={handleDeleted} entities={allEntityNames} />}
-              {tab === "criaturas"  && <EditorCriatura  key={selected.id} item={selected as Criatura}  onSaved={handleSaved} onDeleted={handleDeleted} entities={allEntityNames} />}
+              {tab === "criaturas"  && <EditorCriatura  key={selected.id} item={selected as Criatura}  onSaved={handleSaved} onDeleted={handleDeleted} entities={allEntityNames}
+                onSelectItem={(itemId) => {
+                  const found = allItems.items.find(i => i.id === itemId);
+                  if (found) handleSelect(found, "items");
+                }}
+              />}
               {tab === "items"      && <EditorItem       key={selected.id} item={selected as Item}      onSaved={handleSaved} onDeleted={handleDeleted} entities={allEntityNames} />}
               {tab === "reinos"     && <EditorReino      key={selected.id} item={selected as Reino}     onSaved={handleSaved} onDeleted={handleDeleted} entities={allEntityNames} />}
             </>
