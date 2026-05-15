@@ -2127,15 +2127,29 @@ function PanelListas({ initialSubTab, initialItemId }: { initialSubTab?: string;
     personajes: setSearchP, hechizos: setSearchH, dones: setSearchD, runas: setSearchRu,
   };
 
-  const TABS: { key: ListaTab; label: string; Icon: React.ElementType; count: number; color?: string }[] = [
-    { key: "reinos",     label: "Reinos",     Icon: Map,        count: reinos.length     },
-    { key: "criaturas",  label: "Criaturas",  Icon: Bug,        count: criaturas.length  },
-    { key: "objetos",    label: "Objetos",    Icon: Package,    count: objetos.length    },
-    { key: "personajes", label: "Personajes", Icon: Users,      count: personajes.length },
-    { key: "hechizos",   label: "Hechizos",   Icon: Sparkles,   count: hechizos.length,  color: "var(--accent)" },
-    { key: "dones",      label: "Dones",      Icon: Star,       count: dones.length,     color: "color-mix(in srgb, var(--accent) 70%, var(--primary))" },
-    { key: "runas",      label: "Runas",      Icon: ScrollText, count: runas.length      },
+  type TabDef = { key: ListaTab; label: string; Icon: React.ElementType; count: number; color?: string };
+
+  const TAB_GROUPS: { label: string; tabs: TabDef[] }[] = [
+    {
+      label: "Mundo",
+      tabs: [
+        { key: "reinos",     label: "Reinos",     Icon: Map,        count: reinos.length     },
+        { key: "personajes", label: "Personajes", Icon: Users,      count: personajes.length },
+        { key: "objetos",    label: "Objetos",    Icon: Package,    count: objetos.length    },
+      ],
+    },
+    {
+      label: "Magia",
+      tabs: [
+        { key: "criaturas", label: "Criaturas", Icon: Bug,        count: criaturas.length                                                               },
+        { key: "hechizos",  label: "Hechizos",  Icon: Sparkles,   count: hechizos.length, color: "var(--accent)"                                        },
+        { key: "dones",     label: "Dones",     Icon: Star,       count: dones.length,    color: "color-mix(in srgb, var(--accent) 70%, var(--primary))" },
+        { key: "runas",     label: "Runas",     Icon: ScrollText, count: runas.length                                                                    },
+      ],
+    },
   ];
+
+  const TABS: TabDef[] = TAB_GROUPS.flatMap(g => g.tabs);
 
   return (
     <div className="flex-1 flex min-h-0 overflow-hidden relative">
@@ -2222,43 +2236,64 @@ function PanelListas({ initialSubTab, initialItemId }: { initialSubTab?: string;
       {/* ── Layout principal: sidebar + lista ───────────────────────────── */}
       <div className="flex-1 flex min-h-0 overflow-hidden">
 
-        {/* Sidebar de navegación — fija, estrecha */}
-        <div className="shrink-0 w-36 flex flex-col border-r min-h-0 py-2"
+        {/* Sidebar de navegación — fija, estrecha, con grupos */}
+        <div className="shrink-0 w-36 flex flex-col border-r min-h-0 overflow-y-auto py-2 gap-1"
           style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-          {TABS.map(t => {
-            const active = mobileTab === t.key;
-            const color = t.color ?? "var(--primary)";
-            return (
-              <button
-                key={t.key}
-                onClick={() => setMobileTab(t.key)}
-                className="flex items-center gap-2.5 mx-2 px-2.5 py-2 rounded-xl transition-all text-left"
-                style={active ? {
-                  background: `color-mix(in srgb, ${color} 10%, transparent)`,
-                  color,
-                } : {
-                  color: "color-mix(in srgb, var(--primary) 40%, transparent)",
-                }}
-              >
-                <t.Icon size={12} className="shrink-0" />
-                <span className="flex-1 text-[10px] font-black uppercase tracking-widest truncate">{t.label}</span>
-                {t.count > 0 && (
-                  <span
-                    className="shrink-0 text-[8px] font-black px-1.5 py-0.5 rounded-full tabular-nums"
-                    style={active ? {
-                      background: `color-mix(in srgb, ${color} 18%, transparent)`,
-                      color,
-                    } : {
-                      background: "color-mix(in srgb, var(--primary) 8%, transparent)",
-                      color: "color-mix(in srgb, var(--primary) 35%, transparent)",
-                    }}
-                  >
-                    {t.count}
-                  </span>
-                )}
-              </button>
-            );
-          })}
+          {TAB_GROUPS.map((group, gi) => (
+            <div key={group.label}
+              className="mx-2 rounded-xl overflow-hidden"
+              style={{
+                border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                background: "color-mix(in srgb, var(--primary) 2%, transparent)",
+                marginTop: gi === 0 ? 0 : 4,
+              }}
+            >
+              {/* Etiqueta del grupo */}
+              <div className="px-2.5 pt-2 pb-1">
+                <span className="text-[8px] font-black uppercase tracking-[0.3em]"
+                  style={{ color: "color-mix(in srgb, var(--primary) 28%, transparent)" }}>
+                  {group.label}
+                </span>
+              </div>
+              {/* Tabs del grupo */}
+              <div className="pb-1.5 flex flex-col gap-0.5 px-1">
+                {group.tabs.map(t => {
+                  const active = mobileTab === t.key;
+                  const color = t.color ?? "var(--primary)";
+                  return (
+                    <button
+                      key={t.key}
+                      onClick={() => setMobileTab(t.key)}
+                      className="flex items-center gap-2 px-2 py-1.5 rounded-lg transition-all text-left w-full"
+                      style={active ? {
+                        background: `color-mix(in srgb, ${color} 12%, transparent)`,
+                        color,
+                      } : {
+                        color: "color-mix(in srgb, var(--primary) 40%, transparent)",
+                      }}
+                    >
+                      <t.Icon size={11} className="shrink-0" />
+                      <span className="flex-1 text-[10px] font-black uppercase tracking-widest truncate">{t.label}</span>
+                      {t.count > 0 && (
+                        <span
+                          className="shrink-0 text-[8px] font-black px-1.5 py-0.5 rounded-full tabular-nums"
+                          style={active ? {
+                            background: `color-mix(in srgb, ${color} 18%, transparent)`,
+                            color,
+                          } : {
+                            background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+                            color: "color-mix(in srgb, var(--primary) 30%, transparent)",
+                          }}
+                        >
+                          {t.count}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </div>
 
         {/* Área de lista — ocupa el resto del espacio */}
