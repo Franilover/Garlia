@@ -289,8 +289,9 @@ function DetalleEditor({ detalle, onSaved, onDeleted, entities = [] }: {
 }
 
 // ─── EditorReino ───────────────────────────────────────────────────────────────
-export function EditorReino({ item, onSaved, onDeleted, entities = [] }: {
+export function EditorReino({ item, onSaved, onDeleted, entities = [], onSelectPersonaje }: {
   item: Reino; onSaved: (r: Reino) => void; onDeleted: (id: string) => void; entities?: WikiEntity[];
+  onSelectPersonaje?: (personaje: any) => void;
 }) {
   const [form,   setForm]   = useState<Reino>(item);
   const [status, setStatus] = useState<SaveStatus>("idle");
@@ -504,6 +505,7 @@ export function EditorReino({ item, onSaved, onDeleted, entities = [] }: {
               entities={entities}
               personajes={personajes}
               loadingPersonajes={loadingPersonajes}
+              onSelectPersonaje={onSelectPersonaje}
             />
           )}
         </div>

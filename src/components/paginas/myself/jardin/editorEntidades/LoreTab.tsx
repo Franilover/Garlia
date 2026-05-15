@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import { Globe, Mountain, Landmark, Users, Coins, Plus, Trash2, ChevronUp, ChevronDown, UserCircle2, Loader2 } from "lucide-react";
+import { Globe, Mountain, Landmark, Users, Coins, Plus, Trash2, ChevronUp, ChevronDown, ChevronRight, UserCircle2, Loader2 } from "lucide-react";
 import { MarkdownEditor, WikiEntity } from "../../../../forms/MarkdownEditor";
 import { useWikilink } from "../../../../forms/WikilinkContext";
 import { type Reino } from "./types";
@@ -412,12 +412,14 @@ export function LoreTab({
   entities = [],
   personajes = [],
   loadingPersonajes = false,
+  onSelectPersonaje,
 }: {
   form: Reino;
   setForm: React.Dispatch<React.SetStateAction<Reino>>;
   entities?: WikiEntity[];
   personajes?: Personaje[];
   loadingPersonajes?: boolean;
+  onSelectPersonaje?: (personaje: Personaje) => void;
 }) {
   const [activeKey, setActiveKey] = useState<LoreKey>("historia");
   const { onSnippetAction } = useWikilink();
@@ -570,12 +572,21 @@ export function LoreTab({
                 </div>
               ) : (
                 personajes.map(p => (
-                  <div
+                  <button
                     key={p.id}
-                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl"
+                    onClick={() => onSelectPersonaje?.(p)}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all group"
                     style={{
                       background: "color-mix(in srgb, var(--primary) 3%, transparent)",
                       border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+                    }}
+                    onMouseEnter={e => {
+                      (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 7%, transparent)";
+                      (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 18%, transparent)";
+                    }}
+                    onMouseLeave={e => {
+                      (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 3%, transparent)";
+                      (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 8%, transparent)";
                     }}
                   >
                     <div className="shrink-0 w-9 h-9 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
@@ -584,14 +595,15 @@ export function LoreTab({
                         : <UserCircle2 size={14} className="text-primary/20" />}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[12px] font-bold text-primary/80 truncate">{p.nombre}</p>
+                      <p className="text-[12px] font-bold text-primary/80 truncate group-hover:text-primary transition-colors">{p.nombre}</p>
                       {(p.especie || p.sobre) && (
                         <p className="text-[9px] text-primary/35 truncate mt-0.5">
                           {[p.especie, p.sobre?.slice(0, 50)].filter(Boolean).join(" · ")}
                         </p>
                       )}
                     </div>
-                  </div>
+                    <ChevronRight size={11} className="shrink-0 text-primary/20 group-hover:text-primary/50 transition-colors" />
+                  </button>
                 ))
               )}
             </div>
