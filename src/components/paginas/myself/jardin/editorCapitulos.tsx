@@ -1646,6 +1646,7 @@ const PanelEditor = ({
             extraCommands={extraCommands}
             insertRef={mdInsertRef}
             onSnippetAction={handleSnippetAction}
+            autoResize
           />
         </div>
       </div>
