@@ -76,6 +76,7 @@ export type AllItems = {
   hechizos:   any[];
   dones:      any[];
   runas:      any[];
+  notas:      any[]; 
 };
 
 type SearchResult = {
@@ -822,6 +823,8 @@ export function GlobalSearchBar({
   onSelectMundoSubTab,
   onSelectMagic,
   onToggleOculto,
+  onSelectNota,
+  
 }: {
   allItems: AllItems;
   loadingAll: boolean;
@@ -837,6 +840,7 @@ export function GlobalSearchBar({
   onSelectMundoSubTab?: (section: MundoSectionKey, subTab: string) => void;
   onSelectMagic?: (subTab: "hechizos" | "dones" | "runas", item: any) => void;
   onToggleOculto?: (id: string, oculto: boolean) => void;
+  onSelectNota?: (nota: any) => void;
 }) {
   const [query,           setQuery]           = useState("");
   const [open,            setOpen]            = useState(false);
@@ -873,6 +877,22 @@ export function GlobalSearchBar({
     );
   }, [allItems, query]);
 
+
+
+type NotaResult = { item: any };
+
+const notaResults = useMemo((): NotaResult[] => {
+  const q = normalize(query.trim());
+  if (!q) return [];
+  return (allItems.notas ?? [])
+    .filter((n: any) =>
+      normalize(n.titulo ?? "").includes(q) ||
+      normalize(n.contenido ?? "").includes(q) ||
+      normalize(n.etiquetas ?? "").includes(q)
+    )
+    .map(item => ({ item }));
+}, [allItems, query]);
+
   const magicResults = useMemo((): MagicResult[] => {
     const q = normalize(query.trim());
     if (!q) return [];
@@ -887,6 +907,8 @@ export function GlobalSearchBar({
         .map(item => ({ item, subTab: key, label }))
     );
   }, [allItems, query]);
+  
+  
 
   // Navegación directa a tabs principales — excluye los que viven en Mundo
   const tabNavResults = useMemo((): TabNavResult[] => {
@@ -932,6 +954,13 @@ export function GlobalSearchBar({
     close();
     inputRef.current?.blur();
   }, [onSelect, close]);
+  
+
+  const handleSelectNota = useCallback((nota: any) => {
+    onSelectNota?.(nota);
+    close();
+    inputRef.current?.blur();
+  }, [onSelectNota, close]);
 
   const handleMundoSection = useCallback((key: MundoSectionKey) => {
     onSelectMundoSection(key);
@@ -967,6 +996,9 @@ export function GlobalSearchBar({
     if (key === "hechizos" || key === "dones" || key === "runas") {
       close();
       setMagicNombreModal(key);
+    } else if (key === "notas") {
+      close();
+      onAddMagic?.("notas");   // el padre maneja la creación
     } else {
       onAddMagic?.(key);
     }
@@ -1319,6 +1351,39 @@ export function GlobalSearchBar({
                                 style={{ background: "color-mix(in srgb, var(--accent) 8%, transparent)", color: "color-mix(in srgb, var(--accent) 50%, transparent)" }}
                               >
                                 {label}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                    {notaResults.length > 0 && (
+                      <>
+                        <div className="px-2 pt-3 pb-1">
+                          <p className="text-[8px] font-black uppercase tracking-widest text-primary/25">Notas</p>
+                        </div>
+                        <div className="space-y-0.5 mb-1">
+                          {notaResults.map(({ item }) => (
+                            <button
+                              key={item.id}
+                              onMouseDown={() => handleSelectNota(item)}
+                              className="w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-150 border border-transparent hover:bg-primary/6 hover:border-primary/10"
+                            >
+                              <div
+                                className="shrink-0 w-7 h-7 rounded-lg border flex items-center justify-center"
+                                style={{
+                                  background: "color-mix(in srgb, var(--primary) 7%, transparent)",
+                                  borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
+                                }}
+                              >
+                                <FileText size={12} className="text-primary/35" />
+                              </div>
+                              <span className="flex-1 text-[11px] font-bold text-primary/70 truncate">{item.titulo}</span>
+                              <span
+                                className="shrink-0 text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md"
+                                style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)", color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
+                              >
+                                Nota
                               </span>
                             </button>
                           ))}

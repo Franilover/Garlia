@@ -9,7 +9,7 @@ import {
   TAB_CONFIG, MUNDO_SECTIONS,
   type TabKey, type MundoSectionKey,
   type Personaje, type Criatura, type Item, type Reino,
-  type Hechizo, type Don, type Runa,
+  type Hechizo, type Don, type Runa, type Nota,
 } from "./editorEntidades/types";
 import { useMundoSecciones } from "./editorEntidades/hooks";
 import { GlobalSearchBar, ModalAcontecimiento, type AllItems, type MagicAddKey } from "./editorEntidades/SidebarComponents";
@@ -19,6 +19,7 @@ import { EditorItem }      from "./editorEntidades/EditorItem";
 import { EditorReino }     from "./editorEntidades/EditorReino";
 import { EditorMundo }     from "./editorEntidades/EditorMundo";
 import { WikilinkProvider } from "@/components/forms/WikilinkContext";
+
 
 // ─── Helpers Dexie locales ────────────────────────────────────────────────────
 async function dexieReadAll<T>(tabla: string): Promise<T[]> {
@@ -76,7 +77,7 @@ async function dexieDeleteOne(tabla: string, id: string): Promise<void> {
 function useAllEntidades() {
   const [allItems, setAllItems] = useState<AllItems>({
     personajes: [], criaturas: [], items: [], reinos: [],
-    hechizos: [], dones: [], runas: [],
+    hechizos: [], dones: [], runas: [], notas: [],
   });
   const [loadingAll, setLoadingAll] = useState(true);
   const [isOffline,  setIsOffline]  = useState(false);
@@ -91,6 +92,7 @@ function useAllEntidades() {
       dexieReadAll<Hechizo>("hechizos"),
       dexieReadAll<Don>("dones"),
       dexieReadAll<Runa>("runas"),
+      dexieReadAll<any>("notas"),
     ]);
 
     const hasLocal =
@@ -107,6 +109,7 @@ function useAllEntidades() {
         hechizos:   localH,
         dones:      localD,
         runas:      localRu,
+        notas:      [],
       }));
       setLoadingAll(false); // mostrar datos locales de inmediato, sin bloquear UI
     }
@@ -124,7 +127,7 @@ function useAllEntidades() {
 
     // 3. Fetch remoto y sincronizar Dexie
     try {
-      const [p, c, i, r, h, d, ru] = await Promise.all([
+      const [p, c, i, r, h, d, ru, n] = await Promise.all([
         supabase.from("personajes").select("*").order("nombre"),
         supabase.from("criaturas") .select("*").order("nombre"),
         supabase.from("items")     .select("*").order("nombre"),
@@ -132,6 +135,8 @@ function useAllEntidades() {
         supabase.from("hechizos")  .select("id, nombre, explicacion").order("nombre"),
         supabase.from("dones")     .select("id, nombre, explicacion").order("nombre"),
         supabase.from("runas")     .select("id, nombre, explicacion").order("nombre"),
+        supabase.from("notas") .select("*"),
+
       ]);
       const remote = {
         personajes: (p.data ?? []) as Personaje[],
@@ -141,6 +146,7 @@ function useAllEntidades() {
         hechizos:   (h.data ?? []) as Hechizo[],
         dones:      (d.data ?? []) as Don[],
         runas:      (ru.data ?? []) as Runa[],
+        notas:      (n.data ?? []) as Nota[],
       };
       setAllItems(remote);
 
@@ -317,6 +323,7 @@ export default function EditorEntidades() {
         return;
       }
     }
+    
     // Buscar en hechizos, dones, runas → navegar a EditorMundo sección magia
     const magicCollections: { subTab: string; items: any[] }[] = [
       { subTab: "hechizos", items: allItems.hechizos },
@@ -351,6 +358,15 @@ export default function EditorEntidades() {
     setAllItems(prev => ({ ...prev, [t]: (prev[t as keyof typeof prev] as any[]).map(i => i.id === item.id ? item : i) }));
     void dexieWriteOne(TAB_CONFIG[t].tabla, item);
   };
+
+
+  const handleAddMagic = useCallback((key: MagicAddKey) => {
+      if (key === "notas") {
+        setTab("mundo");
+        setMundoSection("geografia");
+        return;
+      }
+    }, []);
 
   const handleDeleted = (id: string) => {
     const t = tab as Exclude<TabKey, "mundo">;

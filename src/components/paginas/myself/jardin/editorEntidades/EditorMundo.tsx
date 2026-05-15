@@ -9,7 +9,7 @@ import {
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
 import { useConfirm } from "@/components/ui/ConfirmModal";
-import { MUNDO_SECTIONS, type MundoSectionKey, type SaveStatus, type Reino, type Personaje } from "./types";
+import { MUNDO_SECTIONS, type MundoSectionKey, type SaveStatus, type Reino, type Personaje, type Nota } from "./types";
 import { SaveIndicator } from "./UIComponents";
 import { MarkdownEditor } from "../../../../forms/MarkdownEditor";
 import { useWikilink } from "../../../../forms/WikilinkContext";
@@ -18,6 +18,9 @@ import { FormularioPersonaje } from "./EditorPersonaje";
 import { EditorCriatura } from "./EditorCriatura";
 import { EditorItem } from "./EditorItem";
 import { type TimelineEvent } from "./LoreTab";
+import { useNotas } from "./useNotas";
+import { EditorNota, ListaNotas } from "./EditorNota";
+
 
 // ─── Dexie helpers ────────────────────────────────────────────────────────────
 async function dexiePut(tabla: string, row: any): Promise<void> {
@@ -1834,13 +1837,18 @@ type TabGroup = {
   color?: string;
 };
 
+
+
 const UNIFIED_TABS: (TabGroup | "sep")[] = [
   { key: "mundo",    label: "Mundo",    Icon: Globe },
   { key: "historia", label: "Historia", Icon: ScrollText },
   { key: "magia",    label: "Magia",    Icon: Sparkles, color: "var(--accent)" },
   "sep",
+  
   { key: "listas",   label: "Listas",   Icon: Users },
 ];
+
+
 
 // Mapea el activeSection + subTab al nuevo UnifiedTab
 function resolveInitialTab(activeSection: MundoSectionKey, initialMundoTab?: string): UnifiedTab {
@@ -2031,6 +2039,9 @@ function PanelListas({ initialSubTab, initialItemId }: { initialSubTab?: string;
   const { items: dones,    setItems: setDones,    loading: loadingDones    } = useEntidadesMagicas("dones");
   const { items: runas,    setItems: setRunas,    loading: loadingRunas    } = useRunas();
   const { criaturas: criaturasMagicas, loading: loadingCriaturasMagicas } = useCriaturas();
+  const { notas, loading: loadingNotas, crear: crearNota, actualizar: actualizarNota, eliminar: eliminarNota } = useNotas();
+  const [searchNotas, setSearchNotas] = useState("");
+  const [selectedNota, setSelectedNota] = useState<Nota | null>(null);
 
   const [searchR, setSearchR] = useState("");
   const [searchC, setSearchC] = useState("");
@@ -2049,8 +2060,8 @@ function PanelListas({ initialSubTab, initialItemId }: { initialSubTab?: string;
   const [selectedRuna,     setSelectedRuna]     = useState<Runa | null>(null);
   const [personajeStatus,  setPersonajeStatus]  = useState<SaveStatus>("idle");
 
-  type ListaTab = "reinos" | "criaturas" | "objetos" | "personajes" | "hechizos" | "dones" | "runas";
-  const VALID_LISTA_TABS: ListaTab[] = ["reinos", "criaturas", "objetos", "personajes", "hechizos", "dones", "runas"];
+  type ListaTab = "reinos" | "criaturas" | "objetos" | "personajes" | "hechizos" | "dones" | "runas" | "notas";
+  const VALID_LISTA_TABS: ListaTab[] = ["reinos", "criaturas", "objetos", "personajes", "hechizos", "dones", "runas", "notas"];
 
   const [mobileTab, setMobileTab] = useState<ListaTab>(
     (VALID_LISTA_TABS.includes(initialSubTab as ListaTab) ? initialSubTab as ListaTab : "reinos")
@@ -2064,14 +2075,15 @@ function PanelListas({ initialSubTab, initialItemId }: { initialSubTab?: string;
   }, [initialSubTab]);
 
   // Editor overlay activo
-  const overlay: "reino" | "criatura" | "objeto" | "personaje" | "hechizo" | "don" | "runa" | null =
+  const overlay: "reino" | "criatura" | "objeto" | "personaje" | "hechizo" | "don" | "runa" | "nota" | null =
     selectedReino    ? "reino"    :
     selectedCriatura ? "criatura" :
     selectedObjeto   ? "objeto"   :
     selectedPersonaje? "personaje":
     selectedHechizo  ? "hechizo"  :
     selectedDon      ? "don"      :
-    selectedRuna     ? "runa"     : null;
+    selectedRuna     ? "runa"     :
+    selectedNota     ? "nota"     : null;
 
   const filteredR = reinos.filter(r    => r.nombre.toLowerCase().includes(searchR.toLowerCase()));
   const filteredC = criaturas.filter(c => c.nombre.toLowerCase().includes(searchC.toLowerCase()));
@@ -2127,13 +2139,16 @@ function PanelListas({ initialSubTab, initialItemId }: { initialSubTab?: string;
   };
 
   // ── search state unified per active tab ──
+
   const searchMap: Record<string, string> = {
     reinos: searchR, criaturas: searchC, objetos: searchO,
     personajes: searchP, hechizos: searchH, dones: searchD, runas: searchRu,
+    notas: searchNotas,  // ← agregar
   };
   const setSearchMap: Record<string, (v: string) => void> = {
     reinos: setSearchR, criaturas: setSearchC, objetos: setSearchO,
     personajes: setSearchP, hechizos: setSearchH, dones: setSearchD, runas: setSearchRu,
+    notas: setSearchNotas,  // ← agregar
   };
 
   type TabDef = { key: ListaTab; label: string; Icon: React.ElementType; count: number; color?: string };
@@ -2156,6 +2171,12 @@ function PanelListas({ initialSubTab, initialItemId }: { initialSubTab?: string;
         { key: "runas",     label: "Runas",     Icon: ScrollText, count: runas.length                                                                    },
       ],
     },
+    {
+      label: "Notas",
+      tabs: [
+        { key: "notas", label: "Notas", Icon: FileText, count: notas.length },
+      ],
+    },
   ];
 
   const TABS: TabDef[] = TAB_GROUPS.flatMap(g => g.tabs);
@@ -2173,6 +2194,7 @@ function PanelListas({ initialSubTab, initialItemId }: { initialSubTab?: string;
                 setSelectedReino(null); setSelectedCriatura(null);
                 setSelectedObjeto(null); setSelectedPersonaje(null);
                 setSelectedHechizo(null); setSelectedDon(null); setSelectedRuna(null);
+                setSelectedNota(null);  // ← agregar
               }}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border border-primary/15 text-primary/50 hover:text-primary hover:border-primary/30 transition-all"
             >
@@ -2186,8 +2208,9 @@ function PanelListas({ initialSubTab, initialItemId }: { initialSubTab?: string;
               {overlay === "hechizo"  && <Sparkles   size={12} className="shrink-0" style={{ color: "var(--accent)" }} />}
               {overlay === "don"      && <Star       size={12} className="shrink-0" style={{ color: "color-mix(in srgb, var(--accent) 70%, var(--primary))" }} />}
               {overlay === "runa"     && <ScrollText size={12} className="shrink-0" style={{ color: "var(--primary)" }} />}
+              {overlay === "nota"     && <FileText  size={12} className="text-primary/40 shrink-0" />}
               <span className="text-[11px] font-black uppercase tracking-[0.15em] text-primary/60 truncate">
-                {selectedReino?.nombre ?? selectedCriatura?.nombre ?? selectedObjeto?.nombre ?? selectedPersonaje?.nombre ?? selectedHechizo?.nombre ?? selectedDon?.nombre ?? selectedRuna?.nombre}
+                  {selectedReino?.nombre ?? selectedCriatura?.nombre ?? selectedObjeto?.nombre ?? selectedPersonaje?.nombre ?? selectedHechizo?.nombre ?? selectedDon?.nombre ?? selectedRuna?.nombre ?? selectedNota?.titulo}
               </span>
             </div>
           </div>
@@ -2237,6 +2260,17 @@ function PanelListas({ initialSubTab, initialItemId }: { initialSubTab?: string;
               <FormularioRuna key={selectedRuna.id} item={selectedRuna}
                 onSaved={u => { setRunas(p => p.map(r => r.id === u.id ? u : r)); setSelectedRuna(u); }}
                 onDeleted={id => { setRunas(p => p.filter(r => r.id !== id)); setSelectedRuna(null); }} />
+            )}
+            {overlay === "nota" && selectedNota && (
+              <EditorNota
+                key={selectedNota.id}
+                nota={selectedNota}
+                onSaved={async (updated) => {
+                  await actualizarNota(updated);
+                  setSelectedNota(updated);
+                }}
+                onDeleted={id => { eliminarNota(id); setSelectedNota(null); }}
+              />
             )}
           </div>
         </div>
@@ -2336,7 +2370,7 @@ function PanelListas({ initialSubTab, initialItemId }: { initialSubTab?: string;
           />
 
           {/* Listado */}
-          <div className="flex-1 overflow-y-auto min-h-0 px-3 pb-3 space-y-0.5">
+          <div className="flex-1 overflow-y-auto min-h-0 px-3 pb-3 space-y-0.5 relative">
             {/* Reinos */}
             {mobileTab === "reinos" && (loadingReinos
               ? <div className="flex justify-center py-10"><Loader2 size={16} className="animate-spin text-primary/20" /></div>
@@ -2477,6 +2511,44 @@ function PanelListas({ initialSubTab, initialItemId }: { initialSubTab?: string;
                     <ChevronRight size={10} className="text-primary/15 shrink-0 group-hover:text-primary/40 transition-colors" />
                   </button>
                 ))
+            )}
+            {mobileTab === "notas" && (
+              <div className="absolute inset-0 flex overflow-hidden" style={{ zIndex: 10 }}>
+                {/* Lista lateral */}
+                <div className="w-56 shrink-0 border-r flex flex-col min-h-0"
+                  style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+                  <ListaNotas
+                    notas={notas}
+                    loading={loadingNotas}
+                    selectedId={selectedNota?.id ?? null}
+                    search={searchNotas}
+                    onSearch={setSearchNotas}
+                    onSelect={setSelectedNota}
+                    onNew={async () => {
+                      const nueva = await crearNota("Nueva nota");
+                      if (nueva) setSelectedNota(nueva);
+                    }}
+                  />
+                </div>
+                {/* Editor */}
+                <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                  {selectedNota ? (
+                    <EditorNota
+                      key={selectedNota.id}
+                      nota={selectedNota}
+                      onSaved={async (updated) => { await actualizarNota(updated); setSelectedNota(updated); }}
+                      onDeleted={id => { eliminarNota(id); setSelectedNota(null); }}
+                    />
+                  ) : (
+                    <div className="flex flex-col items-center justify-center gap-3 h-full text-center">
+                      <FileText size={28} strokeWidth={1} className="text-primary/12" />
+                      <p className="text-[9px] font-black uppercase tracking-widest text-primary/20">
+                        Seleccioná una nota o creá una nueva
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
             )}
           </div>
         </div>

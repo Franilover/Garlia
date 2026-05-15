@@ -288,6 +288,8 @@ class AgendaFraniDB extends Dexie {
   session_cache!: Table<SessionCache, string>;
   hechizos!: Table<Hechizo, string>;
   dones!: Table<Don, string>;
+  
+  
 
 
   constructor() {
@@ -514,6 +516,7 @@ class AgendaFraniDB extends Dexie {
       reino_detalles:       "id, reino_id",
       hechizos:             "id, nombre",
       dones:                "id, nombre",
+
     });
   }
 }

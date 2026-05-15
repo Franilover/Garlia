@@ -99,6 +99,16 @@ export type Don = {
   variante?: { id: string; tipo: string } | null;
 };
 
+export type Nota = {
+  id: string;
+  titulo: string;
+  contenido?: string;
+  etiquetas?: string | null; // JSON array string, ej: '["personaje","idea"]'
+  created_at?: string;
+  updated_at?: string;
+};
+
+
 // ─── Tabs ─────────────────────────────────────────────────────────────────────
 // Nota: hechizos y dones ya no son tabs globales — viven dentro del EditorMundo (sección Magia).
 export type TabKey = "personajes" | "criaturas" | "items" | "reinos" | "mundo";
