@@ -494,9 +494,11 @@ function VarianteEditor({
           <div className="flex flex-col sm:flex-row gap-4 items-stretch">
             {/* Imagen */}
             <div className="shrink-0 sm:w-48 flex flex-col">
-              <SelectorImagen label="Imagen" value={form.imagen_url ?? ""}
-                onChange={url => setForm(f => ({ ...f, imagen_url: url }))}
-                aspect="square" className="flex-1" placeholder={<Bug size={16} className="opacity-20" />} />
+              <div className="flex-1 flex flex-col">
+                <SelectorImagen label="Imagen" value={form.imagen_url ?? ""}
+                  onChange={url => setForm(f => ({ ...f, imagen_url: url }))}
+                  aspect="square" placeholder={<Bug size={16} className="opacity-20" />} />
+              </div>
             </div>
 
             {/* Tipo + Descripción */}
