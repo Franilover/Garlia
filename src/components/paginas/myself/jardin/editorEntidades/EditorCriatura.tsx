@@ -3,17 +3,16 @@
 import React, { useState, useEffect, useCallback } from "react";
 import {
   Bug, Plus, Check, X, Trash2, Save, ChevronDown, Lock,
-  Dna, Brain, Wand2, GitBranch, Users, Package, Wrench, Leaf,
+  Dna, Brain, Wand2, GitBranch, Package, Wrench, Leaf,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { type Criatura, type CriaturaVariante, type SaveStatus, INPUT_CLS } from "./types";
-import { useUniqueValues, useCriaturaVariantes, usePersonajesDeEspecie } from "./hooks";
+import { useUniqueValues, useCriaturaVariantes } from "./hooks";
 import { SelectorImagen, SelectorTexto, SaveIndicator } from "./UIComponents";
 import { MarkdownEditor, WikiEntity } from "../../../../forms/MarkdownEditor";
 import { useWikilink } from "../../../../forms/WikilinkContext";
-import { PanelPersonajes } from "./PanelPersonajes";
 import { BloqueHechizos } from "./BloqueHechizos";
 import { BloqueDones } from "./BloqueDones";
 import { BloqueDrops } from "./BloqueDrops";
@@ -370,14 +369,6 @@ function BloqueItemsCraftedos({
   );
 }
 
-// ─── Tabs internas ─────────────────────────────────────────────────────────────
-type InnerTab = "base" | "especie";
-
-const TABS: { key: InnerTab; label: string; Icon: React.ElementType }[] = [
-  { key: "base",    label: "Base",    Icon: Brain },
-  { key: "especie", label: "Especie", Icon: Users },
-];
-
 // ─── Campo colapsable ─────────────────────────────────────────────────────────
 function CampoLore({
   label, value, onChange, placeholder, rows = 5, icon: Icon, entities = [],
@@ -554,7 +545,6 @@ export function EditorCriatura({
 }) {
   const [form,   setForm]   = useState<Criatura>(item);
   const [status, setStatus] = useState<SaveStatus>("idle");
-  const [tab,    setTab]    = useState<InnerTab>("base");
   const { confirm, ConfirmModal } = useConfirm();
   const { onSnippetAction } = useWikilink();
 
@@ -603,8 +593,6 @@ export function EditorCriatura({
     if (!error && data) { setVariantes(prev => [...prev, data]); void dexiePut("criatura_variantes", data); setAddingVariante(false); setNewVarianteTipo(""); }
   };
 
-  const { personajes, setPersonajes, loading: loadingPersonajes } = usePersonajesDeEspecie(form.nombre);
-
   return (
     <div className="flex-1 flex min-h-0 overflow-hidden relative">
       <ConfirmModal />
@@ -645,42 +633,10 @@ export function EditorCriatura({
           </div>
         </div>
 
-        {/* ── Inner tabs ───────────────────────────────────────────────────── */}
-        <div
-          className="shrink-0 flex items-center gap-1 px-4 py-2 border-b"
-          style={{ borderColor: "color-mix(in srgb, var(--primary) 6%, transparent)" }}
-        >
-          {TABS.map(({ key, label, Icon }) => (
-            <button
-              key={key}
-              onClick={() => setTab(key)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all"
-              style={tab === key ? {
-                background: "color-mix(in srgb, var(--primary) 12%, transparent)",
-                color: "var(--primary)",
-                border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)",
-              } : {
-                color: "color-mix(in srgb, var(--primary) 35%, transparent)",
-                border: "1px solid transparent",
-              }}
-            >
-              <Icon size={11} /> <span className="hidden sm:inline">{label}</span>
-              {key === "especie" && personajes.length > 0 && (
-                <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black"
-                  style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }}>
-                  {personajes.length}
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
-
         {/* ── Tab content ──────────────────────────────────────────────────── */}
         <div className="flex-1 overflow-y-auto min-h-0">
 
-          {/* BASE */}
-          {tab === "base" && (
-            <div className="p-4 space-y-4">
+          <div className="p-4 space-y-4">
 
               <div className="flex flex-col sm:flex-row gap-5">
                 {/* Columna izquierda: imagen */}
@@ -740,9 +696,7 @@ export function EditorCriatura({
                 </div>
               </div>
 
-              {/* Variantes + Especie: fila lado a lado */}
-              <div className="flex flex-col sm:flex-row gap-4 items-start">
-                {/* Variantes */}
+              {/* Variantes */}
                 <div className="flex-1 space-y-3">
                   <div className="space-y-2">
                     {variantes.map(v => (
@@ -785,21 +739,7 @@ export function EditorCriatura({
                     </button>
                   )}
                 </div>
-
-                {/* Especie */}
-                <div className="sm:w-72 shrink-0">
-                  <PanelPersonajes
-                    personajes={personajes}
-                    loading={loadingPersonajes}
-                    setPersonajes={setPersonajes}
-                    titulo="De esta especie"
-                    inline
-                  />
-                </div>
-              </div>
             </div>
-          )}
-
 
         </div>
       </div>
