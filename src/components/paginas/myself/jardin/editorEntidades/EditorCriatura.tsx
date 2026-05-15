@@ -697,20 +697,6 @@ export function EditorCriatura({
                     <SelectorTexto label="Pensamiento" value={form.pensamiento ?? ""} onChange={v => setForm(f => ({ ...f, pensamiento: v }))} opciones={pensamientos} placeholder="¿Cómo piensa?" />
                     <SelectorTexto label="Alma" value={form.alma ?? ""} onChange={v => setForm(f => ({ ...f, alma: v }))} opciones={almas} placeholder="Naturaleza espiritual…" />
                   </div>
-                  {/* Naturales: drops de criatura */}
-                  <div className="space-y-2">
-                    <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/30 flex items-center gap-1">
-                      <Leaf size={9} /> Naturales
-                    </label>
-                    <BloqueItemsNaturales criaturaId={form.id} onSelectItem={onSelectItem} />
-                  </div>
-                  {/* Creaciones: ítems craftedos */}
-                  <div className="space-y-2">
-                    <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/30 flex items-center gap-1">
-                      <Wrench size={9} /> Creaciones
-                    </label>
-                    <BloqueItemsCraftedos criaturaId={form.id} onSelectItem={onSelectItem} />
-                  </div>
                   <div className="space-y-1.5">
                     <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Descripción</label>
                     <MarkdownEditor value={form.descripcion ?? ""} onChange={v => setForm(f => ({ ...f, descripcion: v }))}
@@ -733,6 +719,24 @@ export function EditorCriatura({
                       <BloqueDones personajeId={form.id} especie={form.nombre} varianteId={null} />
                     </div>
                   </div>
+                </div>
+              </div>
+
+              {/* Naturales + Creaciones: fila entre descripción y variantes */}
+              <div className="flex flex-col sm:flex-row gap-4">
+                {/* Naturales: drops de criatura */}
+                <div className="flex-1 space-y-2">
+                  <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/30 flex items-center gap-1">
+                    <Leaf size={9} /> Naturales
+                  </label>
+                  <BloqueItemsNaturales criaturaId={form.id} onSelectItem={onSelectItem} />
+                </div>
+                {/* Creaciones: ítems craftedos */}
+                <div className="flex-1 space-y-2">
+                  <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/30 flex items-center gap-1">
+                    <Wrench size={9} /> Creaciones
+                  </label>
+                  <BloqueItemsCraftedos criaturaId={form.id} onSelectItem={onSelectItem} />
                 </div>
               </div>
 
