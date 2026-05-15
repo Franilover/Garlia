@@ -42,7 +42,7 @@ export function useNotas() {
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
-    const local = await dexieReadAll<Nota>("notas");
+  const local = await dexieReadAll<Nota>("notas_lore")
     if (local.length) { setNotas(local); setLoading(false); }
     if (!navigator.onLine) { if (!local.length) setLoading(false); return; }
 
@@ -54,7 +54,7 @@ export function useNotas() {
     const result = (data ?? []) as Nota[];
     setNotas(result);
     setLoading(false);
-    await dexieWriteAll("notas", result);
+    await dexieWriteAll("notas_lore", result); 
   }, []);
 
   useEffect(() => { load(); }, [load]);
@@ -70,7 +70,7 @@ export function useNotas() {
     if (error || !data) return null;
     const nota = data as Nota;
     setNotas(prev => [nota, ...prev]);
-    await dexiePut("notas", nota);
+    await dexiePut("notas_lore", nota); 
     return nota;
   }, []);
 
@@ -79,7 +79,7 @@ export function useNotas() {
     const updated = { ...nota, updated_at: now };
     // Optimistic update
     setNotas(prev => prev.map(n => n.id === nota.id ? updated : n));
-    await dexiePut("notas", updated);
+    await dexiePut("notas_lore", updated);    
     await supabase
       .from("notas")
       .update({
@@ -93,7 +93,7 @@ export function useNotas() {
 
   const eliminar = useCallback(async (id: string): Promise<void> => {
     setNotas(prev => prev.filter(n => n.id !== id));
-    await dexieDel("notas", id);
+    await dexieDel("notas_lore", id); 
     await supabase.from("notas").delete().eq("id", id);
   }, []);
 
