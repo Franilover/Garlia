@@ -1646,7 +1646,6 @@ const PanelEditor = ({
             extraCommands={extraCommands}
             insertRef={mdInsertRef}
             onSnippetAction={handleSnippetAction}
-            className="!flex-none"
           />
         </div>
       </div>

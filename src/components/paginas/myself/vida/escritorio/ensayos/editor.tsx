@@ -264,7 +264,6 @@ export function Editor({
             toolbar
             defaultMode={editMode ? "edit" : "preview"}
             entities={entities}
-            className="!flex-none"
             onSnippetAction={(action) => {
               if (action.type === "wikilink") {
                 onNavigateToPage(action.target);

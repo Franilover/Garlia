@@ -1457,13 +1457,13 @@ export function MarkdownEditor({
 
   const previewStyle: React.CSSProperties = {
     minHeight: minH,
-    overflowY: "auto",
+    overflowY: mode === "split" ? "auto" : "visible",
     padding: "16px 20px",
-    flex: 1,
+    flex: mode === "split" ? 1 : "none" as any,
   };
 
   return (
-    <div className={`flex flex-col flex-1 ${className}`}>
+    <div className={`flex flex-col w-full ${className}`}>
       <style>{PROSE_STYLES}</style>
 
       {/* ── Contenedor principal ── */}
@@ -1473,8 +1473,6 @@ export function MarkdownEditor({
           borderRadius: toolbar ? 8 : 0,
           display: "flex",
           flexDirection: "column",
-          flex: 1,
-          minHeight: 0,
           background: toolbar ? "color-mix(in srgb, var(--bg-menu) 40%, transparent)" : "transparent",
           position: "relative",
         }}
@@ -1697,8 +1695,6 @@ export function MarkdownEditor({
         <div
           style={{
             display: "flex",
-            flex: 1,
-            minHeight: 0,
             flexDirection: mode === "split" ? "row" : "column",
             position: "relative",
           }}
@@ -1708,7 +1704,7 @@ export function MarkdownEditor({
             <div 
               onScroll={handleScroll} 
               style={{ 
-                flex: 1, 
+                flex: mode === "split" ? 1 : "none",
                 position: "relative", 
                 display: "flex", 
                 flexDirection: "column",
