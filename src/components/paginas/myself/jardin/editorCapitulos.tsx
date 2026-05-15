@@ -1636,7 +1636,7 @@ const PanelEditor = ({
       <div ref={scrollRef} className={`flex-1 overflow-y-auto relative ${focusMode ? "px-5 sm:px-16 py-8 sm:py-12" : "px-4 sm:px-8 py-4 sm:py-6"}`} style={{ WebkitOverflowScrolling: "touch" }}>
         {/* Mirror oculto para caret-centering */}
         <div ref={caretMirrorRef} aria-hidden="true" />
-        <div className={focusMode ? "max-w-3xl mx-auto w-full" : ""} style={{ minHeight: "100%", display: "flex", flexDirection: "column" }}>
+        <div className={focusMode ? "max-w-3xl mx-auto w-full" : ""}>
           <MarkdownEditor
             value={contenido}
             onChange={onChange}
@@ -1646,7 +1646,7 @@ const PanelEditor = ({
             extraCommands={extraCommands}
             insertRef={mdInsertRef}
             onSnippetAction={handleSnippetAction}
-            autoResize
+            className="!flex-none"
           />
         </div>
       </div>
