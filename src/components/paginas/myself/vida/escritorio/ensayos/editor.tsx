@@ -255,7 +255,7 @@ export function Editor({
         </div>
 
         {/* ── Editor content ── */}
-        <div className="flex-1 min-h-0 relative px-8 pb-8" style={{ display: "flex", flexDirection: "column" }}>
+        <div className="flex-1 overflow-y-auto relative px-8 pb-8">
           <MarkdownEditor
             value={localContenido}
             onChange={handleContenidoChange}
@@ -264,7 +264,7 @@ export function Editor({
             toolbar
             defaultMode={editMode ? "edit" : "preview"}
             entities={entities}
-            autoResize
+            className="!flex-none"
             onSnippetAction={(action) => {
               if (action.type === "wikilink") {
                 onNavigateToPage(action.target);

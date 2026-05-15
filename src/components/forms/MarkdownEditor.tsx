@@ -892,12 +892,11 @@ export function MarkdownEditor({
 
   // ── Auto-resize textarea ──────────────────────────────────────────────────
   useEffect(() => {
-    if (!autoResize) return;
     const ta = taRef.current;
     if (!ta) return;
     ta.style.height = "auto";
     ta.style.height = ta.scrollHeight + "px";
-  }, [value, autoResize]);
+  }, [value]);
 
   // Close wikilink menu on outside click
   useEffect(() => {
@@ -1447,9 +1446,9 @@ export function MarkdownEditor({
     "flex-1 w-full bg-transparent outline-none border-none resize-none text-sm font-mono leading-relaxed placeholder:opacity-30";
 
   const textareaStyle: React.CSSProperties = {
-    minHeight: autoResize ? `${rows * 1.6}rem` : minH,
-    overflowY: autoResize ? "hidden" : "auto",
-    ...(autoResize && maxHeight ? { maxHeight } : {}),
+    minHeight: minH,
+    overflowY: "hidden",
+    ...(maxHeight ? { maxHeight } : {}),
     color: "color-mix(in srgb, var(--foreground) 80%, transparent)",
     fontFamily: "var(--font-mono)",
     fontSize: 13,
@@ -1464,7 +1463,7 @@ export function MarkdownEditor({
   };
 
   return (
-    <div className={`flex flex-col flex-1 min-h-0 ${className}`}>
+    <div className={`flex flex-col flex-1 ${className}`}>
       <style>{PROSE_STYLES}</style>
 
       {/* ── Contenedor principal ── */}
@@ -1712,8 +1711,7 @@ export function MarkdownEditor({
                 flex: 1, 
                 position: "relative", 
                 display: "flex", 
-                flexDirection: "column", 
-                overflowY: "auto" 
+                flexDirection: "column",
               }}
             >
               {/* ── Encabezado de sección decorativo (modo edición) ── */}
