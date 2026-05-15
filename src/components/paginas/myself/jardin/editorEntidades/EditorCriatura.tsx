@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import {
   Bug, Plus, Check, X, Trash2, Save, ChevronDown, Lock,
-  Dna, Brain, Wand2, GitBranch, Users, Package, Wrench,
+  Dna, Brain, Wand2, GitBranch, Users, Package, Wrench, Leaf,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
@@ -92,6 +92,8 @@ function useCraftedItems(criaturaId: string) {
         crafterId: data.id, itemId: item.id,
         itemName: item.nombre, itemImg: item.imagen_url ?? null,
       }]);
+      // Marcar el ítem como Artificial automáticamente
+      await supabase.from("items").update({ origen: "Artificial", sub_origen: null }).eq("id", item.id);
     }
   };
 
@@ -365,13 +367,7 @@ function VarianteEditor({
               <BloqueDrops criaturaId={criaturaId} varianteId={form.id} />
             </div>
 
-            {/* Ítems que crea */}
-            <div className="sm:shrink-0 sm:w-44 space-y-1.5">
-              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/30 flex items-center gap-1">
-                <Wrench size={8} /> Ítems que crea
-              </p>
-              <BloqueItemsCraftedos criaturaId={criaturaId} />
-            </div>
+
           </div>
 
           <div className="flex items-center justify-between pt-3">
@@ -542,10 +538,17 @@ export function EditorCriatura({
                     <SelectorTexto label="Pensamiento" value={form.pensamiento ?? ""} onChange={v => setForm(f => ({ ...f, pensamiento: v }))} opciones={pensamientos} placeholder="¿Cómo piensa?" />
                     <SelectorTexto label="Alma" value={form.alma ?? ""} onChange={v => setForm(f => ({ ...f, alma: v }))} opciones={almas} placeholder="Naturaleza espiritual…" />
                   </div>
-                  {/* Ítems que crea — con selector de origen */}
+                  {/* Naturales: drops de criatura */}
                   <div className="space-y-2">
                     <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/30 flex items-center gap-1">
-                      <Wrench size={9} /> Ítems que crea
+                      <Leaf size={9} /> Naturales
+                    </label>
+                    <BloqueDrops criaturaId={form.id} varianteId={null} />
+                  </div>
+                  {/* Creaciones: ítems craftedos */}
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/30 flex items-center gap-1">
+                      <Wrench size={9} /> Creaciones
                     </label>
                     <BloqueItemsCraftedos criaturaId={form.id} onSelectItem={onSelectItem} />
                   </div>

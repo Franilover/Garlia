@@ -140,6 +140,8 @@ function useCrafterSources(itemId: string) {
         crafterId: data.id, criaturaId: criatura.id,
         criaturaName: criatura.nombre, criaturaImg: criatura.imagen_url ?? null,
       }]);
+      // Marcar el ítem como Artificial automáticamente
+      await supabase.from("items").update({ origen: "Artificial", sub_origen: null }).eq("id", itemId);
     }
   };
 
