@@ -362,6 +362,7 @@ export function EditorItem({
         nombre: form.nombre, imagen_url: form.imagen_url || null,
         descripcion: form.descripcion, categoria: form.categoria,
         origen: form.origen,
+        sub_origen: form.origen === "Natural" ? (form.sub_origen ?? null) : null,
       }).eq("id", form.id);
       if (error) throw error;
       setStatus("saved");
@@ -473,17 +474,21 @@ export function EditorItem({
                   placeholder="Arma, reliquia, objeto…" />
 
                 {/* Origen: Natural / Artificial */}
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Origen</label>
+
+                  {/* Nivel 1: Natural / Artificial */}
                   <div className="flex gap-2">
                     {(["Natural", "Artificial"] as const).map(op => {
-                      const isSelected = (form as any).origen === op;
+                      const isSelected = form.origen === op;
                       const Icon = op === "Natural" ? Leaf : Wrench;
                       return (
-                        <button
-                          key={op}
-                          type="button"
-                          onClick={() => setForm(f => ({ ...f, origen: isSelected ? null : op }))}
+                        <button key={op} type="button"
+                          onClick={() => setForm(f => ({
+                            ...f,
+                            origen: isSelected ? null : op,
+                            sub_origen: null,
+                          }))}
                           className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all"
                           style={isSelected ? {
                             background: "color-mix(in srgb, var(--primary) 12%, transparent)",
@@ -499,17 +504,58 @@ export function EditorItem({
                       );
                     })}
                   </div>
-                </div>
 
-                {/* Si Artificial → selector de criaturas creadoras */}
-                {(form as any).origen === "Artificial" && (
-                  <div className="space-y-1.5">
-                    <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35 flex items-center gap-1.5">
-                      <Wrench size={9} /> Criaturas que lo crean
-                    </label>
-                    <PanelCrafterSources itemId={form.id} />
-                  </div>
-                )}
+                  {/* Nivel 2: sub-origen de Natural */}
+                  {form.origen === "Natural" && (
+                    <div className="pl-3 border-l-2 space-y-2" style={{ borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)" }}>
+                      <div className="flex gap-2">
+                        {(["Planta", "Criatura"] as const).map(sub => {
+                          const isSelected = form.sub_origen === sub;
+                          const Icon = sub === "Planta" ? Leaf : Bug;
+                          return (
+                            <button key={sub} type="button"
+                              onClick={() => setForm(f => ({
+                                ...f,
+                                sub_origen: isSelected ? null : sub,
+                              }))}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all"
+                              style={isSelected ? {
+                                background: "color-mix(in srgb, var(--primary) 10%, transparent)",
+                                color: "var(--primary)",
+                                border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)",
+                              } : {
+                                color: "color-mix(in srgb, var(--primary) 30%, transparent)",
+                                border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                              }}
+                            >
+                              <Icon size={10} /> {sub}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Si Natural → Criatura: selector de criaturas */}
+                      {form.sub_origen === "Criatura" && (
+                        <div className="space-y-1.5">
+                          <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35 flex items-center gap-1.5">
+                            <Bug size={9} /> Criaturas de origen
+                          </label>
+                          <PanelCrafterSources itemId={form.id} />
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Nivel 2: Artificial → selector de criaturas */}
+                  {form.origen === "Artificial" && (
+                    <div className="pl-3 border-l-2 space-y-1.5" style={{ borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)" }}>
+                      <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35 flex items-center gap-1.5">
+                        <Wrench size={9} /> Criaturas que lo crean
+                      </label>
+                      <PanelCrafterSources itemId={form.id} />
+                    </div>
+                  )}
+                </div>
 
                 <div className="space-y-1.5">
                   <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Descripción</label>

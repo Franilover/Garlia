@@ -43,6 +43,7 @@ export type Item = {
   descripcion?: string;
   categoria?: string;
   origen?: "Natural" | "Artificial" | null;
+  sub_origen?: "Planta" | "Criatura" | null;
 };
 
 export type Reino = {
