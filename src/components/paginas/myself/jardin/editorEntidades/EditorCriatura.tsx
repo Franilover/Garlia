@@ -105,6 +105,165 @@ function useCraftedItems(criaturaId: string) {
   return { items, loading, add, remove };
 }
 
+// ─── Hook: ítems naturales que dropea una criatura (criatura_drops base) ──────
+
+type NaturalItem = {
+  dropId:   string;
+  itemId:   string;
+  itemName: string;
+  itemImg?: string | null;
+};
+
+function useNaturalItems(criaturaId: string) {
+  const [items, setItems] = useState<NaturalItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const { data } = await supabase
+      .from("criatura_drops")
+      .select(`id, item_id, items!item_id(nombre, imagen_url)`)
+      .eq("criatura_id", criaturaId)
+      .is("variante_id", null);
+
+    setItems(
+      (data ?? []).map((r: any) => ({
+        dropId:   r.id,
+        itemId:   r.item_id,
+        itemName: (Array.isArray(r.items) ? r.items[0]?.nombre : r.items?.nombre) ?? "—",
+        itemImg:  (Array.isArray(r.items) ? r.items[0]?.imagen_url : r.items?.imagen_url) ?? null,
+      }))
+    );
+    setLoading(false);
+  }, [criaturaId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const add = async (item: { id: string; nombre: string; imagen_url?: string | null }) => {
+    if (items.some(i => i.itemId === item.id)) return;
+    const { data, error } = await supabase
+      .from("criatura_drops")
+      .insert([{ item_id: item.id, criatura_id: criaturaId, variante_id: null }])
+      .select().single();
+    if (!error && data) {
+      setItems(prev => [...prev, {
+        dropId: data.id, itemId: item.id,
+        itemName: item.nombre, itemImg: item.imagen_url ?? null,
+      }]);
+      // Marcar el ítem como Natural → Criatura automáticamente
+      await supabase.from("items").update({ origen: "Natural", sub_origen: "Criatura" }).eq("id", item.id);
+    }
+  };
+
+  const remove = async (dropId: string) => {
+    await supabase.from("criatura_drops").delete().eq("id", dropId);
+    setItems(prev => prev.filter(i => i.dropId !== dropId));
+  };
+
+  return { items, loading, add, remove };
+}
+
+// ─── Bloque de ítems naturales (drops base de la criatura) ────────────────────
+
+function BloqueItemsNaturales({
+  criaturaId, onSelectItem,
+}: {
+  criaturaId: string;
+  onSelectItem?: (itemId: string) => void;
+}) {
+  const { items, loading, add, remove } = useNaturalItems(criaturaId);
+  const [allItems, setAllItems] = useState<{ id: string; nombre: string; imagen_url?: string | null }[]>([]);
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    supabase.from("items").select("id, nombre, imagen_url").order("nombre")
+      .then(({ data }) => setAllItems(data ?? []));
+  }, []);
+
+  const filtered = allItems.filter(it =>
+    it.nombre.toLowerCase().includes(search.toLowerCase()) &&
+    !items.some(ni => ni.itemId === it.id)
+  );
+
+  if (loading) return (
+    <div className="flex items-center gap-1.5 py-1">
+      <span className="text-[9px] text-primary/20 italic">Cargando…</span>
+    </div>
+  );
+
+  return (
+    <div className="space-y-2">
+      {items.length === 0 && (
+        <p className="text-[9px] text-primary/20 italic py-2">Sin ítems naturales</p>
+      )}
+
+      {items.length > 0 && (
+        <div className="grid grid-cols-2 gap-1.5">
+          {items.map(it => (
+            <div key={it.dropId} className="relative group">
+              <button
+                onClick={() => onSelectItem?.(it.itemId)}
+                className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-left transition-all hover:scale-[1.02] active:scale-[0.98]"
+                style={{
+                  background: "color-mix(in srgb, var(--primary) 4%, transparent)",
+                  border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+                }}
+              >
+                <div className="shrink-0 w-7 h-7 rounded-md overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
+                  {it.itemImg
+                    ? <img src={it.itemImg} alt={it.itemName} className="w-full h-full object-cover" />
+                    : <Package size={11} className="text-primary/20" />}
+                </div>
+                <span className="flex-1 text-[10px] font-bold text-primary/65 truncate leading-tight">{it.itemName}</span>
+              </button>
+              <button
+                onClick={e => { e.stopPropagation(); remove(it.dropId); }}
+                className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all bg-red-500/10 hover:bg-red-500/20 text-red-400/60 hover:text-red-400 border border-red-500/20"
+              >
+                <X size={8} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="relative">
+        <button onClick={() => setOpen(o => !o)}
+          className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg border border-dashed border-primary/15 text-[9px] font-black uppercase tracking-widest text-primary/30 hover:text-primary/60 hover:border-primary/30 transition-all">
+          <Plus size={9} /> Añadir ítem
+        </button>
+        {open && (
+          <div className="absolute top-full left-0 right-0 z-20 mt-1 rounded-xl shadow-xl overflow-hidden"
+            style={{ background: "var(--bg-main)", border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)" }}>
+            <div className="p-1.5 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+              <input autoFocus value={search} onChange={e => setSearch(e.target.value)}
+                placeholder="Buscar ítem…"
+                className="w-full bg-transparent text-[10px] text-primary outline-none placeholder:text-primary/30 px-1.5 py-0.5" />
+            </div>
+            <div className="max-h-40 overflow-y-auto">
+              {filtered.length === 0 && (
+                <p className="text-[9px] text-primary/25 italic text-center py-3">Sin resultados</p>
+              )}
+              {filtered.map(it => (
+                <button key={it.id} onClick={() => { add(it); setOpen(false); setSearch(""); }}
+                  className="w-full flex items-center gap-2 px-2.5 py-1.5 hover:bg-primary/5 transition-colors text-left">
+                  <div className="shrink-0 w-5 h-5 rounded-md overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
+                    {it.imagen_url
+                      ? <img src={it.imagen_url} alt={it.nombre} className="w-full h-full object-cover" />
+                      : <Package size={8} className="text-primary/20" />}
+                  </div>
+                  <span className="text-[10px] font-bold text-primary/65 truncate">{it.nombre}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Bloque de ítems que crea una criatura ────────────────────────────────────
 
 function BloqueItemsCraftedos({
@@ -543,7 +702,7 @@ export function EditorCriatura({
                     <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/30 flex items-center gap-1">
                       <Leaf size={9} /> Naturales
                     </label>
-                    <BloqueDrops criaturaId={form.id} varianteId={null} />
+                    <BloqueItemsNaturales criaturaId={form.id} onSelectItem={onSelectItem} />
                   </div>
                   {/* Creaciones: ítems craftedos */}
                   <div className="space-y-2">
