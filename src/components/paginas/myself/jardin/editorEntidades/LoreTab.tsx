@@ -1,8 +1,17 @@
 import React, { useState, useRef } from "react";
-import { Globe, Mountain, Landmark, Users, Coins, Plus, Trash2, ChevronUp, ChevronDown } from "lucide-react";
+import { Globe, Mountain, Landmark, Users, Coins, Plus, Trash2, ChevronUp, ChevronDown, UserCircle2, Loader2 } from "lucide-react";
 import { MarkdownEditor, WikiEntity } from "../../../../forms/MarkdownEditor";
 import { useWikilink } from "../../../../forms/WikilinkContext";
 import { type Reino } from "./types";
+
+// ─── Tipo Personaje (local) ───────────────────────────────────────────────────
+type Personaje = {
+  id: string;
+  nombre: string;
+  img_url?: string | null;
+  especie?: string | null;
+  sobre?: string | null;
+};
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -334,7 +343,7 @@ function TimelineRow({
 
 // ─── Definición de secciones ─────────────────────────────────────────────────
 
-type LoreKey = "historia" | "geografia" | "cultura" | "politica" | "economia";
+type LoreKey = "historia" | "geografia" | "cultura" | "politica" | "economia" | "personajes";
 
 const LORE_SECTIONS: {
   key: LoreKey;
@@ -378,6 +387,13 @@ const LORE_SECTIONS: {
     placeholder: "Recursos, comercio, moneda, riqueza…",
     rows: 20,
   },
+  {
+    key: "personajes",
+    label: "Personajes",
+    Icon: UserCircle2,
+    placeholder: "",
+    rows: 0,
+  },
 ];
 
 // ─── Helpers para saber si historia tiene contenido ───────────────────────────
@@ -394,10 +410,14 @@ export function LoreTab({
   form,
   setForm,
   entities = [],
+  personajes = [],
+  loadingPersonajes = false,
 }: {
   form: Reino;
   setForm: React.Dispatch<React.SetStateAction<Reino>>;
   entities?: WikiEntity[];
+  personajes?: Personaje[];
+  loadingPersonajes?: boolean;
 }) {
   const [activeKey, setActiveKey] = useState<LoreKey>("historia");
   const { onSnippetAction } = useWikilink();
@@ -406,6 +426,7 @@ export function LoreTab({
 
   // Función para determinar si una sección tiene contenido
   const sectionHasContent = (key: LoreKey): boolean => {
+    if (key === "personajes") return personajes.length > 0;
     const raw = (form as any)[key] as string | undefined;
     if (key === "historia") return historiaHasContent(raw);
     return !!raw?.trim();
@@ -458,7 +479,7 @@ export function LoreTab({
               <span className="hidden sm:block text-[9px] font-black uppercase tracking-[0.2em] truncate">
                 {label}
               </span>
-              {hasContent && (
+              {hasContent && key !== "personajes" && (
                 <span
                   className="absolute right-2 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full"
                   style={{
@@ -467,6 +488,21 @@ export function LoreTab({
                       : "color-mix(in srgb, var(--primary) 35%, transparent)",
                   }}
                 />
+              )}
+              {key === "personajes" && personajes.length > 0 && (
+                <span
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[8px] font-black px-1 py-0.5 rounded-md"
+                  style={{
+                    background: isActive
+                      ? "color-mix(in srgb, var(--primary) 20%, transparent)"
+                      : "color-mix(in srgb, var(--primary) 10%, transparent)",
+                    color: isActive
+                      ? "var(--primary)"
+                      : "color-mix(in srgb, var(--primary) 45%, transparent)",
+                  }}
+                >
+                  {personajes.length}
+                </span>
               )}
             </button>
           );
@@ -498,6 +534,13 @@ export function LoreTab({
             </span>
           )}
 
+          {/* Badge count para personajes */}
+          {active.key === "personajes" && personajes.length > 0 && (
+            <span className="text-[8px] font-black uppercase tracking-widest text-primary/30 border border-primary/10 px-1.5 py-0.5 rounded-md">
+              {personajes.length}
+            </span>
+          )}
+
           {/* Badge "línea de tiempo" cuando está en historia */}
           {active.key === "historia" && (
             <span className="ml-auto text-[8px] font-black uppercase tracking-widest text-primary/25 border border-primary/10 px-1.5 py-0.5 rounded-md">
@@ -506,7 +549,7 @@ export function LoreTab({
           )}
         </div>
 
-        {/* Contenido: línea de tiempo para historia, MarkdownEditor para el resto */}
+        {/* Contenido: línea de tiempo para historia, personajes, MarkdownEditor para el resto */}
         <div className="flex-1 overflow-y-auto min-h-0">
           {activeKey === "historia" ? (
             <TimelineEditor
@@ -514,6 +557,44 @@ export function LoreTab({
               value={(form as any).historia ?? ""}
               onChange={(v) => setForm((f) => ({ ...f, historia: v }))}
             />
+          ) : activeKey === "personajes" ? (
+            <div className="p-4 space-y-2">
+              {loadingPersonajes ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 size={16} className="animate-spin text-primary/20" />
+                </div>
+              ) : personajes.length === 0 ? (
+                <div className="flex flex-col items-center gap-2 py-12 text-primary/20">
+                  <UserCircle2 size={28} strokeWidth={1} />
+                  <p className="text-[9px] font-black uppercase tracking-widest">Sin personajes en este reino</p>
+                </div>
+              ) : (
+                personajes.map(p => (
+                  <div
+                    key={p.id}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl"
+                    style={{
+                      background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+                      border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+                    }}
+                  >
+                    <div className="shrink-0 w-9 h-9 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
+                      {p.img_url
+                        ? <img src={p.img_url} alt={p.nombre} className="w-full h-full object-cover" />
+                        : <UserCircle2 size={14} className="text-primary/20" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[12px] font-bold text-primary/80 truncate">{p.nombre}</p>
+                      {(p.especie || p.sobre) && (
+                        <p className="text-[9px] text-primary/35 truncate mt-0.5">
+                          {[p.especie, p.sobre?.slice(0, 50)].filter(Boolean).join(" · ")}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           ) : (
             <div className="p-3 h-full">
               <MarkdownEditor
@@ -533,4 +614,4 @@ export function LoreTab({
       </div>
     </div>
   );
-} 
+}
