@@ -42,6 +42,7 @@ export type Item = {
   imagen_url?: string;
   descripcion?: string;
   categoria?: string;
+  origen?: "Natural" | "Artificial" | null;
 };
 
 export type Reino = {

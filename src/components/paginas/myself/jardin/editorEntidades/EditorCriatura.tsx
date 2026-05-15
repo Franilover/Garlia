@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Bug, Plus, Check, X, Trash2, Save, ChevronDown, Lock,
-  Dna, Brain, Wand2, GitBranch, Users, Package,
+  Dna, Brain, Wand2, GitBranch, Users, Package, Wrench,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
@@ -47,6 +47,143 @@ async function dexieWriteAll(tabla: string, rows: any[]): Promise<void> {
 }
 
 
+
+// ─── Hook: items que crea una criatura ────────────────────────────────────────
+
+type CraftedItem = {
+  crafterId: string;
+  itemId: string;
+  itemName: string;
+  itemImg?: string | null;
+};
+
+function useCraftedItems(criaturaId: string) {
+  const [items, setItems] = useState<CraftedItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const { data } = await supabase
+      .from("item_crafteres")
+      .select(`id, item_id, items!item_id(nombre, imagen_url)`)
+      .eq("criatura_id", criaturaId);
+
+    setItems(
+      (data ?? []).map((r: any) => ({
+        crafterId: r.id,
+        itemId:    r.item_id,
+        itemName:  (Array.isArray(r.items) ? r.items[0]?.nombre : r.items?.nombre) ?? "—",
+        itemImg:   (Array.isArray(r.items) ? r.items[0]?.imagen_url : r.items?.imagen_url) ?? null,
+      }))
+    );
+    setLoading(false);
+  }, [criaturaId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const add = async (item: { id: string; nombre: string; imagen_url?: string | null }) => {
+    if (items.some(i => i.itemId === item.id)) return;
+    const { data, error } = await supabase
+      .from("item_crafteres")
+      .insert([{ item_id: item.id, criatura_id: criaturaId }])
+      .select().single();
+    if (!error && data) {
+      setItems(prev => [...prev, {
+        crafterId: data.id, itemId: item.id,
+        itemName: item.nombre, itemImg: item.imagen_url ?? null,
+      }]);
+    }
+  };
+
+  const remove = async (crafterId: string) => {
+    await supabase.from("item_crafteres").delete().eq("id", crafterId);
+    setItems(prev => prev.filter(i => i.crafterId !== crafterId));
+  };
+
+  return { items, loading, add, remove };
+}
+
+// ─── Bloque de ítems que crea una criatura ────────────────────────────────────
+
+function BloqueItemsCraftedos({ criaturaId }: { criaturaId: string }) {
+  const { items, loading, add, remove } = useCraftedItems(criaturaId);
+  const [allItems, setAllItems] = useState<{ id: string; nombre: string; imagen_url?: string | null }[]>([]);
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    supabase.from("items").select("id, nombre, imagen_url").order("nombre")
+      .then(({ data }) => setAllItems(data ?? []));
+  }, []);
+
+  const filtered = allItems.filter(it =>
+    it.nombre.toLowerCase().includes(search.toLowerCase()) &&
+    !items.some(ci => ci.itemId === it.id)
+  );
+
+  if (loading) return (
+    <div className="flex items-center gap-1.5 py-1">
+      <span className="text-[9px] text-primary/20 italic">Cargando…</span>
+    </div>
+  );
+
+  return (
+    <div className="space-y-1.5">
+      {items.length === 0 && (
+        <p className="text-[9px] text-primary/20 italic">Sin ítems creados</p>
+      )}
+      {items.map(it => (
+        <div key={it.crafterId}
+          className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg group transition-colors"
+          style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+          <div className="shrink-0 w-5 h-5 rounded-md overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
+            {it.itemImg
+              ? <img src={it.itemImg} alt={it.itemName} className="w-full h-full object-cover" />
+              : <Package size={9} className="text-primary/20" />}
+          </div>
+          <span className="flex-1 text-[10px] font-bold text-primary/65 truncate">{it.itemName}</span>
+          <button onClick={() => remove(it.crafterId)}
+            className="shrink-0 opacity-0 group-hover:opacity-100 transition-all p-0.5 rounded text-red-400/50 hover:text-red-400">
+            <X size={9} />
+          </button>
+        </div>
+      ))}
+
+      <div className="relative">
+        <button onClick={() => setOpen(o => !o)}
+          className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg border border-dashed border-primary/15 text-[9px] font-black uppercase tracking-widest text-primary/30 hover:text-primary/60 hover:border-primary/30 transition-all">
+          <Plus size={9} /> Añadir ítem
+        </button>
+        {open && (
+          <div className="absolute top-full left-0 right-0 z-20 mt-1 rounded-xl shadow-xl overflow-hidden"
+            style={{ background: "var(--bg-main)", border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)" }}>
+            <div className="p-1.5 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+              <input autoFocus value={search} onChange={e => setSearch(e.target.value)}
+                placeholder="Buscar ítem…"
+                className="w-full bg-transparent text-[10px] text-primary outline-none placeholder:text-primary/30 px-1.5 py-0.5" />
+            </div>
+            <div className="max-h-40 overflow-y-auto">
+              {filtered.length === 0 && (
+                <p className="text-[9px] text-primary/25 italic text-center py-3">Sin resultados</p>
+              )}
+              {filtered.map(it => (
+                <button key={it.id} onClick={() => { add(it); setOpen(false); setSearch(""); }}
+                  className="w-full flex items-center gap-2 px-2.5 py-1.5 hover:bg-primary/5 transition-colors text-left">
+                  <div className="shrink-0 w-5 h-5 rounded-md overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
+                    {it.imagen_url
+                      ? <img src={it.imagen_url} alt={it.nombre} className="w-full h-full object-cover" />
+                      : <Package size={8} className="text-primary/20" />}
+                  </div>
+                  <span className="text-[10px] font-bold text-primary/65 truncate">{it.nombre}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 // ─── Tabs internas ─────────────────────────────────────────────────────────────
 type InnerTab = "base" | "especie";
@@ -202,6 +339,14 @@ function VarianteEditor({
             <div className="sm:shrink-0 sm:w-52 space-y-1.5">
               <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/30">Drops</p>
               <BloqueDrops criaturaId={criaturaId} varianteId={form.id} />
+            </div>
+
+            {/* Ítems que crea */}
+            <div className="sm:shrink-0 sm:w-44 space-y-1.5">
+              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/30 flex items-center gap-1">
+                <Wrench size={8} /> Ítems que crea
+              </p>
+              <BloqueItemsCraftedos criaturaId={criaturaId} />
             </div>
           </div>
 
@@ -377,6 +522,12 @@ export function EditorCriatura({
                       <Package size={9} /> Drops base
                     </span>
                     <BloqueDrops criaturaId={form.id} varianteId={null} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <p className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/30 flex items-center gap-1">
+                      <Wrench size={9} /> Ítems que crea
+                    </p>
+                    <BloqueItemsCraftedos criaturaId={form.id} />
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Descripción</label>
