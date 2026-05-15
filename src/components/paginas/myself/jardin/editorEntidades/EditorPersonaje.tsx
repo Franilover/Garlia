@@ -192,7 +192,7 @@ function useCriaturaVariantesPorNombre(nombreEspecie: string | null | undefined)
 
 // ─── FormularioPersonaje ──────────────────────────────────────────────────────
 export function FormularioPersonaje({
-  form, setForm, status, onSave, onDelete, compacto = false, entities = [],
+  form, setForm, status, onSave, onDelete, compacto = false, entities = [], onNavigate,
 }: {
   form: Personaje;
   setForm: React.Dispatch<React.SetStateAction<Personaje>>;
@@ -201,6 +201,7 @@ export function FormularioPersonaje({
   onDelete: () => void;
   compacto?: boolean;
   entities?: WikiEntity[];
+  onNavigate?: (tab: "criaturas" | "reinos", nombre: string) => void;
 }) {
   const especies = useNombresDeTabla("criaturas");
   const reinos   = useNombresDeTabla("reinos");
@@ -336,7 +337,7 @@ export function FormularioPersonaje({
                   <div className="flex flex-col sm:flex-row gap-2 items-start">
                     <div className="flex-1 min-w-0 grid grid-cols-2 sm:grid-cols-2 gap-2">
                       <div className="space-y-1">
-                        <SelectorTexto label="Especie" value={form.especie ?? ""} onChange={v => setForm(f => ({ ...f, especie: v, variante_id: null }))} opciones={especies} placeholder="Humano, elfo, demonio…" />
+                        <SelectorTexto label="Especie" value={form.especie ?? ""} onChange={v => setForm(f => ({ ...f, especie: v, variante_id: null }))} opciones={especies} placeholder="Humano, elfo, demonio…" onNavigate={onNavigate ? (n) => onNavigate("criaturas", n) : undefined} />
                         {variantes.length > 0 && (
                           <div className="flex flex-wrap items-center gap-1 pt-0.5">
                             <span className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/25 mr-0.5">Variante</span>
@@ -360,7 +361,7 @@ export function FormularioPersonaje({
                           </div>
                         )}
                       </div>
-                      <SelectorTexto label="Reino" value={form.reino ?? ""} onChange={v => setForm(f => ({ ...f, reino: v }))} opciones={reinos} placeholder="Reino, grupo, nación…" />
+                      <SelectorTexto label="Reino" value={form.reino ?? ""} onChange={v => setForm(f => ({ ...f, reino: v }))} opciones={reinos} placeholder="Reino, grupo, nación…" onNavigate={onNavigate ? (n) => onNavigate("reinos", n) : undefined} />
                     </div>
 
                     {/* Don — mismo estilo que Especie / Reino */}
@@ -446,9 +447,10 @@ export function FormularioPersonaje({
 
 // ─── EditorPersonaje ──────────────────────────────────────────────────────────
 export function EditorPersonaje({
-  item, onSaved, onDeleted, entities = [],
+  item, onSaved, onDeleted, entities = [], onNavigate,
 }: {
   item: Personaje; onSaved: (p: Personaje) => void; onDeleted: (id: string) => void; entities?: WikiEntity[];
+  onNavigate?: (tab: "criaturas" | "reinos", nombre: string) => void;
 }) {
   const [form,   setForm]   = useState<Personaje>(item);
   const [status, setStatus] = useState<SaveStatus>("idle");
@@ -488,7 +490,7 @@ export function EditorPersonaje({
   return (
     <>
       <ConfirmModal />
-      <FormularioPersonaje form={form} setForm={setForm} status={status} onSave={save} onDelete={del} entities={entities} />
+      <FormularioPersonaje form={form} setForm={setForm} status={status} onSave={save} onDelete={del} entities={entities} onNavigate={onNavigate} />
     </>
   );
 }

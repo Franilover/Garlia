@@ -474,7 +474,12 @@ export default function EditorEntidades() {
             />
           ) : selected ? (
             <>
-              {tab === "personajes" && <EditorPersonaje key={selected.id} item={selected as Personaje} onSaved={handleSaved} onDeleted={handleDeleted} entities={allEntityNames} />}
+              {tab === "personajes" && <EditorPersonaje key={selected.id} item={selected as Personaje} onSaved={handleSaved} onDeleted={handleDeleted} entities={allEntityNames}
+                onNavigate={(navTab, nombre) => {
+                  const found = allItems[navTab].find((i: any) => i.nombre?.toLowerCase() === nombre.toLowerCase());
+                  if (found) handleSelect(found, navTab);
+                }}
+              />}
               {tab === "criaturas"  && <EditorCriatura  key={selected.id} item={selected as Criatura}  onSaved={handleSaved} onDeleted={handleDeleted} entities={allEntityNames}
                 onSelectItem={(itemId) => {
                   const found = allItems.items.find(i => i.id === itemId);

@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
-  Loader2, AlertCircle, CheckCircle2, ChevronDown,
-  Image as ImageIcon, X, Save, Trash2,
+  Loader2, AlertCircle, CheckCircle2,
+  Image as ImageIcon, X, Save, Trash2, Pencil, ExternalLink,
 } from "lucide-react";
 import SimpleImagePicker from "@/components/forms/SimpleImagePicker";
 import { normalize } from "@/components/templates/EstudioTemplates";
@@ -150,70 +150,152 @@ export function SelectorImagen({ label, value, onChange, aspect, placeholder }: 
   );
 }
 
-export function SelectorTexto({ label, value, onChange, opciones, placeholder }: {
+export function SelectorTexto({ label, value, onChange, opciones, placeholder, onNavigate }: {
   label: string; value: string; onChange: (v: string) => void;
   opciones: string[]; placeholder?: string;
+  onNavigate?: (nombre: string) => void;
 }) {
-  const [open,  setOpen]  = useState(false);
-  const [input, setInput] = useState(value);
-  const ref = useRef<HTMLDivElement>(null);
+  const [editing, setEditing] = useState(false);
+  const [draft,   setDraft]   = useState(value);
+  const [open,    setOpen]    = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const ref      = useRef<HTMLDivElement>(null);
 
-  useEffect(() => { setInput(value); }, [value]);
+  useEffect(() => { setDraft(value); }, [value]);
 
+  // Cerrar al clickear fuera
   useEffect(() => {
-    if (!open) return;
+    if (!editing) return;
     const h = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false);
-        onChange(input);
-      }
+      if (ref.current && !ref.current.contains(e.target as Node)) commit();
     };
     document.addEventListener("mousedown", h);
     return () => document.removeEventListener("mousedown", h);
-  }, [open, input, onChange]);
+  }, [editing, draft]);
+
+  const startEdit = () => {
+    setDraft(value);
+    setEditing(true);
+    setOpen(true);
+    setTimeout(() => inputRef.current?.focus(), 30);
+  };
+
+  const commit = () => {
+    const trimmed = draft.trim();
+    onChange(trimmed); // vacío limpia el valor
+    setEditing(false);
+    setOpen(false);
+  };
+
+  const select = (v: string) => { setDraft(v); onChange(v); setEditing(false); setOpen(false); };
 
   const filtradas = useMemo(
-    () => opciones.filter(o => normalize(o).includes(normalize(input))),
-    [opciones, input]
+    () => opciones.filter(o => normalize(o).includes(normalize(draft))),
+    [opciones, draft]
   );
 
-  const select = (v: string) => { setInput(v); onChange(v); setOpen(false); };
-
   return (
-    <div className="space-y-1.5" ref={ref}>
+    <div className="space-y-1" ref={ref}>
       <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">{label}</label>
-      <div className="relative">
-        <input
-          value={input}
-          onChange={e => { setInput(e.target.value); onChange(e.target.value); }}
-          onFocus={() => setOpen(true)}
-          placeholder={placeholder}
-          className={INPUT_CLS + " pr-8"}
-        />
-        <button
-          type="button" onClick={() => setOpen(o => !o)}
-          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-primary/30 hover:text-primary transition-colors"
-        >
-          <ChevronDown size={13} className={`transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
-        </button>
 
-        {open && (filtradas.length > 0 || (input.trim() && !opciones.includes(input.trim()))) && (
-          <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white-custom border border-primary/15 rounded-xl shadow-xl overflow-hidden max-h-48 overflow-y-auto">
-            {filtradas.map(o => (
-              <button key={o} onMouseDown={() => select(o)}
-                className="w-full px-3 py-2 text-left text-xs font-medium text-primary/70 hover:bg-primary/8 hover:text-primary transition-colors">
-                {o}
-              </button>
-            ))}
-            {input.trim() && !opciones.includes(input.trim()) && (
-              <button onMouseDown={() => select(input.trim())}
-                className="w-full px-3 py-2 text-left text-xs font-medium text-primary/40 hover:bg-primary/5 transition-colors italic">
-                Usar "{input.trim()}"
-              </button>
-            )}
-          </div>
-        )}
-      </div>
+      {editing ? (
+        /* ── Modo edición: input + dropdown ── */
+        <div className="relative">
+          <input
+            ref={inputRef}
+            value={draft}
+            onChange={e => { setDraft(e.target.value); setOpen(true); }}
+            onKeyDown={e => {
+              if (e.key === "Enter") commit();
+              if (e.key === "Escape") { setDraft(value); setEditing(false); setOpen(false); }
+            }}
+            placeholder={placeholder}
+            className={INPUT_CLS + " pr-7"}
+          />
+          <button
+            type="button"
+            onMouseDown={e => { e.preventDefault(); commit(); }}
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-primary/30 hover:text-primary transition-colors"
+          >
+            <X size={10} />
+          </button>
+
+          {open && (filtradas.length > 0 || (draft.trim() && !opciones.includes(draft.trim()))) && (
+            <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white-custom border border-primary/15 rounded-xl shadow-xl overflow-hidden max-h-48 overflow-y-auto">
+              {/* Opción quitar si hay valor */}
+              {value && (
+                <button
+                  onMouseDown={e => { e.preventDefault(); select(""); }}
+                  className="w-full px-3 py-2 text-left text-[10px] font-bold text-red-400/60 hover:text-red-400 hover:bg-red-400/5 transition-colors border-b border-primary/8 italic"
+                >
+                  Quitar {label.toLowerCase()}
+                </button>
+              )}
+              {filtradas.map(o => (
+                <button key={o} onMouseDown={() => select(o)}
+                  className={`w-full px-3 py-2 text-left text-xs font-medium transition-colors hover:bg-primary/8 hover:text-primary ${o === value ? "text-primary bg-primary/5" : "text-primary/70"}`}>
+                  {o}
+                </button>
+              ))}
+              {draft.trim() && !opciones.includes(draft.trim()) && (
+                <button onMouseDown={() => select(draft.trim())}
+                  className="w-full px-3 py-2 text-left text-xs font-medium text-primary/40 hover:bg-primary/5 transition-colors italic">
+                  Usar "{draft.trim()}"
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      ) : value ? (
+        /* ── Modo display: chip link + botón lápiz ── */
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => onNavigate ? onNavigate(value) : startEdit()}
+            className="flex-1 min-w-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-bold text-left transition-all border"
+            style={{
+              background: "color-mix(in srgb, var(--primary) 5%, transparent)",
+              borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
+              color: "var(--primary)",
+            }}
+            onMouseEnter={e => {
+              (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--accent) 8%, transparent)";
+              (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--accent) 22%, transparent)";
+              (e.currentTarget as HTMLElement).style.color = "var(--accent)";
+            }}
+            onMouseLeave={e => {
+              (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 5%, transparent)";
+              (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 12%, transparent)";
+              (e.currentTarget as HTMLElement).style.color = "var(--primary)";
+            }}
+          >
+            <span className="truncate flex-1">{value}</span>
+            {onNavigate && <ExternalLink size={9} className="shrink-0 opacity-35" />}
+          </button>
+          <button
+            type="button"
+            onClick={startEdit}
+            className="shrink-0 w-6 h-6 rounded-lg flex items-center justify-center border border-transparent text-primary/25 hover:text-primary hover:bg-primary/8 hover:border-primary/15 transition-all"
+            title={`Editar ${label.toLowerCase()}`}
+          >
+            <Pencil size={9} />
+          </button>
+        </div>
+      ) : (
+        /* ── Modo vacío: placeholder como botón ── */
+        <button
+          type="button"
+          onClick={startEdit}
+          className="w-full flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-bold text-left transition-all border border-dashed"
+          style={{
+            borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
+            color: "color-mix(in srgb, var(--primary) 25%, transparent)",
+          }}
+        >
+          <Pencil size={9} className="opacity-50" />
+          <span className="italic">{placeholder}</span>
+        </button>
+      )}
     </div>
   );
 }
