@@ -2135,6 +2135,88 @@ function PanelListas({ initialSubTab, initialItemId }: { initialSubTab?: string;
     { key: "runas",      label: "Runas",      Icon: ScrollText, count: runas.length      },
   ];
 
+  return (
+    <div className="flex-1 flex min-h-0 overflow-hidden relative">
+
+      {/* ── Editor overlay — cubre toda la sección Listas ────────────────── */}
+      {overlay && (
+        <div className="absolute inset-0 z-20 flex flex-col" style={{ background: "var(--bg-main)" }}>
+          <div className="shrink-0 flex items-center gap-3 px-4 py-2.5 border-b"
+            style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}>
+            <button
+              onClick={() => {
+                setSelectedReino(null); setSelectedCriatura(null);
+                setSelectedObjeto(null); setSelectedPersonaje(null);
+                setSelectedHechizo(null); setSelectedDon(null); setSelectedRuna(null);
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border border-primary/15 text-primary/50 hover:text-primary hover:border-primary/30 transition-all"
+            >
+              <ChevronRight size={12} className="rotate-180" /> Volver a Listas
+            </button>
+            <div className="flex items-center gap-2 min-w-0">
+              {overlay === "reino"    && <Map        size={12} className="text-primary/40 shrink-0" />}
+              {overlay === "criatura" && <Bug        size={12} className="text-primary/40 shrink-0" />}
+              {overlay === "objeto"   && <Package    size={12} className="text-primary/40 shrink-0" />}
+              {overlay === "personaje"&& <Users      size={12} className="text-primary/40 shrink-0" />}
+              {overlay === "hechizo"  && <Sparkles   size={12} className="shrink-0" style={{ color: "var(--accent)" }} />}
+              {overlay === "don"      && <Star       size={12} className="shrink-0" style={{ color: "color-mix(in srgb, var(--accent) 70%, var(--primary))" }} />}
+              {overlay === "runa"     && <ScrollText size={12} className="shrink-0" style={{ color: "var(--primary)" }} />}
+              <span className="text-[11px] font-black uppercase tracking-[0.15em] text-primary/60 truncate">
+                {selectedReino?.nombre ?? selectedCriatura?.nombre ?? selectedObjeto?.nombre ?? selectedPersonaje?.nombre ?? selectedHechizo?.nombre ?? selectedDon?.nombre ?? selectedRuna?.nombre}
+              </span>
+            </div>
+          </div>
+          <div className="flex-1 flex min-h-0 overflow-hidden">
+            {overlay === "reino" && selectedReino && (
+              <EditorReino key={selectedReino.id} item={selectedReino}
+                onSaved={u => { setReinos(p => p.map(r => r.id === u.id ? u : r)); setSelectedReino(u); }}
+                onDeleted={id => { setReinos(p => p.filter(r => r.id !== id)); setSelectedReino(null); }} />
+            )}
+            {overlay === "criatura" && selectedCriatura && (
+              <EditorCriatura key={selectedCriatura.id} item={selectedCriatura as any}
+                onSaved={u => { setCriaturas(p => p.map(c => c.id === u.id ? { ...c, ...u } : c)); setSelectedCriatura({ ...selectedCriatura, ...u }); }}
+                onDeleted={id => { setCriaturas(p => p.filter(c => c.id !== id)); setSelectedCriatura(null); }} />
+            )}
+            {overlay === "objeto" && selectedObjeto && (
+              <EditorItem key={selectedObjeto.id} item={selectedObjeto as any}
+                onSaved={u => { setObjetos(p => p.map(o => o.id === u.id ? { ...o, ...u } : o)); setSelectedObjeto({ ...selectedObjeto, ...u }); }}
+                onDeleted={id => { setObjetos(p => p.filter(o => o.id !== id)); setSelectedObjeto(null); }} />
+            )}
+            {overlay === "personaje" && selectedPersonaje && (
+              <FormularioPersonaje
+                form={selectedPersonaje}
+                setForm={updated => {
+                  const p = typeof updated === "function" ? updated(selectedPersonaje) : updated;
+                  setSelectedPersonaje(p);
+                  setPersonajes(prev => prev.map(x => x.id === p.id ? p : x));
+                }}
+                status={personajeStatus}
+                onSave={handleSavePersonaje}
+                onDelete={handleDeletePersonaje}
+                compacto
+              />
+            )}
+            {overlay === "hechizo" && selectedHechizo && (
+              <FormularioMagico key={selectedHechizo.id} item={selectedHechizo} modo="hechizos"
+                criaturas={criaturasMagicas} loadingCriaturas={loadingCriaturasMagicas}
+                onSaved={u => { setHechizos(p => p.map(h => h.id === u.id ? u : h)); setSelectedHechizo(u); }}
+                onDeleted={id => { setHechizos(p => p.filter(h => h.id !== id)); setSelectedHechizo(null); }} />
+            )}
+            {overlay === "don" && selectedDon && (
+              <FormularioMagico key={selectedDon.id} item={selectedDon} modo="dones"
+                criaturas={criaturasMagicas} loadingCriaturas={loadingCriaturasMagicas}
+                onSaved={u => { setDones(p => p.map(d => d.id === u.id ? u : d)); setSelectedDon(u); }}
+                onDeleted={id => { setDones(p => p.filter(d => d.id !== id)); setSelectedDon(null); }} />
+            )}
+            {overlay === "runa" && selectedRuna && (
+              <FormularioRuna key={selectedRuna.id} item={selectedRuna}
+                onSaved={u => { setRunas(p => p.map(r => r.id === u.id ? u : r)); setSelectedRuna(u); }}
+                onDeleted={id => { setRunas(p => p.filter(r => r.id !== id)); setSelectedRuna(null); }} />
+            )}
+          </div>
+        </div>
+      )}
+
       {/* ── Layout principal: sidebar + lista ───────────────────────────── */}
       <div className="flex-1 flex min-h-0 overflow-hidden">
 
