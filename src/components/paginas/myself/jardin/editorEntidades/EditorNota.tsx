@@ -2,8 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { FileText, Save, Trash2, Loader2, Tag, X, Plus, Check } from "lucide-react";
-import { type Nota } from "./useNotas";
-import { type SaveStatus } from "./types";
+import { type Nota, SaveStatus } from "./types";
 import { SaveIndicator } from "./UIComponents";
 import { MarkdownEditor } from "../../../../forms/MarkdownEditor";
 import { useWikilink } from "../../../../forms/WikilinkContext";
@@ -105,7 +104,7 @@ export function EditorNota({
 
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-      {ConfirmModal}
+      <ConfirmModal />
 
       {/* ── Header ─────────────────────────────────────────────────────── */}
       <div
