@@ -161,7 +161,7 @@ export function SelectorTexto({ label, value, onChange, opciones, placeholder, o
   const inputRef = useRef<HTMLInputElement>(null);
   const ref      = useRef<HTMLDivElement>(null);
 
-  useEffect(() => { setDraft(value); }, [value]);
+  useEffect(() => { setDraft(value); setEditing(false); setOpen(false); }, [value]);
 
   // Cerrar al clickear fuera
   useEffect(() => {
@@ -251,14 +251,16 @@ export function SelectorTexto({ label, value, onChange, opciones, placeholder, o
         <div className="flex items-center gap-1">
           <button
             type="button"
-            onClick={() => onNavigate ? onNavigate(value) : startEdit()}
+            onClick={() => { onNavigate?.(value); }}
             className="flex-1 min-w-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-bold text-left transition-all border"
             style={{
               background: "color-mix(in srgb, var(--primary) 5%, transparent)",
               borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
               color: "var(--primary)",
+              cursor: onNavigate ? "pointer" : "default",
             }}
             onMouseEnter={e => {
+              if (!onNavigate) return;
               (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--accent) 8%, transparent)";
               (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--accent) 22%, transparent)";
               (e.currentTarget as HTMLElement).style.color = "var(--accent)";
