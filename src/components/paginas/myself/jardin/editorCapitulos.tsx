@@ -1633,10 +1633,10 @@ const PanelEditor = ({
         </div>
       )}
 
-      <div ref={scrollRef} className={`flex-1 min-h-0 overflow-y-auto relative ${focusMode ? "px-5 sm:px-16 py-8 sm:py-12" : "px-4 sm:px-8 py-4 sm:py-6"}`} style={{ WebkitOverflowScrolling: "touch" }}>
-        {/* Mirror oculto para caret-centering — solo usado en modo foco sin MarkdownEditor */}
+      <div ref={scrollRef} className={`flex-1 overflow-y-auto relative ${focusMode ? "px-5 sm:px-16 py-8 sm:py-12" : "px-4 sm:px-8 py-4 sm:py-6"}`} style={{ WebkitOverflowScrolling: "touch" }}>
+        {/* Mirror oculto para caret-centering */}
         <div ref={caretMirrorRef} aria-hidden="true" />
-        <div className={focusMode ? "max-w-3xl mx-auto w-full" : ""}>
+        <div className={focusMode ? "max-w-3xl mx-auto w-full" : ""} style={{ minHeight: "100%", display: "flex", flexDirection: "column" }}>
           <MarkdownEditor
             value={contenido}
             onChange={onChange}
