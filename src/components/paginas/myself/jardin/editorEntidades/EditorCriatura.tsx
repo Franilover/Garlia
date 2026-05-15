@@ -740,64 +740,67 @@ export function EditorCriatura({
                 </div>
               </div>
 
-              {/* Variantes */}
-              <div className="space-y-3">
-                <div className="space-y-2">
-                  {variantes.map(v => (
-                    <VarianteEditor
-                      key={v.id}
-                      variante={v}
-                      criaturaId={form.id}
-                      onSaved={updated => setVariantes(prev => prev.map(x => x.id === updated.id ? updated : x))}
-                      onDeleted={id => setVariantes(prev => prev.filter(x => x.id !== id))} entities={entities}
-                    />
-                  ))}
+              {/* Variantes + Especie: fila lado a lado */}
+              <div className="flex flex-col sm:flex-row gap-4 items-start">
+                {/* Variantes */}
+                <div className="flex-1 space-y-3">
+                  <div className="space-y-2">
+                    {variantes.map(v => (
+                      <VarianteEditor
+                        key={v.id}
+                        variante={v}
+                        criaturaId={form.id}
+                        onSaved={updated => setVariantes(prev => prev.map(x => x.id === updated.id ? updated : x))}
+                        onDeleted={id => setVariantes(prev => prev.filter(x => x.id !== id))} entities={entities}
+                      />
+                    ))}
+                  </div>
+
+                  {variantes.length === 0 && !addingVariante && (
+                    <p className="text-[10px] font-bold text-primary/25 uppercase tracking-widest text-center py-8 border border-dashed border-primary/15 rounded-xl italic">
+                      Sin variantes registradas
+                    </p>
+                  )}
+
+                  {addingVariante ? (
+                    <div className="flex gap-2 p-3 rounded-xl border border-primary/15"
+                      style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)" }}>
+                      <input autoFocus value={newVarianteTipo} onChange={e => setNewVarianteTipo(e.target.value)}
+                        onKeyDown={e => { if (e.key === "Enter") handleAddVariante(); if (e.key === "Escape") setAddingVariante(false); }}
+                        className="flex-1 bg-bg-main border border-primary/20 rounded-lg px-3 py-2 text-xs font-black uppercase text-primary outline-none focus:border-primary/50 tracking-widest"
+                        placeholder="TIPO DE VARIANTE..." />
+                      <button onClick={handleAddVariante} disabled={!newVarianteTipo.trim()}
+                        className="bg-primary text-btn-text px-3 py-2 rounded-lg font-black hover:bg-primary/90 transition-all disabled:opacity-40">
+                        <Check size={13} />
+                      </button>
+                      <button onClick={() => setAddingVariante(false)}
+                        className="px-2.5 py-2 rounded-lg text-primary/40 hover:text-primary transition-all">
+                        <X size={13} />
+                      </button>
+                    </div>
+                  ) : (
+                    <button onClick={() => setAddingVariante(true)}
+                      className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-dashed border-primary/20 text-[10px] font-black uppercase text-primary/40 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all tracking-widest">
+                      <Plus size={11} /> Añadir Variante
+                    </button>
+                  )}
                 </div>
 
-                {variantes.length === 0 && !addingVariante && (
-                  <p className="text-[10px] font-bold text-primary/25 uppercase tracking-widest text-center py-8 border border-dashed border-primary/15 rounded-xl italic">
-                    Sin variantes registradas
-                  </p>
-                )}
-
-                {addingVariante ? (
-                  <div className="flex gap-2 p-3 rounded-xl border border-primary/15"
-                    style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)" }}>
-                    <input autoFocus value={newVarianteTipo} onChange={e => setNewVarianteTipo(e.target.value)}
-                      onKeyDown={e => { if (e.key === "Enter") handleAddVariante(); if (e.key === "Escape") setAddingVariante(false); }}
-                      className="flex-1 bg-bg-main border border-primary/20 rounded-lg px-3 py-2 text-xs font-black uppercase text-primary outline-none focus:border-primary/50 tracking-widest"
-                      placeholder="TIPO DE VARIANTE..." />
-                    <button onClick={handleAddVariante} disabled={!newVarianteTipo.trim()}
-                      className="bg-primary text-btn-text px-3 py-2 rounded-lg font-black hover:bg-primary/90 transition-all disabled:opacity-40">
-                      <Check size={13} />
-                    </button>
-                    <button onClick={() => setAddingVariante(false)}
-                      className="px-2.5 py-2 rounded-lg text-primary/40 hover:text-primary transition-all">
-                      <X size={13} />
-                    </button>
-                  </div>
-                ) : (
-                  <button onClick={() => setAddingVariante(true)}
-                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-dashed border-primary/20 text-[10px] font-black uppercase text-primary/40 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all tracking-widest">
-                    <Plus size={11} /> Añadir Variante
-                  </button>
-                )}
+                {/* Especie */}
+                <div className="sm:w-72 shrink-0">
+                  <PanelPersonajes
+                    personajes={personajes}
+                    loading={loadingPersonajes}
+                    setPersonajes={setPersonajes}
+                    titulo="De esta especie"
+                    inline
+                  />
+                </div>
               </div>
             </div>
           )}
 
-          {/* ESPECIE */}
-          {tab === "especie" && (
-            <div className="p-4">
-              <PanelPersonajes
-                personajes={personajes}
-                loading={loadingPersonajes}
-                setPersonajes={setPersonajes}
-                titulo="De esta especie"
-                inline
-              />
-            </div>
-          )}
+
         </div>
       </div>
     </div>
