@@ -2048,6 +2048,10 @@ function PanelListas({ initialSubTab, initialItemId }: { initialSubTab?: string;
   const [selectedDon,      setSelectedDon]      = useState<EntidadMagica | null>(null);
   const [selectedRuna,     setSelectedRuna]     = useState<Runa | null>(null);
   const [personajeStatus,  setPersonajeStatus]  = useState<SaveStatus>("idle");
+
+  type ListaTab = "reinos" | "criaturas" | "objetos" | "personajes" | "hechizos" | "dones" | "runas";
+  const VALID_LISTA_TABS: ListaTab[] = ["reinos", "criaturas", "objetos", "personajes", "hechizos", "dones", "runas"];
+
   const [mobileTab, setMobileTab] = useState<ListaTab>(
     (VALID_LISTA_TABS.includes(initialSubTab as ListaTab) ? initialSubTab as ListaTab : "reinos")
   );
@@ -2122,9 +2126,6 @@ function PanelListas({ initialSubTab, initialItemId }: { initialSubTab?: string;
     reinos: setSearchR, criaturas: setSearchC, objetos: setSearchO,
     personajes: setSearchP, hechizos: setSearchH, dones: setSearchD, runas: setSearchRu,
   };
-
-  type ListaTab = "reinos" | "criaturas" | "objetos" | "personajes" | "hechizos" | "dones" | "runas";
-  const VALID_LISTA_TABS: ListaTab[] = ["reinos", "criaturas", "objetos", "personajes", "hechizos", "dones", "runas"];
 
   const TABS: { key: ListaTab; label: string; Icon: React.ElementType; count: number; color?: string }[] = [
     { key: "reinos",     label: "Reinos",     Icon: Map,        count: reinos.length     },
