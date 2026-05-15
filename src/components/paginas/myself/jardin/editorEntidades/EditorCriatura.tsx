@@ -490,13 +490,13 @@ function VarianteEditor({
           className="border-t px-3 pb-3 pt-3"
           style={{ borderColor: "color-mix(in srgb, var(--primary) 6%, transparent)" }}
         >
-          {/* Layout de columnas: imagen | descripción | drops */}
-          <div className="flex flex-col sm:flex-row gap-4">
+          {/* Layout de columnas: imagen | descripción | naturales+creaciones */}
+          <div className="flex flex-col sm:flex-row gap-4 items-stretch">
             {/* Imagen */}
-            <div className="shrink-0 sm:w-48">
+            <div className="shrink-0 sm:w-48 flex flex-col">
               <SelectorImagen label="Imagen" value={form.imagen_url ?? ""}
                 onChange={url => setForm(f => ({ ...f, imagen_url: url }))}
-                aspect="landscape" placeholder={<Bug size={16} className="opacity-20" />} />
+                aspect="square" className="flex-1" placeholder={<Bug size={16} className="opacity-20" />} />
             </div>
 
             {/* Tipo + Descripción */}
