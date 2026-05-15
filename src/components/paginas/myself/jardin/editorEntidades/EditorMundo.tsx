@@ -533,26 +533,15 @@ function FormularioRuna({ item, onSaved, onDeleted }: {
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
       <ConfirmModal />
       {/* Header */}
-      <div className="shrink-0 flex flex-col gap-2 px-4 py-3 border-b"
+      <div className="shrink-0 flex items-center gap-3 px-4 py-3 border-b"
         style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}>
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="shrink-0 w-9 h-9">
-            <SelectorImagen
-              label=""
-              value={form.imagen_url ?? ""}
-              onChange={url => setForm(f => ({ ...f, imagen_url: url }))}
-              aspect="square"
-              placeholder={<cfg.Icon size={15} style={{ color: cfg.color }} />}
-            />
-          </div>
-          <input
-            value={form.nombre ?? ""}
-            onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))}
-            placeholder="Nombre de la runa…"
-            className="flex-1 min-w-0 bg-transparent text-sm font-black text-primary outline-none placeholder:text-primary/25"
-          />
-        </div>
-        <div className="flex items-center justify-end gap-2">
+        <input
+          value={form.nombre ?? ""}
+          onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))}
+          placeholder="Nombre de la runa…"
+          className="flex-1 min-w-0 bg-transparent text-sm font-black text-primary outline-none placeholder:text-primary/25"
+        />
+        <div className="shrink-0 flex items-center gap-2">
           <SaveIndicator status={status} />
           <button onClick={del}
             className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all">
@@ -564,19 +553,42 @@ function FormularioRuna({ item, onSaved, onDeleted }: {
           </button>
         </div>
       </div>
-      {/* Body */}
-      <div className="flex-1 overflow-y-auto min-h-0 p-4 space-y-5">
-        <div className="space-y-1.5">
-          <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">Explicación</label>
-          <MarkdownEditor
-            value={form.explicacion ?? ""}
-            onChange={v => setForm(f => ({ ...f, explicacion: v }))}
-            rows={14}
-            placeholder={cfg.placeholder}
-            toolbar
-            defaultMode="edit"
-                    onSnippetAction={onSnippetAction}
-          />
+      {/* Body — dos columnas: imagen grande + contenido */}
+      <div className="flex-1 overflow-y-auto min-h-0">
+        <div className="flex flex-col sm:flex-row gap-0 h-full">
+          {/* Columna izquierda: imagen grande */}
+          <div className="shrink-0 sm:w-48 p-4 sm:border-r flex flex-col gap-3"
+            style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+            <div className="w-full sm:w-full mx-auto" style={{ maxWidth: "10rem" }}>
+              <SelectorImagen
+                label="Imagen"
+                value={form.imagen_url ?? ""}
+                onChange={url => setForm(f => ({ ...f, imagen_url: url }))}
+                aspect="square"
+                placeholder={<cfg.Icon size={28} style={{ color: cfg.color, opacity: 0.4 }} />}
+              />
+            </div>
+            {/* Nombre de la runa como subtítulo bajo la imagen */}
+            <p className="text-[9px] font-black uppercase tracking-[0.25em] text-center truncate"
+              style={{ color: `color-mix(in srgb, ${cfg.color} 50%, transparent)` }}>
+              {form.nombre || "Runa sin nombre"}
+            </p>
+          </div>
+          {/* Columna derecha: explicación */}
+          <div className="flex-1 min-w-0 p-4 space-y-3">
+            <div className="space-y-1.5">
+              <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">Explicación</label>
+              <MarkdownEditor
+                value={form.explicacion ?? ""}
+                onChange={v => setForm(f => ({ ...f, explicacion: v }))}
+                rows={16}
+                placeholder={cfg.placeholder}
+                toolbar
+                defaultMode="edit"
+                onSnippetAction={onSnippetAction}
+              />
+            </div>
+          </div>
         </div>
       </div>
     </div>
