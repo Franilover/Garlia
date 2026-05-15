@@ -517,16 +517,11 @@ export function EditorCriatura({
                     <SelectorTexto label="Pensamiento" value={form.pensamiento ?? ""} onChange={v => setForm(f => ({ ...f, pensamiento: v }))} opciones={pensamientos} placeholder="¿Cómo piensa?" />
                     <SelectorTexto label="Alma" value={form.alma ?? ""} onChange={v => setForm(f => ({ ...f, alma: v }))} opciones={almas} placeholder="Naturaleza espiritual…" />
                   </div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/30 flex items-center gap-1">
-                      <Package size={9} /> Drops base
-                    </span>
-                    <BloqueDrops criaturaId={form.id} varianteId={null} />
-                  </div>
-                  <div className="space-y-1.5">
-                    <p className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/30 flex items-center gap-1">
+                  {/* Ítems que crea — con selector de origen */}
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/30 flex items-center gap-1">
                       <Wrench size={9} /> Ítems que crea
-                    </p>
+                    </label>
                     <BloqueItemsCraftedos criaturaId={form.id} />
                   </div>
                   <div className="space-y-1.5">
