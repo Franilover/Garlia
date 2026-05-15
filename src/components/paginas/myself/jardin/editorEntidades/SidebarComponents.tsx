@@ -953,10 +953,14 @@ export function GlobalSearchBar({
   }, [onSelectMundoSection, onSelectMundoSubTab, close]);
 
   const handleMagic = useCallback((subTab: "hechizos" | "dones" | "runas", item: any) => {
+    // 1. Navegar a la sección magia y al subtab correcto, pasando el id del item
+    onSelectMundoSection("magia");
+    onSelectMundoSubTab?.("magia", subTab);
+    // 2. Notificar al editor para que abra el item directamente
     onSelectMagic?.(subTab, item);
     close();
     inputRef.current?.blur();
-  }, [onSelectMagic, close]);
+  }, [onSelectMagic, onSelectMundoSection, onSelectMundoSubTab, close]);
 
   // Intercept magic add: hechizos/dones/runas → ask for name first
   const handleAddMagicWithModal = useCallback((key: MagicAddKey) => {

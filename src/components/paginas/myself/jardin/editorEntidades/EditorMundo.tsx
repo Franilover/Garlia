@@ -2056,6 +2056,13 @@ function PanelListas({ initialSubTab, initialItemId }: { initialSubTab?: string;
     (VALID_LISTA_TABS.includes(initialSubTab as ListaTab) ? initialSubTab as ListaTab : "reinos")
   );
 
+  // Sincronizar mobileTab cuando el buscador navega a un subtab diferente
+  useEffect(() => {
+    if (initialSubTab && VALID_LISTA_TABS.includes(initialSubTab as ListaTab)) {
+      setMobileTab(initialSubTab as ListaTab);
+    }
+  }, [initialSubTab]);
+
   // Editor overlay activo
   const overlay: "reino" | "criatura" | "objeto" | "personaje" | "hechizo" | "don" | "runa" | null =
     selectedReino    ? "reino"    :
@@ -2074,22 +2081,24 @@ function PanelListas({ initialSubTab, initialItemId }: { initialSubTab?: string;
   const filteredD = dones.filter(d     => d.nombre.toLowerCase().includes(searchD.toLowerCase()) || (d.criatura?.nombre ?? "").toLowerCase().includes(searchD.toLowerCase()));
   const filteredRu = runas.filter(r    => r.nombre.toLowerCase().includes(searchRu.toLowerCase()));
 
-  // Auto-seleccionar item cuando se navega desde wikilink o buscador
+  // Auto-seleccionar item cuando se navega desde wikilink o buscador.
+  // Se dispara tanto al montar (cuando los datos cargan) como cuando
+  // initialItemId cambia (navegación desde el buscador global).
   useEffect(() => {
     if (!initialItemId || !initialSubTab) return;
     if (initialSubTab === "hechizos") {
       const found = hechizos.find(i => i.id === initialItemId);
-      if (found) setSelectedHechizo(found);
+      if (found) { setSelectedHechizo(found); setMobileTab("hechizos"); }
     } else if (initialSubTab === "dones") {
       const found = dones.find(i => i.id === initialItemId);
-      if (found) setSelectedDon(found);
+      if (found) { setSelectedDon(found); setMobileTab("dones"); }
     } else if (initialSubTab === "runas") {
       const found = runas.find(i => i.id === initialItemId);
-      if (found) setSelectedRuna(found);
+      if (found) { setSelectedRuna(found); setMobileTab("runas"); }
     }
-  // Solo al montar
+  // Reacciona a cambios de initialItemId (buscador) y a la carga inicial de datos
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hechizos.length, dones.length, runas.length]);
+  }, [initialItemId, hechizos.length, dones.length, runas.length]);
 
   const handleSavePersonaje = async () => {
     if (!selectedPersonaje) return;
