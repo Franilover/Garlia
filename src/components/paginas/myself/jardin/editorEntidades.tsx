@@ -465,7 +465,12 @@ export default function EditorEntidades() {
                   if (found) handleSelect(found, "items");
                 }}
               />}
-              {tab === "items"      && <EditorItem       key={selected.id} item={selected as Item}      onSaved={handleSaved} onDeleted={handleDeleted} entities={allEntityNames} />}
+              {tab === "items"      && <EditorItem       key={selected.id} item={selected as Item}      onSaved={handleSaved} onDeleted={handleDeleted} entities={allEntityNames}
+                onSelectCriatura={(criaturaId) => {
+                  const found = allItems.criaturas.find(c => c.id === criaturaId);
+                  if (found) handleSelect(found, "criaturas");
+                }}
+              />}
               {tab === "reinos"     && <EditorReino      key={selected.id} item={selected as Reino}     onSaved={handleSaved} onDeleted={handleDeleted} entities={allEntityNames} />}
             </>
           ) : (

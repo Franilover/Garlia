@@ -153,7 +153,7 @@ function useCrafterSources(itemId: string) {
 
 // ─── Panel selector de criaturas creadoras ────────────────────────────────────
 
-function PanelCrafterSources({ itemId }: { itemId: string }) {
+function PanelCrafterSources({ itemId, onSelectCriatura }: { itemId: string; onSelectCriatura?: (criaturaId: string) => void }) {
   const { crafters, loading, add, remove } = useCrafterSources(itemId);
   const [allCriaturas, setAllCriaturas] = useState<{ id: string; nombre: string; imagen_url?: string | null }[]>([]);
   const [open, setOpen] = useState(false);
@@ -188,15 +188,19 @@ function PanelCrafterSources({ itemId }: { itemId: string }) {
       {crafters.length > 0 && (
         <div className="space-y-1">
           {crafters.map(c => (
-            <div key={c.crafterId}
-              className="flex items-center gap-2.5 px-3 py-2 rounded-xl group transition-colors"
+            <div key={c.crafterId} className="relative group flex items-center gap-2.5 px-3 py-2 rounded-xl transition-colors"
               style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-              <div className="shrink-0 w-6 h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
-                {c.criaturaImg
-                  ? <img src={c.criaturaImg} alt={c.criaturaName} className="w-full h-full object-cover" />
-                  : <Bug size={10} className="text-primary/20" />}
-              </div>
-              <span className="flex-1 text-[11px] font-bold text-primary/70 truncate">{c.criaturaName}</span>
+              <button
+                onClick={() => onSelectCriatura?.(c.criaturaId)}
+                className="flex items-center gap-2.5 flex-1 min-w-0 text-left"
+              >
+                <div className="shrink-0 w-6 h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
+                  {c.criaturaImg
+                    ? <img src={c.criaturaImg} alt={c.criaturaName} className="w-full h-full object-cover" />
+                    : <Bug size={10} className="text-primary/20" />}
+                </div>
+                <span className="flex-1 text-[11px] font-bold text-primary/70 truncate hover:text-primary transition-colors">{c.criaturaName}</span>
+              </button>
               <button onClick={() => remove(c.crafterId)}
                 className="shrink-0 opacity-0 group-hover:opacity-100 transition-all p-1 rounded text-red-400/50 hover:text-red-400 hover:bg-red-500/8">
                 <X size={11} />
@@ -338,9 +342,10 @@ type InnerTab = "info" | "criaturas";
 // ─── EditorItem ───────────────────────────────────────────────────────────────
 
 export function EditorItem({
-  item, onSaved, onDeleted, entities = [],
+  item, onSaved, onDeleted, entities = [], onSelectCriatura,
 }: {
   item: Item; onSaved: (i: Item) => void; onDeleted: (id: string) => void; entities?: WikiEntity[];
+  onSelectCriatura?: (criaturaId: string) => void;
 }) {
   const [form,     setForm]     = useState<Item>(item);
   const [status,   setStatus]   = useState<SaveStatus>("idle");
@@ -540,7 +545,7 @@ export function EditorItem({
                           <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35 flex items-center gap-1.5">
                             <Bug size={9} /> Criaturas de origen
                           </label>
-                          <PanelCrafterSources itemId={form.id} />
+                          <PanelCrafterSources itemId={form.id} onSelectCriatura={onSelectCriatura} />
                         </div>
                       )}
                     </div>
@@ -552,7 +557,7 @@ export function EditorItem({
                       <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35 flex items-center gap-1.5">
                         <Wrench size={9} /> Criaturas que lo crean
                       </label>
-                      <PanelCrafterSources itemId={form.id} />
+                      <PanelCrafterSources itemId={form.id} onSelectCriatura={onSelectCriatura} />
                     </div>
                   )}
                 </div>
