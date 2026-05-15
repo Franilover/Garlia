@@ -2352,6 +2352,18 @@ function PanelListas({ initialSubTab, initialItemId }: { initialSubTab?: string;
                 style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, transparent)" }}>
                 <t.Icon size={13} style={{ color }} className="shrink-0" />
                 <p className="flex-1 text-[11px] font-black uppercase tracking-[0.2em]" style={{ color }}>{t.label}</p>
+                {mobileTab === "notas" && (
+                  <button
+                    onClick={async () => {
+                      const nueva = await crearNota("Nueva nota");
+                      if (nueva) setSelectedNota(nueva);
+                    }}
+                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-dashed transition-all text-primary/40 hover:text-primary hover:border-primary/30"
+                    style={{ borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)" }}
+                  >
+                    <Plus size={9} /> Nueva
+                  </button>
+                )}
                 {t.count > 0 && (
                   <span className="text-[9px] font-black tabular-nums"
                     style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
@@ -2512,43 +2524,50 @@ function PanelListas({ initialSubTab, initialItemId }: { initialSubTab?: string;
                   </button>
                 ))
             )}
-            {mobileTab === "notas" && (
-              <div className="absolute inset-0 flex overflow-hidden" style={{ zIndex: 10 }}>
-                {/* Lista lateral */}
-                <div className="w-56 shrink-0 border-r flex flex-col min-h-0"
-                  style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-                  <ListaNotas
-                    notas={notas}
-                    loading={loadingNotas}
-                    selectedId={selectedNota?.id ?? null}
-                    search={searchNotas}
-                    onSearch={setSearchNotas}
-                    onSelect={setSelectedNota}
-                    onNew={async () => {
-                      const nueva = await crearNota("Nueva nota");
-                      if (nueva) setSelectedNota(nueva);
-                    }}
-                  />
-                </div>
-                {/* Editor */}
-                <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-                  {selectedNota ? (
-                    <EditorNota
-                      key={selectedNota.id}
-                      nota={selectedNota}
-                      onSaved={async (updated) => { await actualizarNota(updated); setSelectedNota(updated); }}
-                      onDeleted={id => { eliminarNota(id); setSelectedNota(null); }}
-                    />
-                  ) : (
-                    <div className="flex flex-col items-center justify-center gap-3 h-full text-center">
-                      <FileText size={28} strokeWidth={1} className="text-primary/12" />
-                      <p className="text-[9px] font-black uppercase tracking-widest text-primary/20">
-                        Seleccioná una nota o creá una nueva
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
+            {mobileTab === "notas" && (loadingNotas
+              ? <div className="flex justify-center py-10"><Loader2 size={16} className="animate-spin text-primary/20" /></div>
+              : notas.length === 0
+                ? (
+                  <div className="flex flex-col items-center gap-3 py-14 text-center">
+                    <FileText size={24} strokeWidth={1} className="text-primary/15" />
+                    <p className="text-[9px] font-black uppercase tracking-widest text-primary/20">Sin notas aún</p>
+                    <button
+                      onClick={async () => {
+                        const nueva = await crearNota("Nueva nota");
+                        if (nueva) setSelectedNota(nueva);
+                      }}
+                      className="mt-1 text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-xl border border-dashed text-primary/30 hover:text-primary/60 transition-all"
+                      style={{ borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}
+                    >
+                      Crear primera nota
+                    </button>
+                  </div>
+                )
+                : notas
+                    .filter(n =>
+                      n.titulo.toLowerCase().includes(searchNotas.toLowerCase()) ||
+                      (n.contenido ?? "").toLowerCase().includes(searchNotas.toLowerCase()) ||
+                      (n.etiquetas ?? "").toLowerCase().includes(searchNotas.toLowerCase())
+                    )
+                    .map(n => (
+                      <button key={n.id} onClick={() => setSelectedNota(n)}
+                        className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-primary/6 border border-transparent hover:border-primary/10 transition-all rounded-xl group">
+                        <div className="shrink-0 w-8 h-8 rounded-xl border border-primary/10 bg-primary/5 flex items-center justify-center">
+                          <FileText size={13} className="text-primary/25" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[11px] font-bold text-primary/85 truncate">
+                            {n.titulo || <span className="italic text-primary/30">Sin título</span>}
+                          </p>
+                          {n.contenido?.trim() && (
+                            <p className="text-[9px] text-primary/35 truncate mt-0.5">
+                              {n.contenido.replace(/#+\s|[*_`]/g, "").trim().slice(0, 60)}
+                            </p>
+                          )}
+                        </div>
+                        <ChevronRight size={10} className="text-primary/15 shrink-0 group-hover:text-primary/40 transition-colors" />
+                      </button>
+                    ))
             )}
           </div>
         </div>

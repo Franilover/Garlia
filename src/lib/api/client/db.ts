@@ -181,6 +181,16 @@ export interface Nota {
   deleted?: boolean;
 }
 
+// Notas del universo de fantasía (lore) — separada de la "Nota" personal/ensayos
+export interface NotaLore {
+  id: string;
+  titulo: string;
+  contenido?: string;
+  etiquetas?: string | null; // JSON array string, ej: '["personaje","idea"]'
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface RutinaLocal {
   id: string;
   nombre: string;
@@ -276,6 +286,7 @@ class AgendaFraniDB extends Dexie {
 
   notas!: Table<Nota, string>;
   ensayos!: Table<Nota, string>; 
+  notas_lore!: Table<NotaLore, string>;
 
   rutinas!: Table<RutinaLocal, string>;
   ejercicios_rutina!: Table<EjercicioLocal, string>;
@@ -516,7 +527,9 @@ class AgendaFraniDB extends Dexie {
       reino_detalles:       "id, reino_id",
       hechizos:             "id, nombre",
       dones:                "id, nombre",
+
     });
+
     this.version(9).stores({
       personajes:           "id, nombre, visible",
       criaturas:            "id, nombre, habitat, alma, pensamiento",
@@ -536,7 +549,7 @@ class AgendaFraniDB extends Dexie {
       ropa_outfits:         "id, user_id, created_at",
       diario_fotos:         "++id, categoria, created_at",
       dibujos:              "++id, categoria",
-      notas:                "id, status, updated_at", 
+      notas:                "id, status, updated_at",   // ← sin tocar, son los ensayos/personal
       ensayos:              "id, status, updated_at",
       rutinas:              "id, status",
       ejercicios_rutina:    "id, rutina_id, status",
@@ -547,7 +560,7 @@ class AgendaFraniDB extends Dexie {
       reino_detalles:       "id, reino_id",
       hechizos:             "id, nombre",
       dones:                "id, nombre",
-      notas_lore:           "id, updated_at",          
+      notas_lore:           "id, updated_at",           // ← nueva tabla para el lore
     });
   }
 }
