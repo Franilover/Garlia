@@ -893,10 +893,19 @@ export function MarkdownEditor({
   // ── Auto-resize textarea ──────────────────────────────────────────────────
   useEffect(() => {
     const ta = taRef.current;
-    if (!ta) return;
+    if (!ta || !autoResize) return;
     ta.style.height = "auto";
-    ta.style.height = ta.scrollHeight + "px";
-  }, [value]);
+    if (maxHeight) {
+      // Respetar maxHeight: crecer hasta el límite y luego scrollear
+      const maxPx = parseFloat(getComputedStyle(ta).maxHeight);
+      const clampedH = isNaN(maxPx)
+        ? ta.scrollHeight
+        : Math.min(ta.scrollHeight, maxPx);
+      ta.style.height = clampedH + "px";
+    } else {
+      ta.style.height = ta.scrollHeight + "px";
+    }
+  }, [value, autoResize, maxHeight]);
 
   // Close wikilink menu on outside click
   useEffect(() => {
@@ -1447,7 +1456,8 @@ export function MarkdownEditor({
 
   const textareaStyle: React.CSSProperties = {
     minHeight: minH,
-    overflowY: "hidden",
+    // Con maxHeight: scrollear cuando desborda. Sin maxHeight y autoResize: "hidden" (crece libre).
+    overflowY: maxHeight ? "auto" : (autoResize ? "hidden" : "auto"),
     ...(maxHeight ? { maxHeight } : {}),
     color: "color-mix(in srgb, var(--foreground) 80%, transparent)",
     fontFamily: "var(--font-mono)",
@@ -1708,6 +1718,8 @@ export function MarkdownEditor({
                 position: "relative", 
                 display: "flex", 
                 flexDirection: "column",
+                // Necesario para que maxHeight del textarea sea respetado en modo edit
+                ...(maxHeight && mode === "edit" ? { maxHeight, overflow: "hidden" } : {}),
               }}
             >
               {/* ── Encabezado de sección decorativo (modo edición) ── */}
