@@ -2048,8 +2048,8 @@ function PanelListas({ initialSubTab, initialItemId }: { initialSubTab?: string;
   const [selectedDon,      setSelectedDon]      = useState<EntidadMagica | null>(null);
   const [selectedRuna,     setSelectedRuna]     = useState<Runa | null>(null);
   const [personajeStatus,  setPersonajeStatus]  = useState<SaveStatus>("idle");
-  const [mobileTab, setMobileTab] = useState<"reinos" | "criaturas" | "objetos" | "personajes" | "hechizos" | "dones" | "runas">(
-    (initialSubTab as any) ?? "reinos"
+  const [mobileTab, setMobileTab] = useState<ListaTab>(
+    (VALID_LISTA_TABS.includes(initialSubTab as ListaTab) ? initialSubTab as ListaTab : "reinos")
   );
 
   // Editor overlay activo
@@ -2124,6 +2124,7 @@ function PanelListas({ initialSubTab, initialItemId }: { initialSubTab?: string;
   };
 
   type ListaTab = "reinos" | "criaturas" | "objetos" | "personajes" | "hechizos" | "dones" | "runas";
+  const VALID_LISTA_TABS: ListaTab[] = ["reinos", "criaturas", "objetos", "personajes", "hechizos", "dones", "runas"];
 
   const TABS: { key: ListaTab; label: string; Icon: React.ElementType; count: number; color?: string }[] = [
     { key: "reinos",     label: "Reinos",     Icon: Map,        count: reinos.length     },
@@ -2264,7 +2265,8 @@ function PanelListas({ initialSubTab, initialItemId }: { initialSubTab?: string;
 
           {/* Header del tab activo */}
           {(() => {
-            const t = TABS.find(t => t.key === mobileTab)!;
+            const t = TABS.find(t => t.key === mobileTab);
+            if (!t) return null;
             const color = t.color ?? "var(--primary)";
             return (
               <div className="shrink-0 flex items-center gap-2.5 px-4 py-3 border-b"
