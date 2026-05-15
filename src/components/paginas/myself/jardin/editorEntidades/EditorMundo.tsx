@@ -2237,7 +2237,7 @@ function PanelListas({ initialSubTab, initialItemId }: { initialSubTab?: string;
       <div className="flex-1 flex min-h-0 overflow-hidden">
 
         {/* Sidebar de navegación — fija, estrecha, con grupos */}
-        <div className="shrink-0 w-36 flex flex-col border-r min-h-0 overflow-y-auto py-2 gap-1"
+        <div className="shrink-0 w-48 flex flex-col border-r min-h-0 overflow-y-auto py-2 gap-1"
           style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
           {TAB_GROUPS.map((group, gi) => (
             <div key={group.label}
@@ -2273,7 +2273,7 @@ function PanelListas({ initialSubTab, initialItemId }: { initialSubTab?: string;
                       }}
                     >
                       <t.Icon size={11} className="shrink-0" />
-                      <span className="flex-1 text-[10px] font-black uppercase tracking-widest truncate">{t.label}</span>
+                      <span className="flex-1 text-[10px] font-black uppercase tracking-widest">{t.label}</span>
                       {t.count > 0 && (
                         <span
                           className="shrink-0 text-[8px] font-black px-1.5 py-0.5 rounded-full tabular-nums"
