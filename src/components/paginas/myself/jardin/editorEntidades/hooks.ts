@@ -377,7 +377,8 @@ export function useCriaturaVariantes(criaturaId: string | null) {
   const load = useCallback(async (id: string) => {
     setLoading(true);
 
-    // 1. Leer de Dexie (criatura_variantes sí está en DEXIE_TABLES)
+    // 1. Mostrar datos locales de inmediato
+    let teniaCacheLocal = false;
     try {
       if (db) {
         const local = await (db as any).criatura_variantes
@@ -387,6 +388,7 @@ export function useCriaturaVariantes(criaturaId: string | null) {
         if (local?.length) {
           setVariantes(local);
           setLoading(false);
+          teniaCacheLocal = true;
           if (!navigator.onLine) return;
         }
       }
@@ -394,21 +396,28 @@ export function useCriaturaVariantes(criaturaId: string | null) {
 
     if (!navigator.onLine) { setLoading(false); return; }
 
-    const { data } = await supabase
-      .from("criatura_variantes")
-      .select("*")
-      .eq("criatura_id", id)
-      .order("tipo");
-    const result = data || [];
-    setVariantes(result);
-    setLoading(false);
-
-    // Persistir en Dexie
+    // 2. Refrescar desde Supabase en background (sin bloquear si ya hay caché)
     try {
-      if (db && result.length > 0) {
-        await (db as any).criatura_variantes?.bulkPut(result);
-      }
-    } catch {}
+      const { data } = await supabase
+        .from("criatura_variantes")
+        .select("*")
+        .eq("criatura_id", id)
+        .order("tipo");
+      const result = data || [];
+      setVariantes(result);
+      if (!teniaCacheLocal) setLoading(false);
+
+      // Persistir en Dexie
+      try {
+        if (db && result.length > 0) {
+          await (db as any).criatura_variantes?.bulkPut(result);
+        }
+      } catch {}
+    } catch {
+      if (!teniaCacheLocal) setLoading(false);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
