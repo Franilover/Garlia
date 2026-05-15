@@ -777,7 +777,7 @@ interface MarkdownEditorProps {
   onSnippetAction?: (action: SnippetAction) => void;
   /** Lista de entidades disponibles para autocompletado de [[wikilinks]] */
   entities?: (string | WikiEntity)[];
-  /** Si true, el textarea crece con el contenido (ignora rows). Default: true */
+  /** Si true, el textarea crece con el contenido (ignora rows). Default: false */
   autoResize?: boolean;
   /** Altura máxima del textarea en modo autoResize antes de activar scroll (ej: "60vh", "400px"). Sin límite por defecto. */
   maxHeight?: string;
@@ -811,7 +811,7 @@ export function MarkdownEditor({
   insertRef,
   onSnippetAction,
   entities = [],
-  autoResize = true,
+  autoResize = false,
   maxHeight,
   renderOverlay,
   sectionTitle,
