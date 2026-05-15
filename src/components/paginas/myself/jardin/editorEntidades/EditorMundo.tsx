@@ -2003,31 +2003,16 @@ export function EditorMundo({
 
 
 // ─── Componentes auxiliares de PanelListas (definidos fuera para evitar re-montaje) ──
-function ColHeader({ label, count, Icon, color }: { label: string; count: number; Icon: React.ElementType; color?: string }) {
-  return (
-    <div className="shrink-0 flex items-center gap-2 px-3 pt-3 pb-2"
-      style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" }}>
-      <Icon size={11} style={{ color: color ?? "color-mix(in srgb, var(--primary) 35%, transparent)" }} className="shrink-0" />
-      <p className="text-[10px] font-black uppercase tracking-[0.25em] text-primary/50 flex-1">{label}</p>
-      {count > 0 && (
-        <span className="text-[8px] font-black px-1.5 py-0.5 rounded-full"
-          style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)", color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>
-          {count}
-        </span>
-      )}
-    </div>
-  );
-}
 
 function SearchInput({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder: string }) {
   return (
-    <div className="shrink-0 px-2 py-1.5">
+    <div className="shrink-0 px-3 py-2">
       <div className="relative">
-        <Search size={9} className="absolute left-2 top-1/2 -translate-y-1/2 text-primary/25" />
+        <Search size={9} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-primary/25" />
         <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
-          className="w-full bg-primary/4 border border-primary/8 rounded-lg pl-6 pr-5 py-1 text-[10px] font-medium outline-none focus:border-primary/20 text-primary placeholder:text-primary/25" />
+          className="w-full bg-primary/4 border border-primary/10 rounded-xl pl-7 pr-6 py-1.5 text-[10px] font-medium outline-none focus:border-primary/25 text-primary placeholder:text-primary/25" />
         {value && (
-          <button onClick={() => onChange("")} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-primary/25 hover:text-primary">
+          <button onClick={() => onChange("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-primary/25 hover:text-primary transition-colors">
             <X size={8} />
           </button>
         )}
@@ -2128,318 +2113,245 @@ function PanelListas({ initialSubTab, initialItemId }: { initialSubTab?: string;
     setSelectedPersonaje(null);
   };
 
-  const colBorder = "border-r last:border-r-0";
-  const colStyle = { borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" };
+  // ── search state unified per active tab ──
+  const searchMap: Record<string, string> = {
+    reinos: searchR, criaturas: searchC, objetos: searchO,
+    personajes: searchP, hechizos: searchH, dones: searchD, runas: searchRu,
+  };
+  const setSearchMap: Record<string, (v: string) => void> = {
+    reinos: setSearchR, criaturas: setSearchC, objetos: setSearchO,
+    personajes: setSearchP, hechizos: setSearchH, dones: setSearchD, runas: setSearchRu,
+  };
 
-  return (
-    <div className="flex-1 flex min-h-0 overflow-hidden relative">
+  type ListaTab = "reinos" | "criaturas" | "objetos" | "personajes" | "hechizos" | "dones" | "runas";
 
-      {/* ── Editor overlay — cubre toda la sección Listas ────────────────── */}
-      {overlay && (
-        <div className="absolute inset-0 z-20 flex flex-col" style={{ background: "var(--bg-main)" }}>
-          {/* Back bar */}
-          <div className="shrink-0 flex items-center gap-3 px-4 py-2.5 border-b"
-            style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}>
-            <button
-              onClick={() => {
-                setSelectedReino(null); setSelectedCriatura(null);
-                setSelectedObjeto(null); setSelectedPersonaje(null);
-                setSelectedHechizo(null); setSelectedDon(null); setSelectedRuna(null);
-              }}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border border-primary/15 text-primary/50 hover:text-primary hover:border-primary/30 transition-all"
-            >
-              <ChevronRight size={12} className="rotate-180" /> Volver a Listas
-            </button>
-            <div className="flex items-center gap-2 min-w-0">
-              {overlay === "reino"    && <Map      size={12} className="text-primary/40 shrink-0" />}
-              {overlay === "criatura" && <Bug      size={12} className="text-primary/40 shrink-0" />}
-              {overlay === "objeto"   && <Package  size={12} className="text-primary/40 shrink-0" />}
-              {overlay === "personaje"&& <Users    size={12} className="text-primary/40 shrink-0" />}
-              {overlay === "hechizo"  && <Sparkles size={12} className="shrink-0" style={{ color: "var(--accent)" }} />}
-              {overlay === "don"      && <Star     size={12} className="shrink-0" style={{ color: "color-mix(in srgb, var(--accent) 70%, var(--primary))" }} />}
-              {overlay === "runa"     && <ScrollText size={12} className="shrink-0" style={{ color: "var(--primary)" }} />}
-              <span className="text-[11px] font-black uppercase tracking-[0.15em] text-primary/60 truncate">
-                {selectedReino?.nombre ?? selectedCriatura?.nombre ?? selectedObjeto?.nombre ?? selectedPersonaje?.nombre ?? selectedHechizo?.nombre ?? selectedDon?.nombre ?? selectedRuna?.nombre}
-              </span>
-            </div>
-          </div>
-          {/* Editor */}
-          <div className="flex-1 flex min-h-0 overflow-hidden">
-            {overlay === "reino" && selectedReino && (
-              <EditorReino key={selectedReino.id} item={selectedReino}
-                onSaved={u => { setReinos(p => p.map(r => r.id === u.id ? u : r)); setSelectedReino(u); }}
-                onDeleted={id => { setReinos(p => p.filter(r => r.id !== id)); setSelectedReino(null); }} />
-            )}
-            {overlay === "criatura" && selectedCriatura && (
-              <EditorCriatura key={selectedCriatura.id} item={selectedCriatura as any}
-                onSaved={u => { setCriaturas(p => p.map(c => c.id === u.id ? { ...c, ...u } : c)); setSelectedCriatura({ ...selectedCriatura, ...u }); }}
-                onDeleted={id => { setCriaturas(p => p.filter(c => c.id !== id)); setSelectedCriatura(null); }} />
-            )}
-            {overlay === "objeto" && selectedObjeto && (
-              <EditorItem key={selectedObjeto.id} item={selectedObjeto as any}
-                onSaved={u => { setObjetos(p => p.map(o => o.id === u.id ? { ...o, ...u } : o)); setSelectedObjeto({ ...selectedObjeto, ...u }); }}
-                onDeleted={id => { setObjetos(p => p.filter(o => o.id !== id)); setSelectedObjeto(null); }} />
-            )}
-            {overlay === "personaje" && selectedPersonaje && (
-              <FormularioPersonaje
-                form={selectedPersonaje}
-                setForm={updated => {
-                  const p = typeof updated === "function" ? updated(selectedPersonaje) : updated;
-                  setSelectedPersonaje(p);
-                  setPersonajes(prev => prev.map(x => x.id === p.id ? p : x));
+  const TABS: { key: ListaTab; label: string; Icon: React.ElementType; count: number; color?: string }[] = [
+    { key: "reinos",     label: "Reinos",     Icon: Map,        count: reinos.length     },
+    { key: "criaturas",  label: "Criaturas",  Icon: Bug,        count: criaturas.length  },
+    { key: "objetos",    label: "Objetos",    Icon: Package,    count: objetos.length    },
+    { key: "personajes", label: "Personajes", Icon: Users,      count: personajes.length },
+    { key: "hechizos",   label: "Hechizos",   Icon: Sparkles,   count: hechizos.length,  color: "var(--accent)" },
+    { key: "dones",      label: "Dones",      Icon: Star,       count: dones.length,     color: "color-mix(in srgb, var(--accent) 70%, var(--primary))" },
+    { key: "runas",      label: "Runas",      Icon: ScrollText, count: runas.length      },
+  ];
+
+      {/* ── Layout principal: sidebar + lista ───────────────────────────── */}
+      <div className="flex-1 flex min-h-0 overflow-hidden">
+
+        {/* Sidebar de navegación — fija, estrecha */}
+        <div className="shrink-0 w-36 flex flex-col border-r min-h-0 py-2"
+          style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+          {TABS.map(t => {
+            const active = mobileTab === t.key;
+            const color = t.color ?? "var(--primary)";
+            return (
+              <button
+                key={t.key}
+                onClick={() => setMobileTab(t.key)}
+                className="flex items-center gap-2.5 mx-2 px-2.5 py-2 rounded-xl transition-all text-left"
+                style={active ? {
+                  background: `color-mix(in srgb, ${color} 10%, transparent)`,
+                  color,
+                } : {
+                  color: "color-mix(in srgb, var(--primary) 40%, transparent)",
                 }}
-                status={personajeStatus}
-                onSave={handleSavePersonaje}
-                onDelete={handleDeletePersonaje}
-                compacto
-              />
+              >
+                <t.Icon size={12} className="shrink-0" />
+                <span className="flex-1 text-[10px] font-black uppercase tracking-widest truncate">{t.label}</span>
+                {t.count > 0 && (
+                  <span
+                    className="shrink-0 text-[8px] font-black px-1.5 py-0.5 rounded-full tabular-nums"
+                    style={active ? {
+                      background: `color-mix(in srgb, ${color} 18%, transparent)`,
+                      color,
+                    } : {
+                      background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+                      color: "color-mix(in srgb, var(--primary) 35%, transparent)",
+                    }}
+                  >
+                    {t.count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Área de lista — ocupa el resto del espacio */}
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+
+          {/* Header del tab activo */}
+          {(() => {
+            const t = TABS.find(t => t.key === mobileTab)!;
+            const color = t.color ?? "var(--primary)";
+            return (
+              <div className="shrink-0 flex items-center gap-2.5 px-4 py-3 border-b"
+                style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, transparent)" }}>
+                <t.Icon size={13} style={{ color }} className="shrink-0" />
+                <p className="flex-1 text-[11px] font-black uppercase tracking-[0.2em]" style={{ color }}>{t.label}</p>
+                {t.count > 0 && (
+                  <span className="text-[9px] font-black tabular-nums"
+                    style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
+                    {t.count}
+                  </span>
+                )}
+              </div>
+            );
+          })()}
+
+          {/* Buscador */}
+          <SearchInput
+            value={searchMap[mobileTab] ?? ""}
+            onChange={v => setSearchMap[mobileTab]?.(v)}
+            placeholder={`Buscar ${TABS.find(t => t.key === mobileTab)?.label.toLowerCase()}…`}
+          />
+
+          {/* Listado */}
+          <div className="flex-1 overflow-y-auto min-h-0 px-3 pb-3 space-y-0.5">
+            {/* Reinos */}
+            {mobileTab === "reinos" && (loadingReinos
+              ? <div className="flex justify-center py-10"><Loader2 size={16} className="animate-spin text-primary/20" /></div>
+              : filteredR.length === 0
+                ? <p className="text-[9px] text-primary/20 uppercase tracking-widest text-center py-10 italic">{searchR ? "Sin resultados" : "Sin reinos aún"}</p>
+                : filteredR.map(r => (
+                  <button key={r.id} onClick={() => setSelectedReino(r)}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-primary/6 border border-transparent hover:border-primary/10 transition-all rounded-xl group">
+                    <div className="shrink-0 w-8 h-8 rounded-xl overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
+                      {r.mapa_url ? <img src={r.mapa_url} alt={r.nombre} className="w-full h-full object-cover" /> : <Map size={13} className="text-primary/25" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[11px] font-bold text-primary/85 truncate">{r.nombre}</p>
+                      {r.oculto && <p className="text-[9px] text-primary/30 italic">Oculto</p>}
+                    </div>
+                    <ChevronRight size={10} className="text-primary/15 shrink-0 group-hover:text-primary/40 transition-colors" />
+                  </button>
+                ))
             )}
-            {overlay === "hechizo" && selectedHechizo && (
-              <FormularioMagico
-                key={selectedHechizo.id} item={selectedHechizo} modo="hechizos"
-                criaturas={criaturasMagicas} loadingCriaturas={loadingCriaturasMagicas}
-                onSaved={u => { setHechizos(p => p.map(h => h.id === u.id ? u : h)); setSelectedHechizo(u); }}
-                onDeleted={id => { setHechizos(p => p.filter(h => h.id !== id)); setSelectedHechizo(null); }}
-              />
+
+            {/* Criaturas */}
+            {mobileTab === "criaturas" && (loadingCriaturas
+              ? <div className="flex justify-center py-10"><Loader2 size={16} className="animate-spin text-primary/20" /></div>
+              : filteredC.length === 0
+                ? <p className="text-[9px] text-primary/20 uppercase tracking-widest text-center py-10 italic">{searchC ? "Sin resultados" : "Sin criaturas aún"}</p>
+                : filteredC.map(c => (
+                  <button key={c.id} onClick={() => setSelectedCriatura(c)}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-primary/6 border border-transparent hover:border-primary/10 transition-all rounded-xl group">
+                    <div className="shrink-0 w-8 h-8 rounded-xl overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
+                      {c.imagen_url ? <img src={c.imagen_url} alt={c.nombre} className="w-full h-full object-cover" /> : <Bug size={13} className="text-primary/25" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[11px] font-bold text-primary/85 truncate">{c.nombre}</p>
+                      {c.habitat && <p className="text-[9px] text-primary/30 truncate">{c.habitat}</p>}
+                    </div>
+                    <ChevronRight size={10} className="text-primary/15 shrink-0 group-hover:text-primary/40 transition-colors" />
+                  </button>
+                ))
             )}
-            {overlay === "don" && selectedDon && (
-              <FormularioMagico
-                key={selectedDon.id} item={selectedDon} modo="dones"
-                criaturas={criaturasMagicas} loadingCriaturas={loadingCriaturasMagicas}
-                onSaved={u => { setDones(p => p.map(d => d.id === u.id ? u : d)); setSelectedDon(u); }}
-                onDeleted={id => { setDones(p => p.filter(d => d.id !== id)); setSelectedDon(null); }}
-              />
+
+            {/* Objetos */}
+            {mobileTab === "objetos" && (loadingObjetos
+              ? <div className="flex justify-center py-10"><Loader2 size={16} className="animate-spin text-primary/20" /></div>
+              : filteredO.length === 0
+                ? <p className="text-[9px] text-primary/20 uppercase tracking-widest text-center py-10 italic">{searchO ? "Sin resultados" : "Sin objetos aún"}</p>
+                : filteredO.map(o => (
+                  <button key={o.id} onClick={() => setSelectedObjeto(o)}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-primary/6 border border-transparent hover:border-primary/10 transition-all rounded-xl group">
+                    <div className="shrink-0 w-8 h-8 rounded-xl overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
+                      {o.imagen_url ? <img src={o.imagen_url} alt={o.nombre} className="w-full h-full object-cover" /> : <Package size={13} className="text-primary/25" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[11px] font-bold text-primary/85 truncate">{o.nombre}</p>
+                      {o.categoria && <p className="text-[9px] text-primary/30 truncate">{o.categoria}</p>}
+                    </div>
+                    <ChevronRight size={10} className="text-primary/15 shrink-0 group-hover:text-primary/40 transition-colors" />
+                  </button>
+                ))
             )}
-            {overlay === "runa" && selectedRuna && (
-              <FormularioRuna
-                key={selectedRuna.id} item={selectedRuna}
-                onSaved={u => { setRunas(p => p.map(r => r.id === u.id ? u : r)); setSelectedRuna(u); }}
-                onDeleted={id => { setRunas(p => p.filter(r => r.id !== id)); setSelectedRuna(null); }}
-              />
+
+            {/* Personajes */}
+            {mobileTab === "personajes" && (loadingPersonajes
+              ? <div className="flex justify-center py-10"><Loader2 size={16} className="animate-spin text-primary/20" /></div>
+              : filteredP.length === 0
+                ? <p className="text-[9px] text-primary/20 uppercase tracking-widest text-center py-10 italic">{searchP ? "Sin resultados" : "Sin personajes aún"}</p>
+                : filteredP.map(p => (
+                  <button key={p.id} onClick={() => setSelectedPersonaje(p)}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-primary/6 border border-transparent hover:border-primary/10 transition-all rounded-xl group">
+                    <div className="shrink-0 w-8 h-8 rounded-xl overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
+                      {p.img_url ? <img src={p.img_url} alt={p.nombre} className="w-full h-full object-cover" /> : <UserCircle2 size={13} className="text-primary/25" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[11px] font-bold text-primary/85 truncate">{p.nombre}</p>
+                      <p className="text-[9px] text-primary/30 truncate">{[p.especie, p.reino].filter(Boolean).join(" · ")}</p>
+                    </div>
+                    <ChevronRight size={10} className="text-primary/15 shrink-0 group-hover:text-primary/40 transition-colors" />
+                  </button>
+                ))
+            )}
+
+            {/* Hechizos */}
+            {mobileTab === "hechizos" && (loadingHechizos
+              ? <div className="flex justify-center py-10"><Loader2 size={16} className="animate-spin text-primary/20" /></div>
+              : filteredH.length === 0
+                ? <p className="text-[9px] text-primary/20 uppercase tracking-widest text-center py-10 italic">{searchH ? "Sin resultados" : "Sin hechizos aún"}</p>
+                : filteredH.map(h => (
+                  <button key={h.id} onClick={() => setSelectedHechizo(h)}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-primary/6 border border-transparent hover:border-primary/10 transition-all rounded-xl group">
+                    <div className="shrink-0 w-8 h-8 rounded-xl border flex items-center justify-center"
+                      style={{ background: "color-mix(in srgb, var(--accent) 8%, transparent)", borderColor: "color-mix(in srgb, var(--accent) 18%, transparent)" }}>
+                      <Sparkles size={13} style={{ color: "color-mix(in srgb, var(--accent) 65%, transparent)" }} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[11px] font-bold text-primary/85 truncate">{h.nombre}</p>
+                      {h.criatura && <p className="text-[9px] truncate" style={{ color: "color-mix(in srgb, var(--accent) 55%, transparent)" }}>{h.criatura.nombre}</p>}
+                    </div>
+                    <ChevronRight size={10} className="text-primary/15 shrink-0 group-hover:text-primary/40 transition-colors" />
+                  </button>
+                ))
+            )}
+
+            {/* Dones */}
+            {mobileTab === "dones" && (loadingDones
+              ? <div className="flex justify-center py-10"><Loader2 size={16} className="animate-spin text-primary/20" /></div>
+              : filteredD.length === 0
+                ? <p className="text-[9px] text-primary/20 uppercase tracking-widest text-center py-10 italic">{searchD ? "Sin resultados" : "Sin dones aún"}</p>
+                : filteredD.map(d => (
+                  <button key={d.id} onClick={() => setSelectedDon(d)}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-primary/6 border border-transparent hover:border-primary/10 transition-all rounded-xl group">
+                    <div className="shrink-0 w-8 h-8 rounded-xl border flex items-center justify-center"
+                      style={{ background: "color-mix(in srgb, var(--accent) 6%, transparent)", borderColor: "color-mix(in srgb, var(--accent) 15%, transparent)" }}>
+                      <Star size={13} style={{ color: "color-mix(in srgb, var(--accent) 60%, transparent)" }} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[11px] font-bold text-primary/85 truncate">{d.nombre}</p>
+                      {d.criatura && <p className="text-[9px] truncate" style={{ color: "color-mix(in srgb, var(--accent) 55%, transparent)" }}>{d.criatura.nombre}</p>}
+                    </div>
+                    <ChevronRight size={10} className="text-primary/15 shrink-0 group-hover:text-primary/40 transition-colors" />
+                  </button>
+                ))
+            )}
+
+            {/* Runas */}
+            {mobileTab === "runas" && (loadingRunas
+              ? <div className="flex justify-center py-10"><Loader2 size={16} className="animate-spin text-primary/20" /></div>
+              : filteredRu.length === 0
+                ? <p className="text-[9px] text-primary/20 uppercase tracking-widest text-center py-10 italic">{searchRu ? "Sin resultados" : "Sin runas aún"}</p>
+                : filteredRu.map(r => (
+                  <button key={r.id} onClick={() => setSelectedRuna(r)}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-primary/6 border border-transparent hover:border-primary/10 transition-all rounded-xl group">
+                    <div className="shrink-0 w-8 h-8 rounded-xl border flex items-center justify-center"
+                      style={{ background: "color-mix(in srgb, var(--primary) 6%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 14%, transparent)" }}>
+                      <ScrollText size={13} className="text-primary/40" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[11px] font-bold text-primary/85 truncate">{r.nombre}</p>
+                    </div>
+                    <ChevronRight size={10} className="text-primary/15 shrink-0 group-hover:text-primary/40 transition-colors" />
+                  </button>
+                ))
             )}
           </div>
         </div>
-      )}
-
-      {/* ── Mobile tab switcher (hidden on sm+) ─────────────────────────── */}
-      <div className="sm:hidden absolute bottom-0 left-0 right-0 z-10 flex border-t overflow-x-auto scrollbar-none"
-        style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)", background: "var(--bg-main)" }}>
-        {([
-          { key: "reinos",    label: "Reinos",    Icon: Map,      count: reinos.length,    color: undefined },
-          { key: "criaturas", label: "Criaturas", Icon: Bug,      count: criaturas.length, color: undefined },
-          { key: "objetos",   label: "Objetos",   Icon: Package,  count: objetos.length,   color: undefined },
-          { key: "personajes",label: "Personajes",Icon: Users,    count: personajes.length,color: undefined },
-          { key: "hechizos",  label: "Hechizos",  Icon: Sparkles,    count: hechizos.length,  color: "var(--accent)" },
-          { key: "dones",     label: "Dones",     Icon: Star,        count: dones.length,     color: "color-mix(in srgb, var(--accent) 70%, var(--primary))" },
-          { key: "runas",     label: "Runas",     Icon: ScrollText,  count: runas.length,     color: "var(--primary)" },
-        ] as const).map(t => (
-          <button key={t.key} onClick={() => setMobileTab(t.key)}
-            className="flex-1 flex flex-col items-center gap-1 px-2 py-3 text-[9px] font-black uppercase tracking-widest transition-all relative min-w-[3.5rem]"
-            style={{ color: mobileTab === t.key ? (t.color ?? "var(--primary)") : "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
-            <div className="relative">
-              <t.Icon size={18} />
-              {t.count > 0 && (
-                <span className="absolute -top-1.5 -right-2.5 text-[7px] font-black px-1 rounded-full leading-tight"
-                  style={{ background: mobileTab === t.key ? (t.color ?? "var(--primary)") : "color-mix(in srgb, var(--primary) 15%, transparent)",
-                    color: mobileTab === t.key ? "var(--btn-text, #fff)" : "color-mix(in srgb, var(--primary) 55%, transparent)" }}>
-                  {t.count}
-                </span>
-              )}
-            </div>
-            <span className="truncate max-w-full">{t.label}</span>
-            {mobileTab === t.key && (
-              <span className="absolute top-0 left-3 right-3 h-0.5 rounded-b-full bg-current" />
-            )}
-          </button>
-        ))}
       </div>
-
-      {/* ── 6 columnas (desktop) / 1 columna con tabs (mobile) ──────────── */}
-      <div className="flex-1 flex min-h-0 overflow-hidden pb-14 sm:pb-0">
-
-      {/* Reinos */}
-      <div className={`flex-1 flex flex-col min-h-0 ${colBorder} ${mobileTab !== "reinos" ? "hidden sm:flex" : "flex"}`} style={colStyle}>
-        <ColHeader label="Reinos" count={reinos.length} Icon={Map} />
-        <SearchInput value={searchR} onChange={setSearchR} placeholder="Buscar reino…" />
-        <div className="flex-1 overflow-y-auto min-h-0 px-2 pb-2 space-y-0.5">
-          {loadingReinos
-            ? <div className="flex justify-center py-8"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
-            : filteredR.length === 0
-              ? <p className="text-[9px] text-primary/20 uppercase tracking-widest text-center py-8 italic">{searchR ? "Sin resultados" : "Sin reinos"}</p>
-              : filteredR.map(r => (
-                <button key={r.id} onClick={() => setSelectedReino(r)}
-                  className="w-full flex items-center gap-2 px-2.5 py-2 text-left hover:bg-primary/6 border border-transparent hover:border-primary/10 transition-all rounded-xl group">
-                  <div className="shrink-0 w-7 h-7 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
-                    {r.mapa_url ? <img src={r.mapa_url} alt={r.nombre} className="w-full h-full object-cover" /> : <Map size={11} className="text-primary/20" />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[10px] font-bold text-primary/80 truncate">{r.nombre}</p>
-                    {r.oculto && <p className="text-[8px] text-primary/30 italic">Oculto</p>}
-                  </div>
-                  <ChevronRight size={9} className="text-primary/15 shrink-0 group-hover:text-primary/35 transition-colors" />
-                </button>
-              ))}
-        </div>
-      </div>
-
-      {/* Criaturas */}
-      <div className={`flex-1 flex flex-col min-h-0 ${colBorder} ${mobileTab !== "criaturas" ? "hidden sm:flex" : "flex"}`} style={colStyle}>
-        <ColHeader label="Criaturas" count={criaturas.length} Icon={Bug} />
-        <SearchInput value={searchC} onChange={setSearchC} placeholder="Buscar criatura…" />
-        <div className="flex-1 overflow-y-auto min-h-0 px-2 pb-2 space-y-0.5">
-          {loadingCriaturas
-            ? <div className="flex justify-center py-8"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
-            : filteredC.length === 0
-              ? <p className="text-[9px] text-primary/20 uppercase tracking-widest text-center py-8 italic">{searchC ? "Sin resultados" : "Sin criaturas"}</p>
-              : filteredC.map(c => (
-                <button key={c.id} onClick={() => setSelectedCriatura(c)}
-                  className="w-full flex items-center gap-2 px-2.5 py-2 text-left hover:bg-primary/6 border border-transparent hover:border-primary/10 transition-all rounded-xl group">
-                  <div className="shrink-0 w-7 h-7 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
-                    {c.imagen_url ? <img src={c.imagen_url} alt={c.nombre} className="w-full h-full object-cover" /> : <Bug size={11} className="text-primary/20" />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[10px] font-bold text-primary/80 truncate">{c.nombre}</p>
-                    {c.habitat && <p className="text-[8px] text-primary/30 truncate">{c.habitat}</p>}
-                  </div>
-                  <ChevronRight size={9} className="text-primary/15 shrink-0 group-hover:text-primary/35 transition-colors" />
-                </button>
-              ))}
-        </div>
-      </div>
-
-      {/* Objetos */}
-      <div className={`flex-1 flex flex-col min-h-0 ${colBorder} ${mobileTab !== "objetos" ? "hidden sm:flex" : "flex"}`} style={colStyle}>
-        <ColHeader label="Objetos" count={objetos.length} Icon={Package} />
-        <SearchInput value={searchO} onChange={setSearchO} placeholder="Buscar objeto…" />
-        <div className="flex-1 overflow-y-auto min-h-0 px-2 pb-2 space-y-0.5">
-          {loadingObjetos
-            ? <div className="flex justify-center py-8"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
-            : filteredO.length === 0
-              ? <p className="text-[9px] text-primary/20 uppercase tracking-widest text-center py-8 italic">{searchO ? "Sin resultados" : "Sin objetos"}</p>
-              : filteredO.map(o => (
-                <button key={o.id} onClick={() => setSelectedObjeto(o)}
-                  className="w-full flex items-center gap-2 px-2.5 py-2 text-left hover:bg-primary/6 border border-transparent hover:border-primary/10 transition-all rounded-xl group">
-                  <div className="shrink-0 w-7 h-7 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
-                    {o.imagen_url ? <img src={o.imagen_url} alt={o.nombre} className="w-full h-full object-cover" /> : <Package size={11} className="text-primary/20" />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[10px] font-bold text-primary/80 truncate">{o.nombre}</p>
-                    {o.categoria && <p className="text-[8px] text-primary/30 truncate">{o.categoria}</p>}
-                  </div>
-                  <ChevronRight size={9} className="text-primary/15 shrink-0 group-hover:text-primary/35 transition-colors" />
-                </button>
-              ))}
-        </div>
-      </div>
-
-      {/* Personajes */}
-      <div className={`flex-1 flex flex-col min-h-0 ${colBorder} ${mobileTab !== "personajes" ? "hidden sm:flex" : "flex"}`} style={colStyle}>
-        <ColHeader label="Personajes" count={personajes.length} Icon={Users} />
-        <SearchInput value={searchP} onChange={setSearchP} placeholder="Buscar personaje…" />
-        <div className="flex-1 overflow-y-auto min-h-0 px-2 pb-2 space-y-0.5">
-          {loadingPersonajes
-            ? <div className="flex justify-center py-8"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
-            : filteredP.length === 0
-              ? <p className="text-[9px] text-primary/20 uppercase tracking-widest text-center py-8 italic">{searchP ? "Sin resultados" : "Sin personajes"}</p>
-              : filteredP.map(p => (
-                <button key={p.id} onClick={() => setSelectedPersonaje(p)}
-                  className="w-full flex items-center gap-2 px-2.5 py-2 text-left hover:bg-primary/6 border border-transparent hover:border-primary/10 transition-all rounded-xl group">
-                  <div className="shrink-0 w-7 h-7 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
-                    {p.img_url ? <img src={p.img_url} alt={p.nombre} className="w-full h-full object-cover" /> : <UserCircle2 size={11} className="text-primary/20" />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[10px] font-bold text-primary/80 truncate">{p.nombre}</p>
-                    <p className="text-[8px] text-primary/30 truncate">{[p.especie, p.reino].filter(Boolean).join(" · ")}</p>
-                  </div>
-                  <ChevronRight size={9} className="text-primary/15 shrink-0 group-hover:text-primary/35 transition-colors" />
-                </button>
-              ))}
-        </div>
-      </div>
-
-      {/* Hechizos */}
-      <div className={`flex-1 flex flex-col min-h-0 ${colBorder} ${mobileTab !== "hechizos" ? "hidden sm:flex" : "flex"}`} style={colStyle}>
-        <ColHeader label="Hechizos" count={hechizos.length} Icon={Sparkles} color="var(--accent)" />
-        <SearchInput value={searchH} onChange={setSearchH} placeholder="Buscar hechizo…" />
-        <div className="flex-1 overflow-y-auto min-h-0 px-2 pb-2 space-y-0.5">
-          {loadingHechizos
-            ? <div className="flex justify-center py-8"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
-            : filteredH.length === 0
-              ? <p className="text-[9px] text-primary/20 uppercase tracking-widest text-center py-8 italic">{searchH ? "Sin resultados" : "Sin hechizos"}</p>
-              : filteredH.map(h => (
-                <button key={h.id} onClick={() => setSelectedHechizo(h)}
-                  className="w-full flex items-center gap-2 px-2.5 py-2 text-left hover:bg-primary/6 border border-transparent hover:border-primary/10 transition-all rounded-xl group">
-                  <div className="shrink-0 w-7 h-7 rounded-lg border flex items-center justify-center"
-                    style={{ background: "color-mix(in srgb, var(--accent) 8%, transparent)", borderColor: "color-mix(in srgb, var(--accent) 18%, transparent)" }}>
-                    <Sparkles size={11} style={{ color: "color-mix(in srgb, var(--accent) 60%, transparent)" }} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[10px] font-bold text-primary/80 truncate">{h.nombre}</p>
-                    {h.criatura && (
-                      <p className="text-[8px] truncate" style={{ color: "color-mix(in srgb, var(--accent) 55%, transparent)" }}>{h.criatura.nombre}</p>
-                    )}
-                  </div>
-                  <ChevronRight size={9} className="text-primary/15 shrink-0 group-hover:text-primary/35 transition-colors" />
-                </button>
-              ))}
-        </div>
-      </div>
-
-      {/* Dones */}
-      <div className={`flex-1 flex flex-col min-h-0 ${colBorder} ${mobileTab !== "dones" ? "hidden sm:flex" : "flex"}`} style={colStyle}>
-        <ColHeader label="Dones" count={dones.length} Icon={Star} color="color-mix(in srgb, var(--accent) 70%, var(--primary))" />
-        <SearchInput value={searchD} onChange={setSearchD} placeholder="Buscar don…" />
-        <div className="flex-1 overflow-y-auto min-h-0 px-2 pb-2 space-y-0.5">
-          {loadingDones
-            ? <div className="flex justify-center py-8"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
-            : filteredD.length === 0
-              ? <p className="text-[9px] text-primary/20 uppercase tracking-widest text-center py-8 italic">{searchD ? "Sin resultados" : "Sin dones"}</p>
-              : filteredD.map(d => (
-                <button key={d.id} onClick={() => setSelectedDon(d)}
-                  className="w-full flex items-center gap-2 px-2.5 py-2 text-left hover:bg-primary/6 border border-transparent hover:border-primary/10 transition-all rounded-xl group">
-                  <div className="shrink-0 w-7 h-7 rounded-lg border flex items-center justify-center"
-                    style={{ background: "color-mix(in srgb, var(--accent) 6%, transparent)", borderColor: "color-mix(in srgb, var(--accent) 15%, transparent)" }}>
-                    <Star size={11} style={{ color: "color-mix(in srgb, var(--accent) 55%, transparent)" }} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[10px] font-bold text-primary/80 truncate">{d.nombre}</p>
-                    {d.criatura && (
-                      <p className="text-[8px] truncate" style={{ color: "color-mix(in srgb, var(--accent) 55%, transparent)" }}>{d.criatura.nombre}</p>
-                    )}
-                  </div>
-                  <ChevronRight size={9} className="text-primary/15 shrink-0 group-hover:text-primary/35 transition-colors" />
-                </button>
-              ))}
-        </div>
-      </div>
-
-      {/* Runas */}
-      <div className={`flex-1 flex flex-col min-h-0 ${mobileTab !== "runas" ? "hidden sm:flex" : "flex"}`}>
-        <ColHeader label="Runas" count={runas.length} Icon={ScrollText} color="var(--primary)" />
-        <SearchInput value={searchRu} onChange={setSearchRu} placeholder="Buscar runa…" />
-        <div className="flex-1 overflow-y-auto min-h-0 px-2 pb-2 space-y-0.5">
-          {loadingRunas
-            ? <div className="flex justify-center py-8"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
-            : filteredRu.length === 0
-              ? <p className="text-[9px] text-primary/20 uppercase tracking-widest text-center py-8 italic">{searchRu ? "Sin resultados" : "Sin runas"}</p>
-              : filteredRu.map(r => (
-                <button key={r.id} onClick={() => setSelectedRuna(r)}
-                  className="w-full flex items-center gap-2 px-2.5 py-2 text-left hover:bg-primary/6 border border-transparent hover:border-primary/10 transition-all rounded-xl group">
-                  <div className="shrink-0 w-7 h-7 rounded-lg border flex items-center justify-center"
-                    style={{ background: "color-mix(in srgb, var(--primary) 6%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)" }}>
-                    <ScrollText size={11} className="text-primary/40" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[10px] font-bold text-primary/80 truncate">{r.nombre}</p>
-                  </div>
-                  <ChevronRight size={9} className="text-primary/15 shrink-0 group-hover:text-primary/35 transition-colors" />
-                </button>
-              ))}
-        </div>
-      </div>
-
-      </div>{/* end 6-col flex wrapper */}
-
     </div>
   );
 }
