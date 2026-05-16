@@ -12,8 +12,9 @@ const fade = (delay = 0) => ({
 });
 
 const TOOLS = [
-  { num: "01", title: "Linux",       },
+  { num: "01", title: "Arch Linux",       },
   { num: "02",  title: "Krita", },
+  { num: "03",  title: "Reaper", },
 ];
 
 export default function SobreMi() {
