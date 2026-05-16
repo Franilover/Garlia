@@ -79,7 +79,7 @@
   --color-teal-900: #134e4a;
   --color-teal-950: #042f2e;
 
-  /* ── Tokens semánticos de callout (para acceso directo vía Tailwind) ── */
+  /* ── Tokens semánticos de callout ── */
   --color-callout-note-border:   var(--callout-note-border);
   --color-callout-note-bg:       var(--callout-note-bg);
   --color-callout-note-text:     var(--callout-note-text);
@@ -94,22 +94,16 @@
   --color-callout-info-border:   var(--callout-info-border);
   --color-callout-info-bg:       var(--callout-info-bg);
 
-  /* Radios y sombras temáticas → clases Tailwind: rounded-card, rounded-btn, rounded-input, shadow-card */
+  /* Radios y sombras temáticas */
   --radius-card: var(--radius-card);
   --radius-btn: var(--radius-btn);
   --radius-input: var(--radius-input);
   --shadow-card: var(--shadow-card);
 
-  --animate-terminal-flicker: flicker 0.15s infinite;
   --animate-cursor-blink: blink 1s step-end infinite;
   --animate-shake: shake 0.2s ease-in-out 0s 2;
   --animate-scanline: scanline-move 8s linear infinite;
   
-  @keyframes flicker {
-    0% { opacity: 0.97; }
-    50% { opacity: 1; }
-    100% { opacity: 0.98; }
-  }
   @keyframes blink {
     from, to { color: transparent; }
     50% { color: var(--accent); }
@@ -129,43 +123,34 @@
 
 /* =========================================
    CALLOUTS — Colores dinámicos derivados del tema
-   note  → primary
-   tip   → accent
-   warning/danger/success/info → mezcla del color semántico con primary
    ========================================= */
 :root,
 [data-theme] {
-  /* note → primary */
   --callout-note-border:  var(--primary);
   --callout-note-bg:      color-mix(in srgb, var(--primary) 10%, transparent);
   --callout-note-text:    var(--foreground);
   --callout-note-title:   var(--primary);
 
-  /* tip → accent */
   --callout-tip-border:   var(--accent);
   --callout-tip-bg:       color-mix(in srgb, var(--accent) 12%, transparent);
   --callout-tip-text:     var(--foreground);
   --callout-tip-title:    var(--accent);
 
-  /* warning → ámbar mezclado con primary */
   --callout-warning-border: color-mix(in srgb, var(--primary) 35%, #c8900a);
   --callout-warning-bg:     color-mix(in srgb, var(--primary) 20%, color-mix(in srgb, #c8900a 15%, transparent));
   --callout-warning-text:   var(--foreground);
   --callout-warning-title:  color-mix(in srgb, var(--primary) 40%, #8a5c00);
 
-  /* danger → rojo mezclado con primary */
   --callout-danger-border:  color-mix(in srgb, var(--primary) 30%, #c43030);
   --callout-danger-bg:      color-mix(in srgb, var(--primary) 15%, color-mix(in srgb, #c43030 12%, transparent));
   --callout-danger-text:    var(--foreground);
   --callout-danger-title:   color-mix(in srgb, var(--primary) 35%, #8a1010);
 
-  /* success → verde mezclado con primary */
   --callout-success-border: color-mix(in srgb, var(--primary) 30%, #2e7d50);
   --callout-success-bg:     color-mix(in srgb, var(--primary) 15%, color-mix(in srgb, #2e7d50 12%, transparent));
   --callout-success-text:   var(--foreground);
   --callout-success-title:  color-mix(in srgb, var(--primary) 35%, #1a4d30);
 
-  /* info → mezcla de accent con azul suave */
   --callout-info-border:    color-mix(in srgb, var(--accent) 50%, #4a70b0);
   --callout-info-bg:        color-mix(in srgb, var(--accent) 20%, color-mix(in srgb, #4a70b0 10%, transparent));
   --callout-info-text:      var(--foreground);
@@ -191,7 +176,8 @@
   --radius-card: 0.375rem;
   --radius-btn: 0.375rem;
   --radius-input: 0.375rem;
-  --shadow-card: 0 2px 16px 0 rgba(103,85,109,0.07);
+  /* CAMBIADO: Sombra corregida para que sea plana y muy sutil, sin dispersiones gigantes */
+  --shadow-card: 0 2px 4px 0 rgba(103,85,109,0.08);
   --border-width: 1px;
   font-size: 14px;
 }
@@ -229,7 +215,7 @@
   --radius-card: 0px;
   --radius-btn: 0px;
   --radius-input: 0px;
-  --shadow-card: 0 2px 0px 0px rgba(26,26,26,0.15);
+  --shadow-card: 2px 2px 0px 0px rgba(26,26,26,1);
   --border-width: 2px;
   image-rendering: pixelated;
 }
@@ -266,7 +252,7 @@
   --radius-card: 0.375rem;
   --radius-btn: 0.375rem;
   --radius-input: 0.375rem;
-  --shadow-card: 0 2px 12px 0 rgba(0,0,0,0.10);
+  --shadow-card: 0 2px 4px 0 rgba(0,0,0,0.08);
   --border-width: 1px;
 }
 
@@ -302,7 +288,7 @@
   --radius-card: 0.25rem;
   --radius-btn: 0.25rem;
   --radius-input: 0.25rem;
-  --shadow-card: 2px 3px 10px 0 rgba(107,68,35,0.13);
+  --shadow-card: 2px 2px 0 rgba(107,68,35,0.15);
   --border-width: 1px;
 }
 
@@ -322,8 +308,6 @@
 
 /* =========================================
    FUENTES POR TEMA
-   Usamos las variables CSS inyectadas por next/font en el <html>
-   para evitar que font-family inline en <body> las pise.
    ========================================= */
 [data-theme="default"],
 [data-theme="default"] * {
@@ -335,26 +319,22 @@
   font-family: var(--font-pixelify), sans-serif !important;
 }
 
-/* SLATE: sans-serif limpio */
 [data-theme="slate"],
 [data-theme="slate"] * {
   font-family: var(--font-montserrat), system-ui, sans-serif !important;
 }
 
-/* SEPIA: serif cálido */
 [data-theme="sepia"],
 [data-theme="sepia"] * {
   font-family: var(--font-lora), Georgia, serif !important;
 }
 
-/* =========================================
-   LECTOR — Literata siempre, sin importar el tema
-   ========================================= */
 [data-theme] .lector-texto,
 [data-theme] .lector-texto * {
   font-family: var(--font-literata), Georgia, "Times New Roman", serif !important;
 }
 
+/* CAMBIADO: Se eliminó el "animation: flicker" del body en el modo pixel para evitar parpadeos/brillos ópticos inestables */
 [data-theme="pixel"].dark body::before {
   content: " ";
   display: block;
@@ -386,10 +366,6 @@
   animation: scanline-move 8s linear infinite;
 }
 
-[data-theme="pixel"].dark body {
-  animation: flicker 0.12s infinite;
-}
-
 @layer base {
   body {
     @apply bg-[var(--bg-main)] text-[var(--foreground)] antialiased;
@@ -414,14 +390,15 @@
     overflow: hidden;
   }
 
+  /* ELIMINADO: Se quitó el "box-shadow: 0 0 8px" (glow/brillo) del tema pixel dark */
   [data-theme="pixel"].dark .card-main {
     border: 2px solid color-mix(in srgb, var(--primary) 35%, transparent);
-    box-shadow: 0 0 8px color-mix(in srgb, var(--primary) 15%, transparent);
+    box-shadow: none;
   }
 
   /* PERSONAJES */
   .char-card-base {
-    @apply relative aspect-[3/4] cursor-pointer overflow-hidden grayscale hover:grayscale-0 transition-all duration-500 shadow-md;
+    @apply relative aspect-[3/4] cursor-pointer overflow-hidden grayscale hover:grayscale-0 transition-all duration-500;
     border-radius: var(--radius-card);
     border: var(--border-width) solid transparent;
   }
@@ -438,9 +415,10 @@
     transition: all 0.2s ease;
   }
 
+  /* CAMBIADO: Se eliminó el box-shadow difuminado del focus */
   .input-brand:focus-visible {
     border-color: var(--accent);
-    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 30%, transparent);
+    box-shadow: none;
   }
 
   /* BOTONES */
@@ -465,11 +443,12 @@
     transform: translateY(1px);
   }
 
+  /* ELIMINADO: Se quitaron por completo las sombras con "glow/brillo difuminado" en botones del modo pixel dark */
   [data-theme="pixel"].dark .btn-brand {
-    box-shadow: 0 0 10px color-mix(in srgb, var(--primary) 30%, transparent);
+    box-shadow: none;
   }
   [data-theme="pixel"].dark .btn-brand:hover {
-    box-shadow: 0 0 16px color-mix(in srgb, var(--primary) 50%, transparent);
+    box-shadow: none;
   }
 
   /* SELECTS */
@@ -499,8 +478,7 @@
   }
 }
 
-
-/* Mapeo shadcn → tus variables */
+/* Mapeo shadcn */
 @layer base {
   :root {
     --background: var(--bg-main);
