@@ -321,7 +321,7 @@
 
 [data-theme="slate"],
 [data-theme="slate"] * {
-  font-family: var(--font-montserrat), system-ui, sans-serif !important;
+  font-family: var(--font-lora), Georgia, serif !important;
 }
 
 [data-theme="sepia"],
