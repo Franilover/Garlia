@@ -1128,7 +1128,6 @@ const notaResults = useMemo((): NotaResult[] => {
           onAddMagic={handleAddMagicWithModal}
           onClose={() => { setAddMenuOpen(false); setQuery(""); setFocused(false); inputRef.current?.blur(); }}
           onNavigateGrupos={() => {
-            onSelectMundoSection("geografia");
             onSelectMundoSubTab?.("geografia", "grupos");
             close();
           }}
