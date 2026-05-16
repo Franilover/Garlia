@@ -240,7 +240,7 @@ function MundoSectionCard({
 // ─── AddCommandMenu ───────────────────────────────────────────────────────────
 // Floating menu triggered when user types "add" and presses Enter
 
-export type MagicAddKey = "hechizos" | "dones" | "runas" | "notas" | "acontecimiento" | "grupos";
+export type MagicAddKey = "hechizos" | "dones" | "runas" | "notas" | "acontecimiento";
 
 // Colores individuales por tipo — todos con la misma lógica color-mix
 const ADD_ITEM_COLOR: Record<string, string> = {
@@ -259,7 +259,8 @@ const ADD_ITEM_COLOR: Record<string, string> = {
 // Todas las entradas del menú en orden unificado
 type AddEntry =
   | { kind: "tab";   key: Exclude<TabKey, "mundo">; label: string; Icon: React.ElementType }
-  | { kind: "magic"; key: MagicAddKey;               label: string; Icon: React.ElementType };
+  | { kind: "magic"; key: MagicAddKey;               label: string; Icon: React.ElementType }
+  | { kind: "nav";   key: string;                    label: string; Icon: React.ElementType; onNavigate: () => void };
 
 function AddCommandMenu({
   open,
@@ -267,12 +268,14 @@ function AddCommandMenu({
   onAdd,
   onAddMagic,
   onClose,
+  onNavigateGrupos,
 }: {
   open: boolean;
   anchorRef: React.RefObject<HTMLDivElement | null>;
   onAdd: (tab: Exclude<TabKey, "mundo">) => void;
   onAddMagic?: (key: MagicAddKey) => void;
   onClose: () => void;
+  onNavigateGrupos?: () => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
 
@@ -288,7 +291,7 @@ function AddCommandMenu({
     { kind: "magic", key: "runas",          label: "Runa",           Icon: Zap      },
     { kind: "magic", key: "notas",          label: "Nota",           Icon: FileText },
     { kind: "magic", key: "acontecimiento", label: "Acontecimiento", Icon: Clock    },
-    { kind: "magic", key: "grupos",         label: "Grupo",          Icon: Layers   },
+    { kind: "nav",   key: "grupos",         label: "Grupo",          Icon: Layers,  onNavigate: () => onNavigateGrupos?.() },
   ];
 
   useEffect(() => {
@@ -311,6 +314,7 @@ function AddCommandMenu({
     const color = ADD_ITEM_COLOR[entry.key] ?? "var(--primary)";
     const handleClick = () => {
       if (entry.kind === "tab") onAdd(entry.key as Exclude<TabKey, "mundo">);
+      else if (entry.kind === "nav") entry.onNavigate();
       else onAddMagic?.(entry.key as MagicAddKey);
       onClose();
     };
@@ -1123,6 +1127,11 @@ const notaResults = useMemo((): NotaResult[] => {
           onAdd={(tab) => { onAdd(tab); close(); }}
           onAddMagic={handleAddMagicWithModal}
           onClose={() => { setAddMenuOpen(false); setQuery(""); setFocused(false); inputRef.current?.blur(); }}
+          onNavigateGrupos={() => {
+            onSelectMundoSection("geografia");
+            onSelectMundoSubTab?.("geografia", "grupos");
+            close();
+          }}
         />
 
         {/* Modal nombre para Hechizo / Don / Runa */}
