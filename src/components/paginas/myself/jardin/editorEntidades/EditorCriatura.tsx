@@ -9,7 +9,7 @@ import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { type Criatura, type CriaturaVariante, type SaveStatus, INPUT_CLS } from "./types";
-import { useUniqueValues, useCriaturaVariantes, useGruposDeCriatura, type GrupoMin } from "./hooks";
+import { useCriaturaVariantes, useGruposDeCriatura, type GrupoMin } from "./hooks";
 import { SelectorImagen, SelectorTexto, SaveIndicator } from "./UIComponents";
 import { MarkdownEditor, WikiEntity } from "../../../../forms/MarkdownEditor";
 import { useWikilink } from "../../../../forms/WikilinkContext";
@@ -563,7 +563,6 @@ function BloqueGruposCriatura({
   todosGrupos: GrupoMin[];
   onAdd: (grupoId: string) => void;
   onRemove: (grupoId: string) => void;
-  onClickGrupo?: (grupoId: string) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -672,10 +671,6 @@ export function EditorCriatura({
   const { confirm, ConfirmModal } = useConfirm();
   const { onSnippetAction } = useWikilink();
 
-  const habitats     = useUniqueValues("criaturas", "habitat");
-  const pensamientos = useUniqueValues("criaturas", "pensamiento");
-  const almas        = useUniqueValues("criaturas", "alma");
-
   // Grupos de criaturas a los que pertenece esta criatura (sincronización bidireccional)
   const {
     grupos: gruposActuales,
@@ -778,13 +773,14 @@ export function EditorCriatura({
                     placeholder={<Bug size={20} className="opacity-20" />} />
                 </div>
 
-                {/* Columna central: selectores + descripción */}
+                {/* Columna central: grupos + descripción */}
                 <div className="flex-1 min-w-0 space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <SelectorTexto label="Hábitat" value={form.habitat ?? ""} onChange={v => setForm(f => ({ ...f, habitat: v }))} opciones={habitats} placeholder="Bosque, océano, volcán…" />
-                    <SelectorTexto label="Pensamiento" value={form.pensamiento ?? ""} onChange={v => setForm(f => ({ ...f, pensamiento: v }))} opciones={pensamientos} placeholder="¿Cómo piensa?" />
-                    <SelectorTexto label="Alma" value={form.alma ?? ""} onChange={v => setForm(f => ({ ...f, alma: v }))} opciones={almas} placeholder="Naturaleza espiritual…" />
-                  </div>
+                  <BloqueGruposCriatura
+                    gruposActuales={gruposActuales}
+                    todosGrupos={todosGrupos}
+                    onAdd={addToGrupo}
+                    onRemove={removeFromGrupo}
+                  />
                   <div className="space-y-1.5">
                     <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Descripción</label>
                     <MarkdownEditor value={form.descripcion ?? ""} onChange={v => setForm(f => ({ ...f, descripcion: v }))}
@@ -827,15 +823,6 @@ export function EditorCriatura({
                   <BloqueItemsCraftedos criaturaId={form.id} onSelectItem={onSelectItem} />
                 </div>
               </div>
-
-              {/* Grupos a los que pertenece esta criatura */}
-              <BloqueGruposCriatura
-                gruposActuales={gruposActuales}
-                todosGrupos={todosGrupos}
-                onAdd={addToGrupo}
-                onRemove={removeFromGrupo}
-                onClickGrupo={onSelectItem ? undefined : undefined}
-              />
 
               {/* Variantes */}
                 <div className="flex-1 space-y-3">
