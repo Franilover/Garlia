@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import {
   Loader2, Eye, EyeOff, Plus, Search, X, SlidersHorizontal, Sparkles,
-  Wand2, ScrollText, FileText, Zap, Clock, Globe, Check,
+  Wand2, ScrollText, FileText, Zap, Clock, Globe, Check, Layers,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
@@ -240,7 +240,7 @@ function MundoSectionCard({
 // ─── AddCommandMenu ───────────────────────────────────────────────────────────
 // Floating menu triggered when user types "add" and presses Enter
 
-export type MagicAddKey = "hechizos" | "dones" | "runas" | "notas" | "acontecimiento";
+export type MagicAddKey = "hechizos" | "dones" | "runas" | "notas" | "acontecimiento" | "grupos";
 
 // Colores individuales por tipo — todos con la misma lógica color-mix
 const ADD_ITEM_COLOR: Record<string, string> = {
@@ -253,6 +253,7 @@ const ADD_ITEM_COLOR: Record<string, string> = {
   runas:           "var(--primary)",
   notas:           "var(--primary)",
   acontecimiento:  "var(--primary)",
+  grupos:          "var(--primary)",
 };
 
 // Todas las entradas del menú en orden unificado
@@ -282,11 +283,12 @@ function AddCommandMenu({
 
   // Magia + notas — sin duplicar hechizos/dones/runas que ya están en tabEntries
   const magicEntries: AddEntry[] = [
-    { kind: "magic", key: "hechizos",       label: "Hechizo",       Icon: Wand2    },
-    { kind: "magic", key: "dones",          label: "Don",           Icon: Sparkles },
-    { kind: "magic", key: "runas",          label: "Runa",          Icon: Zap      },
-    { kind: "magic", key: "notas",          label: "Nota",          Icon: FileText },
-    { kind: "magic", key: "acontecimiento", label: "Acontecimiento",Icon: Clock    },
+    { kind: "magic", key: "hechizos",       label: "Hechizo",        Icon: Wand2    },
+    { kind: "magic", key: "dones",          label: "Don",            Icon: Sparkles },
+    { kind: "magic", key: "runas",          label: "Runa",           Icon: Zap      },
+    { kind: "magic", key: "notas",          label: "Nota",           Icon: FileText },
+    { kind: "magic", key: "acontecimiento", label: "Acontecimiento", Icon: Clock    },
+    { kind: "magic", key: "grupos",         label: "Grupo",          Icon: Layers   },
   ];
 
   useEffect(() => {
