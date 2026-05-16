@@ -1,4 +1,4 @@
-import { Users, Bug, Package, Map, Mountain, ScrollText, Sparkles } from "lucide-react";
+import { Users, Bug, Package, Map, Mountain, ScrollText, Sparkles, Star, Wand2 } from "lucide-react";
 
 export type Personaje = {
   id: string;
@@ -110,15 +110,17 @@ export type Nota = {
 
 
 // ─── Tabs ─────────────────────────────────────────────────────────────────────
-// Nota: hechizos y dones ya no son tabs globales — viven dentro del EditorMundo (sección Magia).
-export type TabKey = "personajes" | "criaturas" | "items" | "reinos" | "mundo";
+export type TabKey = "personajes" | "criaturas" | "items" | "reinos" | "mundo" | "hechizos" | "dones" | "runas";
 export type SaveStatus = "idle" | "saving" | "saved" | "error";
 
 export const TAB_CONFIG: Record<Exclude<TabKey, "mundo">, { emoji: string; label: string; tabla: string; Icon: React.ElementType }> = {
-  personajes: { emoji: "🧑", label: "Personajes", tabla: "personajes", Icon: Users   },
-  criaturas:  { emoji: "🐛", label: "Criaturas",  tabla: "criaturas",  Icon: Bug     },
-  items:      { emoji: "📦", label: "Items",      tabla: "items",      Icon: Package },
-  reinos:     { emoji: "🗺️", label: "Mapas",      tabla: "reinos",     Icon: Map     },
+  personajes: { emoji: "🧑", label: "Personajes", tabla: "personajes", Icon: Users      },
+  criaturas:  { emoji: "🐛", label: "Criaturas",  tabla: "criaturas",  Icon: Bug        },
+  items:      { emoji: "📦", label: "Items",      tabla: "items",      Icon: Package    },
+  reinos:     { emoji: "🗺️", label: "Mapas",      tabla: "reinos",     Icon: Map        },
+  hechizos:   { emoji: "✨", label: "Hechizos",   tabla: "hechizos",   Icon: Wand2      },
+  dones:      { emoji: "⭐", label: "Dones",      tabla: "dones",      Icon: Star       },
+  runas:      { emoji: "ᚱ",  label: "Runas",      tabla: "runas",      Icon: ScrollText },
 };
 
 export const MUNDO_SECTIONS = [

@@ -18,6 +18,7 @@ import { EditorCriatura }  from "./editorEntidades/EditorCriatura";
 import { EditorItem }      from "./editorEntidades/EditorItem";
 import { EditorReino }     from "./editorEntidades/EditorReino";
 import { EditorMundo }     from "./editorEntidades/EditorMundo";
+import { EditorHechizos }  from "./editorEntidades/EditorHechizos";
 import { WikilinkProvider } from "@/components/forms/WikilinkContext";
 
 
@@ -324,23 +325,20 @@ export default function EditorEntidades() {
       }
     }
     
-    // Buscar en hechizos, dones, runas → navegar a EditorMundo sección magia
-    const magicCollections: { subTab: string; items: any[] }[] = [
-      { subTab: "hechizos", items: allItems.hechizos },
-      { subTab: "dones",    items: allItems.dones    },
-      { subTab: "runas",    items: allItems.runas    },
+    // Buscar en hechizos, dones, runas → abrir su editor directamente como tab
+    const magicCollections: { tabKey: string; items: any[] }[] = [
+      { tabKey: "hechizos", items: allItems.hechizos },
+      { tabKey: "dones",    items: allItems.dones    },
+      { tabKey: "runas",    items: allItems.runas    },
     ];
-    for (const { subTab, items } of magicCollections) {
+    for (const { tabKey, items } of magicCollections) {
       const found =
         items.find(i => norm(i.nombre) === t) ??
         items.find(i => norm(i.nombre).startsWith(t)) ??
         items.find(i => norm(i.nombre).includes(t));
       if (found) {
-        setTab("mundo");
-        setSelectedId(null);
-        setMundoSection("magia");
-        setRequestedSubTab(subTab);
-        setRequestedItemId(found.id);
+        setTab(tabKey as any);
+        setSelectedId(found.id);
         return;
       }
     }
@@ -383,6 +381,7 @@ export default function EditorEntidades() {
   }, [setAllItems]);
 
   const isMundo = tab === "mundo";
+  const isMagicTab = tab === "hechizos" || tab === "dones" || tab === "runas";
 
   return (
     <>
@@ -406,17 +405,15 @@ export default function EditorEntidades() {
           onAddMagic={(key: MagicAddKey) => {
             if (key === "acontecimiento") {
               setShowAcontecimiento(true);
-            } else {
-              // Para hechizos, dones, runas, notas → navegar a EditorMundo sección magia/listas
+            } else if (key === "notas") {
               setTab("mundo");
               setSelectedId(null);
-              if (key === "notas") {
-                setMundoSection("historia");
-                setRequestedSubTab("historia");
-              } else {
-                setMundoSection("magia");
-                setRequestedSubTab(key);
-              }
+              setMundoSection("geografia");
+              setRequestedSubTab("notas");
+            } else {
+              // hechizos, dones, runas → abrir su editor directamente como tab
+              setTab(key as any);
+              setSelectedId(null);
             }
           }}
           onNavigateTab={(chosenTab) => {
@@ -430,21 +427,21 @@ export default function EditorEntidades() {
             setMundoSection(section);
           }}
           onSelectMundoSubTab={(section, subTab) => {
-            setTab("mundo");
-            setSelectedId(null);
-            setMundoSection(section);
-            setRequestedSubTab(subTab);
-            setRequestedItemId(undefined);
+            const magicTabs = ["hechizos", "dones", "runas"];
+            if (magicTabs.includes(subTab)) {
+              setTab(subTab as any);
+              setSelectedId(null);
+            } else {
+              setTab("mundo");
+              setSelectedId(null);
+              setMundoSection(section);
+              setRequestedSubTab(subTab);
+              setRequestedItemId(undefined);
+            }
           }}
           onSelectMagic={(subTab, item) => {
-            setTab("mundo");
-            setSelectedId(null);
-            setMundoSection("magia");
-            setRequestedSubTab(subTab);
-            // Resetear primero para forzar re-disparo del useEffect en PanelListas
-            // cuando el mismo item ya estaba seleccionado antes
-            setRequestedItemId(undefined);
-            setTimeout(() => setRequestedItemId(item.id), 0);
+            setTab(subTab as any);
+            setSelectedId(item.id);
           }}
           onSelectNota={(nota) => {
             setTab("mundo");
@@ -483,6 +480,13 @@ export default function EditorEntidades() {
                 setRequestedSubTab(mundoTab);
                 setRequestedItemId(undefined);
               }}
+            />
+          ) : isMagicTab ? (
+            <EditorHechizos
+              key={tab}
+              modo={tab as "hechizos" | "dones" | "runas"}
+              initialSelectedId={selectedId ?? undefined}
+              onSelectedIdChange={(id) => setSelectedId(id)}
             />
           ) : selected ? (
             <>

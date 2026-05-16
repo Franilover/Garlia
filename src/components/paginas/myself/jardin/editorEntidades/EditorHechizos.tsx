@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
-  Sparkles, Star, Plus, Trash2, Save, Loader2, Search, X, Layers, Check,
+  Sparkles, Star, Plus, Trash2, Save, Loader2, Search, X, Layers, Check, ScrollText,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
@@ -50,7 +50,7 @@ export type Hechizo = {
 export type Don = Hechizo;
 
 type EntidadMagica = Hechizo;
-type Modo = "hechizos" | "dones";
+type Modo = "hechizos" | "dones" | "runas";
 
 // Grupo mínimo de criaturas
 type GrupoMin = {
@@ -72,6 +72,11 @@ const CONFIG: Record<Modo, {
     tabla: "dones", label: "Dones", labelSing: "Don",
     Icon: Star, color: "oklch(0.7 0.16 55)",
     placeholder: "Qué otorga este don, su origen, sus limitaciones…",
+  },
+  runas: {
+    tabla: "runas", label: "Runas", labelSing: "Runa",
+    Icon: ScrollText, color: "oklch(0.68 0.16 195)",
+    placeholder: "Qué significa esta runa, cómo se activa, su poder…",
   },
 };
 
@@ -448,13 +453,29 @@ function FormularioMagico({ item, modo, grupos, loadingGrupos, onSaved, onDelete
 }
 
 // ─── EditorHechizos (componente principal) ────────────────────────────────────
-export function EditorHechizos({ modo }: { modo: Modo }) {
+export function EditorHechizos({
+  modo,
+  initialSelectedId,
+  onSelectedIdChange,
+}: {
+  modo: Modo;
+  initialSelectedId?: string;
+  onSelectedIdChange?: (id: string | null) => void;
+}) {
   const cfg = CONFIG[modo];
   const { items, setItems, loading } = useEntidadesMagicas(modo);
   const { grupos, loading: loadingGrupos } = useGruposCriaturas();
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(initialSelectedId ?? null);
   const [search,     setSearch]     = useState("");
   const [creating,   setCreating]   = useState(false);
+
+  // Sincronizar cuando llega un id desde afuera (buscador global)
+  useEffect(() => {
+    if (initialSelectedId && initialSelectedId !== selectedId) {
+      setSelectedId(initialSelectedId);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialSelectedId]);
 
   const selected = items.find(i => i.id === selectedId) ?? null;
 
@@ -516,7 +537,10 @@ export function EditorHechizos({ modo }: { modo: Modo }) {
           ) : filtered.map(item => (
             <button
               key={item.id}
-              onClick={() => setSelectedId(item.id)}
+              onClick={() => {
+                setSelectedId(item.id);
+                onSelectedIdChange?.(item.id);
+              }}
               className={`w-full text-left px-3 py-2.5 rounded-xl transition-all border ${
                 selectedId === item.id
                   ? "border-primary/20 bg-primary/10"
@@ -541,7 +565,7 @@ export function EditorHechizos({ modo }: { modo: Modo }) {
             grupos={grupos}
             loadingGrupos={loadingGrupos}
             onSaved={updated => setItems(prev => prev.map(i => i.id === updated.id ? updated : i))}
-            onDeleted={id => { setItems(prev => prev.filter(i => i.id !== id)); setSelectedId(null); }}
+            onDeleted={id => { setItems(prev => prev.filter(i => i.id !== id)); setSelectedId(null); onSelectedIdChange?.(null); }}
           />
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center gap-3 select-none">
