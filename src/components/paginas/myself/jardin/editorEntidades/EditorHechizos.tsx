@@ -8,8 +8,9 @@ import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { type SaveStatus } from "./types";
-import { SaveIndicator } from "./UIComponents";
+import { SaveIndicator, SelectorImagen } from "./UIComponents";
 import { MarkdownEditor } from "../../../../forms/MarkdownEditor";
+import { useWikilink } from "../../../../forms/WikilinkContext";
 
 // ─── Dexie helpers ────────────────────────────────────────────────────────────
 async function dexiePut(tabla: string, row: any): Promise<void> {
@@ -45,6 +46,7 @@ export type Hechizo = {
   nombre: string;
   explicacion?: string;
   grupo_ids?: string[];
+  imagen_url?: string | null;
 };
 
 export type Don = Hechizo;
@@ -65,17 +67,17 @@ const CONFIG: Record<Modo, {
 }> = {
   hechizos: {
     tabla: "hechizos", label: "Hechizos", labelSing: "Hechizo",
-    Icon: Sparkles, color: "oklch(0.65 0.18 290)",
+    Icon: Sparkles, color: "var(--accent)",
     placeholder: "Qué hace este hechizo, cómo se lanza, sus efectos…",
   },
   dones: {
     tabla: "dones", label: "Dones", labelSing: "Don",
-    Icon: Star, color: "oklch(0.7 0.16 55)",
+    Icon: Star, color: "color-mix(in srgb, var(--accent) 70%, var(--primary))",
     placeholder: "Qué otorga este don, su origen, sus limitaciones…",
   },
   runas: {
     tabla: "runas", label: "Runas", labelSing: "Runa",
-    Icon: ScrollText, color: "oklch(0.68 0.16 195)",
+    Icon: ScrollText, color: "var(--primary)",
     placeholder: "Qué significa esta runa, cómo se activa, su poder…",
   },
 };
@@ -350,7 +352,6 @@ function PanelGruposAsignados({ entidadId, modo, grupoIds, onGrupoIdsChange, gru
   );
 }
 
-// ─── Formulario de edición ────────────────────────────────────────────────────
 function FormularioMagico({ item, modo, grupos, loadingGrupos, onSaved, onDeleted }: {
   item: EntidadMagica;
   modo: Modo;
@@ -362,6 +363,7 @@ function FormularioMagico({ item, modo, grupos, loadingGrupos, onSaved, onDelete
   const [form,   setForm]   = useState<EntidadMagica>(item);
   const [status, setStatus] = useState<SaveStatus>("idle");
   const { confirm, ConfirmModal } = useConfirm();
+  const { onSnippetAction } = useWikilink();
   const cfg = CONFIG[modo];
 
   useEffect(() => { setForm(item); setStatus("idle"); }, [item.id]);
@@ -369,12 +371,17 @@ function FormularioMagico({ item, modo, grupos, loadingGrupos, onSaved, onDelete
   const save = async () => {
     setStatus("saving");
     try {
+      const updatePayload: any = {
+        nombre:      form.nombre,
+        explicacion: form.explicacion || null,
+      };
+      if (modo !== "runas") {
+        updatePayload.grupo_ids = form.grupo_ids ?? [];
+      } else {
+        updatePayload.imagen_url = (form as any).imagen_url || null;
+      }
       const { error } = await supabase.from(cfg.tabla)
-        .update({
-          nombre:     form.nombre,
-          explicacion: form.explicacion || null,
-          grupo_ids:  form.grupo_ids ?? [],
-        })
+        .update(updatePayload)
         .eq("id", form.id);
       if (error) throw error;
       setStatus("saved");
@@ -396,24 +403,24 @@ function FormularioMagico({ item, modo, grupos, loadingGrupos, onSaved, onDelete
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
       <ConfirmModal />
 
-      {/* Header */}
+      {/* Header — dos filas como EditorMundo */}
       <div
-        className="shrink-0 flex items-center gap-3 px-4 py-3 border-b"
+        className="shrink-0 flex flex-col gap-2 px-4 py-3 border-b"
         style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}
       >
-        <div className="shrink-0 w-9 h-9 rounded-xl flex items-center justify-center border"
-          style={{ background: `color-mix(in srgb, ${cfg.color} 12%, transparent)`, borderColor: `color-mix(in srgb, ${cfg.color} 25%, transparent)` }}>
-          <cfg.Icon size={16} style={{ color: cfg.color }} />
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="shrink-0 w-8 h-8 sm:w-9 sm:h-9 rounded-xl overflow-hidden flex items-center justify-center border"
+            style={{ background: `color-mix(in srgb, ${cfg.color} 12%, transparent)`, borderColor: `color-mix(in srgb, ${cfg.color} 25%, transparent)` }}>
+            <cfg.Icon size={15} style={{ color: cfg.color }} />
+          </div>
+          <input
+            value={form.nombre ?? ""}
+            onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))}
+            placeholder={`Nombre del ${cfg.labelSing.toLowerCase()}…`}
+            className="flex-1 min-w-0 bg-transparent text-sm font-black text-primary outline-none placeholder:text-primary/25"
+          />
         </div>
-
-        <input
-          value={form.nombre ?? ""}
-          onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))}
-          placeholder={`Nombre del ${cfg.labelSing.toLowerCase()}…`}
-          className="flex-1 min-w-0 bg-transparent text-sm font-black text-primary outline-none placeholder:text-primary/25"
-        />
-
-        <div className="shrink-0 flex items-center gap-2">
+        <div className="flex items-center justify-end gap-2">
           <SaveIndicator status={status} />
           <button onClick={del}
             className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all">
@@ -427,31 +434,70 @@ function FormularioMagico({ item, modo, grupos, loadingGrupos, onSaved, onDelete
       </div>
 
       {/* Body */}
-      <div className="flex-1 overflow-y-auto min-h-0 p-4 space-y-5">
-        {/* Grupos de criaturas asignados */}
-        <PanelGruposAsignados
-          entidadId={form.id}
-          modo={modo}
-          grupoIds={form.grupo_ids ?? []}
-          onGrupoIdsChange={ids => setForm(f => ({ ...f, grupo_ids: ids }))}
-          grupos={grupos}
-          loadingGrupos={loadingGrupos}
-          color={cfg.color}
-        />
-
-        {/* Explicación */}
-        <div className="space-y-1.5">
-          <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">Explicación</label>
-          <MarkdownEditor
-            value={form.explicacion ?? ""}
-            onChange={v => setForm(f => ({ ...f, explicacion: v }))}
-            rows={14}
-            placeholder={cfg.placeholder}
-            toolbar
-            defaultMode="edit"
-          />
+      {modo === "runas" ? (
+        /* Runas: layout dos columnas con imagen grande a la izquierda */
+        <div className="flex-1 overflow-y-auto min-h-0">
+          <div className="flex flex-col sm:flex-row gap-0 h-full">
+            {/* Columna izquierda: imagen */}
+            <div className="shrink-0 sm:w-48 p-4 sm:border-r flex flex-col gap-3"
+              style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+              <div className="w-full sm:w-full mx-auto" style={{ maxWidth: "10rem" }}>
+                <SelectorImagen
+                  label="Imagen"
+                  value={(form as any).imagen_url ?? ""}
+                  onChange={url => setForm(f => ({ ...f, imagen_url: url } as any))}
+                  aspect="square"
+                  placeholder={<cfg.Icon size={28} style={{ color: cfg.color, opacity: 0.4 }} />}
+                />
+              </div>
+              <p className="text-[9px] font-black uppercase tracking-[0.25em] text-center truncate"
+                style={{ color: `color-mix(in srgb, ${cfg.color} 50%, transparent)` }}>
+                {form.nombre || "Runa sin nombre"}
+              </p>
+            </div>
+            {/* Columna derecha: explicación */}
+            <div className="flex-1 min-w-0 p-4 space-y-3">
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">Explicación</label>
+                <MarkdownEditor
+                  value={form.explicacion ?? ""}
+                  onChange={v => setForm(f => ({ ...f, explicacion: v }))}
+                  rows={16}
+                  placeholder={cfg.placeholder}
+                  toolbar
+                  defaultMode="edit"
+                  onSnippetAction={onSnippetAction}
+                />
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
+      ) : (
+        /* Hechizos / Dones: layout original con grupos */
+        <div className="flex-1 overflow-y-auto min-h-0 p-4 space-y-5">
+          <PanelGruposAsignados
+            entidadId={form.id}
+            modo={modo}
+            grupoIds={form.grupo_ids ?? []}
+            onGrupoIdsChange={ids => setForm(f => ({ ...f, grupo_ids: ids }))}
+            grupos={grupos}
+            loadingGrupos={loadingGrupos}
+            color={cfg.color}
+          />
+          <div className="space-y-1.5">
+            <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">Explicación</label>
+            <MarkdownEditor
+              value={form.explicacion ?? ""}
+              onChange={v => setForm(f => ({ ...f, explicacion: v }))}
+              rows={14}
+              placeholder={cfg.placeholder}
+              toolbar
+              defaultMode="edit"
+              onSnippetAction={onSnippetAction}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -490,10 +536,16 @@ export function EditorHechizos({
   const handleCreate = async () => {
     setCreating(true);
     try {
+      const insertPayload = modo === "runas"
+        ? { nombre: `Nueva ${cfg.labelSing}` }
+        : { nombre: `Nuevo ${cfg.labelSing}`, grupo_ids: [] };
+      const selectFields = modo === "runas"
+        ? "id, nombre, explicacion, imagen_url"
+        : "id, nombre, explicacion, grupo_ids";
       const { data, error } = await supabase
         .from(cfg.tabla)
-        .insert([{ nombre: `Nuevo ${cfg.labelSing}`, grupo_ids: [] }])
-        .select("id, nombre, explicacion, grupo_ids")
+        .insert([insertPayload])
+        .select(selectFields)
         .single();
       if (error) throw error;
       setItems(prev => [data, ...prev]);
