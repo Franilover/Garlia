@@ -86,13 +86,17 @@ function useEntidadesMagicas(modo: Modo) {
   const [loading, setLoading] = useState(true);
   const load = useCallback(async () => {
     const tabla = CONFIG[modo].tabla;
+    // Runas no tienen grupo_ids en la DB
+    const selectFields = modo === "runas"
+      ? "id, nombre, explicacion, imagen_url"
+      : "id, nombre, explicacion, grupo_ids";
     const local = await dexieReadAll<EntidadMagica>(tabla);
     if (local.length) { setItems(local); setLoading(false); }
     if (!navigator.onLine) { if (!local.length) setLoading(false); return; }
     setLoading(!local.length);
     const { data } = await supabase
       .from(tabla)
-      .select("id, nombre, explicacion, grupo_ids")
+      .select(selectFields)
       .order("nombre");
     const result = (data ?? []) as EntidadMagica[];
     setItems(result); setLoading(false);
