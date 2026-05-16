@@ -661,10 +661,11 @@ function BloqueGruposCriatura({
 
 // ─── EditorCriatura ───────────────────────────────────────────────────────────
 export function EditorCriatura({
-  item, onSaved, onDeleted, entities = [], onSelectItem,
+  item, onSaved, onDeleted, entities = [], onSelectItem, onSelectPersonaje,
 }: {
   item: Criatura; onSaved: (c: Criatura) => void; onDeleted: (id: string) => void; entities?: WikiEntity[];
   onSelectItem?: (itemId: string) => void;
+  onSelectPersonaje?: (personajeId: string) => void;
 }) {
   const [form,   setForm]   = useState<Criatura>(item);
   const [status, setStatus] = useState<SaveStatus>("idle");
@@ -836,7 +837,7 @@ export function EditorCriatura({
                       <button
                         key={p.id}
                         type="button"
-                        onClick={() => onSelectItem?.(p.id)}
+                        onClick={() => onSelectPersonaje?.(p.id)}
                         className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02]"
                         style={{
                           background: "color-mix(in srgb, var(--primary) 4%, transparent)",
