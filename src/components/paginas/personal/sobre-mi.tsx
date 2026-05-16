@@ -14,7 +14,6 @@ const fade = (delay = 0) => ({
 const TOOLS = [
   { num: "01", title: "Linux",       },
   { num: "02",  title: "Krita", },
-  { num: "03",  title: "Música", },
 ];
 
 export default function SobreMi() {
