@@ -1,15 +1,15 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Bug, Plus, Check, X, Trash2, Save, ChevronDown, Lock,
-  Dna, Brain, Wand2, GitBranch, Package, Wrench, Leaf,
+  Dna, Brain, Wand2, GitBranch, Package, Wrench, Leaf, Layers,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { type Criatura, type CriaturaVariante, type SaveStatus, INPUT_CLS } from "./types";
-import { useUniqueValues, useCriaturaVariantes } from "./hooks";
+import { useUniqueValues, useCriaturaVariantes, useGruposComoOpciones, useGruposDeCriatura, type GrupoMin } from "./hooks";
 import { SelectorImagen, SelectorTexto, SaveIndicator } from "./UIComponents";
 import { MarkdownEditor, WikiEntity } from "../../../../forms/MarkdownEditor";
 import { useWikilink } from "../../../../forms/WikilinkContext";
@@ -548,6 +548,118 @@ function VarianteEditor({
   );
 }
 
+// ─── BloqueGruposCriatura ─────────────────────────────────────────────────────
+// Muestra a qué grupos pertenece la criatura y permite añadir/quitar.
+// Es la mitad del enlace bidireccional: el grupo almacena miembro_ids,
+// y desde aquí actualizamos esos arrays directamente en Supabase.
+
+function BloqueGruposCriatura({
+  gruposActuales,
+  todosGrupos,
+  onAdd,
+  onRemove,
+}: {
+  gruposActuales: GrupoMin[];
+  todosGrupos: GrupoMin[];
+  onAdd: (grupoId: string) => void;
+  onRemove: (grupoId: string) => void;
+  onClickGrupo?: (grupoId: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+
+  const disponibles = useMemo(() =>
+    todosGrupos.filter(g =>
+      !gruposActuales.some(a => a.id === g.id) &&
+      g.nombre.toLowerCase().includes(search.toLowerCase())
+    ),
+    [todosGrupos, gruposActuales, search]
+  );
+
+  if (todosGrupos.length === 0) return null;
+
+  return (
+    <div className="space-y-2">
+      <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/30 flex items-center gap-1">
+        <Layers size={9} /> Grupos
+      </label>
+
+      {/* Chips de grupos actuales */}
+      {gruposActuales.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {gruposActuales.map(g => (
+            <div key={g.id}
+              className="flex items-center gap-1 pl-2.5 pr-1.5 py-1 rounded-lg border text-[10px] font-bold"
+              style={{
+                background: "color-mix(in srgb, var(--primary) 6%, transparent)",
+                borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)",
+                color: "var(--primary)",
+              }}>
+              <span>{g.nombre}</span>
+              <button
+                type="button"
+                onClick={() => onRemove(g.id)}
+                className="w-3.5 h-3.5 rounded flex items-center justify-center text-primary/30 hover:text-red-400 transition-colors"
+              >
+                <X size={8} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Dropdown añadir */}
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => setOpen(o => !o)}
+          className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-dashed text-[9px] font-black uppercase tracking-widest transition-all"
+          style={{
+            borderColor: "color-mix(in srgb, var(--primary) 18%, transparent)",
+            color: "color-mix(in srgb, var(--primary) 35%, transparent)",
+          }}
+        >
+          <Plus size={8} /> Añadir a grupo
+        </button>
+
+        {open && (
+          <>
+            <div className="fixed inset-0 z-40" onClick={() => { setOpen(false); setSearch(""); }} />
+            <div className="absolute z-50 top-full left-0 mt-1 w-52 rounded-xl border shadow-xl overflow-hidden"
+              style={{ background: "var(--bg-main)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
+              <div className="p-1.5 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+                <input
+                  autoFocus
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder="Buscar grupo…"
+                  className="w-full bg-transparent text-[10px] text-primary outline-none placeholder:text-primary/30 px-1.5 py-0.5"
+                />
+              </div>
+              <div className="max-h-44 overflow-y-auto p-1">
+                {disponibles.length === 0 ? (
+                  <p className="text-[9px] text-primary/25 italic text-center py-3">
+                    {search ? "Sin resultados" : "Ya está en todos los grupos"}
+                  </p>
+                ) : disponibles.map(g => (
+                  <button
+                    key={g.id}
+                    type="button"
+                    onMouseDown={() => { onAdd(g.id); setOpen(false); setSearch(""); }}
+                    className="w-full text-left px-2.5 py-1.5 rounded-lg text-[11px] font-medium text-primary/75 hover:bg-primary/6 hover:text-primary transition-colors truncate"
+                  >
+                    {g.nombre}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── EditorCriatura ───────────────────────────────────────────────────────────
 export function EditorCriatura({
   item, onSaved, onDeleted, entities = [], onSelectItem,
@@ -560,9 +672,25 @@ export function EditorCriatura({
   const { confirm, ConfirmModal } = useConfirm();
   const { onSnippetAction } = useWikilink();
 
-  const habitats     = useUniqueValues("criaturas", "habitat");
-  const pensamientos = useUniqueValues("criaturas", "pensamiento");
-  const almas        = useUniqueValues("criaturas", "alma");
+  const habitatsDB     = useUniqueValues("criaturas", "habitat");
+  const pensamientosDB = useUniqueValues("criaturas", "pensamiento");
+  const almasDB        = useUniqueValues("criaturas", "alma");
+
+  // Nombres de grupos de criaturas → se ofrecen como opciones en los dropdowns
+  const gruposNombres = useGruposComoOpciones("criaturas");
+
+  // Mezclar valores únicos de BD con nombres de grupos (sin duplicados, ordenados)
+  const habitats     = useMemo(() => [...new Set([...habitatsDB,     ...gruposNombres])].sort(), [habitatsDB,     gruposNombres]);
+  const pensamientos = useMemo(() => [...new Set([...pensamientosDB, ...gruposNombres])].sort(), [pensamientosDB, gruposNombres]);
+  const almas        = useMemo(() => [...new Set([...almasDB,        ...gruposNombres])].sort(), [almasDB,        gruposNombres]);
+
+  // Grupos de criaturas a los que pertenece esta criatura (sincronización bidireccional)
+  const {
+    grupos: gruposActuales,
+    todosGrupos,
+    addToGrupo,
+    removeFromGrupo,
+  } = useGruposDeCriatura(form.id);
   const { variantes, setVariantes } = useCriaturaVariantes(item.id);
   const [addingVariante,  setAddingVariante]  = useState(false);
   const [newVarianteTipo, setNewVarianteTipo] = useState("");
@@ -661,7 +789,12 @@ export function EditorCriatura({
                 {/* Columna central: selectores + descripción */}
                 <div className="flex-1 min-w-0 space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <SelectorTexto label="Hábitat" value={form.habitat ?? ""} onChange={v => setForm(f => ({ ...f, habitat: v }))} opciones={habitats} placeholder="Bosque, océano, volcán…" />
+                    <SelectorTexto label="Hábitat" value={form.habitat ?? ""} onChange={v => {
+                      setForm(f => ({ ...f, habitat: v }));
+                      // Si el valor elegido coincide con un grupo de criaturas, añadir la criatura a ese grupo
+                      const grupo = todosGrupos.find(g => g.nombre === v);
+                      if (grupo && v) addToGrupo(grupo.id);
+                    }} opciones={habitats} placeholder="Bosque, océano, volcán…" />
                     <SelectorTexto label="Pensamiento" value={form.pensamiento ?? ""} onChange={v => setForm(f => ({ ...f, pensamiento: v }))} opciones={pensamientos} placeholder="¿Cómo piensa?" />
                     <SelectorTexto label="Alma" value={form.alma ?? ""} onChange={v => setForm(f => ({ ...f, alma: v }))} opciones={almas} placeholder="Naturaleza espiritual…" />
                   </div>
@@ -707,6 +840,15 @@ export function EditorCriatura({
                   <BloqueItemsCraftedos criaturaId={form.id} onSelectItem={onSelectItem} />
                 </div>
               </div>
+
+              {/* Grupos a los que pertenece esta criatura */}
+              <BloqueGruposCriatura
+                gruposActuales={gruposActuales}
+                todosGrupos={todosGrupos}
+                onAdd={addToGrupo}
+                onRemove={removeFromGrupo}
+                onClickGrupo={onSelectItem ? undefined : undefined}
+              />
 
               {/* Variantes */}
                 <div className="flex-1 space-y-3">

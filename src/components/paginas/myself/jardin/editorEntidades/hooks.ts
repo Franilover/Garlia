@@ -644,3 +644,170 @@ export function useMundoSecciones() {
 
   return { textos, setTextos, loading, save };
 }
+
+// ─── useGruposComoOpciones ────────────────────────────────────────────────────
+// Devuelve los nombres de grupos de un tipo dado (ej: "criaturas") para usar
+// como opciones adicionales en los SelectorTexto del EditorCriatura.
+
+export type GrupoTipo = "personajes" | "criaturas" | "items" | "hechizos" | "dones" | "runas";
+
+export function useGruposComoOpciones(tipo: GrupoTipo): string[] {
+  const [nombres, setNombres] = useState<string[]>([]);
+  const cacheKey = `grupos_nombres:${tipo}`;
+
+  const refresh = useCallback(async () => {
+    // 1. session_cache rápido
+    try {
+      if (db) {
+        const cached = await (db as any).session_cache?.get(cacheKey);
+        if (cached && Date.now() - cached.updated_at < SESSION_CACHE_TTL_MS) {
+          setNombres(cached.value as string[]);
+          if (!navigator.onLine) return;
+        }
+      }
+    } catch {}
+
+    // 2. Dexie directo si la tabla grupos_mundo existe
+    try {
+      if (db && (db as any).grupos_mundo) {
+        const all = await (db as any).grupos_mundo.toArray() as any[];
+        const local = all
+          .filter((g: any) => !g.deleted && g.tipo === tipo)
+          .map((g: any) => g.nombre as string)
+          .filter(Boolean)
+          .sort();
+        if (local.length) {
+          setNombres(local);
+          if (!navigator.onLine) return;
+        }
+      }
+    } catch {}
+
+    if (!navigator.onLine) return;
+
+    // 3. Supabase
+    try {
+      const { data } = await supabase
+        .from("grupos_mundo")
+        .select("nombre")
+        .eq("tipo", tipo)
+        .order("nombre");
+      if (!data) return;
+      const result = data.map((r: any) => r.nombre as string).filter(Boolean);
+      setNombres(result);
+      try {
+        if (db) {
+          await (db as any).session_cache?.put({
+            key: cacheKey,
+            value: result,
+            updated_at: Date.now(),
+          });
+        }
+      } catch {}
+    } catch {}
+  }, [tipo, cacheKey]);
+
+  useEffect(() => {
+    let cancelled = false;
+    refresh();
+    return () => { cancelled = true; };
+  }, [refresh]);
+
+  return nombres;
+}
+
+// ─── useGruposDeCriatura ──────────────────────────────────────────────────────
+// Dado el ID de una criatura, devuelve todos los grupos (tipo "criaturas")
+// que la tienen como miembro, y permite añadirla/quitarla de un grupo por nombre.
+
+export type GrupoMin = {
+  id: string;
+  nombre: string;
+  tipo: GrupoTipo;
+  miembro_ids: string[];
+};
+
+export function useGruposDeCriatura(criaturaId: string) {
+  const [grupos, setGrupos] = useState<GrupoMin[]>([]);
+  const [todosGrupos, setTodosGrupos] = useState<GrupoMin[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const load = useCallback(async () => {
+    if (!criaturaId) return;
+    setLoading(true);
+
+    if (!navigator.onLine) {
+      try {
+        if (db && (db as any).grupos_mundo) {
+          const all = await (db as any).grupos_mundo.toArray() as GrupoMin[];
+          const deCriaturas = all.filter(g => g.tipo === "criaturas");
+          setTodosGrupos(deCriaturas);
+          setGrupos(deCriaturas.filter(g => (g.miembro_ids ?? []).includes(criaturaId)));
+        }
+      } catch {}
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const { data } = await supabase
+        .from("grupos_mundo")
+        .select("id, nombre, tipo, miembro_ids")
+        .eq("tipo", "criaturas")
+        .order("nombre");
+      const todos = (data ?? []) as GrupoMin[];
+      setTodosGrupos(todos);
+      setGrupos(todos.filter(g => (g.miembro_ids ?? []).includes(criaturaId)));
+    } catch {}
+    setLoading(false);
+  }, [criaturaId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  // Añadir la criatura a un grupo por ID de grupo
+  const addToGrupo = useCallback(async (grupoId: string) => {
+    const grupo = todosGrupos.find(g => g.id === grupoId);
+    if (!grupo) return;
+    if ((grupo.miembro_ids ?? []).includes(criaturaId)) return;
+
+    const nuevosIds = [...(grupo.miembro_ids ?? []), criaturaId];
+
+    // Optimista
+    const actualizado = { ...grupo, miembro_ids: nuevosIds };
+    setGrupos(prev => [...prev, actualizado]);
+    setTodosGrupos(prev => prev.map(g => g.id === grupoId ? actualizado : g));
+
+    await supabase
+      .from("grupos_mundo")
+      .update({ miembro_ids: nuevosIds })
+      .eq("id", grupoId);
+
+    try {
+      if (db) await (db as any).grupos_mundo?.put(actualizado);
+    } catch {}
+  }, [criaturaId, todosGrupos]);
+
+  // Quitar la criatura de un grupo
+  const removeFromGrupo = useCallback(async (grupoId: string) => {
+    const grupo = todosGrupos.find(g => g.id === grupoId);
+    if (!grupo) return;
+
+    const nuevosIds = (grupo.miembro_ids ?? []).filter(id => id !== criaturaId);
+
+    // Optimista
+    const actualizado = { ...grupo, miembro_ids: nuevosIds };
+    setGrupos(prev => prev.filter(g => g.id !== grupoId));
+    setTodosGrupos(prev => prev.map(g => g.id === grupoId ? actualizado : g));
+
+    await supabase
+      .from("grupos_mundo")
+      .update({ miembro_ids: nuevosIds })
+      .eq("id", grupoId);
+
+    try {
+      if (db) await (db as any).grupos_mundo?.put(actualizado);
+    } catch {}
+  }, [criaturaId, todosGrupos]);
+
+  return { grupos, todosGrupos, loading, addToGrupo, removeFromGrupo, reload: load };
+}
