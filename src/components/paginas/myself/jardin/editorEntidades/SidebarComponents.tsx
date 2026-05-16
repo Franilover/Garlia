@@ -856,6 +856,7 @@ export function GlobalSearchBar({
   const selectedItem = useMemo(() => {
     if (isMundo || !selectedId) return null;
     const tab = activeTab as Exclude<TabKey, "mundo">;
+    if (!allItems[tab]) return null;
     return allItems[tab]?.find((i: any) => i.id === selectedId) ?? null;
   }, [allItems, selectedId, activeTab, isMundo]);
 
@@ -1087,7 +1088,9 @@ const notaResults = useMemo((): NotaResult[] => {
               {(selectedItem.img_url || selectedItem.imagen_url)
                 ? <img src={selectedItem.img_url || selectedItem.imagen_url} alt={selectedItem.nombre} className="w-full h-full object-cover" />
                 : (() => {
-                    const Icon = TAB_CONFIG[activeTab as Exclude<TabKey, "mundo">].Icon;
+                    const tabCfg = TAB_CONFIG[activeTab as Exclude<TabKey, "mundo">];
+                    if (!tabCfg) return <Search size={9} className="text-primary/40" />;
+                    const Icon = tabCfg.Icon;
                     return <Icon size={9} className="text-primary/40" />;
                   })()}
             </div>
