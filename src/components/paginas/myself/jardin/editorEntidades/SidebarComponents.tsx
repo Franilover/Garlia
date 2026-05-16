@@ -313,10 +313,9 @@ function AddCommandMenu({
   const renderEntry = (entry: AddEntry) => {
     const color = ADD_ITEM_COLOR[entry.key] ?? "var(--primary)";
     const handleClick = () => {
-      if (entry.kind === "tab") onAdd(entry.key as Exclude<TabKey, "mundo">);
-      else if (entry.kind === "nav") entry.onNavigate();
-      else onAddMagic?.(entry.key as MagicAddKey);
-      onClose();
+      if (entry.kind === "tab") { onAdd(entry.key as Exclude<TabKey, "mundo">); onClose(); }
+      else if (entry.kind === "nav") { entry.onNavigate(); }
+      else { onAddMagic?.(entry.key as MagicAddKey); onClose(); }
     };
     return (
       <button
@@ -1127,10 +1126,7 @@ const notaResults = useMemo((): NotaResult[] => {
           onAdd={(tab) => { onAdd(tab); close(); }}
           onAddMagic={handleAddMagicWithModal}
           onClose={() => { setAddMenuOpen(false); setQuery(""); setFocused(false); inputRef.current?.blur(); }}
-          onNavigateGrupos={() => {
-            onSelectMundoSubTab?.("geografia", "grupos");
-            close();
-          }}
+          onNavigateGrupos={() => handleMundoSubTab("geografia", "grupos")}
         />
 
         {/* Modal nombre para Hechizo / Don / Runa */}
