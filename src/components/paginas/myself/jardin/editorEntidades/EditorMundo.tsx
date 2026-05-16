@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import {
   Sparkles, Star, Globe, Plus, Trash2, Save, Loader2, Search, X, Bug,
   ChevronDown, Mountain, ScrollText, Map, ChevronRight, FileText, Users, UserCircle2, Package,
-  Crown, Clock, Filter,
+  Crown, Clock, Filter, Layers,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
@@ -20,6 +20,7 @@ import { EditorItem } from "./EditorItem";
 import { type TimelineEvent } from "./LoreTab";
 import { useNotas } from "./useNotas";
 import { EditorNota, ListaNotas } from "./EditorNota";
+import { EditorGrupo } from "./EditorGrupo";
 
 
 // ─── Dexie helpers ────────────────────────────────────────────────────────────
@@ -2085,8 +2086,8 @@ function PanelListas({ initialSubTab, initialItemId }: { initialSubTab?: string;
   const [selectedRuna,     setSelectedRuna]     = useState<Runa | null>(null);
   const [personajeStatus,  setPersonajeStatus]  = useState<SaveStatus>("idle");
 
-  type ListaTab = "reinos" | "criaturas" | "objetos" | "personajes" | "hechizos" | "dones" | "runas" | "notas";
-  const VALID_LISTA_TABS: ListaTab[] = ["reinos", "criaturas", "objetos", "personajes", "hechizos", "dones", "runas", "notas"];
+  type ListaTab = "reinos" | "criaturas" | "objetos" | "personajes" | "hechizos" | "dones" | "runas" | "notas" | "grupos";
+  const VALID_LISTA_TABS: ListaTab[] = ["reinos", "criaturas", "objetos", "personajes", "hechizos", "dones", "runas", "notas", "grupos"];
 
   const [mobileTab, setMobileTab] = useState<ListaTab>(
     (VALID_LISTA_TABS.includes(initialSubTab as ListaTab) ? initialSubTab as ListaTab : "reinos")
@@ -2168,12 +2169,12 @@ function PanelListas({ initialSubTab, initialItemId }: { initialSubTab?: string;
   const searchMap: Record<string, string> = {
     reinos: searchR, criaturas: searchC, objetos: searchO,
     personajes: searchP, hechizos: searchH, dones: searchD, runas: searchRu,
-    notas: searchNotas,  // ← agregar
+    notas: searchNotas, grupos: "",
   };
   const setSearchMap: Record<string, (v: string) => void> = {
     reinos: setSearchR, criaturas: setSearchC, objetos: setSearchO,
     personajes: setSearchP, hechizos: setSearchH, dones: setSearchD, runas: setSearchRu,
-    notas: setSearchNotas,  // ← agregar
+    notas: setSearchNotas, grupos: () => {},
   };
 
   type TabDef = { key: ListaTab; label: string; Icon: React.ElementType; count: number; color?: string };
@@ -2200,6 +2201,12 @@ function PanelListas({ initialSubTab, initialItemId }: { initialSubTab?: string;
       label: "Notas",
       tabs: [
         { key: "notas", label: "Notas", Icon: FileText, count: notas.length },
+      ],
+    },
+    {
+      label: "Grupos",
+      tabs: [
+        { key: "grupos", label: "Grupos", Icon: Layers, count: 0 },
       ],
     },
   ];
@@ -2400,14 +2407,19 @@ function PanelListas({ initialSubTab, initialItemId }: { initialSubTab?: string;
           })()}
 
           {/* Buscador */}
-          <SearchInput
-            value={searchMap[mobileTab] ?? ""}
-            onChange={v => setSearchMap[mobileTab]?.(v)}
-            placeholder={`Buscar ${TABS.find(t => t.key === mobileTab)?.label.toLowerCase()}…`}
-          />
+          {mobileTab !== "grupos" && (
+            <SearchInput
+              value={searchMap[mobileTab] ?? ""}
+              onChange={v => setSearchMap[mobileTab]?.(v)}
+              placeholder={`Buscar ${TABS.find(t => t.key === mobileTab)?.label.toLowerCase()}…`}
+            />
+          )}
 
           {/* Listado */}
-          <div className="flex-1 overflow-y-auto min-h-0 px-3 pb-3 space-y-0.5 relative">
+          <div className={mobileTab === "grupos"
+            ? "flex-1 flex min-h-0 overflow-hidden relative"
+            : "flex-1 overflow-y-auto min-h-0 px-3 pb-3 space-y-0.5 relative"
+          }>
             {/* Reinos */}
             {mobileTab === "reinos" && (loadingReinos
               ? <div className="flex justify-center py-10"><Loader2 size={16} className="animate-spin text-primary/20" /></div>
@@ -2595,6 +2607,46 @@ function PanelListas({ initialSubTab, initialItemId }: { initialSubTab?: string;
                         <ChevronRight size={10} className="text-primary/15 shrink-0 group-hover:text-primary/40 transition-colors" />
                       </button>
                     ))
+            )}
+
+            {/* Grupos */}
+            {mobileTab === "grupos" && (
+              <EditorGrupo
+                onClickMiembro={(id, tabla) => {
+                  // Mapa tabla → subtab de listas
+                  const tablaMap: Record<string, ListaTab> = {
+                    personajes: "personajes",
+                    criaturas: "criaturas",
+                    items: "objetos",
+                    hechizos: "hechizos",
+                    dones: "dones",
+                    runas: "runas",
+                  };
+                  const subtab = tablaMap[tabla];
+                  if (!subtab) return;
+                  setMobileTab(subtab);
+                  // Abrir el editor del ítem usando el mismo sistema de overlay
+                  if (tabla === "personajes") {
+                    const p = personajes.find(x => x.id === id);
+                    if (p) setSelectedPersonaje(p);
+                  } else if (tabla === "criaturas") {
+                    const c = criaturas.find(x => x.id === id);
+                    if (c) setSelectedCriatura(c);
+                  } else if (tabla === "items") {
+                    const o = objetos.find(x => x.id === id);
+                    if (o) setSelectedObjeto(o);
+                  } else if (tabla === "hechizos") {
+                    const h = hechizos.find(x => x.id === id);
+                    if (h) setSelectedHechizo(h);
+                  } else if (tabla === "dones") {
+                    const d = dones.find(x => x.id === id);
+                    if (d) setSelectedDon(d);
+                  } else if (tabla === "runas") {
+                    const r = runas.find(x => x.id === id);
+                    if (r) setSelectedRuna(r);
+                  }
+                }}
+              />
             )}
           </div>
         </div>
