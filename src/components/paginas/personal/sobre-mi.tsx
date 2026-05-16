@@ -112,15 +112,6 @@ export default function SobreMi() {
                         boxShadow: "var(--shadow-card)",
                       }}
                     >
-                      <div
-                        className="shrink-0 w-9 h-9 flex items-center justify-center transition-transform duration-300 group-hover:scale-110"
-                        style={{
-                          borderRadius: "var(--radius-btn)",
-                          background: "color-mix(in srgb, var(--primary) 8%, transparent)",
-                          color: "var(--primary)",
-                        }}
-                      >
-                      </div>
 
                       <div className="relative z-10 space-y-0.5 text-left">
                         <h4
