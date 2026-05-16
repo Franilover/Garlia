@@ -42,35 +42,37 @@ async function dexieWriteAll(tabla: string, rows: any[]): Promise<void> {
 type HechizoCatalogo = {
   id: string;
   nombre: string;
+  // IDs de grupos de criaturas que pueden usar este hechizo (vacío = universal)
+  grupo_ids?: string[];
 };
 
-type Asignacion = {
-  hechizo_id: string;
-  criatura_id: string;
-  variante_id: string | null;
-  criatura_nombre: string;
+// Un grupo de criaturas mínimo: solo necesitamos saber qué criatura_ids tiene
+type GrupoCriaturas = {
+  id: string;
+  miembro_ids: string[];  // IDs de criaturas miembro
 };
 
-// ─── Hook: catálogo completo de hechizos + sus asignaciones de criatura ────────
+// ─── Hook: catálogo de hechizos + grupos de criaturas ─────────────────────────
 const CACHE_TTL = 5 * 60 * 1000;
 
 function useCatalogo() {
-  const [hechizos,    setHechizos]    = useState<HechizoCatalogo[]>([]);
-  const [asignaciones, setAsignaciones] = useState<Asignacion[]>([]);
-  const [loading, setLoading]          = useState(true);
+  const [hechizos,  setHechizos]  = useState<HechizoCatalogo[]>([]);
+  const [grupos,    setGrupos]    = useState<GrupoCriaturas[]>([]);
+  const [loading,   setLoading]   = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     const run = async () => {
       // 1. Dexie: hechizos
       const localH = await dexieReadAll<HechizoCatalogo>("hechizos");
-      // 2. session_cache: asignaciones (tabla join sin tabla Dexie propia)
+
+      // 2. session_cache: grupos de criaturas (join ligero, sin tabla Dexie propia)
       try {
         if (db) {
-          const cached = await (db as any).session_cache?.get("hechizo_criaturas");
+          const cached = await (db as any).session_cache?.get("grupos_criaturas_catalogo");
           if (cached && Date.now() - cached.updated_at < CACHE_TTL && !cancelled) {
             if (localH.length) setHechizos(localH);
-            setAsignaciones(cached.value);
+            setGrupos(cached.value);
             if (localH.length) setLoading(false);
           }
         }
@@ -78,33 +80,38 @@ function useCatalogo() {
 
       if (!navigator.onLine) { setLoading(false); return; }
 
-      const [hRes, aRes] = await Promise.all([
-        supabase.from("hechizos").select("id, nombre").order("nombre"),
-        supabase.from("hechizo_criaturas")
-          .select("hechizo_id, criatura_id, variante_id, criatura:criaturas!criatura_id(nombre)"),
+      const [hRes, gRes] = await Promise.all([
+        supabase.from("hechizos").select("id, nombre, grupo_ids").order("nombre"),
+        supabase.from("grupos_mundo")
+          .select("id, miembro_ids")
+          .eq("tipo", "criaturas"),
       ]);
       if (cancelled) return;
 
       const hechizosData = (hRes.data ?? []) as HechizoCatalogo[];
-      const rows: Asignacion[] = (aRes.data ?? []).map((r: any) => ({
-        hechizo_id:      r.hechizo_id,
-        criatura_id:     r.criatura_id,
-        variante_id:     r.variante_id,
-        criatura_nombre: (Array.isArray(r.criatura) ? r.criatura[0]?.nombre : r.criatura?.nombre) ?? "",
+      const gruposData: GrupoCriaturas[] = (gRes.data ?? []).map((r: any) => ({
+        id: r.id,
+        miembro_ids: r.miembro_ids ?? [],
       }));
+
       setHechizos(hechizosData);
-      setAsignaciones(rows);
+      setGrupos(gruposData);
       setLoading(false);
+
       await dexieWriteAll("hechizos", hechizosData);
       try {
-        if (db) await (db as any).session_cache?.put({ key: "hechizo_criaturas", value: rows, updated_at: Date.now() });
+        if (db) await (db as any).session_cache?.put({
+          key: "grupos_criaturas_catalogo",
+          value: gruposData,
+          updated_at: Date.now(),
+        });
       } catch {}
     };
     run();
     return () => { cancelled = true; };
   }, []);
 
-  return { hechizos, asignaciones, loading };
+  return { hechizos, grupos, loading };
 }
 
 // ─── Hook: hechizos asignados al personaje ─────────────────────────────────────
@@ -136,24 +143,21 @@ function useAsignados(personajeId: string) {
 }
 
 // ─── Lógica de compatibilidad ──────────────────────────────────────────────────
+// Un hechizo es compatible con una criatura si:
+//   - No tiene grupos asignados (universal), O
+//   - La criatura pertenece a al menos uno de los grupos asignados al hechizo.
 function esCompatible(
   hechizo: HechizoCatalogo,
-  asignaciones: Asignacion[],
-  especie: string | null | undefined,
-  varianteId: string | null | undefined,
+  grupos: GrupoCriaturas[],
+  criaturaId: string | null | undefined,
 ): boolean {
-  const propias = asignaciones.filter(a => a.hechizo_id === hechizo.id);
-  if (propias.length === 0) return true;
+  const grupoIds = hechizo.grupo_ids ?? [];
+  if (grupoIds.length === 0) return true;   // universal
+  if (!criaturaId) return false;            // necesita grupo pero el personaje no tiene criatura
 
-  if (!especie?.trim()) return false;
-  const esp = especie.toLowerCase().trim();
-
-  return propias.some(a => {
-    const criNombre = a.criatura_nombre.toLowerCase().trim();
-    const nombreMatch = esp.includes(criNombre) || criNombre.includes(esp);
-    if (!nombreMatch) return false;
-    if (a.variante_id) return a.variante_id === varianteId;
-    return true;
+  return grupoIds.some(gid => {
+    const grupo = grupos.find(g => g.id === gid);
+    return grupo ? grupo.miembro_ids.includes(criaturaId) : false;
   });
 }
 
@@ -215,20 +219,22 @@ function DropdownHechizos({ anchorRef, disponibles, filtrados, asignados, onSele
 }
 
 // ─── Componente principal ──────────────────────────────────────────────────────
-export function BloqueHechizos({ personajeId, especie, varianteId }: {
-  personajeId: string; especie?: string | null; varianteId?: string | null;
+// criaturaId: ID de la criatura del personaje (para filtrar compatibilidad por grupos)
+export function BloqueHechizos({ personajeId, criaturaId }: {
+  personajeId: string;
+  criaturaId?: string | null;
 }) {
-  const { hechizos, asignaciones, loading } = useCatalogo();
+  const { hechizos, grupos, loading } = useCatalogo();
   const { ids, add, remove } = useAsignados(personajeId);
   const [input, setInput] = useState("");
   const [open, setOpen]   = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
-  const noEspecie = !especie?.trim();
+  const sinCriatura = !criaturaId;
 
   const compatibles = useMemo(
-    () => hechizos.filter(h => esCompatible(h, asignaciones, especie, varianteId)),
-    [hechizos, asignaciones, especie, varianteId]
+    () => hechizos.filter(h => esCompatible(h, grupos, criaturaId)),
+    [hechizos, grupos, criaturaId]
   );
 
   const asignados   = compatibles.filter(h => ids.includes(h.id));
@@ -277,11 +283,11 @@ export function BloqueHechizos({ personajeId, especie, varianteId }: {
             value={input}
             onChange={e => { setInput(e.target.value); setOpen(true); }}
             onFocus={() => setOpen(true)}
-            disabled={noEspecie}
-            placeholder={noEspecie ? "Sin especie…" : "Añadir hechizo…"}
+            disabled={sinCriatura}
+            placeholder={sinCriatura ? "Sin criatura…" : "Añadir hechizo…"}
             className={INPUT_CLS + " pr-8 disabled:opacity-40 disabled:cursor-not-allowed"}
           />
-          <button type="button" onClick={() => !noEspecie && setOpen(o => !o)}
+          <button type="button" onClick={() => !sinCriatura && setOpen(o => !o)}
             className="absolute right-2.5 top-1/2 -translate-y-1/2 text-primary/30 hover:text-primary transition-colors">
             <ChevronDown size={13} className={`transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
           </button>

@@ -795,14 +795,16 @@ export function EditorCriatura({
                 {/* Columna derecha: Catálogo Mágico */}
                 <div className="sm:shrink-0 sm:w-64 space-y-3">
                   <p className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Catálogo Mágico</p>
-                  <div className="space-y-3">
+                 <div className="space-y-3">
                     <div className="space-y-1.5">
                       <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/25">Hechizos</p>
-                      <BloqueHechizos personajeId={form.id} especie={form.nombre} varianteId={null} />
+                      {/* Pasamos form.id como criaturaId para habilitar la compatibilidad */}
+                      <BloqueHechizos personajeId={form.id} criaturaId={form.id} />
                     </div>
                     <div className="space-y-1.5">
                       <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/25">Dones</p>
-                      <BloqueDones personajeId={form.id} especie={form.nombre} varianteId={null} />
+                      {/* Pasamos form.id como criaturaId para habilitar la compatibilidad */}
+                      <BloqueDones personajeId={form.id} criaturaId={form.id} />
                     </div>
                   </div>
                 </div>

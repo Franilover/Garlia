@@ -124,21 +124,39 @@ function PickerCuerpo({ value, onChange }: { value: string; onChange: (url: stri
   );
 }
 
-// ─── Sección Hechizos inline ──────────────────────────────────────────────────
-function SeccionHechizos({ personajeId, especie, varianteId }: { personajeId: string; especie?: string; varianteId?: string | null }) {
-  return (
-    <div
-      className="rounded-xl overflow-hidden border border-primary/10"
-    >
-      <div
-        className="flex items-center gap-2 px-3 py-2 border-b border-primary/[0.06] bg-primary/[0.03]"
-      >
-        <Sparkles size={10} className="text-primary/40" />
-        <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">Hechizos</span>
-      </div>
-      <BloqueHechizos personajeId={personajeId} especie={especie} varianteId={varianteId} />
-    </div>
-  );
+// ─── Hook: ID de criatura a partir del nombre de especie ─────────────────────
+// Resuelve el ID de la criatura para pasar a BloqueHechizos / BloqueDones.
+function useCriaturaIdPorNombre(nombreEspecie: string | null | undefined): string | null {
+  const [criaturaId, setCriaturaId] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    if (!nombreEspecie?.trim()) { setCriaturaId(null); return; }
+
+    // 1. Dexie primero
+    try {
+      if (db) {
+        const allCriaturas: any[] = await (db as any).criaturas?.toArray() ?? [];
+        const criLocal = allCriaturas.find((c: any) =>
+          c.nombre?.toLowerCase() === nombreEspecie.trim().toLowerCase()
+        );
+        if (criLocal) { setCriaturaId(criLocal.id); if (!navigator.onLine) return; }
+      }
+    } catch {}
+
+    if (!navigator.onLine) return;
+
+    const { data } = await supabase
+      .from("criaturas")
+      .select("id")
+      .ilike("nombre", nombreEspecie.trim())
+      .limit(1)
+      .maybeSingle();
+    setCriaturaId(data?.id ?? null);
+  }, [nombreEspecie]);
+
+  useEffect(() => { load(); }, [load]);
+
+  return criaturaId;
 }
 
 // ─── Hook: variantes de una criatura por nombre ───────────────────────────────
@@ -150,7 +168,7 @@ function useCriaturaVariantesPorNombre(nombreEspecie: string | null | undefined)
   const load = useCallback(async () => {
     if (!nombreEspecie?.trim()) { setVariantes([]); return; }
 
-    // 1. Buscar en Dexie primero
+    // 1. Dexie primero
     try {
       if (db) {
         const allCriaturas: any[] = await (db as any).criaturas?.toArray() ?? [];
@@ -171,7 +189,8 @@ function useCriaturaVariantesPorNombre(nombreEspecie: string | null | undefined)
       .from("criaturas")
       .select("id")
       .ilike("nombre", nombreEspecie.trim())
-      .single();
+      .limit(1)
+      .maybeSingle();
     if (!criatura) { setVariantes([]); return; }
     const { data } = await supabase
       .from("criatura_variantes")
@@ -190,6 +209,23 @@ function useCriaturaVariantesPorNombre(nombreEspecie: string | null | undefined)
   return variantes;
 }
 
+// ─── Sección Hechizos inline ──────────────────────────────────────────────────
+function SeccionHechizos({ personajeId, criaturaId }: { personajeId: string; criaturaId: string | null }) {
+  return (
+    <div
+      className="rounded-xl overflow-hidden border border-primary/10"
+    >
+      <div
+        className="flex items-center gap-2 px-3 py-2 border-b border-primary/[0.06] bg-primary/[0.03]"
+      >
+        <Sparkles size={10} className="text-primary/40" />
+        <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">Hechizos</span>
+      </div>
+      <BloqueHechizos personajeId={personajeId} criaturaId={criaturaId} />
+    </div>
+  );
+}
+
 // ─── FormularioPersonaje ──────────────────────────────────────────────────────
 export function FormularioPersonaje({
   form, setForm, status, onSave, onDelete, compacto = false, entities = [], onNavigate,
@@ -206,7 +242,8 @@ export function FormularioPersonaje({
   const especies = useNombresDeTabla("criaturas");
   const reinos   = useNombresDeTabla("reinos");
   const [tab, setTab] = useState<InnerTab>("identidad");
-  const variantes = useCriaturaVariantesPorNombre(form.especie);
+  const variantes  = useCriaturaVariantesPorNombre(form.especie);
+  const criaturaId = useCriaturaIdPorNombre(form.especie);
   const { onSnippetAction } = useWikilink();
 
   const field = (k: keyof Personaje) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
@@ -366,7 +403,7 @@ export function FormularioPersonaje({
 
                     {/* Don — mismo estilo que Especie / Reino */}
                     <div className="w-full sm:w-44 sm:shrink-0 space-y-1.5">
-                      <BloqueDones personajeId={form.id} especie={form.especie} varianteId={form.variante_id} />
+                      <BloqueDones personajeId={form.id} criaturaId={criaturaId} />
                     </div>
                   </div>
 
@@ -431,7 +468,7 @@ export function FormularioPersonaje({
                       <BloqueCapsNarrados personajeId={form.id} />
                     </div>
                     <div className="w-full sm:w-56 sm:shrink-0">
-                      <SeccionHechizos personajeId={form.id} especie={form.especie} varianteId={form.variante_id} />
+                      <SeccionHechizos personajeId={form.id} criaturaId={criaturaId} />
                     </div>
                   </div>
                 </div>

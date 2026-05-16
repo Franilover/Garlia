@@ -41,35 +41,36 @@ async function dexieWriteAll(tabla: string, rows: any[]): Promise<void> {
 type DonCatalogo = {
   id: string;
   nombre: string;
+  // IDs de grupos de criaturas que pueden usar este don (vacío = universal)
+  grupo_ids?: string[];
 };
 
-type Asignacion = {
-  don_id:          string;
-  criatura_id:     string;
-  variante_id:     string | null;
-  criatura_nombre: string;
+type GrupoCriaturas = {
+  id: string;
+  miembro_ids: string[];
 };
 
-// ─── Hook: catálogo + asignaciones de criatura ────────────────────────────────
+// ─── Hook: catálogo de dones + grupos de criaturas ────────────────────────────
 const CACHE_TTL = 5 * 60 * 1000;
 
 function useCatalogo() {
-  const [dones,       setDones]       = useState<DonCatalogo[]>([]);
-  const [asignaciones, setAsignaciones] = useState<Asignacion[]>([]);
-  const [loading, setLoading]          = useState(true);
+  const [dones,   setDones]   = useState<DonCatalogo[]>([]);
+  const [grupos,  setGrupos]  = useState<GrupoCriaturas[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     const run = async () => {
       // 1. Dexie: dones
       const localD = await dexieReadAll<DonCatalogo>("dones");
-      // 2. session_cache: asignaciones
+
+      // 2. session_cache: grupos de criaturas
       try {
         if (db) {
-          const cached = await (db as any).session_cache?.get("don_criaturas");
+          const cached = await (db as any).session_cache?.get("grupos_criaturas_catalogo");
           if (cached && Date.now() - cached.updated_at < CACHE_TTL && !cancelled) {
             if (localD.length) setDones(localD);
-            setAsignaciones(cached.value);
+            setGrupos(cached.value);
             if (localD.length) setLoading(false);
           }
         }
@@ -77,33 +78,38 @@ function useCatalogo() {
 
       if (!navigator.onLine) { setLoading(false); return; }
 
-      const [dRes, aRes] = await Promise.all([
-        supabase.from("dones").select("id, nombre").order("nombre"),
-        supabase.from("don_criaturas")
-          .select("don_id, criatura_id, variante_id, criatura:criaturas!criatura_id(nombre)"),
+      const [dRes, gRes] = await Promise.all([
+        supabase.from("dones").select("id, nombre, grupo_ids").order("nombre"),
+        supabase.from("grupos_mundo")
+          .select("id, miembro_ids")
+          .eq("tipo", "criaturas"),
       ]);
       if (cancelled) return;
 
       const donesData = (dRes.data ?? []) as DonCatalogo[];
-      const rows: Asignacion[] = (aRes.data ?? []).map((r: any) => ({
-        don_id:          r.don_id,
-        criatura_id:     r.criatura_id,
-        variante_id:     r.variante_id,
-        criatura_nombre: (Array.isArray(r.criatura) ? r.criatura[0]?.nombre : r.criatura?.nombre) ?? "",
+      const gruposData: GrupoCriaturas[] = (gRes.data ?? []).map((r: any) => ({
+        id: r.id,
+        miembro_ids: r.miembro_ids ?? [],
       }));
+
       setDones(donesData);
-      setAsignaciones(rows);
+      setGrupos(gruposData);
       setLoading(false);
+
       await dexieWriteAll("dones", donesData);
       try {
-        if (db) await (db as any).session_cache?.put({ key: "don_criaturas", value: rows, updated_at: Date.now() });
+        if (db) await (db as any).session_cache?.put({
+          key: "grupos_criaturas_catalogo",
+          value: gruposData,
+          updated_at: Date.now(),
+        });
       } catch {}
     };
     run();
     return () => { cancelled = true; };
   }, []);
 
-  return { dones, asignaciones, loading };
+  return { dones, grupos, loading };
 }
 
 // ─── Hook: don asignado al personaje (solo uno) ───────────────────────────────
@@ -140,42 +146,38 @@ function useAsignado(personajeId: string) {
 }
 
 // ─── Lógica de compatibilidad ─────────────────────────────────────────────────
+// Sin grupo_ids → universal. Con grupo_ids → la criatura debe estar en alguno.
 function esCompatible(
   don: DonCatalogo,
-  asignaciones: Asignacion[],
-  especie: string | null | undefined,
-  varianteId: string | null | undefined,
+  grupos: GrupoCriaturas[],
+  criaturaId: string | null | undefined,
 ): boolean {
-  const propias = asignaciones.filter(a => a.don_id === don.id);
-  if (propias.length === 0) return true;
+  const grupoIds = don.grupo_ids ?? [];
+  if (grupoIds.length === 0) return true;
+  if (!criaturaId) return false;
 
-  if (!especie?.trim()) return false;
-  const esp = especie.toLowerCase().trim();
-
-  return propias.some(a => {
-    const criNombre = a.criatura_nombre.toLowerCase().trim();
-    const nombreMatch = esp.includes(criNombre) || criNombre.includes(esp);
-    if (!nombreMatch) return false;
-    if (a.variante_id) return a.variante_id === varianteId;
-    return true;
+  return grupoIds.some(gid => {
+    const grupo = grupos.find(g => g.id === gid);
+    return grupo ? grupo.miembro_ids.includes(criaturaId) : false;
   });
 }
 
 // ─── Componente principal ─────────────────────────────────────────────────────
-export function BloqueDones({ personajeId, especie, varianteId }: {
-  personajeId: string; especie?: string | null; varianteId?: string | null;
+export function BloqueDones({ personajeId, criaturaId }: {
+  personajeId: string;
+  criaturaId?: string | null;
 }) {
-  const { dones, asignaciones, loading: loadingCatalogo } = useCatalogo();
+  const { dones, grupos, loading: loadingCatalogo } = useCatalogo();
   const { donId, loading: loadingAsignado, assign, clear } = useAsignado(personajeId);
   const [input, setInput] = useState("");
   const [open,  setOpen]  = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
-  const noEspecie = !especie?.trim();
+  const sinCriatura = !criaturaId;
 
   const compatibles = useMemo(
-    () => dones.filter(d => esCompatible(d, asignaciones, especie, varianteId)),
-    [dones, asignaciones, especie, varianteId]
+    () => dones.filter(d => esCompatible(d, grupos, criaturaId)),
+    [dones, grupos, criaturaId]
   );
 
   const donActual   = compatibles.find(d => d.id === donId) ?? null;
@@ -199,7 +201,6 @@ export function BloqueDones({ personajeId, especie, varianteId }: {
     <div className="space-y-1.5" ref={ref}>
       <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">Don</label>
       <div className="relative">
-        {/* Si hay don asignado mostramos su nombre en el input con X para quitar */}
         {donActual ? (
           <div className={INPUT_CLS + " pr-8 flex items-center"}>
             {loadingCatalogo || loadingAsignado
@@ -220,17 +221,17 @@ export function BloqueDones({ personajeId, especie, varianteId }: {
               value={input}
               onChange={e => { setInput(e.target.value); setOpen(true); }}
               onFocus={() => setOpen(true)}
-              disabled={noEspecie || loadingCatalogo || loadingAsignado}
+              disabled={sinCriatura || loadingCatalogo || loadingAsignado}
               placeholder={
                 loadingCatalogo || loadingAsignado ? "Cargando…"
-                : noEspecie ? "Sin especie…"
+                : sinCriatura ? "Sin criatura…"
                 : "Buscar don…"
               }
               className={INPUT_CLS + " pr-8 disabled:opacity-40 disabled:cursor-not-allowed"}
             />
             <button
               type="button"
-              onClick={() => !noEspecie && setOpen(o => !o)}
+              onClick={() => !sinCriatura && setOpen(o => !o)}
               className="absolute right-2.5 top-1/2 -translate-y-1/2 text-primary/30 hover:text-primary transition-colors"
             >
               <ChevronDown size={13} className={`transition-transform duration-200 ${open ? "rotate-180" : ""}`} />

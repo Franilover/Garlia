@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
-  Sparkles, Star, Plus, Trash2, Save, Loader2, Search, X, Bug, ChevronDown, Check,
+  Sparkles, Star, Plus, Trash2, Save, Loader2, Search, X, Layers, Check,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
@@ -39,45 +39,24 @@ async function dexieWriteAll(tabla: string, rows: any[]): Promise<void> {
   } catch {}
 }
 
-
-
 // ─── Types ────────────────────────────────────────────────────────────────────
 export type Hechizo = {
   id: string;
   nombre: string;
   explicacion?: string;
-  // legacy — se mantiene por compatibilidad con BloqueHechizos/BloqueDones
-  criatura_id?: string | null;
-  criatura?: { id: string; nombre: string; imagen_url?: string } | null;
-  variante_id?: string | null;
-  variante?: { id: string; tipo: string } | null;
+  grupo_ids?: string[];
 };
 
 export type Don = Hechizo;
 
 type EntidadMagica = Hechizo;
 type Modo = "hechizos" | "dones";
-type CriaturaMin = { id: string; nombre: string; imagen_url?: string };
-type VarianteMin = { id: string; tipo: string };
 
-// Una fila de la tabla join (hechizo_criaturas / don_criaturas)
-type AsignacionCriatura = {
-  id: string;           // PK de la fila join
-  criatura_id: string;
-  criatura: CriaturaMin;
-  variante_id: string | null;
-  variante: VarianteMin | null;
-};
-
-// Nombre de la tabla join según modo
-const JOIN_TABLA: Record<Modo, string> = {
-  hechizos: "hechizo_criaturas",
-  dones:    "don_criaturas",
-};
-// Nombre de la FK en la tabla join
-const JOIN_FK: Record<Modo, string> = {
-  hechizos: "hechizo_id",
-  dones:    "don_id",
+// Grupo mínimo de criaturas
+type GrupoMin = {
+  id: string;
+  nombre: string;
+  miembro_ids: string[];
 };
 
 const CONFIG: Record<Modo, {
@@ -96,53 +75,7 @@ const CONFIG: Record<Modo, {
   },
 };
 
-// ─── Hooks ────────────────────────────────────────────────────────────────────
-function useCriaturas() {
-  const [criaturas, setCriaturas] = useState<CriaturaMin[]>([]);
-  const [loading, setLoading] = useState(true);
-  useEffect(() => {
-    let cancelled = false;
-    const run = async () => {
-      const local = await dexieReadAll<CriaturaMin>("criaturas");
-      if (local.length && !cancelled) { setCriaturas(local); setLoading(false); }
-      if (!navigator.onLine) { if (!local.length) setLoading(false); return; }
-      const { data } = await supabase.from("criaturas").select("id, nombre, imagen_url").order("nombre");
-      if (cancelled) return;
-      const result = (data ?? []) as CriaturaMin[];
-      setCriaturas(result); setLoading(false);
-      await dexieWriteAll("criaturas", result);
-    };
-    run(); return () => { cancelled = true; };
-  }, []);
-  return { criaturas, loading };
-}
-
-function useCriaturaVariantes(criaturaId: string | null) {
-  const [variantes, setVariantes] = useState<VarianteMin[]>([]);
-  const [loading, setLoading] = useState(false);
-  useEffect(() => {
-    if (!criaturaId) { setVariantes([]); return; }
-    let cancelled = false;
-    const run = async () => {
-      setLoading(true);
-      try {
-        if (db) {
-          const local: any[] = await (db as any).criatura_variantes?.where("criatura_id").equals(criaturaId).toArray() ?? [];
-          if (local.length && !cancelled) { setVariantes(local); setLoading(false); if (!navigator.onLine) return; }
-        }
-      } catch {}
-      if (!navigator.onLine) { setLoading(false); return; }
-      const { data } = await supabase.from("criatura_variantes").select("id, tipo").eq("criatura_id", criaturaId).order("tipo");
-      if (cancelled) return;
-      const result = (data ?? []) as VarianteMin[];
-      setVariantes(result); setLoading(false);
-      try { if (db && result.length) await (db as any).criatura_variantes?.bulkPut(result); } catch {}
-    };
-    run(); return () => { cancelled = true; };
-  }, [criaturaId]);
-  return { variantes, loading };
-}
-
+// ─── Hook: catálogo de entidades mágicas ──────────────────────────────────────
 function useEntidadesMagicas(modo: Modo) {
   const [items, setItems] = useState<EntidadMagica[]>([]);
   const [loading, setLoading] = useState(true);
@@ -152,7 +85,10 @@ function useEntidadesMagicas(modo: Modo) {
     if (local.length) { setItems(local); setLoading(false); }
     if (!navigator.onLine) { if (!local.length) setLoading(false); return; }
     setLoading(!local.length);
-    const { data } = await supabase.from(tabla).select("id, nombre, explicacion").order("nombre");
+    const { data } = await supabase
+      .from(tabla)
+      .select("id, nombre, explicacion, grupo_ids")
+      .order("nombre");
     const result = (data ?? []) as EntidadMagica[];
     setItems(result); setLoading(false);
     await dexieWriteAll(tabla, result);
@@ -161,80 +97,54 @@ function useEntidadesMagicas(modo: Modo) {
   return { items, setItems, loading };
 }
 
-// Carga las asignaciones de criaturas para un hechizo/don concreto
-function useAsignaciones(entidadId: string, modo: Modo) {
-  const [asignaciones, setAsignaciones] = useState<AsignacionCriatura[]>([]);
+// ─── Hook: grupos de criaturas ────────────────────────────────────────────────
+function useGruposCriaturas() {
+  const [grupos, setGrupos] = useState<GrupoMin[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    const { data } = await supabase
-      .from(JOIN_TABLA[modo])
-      .select(`
-        id,
-        criatura_id,
-        criatura:criaturas!criatura_id(id, nombre, imagen_url),
-        variante_id,
-        variante:criatura_variantes!variante_id(id, tipo)
-      `)
-      .eq(JOIN_FK[modo], entidadId);
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      // Dexie primero
+      try {
+        if (db && (db as any).grupos_mundo) {
+          const all = await (db as any).grupos_mundo.toArray() as any[];
+          const local: GrupoMin[] = all
+            .filter((g: any) => !g.deleted && g.tipo === "criaturas")
+            .map((g: any) => ({ id: g.id, nombre: g.nombre, miembro_ids: g.miembro_ids ?? [] }));
+          if (local.length && !cancelled) { setGrupos(local); setLoading(false); }
+        }
+      } catch {}
 
-    // Supabase puede devolver los joins como array — normalizamos
-    const rows: AsignacionCriatura[] = (data ?? []).map((row: any) => ({
-      id:          row.id,
-      criatura_id: row.criatura_id,
-      criatura:    Array.isArray(row.criatura) ? row.criatura[0] : row.criatura,
-      variante_id: row.variante_id,
-      variante:    Array.isArray(row.variante) ? row.variante[0] : row.variante,
-    }));
-    setAsignaciones(rows);
-    setLoading(false);
-  }, [entidadId, modo]);
+      if (!navigator.onLine) { setLoading(false); return; }
 
-  useEffect(() => { load(); }, [load]);
-
-  const agregar = async (criatura: CriaturaMin): Promise<AsignacionCriatura | null> => {
-    const { data, error } = await supabase
-      .from(JOIN_TABLA[modo])
-      .insert([{ [JOIN_FK[modo]]: entidadId, criatura_id: criatura.id }])
-      .select("id, criatura_id, variante_id")
-      .single();
-    if (error || !data) return null;
-    const nueva: AsignacionCriatura = {
-      id: data.id, criatura_id: criatura.id, criatura,
-      variante_id: null, variante: null,
+      const { data } = await supabase
+        .from("grupos_mundo")
+        .select("id, nombre, miembro_ids")
+        .eq("tipo", "criaturas")
+        .order("nombre");
+      if (cancelled) return;
+      const result: GrupoMin[] = (data ?? []).map((r: any) => ({
+        id: r.id,
+        nombre: r.nombre,
+        miembro_ids: r.miembro_ids ?? [],
+      }));
+      setGrupos(result);
+      setLoading(false);
     };
-    setAsignaciones(prev => [...prev, nueva]);
-    return nueva;
-  };
+    run();
+    return () => { cancelled = true; };
+  }, []);
 
-  const quitar = async (asignacionId: string) => {
-    await supabase.from(JOIN_TABLA[modo]).delete().eq("id", asignacionId);
-    setAsignaciones(prev => prev.filter(a => a.id !== asignacionId));
-  };
-
-  const actualizarVariante = async (asignacionId: string, variante: VarianteMin | null) => {
-    await supabase.from(JOIN_TABLA[modo])
-      .update({ variante_id: variante?.id ?? null })
-      .eq("id", asignacionId);
-    setAsignaciones(prev => prev.map(a =>
-      a.id === asignacionId ? { ...a, variante_id: variante?.id ?? null, variante } : a
-    ));
-  };
-
-  return { asignaciones, loading, agregar, quitar, actualizarVariante };
+  return { grupos, loading };
 }
 
-// ─── FilaCriatura: una criatura asignada con selector de variante ─────────────
-function FilaCriatura({ asig, modo, onQuitar, onVarianteChange, color }: {
-  asig: AsignacionCriatura;
-  modo: Modo;
+// ─── FilaGrupo: un grupo asignado ─────────────────────────────────────────────
+function FilaGrupo({ grupo, onQuitar, color }: {
+  grupo: GrupoMin;
   onQuitar: () => void;
-  onVarianteChange: (v: VarianteMin | null) => void;
   color: string;
 }) {
-  const { variantes, loading } = useCriaturaVariantes(asig.criatura_id);
-
   return (
     <div
       className="rounded-xl border overflow-hidden"
@@ -243,81 +153,32 @@ function FilaCriatura({ asig, modo, onQuitar, onVarianteChange, color }: {
         background:  `color-mix(in srgb, ${color} 4%, transparent)`,
       }}
     >
-      {/* Fila principal */}
       <div className="flex items-center gap-2.5 px-3 py-2">
-        <div className="shrink-0 w-7 h-7 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
-          {asig.criatura.imagen_url
-            ? <img src={asig.criatura.imagen_url} alt={asig.criatura.nombre} className="w-full h-full object-cover" />
-            : <Bug size={11} className="text-primary/25" />}
+        <div className="shrink-0 w-7 h-7 rounded-lg border border-primary/10 bg-primary/5 flex items-center justify-center">
+          <Layers size={11} className="text-primary/30" />
         </div>
-        <span className="flex-1 text-[11px] font-bold text-primary/85 truncate">{asig.criatura.nombre}</span>
+        <div className="flex-1 min-w-0">
+          <span className="text-[11px] font-bold text-primary/85 truncate block">{grupo.nombre}</span>
+          <span className="text-[9px] text-primary/30">{grupo.miembro_ids.length} criaturas</span>
+        </div>
         <button
           onClick={onQuitar}
           className="w-6 h-6 rounded-lg flex items-center justify-center text-primary/20 hover:text-red-400 hover:bg-red-400/10 transition-all"
-          title="Quitar criatura"
+          title="Quitar grupo"
         >
           <X size={10} />
         </button>
       </div>
-
-      {/* Selector de variante */}
-      {(loading || variantes.length > 0) && (
-        <div
-          className="flex flex-wrap items-center gap-1 px-3 pb-2 pt-0 border-t"
-          style={{ borderColor: `color-mix(in srgb, ${color} 12%, transparent)` }}
-        >
-          <span className="text-[8px] font-black uppercase tracking-[0.25em] text-primary/25 mr-0.5 mt-1.5">Variante</span>
-          {loading ? (
-            <Loader2 size={9} className="animate-spin text-primary/20 mt-1.5" />
-          ) : (
-            <>
-              <button
-                type="button"
-                onClick={() => onVarianteChange(null)}
-                className="mt-1.5 px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border transition-all"
-                style={!asig.variante_id ? {
-                  background:  `color-mix(in srgb, ${color} 12%, transparent)`,
-                  borderColor: `color-mix(in srgb, ${color} 25%, transparent)`,
-                  color,
-                } : {
-                  borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
-                  color: "color-mix(in srgb, var(--primary) 25%, transparent)",
-                }}
-              >
-                Todas
-              </button>
-              {variantes.map(v => (
-                <button
-                  key={v.id}
-                  type="button"
-                  onClick={() => onVarianteChange(v)}
-                  className="mt-1.5 px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border transition-all"
-                  style={asig.variante_id === v.id ? {
-                    background:  `color-mix(in srgb, ${color} 12%, transparent)`,
-                    borderColor: `color-mix(in srgb, ${color} 25%, transparent)`,
-                    color,
-                  } : {
-                    borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
-                    color: "color-mix(in srgb, var(--primary) 25%, transparent)",
-                  }}
-                >
-                  {v.tipo}
-                </button>
-              ))}
-            </>
-          )}
-        </div>
-      )}
     </div>
   );
 }
 
-// ─── SelectorAgregarCriatura: dropdown para añadir criaturas ─────────────────
-function SelectorAgregarCriatura({ criaturas, loadingCriaturas, asignadas, onAgregar, color }: {
-  criaturas: CriaturaMin[];
-  loadingCriaturas: boolean;
-  asignadas: string[];   // IDs ya asignados
-  onAgregar: (c: CriaturaMin) => void;
+// ─── SelectorAgregarGrupo: dropdown para añadir grupos de criaturas ───────────
+function SelectorAgregarGrupo({ grupos, loadingGrupos, asignados, onAgregar, color }: {
+  grupos: GrupoMin[];
+  loadingGrupos: boolean;
+  asignados: string[];   // IDs de grupos ya asignados
+  onAgregar: (g: GrupoMin) => void;
   color: string;
 }) {
   const [open, setOpen]     = useState(false);
@@ -325,11 +186,11 @@ function SelectorAgregarCriatura({ criaturas, loadingCriaturas, asignadas, onAgr
   const ref = useRef<HTMLDivElement>(null);
 
   const disponibles = useMemo(
-    () => criaturas.filter(c =>
-      !asignadas.includes(c.id) &&
-      c.nombre.toLowerCase().includes(search.toLowerCase())
+    () => grupos.filter(g =>
+      !asignados.includes(g.id) &&
+      g.nombre.toLowerCase().includes(search.toLowerCase())
     ),
-    [criaturas, asignadas, search]
+    [grupos, asignados, search]
   );
 
   useEffect(() => {
@@ -362,7 +223,7 @@ function SelectorAgregarCriatura({ criaturas, loadingCriaturas, asignadas, onAgr
           (e.currentTarget as HTMLElement).style.color = `color-mix(in srgb, ${color} 55%, transparent)`;
         }}
       >
-        <Plus size={9} /> Agregar criatura
+        <Plus size={9} /> Agregar grupo de criaturas
       </button>
 
       {open && (
@@ -379,30 +240,31 @@ function SelectorAgregarCriatura({ criaturas, loadingCriaturas, asignadas, onAgr
                   autoFocus
                   value={search}
                   onChange={e => setSearch(e.target.value)}
-                  placeholder="Buscar criatura…"
+                  placeholder="Buscar grupo…"
                   className="w-full bg-primary/5 border border-primary/10 rounded-lg pl-7 pr-2 py-1.5 text-[10px] outline-none focus:border-primary/25 text-primary placeholder:text-primary/25"
                 />
               </div>
             </div>
             <div className="max-h-52 overflow-y-auto p-1">
-              {loadingCriaturas ? (
+              {loadingGrupos ? (
                 <div className="flex justify-center py-6"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
               ) : disponibles.length === 0 ? (
                 <p className="text-[9px] text-primary/25 text-center py-4 italic">
-                  {criaturas.length === asignadas.length ? "Todas las criaturas ya están asignadas" : "Sin resultados"}
+                  {grupos.length === asignados.length ? "Todos los grupos ya están asignados" : "Sin resultados"}
                 </p>
-              ) : disponibles.map(c => (
+              ) : disponibles.map(g => (
                 <button
-                  key={c.id}
-                  onMouseDown={() => { onAgregar(c); setSearch(""); /* NO cerramos — permite agregar varias */ }}
+                  key={g.id}
+                  onMouseDown={() => { onAgregar(g); setSearch(""); }}
                   className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left hover:bg-primary/6 transition-colors"
                 >
-                  <div className="shrink-0 w-6 h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
-                    {c.imagen_url
-                      ? <img src={c.imagen_url} alt={c.nombre} className="w-full h-full object-cover" />
-                      : <Bug size={10} className="text-primary/20" />}
+                  <div className="shrink-0 w-6 h-6 rounded-lg border border-primary/10 bg-primary/5 flex items-center justify-center">
+                    <Layers size={10} className="text-primary/25" />
                   </div>
-                  <span className="flex-1 text-[11px] font-medium text-primary/80 truncate">{c.nombre}</span>
+                  <div className="flex-1 min-w-0">
+                    <span className="text-[11px] font-medium text-primary/80 truncate block">{g.nombre}</span>
+                    <span className="text-[9px] text-primary/30">{g.miembro_ids.length} criaturas</span>
+                  </div>
                   <Check size={9} className="text-primary/15" />
                 </button>
               ))}
@@ -414,52 +276,63 @@ function SelectorAgregarCriatura({ criaturas, loadingCriaturas, asignadas, onAgr
   );
 }
 
-// ─── Panel de criaturas asignadas ─────────────────────────────────────────────
-function PanelCriaturasAsignadas({ entidadId, modo, criaturas, loadingCriaturas, color }: {
+// ─── Panel de grupos asignados ────────────────────────────────────────────────
+function PanelGruposAsignados({ entidadId, modo, grupoIds, onGrupoIdsChange, grupos, loadingGrupos, color }: {
   entidadId: string;
   modo: Modo;
-  criaturas: CriaturaMin[];
-  loadingCriaturas: boolean;
+  grupoIds: string[];
+  onGrupoIdsChange: (ids: string[]) => void;
+  grupos: GrupoMin[];
+  loadingGrupos: boolean;
   color: string;
 }) {
-  const { asignaciones, loading, agregar, quitar, actualizarVariante } = useAsignaciones(entidadId, modo);
-  const asignadasIds = asignaciones.map(a => a.criatura_id);
+  const asignados = useMemo(
+    () => grupos.filter(g => grupoIds.includes(g.id)),
+    [grupos, grupoIds]
+  );
+
+  const agregar = (g: GrupoMin) => {
+    if (grupoIds.includes(g.id)) return;
+    onGrupoIdsChange([...grupoIds, g.id]);
+  };
+
+  const quitar = (grupoId: string) => {
+    onGrupoIdsChange(grupoIds.filter(id => id !== grupoId));
+  };
 
   return (
     <div className="space-y-2">
       <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35 flex items-center gap-1.5">
-        <Bug size={9} /> Criaturas que pueden usarlo
+        <Layers size={9} /> Grupos de criaturas que pueden usarlo
       </label>
 
-      {loading ? (
+      {loadingGrupos ? (
         <div className="flex items-center gap-2 py-2">
           <Loader2 size={11} className="animate-spin text-primary/20" />
-          <span className="text-[10px] text-primary/25 italic">Cargando…</span>
+          <span className="text-[10px] text-primary/25 italic">Cargando grupos…</span>
         </div>
       ) : (
         <div className="space-y-2">
-          {asignaciones.length === 0 && (
+          {asignados.length === 0 && (
             <p className="text-[9px] text-primary/20 italic px-1">
-              Sin criaturas asignadas — estará disponible para todos (universal)
+              Sin grupos asignados — estará disponible para todos (universal)
             </p>
           )}
 
-          {asignaciones.map(asig => (
-            <FilaCriatura
-              key={asig.id}
-              asig={asig}
-              modo={modo}
+          {asignados.map(g => (
+            <FilaGrupo
+              key={g.id}
+              grupo={g}
               color={color}
-              onQuitar={() => quitar(asig.id)}
-              onVarianteChange={v => actualizarVariante(asig.id, v)}
+              onQuitar={() => quitar(g.id)}
             />
           ))}
 
-          <SelectorAgregarCriatura
-            criaturas={criaturas}
-            loadingCriaturas={loadingCriaturas}
-            asignadas={asignadasIds}
-            onAgregar={c => agregar(c)}
+          <SelectorAgregarGrupo
+            grupos={grupos}
+            loadingGrupos={loadingGrupos}
+            asignados={grupoIds}
+            onAgregar={agregar}
             color={color}
           />
         </div>
@@ -469,11 +342,11 @@ function PanelCriaturasAsignadas({ entidadId, modo, criaturas, loadingCriaturas,
 }
 
 // ─── Formulario de edición ────────────────────────────────────────────────────
-function FormularioMagico({ item, modo, criaturas, loadingCriaturas, onSaved, onDeleted }: {
+function FormularioMagico({ item, modo, grupos, loadingGrupos, onSaved, onDeleted }: {
   item: EntidadMagica;
   modo: Modo;
-  criaturas: CriaturaMin[];
-  loadingCriaturas: boolean;
+  grupos: GrupoMin[];
+  loadingGrupos: boolean;
   onSaved:   (i: EntidadMagica) => void;
   onDeleted: (id: string) => void;
 }) {
@@ -488,7 +361,11 @@ function FormularioMagico({ item, modo, criaturas, loadingCriaturas, onSaved, on
     setStatus("saving");
     try {
       const { error } = await supabase.from(cfg.tabla)
-        .update({ nombre: form.nombre, explicacion: form.explicacion || null })
+        .update({
+          nombre:     form.nombre,
+          explicacion: form.explicacion || null,
+          grupo_ids:  form.grupo_ids ?? [],
+        })
         .eq("id", form.id);
       if (error) throw error;
       setStatus("saved");
@@ -542,12 +419,14 @@ function FormularioMagico({ item, modo, criaturas, loadingCriaturas, onSaved, on
 
       {/* Body */}
       <div className="flex-1 overflow-y-auto min-h-0 p-4 space-y-5">
-        {/* Criaturas asignadas — multi */}
-        <PanelCriaturasAsignadas
+        {/* Grupos de criaturas asignados */}
+        <PanelGruposAsignados
           entidadId={form.id}
           modo={modo}
-          criaturas={criaturas}
-          loadingCriaturas={loadingCriaturas}
+          grupoIds={form.grupo_ids ?? []}
+          onGrupoIdsChange={ids => setForm(f => ({ ...f, grupo_ids: ids }))}
+          grupos={grupos}
+          loadingGrupos={loadingGrupos}
           color={cfg.color}
         />
 
@@ -572,7 +451,7 @@ function FormularioMagico({ item, modo, criaturas, loadingCriaturas, onSaved, on
 export function EditorHechizos({ modo }: { modo: Modo }) {
   const cfg = CONFIG[modo];
   const { items, setItems, loading } = useEntidadesMagicas(modo);
-  const { criaturas, loading: loadingCriaturas } = useCriaturas();
+  const { grupos, loading: loadingGrupos } = useGruposCriaturas();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search,     setSearch]     = useState("");
   const [creating,   setCreating]   = useState(false);
@@ -588,8 +467,8 @@ export function EditorHechizos({ modo }: { modo: Modo }) {
     try {
       const { data, error } = await supabase
         .from(cfg.tabla)
-        .insert([{ nombre: `Nuevo ${cfg.labelSing}` }])
-        .select("id, nombre, explicacion")
+        .insert([{ nombre: `Nuevo ${cfg.labelSing}`, grupo_ids: [] }])
+        .select("id, nombre, explicacion, grupo_ids")
         .single();
       if (error) throw error;
       setItems(prev => [data, ...prev]);
@@ -659,8 +538,8 @@ export function EditorHechizos({ modo }: { modo: Modo }) {
             key={selected.id}
             item={selected}
             modo={modo}
-            criaturas={criaturas}
-            loadingCriaturas={loadingCriaturas}
+            grupos={grupos}
+            loadingGrupos={loadingGrupos}
             onSaved={updated => setItems(prev => prev.map(i => i.id === updated.id ? updated : i))}
             onDeleted={id => { setItems(prev => prev.filter(i => i.id !== id)); setSelectedId(null); }}
           />
