@@ -207,7 +207,7 @@ function BloqueItemsNaturales({
             <div key={it.dropId} className="relative group">
               <button
                 onClick={() => onSelectItem?.(it.itemId)}
-                className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-left transition-all hover:scale-[1.02] active:scale-[0.98]"
+                className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-left transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
                 style={{
                   background: "color-mix(in srgb, var(--primary) 4%, transparent)",
                   border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
@@ -222,7 +222,7 @@ function BloqueItemsNaturales({
               </button>
               <button
                 onClick={e => { e.stopPropagation(); remove(it.dropId); }}
-                className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all bg-red-500/10 hover:bg-red-500/20 text-red-400/60 hover:text-red-400 border border-red-500/20"
+                className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all bg-red-500/10 hover:bg-red-500/20 text-red-400/60 hover:text-red-400 border border-red-500/20 cursor-pointer"
               >
                 <X size={8} />
               </button>
@@ -233,7 +233,7 @@ function BloqueItemsNaturales({
 
       <div className="relative">
         <button onClick={() => setOpen(o => !o)}
-          className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg border border-dashed border-primary/15 text-[9px] font-black uppercase tracking-widest text-primary/30 hover:text-primary/60 hover:border-primary/30 transition-all">
+          className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg border border-dashed border-primary/15 text-[9px] font-black uppercase tracking-widest text-primary/30 hover:text-primary/60 hover:border-primary/30 transition-all cursor-pointer">
           <Plus size={9} /> Añadir ítem
         </button>
         {open && (
@@ -250,7 +250,7 @@ function BloqueItemsNaturales({
               )}
               {filtered.map(it => (
                 <button key={it.id} onClick={() => { add(it); setOpen(false); setSearch(""); }}
-                  className="w-full flex items-center gap-2 px-2.5 py-1.5 hover:bg-primary/5 transition-colors text-left">
+                  className="w-full flex items-center gap-2 px-2.5 py-1.5 hover:bg-primary/5 transition-colors text-left cursor-pointer">
                   <div className="shrink-0 w-5 h-5 rounded-md overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
                     {it.imagen_url
                       ? <img src={it.imagen_url} alt={it.nombre} className="w-full h-full object-cover" />
@@ -310,7 +310,7 @@ function BloqueItemsCraftedos({
               {/* Tarjeta clickeable */}
               <button
                 onClick={() => onSelectItem?.(it.itemId)}
-                className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-left transition-all hover:scale-[1.02] active:scale-[0.98]"
+                className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-left transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
                 style={{
                   background: "color-mix(in srgb, var(--primary) 4%, transparent)",
                   border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
@@ -327,7 +327,7 @@ function BloqueItemsCraftedos({
               {/* Botón quitar flotante */}
               <button
                 onClick={e => { e.stopPropagation(); remove(it.crafterId); }}
-                className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all bg-red-500/10 hover:bg-red-500/20 text-red-400/60 hover:text-red-400 border border-red-500/20"
+                className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all bg-red-500/10 hover:bg-red-500/20 text-red-400/60 hover:text-red-400 border border-red-500/20 cursor-pointer"
               >
                 <X size={8} />
               </button>
@@ -339,7 +339,7 @@ function BloqueItemsCraftedos({
       {/* Dropdown para añadir */}
       <div className="relative">
         <button onClick={() => setOpen(o => !o)}
-          className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg border border-dashed border-primary/15 text-[9px] font-black uppercase tracking-widest text-primary/30 hover:text-primary/60 hover:border-primary/30 transition-all">
+          className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg border border-dashed border-primary/15 text-[9px] font-black uppercase tracking-widest text-primary/30 hover:text-primary/60 hover:border-primary/30 transition-all cursor-pointer">
           <Plus size={9} /> Añadir ítem
         </button>
         {open && (
@@ -356,7 +356,7 @@ function BloqueItemsCraftedos({
               )}
               {filtered.map(it => (
                 <button key={it.id} onClick={() => { add(it); setOpen(false); setSearch(""); }}
-                  className="w-full flex items-center gap-2 px-2.5 py-1.5 hover:bg-primary/5 transition-colors text-left">
+                  className="w-full flex items-center gap-2 px-2.5 py-1.5 hover:bg-primary/5 transition-colors text-left cursor-pointer">
                   <div className="shrink-0 w-5 h-5 rounded-md overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
                     {it.imagen_url
                       ? <img src={it.imagen_url} alt={it.nombre} className="w-full h-full object-cover" />
@@ -395,7 +395,7 @@ function CampoLore({
       <button
         type="button"
         onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-primary/3"
+        className="w-full flex items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-primary/3 cursor-pointer"
       >
         {Icon && <Icon size={12} className="shrink-0 text-primary/35" />}
         <div className="flex-1 min-w-0">
@@ -458,7 +458,7 @@ function VarianteEditor({
 
   return (
     <div
-      className="rounded-xl overflow-hidden transition-all"
+      className="rounded-xl overflow-hidden transition-all cursor-pointer"
       style={{
         border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
         background: "color-mix(in srgb, var(--primary) 2%, transparent)",
@@ -534,11 +534,11 @@ function VarianteEditor({
 
           <div className="flex items-center justify-between pt-3">
             <button onClick={handleDelete}
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest text-red-400/60 hover:text-red-400 hover:bg-red-500/10 transition-all border border-transparent hover:border-red-500/20">
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest text-red-400/60 hover:text-red-400 hover:bg-red-500/10 transition-all border border-transparent hover:border-red-500/20 cursor-pointer">
               <Trash2 size={10} /> Eliminar
             </button>
             <button onClick={handleSave}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-btn-text rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-primary/90 transition-all">
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-btn-text rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-primary/90 transition-all cursor-pointer">
               <Check size={10} /> Guardar
             </button>
           </div>
@@ -598,7 +598,7 @@ function BloqueGruposCriatura({
               <button
                 type="button"
                 onClick={() => onRemove(g.id)}
-                className="w-3.5 h-3.5 rounded flex items-center justify-center text-primary/30 hover:text-red-400 transition-colors"
+                className="w-3.5 h-3.5 rounded flex items-center justify-center text-primary/30 hover:text-red-400 transition-colors cursor-pointer"
               >
                 <X size={8} />
               </button>
@@ -612,7 +612,7 @@ function BloqueGruposCriatura({
         <button
           type="button"
           onClick={() => setOpen(o => !o)}
-          className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-dashed text-[9px] font-black uppercase tracking-widest transition-all"
+          className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-dashed text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer"
           style={{
             borderColor: "color-mix(in srgb, var(--primary) 18%, transparent)",
             color: "color-mix(in srgb, var(--primary) 35%, transparent)",
@@ -645,7 +645,7 @@ function BloqueGruposCriatura({
                     key={g.id}
                     type="button"
                     onMouseDown={() => { onAdd(g.id); setOpen(false); setSearch(""); }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-lg text-[11px] font-medium text-primary/75 hover:bg-primary/6 hover:text-primary transition-colors truncate"
+                    className="w-full text-left px-2.5 py-1.5 rounded-lg text-[11px] font-medium text-primary/75 hover:bg-primary/6 hover:text-primary transition-colors truncate cursor-pointer"
                   >
                     {g.nombre}
                   </button>
@@ -752,11 +752,11 @@ export function EditorCriatura({
           <div className="shrink-0 flex items-center gap-2">
             <SaveIndicator status={status} />
             <button onClick={del}
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all">
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all cursor-pointer">
               <Trash2 size={10} />
             </button>
             <button onClick={save} disabled={status === "saving"}
-              className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50">
+              className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed">
               <Save size={11} /> Guardar
             </button>
           </div>
@@ -838,7 +838,7 @@ export function EditorCriatura({
                         key={p.id}
                         type="button"
                         onClick={() => onSelectPersonaje?.(p.id)}
-                        className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02]"
+                        className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02] cursor-pointer"
                         style={{
                           background: "color-mix(in srgb, var(--primary) 4%, transparent)",
                           borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
@@ -884,17 +884,17 @@ export function EditorCriatura({
                         className="flex-1 bg-bg-main border border-primary/20 rounded-lg px-3 py-2 text-xs font-black uppercase text-primary outline-none focus:border-primary/50 tracking-widest"
                         placeholder="TIPO DE VARIANTE..." />
                       <button onClick={handleAddVariante} disabled={!newVarianteTipo.trim()}
-                        className="bg-primary text-btn-text px-3 py-2 rounded-lg font-black hover:bg-primary/90 transition-all disabled:opacity-40">
+                        className="bg-primary text-btn-text px-3 py-2 rounded-lg font-black hover:bg-primary/90 transition-all disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed">
                         <Check size={13} />
                       </button>
                       <button onClick={() => setAddingVariante(false)}
-                        className="px-2.5 py-2 rounded-lg text-primary/40 hover:text-primary transition-all">
+                        className="px-2.5 py-2 rounded-lg text-primary/40 hover:text-primary transition-all cursor-pointer">
                         <X size={13} />
                       </button>
                     </div>
                   ) : (
                     <button onClick={() => setAddingVariante(true)}
-                      className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-dashed border-primary/20 text-[10px] font-black uppercase text-primary/40 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all tracking-widest">
+                      className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-dashed border-primary/20 text-[10px] font-black uppercase text-primary/40 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all tracking-widest cursor-pointer">
                       <Plus size={11} /> Añadir Variante
                     </button>
                   )}
