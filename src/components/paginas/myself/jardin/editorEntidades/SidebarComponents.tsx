@@ -53,11 +53,7 @@ const MUNDO_SUBTABS: { key: MundoSubTab; label: string; aliases: string[]; secti
 const MUNDO_NAV: { section: MundoSectionKey; label: string; subTab: string; aliases: string[] }[] = [
   { section: "geografia", label: "Mundo",      subTab: "mundo",    aliases: ["mundo", "world", "geografia", "geografía"] },
   { section: "historia",  label: "Historia",   subTab: "historia", aliases: ["historia", "history", "lore"] },
-  { section: "geografia", label: "Listas",     subTab: "listas",   aliases: ["lista", "listas", "entidades"] },
-  { section: "geografia", label: "Reinos",     subTab: "listas",   aliases: ["reino", "reinos", "mapa", "mapas"] },
-  { section: "geografia", label: "Criaturas",  subTab: "listas",   aliases: ["criatura", "criaturas", "bestia", "bestias", "monstruo"] },
-  { section: "geografia", label: "Objetos",    subTab: "listas",   aliases: ["objeto", "objetos", "arma", "reliquia"] },
-  { section: "historia",  label: "Personajes", subTab: "listas",   aliases: ["personaje", "personajes", "character", "characters"] },
+  { section: "geografia", label: "Listas",     subTab: "listas",   aliases: ["lista", "listas", "entidades", "reino", "reinos", "mapa", "mapas", "criatura", "criaturas", "bestia", "bestias", "monstruo", "objeto", "objetos", "arma", "reliquia", "personaje", "personajes", "character", "characters"] },
   { section: "magia",     label: "Magia",      subTab: "magia",    aliases: ["magia", "magic", "sistema"] },
   { section: "magia",     label: "Hechizos",   subTab: "hechizos", aliases: ["hechizo", "hechizos", "spell", "spells"] },
   { section: "magia",     label: "Dones",      subTab: "dones",    aliases: ["don", "dones", "gift", "gifts"] },
@@ -252,9 +248,9 @@ const ADD_ITEM_COLOR: Record<string, string> = {
   criaturas:       "var(--primary)",
   items:           "var(--primary)",
   reinos:          "var(--primary)",
-  hechizos:        "oklch(0.65 0.18 290)",
-  dones:           "oklch(0.72 0.16 55)",
-  runas:           "oklch(0.62 0.17 195)",
+  hechizos:        "var(--accent)",
+  dones:           "color-mix(in srgb, var(--accent) 70%, var(--primary))",
+  runas:           "var(--primary)",
   notas:           "var(--primary)",
   acontecimiento:  "var(--primary)",
 };
@@ -390,8 +386,8 @@ function AddCommandMenu({
           <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
         </div>
 
-        {/* Magia + notas — 1 columna */}
-        <div className="grid grid-cols-1 gap-1">
+        {/* Magia + notas — 2 columnas */}
+        <div className="grid grid-cols-2 gap-1">
           {magicEntries.map(renderEntry)}
         </div>
       </div>
@@ -645,17 +641,17 @@ const MAGIC_NOMBRE_CONFIG: Record<MagicNombreKey, {
 }> = {
   hechizos: {
     tabla: "hechizos", label: "Hechizos", labelSing: "Hechizo",
-    Icon: Wand2, color: "oklch(0.65 0.18 290)",
+    Icon: Wand2, color: "var(--accent)",
     placeholder: "Nombre del hechizo…",
   },
   dones: {
     tabla: "dones", label: "Dones", labelSing: "Don",
-    Icon: Sparkles, color: "oklch(0.7 0.16 55)",
+    Icon: Sparkles, color: "color-mix(in srgb, var(--accent) 70%, var(--primary))",
     placeholder: "Nombre del don…",
   },
   runas: {
     tabla: "runas", label: "Runas", labelSing: "Runa",
-    Icon: Zap, color: "oklch(0.68 0.16 195)",
+    Icon: Zap, color: "var(--primary)",
     placeholder: "Nombre de la runa…",
   },
 };
