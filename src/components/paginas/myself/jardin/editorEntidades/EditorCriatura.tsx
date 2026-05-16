@@ -9,7 +9,7 @@ import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { type Criatura, type CriaturaVariante, type SaveStatus, INPUT_CLS } from "./types";
-import { useUniqueValues, useCriaturaVariantes, useGruposComoOpciones, useGruposDeCriatura, type GrupoMin } from "./hooks";
+import { useUniqueValues, useCriaturaVariantes, useGruposDeCriatura, type GrupoMin } from "./hooks";
 import { SelectorImagen, SelectorTexto, SaveIndicator } from "./UIComponents";
 import { MarkdownEditor, WikiEntity } from "../../../../forms/MarkdownEditor";
 import { useWikilink } from "../../../../forms/WikilinkContext";
@@ -672,17 +672,9 @@ export function EditorCriatura({
   const { confirm, ConfirmModal } = useConfirm();
   const { onSnippetAction } = useWikilink();
 
-  const habitatsDB     = useUniqueValues("criaturas", "habitat");
-  const pensamientosDB = useUniqueValues("criaturas", "pensamiento");
-  const almasDB        = useUniqueValues("criaturas", "alma");
-
-  // Nombres de grupos de criaturas → se ofrecen como opciones en los dropdowns
-  const gruposNombres = useGruposComoOpciones("criaturas");
-
-  // Mezclar valores únicos de BD con nombres de grupos (sin duplicados, ordenados)
-  const habitats     = useMemo(() => [...new Set([...habitatsDB,     ...gruposNombres])].sort(), [habitatsDB,     gruposNombres]);
-  const pensamientos = useMemo(() => [...new Set([...pensamientosDB, ...gruposNombres])].sort(), [pensamientosDB, gruposNombres]);
-  const almas        = useMemo(() => [...new Set([...almasDB,        ...gruposNombres])].sort(), [almasDB,        gruposNombres]);
+  const habitats     = useUniqueValues("criaturas", "habitat");
+  const pensamientos = useUniqueValues("criaturas", "pensamiento");
+  const almas        = useUniqueValues("criaturas", "alma");
 
   // Grupos de criaturas a los que pertenece esta criatura (sincronización bidireccional)
   const {
@@ -789,12 +781,7 @@ export function EditorCriatura({
                 {/* Columna central: selectores + descripción */}
                 <div className="flex-1 min-w-0 space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <SelectorTexto label="Hábitat" value={form.habitat ?? ""} onChange={v => {
-                      setForm(f => ({ ...f, habitat: v }));
-                      // Si el valor elegido coincide con un grupo de criaturas, añadir la criatura a ese grupo
-                      const grupo = todosGrupos.find(g => g.nombre === v);
-                      if (grupo && v) addToGrupo(grupo.id);
-                    }} opciones={habitats} placeholder="Bosque, océano, volcán…" />
+                    <SelectorTexto label="Hábitat" value={form.habitat ?? ""} onChange={v => setForm(f => ({ ...f, habitat: v }))} opciones={habitats} placeholder="Bosque, océano, volcán…" />
                     <SelectorTexto label="Pensamiento" value={form.pensamiento ?? ""} onChange={v => setForm(f => ({ ...f, pensamiento: v }))} opciones={pensamientos} placeholder="¿Cómo piensa?" />
                     <SelectorTexto label="Alma" value={form.alma ?? ""} onChange={v => setForm(f => ({ ...f, alma: v }))} opciones={almas} placeholder="Naturaleza espiritual…" />
                   </div>
