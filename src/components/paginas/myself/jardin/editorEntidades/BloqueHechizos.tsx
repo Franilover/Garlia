@@ -46,72 +46,34 @@ type HechizoCatalogo = {
   grupo_ids?: string[];
 };
 
-// Un grupo de criaturas mínimo: solo necesitamos saber qué criatura_ids tiene
-type GrupoCriaturas = {
-  id: string;
-  miembro_ids: string[];  // IDs de criaturas miembro
-};
-
-// ─── Hook: catálogo de hechizos + grupos de criaturas ─────────────────────────
-const CACHE_TTL = 5 * 60 * 1000;
-
+// ─── Hook: catálogo de hechizos ───────────────────────────────────────────────
 function useCatalogo() {
-  const [hechizos,  setHechizos]  = useState<HechizoCatalogo[]>([]);
-  const [grupos,    setGrupos]    = useState<GrupoCriaturas[]>([]);
-  const [loading,   setLoading]   = useState(true);
+  const [hechizos, setHechizos] = useState<HechizoCatalogo[]>([]);
+  const [loading,  setLoading]  = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     const run = async () => {
-      // 1. Dexie: hechizos
       const localH = await dexieReadAll<HechizoCatalogo>("hechizos");
+      if (localH.length && !cancelled) { setHechizos(localH); setLoading(false); }
+      if (!navigator.onLine) { if (!localH.length) setLoading(false); return; }
 
-      // 2. session_cache: grupos de criaturas (join ligero, sin tabla Dexie propia)
-      try {
-        if (db) {
-          const cached = await (db as any).session_cache?.get("grupos_criaturas_catalogo");
-          if (cached && Date.now() - cached.updated_at < CACHE_TTL && !cancelled) {
-            if (localH.length) setHechizos(localH);
-            setGrupos(cached.value);
-            if (localH.length) setLoading(false);
-          }
-        }
-      } catch {}
-
-      if (!navigator.onLine) { setLoading(false); return; }
-
-      const [hRes, gRes] = await Promise.all([
-        supabase.from("hechizos").select("id, nombre, grupo_ids").order("nombre"),
-        supabase.from("grupos_mundo")
-          .select("id, miembro_ids")
-          .eq("tipo", "criaturas"),
-      ]);
+      const { data } = await supabase
+        .from("hechizos")
+        .select("id, nombre, grupo_ids")
+        .order("nombre");
       if (cancelled) return;
 
-      const hechizosData = (hRes.data ?? []) as HechizoCatalogo[];
-      const gruposData: GrupoCriaturas[] = (gRes.data ?? []).map((r: any) => ({
-        id: r.id,
-        miembro_ids: r.miembro_ids ?? [],
-      }));
-
+      const hechizosData = (data ?? []) as HechizoCatalogo[];
       setHechizos(hechizosData);
-      setGrupos(gruposData);
       setLoading(false);
-
       await dexieWriteAll("hechizos", hechizosData);
-      try {
-        if (db) await (db as any).session_cache?.put({
-          key: "grupos_criaturas_catalogo",
-          value: gruposData,
-          updated_at: Date.now(),
-        });
-      } catch {}
     };
     run();
     return () => { cancelled = true; };
   }, []);
 
-  return { hechizos, grupos, loading };
+  return { hechizos, loading };
 }
 
 // ─── Hook: hechizos asignados al personaje ─────────────────────────────────────
@@ -145,20 +107,15 @@ function useAsignados(personajeId: string) {
 // ─── Lógica de compatibilidad ──────────────────────────────────────────────────
 // Un hechizo es compatible con una criatura si:
 //   - No tiene grupos asignados (universal), O
-//   - La criatura pertenece a al menos uno de los grupos asignados al hechizo.
+//   - Al menos uno de los grupos de la criatura está en los grupos del hechizo.
 function esCompatible(
   hechizo: HechizoCatalogo,
-  grupos: GrupoCriaturas[],
-  criaturaId: string | null | undefined,
+  grupoIdsDeCriatura: string[],
 ): boolean {
   const grupoIds = hechizo.grupo_ids ?? [];
-  if (grupoIds.length === 0) return true;   // universal
-  if (!criaturaId) return false;            // necesita grupo pero el personaje no tiene criatura
-
-  return grupoIds.some(gid => {
-    const grupo = grupos.find(g => g.id === gid);
-    return grupo ? grupo.miembro_ids.includes(criaturaId) : false;
-  });
+  if (grupoIds.length === 0) return true;                      // universal
+  if (grupoIdsDeCriatura.length === 0) return false;           // sin grupos → incompatible
+  return grupoIds.some(gid => grupoIdsDeCriatura.includes(gid));
 }
 
 // ─── Dropdown portal (escapa overflow-hidden del padre) ────────────────────────
@@ -219,22 +176,22 @@ function DropdownHechizos({ anchorRef, disponibles, filtrados, asignados, onSele
 }
 
 // ─── Componente principal ──────────────────────────────────────────────────────
-// criaturaId: ID de la criatura del personaje (para filtrar compatibilidad por grupos)
-export function BloqueHechizos({ personajeId, criaturaId }: {
+// grupoIds: IDs de los grupos de criaturas a los que pertenece el personaje/criatura
+export function BloqueHechizos({ personajeId, grupoIds = [] }: {
   personajeId: string;
-  criaturaId?: string | null;
+  grupoIds?: string[];
 }) {
-  const { hechizos, grupos, loading } = useCatalogo();
+  const { hechizos, loading } = useCatalogo();
   const { ids, add, remove } = useAsignados(personajeId);
   const [input, setInput] = useState("");
   const [open, setOpen]   = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
-  const sinCriatura = !criaturaId;
+  const sinGrupos = grupoIds.length === 0;
 
   const compatibles = useMemo(
-    () => hechizos.filter(h => esCompatible(h, grupos, criaturaId)),
-    [hechizos, grupos, criaturaId]
+    () => hechizos.filter(h => esCompatible(h, grupoIds)),
+    [hechizos, grupoIds]
   );
 
   const asignados   = compatibles.filter(h => ids.includes(h.id));
@@ -283,11 +240,11 @@ export function BloqueHechizos({ personajeId, criaturaId }: {
             value={input}
             onChange={e => { setInput(e.target.value); setOpen(true); }}
             onFocus={() => setOpen(true)}
-            disabled={sinCriatura}
-            placeholder={sinCriatura ? "Sin criatura…" : "Añadir hechizo…"}
+            disabled={sinGrupos}
+            placeholder={sinGrupos ? "Sin grupos…" : "Añadir hechizo…"}
             className={INPUT_CLS + " pr-8 disabled:opacity-40 disabled:cursor-not-allowed"}
           />
-          <button type="button" onClick={() => !sinCriatura && setOpen(o => !o)}
+          <button type="button" onClick={() => !sinGrupos && setOpen(o => !o)}
             className="absolute right-2.5 top-1/2 -translate-y-1/2 text-primary/30 hover:text-primary transition-colors">
             <ChevronDown size={13} className={`transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
           </button>

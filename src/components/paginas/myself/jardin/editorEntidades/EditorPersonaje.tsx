@@ -124,39 +124,60 @@ function PickerCuerpo({ value, onChange }: { value: string; onChange: (url: stri
   );
 }
 
-// ─── Hook: ID de criatura a partir del nombre de especie ─────────────────────
-// Resuelve el ID de la criatura para pasar a BloqueHechizos / BloqueDones.
-function useCriaturaIdPorNombre(nombreEspecie: string | null | undefined): string | null {
-  const [criaturaId, setCriaturaId] = useState<string | null>(null);
+// ─── Hook: grupos de criaturas a partir del nombre de especie ────────────────
+// Resuelve la criatura por nombre y luego busca en qué grupos está,
+// para pasarlos directamente a BloqueHechizos / BloqueDones.
+function useGruposDeCriaturaPorNombre(nombreEspecie: string | null | undefined): string[] {
+  const [grupoIds, setGrupoIds] = useState<string[]>([]);
 
   const load = useCallback(async () => {
-    if (!nombreEspecie?.trim()) { setCriaturaId(null); return; }
+    if (!nombreEspecie?.trim()) { setGrupoIds([]); return; }
 
-    // 1. Dexie primero
+    // 1. Dexie: buscar criatura y sus grupos
+    let criaturaId: string | null = null;
     try {
       if (db) {
         const allCriaturas: any[] = await (db as any).criaturas?.toArray() ?? [];
         const criLocal = allCriaturas.find((c: any) =>
           c.nombre?.toLowerCase() === nombreEspecie.trim().toLowerCase()
         );
-        if (criLocal) { setCriaturaId(criLocal.id); if (!navigator.onLine) return; }
+        if (criLocal) {
+          criaturaId = criLocal.id;
+          const allGrupos: any[] = await (db as any).grupos_mundo?.toArray() ?? [];
+          const ids = allGrupos
+            .filter((g: any) => g.tipo === "criaturas" && (g.miembro_ids ?? []).includes(criaturaId))
+            .map((g: any) => g.id);
+          if (ids.length) { setGrupoIds(ids); if (!navigator.onLine) return; }
+        }
       }
     } catch {}
 
     if (!navigator.onLine) return;
 
-    const { data } = await supabase
-      .from("criaturas")
-      .select("id")
-      .ilike("nombre", nombreEspecie.trim())
-      .limit(1)
-      .maybeSingle();
-    setCriaturaId(data?.id ?? null);
+    // 2. Supabase: resolver criatura si no se encontró en Dexie
+    if (!criaturaId) {
+      const { data: cri } = await supabase
+        .from("criaturas")
+        .select("id")
+        .ilike("nombre", nombreEspecie.trim())
+        .limit(1)
+        .maybeSingle();
+      criaturaId = cri?.id ?? null;
+    }
+    if (!criaturaId) { setGrupoIds([]); return; }
+
+    // 3. Supabase: grupos de criaturas que contienen este ID
+    const { data: grupos } = await supabase
+      .from("grupos_mundo")
+      .select("id, miembro_ids")
+      .eq("tipo", "criaturas")
+      .contains("miembro_ids", [criaturaId]);
+    setGrupoIds((grupos ?? []).map((g: any) => g.id));
   }, [nombreEspecie]);
 
   useEffect(() => { load(); }, [load]);
 
-  return criaturaId;
+  return grupoIds;
 }
 
 // ─── Hook: variantes de una criatura por nombre ───────────────────────────────
@@ -210,7 +231,7 @@ function useCriaturaVariantesPorNombre(nombreEspecie: string | null | undefined)
 }
 
 // ─── Sección Hechizos inline ──────────────────────────────────────────────────
-function SeccionHechizos({ personajeId, criaturaId }: { personajeId: string; criaturaId: string | null }) {
+function SeccionHechizos({ personajeId, grupoIds }: { personajeId: string; grupoIds: string[] }) {
   return (
     <div
       className="rounded-xl overflow-hidden border border-primary/10"
@@ -221,7 +242,7 @@ function SeccionHechizos({ personajeId, criaturaId }: { personajeId: string; cri
         <Sparkles size={10} className="text-primary/40" />
         <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">Hechizos</span>
       </div>
-      <BloqueHechizos personajeId={personajeId} criaturaId={criaturaId} />
+      <BloqueHechizos personajeId={personajeId} grupoIds={grupoIds} />
     </div>
   );
 }
@@ -243,7 +264,7 @@ export function FormularioPersonaje({
   const reinos   = useNombresDeTabla("reinos");
   const [tab, setTab] = useState<InnerTab>("identidad");
   const variantes  = useCriaturaVariantesPorNombre(form.especie);
-  const criaturaId = useCriaturaIdPorNombre(form.especie);
+  const grupoIds   = useGruposDeCriaturaPorNombre(form.especie);
   const { onSnippetAction } = useWikilink();
 
   const field = (k: keyof Personaje) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
@@ -403,7 +424,7 @@ export function FormularioPersonaje({
 
                     {/* Don — mismo estilo que Especie / Reino */}
                     <div className="w-full sm:w-44 sm:shrink-0 space-y-1.5">
-                      <BloqueDones personajeId={form.id} criaturaId={criaturaId} />
+                      <BloqueDones personajeId={form.id} grupoIds={grupoIds} />
                     </div>
                   </div>
 
@@ -468,7 +489,7 @@ export function FormularioPersonaje({
                       <BloqueCapsNarrados personajeId={form.id} />
                     </div>
                     <div className="w-full sm:w-56 sm:shrink-0">
-                      <SeccionHechizos personajeId={form.id} criaturaId={criaturaId} />
+                      <SeccionHechizos personajeId={form.id} grupoIds={grupoIds} />
                     </div>
                   </div>
                 </div>
