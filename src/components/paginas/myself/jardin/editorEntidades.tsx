@@ -434,13 +434,25 @@ export default function EditorEntidades() {
             setSelectedId(null);
             setMundoSection(section);
             setRequestedSubTab(subTab);
+            setRequestedItemId(undefined);
           }}
           onSelectMagic={(subTab, item) => {
             setTab("mundo");
             setSelectedId(null);
             setMundoSection("magia");
             setRequestedSubTab(subTab);
-            setRequestedItemId(item.id);
+            // Resetear primero para forzar re-disparo del useEffect en PanelListas
+            // cuando el mismo item ya estaba seleccionado antes
+            setRequestedItemId(undefined);
+            setTimeout(() => setRequestedItemId(item.id), 0);
+          }}
+          onSelectNota={(nota) => {
+            setTab("mundo");
+            setSelectedId(null);
+            setMundoSection("geografia");
+            setRequestedSubTab("notas");
+            setRequestedItemId(undefined);
+            setTimeout(() => setRequestedItemId(nota.id), 0);
           }}
           onToggleOculto={handleToggleOcultoReino}
         />
