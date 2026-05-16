@@ -3,13 +3,13 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Bug, Plus, Check, X, Trash2, Save, ChevronDown, Lock,
-  Dna, Brain, Wand2, GitBranch, Package, Wrench, Leaf, Layers,
+  Dna, Brain, Wand2, GitBranch, Package, Wrench, Leaf, Layers, Users,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { type Criatura, type CriaturaVariante, type SaveStatus, INPUT_CLS } from "./types";
-import { useCriaturaVariantes, useGruposDeCriatura, type GrupoMin } from "./hooks";
+import { useCriaturaVariantes, useGruposDeCriatura, usePersonajesDeEspecie, type GrupoMin } from "./hooks";
 import { SelectorImagen, SelectorTexto, SaveIndicator } from "./UIComponents";
 import { MarkdownEditor, WikiEntity } from "../../../../forms/MarkdownEditor";
 import { useWikilink } from "../../../../forms/WikilinkContext";
@@ -679,6 +679,7 @@ export function EditorCriatura({
     removeFromGrupo,
   } = useGruposDeCriatura(form.id);
   const { variantes, setVariantes } = useCriaturaVariantes(item.id);
+  const { personajes: personajesDeEspecie } = usePersonajesDeEspecie(form.nombre);
   const [addingVariante,  setAddingVariante]  = useState(false);
   const [newVarianteTipo, setNewVarianteTipo] = useState("");
 
@@ -823,6 +824,36 @@ export function EditorCriatura({
                   <BloqueItemsCraftedos criaturaId={form.id} onSelectItem={onSelectItem} />
                 </div>
               </div>
+
+              {/* Personajes de esta especie */}
+              {personajesDeEspecie.length > 0 && (
+                <div className="space-y-2">
+                  <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/30 flex items-center gap-1">
+                    <Users size={9} /> Personajes de esta especie
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {personajesDeEspecie.map(p => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => onSelectItem?.(p.id)}
+                        className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02]"
+                        style={{
+                          background: "color-mix(in srgb, var(--primary) 4%, transparent)",
+                          borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
+                        }}
+                      >
+                        <div className="w-6 h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center">
+                          {p.img_url
+                            ? <img src={p.img_url} alt={p.nombre} className="w-full h-full object-cover" />
+                            : <Users size={10} className="text-primary/20" />}
+                        </div>
+                        <span className="text-[11px] font-bold text-primary/70">{p.nombre}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Variantes */}
                 <div className="flex-1 space-y-3">
