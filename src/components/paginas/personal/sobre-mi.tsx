@@ -12,9 +12,9 @@ const fade = (delay = 0) => ({
 });
 
 const TOOLS = [
-  { num: "01", title: "Linux",        icon: Monitor },
-  { num: "02",  title: "Krita", icon: Palette },
-  { num: "03",  title: "Música",         icon: Music },
+  { num: "01", title: "Linux",       },
+  { num: "02",  title: "Krita", },
+  { num: "03",  title: "Música", },
 ];
 
 export default function SobreMi() {
@@ -98,7 +98,6 @@ export default function SobreMi() {
 
               <div className="flex flex-col gap-4">
                 {TOOLS.map((tool, i) => {
-                  const Icon = tool.icon;
                   return (
                     <MotionDiv
                       key={tool.num}
@@ -121,7 +120,6 @@ export default function SobreMi() {
                           color: "var(--primary)",
                         }}
                       >
-                        <Icon size={16} strokeWidth={1.5} style={{ opacity: 0.6 }} />
                       </div>
 
                       <div className="relative z-10 space-y-0.5 text-left">
