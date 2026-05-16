@@ -119,16 +119,23 @@ function useEntidades(tabla: string) {
       const local = await dexieReadAll<EntidadMin>(tabla);
       if (local.length && !cancelled) { setEntidades(local); setLoading(false); }
       if (!navigator.onLine) { if (!local.length) setLoading(false); return; }
-      const selectFields = tabla === "personajes"
-        ? "id, nombre, img_url, especie, reino"
-        : tabla === "criaturas"
-          ? "id, nombre, imagen_url, habitat"
-          : tabla === "items"
-            ? "id, nombre, imagen_url, categoria"
-            : "id, nombre, imagen_url";
-      const { data } = await supabase.from(tabla).select(selectFields).order("nombre");
+
+      let result: EntidadMin[] = [];
+      if (tabla === "personajes") {
+        const { data } = await supabase.from("personajes").select("id, nombre, img_url, especie, reino").order("nombre");
+        result = (data ?? []).map(r => ({ id: r.id, nombre: r.nombre, img_url: r.img_url ?? undefined, especie: r.especie ?? undefined, reino: r.reino ?? undefined }));
+      } else if (tabla === "criaturas") {
+        const { data } = await supabase.from("criaturas").select("id, nombre, imagen_url, habitat").order("nombre");
+        result = (data ?? []).map(r => ({ id: r.id, nombre: r.nombre, imagen_url: r.imagen_url ?? undefined, habitat: r.habitat ?? undefined }));
+      } else if (tabla === "items") {
+        const { data } = await supabase.from("items").select("id, nombre, imagen_url, categoria").order("nombre");
+        result = (data ?? []).map(r => ({ id: r.id, nombre: r.nombre, imagen_url: r.imagen_url ?? undefined, categoria: r.categoria ?? undefined }));
+      } else {
+        const { data } = await (supabase.from(tabla as any) as any).select("id, nombre, imagen_url").order("nombre");
+        result = (data ?? []).map((r: any) => ({ id: r.id, nombre: r.nombre, imagen_url: r.imagen_url ?? undefined }));
+      }
+
       if (cancelled) return;
-      const result = (data ?? []) as EntidadMin[];
       setEntidades(result); setLoading(false);
       await dexieWriteAll(tabla, result);
     };
@@ -138,43 +145,42 @@ function useEntidades(tabla: string) {
   return { entidades, loading };
 }
 
-// ─── Hook: grupos guardados en localStorage (client-only, no requiere tabla Supabase) ──
-// Si quisieras persistir en Supabase, adaptá este hook a una tabla "grupos_mundo".
-// Por ahora usa localStorage para independencia de schema.
-const STORAGE_KEY = "mundo_grupos_v1";
-
-function loadGrupos(): Grupo[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    return JSON.parse(raw) as Grupo[];
-  } catch { return []; }
-}
-
-function saveGrupos(grupos: Grupo[]): void {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(grupos)); } catch {}
-}
-
+// ─── Hook: grupos con Supabase + Dexie ───────────────────────────────────────
 export function useGrupos() {
-  const [grupos, setGruposState] = useState<Grupo[]>([]);
+  const [grupos, setGrupos] = useState<Grupo[]>([]);
   const [loaded, setLoaded] = useState(false);
 
-  useEffect(() => {
-    setGruposState(loadGrupos());
+  // ── Carga inicial: Dexie primero, luego Supabase ──
+  const load = useCallback(async () => {
+    // 1. Dexie (offline-first)
+    const local = await dexieReadAll<Grupo>("grupos_mundo");
+    if (local.length) { setGrupos(local); setLoaded(true); }
+
+    if (!navigator.onLine) { if (!local.length) setLoaded(true); return; }
+
+    // 2. Supabase
+    const { data, error } = await supabase
+      .from("grupos_mundo")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (error) { if (!local.length) setLoaded(true); return; }
+
+    const result = (data ?? []).map((r: any) => ({
+      ...r,
+      miembro_ids: r.miembro_ids ?? [],
+    })) as Grupo[];
+
+    setGrupos(result);
     setLoaded(true);
+    await dexieWriteAll("grupos_mundo", result);
   }, []);
 
-  const setGrupos = useCallback((updater: Grupo[] | ((prev: Grupo[]) => Grupo[])) => {
-    setGruposState(prev => {
-      const next = typeof updater === "function" ? updater(prev) : updater;
-      saveGrupos(next);
-      return next;
-    });
-  }, []);
+  useEffect(() => { load(); }, [load]);
 
-  const crearGrupo = useCallback((tipo: GrupoTipo): Grupo => {
+  // ── Crear ──
+  const crearGrupo = useCallback(async (tipo: GrupoTipo): Promise<Grupo | null> => {
     const cfg = GRUPO_TIPO_CONFIG[tipo];
-    const nuevo: Grupo = {
+    const optimista: Grupo = {
       id: crypto.randomUUID(),
       nombre: `Nuevo ${cfg.label.toLowerCase()}`,
       tipo,
@@ -182,17 +188,47 @@ export function useGrupos() {
       miembro_ids: [],
       created_at: new Date().toISOString(),
     };
-    setGrupos(prev => [nuevo, ...prev]);
-    return nuevo;
-  }, [setGrupos]);
 
-  const actualizarGrupo = useCallback((updated: Grupo) => {
+    // Optimista local
+    setGrupos(prev => [optimista, ...prev]);
+    void dexiePut("grupos_mundo", optimista);
+
+    const { data, error } = await supabase
+      .from("grupos_mundo")
+      .insert([{ id: optimista.id, nombre: optimista.nombre, tipo, descripcion: null, miembro_ids: [] }])
+      .select()
+      .single();
+
+    if (error || !data) return optimista; // queda en Dexie, se sincronizará
+    const real = { ...data, miembro_ids: data.miembro_ids ?? [] } as Grupo;
+    setGrupos(prev => prev.map(g => g.id === optimista.id ? real : g));
+    void dexiePut("grupos_mundo", real);
+    return real;
+  }, []);
+
+  // ── Actualizar ──
+  const actualizarGrupo = useCallback(async (updated: Grupo): Promise<void> => {
+    // Optimista local
     setGrupos(prev => prev.map(g => g.id === updated.id ? updated : g));
-  }, [setGrupos]);
+    void dexiePut("grupos_mundo", updated);
 
-  const eliminarGrupo = useCallback((id: string) => {
+    await supabase
+      .from("grupos_mundo")
+      .update({
+        nombre: updated.nombre,
+        tipo: updated.tipo,
+        descripcion: updated.descripcion ?? null,
+        miembro_ids: updated.miembro_ids,
+      })
+      .eq("id", updated.id);
+  }, []);
+
+  // ── Eliminar ──
+  const eliminarGrupo = useCallback(async (id: string): Promise<void> => {
     setGrupos(prev => prev.filter(g => g.id !== id));
-  }, [setGrupos]);
+    void dexieDel("grupos_mundo", id);
+    await supabase.from("grupos_mundo").delete().eq("id", id);
+  }, []);
 
   return { grupos, loaded, crearGrupo, actualizarGrupo, eliminarGrupo };
 }
@@ -376,8 +412,8 @@ function FormularioGrupo({
   onClickMiembro,
 }: {
   grupo: Grupo;
-  onSaved: (g: Grupo) => void;
-  onDeleted: (id: string) => void;
+  onSaved: (g: Grupo) => void | Promise<void>;
+  onDeleted: (id: string) => void | Promise<void>;
   onClickMiembro?: (id: string, tabla: string) => void;
 }) {
   const [form, setForm] = useState<Grupo>(grupo);
@@ -568,9 +604,9 @@ export function EditorGrupo({
     return map;
   }, [filtered]);
 
-  const handleCrear = (tipo: GrupoTipo) => {
-    const nuevo = crearGrupo(tipo);
-    setSelectedId(nuevo.id);
+  const handleCrear = async (tipo: GrupoTipo) => {
+    const nuevo = await crearGrupo(tipo);
+    if (nuevo) setSelectedId(nuevo.id);
     setCreando(false);
   };
 
@@ -691,8 +727,8 @@ export function EditorGrupo({
           <FormularioGrupo
             key={selected.id}
             grupo={selected}
-            onSaved={updated => actualizarGrupo(updated)}
-            onDeleted={id => { eliminarGrupo(id); setSelectedId(null); }}
+            onSaved={async updated => { await actualizarGrupo(updated); }}
+            onDeleted={async id => { await eliminarGrupo(id); setSelectedId(null); }}
             onClickMiembro={onClickMiembro}
           />
         ) : (
