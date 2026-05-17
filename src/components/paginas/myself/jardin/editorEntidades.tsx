@@ -496,6 +496,7 @@ export default function EditorEntidades() {
             <EditorGrupo
               key="grupos"
               autoCrear={autoCrearGrupo}
+              onAutoCrearDone={() => setAutoCrearGrupo(false)}
               onClickMiembro={(id, tabla) => {
                 const tablaMap: Record<string, Exclude<TabKey, "mundo">> = {
                   personajes: "personajes",

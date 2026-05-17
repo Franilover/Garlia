@@ -573,14 +573,23 @@ function SelectorTipoGrupo({
 export function EditorGrupo({
   onClickMiembro,
   autoCrear = false,
+  onAutoCrearDone,
 }: {
   onClickMiembro?: (id: string, tabla: string) => void;
   autoCrear?: boolean;
+  onAutoCrearDone?: () => void;
 }) {
   const { grupos, loaded, crearGrupo, actualizarGrupo, eliminarGrupo } = useGrupos();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [creando, setCreando] = useState(autoCrear);
+
+  useEffect(() => {
+    if (autoCrear) {
+      setCreando(true);
+      onAutoCrearDone?.();
+    }
+  }, [autoCrear]);
 
   const selected = grupos.find(g => g.id === selectedId) ?? null;
 
