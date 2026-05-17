@@ -10,8 +10,6 @@ interface GaleriaItem {
   id:           number;
   url_imagen:   string;
   bg_color:     string;
-  img_x:        number;
-  img_y:        number;
   aspect_ratio: "square" | "wide" | "portrait";
   orden:        number;
   creado_en:    string;
@@ -232,7 +230,7 @@ function EditModal({ item, onSave, onClose }: {
               src={item.url_imagen}
               alt="preview"
               className="absolute inset-0 w-full h-full object-contain"
-              style={{ objectPosition: `${item.img_x ?? 50}% ${item.img_y ?? 50}%` }}
+              style={{ objectPosition: "50% 50%" }}
             />
           </div>
         </div>
@@ -315,7 +313,6 @@ function AddModal({ onClose, onSuccess, nextOrden }: {
     const { error } = await supabase.from("galeria").insert([{
       url_imagen:   url,
       bg_color:     "#111111",
-      img_x: 50, img_y: 50,
       aspect_ratio: "portrait",
       orden:        nextOrden,
     }]);
@@ -435,7 +432,7 @@ export default function GaleriaPage() {
                     src={item.url_imagen}
                     alt="Obra"
                     className="absolute inset-0 w-full h-full object-contain cursor-zoom-in"
-                    style={{ objectPosition: `${item.img_x ?? 50}% ${item.img_y ?? 50}%` }}
+                    style={{ objectPosition: "50% 50%" }}
                     draggable={false}
                     onClick={() => setLightbox(item)}
                   />
