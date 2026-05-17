@@ -4,6 +4,7 @@ import React, { useState, useMemo, useEffect, useRef, useCallback } from "react"
 import {
   Loader2, Eye, EyeOff, Plus, Search, X, SlidersHorizontal, Sparkles,
   Wand2, ScrollText, FileText, Zap, Clock, Globe, Check, Layers,
+  Users, Bug, Package, Star, Feather, Swords, Gem,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
@@ -844,6 +845,227 @@ export function ModalMagicNombre({
           >
             {saving ? <Loader2 size={10} className="animate-spin" /> : saved ? <Check size={10} /> : <cfg.Icon size={10} />}
             {saved ? "Creado" : saving ? "Creando…" : `Crear ${cfg.labelSing}`}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── ModalNuevoGrupo ──────────────────────────────────────────────────────────
+// Modal de dos pasos: 1) elegir tipo, 2) escribir nombre → insert completo
+
+type GrupoTipoLocal = "personajes" | "criaturas" | "items" | "hechizos" | "dones" | "runas";
+
+const GRUPO_MODAL_CONFIG: Record<GrupoTipoLocal, {
+  label: string; labelPlural: string;
+  Icon: React.ElementType; IconAlt: React.ElementType;
+  color: string; ejemplo: string; tabla: string;
+}> = {
+  personajes: { label: "Personaje",  labelPlural: "Personajes", Icon: Users,     IconAlt: Users,     color: "var(--primary)",                                              tabla: "personajes", ejemplo: "Facción, clan, gremio…"        },
+  criaturas:  { label: "Criatura",   labelPlural: "Criaturas",  Icon: Bug,       IconAlt: Feather,   color: "color-mix(in srgb, var(--primary) 70%, #4ade80)",             tabla: "criaturas",  ejemplo: "Manada, especie, orden…"       },
+  items:      { label: "Objeto",     labelPlural: "Objetos",    Icon: Package,   IconAlt: Swords,    color: "color-mix(in srgb, var(--primary) 60%, #f59e0b)",             tabla: "items",      ejemplo: "Arsenal, colección, reliquias…" },
+  hechizos:   { label: "Hechizo",   labelPlural: "Hechizos",   Icon: Sparkles,  IconAlt: Wand2,     color: "var(--accent)",                                               tabla: "hechizos",   ejemplo: "Escuela, elemento, estilo…"    },
+  dones:      { label: "Don",       labelPlural: "Dones",      Icon: Star,      IconAlt: Gem,       color: "color-mix(in srgb, var(--accent) 70%, var(--primary))",       tabla: "dones",      ejemplo: "Linaje, maldición, ancestral…" },
+  runas:      { label: "Runa",      labelPlural: "Runas",      Icon: ScrollText, IconAlt: ScrollText, color: "var(--primary)",                                             tabla: "runas",      ejemplo: "Conjunto rúnico, tradición…"   },
+};
+
+export function ModalNuevoGrupo({
+  onClose,
+  onCreated,
+}: {
+  onClose: () => void;
+  onCreated?: (grupo: any) => void;
+}) {
+  const [tipo,   setTipo]   = useState<GrupoTipoLocal | null>(null);
+  const [nombre, setNombre] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [saved,  setSaved]  = useState(false);
+  const [error,  setError]  = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Focus el input cuando se elige el tipo
+  useEffect(() => {
+    if (tipo) setTimeout(() => inputRef.current?.focus(), 80);
+  }, [tipo]);
+
+  useEffect(() => {
+    const k = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (tipo) { setTipo(null); setNombre(""); setError(null); }
+        else onClose();
+      }
+    };
+    document.addEventListener("keydown", k);
+    return () => document.removeEventListener("keydown", k);
+  }, [tipo, onClose]);
+
+  const cfg = tipo ? GRUPO_MODAL_CONFIG[tipo] : null;
+  const canSave = !!tipo && nombre.trim().length > 0;
+
+  const handleSave = async () => {
+    if (!canSave || saving || !tipo) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const { data, error: err } = await supabase
+        .from("grupos_mundo")
+        .insert([{
+          id:          crypto.randomUUID(),
+          nombre:      nombre.trim(),
+          tipo,
+          descripcion: null,
+          miembro_ids: [],
+        }])
+        .select()
+        .single();
+      if (err) throw err;
+      setSaved(true);
+      onCreated?.(data);
+      setTimeout(onClose, 700);
+    } catch (e: any) {
+      setError(e?.message ?? "Error al crear el grupo");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const INPUT = "w-full px-3 py-2 rounded-xl text-xs font-medium text-primary bg-transparent border transition-all outline-none placeholder:text-primary/25 focus:border-primary/40 focus:bg-primary/3";
+
+  return (
+    <div
+      className="fixed inset-0 z-[80] flex items-center justify-center p-4"
+      style={{ background: "color-mix(in srgb, var(--primary) 30%, transparent)", backdropFilter: "blur(6px)" }}
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl"
+        style={{
+          background: "var(--bg-main)",
+          border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
+          animation: "popIn 160ms cubic-bezier(0.34, 1.56, 0.64, 1)",
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center gap-3 px-4 py-3 border-b"
+          style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}>
+          {/* Icono: tipo elegido o genérico */}
+          <div className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0 border transition-all"
+            style={cfg ? {
+              background: `color-mix(in srgb, ${cfg.color} 12%, transparent)`,
+              borderColor: `color-mix(in srgb, ${cfg.color} 25%, transparent)`,
+            } : {
+              background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+              borderColor: "color-mix(in srgb, var(--primary) 18%, transparent)",
+            }}>
+            {cfg
+              ? <cfg.Icon size={12} style={{ color: cfg.color }} />
+              : <Layers size={12} className="text-primary/40" />}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/40">
+              {cfg ? `Nuevo grupo · ${cfg.labelPlural}` : "Nuevo grupo"}
+            </p>
+          </div>
+          <button onClick={onClose} className="text-primary/25 hover:text-primary transition-colors">
+            <X size={15} />
+          </button>
+        </div>
+
+        <div className="p-4 space-y-4">
+          {/* Paso 1: elegir tipo */}
+          <div className="space-y-2">
+            <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">
+              Tipo de miembros
+            </label>
+            <div className="grid grid-cols-3 gap-1.5">
+              {(Object.entries(GRUPO_MODAL_CONFIG) as [GrupoTipoLocal, typeof GRUPO_MODAL_CONFIG[GrupoTipoLocal]][]).map(([key, c]) => {
+                const isSelected = tipo === key;
+                return (
+                  <button
+                    key={key}
+                    onClick={() => { setTipo(key); setNombre(""); setError(null); }}
+                    className="flex flex-col items-center gap-1.5 p-2.5 rounded-xl border transition-all"
+                    style={isSelected ? {
+                      borderColor: `color-mix(in srgb, ${c.color} 40%, transparent)`,
+                      background:  `color-mix(in srgb, ${c.color} 12%, transparent)`,
+                    } : {
+                      borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
+                      background:  "color-mix(in srgb, var(--primary) 3%, transparent)",
+                    }}
+                    onMouseEnter={e => {
+                      if (!isSelected) {
+                        (e.currentTarget as HTMLElement).style.borderColor = `color-mix(in srgb, ${c.color} 25%, transparent)`;
+                        (e.currentTarget as HTMLElement).style.background  = `color-mix(in srgb, ${c.color} 7%, transparent)`;
+                      }
+                    }}
+                    onMouseLeave={e => {
+                      if (!isSelected) {
+                        (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 10%, transparent)";
+                        (e.currentTarget as HTMLElement).style.background  = "color-mix(in srgb, var(--primary) 3%, transparent)";
+                      }
+                    }}
+                  >
+                    <c.IconAlt size={16} strokeWidth={1.5}
+                      style={{ color: isSelected ? c.color : `color-mix(in srgb, ${c.color} 55%, transparent)` }} />
+                    <span className="text-[9px] font-black uppercase tracking-widest leading-tight text-center"
+                      style={{ color: isSelected ? "var(--primary)" : "color-mix(in srgb, var(--primary) 45%, transparent)" }}>
+                      {c.labelPlural}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            {tipo && cfg && (
+              <p className="text-[8px] text-primary/25 italic px-0.5">{cfg.ejemplo}</p>
+            )}
+          </div>
+
+          {/* Paso 2: nombre — solo visible cuando hay tipo elegido */}
+          {tipo && (
+            <div className="space-y-1.5">
+              <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">
+                Nombre del grupo
+              </label>
+              <input
+                ref={inputRef}
+                value={nombre}
+                onChange={e => setNombre(e.target.value)}
+                placeholder={`Nombre del grupo de ${cfg!.labelPlural.toLowerCase()}…`}
+                className={`${INPUT} border-primary/15`}
+                onKeyDown={e => { if (e.key === "Enter") handleSave(); }}
+              />
+            </div>
+          )}
+
+          {error && <p className="text-[10px] text-red-400 font-medium px-1">{error}</p>}
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-end gap-2 px-4 py-3 border-t"
+          style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, transparent)" }}>
+          <button onClick={onClose}
+            className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest text-primary/40 hover:text-primary hover:bg-primary/6 transition-all border border-transparent hover:border-primary/10">
+            Cancelar
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={!canSave || saving}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all disabled:opacity-40"
+            style={{
+              background: saved
+                ? "color-mix(in srgb, #22c55e 80%, transparent)"
+                : cfg
+                  ? `color-mix(in srgb, ${cfg.color} 85%, transparent)`
+                  : "var(--primary)",
+              color: "var(--btn-text, white)",
+            }}
+          >
+            {saving ? <Loader2 size={10} className="animate-spin" />
+              : saved ? <Check size={10} />
+              : <Layers size={10} />}
+            {saved ? "Creado" : saving ? "Creando…" : "Crear grupo"}
           </button>
         </div>
       </div>

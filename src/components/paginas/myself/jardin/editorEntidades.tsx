@@ -12,7 +12,7 @@ import {
   type Hechizo, type Don, type Runa, type Nota,
 } from "./editorEntidades/types";
 import { useMundoSecciones } from "./editorEntidades/hooks";
-import { GlobalSearchBar, ModalAcontecimiento, type AllItems, type MagicAddKey } from "./editorEntidades/SidebarComponents";
+import { GlobalSearchBar, ModalAcontecimiento, ModalNuevoGrupo, type AllItems, type MagicAddKey } from "./editorEntidades/SidebarComponents";
 import { EditorPersonaje } from "./editorEntidades/EditorPersonaje";
 import { EditorCriatura }  from "./editorEntidades/EditorCriatura";
 import { EditorItem }      from "./editorEntidades/EditorItem";
@@ -264,11 +264,10 @@ export default function EditorEntidades() {
   const [selectedId,   setSelectedId]   = useState<string | null>(session.current.selectedId);
   const [showNueva,    setShowNueva]    = useState<Exclude<TabKey, "mundo"> | null>(null);
   const [showAcontecimiento, setShowAcontecimiento] = useState(false);
+  const [showNuevoGrupo, setShowNuevoGrupo] = useState(false);
   const [mundoSection, setMundoSection] = useState<MundoSectionKey>(session.current.mundoSection);
   const [requestedSubTab, setRequestedSubTab] = useState<string | undefined>(session.current.mundoTab);
   const [requestedItemId, setRequestedItemId] = useState<string | undefined>(undefined);
-  const [autoCrearGrupo, setAutoCrearGrupo] = useState(false);
-  const [gruposKey, setGruposKey] = useState(0);
 
   const { textos: mundoTextos, setTextos: setMundoTextos, save: saveMundo } = useMundoSecciones();
   const { allItems, setAllItems, loadingAll, isOffline } = useAllEntidades();
@@ -419,10 +418,7 @@ export default function EditorEntidades() {
               setMundoSection("geografia");
               setRequestedSubTab("notas");
             } else if (key === "grupos") {
-              setTab("grupos");
-              setSelectedId(null);
-              setAutoCrearGrupo(true);
-              setGruposKey(k => k + 1);
+              setShowNuevoGrupo(true);
             } else {
               // hechizos, dones, runas → abrir su editor directamente como tab
               setTab(key as any);
@@ -496,10 +492,8 @@ export default function EditorEntidades() {
             />
           ) : isGruposTab ? (
             <EditorGrupo
-              key={`grupos-${gruposKey}`}
-              autoCrear={autoCrearGrupo}
+              key="grupos"
               onClickMiembro={(id, tabla) => {
-                setAutoCrearGrupo(false);
                 const tablaMap: Record<string, Exclude<TabKey, "mundo">> = {
                   personajes: "personajes",
                   criaturas:  "criaturas",
@@ -586,6 +580,18 @@ export default function EditorEntidades() {
             setTab("mundo");
             setMundoSection("historia");
             setRequestedSubTab("historia");
+          }}
+        />
+      )}
+
+      {/* Modal nuevo grupo */}
+      {showNuevoGrupo && (
+        <ModalNuevoGrupo
+          onClose={() => setShowNuevoGrupo(false)}
+          onCreated={() => {
+            setShowNuevoGrupo(false);
+            setTab("grupos");
+            setSelectedId(null);
           }}
         />
       )}
