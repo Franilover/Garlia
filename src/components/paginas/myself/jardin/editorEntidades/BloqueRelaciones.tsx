@@ -411,8 +411,8 @@ export function BloqueRelaciones({ personajeId, personajeNombre }: {
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-[7px] border-b border-primary/[0.06] bg-primary/[0.025]">
         <div className="flex items-center gap-2">
-          <Users size={9} className="text-primary/35" />
-          <span className="text-[8.5px] font-black uppercase tracking-[0.25em] text-primary/35">Relaciones</span>
+          <Users size={8} className="text-primary/35" />
+          <span className="text-[7px] font-black uppercase tracking-[0.2em] text-primary/35">Relaciones</span>
           {relaciones.length > 0 && (
             <span className="text-[8px] font-black text-primary/30 tabular-nums">{relaciones.length}</span>
           )}
