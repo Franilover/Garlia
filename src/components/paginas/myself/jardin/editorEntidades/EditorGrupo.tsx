@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
-  Users, Bug, Package, Sparkles, Star, ScrollText,
+  Users, Bug, Package, Sparkles, Star, ScrollText, Map,
   Plus, Trash2, Save, Search, X, ChevronLeft, ChevronRight,
   Loader2, Layers, UserCircle2, Swords, Wand2, Gem, Feather,
 } from "lucide-react";
@@ -41,7 +41,7 @@ async function dexieWriteAll(tabla: string, rows: any[]): Promise<void> {
 }
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
-export type GrupoTipo = "personajes" | "criaturas" | "items" | "hechizos" | "dones" | "runas";
+export type GrupoTipo = "personajes" | "criaturas" | "items" | "reinos" | "hechizos" | "dones" | "runas";
 
 export type Grupo = {
   id: string;
@@ -91,6 +91,12 @@ export const GRUPO_TIPO_CONFIG: Record<GrupoTipo, {
     color: "color-mix(in srgb, var(--primary) 60%, #f59e0b)", tabla: "items",
     ejemplo: "Arsenal, colección, reliquias…",
   },
+  reinos: {
+    label: "Reino", labelPlural: "Reinos",
+    Icon: Map, IconAlt: Map,
+    color: "color-mix(in srgb, var(--primary) 60%, #60a5fa)", tabla: "reinos",
+    ejemplo: "Alianza, confederación, imperio…",
+  },
   hechizos: {
     label: "Hechizo", labelPlural: "Hechizos",
     Icon: Sparkles, IconAlt: Wand2,
@@ -135,6 +141,9 @@ function useEntidades(tabla: string) {
       } else if (tabla === "items") {
         const { data } = await supabase.from("items").select("id, nombre, imagen_url, categoria").order("nombre");
         result = (data ?? []).map(r => ({ id: r.id, nombre: r.nombre, imagen_url: r.imagen_url ?? undefined, categoria: r.categoria ?? undefined }));
+      } else if (tabla === "reinos") {
+        const { data } = await supabase.from("reinos").select("id, nombre").order("nombre");
+        result = (data ?? []).map((r: any) => ({ id: r.id, nombre: r.nombre }));
       } else {
         const { data } = await (supabase.from(tabla as any) as any).select("id, nombre, imagen_url").order("nombre");
         result = (data ?? []).map((r: any) => ({ id: r.id, nombre: r.nombre, imagen_url: r.imagen_url ?? undefined }));

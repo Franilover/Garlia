@@ -4,7 +4,7 @@ import React, { useState, useMemo, useEffect, useRef, useCallback } from "react"
 import {
   Loader2, Eye, EyeOff, Plus, Search, X, SlidersHorizontal, Sparkles,
   Wand2, ScrollText, FileText, Zap, Clock, Globe, Check, Layers,
-  Users, Bug, Package, Star, Feather, Swords, Gem,
+  Users, Bug, Package, Star, Feather, Swords, Gem, Map,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
@@ -855,7 +855,7 @@ export function ModalMagicNombre({
 // ─── ModalNuevoGrupo ──────────────────────────────────────────────────────────
 // Modal de dos pasos: 1) elegir tipo, 2) escribir nombre → insert completo
 
-type GrupoTipoLocal = "personajes" | "criaturas" | "items" | "hechizos" | "dones" | "runas";
+type GrupoTipoLocal = "personajes" | "criaturas" | "items" | "reinos" | "hechizos" | "dones" | "runas";
 
 const GRUPO_MODAL_CONFIG: Record<GrupoTipoLocal, {
   label: string; labelPlural: string;
@@ -865,6 +865,7 @@ const GRUPO_MODAL_CONFIG: Record<GrupoTipoLocal, {
   personajes: { label: "Personaje",  labelPlural: "Personajes", Icon: Users,      IconAlt: Users,       color: "var(--primary)",                                              tabla: "personajes", ejemplo: "Facción, clan, gremio…"        },
   criaturas:  { label: "Criatura",   labelPlural: "Criaturas",  Icon: Bug,        IconAlt: Feather,     color: "color-mix(in srgb, var(--primary) 70%, #4ade80)",             tabla: "criaturas",  ejemplo: "Manada, especie, orden…"       },
   items:      { label: "Objeto",     labelPlural: "Objetos",    Icon: Package,    IconAlt: Swords,      color: "color-mix(in srgb, var(--primary) 60%, #f59e0b)",             tabla: "items",      ejemplo: "Arsenal, colección, reliquias…" },
+  reinos:     { label: "Reino",     labelPlural: "Reinos",     Icon: Map,        IconAlt: Map,         color: "color-mix(in srgb, var(--primary) 60%, #60a5fa)",             tabla: "reinos",     ejemplo: "Alianza, confederación, imperio…" },
   hechizos:   { label: "Hechizo",   labelPlural: "Hechizos",   Icon: Sparkles,   IconAlt: Wand2,       color: "var(--accent)",                                               tabla: "hechizos",   ejemplo: "Escuela, elemento, estilo…"    },
   dones:      { label: "Don",       labelPlural: "Dones",      Icon: Star,       IconAlt: Gem,         color: "color-mix(in srgb, var(--accent) 70%, var(--primary))",       tabla: "dones",      ejemplo: "Linaje, maldición, ancestral…" },
   runas:      { label: "Runa",      labelPlural: "Runas",      Icon: ScrollText, IconAlt: ScrollText,  color: "var(--primary)",                                              tabla: "runas",      ejemplo: "Conjunto rúnico, tradición…"   },
