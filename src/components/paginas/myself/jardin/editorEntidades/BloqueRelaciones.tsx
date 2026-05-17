@@ -36,6 +36,44 @@ async function dexieDelRelacion(id: string): Promise<void> {
   try { if (db) await (db as any).relaciones?.delete(id); } catch {}
 }
 
+// ─── Mapa de tipos inversos ───────────────────────────────────────────────────
+// Normaliza a minúsculas sin tildes para comparar
+function norm(s: string) {
+  return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+}
+
+const INVERSOS: [string, string][] = [
+  // familia
+  ["madre", "hijo"], ["padre", "hijo"],
+  ["hijo", "padre"], ["hija", "padre"],
+  ["hermano", "hermano"], ["hermana", "hermana"],
+  ["abuelo", "nieto"], ["abuela", "nieto"],
+  ["nieto", "abuelo"], ["nieta", "abuela"],
+  ["tio", "sobrino"], ["tia", "sobrino"],
+  ["sobrino", "tio"], ["sobrina", "tia"],
+  // relaciones
+  ["amigo", "amigo"], ["amiga", "amiga"],
+  ["enemigo", "enemigo"], ["rival", "rival"],
+  ["mentor", "aprendiz"], ["aprendiz", "mentor"],
+  ["maestro", "alumno"], ["alumno", "maestro"],
+  ["lider", "seguidor"], ["seguidor", "lider"],
+  // romance
+  ["pareja", "pareja"], ["novio", "novia"], ["novia", "novio"],
+  ["esposo", "esposa"], ["esposa", "esposo"],
+  ["amante", "amante"],
+  // alianza
+  ["aliado", "aliado"], ["socio", "socio"],
+];
+
+function tipoInverso(tipo: string): string {
+  const n = norm(tipo);
+  const par = INVERSOS.find(([a]) => norm(a) === n);
+  // Si hay inverso definido, devolver con la capitalización original del par
+  if (par) return par[1].charAt(0).toUpperCase() + par[1].slice(1);
+  // Fallback: mismo tipo
+  return tipo;
+}
+
 // ─── Hook: tipos existentes ───────────────────────────────────────────────────
 
 function useTiposExistentes() {
@@ -189,19 +227,30 @@ function FormNuevaRelacion({ personajeId, tiposExistentes, onAdded, onCancel }: 
       personaje_id: personajeId, personaje_rel_id: personajeSel.id,
       tipo: tipo.trim(), nota: nota.trim() || null,
     };
+    const rowInverso = {
+      personaje_id: personajeSel.id, personaje_rel_id: personajeId,
+      tipo: tipoInverso(tipo.trim()), nota: nota.trim() || null,
+    };
 
     if (!online) {
       const id = generateUUID();
+      const idInv = generateUUID();
       const nueva: Relacion = { id, ...row, rel_nombre: personajeSel.nombre, rel_img_url: personajeSel.img_url ?? null };
       void dexiePutRelacion({ id, ...row });
+      void dexiePutRelacion({ id: idInv, ...rowInverso });
       await enqueueOperation("relaciones", "upsert", id, { id, ...row });
+      await enqueueOperation("relaciones", "upsert", idInv, { id: idInv, ...rowInverso });
       onAdded(nueva); setSaving(false); return;
     }
 
     try {
-      const { data, error: err } = await supabase.from("relaciones").insert(row)
-        .select("id, personaje_id, personaje_rel_id, tipo, nota").single();
+      // Insertar ambas en paralelo
+      const [{ data, error: err }, { error: errInv }] = await Promise.all([
+        supabase.from("relaciones").insert(row).select("id, personaje_id, personaje_rel_id, tipo, nota").single(),
+        supabase.from("relaciones").insert({ id: generateUUID(), ...rowInverso }),
+      ]);
       if (err) throw err;
+      if (errInv) console.warn("[BloqueRelaciones] Error al insertar relación inversa:", errInv);
       const nueva: Relacion = {
         ...(data as any),
         rel_nombre: personajeSel.nombre, rel_img_url: personajeSel.img_url ?? null,
@@ -295,10 +344,34 @@ function FilaRelacion({ rel, onDelete, onSelectPersonaje }: {
     void dexieDelRelacion(rel.id);
     onDelete(rel.id);
     const online = await isReallyOnline();
-    if (!online) { await enqueueOperation("relaciones", "delete", rel.id); return; }
+    if (!online) {
+      await enqueueOperation("relaciones", "delete", rel.id);
+      // Buscar inversa en Dexie y encolar su borrado también
+      try {
+        if (db) {
+          const inversas: any[] = await (db as any).relaciones
+            ?.where("personaje_id").equals(rel.personaje_rel_id).toArray() ?? [];
+          const inv = inversas.find((r: any) => r.personaje_rel_id === rel.personaje_id);
+          if (inv) { void dexieDelRelacion(inv.id); await enqueueOperation("relaciones", "delete", inv.id); }
+        }
+      } catch {}
+      return;
+    }
     try {
+      // Borrar la directa
       const { error } = await supabase.from("relaciones").delete().eq("id", rel.id);
       if (error) await enqueueOperation("relaciones", "delete", rel.id);
+      // Buscar y borrar la inversa
+      const { data: inversas } = await supabase
+        .from("relaciones")
+        .select("id")
+        .eq("personaje_id", rel.personaje_rel_id)
+        .eq("personaje_rel_id", rel.personaje_id);
+      if (inversas?.length) {
+        const invIds = inversas.map((r: any) => r.id);
+        await supabase.from("relaciones").delete().in("id", invIds);
+        invIds.forEach((id: string) => void dexieDelRelacion(id));
+      }
     } catch { await enqueueOperation("relaciones", "delete", rel.id); }
   };
 
