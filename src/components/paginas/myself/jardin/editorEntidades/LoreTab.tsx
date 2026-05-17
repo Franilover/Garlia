@@ -46,7 +46,11 @@ function decodeTimeline(raw: string | undefined): TimelineEvent[] {
 
 /** Intenta parsear el año como número para ordenar (acepta negativos, texto, etc.) */
 function parseYear(year: string): number {
-  const n = parseFloat(year.replace(/[^0-9.\-]/g, ""));
+  if (!year?.trim()) return Infinity;
+  const normalized = year.replace(/(\d)[.,](\d{3})/g, "$1$2");
+  const match = normalized.match(/-?\d+/);
+  if (!match) return Infinity;
+  const n = parseInt(match[0], 10);
   return isNaN(n) ? Infinity : n;
 }
 

@@ -1423,9 +1423,19 @@ type MundoTimelineEvent = TimelineEvent & {
   yearNum: number; // para ordenar
 };
 
-/** Intenta parsear el año como número para ordenar (acepta negativos, decimales, etc.) */
+/** Intenta parsear el año como número para ordenar.
+ *  Acepta: "345", "-120", "1200 A.E.", "Año 45 A.C.", "Era del Fuego", "-3000 a.C.", "12.500"
+ *  Busca el primer entero con signo opcional; normaliza separadores de miles.
+ *  Texto puro sin números → Infinity (queda al final).
+ */
 function parseYear(year: string): number {
-  const n = parseFloat(year.replace(/[^0-9.\-]/g, ""));
+  if (!year?.trim()) return Infinity;
+  // Normalizar separadores de miles: 1.200 → 1200, 1,200 → 1200
+  const normalized = year.replace(/(\d)[.,](\d{3})/g, "$1$2");
+  // Extraer el primer número entero con signo opcional
+  const match = normalized.match(/-?\d+/);
+  if (!match) return Infinity;
+  const n = parseInt(match[0], 10);
   return isNaN(n) ? Infinity : n;
 }
 
