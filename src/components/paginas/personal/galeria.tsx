@@ -186,6 +186,40 @@ function EditModal({ item, onSave, onClose }: {
   const [bgColor,     setBgColor]     = useState(item.bg_color     ?? "#111111");
   const [aspectRatio, setAspectRatio] = useState<"square" | "wide" | "portrait">(item.aspect_ratio ?? "portrait");
   const [saving,      setSaving]      = useState(false);
+  const [picking,     setPicking]     = useState(false);
+  const [hoverColor,  setHoverColor]  = useState<string | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const imgElRef  = useRef<HTMLImageElement>(null);
+
+  const rgbToHex = (r: number, g: number, b: number) =>
+    "#" + [r, g, b].map(v => v.toString(16).padStart(2, "0")).join("");
+
+  const drawToCanvas = useCallback(() => {
+    const canvas = canvasRef.current;
+    const img    = imgElRef.current;
+    if (!canvas || !img) return;
+    canvas.width  = img.naturalWidth  || img.width;
+    canvas.height = img.naturalHeight || img.height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  }, []);
+
+  const getColorAt = useCallback((e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return null;
+    const rect   = (e.currentTarget as HTMLDivElement).getBoundingClientRect();
+    const clientX = "touches" in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
+    const clientY = "touches" in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
+    const scaleX  = canvas.width  / rect.width;
+    const scaleY  = canvas.height / rect.height;
+    const x = Math.floor((clientX - rect.left) * scaleX);
+    const y = Math.floor((clientY - rect.top)  * scaleY);
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+    const [r, g, b] = ctx.getImageData(x, y, 1, 1).data;
+    return rgbToHex(r, g, b);
+  }, []);
 
   const handleSave = async () => {
     setSaving(true);
@@ -210,16 +244,61 @@ function EditModal({ item, onSave, onClose }: {
           </button>
         </div>
 
-        {}
+        {/* Preview con modo cuentagotas */}
         <div className="px-5 pt-4">
-          <div className="relative w-full overflow-hidden rounded-xl"
-            style={{ paddingBottom: paddingForRatio(aspectRatio), backgroundColor: bgColor }}>
+          <div
+            className="relative w-full overflow-hidden rounded-xl"
+            style={{
+              paddingBottom: paddingForRatio(aspectRatio),
+              backgroundColor: picking ? (hoverColor ?? bgColor) : bgColor,
+              cursor: picking ? "crosshair" : "default",
+            }}
+            onMouseMove={e => { if (picking) setHoverColor(getColorAt(e)); }}
+            onMouseLeave={() => { if (picking) setHoverColor(null); }}
+            onClick={e => {
+              if (!picking) return;
+              const c = getColorAt(e);
+              if (c) setBgColor(c);
+              setPicking(false);
+              setHoverColor(null);
+            }}
+            onTouchEnd={e => {
+              if (!picking) return;
+              e.preventDefault();
+              const c = getColorAt(e as any);
+              if (c) setBgColor(c);
+              setPicking(false);
+              setHoverColor(null);
+            }}
+          >
             <img
+              ref={imgElRef}
               src={item.url_imagen}
               alt="preview"
-              className="absolute inset-0 w-full h-full object-contain"
+              crossOrigin="anonymous"
+              className="absolute inset-0 w-full h-full object-contain pointer-events-none"
               style={{ objectPosition: "50% 50%" }}
+              onLoad={drawToCanvas}
             />
+            <canvas ref={canvasRef} className="hidden" />
+
+            {picking && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 pointer-events-none"
+                style={{ background: "rgba(0,0,0,0.35)", backdropFilter: "blur(1px)" }}>
+                <Pipette size={22} color="white" />
+                <span className="text-[9px] font-black uppercase tracking-widest text-white/80">
+                  Toca un color
+                </span>
+                {hoverColor && (
+                  <div className="flex items-center gap-2 mt-1 px-3 py-1.5 rounded-xl"
+                    style={{ background: "rgba(0,0,0,0.5)" }}>
+                    <div className="w-4 h-4 rounded-md border border-white/30"
+                      style={{ backgroundColor: hoverColor }} />
+                    <span className="text-[10px] font-mono text-white">{hoverColor}</span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -229,10 +308,9 @@ function EditModal({ item, onSave, onClose }: {
           <div className="space-y-2">
             <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/40">Color de fondo</p>
 
-            {/* Hex input + cuentagotas */}
             <div className="flex items-center gap-2">
-              <div className="w-10 h-10 rounded-xl border border-primary/20 shrink-0 shadow-sm"
-                style={{ backgroundColor: bgColor }} />
+              <div className="w-10 h-10 rounded-xl border border-primary/20 shrink-0"
+                style={{ backgroundColor: hoverColor ?? bgColor }} />
               <input
                 type="text"
                 value={bgColor}
@@ -241,25 +319,19 @@ function EditModal({ item, onSave, onClose }: {
                 placeholder="#111111"
                 maxLength={7}
               />
-              {typeof (window as any).EyeDropper !== "undefined" && (
-                <button
-                  type="button"
-                  title="Cuentagotas"
-                  onClick={async () => {
-                    try {
-                      const eyeDropper = new (window as any).EyeDropper();
-                      const result = await eyeDropper.open();
-                      setBgColor(result.sRGBHex);
-                    } catch {
-                      // usuario canceló
-                    }
-                  }}
-                  className="w-10 h-10 flex items-center justify-center rounded-xl border border-primary/20 shrink-0 transition-all hover:opacity-70"
-                  style={{ background: "var(--bg-main)" }}
-                >
-                  <Pipette size={14} className="text-primary/60" />
-                </button>
-              )}
+              <button
+                type="button"
+                title="Cuentagotas"
+                onClick={() => { setPicking(p => !p); setHoverColor(null); drawToCanvas(); }}
+                className="w-10 h-10 flex items-center justify-center rounded-xl border shrink-0 transition-all"
+                style={{
+                  background:   picking ? "var(--primary)" : "var(--bg-main)",
+                  borderColor:  picking ? "var(--primary)" : "color-mix(in srgb, var(--primary) 20%, transparent)",
+                  color:        picking ? "var(--btn-text)" : "color-mix(in srgb, var(--primary) 60%, transparent)",
+                }}
+              >
+                <Pipette size={14} />
+              </button>
             </div>
 
             {/* Paleta de colores comunes */}
