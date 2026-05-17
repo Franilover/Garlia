@@ -1567,34 +1567,57 @@ function MundoEventoRow({
         {expanded && (
           <div className="px-3 pb-3 pt-3 space-y-3" style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
 
-            {/* Selector de Reino */}
+            {/* Selector de Reino — botones pill con color del tema */}
             {reinos.length > 0 && (
-              <div className="flex items-center gap-2">
-                <label className="shrink-0 text-[9px] font-black uppercase tracking-[0.3em] text-primary/35 flex items-center gap-1">
-                  <Crown size={9} /> Reino
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-black uppercase tracking-[0.3em] flex items-center gap-1"
+                  style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
+                  <Crown size={9} /> Reino del suceso
                 </label>
-                <div className="flex-1 flex items-center gap-1.5">
-                  <select
-                    value={reinoId ?? ""}
-                    onChange={e => onUpdate({ reinoId: e.target.value || null } as any)}
-                    className="flex-1 bg-primary/5 border border-primary/12 rounded-lg px-2 py-1 text-[10px] font-medium outline-none focus:border-primary/30 text-primary"
-                    style={{ borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}
+                <div className="flex flex-wrap gap-1.5">
+                  {/* Pill "Mundo" */}
+                  <button
+                    type="button"
+                    onClick={() => onUpdate({ reinoId: null } as any)}
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border transition-all"
+                    style={!reinoId ? {
+                      background: "color-mix(in srgb, var(--primary) 14%, transparent)",
+                      borderColor: "color-mix(in srgb, var(--primary) 30%, transparent)",
+                      color: "var(--primary)",
+                      boxShadow: "0 0 0 1px color-mix(in srgb, var(--primary) 20%, transparent)",
+                    } : {
+                      background: "transparent",
+                      borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
+                      color: "color-mix(in srgb, var(--primary) 35%, transparent)",
+                    }}
                   >
-                    <option value="">— Mundo (sin reino) —</option>
-                    {reinos.map(r => (
-                      <option key={r.id} value={r.id}>{r.nombre}</option>
-                    ))}
-                  </select>
-                  {reinoId && (
-                    <button
-                      type="button"
-                      onClick={() => onUpdate({ reinoId: null } as any)}
-                      title="Quitar reino"
-                      className="shrink-0 w-6 h-6 flex items-center justify-center rounded-lg text-primary/25 hover:text-red-400 hover:bg-red-400/10 transition-all"
-                    >
-                      <X size={10} />
-                    </button>
-                  )}
+                    <Globe size={8} /> Mundo
+                  </button>
+
+                  {/* Un pill por reino */}
+                  {reinos.map(r => {
+                    const active = reinoId === r.id;
+                    return (
+                      <button
+                        key={r.id}
+                        type="button"
+                        onClick={() => onUpdate({ reinoId: active ? null : r.id } as any)}
+                        className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border transition-all"
+                        style={active ? {
+                          background: "color-mix(in srgb, var(--primary) 14%, transparent)",
+                          borderColor: "color-mix(in srgb, var(--primary) 30%, transparent)",
+                          color: "var(--primary)",
+                          boxShadow: "0 0 0 1px color-mix(in srgb, var(--primary) 20%, transparent)",
+                        } : {
+                          background: "transparent",
+                          borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
+                          color: "color-mix(in srgb, var(--primary) 35%, transparent)",
+                        }}
+                      >
+                        <Crown size={8} /> {r.nombre}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
