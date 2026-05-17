@@ -267,6 +267,8 @@ export default function EditorEntidades() {
   const [mundoSection, setMundoSection] = useState<MundoSectionKey>(session.current.mundoSection);
   const [requestedSubTab, setRequestedSubTab] = useState<string | undefined>(session.current.mundoTab);
   const [requestedItemId, setRequestedItemId] = useState<string | undefined>(undefined);
+  const [autoCrearGrupo, setAutoCrearGrupo] = useState(false);
+  const [gruposKey, setGruposKey] = useState(0);
 
   const { textos: mundoTextos, setTextos: setMundoTextos, save: saveMundo } = useMundoSecciones();
   const { allItems, setAllItems, loadingAll, isOffline } = useAllEntidades();
@@ -417,8 +419,10 @@ export default function EditorEntidades() {
               setMundoSection("geografia");
               setRequestedSubTab("notas");
             } else if (key === "grupos") {
-              setTab("grupos" as any);
+              setTab("grupos");
               setSelectedId(null);
+              setAutoCrearGrupo(true);
+              setGruposKey(k => k + 1);
             } else {
               // hechizos, dones, runas → abrir su editor directamente como tab
               setTab(key as any);
@@ -492,8 +496,10 @@ export default function EditorEntidades() {
             />
           ) : isGruposTab ? (
             <EditorGrupo
-              key="grupos"
+              key={`grupos-${gruposKey}`}
+              autoCrear={autoCrearGrupo}
               onClickMiembro={(id, tabla) => {
+                setAutoCrearGrupo(false);
                 const tablaMap: Record<string, Exclude<TabKey, "mundo">> = {
                   personajes: "personajes",
                   criaturas:  "criaturas",

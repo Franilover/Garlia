@@ -570,17 +570,17 @@ function SelectorTipoGrupo({
 }
 
 // ─── EditorGrupo — ventana completa ───────────────────────────────────────────
-// Ya no es una sección dentro de EditorMundo. Se monta como página/ventana propia
-// y ocupa todo el espacio disponible (h-full w-full).
 export function EditorGrupo({
   onClickMiembro,
+  autoCrear = false,
 }: {
   onClickMiembro?: (id: string, tabla: string) => void;
+  autoCrear?: boolean;
 }) {
   const { grupos, loaded, crearGrupo, actualizarGrupo, eliminarGrupo } = useGrupos();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-  const [creando, setCreando] = useState(false);
+  const [creando, setCreando] = useState(autoCrear);
 
   const selected = grupos.find(g => g.id === selectedId) ?? null;
 
