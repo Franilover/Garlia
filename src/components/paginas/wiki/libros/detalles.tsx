@@ -452,7 +452,7 @@ export default function LibroDetalle() {
           </h1>
 
           {/* ── CTA principal: Comenzar / Continuar leyendo ── */}
-          {capitulos.length > 0 && (() => {
+          {capitulos.length > 0 && leidos.size < capitulos.length && (() => {
             const primerNoLeido = capitulos.find(c => !leidos.has(c.id));
             const targetCap     = primerNoLeido ?? capitulos[0];
             const continuar     = leidos.size > 0 && primerNoLeido;
