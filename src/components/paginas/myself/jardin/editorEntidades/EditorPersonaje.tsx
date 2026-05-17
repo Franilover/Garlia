@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import {
   Maximize2, UserCircle2, BookOpen, Mic2, Loader2,
   ChevronDown, X, Save, Trash2,
-  User, Sparkles,
+  Sparkles,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
@@ -48,13 +48,6 @@ async function dexieWriteAll(tabla: string, rows: any[]): Promise<void> {
 }
 
 
-
-// ─── Tabs internas ────────────────────────────────────────────────────────────
-type InnerTab = "identidad";
-
-const TABS: { key: InnerTab; label: string; Icon: React.ElementType }[] = [
-  { key: "identidad", label: "Identidad", Icon: User },
-];
 
 
 
@@ -262,7 +255,6 @@ export function FormularioPersonaje({
 }) {
   const especies = useNombresDeTabla("criaturas");
   const reinos   = useNombresDeTabla("reinos");
-  const [tab, setTab] = useState<InnerTab>("identidad");
   const variantes  = useCriaturaVariantesPorNombre(form.especie);
   const grupoIds   = useGruposDeCriaturaPorNombre(form.especie);
   const { onSnippetAction } = useWikilink();
@@ -311,29 +303,13 @@ export function FormularioPersonaje({
         </div>
       </div>
 
-      {/* ── Inner tabs — solo íconos en compacto, label en full ────────────── */}
-      <div
-        className="shrink-0 flex items-center gap-1 px-3 py-1.5 border-b border-primary/[0.06]"
-      >
-        {TABS.map(({ key, label, Icon }) => (
-          <button
-            key={key}
-            onClick={() => setTab(key)}
-            className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-widest transition-all border ${tab === key ? "bg-primary/10 text-primary border-primary/20" : "text-primary/35 border-transparent"}`}
-          >
-            <Icon size={10} /> <span className="hidden sm:inline">{label}</span>
-          </button>
-        ))}
-      </div>
-
       {/* ── Tab content ─────────────────────────────────────────────────────── */}
       <div className="flex-1 min-h-0 overflow-hidden flex">
 
         <div className="flex-1 overflow-y-auto min-h-0">
 
           {/* IDENTIDAD */}
-          {tab === "identidad" && (
-            <div className="p-3">
+          <div className="p-3">
               <div className="flex flex-col sm:flex-row gap-4">
                 {/* Columna izquierda: imagen cara + cuerpo apilados */}
                 <div className="shrink-0 w-full sm:w-52 flex sm:flex-col gap-3 sm:gap-2">
@@ -495,8 +471,7 @@ export function FormularioPersonaje({
                 </div>
               </div>
             </div>
-          )}
-        </div>
+          </div>
 
       </div>
     </div>
