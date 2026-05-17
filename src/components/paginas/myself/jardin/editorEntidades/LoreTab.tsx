@@ -20,12 +20,13 @@ export type TimelineEvent = {
   year: string;   // texto libre: "345 A.E.", "-120", "Era del Fuego"…
   title: string;
   description: string;
+  reinoId?: string | null; // null / undefined = evento de "Mundo" (sin reino)
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function newEvent(): TimelineEvent {
-  return { id: crypto.randomUUID(), year: "", title: "", description: "" };
+  return { id: crypto.randomUUID(), year: "", title: "", description: "", reinoId: null };
 }
 
 function encodeTimeline(events: TimelineEvent[]): string {
@@ -52,9 +53,13 @@ function parseYear(year: string): number {
 function TimelineEditor({
   value,
   onChange,
+  reinos = [],
+  filtroReinoId,
 }: {
   value: string;
   onChange: (v: string) => void;
+  reinos?: { id: string; nombre: string }[];
+  filtroReinoId?: string | null; // cuando hay filtro activo, se ocultan eventos sin reino
 }) {
   const [events, setEvents] = useState<TimelineEvent[]>(() => decodeTimeline(value));
 
@@ -70,7 +75,11 @@ function TimelineEditor({
 
   const remove = (id: string) => commit(events.filter((e) => e.id !== id));
 
+  // Ordenar y luego filtrar: si hay filtro activo, ocultar eventos "Mundo" (sin reinoId)
   const sorted = [...events].sort((a, b) => parseYear(a.year) - parseYear(b.year));
+  const visible = filtroReinoId
+    ? sorted.filter((e) => e.reinoId) // ocultar los de Mundo cuando hay filtro de reino
+    : sorted;
 
   return (
     <div className="flex flex-col gap-0 h-full">
@@ -109,15 +118,31 @@ function TimelineEditor({
           </div>
         )}
 
-        {sorted.map((evt, idx) => (
+        {/* Aviso cuando hay eventos de Mundo ocultos por filtro */}
+        {filtroReinoId && sorted.length > visible.length && (
+          <div
+            className="mb-2 px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2"
+            style={{
+              background: "color-mix(in srgb, var(--primary) 5%, transparent)",
+              border: "1px dashed color-mix(in srgb, var(--primary) 15%, transparent)",
+              color: "color-mix(in srgb, var(--primary) 35%, transparent)",
+            }}
+          >
+            <Globe size={10} />
+            {sorted.length - visible.length} evento{sorted.length - visible.length !== 1 ? "s" : ""} de Mundo oculto{sorted.length - visible.length !== 1 ? "s" : ""} por el filtro
+          </div>
+        )}
+
+        {visible.map((evt, idx) => (
           <TimelineRow
             key={evt.id}
             event={evt}
             index={idx}
-            total={sorted.length}
+            total={visible.length}
             onUpdate={(patch) => update(evt.id, patch)}
             onRemove={() => remove(evt.id)}
             onMove={() => {}}
+            reinos={reinos}
           />
         ))}
       </div>
@@ -168,6 +193,7 @@ function TimelineRow({
   onUpdate,
   onRemove,
   onMove,
+  reinos = [],
 }: {
   event: TimelineEvent;
   index: number;
@@ -175,6 +201,7 @@ function TimelineRow({
   onUpdate: (patch: Partial<TimelineEvent>) => void;
   onRemove: () => void;
   onMove: (dir: -1 | 1) => void;
+  reinos?: { id: string; nombre: string }[];
 }) {
   const [expanded, setExpanded] = useState(false);
   const { onSnippetAction } = useWikilink();
@@ -270,6 +297,25 @@ function TimelineRow({
                   : "color-mix(in srgb, var(--primary) 40%, transparent)",
               }}
             />
+            {/* Badge reino */}
+            {event.reinoId && reinos.length > 0 && (() => {
+              const r = reinos.find(r => r.id === event.reinoId);
+              return r ? (
+                <span
+                  className="shrink-0 text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md hidden sm:block"
+                  style={{
+                    background: "color-mix(in srgb, var(--primary) 12%, transparent)",
+                    color: "color-mix(in srgb, var(--primary) 55%, transparent)",
+                    maxWidth: 80,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {r.nombre}
+                </span>
+              ) : null;
+            })()}
             {/* Badge "detalle" cuando hay descripción y está cerrado */}
             {hasDesc && !expanded && (
               <span
@@ -322,9 +368,53 @@ function TimelineRow({
         {/* ── Panel expandible con MarkdownEditor ──────────────────────── */}
         {expanded && (
           <div
-            className="px-3 pb-3 pt-3"
+            className="px-3 pb-3 pt-3 flex flex-col gap-3"
             style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
           >
+            {/* ── Selector de reino ─────────────────────────────────────── */}
+            {reinos.length > 0 && (
+              <div className="flex items-center gap-2">
+                <span
+                  className="shrink-0 text-[9px] font-black uppercase tracking-widest"
+                  style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
+                >
+                  Reino
+                </span>
+                <select
+                  value={event.reinoId ?? ""}
+                  onChange={(e) => onUpdate({ reinoId: e.target.value || null })}
+                  className="flex-1 text-[10px] font-bold rounded-lg px-2 py-1.5 outline-none transition-all"
+                  style={{
+                    background: "color-mix(in srgb, var(--primary) 5%, transparent)",
+                    border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
+                    color: event.reinoId
+                      ? "var(--primary)"
+                      : "color-mix(in srgb, var(--primary) 35%, transparent)",
+                  }}
+                >
+                  <option value="">— Mundo (sin reino) —</option>
+                  {reinos.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.nombre}
+                    </option>
+                  ))}
+                </select>
+                {event.reinoId && (
+                  <button
+                    type="button"
+                    onClick={() => onUpdate({ reinoId: null })}
+                    className="shrink-0 p-1.5 rounded-lg transition-all"
+                    title="Quitar reino"
+                    style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
+                    onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.color = "#f87171")}
+                    onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.color = "color-mix(in srgb, var(--primary) 30%, transparent)")}
+                  >
+                    <Trash2 size={10} />
+                  </button>
+                )}
+              </div>
+            )}
+
             <MarkdownEditor
               value={event.description}
               onChange={(v) => onUpdate({ description: v })}
@@ -413,6 +503,8 @@ export function LoreTab({
   personajes = [],
   loadingPersonajes = false,
   onSelectPersonaje,
+  reinos = [],
+  filtroReinoId,
 }: {
   form: Reino;
   setForm: React.Dispatch<React.SetStateAction<Reino>>;
@@ -420,6 +512,8 @@ export function LoreTab({
   personajes?: Personaje[];
   loadingPersonajes?: boolean;
   onSelectPersonaje?: (personaje: Personaje) => void;
+  reinos?: { id: string; nombre: string }[];
+  filtroReinoId?: string | null;
 }) {
   const [activeKey, setActiveKey] = useState<LoreKey>("historia");
   const { onSnippetAction } = useWikilink();
@@ -558,6 +652,8 @@ export function LoreTab({
               key="historia-timeline"
               value={(form as any).historia ?? ""}
               onChange={(v) => setForm((f) => ({ ...f, historia: v }))}
+              reinos={reinos}
+              filtroReinoId={filtroReinoId}
             />
           ) : activeKey === "personajes" ? (
             <div className="p-4 space-y-2">

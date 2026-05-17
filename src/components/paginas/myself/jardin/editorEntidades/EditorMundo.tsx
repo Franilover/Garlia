@@ -1454,6 +1454,7 @@ function MundoEventoRow({
   onUpdate,
   onRemove,
   onMove,
+  reinos = [],
 }: {
   evt: TimelineEvent;
   idx: number;
@@ -1461,6 +1462,7 @@ function MundoEventoRow({
   onUpdate: (patch: Partial<TimelineEvent>) => void;
   onRemove: () => void;
   onMove: (dir: -1 | 1) => void;
+  reinos?: Reino[];
 }) {
   const [expanded, setExpanded] = useState(false);
   const { onSnippetAction } = useWikilink();
@@ -1468,6 +1470,8 @@ function MundoEventoRow({
   const hasYear  = !!evt.year?.trim();
   const hasTitle = !!evt.title?.trim();
   const hasDesc  = !!evt.description?.trim();
+  const reinoId  = (evt as any).reinoId as string | null | undefined;
+  const reinoNombre = reinoId ? reinos.find(r => r.id === reinoId)?.nombre : null;
 
   return (
     <div className="relative flex gap-0 group/row">
@@ -1524,7 +1528,15 @@ function MundoEventoRow({
               placeholder="Nombre del evento…"
               style={{ color: hasTitle ? "var(--primary)" : "color-mix(in srgb, var(--primary) 40%, transparent)" }}
             />
-            {hasDesc && !expanded && (
+            {/* Badge de reino asignado */}
+            {reinoNombre && !expanded && (
+              <span className="shrink-0 flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest hidden sm:flex"
+                style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)", color: "color-mix(in srgb, var(--primary) 50%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)" }}>
+                <Crown size={7} />
+                {reinoNombre}
+              </span>
+            )}
+            {hasDesc && !expanded && !reinoNombre && (
               <span
                 className="shrink-0 text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md hidden sm:block"
                 style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)", color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
@@ -1533,8 +1545,6 @@ function MundoEventoRow({
               </span>
             )}
           </div>
-
-          {/* Controles orden — ocultos (el orden es automático por año) */}
 
           {/* Eliminar — hover */}
           <div className="shrink-0 flex items-center px-1 opacity-0 group-hover/row:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
@@ -1553,9 +1563,42 @@ function MundoEventoRow({
           </div>
         </div>
 
-        {/* Panel expandible con MarkdownEditor */}
+        {/* Panel expandible */}
         {expanded && (
-          <div className="px-3 pb-3 pt-3" style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+          <div className="px-3 pb-3 pt-3 space-y-3" style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+
+            {/* Selector de Reino */}
+            {reinos.length > 0 && (
+              <div className="flex items-center gap-2">
+                <label className="shrink-0 text-[9px] font-black uppercase tracking-[0.3em] text-primary/35 flex items-center gap-1">
+                  <Crown size={9} /> Reino
+                </label>
+                <div className="flex-1 flex items-center gap-1.5">
+                  <select
+                    value={reinoId ?? ""}
+                    onChange={e => onUpdate({ reinoId: e.target.value || null } as any)}
+                    className="flex-1 bg-primary/5 border border-primary/12 rounded-lg px-2 py-1 text-[10px] font-medium outline-none focus:border-primary/30 text-primary"
+                    style={{ borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}
+                  >
+                    <option value="">— Mundo (sin reino) —</option>
+                    {reinos.map(r => (
+                      <option key={r.id} value={r.id}>{r.nombre}</option>
+                    ))}
+                  </select>
+                  {reinoId && (
+                    <button
+                      type="button"
+                      onClick={() => onUpdate({ reinoId: null } as any)}
+                      title="Quitar reino"
+                      className="shrink-0 w-6 h-6 flex items-center justify-center rounded-lg text-primary/25 hover:text-red-400 hover:bg-red-400/10 transition-all"
+                    >
+                      <X size={10} />
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
             <MarkdownEditor
               value={evt.description}
               onChange={v => onUpdate({ description: v })}
@@ -1576,9 +1619,11 @@ function MundoEventoRow({
 function MundoEventoEditor({
   events,
   onChange,
+  reinos = [],
 }: {
   events: TimelineEvent[];
   onChange: (events: TimelineEvent[]) => void;
+  reinos?: Reino[];
 }) {
   const add = () => onChange([...events, newEvent()]);
   const update = (id: string, patch: Partial<TimelineEvent>) => onChange(events.map(e => e.id === id ? { ...e, ...patch } : e));
@@ -1594,6 +1639,7 @@ function MundoEventoEditor({
           evt={evt}
           idx={idx}
           total={sorted.length}
+          reinos={reinos}
           onUpdate={patch => update(evt.id, patch)}
           onRemove={() => remove(evt.id)}
           onMove={() => {}}
@@ -1649,9 +1695,18 @@ function PanelHistoriaMundo({
   const unifiedEvents = useMemo<MundoTimelineEvent[]>(() => {
     const list: MundoTimelineEvent[] = [];
 
-    // Eventos del mundo
-    for (const e of mundoEvents) {
-      list.push({ ...e, source: "mundo", yearNum: parseYear(e.year) });
+    // Eventos del mundo — se ocultan cuando hay un filtro de reino activo
+    if (!filterReino) {
+      for (const e of mundoEvents) {
+        list.push({ ...e, source: "mundo", yearNum: parseYear(e.year) });
+      }
+    } else {
+      // Incluir solo los eventos de mundo que tengan reinoId == filterReino
+      for (const e of mundoEvents) {
+        if ((e as any).reinoId === filterReino) {
+          list.push({ ...e, source: "mundo", yearNum: parseYear(e.year) });
+        }
+      }
     }
 
     // Eventos de cada reino
@@ -1836,7 +1891,7 @@ function PanelHistoriaMundo({
 
         {/* Vista: Editar eventos propios del mundo */}
         {view === "edit" && (
-          <MundoEventoEditor events={mundoEvents} onChange={handleMundoChange} />
+          <MundoEventoEditor events={mundoEvents} onChange={handleMundoChange} reinos={reinos} />
         )}
       </div>
     </div>
