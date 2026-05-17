@@ -5,6 +5,7 @@ import { Users, Plus, X, Loader2, UserCircle2, ChevronDown, Link2 } from "lucide
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
 import { GrafoRelaciones } from "./GrafoRelaciones";
+import { enqueueOperation, isReallyOnline } from "@/hooks/data/useOfflineSync";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -20,6 +21,14 @@ export interface Relacion {
 }
 
 // ─── Helpers Dexie ────────────────────────────────────────────────────────────
+
+function generateUUID(): string {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    return (c === "x" ? r : (r & 0x3) | 0x8).toString(16);
+  });
+}
 
 async function dexiePutRelacion(row: Omit<Relacion, "rel_nombre" | "rel_img_url">): Promise<void> {
   try { if (db) await (db as any).relaciones?.put(row); } catch {}
@@ -136,6 +145,23 @@ function SelectorPersonaje({
   const search = useCallback(async (q: string) => {
     setLoading(true);
     try {
+      // Sin conexión: buscar en Dexie
+      if (!navigator.onLine) {
+        if (db) {
+          const all: any[] = await (db as any).personajes?.toArray() ?? [];
+          const filtrados = all
+            .filter((p: any) => p.id !== excludeId)
+            .filter((p: any) =>
+              !q.trim() || p.nombre?.toLowerCase().includes(q.trim().toLowerCase())
+            )
+            .sort((a: any, b: any) => a.nombre.localeCompare(b.nombre))
+            .slice(0, 20);
+          setResults(filtrados as PersonajeMin[]);
+        }
+        setLoading(false);
+        return;
+      }
+
       let sb = supabase
         .from("personajes")
         .select("id, nombre, img_url")
@@ -221,13 +247,33 @@ function FormNuevaRelacion({
     if (!tipo.trim())  { setError("Escribe el tipo de relación"); return; }
     setError("");
     setSaving(true);
-    try {
-      const row = {
-        personaje_id:     personajeId,
-        personaje_rel_id: personajeSel.id,
-        tipo:             tipo.trim(),
-        nota:             nota.trim() || null,
+
+    const online = await isReallyOnline();
+
+    const row = {
+      personaje_id:     personajeId,
+      personaje_rel_id: personajeSel.id,
+      tipo:             tipo.trim(),
+      nota:             nota.trim() || null,
+    };
+
+    if (!online) {
+      // Crear offline con ID temporal
+      const id = generateUUID();
+      const nueva: Relacion = {
+        id,
+        ...row,
+        rel_nombre:  personajeSel.nombre,
+        rel_img_url: personajeSel.img_url ?? null,
       };
+      void dexiePutRelacion({ id, ...row });
+      await enqueueOperation("relaciones", "upsert", id, { id, ...row });
+      onAdded(nueva);
+      setSaving(false);
+      return;
+    }
+
+    try {
       const { data, error: err } = await supabase
         .from("relaciones")
         .insert(row)
@@ -237,7 +283,7 @@ function FormNuevaRelacion({
       const nueva: Relacion = {
         ...(data as any),
         rel_nombre:  personajeSel.nombre,
-        rel_img_url: personajeSel.img_url,
+        rel_img_url: personajeSel.img_url ?? null,
       };
       void dexiePutRelacion({
         id: nueva.id,
@@ -247,7 +293,9 @@ function FormNuevaRelacion({
         nota: nueva.nota,
       });
       onAdded(nueva);
-    } catch { setError("Error al guardar, intenta de nuevo"); }
+    } catch {
+      setError("Error al guardar, intenta de nuevo");
+    }
     setSaving(false);
   };
 
@@ -347,12 +395,28 @@ function FilaRelacion({ rel, onDelete }: { rel: Relacion; onDelete: (id: string)
 
   const handleDelete = async () => {
     setDeleting(true);
+
+    // Optimistic: sacar de UI y Dexie inmediatamente
+    void dexieDelRelacion(rel.id);
+    onDelete(rel.id);
+
+    const online = await isReallyOnline();
+
+    if (!online) {
+      await enqueueOperation("relaciones", "delete", rel.id);
+      return;
+    }
+
     try {
       const { error } = await supabase.from("relaciones").delete().eq("id", rel.id);
-      if (error) throw error;
-      void dexieDelRelacion(rel.id);
-      onDelete(rel.id);
-    } catch { setDeleting(false); }
+      if (error) {
+        // Si falló, encolar para reintento
+        await enqueueOperation("relaciones", "delete", rel.id);
+      }
+    } catch {
+      await enqueueOperation("relaciones", "delete", rel.id);
+    }
+    // No setDeleting(false) porque el componente ya se desmontó (onDelete lo sacó del DOM)
   };
 
   return (
@@ -399,7 +463,7 @@ export function BloqueRelaciones({ personajeId, personajeNombre }: { personajeId
   const cargar = useCallback(async () => {
     setLoading(true);
 
-    // 1. Dexie primero
+    // 1. Dexie primero (sin esperar red)
     try {
       if (db) {
         const local: any[] = await (db as any).relaciones
@@ -414,13 +478,14 @@ export function BloqueRelaciones({ personajeId, personajeNombre }: { personajeId
             rel_nombre:  pjMap[r.personaje_rel_id]?.nombre  ?? "—",
             rel_img_url: pjMap[r.personaje_rel_id]?.img_url ?? null,
           })));
+          setLoading(false);
         }
       }
     } catch {}
 
     if (!navigator.onLine) { setLoading(false); return; }
 
-    // 2. Supabase
+    // 2. Supabase (actualiza lo que ya se mostró desde Dexie)
     try {
       const { data, error } = await supabase
         .from("relaciones")
