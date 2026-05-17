@@ -865,50 +865,161 @@ export default function Lector() {
   const [showIndex,      setShowIndex]      = useState(false);
   const [esExtra,        setEsExtra]        = useState(false);
 
-  // ── Resolver slug del libro → UUID ────────────────────────────────────────
+  // ── Flujo único: resolver libro + cargar caps en paralelo cuando es posible ──
   useEffect(() => {
-    if (!slugParam) return;
+    if (!slugParam || !capIdParam) return;
+    setLoading(true);
 
-    const resolver = async () => {
+    const run = async () => {
+      const hoy = new Date().toISOString();
+
+      // 1. Resolver UUID del libro Y verificar categoría en paralelo
+      let libroId: string;
       if (esUUID(slugParam)) {
-        const { data } = await supabase.from("libros").select("id, titulo").eq("id", slugParam).single();
-        if (data) {
-          const slug = toSlug(data.titulo);
-          router.replace(`/wiki/libros/${slug}/leer/${capIdParam}`, { scroll: false });
-          setId(data.id);
+        const { data } = await supabase
+          .from("libros").select("id, titulo, categoria").eq("id", slugParam).single();
+        if (!data) { setError("Libro no encontrado"); return; }
+        const slug = toSlug(data.titulo);
+        router.replace(`/wiki/libros/${slug}/leer/${capIdParam}`, { scroll: false });
+        libroId = data.id;
+        if (data.categoria?.toLowerCase() === "extra") setEsExtra(true);
+      } else {
+        // Buscar por slug: traer id+titulo+categoria en una sola query
+        const { data: todos } = await supabase
+          .from("libros").select("id, titulo, categoria");
+        if (!todos) { setError("Libro no encontrado"); return; }
+        const encontrado = todos.find(l => toSlug(l.titulo) === slugParam);
+        if (!encontrado) { setError("Libro no encontrado"); return; }
+        libroId = encontrado.id;
+        if (encontrado.categoria?.toLowerCase() === "extra") setEsExtra(true);
+      }
+      setId(libroId);
+
+      // 2. Cargar caps — si capIdParam es UUID usamos getCapituloParaLectura,
+      //    si es slug cargamos directo por libro_id (sin roundtrip extra)
+      type CapRaw = {
+        id: string; orden: number; titulo_capitulo: string; contenido: string;
+        fecha_publicacion: string; personajes_ids: string[];
+        libros: { titulo: string } | { titulo: string }[] | null;
+        narrador: NarradorInfo | NarradorInfo[] | null;
+        reino: ReinoInfo | ReinoInfo[] | null;
+      };
+
+      let rawList: CapRaw[] = [];
+
+      if (esUUID(capIdParam)) {
+        const queryRes = await librosQueries.getCapituloParaLectura(capIdParam, libroId, true);
+        if (queryRes.error || !queryRes.data) {
+          setError(queryRes.error || "No se pudo cargar el capítulo"); return;
         }
-        return;
+        const listaRaw = queryRes.data.listaCapitulos;
+        cachearEnDexie(listaRaw.map((c: any) => ({ ...c, libro_id: libroId })));
+        const { data: contenidos } = await supabase
+          .from("capitulos")
+          .select(`id, orden, titulo_capitulo, contenido, fecha_publicacion, personajes_ids,
+            libros(titulo), narrador:personajes!narrador_id(id, nombre, img_url),
+            reino:reinos!reino_id(id, nombre, imagen_reino)`)
+          .in("id", listaRaw.map((c: any) => c.id))
+          .or(`visibilidad.eq.publico,and(visibilidad.eq.programado,fecha_publicacion.lte.${hoy.split("T")[0]})`)
+          .not("titulo_capitulo", "like", "[Ruta]%")
+          .order("orden", { ascending: true });
+        rawList = (contenidos as unknown as CapRaw[]) ?? [];
+      } else {
+        // Slug de segmento: una sola query por libro_id, sin intermediarios
+        const { data: contenidos } = await supabase
+          .from("capitulos")
+          .select(`id, orden, titulo_capitulo, contenido, fecha_publicacion, personajes_ids,
+            libros(titulo), narrador:personajes!narrador_id(id, nombre, img_url),
+            reino:reinos!reino_id(id, nombre, imagen_reino)`)
+          .eq("libro_id", libroId)
+          .or(`visibilidad.eq.publico,and(visibilidad.eq.programado,fecha_publicacion.lte.${hoy.split("T")[0]})`)
+          .not("titulo_capitulo", "like", "[Ruta]%")
+          .order("orden", { ascending: true });
+        rawList = (contenidos as unknown as CapRaw[]) ?? [];
       }
 
-      const { data: todos } = await supabase.from("libros").select("id, titulo");
-      if (!todos) return;
-      const encontrado = todos.find(l => toSlug(l.titulo) === slugParam);
-      if (encontrado) setId(encontrado.id);
+      const capsValidas = rawList.map(c => ({
+        id: c.id, orden: c.orden, titulo_capitulo: c.titulo_capitulo,
+        contenido: c.contenido, fecha_publicacion: c.fecha_publicacion,
+        personajes_ids: c.personajes_ids, libro_id: libroId,
+        libros: normOne(c.libros) ?? undefined,
+        _narrador: normOne(c.narrador),
+        _reino: normOne(c.reino),
+      }));
+
+      cachearEnDexie(capsValidas);
+
+      const listaCapitulosData = capsValidas.map(c => ({
+        id: c.id, orden: c.orden,
+        titulo_capitulo: c.titulo_capitulo,
+        fecha_publicacion: c.fecha_publicacion,
+      }));
+
+      const segs = buildSegmentos(capsValidas as any);
+
+      // 3. Resolver segmento y capítulo activo
+      let si = 0;
+      let capIdActivo = "";
+
+      if (esUUID(capIdParam)) {
+        si = segs.findIndex(s => s.capitulos.some(c => c.id === capIdParam));
+        if (si === -1) si = 0;
+        capIdActivo = capIdParam;
+        // Canonicalizar URL: UUID → slug de segmento
+        const segSlug = slugSegmento(segs, si);
+        router.replace(`/wiki/libros/${slugParam}/leer/${segSlug}`, { scroll: false });
+      } else {
+        si = resolverSegmentoDesdeSlug(segs, capIdParam);
+        capIdActivo = segs[si]?.capitulos[0]?.id ?? capsValidas[0]?.id ?? "";
+      }
+
+      const capActivo = capsValidas.find(c => c.id === capIdActivo);
+      if (capActivo) setActiveCapTitle(`${capActivo.orden}. ${capActivo.titulo_capitulo}`);
+
+      // Setear todo de golpe para evitar renders intermedios
+      setListaCapitulos(listaCapitulosData);
+      setCapitulos(capsValidas as unknown as CapituloScrollItem[]);
+      setSegmentos(segs);
+      setSegActivo(si);
+      setCapId(capIdActivo);
     };
 
-    resolver();
+    run()
+      .catch(async (err) => {
+        console.error("Error crítico en Lector:", err);
+        // Intentar desde caché Dexie
+        try {
+          const table = await getDexieTable();
+          if (table) {
+            const todos = (await table.toArray()) as any[];
+            const cached = todos.filter((c: any) => !c.deleted && c.libro_id === id && c.contenido);
+            if (cached.length > 0) {
+              const capsValidas = cached.map((c: any) => ({
+                id: c.id, orden: c.orden, titulo_capitulo: c.titulo_capitulo,
+                contenido: c.contenido, fecha_publicacion: c.fecha_publicacion,
+                personajes_ids: c.personajes_ids, libro_id: id,
+                libros: c.libros, _narrador: c._narrador, _reino: c._reino,
+              }));
+              const segs = buildSegmentos(capsValidas as any);
+              const lista = capsValidas.map(c => ({ id: c.id, orden: c.orden, titulo_capitulo: c.titulo_capitulo, fecha_publicacion: c.fecha_publicacion }));
+              const si = esUUID(capIdParam)
+                ? Math.max(0, segs.findIndex(s => s.capitulos.some(c => c.id === capIdParam)))
+                : resolverSegmentoDesdeSlug(segs, capIdParam);
+              const capIdActivo = esUUID(capIdParam) ? capIdParam : (segs[si]?.capitulos[0]?.id ?? "");
+              setListaCapitulos(lista);
+              setCapitulos(capsValidas as unknown as CapituloScrollItem[]);
+              setSegmentos(segs);
+              setSegActivo(si);
+              setCapId(capIdActivo);
+              return;
+            }
+          }
+        } catch { }
+        setError("Error al abrir el pergamino");
+      })
+      .finally(() => setLoading(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slugParam, capIdParam]);
-
-  // ── Resolver capIdParam: puede ser UUID o slug-de-segmento ────────────────
-  // Se ejecuta después de que los segmentos estén cargados (o al inicio si es UUID)
-  useEffect(() => {
-    if (!capIdParam) return;
-
-    // Si es UUID, usarlo directamente
-    if (esUUID(capIdParam)) {
-      setCapId(capIdParam);
-      return;
-    }
-
-    // Si es slug de segmento, esperar a que los segmentos estén listos
-    if (segmentos.length === 0) return;
-
-    const si = resolverSegmentoDesdeSlug(segmentos, capIdParam);
-    setSegActivo(si);
-    const primerCap = segmentos[si]?.capitulos[0];
-    if (primerCap) setCapId(primerCap.id);
-  }, [capIdParam, segmentos]);
 
   const libroTitulo = capitulos[0]?.libros?.titulo;
   const hasScrolled = useRef(false);
@@ -992,160 +1103,6 @@ export default function Lector() {
       await table.bulkPut(merged);
     } catch (e) { console.warn("[Dexie] Error cacheando caps:", e); }
   };
-
-  const leerDesdeCache = async (): Promise<any[] | null> => {
-    const table = await getDexieTable();
-    if (!table) return null;
-    try {
-      const todos    = (await table.toArray()) as any[];
-      const delLibro = todos.filter((c: any) => !c.deleted && c.libro_id === id && c.contenido);
-      return delLibro.length > 0 ? delLibro : null;
-    } catch { return null; }
-  };
-
-  useEffect(() => {
-    if (!capIdParam || !id) return;
-    const hoy = new Date().toISOString();
-
-    type CapRaw = {
-      id: string;
-      orden: number;
-      titulo_capitulo: string;
-      contenido: string;
-      fecha_publicacion: string;
-      personajes_ids: string[];
-      libros:   { titulo: string }   | { titulo: string }[]   | null;
-      narrador: NarradorInfo         | NarradorInfo[]         | null;
-      reino:    ReinoInfo            | ReinoInfo[]            | null;
-    };
-
-    supabase.from("libros").select("categoria").eq("id", id).single()
-      .then(({ data: libroData }) => {
-        if (libroData?.categoria?.toLowerCase() === "extra") setEsExtra(true);
-      });
-
-    const cargarCaps = async (): Promise<CapRaw[]> => {
-      if (esUUID(capIdParam)) {
-        // Flujo original: usar getCapituloParaLectura para obtener la lista de caps del libro
-        const queryRes = await librosQueries.getCapituloParaLectura(capIdParam, id, true);
-        if (queryRes.error || !queryRes.data) throw new Error(queryRes.error || "No se pudo cargar el capítulo");
-        const listaRaw = queryRes.data.listaCapitulos;
-        cachearEnDexie(listaRaw.map((c: any) => ({ ...c, libro_id: id })));
-        const { data: contenidos } = await supabase
-          .from("capitulos")
-          .select(`
-            id, orden, titulo_capitulo, contenido, fecha_publicacion, personajes_ids,
-            libros(titulo),
-            narrador:personajes!narrador_id(id, nombre, img_url),
-            reino:reinos!reino_id(id, nombre, imagen_reino)
-          `)
-          .in("id", listaRaw.map((c: any) => c.id))
-          .or(`visibilidad.eq.publico,and(visibilidad.eq.programado,fecha_publicacion.lte.${hoy.split("T")[0]})`)
-          .not("titulo_capitulo", "like", "[Ruta]%")
-          .order("orden", { ascending: true });
-        return (contenidos as unknown as CapRaw[]) ?? [];
-      } else {
-        // Slug de segmento: cargar todos los caps del libro directamente
-        const { data: contenidos } = await supabase
-          .from("capitulos")
-          .select(`
-            id, orden, titulo_capitulo, contenido, fecha_publicacion, personajes_ids,
-            libros(titulo),
-            narrador:personajes!narrador_id(id, nombre, img_url),
-            reino:reinos!reino_id(id, nombre, imagen_reino)
-          `)
-          .eq("libro_id", id)
-          .or(`visibilidad.eq.publico,and(visibilidad.eq.programado,fecha_publicacion.lte.${hoy.split("T")[0]})`)
-          .not("titulo_capitulo", "like", "[Ruta]%")
-          .order("orden", { ascending: true });
-        return (contenidos as unknown as CapRaw[]) ?? [];
-      }
-    };
-
-    cargarCaps()
-      .then(async (rawList) => {
-        const capsValidas = rawList.map(c => ({
-          id:                c.id,
-          orden:             c.orden,
-          titulo_capitulo:   c.titulo_capitulo,
-          contenido:         c.contenido,
-          fecha_publicacion: c.fecha_publicacion,
-          personajes_ids:    c.personajes_ids,
-          libro_id:          id,
-          libros:            normOne(c.libros) ?? undefined,
-          _narrador:         normOne(c.narrador),
-          _reino:            normOne(c.reino),
-        }));
-
-        cachearEnDexie(capsValidas);
-
-        const listaCapitulosData = capsValidas.map(c => ({
-          id: c.id, orden: c.orden,
-          titulo_capitulo: c.titulo_capitulo,
-          fecha_publicacion: c.fecha_publicacion,
-        }));
-
-        setListaCapitulos(listaCapitulosData);
-        setCapitulos(capsValidas as unknown as CapituloScrollItem[]);
-
-        // Inicializar el título visible con el cap activo al cargar
-        const capActivo = capsValidas.find(c => c.id === (esUUID(capIdParam) ? capIdParam : capsValidas[0]?.id));
-        if (capActivo) setActiveCapTitle(`${capActivo.orden}. ${capActivo.titulo_capitulo}`);
-
-        const segs = buildSegmentos(capsValidas as any);
-        setSegmentos(segs);
-
-        // Resolver segmento activo y canonicalizar URL con slug de narrador/reino
-        let si = 0;
-        if (esUUID(capIdParam)) {
-          si = segs.findIndex(s => s.capitulos.some(c => c.id === capIdParam));
-          if (si === -1) si = 0;
-          // Reemplazar UUID en la URL por el slug legible del segmento
-          const segSlug = slugSegmento(segs, si);
-          router.replace(`/wiki/libros/${slugParam}/leer/${segSlug}`, { scroll: false });
-        } else {
-          si = resolverSegmentoDesdeSlug(segs, capIdParam);
-        }
-        setSegActivo(si);
-        const primerCapSeg = segs[si]?.capitulos[0];
-        if (primerCapSeg) setCapId(primerCapSeg.id);
-      })
-      .catch(async (err) => {
-        console.error("Error crítico en Lector:", err);
-        const cached = await leerDesdeCache();
-        if (cached && cached.length > 0) {
-          const capsValidas = cached.map((c: any) => ({
-            id: c.id, orden: c.orden, titulo_capitulo: c.titulo_capitulo,
-            contenido: c.contenido, fecha_publicacion: c.fecha_publicacion,
-            personajes_ids: c.personajes_ids, libro_id: id,
-            libros: c.libros, _narrador: c._narrador, _reino: c._reino,
-          }));
-          const segs = buildSegmentos(capsValidas as any);
-          const lista = capsValidas.map(c => ({
-            id: c.id, orden: c.orden,
-            titulo_capitulo: c.titulo_capitulo,
-            fecha_publicacion: c.fecha_publicacion,
-          }));
-          setListaCapitulos(lista);
-          setCapitulos(capsValidas as unknown as CapituloScrollItem[]);
-          setSegmentos(segs);
-          let si = 0;
-          if (esUUID(capIdParam)) {
-            si = segs.findIndex(s => s.capitulos.some(c => c.id === capIdParam));
-            if (si === -1) si = 0;
-          } else {
-            si = resolverSegmentoDesdeSlug(segs, capIdParam);
-          }
-          setSegActivo(si);
-          const primerCapSeg = segs[si]?.capitulos[0];
-          if (primerCapSeg) setCapId(primerCapSeg.id);
-        } else {
-          setError("Error al abrir el pergamino");
-        }
-      })
-      .finally(() => setLoading(false));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [capIdParam, id]);
 
   /** Navega dentro del segmento activo (scroll) — actualiza URL con slug del segmento */
   const handleNavigate = useCallback((targetCapId: string) => {
