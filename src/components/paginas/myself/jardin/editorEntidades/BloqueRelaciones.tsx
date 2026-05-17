@@ -493,27 +493,24 @@ export function BloqueRelaciones({ personajeId, personajeNombre, onSelectPersona
     <div className="rounded-xl overflow-hidden border border-primary/10">
 
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-[7px] border-b border-primary/[0.06] bg-primary/[0.025]">
-        <div className="flex items-center gap-2">
-          <Users size={9} className="text-primary/35" />
-          <span className="text-[8.5px] font-black uppercase tracking-[0.25em] text-primary/35">Relaciones</span>
-          {relaciones.length > 0 && (
-            <span className="text-[8px] font-black text-primary/30 tabular-nums">{relaciones.length}</span>
-          )}
-        </div>
-        <div className="flex items-center gap-1.5">
-          {!loading && relaciones.length > 0 && (
-            <GrafoRelaciones personajeId={personajeId} personajeNombre={personajeNombre} />
-          )}
-          <button onClick={() => setFormVisible(v => !v)}
-            className={`flex items-center gap-1 px-2 py-[5px] rounded-md text-[8px] font-black uppercase tracking-widest border transition-all
-              ${formVisible
-                ? "bg-primary/8 border-primary/20 text-primary"
-                : "border-primary/8 text-primary/30 hover:text-primary/60 hover:border-primary/18"}`}>
-            {formVisible ? <X size={8} /> : <Plus size={8} />}
-            {formVisible ? "Cerrar" : "Añadir"}
-          </button>
-        </div>
+      <div className="flex items-center gap-1.5 px-2 py-1 border-b border-primary/[0.06]">
+        <Users size={8} className="text-primary/25 shrink-0" />
+        <span className="text-[7px] font-black uppercase tracking-[0.2em] text-primary/30 leading-none">Relaciones</span>
+        {relaciones.length > 0 && (
+          <span className="text-[7px] font-black text-primary/20 tabular-nums leading-none">{relaciones.length}</span>
+        )}
+        <div className="flex-1" />
+        {!loading && relaciones.length > 0 && (
+          <GrafoRelaciones personajeId={personajeId} personajeNombre={personajeNombre} />
+        )}
+        <button onClick={() => setFormVisible(v => !v)}
+          className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[7px] font-black uppercase tracking-widest border transition-all leading-none
+            ${formVisible
+              ? "bg-primary/8 border-primary/20 text-primary"
+              : "border-primary/8 text-primary/25 hover:text-primary/50 hover:border-primary/18"}`}>
+          {formVisible ? <X size={7} /> : <Plus size={7} />}
+          {formVisible ? "Cerrar" : "Añadir"}
+        </button>
       </div>
 
       {/* Cuerpo */}
