@@ -1531,39 +1531,7 @@ const notaResults = useMemo((): NotaResult[] => {
                       );
                     })}
                   </div>
-                  {/* Magia subtabs: hechizos, dones, runas — cuadrados */}
-                  <div className="px-2 pt-3 pb-1">
-                    <p className="text-[8px] font-black uppercase tracking-widest text-primary/25">Magia</p>
-                  </div>
-                  <div className="grid grid-cols-3 gap-1">
-                    {MUNDO_NAV.filter(nav => ["hechizos", "dones", "runas"].includes(nav.subTab)).map(nav => {
-                      const color = nav.subTab === "hechizos" ? "var(--accent)" : nav.subTab === "dones" ? "color-mix(in srgb, var(--accent) 70%, var(--primary))" : "var(--primary)";
-                      const abbr = nav.subTab === "hechizos" ? "HZ" : nav.subTab === "dones" ? "DN" : "RN";
-                      return (
-                        <button
-                          key={nav.section + nav.subTab}
-                          onMouseDown={() => handleMundoSubTab(nav.section as MundoSectionKey, nav.subTab)}
-                          className="flex flex-col items-center justify-center gap-1.5 rounded-xl transition-all duration-150 border border-transparent hover:border-primary/10"
-                          style={{ aspectRatio: "1 / 1", padding: "10px 4px" }}
-                          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = `color-mix(in srgb, ${color} 7%, transparent)`; }}
-                          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
-                        >
-                          <div
-                            className="shrink-0 w-7 h-7 rounded-lg border flex items-center justify-center"
-                            style={{
-                              background: `color-mix(in srgb, ${color} 8%, transparent)`,
-                              borderColor: `color-mix(in srgb, ${color} 18%, transparent)`,
-                            }}
-                          >
-                            <span style={{ fontSize: 9, fontWeight: 900, fontFamily: "var(--font-mono)", color: `color-mix(in srgb, ${color} 60%, transparent)` }}>
-                              {abbr}
-                            </span>
-                          </div>
-                          <span className="text-[10px] font-bold text-primary/60 text-center leading-tight">{nav.label}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
+
                   {/* Add hint at the bottom */}
                   <div className="mt-2 px-2 py-1.5 rounded-xl border border-dashed flex items-center gap-2"
                     style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)" }}>
