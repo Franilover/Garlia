@@ -269,6 +269,19 @@ export interface GrupoMundo {
   updated_at?: string;
 }
 
+// ─── Nuevas interfaces para relaciones lore ───────────────────────────────────
+export interface PersonajeHechizo {
+  id: string;          // compuesto: `${personaje_id}_${hechizo_id}`
+  personaje_id: string;
+  hechizo_id: string;
+}
+
+export interface PersonajeDon {
+  id: string;          // compuesto: `${personaje_id}_${don_id}`
+  personaje_id: string;
+  don_id: string;
+}
+
 class AgendaFraniDB extends Dexie {
 
   personajes!: Table<Personaje, string>;
@@ -305,13 +318,14 @@ class AgendaFraniDB extends Dexie {
 
   reproductor_handles!: Table<ReproductorHandle, string>;
 
-  
   session_cache!: Table<SessionCache, string>;
   hechizos!: Table<Hechizo, string>;
   dones!: Table<Don, string>;
   grupos_mundo!: Table<GrupoMundo, string>;
-  
-  
+
+  // Nuevas tablas para relaciones lore
+  personaje_hechizos!: Table<PersonajeHechizo, string>;
+  personaje_dones!: Table<PersonajeDon, string>;
 
 
   constructor() {
@@ -606,6 +620,43 @@ class AgendaFraniDB extends Dexie {
       dones:                "id, nombre",
       notas_lore:           "id, updated_at",
       grupos_mundo:         "id, tipo, created_at",     // ← nueva tabla para grupos
+    });
+
+    // ─── v11: tablas de relación personaje↔hechizo / personaje↔don ───────────
+    this.version(11).stores({
+      personajes:           "id, nombre, visible",
+      criaturas:            "id, nombre, habitat, alma, pensamiento",
+      criatura_variantes:   "id, criatura_id, tipo",
+      items:                "id, nombre, categoria",
+      libros:               "id, created_at",
+      capitulos:            "id, libro_id, orden, fecha_publicacion",
+      canciones:            "id, titulo, personaje, visible, created_at",
+      secciones_cancion:    "id, cancion_id, orden",
+      reinos:               "id, nombre, orden",
+      relaciones:           "id, personaje_id, personaje_rel_id, tipo",
+      tareas:               "id, username, completada, created_at, status",
+      eventos:              "id, username, fecha, tipo, status",
+      recetas:              "id, autor_id, categoria, created_at",
+      ingredientes:         "id, user_id",
+      ropa:                 "id, user_id, created_at",
+      ropa_outfits:         "id, user_id, created_at",
+      diario_fotos:         "++id, categoria, created_at",
+      dibujos:              "++id, categoria",
+      notas:                "id, status, updated_at",
+      ensayos:              "id, status, updated_at",
+      rutinas:              "id, status",
+      ejercicios_rutina:    "id, rutina_id, status",
+      offline_queue:        "++id, table, operation, recordId, timestamp",
+      compras:              "id",
+      reproductor_handles:  "key",
+      session_cache:        "key, updated_at",
+      reino_detalles:       "id, reino_id",
+      hechizos:             "id, nombre",
+      dones:                "id, nombre",
+      notas_lore:           "id, updated_at",
+      grupos_mundo:         "id, tipo, created_at",
+      personaje_hechizos:   "id, personaje_id, hechizo_id", // ← nueva
+      personaje_dones:      "id, personaje_id, don_id",     // ← nueva
     });
   }
 }

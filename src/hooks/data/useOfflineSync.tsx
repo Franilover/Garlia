@@ -29,6 +29,10 @@ const SYNC_TABLES: Record<string, {
   items:              { supabaseTable: "items",              excludeFields: ["status", "deleted"] },
   reinos:             { supabaseTable: "reinos",             excludeFields: ["status", "deleted"] },
   relaciones:         { supabaseTable: "relaciones",         excludeFields: ["status", "deleted"] },
+  // ─── Lore ────────────────────────────────────────────────────────────────────
+  // "notas_lore" en Dexie corresponde a la tabla "notas" de Supabase (lore notes).
+  // Se excluye "deleted" para que el soft-delete no se suba accidentalmente.
+  notas_lore:         { supabaseTable: "notas",              excludeFields: ["deleted"] },
 };
 
 const MAX_RETRIES      = 3;
@@ -50,9 +54,6 @@ function notifySyncDone() {
 }
 
 // ─── Verificación real de conectividad ───────────────────────────────────────
-// Cloudflare rechaza cualquier ping directo a Supabase a nivel de red (CORS),
-// así que no lo usamos como señal. navigator.onLine es suficiente: si hay red
-// intentamos el sync y dejamos que los errores de Supabase se manejen solos.
 export async function isReallyOnline(): Promise<boolean> {
   return navigator.onLine;
 }
@@ -82,11 +83,6 @@ export async function dexieDelete(table: string, id: string | number): Promise<v
 let globalSyncPromise: Promise<void> | null = null;
 let lastSyncTime = 0;
 
-// FIX A: para cerrar la race condition entre el debounce-check y el await
-// isReallyOnline(), usamos un flag "syncInFlight" que se setea ANTES del await.
-// Así cualquier llamada concurrente que pase el debounce-check mientras
-// isReallyOnline() está pendiente, encuentra el flag y sale inmediatamente,
-// sin crear un segundo sync paralelo.
 let syncInFlight = false;
 
 export async function runSync(): Promise<void> {
@@ -95,7 +91,6 @@ export async function runSync(): Promise<void> {
   const now = Date.now();
   if (now - lastSyncTime < SYNC_DEBOUNCE_MS) return;
 
-  // FIX A: marcar antes del await para bloquear entradas concurrentes
   if (syncInFlight) return;
   syncInFlight = true;
 
@@ -105,7 +100,6 @@ export async function runSync(): Promise<void> {
   } catch {
     online = false;
   } finally {
-    // Si no vamos a lanzar un sync, liberar el flag aquí
     if (!online) syncInFlight = false;
   }
 
@@ -113,16 +107,12 @@ export async function runSync(): Promise<void> {
 
   lastSyncTime = Date.now();
 
-  // FIX B: en vez de un flag global `pendingRerun` mutable que persiste entre
-  // runs y puede quedar sucio si hay un error, usamos una variable local por
-  // invocación. El finally la lee y, si aplica, lanza el re-run limpio.
   let needsRerun = false;
 
   globalSyncPromise = (async () => {
     try {
       const queue = await db.offline_queue.orderBy("timestamp").toArray();
 
-      // Notificar siempre, incluso con cola vacía, para que los hooks revaliden
       if (queue.length === 0) {
         notifySyncDone();
         return;
@@ -184,18 +174,14 @@ export async function runSync(): Promise<void> {
 
       notifySyncDone();
 
-      // Ops encoladas mientras corría este loop
       const remaining = await db.offline_queue.count();
       if (remaining > 0) needsRerun = true;
 
     } finally {
-      // FIX A+B: liberar todos los flags ANTES del re-run para que runSync()
-      // pueda entrar limpio. El orden aquí es crítico.
       globalSyncPromise = null;
       syncInFlight      = false;
 
       if (needsRerun) {
-        // Esperamos debounce+100ms para pasar el guard de lastSyncTime
         setTimeout(() => runSync(), SYNC_DEBOUNCE_MS + 100);
       }
     }
@@ -228,9 +214,6 @@ export function useOfflineSync() {
 }
 
 // ─── Encolar operación con deduplicación ──────────────────────────────────────
-// FIX: antes se añadía una entrada nueva por cada save timeout, acumulando
-// el mismo recordId varias veces. Ahora, si ya existe una entrada pendiente
-// para la misma tabla + recordId + operation, se actualiza en vez de duplicar.
 export async function enqueueOperation(
   table: string,
   operation: "upsert" | "update" | "delete",

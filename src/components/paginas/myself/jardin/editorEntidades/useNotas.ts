@@ -1,52 +1,21 @@
 import { useState, useCallback, useEffect } from "react";
 import { supabase } from "@/lib/api/client/supabase";
-import { db } from "@/lib/api/client/db";
 import { type Nota } from "./types";
-
-// ─── Dexie helpers locales ────────────────────────────────────────────────────
-// Usa "notas_lore" para no colisionar con la tabla "notas" existente (ensayos/personal)
-
-async function dexieReadAll<T>(tabla: string): Promise<T[]> {
-  try {
-    if (!db) return [];
-    const t = (db as any)[tabla];
-    if (!t) return [];
-    return ((await t.toArray()) as any[]).filter((r: any) => !r.deleted) as T[];
-  } catch { return []; }
-}
-
-async function dexiePut(tabla: string, row: any): Promise<void> {
-  try { if (db) await (db as any)[tabla]?.put(row); }
-  catch (e) { console.warn(`[Dexie] put failed on '${tabla}':`, e); }
-}
-
-async function dexieDel(tabla: string, id: string): Promise<void> {
-  try { if (db) await (db as any)[tabla]?.delete(id); }
-  catch (e) { console.warn(`[Dexie] delete failed on '${tabla}':`, e); }
-}
-
-async function dexieWriteAll(tabla: string, rows: any[]): Promise<void> {
-  try {
-    if (!db) return;
-    const t = (db as any)[tabla];
-    if (!t) return;
-    if (rows.length > 0) await t.bulkPut(rows);
-    const remoteIds = new Set(rows.map((r: any) => r.id));
-    const local: any[] = await t.toArray();
-    const toDelete = local.map((r: any) => r.id).filter((id: string) => !remoteIds.has(id));
-    if (toDelete.length > 0) await t.bulkDelete(toDelete);
-  } catch (e) { console.warn("[Dexie] writeAll failed:", e); }
-}
+import { loreReadAll, lorePut, loreDel, loreWriteAll } from "@/lib/api/client/loreDb";
+import { enqueueOperation, isReallyOnline } from "@/hooks/data/useOfflineSync";
 
 // ─── Hook principal ───────────────────────────────────────────────────────────
+// Usa "notas_lore" como tabla Dexie para no colisionar con "notas" personal.
+// Las operaciones offline se encolan en offline_queue → useOfflineSync las sube
+// automáticamente cuando vuelve la conexión.
 
 export function useNotas() {
   const [notas, setNotas] = useState<Nota[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
-    // Cachear desde Dexie primero (tabla separada "notas_lore")
-    const local = await dexieReadAll<Nota>("notas_lore");
+    // 1. Cachear desde Dexie primero
+    const local = await loreReadAll<Nota>("notas_lore");
     if (local.length) { setNotas(local); setLoading(false); }
     if (!navigator.onLine) { if (!local.length) setLoading(false); return; }
 
@@ -64,7 +33,7 @@ export function useNotas() {
     const result = (data ?? []) as Nota[];
     setNotas(result);
     setLoading(false);
-    await dexieWriteAll("notas_lore", result);
+    await loreWriteAll("notas_lore", result);
   }, []);
 
   useEffect(() => { load(); }, [load]);
@@ -72,6 +41,30 @@ export function useNotas() {
   // ── CRUD ──────────────────────────────────────────────────────────────────
 
   const crear = useCallback(async (titulo: string): Promise<Nota | null> => {
+    const online = await isReallyOnline();
+
+    if (!online) {
+      // Crear offline con UUID temporal
+      const id = crypto.randomUUID();
+      const now = new Date().toISOString();
+      const nota: Nota = {
+        id,
+        titulo: titulo.trim(),
+        contenido: "",
+        updated_at: now,
+        status: "pending",
+      } as any;
+      setNotas(prev => [nota, ...prev]);
+      await lorePut("notas_lore", nota);
+      await enqueueOperation("notas_lore", "upsert", id, {
+        id,
+        titulo: nota.titulo,
+        contenido: "",
+        updated_at: now,
+      });
+      return nota;
+    }
+
     const { data, error } = await supabase
       .from("notas")
       .insert([{ titulo: titulo.trim(), contenido: "" }])
@@ -85,16 +78,30 @@ export function useNotas() {
 
     const nota = data as Nota;
     setNotas(prev => [nota, ...prev]);
-    await dexiePut("notas_lore", nota);
+    await lorePut("notas_lore", nota);
     return nota;
   }, []);
 
   const actualizar = useCallback(async (nota: Nota): Promise<void> => {
     const now = new Date().toISOString();
     const updated = { ...nota, updated_at: now };
-    // Optimistic update local
+
+    // Optimistic update local siempre
     setNotas(prev => prev.map(n => n.id === nota.id ? updated : n));
-    await dexiePut("notas_lore", updated);
+    await lorePut("notas_lore", updated);
+
+    const online = await isReallyOnline();
+
+    if (!online) {
+      // Encolar para sync cuando vuelva la conexión
+      await enqueueOperation("notas_lore", "update", nota.id, {
+        titulo:     nota.titulo,
+        contenido:  nota.contenido ?? "",
+        etiquetas:  nota.etiquetas ?? null,
+        updated_at: now,
+      });
+      return;
+    }
 
     const { error } = await supabase
       .from("notas")
@@ -106,15 +113,36 @@ export function useNotas() {
       })
       .eq("id", nota.id);
 
-    if (error) console.error("[useNotas] Error al actualizar nota:", error);
+    if (error) {
+      console.error("[useNotas] Error al actualizar nota:", error);
+      // Encolar igualmente por si fue un error transitorio
+      await enqueueOperation("notas_lore", "update", nota.id, {
+        titulo:     nota.titulo,
+        contenido:  nota.contenido ?? "",
+        etiquetas:  nota.etiquetas ?? null,
+        updated_at: now,
+      });
+    }
   }, []);
 
   const eliminar = useCallback(async (id: string): Promise<void> => {
+    // Optimistic: sacar de UI y Dexie inmediatamente
     setNotas(prev => prev.filter(n => n.id !== id));
-    await dexieDel("notas_lore", id);
+    await loreDel("notas_lore", id);
+
+    const online = await isReallyOnline();
+
+    if (!online) {
+      await enqueueOperation("notas_lore", "delete", id);
+      return;
+    }
 
     const { error } = await supabase.from("notas").delete().eq("id", id);
-    if (error) console.error("[useNotas] Error al eliminar nota:", error);
+    if (error) {
+      console.error("[useNotas] Error al eliminar nota:", error);
+      // Encolar para reintentar
+      await enqueueOperation("notas_lore", "delete", id);
+    }
   }, []);
 
   return { notas, setNotas, loading, crear, actualizar, eliminar, refetch: load };

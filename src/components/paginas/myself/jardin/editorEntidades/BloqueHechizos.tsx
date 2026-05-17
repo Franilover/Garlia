@@ -4,49 +4,26 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { createPortal } from "react-dom";
 import { X, Loader2, ChevronDown } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
-import { db } from "@/lib/api/client/db";
 import { normalize } from "@/components/templates/EstudioTemplates";
 import { INPUT_CLS } from "./types";
-
-
-// ─── Dexie helpers ────────────────────────────────────────────────────────────
-async function dexiePut(tabla: string, row: any): Promise<void> {
-  try { if (db) await (db as any)[tabla]?.put(row); } catch {}
-}
-async function dexieDel(tabla: string, id: string): Promise<void> {
-  try { if (db) await (db as any)[tabla]?.delete(id); } catch {}
-}
-async function dexieReadAll<T>(tabla: string): Promise<T[]> {
-  try {
-    if (!db) return [];
-    const t = (db as any)[tabla];
-    if (!t) return [];
-    return ((await t.toArray()) as any[]).filter((r: any) => !r.deleted) as T[];
-  } catch { return []; }
-}
-async function dexieWriteAll(tabla: string, rows: any[]): Promise<void> {
-  try {
-    if (!db) return;
-    const t = (db as any)[tabla];
-    if (!t) return;
-    if (rows.length > 0) await t.bulkPut(rows);
-    const remoteIds = new Set(rows.map((r: any) => r.id));
-    const local: any[] = await t.toArray();
-    const toDelete = local.map((r: any) => r.id).filter((id: string) => !remoteIds.has(id));
-    if (toDelete.length > 0) await t.bulkDelete(toDelete);
-  } catch {}
-}
-
+import {
+  getCatalogCache,
+  setCatalogCache,
+  loreReadRelaciones,
+  loreSyncRelaciones,
+} from "@/lib/api/client/loreDb";
 
 // ─── Types locales ─────────────────────────────────────────────────────────────
 type HechizoCatalogo = {
   id: string;
   nombre: string;
-  // IDs de grupos de criaturas que pueden usar este hechizo (vacío = universal)
   grupo_ids?: string[];
 };
 
-// ─── Hook: catálogo de hechizos ───────────────────────────────────────────────
+// ─── Hook: catálogo de hechizos (con session_cache) ───────────────────────────
+// Un solo fetch aunque haya varios BloqueHechizos montados al mismo tiempo.
+const CACHE_KEY_HECHIZOS = "catalogo_hechizos";
+
 function useCatalogo() {
   const [hechizos, setHechizos] = useState<HechizoCatalogo[]>([]);
   const [loading,  setLoading]  = useState(true);
@@ -54,9 +31,18 @@ function useCatalogo() {
   useEffect(() => {
     let cancelled = false;
     const run = async () => {
-      const localH = await dexieReadAll<HechizoCatalogo>("hechizos");
-      if (localH.length && !cancelled) { setHechizos(localH); setLoading(false); }
-      if (!navigator.onLine) { if (!localH.length) setLoading(false); return; }
+      // 1. Intentar session_cache (TTL 10 min)
+      const cached = await getCatalogCache<HechizoCatalogo>(CACHE_KEY_HECHIZOS);
+      if (cached && !cancelled) {
+        setHechizos(cached);
+        setLoading(false);
+        if (!navigator.onLine) return;
+      }
+
+      if (!navigator.onLine) {
+        if (!cancelled) setLoading(false);
+        return;
+      }
 
       const { data } = await supabase
         .from("hechizos")
@@ -67,7 +53,7 @@ function useCatalogo() {
       const hechizosData = (data ?? []) as HechizoCatalogo[];
       setHechizos(hechizosData);
       setLoading(false);
-      await dexieWriteAll("hechizos", hechizosData);
+      await setCatalogCache(CACHE_KEY_HECHIZOS, hechizosData);
     };
     run();
     return () => { cancelled = true; };
@@ -76,45 +62,63 @@ function useCatalogo() {
   return { hechizos, loading };
 }
 
-// ─── Hook: hechizos asignados al personaje ─────────────────────────────────────
+// ─── Hook: hechizos asignados al personaje (con caché local) ──────────────────
 function useAsignados(personajeId: string) {
   const [ids, setIds] = useState<string[]>([]);
 
   const load = useCallback(async () => {
+    // 1. Leer de Dexie primero (sin esperar red)
+    const localIds = await loreReadRelaciones("personaje_hechizos", personajeId, "hechizo_id");
+    if (localIds.length) setIds(localIds);
+
+    // 2. Fetch remoto si hay conexión
+    if (!navigator.onLine) return;
+
     const { data } = await supabase
       .from("personaje_hechizos")
       .select("hechizo_id")
       .eq("personaje_id", personajeId);
-    setIds((data ?? []).map((r: any) => r.hechizo_id));
+
+    const remoteIds = (data ?? []).map((r: any) => r.hechizo_id);
+    setIds(remoteIds);
+
+    // Sincronizar Dexie con remote
+    await loreSyncRelaciones("personaje_hechizos", personajeId, "hechizo_id", remoteIds);
   }, [personajeId]);
 
   useEffect(() => { load(); }, [load]);
 
   const add = async (id: string) => {
-    await supabase.from("personaje_hechizos").insert({ personaje_id: personajeId, hechizo_id: id });
+    // Optimistic
     setIds(prev => [...prev, id]);
+    await loreSyncRelaciones(
+      "personaje_hechizos",
+      personajeId,
+      "hechizo_id",
+      [...ids, id],
+    );
+
+    await supabase.from("personaje_hechizos").insert({ personaje_id: personajeId, hechizo_id: id });
   };
 
   const remove = async (id: string) => {
+    // Optimistic
+    const next = ids.filter(x => x !== id);
+    setIds(next);
+    await loreSyncRelaciones("personaje_hechizos", personajeId, "hechizo_id", next);
+
     await supabase.from("personaje_hechizos").delete()
       .eq("personaje_id", personajeId).eq("hechizo_id", id);
-    setIds(prev => prev.filter(x => x !== id));
   };
 
   return { ids, add, remove };
 }
 
 // ─── Lógica de compatibilidad ──────────────────────────────────────────────────
-// Un hechizo es compatible con una criatura si:
-//   - No tiene grupos asignados (universal), O
-//   - Al menos uno de los grupos de la criatura está en los grupos del hechizo.
-function esCompatible(
-  hechizo: HechizoCatalogo,
-  grupoIdsDeCriatura: string[],
-): boolean {
+function esCompatible(hechizo: HechizoCatalogo, grupoIdsDeCriatura: string[]): boolean {
   const grupoIds = hechizo.grupo_ids ?? [];
-  if (grupoIds.length === 0) return true;                      // universal
-  if (grupoIdsDeCriatura.length === 0) return false;           // sin grupos → incompatible
+  if (grupoIds.length === 0) return true;
+  if (grupoIdsDeCriatura.length === 0) return false;
   return grupoIds.some(gid => grupoIdsDeCriatura.includes(gid));
 }
 
@@ -176,7 +180,6 @@ function DropdownHechizos({ anchorRef, disponibles, filtrados, asignados, onSele
 }
 
 // ─── Componente principal ──────────────────────────────────────────────────────
-// grupoIds: IDs de los grupos de criaturas a los que pertenece el personaje/criatura
 export function BloqueHechizos({ personajeId, grupoIds = [] }: {
   personajeId: string;
   grupoIds?: string[];
@@ -250,7 +253,6 @@ export function BloqueHechizos({ personajeId, grupoIds = [] }: {
           </button>
         </div>
 
-        {/* Dropdown en portal para escapar overflow-hidden del padre */}
         {open && typeof window !== "undefined" && createPortal(
           <DropdownHechizos
             anchorRef={ref}

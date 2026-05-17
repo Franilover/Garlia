@@ -3,49 +3,26 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { X, Loader2, ChevronDown } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
-import { db } from "@/lib/api/client/db";
 import { normalize } from "@/components/templates/EstudioTemplates";
 import { INPUT_CLS } from "./types";
-
-
-// ─── Dexie helpers ────────────────────────────────────────────────────────────
-async function dexiePut(tabla: string, row: any): Promise<void> {
-  try { if (db) await (db as any)[tabla]?.put(row); } catch {}
-}
-async function dexieDel(tabla: string, id: string): Promise<void> {
-  try { if (db) await (db as any)[tabla]?.delete(id); } catch {}
-}
-async function dexieReadAll<T>(tabla: string): Promise<T[]> {
-  try {
-    if (!db) return [];
-    const t = (db as any)[tabla];
-    if (!t) return [];
-    return ((await t.toArray()) as any[]).filter((r: any) => !r.deleted) as T[];
-  } catch { return []; }
-}
-async function dexieWriteAll(tabla: string, rows: any[]): Promise<void> {
-  try {
-    if (!db) return;
-    const t = (db as any)[tabla];
-    if (!t) return;
-    if (rows.length > 0) await t.bulkPut(rows);
-    const remoteIds = new Set(rows.map((r: any) => r.id));
-    const local: any[] = await t.toArray();
-    const toDelete = local.map((r: any) => r.id).filter((id: string) => !remoteIds.has(id));
-    if (toDelete.length > 0) await t.bulkDelete(toDelete);
-  } catch {}
-}
-
+import {
+  getCatalogCache,
+  setCatalogCache,
+  loreReadRelaciones,
+  loreSyncRelaciones,
+} from "@/lib/api/client/loreDb";
 
 // ─── Types locales ─────────────────────────────────────────────────────────────
 type DonCatalogo = {
   id: string;
   nombre: string;
-  // IDs de grupos de criaturas que pueden usar este don (vacío = universal)
   grupo_ids?: string[];
 };
 
-// ─── Hook: catálogo de dones ──────────────────────────────────────────────────
+// ─── Hook: catálogo de dones (con session_cache) ──────────────────────────────
+// Un solo fetch aunque haya varios BloqueDones montados al mismo tiempo.
+const CACHE_KEY_DONES = "catalogo_dones";
+
 function useCatalogo() {
   const [dones,   setDones]   = useState<DonCatalogo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -53,9 +30,19 @@ function useCatalogo() {
   useEffect(() => {
     let cancelled = false;
     const run = async () => {
-      const localD = await dexieReadAll<DonCatalogo>("dones");
-      if (localD.length && !cancelled) { setDones(localD); setLoading(false); }
-      if (!navigator.onLine) { if (!localD.length) setLoading(false); return; }
+      // 1. Intentar session_cache (TTL 10 min)
+      const cached = await getCatalogCache<DonCatalogo>(CACHE_KEY_DONES);
+      if (cached && !cancelled) {
+        setDones(cached);
+        setLoading(false);
+        // Aún así refrescamos en background si hay red
+        if (!navigator.onLine) return;
+      }
+
+      if (!navigator.onLine) {
+        if (!cancelled) setLoading(false);
+        return;
+      }
 
       const { data } = await supabase
         .from("dones")
@@ -66,7 +53,7 @@ function useCatalogo() {
       const donesData = (data ?? []) as DonCatalogo[];
       setDones(donesData);
       setLoading(false);
-      await dexieWriteAll("dones", donesData);
+      await setCatalogCache(CACHE_KEY_DONES, donesData);
     };
     run();
     return () => { cancelled = true; };
@@ -75,45 +62,71 @@ function useCatalogo() {
   return { dones, loading };
 }
 
-// ─── Hook: don asignado al personaje (solo uno) ───────────────────────────────
+// ─── Hook: don asignado al personaje (con caché local) ───────────────────────
 function useAsignado(personajeId: string) {
-  const [donId, setDonId] = useState<string | null>(null);
+  const [donId,   setDonId]   = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
+
+    // 1. Leer de Dexie primero (sin esperar red)
+    const localIds = await loreReadRelaciones("personaje_dones", personajeId, "don_id");
+    if (localIds.length) {
+      setDonId(localIds[0]);
+      setLoading(false);
+    }
+
+    // 2. Fetch remoto si hay conexión
+    if (!navigator.onLine) {
+      if (!localIds.length) setLoading(false);
+      return;
+    }
+
     const { data } = await supabase
       .from("personaje_dones")
       .select("don_id")
       .eq("personaje_id", personajeId)
       .limit(1)
       .maybeSingle();
-    setDonId(data?.don_id ?? null);
+
+    const remoteId = data?.don_id ?? null;
+    setDonId(remoteId);
     setLoading(false);
+
+    // Sincronizar Dexie con remote
+    await loreSyncRelaciones(
+      "personaje_dones",
+      personajeId,
+      "don_id",
+      remoteId ? [remoteId] : [],
+    );
   }, [personajeId]);
 
   useEffect(() => { load(); }, [load]);
 
   const assign = async (id: string) => {
+    // Optimistic
+    setDonId(id);
+    await loreSyncRelaciones("personaje_dones", personajeId, "don_id", [id]);
+
     await supabase.from("personaje_dones").delete().eq("personaje_id", personajeId);
     await supabase.from("personaje_dones").insert({ personaje_id: personajeId, don_id: id });
-    setDonId(id);
   };
 
   const clear = async () => {
-    await supabase.from("personaje_dones").delete().eq("personaje_id", personajeId);
+    // Optimistic
     setDonId(null);
+    await loreSyncRelaciones("personaje_dones", personajeId, "don_id", []);
+
+    await supabase.from("personaje_dones").delete().eq("personaje_id", personajeId);
   };
 
   return { donId, loading, assign, clear };
 }
 
 // ─── Lógica de compatibilidad ─────────────────────────────────────────────────
-// Sin grupo_ids → universal. Con grupo_ids → al menos un grupo debe coincidir.
-function esCompatible(
-  don: DonCatalogo,
-  grupoIdsDeCriatura: string[],
-): boolean {
+function esCompatible(don: DonCatalogo, grupoIdsDeCriatura: string[]): boolean {
   const grupoIds = don.grupo_ids ?? [];
   if (grupoIds.length === 0) return true;
   if (grupoIdsDeCriatura.length === 0) return false;
