@@ -310,7 +310,8 @@ function AddCommandMenu({
 
   if (!open) return null;
 
-  const renderEntry = (entry: AddEntry) => {
+  // Bloque rectangular (para entidades principales: personajes, criaturas, items, reinos)
+  const renderRectEntry = (entry: AddEntry) => {
     const color = ADD_ITEM_COLOR[entry.key] ?? "var(--primary)";
     const handleClick = () => {
       if (entry.kind === "tab") { onAdd(entry.key as Exclude<TabKey, "mundo">); onClose(); }
@@ -351,6 +352,49 @@ function AddCommandMenu({
     );
   };
 
+  // Bloque cuadrado (para runas, hechizos, dones y el resto de magic entries)
+  const renderSquareEntry = (entry: AddEntry) => {
+    const color = ADD_ITEM_COLOR[entry.key] ?? "var(--primary)";
+    const handleClick = () => {
+      if (entry.kind === "tab") { onAdd(entry.key as Exclude<TabKey, "mundo">); onClose(); }
+      else if (entry.kind === "nav") { entry.onNavigate(); }
+      else { onAddMagic?.(entry.key as MagicAddKey); onClose(); }
+    };
+    return (
+      <button
+        key={entry.key}
+        onClick={handleClick}
+        className="flex flex-col items-center justify-center gap-1.5 rounded-xl text-center transition-all border border-dashed"
+        style={{
+          aspectRatio: "1 / 1",
+          borderColor: `color-mix(in srgb, ${color} 18%, transparent)`,
+          color: `color-mix(in srgb, ${color} 50%, transparent)`,
+          padding: "8px 4px",
+        }}
+        onMouseEnter={e => {
+          const el = e.currentTarget as HTMLElement;
+          el.style.background = `color-mix(in srgb, ${color} 9%, transparent)`;
+          el.style.color = color;
+          el.style.borderColor = `color-mix(in srgb, ${color} 38%, transparent)`;
+        }}
+        onMouseLeave={e => {
+          const el = e.currentTarget as HTMLElement;
+          el.style.background = "transparent";
+          el.style.color = `color-mix(in srgb, ${color} 50%, transparent)`;
+          el.style.borderColor = `color-mix(in srgb, ${color} 18%, transparent)`;
+        }}
+      >
+        <span
+          className="shrink-0 w-7 h-7 rounded-lg flex items-center justify-center"
+          style={{ background: `color-mix(in srgb, ${color} 11%, transparent)` }}
+        >
+          <entry.Icon size={13} />
+        </span>
+        <span className="text-[9px] font-black uppercase tracking-widest leading-tight">{entry.label}</span>
+      </button>
+    );
+  };
+
   return (
     <div
       ref={ref}
@@ -376,9 +420,9 @@ function AddCommandMenu({
       </div>
 
       <div className="p-2 space-y-3">
-        {/* Entidades — 2 columnas */}
+        {/* Entidades principales — bloques rectangulares en 2 columnas */}
         <div className="grid grid-cols-2 gap-1">
-          {tabEntries.map(renderEntry)}
+          {tabEntries.map(renderRectEntry)}
         </div>
 
         {/* Separador */}
@@ -391,9 +435,9 @@ function AddCommandMenu({
           <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
         </div>
 
-        {/* Magia + notas — 2 columnas */}
-        <div className="grid grid-cols-2 gap-1">
-          {magicEntries.map(renderEntry)}
+        {/* Magia + notas — bloques cuadrados */}
+        <div className="grid grid-cols-6 gap-1">
+          {magicEntries.map(renderSquareEntry)}
         </div>
       </div>
 
@@ -1022,6 +1066,8 @@ const notaResults = useMemo((): NotaResult[] => {
         }
         if (globalResults.length > 0) {
           handleSelect(globalResults[0].item, globalResults[0].tab);
+        } else if (magicResults.length > 0) {
+          handleMagic(magicResults[0].subTab, magicResults[0].item);
         } else if (mundoSubTabResults.length > 0) {
           handleMundoSubTab(mundoSubTabResults[0].section, mundoSubTabResults[0].subTab);
         } else if (mundoNavResults.length > 0) {
@@ -1330,35 +1376,40 @@ const notaResults = useMemo((): NotaResult[] => {
                         <div className="px-2 pt-3 pb-1">
                           <p className="text-[8px] font-black uppercase tracking-widest text-primary/25">Magia</p>
                         </div>
-                        <div className="space-y-0.5 mb-1">
-                          {magicResults.map(({ item, subTab, label }) => (
-                            <button
-                              key={`${subTab}-${item.id}`}
-                              onMouseDown={() => handleMagic(subTab, item)}
-                              className="w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-150 border border-transparent hover:bg-primary/6 hover:border-primary/10"
-                            >
-                              <div
-                                className="shrink-0 w-7 h-7 rounded-lg border flex items-center justify-center"
-                                style={{
-                                  background: "color-mix(in srgb, var(--accent) 8%, transparent)",
-                                  borderColor: "color-mix(in srgb, var(--accent) 15%, transparent)",
-                                }}
+                        <div className="grid grid-cols-3 sm:grid-cols-6 gap-1 mb-1">
+                          {magicResults.map(({ item, subTab, label }) => {
+                            const color = subTab === "hechizos" ? "var(--accent)" : subTab === "dones" ? "color-mix(in srgb, var(--accent) 70%, var(--primary))" : "var(--primary)";
+                            const abbr = subTab === "hechizos" ? "HZ" : subTab === "dones" ? "DN" : "RN";
+                            return (
+                              <button
+                                key={`${subTab}-${item.id}`}
+                                onMouseDown={() => handleMagic(subTab, item)}
+                                className="group flex flex-col items-center gap-1 p-1.5 rounded-xl transition-all duration-150 border border-transparent hover:border-primary/10"
+                                style={{ aspectRatio: "1 / 1" }}
+                                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = `color-mix(in srgb, ${color} 7%, transparent)`; }}
+                                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
                               >
-                                <span style={{ fontSize: 11 }}>
-                                  <span style={{ fontSize: 9, fontWeight: 900, fontFamily: "var(--font-mono)", color: "color-mix(in srgb, var(--accent) 60%, transparent)" }}>
-                                    {subTab === "hechizos" ? "HZ" : subTab === "dones" ? "DN" : "RN"}
+                                <div
+                                  className="shrink-0 w-7 h-7 rounded-lg border flex items-center justify-center"
+                                  style={{
+                                    background: `color-mix(in srgb, ${color} 8%, transparent)`,
+                                    borderColor: `color-mix(in srgb, ${color} 15%, transparent)`,
+                                  }}
+                                >
+                                  <span style={{ fontSize: 9, fontWeight: 900, fontFamily: "var(--font-mono)", color: `color-mix(in srgb, ${color} 60%, transparent)` }}>
+                                    {abbr}
                                   </span>
+                                </div>
+                                <p className="text-[10px] font-bold truncate w-full text-center text-primary/70 group-hover:text-primary/90 leading-tight">{item.nombre}</p>
+                                <span
+                                  className="shrink-0 text-[7px] font-black uppercase tracking-widest px-1 py-0.5 rounded-md"
+                                  style={{ background: `color-mix(in srgb, ${color} 8%, transparent)`, color: `color-mix(in srgb, ${color} 50%, transparent)` }}
+                                >
+                                  {label}
                                 </span>
-                              </div>
-                              <span className="flex-1 text-[11px] font-bold text-primary/70 truncate">{item.nombre}</span>
-                              <span
-                                className="shrink-0 text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md"
-                                style={{ background: "color-mix(in srgb, var(--accent) 8%, transparent)", color: "color-mix(in srgb, var(--accent) 50%, transparent)" }}
-                              >
-                                {label}
-                              </span>
-                            </button>
-                          ))}
+                              </button>
+                            );
+                          })}
                         </div>
                       </>
                     )}
@@ -1441,10 +1492,10 @@ const notaResults = useMemo((): NotaResult[] => {
                     <p className="text-[8px] font-black uppercase tracking-widest text-primary/25">Mundo</p>
                   </div>
                   <div className="space-y-0.5">
-                    {MUNDO_NAV.map(nav => {
+                    {MUNDO_NAV.filter(nav => !["hechizos", "dones", "runas"].includes(nav.subTab)).map(nav => {
                       const sec = MUNDO_SECTIONS.find(s => s.key === nav.section);
                       const NavIcon = sec?.Icon;
-                      const isMagiaTab = ["magia", "hechizos", "dones", "runas"].includes(nav.subTab);
+                      const isMagiaTab = nav.subTab === "magia";
                       const isActive = isMundo && activeMundoSection === nav.section;
                       return (
                         <button
@@ -1476,6 +1527,39 @@ const notaResults = useMemo((): NotaResult[] => {
                           >
                             Mun
                           </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {/* Magia subtabs: hechizos, dones, runas — cuadrados */}
+                  <div className="px-2 pt-3 pb-1">
+                    <p className="text-[8px] font-black uppercase tracking-widest text-primary/25">Magia</p>
+                  </div>
+                  <div className="grid grid-cols-3 gap-1">
+                    {MUNDO_NAV.filter(nav => ["hechizos", "dones", "runas"].includes(nav.subTab)).map(nav => {
+                      const color = nav.subTab === "hechizos" ? "var(--accent)" : nav.subTab === "dones" ? "color-mix(in srgb, var(--accent) 70%, var(--primary))" : "var(--primary)";
+                      const abbr = nav.subTab === "hechizos" ? "HZ" : nav.subTab === "dones" ? "DN" : "RN";
+                      return (
+                        <button
+                          key={nav.section + nav.subTab}
+                          onMouseDown={() => handleMundoSubTab(nav.section as MundoSectionKey, nav.subTab)}
+                          className="flex flex-col items-center justify-center gap-1.5 rounded-xl transition-all duration-150 border border-transparent hover:border-primary/10"
+                          style={{ aspectRatio: "1 / 1", padding: "10px 4px" }}
+                          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = `color-mix(in srgb, ${color} 7%, transparent)`; }}
+                          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
+                        >
+                          <div
+                            className="shrink-0 w-7 h-7 rounded-lg border flex items-center justify-center"
+                            style={{
+                              background: `color-mix(in srgb, ${color} 8%, transparent)`,
+                              borderColor: `color-mix(in srgb, ${color} 18%, transparent)`,
+                            }}
+                          >
+                            <span style={{ fontSize: 9, fontWeight: 900, fontFamily: "var(--font-mono)", color: `color-mix(in srgb, ${color} 60%, transparent)` }}>
+                              {abbr}
+                            </span>
+                          </div>
+                          <span className="text-[10px] font-bold text-primary/60 text-center leading-tight">{nav.label}</span>
                         </button>
                       );
                     })}
