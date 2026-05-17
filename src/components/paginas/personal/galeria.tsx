@@ -153,18 +153,6 @@ function ImageLightbox({ src, alt, bgColor, onClose }: {
         <X size={16} />
       </button>
 
-      {transform.scale === 1 && (
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 pointer-events-none"
-          style={{
-            background: "rgba(0,0,0,0.4)", color: "rgba(255,255,255,0.7)",
-            backdropFilter: "blur(6px)", borderRadius: 20,
-            padding: "5px 14px", fontSize: 10, fontWeight: 700,
-            letterSpacing: "0.1em", textTransform: "uppercase", whiteSpace: "nowrap",
-          }}>
-          Pellizca para zoom · Doble tap para ampliar
-        </div>
-      )}
-
       <img
         ref={imgRef}
         src={src}
@@ -176,7 +164,7 @@ function ImageLightbox({ src, alt, bgColor, onClose }: {
         draggable={false}
         className="max-w-[92vw] max-h-[85vh] object-contain select-none"
         style={{
-          filter: "drop-shadow(0 8px 40px rgba(0,0,0,0.5))",
+          filter: undefined,
           transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`,
           transition: transform.scale === 1 ? "transform 0.3s ease" : "none",
           transformOrigin: "center",
@@ -518,7 +506,7 @@ export default function GaleriaPage() {
       )}
 
       <AnimatePresence>
-        {showAdd && <AddModal onClose={() => setShowAdd(false)} onSuccess={reload} nextOrden={items.length} />}
+        {showAdd && <AddModal onClose={() => setShowAdd(false)} onSuccess={reload} nextOrden={items.length ? Math.min(...items.map(i => i.orden)) - 1 : 0} />}
       </AnimatePresence>
     </div>
   );
