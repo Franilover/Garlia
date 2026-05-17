@@ -4,7 +4,7 @@ import { AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/api/client/supabase";
 import SimpleImagePicker from "@/components/forms/SimpleImagePicker";
 import { useAuth } from "@/providers/AuthProvider";
-import { Plus, X, Loader2, Pencil, Trash2, ImageIcon, Save } from "lucide-react";
+import { Plus, X, Loader2, Pencil, Trash2, ImageIcon, Save, Pipette } from "lucide-react";
 
 interface GaleriaItem {
   id:           number;
@@ -237,22 +237,62 @@ function EditModal({ item, onSave, onClose }: {
 
         <div className="px-5 py-4 space-y-4">
 
-          {}
+          {/* Color de fondo */}
           <div className="space-y-2">
             <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/40">Color de fondo</p>
+
+            {/* Hex input + cuentagotas */}
             <div className="flex items-center gap-2">
-              <input
-                type="color"
-                value={bgColor}
-                onChange={e => setBgColor(e.target.value)}
-                className="w-10 h-10 rounded-xl border border-primary/20 cursor-pointer p-0.5 bg-transparent shrink-0"
-              />
+              <div className="w-10 h-10 rounded-xl border border-primary/20 shrink-0 shadow-sm"
+                style={{ backgroundColor: bgColor }} />
               <input
                 type="text"
                 value={bgColor}
                 onChange={e => { if (/^#[0-9a-fA-F]{0,6}$/.test(e.target.value)) setBgColor(e.target.value); }}
                 className="flex-1 text-[11px] font-mono bg-bg-main border border-primary/15 rounded-xl px-3 py-2.5 text-primary outline-none focus:border-primary/40"
+                placeholder="#111111"
+                maxLength={7}
               />
+              {typeof (window as any).EyeDropper !== "undefined" && (
+                <button
+                  type="button"
+                  title="Cuentagotas"
+                  onClick={async () => {
+                    try {
+                      const eyeDropper = new (window as any).EyeDropper();
+                      const result = await eyeDropper.open();
+                      setBgColor(result.sRGBHex);
+                    } catch {
+                      // usuario canceló
+                    }
+                  }}
+                  className="w-10 h-10 flex items-center justify-center rounded-xl border border-primary/20 shrink-0 transition-all hover:opacity-70"
+                  style={{ background: "var(--bg-main)" }}
+                >
+                  <Pipette size={14} className="text-primary/60" />
+                </button>
+              )}
+            </div>
+
+            {/* Paleta de colores comunes */}
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              {[
+                "#111111","#ffffff","#f5f0eb","#1a1a2e","#0d1117",
+                "#2d2d2d","#fdf6e3","#1e3a5f","#3b1f2b","#1b4332",
+              ].map(c => (
+                <button
+                  key={c}
+                  type="button"
+                  title={c}
+                  onClick={() => setBgColor(c)}
+                  className="w-7 h-7 rounded-lg border-2 transition-all hover:scale-110"
+                  style={{
+                    backgroundColor: c,
+                    borderColor: bgColor === c ? "var(--primary)" : "color-mix(in srgb, var(--primary) 15%, transparent)",
+                    boxShadow: bgColor === c ? "0 0 0 1px var(--primary)" : undefined,
+                  }}
+                />
+              ))}
             </div>
           </div>
 
