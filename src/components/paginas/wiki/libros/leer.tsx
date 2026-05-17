@@ -1012,6 +1012,10 @@ export default function Lector() {
         setListaCapitulos(listaFiltrada);
         setCapitulos(capsValidas as unknown as CapituloScrollItem[]);
 
+        // Inicializar el título visible con el cap activo al cargar
+        const capActivo = capsValidas.find(c => c.id === capId);
+        if (capActivo) setActiveCapTitle(`${capActivo.orden}. ${capActivo.titulo_capitulo}`);
+
         const segs = buildSegmentos(capsValidas as any);
         setSegmentos(segs);
 
