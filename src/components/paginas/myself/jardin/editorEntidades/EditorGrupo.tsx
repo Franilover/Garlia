@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
-  Users, Bug, Package, Sparkles, Star, ScrollText, Map,
-  Plus, Trash2, Save, Search, X, ChevronRight, ChevronDown,
-  Loader2, Layers, UserCircle2, FileText,
+  Users, Bug, Package, Sparkles, Star, ScrollText,
+  Plus, Trash2, Save, Search, X, ChevronLeft, ChevronRight,
+  Loader2, Layers, UserCircle2, Swords, Wand2, Gem, Feather,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
@@ -48,16 +48,15 @@ export type Grupo = {
   nombre: string;
   tipo: GrupoTipo;
   descripcion?: string | null;
-  miembro_ids: string[]; // IDs de los miembros
+  miembro_ids: string[];
   created_at?: string;
 };
 
-// Tipo de entidad mínima para cualquier tabla
 type EntidadMin = {
   id: string;
   nombre: string;
   imagen_url?: string | null;
-  img_url?: string | null; // personajes
+  img_url?: string | null;
   especie?: string;
   reino?: string;
   habitat?: string;
@@ -69,40 +68,46 @@ export const GRUPO_TIPO_CONFIG: Record<GrupoTipo, {
   label: string;
   labelPlural: string;
   Icon: React.ElementType;
+  IconAlt: React.ElementType; // icono secundario para el selector de tipo
   color: string;
   tabla: string;
-  emoji: string;
   ejemplo: string;
 }> = {
   personajes: {
     label: "Personaje", labelPlural: "Personajes",
-    Icon: Users, color: "var(--primary)", tabla: "personajes",
-    emoji: "👥", ejemplo: "Facción, clan, gremio…",
+    Icon: Users, IconAlt: UserCircle2,
+    color: "var(--primary)", tabla: "personajes",
+    ejemplo: "Facción, clan, gremio…",
   },
   criaturas: {
     label: "Criatura", labelPlural: "Criaturas",
-    Icon: Bug, color: "color-mix(in srgb, var(--primary) 70%, #4ade80)", tabla: "criaturas",
-    emoji: "🦎", ejemplo: "Manada, especie, orden…",
+    Icon: Bug, IconAlt: Feather,
+    color: "color-mix(in srgb, var(--primary) 70%, #4ade80)", tabla: "criaturas",
+    ejemplo: "Manada, especie, orden…",
   },
   items: {
     label: "Objeto", labelPlural: "Objetos",
-    Icon: Package, color: "color-mix(in srgb, var(--primary) 60%, #f59e0b)", tabla: "items",
-    emoji: "⚔️", ejemplo: "Arsenal, colección, reliquias…",
+    Icon: Package, IconAlt: Swords,
+    color: "color-mix(in srgb, var(--primary) 60%, #f59e0b)", tabla: "items",
+    ejemplo: "Arsenal, colección, reliquias…",
   },
   hechizos: {
     label: "Hechizo", labelPlural: "Hechizos",
-    Icon: Sparkles, color: "var(--accent)", tabla: "hechizos",
-    emoji: "✨", ejemplo: "Escuela, elemento, estilo…",
+    Icon: Sparkles, IconAlt: Wand2,
+    color: "var(--accent)", tabla: "hechizos",
+    ejemplo: "Escuela, elemento, estilo…",
   },
   dones: {
     label: "Don", labelPlural: "Dones",
-    Icon: Star, color: "color-mix(in srgb, var(--accent) 70%, var(--primary))", tabla: "dones",
-    emoji: "⭐", ejemplo: "Linaje, maldición, don ancestral…",
+    Icon: Star, IconAlt: Gem,
+    color: "color-mix(in srgb, var(--accent) 70%, var(--primary))", tabla: "dones",
+    ejemplo: "Linaje, maldición, don ancestral…",
   },
   runas: {
     label: "Runa", labelPlural: "Runas",
-    Icon: ScrollText, color: "var(--primary)", tabla: "runas",
-    emoji: "ᚱ", ejemplo: "Conjunto rúnico, tradición…",
+    Icon: ScrollText, IconAlt: ScrollText,
+    color: "var(--primary)", tabla: "runas",
+    ejemplo: "Conjunto rúnico, tradición…",
   },
 };
 
@@ -150,15 +155,12 @@ export function useGrupos() {
   const [grupos, setGrupos] = useState<Grupo[]>([]);
   const [loaded, setLoaded] = useState(false);
 
-  // ── Carga inicial: Dexie primero, luego Supabase ──
   const load = useCallback(async () => {
-    // 1. Dexie (offline-first)
     const local = await dexieReadAll<Grupo>("grupos_mundo");
     if (local.length) { setGrupos(local); setLoaded(true); }
 
     if (!navigator.onLine) { if (!local.length) setLoaded(true); return; }
 
-    // 2. Supabase
     const { data, error } = await supabase
       .from("grupos_mundo")
       .select("*")
@@ -177,7 +179,6 @@ export function useGrupos() {
 
   useEffect(() => { load(); }, [load]);
 
-  // ── Crear ──
   const crearGrupo = useCallback(async (tipo: GrupoTipo): Promise<Grupo | null> => {
     const cfg = GRUPO_TIPO_CONFIG[tipo];
     const optimista: Grupo = {
@@ -189,7 +190,6 @@ export function useGrupos() {
       created_at: new Date().toISOString(),
     };
 
-    // Optimista local
     setGrupos(prev => [optimista, ...prev]);
     void dexiePut("grupos_mundo", optimista);
 
@@ -199,16 +199,14 @@ export function useGrupos() {
       .select()
       .single();
 
-    if (error || !data) return optimista; // queda en Dexie, se sincronizará
+    if (error || !data) return optimista;
     const real = { ...data, miembro_ids: data.miembro_ids ?? [] } as Grupo;
     setGrupos(prev => prev.map(g => g.id === optimista.id ? real : g));
     void dexiePut("grupos_mundo", real);
     return real;
   }, []);
 
-  // ── Actualizar ──
   const actualizarGrupo = useCallback(async (updated: Grupo): Promise<void> => {
-    // Optimista local
     setGrupos(prev => prev.map(g => g.id === updated.id ? updated : g));
     void dexiePut("grupos_mundo", updated);
 
@@ -223,7 +221,6 @@ export function useGrupos() {
       .eq("id", updated.id);
   }, []);
 
-  // ── Eliminar ──
   const eliminarGrupo = useCallback(async (id: string): Promise<void> => {
     setGrupos(prev => prev.filter(g => g.id !== id));
     void dexieDel("grupos_mundo", id);
@@ -292,7 +289,6 @@ function SelectorMiembros({
 
   return (
     <div className="space-y-3">
-      {/* Lista de miembros actuales */}
       {miembros.length > 0 && (
         <div className="space-y-1">
           <p className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">
@@ -337,7 +333,6 @@ function SelectorMiembros({
         </div>
       )}
 
-      {/* Botón para agregar miembros */}
       <div className="relative" ref={ref}>
         <button
           type="button"
@@ -422,9 +417,7 @@ function FormularioGrupo({
 
   useEffect(() => { setForm(grupo); }, [grupo.id]);
 
-  const save = () => {
-    onSaved(form);
-  };
+  const save = () => { onSaved(form); };
 
   const del = async () => {
     const ok = await confirm({ message: `¿Eliminar el grupo "${form.nombre}"?`, danger: true });
@@ -479,7 +472,6 @@ function FormularioGrupo({
 
       {/* Body */}
       <div className="flex-1 overflow-y-auto min-h-0 p-4 space-y-5">
-        {/* Descripción */}
         <div className="space-y-1.5">
           <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">Descripción</label>
           <textarea
@@ -491,7 +483,6 @@ function FormularioGrupo({
           />
         </div>
 
-        {/* Miembros */}
         <div className="space-y-1.5">
           <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">
             {cfg.labelPlural} del grupo
@@ -556,7 +547,12 @@ function SelectorTipoGrupo({
               (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 3%, transparent)";
             }}
           >
-            <span style={{ fontSize: 18 }}>{cfg.emoji}</span>
+            {/* Lucide icon en lugar de emoji */}
+            <cfg.IconAlt
+              size={20}
+              strokeWidth={1.5}
+              style={{ color: `color-mix(in srgb, ${cfg.color} 70%, transparent)` }}
+            />
             <div className="text-center">
               <p className="text-[10px] font-black uppercase tracking-widest text-primary/70">{cfg.labelPlural}</p>
               <p className="text-[8px] text-primary/30 mt-0.5">{cfg.ejemplo}</p>
@@ -573,7 +569,9 @@ function SelectorTipoGrupo({
   );
 }
 
-// ─── EditorGrupo principal ────────────────────────────────────────────────────
+// ─── EditorGrupo — ventana completa ───────────────────────────────────────────
+// Ya no es una sección dentro de EditorMundo. Se monta como página/ventana propia
+// y ocupa todo el espacio disponible (h-full w-full).
 export function EditorGrupo({
   onClickMiembro,
 }: {
@@ -594,7 +592,6 @@ export function EditorGrupo({
     );
   }, [grupos, search]);
 
-  // Agrupar por tipo para la lista
   const gruposPorTipo = useMemo(() => {
     const map: Partial<Record<GrupoTipo, Grupo[]>> = {};
     for (const g of filtered) {
@@ -612,35 +609,65 @@ export function EditorGrupo({
 
   if (!loaded) {
     return (
-      <div className="flex-1 flex items-center justify-center">
-        <Loader2 size={16} className="animate-spin text-primary/20" />
+      <div className="w-full h-full flex items-center justify-center">
+        <Loader2 size={18} className="animate-spin text-primary/20" />
       </div>
     );
   }
 
   return (
-    <div className="flex-1 flex min-h-0 overflow-hidden relative">
+    // Ocupa todo el espacio disponible del contenedor padre
+    <div className="w-full h-full flex min-h-0 overflow-hidden">
 
-      {/* Lista lateral */}
-      <div className={`flex-col border-r min-h-0 sm:w-56 sm:shrink-0 sm:flex ${selected || creando ? "hidden sm:flex" : "flex flex-1"}`}
-        style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+      {/* ── Sidebar / lista lateral ── */}
+      <div
+        className={`
+          flex-col border-r min-h-0
+          w-64 shrink-0
+          ${selected || creando ? "hidden sm:flex" : "flex flex-1 sm:flex-none"}
+        `}
+        style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
+      >
+        {/* Header del sidebar */}
+        <div
+          className="shrink-0 flex items-center gap-2 px-4 py-3 border-b"
+          style={{
+            borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
+            background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+          }}
+        >
+          <Layers size={13} className="text-primary/40 shrink-0" />
+          <span className="text-[11px] font-black uppercase tracking-[0.2em] text-primary/50 flex-1">Grupos</span>
+          <span className="text-[9px] text-primary/25 tabular-nums">{grupos.length}</span>
+        </div>
 
         {/* Buscador + nuevo */}
-        <div className="shrink-0 px-2 pt-2 pb-2 space-y-1.5">
+        <div className="shrink-0 px-3 pt-3 pb-2 space-y-2">
           <div className="relative">
             <Search size={10} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-primary/25" />
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar grupos…"
-              className="w-full bg-primary/4 border border-primary/10 rounded-lg pl-7 pr-6 py-1.5 text-[10px] font-medium outline-none focus:border-primary/25 text-primary placeholder:text-primary/25" />
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Buscar grupos…"
+              className="w-full bg-primary/4 border border-primary/10 rounded-lg pl-7 pr-6 py-1.5 text-[10px] font-medium outline-none focus:border-primary/25 text-primary placeholder:text-primary/25"
+            />
             {search && (
-              <button onClick={() => setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-primary/30 hover:text-primary">
+              <button
+                onClick={() => setSearch("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-primary/30 hover:text-primary"
+              >
                 <X size={9} />
               </button>
             )}
           </div>
+
           <button
             onClick={() => { setCreando(true); setSelectedId(null); }}
             className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg border border-dashed text-[9px] font-black uppercase tracking-widest transition-all"
-            style={{ borderColor: "color-mix(in srgb, var(--primary) 20%, transparent)", color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}
+            style={{
+              borderColor: "color-mix(in srgb, var(--primary) 20%, transparent)",
+              color: "color-mix(in srgb, var(--primary) 45%, transparent)",
+            }}
             onMouseEnter={e => {
               (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 35%, transparent)";
               (e.currentTarget as HTMLElement).style.color = "var(--primary)";
@@ -655,12 +682,10 @@ export function EditorGrupo({
         </div>
 
         {/* Lista */}
-        <div className="flex-1 overflow-y-auto min-h-0 px-2 pb-2 space-y-3">
-          {!loaded ? (
-            <div className="flex justify-center py-8"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
-          ) : grupos.length === 0 ? (
-            <div className="flex flex-col items-center gap-3 py-10 text-center">
-              <Layers size={24} strokeWidth={1} className="text-primary/15" />
+        <div className="flex-1 overflow-y-auto min-h-0 px-3 pb-3 space-y-3">
+          {grupos.length === 0 ? (
+            <div className="flex flex-col items-center gap-3 py-12 text-center">
+              <Layers size={26} strokeWidth={1} className="text-primary/15" />
               <p className="text-[9px] font-black uppercase tracking-widest text-primary/20">Sin grupos aún</p>
             </div>
           ) : filtered.length === 0 ? (
@@ -672,12 +697,18 @@ export function EditorGrupo({
                 <div key={tipo}>
                   {/* Encabezado de tipo */}
                   <div className="flex items-center gap-1.5 px-1 py-1 mb-0.5">
-                    <cfg.Icon size={9} style={{ color: `color-mix(in srgb, ${cfg.color} 50%, transparent)` }} />
-                    <span className="text-[8px] font-black uppercase tracking-[0.3em]"
-                      style={{ color: `color-mix(in srgb, ${cfg.color} 45%, transparent)` }}>
+                    <cfg.Icon
+                      size={9}
+                      style={{ color: `color-mix(in srgb, ${cfg.color} 50%, transparent)` }}
+                    />
+                    <span
+                      className="text-[8px] font-black uppercase tracking-[0.3em]"
+                      style={{ color: `color-mix(in srgb, ${cfg.color} 45%, transparent)` }}
+                    >
                       {cfg.labelPlural}
                     </span>
                   </div>
+
                   <div className="space-y-0.5">
                     {gruposPorTipo[tipo]!.map(grupo => (
                       <button
@@ -704,16 +735,23 @@ export function EditorGrupo({
         </div>
       </div>
 
-      {/* Editor / Selector de tipo */}
+      {/* ── Panel principal ── */}
       <div className={`flex-1 flex flex-col min-h-0 overflow-hidden ${selected || creando ? "flex" : "hidden sm:flex"}`}>
-        {/* Back button mobile */}
+
+        {/* Botón volver — solo mobile */}
         {(selected || creando) && (
-          <div className="sm:hidden shrink-0 px-3 py-2 border-b"
-            style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}>
+          <div
+            className="sm:hidden shrink-0 px-3 py-2 border-b"
+            style={{
+              borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
+              background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+            }}
+          >
             <button
               onClick={() => { setSelectedId(null); setCreando(false); }}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border border-primary/15 text-primary/50 hover:text-primary transition-all">
-              <ChevronRight size={12} className="rotate-180" /> Volver
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border border-primary/15 text-primary/50 hover:text-primary transition-all"
+            >
+              <ChevronLeft size={12} /> Volver
             </button>
           </div>
         )}
@@ -732,6 +770,7 @@ export function EditorGrupo({
             onClickMiembro={onClickMiembro}
           />
         ) : (
+          /* Estado vacío — desktop */
           <div className="flex-1 flex flex-col items-center justify-center gap-3 select-none">
             <Layers size={36} strokeWidth={1} className="text-primary/15" />
             <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/25">Grupos</p>
