@@ -4,14 +4,10 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { createPortal } from "react-dom";
 import { X, Loader2, ChevronDown } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
+import { db } from "@/lib/api/client/db";
 import { normalize } from "@/components/templates/EstudioTemplates";
 import { INPUT_CLS } from "./types";
-import {
-  getCatalogCache,
-  setCatalogCache,
-  loreReadRelaciones,
-  loreSyncRelaciones,
-} from "@/lib/api/client/loreDb";
+import { loreReadRelaciones, loreSyncRelaciones } from "@/lib/api/client/loreDb";
 
 // ─── Types locales ─────────────────────────────────────────────────────────────
 type HechizoCatalogo = {
@@ -20,98 +16,147 @@ type HechizoCatalogo = {
   grupo_ids?: string[];
 };
 
-// ─── Hook: catálogo de hechizos (con session_cache) ───────────────────────────
-// Un solo fetch aunque haya varios BloqueHechizos montados al mismo tiempo.
-const CACHE_KEY_HECHIZOS = "catalogo_hechizos";
-
-function useCatalogo() {
-  const [hechizos, setHechizos] = useState<HechizoCatalogo[]>([]);
-  const [loading,  setLoading]  = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-    const run = async () => {
-      // 1. Intentar session_cache (TTL 10 min)
-      const cached = await getCatalogCache<HechizoCatalogo>(CACHE_KEY_HECHIZOS);
-      if (cached && !cancelled) {
-        setHechizos(cached);
-        setLoading(false);
-        if (!navigator.onLine) return;
-      }
-
-      if (!navigator.onLine) {
-        if (!cancelled) setLoading(false);
-        return;
-      }
-
-      const { data } = await supabase
-        .from("hechizos")
-        .select("id, nombre, grupo_ids")
-        .order("nombre");
-      if (cancelled) return;
-
-      const hechizosData = (data ?? []) as HechizoCatalogo[];
-      setHechizos(hechizosData);
-      setLoading(false);
-      await setCatalogCache(CACHE_KEY_HECHIZOS, hechizosData);
-    };
-    run();
-    return () => { cancelled = true; };
-  }, []);
-
-  return { hechizos, loading };
+// ─── Helpers Dexie ────────────────────────────────────────────────────────────
+async function dexieReadHechizos(): Promise<HechizoCatalogo[]> {
+  try {
+    if (!db) return [];
+    const rows = await db.hechizos.orderBy("nombre").toArray();
+    return rows.filter(r => !(r as any).deleted) as HechizoCatalogo[];
+  } catch {
+    return [];
+  }
 }
 
-// ─── Hook: hechizos asignados al personaje (con caché local) ──────────────────
-function useAsignados(personajeId: string) {
-  const [ids, setIds] = useState<string[]>([]);
+async function dexieWriteHechizos(rows: HechizoCatalogo[]): Promise<void> {
+  try {
+    if (!db || rows.length === 0) return;
+    await db.hechizos.bulkPut(rows as any);
+    // Limpiar filas que ya no existen en remoto
+    const remoteIds = new Set(rows.map(r => r.id));
+    const allLocal = await db.hechizos.toArray();
+    const toDelete = allLocal.map(r => r.id).filter(id => !remoteIds.has(id));
+    if (toDelete.length > 0) await db.hechizos.bulkDelete(toDelete);
+  } catch (e) {
+    console.warn("[BloqueHechizos] dexieWriteHechizos failed:", e);
+  }
+}
 
-  const load = useCallback(async () => {
-    // 1. Leer de Dexie primero (sin esperar red)
-    const localIds = await loreReadRelaciones("personaje_hechizos", personajeId, "hechizo_id");
-    if (localIds.length) setIds(localIds);
+// ─── Cache del catálogo (singleton en módulo) ─────────────────────────────────
+let _catalogPromise: Promise<HechizoCatalogo[]> | null = null;
+let _catalogData:    HechizoCatalogo[] | null = null;
 
-    // 2. Fetch remoto si hay conexión
-    if (!navigator.onLine) return;
+async function fetchCatalogo(): Promise<HechizoCatalogo[]> {
+  // 1. Memoria: instantáneo
+  if (_catalogData) return _catalogData;
+
+  // 2. Promesa en vuelo: compartirla
+  if (_catalogPromise) return _catalogPromise;
+
+  _catalogPromise = (async () => {
+    // 3. Dexie (IndexedDB): rápido, sin red, sin TTL
+    const local = await dexieReadHechizos();
+    if (local.length > 0) {
+      _catalogData = local;
+      // Refrescar en background sin bloquear
+      if (navigator.onLine) {
+        supabase
+          .from("hechizos")
+          .select("id, nombre, grupo_ids")
+          .order("nombre")
+          .then(({ data }) => {
+            if (data && data.length > 0) {
+              _catalogData = data as HechizoCatalogo[];
+              dexieWriteHechizos(_catalogData);
+            }
+          });
+      }
+      return local;
+    }
+
+    // 4. Fetch remoto (primera vez, Dexie vacío)
+    if (!navigator.onLine) return [];
 
     const { data } = await supabase
-      .from("personaje_hechizos")
-      .select("hechizo_id")
-      .eq("personaje_id", personajeId);
+      .from("hechizos")
+      .select("id, nombre, grupo_ids")
+      .order("nombre");
 
-    const remoteIds = (data ?? []).map((r: any) => r.hechizo_id);
-    setIds(remoteIds);
+    const result = (data ?? []) as HechizoCatalogo[];
+    _catalogData = result;
+    await dexieWriteHechizos(result);
+    return result;
+  })().finally(() => {
+    _catalogPromise = null;
+  });
 
-    // Sincronizar Dexie con remote
-    await loreSyncRelaciones("personaje_hechizos", personajeId, "hechizo_id", remoteIds);
+  return _catalogPromise;
+}
+
+// ─── Hook unificado: catálogo + hechizos asignados en paralelo ───────────────
+function useHechizos(personajeId: string) {
+  const [hechizos, setHechizos] = useState<HechizoCatalogo[]>(_catalogData ?? []);
+  const [ids,      setIds]      = useState<string[]>([]);
+  const [loading,  setLoading]  = useState(_catalogData === null);
+
+  const load = useCallback(async () => {
+    if (!_catalogData) setLoading(true);
+
+    // Leer Dexie local para los hechizos asignados (sin bloquear)
+    const localIdsPromise = loreReadRelaciones("personaje_hechizos", personajeId, "hechizo_id")
+      .catch(() => [] as string[]);
+
+    // Catálogo + asignados locales en paralelo
+    const [catalogResult, localIds] = await Promise.all([
+      fetchCatalogo(),
+      localIdsPromise,
+    ]);
+
+    setHechizos(catalogResult);
+    if (localIds.length > 0) setIds(localIds);
+
+    // Fetch remoto de asignados
+    if (navigator.onLine) {
+      const { data } = await supabase
+        .from("personaje_hechizos")
+        .select("hechizo_id")
+        .eq("personaje_id", personajeId);
+
+      const remoteIds = (data ?? []).map((r: any) => r.hechizo_id as string);
+      setIds(remoteIds);
+      await loreSyncRelaciones("personaje_hechizos", personajeId, "hechizo_id", remoteIds);
+    }
+
+    setLoading(false);
   }, [personajeId]);
 
   useEffect(() => { load(); }, [load]);
 
-  const add = async (id: string) => {
-    // Optimistic
-    setIds(prev => [...prev, id]);
-    await loreSyncRelaciones(
-      "personaje_hechizos",
-      personajeId,
-      "hechizo_id",
-      [...ids, id],
-    );
+  const add = useCallback(async (id: string) => {
+    setIds(prev => {
+      const next = [...prev, id];
+      // Sincronizar Dexie con el nuevo estado
+      loreSyncRelaciones("personaje_hechizos", personajeId, "hechizo_id", next);
+      return next;
+    });
+    await supabase
+      .from("personaje_hechizos")
+      .insert({ personaje_id: personajeId, hechizo_id: id });
+  }, [personajeId]);
 
-    await supabase.from("personaje_hechizos").insert({ personaje_id: personajeId, hechizo_id: id });
-  };
+  const remove = useCallback(async (id: string) => {
+    setIds(prev => {
+      const next = prev.filter(x => x !== id);
+      loreSyncRelaciones("personaje_hechizos", personajeId, "hechizo_id", next);
+      return next;
+    });
+    await supabase
+      .from("personaje_hechizos")
+      .delete()
+      .eq("personaje_id", personajeId)
+      .eq("hechizo_id", id);
+  }, [personajeId]);
 
-  const remove = async (id: string) => {
-    // Optimistic
-    const next = ids.filter(x => x !== id);
-    setIds(next);
-    await loreSyncRelaciones("personaje_hechizos", personajeId, "hechizo_id", next);
-
-    await supabase.from("personaje_hechizos").delete()
-      .eq("personaje_id", personajeId).eq("hechizo_id", id);
-  };
-
-  return { ids, add, remove };
+  return { hechizos, ids, loading, add, remove };
 }
 
 // ─── Lógica de compatibilidad ──────────────────────────────────────────────────
@@ -144,7 +189,10 @@ function DropdownHechizos({ anchorRef, disponibles, filtrados, asignados, onSele
     update();
     window.addEventListener("scroll", update, true);
     window.addEventListener("resize", update);
-    return () => { window.removeEventListener("scroll", update, true); window.removeEventListener("resize", update); };
+    return () => {
+      window.removeEventListener("scroll", update, true);
+      window.removeEventListener("resize", update);
+    };
   }, [anchorRef]);
 
   useEffect(() => {
@@ -184,10 +232,9 @@ export function BloqueHechizos({ personajeId, grupoIds = [] }: {
   personajeId: string;
   grupoIds?: string[];
 }) {
-  const { hechizos, loading } = useCatalogo();
-  const { ids, add, remove } = useAsignados(personajeId);
+  const { hechizos, ids, loading, add, remove } = useHechizos(personajeId);
   const [input, setInput] = useState("");
-  const [open, setOpen]   = useState(false);
+  const [open,  setOpen]  = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   const sinGrupos = grupoIds.length === 0;
@@ -214,7 +261,10 @@ export function BloqueHechizos({ personajeId, grupoIds = [] }: {
     return () => document.removeEventListener("mousedown", handler);
   }, [open]);
 
-  if (loading) return <Loader2 size={10} className="animate-spin text-primary/20" />;
+  // Mostrar spinner solo si está cargando Y aún no hay nada que mostrar
+  if (loading && hechizos.length === 0 && ids.length === 0) {
+    return <Loader2 size={10} className="animate-spin text-primary/20" />;
+  }
 
   return (
     <div className="space-y-2">
@@ -243,8 +293,12 @@ export function BloqueHechizos({ personajeId, grupoIds = [] }: {
             value={input}
             onChange={e => { setInput(e.target.value); setOpen(true); }}
             onFocus={() => setOpen(true)}
-            disabled={sinGrupos}
-            placeholder={sinGrupos ? "Sin grupos…" : "Añadir hechizo…"}
+            disabled={sinGrupos || loading}
+            placeholder={
+              loading    ? "Cargando…"
+              : sinGrupos ? "Sin grupos…"
+              : "Añadir hechizo…"
+            }
             className={INPUT_CLS + " pr-8 disabled:opacity-40 disabled:cursor-not-allowed"}
           />
           <button type="button" onClick={() => !sinGrupos && setOpen(o => !o)}

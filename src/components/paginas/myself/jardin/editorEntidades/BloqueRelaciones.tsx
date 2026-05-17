@@ -37,7 +37,7 @@ async function dexieDelRelacion(id: string): Promise<void> {
 }
 
 // ─── Mapa de tipos inversos ───────────────────────────────────────────────────
-// Normaliza a minúsculas sin tildes para comparar
+
 function norm(s: string) {
   return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
 }
@@ -68,9 +68,7 @@ const INVERSOS: [string, string][] = [
 function tipoInverso(tipo: string): string {
   const n = norm(tipo);
   const par = INVERSOS.find(([a]) => norm(a) === n);
-  // Si hay inverso definido, devolver con la capitalización original del par
   if (par) return par[1].charAt(0).toUpperCase() + par[1].slice(1);
-  // Fallback: mismo tipo
   return tipo;
 }
 
@@ -78,7 +76,9 @@ function tipoInverso(tipo: string): string {
 
 function useTiposExistentes() {
   const [tipos, setTipos] = useState<string[]>([]);
+
   useEffect(() => {
+    // 1. Leer Dexie primero (sin red)
     (async () => {
       try {
         if (db) {
@@ -88,13 +88,17 @@ function useTiposExistentes() {
         }
       } catch {}
     })();
+
+    // 2. Fetch remoto solo si hay conexión
     if (!navigator.onLine) return;
+
     supabase.from("relaciones").select("tipo").then(({ data }) => {
       if (!data) return;
       const set = [...new Set<string>(data.map((r: any) => r.tipo).filter(Boolean))].sort();
       setTipos(set);
     });
   }, []);
+
   return tipos;
 }
 
@@ -244,7 +248,6 @@ function FormNuevaRelacion({ personajeId, tiposExistentes, onAdded, onCancel }: 
     }
 
     try {
-      // Insertar ambas en paralelo
       const [{ data, error: err }, { error: errInv }] = await Promise.all([
         supabase.from("relaciones").insert(row).select("id, personaje_id, personaje_rel_id, tipo, nota").single(),
         supabase.from("relaciones").insert({ id: generateUUID(), ...rowInverso }),
@@ -346,7 +349,6 @@ function FilaRelacion({ rel, onDelete, onSelectPersonaje }: {
     const online = await isReallyOnline();
     if (!online) {
       await enqueueOperation("relaciones", "delete", rel.id);
-      // Buscar inversa en Dexie y encolar su borrado también
       try {
         if (db) {
           const inversas: any[] = await (db as any).relaciones
@@ -358,10 +360,8 @@ function FilaRelacion({ rel, onDelete, onSelectPersonaje }: {
       return;
     }
     try {
-      // Borrar la directa
       const { error } = await supabase.from("relaciones").delete().eq("id", rel.id);
       if (error) await enqueueOperation("relaciones", "delete", rel.id);
-      // Buscar y borrar la inversa
       const { data: inversas } = await supabase
         .from("relaciones")
         .select("id")
@@ -408,15 +408,13 @@ function ColumnaTipo({ tipo, relaciones, onDelete, onSelectPersonaje }: {
   onSelectPersonaje?: (id: string) => void;
 }) {
   return (
-    <div className="flex-1 min-w-0 min-w-[90px]">
-      {/* Cabecera del tipo */}
+    <div className="flex-1 min-w-[90px]">
       <div className="flex items-center gap-1 mb-1 px-1">
         <span className="text-[7.5px] font-black uppercase tracking-[0.25em] text-primary/35 truncate leading-none">
           {tipo}
         </span>
         <span className="text-[7.5px] font-bold text-primary/20 shrink-0">{relaciones.length}</span>
       </div>
-      {/* Filas */}
       <div className="space-y-0">
         {relaciones.map(rel => (
           <FilaRelacion key={rel.id} rel={rel} onDelete={onDelete} onSelectPersonaje={onSelectPersonaje} />
@@ -538,10 +536,6 @@ export function BloqueRelaciones({ personajeId, personajeNombre, onSelectPersona
           </p>
 
         ) : (
-          // ── Columnas horizontales por tipo ─────────────────────────────────
-          // flex-wrap: si hay muchos tipos desbordan a la siguiente fila
-          // cada columna toma el espacio mínimo necesario (min-w-[90px])
-          // y se expande con flex-1
           <div className="flex flex-wrap gap-x-3 gap-y-2.5">
             {tiposConData.map(tipo => (
               <ColumnaTipo
