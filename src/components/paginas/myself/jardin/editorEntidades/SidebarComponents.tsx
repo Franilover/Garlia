@@ -862,12 +862,12 @@ const GRUPO_MODAL_CONFIG: Record<GrupoTipoLocal, {
   Icon: React.ElementType; IconAlt: React.ElementType;
   color: string; ejemplo: string; tabla: string;
 }> = {
-  personajes: { label: "Personaje",  labelPlural: "Personajes", Icon: Users,     IconAlt: Users,     color: "var(--primary)",                                              tabla: "personajes", ejemplo: "Facción, clan, gremio…"        },
-  criaturas:  { label: "Criatura",   labelPlural: "Criaturas",  Icon: Bug,       IconAlt: Feather,   color: "color-mix(in srgb, var(--primary) 70%, #4ade80)",             tabla: "criaturas",  ejemplo: "Manada, especie, orden…"       },
-  items:      { label: "Objeto",     labelPlural: "Objetos",    Icon: Package,   IconAlt: Swords,    color: "color-mix(in srgb, var(--primary) 60%, #f59e0b)",             tabla: "items",      ejemplo: "Arsenal, colección, reliquias…" },
-  hechizos:   { label: "Hechizo",   labelPlural: "Hechizos",   Icon: Sparkles,  IconAlt: Wand2,     color: "var(--accent)",                                               tabla: "hechizos",   ejemplo: "Escuela, elemento, estilo…"    },
-  dones:      { label: "Don",       labelPlural: "Dones",      Icon: Star,      IconAlt: Gem,       color: "color-mix(in srgb, var(--accent) 70%, var(--primary))",       tabla: "dones",      ejemplo: "Linaje, maldición, ancestral…" },
-  runas:      { label: "Runa",      labelPlural: "Runas",      Icon: ScrollText, IconAlt: ScrollText, color: "var(--primary)",                                             tabla: "runas",      ejemplo: "Conjunto rúnico, tradición…"   },
+  personajes: { label: "Personaje",  labelPlural: "Personajes", Icon: Users,      IconAlt: Users,       color: "var(--primary)",                                              tabla: "personajes", ejemplo: "Facción, clan, gremio…"        },
+  criaturas:  { label: "Criatura",   labelPlural: "Criaturas",  Icon: Bug,        IconAlt: Feather,     color: "color-mix(in srgb, var(--primary) 70%, #4ade80)",             tabla: "criaturas",  ejemplo: "Manada, especie, orden…"       },
+  items:      { label: "Objeto",     labelPlural: "Objetos",    Icon: Package,    IconAlt: Swords,      color: "color-mix(in srgb, var(--primary) 60%, #f59e0b)",             tabla: "items",      ejemplo: "Arsenal, colección, reliquias…" },
+  hechizos:   { label: "Hechizo",   labelPlural: "Hechizos",   Icon: Sparkles,   IconAlt: Wand2,       color: "var(--accent)",                                               tabla: "hechizos",   ejemplo: "Escuela, elemento, estilo…"    },
+  dones:      { label: "Don",       labelPlural: "Dones",      Icon: Star,       IconAlt: Gem,         color: "color-mix(in srgb, var(--accent) 70%, var(--primary))",       tabla: "dones",      ejemplo: "Linaje, maldición, ancestral…" },
+  runas:      { label: "Runa",      labelPlural: "Runas",      Icon: ScrollText, IconAlt: ScrollText,  color: "var(--primary)",                                              tabla: "runas",      ejemplo: "Conjunto rúnico, tradición…"   },
 };
 
 export function ModalNuevoGrupo({
@@ -908,16 +908,27 @@ export function ModalNuevoGrupo({
     setSaving(true);
     setError(null);
     try {
-      const { data, error: err } = await (supabase as any)
-      .from("grupos_mundo")
-      .insert([{
+      // Construir el objeto con tipos explícitos para que Supabase no filtre los campos
+      const newGrupo: {
+        id: string;
+        nombre: string;
+        tipo: string;
+        descripcion: null;
+        miembro_ids: string[];
+      } = {
+        id:          crypto.randomUUID(),
         nombre:      nombre.trim(),
-        tipo,
+        tipo:        tipo,
         descripcion: null,
         miembro_ids: [],
-      }])
-      .select()
-      .single();
+      };
+
+      const { data, error: err } = await (supabase as any)
+        .from("grupos_mundo")
+        .insert([newGrupo])
+        .select()
+        .single();
+
       if (err) throw err;
       setSaved(true);
       onCreated?.(data);
@@ -1143,21 +1154,19 @@ export function GlobalSearchBar({
     );
   }, [allItems, query]);
 
+  type NotaResult = { item: any };
 
-
-type NotaResult = { item: any };
-
-const notaResults = useMemo((): NotaResult[] => {
-  const q = normalize(query.trim());
-  if (!q) return [];
-  return (allItems.notas ?? [])
-    .filter((n: any) =>
-      normalize(n.titulo ?? "").includes(q) ||
-      normalize(n.contenido ?? "").includes(q) ||
-      normalize(n.etiquetas ?? "").includes(q)
-    )
-    .map(item => ({ item }));
-}, [allItems, query]);
+  const notaResults = useMemo((): NotaResult[] => {
+    const q = normalize(query.trim());
+    if (!q) return [];
+    return (allItems.notas ?? [])
+      .filter((n: any) =>
+        normalize(n.titulo ?? "").includes(q) ||
+        normalize(n.contenido ?? "").includes(q) ||
+        normalize(n.etiquetas ?? "").includes(q)
+      )
+      .map(item => ({ item }));
+  }, [allItems, query]);
 
   const magicResults = useMemo((): MagicResult[] => {
     const q = normalize(query.trim());
@@ -1173,8 +1182,6 @@ const notaResults = useMemo((): NotaResult[] => {
         .map(item => ({ item, subTab: key, label }))
     );
   }, [allItems, query]);
-  
-  
 
   // Navegación directa a tabs principales — excluye los que viven en Mundo
   const tabNavResults = useMemo((): TabNavResult[] => {
@@ -1220,7 +1227,6 @@ const notaResults = useMemo((): NotaResult[] => {
     close();
     inputRef.current?.blur();
   }, [onSelect, close]);
-  
 
   const handleSelectNota = useCallback((nota: any) => {
     onSelectNota?.(nota);
@@ -1248,10 +1254,8 @@ const notaResults = useMemo((): NotaResult[] => {
   }, [onSelectMundoSection, onSelectMundoSubTab, close]);
 
   const handleMagic = useCallback((subTab: "hechizos" | "dones" | "runas", item: any) => {
-    // 1. Navegar a la sección magia y al subtab correcto, pasando el id del item
     onSelectMundoSection("magia");
     onSelectMundoSubTab?.("magia", subTab);
-    // 2. Notificar al editor para que abra el item directamente
     onSelectMagic?.(subTab, item);
     close();
     inputRef.current?.blur();
@@ -1264,7 +1268,7 @@ const notaResults = useMemo((): NotaResult[] => {
       setMagicNombreModal(key);
     } else if (key === "notas") {
       close();
-      onAddMagic?.("notas");   // el padre maneja la creación
+      onAddMagic?.("notas");
     } else {
       onAddMagic?.(key);
     }
@@ -1383,8 +1387,6 @@ const notaResults = useMemo((): NotaResult[] => {
               : null}
         </div>
 
-        {/* Botón añadir — eliminado, ahora se activa con "add" + Enter */}
-
         {/* AddCommandMenu — aparece cuando el usuario escribe "add" y presiona Enter */}
         <AddCommandMenu
           open={addMenuOpen}
@@ -1400,7 +1402,6 @@ const notaResults = useMemo((): NotaResult[] => {
             tipo={magicNombreModal}
             onClose={() => setMagicNombreModal(null)}
             onCreated={(item) => {
-              // Navegar a la sección de magia y seleccionar el item recién creado
               onAddMagic?.(magicNombreModal);
               onSelectMagic?.(magicNombreModal, item);
               setMagicNombreModal(null);
@@ -1440,7 +1441,6 @@ const notaResults = useMemo((): NotaResult[] => {
                   <Loader2 size={16} className="animate-spin text-primary/20" />
                 </div>
               ) : isAddCommand ? (
-                /* "add" command hint */
                 <div className="flex flex-col items-center gap-2 py-6 text-primary/25">
                   <Sparkles size={18} />
                   <p className="text-[9px] font-black uppercase tracking-widest">Presiona Enter para abrir el menú de añadir</p>
@@ -1487,7 +1487,7 @@ const notaResults = useMemo((): NotaResult[] => {
                       </>
                     )}
 
-                    {/* Mundo section navigation (Reinos → Geografía, Historia) */}
+                    {/* Mundo section navigation */}
                     {mundoNavResults.length > 0 && (
                       <>
                         <div className="px-2 pt-2 pb-1">
@@ -1501,11 +1501,8 @@ const notaResults = useMemo((): NotaResult[] => {
                               <button
                                 key={section + label}
                                 onMouseDown={() => {
-                                  if (subTab) {
-                                    handleMundoSubTab(section, subTab);
-                                  } else {
-                                    handleMundoSection(section);
-                                  }
+                                  if (subTab) handleMundoSubTab(section, subTab);
+                                  else handleMundoSection(section);
                                 }}
                                 className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-150 border ${
                                   isMundo && activeMundoSection === section
@@ -1532,7 +1529,7 @@ const notaResults = useMemo((): NotaResult[] => {
                       </>
                     )}
 
-                    {/* Mundo subtab results (hechizos, dones, runas) */}
+                    {/* Mundo subtab results */}
                     {mundoSubTabResults.length > 0 && (
                       <>
                         <div className="px-2 pt-2 pb-1">
@@ -1576,7 +1573,7 @@ const notaResults = useMemo((): NotaResult[] => {
                       </>
                     )}
 
-                    {/* Search results — grid de 3 columnas */}
+                    {/* Search results */}
                     {globalResults.length > 0 && (
                       <div className="grid grid-cols-3 sm:grid-cols-6 gap-1">
                         {globalResults.map(({ item, tab }) => (
@@ -1590,6 +1587,7 @@ const notaResults = useMemo((): NotaResult[] => {
                         ))}
                       </div>
                     )}
+
                     {magicResults.length > 0 && (
                       <>
                         <div className="px-2 pt-3 pb-1">
@@ -1632,6 +1630,7 @@ const notaResults = useMemo((): NotaResult[] => {
                         </div>
                       </>
                     )}
+
                     {notaResults.length > 0 && (
                       <>
                         <div className="px-2 pt-3 pb-1">
@@ -1665,6 +1664,7 @@ const notaResults = useMemo((): NotaResult[] => {
                         </div>
                       </>
                     )}
+
                     {mundoResults.length > 0 && (
                       <>
                         <div className="px-2 pt-3 pb-1">
