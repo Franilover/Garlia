@@ -8,6 +8,8 @@ import { librosQueries } from "@/lib/api/queries/wiki/libros";
 import { motion, AnimatePresence } from "framer-motion";
 
 import { CapituloLista, CapituloScrollItem } from "./leer/type";
+// ── NUEVO: helpers de slug ───────────────────────────────────────────────────
+import { toSlug, esUUID } from "@/lib/utils/slugify";
 import { LectorSkeleton }      from "./leer/ui/LectorSkeleton";
 import { IndexPanel }          from "./leer/ui/IndexPanel";
 import { CapituloScrollBlock } from "./leer/CapituloScrollBlock";
@@ -805,9 +807,13 @@ function PanelLateral({
    ───────────────────────────────────────────── */
 export default function Lector() {
   const params = useParams();
-  const id    = params?.id    as string;
-  const capId = params?.capId as string;
-  const router = useRouter();
+  // ── CAMBIO: el segmento de la URL ahora es un slug (o UUID para compatibilidad) ──
+  const slugParam = params?.id    as string;
+  const capId     = params?.capId as string;
+  const router    = useRouter();
+
+  // id es el UUID real del libro, resuelto a partir del slug
+  const [id, setId] = useState<string>("");
 
   const [capitulos,      setCapitulos]      = useState<CapituloScrollItem[]>([]);
   const [listaCapitulos, setListaCapitulos] = useState<CapituloLista[]>([]);
@@ -817,6 +823,34 @@ export default function Lector() {
   const [error,          setError]          = useState<string | null>(null);
   const [showIndex,      setShowIndex]      = useState(false);
   const [esExtra,        setEsExtra]        = useState(false);
+
+  // ── NUEVO: resolver slug → UUID antes de cualquier query ─────────────────
+  useEffect(() => {
+    if (!slugParam) return;
+
+    const resolver = async () => {
+      // Caso 1: ya es un UUID (links viejos) — redirigir a slug canónico
+      if (esUUID(slugParam)) {
+        const { data } = await supabase.from("libros").select("id, titulo").eq("id", slugParam).single();
+        if (data) {
+          const slug = toSlug(data.titulo);
+          // Reemplazar la URL sin añadir al historial
+          router.replace(`/wiki/libros/${slug}/leer/${capId}`, { scroll: false });
+          setId(data.id);
+        }
+        return;
+      }
+
+      // Caso 2: es un slug — buscar el libro que le corresponde
+      const { data: todos } = await supabase.from("libros").select("id, titulo");
+      if (!todos) return;
+      const encontrado = todos.find(l => toSlug(l.titulo) === slugParam);
+      if (encontrado) setId(encontrado.id);
+    };
+
+    resolver();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slugParam, capId]);
 
   const libroTitulo = capitulos[0]?.libros?.titulo;
   const hasScrolled = useRef(false);
@@ -1017,26 +1051,28 @@ export default function Lector() {
     const el = document.getElementById(`cap-${targetCapId}`);
     if (el) {
       el.scrollIntoView({ behavior: "smooth", block: "start" });
-      router.replace(`/wiki/libros/${id}/leer/${targetCapId}`, { scroll: false });
+      // ── CAMBIO: usar slugParam para mantener URL legible ──
+      router.replace(`/wiki/libros/${slugParam}/leer/${targetCapId}`, { scroll: false });
     } else {
-      router.push(`/wiki/libros/${id}/leer/${targetCapId}`);
+      router.push(`/wiki/libros/${slugParam}/leer/${targetCapId}`);
     }
-  }, [id, router]);
+  }, [slugParam, router]);
 
   const handleChapterSelect = useCallback((newCapId: string) => {
     const si = segmentos.findIndex(s => s.capitulos.some(c => c.id === newCapId));
     if (si !== -1 && si !== segActivo) {
-      router.push(`/wiki/libros/${id}/leer/${newCapId}`);
+      // ── CAMBIO: usar slugParam ──
+      router.push(`/wiki/libros/${slugParam}/leer/${newCapId}`);
       return;
     }
     const el = document.getElementById(`cap-${newCapId}`);
     if (el) {
       el.scrollIntoView({ behavior: "smooth", block: "start" });
-      router.replace(`/wiki/libros/${id}/leer/${newCapId}`, { scroll: false });
+      router.replace(`/wiki/libros/${slugParam}/leer/${newCapId}`, { scroll: false });
     } else {
-      router.push(`/wiki/libros/${id}/leer/${newCapId}`);
+      router.push(`/wiki/libros/${slugParam}/leer/${newCapId}`);
     }
-  }, [id, router, segmentos, segActivo]);
+  }, [slugParam, router, segmentos, segActivo]);
 
   const irAlSiguienteSegmento = useCallback((si: number) => {
     const sig = segmentos[si + 1];
@@ -1047,15 +1083,16 @@ export default function Lector() {
       for (const cap of segActual.capitulos) guardarLeido(id, cap.id);
     }
 
-    router.push(`/wiki/libros/${id}/leer/${sig.capitulos[0].id}`);
-  }, [segmentos, id, router]);
+    // ── CAMBIO: usar slugParam para la URL ──
+    router.push(`/wiki/libros/${slugParam}/leer/${sig.capitulos[0].id}`);
+  }, [segmentos, id, slugParam, router]);
 
   if (!loading && (error || capitulos.length === 0)) return (
     <div className="h-screen flex flex-col items-center justify-center bg-bg-main text-primary p-6 text-center">
       <h2 className="font-black uppercase text-xl mb-4 italic tracking-tighter">
         {error || "No hay capítulos disponibles"}
       </h2>
-      <Btn variant="outline" size="sm" onClick={() => router.push(`/wiki/libros/${id}`)}>
+      <Btn variant="outline" size="sm" onClick={() => router.push(`/wiki/libros/${slugParam}`)}>
         Volver al índice
       </Btn>
     </div>
@@ -1075,7 +1112,7 @@ export default function Lector() {
         style={{ background: "color-mix(in srgb, var(--bg-main) 92%, transparent)" }}
       >
         <button
-          onClick={() => router.push(`/wiki/libros/${id}`)}
+          onClick={() => router.push(`/wiki/libros/${slugParam}`)}
           className="flex items-center gap-2 text-primary/40 hover:text-primary transition-colors font-black text-[9px] uppercase tracking-widest"
         >
           <ChevronLeft size={14} /> Volver
@@ -1104,7 +1141,7 @@ export default function Lector() {
           esExtra={esExtra}
           listaCapitulos={listaCapitulos}
           capIdActual={capId}
-          onVolver={() => router.push(`/wiki/libros/${id}`)}
+          onVolver={() => router.push(`/wiki/libros/${slugParam}`)}
           onAbrirIndice={() => setShowIndex(true)}
           onSelectCap={(newId) => { handleChapterSelect(newId); }}
         />
@@ -1171,7 +1208,7 @@ export default function Lector() {
                   <div className="flex-1 h-px" style={{ background: "linear-gradient(to left, transparent, color-mix(in srgb, var(--primary) 20%, transparent))" }} />
                 </div>
                 <button
-                  onClick={() => router.push(`/wiki/libros/${id}`)}
+                  onClick={() => router.push(`/wiki/libros/${slugParam}`)}
                   className="flex items-center gap-2 text-primary/40 hover:text-primary font-black text-[10px] uppercase tracking-widest transition-all"
                 >
                   <List size={16} /> Volver al índice

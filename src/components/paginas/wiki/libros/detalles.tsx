@@ -6,6 +6,8 @@ import { supabase } from "@/lib/api/client/supabase";
 import { Play, Calendar, Clock, CheckCircle2 } from "lucide-react";
 import { SmartImage } from "@/components/display/SmartImage";
 import { Loading, BackBtn } from "@/components/ui";
+// ── NUEVO: helpers de slug ───────────────────────────────────────────────────
+import { toSlug, esUUID } from "@/lib/utils/slugify";
 
 interface Narrador {
   id: string;
@@ -57,10 +59,7 @@ function normOne<T>(v: T | T[] | null | undefined): T | null {
   return Array.isArray(v) ? (v[0] ?? null) : v;
 }
 
-/* ── Construye grupos con la misma lógica que buildSegmentos en leer.tsx ──
-   Clave = "reinoId::narradorId". Capítulos consecutivos con la misma clave
-   se fusionan en un grupo. Si el libro no usa reinos en ningún capítulo,
-   la clave degrada a solo narrador_id, replicando el comportamiento original. */
+/* ── Construye grupos con la misma lógica que buildSegmentos en leer.tsx ── */
 function buildGrupos(caps: Capitulo[]): GrupoSegmento[] {
   const grupos: GrupoSegmento[] = [];
 
@@ -194,85 +193,119 @@ function CoverFlipProtagonistas({
 
 export default function LibroDetalle() {
   const params = useParams();
-  const id = params?.id as string;
+  // ── CAMBIO: el segmento de la URL ahora es un slug (o UUID para compatibilidad) ──
+  const slugParam = params?.id as string;
   const router = useRouter();
 
   const [loading, setLoading]                 = useState(true);
   const [libro, setLibro]                     = useState<Libro | null>(null);
+  // libroId es el UUID real de Supabase, resuelto a partir del slug
+  const [libroId, setLibroId]                 = useState<string | null>(null);
   const [capitulos, setCapitulos]             = useState<Capitulo[]>([]);
   const [capituloProximo, setCapituloProximo] = useState<CapituloProximo | null | false>(null);
   const [notFound, setNotFound]               = useState(false);
   const [leidos, setLeidos]                   = useState<Set<string>>(new Set());
 
   // ── Cargar capítulos leídos desde localStorage ──
-  // Se re-lee al montar Y cada vez que la página vuelve a ser visible
-  // (el usuario regresa del lector donde el observer pudo haber guardado más)
   useEffect(() => {
-    if (!id) return;
+    if (!libroId) return;
 
     const leer = () => {
       try {
-        const raw = localStorage.getItem(`leidos:${id}`);
+        const raw = localStorage.getItem(`leidos:${libroId}`);
         setLeidos(new Set(raw ? (JSON.parse(raw) as string[]) : []));
       } catch { }
     };
 
-    leer(); // carga inicial
+    leer();
 
     const onVisible = () => { if (document.visibilityState === "visible") leer(); };
     document.addEventListener("visibilitychange", onVisible);
-    /* También al recibir foco en caso de que el lector
-       abra en la misma pestaña y Next.js no desmonte */
     window.addEventListener("focus", leer);
 
     return () => {
       document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("focus", leer);
     };
-  }, [id]);
+  }, [libroId]);
 
   const marcarLeido = (capId: string) => {
+    if (!libroId) return;
     setLeidos(prev => {
       const next = new Set(prev);
       next.add(capId);
-      try { localStorage.setItem(`leidos:${id}`, JSON.stringify([...next])); } catch { }
+      try { localStorage.setItem(`leidos:${libroId}`, JSON.stringify([...next])); } catch { }
       return next;
     });
   };
 
+  // ── NUEVO: resolver slug → UUID del libro ────────────────────────────────
+  // Si el param ya es un UUID (links viejos), lo usamos directamente.
+  // Si es un slug, buscamos todos los libros y comparamos slugs.
   useEffect(() => {
-    if (!id) return;
+    if (!slugParam) return;
     setLoading(true);
     setNotFound(false);
-    const ahora = new Date().toISOString();
+    setLibro(null);
+    setLibroId(null);
 
-    Promise.all([
-      supabase.from("libros").select("*").eq("id", id).single(),
-      supabase
-        .from("capitulos")
-        .select(`
-          *,
-          narrador:personajes!narrador_id(id, nombre, img_url),
-          reino:reinos!reino_id(id, nombre, imagen_reino)
-        `)
-        .eq("libro_id", id)
-        .eq("visibilidad", "publico")
-        .not("titulo_capitulo", "like", "[Ruta]%")
-        .order("orden", { ascending: true }),
-      supabase
-        .from("capitulos")
-        .select("titulo_capitulo, fecha_publicacion")
-        .eq("libro_id", id)
-        .eq("visibilidad", "programado")
-        .gt("fecha_publicacion", ahora)
-        .order("fecha_publicacion", { ascending: true })
-        .limit(1)
-        .maybeSingle(),
-    ]).then(([libroRes, capsRes, proximoRes]) => {
-      if (!libroRes.data) { setNotFound(true); return; }
-      setLibro(libroRes.data);
+    const resolverLibro = async () => {
+      // Caso 1: param es un UUID — compatibilidad con links anteriores
+      if (esUUID(slugParam)) {
+        const { data } = await supabase.from("libros").select("*").eq("id", slugParam).single();
+        if (!data) { setNotFound(true); setLoading(false); return; }
+        // Redirigir silenciosamente a la URL con slug para canonicalizar
+        const slug = toSlug(data.titulo);
+        if (slug) router.replace(`/wiki/libros/${slug}`);
+        setLibro(data);
+        setLibroId(data.id);
+        return data.id as string;
+      }
 
-      // Normalizar joins que Supabase puede devolver como array o null
+      // Caso 2: param es un slug — buscar comparando slugs generados
+      const { data: todos } = await supabase.from("libros").select("id, titulo, sinopsis, portada_url, categoria");
+      if (!todos) { setNotFound(true); setLoading(false); return; }
+
+      const encontrado = todos.find(l => toSlug(l.titulo) === slugParam);
+      if (!encontrado) { setNotFound(true); setLoading(false); return; }
+
+      // Obtener el libro completo (con todos los campos)
+      const { data: libroCompleto } = await supabase.from("libros").select("*").eq("id", encontrado.id).single();
+      if (!libroCompleto) { setNotFound(true); setLoading(false); return; }
+
+      setLibro(libroCompleto);
+      setLibroId(libroCompleto.id);
+      return libroCompleto.id as string;
+    };
+
+    resolverLibro().then(async (id) => {
+      if (!id) return;
+
+      const ahora = new Date().toISOString();
+
+      const [capsRes, proximoRes] = await Promise.all([
+        supabase
+          .from("capitulos")
+          .select(`
+            *,
+            narrador:personajes!narrador_id(id, nombre, img_url),
+            reino:reinos!reino_id(id, nombre, imagen_reino)
+          `)
+          .eq("libro_id", id)
+          .eq("visibilidad", "publico")
+          .not("titulo_capitulo", "like", "[Ruta]%")
+          .order("orden", { ascending: true }),
+        supabase
+          .from("capitulos")
+          .select("titulo_capitulo, fecha_publicacion")
+          .eq("libro_id", id)
+          .eq("visibilidad", "programado")
+          .gt("fecha_publicacion", ahora)
+          .order("fecha_publicacion", { ascending: true })
+          .limit(1)
+          .maybeSingle(),
+      ]);
+
       const capsNorm = ((capsRes.data as any[]) ?? []).map((c) => ({
         ...c,
         narrador: normOne(c.narrador),
@@ -282,10 +315,11 @@ export default function LibroDetalle() {
       setCapitulos(capsNorm);
       setCapituloProximo(proximoRes.data ?? false);
     }).finally(() => setLoading(false));
-  }, [id]);
+
+  }, [slugParam]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (loading) return <Loading text="Cargando libro…" />;
-  if (notFound || !libro) return (
+  if (notFound || !libro || !libroId) return (
     <div className="min-h-screen bg-bg-main flex flex-col items-center justify-center gap-4">
       <p className="text-primary/30 font-black uppercase text-xs tracking-widest italic">Libro no encontrado</p>
       <BackBtn onClick={() => router.push("/wiki/libros")} />
@@ -295,12 +329,10 @@ export default function LibroDetalle() {
   // ── Construir grupos (reino > narrador) ──
   const grupos = buildGrupos(capitulos);
 
-  // ¿Algún capítulo usa reino o narrador?
-  const tieneReinos    = grupos.some(g => g.reino    !== null);
+  const tieneReinos     = grupos.some(g => g.reino    !== null);
   const tieneNarradores = grupos.some(g => g.narrador !== null);
   const tieneAgrupacion = tieneReinos || tieneNarradores;
 
-  // Colores de acento por grupo (igual que antes)
   const acentos = [
     { bg: "bg-primary/5",             border: "border-primary/30",           dot: "bg-primary/40" },
     { bg: "bg-[var(--accent)]/5",     border: "border-[var(--accent)]/20",   dot: "bg-[var(--accent)]/50" },
@@ -310,14 +342,18 @@ export default function LibroDetalle() {
 
   const esExtra = libro.categoria?.toLowerCase() === "extra";
 
-  // ── Layout para categoría "Extra": imagen grande + título centrado + capítulos planos ──
+  // ── Helper: ruta al lector usando el slug del libro ──────────────────────
+  // Mantiene slug en la URL del lector también para consistencia SEO
+  const rutaLector = (primerCapId: string, targetCapId?: string) =>
+    `/wiki/libros/${slugParam}/leer/${primerCapId}${targetCapId ? `#cap-${targetCapId}` : ""}`;
+
+  // ── Layout para categoría "Extra" ─────────────────────────────────────────
   if (esExtra) {
     return (
       <div className="min-h-screen bg-bg-main pb-20 relative">
         <BackBtn onClick={() => router.push("/wiki/libros")} />
 
         <div className="max-w-5xl mx-auto px-6 grid md:grid-cols-[340px_1fr] gap-12 mt-4 items-start">
-          {/* Imagen grande pegada al top */}
           <div
             className="rounded-[var(--radius-card)] overflow-hidden bg-white-custom md:sticky md:top-8"
             style={{ border: "var(--border-width) solid color-mix(in srgb, var(--primary) 15%, transparent)", boxShadow: "var(--shadow-card)" }}
@@ -329,7 +365,6 @@ export default function LibroDetalle() {
             />
           </div>
 
-          {/* Título centrado + capítulos planos */}
           <main>
             <h1 className="text-4xl font-black text-primary italic tracking-tighter leading-[0.9] mb-10 uppercase text-center">
               {libro.titulo}
@@ -349,7 +384,8 @@ export default function LibroDetalle() {
                       key={cap.id}
                       onClick={() => {
                         marcarLeido(cap.id);
-                        router.push(`/wiki/libros/${id}/leer/${capitulos[0]?.id ?? cap.id}#cap-${cap.id}`);
+                        // ── CAMBIO: usar slug en la ruta ──
+                        router.push(rutaLector(capitulos[0]?.id ?? cap.id, cap.id));
                       }}
                       className={`w-full flex items-center justify-between p-5 transition-all text-left group rounded-btn shadow-card ${
                         esRuta ? "bg-blue-50/60" :
@@ -396,7 +432,7 @@ export default function LibroDetalle() {
     );
   }
 
-  // ── Layout normal ──
+  // ── Layout normal ──────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-bg-main pb-20 relative">
       <BackBtn onClick={() => router.push("/wiki/libros")} />
@@ -423,7 +459,8 @@ export default function LibroDetalle() {
             const primerCapId   = capitulos[0]?.id;
             return (
               <button
-                onClick={() => router.push(`/wiki/libros/${id}/leer/${primerCapId}#cap-${targetCap.id}`)}
+                // ── CAMBIO: usar slug en la ruta ──
+                onClick={() => router.push(rutaLector(primerCapId, targetCap.id))}
                 className="mt-5 w-full flex items-center justify-center gap-2.5 py-3.5 px-5 rounded-btn transition-all group"
                 style={{
                   background: "var(--primary)",
@@ -480,7 +517,6 @@ export default function LibroDetalle() {
                   boxShadow: esMuyProx ? "0 4px 24px color-mix(in srgb, var(--accent,var(--primary)) 12%, transparent)" : "none",
                 }}
               >
-                {/* Header */}
                 <div
                   className="flex items-center gap-2 px-5 py-2.5"
                   style={{ borderBottom: "var(--border-width) solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
@@ -495,7 +531,6 @@ export default function LibroDetalle() {
                     </span>
                   )}
                 </div>
-                {/* Body */}
                 <div className="px-5 py-4 flex flex-col gap-2">
                   <p className="text-primary font-black text-sm leading-snug tracking-tight">
                     {capituloProximo.titulo_capitulo}
@@ -527,26 +562,21 @@ export default function LibroDetalle() {
 
         {/* ── Contenido principal ── */}
         <main>
-
-          {/* ── Índice agrupado ── */}
           <div className="space-y-4">
-              
             {capitulos.length === 0 ? (
               <p className="text-center text-primary/30 font-bold text-xs uppercase tracking-widest py-12 italic">
                 Aún no hay capítulos publicados
               </p>
             ) : tieneAgrupacion ? (
-              /* ── Vista agrupada por reino (o narrador como fallback) ── */
               <div className="flex flex-col gap-10">
                 {grupos.map((grupo, gi) => {
-                  const acento   = acentos[gi % acentos.length];
-                  const label    = grupoLabel(grupo);
-                  const img      = grupoImg(grupo);
+                  const acento      = acentos[gi % acentos.length];
+                  const label       = grupoLabel(grupo);
+                  const img         = grupoImg(grupo);
                   const primerCapId = grupo.capitulos[0]?.id;
 
                   return (
                     <div key={gi}>
-                      {/* Cabecera del grupo */}
                       {label && (
                         <div className="flex items-center gap-4 mb-4">
                           {img ? (
@@ -566,7 +596,6 @@ export default function LibroDetalle() {
                             <p className="text-primary font-black uppercase text-base tracking-tight">
                               {grupo.reino?.nombre ?? grupo.narrador?.nombre}
                             </p>
-                            {/* Si hay reino Y narrador, mostrar narrador debajo */}
                             {grupo.reino && grupo.narrador && (
                               <p className="text-primary/40 font-bold text-[10px] uppercase tracking-wide italic">
                                 {grupo.narrador.nombre}
@@ -577,17 +606,17 @@ export default function LibroDetalle() {
                         </div>
                       )}
 
-                      {/* Lista de capítulos del grupo */}
                       <div className={`grid gap-2`}>
                         {grupo.capitulos.map((cap) => {
-                          const esRuta  = cap.titulo_capitulo?.startsWith("[Ruta]");
-                          const leido   = leidos.has(cap.id);
+                          const esRuta = cap.titulo_capitulo?.startsWith("[Ruta]");
+                          const leido  = leidos.has(cap.id);
                           return (
                             <button
                               key={cap.id}
                               onClick={() => {
                                 marcarLeido(cap.id);
-                                router.push(`/wiki/libros/${id}/leer/${primerCapId}#cap-${cap.id}`);
+                                // ── CAMBIO: usar slug en la ruta ──
+                                router.push(rutaLector(primerCapId, cap.id));
                               }}
                               className={`w-full flex items-center justify-between p-5 transition-all text-left group rounded-btn shadow-card ${
                                 esRuta  ? "bg-blue-50/60"  :
@@ -632,7 +661,6 @@ export default function LibroDetalle() {
                 })}
               </div>
             ) : (
-              /* ── Vista plana (sin reinos ni narradores) ── */
               <div className="grid gap-3">
                 {capitulos.map((cap) => {
                   const esRuta = cap.titulo_capitulo?.startsWith("[Ruta]");
@@ -642,7 +670,8 @@ export default function LibroDetalle() {
                       key={cap.id}
                       onClick={() => {
                         marcarLeido(cap.id);
-                        router.push(`/wiki/libros/${id}/leer/${capitulos[0]?.id ?? cap.id}#cap-${cap.id}`);
+                        // ── CAMBIO: usar slug en la ruta ──
+                        router.push(rutaLector(capitulos[0]?.id ?? cap.id, cap.id));
                       }}
                       className={`w-full flex items-center justify-between p-6 transition-all text-left group rounded-btn shadow-card ${
                         esRuta ? "bg-blue-50/60" :

@@ -8,6 +8,8 @@ import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import { SmartImage } from "@/components/display/SmartImage";
 import { Loading, PageHeader } from "@/components/ui";
 import { supabase } from "@/lib/api/client/supabase";
+// ── NUEVO: helper de slug ────────────────────────────────────────────────────
+import { toSlug } from "@/lib/utils/slugify";
 
 interface Libro {
   id: string;
@@ -58,6 +60,10 @@ function LibroCard({
   const leidos = usarProgreso(libro.id, numCaps);
   const progreso = numCaps > 0 ? Math.round((leidos / numCaps) * 100) : 0;
 
+  // ── NUEVO: slug en lugar de id ──────────────────────────────────────────
+  const slug = toSlug(libro.titulo);
+  const href = `/wiki/libros/${slug}`;
+
   return (
     <MotionDiv
       initial={{ y: 20, opacity: 0 }}
@@ -65,7 +71,7 @@ function LibroCard({
       transition={{ delay: index * 0.05 }}
       className="relative group"
     >
-      <Link href={`/wiki/libros/${libro.id}`} className="block">
+      <Link href={href} className="block">
         {/* ── Portada (desktop) / Tarjeta horizontal (móvil) ── */}
 
         {/* MÓVIL: layout horizontal */}
