@@ -411,10 +411,10 @@ export function GrafoRelaciones({
       {/* Botón en el header de BloqueRelaciones */}
       <button
         onClick={abrir}
-        className="flex items-center gap-1 px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border transition-all border-primary/10 text-primary/35 hover:bg-primary/10 hover:border-primary/25 hover:text-primary"
+        title="Ver árbol de relaciones"
+        className="w-5 h-5 flex items-center justify-center rounded text-primary/25 hover:text-primary hover:bg-primary/8 transition-all border border-transparent hover:border-primary/15"
       >
-        <GitFork size={9} />
-        Árbol
+        <GitFork size={8} />
       </button>
 
       {/* Modal */}
