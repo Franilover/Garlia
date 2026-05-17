@@ -240,7 +240,7 @@ function MundoSectionCard({
 // ─── AddCommandMenu ───────────────────────────────────────────────────────────
 // Floating menu triggered when user types "add" and presses Enter
 
-export type MagicAddKey = "hechizos" | "dones" | "runas" | "notas" | "acontecimiento";
+export type MagicAddKey = "hechizos" | "dones" | "runas" | "notas" | "acontecimiento" | "grupos";
 
 // Colores individuales por tipo — todos con la misma lógica color-mix
 const ADD_ITEM_COLOR: Record<string, string> = {
@@ -268,14 +268,12 @@ function AddCommandMenu({
   onAdd,
   onAddMagic,
   onClose,
-  onNavigateGrupos,
 }: {
   open: boolean;
   anchorRef: React.RefObject<HTMLDivElement | null>;
   onAdd: (tab: Exclude<TabKey, "mundo">) => void;
   onAddMagic?: (key: MagicAddKey) => void;
   onClose: () => void;
-  onNavigateGrupos?: () => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
 
@@ -292,7 +290,7 @@ function AddCommandMenu({
     { kind: "magic", key: "runas",          label: "Runa",           Icon: Zap      },
     { kind: "magic", key: "notas",          label: "Nota",           Icon: FileText },
     { kind: "magic", key: "acontecimiento", label: "Acontecimiento", Icon: Clock    },
-    { kind: "nav",   key: "grupos",         label: "Grupo",          Icon: Layers,  onNavigate: () => onNavigateGrupos?.() },
+    { kind: "magic", key: "grupos",         label: "Grupo",          Icon: Layers   },
   ];
 
   useEffect(() => {
@@ -1173,7 +1171,6 @@ const notaResults = useMemo((): NotaResult[] => {
           onAdd={(tab) => { onAdd(tab); close(); }}
           onAddMagic={handleAddMagicWithModal}
           onClose={() => { setAddMenuOpen(false); setQuery(""); setFocused(false); inputRef.current?.blur(); }}
-          onNavigateGrupos={() => handleMundoSubTab("geografia", "grupos")}
         />
 
         {/* Modal nombre para Hechizo / Don / Runa */}

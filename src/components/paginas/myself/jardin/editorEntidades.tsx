@@ -19,6 +19,7 @@ import { EditorItem }      from "./editorEntidades/EditorItem";
 import { EditorReino }     from "./editorEntidades/EditorReino";
 import { EditorMundo }     from "./editorEntidades/EditorMundo";
 import { EditorHechizos }  from "./editorEntidades/EditorHechizos";
+import { EditorGrupo }     from "./editorEntidades/EditorGrupo";
 import { WikilinkProvider } from "@/components/forms/WikilinkContext";
 
 
@@ -229,7 +230,7 @@ function ModalNueva({ tab, onCreated, onClose }: {
 const STORAGE_KEY = "editorEntidades:session";
 
 const VALID_MUNDO_SECTIONS: MundoSectionKey[] = ["geografia", "historia", "magia"];
-const VALID_MUNDO_TABS = ["mundo", "historia", "listas", "magia", "hechizos", "dones", "runas"];
+const VALID_MUNDO_TABS = ["mundo", "historia", "listas", "magia", "hechizos", "dones", "runas", "grupos"];
 
 function readSession(): {
   tab: TabKey;
@@ -382,6 +383,7 @@ export default function EditorEntidades() {
 
   const isMundo = tab === "mundo";
   const isMagicTab = tab === "hechizos" || tab === "dones" || tab === "runas";
+  const isGruposTab = tab === "grupos";
 
   return (
     <>
@@ -410,6 +412,9 @@ export default function EditorEntidades() {
               setSelectedId(null);
               setMundoSection("geografia");
               setRequestedSubTab("notas");
+            } else if (key === "grupos") {
+              setTab("grupos" as any);
+              setSelectedId(null);
             } else {
               // hechizos, dones, runas → abrir su editor directamente como tab
               setTab(key as any);
@@ -479,6 +484,29 @@ export default function EditorEntidades() {
                 setMundoSection(section);
                 setRequestedSubTab(mundoTab);
                 setRequestedItemId(undefined);
+              }}
+            />
+          ) : isGruposTab ? (
+            <EditorGrupo
+              key="grupos"
+              onClickMiembro={(id, tabla) => {
+                const tablaMap: Record<string, Exclude<TabKey, "mundo">> = {
+                  personajes: "personajes",
+                  criaturas:  "criaturas",
+                  items:      "items",
+                  hechizos:   "hechizos",
+                  dones:      "dones",
+                  runas:      "runas",
+                };
+                const targetTab = tablaMap[tabla];
+                if (!targetTab) return;
+                if (["hechizos", "dones", "runas"].includes(targetTab)) {
+                  setTab(targetTab as any);
+                  setSelectedId(id);
+                } else {
+                  const found = allItems[targetTab as keyof typeof allItems]?.find((x: any) => x.id === id);
+                  if (found) handleSelect(found, targetTab as Exclude<TabKey, "mundo">);
+                }
               }}
             />
           ) : isMagicTab ? (

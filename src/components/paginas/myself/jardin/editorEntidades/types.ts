@@ -1,4 +1,4 @@
-import { Users, Bug, Package, Map, Mountain, ScrollText, Sparkles, Star, Wand2 } from "lucide-react";
+import { Users, Bug, Package, Map, Mountain, ScrollText, Sparkles, Star, Wand2, Layers } from "lucide-react";
 
 export type Personaje = {
   id: string;
@@ -110,17 +110,18 @@ export type Nota = {
 
 
 // ─── Tabs ─────────────────────────────────────────────────────────────────────
-export type TabKey = "personajes" | "criaturas" | "items" | "reinos" | "mundo" | "hechizos" | "dones" | "runas";
+export type TabKey = "personajes" | "criaturas" | "items" | "reinos" | "mundo" | "hechizos" | "dones" | "runas" | "grupos";
 export type SaveStatus = "idle" | "saving" | "saved" | "error";
 
 export const TAB_CONFIG: Record<Exclude<TabKey, "mundo">, { emoji: string; label: string; tabla: string; Icon: React.ElementType }> = {
-  personajes: { emoji: "🧑", label: "Personajes", tabla: "personajes", Icon: Users      },
-  criaturas:  { emoji: "🐛", label: "Criaturas",  tabla: "criaturas",  Icon: Bug        },
-  items:      { emoji: "📦", label: "Items",      tabla: "items",      Icon: Package    },
-  reinos:     { emoji: "🗺️", label: "Mapas",      tabla: "reinos",     Icon: Map        },
-  hechizos:   { emoji: "✨", label: "Hechizos",   tabla: "hechizos",   Icon: Wand2      },
-  dones:      { emoji: "⭐", label: "Dones",      tabla: "dones",      Icon: Star       },
-  runas:      { emoji: "ᚱ",  label: "Runas",      tabla: "runas",      Icon: ScrollText },
+  personajes: { emoji: "🧑", label: "Personajes", tabla: "personajes",   Icon: Users      },
+  criaturas:  { emoji: "🐛", label: "Criaturas",  tabla: "criaturas",   Icon: Bug        },
+  items:      { emoji: "📦", label: "Items",      tabla: "items",        Icon: Package    },
+  reinos:     { emoji: "🗺️", label: "Mapas",      tabla: "reinos",      Icon: Map        },
+  hechizos:   { emoji: "✨", label: "Hechizos",   tabla: "hechizos",    Icon: Wand2      },
+  dones:      { emoji: "⭐", label: "Dones",      tabla: "dones",        Icon: Star       },
+  runas:      { emoji: "ᚱ",  label: "Runas",      tabla: "runas",        Icon: ScrollText },
+  grupos:     { emoji: "",   label: "Grupos",     tabla: "grupos_mundo", Icon: Layers     },
 };
 
 export const MUNDO_SECTIONS = [
