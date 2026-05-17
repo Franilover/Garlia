@@ -1004,10 +1004,6 @@ export default function Lector() {
   };
 
   useEffect(() => {
-    // Si capIdParam es un slug de segmento, necesitamos cargar todos los caps del libro
-    // y luego resolver. Pasamos null como capId a getCapituloParaLectura para que traiga todo.
-    // Si es UUID lo usamos directamente.
-    const capIdParaQuery = esUUID(capIdParam) ? capIdParam : null;
     if (!capIdParam || !id) return;
     const hoy = new Date().toISOString();
 
@@ -1028,17 +1024,13 @@ export default function Lector() {
         if (libroData?.categoria?.toLowerCase() === "extra") setEsExtra(true);
       });
 
-    // Cuando capIdParam es un slug, pasamos el primer UUID disponible que traiga todos los caps
-    librosQueries.getCapituloParaLectura(capIdParaQuery ?? id, id, true)
-      .then(async (queryRes) => {
-        if (queryRes.error || !queryRes.data) {
-          setError(queryRes.error || "No se pudo cargar el capítulo");
-          return;
-        }
+    const cargarCaps = async (): Promise<CapRaw[]> => {
+      if (esUUID(capIdParam)) {
+        // Flujo original: usar getCapituloParaLectura para obtener la lista de caps del libro
+        const queryRes = await librosQueries.getCapituloParaLectura(capIdParam, id, true);
+        if (queryRes.error || !queryRes.data) throw new Error(queryRes.error || "No se pudo cargar el capítulo");
         const listaRaw = queryRes.data.listaCapitulos;
-
-        cachearEnDexie(listaRaw.map(c => ({ ...c, libro_id: id })));
-
+        cachearEnDexie(listaRaw.map((c: any) => ({ ...c, libro_id: id })));
         const { data: contenidos } = await supabase
           .from("capitulos")
           .select(`
@@ -1047,13 +1039,31 @@ export default function Lector() {
             narrador:personajes!narrador_id(id, nombre, img_url),
             reino:reinos!reino_id(id, nombre, imagen_reino)
           `)
-          .in("id", listaRaw.map(c => c.id))
+          .in("id", listaRaw.map((c: any) => c.id))
           .or(`visibilidad.eq.publico,and(visibilidad.eq.programado,fecha_publicacion.lte.${hoy.split("T")[0]})`)
           .not("titulo_capitulo", "like", "[Ruta]%")
           .order("orden", { ascending: true });
+        return (contenidos as unknown as CapRaw[]) ?? [];
+      } else {
+        // Slug de segmento: cargar todos los caps del libro directamente
+        const { data: contenidos } = await supabase
+          .from("capitulos")
+          .select(`
+            id, orden, titulo_capitulo, contenido, fecha_publicacion, personajes_ids,
+            libros(titulo),
+            narrador:personajes!narrador_id(id, nombre, img_url),
+            reino:reinos!reino_id(id, nombre, imagen_reino)
+          `)
+          .eq("libro_id", id)
+          .or(`visibilidad.eq.publico,and(visibilidad.eq.programado,fecha_publicacion.lte.${hoy.split("T")[0]})`)
+          .not("titulo_capitulo", "like", "[Ruta]%")
+          .order("orden", { ascending: true });
+        return (contenidos as unknown as CapRaw[]) ?? [];
+      }
+    };
 
-        const rawList = (contenidos as unknown as CapRaw[]) ?? [];
-
+    cargarCaps()
+      .then(async (rawList) => {
         const capsValidas = rawList.map(c => ({
           id:                c.id,
           orden:             c.orden,
@@ -1069,10 +1079,13 @@ export default function Lector() {
 
         cachearEnDexie(capsValidas);
 
-        const idsValidos    = new Set(capsValidas.map(c => c.id));
-        const listaFiltrada = listaRaw.filter(c => idsValidos.has(c.id));
+        const listaCapitulosData = capsValidas.map(c => ({
+          id: c.id, orden: c.orden,
+          titulo_capitulo: c.titulo_capitulo,
+          fecha_publicacion: c.fecha_publicacion,
+        }));
 
-        setListaCapitulos(listaFiltrada);
+        setListaCapitulos(listaCapitulosData);
         setCapitulos(capsValidas as unknown as CapituloScrollItem[]);
 
         // Inicializar el título visible con el cap activo al cargar
