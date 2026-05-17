@@ -70,6 +70,45 @@ function segImgUrl(seg: Segmento): string | null | undefined {
 }
 
 /* ─────────────────────────────────────────────
+   Helpers de slug de segmento
+   ───────────────────────────────────────────── */
+
+/** Genera el slug de un segmento con desambiguador numérico si el narrador/reino
+ *  aparece más de una vez. Ej: "tori", "dorian", "tori-2" */
+function slugSegmento(segmentos: Segmento[], index: number): string {
+  const seg = segmentos[index];
+  const nombre = seg.reino?.nombre ?? seg.narrador?.nombre ?? "capitulos";
+  const slug = toSlug(nombre);
+
+  const aparicionesAnteriores = segmentos
+    .slice(0, index)
+    .filter(s => toSlug(s.reino?.nombre ?? s.narrador?.nombre ?? "") === slug)
+    .length;
+
+  return aparicionesAnteriores === 0 ? slug : `${slug}-${aparicionesAnteriores + 1}`;
+}
+
+/** Dado un slug de segmento (ej: "tori-2"), devuelve el índice del segmento
+ *  correspondiente en la lista. Retorna 0 si no encuentra nada. */
+function resolverSegmentoDesdeSlug(segmentos: Segmento[], segSlug: string): number {
+  // Parsear sufijo numérico: "tori-2" → base="tori", n=2; "tori" → base="tori", n=1
+  const match = segSlug.match(/^(.*?)(?:-(\d+))?$/);
+  const base  = match?.[1] ?? segSlug;
+  const n     = match?.[2] ? parseInt(match[2], 10) : 1;
+
+  let cuenta = 0;
+  for (let i = 0; i < segmentos.length; i++) {
+    const seg    = segmentos[i];
+    const nombre = seg.reino?.nombre ?? seg.narrador?.nombre ?? "";
+    if (toSlug(nombre) === base) {
+      cuenta++;
+      if (cuenta === n) return i;
+    }
+  }
+  return 0;
+}
+
+/* ─────────────────────────────────────────────
    localStorage helpers
    ───────────────────────────────────────────── */
 function cargarLeidos(libroId: string): Set<string> {
@@ -807,13 +846,15 @@ function PanelLateral({
    ───────────────────────────────────────────── */
 export default function Lector() {
   const params = useParams();
-  // ── CAMBIO: el segmento de la URL ahora es un slug (o UUID para compatibilidad) ──
   const slugParam = params?.id    as string;
-  const capId     = params?.capId as string;
+  // capId puede ser un UUID de capítulo O un slug de segmento (ej: "tori", "tori-2")
+  const capIdParam = params?.capId as string;
   const router    = useRouter();
 
   // id es el UUID real del libro, resuelto a partir del slug
   const [id, setId] = useState<string>("");
+  // capId es siempre el UUID real del capítulo activo
+  const [capId, setCapId] = useState<string>("");
 
   const [capitulos,      setCapitulos]      = useState<CapituloScrollItem[]>([]);
   const [listaCapitulos, setListaCapitulos] = useState<CapituloLista[]>([]);
@@ -824,24 +865,21 @@ export default function Lector() {
   const [showIndex,      setShowIndex]      = useState(false);
   const [esExtra,        setEsExtra]        = useState(false);
 
-  // ── NUEVO: resolver slug → UUID antes de cualquier query ─────────────────
+  // ── Resolver slug del libro → UUID ────────────────────────────────────────
   useEffect(() => {
     if (!slugParam) return;
 
     const resolver = async () => {
-      // Caso 1: ya es un UUID (links viejos) — redirigir a slug canónico
       if (esUUID(slugParam)) {
         const { data } = await supabase.from("libros").select("id, titulo").eq("id", slugParam).single();
         if (data) {
           const slug = toSlug(data.titulo);
-          // Reemplazar la URL sin añadir al historial
-          router.replace(`/wiki/libros/${slug}/leer/${capId}`, { scroll: false });
+          router.replace(`/wiki/libros/${slug}/leer/${capIdParam}`, { scroll: false });
           setId(data.id);
         }
         return;
       }
 
-      // Caso 2: es un slug — buscar el libro que le corresponde
       const { data: todos } = await supabase.from("libros").select("id, titulo");
       if (!todos) return;
       const encontrado = todos.find(l => toSlug(l.titulo) === slugParam);
@@ -850,7 +888,27 @@ export default function Lector() {
 
     resolver();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [slugParam, capId]);
+  }, [slugParam, capIdParam]);
+
+  // ── Resolver capIdParam: puede ser UUID o slug-de-segmento ────────────────
+  // Se ejecuta después de que los segmentos estén cargados (o al inicio si es UUID)
+  useEffect(() => {
+    if (!capIdParam) return;
+
+    // Si es UUID, usarlo directamente
+    if (esUUID(capIdParam)) {
+      setCapId(capIdParam);
+      return;
+    }
+
+    // Si es slug de segmento, esperar a que los segmentos estén listos
+    if (segmentos.length === 0) return;
+
+    const si = resolverSegmentoDesdeSlug(segmentos, capIdParam);
+    setSegActivo(si);
+    const primerCap = segmentos[si]?.capitulos[0];
+    if (primerCap) setCapId(primerCap.id);
+  }, [capIdParam, segmentos]);
 
   const libroTitulo = capitulos[0]?.libros?.titulo;
   const hasScrolled = useRef(false);
@@ -946,7 +1004,11 @@ export default function Lector() {
   };
 
   useEffect(() => {
-    if (!capId || !id) return;
+    // Si capIdParam es un slug de segmento, necesitamos cargar todos los caps del libro
+    // y luego resolver. Pasamos null como capId a getCapituloParaLectura para que traiga todo.
+    // Si es UUID lo usamos directamente.
+    const capIdParaQuery = esUUID(capIdParam) ? capIdParam : null;
+    if (!capIdParam || !id) return;
     const hoy = new Date().toISOString();
 
     type CapRaw = {
@@ -966,7 +1028,8 @@ export default function Lector() {
         if (libroData?.categoria?.toLowerCase() === "extra") setEsExtra(true);
       });
 
-    librosQueries.getCapituloParaLectura(capId, id, true)
+    // Cuando capIdParam es un slug, pasamos el primer UUID disponible que traiga todos los caps
+    librosQueries.getCapituloParaLectura(capIdParaQuery ?? id, id, true)
       .then(async (queryRes) => {
         if (queryRes.error || !queryRes.data) {
           setError(queryRes.error || "No se pudo cargar el capítulo");
@@ -1013,14 +1076,26 @@ export default function Lector() {
         setCapitulos(capsValidas as unknown as CapituloScrollItem[]);
 
         // Inicializar el título visible con el cap activo al cargar
-        const capActivo = capsValidas.find(c => c.id === capId);
+        const capActivo = capsValidas.find(c => c.id === (esUUID(capIdParam) ? capIdParam : capsValidas[0]?.id));
         if (capActivo) setActiveCapTitle(`${capActivo.orden}. ${capActivo.titulo_capitulo}`);
 
         const segs = buildSegmentos(capsValidas as any);
         setSegmentos(segs);
 
-        const si = segs.findIndex(s => s.capitulos.some(c => c.id === capId));
-        setSegActivo(si !== -1 ? si : 0);
+        // Resolver segmento activo y canonicalizar URL con slug de narrador/reino
+        let si = 0;
+        if (esUUID(capIdParam)) {
+          si = segs.findIndex(s => s.capitulos.some(c => c.id === capIdParam));
+          if (si === -1) si = 0;
+          // Reemplazar UUID en la URL por el slug legible del segmento
+          const segSlug = slugSegmento(segs, si);
+          router.replace(`/wiki/libros/${slugParam}/leer/${segSlug}`, { scroll: false });
+        } else {
+          si = resolverSegmentoDesdeSlug(segs, capIdParam);
+        }
+        setSegActivo(si);
+        const primerCapSeg = segs[si]?.capitulos[0];
+        if (primerCapSeg) setCapId(primerCapSeg.id);
       })
       .catch(async (err) => {
         console.error("Error crítico en Lector:", err);
@@ -1041,45 +1116,61 @@ export default function Lector() {
           setListaCapitulos(lista);
           setCapitulos(capsValidas as unknown as CapituloScrollItem[]);
           setSegmentos(segs);
-          const si = segs.findIndex(s => s.capitulos.some(c => c.id === capId));
-          setSegActivo(si !== -1 ? si : 0);
+          let si = 0;
+          if (esUUID(capIdParam)) {
+            si = segs.findIndex(s => s.capitulos.some(c => c.id === capIdParam));
+            if (si === -1) si = 0;
+          } else {
+            si = resolverSegmentoDesdeSlug(segs, capIdParam);
+          }
+          setSegActivo(si);
+          const primerCapSeg = segs[si]?.capitulos[0];
+          if (primerCapSeg) setCapId(primerCapSeg.id);
         } else {
           setError("Error al abrir el pergamino");
         }
       })
       .finally(() => setLoading(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [capId, id]);
+  }, [capIdParam, id]);
 
+  /** Navega dentro del segmento activo (scroll) — actualiza URL con slug del segmento */
   const handleNavigate = useCallback((targetCapId: string) => {
+    const si = segmentos.findIndex(s => s.capitulos.some(c => c.id === targetCapId));
+    const segSlug = si !== -1 ? slugSegmento(segmentos, si) : slugSegmento(segmentos, segActivo);
     const el = document.getElementById(`cap-${targetCapId}`);
     if (el) {
       el.scrollIntoView({ behavior: "smooth", block: "start" });
-      // ── CAMBIO: usar slugParam para mantener URL legible ──
-      router.replace(`/wiki/libros/${slugParam}/leer/${targetCapId}`, { scroll: false });
+      router.replace(`/wiki/libros/${slugParam}/leer/${segSlug}`, { scroll: false });
     } else {
-      router.push(`/wiki/libros/${slugParam}/leer/${targetCapId}`);
+      router.push(`/wiki/libros/${slugParam}/leer/${segSlug}`);
     }
-  }, [slugParam, router]);
+    setCapId(targetCapId);
+  }, [slugParam, router, segmentos, segActivo]);
 
+  /** Selecciona un capítulo desde el índice: si cambia de segmento navega con slug nuevo */
   const handleChapterSelect = useCallback((newCapId: string) => {
     const si = segmentos.findIndex(s => s.capitulos.some(c => c.id === newCapId));
+    const segSlug = si !== -1 ? slugSegmento(segmentos, si) : slugSegmento(segmentos, segActivo);
     if (si !== -1 && si !== segActivo) {
-      // ── CAMBIO: usar slugParam ──
-      router.push(`/wiki/libros/${slugParam}/leer/${newCapId}`);
+      // Cambia de segmento → navegar con slug del segmento destino
+      router.push(`/wiki/libros/${slugParam}/leer/${segSlug}`);
       return;
     }
     const el = document.getElementById(`cap-${newCapId}`);
     if (el) {
       el.scrollIntoView({ behavior: "smooth", block: "start" });
-      router.replace(`/wiki/libros/${slugParam}/leer/${newCapId}`, { scroll: false });
+      router.replace(`/wiki/libros/${slugParam}/leer/${segSlug}`, { scroll: false });
     } else {
-      router.push(`/wiki/libros/${slugParam}/leer/${newCapId}`);
+      router.push(`/wiki/libros/${slugParam}/leer/${segSlug}`);
     }
+    setCapId(newCapId);
   }, [slugParam, router, segmentos, segActivo]);
 
+  /** Al pasar al siguiente segmento, usa el slug del narrador/reino en la URL */
   const irAlSiguienteSegmento = useCallback((si: number) => {
-    const sig = segmentos[si + 1];
+    const sigIndex = si + 1;
+    const sig = segmentos[sigIndex];
     if (!sig?.capitulos[0]) return;
 
     const segActual = segmentos[si];
@@ -1087,8 +1178,8 @@ export default function Lector() {
       for (const cap of segActual.capitulos) guardarLeido(id, cap.id);
     }
 
-    // ── CAMBIO: usar slugParam para la URL ──
-    router.push(`/wiki/libros/${slugParam}/leer/${sig.capitulos[0].id}`);
+    const segSlug = slugSegmento(segmentos, sigIndex);
+    router.push(`/wiki/libros/${slugParam}/leer/${segSlug}`);
   }, [segmentos, id, slugParam, router]);
 
   if (!loading && (error || capitulos.length === 0)) return (
