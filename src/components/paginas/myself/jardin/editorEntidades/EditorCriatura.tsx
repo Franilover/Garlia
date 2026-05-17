@@ -558,11 +558,13 @@ function BloqueGruposCriatura({
   todosGrupos,
   onAdd,
   onRemove,
+  onSelectGrupo,
 }: {
   gruposActuales: GrupoMin[];
   todosGrupos: GrupoMin[];
   onAdd: (grupoId: string) => void;
   onRemove: (grupoId: string) => void;
+  onSelectGrupo?: (grupoId: string) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -594,7 +596,14 @@ function BloqueGruposCriatura({
                 borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)",
                 color: "var(--primary)",
               }}>
-              <span>{g.nombre}</span>
+              <button
+                type="button"
+                onClick={() => onSelectGrupo?.(g.id)}
+                className="hover:underline cursor-pointer text-left leading-none"
+                title="Ir al grupo"
+              >
+                {g.nombre}
+              </button>
               <button
                 type="button"
                 onClick={() => onRemove(g.id)}
@@ -661,11 +670,12 @@ function BloqueGruposCriatura({
 
 // ─── EditorCriatura ───────────────────────────────────────────────────────────
 export function EditorCriatura({
-  item, onSaved, onDeleted, entities = [], onSelectItem, onSelectPersonaje,
+  item, onSaved, onDeleted, entities = [], onSelectItem, onSelectPersonaje, onSelectGrupo,
 }: {
   item: Criatura; onSaved: (c: Criatura) => void; onDeleted: (id: string) => void; entities?: WikiEntity[];
   onSelectItem?: (itemId: string) => void;
   onSelectPersonaje?: (personajeId: string) => void;
+  onSelectGrupo?: (grupoId: string) => void;
 }) {
   const [form,   setForm]   = useState<Criatura>(item);
   const [status, setStatus] = useState<SaveStatus>("idle");
@@ -782,6 +792,7 @@ export function EditorCriatura({
                     todosGrupos={todosGrupos}
                     onAdd={addToGrupo}
                     onRemove={removeFromGrupo}
+                    onSelectGrupo={onSelectGrupo}
                   />
                   <div className="space-y-1.5">
                     <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Descripción</label>
