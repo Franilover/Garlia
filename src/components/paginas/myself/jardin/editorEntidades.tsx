@@ -268,6 +268,7 @@ export default function EditorEntidades() {
   const [mundoSection, setMundoSection] = useState<MundoSectionKey>(session.current.mundoSection);
   const [requestedSubTab, setRequestedSubTab] = useState<string | undefined>(session.current.mundoTab);
   const [requestedItemId, setRequestedItemId] = useState<string | undefined>(undefined);
+  const [requestedGrupoId, setRequestedGrupoId] = useState<string | null>(null);
 
   const { textos: mundoTextos, setTextos: setMundoTextos, save: saveMundo } = useMundoSecciones();
   const { allItems, setAllItems, loadingAll, isOffline } = useAllEntidades();
@@ -306,6 +307,7 @@ export default function EditorEntidades() {
   const handleSelect = useCallback((item: any, itemTab: Exclude<TabKey, "mundo">) => {
     setTab(itemTab);
     setSelectedId(item.id);
+    setRequestedGrupoId(null);
   }, []);
 
   const handleWikilinkNavigate = useCallback((target: string) => {
@@ -493,6 +495,7 @@ export default function EditorEntidades() {
           ) : isGruposTab ? (
             <EditorGrupo
               key="grupos"
+              initialSelectedId={requestedGrupoId}
               onClickMiembro={(id, tabla) => {
                 const tablaMap: Record<string, Exclude<TabKey, "mundo">> = {
                   personajes: "personajes",
@@ -543,7 +546,7 @@ export default function EditorEntidades() {
                 }}
                 onSelectGrupo={(grupoId) => {
                   setTab("grupos");
-                  setSelectedId(grupoId);
+                  setRequestedGrupoId(grupoId);
                 }}
               />}
               {tab === "items"      && <EditorItem       key={selected.id} item={selected as Item}      onSaved={handleSaved} onDeleted={handleDeleted} entities={allEntityNames}

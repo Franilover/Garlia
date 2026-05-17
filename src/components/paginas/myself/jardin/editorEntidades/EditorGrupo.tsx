@@ -582,14 +582,24 @@ function SelectorTipoGrupo({
 export function EditorGrupo({
   onClickMiembro,
   autoCrear = false,
+  initialSelectedId,
 }: {
   onClickMiembro?: (id: string, tabla: string) => void;
   autoCrear?: boolean;
+  initialSelectedId?: string | null;
 }) {
   const { grupos, loaded, crearGrupo, actualizarGrupo, eliminarGrupo } = useGrupos();
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(initialSelectedId ?? null);
   const [search, setSearch] = useState("");
   const [creando, setCreando] = useState(autoCrear);
+
+  // Si llega un nuevo initialSelectedId desde afuera (navegación desde criatura), aplicarlo
+  useEffect(() => {
+    if (initialSelectedId) {
+      setSelectedId(initialSelectedId);
+      setCreando(false);
+    }
+  }, [initialSelectedId]);
 
   const selected = grupos.find(g => g.id === selectedId) ?? null;
 
