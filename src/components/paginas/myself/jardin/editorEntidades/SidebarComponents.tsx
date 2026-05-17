@@ -282,7 +282,8 @@ function AddCommandMenu({
   // Entidades principales
   const tabEntries: AddEntry[] = (
     Object.entries(TAB_CONFIG) as [Exclude<TabKey, "mundo">, typeof TAB_CONFIG[Exclude<TabKey, "mundo">]][]
-  ).map(([key, cfg]) => ({ kind: "tab", key, label: cfg.label, Icon: cfg.Icon }));
+  ).filter(([key]) => !["hechizos", "dones", "runas"].includes(key))
+   .map(([key, cfg]) => ({ kind: "tab", key, label: cfg.label, Icon: cfg.Icon }));
 
   // Magia + notas — sin duplicar hechizos/dones/runas que ya están en tabEntries
   const magicEntries: AddEntry[] = [
