@@ -295,8 +295,10 @@ export default function EditorEntidades() {
   }, [tab, selectedId, mundoSection, requestedSubTab]);
 
   const selected = useMemo(() => {
-    if (tab === "mundo") return null;
-    return allItems[tab as Exclude<TabKey, "mundo">].find(i => i.id === selectedId) ?? null;
+    if (tab === "mundo" || tab === "grupos") return null;
+    const list = allItems[tab as Exclude<TabKey, "mundo" | "grupos">];
+    if (!list) return null;
+    return list.find(i => i.id === selectedId) ?? null;
   }, [allItems, selectedId, tab]);
 
   // ── Handlers ────────────────────────────────────────────────────────────────
@@ -353,7 +355,8 @@ export default function EditorEntidades() {
   };
 
   const handleSaved = (item: any) => {
-    const t = tab as Exclude<TabKey, "mundo">;
+    if (tab === "grupos" || tab === "mundo") return;
+    const t = tab as Exclude<TabKey, "mundo" | "grupos">;
     setAllItems(prev => ({ ...prev, [t]: (prev[t as keyof typeof prev] as any[]).map(i => i.id === item.id ? item : i) }));
     void dexieWriteOne(TAB_CONFIG[t].tabla, item);
   };
@@ -368,7 +371,8 @@ export default function EditorEntidades() {
     }, []);
 
   const handleDeleted = (id: string) => {
-    const t = tab as Exclude<TabKey, "mundo">;
+    if (tab === "grupos" || tab === "mundo") return;
+    const t = tab as Exclude<TabKey, "mundo" | "grupos">;
     setAllItems(prev => ({ ...prev, [t]: (prev[t as keyof typeof prev] as any[]).filter(i => i.id !== id) }));
     setSelectedId(null);
     void dexieDeleteOne(TAB_CONFIG[t].tabla, id);
