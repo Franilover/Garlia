@@ -1123,7 +1123,6 @@ export function GlobalSearchBar({
   const [focused,         setFocused]         = useState(false);
   const [addMenuOpen,     setAddMenuOpen]     = useState(false);
   const [magicNombreModal, setMagicNombreModal] = useState<"hechizos" | "dones" | "runas" | null>(null);
-  const [grupoModalOpen,  setGrupoModalOpen]  = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const wrapRef  = useRef<HTMLDivElement>(null);
 
@@ -1267,13 +1266,8 @@ export function GlobalSearchBar({
     if (key === "hechizos" || key === "dones" || key === "runas") {
       close();
       setMagicNombreModal(key);
-    } else if (key === "notas") {
-      close();
-      onAddMagic?.("notas");
-    } else if (key === "grupos") {
-      close();
-      setGrupoModalOpen(true);
     } else {
+      close();
       onAddMagic?.(key);
     }
   }, [onAddMagic, close]);
@@ -1409,17 +1403,6 @@ export function GlobalSearchBar({
               onAddMagic?.(magicNombreModal);
               onSelectMagic?.(magicNombreModal, item);
               setMagicNombreModal(null);
-            }}
-          />
-        )}
-
-        {/* Modal nuevo grupo — pide tipo primero, luego nombre */}
-        {grupoModalOpen && (
-          <ModalNuevoGrupo
-            onClose={() => setGrupoModalOpen(false)}
-            onCreated={(grupo) => {
-              onAddMagic?.("grupos");
-              setGrupoModalOpen(false);
             }}
           />
         )}
