@@ -214,7 +214,6 @@ function FormNuevaRelacion({ personajeId, tiposExistentes, onAdded, onCancel }: 
 
   return (
     <div className="border border-primary/12 rounded-lg bg-primary/[0.025] p-2.5 space-y-2">
-      {/* Fila tipo + personaje */}
       <div className="grid grid-cols-2 gap-2">
         <div className="space-y-1">
           <label className="text-[7.5px] font-black uppercase tracking-[0.25em] text-primary/30">Tipo</label>
@@ -246,7 +245,6 @@ function FormNuevaRelacion({ personajeId, tiposExistentes, onAdded, onCancel }: 
         </div>
       </div>
 
-      {/* Chips rápidos de tipos */}
       {tiposExistentes.length > 0 && tiposExistentes.length <= 10 && (
         <div className="flex flex-wrap gap-1">
           {tiposExistentes.map(s => (
@@ -261,7 +259,6 @@ function FormNuevaRelacion({ personajeId, tiposExistentes, onAdded, onCancel }: 
         </div>
       )}
 
-      {/* Nota + botones en la misma fila */}
       <div className="flex items-center gap-2">
         <input value={nota} onChange={e => setNota(e.target.value)}
           placeholder="Nota opcional…"
@@ -302,31 +299,45 @@ function FilaRelacion({ rel, onDelete }: { rel: Relacion; onDelete: (id: string)
   };
 
   return (
-    <div className="group flex items-center gap-2 px-2 py-[3px] rounded-md hover:bg-primary/[0.04] transition-all">
-      {/* Avatar */}
+    <div className="group flex items-center gap-1.5 py-[3px] rounded-md hover:bg-primary/[0.04] px-1 transition-all">
       <div className="shrink-0 w-[18px] h-[18px] rounded overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
         {rel.rel_img_url
           ? <img src={rel.rel_img_url} alt={rel.rel_nombre} className="w-full h-full object-cover" />
           : <UserCircle2 size={8} className="text-primary/20" />}
       </div>
-
-      {/* Nombre */}
-      <span className="flex-1 text-[10px] font-bold text-primary/75 truncate min-w-0 leading-none">
+      <span className="flex-1 text-[10px] font-bold text-primary/75 truncate leading-none min-w-0">
         {rel.rel_nombre ?? "—"}
       </span>
-
-      {/* Nota inline, solo si hay espacio */}
-      {rel.nota && (
-        <span className="hidden sm:block text-[8.5px] text-primary/28 italic truncate max-w-[72px]">
-          {rel.nota}
-        </span>
-      )}
-
-      {/* Borrar — solo en hover */}
       <button onClick={handleDelete} disabled={deleting}
         className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity w-4 h-4 rounded flex items-center justify-center text-primary/20 hover:text-red-400 hover:bg-red-500/8">
         {deleting ? <Loader2 size={8} className="animate-spin" /> : <X size={8} />}
       </button>
+    </div>
+  );
+}
+
+// ─── Columna por tipo ─────────────────────────────────────────────────────────
+
+function ColumnaTipo({ tipo, relaciones, onDelete }: {
+  tipo: string;
+  relaciones: Relacion[];
+  onDelete: (id: string) => void;
+}) {
+  return (
+    <div className="flex-1 min-w-0 min-w-[90px]">
+      {/* Cabecera del tipo */}
+      <div className="flex items-center gap-1 mb-1 px-1">
+        <span className="text-[7.5px] font-black uppercase tracking-[0.25em] text-primary/35 truncate leading-none">
+          {tipo}
+        </span>
+        <span className="text-[7.5px] font-bold text-primary/20 shrink-0">{relaciones.length}</span>
+      </div>
+      {/* Filas */}
+      <div className="space-y-0">
+        {relaciones.map(rel => (
+          <FilaRelacion key={rel.id} rel={rel} onDelete={onDelete} />
+        ))}
+      </div>
     </div>
   );
 }
@@ -343,7 +354,6 @@ export function BloqueRelaciones({ personajeId, personajeNombre }: {
 
   const cargar = useCallback(async () => {
     setLoading(true);
-    // 1. Dexie primero
     try {
       if (db) {
         const local: any[] = await (db as any).relaciones?.where("personaje_id").equals(personajeId).toArray() ?? [];
@@ -363,7 +373,6 @@ export function BloqueRelaciones({ personajeId, personajeNombre }: {
 
     if (!navigator.onLine) { setLoading(false); return; }
 
-    // 2. Supabase en background
     try {
       const { data, error } = await supabase
         .from("relaciones")
@@ -403,13 +412,9 @@ export function BloqueRelaciones({ personajeId, personajeNombre }: {
       <div className="flex items-center justify-between px-3 py-[7px] border-b border-primary/[0.06] bg-primary/[0.025]">
         <div className="flex items-center gap-2">
           <Users size={9} className="text-primary/35" />
-          <span className="text-[8.5px] font-black uppercase tracking-[0.25em] text-primary/35">
-            Relaciones
-          </span>
+          <span className="text-[8.5px] font-black uppercase tracking-[0.25em] text-primary/35">Relaciones</span>
           {relaciones.length > 0 && (
-            <span className="text-[8px] font-black text-primary/30 tabular-nums">
-              {relaciones.length}
-            </span>
+            <span className="text-[8px] font-black text-primary/30 tabular-nums">{relaciones.length}</span>
           )}
         </div>
         <div className="flex items-center gap-1.5">
@@ -430,7 +435,6 @@ export function BloqueRelaciones({ personajeId, personajeNombre }: {
       {/* Cuerpo */}
       <div className="px-2 py-1.5 space-y-1.5">
 
-        {/* Formulario */}
         {formVisible && (
           <div className="pb-1">
             <FormNuevaRelacion
@@ -453,23 +457,18 @@ export function BloqueRelaciones({ personajeId, personajeNombre }: {
           </p>
 
         ) : (
-          <div className="space-y-1">
+          // ── Columnas horizontales por tipo ─────────────────────────────────
+          // flex-wrap: si hay muchos tipos desbordan a la siguiente fila
+          // cada columna toma el espacio mínimo necesario (min-w-[90px])
+          // y se expande con flex-1
+          <div className="flex flex-wrap gap-x-3 gap-y-2.5">
             {tiposConData.map(tipo => (
-              <div key={tipo}>
-                {/* Separador de tipo minimalista */}
-                <div className="flex items-center gap-1.5 px-2 py-[3px]">
-                  <span className="text-[7.5px] font-black uppercase tracking-[0.3em] text-primary/35 leading-none">
-                    {tipo}
-                  </span>
-                  <span className="text-[8px] text-primary/18 font-bold leading-none">
-                    {porTipo(tipo).length}
-                  </span>
-                  <div className="flex-1 h-px bg-primary/[0.07]" />
-                </div>
-                {porTipo(tipo).map(rel => (
-                  <FilaRelacion key={rel.id} rel={rel} onDelete={handleDeleted} />
-                ))}
-              </div>
+              <ColumnaTipo
+                key={tipo}
+                tipo={tipo}
+                relaciones={porTipo(tipo)}
+                onDelete={handleDeleted}
+              />
             ))}
           </div>
         )}
