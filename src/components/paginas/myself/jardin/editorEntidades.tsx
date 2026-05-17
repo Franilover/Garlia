@@ -495,6 +495,10 @@ export default function EditorEntidades() {
                   const found = allItems[navTab].find((i: any) => i.nombre?.toLowerCase() === nombre.toLowerCase());
                   if (found) handleSelect(found, navTab);
                 }}
+                onSelectPersonaje={(personajeId) => {
+                  const found = allItems.personajes.find(p => p.id === personajeId);
+                  if (found) handleSelect(found, "personajes");
+                }}
               />}
               {tab === "criaturas"  && <EditorCriatura  key={selected.id} item={selected as Criatura}  onSaved={handleSaved} onDeleted={handleDeleted} entities={allEntityNames}
                 onSelectItem={(itemId) => {

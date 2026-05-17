@@ -242,7 +242,7 @@ function SeccionHechizos({ personajeId, grupoIds }: { personajeId: string; grupo
 
 // ─── FormularioPersonaje ──────────────────────────────────────────────────────
 export function FormularioPersonaje({
-  form, setForm, status, onSave, onDelete, compacto = false, entities = [], onNavigate,
+  form, setForm, status, onSave, onDelete, compacto = false, entities = [], onNavigate, onSelectPersonaje,
 }: {
   form: Personaje;
   setForm: React.Dispatch<React.SetStateAction<Personaje>>;
@@ -252,6 +252,7 @@ export function FormularioPersonaje({
   compacto?: boolean;
   entities?: WikiEntity[];
   onNavigate?: (tab: "criaturas" | "reinos", nombre: string) => void;
+  onSelectPersonaje?: (id: string) => void;
 }) {
   const especies = useNombresDeTabla("criaturas");
   const reinos   = useNombresDeTabla("reinos");
@@ -451,7 +452,7 @@ export function FormularioPersonaje({
                   )}
 
                   {/* Relaciones */}
-                  <BloqueRelaciones personajeId={form.id} />
+                  <BloqueRelaciones personajeId={form.id} onSelectPersonaje={onSelectPersonaje} />
 
                   {/* Capítulos narrados + Hechizos en fila */}
                   <div className="flex flex-col sm:flex-row gap-3">
@@ -480,10 +481,11 @@ export function FormularioPersonaje({
 
 // ─── EditorPersonaje ──────────────────────────────────────────────────────────
 export function EditorPersonaje({
-  item, onSaved, onDeleted, entities = [], onNavigate,
+  item, onSaved, onDeleted, entities = [], onNavigate, onSelectPersonaje,
 }: {
   item: Personaje; onSaved: (p: Personaje) => void; onDeleted: (id: string) => void; entities?: WikiEntity[];
   onNavigate?: (tab: "criaturas" | "reinos", nombre: string) => void;
+  onSelectPersonaje?: (id: string) => void;
 }) {
   const [form,   setForm]   = useState<Personaje>(item);
   const [status, setStatus] = useState<SaveStatus>("idle");
@@ -523,7 +525,7 @@ export function EditorPersonaje({
   return (
     <>
       <ConfirmModal />
-      <FormularioPersonaje form={form} setForm={setForm} status={status} onSave={save} onDelete={del} entities={entities} onNavigate={onNavigate} />
+      <FormularioPersonaje form={form} setForm={setForm} status={status} onSave={save} onDelete={del} entities={entities} onNavigate={onNavigate} onSelectPersonaje={onSelectPersonaje} />
     </>
   );
 }

@@ -283,7 +283,11 @@ function FormNuevaRelacion({ personajeId, tiposExistentes, onAdded, onCancel }: 
 
 // ─── Fila de relación compacta ────────────────────────────────────────────────
 
-function FilaRelacion({ rel, onDelete }: { rel: Relacion; onDelete: (id: string) => void }) {
+function FilaRelacion({ rel, onDelete, onSelectPersonaje }: {
+  rel: Relacion;
+  onDelete: (id: string) => void;
+  onSelectPersonaje?: (id: string) => void;
+}) {
   const [deleting, setDeleting] = useState(false);
 
   const handleDelete = async () => {
@@ -300,14 +304,20 @@ function FilaRelacion({ rel, onDelete }: { rel: Relacion; onDelete: (id: string)
 
   return (
     <div className="group flex items-center gap-1.5 py-[3px] rounded-md hover:bg-primary/[0.04] px-1 transition-all">
-      <div className="shrink-0 w-[18px] h-[18px] rounded overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
+      <button
+        onClick={() => onSelectPersonaje?.(rel.personaje_rel_id)}
+        className="shrink-0 w-[18px] h-[18px] rounded overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center hover:border-primary/30 transition-colors"
+      >
         {rel.rel_img_url
           ? <img src={rel.rel_img_url} alt={rel.rel_nombre} className="w-full h-full object-cover" />
           : <UserCircle2 size={8} className="text-primary/20" />}
-      </div>
-      <span className="flex-1 text-[10px] font-bold text-primary/75 truncate leading-none min-w-0">
+      </button>
+      <button
+        onClick={() => onSelectPersonaje?.(rel.personaje_rel_id)}
+        className="flex-1 text-left text-[10px] font-bold text-primary/75 truncate leading-none min-w-0 hover:text-primary transition-colors"
+      >
         {rel.rel_nombre ?? "—"}
-      </span>
+      </button>
       <button onClick={handleDelete} disabled={deleting}
         className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity w-4 h-4 rounded flex items-center justify-center text-primary/20 hover:text-red-400 hover:bg-red-500/8">
         {deleting ? <Loader2 size={8} className="animate-spin" /> : <X size={8} />}
@@ -318,10 +328,11 @@ function FilaRelacion({ rel, onDelete }: { rel: Relacion; onDelete: (id: string)
 
 // ─── Columna por tipo ─────────────────────────────────────────────────────────
 
-function ColumnaTipo({ tipo, relaciones, onDelete }: {
+function ColumnaTipo({ tipo, relaciones, onDelete, onSelectPersonaje }: {
   tipo: string;
   relaciones: Relacion[];
   onDelete: (id: string) => void;
+  onSelectPersonaje?: (id: string) => void;
 }) {
   return (
     <div className="flex-1 min-w-0 min-w-[90px]">
@@ -335,7 +346,7 @@ function ColumnaTipo({ tipo, relaciones, onDelete }: {
       {/* Filas */}
       <div className="space-y-0">
         {relaciones.map(rel => (
-          <FilaRelacion key={rel.id} rel={rel} onDelete={onDelete} />
+          <FilaRelacion key={rel.id} rel={rel} onDelete={onDelete} onSelectPersonaje={onSelectPersonaje} />
         ))}
       </div>
     </div>
@@ -344,8 +355,8 @@ function ColumnaTipo({ tipo, relaciones, onDelete }: {
 
 // ─── BloqueRelaciones ─────────────────────────────────────────────────────────
 
-export function BloqueRelaciones({ personajeId, personajeNombre }: {
-  personajeId: string; personajeNombre?: string;
+export function BloqueRelaciones({ personajeId, personajeNombre, onSelectPersonaje }: {
+  personajeId: string; personajeNombre?: string; onSelectPersonaje?: (id: string) => void;
 }) {
   const [relaciones,  setRelaciones]  = useState<Relacion[]>([]);
   const [loading,     setLoading]     = useState(true);
@@ -411,8 +422,8 @@ export function BloqueRelaciones({ personajeId, personajeNombre }: {
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-[7px] border-b border-primary/[0.06] bg-primary/[0.025]">
         <div className="flex items-center gap-2">
-          <Users size={8} className="text-primary/35" />
-          <span className="text-[7px] font-black uppercase tracking-[0.2em] text-primary/35">Relaciones</span>
+          <Users size={9} className="text-primary/35" />
+          <span className="text-[8.5px] font-black uppercase tracking-[0.25em] text-primary/35">Relaciones</span>
           {relaciones.length > 0 && (
             <span className="text-[8px] font-black text-primary/30 tabular-nums">{relaciones.length}</span>
           )}
@@ -468,6 +479,7 @@ export function BloqueRelaciones({ personajeId, personajeNombre }: {
                 tipo={tipo}
                 relaciones={porTipo(tipo)}
                 onDelete={handleDeleted}
+                onSelectPersonaje={onSelectPersonaje}
               />
             ))}
           </div>
