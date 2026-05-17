@@ -1420,23 +1420,26 @@ type MundoTimelineEvent = TimelineEvent & {
   source: "mundo" | "reino";
   reinoNombre?: string;
   reinoId?: string;
-  yearNum: number; // para ordenar
+  yearNum: string; // para ordenar (clave lexicográfica)
 };
 
-/** Intenta parsear el año como número para ordenar.
- *  Acepta: "345", "-120", "1200 A.E.", "Año 45 A.C.", "Era del Fuego", "-3000 a.C.", "12.500"
- *  Busca el primer entero con signo opcional; normaliza separadores de miles.
- *  Texto puro sin números → Infinity (queda al final).
+/** Ordena años lexicográficamente por su parte numérica, respetando ceros iniciales.
+ *  "0001" < "0002" < "0003" < "02" < "1" < "10" < "100"
+ *  Los ceros definen el "grupo" (0001 es antes que 02 que es antes que 1).
+ *  Texto puro sin números queda al final.
  */
-function parseYear(year: string): number {
-  if (!year?.trim()) return Infinity;
-  // Normalizar separadores de miles: 1.200 → 1200, 1,200 → 1200
+function parseYear(year: string): string {
+  if (!year?.trim()) return "~";
   const normalized = year.replace(/(\d)[.,](\d{3})/g, "$1$2");
-  // Extraer el primer número entero con signo opcional
-  const match = normalized.match(/-?\d+/);
-  if (!match) return Infinity;
-  const n = parseInt(match[0], 10);
-  return isNaN(n) ? Infinity : n;
+  const match = normalized.match(/(-?)(\d+)/);
+  if (!match) return "~" + year;
+  const negative = match[1] === "-";
+  const digits = match[2];
+  if (negative) {
+    // Negativos van primero: invertimos para que -100 < -10 < -1
+    return "!" + digits.split("").reverse().join("").padEnd(30, "0");
+  }
+  return digits; // lexicográfico puro
 }
 
 function decodeTimeline(raw: string | undefined): TimelineEvent[] {
@@ -1662,7 +1665,7 @@ function MundoEventoEditor({
   const update = (id: string, patch: Partial<TimelineEvent>) => onChange(events.map(e => e.id === id ? { ...e, ...patch } : e));
   const remove = (id: string) => onChange(events.filter(e => e.id !== id));
 
-  const sorted = [...events].sort((a, b) => parseYear(a.year) - parseYear(b.year));
+  const sorted = [...events].sort((a, b) => parseYear(a.year).localeCompare(parseYear(b.year)));
 
   return (
     <div className="space-y-0">
@@ -1752,7 +1755,7 @@ function PanelHistoriaMundo({
       }
     }
 
-    return list.sort((a, b) => a.yearNum - b.yearNum);
+    return list.sort((a, b) => parseYear(a.year).localeCompare(parseYear(b.year)));
   }, [mundoEvents, reinos, filterReino]);
 
   // Reinos que tienen al menos un evento

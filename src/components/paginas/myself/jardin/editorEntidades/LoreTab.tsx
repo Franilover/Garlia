@@ -44,14 +44,23 @@ function decodeTimeline(raw: string | undefined): TimelineEvent[] {
 
 // ─── Componente de línea de tiempo ───────────────────────────────────────────
 
-/** Intenta parsear el año como número para ordenar (acepta negativos, texto, etc.) */
-function parseYear(year: string): number {
-  if (!year?.trim()) return Infinity;
+/** Ordena años lexicográficamente por su parte numérica, respetando ceros iniciales.
+ *  "0001" < "0002" < "0003" < "02" < "1" < "10" < "100"
+ *  Los ceros definen el "grupo" (0001 es antes que 02 que es antes que 1).
+ *  Texto puro sin números queda al final.
+ */
+function parseYear(year: string): string {
+  if (!year?.trim()) return "~";
   const normalized = year.replace(/(\d)[.,](\d{3})/g, "$1$2");
-  const match = normalized.match(/-?\d+/);
-  if (!match) return Infinity;
-  const n = parseInt(match[0], 10);
-  return isNaN(n) ? Infinity : n;
+  const match = normalized.match(/(-?)(\d+)/);
+  if (!match) return "~" + year;
+  const negative = match[1] === "-";
+  const digits = match[2];
+  if (negative) {
+    // Negativos van primero: invertimos para que -100 < -10 < -1
+    return "!" + digits.split("").reverse().join("").padEnd(30, "0");
+  }
+  return digits; // lexicográfico puro
 }
 
 function TimelineEditor({
@@ -80,7 +89,7 @@ function TimelineEditor({
   const remove = (id: string) => commit(events.filter((e) => e.id !== id));
 
   // Ordenar y luego filtrar: si hay filtro activo, ocultar eventos "Mundo" (sin reinoId)
-  const sorted = [...events].sort((a, b) => parseYear(a.year) - parseYear(b.year));
+  const sorted = [...events].sort((a, b) => parseYear(a.year).localeCompare(parseYear(b.year)));
   const visible = filtroReinoId
     ? sorted.filter((e) => e.reinoId) // ocultar los de Mundo cuando hay filtro de reino
     : sorted;
