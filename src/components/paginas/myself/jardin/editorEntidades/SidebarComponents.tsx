@@ -908,17 +908,16 @@ export function ModalNuevoGrupo({
     setSaving(true);
     setError(null);
     try {
-      const { data, error: err } = await supabase
-        .from("grupos_mundo")
-        .insert([{
-          id:          crypto.randomUUID(),
-          nombre:      nombre.trim(),
-          tipo,
-          descripcion: null,
-          miembro_ids: [],
-        }])
-        .select()
-        .single();
+      const { data, error: err } = await (supabase as any)
+      .from("grupos_mundo")
+      .insert([{
+        nombre:      nombre.trim(),
+        tipo,
+        descripcion: null,
+        miembro_ids: [],
+      }])
+      .select()
+      .single();
       if (err) throw err;
       setSaved(true);
       onCreated?.(data);
