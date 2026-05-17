@@ -7,6 +7,7 @@ import { AlertCircle, Music, ExternalLink, ChevronLeft, Info, FileText } from "l
 import { SmartImage } from "@/components/display/SmartImage";
 import { Btn, Loading } from "@/components/ui";
 import { db } from "@/lib/api/client/db";
+import { toSlug, esUUID } from "@/lib/utils/slugify";
 import {
   getLetra,
   type Seccion,
@@ -176,13 +177,42 @@ function CoverFlip({
 export default function CancionDetallesPage() {
   const params = useParams();
   const router = useRouter();
-  const id = Array.isArray(params?.id) ? params.id[0] : (params?.id as string);
+  const slugParam = Array.isArray(params?.id) ? params.id[0] : (params?.id as string);
+  // id es el UUID real resuelto a partir del slug
+  const [id, setId] = useState<string>("");
 
   const [cancion, setCancion] = useState<Cancion | null>(null);
   const [secciones, setSecciones] = useState<Seccion[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorAcceso, setErrorAcceso] = useState(false);
   const isMobile = useIsMobile();
+
+  // ── Resolver slug → UUID ─────────────────────────────────────────────────
+  useEffect(() => {
+    if (!slugParam) return;
+
+    const resolver = async () => {
+      // Caso 1: ya es UUID (links viejos) → redirigir a slug canónico
+      if (esUUID(slugParam)) {
+        const { data } = await supabase
+          .from("canciones").select("id, titulo").eq("id", slugParam).single();
+        if (data) {
+          router.replace(`/wiki/canciones/${toSlug(data.titulo)}`);
+          setId(data.id);
+        }
+        return;
+      }
+      // Caso 2: es un slug → buscar comparando
+      const { data: todas } = await supabase.from("canciones").select("id, titulo");
+      if (!todas) return;
+      const encontrada = todas.find(c => toSlug(c.titulo) === slugParam);
+      if (encontrada) setId(encontrada.id);
+      else setErrorAcceso(true);
+    };
+
+    resolver();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slugParam]);
 
   // Reemplaza el useEffect del fetch (líneas ~187-238)
 
