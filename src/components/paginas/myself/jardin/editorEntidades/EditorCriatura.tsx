@@ -44,7 +44,45 @@ async function dexieWriteAll(tabla: string, rows: any[]): Promise<void> {
   } catch {}
 }
 
+// ─── Singleton: catálogo de ítems ─────────────────────────────────────────────
+// Compartido entre BloqueItemsNaturales y BloqueItemsCraftedos — un solo fetch
+// aunque haya múltiples bloques montados (criatura base + variantes).
+type ItemMin = { id: string; nombre: string; imagen_url?: string | null };
+let _itemsData:    ItemMin[] | null = null;
+let _itemsPromise: Promise<ItemMin[]> | null = null;
 
+async function fetchAllItems(): Promise<ItemMin[]> {
+  if (_itemsData) return _itemsData;
+  if (_itemsPromise) return _itemsPromise;
+
+  _itemsPromise = (async () => {
+    // 1. Dexie primero
+    try {
+      if (db) {
+        const local = await db.items.orderBy("nombre").toArray();
+        if (local.length > 0) {
+          _itemsData = local as ItemMin[];
+          // Refrescar en background
+          if (navigator.onLine) {
+            supabase.from("items").select("id, nombre, imagen_url").order("nombre")
+              .then(({ data }) => {
+                if (data && data.length > 0) _itemsData = data as ItemMin[];
+              });
+          }
+          return _itemsData;
+        }
+      }
+    } catch {}
+
+    // 2. Supabase
+    if (!navigator.onLine) return [];
+    const { data } = await supabase.from("items").select("id, nombre, imagen_url").order("nombre");
+    _itemsData = (data ?? []) as ItemMin[];
+    return _itemsData;
+  })().finally(() => { _itemsPromise = null; });
+
+  return _itemsPromise;
+}
 
 // ─── Hook: items que crea una criatura ────────────────────────────────────────
 
@@ -56,54 +94,94 @@ type CraftedItem = {
 };
 
 function useCraftedItems(criaturaId: string) {
-  const [items, setItems] = useState<CraftedItem[]>([]);
+  const [items,   setItems]   = useState<CraftedItem[]>([]);
+  const [allItems, setAllItems] = useState<ItemMin[]>(_itemsData ?? []);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
+
+    // Leer Dexie local + catálogo en paralelo
+    const [localDrops, catalogResult] = await Promise.all([
+      db ? db.item_crafteres.where("criatura_id").equals(criaturaId).toArray().catch(() => []) : Promise.resolve([]),
+      fetchAllItems(),
+    ]);
+
+    setAllItems(catalogResult);
+
+    if (localDrops.length > 0) {
+      const itemMap = Object.fromEntries(catalogResult.map(i => [i.id, i]));
+      setItems(localDrops.map((r: any) => ({
+        crafterId: r.id,
+        itemId:    r.item_id,
+        itemName:  itemMap[r.item_id]?.nombre   ?? "—",
+        itemImg:   itemMap[r.item_id]?.imagen_url ?? null,
+      })));
+      setLoading(false);
+    }
+
+    // Fetch remoto
+    if (!navigator.onLine) { setLoading(false); return; }
+
     const { data } = await supabase
       .from("item_crafteres")
       .select(`id, item_id, items!item_id(nombre, imagen_url)`)
       .eq("criatura_id", criaturaId);
 
-    setItems(
-      (data ?? []).map((r: any) => ({
-        crafterId: r.id,
-        itemId:    r.item_id,
-        itemName:  (Array.isArray(r.items) ? r.items[0]?.nombre : r.items?.nombre) ?? "—",
-        itemImg:   (Array.isArray(r.items) ? r.items[0]?.imagen_url : r.items?.imagen_url) ?? null,
-      }))
-    );
+    const remoteItems: CraftedItem[] = (data ?? []).map((r: any) => ({
+      crafterId: r.id,
+      itemId:    r.item_id,
+      itemName:  (Array.isArray(r.items) ? r.items[0]?.nombre    : r.items?.nombre)    ?? "—",
+      itemImg:   (Array.isArray(r.items) ? r.items[0]?.imagen_url : r.items?.imagen_url) ?? null,
+    }));
+    setItems(remoteItems);
     setLoading(false);
+
+    // Sincronizar Dexie
+    try {
+      if (db) {
+        await db.item_crafteres.where("criatura_id").equals(criaturaId).delete();
+        if (remoteItems.length > 0) {
+          await db.item_crafteres.bulkPut(remoteItems.map(i => ({ id: i.crafterId, criatura_id: criaturaId, item_id: i.itemId })));
+        }
+      }
+    } catch {}
   }, [criaturaId]);
 
   useEffect(() => { load(); }, [load]);
 
-  const add = async (item: { id: string; nombre: string; imagen_url?: string | null }) => {
+  const add = async (item: ItemMin) => {
     if (items.some(i => i.itemId === item.id)) return;
+    // Optimista
+    const tempId = `temp_${item.id}`;
+    setItems(prev => [...prev, { crafterId: tempId, itemId: item.id, itemName: item.nombre, itemImg: item.imagen_url ?? null }]);
+
     const { data, error } = await supabase
       .from("item_crafteres")
       .insert([{ item_id: item.id, criatura_id: criaturaId }])
       .select().single();
+
     if (!error && data) {
-      setItems(prev => [...prev, {
-        crafterId: data.id, itemId: item.id,
-        itemName: item.nombre, itemImg: item.imagen_url ?? null,
-      }]);
-      // Marcar el ítem como Artificial automáticamente
+      setItems(prev => prev.map(i => i.crafterId === tempId ? { ...i, crafterId: data.id } : i));
+      try { if (db) await db.item_crafteres.put({ id: data.id, criatura_id: criaturaId, item_id: item.id }); } catch {}
       await supabase.from("items").update({ origen: "Artificial", sub_origen: null }).eq("id", item.id);
+    } else {
+      // Revertir optimista si falló
+      setItems(prev => prev.filter(i => i.crafterId !== tempId));
     }
   };
 
   const remove = async (crafterId: string) => {
-    await supabase.from("item_crafteres").delete().eq("id", crafterId);
+    // Optimista
     setItems(prev => prev.filter(i => i.crafterId !== crafterId));
+    try { if (db) await db.item_crafteres.delete(crafterId); } catch {}
+    await supabase.from("item_crafteres").delete().eq("id", crafterId);
   };
 
-  return { items, loading, add, remove };
+  return { items, allItems, loading, add, remove };
 }
 
-// ─── Hook: ítems naturales que dropea una criatura (criatura_drops base) ──────
+// ─── Hook: ítems naturales que dropea una criatura ────────────────────────────
 
 type NaturalItem = {
   dropId:   string;
@@ -113,56 +191,107 @@ type NaturalItem = {
 };
 
 function useNaturalItems(criaturaId: string, varianteId?: string | null) {
-  const [items, setItems] = useState<NaturalItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [items,    setItems]    = useState<NaturalItem[]>([]);
+  const [allItems, setAllItems] = useState<ItemMin[]>(_itemsData ?? []);
+  const [loading,  setLoading]  = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
+
+    // Leer Dexie local + catálogo en paralelo
+    const localDropsPromise = db
+      ? db.criatura_drops
+          .where("criatura_id").equals(criaturaId)
+          .toArray()
+          .then(rows => rows.filter((r: any) => (varianteId ? r.variante_id === varianteId : !r.variante_id)))
+          .catch(() => [] as any[])
+      : Promise.resolve([] as any[]);
+
+    const [localDrops, catalogResult] = await Promise.all([
+      localDropsPromise,
+      fetchAllItems(),
+    ]);
+
+    setAllItems(catalogResult);
+
+    if (localDrops.length > 0) {
+      const itemMap = Object.fromEntries(catalogResult.map(i => [i.id, i]));
+      setItems(localDrops.map((r: any) => ({
+        dropId:   r.id,
+        itemId:   r.item_id,
+        itemName: itemMap[r.item_id]?.nombre    ?? "—",
+        itemImg:  itemMap[r.item_id]?.imagen_url ?? null,
+      })));
+      setLoading(false);
+    }
+
+    // Fetch remoto
+    if (!navigator.onLine) { setLoading(false); return; }
+
     let query = supabase
       .from("criatura_drops")
       .select(`id, item_id, items!item_id(nombre, imagen_url)`)
       .eq("criatura_id", criaturaId);
-    if (varianteId) {
-      query = query.eq("variante_id", varianteId);
-    } else {
-      query = query.is("variante_id", null);
-    }
+    query = varianteId ? query.eq("variante_id", varianteId) : query.is("variante_id", null);
+
     const { data } = await query;
 
-    setItems(
-      (data ?? []).map((r: any) => ({
-        dropId:   r.id,
-        itemId:   r.item_id,
-        itemName: (Array.isArray(r.items) ? r.items[0]?.nombre : r.items?.nombre) ?? "—",
-        itemImg:  (Array.isArray(r.items) ? r.items[0]?.imagen_url : r.items?.imagen_url) ?? null,
-      }))
-    );
+    const remoteItems: NaturalItem[] = (data ?? []).map((r: any) => ({
+      dropId:   r.id,
+      itemId:   r.item_id,
+      itemName: (Array.isArray(r.items) ? r.items[0]?.nombre    : r.items?.nombre)    ?? "—",
+      itemImg:  (Array.isArray(r.items) ? r.items[0]?.imagen_url : r.items?.imagen_url) ?? null,
+    }));
+    setItems(remoteItems);
     setLoading(false);
+
+    // Sincronizar Dexie
+    try {
+      if (db) {
+        const existing = await db.criatura_drops
+          .where("criatura_id").equals(criaturaId)
+          .filter((r: any) => varianteId ? r.variante_id === varianteId : !r.variante_id)
+          .primaryKeys();
+        if (existing.length > 0) await db.criatura_drops.bulkDelete(existing as string[]);
+        if (remoteItems.length > 0) {
+          await db.criatura_drops.bulkPut(remoteItems.map(i => ({
+            id: i.dropId, criatura_id: criaturaId, item_id: i.itemId, variante_id: varianteId ?? null,
+          })));
+        }
+      }
+    } catch {}
   }, [criaturaId, varianteId]);
 
   useEffect(() => { load(); }, [load]);
 
-  const add = async (item: { id: string; nombre: string; imagen_url?: string | null }) => {
+  const add = async (item: ItemMin) => {
     if (items.some(i => i.itemId === item.id)) return;
+    // Optimista
+    const tempId = `temp_${item.id}`;
+    setItems(prev => [...prev, { dropId: tempId, itemId: item.id, itemName: item.nombre, itemImg: item.imagen_url ?? null }]);
+
     const { data, error } = await supabase
       .from("criatura_drops")
       .insert([{ item_id: item.id, criatura_id: criaturaId, variante_id: varianteId ?? null }])
       .select().single();
+
     if (!error && data) {
-      setItems(prev => [...prev, {
-        dropId: data.id, itemId: item.id,
-        itemName: item.nombre, itemImg: item.imagen_url ?? null,
-      }]);
+      setItems(prev => prev.map(i => i.dropId === tempId ? { ...i, dropId: data.id } : i));
+      try { if (db) await db.criatura_drops.put({ id: data.id, criatura_id: criaturaId, item_id: item.id, variante_id: varianteId ?? null }); } catch {}
       await supabase.from("items").update({ origen: "Natural", sub_origen: "Criatura" }).eq("id", item.id);
+    } else {
+      setItems(prev => prev.filter(i => i.dropId !== tempId));
     }
   };
 
   const remove = async (dropId: string) => {
-    await supabase.from("criatura_drops").delete().eq("id", dropId);
+    // Optimista
     setItems(prev => prev.filter(i => i.dropId !== dropId));
+    try { if (db) await db.criatura_drops.delete(dropId); } catch {}
+    await supabase.from("criatura_drops").delete().eq("id", dropId);
   };
 
-  return { items, loading, add, remove };
+  return { items, allItems, loading, add, remove };
 }
 
 // ─── Bloque de ítems naturales (drops base de la criatura) ────────────────────
@@ -174,15 +303,9 @@ function BloqueItemsNaturales({
   varianteId?: string | null;
   onSelectItem?: (itemId: string) => void;
 }) {
-  const { items, loading, add, remove } = useNaturalItems(criaturaId, varianteId);
-  const [allItems, setAllItems] = useState<{ id: string; nombre: string; imagen_url?: string | null }[]>([]);
+  const { items, allItems, loading, add, remove } = useNaturalItems(criaturaId, varianteId);
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
-
-  useEffect(() => {
-    supabase.from("items").select("id, nombre, imagen_url").order("nombre")
-      .then(({ data }) => setAllItems(data ?? []));
-  }, []);
 
   const filtered = allItems.filter(it =>
     it.nombre.toLowerCase().includes(search.toLowerCase()) &&
@@ -275,15 +398,9 @@ function BloqueItemsCraftedos({
   criaturaId: string;
   onSelectItem?: (itemId: string) => void;
 }) {
-  const { items, loading, add, remove } = useCraftedItems(criaturaId);
-  const [allItems, setAllItems] = useState<{ id: string; nombre: string; imagen_url?: string | null }[]>([]);
+  const { items, allItems, loading, add, remove } = useCraftedItems(criaturaId);
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
-
-  useEffect(() => {
-    supabase.from("items").select("id, nombre, imagen_url").order("nombre")
-      .then(({ data }) => setAllItems(data ?? []));
-  }, []);
 
   const filtered = allItems.filter(it =>
     it.nombre.toLowerCase().includes(search.toLowerCase()) &&
