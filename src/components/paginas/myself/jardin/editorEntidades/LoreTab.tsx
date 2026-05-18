@@ -1,5 +1,6 @@
 import React, { useState, useRef } from "react";
-import { Globe, Mountain, Landmark, Users, Coins, Plus, Trash2, ChevronUp, ChevronDown, ChevronRight, UserCircle2, Loader2 } from "lucide-react";
+import { Globe, Mountain, Landmark, Users, Coins, Plus, Trash2, ChevronUp, ChevronDown, ChevronRight, UserCircle2, Loader2, MapPin, Check, X } from "lucide-react";
+import { INPUT_CLS, type ReinoDetalle } from "./types";
 import { MarkdownEditor, WikiEntity } from "../../../../forms/MarkdownEditor";
 import { useWikilink } from "../../../../forms/WikilinkContext";
 import { type Reino } from "./types";
@@ -446,7 +447,7 @@ function TimelineRow({
 
 // ─── Definición de secciones ─────────────────────────────────────────────────
 
-type LoreKey = "historia" | "geografia" | "cultura" | "politica" | "economia" | "personajes";
+type LoreKey = "historia" | "geografia" | "cultura" | "politica" | "economia" | "personajes" | "puntos";
 
 const LORE_SECTIONS: {
   key: LoreKey;
@@ -497,6 +498,13 @@ const LORE_SECTIONS: {
     placeholder: "",
     rows: 0,
   },
+  {
+    key: "puntos",
+    label: "Puntos",
+    Icon: MapPin,
+    placeholder: "",
+    rows: 0,
+  },
 ];
 
 // ─── Helpers para saber si historia tiene contenido ───────────────────────────
@@ -518,6 +526,13 @@ export function LoreTab({
   onSelectPersonaje,
   reinos = [],
   filtroReinoId,
+  detalles = [],
+  onDetallesChange,
+  onAddPoint,
+  addingPoint,
+  setAddingPoint,
+  newPointName,
+  setNewPointName,
 }: {
   form: Reino;
   setForm: React.Dispatch<React.SetStateAction<Reino>>;
@@ -527,6 +542,14 @@ export function LoreTab({
   onSelectPersonaje?: (personaje: Personaje) => void;
   reinos?: { id: string; nombre: string }[];
   filtroReinoId?: string | null;
+  detalles?: ReinoDetalle[];
+  onDetallesChange?: (updated: ReinoDetalle) => void;
+  onDeleteDetalle?: (id: string) => void;
+  onAddPoint?: () => void;
+  addingPoint?: boolean;
+  setAddingPoint?: (v: boolean) => void;
+  newPointName?: string;
+  setNewPointName?: (v: string) => void;
 }) {
   const [activeKey, setActiveKey] = useState<LoreKey>("historia");
   const { onSnippetAction } = useWikilink();
@@ -536,6 +559,7 @@ export function LoreTab({
   // Función para determinar si una sección tiene contenido
   const sectionHasContent = (key: LoreKey): boolean => {
     if (key === "personajes") return personajes.length > 0;
+    if (key === "puntos") return detalles.length > 0;
     const raw = (form as any)[key] as string | undefined;
     if (key === "historia") return historiaHasContent(raw);
     return !!raw?.trim();
@@ -544,11 +568,11 @@ export function LoreTab({
   return (
     <div className="flex h-full min-h-0">
 
-      {/* ── Nav lateral ─────────────────────────────────────────────────────── */}
+      {/* ── Nav lateral — solo iconos ────────────────────────────────────────── */}
       <nav
         className="shrink-0 flex flex-col gap-0.5 p-2 border-r overflow-y-auto"
         style={{
-          width: "clamp(40px, 15%, 130px)",
+          width: "44px",
           borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
           background: "color-mix(in srgb, var(--primary) 2%, transparent)",
         }}
@@ -563,54 +587,50 @@ export function LoreTab({
               type="button"
               onClick={() => setActiveKey(key)}
               title={label}
-              className="relative flex items-center gap-2 px-2.5 py-2 rounded-xl text-left transition-all group"
+              className="relative flex items-center justify-center w-7 h-7 rounded-lg transition-all mx-auto"
               style={
                 isActive
                   ? {
-                      background:
-                        "color-mix(in srgb, var(--primary) 12%, transparent)",
+                      background: "color-mix(in srgb, var(--primary) 12%, transparent)",
                       color: "var(--primary)",
-                      border:
-                        "1px solid color-mix(in srgb, var(--primary) 22%, transparent)",
+                      border: "1px solid color-mix(in srgb, var(--primary) 22%, transparent)",
                     }
                   : {
-                      color:
-                        "color-mix(in srgb, var(--primary) 40%, transparent)",
+                      color: "color-mix(in srgb, var(--primary) 35%, transparent)",
                       border: "1px solid transparent",
                     }
               }
             >
-              <Icon
-                size={12}
-                className="shrink-0"
-                style={{ opacity: isActive ? 1 : 0.55 }}
-              />
-              <span className="hidden sm:block text-[9px] font-black uppercase tracking-[0.2em] truncate">
-                {label}
-              </span>
-              {hasContent && key !== "personajes" && (
+              <Icon size={13} />
+              {/* Dot de contenido */}
+              {hasContent && key !== "personajes" && key !== "puntos" && (
                 <span
-                  className="absolute right-2 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full"
-                  style={{
-                    background: isActive
-                      ? "var(--primary)"
-                      : "color-mix(in srgb, var(--primary) 35%, transparent)",
-                  }}
+                  className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full"
+                  style={{ background: isActive ? "var(--primary)" : "color-mix(in srgb, var(--primary) 40%, transparent)" }}
                 />
               )}
+              {/* Badge count personajes */}
               {key === "personajes" && personajes.length > 0 && (
                 <span
-                  className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[8px] font-black px-1 py-0.5 rounded-md"
+                  className="absolute -top-1 -right-1 text-[7px] font-black w-3.5 h-3.5 rounded-full flex items-center justify-center"
                   style={{
-                    background: isActive
-                      ? "color-mix(in srgb, var(--primary) 20%, transparent)"
-                      : "color-mix(in srgb, var(--primary) 10%, transparent)",
-                    color: isActive
-                      ? "var(--primary)"
-                      : "color-mix(in srgb, var(--primary) 45%, transparent)",
+                    background: isActive ? "var(--primary)" : "color-mix(in srgb, var(--primary) 20%, transparent)",
+                    color: isActive ? "var(--btn-text, white)" : "color-mix(in srgb, var(--primary) 70%, transparent)",
                   }}
                 >
                   {personajes.length}
+                </span>
+              )}
+              {/* Badge count puntos */}
+              {key === "puntos" && detalles.length > 0 && (
+                <span
+                  className="absolute -top-1 -right-1 text-[7px] font-black w-3.5 h-3.5 rounded-full flex items-center justify-center"
+                  style={{
+                    background: isActive ? "var(--primary)" : "color-mix(in srgb, var(--primary) 20%, transparent)",
+                    color: isActive ? "var(--btn-text, white)" : "color-mix(in srgb, var(--primary) 70%, transparent)",
+                  }}
+                >
+                  {detalles.length}
                 </span>
               )}
             </button>
@@ -714,6 +734,47 @@ export function LoreTab({
                     <ChevronRight size={11} className="shrink-0 text-primary/20 group-hover:text-primary/50 transition-colors" />
                   </button>
                 ))
+              )}
+            </div>
+          ) : activeKey === "puntos" ? (
+            <div className="p-3 space-y-2">
+              {detalles.length === 0 && !addingPoint && (
+                <p className="text-[10px] font-bold text-primary/25 uppercase tracking-widest text-center py-6 border border-dashed border-primary/10 rounded-xl italic">
+                  Sin puntos registrados
+                </p>
+              )}
+              {detalles.map(det => (
+                <div key={det.id} className="text-[11px] font-black uppercase tracking-widest text-primary/60 flex items-center gap-2 px-3 py-2 rounded-lg" style={{ border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, transparent)" }}>
+                  <MapPin size={10} className="text-primary/30 shrink-0" />
+                  <span className="flex-1 truncate">{det.nombre}</span>
+                  {det.oculto && <span className="text-[8px] text-orange-400/60 font-black">oculto</span>}
+                </div>
+              ))}
+              {addingPoint ? (
+                <div className="flex gap-2 p-3 rounded-xl border border-primary/15" style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)" }}>
+                  <input
+                    autoFocus
+                    value={newPointName ?? ""}
+                    onChange={e => setNewPointName?.(e.target.value)}
+                    onKeyDown={e => { if (e.key === "Enter") onAddPoint?.(); if (e.key === "Escape") setAddingPoint?.(false); }}
+                    className="flex-1 bg-bg-main border border-primary/20 rounded-lg px-3 py-2 text-xs font-black uppercase text-primary outline-none focus:border-primary/50 tracking-widest"
+                    placeholder="NOMBRE DEL LUGAR..."
+                  />
+                  <button onClick={onAddPoint} disabled={!newPointName?.trim()}
+                    className="bg-primary text-btn-text px-3 py-2 rounded-lg font-black hover:bg-primary/90 transition-all disabled:opacity-40">
+                    <Check size={13} />
+                  </button>
+                  <button onClick={() => setAddingPoint?.(false)} className="px-2.5 py-2 rounded-lg text-primary/40 hover:text-primary transition-all">
+                    <X size={13} />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setAddingPoint?.(true)}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-primary/15 text-[10px] font-black uppercase text-primary/35 hover:text-primary hover:border-primary/35 transition-all tracking-widest"
+                >
+                  <Plus size={11} /> Añadir Punto
+                </button>
               )}
             </div>
           ) : (
