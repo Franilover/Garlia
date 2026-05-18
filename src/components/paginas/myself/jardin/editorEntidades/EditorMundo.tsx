@@ -2331,70 +2331,10 @@ function PanelListas({
         </div>
       )}
 
-      {/* ── Layout principal: sidebar + lista ───────────────────────────── */}
+      {/* ── Layout principal: lista + sidebar ───────────────────────────── */}
       <div className="flex-1 flex min-h-0 overflow-hidden">
 
-        {/* Sidebar de navegación — fija, estrecha, con grupos */}
-        <div className="shrink-0 w-48 flex flex-col border-r min-h-0 overflow-y-auto py-2 gap-1"
-          style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-          {TAB_GROUPS.map((group, gi) => (
-            <div key={group.label}
-              className="mx-2 rounded-xl overflow-hidden"
-              style={{
-                border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-                background: "color-mix(in srgb, var(--primary) 2%, transparent)",
-                marginTop: gi === 0 ? 0 : 4,
-              }}
-            >
-              {/* Etiqueta del grupo */}
-              <div className="px-2.5 pt-2 pb-1">
-                <span className="text-[8px] font-black uppercase tracking-[0.3em]"
-                  style={{ color: "color-mix(in srgb, var(--primary) 28%, transparent)" }}>
-                  {group.label}
-                </span>
-              </div>
-              {/* Tabs del grupo */}
-              <div className="pb-1.5 flex flex-col gap-0.5 px-1">
-                {group.tabs.map(t => {
-                  const active = mobileTab === t.key;
-                  const color = t.color ?? "var(--primary)";
-                  return (
-                    <button
-                      key={t.key}
-                      onClick={() => setMobileTab(t.key)}
-                      className="flex items-center gap-2 px-2 py-1.5 rounded-lg transition-all text-left w-full"
-                      style={active ? {
-                        background: `color-mix(in srgb, ${color} 12%, transparent)`,
-                        color,
-                      } : {
-                        color: "color-mix(in srgb, var(--primary) 40%, transparent)",
-                      }}
-                    >
-                      <t.Icon size={11} className="shrink-0" />
-                      <span className="flex-1 text-[10px] font-black uppercase tracking-widest">{t.label}</span>
-                      {t.count > 0 && (
-                        <span
-                          className="shrink-0 text-[8px] font-black px-1.5 py-0.5 rounded-full tabular-nums"
-                          style={active ? {
-                            background: `color-mix(in srgb, ${color} 18%, transparent)`,
-                            color,
-                          } : {
-                            background: "color-mix(in srgb, var(--primary) 8%, transparent)",
-                            color: "color-mix(in srgb, var(--primary) 30%, transparent)",
-                          }}
-                        >
-                          {t.count}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Área de lista — ocupa el resto del espacio */}
+        {/* Área de lista — ocupa el espacio principal */}
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
 
           {/* Paneles de texto — reemplazan toda el área de contenido */}
@@ -2701,6 +2641,66 @@ function PanelListas({
               />
             )}
           </div>}
+        </div>
+
+        {/* Sidebar de navegación — fija, estrecha, con grupos, ahora a la derecha */}
+        <div className="shrink-0 w-48 flex flex-col border-l min-h-0 overflow-y-auto py-2 gap-1"
+          style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+          {TAB_GROUPS.map((group, gi) => (
+            <div key={group.label}
+              className="mx-2 rounded-xl overflow-hidden"
+              style={{
+                border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                background: "color-mix(in srgb, var(--primary) 2%, transparent)",
+                marginTop: gi === 0 ? 0 : 4,
+              }}
+            >
+              {/* Etiqueta del grupo */}
+              <div className="px-2.5 pt-2 pb-1">
+                <span className="text-[8px] font-black uppercase tracking-[0.3em]"
+                  style={{ color: "color-mix(in srgb, var(--primary) 28%, transparent)" }}>
+                  {group.label}
+                </span>
+              </div>
+              {/* Tabs del grupo */}
+              <div className="pb-1.5 flex flex-col gap-0.5 px-1">
+                {group.tabs.map(t => {
+                  const active = mobileTab === t.key;
+                  const color = t.color ?? "var(--primary)";
+                  return (
+                    <button
+                      key={t.key}
+                      onClick={() => setMobileTab(t.key)}
+                      className="flex items-center gap-2 px-2 py-1.5 rounded-lg transition-all text-left w-full"
+                      style={active ? {
+                        background: `color-mix(in srgb, ${color} 12%, transparent)`,
+                        color,
+                      } : {
+                        color: "color-mix(in srgb, var(--primary) 40%, transparent)",
+                      }}
+                    >
+                      <t.Icon size={11} className="shrink-0" />
+                      <span className="flex-1 text-[10px] font-black uppercase tracking-widest">{t.label}</span>
+                      {t.count > 0 && (
+                        <span
+                          className="shrink-0 text-[8px] font-black px-1.5 py-0.5 rounded-full tabular-nums"
+                          style={active ? {
+                            background: `color-mix(in srgb, ${color} 18%, transparent)`,
+                            color,
+                          } : {
+                            background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+                            color: "color-mix(in srgb, var(--primary) 30%, transparent)",
+                          }}
+                        >
+                          {t.count}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>
