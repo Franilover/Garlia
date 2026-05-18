@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
   Map, MapPin, Plus, Check, X, Trash2, Save,
-  Eye, EyeOff, Loader2, ChevronDown, Globe, ChevronRight, Image as ImageIcon,
+  Eye, EyeOff, Loader2, Image as ImageIcon,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
@@ -43,15 +43,7 @@ async function dexieWriteAll(tabla: string, rows: any[]): Promise<void> {
   } catch {}
 }
 
-// ─── Tabs internas ─────────────────────────────────────────────────────────────
-type InnerTab = "mapa" | "lore";
-
-const TABS: { key: InnerTab; label: string; Icon: React.ElementType }[] = [
-  { key: "mapa", label: "Mapa",  Icon: Map   },
-  { key: "lore", label: "Lore",  Icon: Globe },
-];
-
-// ─── Mapa unificado con puntos + botón de cambiar imagen ──────────────────────
+// ─── Mapa con puntos + botón cambiar imagen ───────────────────────────────────
 function MapaConPuntos({ mapaUrl, onMapaChange, detalles, onDetallesChange }: {
   mapaUrl: string;
   onMapaChange: (url: string) => void;
@@ -73,12 +65,12 @@ function MapaConPuntos({ mapaUrl, onMapaChange, detalles, onDetallesChange }: {
   return (
     <>
       <div
-        className={`relative w-full overflow-hidden rounded-2xl border select-none group ${
+        className={`relative w-full overflow-hidden rounded-xl border select-none group ${
           selectedId
             ? "cursor-crosshair border-primary/40"
-            : "cursor-default border-primary/15"
+            : "cursor-default border-primary/10"
         }`}
-        style={{ minHeight: "180px", background: "color-mix(in srgb, var(--primary) 4%, transparent)" }}
+        style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)" }}
         onClick={handleMapClick}
       >
         {mapaUrl ? (
@@ -89,8 +81,8 @@ function MapaConPuntos({ mapaUrl, onMapaChange, detalles, onDetallesChange }: {
             draggable={false}
           />
         ) : (
-          <div className="flex flex-col items-center justify-center gap-2 py-16 text-primary/20">
-            <Map size={28} strokeWidth={1} />
+          <div className="flex flex-col items-center justify-center gap-2 py-12 text-primary/20">
+            <Map size={24} strokeWidth={1} />
             <span className="text-[9px] font-black uppercase tracking-widest">Sin imagen de mapa</span>
             <button
               onClick={e => { e.stopPropagation(); setPickerOpen(true); }}
@@ -124,7 +116,7 @@ function MapaConPuntos({ mapaUrl, onMapaChange, detalles, onDetallesChange }: {
           );
         })}
 
-        {/* Overlay hint cuando hay punto seleccionado */}
+        {/* Hint overlay */}
         {selectedId && (
           <div className="absolute inset-0 bg-primary/5 pointer-events-none flex items-end justify-center pb-3">
             <div
@@ -139,7 +131,7 @@ function MapaConPuntos({ mapaUrl, onMapaChange, detalles, onDetallesChange }: {
           </div>
         )}
 
-        {/* Botón cambiar imagen — esquina superior derecha */}
+        {/* Botón cambiar imagen */}
         {mapaUrl && (
           <button
             onClick={e => { e.stopPropagation(); setPickerOpen(true); }}
@@ -155,13 +147,12 @@ function MapaConPuntos({ mapaUrl, onMapaChange, detalles, onDetallesChange }: {
         )}
       </div>
 
-      {/* Picker modal */}
       {pickerOpen && <ImagePickerModal onSelect={url => { onMapaChange(url); setPickerOpen(false); }} onClose={() => setPickerOpen(false)} />}
     </>
   );
 }
 
-// ─── Mini modal de imagen (sin depender de SelectorImagen) ────────────────────
+// ─── Mini modal de imagen ─────────────────────────────────────────────────────
 function ImagePickerModal({ onSelect, onClose }: { onSelect: (url: string) => void; onClose: () => void }) {
   const [SimpleImagePicker, setComponent] = useState<React.ComponentType<any> | null>(null);
   useEffect(() => {
@@ -295,7 +286,6 @@ export function EditorReino({ item, onSaved, onDeleted, entities = [], onSelectP
 }) {
   const [form,   setForm]   = useState<Reino>(item);
   const [status, setStatus] = useState<SaveStatus>("idle");
-  const [tab,    setTab]    = useState<InnerTab>("mapa");
   const [addingPoint, setAddingPoint] = useState(false);
   const [newPointName, setNewPointName] = useState("");
   const { detalles, setDetalles } = useReinoDetalles(item.id);
@@ -347,158 +337,164 @@ export function EditorReino({ item, onSaved, onDeleted, entities = [], onSelectP
     <div className="flex-1 flex min-h-0 overflow-hidden relative">
       <ConfirmModal />
 
-      <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+      {/*
+        ── Layout de 2 columnas full-height ──────────────────────────────────
+        Izquierda (40%): Mapa + Puntos de interés
+        Derecha  (60%): Header compacto + Lore
+      */}
+      <div className="flex-1 flex min-h-0 overflow-hidden">
 
-        {/* ── Fixed header ─────────────────────────────────────────────────── */}
+        {/* ══ COLUMNA IZQUIERDA — Mapa + Puntos ══════════════════════════════ */}
         <div
-          className="shrink-0 flex items-center gap-3 px-4 py-3 border-b"
+          className="flex flex-col min-h-0 overflow-hidden shrink-0"
           style={{
-            borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
-            background:  "color-mix(in srgb, var(--primary) 3%, transparent)",
+            width: "38%",
+            borderRight: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
           }}
         >
-          {/* Visibility toggle */}
-          <button
-            onClick={() => setForm(f => ({ ...f, oculto: !f.oculto }))}
-            title={form.oculto ? "Mostrar en mapa" : "Ocultar del mapa"}
-            className="shrink-0 w-9 h-9 rounded-xl flex items-center justify-center transition-all border"
-            style={form.oculto ? {
-              color:       "oklch(0.75 0.15 60)",
-              background:  "color-mix(in srgb, oklch(0.75 0.15 60) 12%, transparent)",
-              borderColor: "color-mix(in srgb, oklch(0.75 0.15 60) 30%, transparent)",
-            } : {
-              color:       "color-mix(in srgb, var(--primary) 30%, transparent)",
-              background:  "color-mix(in srgb, var(--primary) 5%, transparent)",
-              borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
+          {/* Sub-header: nombre + visibilidad */}
+          <div
+            className="shrink-0 flex items-center gap-2 px-3 py-2.5 border-b"
+            style={{
+              borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
+              background:  "color-mix(in srgb, var(--primary) 2%, transparent)",
             }}
           >
-            {form.oculto ? <EyeOff size={15} /> : <Eye size={15} />}
-          </button>
-
-          {/* Name */}
-          <input
-            value={form.nombre ?? ""}
-            onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))}
-            placeholder="Nombre del reino"
-            className="flex-1 min-w-0 bg-transparent text-sm font-black text-primary outline-none placeholder:text-primary/25"
-          />
-
-          {/* Actions */}
-          <div className="shrink-0 flex items-center gap-2">
-            <SaveIndicator status={status} />
-            <button onClick={del}
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all min-h-[36px] min-w-[36px] justify-center">
-              <Trash2 size={10} />
+            {/* Visibility toggle */}
+            <button
+              onClick={() => setForm(f => ({ ...f, oculto: !f.oculto }))}
+              title={form.oculto ? "Mostrar" : "Ocultar"}
+              className="shrink-0 w-7 h-7 rounded-lg flex items-center justify-center transition-all border"
+              style={form.oculto ? {
+                color:       "oklch(0.75 0.15 60)",
+                background:  "color-mix(in srgb, oklch(0.75 0.15 60) 12%, transparent)",
+                borderColor: "color-mix(in srgb, oklch(0.75 0.15 60) 30%, transparent)",
+              } : {
+                color:       "color-mix(in srgb, var(--primary) 30%, transparent)",
+                background:  "color-mix(in srgb, var(--primary) 5%, transparent)",
+                borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
+              }}
+            >
+              {form.oculto ? <EyeOff size={12} /> : <Eye size={12} />}
             </button>
-            <button onClick={save} disabled={status === "saving"}
-              className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50">
-              <Save size={11} /> Guardar
-            </button>
+
+            <Map size={11} className="text-primary/30 shrink-0" />
+            <span className="text-[9px] font-black uppercase tracking-widest text-primary/40 flex-1">Mapa</span>
+
+            {detalles.length > 0 && (
+              <span className="text-[9px] font-black text-primary/30 bg-primary/8 px-1.5 py-0.5 rounded-full">
+                {detalles.length}
+              </span>
+            )}
+          </div>
+
+          {/* Mapa */}
+          <div className="shrink-0 p-3 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 6%, transparent)" }}>
+            <MapaConPuntos
+              mapaUrl={form.mapa_url ?? ""}
+              onMapaChange={url => setForm(f => ({ ...f, mapa_url: url }))}
+              detalles={detalles}
+              onDetallesChange={handleDetallesMapChange}
+            />
+          </div>
+
+          {/* Puntos de interés — header */}
+          <div
+            className="shrink-0 flex items-center gap-2 px-3 py-2 border-b"
+            style={{ borderColor: "color-mix(in srgb, var(--primary) 6%, transparent)" }}
+          >
+            <MapPin size={10} className="text-primary/30" />
+            <span className="text-[9px] font-black uppercase tracking-widest text-primary/35 flex-1">Puntos de Interés</span>
+          </div>
+
+          {/* Lista scrollable */}
+          <div className="flex-1 overflow-y-auto min-h-0 p-3 space-y-2">
+            {detalles.map(det => (
+              <DetalleEditor
+                key={det.id}
+                detalle={det}
+                onSaved={updated => setDetalles(prev => prev.map(d => d.id === updated.id ? updated : d))}
+                onDeleted={id => setDetalles(prev => prev.filter(d => d.id !== id))}
+                entities={entities}
+              />
+            ))}
+
+            {detalles.length === 0 && !addingPoint && (
+              <p className="text-[10px] font-bold text-primary/25 uppercase tracking-widest text-center py-6 border border-dashed border-primary/10 rounded-xl italic">
+                Sin puntos registrados
+              </p>
+            )}
+
+            {addingPoint ? (
+              <div className="flex gap-2 p-3 rounded-xl border border-primary/15"
+                style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)" }}>
+                <input
+                  autoFocus
+                  value={newPointName}
+                  onChange={e => setNewPointName(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter") handleAddPoint(); if (e.key === "Escape") setAddingPoint(false); }}
+                  className="flex-1 bg-bg-main border border-primary/20 rounded-lg px-3 py-2 text-xs font-black uppercase text-primary outline-none focus:border-primary/50 tracking-widest"
+                  placeholder="NOMBRE DEL LUGAR..."
+                />
+                <button onClick={handleAddPoint} disabled={!newPointName.trim()}
+                  className="bg-primary text-btn-text px-3 py-2 rounded-lg font-black hover:bg-primary/90 transition-all disabled:opacity-40">
+                  <Check size={13} />
+                </button>
+                <button onClick={() => setAddingPoint(false)} className="px-2.5 py-2 rounded-lg text-primary/40 hover:text-primary transition-all">
+                  <X size={13} />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setAddingPoint(true)}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-primary/15 text-[10px] font-black uppercase text-primary/35 hover:text-primary hover:border-primary/35 hover:bg-primary/4 transition-all tracking-widest"
+              >
+                <Plus size={11} /> Añadir Punto
+              </button>
+            )}
           </div>
         </div>
 
-        {/* ── Inner tabs ───────────────────────────────────────────────────── */}
-        <div
-          className="shrink-0 flex items-center gap-1 px-4 py-2 border-b"
-          style={{ borderColor: "color-mix(in srgb, var(--primary) 6%, transparent)" }}
-        >
-          {TABS.map(({ key, label, Icon }) => (
-            <button
-              key={key}
-              onClick={() => setTab(key)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all"
-              style={tab === key ? {
-                background: "color-mix(in srgb, var(--primary) 12%, transparent)",
-                color:      "var(--primary)",
-                border:     "1px solid color-mix(in srgb, var(--primary) 20%, transparent)",
-              } : {
-                color:  "color-mix(in srgb, var(--primary) 35%, transparent)",
-                border: "1px solid transparent",
-              }}
-            >
-              <Icon size={11} /> <span className="hidden sm:inline">{label}</span>
-              {key === "mapa" && detalles.length > 0 && (
-                <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black"
-                  style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }}>
-                  {detalles.length}
-                </span>
-              )}
+        {/* ══ COLUMNA DERECHA — Header nombre + Lore ══════════════════════════ */}
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
 
-            </button>
-          ))}
-        </div>
+          {/* Header compacto: nombre + acciones */}
+          <div
+            className="shrink-0 flex items-center gap-3 px-4 py-2.5 border-b"
+            style={{
+              borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
+              background:  "color-mix(in srgb, var(--primary) 2%, transparent)",
+            }}
+          >
+            {/* Nombre editable */}
+            <input
+              value={form.nombre ?? ""}
+              onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))}
+              placeholder="Nombre del reino"
+              className="flex-1 min-w-0 bg-transparent text-sm font-black text-primary outline-none placeholder:text-primary/25"
+            />
 
-        {/* ── Tab content ──────────────────────────────────────────────────── */}
-        <div className="flex-1 overflow-y-auto min-h-0">
-
-          {/* MAPA */}
-          {tab === "mapa" && (
-            <div className="flex flex-col sm:flex-row gap-0 min-h-0 h-full">
-
-              {/* Columna izquierda — Mapa */}
-              <div className="sm:w-[55%] shrink-0 p-3 border-b sm:border-b-0 sm:border-r" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-                <MapaConPuntos
-                  mapaUrl={form.mapa_url ?? ""}
-                  onMapaChange={url => setForm(f => ({ ...f, mapa_url: url }))}
-                  detalles={detalles}
-                  onDetallesChange={handleDetallesMapChange}
-                />
-              </div>
-
-              {/* Columna derecha — Puntos de interés */}
-              <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-                {/* Header columna derecha */}
-                <div className="shrink-0 flex items-center gap-2 px-3 py-2.5 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-                  <MapPin size={11} className="text-primary/40" />
-                  <span className="text-[10px] font-black uppercase tracking-widest text-primary/40">Puntos de Interés</span>
-                  {detalles.length > 0 && (
-                    <span className="text-[9px] font-black text-primary/30 bg-primary/8 px-1.5 py-0.5 rounded-full">{detalles.length}</span>
-                  )}
-                </div>
-
-                {/* Lista scrollable */}
-                <div className="flex-1 overflow-y-auto min-h-0 p-3 space-y-2">
-                  {detalles.map(det => (
-                    <DetalleEditor key={det.id} detalle={det}
-                      onSaved={updated => setDetalles(prev => prev.map(d => d.id === updated.id ? updated : d))}
-                      onDeleted={id => setDetalles(prev => prev.filter(d => d.id !== id))} entities={entities} />
-                  ))}
-
-                  {detalles.length === 0 && !addingPoint && (
-                    <p className="text-[10px] font-bold text-primary/25 uppercase tracking-widest text-center py-6 border border-dashed border-primary/15 rounded-xl italic">
-                      Sin puntos registrados
-                    </p>
-                  )}
-
-                  {addingPoint ? (
-                    <div className="flex gap-2 p-3 rounded-xl border border-primary/15"
-                      style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)" }}>
-                      <input autoFocus value={newPointName} onChange={e => setNewPointName(e.target.value)}
-                        onKeyDown={e => { if (e.key === "Enter") handleAddPoint(); if (e.key === "Escape") setAddingPoint(false); }}
-                        className="flex-1 bg-bg-main border border-primary/20 rounded-lg px-3 py-2 text-xs font-black uppercase text-primary outline-none focus:border-primary/50 tracking-widest"
-                        placeholder="NOMBRE DEL LUGAR..." />
-                      <button onClick={handleAddPoint} disabled={!newPointName.trim()}
-                        className="bg-primary text-btn-text px-3 py-2 rounded-lg font-black hover:bg-primary/90 transition-all disabled:opacity-40">
-                        <Check size={13} />
-                      </button>
-                      <button onClick={() => setAddingPoint(false)} className="px-2.5 py-2 rounded-lg text-primary/40 hover:text-primary transition-all">
-                        <X size={13} />
-                      </button>
-                    </div>
-                  ) : (
-                    <button onClick={() => setAddingPoint(true)}
-                      className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-primary/20 text-[10px] font-black uppercase text-primary/40 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all tracking-widest">
-                      <Plus size={11} /> Añadir Punto
-                    </button>
-                  )}
-                </div>
-              </div>
-
+            {/* Acciones */}
+            <div className="shrink-0 flex items-center gap-2">
+              <SaveIndicator status={status} />
+              <button
+                onClick={del}
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all min-h-[32px] min-w-[32px] justify-center"
+              >
+                <Trash2 size={10} />
+              </button>
+              <button
+                onClick={save}
+                disabled={status === "saving"}
+                className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50"
+              >
+                <Save size={11} /> Guardar
+              </button>
             </div>
-          )}
+          </div>
 
-          {/* LORE — sub-navegación lateral */}
-          {tab === "lore" && (
+          {/* Lore — ocupa todo el espacio restante */}
+          <div className="flex-1 min-h-0 overflow-hidden">
             <LoreTab
               form={form}
               setForm={setForm}
@@ -507,7 +503,8 @@ export function EditorReino({ item, onSaved, onDeleted, entities = [], onSelectP
               loadingPersonajes={loadingPersonajes}
               onSelectPersonaje={onSelectPersonaje}
             />
-          )}
+          </div>
+
         </div>
       </div>
 
