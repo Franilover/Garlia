@@ -447,7 +447,7 @@ function TimelineRow({
 
 // ─── Definición de secciones ─────────────────────────────────────────────────
 
-type LoreKey = "historia" | "geografia" | "cultura" | "politica" | "economia" | "personajes" | "puntos" | "mapa";
+type LoreKey = "historia" | "geografia" | "cultura" | "politica" | "economia" | "personajes" | "mapa";
 
 const LORE_SECTIONS: {
   key: LoreKey;
@@ -502,13 +502,6 @@ const LORE_SECTIONS: {
     key: "personajes",
     label: "Personajes",
     Icon: UserCircle2,
-    placeholder: "",
-    rows: 0,
-  },
-  {
-    key: "puntos",
-    label: "Puntos",
-    Icon: MapPin,
     placeholder: "",
     rows: 0,
   },
@@ -574,8 +567,7 @@ export function LoreTab({
   // Función para determinar si una sección tiene contenido
   const sectionHasContent = (key: LoreKey): boolean => {
     if (key === "personajes") return personajes.length > 0;
-    if (key === "puntos") return detalles.length > 0;
-    if (key === "mapa") return !!mapaUrl;
+    if (key === "mapa") return !!mapaUrl || detalles.length > 0;
     const raw = (form as any)[key] as string | undefined;
     if (key === "historia") return historiaHasContent(raw);
     return !!raw?.trim();
@@ -594,7 +586,7 @@ export function LoreTab({
         >
           <active.Icon size={11} style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }} />
           <span className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/40">
-            {active.label}
+            {active.key === "mapa" ? "Mapa & Puntos" : active.label}
           </span>
 
           {/* Badge vacío */}
@@ -611,10 +603,10 @@ export function LoreTab({
             </span>
           )}
 
-          {/* Badge count puntos */}
-          {active.key === "puntos" && detalles.length > 0 && (
-            <span className="text-[8px] font-black uppercase tracking-widest text-primary/30 border border-primary/10 px-1.5 py-0.5 rounded-md">
-              {detalles.length}
+          {/* Badge count puntos cuando es mapa */}
+          {active.key === "mapa" && detalles.length > 0 && (
+            <span className="text-[8px] font-black uppercase tracking-widest text-primary/30 border border-primary/10 px-1.5 py-0.5 rounded-md flex items-center gap-1">
+              <MapPin size={8} /> {detalles.length}
             </span>
           )}
 
@@ -627,22 +619,97 @@ export function LoreTab({
         </div>
 
         {/* Contenido */}
-        <div className="flex-1 overflow-y-auto min-h-0">
+        <div className="flex-1 min-h-0" style={{ overflow: activeKey === "mapa" ? "hidden" : "auto" }}>
           {activeKey === "mapa" ? (
-            MapaConPuntosComponent ? (
-              <div className="p-3">
-                <MapaConPuntosComponent
-                  mapaUrl={mapaUrl}
-                  onMapaChange={onMapaChange ?? (() => {})}
-                  detalles={detalles}
-                  onDetallesChange={(d: any) => onDetallesArrayChange?.(d)}
-                />
+            <div className="flex h-full min-h-0">
+              {/* Columna izquierda — Mapa */}
+              <div
+                className="flex-1 min-w-0 p-3 overflow-y-auto"
+                style={{ borderRight: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
+              >
+                {MapaConPuntosComponent ? (
+                  <MapaConPuntosComponent
+                    mapaUrl={mapaUrl}
+                    onMapaChange={onMapaChange ?? (() => {})}
+                    detalles={detalles}
+                    onDetallesChange={(d: any) => onDetallesArrayChange?.(d)}
+                  />
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-12 text-primary/20 gap-2">
+                    <Map size={22} strokeWidth={1} />
+                    <span className="text-[9px] font-black uppercase tracking-widest">Sin mapa</span>
+                  </div>
+                )}
               </div>
-            ) : (
-              <div className="flex items-center justify-center py-12 text-primary/20 text-[9px] font-black uppercase tracking-widest">
-                Sin mapa
+
+              {/* Columna derecha — Puntos de interés */}
+              <div className="shrink-0 flex flex-col overflow-hidden" style={{ width: "200px" }}>
+                {/* Sub-header puntos */}
+                <div
+                  className="shrink-0 flex items-center gap-1.5 px-3 py-2 border-b"
+                  style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
+                >
+                  <MapPin size={9} style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }} />
+                  <span className="text-[8px] font-black uppercase tracking-widest text-primary/35 flex-1">Puntos</span>
+                  {detalles.length > 0 && (
+                    <span className="text-[7px] font-black text-primary/25">{detalles.length}</span>
+                  )}
+                </div>
+
+                {/* Lista de puntos */}
+                <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
+                  {detalles.length === 0 && !addingPoint && (
+                    <div className="flex flex-col items-center gap-2 py-8 text-primary/20">
+                      <MapPin size={18} strokeWidth={1} />
+                      <p className="text-[8px] font-black uppercase tracking-widest text-center">Sin puntos</p>
+                    </div>
+                  )}
+                  {detalles.map(det => (
+                    <div
+                      key={det.id}
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg"
+                      style={{ border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, transparent)" }}
+                    >
+                      <MapPin size={9} className="text-primary/25 shrink-0" />
+                      <span className="flex-1 truncate text-[10px] font-black uppercase tracking-widest text-primary/55">{det.nombre}</span>
+                      {det.oculto && (
+                        <span className="text-[7px] font-black uppercase tracking-widest text-orange-400/50">·</span>
+                      )}
+                    </div>
+                  ))}
+
+                  {/* Añadir punto */}
+                  {addingPoint ? (
+                    <div className="flex flex-col gap-1.5 p-2 rounded-xl border border-primary/15" style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)" }}>
+                      <input
+                        autoFocus
+                        value={newPointName ?? ""}
+                        onChange={e => setNewPointName?.(e.target.value)}
+                        onKeyDown={e => { if (e.key === "Enter") onAddPoint?.(); if (e.key === "Escape") setAddingPoint?.(false); }}
+                        className="w-full bg-bg-main border border-primary/20 rounded-lg px-2.5 py-1.5 text-[10px] font-black uppercase text-primary outline-none focus:border-primary/50 tracking-widest"
+                        placeholder="NOMBRE..."
+                      />
+                      <div className="flex gap-1">
+                        <button onClick={onAddPoint} disabled={!newPointName?.trim()}
+                          className="flex-1 bg-primary text-btn-text py-1.5 rounded-lg text-[9px] font-black hover:bg-primary/90 transition-all disabled:opacity-40 flex items-center justify-center">
+                          <Check size={11} />
+                        </button>
+                        <button onClick={() => setAddingPoint?.(false)} className="px-2 py-1.5 rounded-lg text-primary/40 hover:text-primary transition-all">
+                          <X size={11} />
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setAddingPoint?.(true)}
+                      className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl border border-dashed border-primary/15 text-[9px] font-black uppercase text-primary/30 hover:text-primary hover:border-primary/30 transition-all tracking-widest"
+                    >
+                      <Plus size={9} /> Añadir
+                    </button>
+                  )}
+                </div>
               </div>
-            )
+            </div>
           ) : activeKey === "historia" ? (
             <TimelineEditor
               key="historia-timeline"
@@ -699,54 +766,6 @@ export function LoreTab({
                 ))
               )}
             </div>
-          ) : activeKey === "puntos" ? (
-            <div className="p-3 space-y-2">
-              {detalles.length === 0 && !addingPoint && (
-                <div className="flex flex-col items-center gap-2 py-10 text-primary/20">
-                  <MapPin size={22} strokeWidth={1} />
-                  <p className="text-[9px] font-black uppercase tracking-widest">Sin puntos registrados</p>
-                </div>
-              )}
-              {detalles.map(det => (
-                <div
-                  key={det.id}
-                  className="flex items-center gap-2 px-3 py-2 rounded-lg"
-                  style={{ border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, transparent)" }}
-                >
-                  <MapPin size={10} className="text-primary/30 shrink-0" />
-                  <span className="flex-1 truncate text-[11px] font-black uppercase tracking-widest text-primary/60">{det.nombre}</span>
-                  {det.oculto && (
-                    <span className="text-[8px] font-black uppercase tracking-widest text-orange-400/60">oculto</span>
-                  )}
-                </div>
-              ))}
-              {addingPoint ? (
-                <div className="flex gap-2 p-3 rounded-xl border border-primary/15" style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)" }}>
-                  <input
-                    autoFocus
-                    value={newPointName ?? ""}
-                    onChange={e => setNewPointName?.(e.target.value)}
-                    onKeyDown={e => { if (e.key === "Enter") onAddPoint?.(); if (e.key === "Escape") setAddingPoint?.(false); }}
-                    className="flex-1 bg-bg-main border border-primary/20 rounded-lg px-3 py-2 text-xs font-black uppercase text-primary outline-none focus:border-primary/50 tracking-widest"
-                    placeholder="NOMBRE DEL LUGAR..."
-                  />
-                  <button onClick={onAddPoint} disabled={!newPointName?.trim()}
-                    className="bg-primary text-btn-text px-3 py-2 rounded-lg font-black hover:bg-primary/90 transition-all disabled:opacity-40">
-                    <Check size={13} />
-                  </button>
-                  <button onClick={() => setAddingPoint?.(false)} className="px-2.5 py-2 rounded-lg text-primary/40 hover:text-primary transition-all">
-                    <X size={13} />
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setAddingPoint?.(true)}
-                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-primary/15 text-[10px] font-black uppercase text-primary/35 hover:text-primary hover:border-primary/35 transition-all tracking-widest"
-                >
-                  <Plus size={11} /> Añadir Punto
-                </button>
-              )}
-            </div>
           ) : (
             <div className="p-3 h-full">
               <MarkdownEditor
@@ -775,7 +794,7 @@ export function LoreTab({
         }}
       >
         {([
-          ["mapa", "puntos", "geografia"],
+          ["mapa", "geografia"],
           ["personajes", "cultura", "historia"],
           ["politica", "economia"],
         ] as LoreKey[][]).map((group, gi) => (
@@ -792,7 +811,7 @@ export function LoreTab({
               const { Icon, label } = section;
               const hasContent = sectionHasContent(key);
               const isActive = key === activeKey;
-              const count = key === "personajes" ? personajes.length : key === "puntos" ? detalles.length : 0;
+              const count = key === "personajes" ? personajes.length : key === "mapa" ? detalles.length : 0;
 
               return (
                 <button
