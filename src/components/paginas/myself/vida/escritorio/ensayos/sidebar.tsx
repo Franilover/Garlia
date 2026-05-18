@@ -21,6 +21,7 @@ interface SidebarProps {
   onConnectZotero: () => void;
   onRefreshZotero: () => void;
   embedded?: boolean;
+  onGoHome: () => void; 
 }
 
 export default function Sidebar({

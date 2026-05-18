@@ -43,6 +43,7 @@ function setSaveIndicator(el: HTMLElement | null, status: SaveStatus) {
 const LS_ACTIVE       = "ensayos-active-id";
 const DEXIE_ZOTERO_KEY = "zotero_file_handle";
 
+
 async function saveZoteroHandle(handle: FileSystemFileHandle) {
   try {
     if (!db) return;
@@ -87,6 +88,10 @@ export default function Ensayos() {
   const { toasts, toast, dismiss } = useToast();
   const { confirm, ConfirmModal }  = useConfirm();
 
+  const irAlHome = () => {
+    setEnsayoActivoId(null);
+    setTagActivo(null);
+  };
   const [editMode,          setEditMode]          = useState(true);
   const [searchPanelOpen,   setSearchPanelOpen]   = useState(false);
   const searchPanelRef = useRef<HTMLDivElement>(null);
@@ -726,19 +731,19 @@ export default function Ensayos() {
           ) : (
             <AnimatePresence mode="wait">
               {ensayoActivo ? (
-                  <Editor
-                        key={ensayoActivo.id}
-                        ensayo={ensayoActivo}
-                        ensayos={ensayos} // <--- Faltaba esta prop
-                        sources={sources}
-                        editMode={editMode} // <--- Faltaba esta prop
-                        onToggleEditMode={() => setEditMode(p => !p)} // <--- Faltaba esta prop
-                        onUpdateField={actualizarLocal} // <--- Faltaba esta prop
-                        onNavigateToPage={(name) => navigateToPage(name, false)} // <--- Faltaba esta prop
-                        entities={allWikilinkNames}
-                      />
+                <Editor
+                  key={ensayoActivo.id}
+                  ensayo={ensayoActivo}
+                  ensayos={ensayos}
+                  sources={sources}
+                  editMode={editMode}
+                  onToggleEditMode={() => setEditMode(p => !p)}
+                  onUpdateField={actualizarLocal}
+                  onNavigateToPage={(name) => navigateToPage(name, false)}
+                  entities={allWikilinkNames}
+                />
               ) : (
-                /* REEMPLAZA EL EMPTYSTATE POR ESTO O COMBÍNALOS */
+                /* AQUÍ: Si no hay ensayo activo, mostramos el Dashboard en vez de EmptyState */
                 <HomeDashboard 
                   key="home"
                   ensayos={ensayos} 
