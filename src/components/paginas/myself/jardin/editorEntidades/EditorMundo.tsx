@@ -2023,99 +2023,15 @@ export function EditorMundo({
   }, [onTabChange]);
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-
-      {/* ── Barra de tabs unificada ─────────────────────────────────────── */}
-      <div
-        className="shrink-0 flex items-center border-b overflow-x-auto scrollbar-none"
-        style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
-      >
-        {/* Ícono Mundo — solo desktop */}
-        <div
-          className="shrink-0 hidden sm:flex items-center gap-2 py-3 px-4 border-r"
-          style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
-        >
-          <div
-            className="w-6 h-6 rounded-lg flex items-center justify-center"
-            style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 18%, transparent)" }}
-          >
-            <Globe size={12} className="text-primary/50" />
-          </div>
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/50 leading-tight whitespace-nowrap">Mundo</p>
-        </div>
-
-        {/* Tabs */}
-        <div className="flex items-end min-w-0">
-          {UNIFIED_TABS.map((t, i) => {
-            if (t === "sep") return (
-              <div key={`sep-${i}`} className="w-px mx-0.5 sm:mx-1 self-stretch my-2 shrink-0"
-                style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
-            );
-            const active = tab === t.key;
-            const color = t.color ?? "var(--primary)";
-            // En mobile, tabs de magia solo muestran ícono para ahorrar espacio
-            const isMagicTab = t.color !== undefined; // hechizos, dones, runas tienen color
-            return (
-              <button
-                key={t.key}
-                onClick={() => handleTabChange(t.key)}
-                className="relative flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-2.5 sm:py-3 text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap shrink-0"
-                style={{ color: active ? color : "color-mix(in srgb, var(--primary) 28%, transparent)" }}
-                title={t.label}
-              >
-                <t.Icon size={10} />
-                {/* En mobile, los tabs de magia (hechizos/dones/runas) solo muestran ícono */}
-                <span className={isMagicTab ? "hidden sm:inline" : ""}>{t.label}</span>
-                {active && (
-                  <span
-                    className="absolute bottom-0 left-1 right-1 h-0.5 rounded-t-full"
-                    style={{ background: color }}
-                  />
-                )}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* ── Contenido ───────────────────────────────────────────────────── */}
-      <div className="flex-1 flex min-h-0 overflow-hidden">
-
-        {/* Geografía — texto */}
-        {tab === "mundo" && (
-          <PanelTexto
-            texto={textos.geografia}
-            onChange={v => onTextoChange("geografia", v)}
-            onSave={() => onSave("geografia")}
-            placeholder="Continentes, mares, climas, fronteras del mundo…"
-            saveLabel="Guardar Mundo"
-            SaveIcon={Mountain}
-          />
-        )}
-
-        {/* Historia — línea de tiempo unificada */}
-        {tab === "historia" && (
-          <PanelHistoriaMundo
-            texto={textos.historia}
-            onChange={v => onTextoChange("historia", v)}
-            onSave={() => onSave("historia")}
-          />
-        )}
-
-        {/* Magia — texto */}
-        {tab === "magia" && (
-          <PanelTexto
-            texto={textos.magia}
-            onChange={v => onTextoChange("magia", v)}
-            onSave={() => onSave("magia")}
-            placeholder="Sistema de magia, reglas, fuentes de poder, limitaciones…"
-            saveLabel="Guardar Magia"
-            SaveIcon={Sparkles}
-          />
-        )}
-
-        {tab === "listas"   && <PanelListas initialSubTab={initialMundoTab} initialItemId={initialItemId} />}
-      </div>
+    <div className="flex-1 flex min-h-0 overflow-hidden">
+      <PanelListas
+        initialSubTab={initialMundoTab ?? resolveInitialTab(activeSection, initialMundoTab)}
+        initialItemId={initialItemId}
+        textos={textos}
+        onTextoChange={onTextoChange}
+        onSave={onSave}
+        onTabChange={onTabChange}
+      />
     </div>
   );
 }
@@ -2141,7 +2057,17 @@ function SearchInput({ value, onChange, placeholder }: { value: string; onChange
 }
 
 // ─── PanelListas: columnas side-by-side (reinos, criaturas, objetos, personajes, hechizos, dones) ──
-function PanelListas({ initialSubTab, initialItemId }: { initialSubTab?: string; initialItemId?: string }) {
+function PanelListas({
+  initialSubTab, initialItemId,
+  textos, onTextoChange, onSave, onTabChange,
+}: {
+  initialSubTab?: string;
+  initialItemId?: string;
+  textos?: Record<MundoSectionKey, string>;
+  onTextoChange?: (section: MundoSectionKey, value: string) => void;
+  onSave?: (section: MundoSectionKey) => Promise<void>;
+  onTabChange?: (section: MundoSectionKey, mundoTab: string) => void;
+}) {
   const { reinos,    setReinos,    loading: loadingReinos    } = useReinos();
   const { criaturas, setCriaturas, loading: loadingCriaturas } = useCriaturas();
   const { objetos,   setObjetos,   loading: loadingObjetos   } = useObjetos();
@@ -2171,18 +2097,22 @@ function PanelListas({ initialSubTab, initialItemId }: { initialSubTab?: string;
   const [selectedRuna,     setSelectedRuna]     = useState<Runa | null>(null);
   const [personajeStatus,  setPersonajeStatus]  = useState<SaveStatus>("idle");
 
-  type ListaTab = "reinos" | "criaturas" | "objetos" | "personajes" | "hechizos" | "dones" | "runas" | "notas" | "grupos";
-  const VALID_LISTA_TABS: ListaTab[] = ["reinos", "criaturas", "objetos", "personajes", "hechizos", "dones", "runas", "notas", "grupos"];
+  type ListaTab = "mundo" | "historia" | "magia" | "reinos" | "criaturas" | "objetos" | "personajes" | "hechizos" | "dones" | "runas" | "notas" | "grupos";
+  const VALID_LISTA_TABS: ListaTab[] = ["mundo", "historia", "magia", "reinos", "criaturas", "objetos", "personajes", "hechizos", "dones", "runas", "notas", "grupos"];
 
-  const [mobileTab, setMobileTab] = useState<ListaTab>(
-    (VALID_LISTA_TABS.includes(initialSubTab as ListaTab) ? initialSubTab as ListaTab : "reinos")
-  );
+  const [mobileTab, setMobileTab] = useState<ListaTab>(() => {
+    // initialSubTab puede ser un UnifiedTab ("mundo","historia","magia","listas") o un ListaTab directo
+    const mapped: Record<string, ListaTab> = { mundo: "mundo", historia: "historia", magia: "magia", listas: "reinos" };
+    const resolved = mapped[initialSubTab ?? ""] ?? (VALID_LISTA_TABS.includes(initialSubTab as ListaTab) ? initialSubTab as ListaTab : "mundo");
+    return resolved;
+  });
 
   // Sincronizar mobileTab cuando el buscador navega a un subtab diferente
   useEffect(() => {
-    if (initialSubTab && VALID_LISTA_TABS.includes(initialSubTab as ListaTab)) {
-      setMobileTab(initialSubTab as ListaTab);
-    }
+    if (!initialSubTab) return;
+    const mapped: Record<string, ListaTab> = { mundo: "mundo", historia: "historia", magia: "magia", listas: "reinos" };
+    const resolved = mapped[initialSubTab] ?? (VALID_LISTA_TABS.includes(initialSubTab as ListaTab) ? initialSubTab as ListaTab : null);
+    if (resolved) setMobileTab(resolved);
   }, [initialSubTab]);
 
   // Editor overlay activo
@@ -2265,6 +2195,14 @@ function PanelListas({ initialSubTab, initialItemId }: { initialSubTab?: string;
   type TabDef = { key: ListaTab; label: string; Icon: React.ElementType; count: number; color?: string };
 
   const TAB_GROUPS: { label: string; tabs: TabDef[] }[] = [
+    {
+      label: "Textos",
+      tabs: [
+        { key: "mundo" as ListaTab,    label: "Geografía", Icon: Mountain,    count: 0 },
+        { key: "historia" as ListaTab, label: "Historia",  Icon: Clock,       count: 0 },
+        { key: "magia" as ListaTab,    label: "Magia",     Icon: Sparkles,    count: 0, color: "var(--accent)" },
+      ],
+    },
     {
       label: "Mundo",
       tabs: [
@@ -2393,11 +2331,11 @@ function PanelListas({ initialSubTab, initialItemId }: { initialSubTab?: string;
         </div>
       )}
 
-      {/* ── Layout principal: lista + sidebar ───────────────────────────── */}
-      <div className="flex-1 flex min-h-0 overflow-hidden flex-row-reverse">
+      {/* ── Layout principal: sidebar + lista ───────────────────────────── */}
+      <div className="flex-1 flex min-h-0 overflow-hidden">
 
         {/* Sidebar de navegación — fija, estrecha, con grupos */}
-        <div className="shrink-0 w-48 flex flex-col border-l min-h-0 overflow-y-auto py-2 gap-1"
+        <div className="shrink-0 w-48 flex flex-col border-r min-h-0 overflow-y-auto py-2 gap-1"
           style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
           {TAB_GROUPS.map((group, gi) => (
             <div key={group.label}
@@ -2459,8 +2397,37 @@ function PanelListas({ initialSubTab, initialItemId }: { initialSubTab?: string;
         {/* Área de lista — ocupa el resto del espacio */}
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
 
-          {/* Header del tab activo */}
-          {(() => {
+          {/* Paneles de texto — reemplazan toda el área de contenido */}
+          {mobileTab === "mundo" && textos && onTextoChange && onSave && (
+            <PanelTexto
+              texto={textos.geografia}
+              onChange={v => onTextoChange("geografia", v)}
+              onSave={() => onSave("geografia")}
+              placeholder="Continentes, mares, climas, fronteras del mundo…"
+              saveLabel="Guardar Geografía"
+              SaveIcon={Mountain}
+            />
+          )}
+          {mobileTab === "historia" && textos && onTextoChange && onSave && (
+            <PanelHistoriaMundo
+              texto={textos.historia}
+              onChange={v => onTextoChange("historia", v)}
+              onSave={() => onSave("historia")}
+            />
+          )}
+          {mobileTab === "magia" && textos && onTextoChange && onSave && (
+            <PanelTexto
+              texto={textos.magia}
+              onChange={v => onTextoChange("magia", v)}
+              onSave={() => onSave("magia")}
+              placeholder="Sistema de magia, reglas, fuentes de poder, limitaciones…"
+              saveLabel="Guardar Magia"
+              SaveIcon={Sparkles}
+            />
+          )}
+
+          {/* Header del tab activo (solo para tabs de lista) */}
+          {!["mundo", "historia", "magia"].includes(mobileTab) && (() => {
             const t = TABS.find(t => t.key === mobileTab);
             if (!t) return null;
             const color = t.color ?? "var(--primary)";
@@ -2492,7 +2459,7 @@ function PanelListas({ initialSubTab, initialItemId }: { initialSubTab?: string;
           })()}
 
           {/* Buscador */}
-          {mobileTab !== "grupos" && (
+          {!["mundo", "historia", "magia"].includes(mobileTab) && mobileTab !== "grupos" && (
             <SearchInput
               value={searchMap[mobileTab] ?? ""}
               onChange={v => setSearchMap[mobileTab]?.(v)}
@@ -2501,7 +2468,7 @@ function PanelListas({ initialSubTab, initialItemId }: { initialSubTab?: string;
           )}
 
           {/* Listado */}
-          <div className={mobileTab === "grupos"
+          {!["mundo", "historia", "magia"].includes(mobileTab) && <div className={mobileTab === "grupos"
             ? "flex-1 flex min-h-0 overflow-hidden relative"
             : "flex-1 overflow-y-auto min-h-0 px-3 pb-3 space-y-0.5 relative"
           }>
@@ -2733,7 +2700,7 @@ function PanelListas({ initialSubTab, initialItemId }: { initialSubTab?: string;
                 }}
               />
             )}
-          </div>
+          </div>}
         </div>
       </div>
     </div>
