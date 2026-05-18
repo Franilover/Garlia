@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import { Globe, Mountain, Landmark, Users, Coins, Plus, Trash2, ChevronUp, ChevronDown, ChevronRight, UserCircle2, Loader2, MapPin, Check, X } from "lucide-react";
+import { Globe, Mountain, Landmark, Users, Coins, Plus, Trash2, ChevronUp, ChevronDown, ChevronRight, UserCircle2, Loader2, MapPin, Map, Check, X } from "lucide-react";
 import { INPUT_CLS, type ReinoDetalle } from "./types";
 import { MarkdownEditor, WikiEntity } from "../../../../forms/MarkdownEditor";
 import { useWikilink } from "../../../../forms/WikilinkContext";
@@ -447,7 +447,7 @@ function TimelineRow({
 
 // ─── Definición de secciones ─────────────────────────────────────────────────
 
-type LoreKey = "historia" | "geografia" | "cultura" | "politica" | "economia" | "personajes" | "puntos";
+type LoreKey = "historia" | "geografia" | "cultura" | "politica" | "economia" | "personajes" | "puntos" | "mapa";
 
 const LORE_SECTIONS: {
   key: LoreKey;
@@ -456,6 +456,13 @@ const LORE_SECTIONS: {
   placeholder: string;
   rows: number;
 }[] = [
+  {
+    key: "mapa",
+    label: "Mapa",
+    Icon: Map,
+    placeholder: "",
+    rows: 0,
+  },
   {
     key: "historia",
     label: "Historia",
@@ -533,6 +540,10 @@ export function LoreTab({
   setAddingPoint,
   newPointName,
   setNewPointName,
+  mapaUrl = "",
+  onMapaChange,
+  onDetallesArrayChange,
+  MapaConPuntosComponent,
 }: {
   form: Reino;
   setForm: React.Dispatch<React.SetStateAction<Reino>>;
@@ -550,6 +561,10 @@ export function LoreTab({
   setAddingPoint?: (v: boolean) => void;
   newPointName?: string;
   setNewPointName?: (v: string) => void;
+  mapaUrl?: string;
+  onMapaChange?: (url: string) => void;
+  onDetallesArrayChange?: (d: ReinoDetalle[]) => void;
+  MapaConPuntosComponent?: React.ComponentType<any>;
 }) {
   const [activeKey, setActiveKey] = useState<LoreKey>("historia");
   const { onSnippetAction } = useWikilink();
@@ -560,6 +575,7 @@ export function LoreTab({
   const sectionHasContent = (key: LoreKey): boolean => {
     if (key === "personajes") return personajes.length > 0;
     if (key === "puntos") return detalles.length > 0;
+    if (key === "mapa") return !!mapaUrl;
     const raw = (form as any)[key] as string | undefined;
     if (key === "historia") return historiaHasContent(raw);
     return !!raw?.trim();
@@ -612,7 +628,22 @@ export function LoreTab({
 
         {/* Contenido */}
         <div className="flex-1 overflow-y-auto min-h-0">
-          {activeKey === "historia" ? (
+          {activeKey === "mapa" ? (
+            MapaConPuntosComponent ? (
+              <div className="p-3">
+                <MapaConPuntosComponent
+                  mapaUrl={mapaUrl}
+                  onMapaChange={onMapaChange ?? (() => {})}
+                  detalles={detalles}
+                  onDetallesChange={(d: any) => onDetallesArrayChange?.(d)}
+                />
+              </div>
+            ) : (
+              <div className="flex items-center justify-center py-12 text-primary/20 text-[9px] font-black uppercase tracking-widest">
+                Sin mapa
+              </div>
+            )
+          ) : activeKey === "historia" ? (
             <TimelineEditor
               key="historia-timeline"
               value={(form as any).historia ?? ""}
@@ -744,7 +775,7 @@ export function LoreTab({
         }}
       >
         {([
-          ["puntos", "geografia"],
+          ["mapa", "puntos", "geografia"],
           ["personajes", "cultura", "historia"],
           ["politica", "economia"],
         ] as LoreKey[][]).map((group, gi) => (
