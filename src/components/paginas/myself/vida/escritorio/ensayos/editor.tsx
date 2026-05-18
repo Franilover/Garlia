@@ -112,7 +112,7 @@ export function Editor({
         className="flex flex-col flex-1 min-h-0"
       >
         {/* ── Title input ── */}
-        <div className="shrink-0 px-8 pt-8 pb-4" style={{ background: "transparent" }}>
+        <div className="shrink-0 px-8 pt-5 pb-2" style={{ background: "transparent" }}>
           <input
             type="text"
             value={localTitulo}
@@ -122,7 +122,7 @@ export function Editor({
             }}
             className="w-full bg-transparent outline-none border-none"
             style={{
-              fontSize: "clamp(22px, 3vw, 36px)",
+              fontSize: "clamp(18px, 3vw, 26px)",
               fontFamily: "var(--font-serif)",
               fontStyle: "italic",
               color: "color-mix(in srgb, var(--foreground) 85%, transparent)",
@@ -134,8 +134,8 @@ export function Editor({
 
           {/* ── Meta row ── */}
           <div
-            className="flex items-center mt-3"
-            style={{ borderBottom: "1px solid color-mix(in srgb, var(--foreground) 6%, transparent)", paddingBottom: 16 }}
+            className="flex items-center mt-1.5"
+            style={{ borderBottom: "1px solid color-mix(in srgb, var(--foreground) 6%, transparent)", paddingBottom: 8 }}
           >
             {/* Tags — left */}
             <div className="flex items-center gap-1.5 flex-1 min-w-0">
