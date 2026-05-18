@@ -755,7 +755,7 @@ export function LoreTab({
               </div>
 
               {/* Columna derecha — Puntos de interés */}
-              <div className="shrink-0 flex flex-col overflow-hidden" style={{ width: "200px" }}>
+              <div className="flex-1 flex flex-col overflow-hidden min-w-0">
                 {/* Sub-header puntos */}
                 <div
                   className="shrink-0 flex items-center gap-1.5 px-3 py-2 border-b"
