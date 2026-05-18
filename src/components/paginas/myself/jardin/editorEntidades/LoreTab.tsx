@@ -734,65 +734,82 @@ export function LoreTab({
         </div>
       </div>
 
-      {/* ── Nav lateral derecha — iconos ─────────────────────────────────────── */}
+      {/* ── Nav lateral derecha — iconos agrupados ───────────────────────────── */}
       <nav
-        className="shrink-0 flex flex-col items-center gap-1 py-2 px-1.5 border-l overflow-y-auto"
+        className="shrink-0 flex flex-col items-center gap-2 py-2 px-1.5 border-l overflow-y-auto"
         style={{
           width: "40px",
           borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
           background: "color-mix(in srgb, var(--primary) 2%, transparent)",
         }}
       >
-        {LORE_SECTIONS.map(({ key, label, Icon }) => {
-          const hasContent = sectionHasContent(key);
-          const isActive = key === activeKey;
-          const count = key === "personajes" ? personajes.length : key === "puntos" ? detalles.length : 0;
+        {([
+          ["puntos", "geografia"],
+          ["personajes", "cultura", "historia"],
+          ["politica", "economia"],
+        ] as LoreKey[][]).map((group, gi) => (
+          <div
+            key={gi}
+            className="flex flex-col items-center gap-0.5 p-1 rounded-xl"
+            style={{
+              background: "color-mix(in srgb, var(--primary) 5%, transparent)",
+              border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+            }}
+          >
+            {group.map((key) => {
+              const section = LORE_SECTIONS.find(s => s.key === key)!;
+              const { Icon, label } = section;
+              const hasContent = sectionHasContent(key);
+              const isActive = key === activeKey;
+              const count = key === "personajes" ? personajes.length : key === "puntos" ? detalles.length : 0;
 
-          return (
-            <button
-              key={key}
-              type="button"
-              onClick={() => setActiveKey(key)}
-              title={label}
-              className="relative flex items-center justify-center w-7 h-7 rounded-lg transition-all"
-              style={
-                isActive
-                  ? {
-                      background: "color-mix(in srgb, var(--primary) 13%, transparent)",
-                      color: "var(--primary)",
-                      border: "1px solid color-mix(in srgb, var(--primary) 22%, transparent)",
-                    }
-                  : {
-                      color: "color-mix(in srgb, var(--primary) 30%, transparent)",
-                      border: "1px solid transparent",
-                    }
-              }
-            >
-              <Icon size={13} />
-
-              {/* Dot — secciones de texto con contenido */}
-              {hasContent && count === 0 && (
-                <span
-                  className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full"
-                  style={{ background: isActive ? "var(--primary)" : "color-mix(in srgb, var(--primary) 45%, transparent)" }}
-                />
-              )}
-
-              {/* Badge numérico — personajes y puntos */}
-              {count > 0 && (
-                <span
-                  className="absolute -top-1 -right-1 text-[7px] font-black min-w-[14px] h-[14px] rounded-full flex items-center justify-center px-0.5"
-                  style={{
-                    background: isActive ? "var(--primary)" : "color-mix(in srgb, var(--primary) 18%, transparent)",
-                    color: isActive ? "var(--btn-text, white)" : "color-mix(in srgb, var(--primary) 65%, transparent)",
-                  }}
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setActiveKey(key)}
+                  title={label}
+                  className="relative flex items-center justify-center w-6 h-6 rounded-lg transition-all"
+                  style={
+                    isActive
+                      ? {
+                          background: "color-mix(in srgb, var(--primary) 15%, transparent)",
+                          color: "var(--primary)",
+                          border: "1px solid color-mix(in srgb, var(--primary) 25%, transparent)",
+                        }
+                      : {
+                          color: "color-mix(in srgb, var(--primary) 30%, transparent)",
+                          border: "1px solid transparent",
+                        }
+                  }
                 >
-                  {count}
-                </span>
-              )}
-            </button>
-          );
-        })}
+                  <Icon size={12} />
+
+                  {/* Dot — contenido de texto */}
+                  {hasContent && count === 0 && (
+                    <span
+                      className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full"
+                      style={{ background: isActive ? "var(--primary)" : "color-mix(in srgb, var(--primary) 45%, transparent)" }}
+                    />
+                  )}
+
+                  {/* Badge numérico */}
+                  {count > 0 && (
+                    <span
+                      className="absolute -top-1 -right-1 text-[7px] font-black min-w-[13px] h-[13px] rounded-full flex items-center justify-center px-0.5"
+                      style={{
+                        background: isActive ? "var(--primary)" : "color-mix(in srgb, var(--primary) 18%, transparent)",
+                        color: isActive ? "var(--btn-text, white)" : "color-mix(in srgb, var(--primary) 65%, transparent)",
+                      }}
+                    >
+                      {count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        ))}
       </nav>
 
     </div>
