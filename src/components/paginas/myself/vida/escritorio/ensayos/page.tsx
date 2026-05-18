@@ -518,7 +518,6 @@ export default function Ensayos() {
             ) : (
               <div className="flex items-center gap-1.5" style={{ opacity: 0.3 }}>
                 <PenTool size={10} style={{ color: "var(--foreground)" }} />
-                <span style={{ fontSize: 9, fontFamily: "var(--font-mono)", color: "var(--foreground)", textTransform: "uppercase", letterSpacing: "0.12em" }}>notas</span>
               </div>
             )}
           </div>
