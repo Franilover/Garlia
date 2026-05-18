@@ -584,11 +584,6 @@ export function GrafoEnsayos({
       >
         <Network size={10} />
         red
-        {nRelacionados > 0 && (
-          <span className="text-[8px] px-1 rounded bg-primary/10 text-primary/40">
-            {nRelacionados}
-          </span>
-        )}
       </button>
 
       {/* ── Modal (portal → escapa el backdrop-filter del padre) ── */}
