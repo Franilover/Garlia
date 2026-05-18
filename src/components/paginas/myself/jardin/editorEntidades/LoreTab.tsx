@@ -568,109 +568,41 @@ export function LoreTab({
   return (
     <div className="flex h-full min-h-0">
 
-      {/* ── Nav lateral — solo iconos ────────────────────────────────────────── */}
-      <nav
-        className="shrink-0 flex flex-col gap-0.5 p-2 border-r overflow-y-auto"
-        style={{
-          width: "44px",
-          borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
-          background: "color-mix(in srgb, var(--primary) 2%, transparent)",
-        }}
-      >
-        {LORE_SECTIONS.map(({ key, label, Icon }) => {
-          const hasContent = sectionHasContent(key);
-          const isActive = key === activeKey;
-
-          return (
-            <button
-              key={key}
-              type="button"
-              onClick={() => setActiveKey(key)}
-              title={label}
-              className="relative flex items-center justify-center w-7 h-7 rounded-lg transition-all mx-auto"
-              style={
-                isActive
-                  ? {
-                      background: "color-mix(in srgb, var(--primary) 12%, transparent)",
-                      color: "var(--primary)",
-                      border: "1px solid color-mix(in srgb, var(--primary) 22%, transparent)",
-                    }
-                  : {
-                      color: "color-mix(in srgb, var(--primary) 35%, transparent)",
-                      border: "1px solid transparent",
-                    }
-              }
-            >
-              <Icon size={13} />
-              {/* Dot de contenido */}
-              {hasContent && key !== "personajes" && key !== "puntos" && (
-                <span
-                  className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full"
-                  style={{ background: isActive ? "var(--primary)" : "color-mix(in srgb, var(--primary) 40%, transparent)" }}
-                />
-              )}
-              {/* Badge count personajes */}
-              {key === "personajes" && personajes.length > 0 && (
-                <span
-                  className="absolute -top-1 -right-1 text-[7px] font-black w-3.5 h-3.5 rounded-full flex items-center justify-center"
-                  style={{
-                    background: isActive ? "var(--primary)" : "color-mix(in srgb, var(--primary) 20%, transparent)",
-                    color: isActive ? "var(--btn-text, white)" : "color-mix(in srgb, var(--primary) 70%, transparent)",
-                  }}
-                >
-                  {personajes.length}
-                </span>
-              )}
-              {/* Badge count puntos */}
-              {key === "puntos" && detalles.length > 0 && (
-                <span
-                  className="absolute -top-1 -right-1 text-[7px] font-black w-3.5 h-3.5 rounded-full flex items-center justify-center"
-                  style={{
-                    background: isActive ? "var(--primary)" : "color-mix(in srgb, var(--primary) 20%, transparent)",
-                    color: isActive ? "var(--btn-text, white)" : "color-mix(in srgb, var(--primary) 70%, transparent)",
-                  }}
-                >
-                  {detalles.length}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </nav>
-
       {/* ── Panel editor ─────────────────────────────────────────────────────── */}
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
 
         {/* Cabecera de la sección activa */}
         <div
           className="shrink-0 flex items-center gap-2 px-4 py-2.5 border-b"
-          style={{
-            borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
-          }}
+          style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
         >
-          <active.Icon
-            size={11}
-            style={{ color: "color-mix(in srgb, var(--primary) 50%, transparent)" }}
-          />
+          <active.Icon size={11} style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }} />
           <span className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/40">
             {active.label}
           </span>
 
-          {/* Badge "vacío" */}
+          {/* Badge vacío */}
           {!sectionHasContent(active.key) && (
             <span className="text-[8px] font-black uppercase tracking-widest text-primary/20 border border-primary/10 px-1.5 py-0.5 rounded-md">
               vacío
             </span>
           )}
 
-          {/* Badge count para personajes */}
+          {/* Badge count personajes */}
           {active.key === "personajes" && personajes.length > 0 && (
             <span className="text-[8px] font-black uppercase tracking-widest text-primary/30 border border-primary/10 px-1.5 py-0.5 rounded-md">
               {personajes.length}
             </span>
           )}
 
-          {/* Badge "línea de tiempo" cuando está en historia */}
+          {/* Badge count puntos */}
+          {active.key === "puntos" && detalles.length > 0 && (
+            <span className="text-[8px] font-black uppercase tracking-widest text-primary/30 border border-primary/10 px-1.5 py-0.5 rounded-md">
+              {detalles.length}
+            </span>
+          )}
+
+          {/* Badge línea de tiempo */}
           {active.key === "historia" && (
             <span className="ml-auto text-[8px] font-black uppercase tracking-widest text-primary/25 border border-primary/10 px-1.5 py-0.5 rounded-md">
               Línea de tiempo
@@ -678,7 +610,7 @@ export function LoreTab({
           )}
         </div>
 
-        {/* Contenido: línea de tiempo para historia, personajes, MarkdownEditor para el resto */}
+        {/* Contenido */}
         <div className="flex-1 overflow-y-auto min-h-0">
           {activeKey === "historia" ? (
             <TimelineEditor
@@ -739,15 +671,22 @@ export function LoreTab({
           ) : activeKey === "puntos" ? (
             <div className="p-3 space-y-2">
               {detalles.length === 0 && !addingPoint && (
-                <p className="text-[10px] font-bold text-primary/25 uppercase tracking-widest text-center py-6 border border-dashed border-primary/10 rounded-xl italic">
-                  Sin puntos registrados
-                </p>
+                <div className="flex flex-col items-center gap-2 py-10 text-primary/20">
+                  <MapPin size={22} strokeWidth={1} />
+                  <p className="text-[9px] font-black uppercase tracking-widest">Sin puntos registrados</p>
+                </div>
               )}
               {detalles.map(det => (
-                <div key={det.id} className="text-[11px] font-black uppercase tracking-widest text-primary/60 flex items-center gap-2 px-3 py-2 rounded-lg" style={{ border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, transparent)" }}>
+                <div
+                  key={det.id}
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg"
+                  style={{ border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, transparent)" }}
+                >
                   <MapPin size={10} className="text-primary/30 shrink-0" />
-                  <span className="flex-1 truncate">{det.nombre}</span>
-                  {det.oculto && <span className="text-[8px] text-orange-400/60 font-black">oculto</span>}
+                  <span className="flex-1 truncate text-[11px] font-black uppercase tracking-widest text-primary/60">{det.nombre}</span>
+                  {det.oculto && (
+                    <span className="text-[8px] font-black uppercase tracking-widest text-orange-400/60">oculto</span>
+                  )}
                 </div>
               ))}
               {addingPoint ? (
@@ -794,6 +733,68 @@ export function LoreTab({
           )}
         </div>
       </div>
+
+      {/* ── Nav lateral derecha — iconos ─────────────────────────────────────── */}
+      <nav
+        className="shrink-0 flex flex-col items-center gap-1 py-2 px-1.5 border-l overflow-y-auto"
+        style={{
+          width: "40px",
+          borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
+          background: "color-mix(in srgb, var(--primary) 2%, transparent)",
+        }}
+      >
+        {LORE_SECTIONS.map(({ key, label, Icon }) => {
+          const hasContent = sectionHasContent(key);
+          const isActive = key === activeKey;
+          const count = key === "personajes" ? personajes.length : key === "puntos" ? detalles.length : 0;
+
+          return (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setActiveKey(key)}
+              title={label}
+              className="relative flex items-center justify-center w-7 h-7 rounded-lg transition-all"
+              style={
+                isActive
+                  ? {
+                      background: "color-mix(in srgb, var(--primary) 13%, transparent)",
+                      color: "var(--primary)",
+                      border: "1px solid color-mix(in srgb, var(--primary) 22%, transparent)",
+                    }
+                  : {
+                      color: "color-mix(in srgb, var(--primary) 30%, transparent)",
+                      border: "1px solid transparent",
+                    }
+              }
+            >
+              <Icon size={13} />
+
+              {/* Dot — secciones de texto con contenido */}
+              {hasContent && count === 0 && (
+                <span
+                  className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full"
+                  style={{ background: isActive ? "var(--primary)" : "color-mix(in srgb, var(--primary) 45%, transparent)" }}
+                />
+              )}
+
+              {/* Badge numérico — personajes y puntos */}
+              {count > 0 && (
+                <span
+                  className="absolute -top-1 -right-1 text-[7px] font-black min-w-[14px] h-[14px] rounded-full flex items-center justify-center px-0.5"
+                  style={{
+                    background: isActive ? "var(--primary)" : "color-mix(in srgb, var(--primary) 18%, transparent)",
+                    color: isActive ? "var(--btn-text, white)" : "color-mix(in srgb, var(--primary) 65%, transparent)",
+                  }}
+                >
+                  {count}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </nav>
+
     </div>
   );
 }
