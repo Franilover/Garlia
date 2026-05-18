@@ -555,7 +555,7 @@ function DetalleEditor({ detalle, onSaved, onDeleted, entities = [] }: {
 
 // ─── Definición de secciones ─────────────────────────────────────────────────
 
-type LoreKey = "historia" | "geografia" | "cultura" | "politica" | "economia" | "personajes" | "mapa";
+type LoreKey = "historia_cultura" | "geografia" | "politica_economia" | "personajes" | "mapa";
 
 const LORE_SECTIONS: {
   key: LoreKey;
@@ -566,17 +566,17 @@ const LORE_SECTIONS: {
 }[] = [
   {
     key: "mapa",
-    label: "Mapa",
+    label: "Mapa & Puntos",
     Icon: Map,
     placeholder: "",
     rows: 0,
   },
   {
-    key: "historia",
-    label: "Historia",
+    key: "historia_cultura",
+    label: "Historia & Cultura",
     Icon: Globe,
-    placeholder: "Origen, eventos clave, cronología del reino…",
-    rows: 20,
+    placeholder: "",
+    rows: 0,
   },
   {
     key: "geografia",
@@ -586,25 +586,11 @@ const LORE_SECTIONS: {
     rows: 20,
   },
   {
-    key: "cultura",
-    label: "Cultura",
-    Icon: Landmark,
-    placeholder: "Tradiciones, religión, idioma, costumbres, arte…",
-    rows: 20,
-  },
-  {
-    key: "politica",
-    label: "Política",
+    key: "politica_economia",
+    label: "Política & Economía",
     Icon: Users,
-    placeholder: "Sistema de gobierno, facciones, líderes, leyes…",
-    rows: 20,
-  },
-  {
-    key: "economia",
-    label: "Economía",
-    Icon: Coins,
-    placeholder: "Recursos, comercio, moneda, riqueza…",
-    rows: 20,
+    placeholder: "",
+    rows: 0,
   },
   {
     key: "personajes",
@@ -671,7 +657,7 @@ export function LoreTab({
   onDetallesArrayChange?: (d: ReinoDetalle[]) => void;
   MapaConPuntosComponent?: React.ComponentType<any>;
 }) {
-  const [activeKey, setActiveKey] = useState<LoreKey>("historia");
+  const [activeKey, setActiveKey] = useState<LoreKey>("historia_cultura");
   const { onSnippetAction } = useWikilink();
 
   const active = LORE_SECTIONS.find((s) => s.key === activeKey)!;
@@ -680,8 +666,9 @@ export function LoreTab({
   const sectionHasContent = (key: LoreKey): boolean => {
     if (key === "personajes") return personajes.length > 0;
     if (key === "mapa") return !!mapaUrl || detalles.length > 0;
+    if (key === "historia_cultura") return historiaHasContent((form as any).historia) || !!((form as any).cultura?.trim());
+    if (key === "politica_economia") return !!((form as any).politica?.trim()) || !!((form as any).economia?.trim());
     const raw = (form as any)[key] as string | undefined;
-    if (key === "historia") return historiaHasContent(raw);
     return !!raw?.trim();
   };
 
@@ -698,7 +685,7 @@ export function LoreTab({
         >
           <active.Icon size={11} style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }} />
           <span className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/40">
-            {active.key === "mapa" ? "Mapa & Puntos" : active.label}
+            {active.label}
           </span>
 
           {/* Badge vacío */}
@@ -723,15 +710,15 @@ export function LoreTab({
           )}
 
           {/* Badge línea de tiempo */}
-          {active.key === "historia" && (
+          {active.key === "historia_cultura" && (
             <span className="ml-auto text-[8px] font-black uppercase tracking-widest text-primary/25 border border-primary/10 px-1.5 py-0.5 rounded-md">
-              Línea de tiempo
+              Línea de tiempo + texto
             </span>
           )}
         </div>
 
         {/* Contenido */}
-        <div className="flex-1 min-h-0" style={{ overflow: activeKey === "mapa" ? "hidden" : "auto" }}>
+        <div className="flex-1 min-h-0" style={{ overflow: (activeKey === "mapa" || activeKey === "historia_cultura" || activeKey === "politica_economia") ? "hidden" : "auto" }}>
           {activeKey === "mapa" ? (
             <div className="flex h-full min-h-0">
               {/* Columna izquierda — Mapa */}
@@ -818,14 +805,94 @@ export function LoreTab({
                 </div>
               </div>
             </div>
-          ) : activeKey === "historia" ? (
-            <TimelineEditor
-              key="historia-timeline"
-              value={(form as any).historia ?? ""}
-              onChange={(v) => setForm((f) => ({ ...f, historia: v }))}
-              reinos={reinos}
-              filtroReinoId={filtroReinoId}
-            />
+          ) : activeKey === "historia_cultura" ? (
+            <div className="flex h-full min-h-0">
+              {/* Columna izquierda — Historia (timeline) */}
+              <div
+                className="flex-1 min-w-0 flex flex-col overflow-hidden"
+                style={{ borderRight: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
+              >
+                <div className="shrink-0 flex items-center gap-1.5 px-3 py-2 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+                  <Globe size={9} style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }} />
+                  <span className="text-[8px] font-black uppercase tracking-widest text-primary/35">Historia</span>
+                </div>
+                <div className="flex-1 min-h-0 overflow-hidden">
+                  <TimelineEditor
+                    key="historia-timeline"
+                    value={(form as any).historia ?? ""}
+                    onChange={(v) => setForm((f) => ({ ...f, historia: v }))}
+                    reinos={reinos}
+                    filtroReinoId={filtroReinoId}
+                  />
+                </div>
+              </div>
+              {/* Columna derecha — Cultura */}
+              <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
+                <div className="shrink-0 flex items-center gap-1.5 px-3 py-2 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+                  <Landmark size={9} style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }} />
+                  <span className="text-[8px] font-black uppercase tracking-widest text-primary/35">Cultura</span>
+                </div>
+                <div className="flex-1 min-h-0 overflow-y-auto p-3">
+                  <MarkdownEditor
+                    key="cultura"
+                    value={(form as any).cultura ?? ""}
+                    onChange={(v) => setForm((f) => ({ ...f, cultura: v }))}
+                    placeholder="Tradiciones, religión, idioma, costumbres, arte…"
+                    rows={20}
+                    toolbar
+                    defaultMode="edit"
+                    onSnippetAction={onSnippetAction}
+                    entities={entities}
+                  />
+                </div>
+              </div>
+            </div>
+          ) : activeKey === "politica_economia" ? (
+            <div className="flex h-full min-h-0">
+              {/* Columna izquierda — Política */}
+              <div
+                className="flex-1 min-w-0 flex flex-col overflow-hidden"
+                style={{ borderRight: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
+              >
+                <div className="shrink-0 flex items-center gap-1.5 px-3 py-2 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+                  <Users size={9} style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }} />
+                  <span className="text-[8px] font-black uppercase tracking-widest text-primary/35">Política</span>
+                </div>
+                <div className="flex-1 min-h-0 overflow-y-auto p-3">
+                  <MarkdownEditor
+                    key="politica"
+                    value={(form as any).politica ?? ""}
+                    onChange={(v) => setForm((f) => ({ ...f, politica: v }))}
+                    placeholder="Sistema de gobierno, facciones, líderes, leyes…"
+                    rows={20}
+                    toolbar
+                    defaultMode="edit"
+                    onSnippetAction={onSnippetAction}
+                    entities={entities}
+                  />
+                </div>
+              </div>
+              {/* Columna derecha — Economía */}
+              <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
+                <div className="shrink-0 flex items-center gap-1.5 px-3 py-2 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+                  <Coins size={9} style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }} />
+                  <span className="text-[8px] font-black uppercase tracking-widest text-primary/35">Economía</span>
+                </div>
+                <div className="flex-1 min-h-0 overflow-y-auto p-3">
+                  <MarkdownEditor
+                    key="economia"
+                    value={(form as any).economia ?? ""}
+                    onChange={(v) => setForm((f) => ({ ...f, economia: v }))}
+                    placeholder="Recursos, comercio, moneda, riqueza…"
+                    rows={20}
+                    toolbar
+                    defaultMode="edit"
+                    onSnippetAction={onSnippetAction}
+                    entities={entities}
+                  />
+                </div>
+              </div>
+            </div>
           ) : activeKey === "personajes" ? (
             <div className="p-4 space-y-2">
               {loadingPersonajes ? (
@@ -903,8 +970,8 @@ export function LoreTab({
       >
         {([
           ["mapa", "geografia"],
-          ["personajes", "cultura", "historia"],
-          ["politica", "economia"],
+          ["historia_cultura", "politica_economia"],
+          ["personajes"],
         ] as LoreKey[][]).map((group, gi) => (
           <div
             key={gi}
