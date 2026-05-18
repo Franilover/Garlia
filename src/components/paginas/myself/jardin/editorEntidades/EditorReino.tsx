@@ -407,6 +407,8 @@ export function EditorReino({ item, onSaved, onDeleted, entities = [], onSelectP
             setAddingPoint={setAddingPoint}
             newPointName={newPointName}
             setNewPointName={setNewPointName}
+            onDetalleUpdate={d => setDetalles(prev => prev.map(x => x.id === d.id ? d : x))}
+            onDetalleDelete={id => setDetalles(prev => prev.filter(x => x.id !== id))}
             mapaUrl={form.mapa_url ?? ""}
             onMapaChange={url => setForm(f => ({ ...f, mapa_url: url }))}
             onDetallesArrayChange={handleDetallesMapChange}

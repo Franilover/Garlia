@@ -1,9 +1,13 @@
-import React, { useState, useRef } from "react";
-import { Globe, Mountain, Landmark, Users, Coins, Plus, Trash2, ChevronUp, ChevronDown, ChevronRight, UserCircle2, Loader2, MapPin, Map, Check, X } from "lucide-react";
-import { INPUT_CLS, type ReinoDetalle } from "./types";
+import React, { useState, useRef, useEffect } from "react";
+import { Globe, Mountain, Landmark, Users, Coins, Plus, Trash2, ChevronUp, ChevronDown, ChevronRight, UserCircle2, Loader2, MapPin, Map, Check, X, Eye, EyeOff } from "lucide-react";
+import { INPUT_CLS, type ReinoDetalle, type SaveStatus } from "./types";
 import { MarkdownEditor, WikiEntity } from "../../../../forms/MarkdownEditor";
 import { useWikilink } from "../../../../forms/WikilinkContext";
 import { type Reino } from "./types";
+import { supabase } from "@/lib/api/client/supabase";
+import { db } from "@/lib/api/client/db";
+import { useConfirm } from "@/components/ui/ConfirmModal";
+import { SaveIndicator } from "./UIComponents";
 
 // ─── Tipo Personaje (local) ───────────────────────────────────────────────────
 type Personaje = {
@@ -445,6 +449,110 @@ function TimelineRow({
   );
 }
 
+// ─── Dexie helpers ────────────────────────────────────────────────────────────
+async function dexiePut(tabla: string, row: any): Promise<void> {
+  try { if (db) await (db as any)[tabla]?.put(row); } catch {}
+}
+async function dexieDel(tabla: string, id: string): Promise<void> {
+  try { if (db) await (db as any)[tabla]?.delete(id); } catch {}
+}
+
+// ─── DetalleEditor ─────────────────────────────────────────────────────────────
+function DetalleEditor({ detalle, onSaved, onDeleted, entities = [] }: {
+  detalle: ReinoDetalle; onSaved: (d: ReinoDetalle) => void; onDeleted: (id: string) => void; entities?: WikiEntity[];
+}) {
+  const [form, setForm] = useState(detalle);
+  const [expanded, setExpanded] = useState(false);
+  const [status, setStatus] = useState<SaveStatus>("idle");
+  const { confirm, ConfirmModal } = useConfirm();
+  const { onSnippetAction } = useWikilink();
+
+  const prevCoords = useRef({ x: detalle.coord_x, y: detalle.coord_y });
+  useEffect(() => {
+    if (detalle.coord_x !== prevCoords.current.x || detalle.coord_y !== prevCoords.current.y) {
+      prevCoords.current = { x: detalle.coord_x, y: detalle.coord_y };
+      setForm(f => ({ ...f, coord_x: detalle.coord_x, coord_y: detalle.coord_y }));
+    }
+  }, [detalle.coord_x, detalle.coord_y]);
+
+  const saveDetalle = async (data: ReinoDetalle) => {
+    setStatus("saving");
+    try {
+      const { error } = await supabase.from("reino_detalles").update({
+        nombre: data.nombre, descripcion: data.descripcion,
+        coord_x: data.coord_x, coord_y: data.coord_y, oculto: data.oculto ?? false,
+      }).eq("id", data.id);
+      if (error) throw error;
+      setStatus("saved"); onSaved(data);
+      void dexiePut("reino_detalles", data);
+      setTimeout(() => setStatus("idle"), 2000);
+    } catch { setStatus("error"); }
+  };
+
+  const toggleOculto = async (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    const nuevo = { ...form, oculto: !form.oculto };
+    setForm(nuevo); await saveDetalle(nuevo);
+  };
+
+  return (
+    <div className="rounded-xl overflow-hidden transition-all"
+      style={{ border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, transparent)" }}>
+      <ConfirmModal />
+      <div className="flex items-center gap-2 px-3 py-2.5 cursor-pointer" onClick={() => setExpanded(!expanded)}>
+        <MapPin size={11} className={`shrink-0 ${form.oculto ? "text-primary/20" : "text-primary/40"}`} />
+        <span className={`flex-1 text-[11px] font-black uppercase tracking-widest truncate ${form.oculto ? "text-primary/30 line-through" : "text-primary"}`}>{form.nombre}</span>
+        {form.oculto && (
+          <span className="shrink-0 text-[8px] font-black uppercase tracking-widest text-orange-400/70 bg-orange-400/10 border border-orange-400/20 px-1.5 py-0.5 rounded-lg flex items-center gap-1">
+            <EyeOff size={8} /> Oculto
+          </span>
+        )}
+        <button onClick={toggleOculto} className={`shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all border ${
+          form.oculto ? "text-orange-400 bg-orange-400/10 border-orange-400/30" : "text-primary/40 bg-primary/5 border-primary/10 hover:text-primary"
+        }`}>
+          {form.oculto ? <Eye size={9} /> : <EyeOff size={9} />}
+        </button>
+        <X size={12} className="text-primary/25 transition-transform duration-200" style={{ transform: expanded ? "rotate(45deg)" : undefined }} />
+      </div>
+
+      {expanded && (
+        <div className="px-3 pb-3 pt-0 border-t space-y-3" style={{ borderColor: "color-mix(in srgb, var(--primary) 6%, transparent)" }}>
+          <div className="mt-3">
+            <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">Nombre</label>
+            <input value={form.nombre} onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))} className={INPUT_CLS + " mt-1"} placeholder="Nombre del lugar" />
+          </div>
+          <div>
+            <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35 block mb-1">Descripción</label>
+            <MarkdownEditor value={form.descripcion ?? ""} onChange={v => setForm(f => ({ ...f, descripcion: v }))}
+              rows={4} placeholder="Describe este lugar…" toolbar defaultMode="edit"
+              onSnippetAction={onSnippetAction}
+              entities={entities}
+            />
+          </div>
+          <div className="flex items-center justify-between">
+            <button onClick={async () => {
+              const ok = await confirm({ message: `¿Eliminar punto "${form.nombre}"?`, danger: true });
+              if (!ok) return;
+              await supabase.from("reino_detalles").delete().eq("id", form.id);
+              void dexieDel("reino_detalles", form.id);
+              onDeleted(form.id);
+            }} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest text-red-400/60 hover:text-red-400 hover:bg-red-500/10 transition-all border border-transparent hover:border-red-500/20">
+              <Trash2 size={10} /> Eliminar
+            </button>
+            <div className="flex items-center gap-2">
+              <SaveIndicator status={status} />
+              <button onClick={() => saveDetalle(form)}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-btn-text rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-primary/90 transition-all">
+                <Check size={10} /> Guardar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Definición de secciones ─────────────────────────────────────────────────
 
 type LoreKey = "historia" | "geografia" | "cultura" | "politica" | "economia" | "personajes" | "mapa";
@@ -533,6 +641,8 @@ export function LoreTab({
   setAddingPoint,
   newPointName,
   setNewPointName,
+  onDetalleUpdate,
+  onDetalleDelete,
   mapaUrl = "",
   onMapaChange,
   onDetallesArrayChange,
@@ -554,6 +664,8 @@ export function LoreTab({
   setAddingPoint?: (v: boolean) => void;
   newPointName?: string;
   setNewPointName?: (v: string) => void;
+  onDetalleUpdate?: (d: ReinoDetalle) => void;
+  onDetalleDelete?: (id: string) => void;
   mapaUrl?: string;
   onMapaChange?: (url: string) => void;
   onDetallesArrayChange?: (d: ReinoDetalle[]) => void;
@@ -665,17 +777,13 @@ export function LoreTab({
                     </div>
                   )}
                   {detalles.map(det => (
-                    <div
+                    <DetalleEditor
                       key={det.id}
-                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg"
-                      style={{ border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, transparent)" }}
-                    >
-                      <MapPin size={9} className="text-primary/25 shrink-0" />
-                      <span className="flex-1 truncate text-[10px] font-black uppercase tracking-widest text-primary/55">{det.nombre}</span>
-                      {det.oculto && (
-                        <span className="text-[7px] font-black uppercase tracking-widest text-orange-400/50">·</span>
-                      )}
-                    </div>
+                      detalle={det}
+                      entities={entities}
+                      onSaved={d => onDetalleUpdate?.(d)}
+                      onDeleted={id => onDetalleDelete?.(id)}
+                    />
                   ))}
 
                   {/* Añadir punto */}
