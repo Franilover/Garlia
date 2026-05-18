@@ -583,7 +583,6 @@ export function GrafoEnsayos({
         className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-[9px] font-bold uppercase tracking-widest border transition-all border-primary/10 text-primary/35 hover:bg-primary/8 hover:border-primary/25 hover:text-primary/70"
       >
         <Network size={10} />
-        red
       </button>
 
       {/* ── Modal (portal → escapa el backdrop-filter del padre) ── */}
