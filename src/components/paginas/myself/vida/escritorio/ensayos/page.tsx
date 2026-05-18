@@ -14,6 +14,7 @@ import Editor from "@/components/paginas/myself/vida/escritorio/ensayos/editor";
 import { EmptyState } from "@/components/paginas/myself/vida/escritorio/ensayos/emptyState";
 import NewNoteModal from "@/components/paginas/myself/vida/escritorio/ensayos/newNoteModal";
 import { GrafoEnsayos } from "@/components/paginas/myself/vida/escritorio/ensayos/GrafoEnsayos";
+import { HomeDashboard } from "@/components/paginas/myself/vida/escritorio/ensayos/HomeDashboard";
 
 export interface ZoteroSource {
   title: string;
@@ -717,34 +718,34 @@ export default function Ensayos() {
         </div>
 
         {/* ── Contenido principal ── */}
-        <main
-          className="relative flex-1 overflow-y-auto min-h-0"
-          style={{ background: "var(--editor-bg, var(--bg-main))" }}
-        >
+        <main className="flex-1 flex flex-col min-w-0 bg-background overflow-y-auto">
           {loading ? (
-            <div className="flex items-center justify-center h-full">
-              <div className="flex flex-col gap-3 items-center">
-                <Loader2 size={16} style={{ color: "color-mix(in srgb, var(--foreground) 20%, transparent)", animation: "spin 1s linear infinite" }} />
-                <span style={{ fontSize: 10, fontFamily: "var(--font-mono)", color: "color-mix(in srgb, var(--foreground) 15%, transparent)", textTransform: "uppercase", letterSpacing: "0.15em" }}>
-                  cargando...
-                </span>
-              </div>
+            <div className="flex-1 flex items-center justify-center">
+              <Loader2 className="animate-spin text-primary/20" />
             </div>
           ) : (
-            <AnimatePresence>
+            <AnimatePresence mode="wait">
               {ensayoActivo ? (
-                <Editor
-                  ensayo={ensayoActivo}
-                  ensayos={ensayos}
-                  sources={sources}
-                  editMode={editMode}
-                  onToggleEditMode={() => setEditMode(p => !p)}
-                  onUpdateField={actualizarLocal}
-                  onNavigateToPage={(name) => navigateToPage(name, false)}
-                  entities={allWikilinkNames}
-                />
+                  <Editor
+                        key={ensayoActivo.id}
+                        ensayo={ensayoActivo}
+                        ensayos={ensayos} // <--- Faltaba esta prop
+                        sources={sources}
+                        editMode={editMode} // <--- Faltaba esta prop
+                        onToggleEditMode={() => setEditMode(p => !p)} // <--- Faltaba esta prop
+                        onUpdateField={actualizarLocal} // <--- Faltaba esta prop
+                        onNavigateToPage={(name) => navigateToPage(name, false)} // <--- Faltaba esta prop
+                        entities={allWikilinkNames}
+                      />
               ) : (
-                <EmptyState key="empty" onCrearEnsayo={() => setShowNewNoteModal(true)} />
+                /* REEMPLAZA EL EMPTYSTATE POR ESTO O COMBÍNALOS */
+                <HomeDashboard 
+                  key="home"
+                  ensayos={ensayos} 
+                  todosLosTags={todosLosTags}
+                  onNavigate={(titulo) => navigateToPage(titulo, false)}
+                  onTagClick={(tag) => setTagActivo(tag)} 
+                />
               )}
             </AnimatePresence>
           )}
