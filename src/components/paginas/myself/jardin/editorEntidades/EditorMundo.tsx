@@ -2393,11 +2393,11 @@ function PanelListas({ initialSubTab, initialItemId }: { initialSubTab?: string;
         </div>
       )}
 
-      {/* ── Layout principal: sidebar + lista ───────────────────────────── */}
-      <div className="flex-1 flex min-h-0 overflow-hidden">
+      {/* ── Layout principal: lista + sidebar ───────────────────────────── */}
+      <div className="flex-1 flex min-h-0 overflow-hidden flex-row-reverse">
 
         {/* Sidebar de navegación — fija, estrecha, con grupos */}
-        <div className="shrink-0 w-48 flex flex-col border-r min-h-0 overflow-y-auto py-2 gap-1"
+        <div className="shrink-0 w-48 flex flex-col border-l min-h-0 overflow-y-auto py-2 gap-1"
           style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
           {TAB_GROUPS.map((group, gi) => (
             <div key={group.label}
