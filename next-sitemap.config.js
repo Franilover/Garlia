@@ -3,14 +3,25 @@ module.exports = {
   siteUrl: 'https://franilover.vercel.app',
   generateRobotsTxt: true,
   stylesheet: '/sitemap.xsl',
-  exclude: [], 
+  exclude: ['/auth/login', '/auth/*', '/admin/*', '/myself', '/myself/*'], 
+  
   transform: async (config, path) => {
-    if (!path) return null;
-    
+    let priority = 0.7;
+    let changefreq = 'daily';
+
+    if (path === '/') {
+      priority = 1.0;
+      changefreq = 'daily';
+    } 
+    else if (path.startsWith('/wiki') || path.startsWith('/personal')) {
+      priority = 0.8;
+      changefreq = 'weekly';
+    }
+
     return {
       loc: path,
-      changefreq: 'daily',
-      priority: 0.7,
+      changefreq: changefreq,
+      priority: priority,
       lastmod: new Date().toISOString(),
     };
   },
