@@ -553,9 +553,173 @@ function DetalleEditor({ detalle, onSaved, onDeleted, entities = [] }: {
   );
 }
 
+// ─── MapaPanel — mapa izquierda + selector Puntos/Geografía derecha ──────────
+type MapaSideTab = "puntos" | "geografia";
+
+function MapaPanel({
+  mapaUrl, onMapaChange, onDetallesArrayChange, MapaConPuntosComponent,
+  detalles, entities, onDetalleUpdate, onDetalleDelete,
+  addingPoint, setAddingPoint, newPointName, setNewPointName, onAddPoint,
+  form, setForm, onSnippetAction,
+}: {
+  mapaUrl: string;
+  onMapaChange?: (url: string) => void;
+  onDetallesArrayChange?: (d: ReinoDetalle[]) => void;
+  MapaConPuntosComponent?: React.ComponentType<any>;
+  detalles: ReinoDetalle[];
+  entities: WikiEntity[];
+  onDetalleUpdate?: (d: ReinoDetalle) => void;
+  onDetalleDelete?: (id: string) => void;
+  addingPoint?: boolean;
+  setAddingPoint?: (v: boolean) => void;
+  newPointName?: string;
+  setNewPointName?: (v: string) => void;
+  onAddPoint?: () => void;
+  form: Reino;
+  setForm: React.Dispatch<React.SetStateAction<Reino>>;
+  onSnippetAction: any;
+}) {
+  const [sideTab, setSideTab] = useState<MapaSideTab>("puntos");
+
+  const SIDE_TABS: { key: MapaSideTab; label: string; Icon: React.ElementType }[] = [
+    { key: "puntos", label: "Puntos", Icon: MapPin },
+    { key: "geografia", label: "Geografía", Icon: Mountain },
+  ];
+
+  return (
+    <div className="flex h-full min-h-0">
+      {/* ── Columna izquierda — Mapa ── */}
+      <div
+        className="flex-1 min-w-0 p-3 overflow-y-auto"
+        style={{ borderRight: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
+      >
+        {MapaConPuntosComponent ? (
+          <MapaConPuntosComponent
+            mapaUrl={mapaUrl}
+            onMapaChange={onMapaChange ?? (() => {})}
+            detalles={detalles}
+            onDetallesChange={(d: any) => onDetallesArrayChange?.(d)}
+          />
+        ) : (
+          <div className="flex flex-col items-center justify-center py-12 text-primary/20 gap-2">
+            <Map size={22} strokeWidth={1} />
+            <span className="text-[9px] font-black uppercase tracking-widest">Sin mapa</span>
+          </div>
+        )}
+      </div>
+
+      {/* ── Columna derecha — selector + contenido ── */}
+      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+
+        {/* Selector de sub-tab */}
+        <div
+          className="shrink-0 flex items-center gap-1 px-2 py-1.5 border-b"
+          style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, transparent)" }}
+        >
+          {SIDE_TABS.map(({ key, label, Icon }) => {
+            const isActive = sideTab === key;
+            const count = key === "puntos" ? detalles.length : 0;
+            return (
+              <button
+                key={key}
+                onClick={() => setSideTab(key)}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all"
+                style={isActive ? {
+                  background: "color-mix(in srgb, var(--primary) 12%, transparent)",
+                  color: "var(--primary)",
+                  border: "1px solid color-mix(in srgb, var(--primary) 22%, transparent)",
+                } : {
+                  color: "color-mix(in srgb, var(--primary) 35%, transparent)",
+                  border: "1px solid transparent",
+                }}
+              >
+                <Icon size={9} />
+                {label}
+                {count > 0 && (
+                  <span
+                    className="text-[7px] font-black px-1 py-0.5 rounded-md"
+                    style={{
+                      background: isActive ? "color-mix(in srgb, var(--primary) 15%, transparent)" : "color-mix(in srgb, var(--primary) 8%, transparent)",
+                      color: isActive ? "var(--primary)" : "color-mix(in srgb, var(--primary) 45%, transparent)",
+                    }}
+                  >
+                    {count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Contenido del sub-tab */}
+        {sideTab === "puntos" ? (
+          <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
+            {detalles.length === 0 && !addingPoint && (
+              <div className="flex flex-col items-center gap-2 py-8 text-primary/20">
+                <MapPin size={18} strokeWidth={1} />
+                <p className="text-[8px] font-black uppercase tracking-widest text-center">Sin puntos</p>
+              </div>
+            )}
+            {detalles.map(det => (
+              <DetalleEditor
+                key={det.id}
+                detalle={det}
+                entities={entities}
+                onSaved={d => onDetalleUpdate?.(d)}
+                onDeleted={id => onDetalleDelete?.(id)}
+              />
+            ))}
+            {addingPoint ? (
+              <div className="flex flex-col gap-1.5 p-2 rounded-xl border border-primary/15" style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)" }}>
+                <input
+                  autoFocus
+                  value={newPointName ?? ""}
+                  onChange={e => setNewPointName?.(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter") onAddPoint?.(); if (e.key === "Escape") setAddingPoint?.(false); }}
+                  className="w-full bg-bg-main border border-primary/20 rounded-lg px-2.5 py-1.5 text-[10px] font-black uppercase text-primary outline-none focus:border-primary/50 tracking-widest"
+                  placeholder="NOMBRE..."
+                />
+                <div className="flex gap-1">
+                  <button onClick={onAddPoint} disabled={!newPointName?.trim()}
+                    className="flex-1 bg-primary text-btn-text py-1.5 rounded-lg text-[9px] font-black hover:bg-primary/90 transition-all disabled:opacity-40 flex items-center justify-center">
+                    <Check size={11} />
+                  </button>
+                  <button onClick={() => setAddingPoint?.(false)} className="px-2 py-1.5 rounded-lg text-primary/40 hover:text-primary transition-all">
+                    <X size={11} />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={() => setAddingPoint?.(true)}
+                className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl border border-dashed border-primary/15 text-[9px] font-black uppercase text-primary/30 hover:text-primary hover:border-primary/30 transition-all tracking-widest"
+              >
+                <Plus size={9} /> Añadir
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="flex-1 overflow-y-auto p-3">
+            <MarkdownEditor
+              key="geografia"
+              value={(form as any).geografia ?? ""}
+              onChange={(v) => setForm((f) => ({ ...f, geografia: v }))}
+              placeholder="Paisajes, clima, fronteras, ciudades principales…"
+              rows={20}
+              toolbar
+              defaultMode="edit"
+              onSnippetAction={onSnippetAction}
+            />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Definición de secciones ─────────────────────────────────────────────────
 
-type LoreKey = "historia_cultura" | "geografia" | "politica_economia" | "personajes" | "mapa";
+type LoreKey = "historia_cultura" | "politica_economia" | "personajes" | "mapa";
 
 const LORE_SECTIONS: {
   key: LoreKey;
@@ -577,13 +741,6 @@ const LORE_SECTIONS: {
     Icon: Globe,
     placeholder: "",
     rows: 0,
-  },
-  {
-    key: "geografia",
-    label: "Geografía",
-    Icon: Mountain,
-    placeholder: "Paisajes, clima, fronteras, ciudades principales…",
-    rows: 20,
   },
   {
     key: "politica_economia",
@@ -720,91 +877,24 @@ export function LoreTab({
         {/* Contenido */}
         <div className="flex-1 min-h-0" style={{ overflow: (activeKey === "mapa" || activeKey === "historia_cultura" || activeKey === "politica_economia") ? "hidden" : "auto" }}>
           {activeKey === "mapa" ? (
-            <div className="flex h-full min-h-0">
-              {/* Columna izquierda — Mapa */}
-              <div
-                className="flex-1 min-w-0 p-3 overflow-y-auto"
-                style={{ borderRight: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
-              >
-                {MapaConPuntosComponent ? (
-                  <MapaConPuntosComponent
-                    mapaUrl={mapaUrl}
-                    onMapaChange={onMapaChange ?? (() => {})}
-                    detalles={detalles}
-                    onDetallesChange={(d: any) => onDetallesArrayChange?.(d)}
-                  />
-                ) : (
-                  <div className="flex flex-col items-center justify-center py-12 text-primary/20 gap-2">
-                    <Map size={22} strokeWidth={1} />
-                    <span className="text-[9px] font-black uppercase tracking-widest">Sin mapa</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Columna derecha — Puntos de interés */}
-              <div className="flex-1 flex flex-col overflow-hidden min-w-0">
-                {/* Sub-header puntos */}
-                <div
-                  className="shrink-0 flex items-center gap-1.5 px-3 py-2 border-b"
-                  style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
-                >
-                  <MapPin size={9} style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }} />
-                  <span className="text-[8px] font-black uppercase tracking-widest text-primary/35 flex-1">Puntos</span>
-                  {detalles.length > 0 && (
-                    <span className="text-[7px] font-black text-primary/25">{detalles.length}</span>
-                  )}
-                </div>
-
-                {/* Lista de puntos */}
-                <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
-                  {detalles.length === 0 && !addingPoint && (
-                    <div className="flex flex-col items-center gap-2 py-8 text-primary/20">
-                      <MapPin size={18} strokeWidth={1} />
-                      <p className="text-[8px] font-black uppercase tracking-widest text-center">Sin puntos</p>
-                    </div>
-                  )}
-                  {detalles.map(det => (
-                    <DetalleEditor
-                      key={det.id}
-                      detalle={det}
-                      entities={entities}
-                      onSaved={d => onDetalleUpdate?.(d)}
-                      onDeleted={id => onDetalleDelete?.(id)}
-                    />
-                  ))}
-
-                  {/* Añadir punto */}
-                  {addingPoint ? (
-                    <div className="flex flex-col gap-1.5 p-2 rounded-xl border border-primary/15" style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)" }}>
-                      <input
-                        autoFocus
-                        value={newPointName ?? ""}
-                        onChange={e => setNewPointName?.(e.target.value)}
-                        onKeyDown={e => { if (e.key === "Enter") onAddPoint?.(); if (e.key === "Escape") setAddingPoint?.(false); }}
-                        className="w-full bg-bg-main border border-primary/20 rounded-lg px-2.5 py-1.5 text-[10px] font-black uppercase text-primary outline-none focus:border-primary/50 tracking-widest"
-                        placeholder="NOMBRE..."
-                      />
-                      <div className="flex gap-1">
-                        <button onClick={onAddPoint} disabled={!newPointName?.trim()}
-                          className="flex-1 bg-primary text-btn-text py-1.5 rounded-lg text-[9px] font-black hover:bg-primary/90 transition-all disabled:opacity-40 flex items-center justify-center">
-                          <Check size={11} />
-                        </button>
-                        <button onClick={() => setAddingPoint?.(false)} className="px-2 py-1.5 rounded-lg text-primary/40 hover:text-primary transition-all">
-                          <X size={11} />
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => setAddingPoint?.(true)}
-                      className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl border border-dashed border-primary/15 text-[9px] font-black uppercase text-primary/30 hover:text-primary hover:border-primary/30 transition-all tracking-widest"
-                    >
-                      <Plus size={9} /> Añadir
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
+            <MapaPanel
+              mapaUrl={mapaUrl}
+              onMapaChange={onMapaChange}
+              onDetallesArrayChange={onDetallesArrayChange}
+              MapaConPuntosComponent={MapaConPuntosComponent}
+              detalles={detalles}
+              entities={entities}
+              onDetalleUpdate={onDetalleUpdate}
+              onDetalleDelete={onDetalleDelete}
+              addingPoint={addingPoint}
+              setAddingPoint={setAddingPoint}
+              newPointName={newPointName}
+              setNewPointName={setNewPointName}
+              onAddPoint={onAddPoint}
+              form={form}
+              setForm={setForm}
+              onSnippetAction={onSnippetAction}
+            />
           ) : activeKey === "historia_cultura" ? (
             <div className="flex h-full min-h-0">
               {/* Columna izquierda — Historia (timeline) */}
@@ -969,7 +1059,7 @@ export function LoreTab({
         }}
       >
         {([
-          ["mapa", "geografia"],
+          ["mapa"],
           ["historia_cultura", "politica_economia"],
           ["personajes"],
         ] as LoreKey[][]).map((group, gi) => (
