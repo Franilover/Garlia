@@ -2832,63 +2832,47 @@ function PanelListas({
           )}
         </div>
 
-        {/* Sidebar de navegación — fija, estrecha, con grupos, ahora a la derecha */}
-        <div className="shrink-0 w-48 flex flex-col border-l min-h-0 overflow-y-auto py-2 gap-1"
+        {/* Sidebar de navegación — solo iconos */}
+        <div className="shrink-0 w-10 flex flex-col items-center border-l min-h-0 overflow-y-auto py-2 gap-0.5"
           style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
           {TAB_GROUPS.map((group, gi) => (
-            <div key={group.label}
-              className="mx-2 rounded-xl overflow-hidden"
-              style={{
-                border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-                background: "color-mix(in srgb, var(--primary) 2%, transparent)",
-                marginTop: gi === 0 ? 0 : 4,
-              }}
-            >
-              {/* Etiqueta del grupo */}
-              <div className="px-2 pt-1.5 pb-0.5">
-                <span className="text-[7px] font-black uppercase tracking-[0.2em]"
-                  style={{ color: "color-mix(in srgb, var(--primary) 22%, transparent)" }}>
-                  {group.label}
-                </span>
-              </div>
-              {/* Tabs del grupo */}
-              <div className="pb-1.5 flex flex-col gap-0.5 px-1">
-                {group.tabs.map(t => {
-                  const active = mobileTab === t.key;
-                  const color = t.color ?? "var(--primary)";
-                  return (
+            <React.Fragment key={group.label}>
+              {gi > 0 && (
+                <div className="w-5 border-t my-1" style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
+              )}
+              {group.tabs.map(t => {
+                const active = mobileTab === t.key;
+                const color = t.color ?? "var(--primary)";
+                return (
+                  <div key={t.key} className="relative group">
                     <button
-                      key={t.key}
                       onClick={() => setMobileTab(t.key)}
-                      className="flex items-center gap-2 px-2 py-1.5 rounded-lg transition-all text-left w-full"
+                      className="w-8 h-8 flex items-center justify-center rounded-lg transition-all"
                       style={active ? {
-                        background: `color-mix(in srgb, ${color} 12%, transparent)`,
+                        background: `color-mix(in srgb, ${color} 14%, transparent)`,
                         color,
                       } : {
-                        color: "color-mix(in srgb, var(--primary) 40%, transparent)",
+                        color: "color-mix(in srgb, var(--primary) 30%, transparent)",
                       }}
                     >
-                      <t.Icon size={11} className="shrink-0" />
-                      <span className="flex-1 text-[10px] font-black uppercase tracking-widest">{t.label}</span>
-                      {t.count > 0 && (
-                        <span
-                          className="shrink-0 text-[8px] font-black px-1.5 py-0.5 rounded-full tabular-nums"
-                          style={active ? {
-                            background: `color-mix(in srgb, ${color} 18%, transparent)`,
-                            color,
-                          } : {
-                            background: "color-mix(in srgb, var(--primary) 8%, transparent)",
-                            color: "color-mix(in srgb, var(--primary) 30%, transparent)",
-                          }}
-                        >
-                          {t.count}
-                        </span>
-                      )}
+                      <t.Icon size={13} className="shrink-0" />
                     </button>
-                  );
-                })}
-              </div>
-            </div>
+                    {/* Tooltip */}
+                    <div className="pointer-events-none absolute right-full top-1/2 -translate-y-1/2 mr-2 z-50
+                      opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                      <div className="px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest whitespace-nowrap shadow-lg"
+                        style={{
+                          background: "var(--bg-main)",
+                          color: active ? color : "color-mix(in srgb, var(--primary) 60%, transparent)",
+                          border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+                        }}>
+                        {t.label}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </React.Fragment>
           ))}
         </div>
       </div>
