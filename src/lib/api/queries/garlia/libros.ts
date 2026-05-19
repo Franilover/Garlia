@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/api/client/supabase";
+import { libroFullQuery, LibroFull, Inserts, Updates } from "@/lib/types/queries";
 
 export interface Capitulo {
   id: string;
@@ -11,25 +12,50 @@ export interface Capitulo {
 }
 
 export const librosQueries = {
-  // 1. Obtener todos los libros
-  getAll: async (options: any = {}) => {
-    let query = supabase.from("libros").select("*");
+  getAll: async (options: { isAdmin?: boolean; order?: { campo: string; asc: boolean } } = {}): Promise<LibroFull[]> => {
+    let query = libroFullQuery;
 
     if (!options.isAdmin) {
       query = query.eq("visibilidad", "publico");
     }
 
     if (options.order) {
-      query = query.order(options.order.campo, { ascending: options.order.asc ?? false });
+      query = query.order(options.order.campo as any, { ascending: options.order.asc ?? false });
     } else {
       query = query.order("created_at", { ascending: false });
     }
-    return await query;
+
+    const { data, error } = await query;
+    if (error) throw error;
+    return data;
   },
 
-  // 2. Obtener capítulo para lectura (LA QUE TE FALTABA)
+  getById: async (id: string): Promise<LibroFull | null> => {
+    const { data, error } = await libroFullQuery.eq('id', id).single();
+    if (error) throw error;
+    return data;
+  },
+
+  create: async (libro: Inserts<'libros'>) => {
+    const { data, error } = await supabase.from("libros").insert(libro).select().single();
+    if (error) throw error;
+    return data;
+  },
+
+  update: async (id: string, cambios: Updates<'libros'>) => {
+    const { data, error } = await supabase.from("libros").update(cambios).eq("id", id).select().single();
+    if (error) throw error;
+    return data;
+  },
+
+  delete: async (id: string) => {
+    const { error } = await supabase.from("libros").delete().eq("id", id);
+    if (error) throw error;
+    return true;
+  },
+
+  // Capítulos
   getCapituloParaLectura: async (capId: string) => {
-    // Retornamos directamente la promesa de Supabase para que el componente maneje {data, error}
     return await supabase
       .from("capitulos")
       .select("*, libros ( titulo )")
@@ -37,7 +63,6 @@ export const librosQueries = {
       .single();
   },
 
-  // 3. Actualizar contenido (LA QUE AÑADIMOS RECIÉN)
   updateContenido: async (capId: string, contenido: string) => {
     const { data, error } = await supabase
       .from("capitulos")
@@ -45,7 +70,6 @@ export const librosQueries = {
       .eq("id", capId)
       .select()
       .single();
-
     if (error) throw error;
     return data;
   }
