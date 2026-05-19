@@ -1,11 +1,29 @@
 "use client";
 import { MotionDiv } from "@/components/ui/Motion";
-import React, { useRef, useState, useEffect, useCallback } from "react";
-import { Save } from "lucide-react";
-import { AnimatePresence } from "framer-motion";
+import React, { useRef, useState, useEffect, useCallback, useMemo } from "react";
+import { Save, List } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
 import { CitePopup } from "./citePopup";
 import { MarkdownEditor, WikiEntity } from "@/components/forms/MarkdownEditor";
 import { ZoteroSource } from "@/components/paginas/myself/vida/escritorio/ensayos/page";
+
+// ── TOC extractor ─────────────────────────────────────────────────────────────
+function extractTOC(content: string): { level: number; text: string; id: string }[] {
+  const lines = content.split("\n");
+  const counter: Record<string, number> = {};
+  const entries: { level: number; text: string; id: string }[] = [];
+  for (const line of lines) {
+    const m = line.match(/^(#{1,4})\s+(.+)$/);
+    if (!m) continue;
+    const level = m[1].length;
+    const text  = m[2].trim();
+    const base  = text.toLowerCase().replace(/[^\w\s-]/g, "").trim().replace(/\s+/g, "-");
+    counter[base] = (counter[base] || 0) + 1;
+    const id = counter[base] > 1 ? `${base}-${counter[base]}` : base;
+    entries.push({ level, text, id });
+  }
+  return entries;
+}
 
 interface EditorProps {
   ensayo: any;
@@ -38,6 +56,10 @@ export function Editor({
   const [tagInputFocused, setTagInputFocused] = useState(false);
 
   // Citation popup (@)
+  const [tocOpen, setTocOpen] = useState(false);
+
+  const tocEntries = useMemo(() => extractTOC(localContenido), [localContenido]);
+
   const [citePopup, setCitePopup] = useState<{
     query: string;
     atStart: number;
@@ -244,6 +266,29 @@ export function Editor({
                 </>
               )}
 
+              {/* TOC toggle */}
+              {tocEntries.length > 0 && (
+                <button
+                  onClick={() => setTocOpen(p => !p)}
+                  title="Tabla de contenidos"
+                  style={{
+                    background: tocOpen ? "color-mix(in srgb, var(--color-primary,#7c6af7) 12%, transparent)" : "none",
+                    border: "1px solid",
+                    borderColor: tocOpen
+                      ? "color-mix(in srgb, var(--color-primary,#7c6af7) 30%, transparent)"
+                      : "color-mix(in srgb, var(--foreground) 8%, transparent)",
+                    borderRadius: 4,
+                    cursor: "pointer",
+                    padding: "2px 5px",
+                    display: "flex",
+                    alignItems: "center",
+                    transition: "all 0.15s",
+                  }}
+                >
+                  <List size={9} style={{ color: tocOpen ? "var(--color-primary,#7c6af7)" : "color-mix(in srgb, var(--foreground) 25%, transparent)" }} />
+                </button>
+              )}
+
               <div className="flex items-center gap-1.5">
                 <Save size={9} style={{ color: "color-mix(in srgb, var(--foreground) 15%, transparent)" }} />
                 <span style={{ fontSize: 9, color: "color-mix(in srgb, var(--foreground) 15%, transparent)", ...monoStyle }}>
@@ -287,6 +332,89 @@ export function Editor({
           </AnimatePresence>
         </div>
       </MotionDiv>
+
+      {/* ── TOC panel lateral ── */}
+      <AnimatePresence>
+        {tocOpen && tocEntries.length > 0 && (
+          <motion.div
+            key="toc-panel"
+            initial={{ opacity: 0, x: 16 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 16 }}
+            transition={{ duration: 0.18 }}
+            style={{
+              position: "absolute",
+              top: 0,
+              right: 0,
+              bottom: 0,
+              width: 200,
+              background: "color-mix(in srgb, var(--bg-menu) 97%, transparent)",
+              borderLeft: "1px solid color-mix(in srgb, var(--foreground) 6%, transparent)",
+              backdropFilter: "blur(12px)",
+              zIndex: 30,
+              overflowY: "auto",
+              padding: "14px 12px",
+              scrollbarWidth: "none",
+            }}
+          >
+            <div style={{
+              fontSize: 8,
+              fontFamily: "var(--font-mono)",
+              letterSpacing: "0.14em",
+              textTransform: "uppercase",
+              color: "color-mix(in srgb, var(--foreground) 22%, transparent)",
+              marginBottom: 10,
+            }}>
+              índice
+            </div>
+            <nav style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+              {tocEntries.map((entry, i) => (
+                <a
+                  key={i}
+                  href={`#${entry.id}`}
+                  onClick={() => setTocOpen(false)}
+                  style={{
+                    display: "block",
+                    paddingLeft: `${(entry.level - 1) * 10}px`,
+                    paddingTop: 4,
+                    paddingBottom: 4,
+                    paddingRight: 4,
+                    fontSize: entry.level === 1 ? 11 : entry.level === 2 ? 10 : 9,
+                    fontFamily: entry.level === 1 ? "var(--font-serif)" : "var(--font-mono)",
+                    fontStyle: entry.level === 1 ? "italic" : "normal",
+                    fontWeight: entry.level <= 2 ? 600 : 400,
+                    color: entry.level === 1
+                      ? "color-mix(in srgb, var(--color-primary,#7c6af7) 80%, white)"
+                      : entry.level === 2
+                      ? "color-mix(in srgb, var(--foreground) 55%, transparent)"
+                      : "color-mix(in srgb, var(--foreground) 35%, transparent)",
+                    textDecoration: "none",
+                    borderRadius: 3,
+                    transition: "all 0.1s",
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  }}
+                  onMouseEnter={e => {
+                    (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--color-primary,#7c6af7) 8%, transparent)";
+                    (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--color-primary,#7c6af7) 90%, white)";
+                  }}
+                  onMouseLeave={e => {
+                    (e.currentTarget as HTMLElement).style.background = "transparent";
+                    (e.currentTarget as HTMLElement).style.color = entry.level === 1
+                      ? "color-mix(in srgb, var(--color-primary,#7c6af7) 80%, white)"
+                      : entry.level === 2
+                      ? "color-mix(in srgb, var(--foreground) 55%, transparent)"
+                      : "color-mix(in srgb, var(--foreground) 35%, transparent)";
+                  }}
+                >
+                  {entry.text}
+                </a>
+              ))}
+            </nav>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
