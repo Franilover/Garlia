@@ -2210,10 +2210,9 @@ function PanelListas({
       ],
     },
     {
-      label: "Notas & Grupos",
+      label: "Grupos",
       tabs: [
-        { key: "notas",  label: "Notas",  Icon: FileText, count: notas.length },
-        { key: "grupos", label: "Grupos", Icon: Layers,   count: 0 },
+        { key: "grupos", label: "Grupos", Icon: Layers, count: 0 },
       ],
     },
   ];
