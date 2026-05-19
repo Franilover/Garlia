@@ -273,6 +273,36 @@ function useGruposCriaturas() {
   return { grupos, loading };
 }
 
+// ─── Hook: todos los grupos (sin filtro de tipo) ──────────────────────────────
+type GrupoTodo = { id: string; nombre: string; tipo: string; miembro_ids: string[] };
+
+function useGruposTodos() {
+  const [grupos, setGrupos] = useState<GrupoTodo[]>([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      try {
+        if (db && (db as any).grupos_mundo) {
+          const all = await (db as any).grupos_mundo.toArray() as any[];
+          const local: GrupoTodo[] = all
+            .filter((g: any) => !g.deleted)
+            .map((g: any) => ({ id: g.id, nombre: g.nombre, tipo: g.tipo ?? "", miembro_ids: g.miembro_ids ?? [] }));
+          if (local.length && !cancelled) { setGrupos(local); setLoading(false); }
+        }
+      } catch {}
+      if (!navigator.onLine) { setLoading(false); return; }
+      const { data } = await supabase.from("grupos_mundo").select("id, nombre, tipo, miembro_ids").order("nombre");
+      if (cancelled) return;
+      const result: GrupoTodo[] = (data ?? []).map((r: any) => ({ id: r.id, nombre: r.nombre, tipo: r.tipo ?? "", miembro_ids: r.miembro_ids ?? [] }));
+      setGrupos(result); setLoading(false);
+    };
+    run();
+    return () => { cancelled = true; };
+  }, []);
+  return { grupos, loading };
+}
+
 function FilaGrupo({ grupo, color, onQuitar }: { grupo: GrupoMin; color: string; onQuitar: () => void }) {
   return (
     <div className="rounded-xl border overflow-hidden"
@@ -2076,6 +2106,7 @@ function PanelListas({
   const { items: dones,    setItems: setDones,    loading: loadingDones    } = useEntidadesMagicas("dones");
   const { items: runas,    setItems: setRunas,    loading: loadingRunas    } = useRunas();
   const { grupos: gruposMagicos, loading: loadingGruposMagicos } = useGruposCriaturas();
+  const { grupos: gruposTodos,   loading: loadingGruposTodos   } = useGruposTodos();
   const { notas, loading: loadingNotas, crear: crearNota, actualizar: actualizarNota, eliminar: eliminarNota } = useNotas();
   const [searchNotas, setSearchNotas] = useState("");
   const [selectedNota, setSelectedNota] = useState<Nota | null>(null);
@@ -2522,7 +2553,7 @@ function PanelListas({
               </div>
               <div className="border-t my-2" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
               {/* Notas */}
-              <div className="pb-3">
+              <div className="pb-1">
                 <div className="flex items-center gap-1.5 mb-2"><FileText size={10} className="text-primary/30 shrink-0" /><span className="text-[8px] font-black uppercase tracking-[0.25em]" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>Notas · {notas.length}</span></div>
                 {loadingNotas ? <div className="flex justify-center py-3"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
                   : notas.length === 0 ? <p className="text-[9px] text-primary/20 italic px-1 pb-2">Sin notas aún</p>
@@ -2530,6 +2561,24 @@ function PanelListas({
                       <button key={n.id} onClick={() => setSelectedNota(n)} type="button" className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02]" style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
                         <div className="w-6 h-6 rounded-lg border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center"><FileText size={10} className="text-primary/25" /></div>
                         <span className="text-[11px] font-bold text-primary/70 truncate max-w-[90px]">{n.titulo || <span className="italic text-primary/30">Sin título</span>}</span>
+                      </button>
+                    ))}</div>}
+              </div>
+              <div className="border-t my-2" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
+              {/* Grupos */}
+              <div className="pb-3">
+                <div className="flex items-center gap-1.5 mb-2"><Layers size={10} className="text-primary/30 shrink-0" /><span className="text-[8px] font-black uppercase tracking-[0.25em]" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>Grupos · {gruposTodos.length}</span></div>
+                {loadingGruposTodos ? <div className="flex justify-center py-3"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
+                  : gruposTodos.length === 0 ? <p className="text-[9px] text-primary/20 italic px-1 pb-2">Sin grupos aún</p>
+                  : <div className="flex flex-wrap gap-1.5">{gruposTodos.map(g => (
+                      <button key={g.id} onClick={() => setMobileTab("grupos")} type="button"
+                        className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02]"
+                        style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
+                        <div className="w-6 h-6 rounded-lg border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center"><Layers size={10} className="text-primary/25" /></div>
+                        <div className="flex flex-col min-w-0">
+                          <span className="text-[11px] font-bold text-primary/70 truncate max-w-[90px]">{g.nombre}</span>
+                          <span className="text-[8px] text-primary/30 truncate">{g.miembro_ids.length} miembros</span>
+                        </div>
                       </button>
                     ))}</div>}
               </div>
