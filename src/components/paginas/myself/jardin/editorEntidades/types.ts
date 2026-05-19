@@ -1,4 +1,4 @@
-import { Users, Bug, Package, Map, Mountain, ScrollText, Sparkles, Star, Wand2, Layers, BookOpen } from "lucide-react";
+import { Users, Bug, Package, Map, Mountain, ScrollText, Sparkles, Star, Wand2, Layers, BookOpen, Music } from "lucide-react";
 
 export type Personaje = {
   id: string;
@@ -110,7 +110,7 @@ export type Nota = {
 
 
 // ─── Tabs ─────────────────────────────────────────────────────────────────────
-export type TabKey = "personajes" | "criaturas" | "items" | "reinos" | "mundo" | "hechizos" | "dones" | "runas" | "grupos" | "capitulos";
+export type TabKey = "personajes" | "criaturas" | "items" | "reinos" | "mundo" | "hechizos" | "dones" | "runas" | "grupos" | "capitulos" | "letras";
 export type SaveStatus = "idle" | "saving" | "saved" | "error";
 
 export const TAB_CONFIG: Record<Exclude<TabKey, "mundo">, { emoji: string; label: string; tabla: string; Icon: React.ElementType }> = {
@@ -123,6 +123,7 @@ export const TAB_CONFIG: Record<Exclude<TabKey, "mundo">, { emoji: string; label
   runas:      { emoji: "ᚱ",  label: "Runas",      tabla: "runas",        Icon: ScrollText },
   grupos:     { emoji: "",   label: "Grupos",     tabla: "grupos_mundo", Icon: Layers     },
   capitulos:  { emoji: "📖", label: "Capítulos",  tabla: "capitulos",    Icon: BookOpen   },
+  letras:     { emoji: "🎵", label: "Letras",     tabla: "canciones",    Icon: Music      },
 };
 
 export const MUNDO_SECTIONS = [
