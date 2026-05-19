@@ -35,7 +35,7 @@ export const GestionPersonal = () => {
     setIsAddingTarea(true);
     try {
       if (navigator.onLine) {
-        const creada = await tareasQueries.add(nuevaTarea);
+        const creada = await tareasQueries.create({ titulo: nuevaTarea, categoria: "general", username: USERNAME, completada: false });
         if (creada) { setTareas([creada, ...tareas]); setNuevaTarea(""); dexiePut("tareas", { ...creada, status: "synced" }); }
       } else {
         const tempId = `temp_${Date.now()}`;
@@ -49,7 +49,7 @@ export const GestionPersonal = () => {
   const handleToggle = async (id: string, completada: boolean) => {
     setTareas(tareas.map((t: any) => t.id === id ? { ...t, completada: !completada } : t));
     try {
-      if (navigator.onLine) { await tareasQueries.updateStatus(id, !completada); dexieUpdate("tareas", id, { completada: !completada, status: "synced" }); }
+      if (navigator.onLine) { await tareasQueries.toggleCompletada(id, completada); dexieUpdate("tareas", id, { completada: !completada, status: "synced" }); }
       else { await dexieUpdate("tareas", id, { completada: !completada, status: "pending" }); await enqueueOperation("tareas", "update", id, { completada: !completada }); }
     } catch (err) { console.error(err); }
   };
