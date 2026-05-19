@@ -908,38 +908,21 @@ export default function Lector() {
       let rawList: CapRaw[] = [];
 
       
-        // Cambia tu bloque de código por este:
-if (esUUID(capIdParam)) {
-  const queryRes = await librosQueries.getCapituloParaLectura(capIdParam);
-
-  // 1. Manejo de errores basado en el objeto de respuesta de Supabase
-  if (queryRes.error) {
-    setError(queryRes.error.message || "No se pudo cargar el capítulo");
-    return;
-  }
-
-  // 2. Manejo de caso donde no hay error pero tampoco data (capítulo no encontrado)
-  if (!queryRes.data) {
-    setError("Capítulo no encontrado");
-    return;
-  }
-
-  // A partir de aquí, TypeScript sabe que queryRes.data existe perfectamente
-  const capitulo = queryRes.data;
-        const listaRaw = queryRes.data.listaCapitulos;
-        cachearEnDexie(listaRaw.map((c: any) => ({ ...c, libro_id: libroId })));
-        const { data: contenidos } = await supabase
+      if (esUUID(capIdParam)) {
+        // UUID de capítulo: cargar todos los caps del libro directamente
+        const { data: contenidos, error: capsError } = await supabase
           .from("capitulos")
           .select(`id, orden, titulo_capitulo, contenido, fecha_publicacion, personajes_ids,
             libros(titulo), narrador:personajes!narrador_id(id, nombre, img_url),
             reino:reinos!reino_id(id, nombre, imagen_reino)`)
-          .in("id", listaRaw.map((c: any) => c.id))
+          .eq("libro_id", libroId)
           .or(`visibilidad.eq.publico,and(visibilidad.eq.programado,fecha_publicacion.lte.${hoy.split("T")[0]})`)
           .not("titulo_capitulo", "like", "[Ruta]%")
           .order("orden", { ascending: true });
+        if (capsError) { setError(capsError.message); return; }
         rawList = (contenidos as unknown as CapRaw[]) ?? [];
       } else {
-        // Slug de segmento: una sola query por libro_id, sin intermediarios
+        // Slug de segmento: una sola query por libro_id
         const { data: contenidos } = await supabase
           .from("capitulos")
           .select(`id, orden, titulo_capitulo, contenido, fecha_publicacion, personajes_ids,
