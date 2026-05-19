@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import {
   Sparkles, Star, Globe, Plus, Trash2, Save, Loader2, Search, X, Bug,
   ChevronDown, Mountain, ScrollText, Map, ChevronRight, FileText, Users, UserCircle2, Package,
-  Crown, Clock, Filter, Layers, Check,
+  Crown, Clock, Filter, Layers, Check, BookOpen,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
@@ -21,6 +21,7 @@ import { type TimelineEvent } from "./LoreTab";
 import { useNotas } from "./useNotas";
 import { EditorNota, ListaNotas } from "./EditorNota";
 import { EditorGrupo } from "./EditorGrupo";
+import EstudioCapitulos from "@/components/paginas/myself/jardin/editorCapitulos";
 
 
 // ─── Dexie helpers ────────────────────────────────────────────────────────────
@@ -2128,8 +2129,8 @@ function PanelListas({
   const [selectedRuna,     setSelectedRuna]     = useState<Runa | null>(null);
   const [personajeStatus,  setPersonajeStatus]  = useState<SaveStatus>("idle");
 
-  type ListaTab = "mundo" | "historia" | "magia" | "reinos" | "criaturas" | "objetos" | "personajes" | "hechizos" | "dones" | "runas" | "notas" | "grupos" | "magia-objetos" | "mundo-personajes" | "geo-magia" | "todo";
-  const VALID_LISTA_TABS: ListaTab[] = ["mundo", "historia", "magia", "reinos", "criaturas", "objetos", "personajes", "hechizos", "dones", "runas", "notas", "grupos", "magia-objetos", "mundo-personajes", "geo-magia", "todo"];
+  type ListaTab = "mundo" | "historia" | "magia" | "reinos" | "criaturas" | "objetos" | "personajes" | "hechizos" | "dones" | "runas" | "notas" | "grupos" | "magia-objetos" | "mundo-personajes" | "geo-magia" | "todo" | "capitulos";
+  const VALID_LISTA_TABS: ListaTab[] = ["mundo", "historia", "magia", "reinos", "criaturas", "objetos", "personajes", "hechizos", "dones", "runas", "notas", "grupos", "magia-objetos", "mundo-personajes", "geo-magia", "todo", "capitulos"];
 
   const [mobileTab, setMobileTab] = useState<ListaTab>(() => {
     // initialSubTab puede ser un UnifiedTab ("mundo","historia","magia","listas") o un ListaTab directo
@@ -2237,6 +2238,12 @@ function PanelListas({
       label: "Listas",
       tabs: [
         { key: "todo" as ListaTab, label: "Todo", Icon: Layers, count: reinos.length + criaturas.length + personajes.length + dones.length + hechizos.length + runas.length + objetos.length + notas.length },
+      ],
+    },
+    {
+      label: "Escritura",
+      tabs: [
+        { key: "capitulos" as ListaTab, label: "Capítulos", Icon: BookOpen, count: 0 },
       ],
     },
   ];
@@ -2374,7 +2381,7 @@ function PanelListas({
           )}
 
           {/* Header del tab activo (solo para tabs de lista individuales) */}
-          {!["mundo", "historia", "magia", "magia-objetos", "mundo-personajes", "geo-magia", "todo"].includes(mobileTab) && (() => {
+          {!["mundo", "historia", "magia", "magia-objetos", "mundo-personajes", "geo-magia", "todo", "capitulos"].includes(mobileTab) && (() => {
             const t = TABS.find(t => t.key === mobileTab);
             if (!t) return null;
             const color = t.color ?? "var(--primary)";
@@ -2406,12 +2413,19 @@ function PanelListas({
           })()}
 
           {/* Buscador */}
-          {!["mundo", "historia", "magia", "magia-objetos", "mundo-personajes", "geo-magia", "todo"].includes(mobileTab) && mobileTab !== "grupos" && (
+          {!["mundo", "historia", "magia", "magia-objetos", "mundo-personajes", "geo-magia", "todo", "capitulos"].includes(mobileTab) && mobileTab !== "grupos" && (
             <SearchInput
               value={searchMap[mobileTab] ?? ""}
               onChange={v => setSearchMap[mobileTab]?.(v)}
               placeholder={`Buscar ${TABS.find(t => t.key === mobileTab)?.label.toLowerCase()}…`}
             />
+          )}
+
+          {/* Vista: Editor de Capítulos embebido */}
+          {mobileTab === "capitulos" && (
+            <div className="flex-1 min-h-0 overflow-hidden [&>div]:!h-full [&>div]:!min-h-0">
+              <EstudioCapitulos />
+            </div>
           )}
 
           {/* Vista combinada: Geografía + Magia mitad y mitad */}
