@@ -21,8 +21,8 @@ import { EditorMundo }     from "./editores/EditorMundo";
 import { EditorHechizos }  from "./editores/EditorHechizos";
 import { EditorGrupo }     from "./editores/EditorGrupo";
 import { WikilinkProvider } from "@/components/forms/WikilinkContext";
-import { EditorCapitulosPanel } from "@/components/paginas/myself/garlia/editorCapitulos";
-import EditorLetrasPanel from "@/components/paginas/myself/garlia/editorLetras/page";
+import { EditorCapitulosPanel } from "@/components/paginas/myself/garlia/editores/editorCapitulos";
+import EditorLetrasPanel from "@/components/paginas/myself/garlia/editores/editorLetras/page";
 
 
 // ─── Helpers Dexie locales ────────────────────────────────────────────────────
