@@ -277,9 +277,13 @@ export function renderMathInElement(el: HTMLElement | null) {
 
 // ── Estilos de vista previa ──────────────────────────────────────────────────
 export const PROSE_STYLES = `
-  .prose-mundo h1 { font-size:1.6rem;font-weight:800;margin:1.1rem 0 .4rem;letter-spacing:.02em;color:color-mix(in srgb,var(--color-primary,#7c6af7) 90%,white);padding-bottom:.25rem;border-bottom:1px solid color-mix(in srgb,var(--color-primary,#7c6af7) 18%,transparent) }
-  .prose-mundo h2 { font-size:1.25rem;font-weight:800;margin:.95rem 0 .35rem;letter-spacing:.03em;color:color-mix(in srgb,var(--color-primary,#7c6af7) 80%,white) }
-  .prose-mundo h3 { font-size:1rem;font-weight:700;margin:.75rem 0 .25rem;letter-spacing:.02em;color:color-mix(in srgb,var(--color-primary,#7c6af7) 65%,white) }
+  .prose-mundo { counter-reset: h1-counter; }
+  .prose-mundo h1 { counter-increment: h1-counter; counter-reset: h2-counter; font-size:1.6rem;font-weight:800;margin:1.1rem 0 .4rem;letter-spacing:.02em;color:color-mix(in srgb,var(--color-primary,#7c6af7) 90%,white);padding-bottom:.25rem;border-bottom:1px solid color-mix(in srgb,var(--color-primary,#7c6af7) 18%,transparent) }
+  .prose-mundo h1::before { content: counter(h1-counter) ". "; color:color-mix(in srgb,var(--color-primary,#7c6af7) 50%,transparent); font-variant-numeric: tabular-nums; }
+  .prose-mundo h2 { counter-increment: h2-counter; counter-reset: h3-counter; font-size:1.25rem;font-weight:800;margin:.95rem 0 .35rem;letter-spacing:.03em;color:color-mix(in srgb,var(--color-primary,#7c6af7) 80%,white) }
+  .prose-mundo h2::before { content: counter(h2-counter, lower-alpha) ". "; color:color-mix(in srgb,var(--color-primary,#7c6af7) 45%,transparent); }
+  .prose-mundo h3 { counter-increment: h3-counter; font-size:1rem;font-weight:700;margin:.75rem 0 .25rem;letter-spacing:.02em;color:color-mix(in srgb,var(--color-primary,#7c6af7) 65%,white) }
+  .prose-mundo h3::before { content: counter(h3-counter, lower-roman) ". "; color:color-mix(in srgb,var(--color-primary,#7c6af7) 40%,transparent); font-size:.85em; }
   .prose-mundo h4 { font-size:.88rem;font-weight:700;margin:.65rem 0 .2rem;color:color-mix(in srgb,var(--color-primary,#7c6af7) 55%,white) }
   .prose-mundo h5 { font-size:.82rem;font-weight:600;margin:.55rem 0 .15rem;color:color-mix(in srgb,var(--color-primary,#7c6af7) 45%,white) }
   .prose-mundo h6 { font-size:.78rem;font-weight:600;margin:.5rem 0 .12rem;text-transform:uppercase;letter-spacing:.08em;color:color-mix(in srgb,var(--color-primary,#7c6af7) 38%,white) }
