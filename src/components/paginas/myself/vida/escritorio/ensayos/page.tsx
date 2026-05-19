@@ -514,19 +514,48 @@ export default function Ensayos() {
           }}
         >
           {/* Grafo — izquierda */}
-          <div className="shrink-0">
-            {ensayoActivo ? (
-              <GrafoEnsayos
-                ensayo={ensayoActivo}
-                ensayos={ensayos}
-                onSelectEnsayo={handleEnsayoClickSinCerrar}
-              />
-            ) : (
-              <div className="flex items-center gap-1.5" style={{ opacity: 0.3 }}>
-                <PenTool size={10} style={{ color: "var(--foreground)" }} />
-              </div>
-            )}
-          </div>
+          {/* Grafo — izquierda */}
+        <div className="shrink-0 flex items-center gap-2">
+          {/* Botón Home */}
+          <button
+            onClick={irAlHome}
+            title="Volver al escritorio"
+            style={{
+              background: ensayoActivoId ? "transparent" : "color-mix(in srgb, var(--foreground) 6%, transparent)",
+              border: "1px solid",
+              borderColor: ensayoActivoId ? "color-mix(in srgb, var(--foreground) 8%, transparent)" : "color-mix(in srgb, var(--foreground) 15%, transparent)",
+              borderRadius: 5,
+              padding: "3px 7px",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: 4,
+              transition: "all 0.12s",
+            }}
+            onMouseEnter={e => {
+              (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--foreground) 25%, transparent)";
+              (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--foreground) 6%, transparent)";
+            }}
+            onMouseLeave={e => {
+              (e.currentTarget as HTMLElement).style.borderColor = ensayoActivoId ? "color-mix(in srgb, var(--foreground) 8%, transparent)" : "color-mix(in srgb, var(--foreground) 15%, transparent)";
+              (e.currentTarget as HTMLElement).style.background = ensayoActivoId ? "transparent" : "color-mix(in srgb, var(--foreground) 6%, transparent)";
+            }}
+          >
+            <PenTool size={9} style={{ color: "color-mix(in srgb, var(--foreground) 45%, transparent)" }} />
+            <span style={{ fontSize: 9, fontFamily: "var(--font-mono)", color: "color-mix(in srgb, var(--foreground) 35%, transparent)" }}>
+              escritorio
+            </span>
+          </button>
+
+          {/* Grafo (solo cuando hay nota activa) */}
+          {ensayoActivo && (
+            <GrafoEnsayos
+              ensayo={ensayoActivo}
+              ensayos={ensayos}
+              onSelectEnsayo={handleEnsayoClickSinCerrar}
+            />
+          )}
+        </div>
 
           {/* Buscador + panel — centro */}
           <div className="flex-1 flex justify-center">
