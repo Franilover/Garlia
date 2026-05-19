@@ -21,6 +21,12 @@ export const tareasQueries = {
   },
 
   create: async (tarea: Inserts<'tareas'>) => {
-    return await supabase.from('tareas').insert(tarea).select().single();
-  }
+  return await supabase.from('tareas').insert(tarea).select().single();
+},
+
+// Alias para compatibilidad con componentes que usan .add()
+add: async (tarea: Inserts<'tareas'>) => {
+  return await supabase.from('tareas').insert(tarea).select().single();
+},
+  
 };
