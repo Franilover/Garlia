@@ -2504,7 +2504,7 @@ export function EditorCapitulosPanel() {
 
   return (
     <>
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col flex-1 min-h-0">
 
         {/* ── Topbar ── */}
         <div
@@ -2742,7 +2742,7 @@ export function EditorCapitulosPanel() {
 
 export default function EstudioCapitulos() {
   return (
-    <div className="h-full bg-bg-main">
+    <div className="flex-1 min-h-0 bg-bg-main">
       <EditorCapitulosPanel />
     </div>
   );
