@@ -391,7 +391,7 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
   // Pulse animation
   const pulseRef = useRef(0);
   // Theme CSS vars read at draw time
-  const cssColorsRef = useRef({ primary: "#888", accent: "#aaa", bg: "#0a0806", fg: "#fff" });
+  const cssColorsRef = useRef({ primary: "#888", accent: "#aaa", bg: "#0a0806", fg: "#fff", bgMenu: "#111", pinFill: "#4a3520", parchBg: "#232010", parchText: "#e8ddb8" });
   // Fog cache — rebuilt only when markers/size change, not every frame
   const fogCacheRef = useRef<{ canvas: OffscreenCanvas; deep: OffscreenCanvas; iw: number; ih: number; bg: string } | null>(null);
 
@@ -399,10 +399,14 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
     const read = () => {
       const s = getComputedStyle(document.documentElement);
       cssColorsRef.current = {
-        primary: s.getPropertyValue("--primary").trim() || "#888",
-        accent: s.getPropertyValue("--accent").trim() || "#aaa",
-        bg: s.getPropertyValue("--bg-main").trim() || "#0a0806",
-        fg: s.getPropertyValue("--foreground").trim() || "#fff",
+        primary:    s.getPropertyValue("--primary").trim()    || "#888",
+        accent:     s.getPropertyValue("--accent").trim()     || "#aaa",
+        bg:         s.getPropertyValue("--bg-main").trim()    || "#0a0806",
+        fg:         s.getPropertyValue("--foreground").trim() || "#fff",
+        bgMenu:     s.getPropertyValue("--bg-menu").trim()    || "#111",
+        pinFill:    s.getPropertyValue("--primary").trim()    || "#4a3520",
+        parchBg:    s.getPropertyValue("--bg-menu").trim()    || "#232010",
+        parchText:  s.getPropertyValue("--foreground").trim() || "#e8ddb8",
       };
     };
     read();
@@ -491,7 +495,7 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
 
       pulseRef.current = t;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      const { primary, accent, bg } = cssColorsRef.current;
+      const { primary, accent, bg, fg, pinFill, parchBg, parchText } = cssColorsRef.current;
 
       ctx.fillStyle = bg;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -646,11 +650,11 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
           ctx.translate(mx, my);
 
           // ── Antique map pin — teardrop with body ─────────────────────────
-          // Muted ink palette — no saturated colors
-          const pinFill    = isSelected ? "#5a4028" : "#4a3520";
-          const pinStroke  = isSelected ? "#2e1f0c" : "#251609";
-          const pinInner   = isSelected ? "#c8a97a" : "#a08060";
-          const pinShadow  = "rgba(0,0,0,0.28)";
+          // Colors driven by CSS theme vars
+          const pinBody    = isSelected ? accent   : pinFill;
+          const pinBorder  = isSelected ? primary  : `${pinFill}cc`;
+          const pinRing    = isSelected ? `${accent}99` : `${pinFill}77`;
+          const pinDot     = isSelected ? fg       : `${fg}cc`;
 
           // Pin dimensions
           const headR = isSelected ? 9 : 7;       // circle head radius
@@ -678,32 +682,32 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
           ctx.moveTo(-headR * 0.42, -tailH * 0.18);
           ctx.quadraticCurveTo(-headR * 0.15, tailH * 0.55, 0, tailH);
           ctx.quadraticCurveTo(headR * 0.15, tailH * 0.55, headR * 0.42, -tailH * 0.18);
-          ctx.fillStyle = pinFill;
+          ctx.fillStyle = pinBody;
           ctx.fill();
-          ctx.strokeStyle = pinStroke;
+          ctx.strokeStyle = pinBorder;
           ctx.lineWidth = isSelected ? 1.2 : 0.9;
           ctx.stroke();
 
           // Head circle (filled)
           ctx.beginPath();
           ctx.arc(0, -tailH * 0.4, headR, 0, Math.PI * 2);
-          ctx.fillStyle = pinFill;
+          ctx.fillStyle = pinBody;
           ctx.fill();
-          ctx.strokeStyle = pinStroke;
+          ctx.strokeStyle = pinBorder;
           ctx.lineWidth = isSelected ? 1.4 : 1.0;
           ctx.stroke();
 
           // Inner ring — lighter, gives depth
           ctx.beginPath();
           ctx.arc(0, -tailH * 0.4, headR * 0.52, 0, Math.PI * 2);
-          ctx.strokeStyle = pinInner;
+          ctx.strokeStyle = pinRing;
           ctx.lineWidth = isSelected ? 1.0 : 0.7;
           ctx.stroke();
 
           // Center dot
           ctx.beginPath();
           ctx.arc(0, -tailH * 0.4, isSelected ? 2.2 : 1.6, 0, Math.PI * 2);
-          ctx.fillStyle = pinInner;
+          ctx.fillStyle = pinDot;
           ctx.fill();
 
           // Subtle pulsing outer ring (very faint, only visible)
@@ -731,7 +735,7 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
             }
           }
 
-          // ── Label — parchment strip ───────────────────────────────────────
+          // ── Label — themed background strip ──────────────────────────────
           const fontSize = scale > 0.7 ? 10 : 9;
           ctx.font = `${isSelected ? "600" : "500"} ${fontSize}px 'Cinzel', serif`;
           ctx.textAlign = "center";
@@ -741,19 +745,23 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
           const lh = fontSize + 6;
           const labelY = -(tailH * 0.4 + headR + lh + 5);
 
-          // Parchment bg
-          ctx.fillStyle = isSelected ? "rgba(245,232,195,0.94)" : "rgba(232,218,180,0.90)";
+          // Background from theme
+          ctx.fillStyle = isSelected
+            ? `${parchBg}f0`
+            : `${parchBg}d8`;
           ctx.beginPath();
           ctx.rect(-lw / 2, labelY, lw, lh);
           ctx.fill();
 
-          // Ink border
-          ctx.strokeStyle = isSelected ? "rgba(80,50,15,0.55)" : "rgba(55,35,10,0.38)";
-          ctx.lineWidth = 0.55;
+          // Border from primary
+          ctx.strokeStyle = isSelected
+            ? `${primary}88`
+            : `${primary}44`;
+          ctx.lineWidth = 0.6;
           ctx.stroke();
 
-          // Text in dark ink
-          ctx.fillStyle = isSelected ? "#1c0e04" : "#2e1a08";
+          // Text from foreground
+          ctx.fillStyle = isSelected ? fg : `${parchText}ee`;
           ctx.fillText(label, 0, labelY + lh - 4);
 
           ctx.restore();
