@@ -21,7 +21,7 @@ import { type TimelineEvent } from "../editorEntidades/LoreTab";
 import { useNotas } from "../editorEntidades/useNotas";
 import { EditorNota, ListaNotas } from "./EditorNota";
 import { EditorGrupo } from "./EditorGrupo";
-import EstudioCapitulos from "@/components/paginas/myself/jardin/editorCapitulos";
+import EstudioCapitulos from "@/components/paginas/myself/garlia/editorCapitulos";
 
 
 // ─── Dexie helpers ────────────────────────────────────────────────────────────
