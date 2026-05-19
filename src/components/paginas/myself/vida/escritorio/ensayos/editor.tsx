@@ -34,6 +34,9 @@ interface EditorProps {
   onUpdateField: (id: string, field: string, value: any) => void;
   onNavigateToPage: (name: string) => void;
   entities?: WikiEntity[];
+  tocOpen?: boolean;
+  onTocToggle?: () => void;
+  onTocEntriesChange?: (entries: { level: number; text: string; id: string }[]) => void;
 }
 
 // ─── Editor principal ─────────────────────────────────────────────────────────
@@ -47,6 +50,9 @@ export function Editor({
   onUpdateField,
   onNavigateToPage,
   entities = [] as WikiEntity[],
+  tocOpen: tocOpenProp,
+  onTocToggle,
+  onTocEntriesChange,
 }: EditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -56,9 +62,20 @@ export function Editor({
   const [tagInputFocused, setTagInputFocused] = useState(false);
 
   // Citation popup (@)
-  const [tocOpen, setTocOpen] = useState(false);
+  const [tocOpenLocal, setTocOpenLocal] = useState(false);
+  const tocOpen = tocOpenProp !== undefined ? tocOpenProp : tocOpenLocal;
+  const setTocOpen = (v: boolean | ((prev: boolean) => boolean)) => {
+    const next = typeof v === "function" ? v(tocOpen) : v;
+    setTocOpenLocal(next);
+    onTocToggle?.();
+  };
 
   const tocEntries = useMemo(() => extractTOC(localContenido), [localContenido]);
+
+  useEffect(() => {
+    onTocEntriesChange?.(tocEntries);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tocEntries]);
 
   const [citePopup, setCitePopup] = useState<{
     query: string;
@@ -266,28 +283,7 @@ export function Editor({
                 </>
               )}
 
-              {/* TOC toggle */}
-              {tocEntries.length > 0 && (
-                <button
-                  onClick={() => setTocOpen(p => !p)}
-                  title="Tabla de contenidos"
-                  style={{
-                    background: tocOpen ? "color-mix(in srgb, var(--color-primary,#7c6af7) 12%, transparent)" : "none",
-                    border: "1px solid",
-                    borderColor: tocOpen
-                      ? "color-mix(in srgb, var(--color-primary,#7c6af7) 30%, transparent)"
-                      : "color-mix(in srgb, var(--foreground) 8%, transparent)",
-                    borderRadius: 4,
-                    cursor: "pointer",
-                    padding: "2px 5px",
-                    display: "flex",
-                    alignItems: "center",
-                    transition: "all 0.15s",
-                  }}
-                >
-                  <List size={9} style={{ color: tocOpen ? "var(--color-primary,#7c6af7)" : "color-mix(in srgb, var(--foreground) 25%, transparent)" }} />
-                </button>
-              )}
+              {/* TOC button now lives in the top navbar */}
 
               <div className="flex items-center gap-1.5">
                 <Save size={9} style={{ color: "color-mix(in srgb, var(--foreground) 15%, transparent)" }} />

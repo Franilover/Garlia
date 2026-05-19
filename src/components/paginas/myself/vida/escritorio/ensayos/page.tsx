@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { Loader2, PenTool, Search, X, Plus, FileText, Trash2 } from "lucide-react";
+import { Loader2, PenTool, Search, X, Plus, FileText, Trash2, List } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/providers/AuthProvider";
@@ -91,8 +91,12 @@ export default function Ensayos() {
   const irAlHome = () => {
     setEnsayoActivoId(null);
     setTagActivo(null);
+    setTocOpen(false);
+    setTocEntries([]);
   };
   const [editMode,          setEditMode]          = useState(true);
+  const [tocOpen,           setTocOpen]           = useState(false);
+  const [tocEntries,        setTocEntries]        = useState<{ level: number; text: string; id: string }[]>([]);
   const [searchPanelOpen,   setSearchPanelOpen]   = useState(false);
   const searchPanelRef = useRef<HTMLDivElement>(null);
   const [showNewNoteModal,  setShowNewNoteModal]  = useState(false);
@@ -294,6 +298,8 @@ export default function Ensayos() {
 
   const setEnsayoActivo = useCallback((id: string | null) => {
     setEnsayoActivoId(id);
+    setTocOpen(false);
+    setTocEntries([]);
     if (id) localStorage.setItem(LS_ACTIVE, id);
     else     localStorage.removeItem(LS_ACTIVE);
   }, []);
@@ -516,7 +522,7 @@ export default function Ensayos() {
           {/* Grafo — izquierda */}
           {/* Grafo — izquierda */}
         <div className="shrink-0 flex items-center gap-2">
-          {/* Botón Home */}
+          {/* Botón Home — solo icono */}
           <button
             onClick={irAlHome}
             title="Volver al escritorio"
@@ -525,11 +531,10 @@ export default function Ensayos() {
               border: "1px solid",
               borderColor: ensayoActivoId ? "color-mix(in srgb, var(--foreground) 8%, transparent)" : "color-mix(in srgb, var(--foreground) 15%, transparent)",
               borderRadius: 5,
-              padding: "3px 7px",
+              padding: "3px 6px",
               cursor: "pointer",
               display: "flex",
               alignItems: "center",
-              gap: 4,
               transition: "all 0.12s",
             }}
             onMouseEnter={e => {
@@ -542,9 +547,6 @@ export default function Ensayos() {
             }}
           >
             <PenTool size={9} style={{ color: "color-mix(in srgb, var(--foreground) 45%, transparent)" }} />
-            <span style={{ fontSize: 9, fontFamily: "var(--font-mono)", color: "color-mix(in srgb, var(--foreground) 35%, transparent)" }}>
-              escritorio
-            </span>
           </button>
 
           {/* Grafo (solo cuando hay nota activa) */}
@@ -554,6 +556,41 @@ export default function Ensayos() {
               ensayos={ensayos}
               onSelectEnsayo={handleEnsayoClickSinCerrar}
             />
+          )}
+
+          {/* TOC (solo cuando hay nota activa con headings) */}
+          {ensayoActivo && tocEntries.length > 0 && (
+            <button
+              onClick={() => setTocOpen(p => !p)}
+              title="Tabla de contenidos"
+              style={{
+                background: tocOpen ? "color-mix(in srgb, var(--color-primary,#7c6af7) 12%, transparent)" : "none",
+                border: "1px solid",
+                borderColor: tocOpen
+                  ? "color-mix(in srgb, var(--color-primary,#7c6af7) 30%, transparent)"
+                  : "color-mix(in srgb, var(--foreground) 8%, transparent)",
+                borderRadius: 5,
+                cursor: "pointer",
+                padding: "3px 6px",
+                display: "flex",
+                alignItems: "center",
+                transition: "all 0.12s",
+              }}
+              onMouseEnter={e => {
+                if (!tocOpen) {
+                  (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--foreground) 25%, transparent)";
+                  (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--foreground) 6%, transparent)";
+                }
+              }}
+              onMouseLeave={e => {
+                if (!tocOpen) {
+                  (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--foreground) 8%, transparent)";
+                  (e.currentTarget as HTMLElement).style.background = "none";
+                }
+              }}
+            >
+              <List size={9} style={{ color: tocOpen ? "var(--color-primary,#7c6af7)" : "color-mix(in srgb, var(--foreground) 35%, transparent)" }} />
+            </button>
           )}
         </div>
 
@@ -770,6 +807,9 @@ export default function Ensayos() {
                   onUpdateField={actualizarLocal}
                   onNavigateToPage={(name) => navigateToPage(name, false)}
                   entities={allWikilinkNames}
+                  tocOpen={tocOpen}
+                  onTocToggle={() => setTocOpen(p => !p)}
+                  onTocEntriesChange={setTocEntries}
                 />
               ) : (
                 /* AQUÍ: Si no hay ensayo activo, mostramos el Dashboard en vez de EmptyState */
