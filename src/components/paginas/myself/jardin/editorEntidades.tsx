@@ -21,6 +21,7 @@ import { EditorMundo }     from "./editorEntidades/EditorMundo";
 import { EditorHechizos }  from "./editorEntidades/EditorHechizos";
 import { EditorGrupo }     from "./editorEntidades/EditorGrupo";
 import { WikilinkProvider } from "@/components/forms/WikilinkContext";
+import { EditorCapitulosPanel } from "@/components/paginas/myself/jardin/editorCapitulos";
 
 
 // ─── Helpers Dexie locales ────────────────────────────────────────────────────
@@ -242,7 +243,7 @@ function readSession(): {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return { tab: "personajes", selectedId: null, mundoSection: "geografia", mundoTab: undefined };
     const parsed = JSON.parse(raw);
-    const validTabs: TabKey[] = [...Object.keys(TAB_CONFIG) as Exclude<TabKey, "mundo">[], "mundo"];
+    const validTabs: TabKey[] = [...Object.keys(TAB_CONFIG) as Exclude<TabKey, "mundo">[], "mundo", "capitulos" as any];
     const tab = validTabs.includes(parsed.tab) ? parsed.tab as TabKey : "personajes";
     const mundoSection = VALID_MUNDO_SECTIONS.includes(parsed.mundoSection)
       ? parsed.mundoSection as MundoSectionKey
@@ -297,7 +298,7 @@ export default function EditorEntidades() {
   }, [tab, selectedId, mundoSection, requestedSubTab]);
 
   const selected = useMemo(() => {
-    if (tab === "mundo" || tab === "grupos") return null;
+    if (tab === "mundo" || tab === "grupos" || (tab as string) === "capitulos") return null;
     const list = allItems[tab as Exclude<TabKey, "mundo" | "grupos">];
     if (!list) return null;
     return list.find(i => i.id === selectedId) ?? null;
@@ -358,7 +359,7 @@ export default function EditorEntidades() {
   };
 
   const handleSaved = (item: any) => {
-    if (tab === "grupos" || tab === "mundo") return;
+    if (tab === "grupos" || tab === "mundo" || (tab as string) === "capitulos") return;
     const t = tab as Exclude<TabKey, "mundo" | "grupos">;
     setAllItems(prev => ({ ...prev, [t]: (prev[t as keyof typeof prev] as any[]).map(i => i.id === item.id ? item : i) }));
     void dexieWriteOne(TAB_CONFIG[t].tabla, item);
@@ -374,7 +375,7 @@ export default function EditorEntidades() {
     }, []);
 
   const handleDeleted = (id: string) => {
-    if (tab === "grupos" || tab === "mundo") return;
+    if (tab === "grupos" || tab === "mundo" || (tab as string) === "capitulos") return;
     const t = tab as Exclude<TabKey, "mundo" | "grupos">;
     setAllItems(prev => ({ ...prev, [t]: (prev[t as keyof typeof prev] as any[]).filter(i => i.id !== id) }));
     setSelectedId(null);
@@ -391,6 +392,7 @@ export default function EditorEntidades() {
   const isMundo = tab === "mundo";
   const isMagicTab = tab === "hechizos" || tab === "dones" || tab === "runas";
   const isGruposTab = tab === "grupos";
+  const isCapitulosTab = tab === "capitulos";
 
   return (
     <>
@@ -478,7 +480,9 @@ export default function EditorEntidades() {
         {/* ── Editor ──────────────────────────────────────────────────────── */}
         <div className="flex-1 flex min-h-0 overflow-hidden">
           <WikilinkProvider onWikilink={handleWikilinkNavigate}>
-          {isMundo ? (
+          {isCapitulosTab ? (
+            <EditorCapitulosPanel />
+          ) : isMundo ? (
             <EditorMundo
               activeSection={mundoSection}
               textos={mundoTextos}
