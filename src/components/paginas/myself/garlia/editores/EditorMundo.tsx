@@ -2423,8 +2423,10 @@ function PanelListas({
 
           {/* Vista: Editor de Capítulos embebido */}
           {mobileTab === "capitulos" && (
-            <div className="flex-1 min-h-0 overflow-hidden [&>div]:!h-full [&>div]:!max-h-full">
-              <EstudioCapitulos />
+            <div className="flex-1 min-h-0 overflow-hidden relative">
+              <div className="absolute inset-0 overflow-hidden">
+                <EstudioCapitulos />
+              </div>
             </div>
           )}
 
