@@ -2712,7 +2712,7 @@ export function EditorCapitulosPanel() {
         </AnimatePresence>
 
         {/* ── Editor ── */}
-        <div className="flex-1 min-h-0">
+        <div className="flex-1 min-h-0 flex flex-col">
           {selectedCapId && selectedLibroId ? (
             <PanelEditor
               key={selectedCapId}
@@ -2742,7 +2742,7 @@ export function EditorCapitulosPanel() {
 
 export default function EstudioCapitulos() {
   return (
-    <div className="flex-1 min-h-0 bg-bg-main">
+    <div className="flex-1 min-h-0 flex flex-col bg-bg-main">
       <EditorCapitulosPanel />
     </div>
   );
