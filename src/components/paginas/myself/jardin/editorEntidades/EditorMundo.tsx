@@ -2204,20 +2204,20 @@ function PanelListas({
       ],
     },
     {
-      label: "Mundo",
+      label: "Personajes & Mundo",
       tabs: [
         { key: "reinos",     label: "Reinos",     Icon: Map,        count: reinos.length     },
+        { key: "criaturas",  label: "Criaturas",  Icon: Bug,        count: criaturas.length  },
         { key: "personajes", label: "Personajes", Icon: Users,      count: personajes.length },
-        { key: "objetos",    label: "Objetos",    Icon: Package,    count: objetos.length    },
       ],
     },
     {
-      label: "Magia",
+      label: "Magia & Objetos",
       tabs: [
-        { key: "criaturas", label: "Criaturas", Icon: Bug,        count: criaturas.length                                                               },
-        { key: "hechizos",  label: "Hechizos",  Icon: Sparkles,   count: hechizos.length, color: "var(--accent)"                                        },
         { key: "dones",     label: "Dones",     Icon: Star,       count: dones.length,    color: "color-mix(in srgb, var(--accent) 70%, var(--primary))" },
+        { key: "hechizos",  label: "Hechizos",  Icon: Sparkles,   count: hechizos.length, color: "var(--accent)"                                        },
         { key: "runas",     label: "Runas",     Icon: ScrollText, count: runas.length                                                                    },
+        { key: "objetos",   label: "Objetos",   Icon: Package,    count: objetos.length                                                                  },
       ],
     },
     {
@@ -2633,9 +2633,9 @@ function PanelListas({
               }}
             >
               {/* Etiqueta del grupo */}
-              <div className="px-2.5 pt-2 pb-1">
-                <span className="text-[8px] font-black uppercase tracking-[0.3em]"
-                  style={{ color: "color-mix(in srgb, var(--primary) 28%, transparent)" }}>
+              <div className="px-2 pt-1.5 pb-0.5">
+                <span className="text-[7px] font-black uppercase tracking-[0.25em]"
+                  style={{ color: "color-mix(in srgb, var(--primary) 22%, transparent)" }}>
                   {group.label}
                 </span>
               </div>
