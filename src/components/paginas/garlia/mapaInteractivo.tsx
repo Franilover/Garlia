@@ -391,22 +391,24 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
   // Pulse animation
   const pulseRef = useRef(0);
   // Theme CSS vars read at draw time
-  const cssColorsRef = useRef({ primary: "#888", accent: "#aaa", bg: "#0a0806", fg: "#fff", bgMenu: "#111", pinFill: "#4a3520", parchBg: "#232010", parchText: "#e8ddb8" });
+  const cssColorsRef = useRef({ primary: "#6b4423", accent: "#c08040", bg: "#f0e6d0", fg: "#2a1304", bgMenu: "#3d2010", pinFill: "#6b4423", parchBg: "#3d2010", parchText: "#2a1304" });
   // Fog cache — rebuilt only when markers/size change, not every frame
   const fogCacheRef = useRef<{ canvas: OffscreenCanvas; deep: OffscreenCanvas; iw: number; ih: number; bg: string } | null>(null);
 
   useEffect(() => {
     const read = () => {
       const s = getComputedStyle(document.documentElement);
+      const get = (v: string) => s.getPropertyValue(v).trim();
       cssColorsRef.current = {
-        primary:    s.getPropertyValue("--primary").trim()    || "#888",
-        accent:     s.getPropertyValue("--accent").trim()     || "#aaa",
-        bg:         s.getPropertyValue("--bg-main").trim()    || "#0a0806",
-        fg:         s.getPropertyValue("--foreground").trim() || "#fff",
-        bgMenu:     s.getPropertyValue("--bg-menu").trim()    || "#111",
-        pinFill:    s.getPropertyValue("--primary").trim()    || "#4a3520",
-        parchBg:    s.getPropertyValue("--bg-menu").trim()    || "#232010",
-        parchText:  s.getPropertyValue("--foreground").trim() || "#e8ddb8",
+        primary:   get("--primary")    || "#6b4423",
+        accent:    get("--accent")     || "#c08040",
+        bg:        get("--bg-main")    || "#f0e6d0",
+        fg:        get("--foreground") || "#2a1304",
+        bgMenu:    get("--bg-menu")    || "#3d2010",
+        // pin body = primary, ring/dot use accent, label uses bg-menu + foreground
+        pinFill:   get("--primary")    || "#6b4423",
+        parchBg:   get("--bg-menu")    || "#3d2010",
+        parchText: get("--foreground") || "#2a1304",
       };
     };
     read();
@@ -1345,10 +1347,10 @@ export default function MapaInteractivo() {
               className="flex items-center gap-2 px-4 py-2 text-[10px] font-semibold uppercase tracking-widest transition-all border"
               style={{
                 background: editMode
-                  ? "color-mix(in srgb, var(--danger, #dc2626) 85%, transparent)"
+                  ? "color-mix(in srgb, #c43030 85%, var(--bg-menu))"
                   : "color-mix(in srgb, var(--bg-menu) 88%, transparent)",
                 borderColor: editMode
-                  ? "color-mix(in srgb, var(--danger, #dc2626) 50%, transparent)"
+                  ? "color-mix(in srgb, #c43030 50%, transparent)"
                   : "color-mix(in srgb, var(--primary) 30%, transparent)",
                 color: editMode ? "var(--btn-text, #fff)" : "var(--accent)",
                 borderRadius: "2px",
@@ -1363,9 +1365,9 @@ export default function MapaInteractivo() {
               <button onClick={handleSaveChanges} disabled={isSaving}
                 className="flex items-center gap-2 px-4 py-2 text-[10px] font-semibold uppercase tracking-widest disabled:opacity-50 transition-all"
                 style={{
-                  background: "color-mix(in srgb, var(--success, #16a34a) 85%, transparent)",
+                  background: "color-mix(in srgb, var(--accent) 70%, #1a5c30)",
                   color: "var(--btn-text, #fff)",
-                  border: "1px solid color-mix(in srgb, var(--success, #16a34a) 40%, transparent)",
+                  border: "1px solid color-mix(in srgb, var(--accent) 40%, #1a5c30)",
                   borderRadius: "2px",
                   letterSpacing: "0.12em",
                   boxShadow: "0 1px 4px rgba(0,0,0,0.3)",
