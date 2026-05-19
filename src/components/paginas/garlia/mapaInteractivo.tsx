@@ -645,85 +645,116 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
           ctx.save();
           ctx.translate(mx, my);
 
-          // ── Antique cartographic marker ──────────────────────────────────
-          // Fixed ink colors that work on top of the map regardless of theme
-          const inkDark   = isSelected ? "#1a0e05" : "#2c1a0a";
-          const inkMid    = isSelected ? "#5c3a1a" : "#7a5030";
-          const parchment = "rgba(240,224,185,0.92)";
-          const parchSel  = "rgba(255,240,200,0.96)";
+          // ── Antique map pin — teardrop with body ─────────────────────────
+          // Muted ink palette — no saturated colors
+          const pinFill    = isSelected ? "#5a4028" : "#4a3520";
+          const pinStroke  = isSelected ? "#2e1f0c" : "#251609";
+          const pinInner   = isSelected ? "#c8a97a" : "#a08060";
+          const pinShadow  = "rgba(0,0,0,0.28)";
 
-          const arm = isSelected ? 7 : 5.5;
+          // Pin dimensions
+          const headR = isSelected ? 9 : 7;       // circle head radius
+          const tailH = isSelected ? 14 : 11;     // tail length below head
 
-          // Pulsing outer halo (very faint)
-          const haloR = arm + 5 + pulse * 3;
+          // Drop shadow (offset, no blur on canvas so fake with alpha)
+          ctx.save();
+          ctx.translate(1.5, 2);
+          ctx.globalAlpha = 0.22;
           ctx.beginPath();
-          ctx.arc(0, 0, haloR, 0, Math.PI * 2);
-          ctx.strokeStyle = isSelected ? "rgba(180,130,60,0.25)" : "rgba(100,70,30,0.15)";
-          ctx.lineWidth = 0.8;
+          ctx.arc(0, -tailH * 0.4, headR, 0, Math.PI * 2);
+          ctx.fillStyle = "#000";
+          ctx.fill();
+          ctx.beginPath();
+          ctx.moveTo(-headR * 0.4, -tailH * 0.15);
+          ctx.quadraticCurveTo(0, tailH * 0.6, 0, tailH * 0.85);
+          ctx.quadraticCurveTo(0, tailH * 0.6, headR * 0.4, -tailH * 0.15);
+          ctx.fillStyle = "#000";
+          ctx.fill();
+          ctx.restore();
+          ctx.globalAlpha = 1;
+
+          // Tail (teardrop point, drawn first so head covers seam)
+          ctx.beginPath();
+          ctx.moveTo(-headR * 0.42, -tailH * 0.18);
+          ctx.quadraticCurveTo(-headR * 0.15, tailH * 0.55, 0, tailH);
+          ctx.quadraticCurveTo(headR * 0.15, tailH * 0.55, headR * 0.42, -tailH * 0.18);
+          ctx.fillStyle = pinFill;
+          ctx.fill();
+          ctx.strokeStyle = pinStroke;
+          ctx.lineWidth = isSelected ? 1.2 : 0.9;
           ctx.stroke();
 
-          // Outer circle — hand-drawn ink feel
+          // Head circle (filled)
           ctx.beginPath();
-          ctx.arc(0, 0, arm, 0, Math.PI * 2);
-          ctx.strokeStyle = inkMid;
+          ctx.arc(0, -tailH * 0.4, headR, 0, Math.PI * 2);
+          ctx.fillStyle = pinFill;
+          ctx.fill();
+          ctx.strokeStyle = pinStroke;
           ctx.lineWidth = isSelected ? 1.4 : 1.0;
           ctx.stroke();
 
-          // Cross arms (extend slightly beyond circle)
-          ctx.strokeStyle = inkDark;
-          ctx.lineWidth = isSelected ? 1.2 : 0.9;
-          ctx.lineCap = "round";
-          const ext = arm + 3.5;
+          // Inner ring — lighter, gives depth
           ctx.beginPath();
-          ctx.moveTo(-ext, 0); ctx.lineTo(ext, 0);
-          ctx.moveTo(0, -ext); ctx.lineTo(0, ext);
+          ctx.arc(0, -tailH * 0.4, headR * 0.52, 0, Math.PI * 2);
+          ctx.strokeStyle = pinInner;
+          ctx.lineWidth = isSelected ? 1.0 : 0.7;
           ctx.stroke();
-          ctx.lineCap = "butt";
 
-          // Inner filled dot
+          // Center dot
           ctx.beginPath();
-          ctx.arc(0, 0, isSelected ? 2.5 : 2, 0, Math.PI * 2);
-          ctx.fillStyle = isSelected ? "#8B4513" : inkDark;
+          ctx.arc(0, -tailH * 0.4, isSelected ? 2.2 : 1.6, 0, Math.PI * 2);
+          ctx.fillStyle = pinInner;
           ctx.fill();
 
-          if (editMode) {
-            // small dot indicator top-right
+          // Subtle pulsing outer ring (very faint, only visible)
+          if (!editMode) {
+            const haloR = headR + 3 + pulse * 3;
             ctx.beginPath();
-            ctx.arc(arm + 1, -arm - 1, 3, 0, Math.PI * 2);
+            ctx.arc(0, -tailH * 0.4, haloR, 0, Math.PI * 2);
+            ctx.strokeStyle = isSelected
+              ? `rgba(160,120,60,${0.18 * (1 - pulse)})`
+              : `rgba(100,75,40,${0.12 * (1 - pulse)})`;
+            ctx.lineWidth = 0.7;
+            ctx.stroke();
+          }
+
+          if (editMode) {
+            ctx.beginPath();
+            ctx.arc(headR, -tailH * 0.4 - headR, 3, 0, Math.PI * 2);
             ctx.fillStyle = accent;
             ctx.fill();
             if (m.oculto) {
               ctx.beginPath();
-              ctx.arc(-(arm + 1), arm + 1, 3, 0, Math.PI * 2);
+              ctx.arc(-headR, -tailH * 0.4 - headR, 3, 0, Math.PI * 2);
               ctx.fillStyle = "#f97316";
               ctx.fill();
             }
           }
 
-          // ── Label — parchment pill ──────────────────────────────────────
+          // ── Label — parchment strip ───────────────────────────────────────
           const fontSize = scale > 0.7 ? 10 : 9;
           ctx.font = `${isSelected ? "600" : "500"} ${fontSize}px 'Cinzel', serif`;
           ctx.textAlign = "center";
           const label = m.nombre;
           const metrics = ctx.measureText(label);
-          const lw = metrics.width + 10;
-          const lh = fontSize + 5;
-          const ly = -(arm + ext + lh + 1);
+          const lw = metrics.width + 12;
+          const lh = fontSize + 6;
+          const labelY = -(tailH * 0.4 + headR + lh + 5);
 
-          // Parchment background
-          ctx.fillStyle = isSelected ? parchSel : parchment;
+          // Parchment bg
+          ctx.fillStyle = isSelected ? "rgba(245,232,195,0.94)" : "rgba(232,218,180,0.90)";
           ctx.beginPath();
-          ctx.rect(-lw / 2, ly, lw, lh);
+          ctx.rect(-lw / 2, labelY, lw, lh);
           ctx.fill();
 
-          // Thin ink border
-          ctx.strokeStyle = isSelected ? "rgba(90,50,10,0.6)" : "rgba(60,35,10,0.4)";
-          ctx.lineWidth = 0.6;
+          // Ink border
+          ctx.strokeStyle = isSelected ? "rgba(80,50,15,0.55)" : "rgba(55,35,10,0.38)";
+          ctx.lineWidth = 0.55;
           ctx.stroke();
 
-          // Dark ink text — legible on any map zone
-          ctx.fillStyle = isSelected ? "#1a0a00" : "#2a1508";
-          ctx.fillText(label, 0, ly + lh - 4);
+          // Text in dark ink
+          ctx.fillStyle = isSelected ? "#1c0e04" : "#2e1a08";
+          ctx.fillText(label, 0, labelY + lh - 4);
 
           ctx.restore();
         }
@@ -737,15 +768,20 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
             ctx.globalAlpha = 0.35;
             ctx.translate(mx, my);
             ctx.save();
-            ctx.rotate(Math.PI / 4);
-            ctx.strokeStyle = "#f97316aa";
-            ctx.lineWidth = 1;
+            // Small teardrop, orange-tinted for hidden
+            const hR = 5; const hT = 8;
             ctx.beginPath();
-            ctx.arc(0, 0, 5, 0, Math.PI * 2);
-            ctx.stroke();
+            ctx.moveTo(-hR * 0.4, -hT * 0.18);
+            ctx.quadraticCurveTo(-hR * 0.1, hT * 0.5, 0, hT);
+            ctx.quadraticCurveTo(hR * 0.1, hT * 0.5, hR * 0.4, -hT * 0.18);
+            ctx.fillStyle = "rgba(180,90,20,0.7)";
+            ctx.fill();
             ctx.beginPath();
-            ctx.moveTo(-5, 0); ctx.lineTo(5, 0);
-            ctx.moveTo(0, -5); ctx.lineTo(0, 5);
+            ctx.arc(0, -hT * 0.4, hR, 0, Math.PI * 2);
+            ctx.fillStyle = "rgba(180,90,20,0.7)";
+            ctx.fill();
+            ctx.strokeStyle = "rgba(120,55,10,0.6)";
+            ctx.lineWidth = 0.8;
             ctx.stroke();
             ctx.restore();
             ctx.font = `bold 9px 'Cinzel', serif`;
