@@ -62,6 +62,16 @@ export const cancionesQueries = {
         .eq('id', id);
       if (error) throw error;
       return true;
+    },
+
+    reorder: async (secciones: { id: string; orden: number }[]) => {
+      const updates = secciones.map(({ id, orden }) =>
+        supabase
+          .from('secciones_cancion')
+          .update({ orden })
+          .eq('id', id)
+      );
+      await Promise.all(updates);
     }
   },
 };
