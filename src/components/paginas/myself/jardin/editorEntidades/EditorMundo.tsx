@@ -2097,8 +2097,8 @@ function PanelListas({
   const [selectedRuna,     setSelectedRuna]     = useState<Runa | null>(null);
   const [personajeStatus,  setPersonajeStatus]  = useState<SaveStatus>("idle");
 
-  type ListaTab = "mundo" | "historia" | "magia" | "reinos" | "criaturas" | "objetos" | "personajes" | "hechizos" | "dones" | "runas" | "notas" | "grupos" | "magia-objetos" | "mundo-personajes";
-  const VALID_LISTA_TABS: ListaTab[] = ["mundo", "historia", "magia", "reinos", "criaturas", "objetos", "personajes", "hechizos", "dones", "runas", "notas", "grupos", "magia-objetos", "mundo-personajes"];
+  type ListaTab = "mundo" | "historia" | "magia" | "reinos" | "criaturas" | "objetos" | "personajes" | "hechizos" | "dones" | "runas" | "notas" | "grupos" | "magia-objetos" | "mundo-personajes" | "geo-magia";
+  const VALID_LISTA_TABS: ListaTab[] = ["mundo", "historia", "magia", "reinos", "criaturas", "objetos", "personajes", "hechizos", "dones", "runas", "notas", "grupos", "magia-objetos", "mundo-personajes", "geo-magia"];
 
   const [mobileTab, setMobileTab] = useState<ListaTab>(() => {
     // initialSubTab puede ser un UnifiedTab ("mundo","historia","magia","listas") o un ListaTab directo
@@ -2198,9 +2198,8 @@ function PanelListas({
     {
       label: "Textos",
       tabs: [
-        { key: "mundo" as ListaTab,    label: "Geografía", Icon: Mountain,    count: 0 },
-        { key: "historia" as ListaTab, label: "Historia",  Icon: Clock,       count: 0 },
-        { key: "magia" as ListaTab,    label: "Magia",     Icon: Sparkles,    count: 0, color: "var(--accent)" },
+        { key: "geo-magia" as ListaTab, label: "Geo & Magia", Icon: Mountain, count: 0 },
+        { key: "historia"  as ListaTab, label: "Historia",    Icon: Clock,    count: 0 },
       ],
     },
     {
@@ -2352,7 +2351,7 @@ function PanelListas({
           )}
 
           {/* Header del tab activo (solo para tabs de lista individuales) */}
-          {!["mundo", "historia", "magia", "magia-objetos", "mundo-personajes"].includes(mobileTab) && (() => {
+          {!["mundo", "historia", "magia", "magia-objetos", "mundo-personajes", "geo-magia"].includes(mobileTab) && (() => {
             const t = TABS.find(t => t.key === mobileTab);
             if (!t) return null;
             const color = t.color ?? "var(--primary)";
@@ -2384,12 +2383,50 @@ function PanelListas({
           })()}
 
           {/* Buscador */}
-          {!["mundo", "historia", "magia", "magia-objetos", "mundo-personajes"].includes(mobileTab) && mobileTab !== "grupos" && (
+          {!["mundo", "historia", "magia", "magia-objetos", "mundo-personajes", "geo-magia"].includes(mobileTab) && mobileTab !== "grupos" && (
             <SearchInput
               value={searchMap[mobileTab] ?? ""}
               onChange={v => setSearchMap[mobileTab]?.(v)}
               placeholder={`Buscar ${TABS.find(t => t.key === mobileTab)?.label.toLowerCase()}…`}
             />
+          )}
+
+          {/* Vista combinada: Geografía + Magia mitad y mitad */}
+          {mobileTab === "geo-magia" && textos && onTextoChange && onSave && (
+            <div className="flex-1 flex min-h-0 overflow-hidden">
+              {/* Geografía — mitad izquierda */}
+              <div className="flex-1 flex flex-col min-h-0 border-r" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+                <div className="shrink-0 flex items-center gap-2 px-3 py-2 border-b"
+                  style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, transparent)" }}>
+                  <Mountain size={11} className="text-primary/40 shrink-0" />
+                  <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/50">Geografía</span>
+                </div>
+                <PanelTexto
+                  texto={textos.geografia}
+                  onChange={v => onTextoChange("geografia", v)}
+                  onSave={() => onSave("geografia")}
+                  placeholder="Continentes, mares, climas, fronteras del mundo…"
+                  saveLabel="Guardar"
+                  SaveIcon={Mountain}
+                />
+              </div>
+              {/* Magia — mitad derecha */}
+              <div className="flex-1 flex flex-col min-h-0">
+                <div className="shrink-0 flex items-center gap-2 px-3 py-2 border-b"
+                  style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--accent) 3%, transparent)" }}>
+                  <Sparkles size={11} style={{ color: "var(--accent)" }} className="shrink-0" />
+                  <span className="text-[9px] font-black uppercase tracking-[0.2em]" style={{ color: "var(--accent)" }}>Magia</span>
+                </div>
+                <PanelTexto
+                  texto={textos.magia}
+                  onChange={v => onTextoChange("magia", v)}
+                  onSave={() => onSave("magia")}
+                  placeholder="Sistema de magia, reglas, fuentes de poder, limitaciones…"
+                  saveLabel="Guardar"
+                  SaveIcon={Sparkles}
+                />
+              </div>
+            </div>
           )}
 
           {/* Vista combinada: Personajes & Mundo (reinos + criaturas + personajes) */}
@@ -2583,7 +2620,7 @@ function PanelListas({
           )}
 
           {/* Listado */}
-          {!(["mundo", "historia", "magia", "magia-objetos", "mundo-personajes"].includes(mobileTab)) && (
+          {!(["mundo", "historia", "magia", "magia-objetos", "mundo-personajes", "geo-magia"].includes(mobileTab)) && (
           <div
             className={mobileTab === "grupos"
               ? "flex-1 flex min-h-0 overflow-hidden relative"
