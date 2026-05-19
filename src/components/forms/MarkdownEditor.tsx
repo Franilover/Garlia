@@ -23,93 +23,199 @@ const CALLOUT_MAP: Record<string, { cls: string; icon: string; label: string }> 
 
 // ── Renderer ─────────────────────────────────────────────────────────────────
 export function renderMarkdown(raw: string): string {
-  // ── Proteger bloques de código primero ──────────────────────────────────
-  const codeBlocks: string[] = [];
-  let html = raw.replace(/```([\s\S]*?)```/g, (_, code) => {
-    const escaped = code.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-    const idx = codeBlocks.length;
-    codeBlocks.push(`<pre><code>${escaped.trim()}</code></pre>`);
-    return `\x00CODE${idx}\x00`;
-  });
+  // ── helpers inline (aplicados a texto suelto, no a bloques HTML) ─────────
+  const applyInline = (text: string): string => {
+    text = text.replace(/!\[([^\]]*)\]\(([^)]*)\)/g, '<img src="$2" alt="$1" />');
+    text = text.replace(/\[([^\]]+)\]\(([^)]*)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+    text = text.replace(/\[\[([^\]|#]+?)(?:\|([^\]]+))?\]\]/g, (_, target, alias) => {
+      const label = alias?.trim() || target.trim();
+      const safeTarget = target.trim().replace(/"/g, '&quot;');
+      return `<a class="wikilink" data-wikilink="${safeTarget}" href="javascript:void(0)" title="Ir a: ${safeTarget}">${label}</a>`;
+    });
+    text = text.replace(/\*\*\*(.+?)\*\*\*/g, "<strong><em>$1</em></strong>");
+    text = text.replace(/\*\*(.+?)\*\*/g,     "<strong>$1</strong>");
+    text = text.replace(/\*(.+?)\*/g,          "<em>$1</em>");
+    text = text.replace(/`([^`]+)`/g,           "<code>$1</code>");
+    text = text.replace(/~~(.+?)~~/g,           "<del>$1</del>");
+    text = text.replace(/==(.+?)==/g,           '<mark class="md-mark">$1</mark>');
+    text = text.replace(/\^([^\^\n]+?)\^/g,     "<sup>$1</sup>");
+    text = text.replace(/(?<!~)~([^~\n]+?)~(?!~)/g, "<sub>$1</sub>");
+    text = text.replace(/\$\$([^$]+?)\$\$/g, (_, expr) =>
+      `<span class="math-block" data-expr="${expr.trim().replace(/"/g,'&quot;')}"></span>`);
+    text = text.replace(/\$([^$\n]+?)\$/g, (_, expr) =>
+      `<span class="math-inline" data-expr="${expr.trim().replace(/"/g,'&quot;')}"></span>`);
+    return text;
+  };
 
-  // ── Proteger math en bloque $$...$$  ────────────────────────────────────
-  const mathBlocks: string[] = [];
-  html = html.replace(/\$\$([\s\S]+?)\$\$/g, (_, expr) => {
-    const idx = mathBlocks.length;
-    mathBlocks.push(`<span class="math-block" data-expr="${expr.trim().replace(/"/g,'&quot;')}"></span>`);
-    return `\x00MATH${idx}\x00`;
-  });
+  // ── Heading helpers ───────────────────────────────────────────────────────
+  const headingCounter: Record<string, number> = {};
+  const tocEntries: { level: number; text: string; id: string }[] = [];
+  const makeHeading = (level: number, rawText: string): string => {
+    const text = applyInline(rawText.trim());
+    const base = slugify(rawText.trim());
+    headingCounter[base] = (headingCounter[base] || 0) + 1;
+    const id = headingCounter[base] > 1 ? `${base}-${headingCounter[base]}` : base;
+    if (level <= 4) tocEntries.push({ level, text: rawText.trim(), id });
+    return `<h${level} id="${id}">${text}<a class="heading-anchor" href="#${id}" aria-label="Enlace a sección" tabindex="-1">#</a></h${level}>`;
+  };
 
-  // ── Escapar HTML en el resto ─────────────────────────────────────────────
-  html = html
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-
-  // ── Tablas ───────────────────────────────────────────────────────────────
-  html = html.replace(/(?:^|\n)((?:\|[^\n]+\|\n)+)/g, (_, tableBlock) => {
-    const rows = tableBlock.trim().split("\n").filter((r: string) => r.trim());
-    if (rows.length < 2) return tableBlock;
+  // ── Tabla helper ──────────────────────────────────────────────────────────
+  const renderTable = (lines: string[]): string => {
     const isSep = (r: string) => /^\|[-| :]+\|$/.test(r.trim());
-    const parse = (row: string) => row.split("|").slice(1, -1).map((c: string) => c.trim());
-    const headers = parse(rows[0]).map((c: string) => `<th>${c}</th>`).join("");
-    const body = rows.slice(1).filter((r: string) => !isSep(r))
-      .map((r: string) => `<tr>${parse(r).map((c: string) => `<td>${c}</td>`).join("")}</tr>`).join("");
-    return `\n<table><thead><tr>${headers}</tr></thead><tbody>${body}</tbody></table>\n`;
-  });
+    const parse = (row: string) => row.split("|").slice(1, -1).map((c: string) => applyInline(c.trim()));
+    const headers = parse(lines[0]).map(c => `<th>${c}</th>`).join("");
+    const body = lines.slice(1).filter(r => !isSep(r))
+      .map(r => `<tr>${parse(r).map(c => `<td>${c}</td>`).join("")}</tr>`).join("");
+    return `<table><thead><tr>${headers}</tr></thead><tbody>${body}</tbody></table>`;
+  };
 
-  // ── Callouts > [!TYPE] ───────────────────────────────────────────────────
-  html = html.replace(/((?:^&gt;.*(?:\n|$))+)/gm, (block) => {
-    const lines = block.split("\n").filter(l => l.trim());
-    const inner = lines.map(l => l.replace(/^&gt;\s?/, ""));
+  // ── Callout helper ────────────────────────────────────────────────────────
+  const renderCallout = (lines: string[]): string => {
+    const inner = lines.map(l => l.replace(/^>\s?/, ""));
     const firstLine = inner[0] || "";
     const calloutMatch = firstLine.match(/^\[!(NOTE|TIP|WARNING|DANGER|ERROR|SUCCESS|INFO)\]\s*(.*)?$/i);
     if (calloutMatch) {
       const key = calloutMatch[1].toUpperCase();
       const cfg = CALLOUT_MAP[key];
       const titleExtra = calloutMatch[2] ? calloutMatch[2] : cfg.label;
-      const body = inner.slice(1).join("<br/>");
+      const body = inner.slice(1).map(applyInline).join("<br/>");
       return `<div class="callout ${cfg.cls}"><div class="callout-title"><span class="callout-title-icon">${cfg.icon}</span>${titleExtra}</div>${body ? `<div class="callout-body">${body}</div>` : ""}</div>`;
     }
-    return `<blockquote>${inner.join("\n")}</blockquote>`;
-  });
+    return `<blockquote>${inner.map(applyInline).join("<br/>")}</blockquote>`;
+  };
 
-  // ── Proteger [[TOC]] antes de que el regex de wikilinks lo consuma ─────────
-  const hasTOC = /\[\[toc\]\]/i.test(html);
-  if (hasTOC) {
-    html = html.replace(/\[\[toc\]\]/gi, "\x00TOC\x00");
+  // ── List item helper ──────────────────────────────────────────────────────
+  const renderListItem = (content: string): string => {
+    const taskMatch = content.match(/^\[([ xX])\] (.*)/);
+    if (taskMatch) {
+      const checked = taskMatch[1].trim().toLowerCase() === 'x' ? 'checked' : '';
+      return `<li class="task-list-item"><input type="checkbox" class="task-list-checkbox" disabled ${checked} /><span>${applyInline(taskMatch[2])}</span></li>`;
+    }
+    return `<li>${applyInline(content)}</li>`;
+  };
+
+  // ── TOC placeholder ───────────────────────────────────────────────────────
+  const hasTOC = /\[\[toc\]\]/i.test(raw);
+
+  // ── Line-by-line block parser ─────────────────────────────────────────────
+  const lines = raw.split("\n");
+  const output: string[] = [];
+  let i = 0;
+
+  while (i < lines.length) {
+    const line = lines[i];
+
+    // blank line → skip
+    if (line.trim() === "") { i++; continue; }
+
+    // fenced code block ```
+    if (line.trimStart().startsWith("```")) {
+      const fence = line.trimStart().match(/^(`+)/)?.[1] ?? "```";
+      const lang = line.trimStart().slice(fence.length).trim();
+      const codeLines: string[] = [];
+      i++;
+      while (i < lines.length && !lines[i].trimStart().startsWith(fence)) {
+        codeLines.push(lines[i]
+          .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"));
+        i++;
+      }
+      i++; // consume closing fence
+      const langAttr = lang ? ` class="language-${lang}"` : "";
+      output.push(`<pre><code${langAttr}>${codeLines.join("\n")}</code></pre>`);
+      continue;
+    }
+
+    // [[TOC]]
+    if (/^\[\[toc\]\]\s*$/i.test(line.trim())) {
+      output.push("\x00TOC\x00");
+      i++; continue;
+    }
+
+    // hr ---
+    if (/^---+$/.test(line.trim())) {
+      output.push("<hr/>");
+      i++; continue;
+    }
+
+    // headings #
+    const hMatch = line.match(/^(#{1,6})\s+(.+)$/);
+    if (hMatch) {
+      output.push(makeHeading(hMatch[1].length, hMatch[2]));
+      i++; continue;
+    }
+
+    // table |
+    if (line.trim().startsWith("|")) {
+      const tableLines: string[] = [];
+      while (i < lines.length && lines[i].trim().startsWith("|")) {
+        tableLines.push(lines[i]);
+        i++;
+      }
+      if (tableLines.length >= 2) {
+        output.push(renderTable(tableLines));
+      } else {
+        output.push(`<p>${applyInline(tableLines[0])}</p>`);
+      }
+      continue;
+    }
+
+    // blockquote / callout >
+    if (line.trimStart().startsWith(">")) {
+      const quoteLines: string[] = [];
+      while (i < lines.length && lines[i].trimStart().startsWith(">")) {
+        quoteLines.push(lines[i].trimStart().slice(1));
+        i++;
+      }
+      output.push(renderCallout(quoteLines));
+      continue;
+    }
+
+    // ordered list 1.
+    if (/^[ \t]*\d+\.\s/.test(line)) {
+      const items: string[] = [];
+      while (i < lines.length && /^[ \t]*\d+\.\s/.test(lines[i])) {
+        items.push(renderListItem(lines[i].replace(/^[ \t]*\d+\.\s/, "")));
+        i++;
+      }
+      output.push(`<ol>${items.join("")}</ol>`);
+      continue;
+    }
+
+    // unordered list -
+    if (/^[ \t]*-\s/.test(line)) {
+      const items: string[] = [];
+      while (i < lines.length && /^[ \t]*-\s/.test(lines[i])) {
+        items.push(renderListItem(lines[i].replace(/^[ \t]*-\s/, "")));
+        i++;
+      }
+      output.push(`<ul>${items.join("")}</ul>`);
+      continue;
+    }
+
+    // paragraph — collect consecutive non-blank, non-block lines
+    const paraLines: string[] = [];
+    while (
+      i < lines.length &&
+      lines[i].trim() !== "" &&
+      !lines[i].trimStart().startsWith("```") &&
+      !/^\[\[toc\]\]\s*$/i.test(lines[i].trim()) &&
+      !/^---+$/.test(lines[i].trim()) &&
+      !/^(#{1,6})\s/.test(lines[i]) &&
+      !lines[i].trim().startsWith("|") &&
+      !lines[i].trimStart().startsWith(">") &&
+      !/^[ \t]*\d+\.\s/.test(lines[i]) &&
+      !/^[ \t]*-\s/.test(lines[i])
+    ) {
+      paraLines.push(lines[i]);
+      i++;
+    }
+    if (paraLines.length > 0) {
+      output.push(`<p>${applyInline(paraLines.join("<br/>"))}</p>`);
+    }
   }
 
-  // ── Imágenes y enlaces ───────────────────────────────────────────────────
-  html = html.replace(/!\[([^\]]*)\]\((.*?)\)/g, '<img src="$2" alt="$1" />');
-  html = html.replace(/\[([^\]]+)\]\((.*?)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
-
-  // ── Wikilinks [[nombre]] → enlace interno clicable ───────────────────────
-  html = html.replace(/\[\[([^\]|#]+?)(?:\|([^\]]+))?\]\]/g, (_, target, alias) => {
-    const label = alias?.trim() || target.trim();
-    const safeTarget = target.trim().replace(/"/g, '&quot;');
-    return `<a class="wikilink" data-wikilink="${safeTarget}" href="javascript:void(0)" title="Ir a: ${safeTarget}">${label}</a>`;
-  });
-
-  // ── Encabezados con ID para TOC ──────────────────────────────────────────
-  html = html.replace(/^---$/gm, "<hr/>");
-  const headingCounter: Record<string, number> = {};
-  const tocEntries: { level: number; text: string; id: string }[] = [];
-  const makeHeading = (level: number, text: string) => {
-    const base = slugify(text);
-    headingCounter[base] = (headingCounter[base] || 0) + 1;
-    const id = headingCounter[base] > 1 ? `${base}-${headingCounter[base]}` : base;
-    if (level <= 4) tocEntries.push({ level, text, id });
-    return `<h${level} id="${id}">${text}<a class="heading-anchor" href="#${id}" aria-label="Enlace a sección" tabindex="-1">#</a></h${level}>`;
-  };
-  html = html.replace(/^######\s(.+)$/gm, (_, t) => makeHeading(6, t));
-  html = html.replace(/^#####\s(.+)$/gm,  (_, t) => makeHeading(5, t));
-  html = html.replace(/^####\s(.+)$/gm,   (_, t) => makeHeading(4, t));
-  html = html.replace(/^###\s(.+)$/gm,    (_, t) => makeHeading(3, t));
-  html = html.replace(/^##\s(.+)$/gm,     (_, t) => makeHeading(2, t));
-  html = html.replace(/^#\s(.+)$/gm,      (_, t) => makeHeading(1, t));
-
-  // ── [[TOC]] → tabla de contenidos real ──────────────────────────────────
+  // ── Inject TOC ────────────────────────────────────────────────────────────
+  let html = output.join("\n");
   if (hasTOC) {
     let tocHtml: string;
     if (tocEntries.length > 0) {
@@ -127,63 +233,6 @@ export function renderMarkdown(raw: string): string {
     }
     html = html.replace(/\x00TOC\x00/g, tocHtml);
   }
-
-  // ── Tipografía inline ────────────────────────────────────────────────────
-  html = html.replace(/\*\*\*(.+?)\*\*\*/g, "<strong><em>$1</em></strong>");
-  html = html.replace(/\*\*(.+?)\*\*/g,     "<strong>$1</strong>");
-  html = html.replace(/\*(.+?)\*/g,         "<em>$1</em>");
-  html = html.replace(/`([^`]+)`/g,          "<code>$1</code>");
-
-  // ── Tachado ~~texto~~ ────────────────────────────────────────────────────
-  html = html.replace(/~~(.+?)~~/g, "<del>$1</del>");
-
-  // ── Resaltado ==texto== ──────────────────────────────────────────────────
-  html = html.replace(/==(.+?)==/g, '<mark class="md-mark">$1</mark>');
-
-  // ── Superíndice ^texto^ ──────────────────────────────────────────────────
-  html = html.replace(/\^([^\^\n]+?)\^/g, "<sup>$1</sup>");
-
-  // ── Subíndice ~texto~ (solo si no es ~~ tachado) ─────────────────────────
-  html = html.replace(/(?<!~)~([^~\n]+?)~(?!~)/g, "<sub>$1</sub>");
-
-  // ── Math inline $expr$ ───────────────────────────────────────────────────
-  html = html.replace(/\$([^$\n]+?)\$/g, (_, expr) => {
-    return `<span class="math-inline" data-expr="${expr.trim().replace(/"/g,'&quot;')}"></span>`;
-  });
-
-  // ── Listas numeradas ─────────────────────────────────────────────────────
-  html = html.replace(/((?:^[ \t]*\d+\.\s.+\n?)+)/gm, (block) => {
-    const items = block.trim().split("\n")
-      .map((l: string) => `<li>${l.replace(/^[ \t]*\d+\.\s/, "")}</li>`)
-      .join("");
-    return `<ol>${items}</ol>`;
-  });
-
-  // ── Listas con viñetas ───────────────────────────────────────────────────
-  html = html.replace(/((?:^[ \t]*- .+\n?)+)/gm, (block) => {
-    const items = block.trim().split("\n")
-      .map((l: string) => {
-        let content = l.replace(/^[ \t]*- /, "");
-        const taskMatch = content.match(/^\[([ xX\s])\] (.*)/);
-        if (taskMatch) {
-          const checked = taskMatch[1].trim().toLowerCase() === 'x' ? 'checked' : '';
-          return `<li class="task-list-item"><input type="checkbox" class="task-list-checkbox" disabled ${checked} /><span>${taskMatch[2]}</span></li>`;
-        }
-        return `<li>${content}</li>`;
-      }).join("");
-    return `<ul>${items}</ul>`;
-  });
-
-  // ── Párrafos ─────────────────────────────────────────────────────────────
-  html = html.split(/\n{2,}/).map((block: string) => {
-    if (/^<(h[1-6]|ul|ol|li|pre|table|hr|blockquote|\x00)/.test(block.trim())) return block;
-    const inner = block.trim().replace(/\n/g, "<br/>");
-    return inner ? `<p>${inner}</p>` : "";
-  }).join("\n");
-
-  // ── Restaurar bloques protegidos ─────────────────────────────────────────
-  html = html.replace(/\x00CODE(\d+)\x00/g, (_, i) => codeBlocks[+i]);
-  html = html.replace(/\x00MATH(\d+)\x00/g, (_, i) => mathBlocks[+i]);
 
   return html;
 }
