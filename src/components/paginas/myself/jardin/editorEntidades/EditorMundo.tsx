@@ -21,7 +21,7 @@ import { type TimelineEvent } from "./LoreTab";
 import { useNotas } from "./useNotas";
 import { EditorNota, ListaNotas } from "./EditorNota";
 import { EditorGrupo } from "./EditorGrupo";
-import EstudioCapitulos from "@/components/paginas/myself/jardin/editorCapitulos";
+import EstudioCapitulos from "./editorCapitulos";
 
 
 // ─── Dexie helpers ────────────────────────────────────────────────────────────
@@ -2423,8 +2423,10 @@ function PanelListas({
 
           {/* Vista: Editor de Capítulos embebido */}
           {mobileTab === "capitulos" && (
-            <div className="flex-1 min-h-0 overflow-hidden [&>div]:!h-full [&>div]:!min-h-0">
-              <EstudioCapitulos />
+            <div className="absolute inset-0 z-10 flex flex-col overflow-hidden" style={{ background: "var(--bg-main)" }}>
+              <div className="flex-1 min-h-0 overflow-hidden [&>div]:!h-full [&>div]:!max-h-full">
+                <EstudioCapitulos />
+              </div>
             </div>
           )}
 
