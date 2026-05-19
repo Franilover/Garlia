@@ -2206,25 +2206,15 @@ function PanelListas({
     {
       label: "Personajes & Mundo",
       tabs: [
-        { key: "mundo-personajes" as ListaTab, label: "Personajes", Icon: Users, count: reinos.length + criaturas.length + personajes.length },
+        { key: "mundo-personajes" as ListaTab, label: "Personajes", Icon: Users,    count: reinos.length + criaturas.length + personajes.length },
+        { key: "magia-objetos"   as ListaTab, label: "Magia",       Icon: Sparkles, count: dones.length + hechizos.length + runas.length + objetos.length, color: "var(--accent)" },
       ],
     },
     {
-      label: "Magia & Objetos",
+      label: "Notas & Grupos",
       tabs: [
-        { key: "magia-objetos" as ListaTab, label: "Magia & Objetos", Icon: Sparkles, count: dones.length + hechizos.length + runas.length + objetos.length, color: "var(--accent)" },
-      ],
-    },
-    {
-      label: "Notas",
-      tabs: [
-        { key: "notas", label: "Notas", Icon: FileText, count: notas.length },
-      ],
-    },
-    {
-      label: "Grupos",
-      tabs: [
-        { key: "grupos", label: "Grupos", Icon: Layers, count: 0 },
+        { key: "notas",  label: "Notas",  Icon: FileText, count: notas.length },
+        { key: "grupos", label: "Grupos", Icon: Layers,   count: 0 },
       ],
     },
   ];
