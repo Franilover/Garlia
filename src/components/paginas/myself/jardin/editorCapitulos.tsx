@@ -2420,7 +2420,7 @@ const LibroColumna = ({
   );
 };
 
-export default function EstudioCapitulos() {
+export function EditorCapitulosPanel() {
   const {
     data:     libros,
     setData:  setLibros,
@@ -2504,7 +2504,7 @@ export default function EstudioCapitulos() {
 
   return (
     <>
-      <div className="flex flex-col h-[100dvh] bg-bg-main">
+      <div className="flex flex-col h-full">
 
         {/* ── Topbar ── */}
         <div
@@ -2737,5 +2737,13 @@ export default function EstudioCapitulos() {
       {editandoLibro && <ModalEditarLibro libro={editandoLibro} onSaved={handleLibroEditado} onClose={() => setEditandoLibro(null)} />}
       {editandoCap && <ModalEditarCapitulo cap={editandoCap} onSaved={handleCapEditada} onClose={() => setEditandoCap(null)} />}
     </>
+  );
+}
+
+export default function EstudioCapitulos() {
+  return (
+    <div className="h-[100dvh] bg-bg-main">
+      <EditorCapitulosPanel />
+    </div>
   );
 }
