@@ -9,14 +9,14 @@ export type Updates<T extends keyof Database['public']['Tables']> = Database['pu
 
 // --- QUERIES MAESTRAS (WIKI/GARLIA) ---
 
-export const cancionFullQuery = supabase
+export const cancionQuery = supabase
   .from('canciones')
   .select(`
     *,
     personaje:personajes (id, nombre, img_url),
     secciones:secciones_cancion (*)
   `);
-export type CancionFull = QueryData<typeof cancionFullQuery>;
+export type Cancion = QueryData<typeof cancionQuery>;
 
 export const personajeFullQuery = supabase
   .from('personajes')
