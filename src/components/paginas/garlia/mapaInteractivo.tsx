@@ -291,7 +291,7 @@ function PanelContenido({
               {librosReino.map((libro: any) => (
                 <button
                   key={libro.id}
-                  onClick={() => router.push(`/wiki/libros/${libro.id}`)}
+                  onClick={() => router.push(`/garlia/libros/${libro.id}`)}
                   className="flex items-center gap-3 p-3 border w-full text-left transition-all hover:opacity-80 active:scale-[0.98]"
                   style={{
                     background: "color-mix(in srgb, var(--primary) 10%, transparent)",
@@ -332,7 +332,7 @@ function PanelContenido({
               {capitulosReino.map((cap: any) => (
                 <button
                   key={cap.id}
-                  onClick={() => router.push(`/wiki/libros/${cap.libro_id}/leer/${cap.id}`)}
+                  onClick={() => router.push(`/garlia/libros/${cap.libro_id}/leer/${cap.id}`)}
                   className="flex items-center gap-2 px-3 py-2.5 border w-full text-left transition-all hover:opacity-80 active:scale-[0.98]"
                   style={{
                     background: "color-mix(in srgb, var(--primary) 8%, transparent)",

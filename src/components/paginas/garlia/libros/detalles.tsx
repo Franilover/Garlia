@@ -256,7 +256,7 @@ export default function LibroDetalle() {
         if (!data) { setNotFound(true); setLoading(false); return; }
         // Redirigir silenciosamente a la URL con slug para canonicalizar
         const slug = toSlug(data.titulo);
-        if (slug) router.replace(`/wiki/libros/${slug}`);
+        if (slug) router.replace(`/garlia/libros/${slug}`);
         setLibro(data);
         setLibroId(data.id);
         return data.id as string;
@@ -322,7 +322,7 @@ export default function LibroDetalle() {
   if (notFound || !libro || !libroId) return (
     <div className="min-h-screen bg-bg-main flex flex-col items-center justify-center gap-4">
       <p className="text-primary/30 font-black uppercase text-xs tracking-widest italic">Libro no encontrado</p>
-      <BackBtn onClick={() => router.push("/wiki/libros")} />
+      <BackBtn onClick={() => router.push("/garlia/libros")} />
     </div>
   );
 
@@ -345,13 +345,13 @@ export default function LibroDetalle() {
   // ── Helper: ruta al lector usando el slug del libro ──────────────────────
   // Mantiene slug en la URL del lector también para consistencia SEO
   const rutaLector = (primerCapId: string, targetCapId?: string) =>
-    `/wiki/libros/${slugParam}/leer/${primerCapId}${targetCapId ? `#cap-${targetCapId}` : ""}`;
+    `/garlia/libros/${slugParam}/leer/${primerCapId}${targetCapId ? `#cap-${targetCapId}` : ""}`;
 
   // ── Layout para categoría "Extra" ─────────────────────────────────────────
   if (esExtra) {
     return (
       <div className="min-h-screen bg-bg-main pb-20 relative">
-        <BackBtn onClick={() => router.push("/wiki/libros")} />
+        <BackBtn onClick={() => router.push("/garlia/libros")} />
 
         <div className="max-w-5xl mx-auto px-6 grid md:grid-cols-[340px_1fr] gap-12 mt-4 items-start">
           <div
@@ -435,7 +435,7 @@ export default function LibroDetalle() {
   // ── Layout normal ──────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-bg-main pb-20 relative">
-      <BackBtn onClick={() => router.push("/wiki/libros")} />
+      <BackBtn onClick={() => router.push("/garlia/libros")} />
 
       <div className="max-w-5xl mx-auto px-6 grid md:grid-cols-[320px_1fr] gap-16 mt-4">
         {/* ── Portada y sidebar ── */}

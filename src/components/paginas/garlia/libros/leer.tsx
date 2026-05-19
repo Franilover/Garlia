@@ -4,7 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/api/client/supabase";
 import { ChevronLeft, List, ChevronRight } from "lucide-react";
 import { Btn } from "@/components/ui";
-import { librosQueries } from "@/lib/api/queries/wiki/libros";
+import { librosQueries } from "@/lib/api/queries/garlia/libros";
 import { motion, AnimatePresence } from "framer-motion";
 
 import { CapituloLista, CapituloScrollItem } from "./leer/type";
@@ -880,7 +880,7 @@ export default function Lector() {
           .from("libros").select("id, titulo, categoria").eq("id", slugParam).single();
         if (!data) { setError("Libro no encontrado"); return; }
         const slug = toSlug(data.titulo);
-        router.replace(`/wiki/libros/${slug}/leer/${capIdParam}`, { scroll: false });
+        router.replace(`/garlia/libros/${slug}/leer/${capIdParam}`, { scroll: false });
         libroId = data.id;
         if (data.categoria?.toLowerCase() === "extra") setEsExtra(true);
       } else {
@@ -967,7 +967,7 @@ export default function Lector() {
         capIdActivo = capIdParam;
         // Canonicalizar URL: UUID → slug de segmento
         const segSlug = slugSegmento(segs, si);
-        router.replace(`/wiki/libros/${slugParam}/leer/${segSlug}`, { scroll: false });
+        router.replace(`/garlia/libros/${slugParam}/leer/${segSlug}`, { scroll: false });
       } else {
         si = resolverSegmentoDesdeSlug(segs, capIdParam);
         capIdActivo = segs[si]?.capitulos[0]?.id ?? capsValidas[0]?.id ?? "";
@@ -1111,9 +1111,9 @@ export default function Lector() {
     const el = document.getElementById(`cap-${targetCapId}`);
     if (el) {
       el.scrollIntoView({ behavior: "smooth", block: "start" });
-      router.replace(`/wiki/libros/${slugParam}/leer/${segSlug}`, { scroll: false });
+      router.replace(`/garlia/libros/${slugParam}/leer/${segSlug}`, { scroll: false });
     } else {
-      router.push(`/wiki/libros/${slugParam}/leer/${segSlug}`);
+      router.push(`/garliaia/libros/${slugParam}/leer/${segSlug}`);
     }
     setCapId(targetCapId);
   }, [slugParam, router, segmentos, segActivo]);
@@ -1124,15 +1124,15 @@ export default function Lector() {
     const segSlug = si !== -1 ? slugSegmento(segmentos, si) : slugSegmento(segmentos, segActivo);
     if (si !== -1 && si !== segActivo) {
       // Cambia de segmento → navegar con slug del segmento destino
-      router.push(`/wiki/libros/${slugParam}/leer/${segSlug}`);
+      router.push(`/garlia/libros/${slugParam}/leer/${segSlug}`);
       return;
     }
     const el = document.getElementById(`cap-${newCapId}`);
     if (el) {
       el.scrollIntoView({ behavior: "smooth", block: "start" });
-      router.replace(`/wiki/libros/${slugParam}/leer/${segSlug}`, { scroll: false });
+      router.replace(`/garlia/libros/${slugParam}/leer/${segSlug}`, { scroll: false });
     } else {
-      router.push(`/wiki/libros/${slugParam}/leer/${segSlug}`);
+      router.push(`/garliaia/libros/${slugParam}/leer/${segSlug}`);
     }
     setCapId(newCapId);
   }, [slugParam, router, segmentos, segActivo]);
@@ -1149,7 +1149,7 @@ export default function Lector() {
     }
 
     const segSlug = slugSegmento(segmentos, sigIndex);
-    router.push(`/wiki/libros/${slugParam}/leer/${segSlug}`);
+    router.push(`/garlia/libros/${slugParam}/leer/${segSlug}`);
   }, [segmentos, id, slugParam, router]);
 
   if (!loading && (error || capitulos.length === 0)) return (
@@ -1157,7 +1157,7 @@ export default function Lector() {
       <h2 className="font-black uppercase text-xl mb-4 italic tracking-tighter">
         {error || "No hay capítulos disponibles"}
       </h2>
-      <Btn variant="outline" size="sm" onClick={() => router.push(`/wiki/libros/${slugParam}`)}>
+      <Btn variant="outline" size="sm" onClick={() => router.push(`/garlia/libros/${slugParam}`)}>
         Volver al índice
       </Btn>
     </div>
@@ -1177,7 +1177,7 @@ export default function Lector() {
         style={{ background: "color-mix(in srgb, var(--bg-main) 92%, transparent)" }}
       >
         <button
-          onClick={() => router.push(`/wiki/libros/${slugParam}`)}
+          onClick={() => router.push(`/garlia/libros/${slugParam}`)}
           className="flex items-center gap-2 text-primary/40 hover:text-primary transition-colors font-black text-[9px] uppercase tracking-widest"
         >
           <ChevronLeft size={14} /> Volver
@@ -1206,7 +1206,7 @@ export default function Lector() {
           esExtra={esExtra}
           listaCapitulos={listaCapitulos}
           capIdActual={capId}
-          onVolver={() => router.push(`/wiki/libros/${slugParam}`)}
+          onVolver={() => router.push(`/garlia/libros/${slugParam}`)}
           onAbrirIndice={() => setShowIndex(true)}
           onSelectCap={(newId) => { handleChapterSelect(newId); }}
         />
@@ -1273,7 +1273,7 @@ export default function Lector() {
                   <div className="flex-1 h-px" style={{ background: "linear-gradient(to left, transparent, color-mix(in srgb, var(--primary) 20%, transparent))" }} />
                 </div>
                 <button
-                  onClick={() => router.push(`/wiki/libros/${slugParam}`)}
+                  onClick={() => router.push(`/garlia/libros/${slugParam}`)}
                   className="flex items-center gap-2 text-primary/40 hover:text-primary font-black text-[10px] uppercase tracking-widest transition-all"
                 >
                   <List size={16} /> Volver al índice

@@ -197,7 +197,7 @@ export default function CancionDetallesPage() {
         const { data } = await supabase
           .from("canciones").select("id, titulo").eq("id", slugParam).single();
         if (data) {
-          router.replace(`/wiki/canciones/${toSlug(data.titulo)}`);
+          router.replace(`/garlia/canciones/${toSlug(data.titulo)}`);
           setId(data.id);
         }
         return;
@@ -283,7 +283,7 @@ useEffect(() => {
         <p className="text-primary uppercase text-[10px] tracking-widest italic font-black">
           Canción no encontrada
         </p>
-        <Btn onClick={() => router.push("/wiki/canciones")} className="mt-4 rounded-full">
+        <Btn onClick={() => router.push("/garlia/canciones")} className="mt-4 rounded-full">
           Volver
         </Btn>
       </div>
@@ -311,7 +311,7 @@ useEffect(() => {
         {/* Botón volver */}
         <div style={{ padding: "16px 24px 0" }}>
           <button
-            onClick={() => router.push("/wiki/canciones")}
+            onClick={() => router.push("/garlia/canciones")}
             style={{
               background: "none",
               border: "none",
@@ -564,7 +564,7 @@ useEffect(() => {
         {/* Volver */}
         <div>
           <button
-            onClick={() => router.push("/wiki/canciones")}
+            onClick={() => router.push("/garlia/canciones")}
             style={{
               background: "none",
               border: "none",

@@ -62,7 +62,7 @@ function LibroCard({
 
   // ── NUEVO: slug en lugar de id ──────────────────────────────────────────
   const slug = toSlug(libro.titulo);
-  const href = `/wiki/libros/${slug}`;
+  const href = `/garlia/libros/${slug}`;
 
   return (
     <MotionDiv

@@ -188,7 +188,7 @@ export default function PerfilPublico() {
         style={{ fontSize: "0.9rem", color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
         "Explorador no encontrado"
       </p>
-      <Link href="/wiki/personal"
+      <Link href="/garlia/personal"
         className="font-serif italic text-[9px] flex items-center gap-1.5 hover:opacity-70"
         style={{ color: "var(--primary)" }}>
         ← Volver a mi perfil
@@ -323,7 +323,7 @@ export default function PerfilPublico() {
                 ) : (
                   <div className="flex flex-col gap-2">
                     {cancionesPersonaje.map((cancion, i) => (
-                      <Link key={cancion.id ?? i} href={`/wiki/canciones/${cancion.id}`}
+                      <Link key={cancion.id ?? i} href={`/garlia/canciones/${cancion.id}`}
                         className="group flex items-center gap-3 px-3 py-3 transition-all"
                         style={{ background: "color-mix(in srgb, var(--primary) 3%, var(--white-custom))", border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)", borderRadius: "var(--radius-btn)" }}
                         onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 22%, transparent)"; (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 6%, var(--white-custom))"; }}
@@ -353,7 +353,7 @@ export default function PerfilPublico() {
       </AnimatePresence>
 
       {/* Botón volver */}
-      <Link href="/wiki/personal"
+      <Link href="/garlia/personal"
         className="fixed top-4 left-4 z-[100] flex items-center justify-center w-9 h-9 transition-all hover:scale-110"
         style={{ background: "var(--bg-menu)", borderRadius: "50%", border: "2px solid color-mix(in srgb, var(--menu-text) 20%, transparent)", boxShadow: "var(--shadow-card)" }}
         title="Volver a mi perfil">
@@ -685,7 +685,7 @@ export default function PerfilPublico() {
               <div className="overflow-hidden"
                 style={{ border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)", borderRadius: "var(--radius-card)", background: "var(--white-custom)" }}>
                 {otrosPerfiles.map((p, idx) => (
-                  <Link key={p.id} href={`/wiki/personal/${p.username}`}>
+                  <Link key={p.id} href={`/garlia/personal/${p.username}`}>
                     <MotionDiv whileHover={{ x: 2 }}
                       className="flex items-center gap-2.5 px-3 py-3 cursor-pointer transition-colors"
                       style={{ borderBottom: idx < otrosPerfiles.length - 1 ? "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" : "none" }}

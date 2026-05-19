@@ -4,16 +4,16 @@ import { supabase } from "@/lib/api/client/supabase";
 import { useDataCache } from "@/providers/DataProvider";
 import { db } from "@/lib/api/client/db";
 import { enqueueOperation, isReallyOnline, onSyncDone } from "@/hooks/data/useOfflineSync";
-import { personajesQueries }   from "@/lib/api/queries/wiki/personajes";
-import { criaturasQueries }    from "@/lib/api/queries/wiki/criaturas";
-import { itemsQueries }        from "@/lib/api/queries/wiki/items";
-import { librosQueries }       from "@/lib/api/queries/wiki/libros";
+import { personajesQueries }   from "@/lib/api/queries/garlia/personajes";
+import { criaturasQueries }    from "@/lib/api/queries/garlia/criaturas";
+import { itemsQueries }        from "@/lib/api/queries/garlia/items";
+import { librosQueries }       from "@/lib/api/queries/garlia/libros";
 import { recetasQueries }      from "@/lib/api/queries/personal/cocina/recetas";
 import { tareasQueries }       from "@/lib/api/queries/personal/tareas";
 import { eventosQueries }      from "@/lib/api/queries/personal/eventos";
 import { ingredientesQueries } from "@/lib/api/queries/personal/cocina/ingredientes";
 import { ropaQueries }         from "@/lib/api/queries/personal/ropa";
-import { cancionesQueries }    from "@/lib/api/queries/wiki/canciones";
+import { cancionesQueries }    from "@/lib/api/queries/garlia/canciones";
 import { comprasQueries }      from "@/lib/api/queries/personal/cocina/carrito";
 
 // ─── Constantes ───────────────────────────────────────────────────────────────

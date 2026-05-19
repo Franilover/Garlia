@@ -441,7 +441,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                 ) : (
                   <div className="flex flex-col gap-2">
                     {cancionesPersonaje.map((cancion, i) => (
-                      <Link key={cancion.id ?? i} href={`/wiki/canciones/${cancion.id}`}
+                      <Link key={cancion.id ?? i} href={`/garlia/canciones/${cancion.id}`}
                         className="group flex items-center gap-3 px-3 py-3 transition-all"
                         style={{
                           background: "color-mix(in srgb, var(--primary) 3%, var(--white-custom))",

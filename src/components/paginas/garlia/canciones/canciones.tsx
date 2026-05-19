@@ -49,7 +49,7 @@ const CancionCardGrid = ({ cancion, index }: { cancion: Cancion; index: number }
     transition={{ delay: index * 0.04 }}
     className="relative group h-full"
   >
-    <Link href={`/wiki/canciones/${toSlug(cancion.titulo)}`}>
+    <Link href={`/garlia/canciones/${toSlug(cancion.titulo)}`}>
       <MotionDiv
         whileHover={{ y: -8 }}
         transition={{ type: "spring", stiffness: 300, damping: 20 }}
@@ -99,7 +99,7 @@ const CancionCardFila = ({ cancion, index }: { cancion: Cancion; index: number }
     animate={{ opacity: 1, y: 0 }}
     transition={{ delay: index * 0.03 }}
   >
-    <Link href={`/wiki/canciones/${toSlug(cancion.titulo)}`}>
+    <Link href={`/garlia/canciones/${toSlug(cancion.titulo)}`}>
       <div
         className="group flex items-center gap-4 bg-white-custom/50 hover:bg-white-custom/80 backdrop-blur-sm px-4 py-3 transition-all duration-300 cursor-pointer"
         style={{

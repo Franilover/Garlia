@@ -18,7 +18,7 @@ import { supabase } from "@/lib/api/client/supabase";
 import {
   useLastOpenedId, useDraftRestore, DraftRestoreBanner, usePersonajes,
 } from "@/hooks/useEditorShared";
-import { librosQueries } from "@/lib/api/queries/wiki/libros";
+import { librosQueries } from "@/lib/api/queries/garlia/libros";
 import { db } from "@/lib/api/client/db";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import { enqueueOperation, isReallyOnline } from "@/hooks/data/useOfflineSync";
@@ -1431,7 +1431,7 @@ const PanelEditor = ({
                 </div>
                 <div className="flex items-center gap-2">
                   <a
-                    href={`/wiki/libros/${libroId}/leer/${capId}`}
+                    href={`/garliaia/libros/${libroId}/leer/${capId}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-[9px] font-bold text-primary/25 uppercase tracking-widest hover:text-primary/50 transition-colors flex items-center gap-1"

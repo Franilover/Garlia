@@ -1,2 +1,2 @@
 export * from './personal';
-export * from './wiki';
+export * from './garlia';
