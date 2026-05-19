@@ -2809,7 +2809,7 @@ function PanelListas({
           )}
 
           {/* Listado */}
-          {!(["mundo", "historia", "magia", "magia-objetos", "mundo-personajes", "geo-magia", "todo"].includes(mobileTab)) && (
+          {!(["mundo", "historia", "magia", "magia-objetos", "mundo-personajes", "geo-magia", "todo", "capitulos"].includes(mobileTab)) && (
           <div
             className={mobileTab === "grupos"
               ? "flex-1 flex min-h-0 overflow-hidden relative"
