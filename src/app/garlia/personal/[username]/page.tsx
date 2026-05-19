@@ -10,7 +10,7 @@ import { supabase } from "@/lib/api/client/supabase";
 import {
   ModalDetalle, EntidadCard, EmptyTab,
   type EntidadModal, type Descubrimiento, type ItemInventario,
-} from "@/components/paginas/wiki/personal/PersonalComponents";
+} from "@/components/paginas/garlia/personal/PersonalComponents";
 
 interface PerfilResumen {
   id: string;

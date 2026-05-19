@@ -2,8 +2,8 @@
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Eye, Edit3, Columns, Search, Replace, X, ChevronUp, ChevronDown } from "lucide-react";
-import { parseContenido, parseSections } from "@/components/paginas/wiki/libros/leer/type";
-import { RenderSegmentos }               from "@/components/paginas/wiki/libros/leer/segmentos/ContenidoInteractivo";
+import { parseContenido, parseSections } from "@/components/paginas/garlia/libros/leer/type";
+import { RenderSegmentos }               from "@/components/paginas/garlia/libros/leer/segmentos/ContenidoInteractivo";
 
 // ── Slug helper for heading IDs ─────────────────────────────────────────────
 function slugify(text: string): string {

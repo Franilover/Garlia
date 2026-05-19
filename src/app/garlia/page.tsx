@@ -1,4 +1,4 @@
-import WikiMenuPage from "@/components/paginas/wiki/menuWiki";
+import WikiMenuPage from "@/components/paginas/garlia/menuWiki";
 
 export default function Page() {
   return <WikiMenuPage />;

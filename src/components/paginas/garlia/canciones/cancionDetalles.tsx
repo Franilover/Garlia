@@ -11,7 +11,7 @@ import { toSlug, esUUID } from "@/lib/utils/slugify";
 import {
   getLetra,
   type Seccion,
-} from "@/components/paginas/wiki/canciones/CancionComponents";
+} from "@/components/paginas/garlia/canciones/CancionComponents";
 
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(false);

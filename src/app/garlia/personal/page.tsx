@@ -1,4 +1,4 @@
-import Personal from "@/components/paginas/wiki/personal";
+import Personal from "@/components/paginas/garlia/personal";
 
 export default async function Page() {
   const datos = {

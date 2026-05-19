@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { useIsAdmin } from "@/hooks/auth/useIsAdmin";
-import { ModalDetalle } from "@/components/paginas/wiki/personal/PersonalComponents";
+import { ModalDetalle } from "@/components/paginas/garlia/personal/PersonalComponents";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import { db } from "@/lib/api/client/db";
 
