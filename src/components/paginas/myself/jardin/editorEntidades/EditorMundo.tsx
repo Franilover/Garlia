@@ -2616,6 +2616,31 @@ function PanelListas({
                       </div>
                 }
               </div>
+              <div className="border-t my-2" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
+              {/* Notas */}
+              <div className="pb-3">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <FileText size={10} className="text-primary/30 shrink-0" />
+                  <span className="text-[8px] font-black uppercase tracking-[0.25em]" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>Notas · {notas.length}</span>
+                </div>
+                {loadingNotas
+                  ? <div className="flex justify-center py-4"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
+                  : notas.length === 0
+                    ? <p className="text-[9px] text-primary/20 italic px-1 pb-2">Sin notas aún</p>
+                    : <div className="flex flex-wrap gap-1.5">
+                        {notas.map(n => (
+                          <button key={n.id} onClick={() => setSelectedNota(n)} type="button"
+                            className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02] cursor-pointer"
+                            style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
+                            <div className="w-6 h-6 rounded-lg border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center">
+                              <FileText size={10} className="text-primary/25" />
+                            </div>
+                            <span className="text-[11px] font-bold text-primary/70 truncate max-w-[90px]">{n.titulo || <span className="italic text-primary/30">Sin título</span>}</span>
+                          </button>
+                        ))}
+                      </div>
+                }
+              </div>
             </div>
           )}
 
