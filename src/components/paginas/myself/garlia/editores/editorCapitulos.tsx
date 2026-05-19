@@ -2649,13 +2649,13 @@ export function EditorCapitulosPanel() {
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: 0.22, ease: "easeInOut" }}
-              className={`overflow-hidden border-b ${selectedCapId ? "shrink-0" : "flex-1 sm:shrink-0 sm:flex-none"}`}
+              className="overflow-hidden border-b shrink-0"
               style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
             >
               {/* ── Mobile: grid de 2 columnas ── */}
               <div
                 className="sm:hidden overflow-y-auto p-2"
-                style={{ height: selectedCapId ? "240px" : "100%" }}
+                style={{ height: selectedCapId ? "240px" : "260px" }}
               >
                 <div className="grid grid-cols-2 gap-2">
                   {loadingLibros ? (
