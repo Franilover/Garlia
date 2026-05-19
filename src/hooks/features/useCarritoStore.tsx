@@ -2,7 +2,7 @@
 import React, { createContext, useContext, useCallback, useMemo } from "react";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import { comprasQueries, CompraRow, NuevaCompra } from "@/lib/api/queries/personal/cocina/carrito";
-import { Ingrediente } from "@/lib/types/personal/ingrediente";
+import type { Ingrediente } from "@/lib/types/queries";
 
 export type { CompraRow };
 

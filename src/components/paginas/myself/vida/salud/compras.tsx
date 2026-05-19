@@ -7,7 +7,8 @@ import {
   ChevronLeft, Package, Plus, Minus, Pencil, Check,
 } from "lucide-react";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
-import { Ingrediente } from "@/lib/types/personal/ingrediente";
+import type { Ingrediente } from "@/lib/types/queries";
+
 import { Loading } from "@/components/ui";
 
 // ─── tipos ────────────────────────────────────────────────────────────────────

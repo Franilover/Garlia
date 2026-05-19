@@ -3,7 +3,7 @@ import { MotionDiv, MotionMain, MotionH1, MotionH2, MotionButton, MotionLi, Moti
 import React, { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
-import { Ingrediente } from "@/lib/types/personal/ingrediente";
+import type { Ingrediente } from "@/lib/types/queries";
 import {
   Search, Plus, ChevronLeft, X, Save,
   Package, PackageX, Minus, FlaskConical, Flame, Trash2, Calculator, ShoppingCart,

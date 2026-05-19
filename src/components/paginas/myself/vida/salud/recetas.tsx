@@ -4,8 +4,16 @@ import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
-import { Receta, NuevaReceta, IngredienteReceta } from "@/lib/types/personal/receta";
-import { Ingrediente } from "@/lib/types/personal/ingrediente";
+import type { Receta, Ingrediente, Inserts } from "@/lib/types/queries";
+type NuevaReceta = Inserts<'recetas'>;
+type IngredienteReceta = {
+  nombre: string;
+  cantidad: string;
+  kcal?: number;
+  proteinas?: number;
+  carbohidratos?: number;
+  grasas?: number;
+};
 import { recetasQueries } from "@/lib/api/queries/personal/cocina/recetas";
 import { Btn, BtnIcon, Loading } from "@/components/ui";
 import { useToast } from "@/hooks/ui/useToast";

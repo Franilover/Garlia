@@ -1,95 +1,67 @@
-
 import { supabase } from '@/lib/api/client/supabase';
-import { Receta, NuevaReceta, RecetaCategoria } from '@/lib/types/personal/receta';
+import { recetaFullQuery, Receta, Inserts, Updates } from '@/lib/types/queries';
 
 export const recetasQueries = {
-
-  
-  
-  
-
-  
-  getAll: async () => {
+  getAll: async (): Promise<Receta[]> => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('No autenticado');
 
-    const { data, error } = await supabase
-      .from('recetas')
-      .select('*')
+    const { data, error } = await recetaFullQuery
       .eq('autor_id', user.id)
       .order('created_at', { ascending: false });
-
     if (error) throw error;
-    return data as Receta[];
+    return data;
   },
 
-  
-  getById: async (id: string) => {
+  getById: async (id: string): Promise<Receta | null> => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('No autenticado');
 
-    const { data, error } = await supabase
-      .from('recetas')
-      .select('*')
+    const { data, error } = await recetaFullQuery
       .eq('id', id)
       .eq('autor_id', user.id)
       .single();
-
     if (error) throw error;
-    return data as Receta;
+    return data;
   },
 
-  
-  getByCategoria: async (categoria: RecetaCategoria) => {
+  getByCategoria: async (categoria: string): Promise<Receta[]> => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('No autenticado');
 
-    const { data, error } = await supabase
-      .from('recetas')
-      .select('*')
+    const { data, error } = await recetaFullQuery
       .eq('autor_id', user.id)
       .eq('categoria', categoria)
       .order('created_at', { ascending: false });
-
     if (error) throw error;
-    return data as Receta[];
+    return data;
   },
 
-  
-  search: async (query: string) => {
+  search: async (query: string): Promise<Receta[]> => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('No autenticado');
 
-    const { data, error } = await supabase
-      .from('recetas')
-      .select('*')
+    const { data, error } = await recetaFullQuery
       .eq('autor_id', user.id)
       .ilike('nombre', `%${query}%`)
       .order('nombre', { ascending: true });
-
     if (error) throw error;
-    return data as Receta[];
+    return data;
   },
 
-  
-  
-  
-
-  
-  create: async (nuevaReceta: NuevaReceta) => {
+  create: async (nueva: Inserts<'recetas'>): Promise<Receta> => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('No autenticado');
 
     const recetaData = {
-      ...nuevaReceta,
+      ...nueva,
       autor_id: user.id,
-      
-      ingredientes: typeof nuevaReceta.ingredientes === 'string'
-        ? nuevaReceta.ingredientes
-        : JSON.stringify(nuevaReceta.ingredientes),
-      instrucciones: typeof nuevaReceta.instrucciones === 'string'
-        ? nuevaReceta.instrucciones
-        : JSON.stringify(nuevaReceta.instrucciones),
+      ingredientes: typeof nueva.ingredientes === 'string'
+        ? nueva.ingredientes
+        : JSON.stringify(nueva.ingredientes),
+      instrucciones: typeof nueva.instrucciones === 'string'
+        ? nueva.instrucciones
+        : JSON.stringify(nueva.instrucciones),
     };
 
     const { data, error } = await supabase
@@ -97,23 +69,16 @@ export const recetasQueries = {
       .insert(recetaData)
       .select()
       .single();
-
     if (error) throw error;
-    return data as Receta;
+    return data;
   },
 
-  
-  
-  
-
-  
-  update: async (id: string, updates: Partial<NuevaReceta>) => {
+  update: async (id: string, updates: Updates<'recetas'>): Promise<Receta> => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('No autenticado');
 
     const updateData = {
       ...updates,
-      
       ...(updates.ingredientes && {
         ingredientes: typeof updates.ingredientes === 'string'
           ? updates.ingredientes
@@ -133,17 +98,11 @@ export const recetasQueries = {
       .eq('autor_id', user.id)
       .select()
       .single();
-
     if (error) throw error;
-    return data as Receta;
+    return data;
   },
 
-  
-  
-  
-
-  
-  delete: async (id: string) => {
+  delete: async (id: string): Promise<true> => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('No autenticado');
 
@@ -152,7 +111,6 @@ export const recetasQueries = {
       .delete()
       .eq('id', id)
       .eq('autor_id', user.id);
-
     if (error) throw error;
     return true;
   },
