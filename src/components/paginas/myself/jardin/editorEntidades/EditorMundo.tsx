@@ -2239,12 +2239,6 @@ function PanelListas({
         { key: "todo" as ListaTab, label: "Todo", Icon: Layers, count: reinos.length + criaturas.length + personajes.length + dones.length + hechizos.length + runas.length + objetos.length + notas.length },
       ],
     },
-    {
-      label: "Grupos",
-      tabs: [
-        { key: "grupos", label: "Grupos", Icon: Layers, count: 0 },
-      ],
-    },
   ];
 
   const TABS: TabDef[] = TAB_GROUPS.flatMap(g => g.tabs);
