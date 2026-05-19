@@ -2097,8 +2097,8 @@ function PanelListas({
   const [selectedRuna,     setSelectedRuna]     = useState<Runa | null>(null);
   const [personajeStatus,  setPersonajeStatus]  = useState<SaveStatus>("idle");
 
-  type ListaTab = "mundo" | "historia" | "magia" | "reinos" | "criaturas" | "objetos" | "personajes" | "hechizos" | "dones" | "runas" | "notas" | "grupos" | "magia-objetos" | "mundo-personajes" | "geo-magia";
-  const VALID_LISTA_TABS: ListaTab[] = ["mundo", "historia", "magia", "reinos", "criaturas", "objetos", "personajes", "hechizos", "dones", "runas", "notas", "grupos", "magia-objetos", "mundo-personajes", "geo-magia"];
+  type ListaTab = "mundo" | "historia" | "magia" | "reinos" | "criaturas" | "objetos" | "personajes" | "hechizos" | "dones" | "runas" | "notas" | "grupos" | "magia-objetos" | "mundo-personajes" | "geo-magia" | "todo";
+  const VALID_LISTA_TABS: ListaTab[] = ["mundo", "historia", "magia", "reinos", "criaturas", "objetos", "personajes", "hechizos", "dones", "runas", "notas", "grupos", "magia-objetos", "mundo-personajes", "geo-magia", "todo"];
 
   const [mobileTab, setMobileTab] = useState<ListaTab>(() => {
     // initialSubTab puede ser un UnifiedTab ("mundo","historia","magia","listas") o un ListaTab directo
@@ -2203,10 +2203,9 @@ function PanelListas({
       ],
     },
     {
-      label: "Personajes & Mundo",
+      label: "Listas",
       tabs: [
-        { key: "mundo-personajes" as ListaTab, label: "Personajes", Icon: Users,    count: reinos.length + criaturas.length + personajes.length },
-        { key: "magia-objetos"   as ListaTab, label: "Magia",       Icon: Sparkles, count: dones.length + hechizos.length + runas.length + objetos.length, color: "var(--accent)" },
+        { key: "todo" as ListaTab, label: "Todo", Icon: Layers, count: reinos.length + criaturas.length + personajes.length + dones.length + hechizos.length + runas.length + objetos.length + notas.length },
       ],
     },
     {
@@ -2350,7 +2349,7 @@ function PanelListas({
           )}
 
           {/* Header del tab activo (solo para tabs de lista individuales) */}
-          {!["mundo", "historia", "magia", "magia-objetos", "mundo-personajes", "geo-magia"].includes(mobileTab) && (() => {
+          {!["mundo", "historia", "magia", "magia-objetos", "mundo-personajes", "geo-magia", "todo"].includes(mobileTab) && (() => {
             const t = TABS.find(t => t.key === mobileTab);
             if (!t) return null;
             const color = t.color ?? "var(--primary)";
@@ -2382,7 +2381,7 @@ function PanelListas({
           })()}
 
           {/* Buscador */}
-          {!["mundo", "historia", "magia", "magia-objetos", "mundo-personajes", "geo-magia"].includes(mobileTab) && mobileTab !== "grupos" && (
+          {!["mundo", "historia", "magia", "magia-objetos", "mundo-personajes", "geo-magia", "todo"].includes(mobileTab) && mobileTab !== "grupos" && (
             <SearchInput
               value={searchMap[mobileTab] ?? ""}
               onChange={v => setSearchMap[mobileTab]?.(v)}
@@ -2424,6 +2423,115 @@ function PanelListas({
                   saveLabel="Guardar"
                   SaveIcon={Sparkles}
                 />
+              </div>
+            </div>
+          )}
+
+          {/* Vista combinada: TODO — reinos, criaturas, personajes, dones, hechizos, runas, objetos, notas */}
+          {mobileTab === "todo" && (
+            <div className="flex-1 overflow-y-auto min-h-0 px-3 pb-3">
+              {/* Reinos */}
+              <div className="pt-3 pb-1">
+                <div className="flex items-center gap-1.5 mb-2"><Map size={10} className="text-primary/30 shrink-0" /><span className="text-[8px] font-black uppercase tracking-[0.25em]" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>Reinos · {reinos.length}</span></div>
+                {loadingReinos ? <div className="flex justify-center py-3"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
+                  : reinos.length === 0 ? <p className="text-[9px] text-primary/20 italic px-1 pb-2">Sin reinos aún</p>
+                  : <div className="flex flex-wrap gap-1.5">{reinos.map(r => (
+                      <button key={r.id} onClick={() => setSelectedReino(r)} type="button" className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02]" style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
+                        <div className="w-6 h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center">{r.mapa_url ? <img src={r.mapa_url} alt={r.nombre} className="w-full h-full object-cover" /> : <Map size={10} className="text-primary/25" />}</div>
+                        <span className="text-[11px] font-bold text-primary/70 truncate max-w-[90px]">{r.nombre}</span>
+                      </button>
+                    ))}</div>}
+              </div>
+              <div className="border-t my-2" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
+              {/* Criaturas */}
+              <div className="pb-1">
+                <div className="flex items-center gap-1.5 mb-2"><Bug size={10} className="text-primary/30 shrink-0" /><span className="text-[8px] font-black uppercase tracking-[0.25em]" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>Criaturas · {criaturas.length}</span></div>
+                {loadingCriaturas ? <div className="flex justify-center py-3"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
+                  : criaturas.length === 0 ? <p className="text-[9px] text-primary/20 italic px-1 pb-2">Sin criaturas aún</p>
+                  : <div className="flex flex-wrap gap-1.5">{criaturas.map(c => (
+                      <button key={c.id} onClick={() => setSelectedCriatura(c)} type="button" className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02]" style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
+                        <div className="w-6 h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center">{c.imagen_url ? <img src={c.imagen_url} alt={c.nombre} className="w-full h-full object-cover" /> : <Bug size={10} className="text-primary/25" />}</div>
+                        <span className="text-[11px] font-bold text-primary/70 truncate max-w-[90px]">{c.nombre}</span>
+                      </button>
+                    ))}</div>}
+              </div>
+              <div className="border-t my-2" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
+              {/* Personajes */}
+              <div className="pb-1">
+                <div className="flex items-center gap-1.5 mb-2"><Users size={10} className="text-primary/30 shrink-0" /><span className="text-[8px] font-black uppercase tracking-[0.25em]" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>Personajes · {personajes.length}</span></div>
+                {loadingPersonajes ? <div className="flex justify-center py-3"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
+                  : personajes.length === 0 ? <p className="text-[9px] text-primary/20 italic px-1 pb-2">Sin personajes aún</p>
+                  : <div className="flex flex-wrap gap-1.5">{personajes.map(p => (
+                      <button key={p.id} onClick={() => setSelectedPersonaje(p)} type="button" className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02]" style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
+                        <div className="w-6 h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center">{p.img_url ? <img src={p.img_url} alt={p.nombre} className="w-full h-full object-cover" /> : <UserCircle2 size={10} className="text-primary/25" />}</div>
+                        <span className="text-[11px] font-bold text-primary/70 truncate max-w-[90px]">{p.nombre}</span>
+                      </button>
+                    ))}</div>}
+              </div>
+              <div className="border-t my-2" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
+              {/* Dones */}
+              <div className="pb-1">
+                <div className="flex items-center gap-1.5 mb-2"><Star size={10} style={{ color: "color-mix(in srgb, var(--accent) 65%, transparent)" }} className="shrink-0" /><span className="text-[8px] font-black uppercase tracking-[0.25em]" style={{ color: "color-mix(in srgb, var(--accent) 45%, transparent)" }}>Dones · {dones.length}</span></div>
+                {loadingDones ? <div className="flex justify-center py-3"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
+                  : dones.length === 0 ? <p className="text-[9px] text-primary/20 italic px-1 pb-2">Sin dones aún</p>
+                  : <div className="flex flex-wrap gap-1.5">{dones.map(d => (
+                      <button key={d.id} onClick={() => setSelectedDon(d)} type="button" className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02]" style={{ background: "color-mix(in srgb, var(--accent) 4%, transparent)", borderColor: "color-mix(in srgb, var(--accent) 13%, transparent)" }}>
+                        <div className="w-6 h-6 rounded-lg border shrink-0 flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--accent) 8%, transparent)", borderColor: "color-mix(in srgb, var(--accent) 18%, transparent)" }}><Star size={10} style={{ color: "color-mix(in srgb, var(--accent) 65%, transparent)" }} /></div>
+                        <span className="text-[11px] font-bold truncate max-w-[90px]" style={{ color: "color-mix(in srgb, var(--accent) 75%, var(--primary))" }}>{d.nombre}</span>
+                      </button>
+                    ))}</div>}
+              </div>
+              <div className="border-t my-2" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
+              {/* Hechizos */}
+              <div className="pb-1">
+                <div className="flex items-center gap-1.5 mb-2"><Sparkles size={10} style={{ color: "color-mix(in srgb, var(--accent) 70%, transparent)" }} className="shrink-0" /><span className="text-[8px] font-black uppercase tracking-[0.25em]" style={{ color: "color-mix(in srgb, var(--accent) 45%, transparent)" }}>Hechizos · {hechizos.length}</span></div>
+                {loadingHechizos ? <div className="flex justify-center py-3"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
+                  : hechizos.length === 0 ? <p className="text-[9px] text-primary/20 italic px-1 pb-2">Sin hechizos aún</p>
+                  : <div className="flex flex-wrap gap-1.5">{hechizos.map(h => (
+                      <button key={h.id} onClick={() => setSelectedHechizo(h)} type="button" className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02]" style={{ background: "color-mix(in srgb, var(--accent) 5%, transparent)", borderColor: "color-mix(in srgb, var(--accent) 15%, transparent)" }}>
+                        <div className="w-6 h-6 rounded-lg border shrink-0 flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--accent) 10%, transparent)", borderColor: "color-mix(in srgb, var(--accent) 20%, transparent)" }}><Sparkles size={10} style={{ color: "color-mix(in srgb, var(--accent) 70%, transparent)" }} /></div>
+                        <span className="text-[11px] font-bold truncate max-w-[90px]" style={{ color: "color-mix(in srgb, var(--accent) 80%, var(--primary))" }}>{h.nombre}</span>
+                      </button>
+                    ))}</div>}
+              </div>
+              <div className="border-t my-2" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
+              {/* Runas */}
+              <div className="pb-1">
+                <div className="flex items-center gap-1.5 mb-2"><ScrollText size={10} className="text-primary/30 shrink-0" /><span className="text-[8px] font-black uppercase tracking-[0.25em]" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>Runas · {runas.length}</span></div>
+                {loadingRunas ? <div className="flex justify-center py-3"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
+                  : runas.length === 0 ? <p className="text-[9px] text-primary/20 italic px-1 pb-2">Sin runas aún</p>
+                  : <div className="flex flex-wrap gap-1.5">{runas.map(r => (
+                      <button key={r.id} onClick={() => setSelectedRuna(r)} type="button" className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02]" style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
+                        <div className="w-6 h-6 rounded-lg border overflow-hidden shrink-0 flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--primary) 6%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 14%, transparent)" }}>{r.imagen_url ? <img src={r.imagen_url} alt={r.nombre} className="w-full h-full object-cover" /> : <ScrollText size={10} className="text-primary/40" />}</div>
+                        <span className="text-[11px] font-bold text-primary/70 truncate max-w-[90px]">{r.nombre}</span>
+                      </button>
+                    ))}</div>}
+              </div>
+              <div className="border-t my-2" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
+              {/* Objetos */}
+              <div className="pb-1">
+                <div className="flex items-center gap-1.5 mb-2"><Package size={10} className="text-primary/30 shrink-0" /><span className="text-[8px] font-black uppercase tracking-[0.25em]" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>Objetos · {objetos.length}</span></div>
+                {loadingObjetos ? <div className="flex justify-center py-3"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
+                  : objetos.length === 0 ? <p className="text-[9px] text-primary/20 italic px-1 pb-2">Sin objetos aún</p>
+                  : <div className="flex flex-wrap gap-1.5">{objetos.map(o => (
+                      <button key={o.id} onClick={() => setSelectedObjeto(o)} type="button" className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02]" style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
+                        <div className="w-6 h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center">{o.imagen_url ? <img src={o.imagen_url} alt={o.nombre} className="w-full h-full object-cover" /> : <Package size={10} className="text-primary/25" />}</div>
+                        <span className="text-[11px] font-bold text-primary/70 truncate max-w-[90px]">{o.nombre}</span>
+                      </button>
+                    ))}</div>}
+              </div>
+              <div className="border-t my-2" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
+              {/* Notas */}
+              <div className="pb-3">
+                <div className="flex items-center gap-1.5 mb-2"><FileText size={10} className="text-primary/30 shrink-0" /><span className="text-[8px] font-black uppercase tracking-[0.25em]" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>Notas · {notas.length}</span></div>
+                {loadingNotas ? <div className="flex justify-center py-3"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
+                  : notas.length === 0 ? <p className="text-[9px] text-primary/20 italic px-1 pb-2">Sin notas aún</p>
+                  : <div className="flex flex-wrap gap-1.5">{notas.map(n => (
+                      <button key={n.id} onClick={() => setSelectedNota(n)} type="button" className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02]" style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
+                        <div className="w-6 h-6 rounded-lg border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center"><FileText size={10} className="text-primary/25" /></div>
+                        <span className="text-[11px] font-bold text-primary/70 truncate max-w-[90px]">{n.titulo || <span className="italic text-primary/30">Sin título</span>}</span>
+                      </button>
+                    ))}</div>}
               </div>
             </div>
           )}
@@ -2644,7 +2752,7 @@ function PanelListas({
           )}
 
           {/* Listado */}
-          {!(["mundo", "historia", "magia", "magia-objetos", "mundo-personajes", "geo-magia"].includes(mobileTab)) && (
+          {!(["mundo", "historia", "magia", "magia-objetos", "mundo-personajes", "geo-magia", "todo"].includes(mobileTab)) && (
           <div
             className={mobileTab === "grupos"
               ? "flex-1 flex min-h-0 overflow-hidden relative"
