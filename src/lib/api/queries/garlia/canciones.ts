@@ -15,8 +15,25 @@ export const cancionesQueries = {
     return data as Cancion;
   },
 
+  create: async (datos: Inserts<'canciones'>) => {
+    const { data, error } = await supabase.from('canciones').insert(datos).select().single();
+    if (error) throw error;
+    return data;
+  },
+
+  update: async (id: string, cambios: Updates<'canciones'>) => {
+    const { data, error } = await supabase.from('canciones').update(cambios).eq('id', id).select().single();
+    if (error) throw error;
+    return data;
+  },
+
+  delete: async (id: string) => {
+    const { error } = await supabase.from('canciones').delete().eq('id', id);
+    if (error) throw error;
+    return true;
+  },
+
   secciones: {
-    // ✅ Esto faltaba
     create: async (datos: Inserts<'secciones_cancion'>) => {
       const { data, error } = await supabase
         .from('secciones_cancion')
@@ -36,14 +53,15 @@ export const cancionesQueries = {
         .single();
       if (error) throw error;
       return data;
+    },
+
+    delete: async (id: string) => {
+      const { error } = await supabase
+        .from('secciones_cancion')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+      return true;
     }
   },
-
-  create: async (datos: Inserts<'canciones'>) => {
-    return await supabase.from('canciones').insert(datos).select().single();
-  },
-
-  update: async (id: string, cambios: Updates<'canciones'>) => {
-    return await supabase.from('canciones').update(cambios).eq('id', id).select().single();
-  }
 };
