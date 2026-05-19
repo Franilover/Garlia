@@ -25,11 +25,6 @@ const personalSubLinks = [
   { href: "/personal/sobre-mi", label: "Sobre Mí", icon: Star    },
   { href: "/personal/galeria",  label: "Galeria",  icon: Palette },
 ];
-const jardinSubLinks = [
-  { href: "/myself/jardin?panel=capitulos", label: "Capítulos", icon: BookOpen  },
-  { href: "/myself/jardin?panel=letras",    label: "Letras",    icon: Music     },
-  { href: "/myself/jardin?panel=entidades", label: "Entidades", icon: Cat       },
-];
 const escritorioSubLinks = [
   { href: "/myself/escritorio?panel=agenda",  label: "Agenda",  icon: Calendar     },
   { href: "/myself/escritorio?panel=ensayos", label: "Ensayos", icon: FileText     },
@@ -578,7 +573,7 @@ const Navbar = () => {
 
   useEffect(() => { closeAll(); }, [currentPath]); 
 
-  const isJardin     = currentPath?.startsWith("/myself/jardin")      ?? false;
+  const isGarlia     = currentPath?.startsWith("/myself/garlia")      ?? false;
   const isSalud      = currentPath?.startsWith("/myself/salud")       ?? false;
   const isEscritorio = currentPath?.startsWith("/myself/escritorio")  ?? false;
   const isWiki       = currentPath?.startsWith("/wiki")               ?? false;
@@ -605,7 +600,7 @@ const Navbar = () => {
 
   
   const franiLinks = [
-    { href: "/myself/jardin", label: "Arte", icon: Cat, active: isJardin },
+    { href: "/myself/garlia", label: "Arte", icon: Cat, active: isGarlia },
   ];
 
   return (
