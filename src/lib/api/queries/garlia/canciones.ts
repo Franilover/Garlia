@@ -14,6 +14,20 @@ export const cancionesQueries = {
     if (error) throw error;
     return data as Cancion; // Cast explícito a objeto
   },
+
+  secciones: {
+    update: async (id: string, updates: Updates<'secciones_cancion'>) => {
+      const { data, error } = await supabase
+        .from('secciones_cancion')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    }
+  },
+  
   create: async (datos: Inserts<'canciones'>) => {
     return await supabase.from('canciones').insert(datos).select().single();
   },
