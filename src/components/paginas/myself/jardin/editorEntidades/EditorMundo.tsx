@@ -2410,7 +2410,7 @@ function PanelListas({
           {/* Listado */}
           {!["mundo", "historia", "magia"].includes(mobileTab) && <div className={mobileTab === "grupos"
             ? "flex-1 flex min-h-0 overflow-hidden relative"
-            : "flex-1 overflow-y-auto min-h-0 px-3 pb-3 space-y-0.5 relative"
+            : "flex-1 overflow-y-auto min-h-0 px-3 pb-3 relative flex flex-wrap content-start gap-1"
           }>
             {/* Reinos */}
             {mobileTab === "reinos" && (loadingReinos
@@ -2419,7 +2419,8 @@ function PanelListas({
                 ? <p className="text-[9px] text-primary/20 uppercase tracking-widest text-center py-10 italic">{searchR ? "Sin resultados" : "Sin reinos aún"}</p>
                 : filteredR.map(r => (
                   <button key={r.id} onClick={() => setSelectedReino(r)}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-primary/6 border border-transparent hover:border-primary/10 transition-all rounded-xl group">
+                    className="flex items-center gap-3 px-3 py-2.5 text-left hover:bg-primary/6 border border-transparent hover:border-primary/10 transition-all rounded-xl group"
+                    style={{ width: "calc(50% - 2px)", minWidth: 0 }}>
                     <div className="shrink-0 w-8 h-8 rounded-xl overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
                       {r.mapa_url ? <img src={r.mapa_url} alt={r.nombre} className="w-full h-full object-cover" /> : <Map size={13} className="text-primary/25" />}
                     </div>
@@ -2439,7 +2440,8 @@ function PanelListas({
                 ? <p className="text-[9px] text-primary/20 uppercase tracking-widest text-center py-10 italic">{searchC ? "Sin resultados" : "Sin criaturas aún"}</p>
                 : filteredC.map(c => (
                   <button key={c.id} onClick={() => setSelectedCriatura(c)}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-primary/6 border border-transparent hover:border-primary/10 transition-all rounded-xl group">
+                    className="flex items-center gap-3 px-3 py-2.5 text-left hover:bg-primary/6 border border-transparent hover:border-primary/10 transition-all rounded-xl group"
+                    style={{ width: "calc(50% - 2px)", minWidth: 0 }}>
                     <div className="shrink-0 w-8 h-8 rounded-xl overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
                       {c.imagen_url ? <img src={c.imagen_url} alt={c.nombre} className="w-full h-full object-cover" /> : <Bug size={13} className="text-primary/25" />}
                     </div>
@@ -2459,7 +2461,8 @@ function PanelListas({
                 ? <p className="text-[9px] text-primary/20 uppercase tracking-widest text-center py-10 italic">{searchO ? "Sin resultados" : "Sin objetos aún"}</p>
                 : filteredO.map(o => (
                   <button key={o.id} onClick={() => setSelectedObjeto(o)}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-primary/6 border border-transparent hover:border-primary/10 transition-all rounded-xl group">
+                    className="flex items-center gap-3 px-3 py-2.5 text-left hover:bg-primary/6 border border-transparent hover:border-primary/10 transition-all rounded-xl group"
+                    style={{ width: "calc(50% - 2px)", minWidth: 0 }}>
                     <div className="shrink-0 w-8 h-8 rounded-xl overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
                       {o.imagen_url ? <img src={o.imagen_url} alt={o.nombre} className="w-full h-full object-cover" /> : <Package size={13} className="text-primary/25" />}
                     </div>
@@ -2479,7 +2482,8 @@ function PanelListas({
                 ? <p className="text-[9px] text-primary/20 uppercase tracking-widest text-center py-10 italic">{searchP ? "Sin resultados" : "Sin personajes aún"}</p>
                 : filteredP.map(p => (
                   <button key={p.id} onClick={() => setSelectedPersonaje(p)}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-primary/6 border border-transparent hover:border-primary/10 transition-all rounded-xl group">
+                    className="flex items-center gap-3 px-3 py-2.5 text-left hover:bg-primary/6 border border-transparent hover:border-primary/10 transition-all rounded-xl group"
+                    style={{ width: "calc(50% - 2px)", minWidth: 0 }}>
                     <div className="shrink-0 w-8 h-8 rounded-xl overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
                       {p.img_url ? <img src={p.img_url} alt={p.nombre} className="w-full h-full object-cover" /> : <UserCircle2 size={13} className="text-primary/25" />}
                     </div>
@@ -2499,7 +2503,8 @@ function PanelListas({
                 ? <p className="text-[9px] text-primary/20 uppercase tracking-widest text-center py-10 italic">{searchH ? "Sin resultados" : "Sin hechizos aún"}</p>
                 : filteredH.map(h => (
                   <button key={h.id} onClick={() => setSelectedHechizo(h)}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-primary/6 border border-transparent hover:border-primary/10 transition-all rounded-xl group">
+                    className="flex items-center gap-3 px-3 py-2.5 text-left hover:bg-primary/6 border border-transparent hover:border-primary/10 transition-all rounded-xl group"
+                    style={{ width: "calc(50% - 2px)", minWidth: 0 }}>
                     <div className="shrink-0 w-8 h-8 rounded-xl border flex items-center justify-center"
                       style={{ background: "color-mix(in srgb, var(--accent) 8%, transparent)", borderColor: "color-mix(in srgb, var(--accent) 18%, transparent)" }}>
                       <Sparkles size={13} style={{ color: "color-mix(in srgb, var(--accent) 65%, transparent)" }} />
@@ -2520,7 +2525,8 @@ function PanelListas({
                 ? <p className="text-[9px] text-primary/20 uppercase tracking-widest text-center py-10 italic">{searchD ? "Sin resultados" : "Sin dones aún"}</p>
                 : filteredD.map(d => (
                   <button key={d.id} onClick={() => setSelectedDon(d)}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-primary/6 border border-transparent hover:border-primary/10 transition-all rounded-xl group">
+                    className="flex items-center gap-3 px-3 py-2.5 text-left hover:bg-primary/6 border border-transparent hover:border-primary/10 transition-all rounded-xl group"
+                    style={{ width: "calc(50% - 2px)", minWidth: 0 }}>
                     <div className="shrink-0 w-8 h-8 rounded-xl border flex items-center justify-center"
                       style={{ background: "color-mix(in srgb, var(--accent) 6%, transparent)", borderColor: "color-mix(in srgb, var(--accent) 15%, transparent)" }}>
                       <Star size={13} style={{ color: "color-mix(in srgb, var(--accent) 60%, transparent)" }} />
@@ -2541,7 +2547,8 @@ function PanelListas({
                 ? <p className="text-[9px] text-primary/20 uppercase tracking-widest text-center py-10 italic">{searchRu ? "Sin resultados" : "Sin runas aún"}</p>
                 : filteredRu.map(r => (
                   <button key={r.id} onClick={() => setSelectedRuna(r)}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-primary/6 border border-transparent hover:border-primary/10 transition-all rounded-xl group">
+                    className="flex items-center gap-3 px-3 py-2.5 text-left hover:bg-primary/6 border border-transparent hover:border-primary/10 transition-all rounded-xl group"
+                    style={{ width: "calc(50% - 2px)", minWidth: 0 }}>
                     <div className="shrink-0 w-8 h-8 rounded-xl border overflow-hidden flex items-center justify-center"
                       style={{ background: "color-mix(in srgb, var(--primary) 6%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 14%, transparent)" }}>
                       {r.imagen_url
@@ -2582,7 +2589,8 @@ function PanelListas({
                     )
                     .map(n => (
                       <button key={n.id} onClick={() => setSelectedNota(n)}
-                        className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-primary/6 border border-transparent hover:border-primary/10 transition-all rounded-xl group">
+                        className="flex items-center gap-3 px-3 py-2.5 text-left hover:bg-primary/6 border border-transparent hover:border-primary/10 transition-all rounded-xl group"
+                        style={{ width: "calc(50% - 2px)", minWidth: 0 }}>
                         <div className="shrink-0 w-8 h-8 rounded-xl border border-primary/10 bg-primary/5 flex items-center justify-center">
                           <FileText size={13} className="text-primary/25" />
                         </div>
