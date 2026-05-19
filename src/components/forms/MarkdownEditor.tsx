@@ -94,10 +94,12 @@ export function renderMarkdown(raw: string): string {
   // ── Encabezados con ID para TOC ──────────────────────────────────────────
   html = html.replace(/^---$/gm, "<hr/>");
   const headingCounter: Record<string, number> = {};
+  const tocEntries: { level: number; text: string; id: string }[] = [];
   const makeHeading = (level: number, text: string) => {
     const base = slugify(text);
     headingCounter[base] = (headingCounter[base] || 0) + 1;
     const id = headingCounter[base] > 1 ? `${base}-${headingCounter[base]}` : base;
+    if (level <= 4) tocEntries.push({ level, text, id });
     return `<h${level} id="${id}">${text}<a class="heading-anchor" href="#${id}" aria-label="Enlace a sección" tabindex="-1">#</a></h${level}>`;
   };
   html = html.replace(/^######\s(.+)$/gm, (_, t) => makeHeading(6, t));
@@ -109,12 +111,6 @@ export function renderMarkdown(raw: string): string {
 
   // ── [[TOC]] → tabla de contenidos real ──────────────────────────────────
   if (hasTOC) {
-    const tocEntries: { level: number; text: string; id: string }[] = [];
-    const reH = /<h([1-4])\s+id="([^"]+)">([^<]+)<\/h[1-4]>/g;
-    let m;
-    while ((m = reH.exec(html)) !== null) {
-      tocEntries.push({ level: parseInt(m[1]), text: m[3], id: m[2] });
-    }
     let tocHtml: string;
     if (tocEntries.length > 0) {
       tocHtml = `<nav class="toc"><div class="toc-title">Índice</div><ol>`;
@@ -127,7 +123,6 @@ export function renderMarkdown(raw: string): string {
       });
       tocHtml += `</ol></nav>`;
     } else {
-      // No hay encabezados: dejar un comentario invisible en vez de nada
       tocHtml = `<nav class="toc toc-empty"></nav>`;
     }
     html = html.replace(/\x00TOC\x00/g, tocHtml);
@@ -233,9 +228,12 @@ export function renderMathInElement(el: HTMLElement | null) {
 
 // ── Estilos de vista previa ──────────────────────────────────────────────────
 export const PROSE_STYLES = `
-  .prose-mundo h1 { font-size:.8rem;font-weight:800;margin:.6rem 0 .2rem;letter-spacing:.12em;text-transform:uppercase;color:color-mix(in srgb,var(--color-primary,#7c6af7) 55%,transparent);padding-bottom:.2rem }
-  .prose-mundo h2 { font-size:1.1rem;font-weight:800;margin:.9rem 0 .35rem;letter-spacing:.1em;text-transform:uppercase;color:color-mix(in srgb,var(--color-primary,#7c6af7) 80%,white) }
-  .prose-mundo h3 { font-size:.9rem;font-weight:700;margin:.7rem 0 .25rem;color:color-mix(in srgb,var(--color-primary,#7c6af7) 60%,white) }
+  .prose-mundo h1 { font-size:1.6rem;font-weight:800;margin:1.1rem 0 .4rem;letter-spacing:.02em;color:color-mix(in srgb,var(--color-primary,#7c6af7) 90%,white);padding-bottom:.25rem;border-bottom:1px solid color-mix(in srgb,var(--color-primary,#7c6af7) 18%,transparent) }
+  .prose-mundo h2 { font-size:1.25rem;font-weight:800;margin:.95rem 0 .35rem;letter-spacing:.03em;color:color-mix(in srgb,var(--color-primary,#7c6af7) 80%,white) }
+  .prose-mundo h3 { font-size:1rem;font-weight:700;margin:.75rem 0 .25rem;letter-spacing:.02em;color:color-mix(in srgb,var(--color-primary,#7c6af7) 65%,white) }
+  .prose-mundo h4 { font-size:.88rem;font-weight:700;margin:.65rem 0 .2rem;color:color-mix(in srgb,var(--color-primary,#7c6af7) 55%,white) }
+  .prose-mundo h5 { font-size:.82rem;font-weight:600;margin:.55rem 0 .15rem;color:color-mix(in srgb,var(--color-primary,#7c6af7) 45%,white) }
+  .prose-mundo h6 { font-size:.78rem;font-weight:600;margin:.5rem 0 .12rem;text-transform:uppercase;letter-spacing:.08em;color:color-mix(in srgb,var(--color-primary,#7c6af7) 38%,white) }
   .prose-mundo p  { margin:.45rem 0;font-size:.85rem;line-height:1.65;color:var(--color-input-text,#d1c9ff) }
   .prose-mundo strong { font-weight:800;color:var(--color-primary,#7c6af7) }
   .prose-mundo em     { font-style:italic;opacity:.85 }
