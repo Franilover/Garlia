@@ -30,12 +30,13 @@ function Toast({ message, type, onClose }: { message: string; type: ToastType; o
   return (
     <MotionDiv
       initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
-      className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[300] flex items-center gap-3 px-5 py-3 shadow-xl text-[11px] font-black uppercase tracking-wide"
+      className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[300] flex items-center gap-3 px-5 py-3 shadow-lg text-[10px] font-bold uppercase tracking-widest"
       style={{
-        clipPath: "polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%)",
-        background: type === "success" ? "rgba(5,150,105,0.95)" : "rgba(185,28,28,0.95)",
+        background: type === "success" ? "rgba(5,150,105,0.92)" : "rgba(185,28,28,0.92)",
         color: "var(--btn-text, #fff)",
-        border: `1px solid ${type === "success" ? "rgba(52,211,153,0.4)" : "rgba(248,113,113,0.4)"}`,
+        border: `1px solid ${type === "success" ? "rgba(52,211,153,0.3)" : "rgba(248,113,113,0.3)"}`,
+        borderRadius: "1px",
+        letterSpacing: "0.15em",
       }}
     >
       {type === "success" ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
@@ -69,8 +70,8 @@ function PanelContenido({
                 setModifiedDetalles((prev: Set<string>) => new Set(prev).add(puntoSeleccionado.id));
               } else setReinoSeleccionado({ ...reinoSeleccionado, nombre: e.target.value });
             }}
-            className="input-brand font-black uppercase text-xl outline-none px-4 py-3"
-            style={{ clipPath: "polygon(4px 0%, 100% 0%, calc(100% - 4px) 100%, 0% 100%)" }}
+            className="input-brand font-bold uppercase text-xl outline-none px-4 py-3"
+            style={{ borderRadius: "1px", letterSpacing: "0.08em" }}
           />
         </div>
         <div className="flex flex-col gap-1 flex-grow">
@@ -173,7 +174,7 @@ function PanelContenido({
           onClick={handleSaveChanges}
           disabled={isSaving}
           className="btn-brand w-full justify-center text-[11px] uppercase py-4 mt-auto disabled:opacity-50"
-          style={{ clipPath: "polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%)" }}
+          style={{ letterSpacing: "0.12em" }}
         >
           {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
           Guardar cambios
@@ -191,8 +192,8 @@ function PanelContenido({
           <div className="w-1.5 h-1.5 rotate-45" style={{ background: "var(--accent)" }} />
           <div className="h-px flex-1" style={{ background: `linear-gradient(to left, transparent, color-mix(in srgb, var(--accent) 40%, transparent))` }} />
         </div>
-        <h2 className="font-black text-3xl uppercase tracking-[0.12em] leading-none text-center"
-          style={{ fontFamily: "'Cinzel', serif", color: "var(--foreground)", textShadow: "0 0 30px color-mix(in srgb, var(--accent) 30%, transparent)" }}>
+        <h2 className="font-bold text-2xl uppercase tracking-[0.18em] leading-none text-center"
+          style={{ fontFamily: "'Cinzel', serif", color: "var(--foreground)" }}>
           {puntoSeleccionado ? puntoSeleccionado.nombre : reinoSeleccionado.nombre}
         </h2>
         <div className="flex items-center gap-3 mt-2">
@@ -247,7 +248,7 @@ function PanelContenido({
                         borderColor: desbloqueado ? "color-mix(in srgb, var(--accent) 25%, transparent)" : "color-mix(in srgb, var(--accent) 8%, transparent)",
                         background: "color-mix(in srgb, var(--bg-main) 80%, transparent)",
                         filter: desbloqueado ? "none" : "grayscale(100%) blur(2px)",
-                        clipPath: "polygon(5px 0%,100% 0%,calc(100% - 5px) 100%,0% 100%)",
+                        borderRadius: "1px",
                       }}
                     >
                       {desbloqueado && p.img_url
@@ -256,7 +257,7 @@ function PanelContenido({
                     </div>
                     {/* Nombre + especie — derecha */}
                     <div className="flex-1 min-w-0">
-                      <p className="text-[11px] font-black uppercase leading-tight truncate"
+                      <p className="text-[11px] font-semibold uppercase leading-tight truncate"
                         style={{
                           color: desbloqueado ? "var(--foreground)" : "color-mix(in srgb, var(--accent) 30%, transparent)",
                           textDecoration: desbloqueado ? "none" : "line-through",
@@ -303,7 +304,7 @@ function PanelContenido({
                       style={{ filter: "brightness(0.9)" }} />
                   )}
                   <div className="flex-1 min-w-0">
-                    <p className="text-[11px] font-black uppercase leading-tight truncate" style={{ color: "var(--foreground)" }}>
+                    <p className="text-[11px] font-semibold uppercase leading-tight truncate" style={{ color: "var(--foreground)" }}>
                       {libro.titulo}
                     </p>
                     {libro.estado && (
@@ -344,7 +345,7 @@ function PanelContenido({
                     {cap.orden}
                   </span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[10px] font-black uppercase truncate" style={{ color: "var(--foreground)" }}>
+                    <p className="text-[10px] font-semibold uppercase truncate" style={{ color: "var(--foreground)" }}>
                       {cap.titulo_capitulo}
                     </p>
                     {cap.libro_titulo && (
@@ -645,42 +646,51 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
           ctx.translate(mx, my);
 
           // Subtle outer ring (small)
-          const ringR = 7 + pulse * 3;
+          const ringR = 8 + pulse * 2;
           ctx.beginPath();
           ctx.arc(0, 0, ringR, 0, Math.PI * 2);
           ctx.strokeStyle = isSelected
-            ? `${accent}${Math.round(0.35 * (1 - pulse) * 255).toString(16).padStart(2, "0")}`
-            : `${primary}${Math.round(0.2 * (1 - pulse) * 255).toString(16).padStart(2, "0")}`;
-          ctx.lineWidth = 0.8;
+            ? `${accent}${Math.round(0.3 * (1 - pulse) * 255).toString(16).padStart(2, "0")}`
+            : `${primary}${Math.round(0.18 * (1 - pulse) * 255).toString(16).padStart(2, "0")}`;
+          ctx.lineWidth = 0.6;
           ctx.stroke();
 
-          // Very subtle glow (minimal radius, low opacity)
-          const grd = ctx.createRadialGradient(0, 0, 0, 0, 0, 5);
-          if (isSelected) {
-            grd.addColorStop(0, `${accent}55`);
-            grd.addColorStop(1, `${accent}00`);
-          } else {
-            grd.addColorStop(0, `${primary}33`);
-            grd.addColorStop(1, `${primary}00`);
-          }
+          // Antique cross marker
+          const crossColor = isSelected ? accent : primary;
+          const crossAlpha = isSelected ? "ee" : "bb";
+          const arm = isSelected ? 6 : 5;
+
+          // Outer circle
           ctx.beginPath();
-          ctx.arc(0, 0, 5, 0, Math.PI * 2);
-          ctx.fillStyle = grd;
+          ctx.arc(0, 0, arm + 1.5, 0, Math.PI * 2);
+          ctx.strokeStyle = `${crossColor}${crossAlpha}`;
+          ctx.lineWidth = isSelected ? 1.2 : 0.9;
+          ctx.stroke();
+
+          // Inner filled dot
+          ctx.beginPath();
+          ctx.arc(0, 0, isSelected ? 2.2 : 1.8, 0, Math.PI * 2);
+          ctx.fillStyle = `${crossColor}dd`;
           ctx.fill();
 
-          // Diamond marker
-          ctx.save();
-          ctx.rotate(Math.PI / 4);
-          const d = isSelected ? 6 : 5;
-          ctx.fillStyle = isSelected ? accent : primary;
-          ctx.shadowColor = isSelected ? `${accent}99` : `${primary}44`;
-          ctx.shadowBlur = isSelected ? 4 : 2;
-          ctx.fillRect(-d, -d, d * 2, d * 2);
-          ctx.fillStyle = isSelected ? "rgba(255,255,255,0.8)" : "rgba(255,255,255,0.25)";
-          ctx.shadowBlur = 0;
-          const di = d * 0.45;
-          ctx.fillRect(-di, -di, di * 2, di * 2);
-          ctx.restore();
+          // Cross arms
+          ctx.strokeStyle = `${crossColor}${crossAlpha}`;
+          ctx.lineWidth = isSelected ? 1.0 : 0.8;
+          ctx.beginPath();
+          ctx.moveTo(-arm - 3, 0); ctx.lineTo(arm + 3, 0); // horizontal
+          ctx.moveTo(0, -arm - 3); ctx.lineTo(0, arm + 3); // vertical
+          ctx.stroke();
+
+          // Small tick marks at cardinal points (cartographic style)
+          const tick = 1.5;
+          ctx.lineWidth = 0.6;
+          [[-arm - 4.5, 0], [arm + 4.5, 0], [0, -arm - 4.5], [0, arm + 4.5]].forEach(([tx, ty]) => {
+            const isH = ty === 0;
+            ctx.beginPath();
+            if (isH) { ctx.moveTo(tx, -tick); ctx.lineTo(tx, tick); }
+            else { ctx.moveTo(-tick, ty); ctx.lineTo(tick, ty); }
+            ctx.stroke();
+          });
 
           if (editMode) {
             ctx.beginPath();
@@ -695,22 +705,27 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
             }
           }
 
-          ctx.font = `bold ${scale > 0.7 ? 10 : 9}px 'Cinzel', serif`;
+          ctx.font = `${isSelected ? "600" : "400"} ${scale > 0.7 ? 10 : 9}px 'Cinzel', serif`;
           ctx.textAlign = "center";
           const label = m.nombre;
           const metrics = ctx.measureText(label);
-          const lw = metrics.width + 12;
-          const lh = 14;
-          const ly = -20;
-          ctx.fillStyle = `${bg}d4`;
-          ctx.beginPath();
-          ctx.rect(-lw / 2, ly - lh / 2, lw, lh);
-          ctx.fill();
-          ctx.strokeStyle = isSelected ? `${accent}80` : `${primary}59`;
-          ctx.lineWidth = 0.75;
-          ctx.stroke();
+          const lw = metrics.width + 8;
+          const ly = -22;
+          // Subtle text shadow bg (no hard rectangle)
+          ctx.shadowColor = bg;
+          ctx.shadowBlur = 4;
+          ctx.shadowOffsetX = 0;
+          ctx.shadowOffsetY = 0;
           ctx.fillStyle = isSelected ? accent : primary;
           ctx.fillText(label, 0, ly + 4);
+          ctx.shadowBlur = 0;
+          // Thin underline
+          ctx.beginPath();
+          ctx.moveTo(-lw / 2, ly + 6.5);
+          ctx.lineTo(lw / 2, ly + 6.5);
+          ctx.strokeStyle = isSelected ? `${accent}55` : `${primary}33`;
+          ctx.lineWidth = 0.5;
+          ctx.stroke();
 
           ctx.restore();
         }
@@ -725,10 +740,15 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
             ctx.translate(mx, my);
             ctx.save();
             ctx.rotate(Math.PI / 4);
-            ctx.fillStyle = "#f97316";
-            ctx.shadowColor = "#f9731666";
-            ctx.shadowBlur = 6;
-            ctx.fillRect(-4, -4, 8, 8);
+            ctx.strokeStyle = "#f97316aa";
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.arc(0, 0, 5, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(-5, 0); ctx.lineTo(5, 0);
+            ctx.moveTo(0, -5); ctx.lineTo(0, 5);
+            ctx.stroke();
             ctx.restore();
             ctx.font = `bold 9px 'Cinzel', serif`;
             ctx.textAlign = "center";
@@ -991,9 +1011,9 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
             className="w-9 h-9 flex items-center justify-center transition-colors border"
             style={{
               background: "color-mix(in srgb, var(--bg-menu) 90%, transparent)",
-              borderColor: "color-mix(in srgb, var(--primary) 30%, transparent)",
+              borderColor: "color-mix(in srgb, var(--primary) 25%, transparent)",
               color: "var(--accent)",
-              clipPath: "polygon(4px 0%,100% 0%,calc(100% - 4px) 100%,0% 100%)",
+              borderRadius: "1px",
             }}>
             {btn.icon}
           </button>
@@ -1006,8 +1026,7 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
               background: "color-mix(in srgb, var(--primary) 85%, transparent)",
               borderColor: "color-mix(in srgb, var(--accent) 40%, transparent)",
               color: "var(--btn-text, #fff)",
-              clipPath: "polygon(4px 0%,100% 0%,calc(100% - 4px) 100%,0% 100%)",
-              boxShadow: "0 0 12px color-mix(in srgb, var(--accent) 25%, transparent)",
+              borderRadius: "1px",
             }}>
             <User size={14} />
           </button>
@@ -1249,12 +1268,12 @@ export default function MapaInteractivo() {
   if (loading) return (
     <div className="fixed inset-0 md:left-[68px] flex flex-col items-center justify-center" style={{ background: "var(--bg-main)" }}>
       <div className="relative">
-        <div className="w-8 h-8 rotate-45 animate-spin border" style={{ borderColor: "color-mix(in srgb, var(--accent) 40%, transparent)" }} />
+        <div className="w-8 h-8 border" style={{ borderColor: "color-mix(in srgb, var(--accent) 25%, transparent)", animation: "spin 3s linear infinite", borderRadius: "50%" }} />
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-2 h-2 rotate-45" style={{ background: "color-mix(in srgb, var(--accent) 60%, transparent)" }} />
+          <div className="w-1.5 h-1.5 rounded-full" style={{ background: "color-mix(in srgb, var(--accent) 50%, transparent)" }} />
         </div>
       </div>
-      <span className="text-[9px] font-black uppercase tracking-[0.3em] mt-4" style={{ color: "color-mix(in srgb, var(--accent) 40%, transparent)" }}>
+      <span className="text-[9px] font-medium uppercase tracking-[0.35em] mt-5" style={{ color: "color-mix(in srgb, var(--accent) 35%, transparent)", fontFamily: "'Cinzel', serif" }}>
         Desplegando Cartografía...
       </span>
     </div>
@@ -1279,12 +1298,13 @@ export default function MapaInteractivo() {
           <div className="absolute top-4 right-4 z-[70] flex gap-2">
             <button
               onClick={() => setEditMode(!editMode)}
-              className="flex items-center gap-2 px-4 py-2 text-[10px] font-black uppercase transition-all border"
+              className="flex items-center gap-2 px-4 py-2 text-[10px] font-semibold uppercase tracking-widest transition-all border"
               style={{
-                background: editMode ? "rgba(220,38,38,0.9)" : "color-mix(in srgb, var(--bg-menu) 90%, transparent)",
-                borderColor: editMode ? "#dc2626" : "color-mix(in srgb, var(--primary) 30%, transparent)",
+                background: editMode ? "rgba(220,38,38,0.85)" : "color-mix(in srgb, var(--bg-menu) 90%, transparent)",
+                borderColor: editMode ? "#dc2626" : "color-mix(in srgb, var(--primary) 25%, transparent)",
                 color: editMode ? "var(--btn-text, #fff)" : "var(--accent)",
-                clipPath: "polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%)",
+                borderRadius: "1px",
+                letterSpacing: "0.12em",
               }}
             >
               {editMode ? <X size={14} /> : <Edit3 size={14} />}
@@ -1292,11 +1312,13 @@ export default function MapaInteractivo() {
             </button>
             {editMode && (
               <button onClick={handleSaveChanges} disabled={isSaving}
-                className="flex items-center gap-2 px-4 py-2 text-[10px] font-black uppercase disabled:opacity-50 transition-all"
+                className="flex items-center gap-2 px-4 py-2 text-[10px] font-semibold uppercase tracking-widest disabled:opacity-50 transition-all"
                 style={{
                   background: "rgba(5,150,105,0.9)",
                   color: "#fff",
-                  clipPath: "polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%)",
+                  border: "1px solid rgba(52,211,153,0.2)",
+                  borderRadius: "1px",
+                  letterSpacing: "0.12em",
                 }}>
                 {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
                 Guardar
@@ -1308,11 +1330,13 @@ export default function MapaInteractivo() {
         <AnimatePresence>
           {editMode && (reinoSeleccionado || puntoSeleccionado) && (
             <MotionDiv initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
-              className="absolute left-1/2 -translate-x-1/2 z-50 text-[10px] font-black uppercase px-4 py-2 shadow-lg flex items-center gap-2 bottom-[calc(56px+1rem)] md:bottom-16"
+              className="absolute left-1/2 -translate-x-1/2 z-50 text-[10px] font-semibold uppercase px-4 py-2 shadow-md flex items-center gap-2 bottom-[calc(56px+1rem)] md:bottom-16"
               style={{
                 background: "var(--accent)",
                 color: "var(--bg-main)",
-                clipPath: "polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%)",
+                border: "1px solid color-mix(in srgb, var(--accent) 40%, transparent)",
+                borderRadius: "1px",
+                letterSpacing: "0.1em",
               }}>
               <Move size={12} /> Clickeá para mover el marcador
               {modifiedDetalles.size > 1 && (
@@ -1326,12 +1350,13 @@ export default function MapaInteractivo() {
           {vistaActual === "reino" && (
             <MotionButton initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
               onClick={volverAlGlobal}
-              className="absolute top-4 left-4 z-50 flex items-center gap-2 px-4 py-2 text-[10px] font-black uppercase transition-colors"
+              className="absolute top-4 left-4 z-50 flex items-center gap-2 px-4 py-2 text-[10px] font-semibold uppercase tracking-widest transition-colors"
               style={{
                 background: "color-mix(in srgb, var(--bg-menu) 90%, transparent)",
-                border: "1px solid color-mix(in srgb, var(--primary) 30%, transparent)",
+                border: "1px solid color-mix(in srgb, var(--primary) 25%, transparent)",
                 color: "var(--accent)",
-                clipPath: "polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%)",
+                borderRadius: "1px",
+                letterSpacing: "0.12em",
               }}>
               <ArrowLeft size={14} /> Volver
             </MotionButton>
@@ -1382,7 +1407,7 @@ export default function MapaInteractivo() {
                 background: "color-mix(in srgb, var(--bg-main) 80%, transparent)",
                 borderColor: "color-mix(in srgb, var(--primary) 20%, transparent)",
                 color: "color-mix(in srgb, var(--foreground) 50%, transparent)",
-                clipPath: "polygon(4px 0%,100% 0%,calc(100% - 4px) 100%,0% 100%)",
+                borderRadius: "1px",
               }}
             >
               <X size={12} />
