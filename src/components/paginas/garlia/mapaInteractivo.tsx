@@ -653,10 +653,10 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
 
           // ── Antique map pin — teardrop with body ─────────────────────────
           // Colors driven by CSS theme vars
-          const pinBody    = isSelected ? accent   : pinFill;
-          const pinBorder  = isSelected ? primary  : `${pinFill}cc`;
-          const pinRing    = isSelected ? `${accent}99` : `${pinFill}77`;
-          const pinDot     = isSelected ? fg       : `${fg}cc`;
+          const pinBody    = isSelected ? parchBg  : parchBg;
+          const pinBorder  = isSelected ? primary  : `${parchBg}cc`;
+          const pinRing    = isSelected ? `${accent}99` : `${primary}66`;
+          const pinDot     = isSelected ? accent   : accent;
 
           // Pin dimensions
           const headR = isSelected ? 9 : 7;       // circle head radius
