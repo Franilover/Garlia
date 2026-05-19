@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import {
   Sparkles, Star, Globe, Plus, Trash2, Save, Loader2, Search, X, Bug,
   ChevronDown, Mountain, ScrollText, Map, ChevronRight, FileText, Users, UserCircle2, Package,
-  Crown, Clock, Filter, Layers, Check, BookOpen,
+  Crown, Clock, Filter, Layers, Check, BookOpen, Music,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
@@ -22,6 +22,7 @@ import { useNotas } from "../editorEntidades/useNotas";
 import { EditorNota, ListaNotas } from "./EditorNota";
 import { EditorGrupo } from "./EditorGrupo";
 import EstudioCapitulos from "@/components/paginas/myself/garlia/editores/editorCapitulos";
+import EditorLetrasPanel from "@/components/paginas/myself/garlia/editores/editorLetras/page";
 
 
 // ─── Dexie helpers ────────────────────────────────────────────────────────────
@@ -2129,8 +2130,8 @@ function PanelListas({
   const [selectedRuna,     setSelectedRuna]     = useState<Runa | null>(null);
   const [personajeStatus,  setPersonajeStatus]  = useState<SaveStatus>("idle");
 
-  type ListaTab = "mundo" | "historia" | "magia" | "reinos" | "criaturas" | "objetos" | "personajes" | "hechizos" | "dones" | "runas" | "notas" | "grupos" | "magia-objetos" | "mundo-personajes" | "geo-magia" | "todo" | "capitulos";
-  const VALID_LISTA_TABS: ListaTab[] = ["mundo", "historia", "magia", "reinos", "criaturas", "objetos", "personajes", "hechizos", "dones", "runas", "notas", "grupos", "magia-objetos", "mundo-personajes", "geo-magia", "todo", "capitulos"];
+  type ListaTab = "mundo" | "historia" | "magia" | "reinos" | "criaturas" | "objetos" | "personajes" | "hechizos" | "dones" | "runas" | "notas" | "grupos" | "magia-objetos" | "mundo-personajes" | "geo-magia" | "todo" | "capitulos" | "letras";
+  const VALID_LISTA_TABS: ListaTab[] = ["mundo", "historia", "magia", "reinos", "criaturas", "objetos", "personajes", "hechizos", "dones", "runas", "notas", "grupos", "magia-objetos", "mundo-personajes", "geo-magia", "todo", "capitulos", "letras"];
 
   const [mobileTab, setMobileTab] = useState<ListaTab>(() => {
     // initialSubTab puede ser un UnifiedTab ("mundo","historia","magia","listas") o un ListaTab directo
@@ -2244,6 +2245,7 @@ function PanelListas({
       label: "Escritura",
       tabs: [
         { key: "capitulos" as ListaTab, label: "Capítulos", Icon: BookOpen, count: 0 },
+        { key: "letras" as ListaTab, label: "Canciones", Icon: Music, count: 0 },
       ],
     },
   ];
@@ -2381,7 +2383,7 @@ function PanelListas({
           )}
 
           {/* Header del tab activo (solo para tabs de lista individuales) */}
-          {!["mundo", "historia", "magia", "magia-objetos", "mundo-personajes", "geo-magia", "todo", "capitulos"].includes(mobileTab) && (() => {
+          {!["mundo", "historia", "magia", "magia-objetos", "mundo-personajes", "geo-magia", "todo", "capitulos", "letras"].includes(mobileTab) && (() => {
             const t = TABS.find(t => t.key === mobileTab);
             if (!t) return null;
             const color = t.color ?? "var(--primary)";
@@ -2413,7 +2415,7 @@ function PanelListas({
           })()}
 
           {/* Buscador */}
-          {!["mundo", "historia", "magia", "magia-objetos", "mundo-personajes", "geo-magia", "todo", "capitulos"].includes(mobileTab) && mobileTab !== "grupos" && (
+          {!["mundo", "historia", "magia", "magia-objetos", "mundo-personajes", "geo-magia", "todo", "capitulos", "letras"].includes(mobileTab) && mobileTab !== "grupos" && (
             <SearchInput
               value={searchMap[mobileTab] ?? ""}
               onChange={v => setSearchMap[mobileTab]?.(v)}
@@ -2425,6 +2427,13 @@ function PanelListas({
           {mobileTab === "capitulos" && (
             <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
               <EstudioCapitulos />
+            </div>
+          )}
+
+          {/* Vista: Editor de Canciones embebido */}
+          {mobileTab === "letras" && (
+            <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+              <EditorLetrasPanel />
             </div>
           )}
 
@@ -2809,7 +2818,7 @@ function PanelListas({
           )}
 
           {/* Listado */}
-          {!(["mundo", "historia", "magia", "magia-objetos", "mundo-personajes", "geo-magia", "todo", "capitulos"].includes(mobileTab)) && (
+          {!(["mundo", "historia", "magia", "magia-objetos", "mundo-personajes", "geo-magia", "todo", "capitulos", "letras"].includes(mobileTab)) && (
           <div
             className={mobileTab === "grupos"
               ? "flex-1 flex min-h-0 overflow-hidden relative"
