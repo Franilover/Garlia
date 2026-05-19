@@ -2742,7 +2742,7 @@ export function EditorCapitulosPanel() {
 
 export default function EstudioCapitulos() {
   return (
-    <div className="h-[100dvh] bg-bg-main">
+    <div className="h-full bg-bg-main">
       <EditorCapitulosPanel />
     </div>
   );
