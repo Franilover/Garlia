@@ -1044,11 +1044,11 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
           <button key={i} onClick={btn.fn}
             className="w-9 h-9 flex items-center justify-center transition-all border"
             style={{
-              background: "rgba(38,25,12,0.82)",
-              borderColor: "rgba(160,110,55,0.35)",
-              color: "rgba(225,200,155,0.9)",
+              background: "color-mix(in srgb, var(--bg-menu) 88%, transparent)",
+              borderColor: "color-mix(in srgb, var(--primary) 30%, transparent)",
+              color: "var(--accent)",
               borderRadius: "2px",
-              boxShadow: "0 1px 4px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,230,160,0.06)",
+              boxShadow: "0 1px 4px rgba(0,0,0,0.3)",
             }}>
             {btn.icon}
           </button>
@@ -1058,11 +1058,11 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
             onClick={onOpenPanel}
             className="w-9 h-9 flex items-center justify-center transition-all border md:hidden"
             style={{
-              background: "rgba(90,50,15,0.88)",
-              borderColor: "rgba(200,155,80,0.4)",
-              color: "rgba(240,215,160,0.95)",
+              background: "color-mix(in srgb, var(--primary) 80%, transparent)",
+              borderColor: "color-mix(in srgb, var(--accent) 35%, transparent)",
+              color: "var(--btn-text, #fff)",
               borderRadius: "2px",
-              boxShadow: "0 1px 4px rgba(0,0,0,0.4)",
+              boxShadow: "0 1px 4px rgba(0,0,0,0.3)",
             }}>
             <User size={14} />
           </button>
@@ -1336,12 +1336,16 @@ export default function MapaInteractivo() {
               onClick={() => setEditMode(!editMode)}
               className="flex items-center gap-2 px-4 py-2 text-[10px] font-semibold uppercase tracking-widest transition-all border"
               style={{
-                background: editMode ? "rgba(140,20,20,0.88)" : "rgba(30,18,8,0.82)",
-                borderColor: editMode ? "rgba(220,80,80,0.4)" : "rgba(160,110,55,0.35)",
-                color: editMode ? "rgba(255,200,200,0.95)" : "rgba(225,200,155,0.9)",
+                background: editMode
+                  ? "color-mix(in srgb, var(--danger, #dc2626) 85%, transparent)"
+                  : "color-mix(in srgb, var(--bg-menu) 88%, transparent)",
+                borderColor: editMode
+                  ? "color-mix(in srgb, var(--danger, #dc2626) 50%, transparent)"
+                  : "color-mix(in srgb, var(--primary) 30%, transparent)",
+                color: editMode ? "var(--btn-text, #fff)" : "var(--accent)",
                 borderRadius: "2px",
                 letterSpacing: "0.12em",
-                boxShadow: "0 1px 4px rgba(0,0,0,0.45)",
+                boxShadow: "0 1px 4px rgba(0,0,0,0.3)",
               }}
             >
               {editMode ? <X size={14} /> : <Edit3 size={14} />}
@@ -1351,12 +1355,12 @@ export default function MapaInteractivo() {
               <button onClick={handleSaveChanges} disabled={isSaving}
                 className="flex items-center gap-2 px-4 py-2 text-[10px] font-semibold uppercase tracking-widest disabled:opacity-50 transition-all"
                 style={{
-                  background: "rgba(40,90,40,0.88)",
-                  color: "rgba(200,235,190,0.95)",
-                  border: "1px solid rgba(80,160,80,0.3)",
+                  background: "color-mix(in srgb, var(--success, #16a34a) 85%, transparent)",
+                  color: "var(--btn-text, #fff)",
+                  border: "1px solid color-mix(in srgb, var(--success, #16a34a) 40%, transparent)",
                   borderRadius: "2px",
                   letterSpacing: "0.12em",
-                  boxShadow: "0 1px 4px rgba(0,0,0,0.4)",
+                  boxShadow: "0 1px 4px rgba(0,0,0,0.3)",
                 }}>
                 {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
                 Guardar
@@ -1370,11 +1374,12 @@ export default function MapaInteractivo() {
             <MotionDiv initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
               className="absolute left-1/2 -translate-x-1/2 z-50 text-[10px] font-semibold uppercase px-4 py-2 shadow-md flex items-center gap-2 bottom-[calc(56px+1rem)] md:bottom-16"
               style={{
-                background: "rgba(38,25,10,0.90)",
-                color: "rgba(230,205,155,0.95)",
-                border: "1px solid rgba(160,110,55,0.35)",
+                background: "color-mix(in srgb, var(--bg-menu) 92%, transparent)",
+                color: "var(--accent)",
+                border: "1px solid color-mix(in srgb, var(--primary) 30%, transparent)",
                 borderRadius: "2px",
                 letterSpacing: "0.1em",
+                boxShadow: "0 1px 4px rgba(0,0,0,0.3)",
               }}>
               <Move size={12} /> Clickeá para mover el marcador
               {modifiedDetalles.size > 1 && (
@@ -1390,12 +1395,12 @@ export default function MapaInteractivo() {
               onClick={volverAlGlobal}
               className="absolute top-4 left-4 z-50 flex items-center gap-2 px-4 py-2 text-[10px] font-semibold uppercase tracking-widest transition-colors"
               style={{
-                background: "rgba(30,18,8,0.82)",
-                border: "1px solid rgba(160,110,55,0.35)",
-                color: "rgba(225,200,155,0.9)",
+                background: "color-mix(in srgb, var(--bg-menu) 88%, transparent)",
+                border: "1px solid color-mix(in srgb, var(--primary) 30%, transparent)",
+                color: "var(--accent)",
                 borderRadius: "2px",
                 letterSpacing: "0.12em",
-                boxShadow: "0 1px 4px rgba(0,0,0,0.4)",
+                boxShadow: "0 1px 4px rgba(0,0,0,0.3)",
               }}>
               <ArrowLeft size={14} /> Volver
             </MotionButton>
