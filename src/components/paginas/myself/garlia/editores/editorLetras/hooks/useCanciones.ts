@@ -33,7 +33,7 @@ export function useCanciones() {
     setIsOffline(false);
 
     try {
-      const fetchPromise = cancionesQueries.getAll({ isAdmin: true });
+      const fetchPromise = cancionesQueries.getAll();
       const timeout = new Promise<"timeout">(r => setTimeout(() => r("timeout"), 5000));
       const result = await Promise.race([fetchPromise, timeout]);
 
@@ -43,7 +43,7 @@ export function useCanciones() {
         return;
       }
 
-      const data = result as Cancion[];
+      const data = result as unknown as Cancion[];
       setCanciones(data);
       try {
         const table = (db as any)["canciones"];

@@ -16,7 +16,7 @@ export const cancionQuery = supabase
     personaje:personajes (id, nombre, img_url),
     secciones:secciones_cancion (*)
   `);
-export type Cancion = QueryData<typeof cancionQuery>;
+  export type Cancion = QueryData<typeof cancionQuery>;
 
 export const personajeFullQuery = supabase
   .from('personajes')

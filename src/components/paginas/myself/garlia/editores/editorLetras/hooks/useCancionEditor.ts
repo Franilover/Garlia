@@ -42,7 +42,7 @@ export function useCancionEditor(id: string | null) {
         return;
       }
 
-      const data = result as Cancion;
+      const data = result as unknown as Cancion;
       setCancion(data);
       try {
         const cTable = (db as any)["canciones"];
