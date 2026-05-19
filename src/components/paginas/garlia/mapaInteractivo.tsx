@@ -645,87 +645,85 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
           ctx.save();
           ctx.translate(mx, my);
 
-          // Subtle outer ring (small)
-          const ringR = 8 + pulse * 2;
+          // ── Antique cartographic marker ──────────────────────────────────
+          // Fixed ink colors that work on top of the map regardless of theme
+          const inkDark   = isSelected ? "#1a0e05" : "#2c1a0a";
+          const inkMid    = isSelected ? "#5c3a1a" : "#7a5030";
+          const parchment = "rgba(240,224,185,0.92)";
+          const parchSel  = "rgba(255,240,200,0.96)";
+
+          const arm = isSelected ? 7 : 5.5;
+
+          // Pulsing outer halo (very faint)
+          const haloR = arm + 5 + pulse * 3;
           ctx.beginPath();
-          ctx.arc(0, 0, ringR, 0, Math.PI * 2);
-          ctx.strokeStyle = isSelected
-            ? `${accent}${Math.round(0.3 * (1 - pulse) * 255).toString(16).padStart(2, "0")}`
-            : `${primary}${Math.round(0.18 * (1 - pulse) * 255).toString(16).padStart(2, "0")}`;
-          ctx.lineWidth = 0.6;
+          ctx.arc(0, 0, haloR, 0, Math.PI * 2);
+          ctx.strokeStyle = isSelected ? "rgba(180,130,60,0.25)" : "rgba(100,70,30,0.15)";
+          ctx.lineWidth = 0.8;
           ctx.stroke();
 
-          // Antique cross marker
-          const crossColor = isSelected ? accent : primary;
-          const crossAlpha = isSelected ? "ee" : "bb";
-          const arm = isSelected ? 6 : 5;
-
-          // Outer circle
+          // Outer circle — hand-drawn ink feel
           ctx.beginPath();
-          ctx.arc(0, 0, arm + 1.5, 0, Math.PI * 2);
-          ctx.strokeStyle = `${crossColor}${crossAlpha}`;
+          ctx.arc(0, 0, arm, 0, Math.PI * 2);
+          ctx.strokeStyle = inkMid;
+          ctx.lineWidth = isSelected ? 1.4 : 1.0;
+          ctx.stroke();
+
+          // Cross arms (extend slightly beyond circle)
+          ctx.strokeStyle = inkDark;
           ctx.lineWidth = isSelected ? 1.2 : 0.9;
+          ctx.lineCap = "round";
+          const ext = arm + 3.5;
+          ctx.beginPath();
+          ctx.moveTo(-ext, 0); ctx.lineTo(ext, 0);
+          ctx.moveTo(0, -ext); ctx.lineTo(0, ext);
           ctx.stroke();
+          ctx.lineCap = "butt";
 
           // Inner filled dot
           ctx.beginPath();
-          ctx.arc(0, 0, isSelected ? 2.2 : 1.8, 0, Math.PI * 2);
-          ctx.fillStyle = `${crossColor}dd`;
+          ctx.arc(0, 0, isSelected ? 2.5 : 2, 0, Math.PI * 2);
+          ctx.fillStyle = isSelected ? "#8B4513" : inkDark;
           ctx.fill();
 
-          // Cross arms
-          ctx.strokeStyle = `${crossColor}${crossAlpha}`;
-          ctx.lineWidth = isSelected ? 1.0 : 0.8;
-          ctx.beginPath();
-          ctx.moveTo(-arm - 3, 0); ctx.lineTo(arm + 3, 0); // horizontal
-          ctx.moveTo(0, -arm - 3); ctx.lineTo(0, arm + 3); // vertical
-          ctx.stroke();
-
-          // Small tick marks at cardinal points (cartographic style)
-          const tick = 1.5;
-          ctx.lineWidth = 0.6;
-          [[-arm - 4.5, 0], [arm + 4.5, 0], [0, -arm - 4.5], [0, arm + 4.5]].forEach(([tx, ty]) => {
-            const isH = ty === 0;
-            ctx.beginPath();
-            if (isH) { ctx.moveTo(tx, -tick); ctx.lineTo(tx, tick); }
-            else { ctx.moveTo(-tick, ty); ctx.lineTo(tick, ty); }
-            ctx.stroke();
-          });
-
           if (editMode) {
+            // small dot indicator top-right
             ctx.beginPath();
-            ctx.arc(6, -6, 3.5, 0, Math.PI * 2);
+            ctx.arc(arm + 1, -arm - 1, 3, 0, Math.PI * 2);
             ctx.fillStyle = accent;
             ctx.fill();
             if (m.oculto) {
               ctx.beginPath();
-              ctx.arc(-6, 6, 3.5, 0, Math.PI * 2);
+              ctx.arc(-(arm + 1), arm + 1, 3, 0, Math.PI * 2);
               ctx.fillStyle = "#f97316";
               ctx.fill();
             }
           }
 
-          ctx.font = `${isSelected ? "600" : "400"} ${scale > 0.7 ? 10 : 9}px 'Cinzel', serif`;
+          // ── Label — parchment pill ──────────────────────────────────────
+          const fontSize = scale > 0.7 ? 10 : 9;
+          ctx.font = `${isSelected ? "600" : "500"} ${fontSize}px 'Cinzel', serif`;
           ctx.textAlign = "center";
           const label = m.nombre;
           const metrics = ctx.measureText(label);
-          const lw = metrics.width + 8;
-          const ly = -22;
-          // Subtle text shadow bg (no hard rectangle)
-          ctx.shadowColor = bg;
-          ctx.shadowBlur = 4;
-          ctx.shadowOffsetX = 0;
-          ctx.shadowOffsetY = 0;
-          ctx.fillStyle = isSelected ? accent : primary;
-          ctx.fillText(label, 0, ly + 4);
-          ctx.shadowBlur = 0;
-          // Thin underline
+          const lw = metrics.width + 10;
+          const lh = fontSize + 5;
+          const ly = -(arm + ext + lh + 1);
+
+          // Parchment background
+          ctx.fillStyle = isSelected ? parchSel : parchment;
           ctx.beginPath();
-          ctx.moveTo(-lw / 2, ly + 6.5);
-          ctx.lineTo(lw / 2, ly + 6.5);
-          ctx.strokeStyle = isSelected ? `${accent}55` : `${primary}33`;
-          ctx.lineWidth = 0.5;
+          ctx.rect(-lw / 2, ly, lw, lh);
+          ctx.fill();
+
+          // Thin ink border
+          ctx.strokeStyle = isSelected ? "rgba(90,50,10,0.6)" : "rgba(60,35,10,0.4)";
+          ctx.lineWidth = 0.6;
           ctx.stroke();
+
+          // Dark ink text — legible on any map zone
+          ctx.fillStyle = isSelected ? "#1a0a00" : "#2a1508";
+          ctx.fillText(label, 0, ly + lh - 4);
 
           ctx.restore();
         }
@@ -1008,12 +1006,13 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
           { icon: <ZoomOut size={14} />, fn: () => zoom(0.8) },
         ].map((btn, i) => (
           <button key={i} onClick={btn.fn}
-            className="w-9 h-9 flex items-center justify-center transition-colors border"
+            className="w-9 h-9 flex items-center justify-center transition-all border"
             style={{
-              background: "color-mix(in srgb, var(--bg-menu) 90%, transparent)",
-              borderColor: "color-mix(in srgb, var(--primary) 25%, transparent)",
-              color: "var(--accent)",
-              borderRadius: "1px",
+              background: "rgba(38,25,12,0.82)",
+              borderColor: "rgba(160,110,55,0.35)",
+              color: "rgba(225,200,155,0.9)",
+              borderRadius: "2px",
+              boxShadow: "0 1px 4px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,230,160,0.06)",
             }}>
             {btn.icon}
           </button>
@@ -1023,10 +1022,11 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
             onClick={onOpenPanel}
             className="w-9 h-9 flex items-center justify-center transition-all border md:hidden"
             style={{
-              background: "color-mix(in srgb, var(--primary) 85%, transparent)",
-              borderColor: "color-mix(in srgb, var(--accent) 40%, transparent)",
-              color: "var(--btn-text, #fff)",
-              borderRadius: "1px",
+              background: "rgba(90,50,15,0.88)",
+              borderColor: "rgba(200,155,80,0.4)",
+              color: "rgba(240,215,160,0.95)",
+              borderRadius: "2px",
+              boxShadow: "0 1px 4px rgba(0,0,0,0.4)",
             }}>
             <User size={14} />
           </button>
@@ -1300,11 +1300,12 @@ export default function MapaInteractivo() {
               onClick={() => setEditMode(!editMode)}
               className="flex items-center gap-2 px-4 py-2 text-[10px] font-semibold uppercase tracking-widest transition-all border"
               style={{
-                background: editMode ? "rgba(220,38,38,0.85)" : "color-mix(in srgb, var(--bg-menu) 90%, transparent)",
-                borderColor: editMode ? "#dc2626" : "color-mix(in srgb, var(--primary) 25%, transparent)",
-                color: editMode ? "var(--btn-text, #fff)" : "var(--accent)",
-                borderRadius: "1px",
+                background: editMode ? "rgba(140,20,20,0.88)" : "rgba(30,18,8,0.82)",
+                borderColor: editMode ? "rgba(220,80,80,0.4)" : "rgba(160,110,55,0.35)",
+                color: editMode ? "rgba(255,200,200,0.95)" : "rgba(225,200,155,0.9)",
+                borderRadius: "2px",
                 letterSpacing: "0.12em",
+                boxShadow: "0 1px 4px rgba(0,0,0,0.45)",
               }}
             >
               {editMode ? <X size={14} /> : <Edit3 size={14} />}
@@ -1314,11 +1315,12 @@ export default function MapaInteractivo() {
               <button onClick={handleSaveChanges} disabled={isSaving}
                 className="flex items-center gap-2 px-4 py-2 text-[10px] font-semibold uppercase tracking-widest disabled:opacity-50 transition-all"
                 style={{
-                  background: "rgba(5,150,105,0.9)",
-                  color: "#fff",
-                  border: "1px solid rgba(52,211,153,0.2)",
-                  borderRadius: "1px",
+                  background: "rgba(40,90,40,0.88)",
+                  color: "rgba(200,235,190,0.95)",
+                  border: "1px solid rgba(80,160,80,0.3)",
+                  borderRadius: "2px",
                   letterSpacing: "0.12em",
+                  boxShadow: "0 1px 4px rgba(0,0,0,0.4)",
                 }}>
                 {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
                 Guardar
@@ -1332,10 +1334,10 @@ export default function MapaInteractivo() {
             <MotionDiv initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
               className="absolute left-1/2 -translate-x-1/2 z-50 text-[10px] font-semibold uppercase px-4 py-2 shadow-md flex items-center gap-2 bottom-[calc(56px+1rem)] md:bottom-16"
               style={{
-                background: "var(--accent)",
-                color: "var(--bg-main)",
-                border: "1px solid color-mix(in srgb, var(--accent) 40%, transparent)",
-                borderRadius: "1px",
+                background: "rgba(38,25,10,0.90)",
+                color: "rgba(230,205,155,0.95)",
+                border: "1px solid rgba(160,110,55,0.35)",
+                borderRadius: "2px",
                 letterSpacing: "0.1em",
               }}>
               <Move size={12} /> Clickeá para mover el marcador
@@ -1352,11 +1354,12 @@ export default function MapaInteractivo() {
               onClick={volverAlGlobal}
               className="absolute top-4 left-4 z-50 flex items-center gap-2 px-4 py-2 text-[10px] font-semibold uppercase tracking-widest transition-colors"
               style={{
-                background: "color-mix(in srgb, var(--bg-menu) 90%, transparent)",
-                border: "1px solid color-mix(in srgb, var(--primary) 25%, transparent)",
-                color: "var(--accent)",
-                borderRadius: "1px",
+                background: "rgba(30,18,8,0.82)",
+                border: "1px solid rgba(160,110,55,0.35)",
+                color: "rgba(225,200,155,0.9)",
+                borderRadius: "2px",
                 letterSpacing: "0.12em",
+                boxShadow: "0 1px 4px rgba(0,0,0,0.4)",
               }}>
               <ArrowLeft size={14} /> Volver
             </MotionButton>
