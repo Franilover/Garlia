@@ -13,7 +13,7 @@ import { MUNDO_SECTIONS, type MundoSectionKey, type SaveStatus, type Reino, type
 import { SaveIndicator, SelectorImagen } from "../editorEntidades/UIComponents";
 import { MarkdownEditor } from "../../../../forms/MarkdownEditor";
 import { useWikilink } from "../../../../forms/WikilinkContext";
-import { EditorReino } from "../editores/EditorReino";
+import { EditorReino } from "./EditorReino";
 import { FormularioPersonaje } from "./EditorPersonaje";
 import { EditorCriatura } from "./EditorCriatura";
 import { EditorItem } from "./EditorItem";
