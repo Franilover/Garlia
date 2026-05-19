@@ -33,7 +33,7 @@ const navStyle: React.CSSProperties = {
 const pillsWrapperStyle: React.CSSProperties = {
   background: "color-mix(in srgb, var(--primary) 7%, transparent)",
   borderRadius: "var(--radius-card)",
-  padding: "4px",
+  padding: "3px",
   border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
   display: "flex",
   alignItems: "center",
@@ -45,7 +45,7 @@ const activePillStyle: React.CSSProperties = {
   color: "var(--btn-text)",
   boxShadow: "0 4px 14px color-mix(in srgb, var(--primary) 25%, transparent)",
   borderRadius: "var(--radius-btn)",
-  padding: "6px 20px",
+  padding: "4px 14px",
   fontSize: "10px",
   fontWeight: 900,
   textTransform: "uppercase",
@@ -62,7 +62,7 @@ const inactivePillStyle: React.CSSProperties = {
   background: "transparent",
   color: "color-mix(in srgb, var(--primary) 45%, transparent)",
   borderRadius: "var(--radius-btn)",
-  padding: "6px 20px",
+  padding: "4px 14px",
   fontSize: "10px",
   fontWeight: 900,
   textTransform: "uppercase",
@@ -148,7 +148,7 @@ function PanelSliderInner({
 
   return (
     <div style={{ width: "100%", display: "flex", flexDirection: "column" }} className="h-[calc(100svh-56px)] md:h-svh">
-      <nav style={{ ...navStyle, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: "10px 32px", position: "relative", zIndex: 50 }}>
+      <nav style={{ ...navStyle, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: "6px 32px", position: "relative", zIndex: 50 }}>
         <div style={pillsWrapperStyle}>
           {panels.map((p, i) => {
             const Icon = p.icon;
