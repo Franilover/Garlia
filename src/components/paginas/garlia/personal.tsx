@@ -1111,7 +1111,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {otrosPerfiles.map(p => (
-                    <Link key={p.id} href={`/wiki/personal/${p.username}`}>
+                    <Link key={p.id} href={`/garlia/personal/${p.username}`}>
                       <div className="flex items-center gap-2 px-3 py-2 transition-all hover:opacity-80"
                         style={{
                           background: "color-mix(in srgb, var(--primary) 4%, var(--white-custom))",
@@ -1390,7 +1390,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                     background: "var(--white-custom)",
                   }}>
                   {otrosPerfiles.map((p, idx) => (
-                    <Link key={p.id} href={`/wiki/personal/${p.username}`}>
+                    <Link key={p.id} href={`/garlia/personal/${p.username}`}>
                       <MotionDiv whileHover={{ x: 2 }}
                         className="flex items-center gap-2.5 px-3 py-3 cursor-pointer transition-colors"
                         style={{
