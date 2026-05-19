@@ -9,15 +9,15 @@ import {
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
 import { useConfirm } from "@/components/ui/ConfirmModal";
-import { type Personaje, type SaveStatus } from "./types";
-import { useCapitulosNarrados, useNombresDeTabla } from "./hooks";
-import { SelectorImagen, SelectorTexto, SaveIndicator } from "./UIComponents";
+import { type Personaje, type SaveStatus } from "../editorEntidades/types";
+import { useCapitulosNarrados, useNombresDeTabla } from "../editorEntidades/hooks";
+import { SelectorImagen, SelectorTexto, SaveIndicator } from "../editorEntidades/UIComponents";
 import { MarkdownEditor, WikiEntity } from "../../../../forms/MarkdownEditor";
 import { useWikilink } from "../../../../forms/WikilinkContext";
 import SimpleImagePicker from "@/components/forms/SimpleImagePicker";
-import { BloqueHechizos } from "./BloqueHechizos";
-import { BloqueDones } from "./BloqueDones";
-import { BloqueRelaciones } from "./BloqueRelaciones";
+import { BloqueHechizos } from "../editorEntidades/BloqueHechizos";
+import { BloqueDones } from "../editorEntidades/BloqueDones";
+import { BloqueRelaciones } from "../editorEntidades/BloqueRelaciones";
 
 // ─── Dexie helpers ────────────────────────────────────────────────────────────
 async function dexiePut(tabla: string, row: any): Promise<void> {

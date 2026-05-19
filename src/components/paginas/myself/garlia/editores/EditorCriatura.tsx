@@ -8,13 +8,13 @@ import {
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
 import { useConfirm } from "@/components/ui/ConfirmModal";
-import { type Criatura, type CriaturaVariante, type SaveStatus, INPUT_CLS } from "./types";
-import { useCriaturaVariantes, useGruposDeCriatura, usePersonajesDeEspecie, type GrupoMin } from "./hooks";
-import { SelectorImagen, SelectorTexto, SaveIndicator } from "./UIComponents";
+import { type Criatura, type CriaturaVariante, type SaveStatus, INPUT_CLS } from "../editorEntidades/types";
+import { useCriaturaVariantes, useGruposDeCriatura, usePersonajesDeEspecie, type GrupoMin } from "../editorEntidades/hooks";
+import { SelectorImagen, SelectorTexto, SaveIndicator } from "../editorEntidades/UIComponents";
 import { MarkdownEditor, WikiEntity } from "../../../../forms/MarkdownEditor";
 import { useWikilink } from "../../../../forms/WikilinkContext";
-import { BloqueHechizos } from "./BloqueHechizos";
-import { BloqueDones } from "./BloqueDones";
+import { BloqueHechizos } from "../editorEntidades/BloqueHechizos";
+import { BloqueDones } from "../editorEntidades/BloqueDones";
 
 // ─── Dexie helpers ────────────────────────────────────────────────────────────
 async function dexiePut(tabla: string, row: any): Promise<void> {

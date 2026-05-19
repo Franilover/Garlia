@@ -8,12 +8,12 @@ import {
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
 import { useConfirm } from "@/components/ui/ConfirmModal";
-import { type Reino, type ReinoDetalle, type SaveStatus, INPUT_CLS } from "./types";
-import { useReinoDetalles, usePersonajesDelReino } from "./hooks";
-import { SaveIndicator } from "./UIComponents";
+import { type Reino, type ReinoDetalle, type SaveStatus, INPUT_CLS } from "@/components/paginas/myself/jardin/editorEntidades/types";
+import { useReinoDetalles, usePersonajesDelReino } from "@/components/paginas/myself/jardin/editorEntidades/hooks";
+import { SaveIndicator } from "@/components/paginas/myself/jardin/editorEntidades/UIComponents";
 import { MarkdownEditor, WikiEntity } from "../../../../forms/MarkdownEditor";
 import { useWikilink } from "../../../../forms/WikilinkContext";
-import { LoreTab } from "./LoreTab";
+import { LoreTab } from "@/components/paginas/myself/jardin/editorEntidades/LoreTab";
 
 // ─── Dexie helpers ────────────────────────────────────────────────────────────
 async function dexiePut(tabla: string, row: any): Promise<void> {
