@@ -778,7 +778,7 @@ export default function Ensayos() {
                   ensayos={ensayos} 
                   todosLosTags={todosLosTags}
                   onNavigate={(titulo) => navigateToPage(titulo, false)}
-                  onTagClick={(tag) => setTagActivo(tag)} 
+                  onTagClick={(tag) => navigateToPage(tag, true)}
                 />
               )}
             </AnimatePresence>
