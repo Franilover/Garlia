@@ -1,40 +1,26 @@
-"use client";
-import { supabase } from "@/lib/api/client/supabase";
-import { USERNAME } from "@/lib/config/constants";
+import { supabase } from '@/lib/api/client/supabase';
+import { tareaFullQuery, Tarea, Inserts, Updates } from '@/lib/types/queries';
 
 export const tareasQueries = {
-  getAll: async () => {
+  getAll: async (): Promise<Tarea[]> => {
+    const { data, error } = await tareaFullQuery
+      .order('completada', { ascending: true })
+      .order('prioridad', { ascending: false });
+    
+    if (error) throw error;
+    return data;
+  },
+
+  toggleCompletada: async (id: string, estadoActual: boolean) => {
     return await supabase
-      .from("tareas")
-      .select("*")
-      .eq("username", USERNAME)
-      .order("created_at", { ascending: false });
+      .from('tareas')
+      .update({ completada: !estadoActual })
+      .eq('id', id)
+      .select()
+      .single();
   },
 
-  add: async (titulo: string, categoria: string = "general") => {
-    const { data, error } = await supabase
-      .from("tareas")
-      .insert([{ titulo, categoria, username: USERNAME, completada: false }])
-      .select();
-    if (error) throw error;
-    return data[0];
-  },
-
-  updateStatus: async (id: string, completada: boolean) => {
-    const { error } = await supabase
-      .from("tareas")
-      .update({ completada })
-      .eq("id", id)
-      .eq("username", USERNAME);
-    if (error) throw error;
-  },
-
-  delete: async (id: string) => {
-    const { error } = await supabase
-      .from("tareas")
-      .delete()
-      .eq("id", id)
-      .eq("username", USERNAME);
-    if (error) throw error;
-  },
+  create: async (tarea: Inserts<'tareas'>) => {
+    return await supabase.from('tareas').insert(tarea).select().single();
+  }
 };

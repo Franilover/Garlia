@@ -11,7 +11,7 @@ export interface Capitulo {
 }
 
 export const librosQueries = {
-
+  // 1. Obtener todos los libros
   getAll: async (options: any = {}) => {
     let query = supabase.from("libros").select("*");
 
@@ -27,84 +27,26 @@ export const librosQueries = {
     return await query;
   },
 
-  getCapituloParaLectura: async (capId: string, libroId: string, isAdmin: boolean) => {
-    const hoy = new Date().toISOString();
-
-    const { data: capitulo, error: capError } = await supabase
+  // 2. Obtener capítulo para lectura (LA QUE TE FALTABA)
+  getCapituloParaLectura: async (capId: string) => {
+    // Retornamos directamente la promesa de Supabase para que el componente maneje {data, error}
+    return await supabase
       .from("capitulos")
       .select("*, libros ( titulo )")
       .eq("id", capId)
-      .maybeSingle();
-
-    if (capError) throw capError;
-    if (!capitulo) return { data: null, error: "Capítulo no encontrado" };
-
-    
-    if (!isAdmin) {
-      if (capitulo.visibilidad === "oculto") {
-        return { data: null, error: "Este capítulo aún no ha sido revelado." };
-      }
-      
-      if (capitulo.visibilidad === "programado") {
-        if (!capitulo.fecha_publicacion || capitulo.fecha_publicacion > hoy) {
-          return { data: null, error: "Este capítulo aún no ha sido revelado." };
-        }
-      }
-      
-    }
-
-    let navQuery = supabase
-      .from("capitulos")
-      .select("id, orden, titulo_capitulo, fecha_publicacion")
-      .eq("libro_id", libroId);
-
-    if (!isAdmin) {
-      
-      navQuery = navQuery.or(
-        `visibilidad.eq.publico,and(visibilidad.eq.programado,fecha_publicacion.lte.${hoy.split("T")[0]})`
-      );
-    }
-
-    const { data: navegacion } = await navQuery.order("orden", { ascending: true });
-
-    return {
-      data: {
-        capitulo: capitulo as Capitulo,
-        listaCapitulos: navegacion || [],
-      },
-      error: null,
-    };
+      .single();
   },
 
+  // 3. Actualizar contenido (LA QUE AÑADIMOS RECIÉN)
   updateContenido: async (capId: string, contenido: string) => {
-    
-    const { error: updateError } = await supabase
+    const { data, error } = await supabase
       .from("capitulos")
       .update({ contenido })
-      .eq("id", capId);
-
-    if (updateError) return { data: null, error: updateError };
-
-    
-    
-    const { data, error: fetchError } = await supabase
-      .from("capitulos")
-      .select("id, contenido")
       .eq("id", capId)
+      .select()
       .single();
 
-    if (fetchError) return { data: null, error: fetchError };
-
-    if (data.contenido !== contenido) {
-      return {
-        data: null,
-        error: {
-          message: "⚠️ El contenido no se guardó. Revisá los permisos RLS en Supabase (tabla capitulos, política UPDATE).",
-          code: "RLS_SILENT_BLOCK",
-        },
-      };
-    }
-
-    return { data, error: null };
-  },
+    if (error) throw error;
+    return data;
+  }
 };

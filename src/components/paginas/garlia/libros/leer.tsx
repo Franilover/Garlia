@@ -907,11 +907,25 @@ export default function Lector() {
 
       let rawList: CapRaw[] = [];
 
-      if (esUUID(capIdParam)) {
-        const queryRes = await librosQueries.getCapituloParaLectura(capIdParam, libroId, true);
-        if (queryRes.error || !queryRes.data) {
-          setError(queryRes.error || "No se pudo cargar el capítulo"); return;
-        }
+      
+        // Cambia tu bloque de código por este:
+if (esUUID(capIdParam)) {
+  const queryRes = await librosQueries.getCapituloParaLectura(capIdParam);
+
+  // 1. Manejo de errores basado en el objeto de respuesta de Supabase
+  if (queryRes.error) {
+    setError(queryRes.error.message || "No se pudo cargar el capítulo");
+    return;
+  }
+
+  // 2. Manejo de caso donde no hay error pero tampoco data (capítulo no encontrado)
+  if (!queryRes.data) {
+    setError("Capítulo no encontrado");
+    return;
+  }
+
+  // A partir de aquí, TypeScript sabe que queryRes.data existe perfectamente
+  const capitulo = queryRes.data;
         const listaRaw = queryRes.data.listaCapitulos;
         cachearEnDexie(listaRaw.map((c: any) => ({ ...c, libro_id: libroId })));
         const { data: contenidos } = await supabase
