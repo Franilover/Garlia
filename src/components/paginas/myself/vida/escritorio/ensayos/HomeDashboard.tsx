@@ -1,13 +1,17 @@
 "use client";
 import React, { useMemo, useState } from "react";
 import { MotionDiv } from "@/components/ui/Motion";
-import { Star, FileText, ArrowRight, Hash, Clock, CheckSquare, Plus, Check, X } from "lucide-react";
+import { Star, FileText, ArrowRight, Hash, Clock, CheckSquare, Plus, Check, X, ShoppingCart, Dumbbell, Package, UtensilsCrossed, ChevronLeft, Search } from "lucide-react";
 
 import { AnimatePresence } from "framer-motion";
 import { RelojDigital } from "@/components/paginas/myself/vida/escritorio/tareas/relojDigital";
 import { VistaMes } from "@/components/paginas/myself/vida/escritorio/tareas/vistaMes";
 import { VistaSemanal } from "@/components/paginas/myself/vida/escritorio/tareas/vistaSemanal";
 import type { ModoCalendario } from "@/components/paginas/myself/vida/escritorio/tareas/types";
+import ComprasPage from "@/components/paginas/myself/vida/salud/compras";
+import { PaginaEjercicios } from "@/components/paginas/myself/vida/salud/ejerciciosComponent";
+import { IngredientesPage } from "@/components/paginas/myself/vida/salud/ingredientes";
+import RecetasPage from "@/components/paginas/myself/vida/salud/recetas";
 
 interface HomeDashboardProps {
   ensayos: any[];
@@ -36,16 +40,11 @@ export function HomeDashboard({
   const [nuevaTarea, setNuevaTarea] = useState("");
   const [modoCalendario, setModoCalendario] = useState<ModoCalendario>("mes");
   const [panelAbierto, setPanelAbierto] = useState<"reloj" | "tareas" | null>(null);
+  const [vistaPersonal, setVistaPersonal] = useState<"compras" | "ejercicios" | "ingredientes" | "recetas" | null>(null);
+  const [busqueda, setBusqueda] = useState("");
 
   const favoritos = useMemo(
     () => ensayos.filter(e => e.tags?.includes("favorito")).slice(0, 10),
-    [ensayos]
-  );
-
-  const recientes = useMemo(
-    () => [...ensayos]
-      .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
-      .slice(0, 10),
     [ensayos]
   );
 
@@ -454,24 +453,45 @@ export function HomeDashboard({
             )}
           </div>
 
-          {/* ── Recientes ── */}
+          {/* ── Personal ── */}
           <div style={{ gridArea: "recientes", background: "var(--bg-main)", padding: "16px 18px", display: "flex", flexDirection: "column", overflow: "hidden" }}>
             <SectionHeader
-              icon={<Clock size={9} style={{ color: "color-mix(in srgb, var(--foreground) 25%, transparent)" }} />}
-              label="Recientes"
+              icon={<Star size={9} style={{ color: "color-mix(in srgb, var(--foreground) 25%, transparent)" }} />}
+              label="Personal"
             />
-            <div style={{ display: "flex", flexDirection: "column", gap: 1, overflowY: "auto", flex: 1 }}>
-              {recientes.map((r, i) => (
-                <MotionDiv key={r.id} initial={{ opacity: 0, x: 4 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.03 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, flex: 1, alignContent: "start" }}>
+              {([
+                { id: "compras", label: "Compras", icon: <ShoppingCart size={16} /> },
+                { id: "ejercicios", label: "Ejercicios", icon: <Dumbbell size={16} /> },
+                { id: "ingredientes", label: "Ingredientes", icon: <Package size={16} /> },
+                { id: "recetas", label: "Recetas", icon: <UtensilsCrossed size={16} /> },
+              ] as const).map(({ id, label, icon }) => (
+                <MotionDiv key={id} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
                   <button
-                    onClick={() => onNavigate(r.titulo)}
-                    className="w-full text-left group flex items-center justify-between"
-                    style={{ padding: "5px 8px", borderRadius: 5, background: "transparent", border: "none", cursor: "pointer", transition: "background 0.1s" }}
-                    onMouseEnter={e => (e.currentTarget.style.background = "color-mix(in srgb, var(--foreground) 4%, transparent)")}
-                    onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+                    onClick={() => setVistaPersonal(id)}
+                    style={{
+                      width: "100%", padding: "10px 8px", borderRadius: 7,
+                      border: "1px solid color-mix(in srgb, var(--foreground) 7%, transparent)",
+                      background: "color-mix(in srgb, var(--foreground) 3%, transparent)",
+                      cursor: "pointer", display: "flex", flexDirection: "column",
+                      alignItems: "center", gap: 6, transition: "all 0.12s",
+                      color: "color-mix(in srgb, var(--foreground) 40%, transparent)",
+                    }}
+                    onMouseEnter={e => {
+                      const el = e.currentTarget as HTMLElement;
+                      el.style.background = "color-mix(in srgb, var(--foreground) 6%, transparent)";
+                      el.style.borderColor = "color-mix(in srgb, var(--foreground) 16%, transparent)";
+                      el.style.color = "color-mix(in srgb, var(--foreground) 70%, transparent)";
+                    }}
+                    onMouseLeave={e => {
+                      const el = e.currentTarget as HTMLElement;
+                      el.style.background = "color-mix(in srgb, var(--foreground) 3%, transparent)";
+                      el.style.borderColor = "color-mix(in srgb, var(--foreground) 7%, transparent)";
+                      el.style.color = "color-mix(in srgb, var(--foreground) 40%, transparent)";
+                    }}
                   >
-                    <span style={{ ...serif, fontSize: 11, color: "color-mix(in srgb, var(--foreground) 65%, transparent)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{r.titulo || "Sin título"}</span>
-                    <span style={{ ...mono, fontSize: 8, color: "color-mix(in srgb, var(--foreground) 20%, transparent)", flexShrink: 0, marginLeft: 6 }}>{formatRelative(r.updated_at)}</span>
+                    {icon}
+                    <span style={{ fontFamily: "var(--font-mono)", fontSize: 8, textTransform: "uppercase", letterSpacing: "0.1em" }}>{label}</span>
                   </button>
                 </MotionDiv>
               ))}
@@ -554,6 +574,93 @@ export function HomeDashboard({
         </div>
 
       </div>
+
+      {/* ══════════════════════════════════════════
+          OVERLAY PANTALLA COMPLETA — Sección Personal
+      ══════════════════════════════════════════ */}
+      <AnimatePresence>
+        {vistaPersonal && (
+          <MotionDiv
+            key={vistaPersonal}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 12 }}
+            transition={{ duration: 0.18 }}
+            style={{
+              position: "fixed", inset: 0, zIndex: 50,
+              background: "var(--bg-main)",
+              display: "flex", flexDirection: "column",
+              overflow: "hidden",
+            }}
+          >
+            {/* ── Barra superior ── */}
+            <div style={{
+              display: "flex", alignItems: "center", gap: 10,
+              padding: "10px 16px",
+              borderBottom: "1px solid color-mix(in srgb, var(--foreground) 7%, transparent)",
+              flexShrink: 0,
+              background: "var(--bg-main)",
+            }}>
+              {/* Botón volver */}
+              <button
+                onClick={() => setVistaPersonal(null)}
+                style={{
+                  display: "flex", alignItems: "center", gap: 5,
+                  padding: "4px 10px", borderRadius: 6, border: "none",
+                  background: "color-mix(in srgb, var(--foreground) 5%, transparent)",
+                  color: "color-mix(in srgb, var(--foreground) 55%, transparent)",
+                  cursor: "pointer", transition: "all 0.1s", flexShrink: 0,
+                  fontFamily: "var(--font-mono)", fontSize: 9,
+                  textTransform: "uppercase", letterSpacing: "0.1em",
+                }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--foreground) 10%, transparent)"; (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--foreground) 80%, transparent)"; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--foreground) 5%, transparent)"; (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--foreground) 55%, transparent)"; }}
+              >
+                <ChevronLeft size={12} />
+                Menú
+              </button>
+
+              {/* Buscador de ensayos */}
+              <div style={{
+                flex: 1, display: "flex", alignItems: "center", gap: 8,
+                background: "color-mix(in srgb, var(--foreground) 4%, transparent)",
+                borderRadius: 7, padding: "5px 10px",
+                border: "1px solid color-mix(in srgb, var(--foreground) 8%, transparent)",
+              }}>
+                <Search size={11} style={{ color: "color-mix(in srgb, var(--foreground) 25%, transparent)", flexShrink: 0 }} />
+                <input
+                  type="text"
+                  value={busqueda}
+                  onChange={e => setBusqueda(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter" && busqueda.trim()) { onNavigate(busqueda.trim()); setBusqueda(""); setVistaPersonal(null); } }}
+                  placeholder="Buscar nota..."
+                  style={{
+                    flex: 1, border: "none", background: "transparent", outline: "none",
+                    fontFamily: "var(--font-mono)", fontSize: 10,
+                    color: "color-mix(in srgb, var(--foreground) 70%, transparent)",
+                  }}
+                />
+                {busqueda && (
+                  <button
+                    onClick={() => setBusqueda("")}
+                    style={{ border: "none", background: "transparent", cursor: "pointer", display: "flex", padding: 0, color: "color-mix(in srgb, var(--foreground) 25%, transparent)" }}
+                  >
+                    <X size={10} />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* ── Contenido del componente ── */}
+            <div style={{ flex: 1, overflow: "auto" }}>
+              {vistaPersonal === "compras" && <ComprasPage />}
+              {vistaPersonal === "ejercicios" && <PaginaEjercicios />}
+              {vistaPersonal === "ingredientes" && <IngredientesPage />}
+              {vistaPersonal === "recetas" && <RecetasPage />}
+            </div>
+          </MotionDiv>
+        )}
+      </AnimatePresence>
     </MotionDiv>
   );
 }
