@@ -109,6 +109,13 @@ export default function Ensayos() {
   const [pendingNoteTitle,  setPendingNoteTitle]  = useState<string | null>(null);
 
   const {
+    data: tareas,
+    setData: setTareas,
+    addRow: addTareaRow,
+    updateRow: updateTareaRow,
+  } = useSupabaseData("tareas", { order: { campo: "created_at", asc: false } });
+
+  const {
     data:     ensayos,
     setData:  setEnsayos,
     loading,
@@ -458,6 +465,29 @@ export default function Ensayos() {
     await deleteRow(id);
     setEnsayos((prev: any[]) => prev.filter((e: any) => e.id !== id));
     if (ensayoActivoId === id) setEnsayoActivo(null);
+  };
+
+  // --- AÑADE ESTOS HANDLERS ---
+  const handleAddTarea = async (titulo: string) => {
+    if (!user) return;
+    const { data, error } = await addTareaRow({
+      titulo,
+      user_id: user.id,
+      completada: false,
+      created_at: new Date().toISOString()
+    });
+    if (!error && data) {
+      setTareas((prev: any[]) => [data, ...prev]);
+    }
+  };
+
+  const handleToggleTarea = async (id: string, completada: boolean) => {
+    const { error } = await updateTareaRow(id, { completada: !completada });
+    if (!error) {
+      setTareas((prev: any[]) => 
+        prev.map(t => t.id === id ? { ...t, completada: !completada } : t)
+      );
+    }
   };
 
   const handleEnsayoClick = (id: string) => {
@@ -819,6 +849,10 @@ export default function Ensayos() {
                   todosLosTags={todosLosTags}
                   onNavigate={(titulo) => navigateToPage(titulo, false)}
                   onTagClick={(tag) => navigateToPage(tag, true)}
+                  // Propiedades nuevas:
+                  tareas={tareas}
+                  onToggleTarea={handleToggleTarea}
+                  onAddTarea={handleAddTarea}
                 />
               )}
             </AnimatePresence>
