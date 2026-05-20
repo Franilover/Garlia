@@ -24,16 +24,9 @@ const escritorioSubLinks = [
   { href: "/myself/escritorio?panel=ensayos", label: "Ensayos", icon: FileText     },
   { href: "/myself/escritorio?panel=ropa",    label: "Ropa",    icon: ShoppingCart },
 ];
-const saludSubLinks = [
-  { href: "/myself/salud?panel=recetas",      label: "Recetas",      icon: UtensilsCrossed },
-  { href: "/myself/salud?panel=ingredientes", label: "Ingredientes", icon: Carrot          },
-  { href: "/myself/salud?panel=ejercicios",   label: "Ejercicios",   icon: Dumbbell        },
-  { href: "/myself/salud?panel=compras",      label: "Compras",      icon: ShoppingCart    },
-];
 
 const personalMyselfGroups = [
   { href: "/myself/escritorio", label: "Escritorio", icon: PenTool,  subLinks: escritorioSubLinks },
-  { href: "/myself/salud",      label: "Salud",      icon: Utensils, subLinks: saludSubLinks      },
 ];
 
 const navItemBase = {
@@ -310,7 +303,6 @@ const Navbar = () => {
 
   // Corrección de las validaciones de ruta
   const isGarlia       = currentPath?.startsWith("/garlia")             ?? false;
-  const isSalud        = currentPath?.startsWith("/myself/salud")       ?? false;
   const isEscritorio   = currentPath?.startsWith("/myself/escritorio")  ?? false;
   const isGarliaeditor = currentPath?.startsWith("/myself/garlia")      ?? false;
   const isPersonal     = currentPath?.startsWith("/personal")           ?? false;
@@ -376,9 +368,6 @@ const Navbar = () => {
               <div style={{ height: "var(--border-width)", background: "color-mix(in srgb, var(--primary) 12%, transparent)", margin: "6px 4px" }} />
               <SideNavItem href="/myself/escritorio" label="Escritorio" icon={PenTool}
                 active={isEscritorio} fillActive={false}
-                sidebarExpanded={false} onClose={closeAll} />
-              <SideNavItem href="/myself/salud" label="Salud" icon={Utensils}
-                active={isSalud} fillActive={false}
                 sidebarExpanded={false} onClose={closeAll} />
               {franiLinks.map(({ href, label, icon, active }) => (
                 <SideNavItem key={href} href={href} label={label} icon={icon}
