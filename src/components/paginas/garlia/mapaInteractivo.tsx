@@ -534,9 +534,9 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
           if (needsRebuild) {
             const maxDim = Math.max(FOG_W, FOG_H);
             // Clear zone around the marker center (fully revealed)
-            const clearRadius = maxDim * 0.10;
+            const clearRadius = maxDim * 0.05;
             // Soft fade zone — where fog transitions to clear
-            const fadeRadius  = maxDim * 0.22;
+            const fadeRadius  = maxDim * 0.12;
 
             // ── Layer 1: main opaque fog with reveal holes ────────────────
             const fogCanvas = new OffscreenCanvas(FOG_W, FOG_H);
@@ -600,41 +600,7 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
           ctx.drawImage(fc.canvas, 0, 0, iw, ih);
           ctx.drawImage(fc.deep,   0, 0, iw, ih);
 
-          // ── Animated wisps — only in fogged regions ───────────────────
-          // We clip wisps away from marker centers so they never cover revealed areas
-          const fogTime = t * 0.00025;
-          const maxDim = Math.max(iw, ih);
-          const clearR = maxDim * 0.10;
 
-          ctx.save();
-          // Build a clipping region that excludes the revealed zones
-          ctx.beginPath();
-          ctx.rect(0, 0, iw, ih);
-          for (const m of markers) {
-            const mx = (m.coord_x / 100) * iw;
-            const my = (m.coord_y / 100) * ih;
-            // Clip out a circle around each marker center (anticlockwise = subtract)
-            ctx.arc(mx, my, clearR * 1.8, 0, Math.PI * 2, true);
-          }
-          ctx.clip("evenodd");
-
-          // Fewer wisps on mobile to save GPU
-          const wispCount = isMobileDevice ? 2 : 5;
-          ctx.globalAlpha = 0.07;
-          for (let i = 0; i < wispCount; i++) {
-            const wx = ((Math.sin(fogTime * (0.6 + i * 0.25) + i * 1.3) + 1) / 2) * iw;
-            const wy = ((Math.cos(fogTime * (0.45 + i * 0.18) + i * 1.0) + 1) / 2) * ih;
-            const wr = iw * (0.06 + i * 0.025);
-            const wg = ctx.createRadialGradient(wx, wy, 0, wx, wy, wr);
-            wg.addColorStop(0, "rgba(210,200,190,0.55)");
-            wg.addColorStop(1, "rgba(210,200,190,0)");
-            ctx.fillStyle = wg;
-            ctx.beginPath();
-            ctx.arc(wx, wy, wr, 0, Math.PI * 2);
-            ctx.fill();
-          }
-          ctx.globalAlpha = 1;
-          ctx.restore();
         }
 
         // No internal map vignette — edge fog handles blending instead
