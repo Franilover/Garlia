@@ -12,7 +12,7 @@ import ComprasPage from "@/components/paginas/myself/vida/salud/compras";
 import { PaginaEjercicios } from "@/components/paginas/myself/vida/salud/ejerciciosComponent";
 import { IngredientesPage } from "@/components/paginas/myself/vida/salud/ingredientes";
 import RecetasPage from "@/components/paginas/myself/vida/salud/recetas";
-import ArmarioPage from "@/components/paginas/myself/vida/salud/ropa";
+import ArmarioPage from "@/components/paginas/myself/vida/ropa";
 
 interface HomeDashboardProps {
   ensayos: any[];
