@@ -3,6 +3,9 @@ import React, { useMemo, useState } from "react";
 import { MotionDiv } from "@/components/ui/Motion";
 import { Star, FileText, ArrowRight, Hash, Clock, CheckSquare, Plus, Check } from "lucide-react";
 
+import { RelojDigital } from "@/components/paginas/myself/vida/escritorio/tareas/relojDigital";
+import { VistaMes } from "@/components/paginas/myself/vida/escritorio/tareas/vistaMes";
+
 interface HomeDashboardProps {
   ensayos: any[];
   todosLosTags: string[];
@@ -11,11 +14,18 @@ interface HomeDashboardProps {
   tareas?: any[];
   onToggleTarea?: (id: string, completada: boolean) => void;
   onAddTarea?: (titulo: string) => void;
+  eventos?: any[];
+  capitulosRaw?: any[];
+  horario?: any[];
+  isAddingEvento?: boolean;
+  onAddEvento?: (fechaISO: string, titulo: string, tipo: string) => Promise<void>;
 }
 
 export function HomeDashboard({
   ensayos, todosLosTags, onNavigate, onTagClick,
   tareas = [], onToggleTarea, onAddTarea,
+  eventos = [], capitulosRaw = [], horario = [],
+  isAddingEvento = false, onAddEvento,
 }: HomeDashboardProps) {
   const mono: React.CSSProperties = { fontFamily: "var(--font-mono)" };
   const serif: React.CSSProperties = { fontFamily: "var(--font-serif)", fontStyle: "italic" };
@@ -67,6 +77,9 @@ export function HomeDashboard({
     return new Date(dateStr).toLocaleDateString("es-ES", { day: "2-digit", month: "short" });
   };
 
+  // Noop para onAddEvento si no se pasa
+  const handleAddEvento = onAddEvento ?? (async () => {});
+
   return (
     <MotionDiv
       initial={{ opacity: 0 }}
@@ -75,7 +88,7 @@ export function HomeDashboard({
       className="h-full overflow-y-auto"
       style={{ background: "var(--bg-main)" }}
     >
-      <div style={{ maxWidth: 1080, margin: "0 auto", padding: "32px 32px 64px" }}>
+      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 32px 64px" }}>
 
         {/* ── Header compacto ── */}
         <div
@@ -94,8 +107,16 @@ export function HomeDashboard({
           </div>
         </div>
 
-        {/* ── Grid principal: 4 columnas ── */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 1, background: "color-mix(in srgb, var(--foreground) 5%, transparent)", borderRadius: 8, overflow: "hidden", marginBottom: 1 }}>
+        {/* ── Fila 1: 4 columnas ── */}
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr 1fr 1fr",
+          gap: 1,
+          background: "color-mix(in srgb, var(--foreground) 5%, transparent)",
+          borderRadius: 8,
+          overflow: "hidden",
+          marginBottom: 1,
+        }}>
 
           {/* Columna 1: Favoritos */}
           <div style={{ background: "var(--bg-main)", padding: "20px 18px" }}>
@@ -105,44 +126,28 @@ export function HomeDashboard({
                 Notas maestras
               </span>
             </div>
-
             {favoritos.length > 0 ? (
               <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
                 {favoritos.map((f, i) => (
-                  <MotionDiv
-                    key={f.id}
-                    initial={{ opacity: 0, x: -4 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.04 }}
-                  >
+                  <MotionDiv key={f.id} initial={{ opacity: 0, x: -4 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.04 }}>
                     <button
                       onClick={() => onNavigate(f.titulo)}
                       className="w-full text-left group flex items-center justify-between"
-                      style={{
-                        padding: "6px 8px",
-                        borderRadius: 5,
-                        background: "transparent",
-                        border: "none",
-                        cursor: "pointer",
-                        transition: "background 0.1s",
-                      }}
+                      style={{ padding: "6px 8px", borderRadius: 5, background: "transparent", border: "none", cursor: "pointer", transition: "background 0.1s" }}
                       onMouseEnter={e => (e.currentTarget.style.background = "color-mix(in srgb, var(--foreground) 4%, transparent)")}
                       onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
                     >
                       <span style={{ ...serif, fontSize: 12, color: "color-mix(in srgb, var(--foreground) 70%, transparent)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
                         {f.titulo}
                       </span>
-                      <ArrowRight size={8} style={{ color: "color-mix(in srgb, var(--foreground) 15%, transparent)", flexShrink: 0, marginLeft: 4, opacity: 0, transition: "opacity 0.1s" }}
-                        className="group-hover:opacity-100"
-                      />
+                      <ArrowRight size={8} style={{ color: "color-mix(in srgb, var(--foreground) 15%, transparent)", flexShrink: 0, marginLeft: 4, opacity: 0, transition: "opacity 0.1s" }} className="group-hover:opacity-100" />
                     </button>
                   </MotionDiv>
                 ))}
               </div>
             ) : (
               <p style={{ ...mono, fontSize: 9, color: "color-mix(in srgb, var(--foreground) 15%, transparent)", lineHeight: 1.6 }}>
-                Agrega el tag<br />
-                <span style={{ color: "color-mix(in srgb, var(--foreground) 30%, transparent)" }}>#favorito</span> a una nota.
+                Agrega el tag<br /><span style={{ color: "color-mix(in srgb, var(--foreground) 30%, transparent)" }}>#favorito</span> a una nota.
               </p>
             )}
           </div>
@@ -155,32 +160,19 @@ export function HomeDashboard({
                 Tags · {todosLosTags.length}
               </span>
             </div>
-
             <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 4px" }}>
               {todosLosTags.map((tag, i) => {
                 const count = ensayos.filter(e => e.tags?.includes(tag)).length;
                 return (
-                  <MotionDiv
-                    key={tag}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: i * 0.02 }}
-                  >
+                  <MotionDiv key={tag} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }}>
                     <button
                       onClick={() => onTagClick(tag)}
                       style={{
-                        ...mono,
-                        fontSize: 9,
-                        padding: "2px 7px",
-                        borderRadius: 4,
+                        ...mono, fontSize: 9, padding: "2px 7px", borderRadius: 4,
                         border: "1px solid color-mix(in srgb, var(--foreground) 8%, transparent)",
                         background: "color-mix(in srgb, var(--foreground) 3%, transparent)",
                         color: "color-mix(in srgb, var(--foreground) 40%, transparent)",
-                        cursor: "pointer",
-                        transition: "all 0.1s",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 3,
+                        cursor: "pointer", transition: "all 0.1s", display: "flex", alignItems: "center", gap: 3,
                       }}
                       onMouseEnter={e => {
                         (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--foreground) 20%, transparent)";
@@ -194,22 +186,18 @@ export function HomeDashboard({
                       }}
                     >
                       #{tag}
-                      <span style={{ fontSize: 7, color: "color-mix(in srgb, var(--foreground) 20%, transparent)" }}>
-                        {count}
-                      </span>
+                      <span style={{ fontSize: 7, color: "color-mix(in srgb, var(--foreground) 20%, transparent)" }}>{count}</span>
                     </button>
                   </MotionDiv>
                 );
               })}
               {todosLosTags.length === 0 && (
-                <p style={{ ...mono, fontSize: 9, color: "color-mix(in srgb, var(--foreground) 15%, transparent)" }}>
-                  Aún sin tags.
-                </p>
+                <p style={{ ...mono, fontSize: 9, color: "color-mix(in srgb, var(--foreground) 15%, transparent)" }}>Aún sin tags.</p>
               )}
             </div>
           </div>
 
-          {/* Columna 3: Recientes (lista densa) */}
+          {/* Columna 3: Recientes */}
           <div style={{ background: "var(--bg-main)", padding: "20px 18px" }}>
             <div className="flex items-center gap-1.5 mb-4">
               <Clock size={9} style={{ color: "color-mix(in srgb, var(--foreground) 25%, transparent)" }} />
@@ -217,26 +205,13 @@ export function HomeDashboard({
                 Recientes
               </span>
             </div>
-
             <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
               {recientes.map((r, i) => (
-                <MotionDiv
-                  key={r.id}
-                  initial={{ opacity: 0, x: 4 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.03 }}
-                >
+                <MotionDiv key={r.id} initial={{ opacity: 0, x: 4 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.03 }}>
                   <button
                     onClick={() => onNavigate(r.titulo)}
                     className="w-full text-left group flex items-center justify-between"
-                    style={{
-                      padding: "5px 8px",
-                      borderRadius: 5,
-                      background: "transparent",
-                      border: "none",
-                      cursor: "pointer",
-                      transition: "background 0.1s",
-                    }}
+                    style={{ padding: "5px 8px", borderRadius: 5, background: "transparent", border: "none", cursor: "pointer", transition: "background 0.1s" }}
                     onMouseEnter={e => (e.currentTarget.style.background = "color-mix(in srgb, var(--foreground) 4%, transparent)")}
                     onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
                   >
@@ -252,7 +227,7 @@ export function HomeDashboard({
             </div>
           </div>
 
-          {/* Columna 4: Tareas ── NUEVA */}
+          {/* Columna 4: Tareas */}
           <div style={{ background: "var(--bg-main)", padding: "20px 18px", display: "flex", flexDirection: "column" }}>
             <div className="flex items-center gap-1.5 mb-3">
               <CheckSquare size={9} style={{ color: "color-mix(in srgb, var(--foreground) 25%, transparent)" }} />
@@ -271,7 +246,6 @@ export function HomeDashboard({
               )}
             </div>
 
-            {/* Mini input — solo si se pasó onAddTarea */}
             {onAddTarea && (
               <div style={{ display: "flex", gap: 4, marginBottom: 8 }}>
                 <input
@@ -281,16 +255,11 @@ export function HomeDashboard({
                   onKeyDown={e => e.key === "Enter" && handleAddTarea()}
                   placeholder="Nueva tarea..."
                   style={{
-                    ...mono,
-                    flex: 1,
-                    fontSize: 9,
-                    padding: "4px 8px",
-                    borderRadius: 5,
+                    ...mono, flex: 1, fontSize: 9, padding: "4px 8px", borderRadius: 5,
                     border: "1px solid color-mix(in srgb, var(--foreground) 8%, transparent)",
                     background: "color-mix(in srgb, var(--foreground) 3%, transparent)",
                     color: "color-mix(in srgb, var(--foreground) 70%, transparent)",
-                    outline: "none",
-                    minWidth: 0,
+                    outline: "none", minWidth: 0,
                   }}
                   onFocus={e => {
                     e.currentTarget.style.borderColor = "color-mix(in srgb, var(--foreground) 20%, transparent)";
@@ -306,9 +275,7 @@ export function HomeDashboard({
                   disabled={!nuevaTarea.trim()}
                   style={{
                     width: 22, height: 22, borderRadius: 5, border: "none", cursor: "pointer",
-                    background: nuevaTarea.trim()
-                      ? "color-mix(in srgb, var(--foreground) 12%, transparent)"
-                      : "color-mix(in srgb, var(--foreground) 4%, transparent)",
+                    background: nuevaTarea.trim() ? "color-mix(in srgb, var(--foreground) 12%, transparent)" : "color-mix(in srgb, var(--foreground) 4%, transparent)",
                     color: "color-mix(in srgb, var(--foreground) 40%, transparent)",
                     display: "flex", alignItems: "center", justifyContent: "center",
                     transition: "all 0.1s", flexShrink: 0,
@@ -319,44 +286,24 @@ export function HomeDashboard({
               </div>
             )}
 
-            {/* Lista de pendientes */}
             <div style={{ display: "flex", flexDirection: "column", gap: 1, flex: 1 }}>
               {pendientes.length === 0 && completadas.length === 0 && (
-                <p style={{ ...mono, fontSize: 9, color: "color-mix(in srgb, var(--foreground) 15%, transparent)", fontStyle: "italic" }}>
-                  Sin pendientes.
-                </p>
+                <p style={{ ...mono, fontSize: 9, color: "color-mix(in srgb, var(--foreground) 15%, transparent)", fontStyle: "italic" }}>Sin pendientes.</p>
               )}
-
               {pendientes.map((t, i) => (
-                <MotionDiv
-                  key={t.id}
-                  initial={{ opacity: 0, x: 4 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.03 }}
-                >
+                <MotionDiv key={t.id} initial={{ opacity: 0, x: 4 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.03 }}>
                   <button
                     onClick={() => onToggleTarea?.(t.id, t.completada)}
                     className="w-full text-left group flex items-center gap-2"
-                    style={{
-                      padding: "5px 6px",
-                      borderRadius: 5,
-                      background: "transparent",
-                      border: "none",
-                      cursor: onToggleTarea ? "pointer" : "default",
-                      transition: "background 0.1s",
-                    }}
+                    style={{ padding: "5px 6px", borderRadius: 5, background: "transparent", border: "none", cursor: onToggleTarea ? "pointer" : "default", transition: "background 0.1s" }}
                     onMouseEnter={e => onToggleTarea && (e.currentTarget.style.background = "color-mix(in srgb, var(--foreground) 4%, transparent)")}
                     onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
                   >
-                    {/* Checkbox vacío */}
                     <span style={{
                       width: 10, height: 10, borderRadius: 3, flexShrink: 0,
                       border: "1px solid color-mix(in srgb, var(--foreground) 20%, transparent)",
-                      display: "inline-flex", alignItems: "center", justifyContent: "center",
-                      transition: "border-color 0.1s",
-                    }}
-                      className="group-hover:border-foreground/40"
-                    />
+                      display: "inline-flex", alignItems: "center", justifyContent: "center", transition: "border-color 0.1s",
+                    }} className="group-hover:border-foreground/40" />
                     <span style={{ ...mono, fontSize: 10, color: "color-mix(in srgb, var(--foreground) 65%, transparent)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
                       {t.titulo}
                     </span>
@@ -364,7 +311,6 @@ export function HomeDashboard({
                 </MotionDiv>
               ))}
 
-              {/* Separador + completadas (pocas) */}
               {completadas.length > 0 && pendientes.length > 0 && (
                 <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 0" }}>
                   <div style={{ flex: 1, height: 1, background: "color-mix(in srgb, var(--foreground) 6%, transparent)" }} />
@@ -374,25 +320,12 @@ export function HomeDashboard({
               )}
 
               {completadas.map((t, i) => (
-                <MotionDiv
-                  key={t.id}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: i * 0.02 }}
-                >
+                <MotionDiv key={t.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }}>
                   <button
                     onClick={() => onToggleTarea?.(t.id, t.completada)}
                     className="w-full text-left flex items-center gap-2"
-                    style={{
-                      padding: "5px 6px",
-                      borderRadius: 5,
-                      background: "transparent",
-                      border: "none",
-                      cursor: onToggleTarea ? "pointer" : "default",
-                      opacity: 0.4,
-                    }}
+                    style={{ padding: "5px 6px", borderRadius: 5, background: "transparent", border: "none", cursor: onToggleTarea ? "pointer" : "default", opacity: 0.4 }}
                   >
-                    {/* Checkbox chequeado */}
                     <span style={{
                       width: 10, height: 10, borderRadius: 3, flexShrink: 0,
                       background: "color-mix(in srgb, var(--foreground) 25%, transparent)",
@@ -412,15 +345,39 @@ export function HomeDashboard({
 
         </div>
 
-        {/* ── Segunda fila: todas las notas en grid compacto ── */}
-        <div
-          style={{
-            marginTop: 1,
-            borderRadius: 8,
-            overflow: "hidden",
-            background: "color-mix(in srgb, var(--foreground) 5%, transparent)",
-          }}
-        >
+        {/* ── Fila 2: Calendario + Reloj ── */}
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "1fr auto",
+          gap: 1,
+          background: "color-mix(in srgb, var(--foreground) 5%, transparent)",
+          borderRadius: 8,
+          overflow: "hidden",
+          marginBottom: 1,
+        }}>
+
+          {/* Calendario */}
+          <div style={{ background: "var(--bg-main)", minHeight: 0, overflow: "hidden" }}>
+            <VistaMes
+              eventos={eventos}
+              capitulosRaw={capitulosRaw}
+              isAddingEvento={isAddingEvento}
+              onAddEvento={handleAddEvento}
+            />
+          </div>
+
+          {/* Separador vertical */}
+          <div style={{ width: 1, background: "color-mix(in srgb, var(--foreground) 5%, transparent)" }} />
+
+          {/* Reloj */}
+          <div style={{ background: "var(--bg-main)", width: 180, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+            <RelojDigital horario={horario} tareas={tareas} />
+          </div>
+
+        </div>
+
+        {/* ── Fila 3: Todas las notas ── */}
+        <div style={{ marginTop: 1, borderRadius: 8, overflow: "hidden", background: "color-mix(in srgb, var(--foreground) 5%, transparent)" }}>
           <div style={{ background: "var(--bg-main)", padding: "20px 18px" }}>
             <div className="flex items-center gap-1.5 mb-4">
               <FileText size={9} style={{ color: "color-mix(in srgb, var(--foreground) 25%, transparent)" }} />
@@ -428,26 +385,13 @@ export function HomeDashboard({
                 Todas las notas · {ensayos.length}
               </span>
             </div>
-
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 1, background: "color-mix(in srgb, var(--foreground) 5%, transparent)", borderRadius: 6, overflow: "hidden" }}>
               {ensayos.map((e, i) => (
-                <MotionDiv
-                  key={e.id}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: Math.min(i * 0.015, 0.4) }}
-                >
+                <MotionDiv key={e.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: Math.min(i * 0.015, 0.4) }}>
                   <button
                     onClick={() => onNavigate(e.titulo)}
                     className="w-full text-left group"
-                    style={{
-                      display: "block",
-                      padding: "10px 12px",
-                      background: "var(--bg-main)",
-                      border: "none",
-                      cursor: "pointer",
-                      transition: "background 0.08s",
-                    }}
+                    style={{ display: "block", padding: "10px 12px", background: "var(--bg-main)", border: "none", cursor: "pointer", transition: "background 0.08s" }}
                     onMouseEnter={el => (el.currentTarget.style.background = "color-mix(in srgb, var(--foreground) 4%, transparent)")}
                     onMouseLeave={el => (el.currentTarget.style.background = "var(--bg-main)")}
                   >
@@ -456,14 +400,10 @@ export function HomeDashboard({
                     </p>
                     <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
                       {e.tags?.slice(0, 2).map((t: string) => (
-                        <span key={t} style={{ ...mono, fontSize: 7, color: "color-mix(in srgb, var(--foreground) 20%, transparent)" }}>
-                          #{t}
-                        </span>
+                        <span key={t} style={{ ...mono, fontSize: 7, color: "color-mix(in srgb, var(--foreground) 20%, transparent)" }}>#{t}</span>
                       ))}
                       {(!e.tags || e.tags.length === 0) && (
-                        <span style={{ ...mono, fontSize: 7, color: "color-mix(in srgb, var(--foreground) 10%, transparent)" }}>
-                          {formatRelative(e.updated_at)}
-                        </span>
+                        <span style={{ ...mono, fontSize: 7, color: "color-mix(in srgb, var(--foreground) 10%, transparent)" }}>{formatRelative(e.updated_at)}</span>
                       )}
                     </div>
                   </button>

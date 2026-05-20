@@ -466,6 +466,16 @@ export default function EditorEntidades() {
             setRequestedItemId(undefined);
             setTimeout(() => setRequestedItemId(nota.id), 0);
           }}
+          onNavigateToCapitulo={(capId, libroId) => {
+            // Pre-seleccionar cap y libro vía localStorage antes de montar el panel
+            localStorage.setItem("estudio-caps-last-cap",   capId);
+            localStorage.setItem("estudio-caps-last-libro", libroId);
+            setTab("capitulos" as any);
+          }}
+          onNavigateToCancion={(cancionId) => {
+            localStorage.setItem("estudio-letras-last-id", cancionId);
+            setTab("letras" as any);
+          }}
           onToggleOculto={handleToggleOcultoReino}
         />
 
