@@ -14,11 +14,6 @@ import {
   ChevronRight, Cat,
 } from "lucide-react";
 
-const escritorioSubLinks = [
-  { href: "/myself/escritorio?panel=agenda",  label: "Agenda",  icon: ChevronRight },
-  { href: "/myself/escritorio?panel=ensayos", label: "Ensayos", icon: ChevronRight },
-  { href: "/myself/escritorio?panel=ropa",    label: "Ropa",    icon: ChevronRight },
-];
 
 const navItemBase = {
   height: "44px",
@@ -344,7 +339,7 @@ const Navbar = () => {
             <>
               <NavDivider />
               <SideNavItem href="/myself/escritorio" label="Escritorio" icon={PenTool}
-                active={isEscritorio} subLinks={escritorioSubLinks} onClose={closeAll} />
+                active={isEscritorio} onClose={closeAll} />
               {franiLinks.map(({ href, label, icon, active }) => (
                 <SideNavItem key={href} href={href} label={label} icon={icon}
                   active={active} onClose={closeAll} />
