@@ -28,10 +28,19 @@ interface Cancion {
   visible?: boolean;
 }
 
+// Normaliza el join que Supabase puede devolver como array o objeto
 function normPersonaje(v: Personaje | Personaje[] | null | undefined): Personaje | null {
   if (!v) return null;
   return Array.isArray(v) ? (v[0] ?? null) : v;
 }
+
+// Rotación de acentos por grupo (mantenido por si lo usas dinámicamente)
+const ACENTOS = [
+  { bg: "bg-primary/5",           borderLeft: "color-mix(in srgb, var(--primary) 18%, transparent)" },
+  { bg: "bg-accent/5",            borderLeft: "color-mix(in srgb, var(--accent) 22%, transparent)"  },
+  { bg: "bg-primary/8",           borderLeft: "color-mix(in srgb, var(--primary) 25%, transparent)" },
+  { bg: "bg-accent/8",            borderLeft: "color-mix(in srgb, var(--accent) 28%, transparent)"  },
+];
 
 const CancionCardGrid = ({ cancion, index }: { cancion: Cancion; index: number }) => (
   <MotionDiv
@@ -60,6 +69,7 @@ const CancionCardGrid = ({ cancion, index }: { cancion: Cancion; index: number }
             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
           />
 
+          {/* Gradientes actualizados a Tailwind v4 */}
           <div className="absolute inset-0 bg-linear-to-t from-black/75 via-black/20 to-transparent" />
           <div className="absolute inset-0 bg-linear-to-b from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-400" />
 
@@ -92,6 +102,8 @@ const CancionCardFila = ({ cancion, index }: { cancion: Cancion; index: number }
           borderRadius: "var(--radius-btn)",
           border: "var(--border-width) solid color-mix(in srgb, var(--primary) 10%, transparent)",
         }}
+        onMouseEnter={e => { e.currentTarget.style.borderColor = "color-mix(in srgb, var(--primary) 25%, transparent)"; }}
+        onMouseLeave={e => { e.currentTarget.style.borderColor = "color-mix(in srgb, var(--primary) 10%, transparent)"; }}
       >
         <span className="font-mono text-[10px] font-black text-primary/20 w-6 text-right shrink-0 select-none group-hover:text-primary/40 transition-colors">
           {String(index + 1).padStart(2, "0")}
@@ -155,6 +167,7 @@ const PersonajeHeader = ({ nombre, count, imgUrl }: { nombre: string; count: num
         className="h-px flex-1 hidden sm:block"
         style={{ background: "linear-gradient(to left, color-mix(in srgb, var(--primary) 10%, transparent), transparent)" }}
       />
+
       <div className="flex flex-col items-start sm:items-center gap-0.5 min-w-0">
         <p className="text-primary font-black uppercase text-sm tracking-tight leading-none">
           {nombre}
@@ -163,6 +176,7 @@ const PersonajeHeader = ({ nombre, count, imgUrl }: { nombre: string; count: num
           ── {count} {count !== 1 ? "canciones" : "canción"} ──
         </p>
       </div>
+
       <div
         className="h-px flex-1"
         style={{ background: "linear-gradient(to right, color-mix(in srgb, var(--primary) 10%, transparent), transparent)" }}
@@ -171,7 +185,19 @@ const PersonajeHeader = ({ nombre, count, imgUrl }: { nombre: string; count: num
   </MotionDiv>
 );
 
-const PersonajeBloque = ({ personaje, canciones, vistaFila, globalOffset, imgUrl }: { personaje: string; canciones: Cancion[]; vistaFila: boolean; globalOffset: number; imgUrl?: string }) => (
+const PersonajeBloque = ({
+  personaje,
+  canciones,
+  vistaFila,
+  globalOffset,
+  imgUrl,
+}: {
+  personaje: string;
+  canciones: Cancion[];
+  vistaFila: boolean;
+  globalOffset: number;
+  imgUrl?: string;
+}) => (
   <MotionDiv
     initial={{ opacity: 0, y: 24 }}
     animate={{ opacity: 1, y: 0 }}
@@ -202,7 +228,9 @@ export default function CancionesPage() {
   const [vistaFila, setVistaFila] = useState(false);
 
   useEffect(() => {
-    if (cancionesCacheadas.length > 0) setCanciones(cancionesCacheadas);
+    if (cancionesCacheadas.length > 0) {
+      setCanciones(cancionesCacheadas);
+    }
   }, [cancionesCacheadas]);
 
   useEffect(() => {
@@ -215,7 +243,10 @@ export default function CancionesPage() {
       });
   }, []);
 
-  const filtradas = useMemo(() => canciones.filter(c => c.visible !== false), [canciones]);
+  const filtradas = useMemo(() =>
+    canciones.filter(c => c.visible !== false),
+    [canciones]
+  );
 
   const grupos = useMemo(() => {
     const SIN_PERSONAJE = "Sin personaje";
@@ -232,7 +263,10 @@ export default function CancionesPage() {
     }
 
     const entries = [...mapa.entries()];
-    return [...entries.filter(([k]) => k !== SIN_PERSONAJE), ...entries.filter(([k]) => k === SIN_PERSONAJE)];
+    const conPersonaje = entries.filter(([k]) => k !== SIN_PERSONAJE);
+    const sinPersonaje = entries.filter(([k]) => k === SIN_PERSONAJE);
+
+    return [...conPersonaje, ...sinPersonaje];
   }, [filtradas]);
 
   if (loading) return <Loading text="Cargando" />;
@@ -242,9 +276,9 @@ export default function CancionesPage() {
   return (
     <div className="min-h-screen bg-bg-main pb-20">
       <div className="max-w-6xl mx-auto pt-16 px-6">
-        {/* Corrección TS: Eliminado className que no existía en Props */}
+        {/* Corrección: PageHeader no acepta className, lo envolvemos en un div */}
         <div className="mb-4">
-            <PageHeader title="Canciones" icon={<Music size={22} />} />
+          <PageHeader title="Canciones" icon={<Music size={22} />} />
         </div>
 
         <div className="flex items-center justify-end gap-3 mb-10">
