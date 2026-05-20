@@ -4,7 +4,7 @@ import React, { useState, useMemo, useEffect, useRef, useCallback } from "react"
 import {
   Loader2, Eye, EyeOff, Plus, Search, X, SlidersHorizontal, Sparkles,
   Wand2, ScrollText, FileText, Zap, Clock, Globe, Check, Layers,
-  Users, Bug, Package, Star, Feather, Swords, Gem, Map,
+  Users, Bug, Package, Star, Feather, Swords, Gem, Map, BookOpen, Music,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
@@ -52,13 +52,15 @@ const MUNDO_SUBTABS: { key: MundoSubTab; label: string; aliases: string[]; secti
 // Todas las tabs del módulo Mundo navegables desde el buscador
 // section se usa para setear mundoSection; subTab es el tab unificado dentro de EditorMundo
 const MUNDO_NAV: { section: MundoSectionKey; label: string; subTab: string; aliases: string[] }[] = [
-  { section: "geografia", label: "Mundo",      subTab: "mundo",    aliases: ["mundo", "world", "geografia", "geografía"] },
-  { section: "historia",  label: "Historia",   subTab: "historia", aliases: ["historia", "history", "lore"] },
-  { section: "geografia", label: "Listas",     subTab: "listas",   aliases: ["lista", "listas", "entidades", "reino", "reinos", "mapa", "mapas", "criatura", "criaturas", "bestia", "bestias", "monstruo", "objeto", "objetos", "arma", "reliquia", "personaje", "personajes", "character", "characters"] },
-  { section: "magia",     label: "Magia",      subTab: "magia",    aliases: ["magia", "magic", "sistema"] },
-  { section: "magia",     label: "Hechizos",   subTab: "hechizos", aliases: ["hechizo", "hechizos", "spell", "spells"] },
-  { section: "magia",     label: "Dones",      subTab: "dones",    aliases: ["don", "dones", "gift", "gifts"] },
-  { section: "magia",     label: "Runas",      subTab: "runas",    aliases: ["runa", "runas", "rune", "runes"] },
+  { section: "geografia", label: "Mundo",      subTab: "mundo",      aliases: ["mundo", "world", "geografia", "geografía"] },
+  { section: "historia",  label: "Historia",   subTab: "historia",   aliases: ["historia", "history", "lore"] },
+  { section: "geografia", label: "Listas",     subTab: "listas",     aliases: ["lista", "listas", "entidades", "reino", "reinos", "mapa", "mapas", "criatura", "criaturas", "bestia", "bestias", "monstruo", "objeto", "objetos", "arma", "reliquia", "personaje", "personajes", "character", "characters"] },
+  { section: "magia",     label: "Magia",      subTab: "magia",      aliases: ["magia", "magic", "sistema"] },
+  { section: "magia",     label: "Hechizos",   subTab: "hechizos",   aliases: ["hechizo", "hechizos", "spell", "spells"] },
+  { section: "magia",     label: "Dones",      subTab: "dones",      aliases: ["don", "dones", "gift", "gifts"] },
+  { section: "magia",     label: "Runas",      subTab: "runas",      aliases: ["runa", "runas", "rune", "runes"] },
+  { section: "geografia", label: "Capítulos",  subTab: "capitulos",  aliases: ["capitulo", "capítulo", "capitulos", "capítulos", "cap", "chapter", "chapters"] },
+  { section: "geografia", label: "Canciones",  subTab: "letras",     aliases: ["cancion", "canción", "canciones", "canciones", "letra", "letras", "song", "songs", "music", "musica", "música"] },
 ];
 
 function normalize(s: string) {
@@ -1495,7 +1497,7 @@ export function GlobalSearchBar({
                         <div className="space-y-0.5 mb-1">
                           {mundoNavResults.map(({ section, label, subTab }) => {
                             const sec = MUNDO_SECTIONS.find(s => s.key === section);
-                            const SecIcon = sec?.Icon;
+                            const SecIcon = subTab === "capitulos" ? BookOpen : subTab === "letras" ? Music : sec?.Icon;
                             return (
                               <button
                                 key={section + label}
@@ -1710,7 +1712,7 @@ export function GlobalSearchBar({
                     <p className="text-[8px] font-black uppercase tracking-widest text-primary/25">Mundo</p>
                   </div>
                   <div className="space-y-0.5">
-                    {MUNDO_NAV.filter(nav => !["hechizos", "dones", "runas"].includes(nav.subTab)).map(nav => {
+                    {MUNDO_NAV.filter(nav => !["hechizos", "dones", "runas", "capitulos", "letras"].includes(nav.subTab)).map(nav => {
                       const sec = MUNDO_SECTIONS.find(s => s.key === nav.section);
                       const NavIcon = sec?.Icon;
                       const isMagiaTab = nav.subTab === "magia";
@@ -1738,6 +1740,47 @@ export function GlobalSearchBar({
                           </div>
                           <span className={`flex-1 text-[11px] font-bold truncate transition-colors ${isActive ? "text-primary" : "text-primary/70 hover:text-primary/90"}`}>
                             {nav.label}
+                          </span>
+                          <span
+                            className="shrink-0 text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md"
+                            style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)", color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
+                          >
+                            Mun
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Escritura: acceso rápido a Capítulos y Canciones */}
+                  <div className="px-2 pt-3 pb-1">
+                    <p className="text-[8px] font-black uppercase tracking-widest text-primary/25">Escritura</p>
+                  </div>
+                  <div className="space-y-0.5">
+                    {[
+                      { subTab: "capitulos", label: "Capítulos",  Icon: BookOpen },
+                      { subTab: "letras",    label: "Canciones",  Icon: Music    },
+                    ].map(({ subTab, label, Icon }) => {
+                      const isActive = isMundo && (activeTab as string) === subTab;
+                      return (
+                        <button
+                          key={subTab}
+                          onMouseDown={() => handleMundoSubTab("geografia", subTab)}
+                          className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-150 border ${
+                            isActive ? "bg-primary/12 border-primary/20" : "border-transparent hover:bg-primary/6 hover:border-primary/10"
+                          }`}
+                        >
+                          <div
+                            className="shrink-0 w-7 h-7 rounded-lg border flex items-center justify-center"
+                            style={{
+                              background: "color-mix(in srgb, var(--primary) 7%, transparent)",
+                              borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
+                            }}
+                          >
+                            <Icon size={12} className="text-primary/40" />
+                          </div>
+                          <span className={`flex-1 text-[11px] font-bold truncate transition-colors ${isActive ? "text-primary" : "text-primary/70 hover:text-primary/90"}`}>
+                            {label}
                           </span>
                           <span
                             className="shrink-0 text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md"
