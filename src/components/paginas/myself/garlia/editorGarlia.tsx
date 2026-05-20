@@ -22,7 +22,6 @@ import { EditorHechizos }  from "./editores/EditorHechizos";
 import { EditorGrupo }     from "./editores/EditorGrupo";
 import { WikilinkProvider } from "@/components/forms/WikilinkContext";
 import { EditorCapitulosPanel } from "@/components/paginas/myself/garlia/editores/editorCapitulos";
-import EditorLetrasPanel from "@/components/paginas/myself/garlia/editores/editorLetras/page";
 
 
 // ─── Helpers Dexie locales ────────────────────────────────────────────────────
@@ -393,8 +392,6 @@ export default function EditorEntidades() {
   const isMundo = tab === "mundo";
   const isMagicTab = tab === "hechizos" || tab === "dones" || tab === "runas";
   const isGruposTab = tab === "grupos";
-  const isCapitulosTab = tab === "capitulos";
-  const isLetrasTab = tab === "letras";
 
   return (
     <>
@@ -427,13 +424,19 @@ export default function EditorEntidades() {
               setShowNuevoGrupo(true);
             } else if (key === "libro") {
               localStorage.setItem("estudio-caps-action", "nuevo-libro");
-              setTab("capitulos" as any);
+              setTab("mundo");
+              setMundoSection("geografia");
+              setRequestedSubTab("capitulos");
             } else if (key === "capitulo") {
               localStorage.setItem("estudio-caps-action", "nuevo-cap");
-              setTab("capitulos" as any);
+              setTab("mundo");
+              setMundoSection("geografia");
+              setRequestedSubTab("capitulos");
             } else if (key === "cancion") {
               localStorage.setItem("estudio-letras-action", "nueva-cancion");
-              setTab("letras" as any);
+              setTab("mundo");
+              setMundoSection("geografia");
+              setRequestedSubTab("letras");
             } else {
               // hechizos, dones, runas → abrir su editor directamente como tab
               setTab(key as any);
@@ -476,14 +479,19 @@ export default function EditorEntidades() {
             setTimeout(() => setRequestedItemId(nota.id), 0);
           }}
           onNavigateToCapitulo={(capId, libroId) => {
-            // Pre-seleccionar cap y libro vía localStorage antes de montar el panel
             localStorage.setItem("estudio-caps-last-cap",   capId);
             localStorage.setItem("estudio-caps-last-libro", libroId);
-            setTab("capitulos" as any);
+            setTab("mundo");
+            setMundoSection("geografia");
+            setRequestedSubTab("capitulos");
+            setRequestedItemId(undefined);
           }}
           onNavigateToCancion={(cancionId) => {
             localStorage.setItem("estudio-letras-last-id", cancionId);
-            setTab("letras" as any);
+            setTab("mundo");
+            setMundoSection("geografia");
+            setRequestedSubTab("letras");
+            setRequestedItemId(undefined);
           }}
           onToggleOculto={handleToggleOcultoReino}
         />
@@ -501,11 +509,7 @@ export default function EditorEntidades() {
         {/* ── Editor ──────────────────────────────────────────────────────── */}
         <div className="flex-1 flex min-h-0 overflow-hidden">
           <WikilinkProvider onWikilink={handleWikilinkNavigate}>
-          {isLetrasTab ? (
-            <EditorLetrasPanel />
-          ) : isCapitulosTab ? (
-            <EditorCapitulosPanel />
-          ) : isMundo ? (
+          {isMundo ? (
             <EditorMundo
               activeSection={mundoSection}
               textos={mundoTextos}

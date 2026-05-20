@@ -42,6 +42,7 @@ function setSaveIndicator(el: HTMLElement | null, status: SaveStatus) {
 }
 
 const LS_ACTIVE       = "ensayos-active-id";
+const LS_HOME         = "ensayos-at-home";
 const DEXIE_ZOTERO_KEY = "zotero_file_handle";
 
 
@@ -94,6 +95,7 @@ export default function Ensayos() {
     setTagActivo(null);
     setTocOpen(false);
     setTocEntries([]);
+    localStorage.setItem(LS_HOME, "1");
   };
   const [editMode,          setEditMode]          = useState(true);
   const [tocOpen,           setTocOpen]           = useState(false);
@@ -137,6 +139,7 @@ export default function Ensayos() {
 
   const [ensayoActivoId, setEnsayoActivoId] = useState<string | null>(() => {
     if (typeof window === "undefined") return null;
+    if (localStorage.getItem(LS_HOME) === "1") return null;
     return localStorage.getItem(LS_ACTIVE);
   });
 
@@ -315,8 +318,13 @@ export default function Ensayos() {
     setEnsayoActivoId(id);
     setTocOpen(false);
     setTocEntries([]);
-    if (id) localStorage.setItem(LS_ACTIVE, id);
-    else     localStorage.removeItem(LS_ACTIVE);
+    if (id) {
+      localStorage.setItem(LS_ACTIVE, id);
+      localStorage.removeItem(LS_HOME);
+    } else {
+      localStorage.removeItem(LS_ACTIVE);
+      localStorage.setItem(LS_HOME, "1");
+    }
   }, []);
 
   useEffect(() => {
