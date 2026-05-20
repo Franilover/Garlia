@@ -1,7 +1,7 @@
 "use client";
 import React, { useMemo, useState } from "react";
 import { MotionDiv } from "@/components/ui/Motion";
-import { Star, FileText, ArrowRight, Hash, Clock, CheckSquare, Plus, Check } from "lucide-react";
+import { Star, FileText, ArrowRight, Hash, Clock, CheckSquare, Plus, Check, X } from "lucide-react";
 
 import { AnimatePresence } from "framer-motion";
 import { RelojDigital } from "@/components/paginas/myself/vida/escritorio/tareas/relojDigital";
@@ -35,6 +35,7 @@ export function HomeDashboard({
 
   const [nuevaTarea, setNuevaTarea] = useState("");
   const [modoCalendario, setModoCalendario] = useState<ModoCalendario>("mes");
+  const [panelAbierto, setPanelAbierto] = useState<"reloj" | "tareas" | null>(null);
 
   const favoritos = useMemo(
     () => ensayos.filter(e => e.tags?.includes("favorito")).slice(0, 10),
@@ -126,11 +127,11 @@ export function HomeDashboard({
         ══════════════════════════════════════════ */}
         <div style={{
           display: "grid",
-          gridTemplateColumns: "1.4fr 1fr 1fr 0.85fr",
+          gridTemplateColumns: "2.4fr 1fr 0.85fr",
           gridTemplateRows: "1fr 1fr",
           gridTemplateAreas: `
-            "mes reloj     favoritos tags"
-            "mes tareas    recientes tags"
+            "mes favoritos tags"
+            "mes recientes tags"
           `,
           gap: gap,
           background: divColor,
@@ -141,40 +142,87 @@ export function HomeDashboard({
           minHeight: 480,
         }}>
 
-          {/* ── Calendario — span 2 rows ── */}
-          <div style={{ gridArea: "mes", background: "var(--bg-main)", overflow: "hidden", display: "flex", flexDirection: "column" }}>
+          {/* ── Calendario — span 2 rows (expanded) ── */}
+          <div style={{ gridArea: "mes", background: "var(--bg-main)", overflow: "hidden", display: "flex", flexDirection: "column", position: "relative" }}>
 
-            {/* Toggle Mes / Semana */}
+            {/* Barra superior: botones icono izquierda + toggle mes/semana derecha */}
             <div style={{
-              display: "flex", alignItems: "center", justifyContent: "flex-end",
+              display: "flex", alignItems: "center", justifyContent: "space-between",
               padding: "8px 12px 0",
-              gap: 2, flexShrink: 0,
+              flexShrink: 0,
             }}>
-              {(["mes", "semana"] as ModoCalendario[]).map(modo => (
+              {/* Botones de icono — Reloj y Tareas */}
+              <div style={{ display: "flex", gap: 3 }}>
+                {/* Botón Reloj */}
                 <button
-                  key={modo}
-                  onClick={() => setModoCalendario(modo)}
+                  onClick={() => setPanelAbierto(p => p === "reloj" ? null : "reloj")}
+                  title="Reloj"
                   style={{
-                    ...mono,
-                    fontSize: 7,
-                    padding: "2px 8px",
-                    borderRadius: 4,
-                    border: "none",
-                    cursor: "pointer",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.12em",
+                    width: 24, height: 24, borderRadius: 6, border: "none", cursor: "pointer",
+                    display: "flex", alignItems: "center", justifyContent: "center",
                     transition: "all 0.12s",
-                    background: modoCalendario === modo
-                      ? "color-mix(in srgb, var(--foreground) 10%, transparent)"
-                      : "transparent",
-                    color: modoCalendario === modo
-                      ? "color-mix(in srgb, var(--foreground) 70%, transparent)"
-                      : "color-mix(in srgb, var(--foreground) 25%, transparent)",
+                    background: panelAbierto === "reloj"
+                      ? "color-mix(in srgb, var(--foreground) 12%, transparent)"
+                      : "color-mix(in srgb, var(--foreground) 4%, transparent)",
+                    color: panelAbierto === "reloj"
+                      ? "color-mix(in srgb, var(--foreground) 80%, transparent)"
+                      : "color-mix(in srgb, var(--foreground) 30%, transparent)",
                   }}
+                  onMouseEnter={e => { if (panelAbierto !== "reloj") { (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--foreground) 8%, transparent)"; (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--foreground) 60%, transparent)"; } }}
+                  onMouseLeave={e => { if (panelAbierto !== "reloj") { (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--foreground) 4%, transparent)"; (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--foreground) 30%, transparent)"; } }}
                 >
-                  {modo}
+                  <Clock size={11} />
                 </button>
-              ))}
+                {/* Botón Tareas */}
+                <button
+                  onClick={() => setPanelAbierto(p => p === "tareas" ? null : "tareas")}
+                  title="Tareas"
+                  style={{
+                    width: 24, height: 24, borderRadius: 6, border: "none", cursor: "pointer",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    transition: "all 0.12s",
+                    background: panelAbierto === "tareas"
+                      ? "color-mix(in srgb, var(--foreground) 12%, transparent)"
+                      : "color-mix(in srgb, var(--foreground) 4%, transparent)",
+                    color: panelAbierto === "tareas"
+                      ? "color-mix(in srgb, var(--foreground) 80%, transparent)"
+                      : "color-mix(in srgb, var(--foreground) 30%, transparent)",
+                  }}
+                  onMouseEnter={e => { if (panelAbierto !== "tareas") { (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--foreground) 8%, transparent)"; (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--foreground) 60%, transparent)"; } }}
+                  onMouseLeave={e => { if (panelAbierto !== "tareas") { (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--foreground) 4%, transparent)"; (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--foreground) 30%, transparent)"; } }}
+                >
+                  <CheckSquare size={11} />
+                </button>
+              </div>
+
+              {/* Toggle Mes / Semana */}
+              <div style={{ display: "flex", gap: 2 }}>
+                {(["mes", "semana"] as ModoCalendario[]).map(modo => (
+                  <button
+                    key={modo}
+                    onClick={() => setModoCalendario(modo)}
+                    style={{
+                      ...mono,
+                      fontSize: 7,
+                      padding: "2px 8px",
+                      borderRadius: 4,
+                      border: "none",
+                      cursor: "pointer",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.12em",
+                      transition: "all 0.12s",
+                      background: modoCalendario === modo
+                        ? "color-mix(in srgb, var(--foreground) 10%, transparent)"
+                        : "transparent",
+                      color: modoCalendario === modo
+                        ? "color-mix(in srgb, var(--foreground) 70%, transparent)"
+                        : "color-mix(in srgb, var(--foreground) 25%, transparent)",
+                    }}
+                  >
+                    {modo}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Vista activa */}
@@ -214,93 +262,165 @@ export function HomeDashboard({
                   </MotionDiv>
                 )}
               </AnimatePresence>
-            </div>
-          </div>
 
-          {/* ── Reloj ── */}
-          <div style={{ gridArea: "reloj", background: "var(--bg-main)", overflow: "hidden", display: "flex", flexDirection: "column", justifyContent: "center" }}>
-            <RelojDigital horario={horario} tareas={tareas} />
-          </div>
-
-          {/* ── Tareas ── */}
-          <div style={{ gridArea: "tareas", background: "var(--bg-main)", padding: "16px 18px", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-            <SectionHeader
-              icon={<CheckSquare size={9} style={{ color: "color-mix(in srgb, var(--foreground) 25%, transparent)" }} />}
-              label="Pendientes"
-              count={pendientes.length}
-            />
-
-            {onAddTarea && (
-              <div style={{ display: "flex", gap: 4, marginBottom: 8 }}>
-                <input
-                  type="text"
-                  value={nuevaTarea}
-                  onChange={e => setNuevaTarea(e.target.value)}
-                  onKeyDown={e => e.key === "Enter" && handleAddTarea()}
-                  placeholder="Nueva tarea..."
-                  style={{
-                    ...mono, flex: 1, fontSize: 9, padding: "4px 8px", borderRadius: 5,
-                    border: "1px solid color-mix(in srgb, var(--foreground) 8%, transparent)",
-                    background: "color-mix(in srgb, var(--foreground) 3%, transparent)",
-                    color: "color-mix(in srgb, var(--foreground) 70%, transparent)",
-                    outline: "none", minWidth: 0,
-                  }}
-                  onFocus={e => { e.currentTarget.style.borderColor = "color-mix(in srgb, var(--foreground) 20%, transparent)"; e.currentTarget.style.background = "color-mix(in srgb, var(--foreground) 5%, transparent)"; }}
-                  onBlur={e => { e.currentTarget.style.borderColor = "color-mix(in srgb, var(--foreground) 8%, transparent)"; e.currentTarget.style.background = "color-mix(in srgb, var(--foreground) 3%, transparent)"; }}
-                />
-                <button
-                  onClick={handleAddTarea}
-                  disabled={!nuevaTarea.trim()}
-                  style={{
-                    width: 22, height: 22, borderRadius: 5, border: "none", cursor: "pointer",
-                    background: nuevaTarea.trim() ? "color-mix(in srgb, var(--foreground) 12%, transparent)" : "color-mix(in srgb, var(--foreground) 4%, transparent)",
-                    color: "color-mix(in srgb, var(--foreground) 40%, transparent)",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    transition: "all 0.1s", flexShrink: 0,
-                  }}
-                ><Plus size={10} /></button>
-              </div>
-            )}
-
-            <div style={{ display: "flex", flexDirection: "column", gap: 1, flex: 1, overflowY: "auto" }}>
-              {pendientes.length === 0 && (
-                <p style={{ ...mono, fontSize: 9, color: "color-mix(in srgb, var(--foreground) 15%, transparent)", fontStyle: "italic" }}>Sin pendientes.</p>
-              )}
-              {pendientes.map((t, i) => (
-                <MotionDiv key={t.id} initial={{ opacity: 0, x: 4 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.03 }}>
-                  <button
-                    onClick={() => onToggleTarea?.(t.id, t.completada)}
-                    className="w-full text-left group flex items-center gap-2"
-                    style={{ padding: "5px 6px", borderRadius: 5, background: "transparent", border: "none", cursor: onToggleTarea ? "pointer" : "default", transition: "background 0.1s" }}
-                    onMouseEnter={e => onToggleTarea && (e.currentTarget.style.background = "color-mix(in srgb, var(--foreground) 4%, transparent)")}
-                    onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+              {/* ── Panel flotante: Reloj ── */}
+              <AnimatePresence>
+                {panelAbierto === "reloj" && (
+                  <MotionDiv
+                    key="panel-reloj"
+                    initial={{ opacity: 0, scale: 0.96, y: -4 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.96, y: -4 }}
+                    transition={{ duration: 0.15 }}
+                    style={{
+                      position: "absolute", top: 0, left: 0, right: 0, bottom: 0,
+                      background: "var(--bg-main)",
+                      zIndex: 10,
+                      display: "flex", flexDirection: "column",
+                      overflow: "hidden",
+                    }}
                   >
-                    <span style={{ width: 10, height: 10, borderRadius: 3, flexShrink: 0, border: "1px solid color-mix(in srgb, var(--foreground) 20%, transparent)", display: "inline-flex", alignItems: "center", justifyContent: "center" }} />
-                    <span style={{ ...mono, fontSize: 10, color: "color-mix(in srgb, var(--foreground) 65%, transparent)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{t.titulo}</span>
-                  </button>
-                </MotionDiv>
-              ))}
-              {completadas.length > 0 && pendientes.length > 0 && (
-                <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 0" }}>
-                  <div style={{ flex: 1, height: 1, background: "color-mix(in srgb, var(--foreground) 6%, transparent)" }} />
-                  <span style={{ ...mono, fontSize: 7, color: "color-mix(in srgb, var(--foreground) 18%, transparent)", textTransform: "uppercase", letterSpacing: "0.1em" }}>listas</span>
-                  <div style={{ flex: 1, height: 1, background: "color-mix(in srgb, var(--foreground) 6%, transparent)" }} />
-                </div>
-              )}
-              {completadas.map((t, i) => (
-                <MotionDiv key={t.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }}>
-                  <button
-                    onClick={() => onToggleTarea?.(t.id, t.completada)}
-                    className="w-full text-left flex items-center gap-2"
-                    style={{ padding: "5px 6px", borderRadius: 5, background: "transparent", border: "none", cursor: onToggleTarea ? "pointer" : "default", opacity: 0.4 }}
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", padding: "8px 10px 0", flexShrink: 0 }}>
+                      <button
+                        onClick={() => setPanelAbierto(null)}
+                        style={{
+                          width: 22, height: 22, borderRadius: 5, border: "none", cursor: "pointer",
+                          background: "color-mix(in srgb, var(--foreground) 5%, transparent)",
+                          color: "color-mix(in srgb, var(--foreground) 35%, transparent)",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          transition: "all 0.1s",
+                        }}
+                        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--foreground) 10%, transparent)"; }}
+                        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--foreground) 5%, transparent)"; }}
+                      >
+                        <X size={10} />
+                      </button>
+                    </div>
+                    <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+                      <RelojDigital horario={horario} tareas={tareas} />
+                    </div>
+                  </MotionDiv>
+                )}
+              </AnimatePresence>
+
+              {/* ── Panel flotante: Tareas ── */}
+              <AnimatePresence>
+                {panelAbierto === "tareas" && (
+                  <MotionDiv
+                    key="panel-tareas"
+                    initial={{ opacity: 0, scale: 0.96, y: -4 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.96, y: -4 }}
+                    transition={{ duration: 0.15 }}
+                    style={{
+                      position: "absolute", top: 0, left: 0, right: 0, bottom: 0,
+                      background: "var(--bg-main)",
+                      zIndex: 10,
+                      display: "flex", flexDirection: "column",
+                      padding: "12px 18px 16px",
+                      overflow: "hidden",
+                    }}
                   >
-                    <span style={{ width: 10, height: 10, borderRadius: 3, flexShrink: 0, background: "color-mix(in srgb, var(--foreground) 25%, transparent)", border: "1px solid color-mix(in srgb, var(--foreground) 25%, transparent)", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
-                      <Check size={6} style={{ color: "var(--bg-main)", strokeWidth: 3 }} />
-                    </span>
-                    <span style={{ ...mono, fontSize: 10, color: "color-mix(in srgb, var(--foreground) 40%, transparent)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, textDecoration: "line-through" }}>{t.titulo}</span>
-                  </button>
-                </MotionDiv>
-              ))}
+                    <div style={{ display: "flex", alignItems: "center", marginBottom: 12 }}>
+                      <CheckSquare size={9} style={{ color: "color-mix(in srgb, var(--foreground) 25%, transparent)", marginRight: 6 }} />
+                      <span style={{ ...mono, fontSize: 8, color: "color-mix(in srgb, var(--foreground) 25%, transparent)", textTransform: "uppercase", letterSpacing: "0.14em", flex: 1 }}>
+                        Pendientes
+                        {pendientes.length > 0 && (
+                          <span style={{ marginLeft: 5, fontSize: 7, background: "color-mix(in srgb, var(--foreground) 8%, transparent)", color: "color-mix(in srgb, var(--foreground) 40%, transparent)", padding: "1px 5px", borderRadius: 99 }}>{pendientes.length}</span>
+                        )}
+                      </span>
+                      <button
+                        onClick={() => setPanelAbierto(null)}
+                        style={{
+                          width: 22, height: 22, borderRadius: 5, border: "none", cursor: "pointer",
+                          background: "color-mix(in srgb, var(--foreground) 5%, transparent)",
+                          color: "color-mix(in srgb, var(--foreground) 35%, transparent)",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          transition: "all 0.1s",
+                        }}
+                        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--foreground) 10%, transparent)"; }}
+                        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--foreground) 5%, transparent)"; }}
+                      >
+                        <X size={10} />
+                      </button>
+                    </div>
+
+                    {onAddTarea && (
+                      <div style={{ display: "flex", gap: 4, marginBottom: 8 }}>
+                        <input
+                          type="text"
+                          value={nuevaTarea}
+                          onChange={e => setNuevaTarea(e.target.value)}
+                          onKeyDown={e => e.key === "Enter" && handleAddTarea()}
+                          placeholder="Nueva tarea..."
+                          style={{
+                            ...mono, flex: 1, fontSize: 9, padding: "4px 8px", borderRadius: 5,
+                            border: "1px solid color-mix(in srgb, var(--foreground) 8%, transparent)",
+                            background: "color-mix(in srgb, var(--foreground) 3%, transparent)",
+                            color: "color-mix(in srgb, var(--foreground) 70%, transparent)",
+                            outline: "none", minWidth: 0,
+                          }}
+                          onFocus={e => { e.currentTarget.style.borderColor = "color-mix(in srgb, var(--foreground) 20%, transparent)"; e.currentTarget.style.background = "color-mix(in srgb, var(--foreground) 5%, transparent)"; }}
+                          onBlur={e => { e.currentTarget.style.borderColor = "color-mix(in srgb, var(--foreground) 8%, transparent)"; e.currentTarget.style.background = "color-mix(in srgb, var(--foreground) 3%, transparent)"; }}
+                        />
+                        <button
+                          onClick={handleAddTarea}
+                          disabled={!nuevaTarea.trim()}
+                          style={{
+                            width: 22, height: 22, borderRadius: 5, border: "none", cursor: "pointer",
+                            background: nuevaTarea.trim() ? "color-mix(in srgb, var(--foreground) 12%, transparent)" : "color-mix(in srgb, var(--foreground) 4%, transparent)",
+                            color: "color-mix(in srgb, var(--foreground) 40%, transparent)",
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            transition: "all 0.1s", flexShrink: 0,
+                          }}
+                        ><Plus size={10} /></button>
+                      </div>
+                    )}
+
+                    <div style={{ display: "flex", flexDirection: "column", gap: 1, flex: 1, overflowY: "auto" }}>
+                      {pendientes.length === 0 && (
+                        <p style={{ ...mono, fontSize: 9, color: "color-mix(in srgb, var(--foreground) 15%, transparent)", fontStyle: "italic" }}>Sin pendientes.</p>
+                      )}
+                      {pendientes.map((t, i) => (
+                        <MotionDiv key={t.id} initial={{ opacity: 0, x: 4 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.03 }}>
+                          <button
+                            onClick={() => onToggleTarea?.(t.id, t.completada)}
+                            className="w-full text-left group flex items-center gap-2"
+                            style={{ padding: "5px 6px", borderRadius: 5, background: "transparent", border: "none", cursor: onToggleTarea ? "pointer" : "default", transition: "background 0.1s" }}
+                            onMouseEnter={e => onToggleTarea && (e.currentTarget.style.background = "color-mix(in srgb, var(--foreground) 4%, transparent)")}
+                            onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+                          >
+                            <span style={{ width: 10, height: 10, borderRadius: 3, flexShrink: 0, border: "1px solid color-mix(in srgb, var(--foreground) 20%, transparent)", display: "inline-flex", alignItems: "center", justifyContent: "center" }} />
+                            <span style={{ ...mono, fontSize: 10, color: "color-mix(in srgb, var(--foreground) 65%, transparent)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{t.titulo}</span>
+                          </button>
+                        </MotionDiv>
+                      ))}
+                      {completadas.length > 0 && pendientes.length > 0 && (
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 0" }}>
+                          <div style={{ flex: 1, height: 1, background: "color-mix(in srgb, var(--foreground) 6%, transparent)" }} />
+                          <span style={{ ...mono, fontSize: 7, color: "color-mix(in srgb, var(--foreground) 18%, transparent)", textTransform: "uppercase", letterSpacing: "0.1em" }}>listas</span>
+                          <div style={{ flex: 1, height: 1, background: "color-mix(in srgb, var(--foreground) 6%, transparent)" }} />
+                        </div>
+                      )}
+                      {completadas.map((t, i) => (
+                        <MotionDiv key={t.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }}>
+                          <button
+                            onClick={() => onToggleTarea?.(t.id, t.completada)}
+                            className="w-full text-left flex items-center gap-2"
+                            style={{ padding: "5px 6px", borderRadius: 5, background: "transparent", border: "none", cursor: onToggleTarea ? "pointer" : "default", opacity: 0.4 }}
+                          >
+                            <span style={{ width: 10, height: 10, borderRadius: 3, flexShrink: 0, background: "color-mix(in srgb, var(--foreground) 25%, transparent)", border: "1px solid color-mix(in srgb, var(--foreground) 25%, transparent)", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                              <Check size={6} style={{ color: "var(--bg-main)", strokeWidth: 3 }} />
+                            </span>
+                            <span style={{ ...mono, fontSize: 10, color: "color-mix(in srgb, var(--foreground) 40%, transparent)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, textDecoration: "line-through" }}>{t.titulo}</span>
+                          </button>
+                        </MotionDiv>
+                      ))}
+                    </div>
+                  </MotionDiv>
+                )}
+              </AnimatePresence>
+
             </div>
           </div>
 
