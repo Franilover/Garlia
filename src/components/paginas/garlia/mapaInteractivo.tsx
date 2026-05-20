@@ -1109,23 +1109,25 @@ export default function MapaInteractivo() {
     setLibrosReino([]);
     setCapitulosReino([]);
 
-    // Mostrar detalles desde Dexie si ya los tenemos cacheados
+    // Mostrar desde Dexie todo lo que ya tengamos cacheado — la UI se abre al instante
     try {
       if (db) {
-        const cached = await db.reino_detalles
-          .where("reino_id").equals(reino.id)
-          .toArray();
-        if (cached.length > 0) {
-          setDetallesReino(cached.filter((d: any) => !d.deleted));
-        } else {
-          setDetallesReino([]);
-        }
+        const [cachedDetalles, cachedPersonajes, cachedLibros, cachedCaps] = await Promise.all([
+          db.reino_detalles.where("reino_id").equals(reino.id).toArray().catch(() => []),
+          db.personajes.filter((p: any) => p.reino === reino.nombre).toArray().catch(() => []),
+          db.libros.filter((l: any) => l.reino_id === reino.id).toArray().catch(() => []),
+          db.capitulos.filter((c: any) => c.reino_id === reino.id).toArray().catch(() => []),
+        ]);
+        if (cachedDetalles.length > 0) setDetallesReino(cachedDetalles.filter((d: any) => !d.deleted));
+        if (cachedPersonajes.length > 0) setPersonajesReino(cachedPersonajes);
+        if (cachedLibros.length > 0)     setLibrosReino(cachedLibros);
+        if (cachedCaps.length > 0)       setCapitulosReino(cachedCaps.map((c: any) => ({ ...c, libro_titulo: c.libro_titulo ?? null })));
       }
     } catch {
       setDetallesReino([]);
     }
 
-    // Fetch en background — la UI ya está abierta
+    // Fetch en background — la UI ya está abierta con datos locales
     const [detallesRes, personajesRes, librosRes, capitulosRes] = await Promise.all([
       supabase.from("reino_detalles").select("*").eq("reino_id", reino.id),
       supabase.from("personajes").select("id, nombre, img_url, especie, reino, sobre").eq("reino", reino.nombre),
@@ -1145,15 +1147,21 @@ export default function MapaInteractivo() {
       } catch {}
     }
 
-    if (!personajesRes.error) setPersonajesReino(personajesRes.data ?? []);
-    if (!librosRes.error) setLibrosReino(librosRes.data ?? []);
+    if (!personajesRes.error && personajesRes.data) {
+      setPersonajesReino(personajesRes.data);
+      try { if (db) await db.personajes.bulkPut(personajesRes.data); } catch {}
+    }
+    if (!librosRes.error && librosRes.data) {
+      setLibrosReino(librosRes.data);
+      try { if (db) await db.libros.bulkPut(librosRes.data); } catch {}
+    }
     if (!capitulosRes.error) {
-      setCapitulosReino(
-        (capitulosRes.data ?? []).map((c: any) => ({
-          ...c,
-          libro_titulo: c.libros?.titulo ?? null,
-        }))
-      );
+      const caps = (capitulosRes.data ?? []).map((c: any) => ({
+        ...c,
+        libro_titulo: c.libros?.titulo ?? null,
+      }));
+      setCapitulosReino(caps);
+      try { if (db) await db.capitulos.bulkPut(caps); } catch {}
     }
   };
 
@@ -1277,7 +1285,8 @@ export default function MapaInteractivo() {
     librosReino, capitulosReino,
   };
 
-  if (loading) return (
+  // Solo bloquea la UI si no hay absolutamente ningún dato todavía (primera carga ever)
+  if (loading && reinos.length === 0) return (
     <div className="fixed inset-0 md:left-[68px] flex flex-col items-center justify-center" style={{ background: "var(--bg-main)" }}>
       <div className="relative">
         <div className="w-8 h-8 border" style={{ borderColor: "color-mix(in srgb, var(--accent) 25%, transparent)", animation: "spin 3s linear infinite", borderRadius: "50%" }} />
