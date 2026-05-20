@@ -391,7 +391,7 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
   // Pulse animation
   const pulseRef = useRef(0);
   // Theme CSS vars read at draw time
-  const cssColorsRef = useRef({ primary: "#6b4423", accent: "#c08040", bg: "#f0e6d0", fg: "#2a1304", bgMenu: "#3d2010", pinFill: "#6b4423", parchBg: "#3d2010", parchText: "#2a1304" });
+  const cssColorsRef = useRef({ primary: "#6b4423", accent: "#c08040", bg: "#f0e6d0", fg: "#2a1304", bgMenu: "#3d2010", pinFill: "#6b4423", parchBg: "#3d2010", parchText: "#2a1304", whiteCustom: "#fdf6ee" });
   // Fog cache — rebuilt only when markers/size change, not every frame
   const fogCacheRef = useRef<{ canvas: OffscreenCanvas; deep: OffscreenCanvas; iw: number; ih: number; bg: string } | null>(null);
 
@@ -400,15 +400,15 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
       const s = getComputedStyle(document.documentElement);
       const get = (v: string) => s.getPropertyValue(v).trim();
       cssColorsRef.current = {
-        primary:   get("--primary")    || "#6b4423",
-        accent:    get("--accent")     || "#c08040",
-        bg:        get("--bg-main")    || "#f0e6d0",
-        fg:        get("--foreground") || "#2a1304",
-        bgMenu:    get("--bg-menu")    || "#3d2010",
-        // pin body = primary, ring/dot use accent, label uses bg-menu + foreground
-        pinFill:   get("--primary")    || "#6b4423",
-        parchBg:   get("--bg-menu")    || "#3d2010",
-        parchText: get("--foreground") || "#2a1304",
+        primary:     get("--primary")      || "#6b4423",
+        accent:      get("--accent")       || "#c08040",
+        bg:          get("--bg-main")      || "#f0e6d0",
+        fg:          get("--foreground")   || "#2a1304",
+        bgMenu:      get("--bg-menu")      || "#3d2010",
+        pinFill:     get("--primary")      || "#6b4423",
+        parchBg:     get("--bg-menu")      || "#3d2010",
+        parchText:   get("--foreground")   || "#2a1304",
+        whiteCustom: get("--white-custom") || "#fdf6ee",
       };
     };
     read();
@@ -497,7 +497,7 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
 
       pulseRef.current = t;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      const { primary, accent, bg, fg, pinFill, parchBg, parchText } = cssColorsRef.current;
+      const { primary, accent, bg, fg, pinFill, parchBg, parchText, whiteCustom } = cssColorsRef.current;
 
       ctx.fillStyle = bg;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -652,19 +652,10 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
           ctx.translate(mx, my);
 
           // ── Antique map pin — teardrop with body ─────────────────────────
-          // Pin body: blend bg-menu(60%) + bg-main(40%) — darker than bg but not full bg-menu
-          const blendHex = (a: string, b: string, t: number) => {
-            const p = (h: string) => [
-              parseInt(h.slice(1,3),16),
-              parseInt(h.slice(3,5),16),
-              parseInt(h.slice(5,7),16),
-            ];
-            const ca = p(a.length===7?a:"#888888"), cb = p(b.length===7?b:"#888888");
-            return `rgb(${Math.round(ca[0]*t+cb[0]*(1-t))},${Math.round(ca[1]*t+cb[1]*(1-t))},${Math.round(ca[2]*t+cb[2]*(1-t))})`;
-          };
-          const pinBody   = blendHex(parchBg, bg, isSelected ? 0.65 : 0.58);
-          const pinBorder = isSelected ? primary : `${parchBg}bb`;
-          const pinRing   = isSelected ? `${accent}99` : `${primary}66`;
+          // Pin body uses --white-custom, same as panel surfaces
+          const pinBody   = whiteCustom;
+          const pinBorder = isSelected ? primary : `${primary}88`;
+          const pinRing   = isSelected ? `${accent}99` : `${primary}55`;
           const pinDot    = accent;
 
           // Pin dimensions
