@@ -586,12 +586,8 @@ export function HomeDashboard({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 12 }}
             transition={{ duration: 0.18 }}
-            style={{
-              position: "fixed", inset: 0, zIndex: 50,
-              background: "var(--bg-main)",
-              display: "flex", flexDirection: "column",
-              overflow: "hidden",
-            }}
+            className="fixed inset-0 md:left-[68px] z-50 flex flex-col overflow-hidden"
+            style={{ background: "var(--bg-main)" }}
           >
             {/* ── Barra superior ── */}
             <div style={{
@@ -652,7 +648,7 @@ export function HomeDashboard({
             </div>
 
             {/* ── Contenido del componente ── */}
-            <div style={{ flex: 1, overflow: "auto" }}>
+            <div className="flex-1 overflow-auto pb-14 md:pb-0">
               {vistaPersonal === "compras" && <ComprasPage />}
               {vistaPersonal === "ejercicios" && <PaginaEjercicios />}
               {vistaPersonal === "ingredientes" && <IngredientesPage />}
