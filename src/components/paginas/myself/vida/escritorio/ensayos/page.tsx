@@ -9,6 +9,7 @@ import { ToastContainer } from "@/components/ui/ToastContainer";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { db } from "@/lib/api/client/db";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
+import { eventosQueries } from "@/lib/api/queries/personal/eventos";
 
 import Editor from "@/components/paginas/myself/vida/escritorio/ensayos/editor";
 import { EmptyState } from "@/components/paginas/myself/vida/escritorio/ensayos/emptyState";
@@ -114,6 +115,13 @@ export default function Ensayos() {
     addRow: addTareaRow,
     updateRow: updateTareaRow,
   } = useSupabaseData("tareas", { order: { campo: "created_at", asc: false } });
+
+  const { data: eventos, setData: setEventos } = useSupabaseData<any>("eventos");
+  const { data: capitulosRaw } = useSupabaseData<any>("capitulos", {
+    select: "id, titulo_capitulo, fecha_publicacion, libro_id",
+  });
+  const { data: horarioRaw } = useSupabaseData<any>("horario");
+  const [isAddingEvento, setIsAddingEvento] = useState(false);
 
   const {
     data:     ensayos,
@@ -490,6 +498,16 @@ export default function Ensayos() {
     }
   };
 
+  const handleAddEvento = async (fechaISO: string, titulo: string, tipo: string) => {
+    if (!titulo.trim() || isAddingEvento) return;
+    setIsAddingEvento(true);
+    try {
+      const creado = await eventosQueries.add({ titulo, tipo, fecha: fechaISO });
+      if (creado) setEventos((prev: any[]) => [...prev, creado]);
+    } catch (err) { console.error(err); }
+    finally { setIsAddingEvento(false); }
+  };
+
   const handleEnsayoClick = (id: string) => {
     setEnsayoActivo(id);
   };
@@ -849,10 +867,14 @@ export default function Ensayos() {
                   todosLosTags={todosLosTags}
                   onNavigate={(titulo) => navigateToPage(titulo, false)}
                   onTagClick={(tag) => navigateToPage(tag, true)}
-                  // Propiedades nuevas:
                   tareas={tareas}
                   onToggleTarea={handleToggleTarea}
                   onAddTarea={handleAddTarea}
+                  eventos={eventos ?? []}
+                  capitulosRaw={capitulosRaw ?? []}
+                  horario={horarioRaw ?? []}
+                  isAddingEvento={isAddingEvento}
+                  onAddEvento={handleAddEvento}
                 />
               )}
             </AnimatePresence>
