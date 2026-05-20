@@ -652,11 +652,20 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
           ctx.translate(mx, my);
 
           // ── Antique map pin — teardrop with body ─────────────────────────
-          // Colors driven by CSS theme vars
-          const pinBody    = isSelected ? parchBg  : parchBg;
-          const pinBorder  = isSelected ? primary  : `${parchBg}cc`;
-          const pinRing    = isSelected ? `${accent}99` : `${primary}66`;
-          const pinDot     = isSelected ? accent   : accent;
+          // Pin body: blend bg-menu(60%) + bg-main(40%) — darker than bg but not full bg-menu
+          const blendHex = (a: string, b: string, t: number) => {
+            const p = (h: string) => [
+              parseInt(h.slice(1,3),16),
+              parseInt(h.slice(3,5),16),
+              parseInt(h.slice(5,7),16),
+            ];
+            const ca = p(a.length===7?a:"#888888"), cb = p(b.length===7?b:"#888888");
+            return `rgb(${Math.round(ca[0]*t+cb[0]*(1-t))},${Math.round(ca[1]*t+cb[1]*(1-t))},${Math.round(ca[2]*t+cb[2]*(1-t))})`;
+          };
+          const pinBody   = blendHex(parchBg, bg, isSelected ? 0.65 : 0.58);
+          const pinBorder = isSelected ? primary : `${parchBg}bb`;
+          const pinRing   = isSelected ? `${accent}99` : `${primary}66`;
+          const pinDot    = accent;
 
           // Pin dimensions
           const headR = isSelected ? 9 : 7;       // circle head radius
