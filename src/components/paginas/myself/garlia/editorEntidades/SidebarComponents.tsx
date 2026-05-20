@@ -247,7 +247,7 @@ function MundoSectionCard({
 // ─── AddCommandMenu ───────────────────────────────────────────────────────────
 // Floating menu triggered when user types "add" and presses Enter
 
-export type MagicAddKey = "hechizos" | "dones" | "runas" | "notas" | "acontecimiento" | "grupos";
+export type MagicAddKey = "hechizos" | "dones" | "runas" | "notas" | "acontecimiento" | "grupos" | "libro" | "capitulo" | "cancion";
 
 // Colores individuales por tipo — todos con la misma lógica color-mix
 const ADD_ITEM_COLOR: Record<string, string> = {
@@ -261,6 +261,9 @@ const ADD_ITEM_COLOR: Record<string, string> = {
   notas:           "var(--primary)",
   acontecimiento:  "var(--primary)",
   grupos:          "var(--primary)",
+  libro:           "var(--primary)",
+  capitulo:        "var(--primary)",
+  cancion:         "var(--primary)",
 };
 
 // Todas las entradas del menú en orden unificado
@@ -444,6 +447,25 @@ function AddCommandMenu({
         {/* Magia + notas — bloques cuadrados */}
         <div className="grid grid-cols-6 gap-1">
           {magicEntries.map(renderSquareEntry)}
+        </div>
+
+        {/* Separador Escritura */}
+        <div
+          className="flex items-center gap-2 px-1"
+          style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }}
+        >
+          <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
+          <span className="text-[7px] font-black uppercase tracking-[0.3em]">Escritura</span>
+          <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
+        </div>
+
+        {/* Escritura — bloques rectangulares */}
+        <div className="grid grid-cols-2 gap-1">
+          {([
+            { kind: "magic" as const, key: "libro"   as MagicAddKey, label: "Nuevo libro",    Icon: BookOpen },
+            { kind: "magic" as const, key: "capitulo" as MagicAddKey, label: "Nuevo capítulo", Icon: ScrollText },
+            { kind: "magic" as const, key: "cancion"  as MagicAddKey, label: "Nueva canción",  Icon: Music },
+          ] as AddEntry[]).map(renderRectEntry)}
         </div>
       </div>
 

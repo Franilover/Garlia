@@ -2452,6 +2452,15 @@ export function EditorCapitulosPanel() {
 
   const { capitulos, setCapitulos, reload: reloadCaps } = useCapitulos(selectedLibroId);
 
+  // Señal desde el buscador para abrir "nuevo libro" o "nuevo capítulo" al montar
+  useEffect(() => {
+    const action = localStorage.getItem("estudio-caps-action");
+    if (!action) return;
+    localStorage.removeItem("estudio-caps-action");
+    if (action === "nuevo-libro") setTimeout(() => setShowNuevoLibro(true), 120);
+    if (action === "nuevo-cap")   setTimeout(() => setShowNuevoCap(true), 120);
+  }, []);
+
   const librosFiltrados = useMemo(() =>
     libros.filter(l => !busqueda || normalize(l.titulo).includes(normalize(busqueda))),
     [libros, busqueda]

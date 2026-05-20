@@ -702,6 +702,14 @@ export default function EstudioLetras() {
   const [showNueva,       setShowNueva]       = useState(false);
   const [editandoCancion, setEditandoCancion] = useState<Cancion | null>(null);
 
+  // Señal desde el buscador para abrir "nueva canción" al montar
+  useEffect(() => {
+    const action = localStorage.getItem("estudio-letras-action");
+    if (!action) return;
+    localStorage.removeItem("estudio-letras-action");
+    if (action === "nueva-cancion") setTimeout(() => setShowNueva(true), 120);
+  }, []);
+
   const opciones = useMemo(() => ({
     idiomas:      unique(canciones.map(c => c.idioma     || "")),
     cantantes:    unique(canciones.map(c => c.cantante   || "")),

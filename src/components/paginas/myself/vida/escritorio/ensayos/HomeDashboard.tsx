@@ -3,8 +3,11 @@ import React, { useMemo, useState } from "react";
 import { MotionDiv } from "@/components/ui/Motion";
 import { Star, FileText, ArrowRight, Hash, Clock, CheckSquare, Plus, Check } from "lucide-react";
 
+import { AnimatePresence } from "framer-motion";
 import { RelojDigital } from "@/components/paginas/myself/vida/escritorio/tareas/relojDigital";
 import { VistaMes } from "@/components/paginas/myself/vida/escritorio/tareas/vistaMes";
+import { VistaSemanal } from "@/components/paginas/myself/vida/escritorio/tareas/vistaSemanal";
+import type { ModoCalendario } from "@/components/paginas/myself/vida/escritorio/tareas/types";
 
 interface HomeDashboardProps {
   ensayos: any[];
@@ -31,6 +34,7 @@ export function HomeDashboard({
   const serif: React.CSSProperties = { fontFamily: "var(--font-serif)", fontStyle: "italic" };
 
   const [nuevaTarea, setNuevaTarea] = useState("");
+  const [modoCalendario, setModoCalendario] = useState<ModoCalendario>("mes");
 
   const favoritos = useMemo(
     () => ensayos.filter(e => e.tags?.includes("favorito")).slice(0, 10),
@@ -137,14 +141,80 @@ export function HomeDashboard({
           minHeight: 480,
         }}>
 
-          {/* ── VistaMes — span 2 rows ── */}
+          {/* ── Calendario — span 2 rows ── */}
           <div style={{ gridArea: "mes", background: "var(--bg-main)", overflow: "hidden", display: "flex", flexDirection: "column" }}>
-            <VistaMes
-              eventos={eventos}
-              capitulosRaw={capitulosRaw}
-              isAddingEvento={isAddingEvento}
-              onAddEvento={handleAddEvento}
-            />
+
+            {/* Toggle Mes / Semana */}
+            <div style={{
+              display: "flex", alignItems: "center", justifyContent: "flex-end",
+              padding: "8px 12px 0",
+              gap: 2, flexShrink: 0,
+            }}>
+              {(["mes", "semana"] as ModoCalendario[]).map(modo => (
+                <button
+                  key={modo}
+                  onClick={() => setModoCalendario(modo)}
+                  style={{
+                    ...mono,
+                    fontSize: 7,
+                    padding: "2px 8px",
+                    borderRadius: 4,
+                    border: "none",
+                    cursor: "pointer",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.12em",
+                    transition: "all 0.12s",
+                    background: modoCalendario === modo
+                      ? "color-mix(in srgb, var(--foreground) 10%, transparent)"
+                      : "transparent",
+                    color: modoCalendario === modo
+                      ? "color-mix(in srgb, var(--foreground) 70%, transparent)"
+                      : "color-mix(in srgb, var(--foreground) 25%, transparent)",
+                  }}
+                >
+                  {modo}
+                </button>
+              ))}
+            </div>
+
+            {/* Vista activa */}
+            <div style={{ flex: 1, minHeight: 0, overflow: "hidden", position: "relative" }}>
+              <AnimatePresence mode="wait">
+                {modoCalendario === "mes" ? (
+                  <MotionDiv
+                    key="mes"
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -6 }}
+                    transition={{ duration: 0.15 }}
+                    style={{ height: "100%" }}
+                  >
+                    <VistaMes
+                      eventos={eventos}
+                      capitulosRaw={capitulosRaw}
+                      isAddingEvento={isAddingEvento}
+                      onAddEvento={handleAddEvento}
+                    />
+                  </MotionDiv>
+                ) : (
+                  <MotionDiv
+                    key="semana"
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -6 }}
+                    transition={{ duration: 0.15 }}
+                    style={{ height: "100%", padding: "12px 16px", overflow: "auto" }}
+                  >
+                    <VistaSemanal
+                      eventos={eventos}
+                      capitulosRaw={capitulosRaw}
+                      isAddingEvento={isAddingEvento}
+                      onAddEvento={handleAddEvento}
+                    />
+                  </MotionDiv>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
 
           {/* ── Reloj ── */}

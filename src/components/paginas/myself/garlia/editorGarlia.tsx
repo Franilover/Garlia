@@ -425,6 +425,15 @@ export default function EditorEntidades() {
               setRequestedSubTab("notas");
             } else if (key === "grupos") {
               setShowNuevoGrupo(true);
+            } else if (key === "libro") {
+              localStorage.setItem("estudio-caps-action", "nuevo-libro");
+              setTab("capitulos" as any);
+            } else if (key === "capitulo") {
+              localStorage.setItem("estudio-caps-action", "nuevo-cap");
+              setTab("capitulos" as any);
+            } else if (key === "cancion") {
+              localStorage.setItem("estudio-letras-action", "nueva-cancion");
+              setTab("letras" as any);
             } else {
               // hechizos, dones, runas → abrir su editor directamente como tab
               setTab(key as any);
