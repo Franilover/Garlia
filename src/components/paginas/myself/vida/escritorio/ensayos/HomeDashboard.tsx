@@ -1,7 +1,7 @@
 "use client";
 import React, { useMemo, useState } from "react";
 import { MotionDiv } from "@/components/ui/Motion";
-import { Star, FileText, ArrowRight, Hash, Clock, CheckSquare, Plus, Check, X, ShoppingCart, Dumbbell, Package, UtensilsCrossed, ChevronLeft, Search } from "lucide-react";
+import { Star, FileText, ArrowRight, Hash, Clock, CheckSquare, Plus, Check, X, ShoppingCart, Dumbbell, Package, UtensilsCrossed, ChevronLeft, Search, Shirt } from "lucide-react";
 
 import { AnimatePresence } from "framer-motion";
 import { RelojDigital } from "@/components/paginas/myself/vida/escritorio/tareas/relojDigital";
@@ -12,6 +12,7 @@ import ComprasPage from "@/components/paginas/myself/vida/salud/compras";
 import { PaginaEjercicios } from "@/components/paginas/myself/vida/salud/ejerciciosComponent";
 import { IngredientesPage } from "@/components/paginas/myself/vida/salud/ingredientes";
 import RecetasPage from "@/components/paginas/myself/vida/salud/recetas";
+import ArmarioPage from "@/components/paginas/myself/vida/salud/ropa";
 
 interface HomeDashboardProps {
   ensayos: any[];
@@ -40,7 +41,7 @@ export function HomeDashboard({
   const [nuevaTarea, setNuevaTarea] = useState("");
   const [modoCalendario, setModoCalendario] = useState<ModoCalendario>("mes");
   const [panelAbierto, setPanelAbierto] = useState<"reloj" | "tareas" | null>(null);
-  const [vistaPersonal, setVistaPersonal] = useState<"compras" | "ejercicios" | "ingredientes" | "recetas" | null>(null);
+  const [vistaPersonal, setVistaPersonal] = useState<"compras" | "ejercicios" | "ingredientes" | "recetas" | "ropa" | null>(null);
   const [busqueda, setBusqueda] = useState("");
 
   const favoritos = useMemo(
@@ -465,8 +466,9 @@ export function HomeDashboard({
                 { id: "ejercicios", label: "Ejercicios", icon: <Dumbbell size={16} /> },
                 { id: "ingredientes", label: "Ingredientes", icon: <Package size={16} /> },
                 { id: "recetas", label: "Recetas", icon: <UtensilsCrossed size={16} /> },
+                { id: "ropa", label: "Ropa", icon: <Shirt size={16} /> },
               ] as const).map(({ id, label, icon }) => (
-                <MotionDiv key={id} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
+                <MotionDiv key={id} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} style={{ gridColumn: id === "ropa" ? "1 / -1" : undefined }}>
                   <button
                     onClick={() => setVistaPersonal(id)}
                     style={{
@@ -653,6 +655,7 @@ export function HomeDashboard({
               {vistaPersonal === "ejercicios" && <PaginaEjercicios />}
               {vistaPersonal === "ingredientes" && <IngredientesPage />}
               {vistaPersonal === "recetas" && <RecetasPage />}
+              {vistaPersonal === "ropa" && <ArmarioPage />}
             </div>
           </MotionDiv>
         )}
