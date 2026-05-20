@@ -34,7 +34,7 @@ function normPersonaje(v: Personaje | Personaje[] | null | undefined): Personaje
   return Array.isArray(v) ? (v[0] ?? null) : v;
 }
 
-// Rotación de acentos por grupo (mantenido por si lo usas dinámicamente)
+// Rotación de acentos por grupo
 const ACENTOS = [
   { bg: "bg-primary/5",           borderLeft: "color-mix(in srgb, var(--primary) 18%, transparent)" },
   { bg: "bg-accent/5",            borderLeft: "color-mix(in srgb, var(--accent) 22%, transparent)"  },
@@ -69,7 +69,6 @@ const CancionCardGrid = ({ cancion, index }: { cancion: Cancion; index: number }
             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
           />
 
-          {/* Gradientes actualizados a Tailwind v4 */}
           <div className="absolute inset-0 bg-linear-to-t from-black/75 via-black/20 to-transparent" />
           <div className="absolute inset-0 bg-linear-to-b from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-400" />
 
@@ -133,7 +132,15 @@ const CancionCardFila = ({ cancion, index }: { cancion: Cancion; index: number }
   </MotionDiv>
 );
 
-const PersonajeHeader = ({ nombre, count, imgUrl }: { nombre: string; count: number; imgUrl?: string }) => (
+const PersonajeHeader = ({
+  nombre,
+  count,
+  imgUrl,
+}: {
+  nombre: string;
+  count: number;
+  imgUrl?: string;
+}) => (
   <MotionDiv
     initial={{ opacity: 0, x: -16 }}
     animate={{ opacity: 1, x: 0 }}
@@ -271,21 +278,21 @@ export default function CancionesPage() {
 
   if (loading) return <Loading text="Cargando" />;
 
-  let offset = 0;
+  let offsetAccumulator = 0;
 
   return (
     <div className="min-h-screen bg-bg-main pb-20">
       <div className="max-w-6xl mx-auto pt-16 px-6">
-        {/* Corrección: PageHeader no acepta className, lo envolvemos en un div */}
-        <div className="mb-4">
-          <PageHeader title="Canciones" icon={<Music size={22} />} />
-        </div>
-
-        <div className="flex items-center justify-end gap-3 mb-10">
+        {/* Cabecera optimizada: Título y botón en la misma línea */}
+        <div className="flex items-center justify-between mb-10 gap-4">
+          <div className="flex-1">
+            <PageHeader title="Canciones" icon={<Music size={22} />} />
+          </div>
+          
           <button
             onClick={() => setVistaFila(v => !v)}
             title={vistaFila ? "Vista cuadrícula" : "Vista lista"}
-            className="p-3 rounded-btn border border-primary/10 hover:bg-primary/5 hover:border-primary/20 text-primary/40 hover:text-primary transition-all"
+            className="p-3 rounded-btn border border-primary/10 hover:bg-primary/5 hover:border-primary/20 text-primary/40 hover:text-primary transition-all shrink-0"
           >
             {vistaFila ? <LayoutGrid size={18} /> : <List size={18} />}
           </button>
@@ -299,8 +306,8 @@ export default function CancionesPage() {
           </p>
         ) : (
           grupos.map(([personaje, { canciones: cancionesList, imgUrl }]) => {
-            const currentOffset = offset;
-            offset += cancionesList.length;
+            const currentOffset = offsetAccumulator;
+            offsetAccumulator += cancionesList.length;
             return (
               <PersonajeBloque
                 key={personaje}
