@@ -33,15 +33,14 @@ export function HomeDashboard({
   const [nuevaTarea, setNuevaTarea] = useState("");
 
   const favoritos = useMemo(
-    () => ensayos.filter(e => e.tags?.includes("favorito")).slice(0, 6),
+    () => ensayos.filter(e => e.tags?.includes("favorito")).slice(0, 10),
     [ensayos]
   );
 
   const recientes = useMemo(
-    () =>
-      [...ensayos]
-        .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
-        .slice(0, 8),
+    () => [...ensayos]
+      .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+      .slice(0, 10),
     [ensayos]
   );
 
@@ -56,8 +55,8 @@ export function HomeDashboard({
     return Object.entries(freq).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
   }, [ensayos]);
 
-  const pendientes  = useMemo(() => tareas.filter(t => !t.completada).slice(0, 8), [tareas]);
-  const completadas = useMemo(() => tareas.filter(t =>  t.completada).slice(0, 4), [tareas]);
+  const pendientes = useMemo(() => tareas.filter(t => !t.completada).slice(0, 10), [tareas]);
+  const completadas = useMemo(() => tareas.filter(t => t.completada).slice(0, 4), [tareas]);
 
   const handleAddTarea = () => {
     if (!nuevaTarea.trim() || !onAddTarea) return;
@@ -77,8 +76,28 @@ export function HomeDashboard({
     return new Date(dateStr).toLocaleDateString("es-ES", { day: "2-digit", month: "short" });
   };
 
-  // Noop para onAddEvento si no se pasa
   const handleAddEvento = onAddEvento ?? (async () => {});
+
+  const gap = 1;
+  const divColor = "color-mix(in srgb, var(--foreground) 5%, transparent)";
+
+  /* ── Sección reutilizable ── */
+  const SectionHeader = ({ icon, label, count }: { icon: React.ReactNode; label: string; count?: number }) => (
+    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12 }}>
+      {icon}
+      <span style={{ ...mono, fontSize: 8, color: "color-mix(in srgb, var(--foreground) 25%, transparent)", textTransform: "uppercase", letterSpacing: "0.14em", flex: 1 }}>
+        {label}
+      </span>
+      {count !== undefined && count > 0 && (
+        <span style={{
+          ...mono, fontSize: 7,
+          background: "color-mix(in srgb, var(--foreground) 8%, transparent)",
+          color: "color-mix(in srgb, var(--foreground) 40%, transparent)",
+          padding: "1px 5px", borderRadius: 99,
+        }}>{count}</span>
+      )}
+    </div>
+  );
 
   return (
     <MotionDiv
@@ -88,163 +107,58 @@ export function HomeDashboard({
       className="h-full overflow-y-auto"
       style={{ background: "var(--bg-main)" }}
     >
-      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 32px 64px" }}>
+      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "32px 32px 64px" }}>
 
-        {/* ── Header compacto ── */}
-        <div
-          className="flex items-end justify-between mb-8"
-          style={{ borderBottom: "1px solid color-mix(in srgb, var(--foreground) 6%, transparent)", paddingBottom: 16 }}
-        >
-          <div>
-            <h1 style={{ ...serif, fontSize: 22, color: "color-mix(in srgb, var(--foreground) 80%, transparent)", letterSpacing: "-0.02em", margin: 0 }}>
-              Escritorio
-            </h1>
-            <p style={{ ...mono, fontSize: 9, color: "color-mix(in srgb, var(--foreground) 20%, transparent)", marginTop: 3, textTransform: "uppercase", letterSpacing: "0.12em" }}>
-              {ensayos.length} notas · {totalPalabras.toLocaleString("es-ES")} palabras
-              {tagMasUsado && ` · #${tagMasUsado} frecuente`}
-              {tareas.length > 0 && ` · ${pendientes.length} pendiente${pendientes.length !== 1 ? "s" : ""}`}
-            </p>
-          </div>
-        </div>
+        {/* ── Stats mínimo arriba ── */}
+        <p style={{ ...mono, fontSize: 9, color: "color-mix(in srgb, var(--foreground) 18%, transparent)", marginBottom: 16, textTransform: "uppercase", letterSpacing: "0.12em" }}>
+          {ensayos.length} notas · {totalPalabras.toLocaleString("es-ES")} palabras
+          {tagMasUsado && ` · #${tagMasUsado}`}
+          {pendientes.length > 0 && ` · ${pendientes.length} pendiente${pendientes.length !== 1 ? "s" : ""}`}
+        </p>
 
-        {/* ── Fila 1: 4 columnas ── */}
+        {/* ══════════════════════════════════════════
+            FILA PRINCIPAL — grid con areas
+            col: VistaMes | Reloj+Tareas | Favoritos+Recientes | Tags
+        ══════════════════════════════════════════ */}
         <div style={{
           display: "grid",
-          gridTemplateColumns: "1fr 1fr 1fr 1fr",
-          gap: 1,
-          background: "color-mix(in srgb, var(--foreground) 5%, transparent)",
+          gridTemplateColumns: "1.4fr 1fr 1fr 0.85fr",
+          gridTemplateRows: "1fr 1fr",
+          gridTemplateAreas: `
+            "mes reloj     favoritos tags"
+            "mes tareas    recientes tags"
+          `,
+          gap: gap,
+          background: divColor,
           borderRadius: 8,
           overflow: "hidden",
-          marginBottom: 1,
+          marginBottom: gap,
+          /* altura fija para que el span funcione bien */
+          minHeight: 480,
         }}>
 
-          {/* Columna 1: Favoritos */}
-          <div style={{ background: "var(--bg-main)", padding: "20px 18px" }}>
-            <div className="flex items-center gap-1.5 mb-4">
-              <Star size={9} style={{ color: "color-mix(in srgb, var(--foreground) 25%, transparent)" }} />
-              <span style={{ ...mono, fontSize: 8, color: "color-mix(in srgb, var(--foreground) 25%, transparent)", textTransform: "uppercase", letterSpacing: "0.14em" }}>
-                Notas maestras
-              </span>
-            </div>
-            {favoritos.length > 0 ? (
-              <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                {favoritos.map((f, i) => (
-                  <MotionDiv key={f.id} initial={{ opacity: 0, x: -4 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.04 }}>
-                    <button
-                      onClick={() => onNavigate(f.titulo)}
-                      className="w-full text-left group flex items-center justify-between"
-                      style={{ padding: "6px 8px", borderRadius: 5, background: "transparent", border: "none", cursor: "pointer", transition: "background 0.1s" }}
-                      onMouseEnter={e => (e.currentTarget.style.background = "color-mix(in srgb, var(--foreground) 4%, transparent)")}
-                      onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
-                    >
-                      <span style={{ ...serif, fontSize: 12, color: "color-mix(in srgb, var(--foreground) 70%, transparent)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
-                        {f.titulo}
-                      </span>
-                      <ArrowRight size={8} style={{ color: "color-mix(in srgb, var(--foreground) 15%, transparent)", flexShrink: 0, marginLeft: 4, opacity: 0, transition: "opacity 0.1s" }} className="group-hover:opacity-100" />
-                    </button>
-                  </MotionDiv>
-                ))}
-              </div>
-            ) : (
-              <p style={{ ...mono, fontSize: 9, color: "color-mix(in srgb, var(--foreground) 15%, transparent)", lineHeight: 1.6 }}>
-                Agrega el tag<br /><span style={{ color: "color-mix(in srgb, var(--foreground) 30%, transparent)" }}>#favorito</span> a una nota.
-              </p>
-            )}
+          {/* ── VistaMes — span 2 rows ── */}
+          <div style={{ gridArea: "mes", background: "var(--bg-main)", overflow: "hidden", display: "flex", flexDirection: "column" }}>
+            <VistaMes
+              eventos={eventos}
+              capitulosRaw={capitulosRaw}
+              isAddingEvento={isAddingEvento}
+              onAddEvento={handleAddEvento}
+            />
           </div>
 
-          {/* Columna 2: Tags */}
-          <div style={{ background: "var(--bg-main)", padding: "20px 18px" }}>
-            <div className="flex items-center gap-1.5 mb-4">
-              <Hash size={9} style={{ color: "color-mix(in srgb, var(--foreground) 25%, transparent)" }} />
-              <span style={{ ...mono, fontSize: 8, color: "color-mix(in srgb, var(--foreground) 25%, transparent)", textTransform: "uppercase", letterSpacing: "0.14em" }}>
-                Tags · {todosLosTags.length}
-              </span>
-            </div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 4px" }}>
-              {todosLosTags.map((tag, i) => {
-                const count = ensayos.filter(e => e.tags?.includes(tag)).length;
-                return (
-                  <MotionDiv key={tag} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }}>
-                    <button
-                      onClick={() => onTagClick(tag)}
-                      style={{
-                        ...mono, fontSize: 9, padding: "2px 7px", borderRadius: 4,
-                        border: "1px solid color-mix(in srgb, var(--foreground) 8%, transparent)",
-                        background: "color-mix(in srgb, var(--foreground) 3%, transparent)",
-                        color: "color-mix(in srgb, var(--foreground) 40%, transparent)",
-                        cursor: "pointer", transition: "all 0.1s", display: "flex", alignItems: "center", gap: 3,
-                      }}
-                      onMouseEnter={e => {
-                        (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--foreground) 20%, transparent)";
-                        (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--foreground) 70%, transparent)";
-                        (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--foreground) 6%, transparent)";
-                      }}
-                      onMouseLeave={e => {
-                        (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--foreground) 8%, transparent)";
-                        (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--foreground) 40%, transparent)";
-                        (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--foreground) 3%, transparent)";
-                      }}
-                    >
-                      #{tag}
-                      <span style={{ fontSize: 7, color: "color-mix(in srgb, var(--foreground) 20%, transparent)" }}>{count}</span>
-                    </button>
-                  </MotionDiv>
-                );
-              })}
-              {todosLosTags.length === 0 && (
-                <p style={{ ...mono, fontSize: 9, color: "color-mix(in srgb, var(--foreground) 15%, transparent)" }}>Aún sin tags.</p>
-              )}
-            </div>
+          {/* ── Reloj ── */}
+          <div style={{ gridArea: "reloj", background: "var(--bg-main)", overflow: "hidden", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+            <RelojDigital horario={horario} tareas={tareas} />
           </div>
 
-          {/* Columna 3: Recientes */}
-          <div style={{ background: "var(--bg-main)", padding: "20px 18px" }}>
-            <div className="flex items-center gap-1.5 mb-4">
-              <Clock size={9} style={{ color: "color-mix(in srgb, var(--foreground) 25%, transparent)" }} />
-              <span style={{ ...mono, fontSize: 8, color: "color-mix(in srgb, var(--foreground) 25%, transparent)", textTransform: "uppercase", letterSpacing: "0.14em" }}>
-                Recientes
-              </span>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
-              {recientes.map((r, i) => (
-                <MotionDiv key={r.id} initial={{ opacity: 0, x: 4 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.03 }}>
-                  <button
-                    onClick={() => onNavigate(r.titulo)}
-                    className="w-full text-left group flex items-center justify-between"
-                    style={{ padding: "5px 8px", borderRadius: 5, background: "transparent", border: "none", cursor: "pointer", transition: "background 0.1s" }}
-                    onMouseEnter={e => (e.currentTarget.style.background = "color-mix(in srgb, var(--foreground) 4%, transparent)")}
-                    onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
-                  >
-                    <span style={{ ...serif, fontSize: 11, color: "color-mix(in srgb, var(--foreground) 65%, transparent)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
-                      {r.titulo || "Sin título"}
-                    </span>
-                    <span style={{ ...mono, fontSize: 8, color: "color-mix(in srgb, var(--foreground) 20%, transparent)", flexShrink: 0, marginLeft: 6 }}>
-                      {formatRelative(r.updated_at)}
-                    </span>
-                  </button>
-                </MotionDiv>
-              ))}
-            </div>
-          </div>
-
-          {/* Columna 4: Tareas */}
-          <div style={{ background: "var(--bg-main)", padding: "20px 18px", display: "flex", flexDirection: "column" }}>
-            <div className="flex items-center gap-1.5 mb-3">
-              <CheckSquare size={9} style={{ color: "color-mix(in srgb, var(--foreground) 25%, transparent)" }} />
-              <span style={{ ...mono, fontSize: 8, color: "color-mix(in srgb, var(--foreground) 25%, transparent)", textTransform: "uppercase", letterSpacing: "0.14em", flex: 1 }}>
-                Pendientes
-              </span>
-              {pendientes.length > 0 && (
-                <span style={{
-                  ...mono, fontSize: 7,
-                  background: "color-mix(in srgb, var(--foreground) 8%, transparent)",
-                  color: "color-mix(in srgb, var(--foreground) 40%, transparent)",
-                  padding: "1px 5px", borderRadius: 99,
-                }}>
-                  {pendientes.length}
-                </span>
-              )}
-            </div>
+          {/* ── Tareas ── */}
+          <div style={{ gridArea: "tareas", background: "var(--bg-main)", padding: "16px 18px", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+            <SectionHeader
+              icon={<CheckSquare size={9} style={{ color: "color-mix(in srgb, var(--foreground) 25%, transparent)" }} />}
+              label="Pendientes"
+              count={pendientes.length}
+            />
 
             {onAddTarea && (
               <div style={{ display: "flex", gap: 4, marginBottom: 8 }}>
@@ -261,14 +175,8 @@ export function HomeDashboard({
                     color: "color-mix(in srgb, var(--foreground) 70%, transparent)",
                     outline: "none", minWidth: 0,
                   }}
-                  onFocus={e => {
-                    e.currentTarget.style.borderColor = "color-mix(in srgb, var(--foreground) 20%, transparent)";
-                    e.currentTarget.style.background = "color-mix(in srgb, var(--foreground) 5%, transparent)";
-                  }}
-                  onBlur={e => {
-                    e.currentTarget.style.borderColor = "color-mix(in srgb, var(--foreground) 8%, transparent)";
-                    e.currentTarget.style.background = "color-mix(in srgb, var(--foreground) 3%, transparent)";
-                  }}
+                  onFocus={e => { e.currentTarget.style.borderColor = "color-mix(in srgb, var(--foreground) 20%, transparent)"; e.currentTarget.style.background = "color-mix(in srgb, var(--foreground) 5%, transparent)"; }}
+                  onBlur={e => { e.currentTarget.style.borderColor = "color-mix(in srgb, var(--foreground) 8%, transparent)"; e.currentTarget.style.background = "color-mix(in srgb, var(--foreground) 3%, transparent)"; }}
                 />
                 <button
                   onClick={handleAddTarea}
@@ -280,14 +188,12 @@ export function HomeDashboard({
                     display: "flex", alignItems: "center", justifyContent: "center",
                     transition: "all 0.1s", flexShrink: 0,
                   }}
-                >
-                  <Plus size={10} />
-                </button>
+                ><Plus size={10} /></button>
               </div>
             )}
 
-            <div style={{ display: "flex", flexDirection: "column", gap: 1, flex: 1 }}>
-              {pendientes.length === 0 && completadas.length === 0 && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 1, flex: 1, overflowY: "auto" }}>
+              {pendientes.length === 0 && (
                 <p style={{ ...mono, fontSize: 9, color: "color-mix(in srgb, var(--foreground) 15%, transparent)", fontStyle: "italic" }}>Sin pendientes.</p>
               )}
               {pendientes.map((t, i) => (
@@ -299,18 +205,11 @@ export function HomeDashboard({
                     onMouseEnter={e => onToggleTarea && (e.currentTarget.style.background = "color-mix(in srgb, var(--foreground) 4%, transparent)")}
                     onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
                   >
-                    <span style={{
-                      width: 10, height: 10, borderRadius: 3, flexShrink: 0,
-                      border: "1px solid color-mix(in srgb, var(--foreground) 20%, transparent)",
-                      display: "inline-flex", alignItems: "center", justifyContent: "center", transition: "border-color 0.1s",
-                    }} className="group-hover:border-foreground/40" />
-                    <span style={{ ...mono, fontSize: 10, color: "color-mix(in srgb, var(--foreground) 65%, transparent)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
-                      {t.titulo}
-                    </span>
+                    <span style={{ width: 10, height: 10, borderRadius: 3, flexShrink: 0, border: "1px solid color-mix(in srgb, var(--foreground) 20%, transparent)", display: "inline-flex", alignItems: "center", justifyContent: "center" }} />
+                    <span style={{ ...mono, fontSize: 10, color: "color-mix(in srgb, var(--foreground) 65%, transparent)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{t.titulo}</span>
                   </button>
                 </MotionDiv>
               ))}
-
               {completadas.length > 0 && pendientes.length > 0 && (
                 <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 0" }}>
                   <div style={{ flex: 1, height: 1, background: "color-mix(in srgb, var(--foreground) 6%, transparent)" }} />
@@ -318,7 +217,6 @@ export function HomeDashboard({
                   <div style={{ flex: 1, height: 1, background: "color-mix(in srgb, var(--foreground) 6%, transparent)" }} />
                 </div>
               )}
-
               {completadas.map((t, i) => (
                 <MotionDiv key={t.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }}>
                   <button
@@ -326,66 +224,118 @@ export function HomeDashboard({
                     className="w-full text-left flex items-center gap-2"
                     style={{ padding: "5px 6px", borderRadius: 5, background: "transparent", border: "none", cursor: onToggleTarea ? "pointer" : "default", opacity: 0.4 }}
                   >
-                    <span style={{
-                      width: 10, height: 10, borderRadius: 3, flexShrink: 0,
-                      background: "color-mix(in srgb, var(--foreground) 25%, transparent)",
-                      border: "1px solid color-mix(in srgb, var(--foreground) 25%, transparent)",
-                      display: "inline-flex", alignItems: "center", justifyContent: "center",
-                    }}>
+                    <span style={{ width: 10, height: 10, borderRadius: 3, flexShrink: 0, background: "color-mix(in srgb, var(--foreground) 25%, transparent)", border: "1px solid color-mix(in srgb, var(--foreground) 25%, transparent)", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
                       <Check size={6} style={{ color: "var(--bg-main)", strokeWidth: 3 }} />
                     </span>
-                    <span style={{ ...mono, fontSize: 10, color: "color-mix(in srgb, var(--foreground) 40%, transparent)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, textDecoration: "line-through" }}>
-                      {t.titulo}
-                    </span>
+                    <span style={{ ...mono, fontSize: 10, color: "color-mix(in srgb, var(--foreground) 40%, transparent)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, textDecoration: "line-through" }}>{t.titulo}</span>
                   </button>
                 </MotionDiv>
               ))}
             </div>
           </div>
 
-        </div>
-
-        {/* ── Fila 2: Calendario + Reloj ── */}
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "1fr auto",
-          gap: 1,
-          background: "color-mix(in srgb, var(--foreground) 5%, transparent)",
-          borderRadius: 8,
-          overflow: "hidden",
-          marginBottom: 1,
-        }}>
-
-          {/* Calendario */}
-          <div style={{ background: "var(--bg-main)", minHeight: 0, overflow: "hidden" }}>
-            <VistaMes
-              eventos={eventos}
-              capitulosRaw={capitulosRaw}
-              isAddingEvento={isAddingEvento}
-              onAddEvento={handleAddEvento}
+          {/* ── Favoritos ── */}
+          <div style={{ gridArea: "favoritos", background: "var(--bg-main)", padding: "16px 18px", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+            <SectionHeader
+              icon={<Star size={9} style={{ color: "color-mix(in srgb, var(--foreground) 25%, transparent)" }} />}
+              label="Favoritos"
             />
+            {favoritos.length > 0 ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: 1, overflowY: "auto", flex: 1 }}>
+                {favoritos.map((f, i) => (
+                  <MotionDiv key={f.id} initial={{ opacity: 0, x: -4 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.04 }}>
+                    <button
+                      onClick={() => onNavigate(f.titulo)}
+                      className="w-full text-left group flex items-center justify-between"
+                      style={{ padding: "6px 8px", borderRadius: 5, background: "transparent", border: "none", cursor: "pointer", transition: "background 0.1s" }}
+                      onMouseEnter={e => (e.currentTarget.style.background = "color-mix(in srgb, var(--foreground) 4%, transparent)")}
+                      onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+                    >
+                      <span style={{ ...serif, fontSize: 12, color: "color-mix(in srgb, var(--foreground) 70%, transparent)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{f.titulo}</span>
+                      <ArrowRight size={8} style={{ color: "color-mix(in srgb, var(--foreground) 15%, transparent)", flexShrink: 0, marginLeft: 4, opacity: 0, transition: "opacity 0.1s" }} className="group-hover:opacity-100" />
+                    </button>
+                  </MotionDiv>
+                ))}
+              </div>
+            ) : (
+              <p style={{ ...mono, fontSize: 9, color: "color-mix(in srgb, var(--foreground) 15%, transparent)", lineHeight: 1.6 }}>
+                Agrega <span style={{ color: "color-mix(in srgb, var(--foreground) 30%, transparent)" }}>#favorito</span> a una nota.
+              </p>
+            )}
           </div>
 
-          {/* Separador vertical */}
-          <div style={{ width: 1, background: "color-mix(in srgb, var(--foreground) 5%, transparent)" }} />
+          {/* ── Recientes ── */}
+          <div style={{ gridArea: "recientes", background: "var(--bg-main)", padding: "16px 18px", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+            <SectionHeader
+              icon={<Clock size={9} style={{ color: "color-mix(in srgb, var(--foreground) 25%, transparent)" }} />}
+              label="Recientes"
+            />
+            <div style={{ display: "flex", flexDirection: "column", gap: 1, overflowY: "auto", flex: 1 }}>
+              {recientes.map((r, i) => (
+                <MotionDiv key={r.id} initial={{ opacity: 0, x: 4 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.03 }}>
+                  <button
+                    onClick={() => onNavigate(r.titulo)}
+                    className="w-full text-left group flex items-center justify-between"
+                    style={{ padding: "5px 8px", borderRadius: 5, background: "transparent", border: "none", cursor: "pointer", transition: "background 0.1s" }}
+                    onMouseEnter={e => (e.currentTarget.style.background = "color-mix(in srgb, var(--foreground) 4%, transparent)")}
+                    onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+                  >
+                    <span style={{ ...serif, fontSize: 11, color: "color-mix(in srgb, var(--foreground) 65%, transparent)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{r.titulo || "Sin título"}</span>
+                    <span style={{ ...mono, fontSize: 8, color: "color-mix(in srgb, var(--foreground) 20%, transparent)", flexShrink: 0, marginLeft: 6 }}>{formatRelative(r.updated_at)}</span>
+                  </button>
+                </MotionDiv>
+              ))}
+            </div>
+          </div>
 
-          {/* Reloj */}
-          <div style={{ background: "var(--bg-main)", width: 180, display: "flex", flexDirection: "column", justifyContent: "center" }}>
-            <RelojDigital horario={horario} tareas={tareas} />
+          {/* ── Tags — span 2 rows ── */}
+          <div style={{ gridArea: "tags", background: "var(--bg-main)", padding: "16px 18px", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+            <SectionHeader
+              icon={<Hash size={9} style={{ color: "color-mix(in srgb, var(--foreground) 25%, transparent)" }} />}
+              label={`Tags · ${todosLosTags.length}`}
+            />
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "4px", overflowY: "auto", alignContent: "flex-start", flex: 1 }}>
+              {todosLosTags.map((tag, i) => {
+                const count = ensayos.filter(e => e.tags?.includes(tag)).length;
+                return (
+                  <MotionDiv key={tag} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }}>
+                    <button
+                      onClick={() => onTagClick(tag)}
+                      style={{
+                        ...mono, fontSize: 9, padding: "2px 7px", borderRadius: 4,
+                        border: "1px solid color-mix(in srgb, var(--foreground) 8%, transparent)",
+                        background: "color-mix(in srgb, var(--foreground) 3%, transparent)",
+                        color: "color-mix(in srgb, var(--foreground) 40%, transparent)",
+                        cursor: "pointer", transition: "all 0.1s",
+                        display: "flex", alignItems: "center", gap: 3,
+                      }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--foreground) 20%, transparent)"; (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--foreground) 70%, transparent)"; (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--foreground) 6%, transparent)"; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--foreground) 8%, transparent)"; (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--foreground) 40%, transparent)"; (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--foreground) 3%, transparent)"; }}
+                    >
+                      #{tag}
+                      <span style={{ fontSize: 7, color: "color-mix(in srgb, var(--foreground) 20%, transparent)" }}>{count}</span>
+                    </button>
+                  </MotionDiv>
+                );
+              })}
+              {todosLosTags.length === 0 && (
+                <p style={{ ...mono, fontSize: 9, color: "color-mix(in srgb, var(--foreground) 15%, transparent)" }}>Aún sin tags.</p>
+              )}
+            </div>
           </div>
 
         </div>
 
-        {/* ── Fila 3: Todas las notas ── */}
-        <div style={{ marginTop: 1, borderRadius: 8, overflow: "hidden", background: "color-mix(in srgb, var(--foreground) 5%, transparent)" }}>
+        {/* ── Todas las notas ── */}
+        <div style={{ borderRadius: 8, overflow: "hidden", background: divColor }}>
           <div style={{ background: "var(--bg-main)", padding: "20px 18px" }}>
-            <div className="flex items-center gap-1.5 mb-4">
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 16 }}>
               <FileText size={9} style={{ color: "color-mix(in srgb, var(--foreground) 25%, transparent)" }} />
               <span style={{ ...mono, fontSize: 8, color: "color-mix(in srgb, var(--foreground) 25%, transparent)", textTransform: "uppercase", letterSpacing: "0.14em" }}>
                 Todas las notas · {ensayos.length}
               </span>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 1, background: "color-mix(in srgb, var(--foreground) 5%, transparent)", borderRadius: 6, overflow: "hidden" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 1, background: divColor, borderRadius: 6, overflow: "hidden" }}>
               {ensayos.map((e, i) => (
                 <MotionDiv key={e.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: Math.min(i * 0.015, 0.4) }}>
                   <button
