@@ -3,10 +3,10 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/api/client/supabase";
+import { db } from "@/lib/api/client/db";
 import { Play, Calendar, Clock, CheckCircle2 } from "lucide-react";
 import { SmartImage } from "@/components/display/SmartImage";
 import { Loading, BackBtn } from "@/components/ui";
-// ── NUEVO: helpers de slug ───────────────────────────────────────────────────
 import { toSlug, esUUID } from "@/lib/utils/slugify";
 
 interface Narrador {
@@ -46,44 +46,31 @@ interface CapituloProximo {
   fecha_publicacion: string;
 }
 
-/** Igual que en leer.tsx: prioridad reino > narrador */
 interface GrupoSegmento {
   reino:    Reino    | null;
   narrador: Narrador | null;
   capitulos: Capitulo[];
 }
 
-/* ── Helper: normaliza joins que Supabase puede devolver como array o null ── */
 function normOne<T>(v: T | T[] | null | undefined): T | null {
   if (!v) return null;
   return Array.isArray(v) ? (v[0] ?? null) : v;
 }
 
-/* ── Construye grupos con la misma lógica que buildSegmentos en leer.tsx ── */
 function buildGrupos(caps: Capitulo[]): GrupoSegmento[] {
   const grupos: GrupoSegmento[] = [];
-
   for (const cap of caps) {
     const reino    = cap.reino    ?? null;
     const narrador = cap.narrador ?? null;
     const key      = `${reino?.id ?? "null"}::${narrador?.id ?? "null"}`;
-
-    const last    = grupos[grupos.length - 1];
-    const lastKey = last
-      ? `${last.reino?.id ?? "null"}::${last.narrador?.id ?? "null"}`
-      : null;
-
-    if (last && lastKey === key) {
-      last.capitulos.push(cap);
-    } else {
-      grupos.push({ reino, narrador, capitulos: [cap] });
-    }
+    const last     = grupos[grupos.length - 1];
+    const lastKey  = last ? `${last.reino?.id ?? "null"}::${last.narrador?.id ?? "null"}` : null;
+    if (last && lastKey === key) last.capitulos.push(cap);
+    else grupos.push({ reino, narrador, capitulos: [cap] });
   }
-
   return grupos;
 }
 
-/** Etiqueta del grupo: reino · narrador / solo reino / solo narrador */
 function grupoLabel(g: GrupoSegmento): string {
   if (g.reino && g.narrador) return `${g.reino.nombre} · ${g.narrador.nombre}`;
   if (g.reino)    return g.reino.nombre;
@@ -91,12 +78,36 @@ function grupoLabel(g: GrupoSegmento): string {
   return "";
 }
 
-/** Imagen de cabecera: imagen del reino tiene prioridad sobre avatar del narrador */
 function grupoImg(g: GrupoSegmento): string | null | undefined {
   return g.reino?.imagen_reino ?? g.narrador?.img_url ?? null;
 }
 
-// ── Flip de portada que muestra protagonistas al hacer click ─────────────────
+// ─── Resolver slug → libro usando Dexie primero ──────────────────────────────
+async function resolverLibroPorSlug(slugParam: string): Promise<Libro | null> {
+  // 1. Intentar desde Dexie (0 RTT)
+  try {
+    if (db?.libros) {
+      const todos = await db.libros.toArray() as any[];
+      if (todos.length > 0) {
+        const encontrado = todos.find((l: any) => toSlug(l.titulo ?? "") === slugParam);
+        if (encontrado) return encontrado as Libro;
+      }
+    }
+  } catch {}
+
+  // 2. Fallback a Supabase — UNA sola query con los campos necesarios
+  const { data } = await supabase
+    .from("libros")
+    .select("id, titulo, sinopsis, portada_url, categoria");
+  if (!data) return null;
+
+  // Guardar en Dexie para la próxima visita
+  try { await db?.libros?.bulkPut(data as any[]); } catch {}
+
+  return (data.find((l: any) => toSlug(l.titulo ?? "") === slugParam) ?? null) as Libro | null;
+}
+
+// ─── Flip portada ─────────────────────────────────────────────────────────────
 function CoverFlipProtagonistas({
   portada_url,
   titulo,
@@ -152,7 +163,7 @@ function CoverFlipProtagonistas({
           <div style={{ display: "flex", flexDirection: "column", gap: 10, flex: 1 }}>
             {protagonistas.map((g, i) => {
               const label = grupoLabel(g);
-              const img = grupoImg(g);
+              const img   = grupoImg(g);
               if (!label) return null;
               return (
                 <div key={i} style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -192,37 +203,31 @@ function CoverFlipProtagonistas({
 }
 
 export default function LibroDetalle() {
-  const params = useParams();
-  // ── CAMBIO: el segmento de la URL ahora es un slug (o UUID para compatibilidad) ──
+  const params   = useParams();
   const slugParam = params?.id as string;
-  const router = useRouter();
+  const router   = useRouter();
 
-  const [loading, setLoading]                 = useState(true);
-  const [libro, setLibro]                     = useState<Libro | null>(null);
-  // libroId es el UUID real de Supabase, resuelto a partir del slug
-  const [libroId, setLibroId]                 = useState<string | null>(null);
-  const [capitulos, setCapitulos]             = useState<Capitulo[]>([]);
-  const [capituloProximo, setCapituloProximo] = useState<CapituloProximo | null | false>(null);
-  const [notFound, setNotFound]               = useState(false);
-  const [leidos, setLeidos]                   = useState<Set<string>>(new Set());
+  const [loading,          setLoading]          = useState(true);
+  const [libro,            setLibro]            = useState<Libro | null>(null);
+  const [libroId,          setLibroId]          = useState<string | null>(null);
+  const [capitulos,        setCapitulos]         = useState<Capitulo[]>([]);
+  const [capituloProximo,  setCapituloProximo]  = useState<CapituloProximo | null | false>(null);
+  const [notFound,         setNotFound]         = useState(false);
+  const [leidos,           setLeidos]           = useState<Set<string>>(new Set());
 
-  // ── Cargar capítulos leídos desde localStorage ──
+  // ── Capítulos leídos ─────────────────────────────────────────────────────────
   useEffect(() => {
     if (!libroId) return;
-
     const leer = () => {
       try {
         const raw = localStorage.getItem(`leidos:${libroId}`);
         setLeidos(new Set(raw ? (JSON.parse(raw) as string[]) : []));
-      } catch { }
+      } catch {}
     };
-
     leer();
-
     const onVisible = () => { if (document.visibilityState === "visible") leer(); };
     document.addEventListener("visibilitychange", onVisible);
     window.addEventListener("focus", leer);
-
     return () => {
       document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("focus", leer);
@@ -234,14 +239,12 @@ export default function LibroDetalle() {
     setLeidos(prev => {
       const next = new Set(prev);
       next.add(capId);
-      try { localStorage.setItem(`leidos:${libroId}`, JSON.stringify([...next])); } catch { }
+      try { localStorage.setItem(`leidos:${libroId}`, JSON.stringify([...next])); } catch {}
       return next;
     });
   };
 
-  // ── NUEVO: resolver slug → UUID del libro ────────────────────────────────
-  // Si el param ya es un UUID (links viejos), lo usamos directamente.
-  // Si es un slug, buscamos todos los libros y comparamos slugs.
+  // ── Carga principal ───────────────────────────────────────────────────────────
   useEffect(() => {
     if (!slugParam) return;
     setLoading(true);
@@ -249,40 +252,44 @@ export default function LibroDetalle() {
     setLibro(null);
     setLibroId(null);
 
-    const resolverLibro = async () => {
-      // Caso 1: param es un UUID — compatibilidad con links anteriores
+    const cargar = async () => {
+      let libroData: Libro | null = null;
+
+      // ── Caso 1: UUID directo (links viejos) ──────────────────────────────
       if (esUUID(slugParam)) {
-        const { data } = await supabase.from("libros").select("*").eq("id", slugParam).single();
-        if (!data) { setNotFound(true); setLoading(false); return; }
-        // Redirigir silenciosamente a la URL con slug para canonicalizar
-        const slug = toSlug(data.titulo);
+        // Buscar en Dexie primero
+        try {
+          libroData = (await db?.libros?.get(slugParam) as any) ?? null;
+        } catch {}
+
+        if (!libroData) {
+          const { data } = await supabase
+            .from("libros")
+            .select("id, titulo, sinopsis, portada_url, categoria")
+            .eq("id", slugParam)
+            .single();
+          libroData = data as Libro | null;
+          if (libroData) {
+            try { await db?.libros?.put(libroData as any); } catch {}
+          }
+        }
+
+        if (!libroData) { setNotFound(true); setLoading(false); return; }
+        // Redirigir a la URL canónica con slug
+        const slug = toSlug(libroData.titulo);
         if (slug) router.replace(`/garlia/libros/${slug}`);
-        setLibro(data);
-        setLibroId(data.id);
-        return data.id as string;
+
+      // ── Caso 2: slug normal ──────────────────────────────────────────────
+      } else {
+        libroData = await resolverLibroPorSlug(slugParam);
+        if (!libroData) { setNotFound(true); setLoading(false); return; }
       }
 
-      // Caso 2: param es un slug — buscar comparando slugs generados
-      const { data: todos } = await supabase.from("libros").select("id, titulo, sinopsis, portada_url, categoria");
-      if (!todos) { setNotFound(true); setLoading(false); return; }
+      setLibro(libroData);
+      setLibroId(libroData.id);
 
-      const encontrado = todos.find(l => toSlug(l.titulo) === slugParam);
-      if (!encontrado) { setNotFound(true); setLoading(false); return; }
-
-      // Obtener el libro completo (con todos los campos)
-      const { data: libroCompleto } = await supabase.from("libros").select("*").eq("id", encontrado.id).single();
-      if (!libroCompleto) { setNotFound(true); setLoading(false); return; }
-
-      setLibro(libroCompleto);
-      setLibroId(libroCompleto.id);
-      return libroCompleto.id as string;
-    };
-
-    resolverLibro().then(async (id) => {
-      if (!id) return;
-
+      // ── Caps + próximo en paralelo ────────────────────────────────────────
       const ahora = new Date().toISOString();
-
       const [capsRes, proximoRes] = await Promise.all([
         supabase
           .from("capitulos")
@@ -291,14 +298,14 @@ export default function LibroDetalle() {
             narrador:personajes!narrador_id(id, nombre, img_url),
             reino:reinos!reino_id(id, nombre, imagen_reino)
           `)
-          .eq("libro_id", id)
+          .eq("libro_id", libroData.id)
           .eq("visibilidad", "publico")
           .not("titulo_capitulo", "like", "[Ruta]%")
           .order("orden", { ascending: true }),
         supabase
           .from("capitulos")
           .select("titulo_capitulo, fecha_publicacion")
-          .eq("libro_id", id)
+          .eq("libro_id", libroData.id)
           .eq("visibilidad", "programado")
           .gt("fecha_publicacion", ahora)
           .order("fecha_publicacion", { ascending: true })
@@ -314,8 +321,9 @@ export default function LibroDetalle() {
 
       setCapitulos(capsNorm);
       setCapituloProximo(proximoRes.data ?? false);
-    }).finally(() => setLoading(false));
+    };
 
+    cargar().finally(() => setLoading(false));
   }, [slugParam]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (loading) return <Loading text="Cargando libro…" />;
@@ -326,9 +334,7 @@ export default function LibroDetalle() {
     </div>
   );
 
-  // ── Construir grupos (reino > narrador) ──
-  const grupos = buildGrupos(capitulos);
-
+  const grupos          = buildGrupos(capitulos);
   const tieneReinos     = grupos.some(g => g.reino    !== null);
   const tieneNarradores = grupos.some(g => g.narrador !== null);
   const tieneAgrupacion = tieneReinos || tieneNarradores;
@@ -342,34 +348,24 @@ export default function LibroDetalle() {
 
   const esExtra = libro.categoria?.toLowerCase() === "extra";
 
-  // ── Helper: ruta al lector usando el slug del libro ──────────────────────
-  // Mantiene slug en la URL del lector también para consistencia SEO
   const rutaLector = (primerCapId: string, targetCapId?: string) =>
     `/garlia/libros/${slugParam}/leer/${primerCapId}${targetCapId ? `#cap-${targetCapId}` : ""}`;
 
-  // ── Layout para categoría "Extra" ─────────────────────────────────────────
   if (esExtra) {
     return (
       <div className="min-h-screen bg-bg-main pb-20 relative">
         <BackBtn onClick={() => router.push("/garlia/libros")} />
-
         <div className="max-w-5xl mx-auto px-6 grid md:grid-cols-[340px_1fr] gap-12 mt-4 items-start">
           <div
             className="rounded-[var(--radius-card)] overflow-hidden bg-white-custom md:sticky md:top-8"
             style={{ border: "var(--border-width) solid color-mix(in srgb, var(--primary) 15%, transparent)", boxShadow: "var(--shadow-card)" }}
           >
-            <SmartImage
-              src={libro.portada_url || "/placeholder-cover.jpg"}
-              alt={libro.titulo}
-              className="w-full h-full"
-            />
+            <SmartImage src={libro.portada_url || "/placeholder-cover.jpg"} alt={libro.titulo} className="w-full h-full" />
           </div>
-
           <main>
             <h1 className="text-4xl font-black text-primary italic tracking-tighter leading-[0.9] mb-10 uppercase text-center">
               {libro.titulo}
             </h1>
-
             {capitulos.length === 0 ? (
               <p className="text-center text-primary/30 font-bold text-xs uppercase tracking-widest py-12 italic">
                 Aún no hay capítulos publicados
@@ -382,32 +378,17 @@ export default function LibroDetalle() {
                   return (
                     <button
                       key={cap.id}
-                      onClick={() => {
-                        marcarLeido(cap.id);
-                        // ── CAMBIO: usar slug en la ruta ──
-                        router.push(rutaLector(capitulos[0]?.id ?? cap.id, cap.id));
-                      }}
-                      className={`w-full flex items-center justify-between p-5 transition-all text-left group rounded-btn shadow-card ${
-                        esRuta ? "bg-blue-50/60" :
-                        leido  ? "bg-primary/[0.03]" :
-                        "bg-white-custom"
-                      }`}
+                      onClick={() => { marcarLeido(cap.id); router.push(rutaLector(capitulos[0]?.id ?? cap.id, cap.id)); }}
+                      className={`w-full flex items-center justify-between p-6 transition-all text-left group rounded-btn shadow-card ${esRuta ? "bg-blue-50/60" : leido ? "bg-primary/[0.03]" : "bg-white-custom"}`}
                       style={{
-                        border: `var(--border-width) solid ${
-                          esRuta ? "rgb(219 234 254)" :
-                          leido  ? "color-mix(in srgb, var(--primary) 5%, transparent)" :
-                          "color-mix(in srgb, var(--primary) 8%, transparent)"
-                        }`,
-                        boxShadow: leido ? "none" : undefined,
-                        opacity:   leido ? 0.55 : 1,
+                        border: `var(--border-width) solid ${esRuta ? "rgb(219 234 254)" : leido ? "color-mix(in srgb, var(--primary) 5%, transparent)" : "color-mix(in srgb, var(--primary) 8%, transparent)"}`,
+                        boxShadow: leido ? "none" : undefined, opacity: leido ? 0.55 : 1,
                       }}
                       onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.borderColor = "color-mix(in srgb, var(--primary) 25%, transparent)"; }}
                       onMouseLeave={e => { e.currentTarget.style.opacity = leido ? "0.55" : "1"; e.currentTarget.style.borderColor = esRuta ? "rgb(219 234 254)" : leido ? "color-mix(in srgb, var(--primary) 5%, transparent)" : "color-mix(in srgb, var(--primary) 8%, transparent)"; }}
                     >
                       <div className="flex flex-col gap-1">
-                        {esRuta && (
-                          <span className="text-[8px] font-black uppercase tracking-widest text-blue-400 mb-0.5">↳ Nodo de ruta</span>
-                        )}
+                        {esRuta && <span className="text-[8px] font-black uppercase tracking-widest text-blue-400 mb-0.5">↳ Nodo de ruta</span>}
                         <span className={`font-black uppercase text-[12px] group-hover:translate-x-1 transition-transform ${leido ? "text-primary/40 line-through decoration-primary/20" : "text-primary"}`}>
                           {cap.orden}. {esRuta ? cap.titulo_capitulo.replace("[Ruta] ", "") : cap.titulo_capitulo}
                         </span>
@@ -417,10 +398,7 @@ export default function LibroDetalle() {
                           </span>
                         )}
                       </div>
-                      {leido
-                        ? <CheckCircle2 size={14} className="text-primary/25 flex-shrink-0" />
-                        : <Play size={14} fill="currentColor" className="text-primary flex-shrink-0" />
-                      }
+                      {leido ? <CheckCircle2 size={14} className="text-primary/25 flex-shrink-0" /> : <Play size={14} fill="currentColor" className="text-primary flex-shrink-0" />}
                     </button>
                   );
                 })}
@@ -432,14 +410,14 @@ export default function LibroDetalle() {
     );
   }
 
-  // ── Layout normal ──────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-bg-main pb-20 relative">
       <BackBtn onClick={() => router.push("/garlia/libros")} />
 
-      <div className="max-w-5xl mx-auto px-6 grid md:grid-cols-[320px_1fr] gap-16 mt-4">
-        {/* ── Portada y sidebar ── */}
-        <aside>
+      <div className="max-w-5xl mx-auto px-6 grid md:grid-cols-[280px_1fr] gap-12 mt-4 items-start">
+
+        {/* ── Sidebar ── */}
+        <aside className="md:sticky md:top-8 flex flex-col gap-6">
           <CoverFlipProtagonistas
             portada_url={libro.portada_url}
             titulo={libro.titulo}
@@ -447,117 +425,34 @@ export default function LibroDetalle() {
             tieneAgrupacion={tieneAgrupacion}
           />
 
-          <h1 className="text-3xl font-black text-primary italic tracking-tighter leading-[0.95] mt-5 uppercase text-center">
-            {libro.titulo}
-          </h1>
+          <div className="flex flex-col gap-3">
+            <p className="text-primary/40 text-[11px] italic leading-relaxed font-medium">
+              {libro.sinopsis}
+            </p>
 
-          {/* ── CTA principal: Comenzar / Continuar leyendo ── */}
-          {capitulos.length > 0 && leidos.size < capitulos.length && (() => {
-            const primerNoLeido = capitulos.find(c => !leidos.has(c.id));
-            const targetCap     = primerNoLeido ?? capitulos[0];
-            const continuar     = leidos.size > 0 && primerNoLeido;
-            const primerCapId   = capitulos[0]?.id;
-            return (
-              <button
-                // ── CAMBIO: usar slug en la ruta ──
-                onClick={() => router.push(rutaLector(primerCapId, targetCap.id))}
-                className="mt-5 w-full flex items-center justify-center gap-2.5 py-3.5 px-5 rounded-btn transition-all group"
-                style={{
-                  background: "var(--primary)",
-                  border: "var(--border-width) solid var(--primary)",
-                  color: "var(--btn-text, #fff)",
-                  boxShadow: "0 4px 20px color-mix(in srgb, var(--primary) 25%, transparent)",
-                }}
-                onMouseEnter={e => { e.currentTarget.style.opacity = "0.88"; e.currentTarget.style.transform = "translateY(-1px)"; }}
-                onMouseLeave={e => { e.currentTarget.style.opacity = "1";    e.currentTarget.style.transform = ""; }}
-              >
-                <Play size={12} fill="currentColor" />
-                <span className="font-black uppercase text-[11px] tracking-widest">
-                  {continuar ? `Continuar · Cap. ${targetCap.orden}` : "Comenzar a leer"}
-                </span>
-              </button>
-            );
-          })()}
-
-          {/* ── Barra de progreso global ── */}
-          {capitulos.length > 0 && leidos.size > 0 && (
-            <div className="mt-5 flex flex-col gap-2">
-              <div className="flex items-center justify-between">
-                <span className="text-[8px] font-black uppercase tracking-[0.18em] text-primary/30 italic">Progreso</span>
-                <span className="text-[8px] font-bold text-primary/30 uppercase tracking-wider">
-                  {leidos.size}/{capitulos.length}
-                </span>
-              </div>
-              <div className="h-1 w-full rounded-full bg-primary/8 overflow-hidden">
-                <div
-                  className="h-full rounded-full transition-all duration-500"
-                  style={{
-                    width: `${Math.round((leidos.size / capitulos.length) * 100)}%`,
-                    background: "linear-gradient(to right, var(--primary), color-mix(in srgb, var(--accent, var(--primary)) 80%, var(--primary)))",
-                  }}
-                />
-              </div>
-            </div>
-          )}
-
-          {capituloProximo && (() => {
-            const fechaPub  = new Date(capituloProximo.fecha_publicacion);
-            const ahora     = new Date();
-            const diffMs    = fechaPub.getTime() - ahora.getTime();
-            const diffDias  = Math.ceil(diffMs / 86_400_000);
-            const esMuyProx = diffDias <= 7 && diffDias > 0;
-            return (
-              <div
-                className="mt-6 rounded-[var(--radius-card)] overflow-hidden"
-                style={{
-                  border: "var(--border-width) solid color-mix(in srgb, var(--primary) 12%, transparent)",
-                  background: esMuyProx
-                    ? "linear-gradient(135deg, color-mix(in srgb, var(--accent,var(--primary)) 8%, var(--bg-main)), color-mix(in srgb, var(--primary) 4%, var(--bg-main)))"
-                    : "color-mix(in srgb, var(--primary) 4%, var(--bg-main))",
-                  boxShadow: esMuyProx ? "0 4px 24px color-mix(in srgb, var(--accent,var(--primary)) 12%, transparent)" : "none",
-                }}
-              >
-                <div
-                  className="flex items-center gap-2 px-5 py-2.5"
-                  style={{ borderBottom: "var(--border-width) solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
-                >
-                  <Calendar size={10} className="text-primary/40" />
-                  <span className="text-[8px] font-black uppercase tracking-[0.22em] text-primary/30 italic">
-                    Próximo capítulo
+            {capituloProximo && (
+              <div className="flex items-start gap-2 mt-1 p-3 rounded-[var(--radius-btn)] bg-primary/3 border border-primary/8">
+                <Clock size={10} className="text-primary/30 flex-shrink-0 mt-0.5" />
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-[8px] font-black uppercase tracking-widest text-primary/30">Próximamente</span>
+                  <span className="text-[10px] font-bold text-primary/50 italic">{capituloProximo.titulo_capitulo}</span>
+                  <span className="text-[8px] font-bold text-primary/25 uppercase tracking-wide">
+                    {new Date(capituloProximo.fecha_publicacion).toLocaleDateString("es-ES")}
                   </span>
-                  {esMuyProx && (
-                    <span className="ml-auto text-[8px] font-black uppercase tracking-widest text-[var(--accent,var(--primary))]/70 bg-[var(--accent,var(--primary))]/10 px-2 py-0.5 rounded-full">
-                      ¡Pronto!
-                    </span>
-                  )}
-                </div>
-                <div className="px-5 py-4 flex flex-col gap-2">
-                  <p className="text-primary font-black text-sm leading-snug tracking-tight">
-                    {capituloProximo.titulo_capitulo}
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <Clock size={9} className="text-primary/30" />
-                    <span className="text-primary/40 font-bold text-[10px] uppercase tracking-wider italic">
-                      {fechaPub.toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" })}
-                    </span>
-                  </div>
-                  {diffDias > 0 && (
-                    <div className="flex items-baseline gap-1 mt-1">
-                      <span
-                        className="font-black text-2xl tracking-tighter"
-                        style={{ color: esMuyProx ? "var(--accent, var(--primary))" : "var(--primary)", opacity: esMuyProx ? 1 : 0.2 }}
-                      >
-                        {diffDias}
-                      </span>
-                      <span className="text-[9px] font-bold uppercase tracking-widest text-primary/25">
-                        día{diffDias !== 1 ? "s" : ""}
-                      </span>
-                    </div>
-                  )}
                 </div>
               </div>
-            );
-          })()}
+            )}
+
+            {capitulos.length > 0 && (
+              <button
+                onClick={() => { marcarLeido(capitulos[0].id); router.push(rutaLector(capitulos[0].id)); }}
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-[var(--radius-btn)] bg-primary text-[var(--btn-text)] font-black uppercase text-[10px] tracking-widest hover:opacity-90 transition-opacity"
+              >
+                <Play size={10} fill="currentColor" />
+                {leidos.size > 0 ? "Continuar leyendo" : "Empezar a leer"}
+              </button>
+            )}
+          </div>
         </aside>
 
         {/* ── Contenido principal ── */}
@@ -580,15 +475,9 @@ export default function LibroDetalle() {
                       {label && (
                         <div className="flex items-center gap-4 mb-4">
                           {img ? (
-                            <img
-                              src={img}
-                              alt={label}
-                              className="w-10 h-10 object-cover flex-shrink-0 shadow-md rounded-btn border border-primary/30"
-                            />
+                            <img src={img} alt={label} className="w-10 h-10 object-cover flex-shrink-0 shadow-md rounded-btn border border-primary/30" />
                           ) : (
-                            <div
-                              className={`w-10 h-10 flex items-center justify-center text-sm font-black text-primary/60 flex-shrink-0 rounded-btn border border-primary/30 ${acento.bg}`}
-                            >
+                            <div className={`w-10 h-10 flex items-center justify-center text-sm font-black text-primary/60 flex-shrink-0 rounded-btn border border-primary/30 ${acento.bg}`}>
                               {label.charAt(0)}
                             </div>
                           )}
@@ -606,39 +495,24 @@ export default function LibroDetalle() {
                         </div>
                       )}
 
-                      <div className={`grid gap-2`}>
+                      <div className="grid gap-2">
                         {grupo.capitulos.map((cap) => {
                           const esRuta = cap.titulo_capitulo?.startsWith("[Ruta]");
                           const leido  = leidos.has(cap.id);
                           return (
                             <button
                               key={cap.id}
-                              onClick={() => {
-                                marcarLeido(cap.id);
-                                // ── CAMBIO: usar slug en la ruta ──
-                                router.push(rutaLector(primerCapId, cap.id));
-                              }}
-                              className={`w-full flex items-center justify-between p-5 transition-all text-left group rounded-btn shadow-card ${
-                                esRuta  ? "bg-blue-50/60"  :
-                                leido   ? "bg-primary/[0.03]" :
-                                acento.bg
-                              }`}
+                              onClick={() => { marcarLeido(cap.id); router.push(rutaLector(primerCapId, cap.id)); }}
+                              className={`w-full flex items-center justify-between p-5 transition-all text-left group rounded-btn shadow-card ${esRuta ? "bg-blue-50/60" : leido ? "bg-primary/[0.03]" : acento.bg}`}
                               style={{
-                                border: `var(--border-width) solid ${
-                                  esRuta ? "rgb(219 234 254)" :
-                                  leido  ? "color-mix(in srgb, var(--primary) 5%, transparent)" :
-                                  "color-mix(in srgb, var(--primary) 8%, transparent)"
-                                }`,
-                                boxShadow: leido ? "none" : undefined,
-                                opacity:   leido ? 0.55 : 1,
+                                border: `var(--border-width) solid ${esRuta ? "rgb(219 234 254)" : leido ? "color-mix(in srgb, var(--primary) 5%, transparent)" : "color-mix(in srgb, var(--primary) 8%, transparent)"}`,
+                                boxShadow: leido ? "none" : undefined, opacity: leido ? 0.55 : 1,
                               }}
                               onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.borderColor = "color-mix(in srgb, var(--primary) 25%, transparent)"; }}
                               onMouseLeave={e => { e.currentTarget.style.opacity = leido ? "0.55" : "1"; e.currentTarget.style.borderColor = esRuta ? "rgb(219 234 254)" : leido ? "color-mix(in srgb, var(--primary) 5%, transparent)" : "color-mix(in srgb, var(--primary) 8%, transparent)"; }}
                             >
                               <div className="flex flex-col gap-1">
-                                {esRuta && (
-                                  <span className="text-[8px] font-black uppercase tracking-widest text-blue-400 mb-0.5">↳ Nodo de ruta</span>
-                                )}
+                                {esRuta && <span className="text-[8px] font-black uppercase tracking-widest text-blue-400 mb-0.5">↳ Nodo de ruta</span>}
                                 <span className={`font-black uppercase text-[12px] group-hover:translate-x-1 transition-transform ${leido ? "text-primary/40 line-through decoration-primary/20" : "text-primary"}`}>
                                   {cap.orden}. {esRuta ? cap.titulo_capitulo.replace("[Ruta] ", "") : cap.titulo_capitulo}
                                 </span>
@@ -668,32 +542,17 @@ export default function LibroDetalle() {
                   return (
                     <button
                       key={cap.id}
-                      onClick={() => {
-                        marcarLeido(cap.id);
-                        // ── CAMBIO: usar slug en la ruta ──
-                        router.push(rutaLector(capitulos[0]?.id ?? cap.id, cap.id));
-                      }}
-                      className={`w-full flex items-center justify-between p-6 transition-all text-left group rounded-btn shadow-card ${
-                        esRuta ? "bg-blue-50/60" :
-                        leido  ? "bg-primary/[0.03]" :
-                        "bg-white-custom"
-                      }`}
+                      onClick={() => { marcarLeido(cap.id); router.push(rutaLector(capitulos[0]?.id ?? cap.id, cap.id)); }}
+                      className={`w-full flex items-center justify-between p-6 transition-all text-left group rounded-btn shadow-card ${esRuta ? "bg-blue-50/60" : leido ? "bg-primary/[0.03]" : "bg-white-custom"}`}
                       style={{
-                        border: `var(--border-width) solid ${
-                          esRuta ? "rgb(219 234 254)" :
-                          leido  ? "color-mix(in srgb, var(--primary) 5%, transparent)" :
-                          "color-mix(in srgb, var(--primary) 8%, transparent)"
-                        }`,
-                        boxShadow: leido ? "none" : undefined,
-                        opacity:   leido ? 0.55 : 1,
+                        border: `var(--border-width) solid ${esRuta ? "rgb(219 234 254)" : leido ? "color-mix(in srgb, var(--primary) 5%, transparent)" : "color-mix(in srgb, var(--primary) 8%, transparent)"}`,
+                        boxShadow: leido ? "none" : undefined, opacity: leido ? 0.55 : 1,
                       }}
                       onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.borderColor = "color-mix(in srgb, var(--primary) 25%, transparent)"; }}
                       onMouseLeave={e => { e.currentTarget.style.opacity = leido ? "0.55" : "1"; e.currentTarget.style.borderColor = esRuta ? "rgb(219 234 254)" : leido ? "color-mix(in srgb, var(--primary) 5%, transparent)" : "color-mix(in srgb, var(--primary) 8%, transparent)"; }}
                     >
                       <div className="flex flex-col gap-1">
-                        {esRuta && (
-                          <span className="text-[8px] font-black uppercase tracking-widest text-blue-400 mb-0.5">↳ Nodo de ruta</span>
-                        )}
+                        {esRuta && <span className="text-[8px] font-black uppercase tracking-widest text-blue-400 mb-0.5">↳ Nodo de ruta</span>}
                         <span className={`font-black uppercase text-[12px] group-hover:translate-x-1 transition-transform ${leido ? "text-primary/40 line-through decoration-primary/20" : "text-primary"}`}>
                           {cap.orden}. {esRuta ? cap.titulo_capitulo.replace("[Ruta] ", "") : cap.titulo_capitulo}
                         </span>

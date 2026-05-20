@@ -5,6 +5,7 @@ import { supabase } from "@/lib/api/client/supabase";
 import { ChevronLeft, List, ChevronRight } from "lucide-react";
 import { Btn } from "@/components/ui";
 import { librosQueries } from "@/lib/api/queries/garlia/libros";
+import { db } from "@/lib/api/client/db";
 import { motion, AnimatePresence } from "framer-motion";
 
 import { CapituloLista, CapituloScrollItem } from "./leer/type";
@@ -884,11 +885,25 @@ export default function Lector() {
         libroId = data.id;
         if (data.categoria?.toLowerCase() === "extra") setEsExtra(true);
       } else {
-        // Buscar por slug: traer id+titulo+categoria en una sola query
-        const { data: todos } = await supabase
-          .from("libros").select("id, titulo, categoria");
-        if (!todos) { setError("Libro no encontrado"); return; }
-        const encontrado = todos.find(l => toSlug(l.titulo) === slugParam);
+        // Buscar por slug — Dexie primero (0 RTT), Supabase como fallback
+        let encontrado: { id: string; titulo: string; categoria?: string } | null = null;
+
+        try {
+          if (db?.libros) {
+            const dexieLibros = await db.libros.toArray() as any[];
+            encontrado = dexieLibros.find((l: any) => toSlug(l.titulo ?? "") === slugParam) ?? null;
+          }
+        } catch {}
+
+        if (!encontrado) {
+          const { data: todos } = await supabase
+            .from("libros").select("id, titulo, categoria");
+          if (!todos) { setError("Libro no encontrado"); return; }
+          // Cachear en Dexie para la próxima
+          try { await db?.libros?.bulkPut(todos as any[]); } catch {}
+          encontrado = todos.find(l => toSlug(l.titulo) === slugParam) ?? null;
+        }
+
         if (!encontrado) { setError("Libro no encontrado"); return; }
         libroId = encontrado.id;
         if (encontrado.categoria?.toLowerCase() === "extra") setEsExtra(true);
@@ -1080,7 +1095,6 @@ export default function Lector() {
 
   const getDexieTable = async () => {
     try {
-      const { db } = await import("@/lib/api/client/db");
       if (!db || !(db as any).capitulos) return null;
       return (db as any).capitulos;
     } catch { return null; }
