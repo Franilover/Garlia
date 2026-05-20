@@ -1279,6 +1279,20 @@ export function GlobalSearchBar({
     setAddMenuOpen(false);
   }, []);
 
+  // Navegación a capítulo
+  const handleSelectCapitulo = useCallback((cap: any) => {
+    onSelectMundoSubTab?.("geografia", "capitulos");
+    onNavigateToCapitulo?.(cap.id, cap.libro_id);
+    close();
+  }, [onSelectMundoSubTab, onNavigateToCapitulo, close]);
+
+  // Navegación a canción
+  const handleSelectCancion = useCallback((cancion: any) => {
+    onSelectMundoSubTab?.("geografia", "letras");
+    onNavigateToCancion?.(cancion.id);
+    close();
+  }, [onSelectMundoSubTab, onNavigateToCancion, close]);
+
   const handleSelect = useCallback((item: any, tab: Exclude<TabKey, "mundo">) => {
     onSelect(item, tab);
     close();
