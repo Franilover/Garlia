@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/api/client/supabase";
+import { db } from "@/lib/api/client/db";
 import SimpleImagePicker from "@/components/forms/SimpleImagePicker";
 import { useAuth } from "@/providers/AuthProvider";
 import { Plus, X, Loader2, Pencil, Trash2, ImageIcon, Save, Pipette } from "lucide-react";
@@ -19,26 +20,89 @@ const CANVAS_RATIO = 9 / 16;
 
 function paddingForRatio(ratio: "square" | "wide" | "portrait" | undefined) {
   if (ratio === "wide")     return `${CANVAS_RATIO * 100}%`;
-  if (ratio === "portrait") return "125%"; 
-  return "100%"; 
+  if (ratio === "portrait") return "125%";
+  return "100%";
 }
 
-function useGaleria() {
-  const [items,   setItems]   = useState<GaleriaItem[]>([]);
-  const [loading, setLoading] = useState(true);
+// ─── Helpers Dexie para galería ───────────────────────────────────────────────
+async function readGaleriaFromDexie(): Promise<GaleriaItem[]> {
+  try {
+    if (!db) return [];
+    const rows = await (db as any).galeria?.orderBy("orden").toArray();
+    return (rows ?? []) as GaleriaItem[];
+  } catch {
+    return [];
+  }
+}
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from("galeria").select("*")
-      .order("orden", { ascending: true })
-      .order("creado_en", { ascending: false });
-    if (!error && data) setItems(data as GaleriaItem[]);
-    setLoading(false);
+async function writeGaleriaToDexie(items: GaleriaItem[]): Promise<void> {
+  try {
+    if (!db || items.length === 0) return;
+    await (db as any).galeria?.bulkPut(items);
+  } catch (e) {
+    console.warn("[Dexie] galeria bulkPut falló:", e);
+  }
+}
+
+async function deleteGaleriaFromDexie(id: number): Promise<void> {
+  try {
+    if (!db) return;
+    await (db as any).galeria?.delete(id);
+  } catch {}
+}
+
+// ─── Hook galería: local-first ────────────────────────────────────────────────
+function useGaleria() {
+  const [items,      setItems]      = useState<GaleriaItem[]>([]);
+  // loading=true solo cuando no hay nada local todavía
+  const [loading,    setLoading]    = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const isMounted = useRef(true);
+
+  const fetchRemote = useCallback(async (isBackground = false) => {
+    if (!isBackground) setRefreshing(true);
+    try {
+      const { data, error } = await supabase
+        .from("galeria").select("*")
+        .order("orden",     { ascending: true })
+        .order("creado_en", { ascending: false });
+      if (error || !data) return;
+      if (!isMounted.current) return;
+      const sorted = data as GaleriaItem[];
+      setItems(sorted);
+      writeGaleriaToDexie(sorted);
+    } catch {}
+    finally {
+      if (isMounted.current) setRefreshing(false);
+    }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
-  return { items, setItems, loading, reload: load };
+  useEffect(() => {
+    isMounted.current = true;
+
+    // 1. Mostrar caché local instantáneamente
+    readGaleriaFromDexie().then(local => {
+      if (!isMounted.current) return;
+      if (local.length > 0) {
+        setItems(local);
+        setLoading(false);
+        // 2. Refrescar desde Supabase en background sin bloquear UI
+        fetchRemote(true);
+      } else {
+        // Sin datos locales: fetch normal con loading
+        setLoading(true);
+        fetchRemote(false).finally(() => {
+          if (isMounted.current) setLoading(false);
+        });
+      }
+    });
+
+    return () => { isMounted.current = false; };
+  }, [fetchRemote]);
+
+  const reload = useCallback(() => fetchRemote(false), [fetchRemote]);
+
+  return { items, setItems, loading, refreshing, reload };
 }
 
 function ImageLightbox({ src, alt, bgColor, onClose }: {
@@ -164,7 +228,6 @@ function ImageLightbox({ src, alt, bgColor, onClose }: {
         draggable={false}
         className="max-w-[92vw] max-h-[85vh] object-contain select-none"
         style={{
-          filter: undefined,
           transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`,
           transition: transform.scale === 1 ? "transform 0.3s ease" : "none",
           transformOrigin: "center",
@@ -194,31 +257,46 @@ function EditModal({ item, onSave, onClose }: {
   const rgbToHex = (r: number, g: number, b: number) =>
     "#" + [r, g, b].map(v => v.toString(16).padStart(2, "0")).join("");
 
-  const drawToCanvas = useCallback(() => {
+  const handlePickColor = useCallback(() => {
     const canvas = canvasRef.current;
-    const img    = imgElRef.current;
-    if (!canvas || !img) return;
-    canvas.width  = img.naturalWidth  || img.width;
-    canvas.height = img.naturalHeight || img.height;
+    const imgEl  = imgElRef.current;
+    if (!canvas || !imgEl) return;
+    canvas.width  = imgEl.naturalWidth  || imgEl.width;
+    canvas.height = imgEl.naturalHeight || imgEl.height;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    ctx.drawImage(imgEl, 0, 0, canvas.width, canvas.height);
+    setPicking(true);
   }, []);
 
-  const getColorAt = useCallback((e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
+  const handleCanvasClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
-    if (!canvas) return null;
-    const rect   = (e.currentTarget as HTMLDivElement).getBoundingClientRect();
-    const clientX = "touches" in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
-    const clientY = "touches" in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
-    const scaleX  = canvas.width  / rect.width;
-    const scaleY  = canvas.height / rect.height;
-    const x = Math.floor((clientX - rect.left) * scaleX);
-    const y = Math.floor((clientY - rect.top)  * scaleY);
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width  / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const x = Math.round((e.clientX - rect.left) * scaleX);
+    const y = Math.round((e.clientY - rect.top)  * scaleY);
     const ctx = canvas.getContext("2d");
-    if (!ctx) return null;
+    if (!ctx) return;
     const [r, g, b] = ctx.getImageData(x, y, 1, 1).data;
-    return rgbToHex(r, g, b);
+    setBgColor(rgbToHex(r, g, b));
+    setHoverColor(null);
+    setPicking(false);
+  }, []);
+
+  const handleCanvasMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width  / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const x = Math.round((e.clientX - rect.left) * scaleX);
+    const y = Math.round((e.clientY - rect.top)  * scaleY);
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const [r, g, b] = ctx.getImageData(x, y, 1, 1).data;
+    setHoverColor(rgbToHex(r, g, b));
   }, []);
 
   const handleSave = async () => {
@@ -228,173 +306,105 @@ function EditModal({ item, onSave, onClose }: {
     onClose();
   };
 
+  const ratios: Array<{ value: "square" | "wide" | "portrait"; label: string }> = [
+    { value: "portrait", label: "Portrait" },
+    { value: "square",   label: "Cuadrado" },
+    { value: "wide",     label: "Wide 9:16" },
+  ];
+
   return (
-    <div className="fixed inset-0 z-[300] flex items-end sm:items-center justify-center p-4">
+    <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-4">
       <div className="absolute inset-0 bg-primary/30 backdrop-blur-md" onClick={onClose} />
       <div className="relative z-10 w-full max-w-sm rounded-[var(--radius-card)] overflow-hidden shadow-2xl"
         style={{ background: "var(--white-custom)", border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)" }}>
 
-        <div className="px-5 py-4 flex items-center justify-between"
-          style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-          <span className="text-[10px] font-black uppercase tracking-[0.25em] text-primary/50 flex items-center gap-1.5">
-            <Pencil size={10} /> Editar obra
-          </span>
+        <div className="px-5 py-4 border-b flex items-center justify-between"
+          style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+          <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50">
+            Editar obra
+          </h3>
           <button onClick={onClose} className="text-primary/30 hover:text-primary transition-colors">
             <X size={16} />
           </button>
         </div>
 
-        {/* Preview con modo cuentagotas */}
-        <div className="px-5 pt-4">
-          <div
-            className="relative w-full overflow-hidden rounded-xl"
-            style={{
-              paddingBottom: paddingForRatio(aspectRatio),
-              backgroundColor: picking ? (hoverColor ?? bgColor) : bgColor,
-              cursor: picking ? "crosshair" : "default",
-            }}
-            onMouseMove={e => { if (picking) setHoverColor(getColorAt(e)); }}
-            onMouseLeave={() => { if (picking) setHoverColor(null); }}
-            onClick={e => {
-              if (!picking) return;
-              const c = getColorAt(e);
-              if (c) setBgColor(c);
-              setPicking(false);
-              setHoverColor(null);
-            }}
-            onTouchEnd={e => {
-              if (!picking) return;
-              e.preventDefault();
-              const c = getColorAt(e as any);
-              if (c) setBgColor(c);
-              setPicking(false);
-              setHoverColor(null);
-            }}
-          >
-            <img
-              ref={imgElRef}
-              src={item.url_imagen}
-              alt="preview"
-              crossOrigin="anonymous"
-              className="absolute inset-0 w-full h-full object-contain pointer-events-none"
-              style={{ objectPosition: "50% 50%" }}
-              onLoad={drawToCanvas}
-            />
-            <canvas ref={canvasRef} className="hidden" />
-
-            {picking && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 pointer-events-none"
-                style={{ background: "rgba(0,0,0,0.35)", backdropFilter: "blur(1px)" }}>
-                <Pipette size={22} color="white" />
-                <span className="text-[9px] font-black uppercase tracking-widest text-white/80">
-                  Toca un color
-                </span>
-                {hoverColor && (
-                  <div className="flex items-center gap-2 mt-1 px-3 py-1.5 rounded-xl"
-                    style={{ background: "rgba(0,0,0,0.5)" }}>
-                    <div className="w-4 h-4 rounded-md border border-white/30"
-                      style={{ backgroundColor: hoverColor }} />
-                    <span className="text-[10px] font-mono text-white">{hoverColor}</span>
-                  </div>
-                )}
-              </div>
+        <div className="p-5 space-y-4">
+          {/* Preview / eyedropper */}
+          <div className="relative w-full rounded-xl overflow-hidden"
+            style={{ aspectRatio: "1/1", background: bgColor, border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)" }}>
+            {picking ? (
+              <canvas
+                ref={canvasRef}
+                className="absolute inset-0 w-full h-full object-contain"
+                style={{ cursor: "crosshair" }}
+                onClick={handleCanvasClick}
+                onMouseMove={handleCanvasMove}
+                onMouseLeave={() => setHoverColor(null)}
+              />
+            ) : (
+              <img
+                ref={imgElRef}
+                src={item.url_imagen}
+                alt="preview"
+                crossOrigin="anonymous"
+                className="absolute inset-0 w-full h-full object-contain"
+              />
             )}
           </div>
-        </div>
 
-        <div className="px-5 py-4 space-y-4">
+          {/* Color picker */}
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg border flex-shrink-0 transition-colors"
+              style={{ background: hoverColor ?? bgColor, borderColor: "color-mix(in srgb, var(--primary) 20%, transparent)" }} />
+            <input
+              type="color"
+              value={bgColor}
+              onChange={e => setBgColor(e.target.value)}
+              className="flex-1 h-8 rounded-lg border cursor-pointer"
+              style={{ borderColor: "color-mix(in srgb, var(--primary) 20%, transparent)" }}
+            />
+            <button onClick={handlePickColor}
+              className="w-8 h-8 flex items-center justify-center rounded-lg border transition-all hover:opacity-80"
+              style={{
+                background:   picking ? "var(--primary)" : "transparent",
+                color:        picking ? "var(--btn-text)" : "var(--primary)",
+                borderColor:  "color-mix(in srgb, var(--primary) 20%, transparent)",
+              }}
+              title="Seleccionar color de la imagen">
+              <Pipette size={13} />
+            </button>
+          </div>
 
-          {/* Color de fondo */}
-          <div className="space-y-2">
-            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/40">Color de fondo</p>
-
-            <div className="flex items-center gap-2">
-              <div className="w-10 h-10 rounded-xl border border-primary/20 shrink-0"
-                style={{ backgroundColor: hoverColor ?? bgColor }} />
-              <input
-                type="text"
-                value={bgColor}
-                onChange={e => { if (/^#[0-9a-fA-F]{0,6}$/.test(e.target.value)) setBgColor(e.target.value); }}
-                className="flex-1 text-[11px] font-mono bg-bg-main border border-primary/15 rounded-xl px-3 py-2.5 text-primary outline-none focus:border-primary/40"
-                placeholder="#111111"
-                maxLength={7}
-              />
-              <button
-                type="button"
-                title="Cuentagotas"
-                onClick={() => { setPicking(p => !p); setHoverColor(null); drawToCanvas(); }}
-                className="w-10 h-10 flex items-center justify-center rounded-xl border shrink-0 transition-all"
+          {/* Aspect ratio */}
+          <div className="flex gap-2">
+            {ratios.map(r => (
+              <button key={r.value}
+                onClick={() => setAspectRatio(r.value)}
+                className="flex-1 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all border"
                 style={{
-                  background:   picking ? "var(--primary)" : "var(--bg-main)",
-                  borderColor:  picking ? "var(--primary)" : "color-mix(in srgb, var(--primary) 20%, transparent)",
-                  color:        picking ? "var(--btn-text)" : "color-mix(in srgb, var(--primary) 60%, transparent)",
-                }}
-              >
-                <Pipette size={14} />
+                  background:  aspectRatio === r.value ? "var(--primary)" : "transparent",
+                  color:       aspectRatio === r.value ? "var(--btn-text)" : "var(--primary)",
+                  borderColor: "color-mix(in srgb, var(--primary) 20%, transparent)",
+                  opacity:     aspectRatio === r.value ? 1 : 0.5,
+                }}>
+                {r.label}
               </button>
-            </div>
-
-            {/* Paleta de colores comunes */}
-            <div className="flex flex-wrap gap-1.5 pt-1">
-              {[
-                "#111111","#ffffff","#f5f0eb","#1a1a2e","#0d1117",
-                "#2d2d2d","#fdf6e3","#1e3a5f","#3b1f2b","#1b4332",
-              ].map(c => (
-                <button
-                  key={c}
-                  type="button"
-                  title={c}
-                  onClick={() => setBgColor(c)}
-                  className="w-7 h-7 rounded-lg border-2 transition-all hover:scale-110"
-                  style={{
-                    backgroundColor: c,
-                    borderColor: bgColor === c ? "var(--primary)" : "color-mix(in srgb, var(--primary) 15%, transparent)",
-                    boxShadow: bgColor === c ? "0 0 0 1px var(--primary)" : undefined,
-                  }}
-                />
-              ))}
-            </div>
+            ))}
           </div>
 
-          {}
-          <div className="space-y-2">
-            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/40">Formato</p>
-            <div className="grid grid-cols-3 gap-1.5">
-              {([
-                { value: "portrait", label: "4:5",         hint: "2 col · alto"  },
-                { value: "square",   label: "1:1",         hint: "2 col · cuad"  },
-                { value: "wide",     label: "16:9",        hint: "fila completa" },
-              ] as { value: "square" | "wide" | "portrait"; label: string; hint: string }[]).map(opt => {
-                const active = aspectRatio === opt.value;
-                return (
-                  <button key={opt.value} onClick={() => setAspectRatio(opt.value)}
-                    className="flex flex-col items-center gap-0.5 px-2 py-2.5 rounded-xl border text-[9px] font-black uppercase tracking-wide transition-all"
-                    style={{
-                      background:  active ? "var(--primary)" : "transparent",
-                      color:       active ? "var(--btn-text)" : "color-mix(in srgb, var(--primary) 45%, transparent)",
-                      borderColor: active ? "var(--primary)" : "color-mix(in srgb, var(--primary) 15%, transparent)",
-                    }}>
-                    {opt.label}
-                    <span className="text-[7px] font-normal normal-case opacity-70">{opt.hint}</span>
-                  </button>
-                );
-              })}
-            </div>
+          <div className="flex gap-2 pt-1">
+            <button onClick={onClose}
+              className="flex-1 py-2.5 rounded-xl border text-[10px] font-black uppercase tracking-widest text-primary/40 hover:text-primary transition-all"
+              style={{ borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)" }}>
+              Cancelar
+            </button>
+            <button onClick={handleSave} disabled={saving}
+              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
+              style={{ background: "var(--primary)", color: "var(--btn-text)" }}>
+              {saving ? <Loader2 size={11} className="animate-spin" /> : <Save size={11} />}
+              {saving ? "Guardando…" : "Guardar"}
+            </button>
           </div>
-        </div>
-
-        <div className="px-5 pb-5 flex gap-2">
-          <button onClick={onClose}
-            className="px-4 py-2.5 rounded-xl border text-[10px] font-black uppercase tracking-widest text-primary/40 hover:text-primary transition-all"
-            style={{ borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)" }}>
-            Cancelar
-          </button>
-          <button onClick={handleSave} disabled={saving}
-            className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
-            style={{ background: "var(--primary)", color: "var(--btn-text)" }}>
-            {saving ? <Loader2 size={11} className="animate-spin" /> : <Save size={11} />}
-            {saving ? "Guardando…" : "Guardar"}
-          </button>
         </div>
       </div>
     </div>
@@ -410,14 +420,19 @@ function AddModal({ onClose, onSuccess, nextOrden }: {
 
   const save = async () => {
     setSaving(true);
-    const { error } = await supabase.from("galeria").insert([{
+    const { data, error } = await supabase.from("galeria").insert([{
       url_imagen:   url,
       bg_color:     "#111111",
       aspect_ratio: "portrait",
       orden:        nextOrden,
-    }]);
+    }]).select().single();
     setSaving(false);
-    if (!error) { onSuccess(); onClose(); }
+    if (!error && data) {
+      // Guardar en caché local inmediatamente
+      writeGaleriaToDexie([data as GaleriaItem]);
+      onSuccess();
+      onClose();
+    }
   };
 
   return (
@@ -474,26 +489,37 @@ function AddModal({ onClose, onSuccess, nextOrden }: {
 export default function GaleriaPage() {
   const { perfil } = useAuth() as any;
   const isAdmin    = perfil?.rol === "admin";
-  const { items, setItems, loading, reload } = useGaleria();
+  const { items, setItems, loading, refreshing, reload } = useGaleria();
   const [showAdd,  setShowAdd]  = useState(false);
   const [lightbox, setLightbox] = useState<GaleriaItem | null>(null);
   const [editing,  setEditing]  = useState<GaleriaItem | null>(null);
 
   const handleUpdate = useCallback(async (id: number, updates: Partial<GaleriaItem>) => {
     const { error } = await supabase.from("galeria").update(updates).eq("id", id);
-    if (!error) setItems(prev => prev.map(it => it.id === id ? { ...it, ...updates } : it));
-  }, [setItems]);
+    if (!error) {
+      const updated = items.map(it => it.id === id ? { ...it, ...updates } : it);
+      setItems(updated);
+      writeGaleriaToDexie(updated);
+    }
+  }, [items, setItems]);
 
   const handleDelete = useCallback(async (id: number) => {
     if (!confirm("¿Eliminar esta obra?")) return;
     const { error } = await supabase.from("galeria").delete().eq("id", id);
-    if (!error) setItems(prev => prev.filter(it => it.id !== id));
+    if (!error) {
+      setItems(prev => prev.filter(it => it.id !== id));
+      deleteGaleriaFromDexie(id);
+    }
   }, [setItems]);
 
   return (
     <div className="w-full bg-bg-main min-h-screen">
       {isAdmin && (
-        <div className="flex justify-end px-3 pt-4 pb-2">
+        <div className="flex justify-between items-center px-3 pt-4 pb-2">
+          {/* Indicador de refresco en background — sutil, no bloquea */}
+          <div className="w-5 h-5 flex items-center justify-center">
+            {refreshing && <Loader2 size={12} className="animate-spin text-primary/30" />}
+          </div>
           <button onClick={() => setShowAdd(true)}
             className="flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-dashed transition-all hover:opacity-80"
             style={{ borderColor: "color-mix(in srgb, var(--primary) 30%, transparent)", color: "color-mix(in srgb, var(--primary) 60%, transparent)" }}>
@@ -504,6 +530,7 @@ export default function GaleriaPage() {
 
       <main>
         {loading ? (
+          // Solo llega aquí si NO hay nada en Dexie todavía (primera carga ever)
           <div className="flex items-center justify-center py-32 text-primary/30">
             <Loader2 className="animate-spin" size={28} />
           </div>
@@ -578,7 +605,13 @@ export default function GaleriaPage() {
       )}
 
       <AnimatePresence>
-        {showAdd && <AddModal onClose={() => setShowAdd(false)} onSuccess={reload} nextOrden={items.length ? Math.min(...items.map(i => i.orden)) - 1 : 0} />}
+        {showAdd && (
+          <AddModal
+            onClose={() => setShowAdd(false)}
+            onSuccess={reload}
+            nextOrden={items.length ? Math.min(...items.map(i => i.orden)) - 1 : 0}
+          />
+        )}
       </AnimatePresence>
     </div>
   );

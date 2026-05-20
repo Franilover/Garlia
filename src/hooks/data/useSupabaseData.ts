@@ -220,14 +220,17 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
       setLoading(true);
     }
 
-    // FIX #3: ping al endpoint real de Supabase en vez de supabase.com/favicon.ico con no-cors
-    const online = await isReallyOnline();
-    if (!isMounted.current) return;
-
-    if (!online) {
-      if (!hasLocalData) setLoading(false);
-      setIsOffline(true);
-      return;
+    // Si ya tenemos datos locales, lanzar el fetch remoto en background
+    // sin bloquear con isReallyOnline() — se cancela solo si falla la red.
+    // Solo hacemos el ping bloqueante cuando no hay nada local (primera carga).
+    if (!hasLocalData) {
+      const online = await isReallyOnline();
+      if (!isMounted.current) return;
+      if (!online) {
+        setLoading(false);
+        setIsOffline(true);
+        return;
+      }
     }
 
     setIsOffline(false);
