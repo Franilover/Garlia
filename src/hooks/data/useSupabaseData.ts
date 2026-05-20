@@ -203,15 +203,21 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
   const channelReconnectRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const optionsRef          = useRef<UseSupabaseOptions>(opciones);
   useEffect(() => { optionsRef.current = opciones; });
+  const fetchGenRef         = useRef(0);
 
   // ─── fetchData ──────────────────────────────────────────────────────────────
   const fetchData = useCallback(async () => {
     if (!isMounted.current || tabla === "__skip__") return;
     setError(null);
 
+    // Cada invocación toma su propia generación. Si cuando resuelve el await
+    // hay una llamada más nueva en vuelo, descartamos silenciosamente el resultado.
+    const myGen = ++fetchGenRef.current;
+    const isStale = () => fetchGenRef.current !== myGen || !isMounted.current;
+
     const localData    = await readFromDexie<T>(tabla);
     const hasLocalData = localData.length > 0;
-    if (!isMounted.current) return;
+    if (isStale()) return;
 
     if (hasLocalData) {
       setData(localData);
@@ -220,12 +226,11 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
       setLoading(true);
     }
 
-    // Si ya tenemos datos locales, lanzar el fetch remoto en background
-    // sin bloquear con isReallyOnline() — se cancela solo si falla la red.
-    // Solo hacemos el ping bloqueante cuando no hay nada local (primera carga).
+    // Con datos locales no esperamos el ping — el fetch falla solo si hay error de red.
+    // Sin datos locales hacemos el ping para no colgar con loading=true sin internet.
     if (!hasLocalData) {
       const online = await isReallyOnline();
-      if (!isMounted.current) return;
+      if (isStale()) return;
       if (!online) {
         setLoading(false);
         setIsOffline(true);
@@ -255,8 +260,10 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
       ]);
       clearTimer(fetchTimeoutRef);
 
+      // Si mientras esperábamos llegó una llamada más nueva, descartar
+      if (isStale()) return;
+
       if (result === "timeout") {
-        if (!isMounted.current) return;
         setLoading(false);
         setIsOffline(true);
         clearTimer(retryTimerRef);
@@ -270,9 +277,12 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
       const res       = result as any;
       const finalData = Array.isArray(res) ? res : (res?.data ?? []);
       if (res?.error) throw res.error;
-      if (!isMounted.current) return;
 
-      const merged = mergeWithPending<T>(finalData, localData);
+      // Re-leer pending desde Dexie en este momento, no usar el snapshot viejo
+      const freshLocal = await readFromDexie<T>(tabla);
+      if (isStale()) return;
+
+      const merged = mergeWithPending<T>(finalData, freshLocal);
       setData(merged);
       updateCache(tabla, merged);
       retryCount.current   = 0;
@@ -283,7 +293,7 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
 
     } catch (err: any) {
       clearTimer(fetchTimeoutRef);
-      if (!isMounted.current) return;
+      if (isStale()) return;
 
       if (isNetworkError(err) && retryCount.current < 5) {
         retryCount.current++;

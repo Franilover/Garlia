@@ -2005,7 +2005,8 @@ function resolveInitialTab(activeSection: MundoSectionKey, initialMundoTab?: str
   // geografia
   const listsKeys = ["listas", "reinos", "criaturas", "objetos", "personajes", "hechizos", "dones", "runas", "notas"];
   if (initialMundoTab && listsKeys.includes(initialMundoTab)) return "listas";
-  return "mundo";
+  // Por defecto abre geo-magia (geografía + magia juntos)
+  return "geo-magia" as any;
 }
 
 // ─── EditorMundo unificado ────────────────────────────────────────────────────
@@ -2135,15 +2136,15 @@ function PanelListas({
 
   const [mobileTab, setMobileTab] = useState<ListaTab>(() => {
     // initialSubTab puede ser un UnifiedTab ("mundo","historia","magia","listas") o un ListaTab directo
-    const mapped: Record<string, ListaTab> = { mundo: "mundo", historia: "historia", magia: "magia", listas: "reinos" };
-    const resolved = mapped[initialSubTab ?? ""] ?? (VALID_LISTA_TABS.includes(initialSubTab as ListaTab) ? initialSubTab as ListaTab : "mundo");
+    const mapped: Record<string, ListaTab> = { mundo: "geo-magia", historia: "historia", magia: "geo-magia", listas: "reinos", "geo-magia": "geo-magia" };
+    const resolved = mapped[initialSubTab ?? ""] ?? (VALID_LISTA_TABS.includes(initialSubTab as ListaTab) ? initialSubTab as ListaTab : "geo-magia");
     return resolved;
   });
 
   // Sincronizar mobileTab cuando el buscador navega a un subtab diferente
   useEffect(() => {
     if (!initialSubTab) return;
-    const mapped: Record<string, ListaTab> = { mundo: "mundo", historia: "historia", magia: "magia", listas: "reinos" };
+    const mapped: Record<string, ListaTab> = { mundo: "geo-magia", historia: "historia", magia: "geo-magia", listas: "reinos", "geo-magia": "geo-magia" };
     const resolved = mapped[initialSubTab] ?? (VALID_LISTA_TABS.includes(initialSubTab as ListaTab) ? initialSubTab as ListaTab : null);
     if (resolved) setMobileTab(resolved);
   }, [initialSubTab]);
