@@ -814,10 +814,10 @@ export function LoreTab({
   onDetallesArrayChange?: (d: ReinoDetalle[]) => void;
   MapaConPuntosComponent?: React.ComponentType<any>;
 }) {
-  const [activeKey, setActiveKey] = useState<LoreKey | null>(null);
+  const [activeKey, setActiveKey] = useState<LoreKey>("historia_cultura");
   const { onSnippetAction } = useWikilink();
 
-  const active = activeKey ? LORE_SECTIONS.find((s) => s.key === activeKey) ?? null : null;
+  const active = LORE_SECTIONS.find((s) => s.key === activeKey)!;
 
   // Función para determinar si una sección tiene contenido
   const sectionHasContent = (key: LoreKey): boolean => {
@@ -829,8 +829,6 @@ export function LoreTab({
     return !!raw?.trim();
   };
 
-  // ─── Home panel ──────────────────────────────────────────────────────────────
-
   const sectionCount = (key: LoreKey): number => {
     if (key === "personajes") return personajes.length;
     if (key === "mapa") return detalles.length;
@@ -841,161 +839,87 @@ export function LoreTab({
     return 0;
   };
 
-  const HOME_CARDS: { key: LoreKey; label: string; sublabel: string; Icon: React.ElementType }[] = [
-    { key: "mapa",             label: "Mapa & Puntos",      sublabel: "Geografía y lugares",      Icon: Map },
-    { key: "historia_cultura", label: "Historia & Cultura", sublabel: "Línea de tiempo + texto",  Icon: Globe },
-    { key: "politica_economia",label: "Política & Economía",sublabel: "Gobierno y comercio",      Icon: Users },
-    { key: "personajes",       label: "Personajes",         sublabel: "Habitantes del reino",     Icon: UserCircle2 },
+  const TAB_SECTIONS: { key: LoreKey; label: string; Icon: React.ElementType }[] = [
+    { key: "mapa",              label: "Mapa",      Icon: Map },
+    { key: "historia_cultura",  label: "Historia",  Icon: Globe },
+    { key: "politica_economia", label: "Política",  Icon: Users },
+    { key: "personajes",        label: "Personajes", Icon: UserCircle2 },
   ];
-
-  if (activeKey === null) {
-    return (
-      <div className="flex flex-col h-full min-h-0 overflow-y-auto p-4">
-        <div
-          className="shrink-0 mb-4 px-1 pb-3 border-b"
-          style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
-        >
-          <p className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/30">
-            Explorar reino
-          </p>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          {HOME_CARDS.map(({ key, label, sublabel, Icon }) => {
-            const hasContent = sectionHasContent(key);
-            const count = sectionCount(key);
-
-            return (
-              <button
-                key={key}
-                type="button"
-                onClick={() => setActiveKey(key)}
-                className="relative flex flex-col items-start gap-3 p-4 rounded-2xl text-left transition-all group"
-                style={{
-                  background: "color-mix(in srgb, var(--primary) 3%, transparent)",
-                  border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-                }}
-                onMouseEnter={e => {
-                  (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 8%, transparent)";
-                  (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 22%, transparent)";
-                }}
-                onMouseLeave={e => {
-                  (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 3%, transparent)";
-                  (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 10%, transparent)";
-                }}
-              >
-                {/* Indicador de contenido */}
-                {hasContent && (
-                  <span
-                    className="absolute top-3 right-3 flex items-center gap-1 text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full"
-                    style={{
-                      background: "color-mix(in srgb, var(--primary) 12%, transparent)",
-                      color: "color-mix(in srgb, var(--primary) 55%, transparent)",
-                    }}
-                  >
-                    {count > 0 ? count : <span className="w-1.5 h-1.5 rounded-full bg-current inline-block" />}
-                  </span>
-                )}
-
-                {/* Icono */}
-                <div
-                  className="flex items-center justify-center w-10 h-10 rounded-xl transition-all"
-                  style={{
-                    background: "color-mix(in srgb, var(--primary) 8%, transparent)",
-                    color: "color-mix(in srgb, var(--primary) 55%, transparent)",
-                  }}
-                >
-                  <Icon size={18} strokeWidth={1.5} />
-                </div>
-
-                {/* Texto */}
-                <div>
-                  <p
-                    className="text-[11px] font-black uppercase tracking-widest leading-tight transition-colors"
-                    style={{ color: "color-mix(in srgb, var(--primary) 75%, transparent)" }}
-                  >
-                    {label}
-                  </p>
-                  <p
-                    className="text-[9px] mt-0.5 leading-snug"
-                    style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
-                  >
-                    {sublabel}
-                  </p>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="flex flex-col h-full min-h-0">
 
+      {/* ── Barra de tabs horizontal ─────────────────────────────────────────── */}
+      <nav
+        className="shrink-0 flex items-stretch gap-0 border-b overflow-x-auto"
+        style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
+      >
+        {TAB_SECTIONS.map(({ key, label, Icon }) => {
+          const isActive = key === activeKey;
+          const hasContent = sectionHasContent(key);
+          const count = sectionCount(key);
+
+          return (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setActiveKey(key)}
+              className="relative flex items-center gap-1.5 px-3 py-2.5 text-[9px] font-black uppercase tracking-widest whitespace-nowrap transition-all"
+              style={
+                isActive
+                  ? {
+                      color: "var(--primary)",
+                      borderBottom: "2px solid var(--primary)",
+                      background: "color-mix(in srgb, var(--primary) 5%, transparent)",
+                    }
+                  : {
+                      color: "color-mix(in srgb, var(--primary) 35%, transparent)",
+                      borderBottom: "2px solid transparent",
+                    }
+              }
+              onMouseEnter={e => {
+                if (!isActive) (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--primary) 65%, transparent)";
+              }}
+              onMouseLeave={e => {
+                if (!isActive) (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--primary) 35%, transparent)";
+              }}
+            >
+              <Icon size={11} />
+              {label}
+              {/* Badge numérico */}
+              {count > 0 && (
+                <span
+                  className="text-[7px] font-black px-1 py-0.5 rounded-full min-w-[14px] text-center"
+                  style={{
+                    background: isActive
+                      ? "color-mix(in srgb, var(--primary) 15%, transparent)"
+                      : "color-mix(in srgb, var(--primary) 8%, transparent)",
+                    color: isActive
+                      ? "var(--primary)"
+                      : "color-mix(in srgb, var(--primary) 45%, transparent)",
+                  }}
+                >
+                  {count}
+                </span>
+              )}
+              {/* Dot — tiene contenido de texto */}
+              {hasContent && count === 0 && (
+                <span
+                  className="w-1 h-1 rounded-full"
+                  style={{
+                    background: isActive
+                      ? "var(--primary)"
+                      : "color-mix(in srgb, var(--primary) 30%, transparent)",
+                  }}
+                />
+              )}
+            </button>
+          );
+        })}
+      </nav>
+
       {/* ── Panel editor ─────────────────────────────────────────────────────── */}
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-
-        {/* Cabecera con botón volver */}
-        <div
-          className="shrink-0 flex items-center gap-2 px-3 py-2.5 border-b"
-          style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
-        >
-          <button
-            type="button"
-            onClick={() => setActiveKey(null)}
-            className="shrink-0 flex items-center gap-1.5 px-2 py-1 rounded-lg transition-all text-[9px] font-black uppercase tracking-widest"
-            style={{
-              color: "color-mix(in srgb, var(--primary) 40%, transparent)",
-              background: "color-mix(in srgb, var(--primary) 5%, transparent)",
-              border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-            }}
-            onMouseEnter={e => {
-              (e.currentTarget as HTMLElement).style.color = "var(--primary)";
-              (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 25%, transparent)";
-            }}
-            onMouseLeave={e => {
-              (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--primary) 40%, transparent)";
-              (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 10%, transparent)";
-            }}
-          >
-            ← Volver
-          </button>
-
-          {active && <active.Icon size={11} style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }} />}
-          <span className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/40">
-            {active?.label}
-          </span>
-
-          {/* Badge vacío */}
-          {active && !sectionHasContent(active.key) && (
-            <span className="text-[8px] font-black uppercase tracking-widest text-primary/20 border border-primary/10 px-1.5 py-0.5 rounded-md">
-              vacío
-            </span>
-          )}
-
-          {/* Badge count personajes */}
-          {activeKey === "personajes" && personajes.length > 0 && (
-            <span className="text-[8px] font-black uppercase tracking-widest text-primary/30 border border-primary/10 px-1.5 py-0.5 rounded-md">
-              {personajes.length}
-            </span>
-          )}
-
-          {/* Badge count puntos cuando es mapa */}
-          {activeKey === "mapa" && detalles.length > 0 && (
-            <span className="text-[8px] font-black uppercase tracking-widest text-primary/30 border border-primary/10 px-1.5 py-0.5 rounded-md flex items-center gap-1">
-              <MapPin size={8} /> {detalles.length}
-            </span>
-          )}
-
-          {/* Badge línea de tiempo */}
-          {activeKey === "historia_cultura" && (
-            <span className="ml-auto text-[8px] font-black uppercase tracking-widest text-primary/25 border border-primary/10 px-1.5 py-0.5 rounded-md">
-              Línea de tiempo + texto
-            </span>
-          )}
-        </div>
 
         {/* Contenido */}
         <div className="flex-1 min-h-0 overflow-auto md:overflow-hidden">
@@ -1157,11 +1081,11 @@ export function LoreTab({
           ) : (
             <div className="p-3 h-full">
               <MarkdownEditor
-                key={active?.key}
-                value={(form as any)[active?.key ?? ""] ?? ""}
-                onChange={(v) => setForm((f) => ({ ...f, [active?.key ?? ""]: v }))}
-                placeholder={active?.placeholder}
-                rows={active?.rows}
+                key={active.key}
+                value={(form as any)[active.key] ?? ""}
+                onChange={(v) => setForm((f) => ({ ...f, [active.key]: v }))}
+                placeholder={active.placeholder}
+                rows={active.rows}
                 toolbar
                 defaultMode="edit"
                 onSnippetAction={onSnippetAction}
