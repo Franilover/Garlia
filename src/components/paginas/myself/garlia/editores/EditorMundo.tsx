@@ -2335,14 +2335,47 @@ function PanelListas({
   const TABS: TabDef[] = TAB_GROUPS.flatMap(g => g.tabs);
 
   return (
-    <div className="flex-1 flex min-h-0 overflow-hidden">
+    <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
 
-      {/* ── Área principal (contenido + overlay) ─────────────────────────── */}
-      <div className="flex-1 flex min-h-0 overflow-hidden" style={{ position: "relative", height: "100%" }}>
+      {/* ── Barra de tabs horizontal ─────────────────────────────────────── */}
+      <div className="shrink-0 flex items-center border-b px-2 gap-0.5"
+        style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+        {TABS.map(t => {
+          const active = mobileTab === t.key;
+          const color = t.color ?? "var(--primary)";
+          return (
+            <button
+              key={t.key}
+              onClick={() => {
+                setMobileTab(t.key);
+                markVisited(t.key);
+                setSelectedReino(null); setSelectedCriatura(null);
+                setSelectedObjeto(null); setSelectedPersonaje(null);
+                setSelectedHechizo(null); setSelectedDon(null);
+                setSelectedRuna(null); setSelectedNota(null);
+              }}
+              className="relative flex items-center gap-1.5 px-3 py-3 text-[10px] font-black uppercase tracking-widest transition-all"
+              style={{ color: active ? color : "color-mix(in srgb, var(--primary) 30%, transparent)" }}
+            >
+              <t.Icon size={11} className="shrink-0" />
+              {t.label}
+              {active && (
+                <span
+                  className="absolute bottom-0 left-2 right-2 h-0.5 rounded-t-full"
+                  style={{ background: color }}
+                />
+              )}
+            </button>
+          );
+        })}
+      </div>
 
-      {/* ── Editor overlay — cubre solo el área de contenido ─────────────── */}
-      {overlay && (
-        <div className="absolute inset-0 z-20 flex flex-col" style={{ background: "var(--bg-main)" }}>
+      {/* ── Área principal (contenido) ───────────────────────────────────── */}
+      <div className="flex-1 flex min-h-0 overflow-hidden">
+
+      {/* ── Editor overlay — reemplaza la lista cuando hay selección ─────── */}
+      {overlay ? (
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden" style={{ background: "var(--bg-main)" }}>
           <div className="shrink-0 flex items-center gap-3 px-4 py-2.5 border-b"
             style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}>
             <button
@@ -2447,9 +2480,8 @@ function PanelListas({
             )}
           </div>
         </div>
-      )}
+      ) : (
 
-      {/* ── Layout principal: lista + sidebar ───────────────────────────── */}
       <div className="flex-1 flex min-h-0 overflow-hidden">
 
         {/* Área de lista — ocupa el espacio principal */}
@@ -3140,59 +3172,10 @@ function PanelListas({
         </div>
 
       </div>
+
+      )}{/* fin ternario overlay */}
       </div>{/* fin área principal */}
 
-      {/* Sidebar de navegación — siempre visible, fuera del overlay */}
-      <div className="shrink-0 w-10 flex flex-col items-center border-l min-h-0 overflow-y-auto py-2 gap-0.5"
-        style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-        {TAB_GROUPS.map((group, gi) => (
-          <React.Fragment key={group.label}>
-            {gi > 0 && (
-              <div className="w-5 border-t my-1" style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
-            )}
-            {group.tabs.map(t => {
-              const active = mobileTab === t.key;
-              const color = t.color ?? "var(--primary)";
-              return (
-                <div key={t.key} className="relative group">
-                  <button
-                    onClick={() => {
-                      setMobileTab(t.key);
-                      markVisited(t.key);
-                      // Cerrar cualquier editor abierto al cambiar de tab
-                      setSelectedReino(null); setSelectedCriatura(null);
-                      setSelectedObjeto(null); setSelectedPersonaje(null);
-                      setSelectedHechizo(null); setSelectedDon(null);
-                      setSelectedRuna(null); setSelectedNota(null);
-                    }}
-                    className="w-8 h-8 flex items-center justify-center rounded-lg transition-all"
-                    style={active ? {
-                      background: `color-mix(in srgb, ${color} 14%, transparent)`,
-                      color,
-                    } : {
-                      color: "color-mix(in srgb, var(--primary) 30%, transparent)",
-                    }}
-                  >
-                    <t.Icon size={13} className="shrink-0" />
-                  </button>
-                  {/* Tooltip */}
-                  <div className="pointer-events-none absolute right-full top-1/2 -translate-y-1/2 mr-2 z-50
-                    opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-                    <div className="px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest whitespace-nowrap shadow-lg"
-                      style={{
-                        background: "var(--bg-main)",
-                        color: active ? color : "color-mix(in srgb, var(--primary) 60%, transparent)",
-                        border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-                      }}>
-                      {t.label}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </React.Fragment>
-        ))}
-      </div>
     </div>
   );
 }
