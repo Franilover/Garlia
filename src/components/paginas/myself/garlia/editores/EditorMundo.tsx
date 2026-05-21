@@ -2189,12 +2189,21 @@ function PanelListas({
     return resolved;
   });
 
-  // Sincronizar mobileTab cuando el buscador navega a un subtab diferente
+  // Sincronizar mobileTab cuando el buscador/sidebar navega a un subtab diferente
+  // y cerrar el overlay abierto para que el contenido sea visible de inmediato
   useEffect(() => {
     if (!initialSubTab) return;
     const mapped: Record<string, ListaTab> = { mundo: "geo-magia", historia: "historia", magia: "geo-magia", listas: "reinos", "geo-magia": "geo-magia" };
     const resolved = mapped[initialSubTab] ?? (VALID_LISTA_TABS.includes(initialSubTab as ListaTab) ? initialSubTab as ListaTab : null);
-    if (resolved) { setMobileTab(resolved); markVisited(resolved); }
+    if (resolved) {
+      setMobileTab(resolved);
+      markVisited(resolved);
+      // Cerrar editor abierto al navegar desde el sidebar externo
+      setSelectedReino(null);    setSelectedCriatura(null);
+      setSelectedObjeto(null);   setSelectedPersonaje(null);
+      setSelectedHechizo(null);  setSelectedDon(null);
+      setSelectedRuna(null);     setSelectedNota(null);
+    }
   }, [initialSubTab, markVisited]);
 
   // Editor overlay activo
@@ -2305,9 +2314,12 @@ function PanelListas({
   const TABS: TabDef[] = TAB_GROUPS.flatMap(g => g.tabs);
 
   return (
-    <div className="flex-1 flex min-h-0 overflow-hidden relative">
+    <div className="flex-1 flex min-h-0 overflow-hidden">
 
-      {/* ── Editor overlay — cubre toda la sección Listas ────────────────── */}
+      {/* ── Área principal (contenido + overlay) ─────────────────────────── */}
+      <div className="flex-1 flex min-h-0 overflow-hidden relative">
+
+      {/* ── Editor overlay — cubre solo el área de contenido ─────────────── */}
       {overlay && (
         <div className="absolute inset-0 z-20 flex flex-col" style={{ background: "var(--bg-main)" }}>
           <div className="shrink-0 flex items-center gap-3 px-4 py-2.5 border-b"
@@ -3089,49 +3101,59 @@ function PanelListas({
           )}
         </div>
 
-        {/* Sidebar de navegación — solo iconos */}
-        <div className="shrink-0 w-10 flex flex-col items-center border-l min-h-0 overflow-y-auto py-2 gap-0.5"
-          style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-          {TAB_GROUPS.map((group, gi) => (
-            <React.Fragment key={group.label}>
-              {gi > 0 && (
-                <div className="w-5 border-t my-1" style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
-              )}
-              {group.tabs.map(t => {
-                const active = mobileTab === t.key;
-                const color = t.color ?? "var(--primary)";
-                return (
-                  <div key={t.key} className="relative group">
-                    <button
-                      onClick={() => { setMobileTab(t.key); markVisited(t.key); }}
-                      className="w-8 h-8 flex items-center justify-center rounded-lg transition-all"
-                      style={active ? {
-                        background: `color-mix(in srgb, ${color} 14%, transparent)`,
-                        color,
-                      } : {
-                        color: "color-mix(in srgb, var(--primary) 30%, transparent)",
-                      }}
-                    >
-                      <t.Icon size={13} className="shrink-0" />
-                    </button>
-                    {/* Tooltip */}
-                    <div className="pointer-events-none absolute right-full top-1/2 -translate-y-1/2 mr-2 z-50
-                      opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-                      <div className="px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest whitespace-nowrap shadow-lg"
-                        style={{
-                          background: "var(--bg-main)",
-                          color: active ? color : "color-mix(in srgb, var(--primary) 60%, transparent)",
-                          border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-                        }}>
-                        {t.label}
-                      </div>
+      </div>
+      </div>{/* fin área principal */}
+
+      {/* Sidebar de navegación — siempre visible, fuera del overlay */}
+      <div className="shrink-0 w-10 flex flex-col items-center border-l min-h-0 overflow-y-auto py-2 gap-0.5"
+        style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+        {TAB_GROUPS.map((group, gi) => (
+          <React.Fragment key={group.label}>
+            {gi > 0 && (
+              <div className="w-5 border-t my-1" style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
+            )}
+            {group.tabs.map(t => {
+              const active = mobileTab === t.key;
+              const color = t.color ?? "var(--primary)";
+              return (
+                <div key={t.key} className="relative group">
+                  <button
+                    onClick={() => {
+                      setMobileTab(t.key);
+                      markVisited(t.key);
+                      // Cerrar cualquier editor abierto al cambiar de tab
+                      setSelectedReino(null); setSelectedCriatura(null);
+                      setSelectedObjeto(null); setSelectedPersonaje(null);
+                      setSelectedHechizo(null); setSelectedDon(null);
+                      setSelectedRuna(null); setSelectedNota(null);
+                    }}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg transition-all"
+                    style={active ? {
+                      background: `color-mix(in srgb, ${color} 14%, transparent)`,
+                      color,
+                    } : {
+                      color: "color-mix(in srgb, var(--primary) 30%, transparent)",
+                    }}
+                  >
+                    <t.Icon size={13} className="shrink-0" />
+                  </button>
+                  {/* Tooltip */}
+                  <div className="pointer-events-none absolute right-full top-1/2 -translate-y-1/2 mr-2 z-50
+                    opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                    <div className="px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest whitespace-nowrap shadow-lg"
+                      style={{
+                        background: "var(--bg-main)",
+                        color: active ? color : "color-mix(in srgb, var(--primary) 60%, transparent)",
+                        border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+                      }}>
+                      {t.label}
                     </div>
                   </div>
-                );
-              })}
-            </React.Fragment>
-          ))}
-        </div>
+                </div>
+              );
+            })}
+          </React.Fragment>
+        ))}
       </div>
     </div>
   );
