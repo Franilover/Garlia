@@ -192,6 +192,30 @@ export function renderMarkdown(raw: string): string {
       continue;
     }
 
+
+    // ── BLOQUE DE LINKS (Añadir aquí) ───────────────────────────────────────
+    if (line.trim().startsWith(":::links")) {
+      const linkLines: string[] = [];
+      i++; // saltar la línea que dice :::links
+      while (i < lines.length && !lines[i].trim().startsWith(":::")) {
+        if (lines[i].trim() !== "") linkLines.push(lines[i].trim());
+        i++;
+      }
+      i++; // saltar la línea de cierre :::
+      
+      const linksHtml = linkLines.map(link => {
+        const href = link.startsWith('http') ? link : `https://${link}`;
+        return `<li><a href="${href}" target="_blank" rel="noopener noreferrer">${link}</a></li>`;
+      }).join('');
+
+      output.push(`
+        <div class="callout link-list-block">
+          <div class="callout-title"><span class="callout-title-icon">🔗</span> ENLACES</div>
+          <div class="callout-body"><ul>${linksHtml}</ul></div>
+        </div>`);
+      continue;
+    }
+
     // paragraph — collect consecutive non-blank, non-block lines
     const paraLines: string[] = [];
     while (
@@ -362,6 +386,22 @@ export const PROSE_STYLES = `
   /* ── Wikilinks ──────────────────────────────────────────────────────────── */
   .prose-mundo a.wikilink { color:var(--accent,#7c6af7);text-decoration:none;border-bottom:1px dashed color-mix(in srgb,var(--accent,#7c6af7) 50%,transparent);padding-bottom:1px;cursor:pointer;transition:all 0.15s }
   .prose-mundo a.wikilink:hover { border-bottom-style:solid;background:color-mix(in srgb,var(--accent,#7c6af7) 8%,transparent);border-radius:2px }
+  .prose-mundo .link-list-block { 
+    background: color-mix(in srgb, var(--color-primary, #7c6af7) 8%, transparent); 
+    border-color: color-mix(in srgb, var(--color-primary, #7c6af7) 30%, transparent); 
+  }
+  .prose-mundo .link-list-block ul { list-style: none; padding: 0; margin: 0.3rem 0 0 0; }
+  .prose-mundo .link-list-block li { margin: 0.3rem 0; padding-left: 1.2rem; position: relative; }
+  .prose-mundo .link-list-block li::before { 
+    content: "›"; position: absolute; left: 0.2rem; font-size: 1.2rem; 
+    line-height: 0.8; color: var(--color-primary, #7c6af7); font-weight: bold; 
+  }
+  .prose-mundo .link-list-block a { 
+    font-weight: 600; word-break: break-all; text-decoration: none; 
+    color: color-mix(in srgb, var(--color-input-text, #d1c9ff) 90%, white); 
+  }
+  .prose-mundo .link-list-block a:hover { 
+    color: var(--color-primary, #7c6af7); text-decoration: underline;
 `;
 
 // ── Command menu items ────────────────────────────────────────────────────────
@@ -635,6 +675,15 @@ const COMMAND_ITEMS: CommandItem[] = [
     keywords: ["tem", "template", "plan", "repo", "report", "reporte", "ejecut"],
     icon: "📊",
     snippet: "\n# Reporte: {{título}}\n\n> [!NOTE]\n> Resumen ejecutivo del reporte.\n\n[[TOC]]\n\n## Contexto\n\nDescripción del contexto o problema.\n\n## Análisis\n\n| Métrica | Valor | Objetivo |\n|---|---|---|\n| KPI 1 | - | - |\n| KPI 2 | - | - |\n\n## Conclusiones\n\n> [!SUCCESS]\n> Escribe aquí los resultados positivos.\n\n## Próximos pasos\n\n- [ ] Acción 1\n- [ ] Acción 2\n",
+  },
+
+  {
+    id: "link-list",
+    label: "Lista de Enlaces",
+    description: "Bloque de links clickeables",
+    keywords: ["link", "lista", "url", "enlace", "web"],
+    icon: "🔗",
+    snippet: "\n:::links\nwww.google.com\nwww.tuweb.com\n:::\n",
   },
 ];
 
