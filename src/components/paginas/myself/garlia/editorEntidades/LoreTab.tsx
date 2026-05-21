@@ -587,11 +587,11 @@ function MapaPanel({
   ];
 
   return (
-    <div className="flex h-full min-h-0">
+    <div className="flex flex-col md:flex-row h-full min-h-0 overflow-y-auto md:overflow-hidden">
       {/* ── Columna izquierda — Mapa ── */}
       <div
         className="flex-1 min-w-0 p-3 overflow-y-auto"
-        style={{ borderRight: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
+        style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
       >
         {MapaConPuntosComponent ? (
           <MapaConPuntosComponent
@@ -830,7 +830,7 @@ export function LoreTab({
   };
 
   return (
-    <div className="flex h-full min-h-0">
+    <div className="flex flex-col-reverse md:flex-row h-full min-h-0">
 
       {/* ── Panel editor ─────────────────────────────────────────────────────── */}
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
@@ -875,7 +875,7 @@ export function LoreTab({
         </div>
 
         {/* Contenido */}
-        <div className="flex-1 min-h-0" style={{ overflow: (activeKey === "mapa" || activeKey === "historia_cultura" || activeKey === "politica_economia") ? "hidden" : "auto" }}>
+        <div className="flex-1 min-h-0 overflow-auto md:overflow-hidden">
           {activeKey === "mapa" ? (
             <MapaPanel
               mapaUrl={mapaUrl}
@@ -896,11 +896,11 @@ export function LoreTab({
               onSnippetAction={onSnippetAction}
             />
           ) : activeKey === "historia_cultura" ? (
-            <div className="flex h-full min-h-0">
+            <div className="flex flex-col md:flex-row h-full min-h-0 overflow-y-auto md:overflow-hidden">
               {/* Columna izquierda — Historia (timeline) */}
               <div
                 className="flex-1 min-w-0 flex flex-col overflow-hidden"
-                style={{ borderRight: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
+                style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
               >
                 <div className="shrink-0 flex items-center gap-1.5 px-3 py-2 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
                   <Globe size={9} style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }} />
@@ -938,11 +938,11 @@ export function LoreTab({
               </div>
             </div>
           ) : activeKey === "politica_economia" ? (
-            <div className="flex h-full min-h-0">
+            <div className="flex flex-col md:flex-row h-full min-h-0 overflow-y-auto md:overflow-hidden">
               {/* Columna izquierda — Política */}
               <div
                 className="flex-1 min-w-0 flex flex-col overflow-hidden"
-                style={{ borderRight: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
+                style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
               >
                 <div className="shrink-0 flex items-center gap-1.5 px-3 py-2 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
                   <Users size={9} style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }} />
@@ -1049,11 +1049,12 @@ export function LoreTab({
         </div>
       </div>
 
-      {/* ── Nav lateral derecha — iconos agrupados ───────────────────────────── */}
+      {/* ── Nav lateral derecha / barra inferior en mobile ───────────────────── */}
       <nav
-        className="shrink-0 flex flex-col items-center gap-2 py-2 px-1.5 border-l overflow-y-auto"
+        className="shrink-0 flex md:flex-col flex-row items-center gap-2 py-1.5 md:py-2 px-2 md:px-1.5 border-t md:border-t-0 md:border-l overflow-x-auto md:overflow-x-hidden overflow-y-hidden md:overflow-y-auto"
         style={{
-          width: "40px",
+          width: "auto",
+          minHeight: "48px",
           borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
           background: "color-mix(in srgb, var(--primary) 2%, transparent)",
         }}
@@ -1065,7 +1066,7 @@ export function LoreTab({
         ] as LoreKey[][]).map((group, gi) => (
           <div
             key={gi}
-            className="flex flex-col items-center gap-0.5 p-1 rounded-xl"
+            className="flex md:flex-col flex-row items-center gap-0.5 p-1 rounded-xl"
             style={{
               background: "color-mix(in srgb, var(--primary) 5%, transparent)",
               border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
