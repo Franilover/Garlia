@@ -79,7 +79,7 @@ type CriaturaMin = { id: string; nombre: string; imagen_url?: string; habitat?: 
 type VarianteMin = { id: string; tipo: string };
 
 // ─── Hook: lista de reinos ─────────────────────────────────────────────────────
-function useReinos() {
+function useReinos(enabled = true) {
   const [reinos, setReinos] = useState<Reino[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -93,7 +93,7 @@ function useReinos() {
     await dexieWriteAll("reinos", result);
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { if (enabled) load(); else setLoading(false); }, [load, enabled]);
   return { reinos, setReinos, loading };
 }
 
@@ -121,10 +121,11 @@ const MAGIC_CONFIG = {
 } as const;
 
 // ─── Hooks ────────────────────────────────────────────────────────────────────
-function useCriaturas() {
+function useCriaturas(enabled = true) {
   const [criaturas, setCriaturas] = useState<CriaturaMin[]>([]);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
+    if (!enabled) { setLoading(false); return; }
     let cancelled = false;
     const run = async () => {
       const local = await dexieReadAll<CriaturaMin>("criaturas");
@@ -137,16 +138,17 @@ function useCriaturas() {
       await dexieWriteAll("criaturas", result);
     };
     run(); return () => { cancelled = true; };
-  }, []);
+  }, [enabled]);
   return { criaturas, setCriaturas, loading };
 }
 
 // Hook full para objetos (PanelListas)
 type ObjetoMin = { id: string; nombre: string; imagen_url?: string; categoria?: string };
-function useObjetos() {
+function useObjetos(enabled = true) {
   const [objetos, setObjetos] = useState<ObjetoMin[]>([]);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
+    if (!enabled) { setLoading(false); return; }
     let cancelled = false;
     const run = async () => {
       const local = await dexieReadAll<ObjetoMin>("items");
@@ -159,15 +161,16 @@ function useObjetos() {
       await dexieWriteAll("items", result);
     };
     run(); return () => { cancelled = true; };
-  }, []);
+  }, [enabled]);
   return { objetos, setObjetos, loading };
 }
 
 // Hook full para personajes (PanelListas)
-function usePersonajesList() {
+function usePersonajesList(enabled = true) {
   const [personajes, setPersonajes] = useState<Personaje[]>([]);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
+    if (!enabled) { setLoading(false); return; }
     let cancelled = false;
     const run = async () => {
       const local = await dexieReadAll<Personaje>("personajes");
@@ -180,7 +183,7 @@ function usePersonajesList() {
       await dexieWriteAll("personajes", result);
     };
     run(); return () => { cancelled = true; };
-  }, []);
+  }, [enabled]);
   return { personajes, setPersonajes, loading };
 }
 
@@ -210,10 +213,11 @@ function useCriaturaVariantes(criaturaId: string | null) {
   return { variantes, loading };
 }
 
-function useEntidadesMagicas(tabla: string) {
+function useEntidadesMagicas(tabla: string, enabled = true) {
   const [items, setItems] = useState<EntidadMagica[]>([]);
   const [loading, setLoading] = useState(true);
   const load = useCallback(async () => {
+    if (!enabled) { setLoading(false); return; }
     const local = await dexieReadAll<EntidadMagica>(tabla);
     if (local.length) { setItems(local); setLoading(false); }
     if (!navigator.onLine) { if (!local.length) setLoading(false); return; }
@@ -224,15 +228,16 @@ function useEntidadesMagicas(tabla: string) {
     const result = (data ?? []) as EntidadMagica[];
     setItems(result); setLoading(false);
     await dexieWriteAll(tabla, result);
-  }, [tabla]);
+  }, [tabla, enabled]);
   useEffect(() => { load(); }, [load]);
   return { items, setItems, loading };
 }
 
-function useRunas() {
+function useRunas(enabled = true) {
   const [items, setItems] = useState<Runa[]>([]);
   const [loading, setLoading] = useState(true);
   const load = useCallback(async () => {
+    if (!enabled) { setLoading(false); return; }
     const local = await dexieReadAll<Runa>("runas");
     if (local.length) { setItems(local); setLoading(false); }
     if (!navigator.onLine) { if (!local.length) setLoading(false); return; }
@@ -240,7 +245,7 @@ function useRunas() {
     const result = (data ?? []) as Runa[];
     setItems(result); setLoading(false);
     await dexieWriteAll("runas", result);
-  }, []);
+  }, [enabled]);
   useEffect(() => { load(); }, [load]);
   return { items, setItems, loading };
 }
@@ -248,10 +253,11 @@ function useRunas() {
 // ─── Hook: grupos de criaturas ────────────────────────────────────────────────
 type GrupoMin = { id: string; nombre: string; miembro_ids: string[] };
 
-function useGruposCriaturas() {
+function useGruposCriaturas(enabled = true) {
   const [grupos, setGrupos] = useState<GrupoMin[]>([]);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
+    if (!enabled) { setLoading(false); return; }
     let cancelled = false;
     const run = async () => {
       try {
@@ -271,17 +277,18 @@ function useGruposCriaturas() {
     };
     run();
     return () => { cancelled = true; };
-  }, []);
+  }, [enabled]);
   return { grupos, loading };
 }
 
 // ─── Hook: todos los grupos (sin filtro de tipo) ──────────────────────────────
 type GrupoTodo = { id: string; nombre: string; tipo: string; miembro_ids: string[] };
 
-function useGruposTodos() {
+function useGruposTodos(enabled = true) {
   const [grupos, setGrupos] = useState<GrupoTodo[]>([]);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
+    if (!enabled) { setLoading(false); return; }
     let cancelled = false;
     const run = async () => {
       try {
@@ -301,7 +308,7 @@ function useGruposTodos() {
     };
     run();
     return () => { cancelled = true; };
-  }, []);
+  }, [enabled]);
   return { grupos, loading };
 }
 
@@ -1138,23 +1145,11 @@ function ListaConBuscador({ search, onSearch, placeholder, loading, emptyText, c
 
 // ─── Hook: lista de criaturas (para PanelMundo) ───────────────────────────────
 function useCriaturasList() {
-  const [criaturas, setCriaturas] = useState<{ id: string; nombre: string; imagen_url?: string; habitat?: string }[]>([]);
-  const [loading, setLoading] = useState(true);
-  useEffect(() => {
-    supabase.from("criaturas").select("id, nombre, imagen_url, habitat").order("nombre")
-      .then(({ data }) => { setCriaturas(data ?? []); setLoading(false); });
-  }, []);
-  return { criaturas, setCriaturas, loading };
+  return useCriaturas(true);
 }
 
 function useObjetosList() {
-  const [objetos, setObjetos] = useState<{ id: string; nombre: string; imagen_url?: string; categoria?: string }[]>([]);
-  const [loading, setLoading] = useState(true);
-  useEffect(() => {
-    supabase.from("items").select("id, nombre, imagen_url, categoria").order("nombre")
-      .then(({ data }) => { setObjetos(data ?? []); setLoading(false); });
-  }, []);
-  return { objetos, setObjetos, loading };
+  return useObjetos(true);
 }
 
 type MundoGeoTab = "texto" | "reinos" | "criaturas" | "objetos";
@@ -2101,15 +2096,59 @@ function PanelListas({
   onSave?: (section: MundoSectionKey) => Promise<void>;
   onTabChange?: (section: MundoSectionKey, mundoTab: string) => void;
 }) {
-  const { reinos,    setReinos,    loading: loadingReinos    } = useReinos();
-  const { criaturas, setCriaturas, loading: loadingCriaturas } = useCriaturas();
-  const { objetos,   setObjetos,   loading: loadingObjetos   } = useObjetos();
-  const { personajes, setPersonajes, loading: loadingPersonajes } = usePersonajesList();
-  const { items: hechizos, setItems: setHechizos, loading: loadingHechizos } = useEntidadesMagicas("hechizos");
-  const { items: dones,    setItems: setDones,    loading: loadingDones    } = useEntidadesMagicas("dones");
-  const { items: runas,    setItems: setRunas,    loading: loadingRunas    } = useRunas();
-  const { grupos: gruposMagicos, loading: loadingGruposMagicos } = useGruposCriaturas();
-  const { grupos: gruposTodos,   loading: loadingGruposTodos   } = useGruposTodos();
+  // ── Lazy loading: cada tabla solo carga cuando su tab fue visitado ────────
+  // "geo-magia" y "historia" no necesitan datos de lista — empezamos con ellos off.
+  // Una vez que el usuario abre un tab, lo marcamos como "visitado" y ya no se desmonta.
+  const [visited, setVisited] = useState<Set<string>>(() => {
+    // Pre-activar el tab inicial para que cargue de inmediato
+    const init = new Set<string>();
+    const t = initialSubTab ?? "geo-magia";
+    if (t === "reinos")     init.add("reinos");
+    if (t === "criaturas")  init.add("criaturas");
+    if (t === "objetos")    init.add("objetos");
+    if (t === "personajes") init.add("personajes");
+    if (t === "hechizos")   { init.add("hechizos"); init.add("grupos"); }
+    if (t === "dones")      { init.add("dones");    init.add("grupos"); }
+    if (t === "runas")      init.add("runas");
+    if (t === "grupos")     { init.add("grupos"); init.add("gruposTodos"); }
+    if (t === "notas")      init.add("notas");
+    // "todo" y "magia-objetos" necesitan todo — carga diferida igual, pero activamos todos
+    if (t === "todo" || t === "mundo-personajes" || t === "magia-objetos") {
+      ["reinos","criaturas","objetos","personajes","hechizos","dones","runas","grupos","gruposTodos","notas"].forEach(k => init.add(k));
+    }
+    return init;
+  });
+
+  // Cuando el usuario cambia de tab, registrar visita y activar los hooks necesarios
+  const markVisited = useCallback((tab: string) => {
+    setVisited(prev => {
+      const next = new Set(prev);
+      const add = (...keys: string[]) => keys.forEach(k => next.add(k));
+      if (tab === "reinos")         add("reinos");
+      else if (tab === "criaturas") add("criaturas");
+      else if (tab === "objetos")   add("objetos");
+      else if (tab === "personajes")add("personajes");
+      else if (tab === "hechizos")  add("hechizos", "grupos");
+      else if (tab === "dones")     add("dones", "grupos");
+      else if (tab === "runas")     add("runas");
+      else if (tab === "grupos")    add("grupos", "gruposTodos");
+      else if (tab === "notas")     add("notas");
+      else if (tab === "todo" || tab === "mundo-personajes" || tab === "magia-objetos") {
+        add("reinos","criaturas","objetos","personajes","hechizos","dones","runas","grupos","gruposTodos","notas");
+      }
+      return next;
+    });
+  }, []);
+
+  const { reinos,    setReinos,    loading: loadingReinos    } = useReinos(visited.has("reinos"));
+  const { criaturas, setCriaturas, loading: loadingCriaturas } = useCriaturas(visited.has("criaturas"));
+  const { objetos,   setObjetos,   loading: loadingObjetos   } = useObjetos(visited.has("objetos"));
+  const { personajes, setPersonajes, loading: loadingPersonajes } = usePersonajesList(visited.has("personajes"));
+  const { items: hechizos, setItems: setHechizos, loading: loadingHechizos } = useEntidadesMagicas("hechizos", visited.has("hechizos"));
+  const { items: dones,    setItems: setDones,    loading: loadingDones    } = useEntidadesMagicas("dones",    visited.has("dones"));
+  const { items: runas,    setItems: setRunas,    loading: loadingRunas    } = useRunas(visited.has("runas"));
+  const { grupos: gruposMagicos, loading: loadingGruposMagicos } = useGruposCriaturas(visited.has("grupos"));
+  const { grupos: gruposTodos,   loading: loadingGruposTodos   } = useGruposTodos(visited.has("gruposTodos"));
   const { notas, loading: loadingNotas, crear: crearNota, actualizar: actualizarNota, eliminar: eliminarNota } = useNotas();
   const [searchNotas, setSearchNotas] = useState("");
   const [selectedNota, setSelectedNota] = useState<Nota | null>(null);
@@ -2146,8 +2185,8 @@ function PanelListas({
     if (!initialSubTab) return;
     const mapped: Record<string, ListaTab> = { mundo: "geo-magia", historia: "historia", magia: "geo-magia", listas: "reinos", "geo-magia": "geo-magia" };
     const resolved = mapped[initialSubTab] ?? (VALID_LISTA_TABS.includes(initialSubTab as ListaTab) ? initialSubTab as ListaTab : null);
-    if (resolved) setMobileTab(resolved);
-  }, [initialSubTab]);
+    if (resolved) { setMobileTab(resolved); markVisited(resolved); }
+  }, [initialSubTab, markVisited]);
 
   // Editor overlay activo
   const overlay: "reino" | "criatura" | "objeto" | "personaje" | "hechizo" | "don" | "runa" | "nota" | null =
@@ -2174,12 +2213,15 @@ function PanelListas({
   useEffect(() => {
     if (!initialItemId || !initialSubTab) return;
     if (initialSubTab === "hechizos") {
+      markVisited("hechizos");
       const found = hechizos.find(i => i.id === initialItemId);
       if (found) { setSelectedHechizo(found); setMobileTab("hechizos"); }
     } else if (initialSubTab === "dones") {
+      markVisited("dones");
       const found = dones.find(i => i.id === initialItemId);
       if (found) { setSelectedDon(found); setMobileTab("dones"); }
     } else if (initialSubTab === "runas") {
+      markVisited("runas");
       const found = runas.find(i => i.id === initialItemId);
       if (found) { setSelectedRuna(found); setMobileTab("runas"); }
     }
@@ -2589,7 +2631,7 @@ function PanelListas({
                 {loadingGruposTodos ? <div className="flex justify-center py-3"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
                   : gruposTodos.length === 0 ? <p className="text-[9px] text-primary/20 italic px-1 pb-2">Sin grupos aún</p>
                   : <div className="flex flex-wrap gap-1.5">{gruposTodos.map(g => (
-                      <button key={g.id} onClick={() => setMobileTab("grupos")} type="button"
+                      <button key={g.id} onClick={() => { setMobileTab("grupos"); markVisited("grupos"); }} type="button"
                         className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02]"
                         style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
                         <div className="w-6 h-6 rounded-lg border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center"><Layers size={10} className="text-primary/25" /></div>
@@ -3004,6 +3046,7 @@ function PanelListas({
                   const subtab = tablaMap[tabla];
                   if (!subtab) return;
                   setMobileTab(subtab);
+                  markVisited(subtab);
                   // Abrir el editor del ítem usando el mismo sistema de overlay
                   if (tabla === "personajes") {
                     const p = personajes.find(x => x.id === id);
@@ -3045,7 +3088,7 @@ function PanelListas({
                 return (
                   <div key={t.key} className="relative group">
                     <button
-                      onClick={() => setMobileTab(t.key)}
+                      onClick={() => { setMobileTab(t.key); markVisited(t.key); }}
                       className="w-8 h-8 flex items-center justify-center rounded-lg transition-all"
                       style={active ? {
                         background: `color-mix(in srgb, ${color} 14%, transparent)`,
