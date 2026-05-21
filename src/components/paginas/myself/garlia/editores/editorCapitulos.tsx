@@ -228,6 +228,11 @@ async function libroUpdateVisibilidad(id: string, visibilidad: string, fechaPubl
   if (error) throw error;
 }
 
+async function libroDelete(id: string): Promise<void> {
+  const { error } = await supabase.from("libros").delete().eq("id", id);
+  if (error) throw error;
+}
+
 function useCapitulos(libroId: string | null) {
   const [capitulos, setCapitulos] = useState<Capitulo[]>([]);
   const [loading, setLoading]     = useState(false);
@@ -586,7 +591,7 @@ const CapituloItem = ({
 };
 
 const LibroItem = ({
-  libro, selectedCapId, onSelectCap, expanded, onToggle, onEditCap, onDeleteCap, onEditLibro, onNuevoCap,
+  libro, selectedCapId, onSelectCap, expanded, onToggle, onEditCap, onDeleteCap, onEditLibro, onDeleteLibro, onNuevoCap,
 }: {
   libro: Libro;
   selectedCapId: string | null;
@@ -596,10 +601,23 @@ const LibroItem = ({
   onEditCap: (cap: Capitulo) => void;
   onDeleteCap: (id: string, libroId: string) => void;
   onEditLibro: (libro: Libro) => void;
+  onDeleteLibro: (libroId: string) => void;
   onNuevoCap: (libroId: string) => void;
 }) => {
   const { capitulos, loading } = useCapitulos(expanded ? libro.id : null);
   const [rowHovered, setRowHovered] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const { confirm, ConfirmModal } = useConfirm();
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [menuOpen]);
 
   return (
     <div style={{ marginBottom: 2 }}>
@@ -652,23 +670,70 @@ const LibroItem = ({
           }
         </button>
 
-        {/* Botón editar libro */}
-        <button
-          onClick={(e: React.MouseEvent) => { e.stopPropagation(); onEditLibro(libro); }}
-          title="Editar libro"
-          style={{
-            display: "flex", alignItems: "center", justifyContent: "center",
-            width: 26, height: 26, borderRadius: 5, border: "none", flexShrink: 0,
-            background: "transparent", color: "var(--primary)",
-            opacity: rowHovered ? 0.45 : 0, cursor: "pointer",
-            transition: "opacity 0.1s, background 0.1s",
-          }}
-          onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.background = "color-mix(in srgb, var(--primary) 10%, transparent)"; }}
-          onMouseLeave={e => { e.currentTarget.style.opacity = rowHovered ? "0.45" : "0"; e.currentTarget.style.background = "transparent"; }}
-        >
-          <Pencil size={10} />
-        </button>
+        {/* Menú libro */}
+        <div ref={menuRef} style={{ position: "relative", flexShrink: 0 }}>
+          <button
+            onClick={(e: React.MouseEvent) => { e.stopPropagation(); setMenuOpen(m => !m); }}
+            title="Opciones del libro"
+            style={{
+              display: "flex", alignItems: "center", justifyContent: "center",
+              width: 26, height: 26, borderRadius: 5, border: "none", flexShrink: 0,
+              background: menuOpen ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent",
+              color: "var(--primary)",
+              opacity: rowHovered || menuOpen ? 0.55 : 0, cursor: "pointer",
+              transition: "opacity 0.1s, background 0.1s",
+            }}
+            onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.background = "color-mix(in srgb, var(--primary) 10%, transparent)"; }}
+            onMouseLeave={e => { e.currentTarget.style.opacity = rowHovered || menuOpen ? "0.55" : "0"; e.currentTarget.style.background = menuOpen ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent"; }}
+          >
+            <MoreHorizontal size={10} />
+          </button>
+          {menuOpen && (
+            <div style={{
+              position: "absolute", right: 0, top: "calc(100% + 4px)", zIndex: 50,
+              minWidth: 148, background: "var(--white-custom)",
+              border: "1px solid color-mix(in srgb, var(--primary) 18%, transparent)",
+              borderRadius: 8, boxShadow: "0 8px 24px color-mix(in srgb, var(--primary) 12%, transparent)",
+              padding: 3, overflow: "hidden",
+            }}>
+              <button
+                onClick={e => { e.stopPropagation(); setMenuOpen(false); onEditLibro(libro); }}
+                style={{
+                  width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 7,
+                  padding: "6px 10px", borderRadius: 5, border: "none", background: "transparent",
+                  fontSize: 9, fontFamily: "var(--font-mono, monospace)", fontWeight: 900,
+                  textTransform: "uppercase" as const, letterSpacing: "0.1em",
+                  color: "var(--text-on-card)", opacity: 0.65, cursor: "pointer",
+                }}
+                onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.background = "color-mix(in srgb, var(--primary) 8%, transparent)"; }}
+                onMouseLeave={e => { e.currentTarget.style.opacity = "0.65"; e.currentTarget.style.background = "transparent"; }}
+              >
+                <Pencil size={10} /> Editar
+              </button>
+              <div style={{ height: 1, background: "color-mix(in srgb, var(--primary) 10%, transparent)", margin: "2px 6px" }} />
+              <button
+                onClick={async e => {
+                  e.stopPropagation(); setMenuOpen(false);
+                  const ok = await confirm({ message: `¿Eliminar "${libro.titulo}" y todos sus capítulos?`, danger: true, confirmLabel: "Eliminar" });
+                  if (ok) onDeleteLibro(libro.id);
+                }}
+                style={{
+                  width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 7,
+                  padding: "6px 10px", borderRadius: 5, border: "none", background: "transparent",
+                  fontSize: 9, fontFamily: "var(--font-mono, monospace)", fontWeight: 900,
+                  textTransform: "uppercase" as const, letterSpacing: "0.1em",
+                  color: "var(--accent)", opacity: 0.7, cursor: "pointer",
+                }}
+                onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.background = "color-mix(in srgb, var(--accent) 10%, transparent)"; }}
+                onMouseLeave={e => { e.currentTarget.style.opacity = "0.7"; e.currentTarget.style.background = "transparent"; }}
+              >
+                <Trash2 size={10} /> Eliminar libro
+              </button>
+            </div>
+          )}
+        </div>
       </div>
+      <ConfirmModal />
 
       {expanded && (
         <div style={{
@@ -1399,9 +1464,6 @@ const PanelEditor = ({
   );
   if (!cap) return null;
 
-  
-  const narradorLabel = cap.narrador_id ? null : null; 
-
   const palabras = wordCount(contenido);
 
   return (
@@ -1513,27 +1575,15 @@ const PanelEditor = ({
             )}
 
             {}
-            {/* Desktop actions */}
-            <div className="hidden sm:flex items-center gap-1 shrink-0">
+            {/* Actions: delete + focus (shared across breakpoints) */}
+            <div className="flex items-center gap-1 shrink-0">
+              <SaveIndicator status={saveStatus}/>
               <button onClick={() => doSave(contenido)} disabled={saveStatus === "saving"}
                 className="p-2 rounded-lg hover:bg-primary/8 text-primary/30 hover:text-primary transition-all disabled:opacity-30" title="Guardar (Ctrl+S)">
                 <Save size={14}/>
               </button>
               <button onClick={handleDelete} className="p-2 rounded-lg hover:bg-red-500/10 text-primary/20 hover:text-red-400 transition-all" title="Eliminar capítulo">
                 <Trash2 size={13}/>
-              </button>
-            </div>
-
-            {}
-            {/* Mobile: save + delete */}
-            <div className="flex sm:hidden items-center gap-1 shrink-0">
-              <SaveIndicator status={saveStatus}/>
-              <button onClick={() => doSave(contenido)} disabled={saveStatus === "saving"}
-                className="p-2 rounded-lg hover:bg-primary/8 text-primary/30 hover:text-primary transition-all disabled:opacity-30">
-                <Save size={14}/>
-              </button>
-              <button onClick={handleDelete} className="p-2 rounded-lg hover:bg-red-500/10 text-primary/20 hover:text-red-400 transition-all">
-                <Trash2 size={14}/>
               </button>
             </div>
           </div>
@@ -1603,8 +1653,6 @@ const PanelEditor = ({
 
             <div className="flex items-center gap-2 shrink-0">
               <EstadisticasEscritura texto={contenido} compact={true}/>
-              {/* SaveIndicator only on desktop here; mobile has it in the actions row */}
-              <span className="hidden sm:block"><SaveIndicator status={saveStatus}/></span>
             </div>
           </div>
         </div>
@@ -1653,7 +1701,6 @@ const PanelEditor = ({
       {!focusMode && (
         <div className="shrink-0 px-3 sm:px-8 py-2 sm:py-2.5 border-t border-primary/5 flex items-center justify-between">
           <EstadisticasEscritura texto={contenido}/>
-          <span className="hidden sm:block text-[9px] font-black uppercase text-primary/20 tracking-widest">Ctrl+S para guardar</span>
         </div>
       )}
       <ConfirmModal />
@@ -2158,7 +2205,7 @@ const ModalEditarLibro = ({
 
 // ─── LibroCard (mobile grid view) ────────────────────────────────────────────
 const LibroCard = ({
-  libro, selectedCapId, onSelectCap, onEditCap, onDeleteCap, onEditLibro, onNuevoCap,
+  libro, selectedCapId, onSelectCap, onEditCap, onDeleteCap, onEditLibro, onDeleteLibro, onNuevoCap,
 }: {
   libro: Libro;
   selectedCapId: string | null;
@@ -2166,10 +2213,23 @@ const LibroCard = ({
   onEditCap: (cap: Capitulo) => void;
   onDeleteCap: (id: string, libroId: string) => void;
   onEditLibro: (libro: Libro) => void;
+  onDeleteLibro: (libroId: string) => void;
   onNuevoCap: (libroId: string) => void;
 }) => {
   const { capitulos, loading } = useCapitulos(libro.id);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const { confirm, ConfirmModal } = useConfirm();
   const isSelected = capitulos.some(c => c.id === selectedCapId);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [menuOpen]);
 
   return (
     <div
@@ -2195,13 +2255,59 @@ const LibroCard = ({
         <span className="flex-1 text-[8px] font-black uppercase italic tracking-tight text-primary/70 truncate leading-tight" title={libro.titulo}>
           {libro.titulo}
         </span>
-        <button
-          onClick={() => onEditLibro(libro)}
-          className="shrink-0 p-0.5 rounded text-primary/20 hover:text-primary transition-all"
-        >
-          <Pencil size={8} />
-        </button>
+        <div ref={menuRef} className="relative shrink-0">
+          <button
+            onClick={() => setMenuOpen(m => !m)}
+            className="p-0.5 rounded text-primary/20 hover:text-primary transition-all"
+          >
+            <MoreHorizontal size={9} />
+          </button>
+          {menuOpen && (
+            <div style={{
+              position: "absolute", right: 0, top: "calc(100% + 4px)", zIndex: 50,
+              minWidth: 130, background: "var(--white-custom)",
+              border: "1px solid color-mix(in srgb, var(--primary) 18%, transparent)",
+              borderRadius: 8, boxShadow: "0 8px 24px color-mix(in srgb, var(--primary) 12%, transparent)",
+              padding: 3, overflow: "hidden",
+            }}>
+              <button
+                onClick={e => { e.stopPropagation(); setMenuOpen(false); onEditLibro(libro); }}
+                style={{
+                  width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 6,
+                  padding: "5px 8px", borderRadius: 5, border: "none", background: "transparent",
+                  fontSize: 8, fontFamily: "var(--font-mono, monospace)", fontWeight: 900,
+                  textTransform: "uppercase" as const, letterSpacing: "0.1em",
+                  color: "var(--text-on-card)", opacity: 0.65, cursor: "pointer",
+                }}
+                onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.background = "color-mix(in srgb, var(--primary) 8%, transparent)"; }}
+                onMouseLeave={e => { e.currentTarget.style.opacity = "0.65"; e.currentTarget.style.background = "transparent"; }}
+              >
+                <Pencil size={9} /> Editar
+              </button>
+              <div style={{ height: 1, background: "color-mix(in srgb, var(--primary) 10%, transparent)", margin: "2px 5px" }} />
+              <button
+                onClick={async e => {
+                  e.stopPropagation(); setMenuOpen(false);
+                  const ok = await confirm({ message: `¿Eliminar "${libro.titulo}" y todos sus capítulos?`, danger: true, confirmLabel: "Eliminar" });
+                  if (ok) onDeleteLibro(libro.id);
+                }}
+                style={{
+                  width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 6,
+                  padding: "5px 8px", borderRadius: 5, border: "none", background: "transparent",
+                  fontSize: 8, fontFamily: "var(--font-mono, monospace)", fontWeight: 900,
+                  textTransform: "uppercase" as const, letterSpacing: "0.1em",
+                  color: "var(--accent)", opacity: 0.7, cursor: "pointer",
+                }}
+                onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.background = "color-mix(in srgb, var(--accent) 10%, transparent)"; }}
+                onMouseLeave={e => { e.currentTarget.style.opacity = "0.7"; e.currentTarget.style.background = "transparent"; }}
+              >
+                <Trash2 size={9} /> Eliminar
+              </button>
+            </div>
+          )}
+        </div>
       </div>
+      <ConfirmModal />
 
       {/* Lista de capítulos (máx 4 visibles, scroll) */}
       <div className="flex-1 overflow-y-auto max-h-28 p-1 space-y-0.5">
@@ -2238,7 +2344,7 @@ const LibroCard = ({
 };
 
 const LibroColumna = ({
-  libro, selectedCapId, onSelectCap, onEditCap, onDeleteCap, onEditLibro, onNuevoCap,
+  libro, selectedCapId, onSelectCap, onEditCap, onDeleteCap, onEditLibro, onDeleteLibro, onNuevoCap,
 }: {
   libro: Libro;
   selectedCapId: string | null;
@@ -2246,11 +2352,24 @@ const LibroColumna = ({
   onEditCap: (cap: Capitulo) => void;
   onDeleteCap: (id: string, libroId: string) => void;
   onEditLibro: (libro: Libro) => void;
+  onDeleteLibro: (libroId: string) => void;
   onNuevoCap: (libroId: string) => void;
 }) => {
   const { capitulos, loading } = useCapitulos(libro.id);
   const [hdrHovered, setHdrHovered] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const { confirm, ConfirmModal } = useConfirm();
   const isSelected = capitulos.some(c => c.id === selectedCapId);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [menuOpen]);
 
   return (
     <div
@@ -2340,24 +2459,71 @@ const LibroColumna = ({
           </span>
         )}
 
-        {/* Botón editar libro */}
-        <button
-          onClick={() => onEditLibro(libro)}
-          title="Editar libro"
-          style={{
-            display: "flex", alignItems: "center", justifyContent: "center",
-            width: 20, height: 20, borderRadius: 4, border: "none",
-            background: "transparent", color: "var(--primary)",
-            opacity: hdrHovered ? 0.5 : 0,
-            cursor: "pointer", flexShrink: 0,
-            transition: "opacity 0.1s, background 0.1s",
-          }}
-          onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.background = "color-mix(in srgb, var(--primary) 10%, transparent)"; }}
-          onMouseLeave={e => { e.currentTarget.style.opacity = hdrHovered ? "0.5" : "0"; e.currentTarget.style.background = "transparent"; }}
-        >
-          <Pencil size={9} />
-        </button>
+        {/* Botón menú libro */}
+        <div ref={menuRef} style={{ position: "relative", flexShrink: 0 }}>
+          <button
+            onClick={() => setMenuOpen(m => !m)}
+            title="Opciones del libro"
+            style={{
+              display: "flex", alignItems: "center", justifyContent: "center",
+              width: 20, height: 20, borderRadius: 4, border: "none",
+              background: menuOpen ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent",
+              color: "var(--primary)",
+              opacity: hdrHovered || menuOpen ? 0.6 : 0,
+              cursor: "pointer", flexShrink: 0,
+              transition: "opacity 0.1s, background 0.1s",
+            }}
+            onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.background = "color-mix(in srgb, var(--primary) 10%, transparent)"; }}
+            onMouseLeave={e => { e.currentTarget.style.opacity = hdrHovered || menuOpen ? "0.6" : "0"; e.currentTarget.style.background = menuOpen ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent"; }}
+          >
+            <MoreHorizontal size={10} />
+          </button>
+          {menuOpen && (
+            <div style={{
+              position: "absolute", right: 0, top: "calc(100% + 4px)", zIndex: 50,
+              minWidth: 140, background: "var(--white-custom)",
+              border: "1px solid color-mix(in srgb, var(--primary) 18%, transparent)",
+              borderRadius: 8, boxShadow: "0 8px 24px color-mix(in srgb, var(--primary) 12%, transparent)",
+              padding: 3, overflow: "hidden",
+            }}>
+              <button
+                onClick={e => { e.stopPropagation(); setMenuOpen(false); onEditLibro(libro); }}
+                style={{
+                  width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 7,
+                  padding: "6px 10px", borderRadius: 5, border: "none", background: "transparent",
+                  fontSize: 9, fontFamily: "var(--font-mono, monospace)", fontWeight: 900,
+                  textTransform: "uppercase" as const, letterSpacing: "0.1em",
+                  color: "var(--text-on-card)", opacity: 0.65, cursor: "pointer", transition: "opacity 0.1s, background 0.1s",
+                }}
+                onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.background = "color-mix(in srgb, var(--primary) 8%, transparent)"; }}
+                onMouseLeave={e => { e.currentTarget.style.opacity = "0.65"; e.currentTarget.style.background = "transparent"; }}
+              >
+                <Pencil size={10} /> Editar
+              </button>
+              <div style={{ height: 1, background: "color-mix(in srgb, var(--primary) 10%, transparent)", margin: "2px 6px" }} />
+              <button
+                onClick={async e => {
+                  e.stopPropagation(); setMenuOpen(false);
+                  const ok = await confirm({ message: `¿Eliminar el libro "${libro.titulo}" y todos sus capítulos?`, danger: true, confirmLabel: "Eliminar" });
+                  if (ok) onDeleteLibro(libro.id);
+                }}
+                style={{
+                  width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 7,
+                  padding: "6px 10px", borderRadius: 5, border: "none", background: "transparent",
+                  fontSize: 9, fontFamily: "var(--font-mono, monospace)", fontWeight: 900,
+                  textTransform: "uppercase" as const, letterSpacing: "0.1em",
+                  color: "var(--accent)", opacity: 0.7, cursor: "pointer", transition: "opacity 0.1s, background 0.1s",
+                }}
+                onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.background = "color-mix(in srgb, var(--accent) 10%, transparent)"; }}
+                onMouseLeave={e => { e.currentTarget.style.opacity = "0.7"; e.currentTarget.style.background = "transparent"; }}
+              >
+                <Trash2 size={10} /> Eliminar libro
+              </button>
+            </div>
+          )}
+        </div>
       </div>
+      <ConfirmModal />
 
       {/* Lista de capítulos */}
       <div style={{ flex: 1, overflowY: "auto", padding: "6px 6px" }}>
@@ -2504,7 +2670,20 @@ export function EditorCapitulosPanel() {
   const handleCapEliminada = async (id: string, libroId: string) => {
     try {
       await capDelete(id);
+      setCapitulos(prev => prev.filter(c => c.id !== id));
       if (selectedCapId === id) setSelectedCapId(null);
+      setCapRefreshKey(k => k + 1);
+    } catch {}
+  };
+
+  const handleLibroEliminado = async (libroId: string) => {
+    try {
+      await libroDelete(libroId);
+      setLibros(prev => prev.filter(l => l.id !== libroId));
+      if (selectedLibroId === libroId) {
+        setSelectedLibroId(null);
+        setSelectedCapId(null);
+      }
       setCapRefreshKey(k => k + 1);
     } catch {}
   };
@@ -2684,6 +2863,7 @@ export function EditorCapitulosPanel() {
                       onEditCap={setEditandoCap}
                       onDeleteCap={handleCapEliminada}
                       onEditLibro={setEditandoLibro}
+                      onDeleteLibro={handleLibroEliminado}
                       onNuevoCap={(libroId) => { setSelectedLibroId(libroId); setShowNuevoCap(true); }}
                     />
                   ))}
@@ -2712,6 +2892,7 @@ export function EditorCapitulosPanel() {
                     onEditCap={setEditandoCap}
                     onDeleteCap={handleCapEliminada}
                     onEditLibro={setEditandoLibro}
+                    onDeleteLibro={handleLibroEliminado}
                     onNuevoCap={(libroId) => { setSelectedLibroId(libroId); setShowNuevoCap(true); }}
                   />
                 ))}
