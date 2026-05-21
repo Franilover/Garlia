@@ -131,11 +131,11 @@ function MapaConPuntos({ mapaUrl, onMapaChange, detalles, onDetallesChange }: {
           </div>
         )}
 
-        {/* Botón cambiar imagen */}
+        {/* Botón cambiar imagen — siempre visible en mobile, hover en desktop */}
         {mapaUrl && (
           <button
             onClick={e => { e.stopPropagation(); setPickerOpen(true); }}
-            className="absolute top-2 right-2 z-20 flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all opacity-0 group-hover:opacity-100"
+            className="absolute top-2 right-2 z-20 flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all sm:opacity-0 sm:group-hover:opacity-100"
             style={{
               background: "color-mix(in srgb, var(--foreground) 65%, transparent)",
               color: "white",
@@ -225,50 +225,70 @@ function DetalleEditor({ detalle, onSaved, onDeleted, entities = [] }: {
     <div className="rounded-xl overflow-hidden transition-all"
       style={{ border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, transparent)" }}>
       <ConfirmModal />
-      <div className="flex items-center gap-2 px-3 py-2.5 cursor-pointer" onClick={() => setExpanded(!expanded)}>
-        <MapPin size={11} className={`shrink-0 ${form.oculto ? "text-primary/20" : "text-primary/40"}`} />
-        <span className={`flex-1 text-[11px] font-black uppercase tracking-widest truncate ${form.oculto ? "text-primary/30 line-through" : "text-primary"}`}>{form.nombre}</span>
+
+      {/* Cabecera del punto — toque grande para mobile */}
+      <div className="flex items-center gap-2 px-3 py-3 cursor-pointer select-none" onClick={() => setExpanded(!expanded)}>
+        <MapPin size={12} className={`shrink-0 ${form.oculto ? "text-primary/20" : "text-primary/40"}`} />
+        <span className={`flex-1 text-[11px] font-black uppercase tracking-widest truncate ${form.oculto ? "text-primary/30 line-through" : "text-primary"}`}>
+          {form.nombre}
+        </span>
         {form.oculto && (
           <span className="shrink-0 text-[8px] font-black uppercase tracking-widest text-orange-400/70 bg-orange-400/10 border border-orange-400/20 px-1.5 py-0.5 rounded-lg flex items-center gap-1">
             <EyeOff size={8} /> Oculto
           </span>
         )}
-        <button onClick={toggleOculto} className={`shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all border ${
-          form.oculto ? "text-orange-400 bg-orange-400/10 border-orange-400/30" : "text-primary/40 bg-primary/5 border-primary/10 hover:text-primary"
-        }`}>
-          {form.oculto ? <Eye size={9} /> : <EyeOff size={9} />}
+        {/* Botón visibilidad con área de toque amplia */}
+        <button
+          onClick={e => { e.stopPropagation(); toggleOculto(); }}
+          className={`shrink-0 flex items-center justify-center w-8 h-8 rounded-lg transition-all border ${
+            form.oculto
+              ? "text-orange-400 bg-orange-400/10 border-orange-400/30"
+              : "text-primary/40 bg-primary/5 border-primary/10 hover:text-primary"
+          }`}
+        >
+          {form.oculto ? <Eye size={11} /> : <EyeOff size={11} />}
         </button>
-        <X size={12} className="text-primary/25 transition-transform duration-200" style={{ transform: expanded ? "rotate(45deg)" : undefined }} />
+        <div className="w-6 h-6 flex items-center justify-center">
+          <X size={12} className="text-primary/25 transition-transform duration-200" style={{ transform: expanded ? "rotate(45deg)" : undefined }} />
+        </div>
       </div>
 
       {expanded && (
-        <div className="px-3 pb-3 pt-0 border-t space-y-3" style={{ borderColor: "color-mix(in srgb, var(--primary) 6%, transparent)" }}>
-          <div className="mt-3">
+        <div className="px-3 pb-4 pt-0 border-t space-y-3.5" style={{ borderColor: "color-mix(in srgb, var(--primary) 6%, transparent)" }}>
+          <div className="mt-3.5">
             <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">Nombre</label>
             <input value={form.nombre} onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))} className={INPUT_CLS + " mt-1"} placeholder="Nombre del lugar" />
           </div>
           <div>
             <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35 block mb-1">Descripción</label>
-            <MarkdownEditor value={form.descripcion ?? ""} onChange={v => setForm(f => ({ ...f, descripcion: v }))}
-              rows={4} placeholder="Describe este lugar…" toolbar defaultMode="edit"
+            <MarkdownEditor
+              value={form.descripcion ?? ""}
+              onChange={v => setForm(f => ({ ...f, descripcion: v }))}
+              rows={4}
+              placeholder="Describe este lugar…"
+              toolbar
+              defaultMode="edit"
               onSnippetAction={onSnippetAction}
               entities={entities}
             />
           </div>
-          <div className="flex items-center justify-between">
+          {/* Acciones: eliminar a la izq, guardar a la der */}
+          <div className="flex items-center justify-between pt-1">
             <button onClick={async () => {
               const ok = await confirm({ message: `¿Eliminar punto "${form.nombre}"?`, danger: true });
               if (!ok) return;
               await supabase.from("reino_detalles").delete().eq("id", form.id);
               void dexieDel("reino_detalles", form.id);
               onDeleted(form.id);
-            }} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest text-red-400/60 hover:text-red-400 hover:bg-red-500/10 transition-all border border-transparent hover:border-red-500/20">
+            }} className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest text-red-400/60 hover:text-red-400 hover:bg-red-500/10 transition-all border border-transparent hover:border-red-500/20 min-h-[36px]">
               <Trash2 size={10} /> Eliminar
             </button>
             <div className="flex items-center gap-2">
               <SaveIndicator status={status} />
-              <button onClick={() => saveDetalle(form)}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-btn-text rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-primary/90 transition-all">
+              <button
+                onClick={() => saveDetalle(form)}
+                className="flex items-center gap-1.5 px-4 py-2 bg-primary text-btn-text rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-primary/90 transition-all min-h-[36px]"
+              >
                 <Check size={10} /> Guardar
               </button>
             </div>
@@ -339,55 +359,102 @@ export function EditorReino({ item, onSaved, onDeleted, entities = [], onSelectP
 
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
 
-        {/* Header compacto: nombre + acciones */}
+        {/* Header — dos filas en mobile, una fila en desktop */}
         <div
-          className="shrink-0 flex items-center gap-3 px-4 py-2.5 border-b"
+          className="shrink-0 border-b"
           style={{
             borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
             background:  "color-mix(in srgb, var(--primary) 2%, transparent)",
           }}
         >
-          {/* Visibilidad */}
-          <button
-            onClick={() => setForm(f => ({ ...f, oculto: !f.oculto }))}
-            title={form.oculto ? "Mostrar" : "Ocultar"}
-            className="shrink-0 w-7 h-7 rounded-lg flex items-center justify-center transition-all border"
-            style={form.oculto ? {
-              color:       "oklch(0.75 0.15 60)",
-              background:  "color-mix(in srgb, oklch(0.75 0.15 60) 12%, transparent)",
-              borderColor: "color-mix(in srgb, oklch(0.75 0.15 60) 30%, transparent)",
-            } : {
-              color:       "color-mix(in srgb, var(--primary) 30%, transparent)",
-              background:  "color-mix(in srgb, var(--primary) 5%, transparent)",
-              borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
-            }}
-          >
-            {form.oculto ? <EyeOff size={12} /> : <Eye size={12} />}
-          </button>
+          {/* Fila 1: thumbnail + nombre + guardar (siempre visible) */}
+          <div className="flex items-center gap-2.5 px-3 pt-2.5 pb-1.5 sm:px-4 sm:py-2.5">
+            {/* Thumbnail del mapa */}
+            <div
+              className="shrink-0 w-8 h-8 rounded-lg overflow-hidden border flex items-center justify-center"
+              style={{
+                borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)",
+                background:  "color-mix(in srgb, var(--primary) 6%, transparent)",
+              }}
+            >
+              {form.mapa_url
+                ? <img src={form.mapa_url} alt={form.nombre} className="w-full h-full object-cover" />
+                : <Map size={14} className="text-primary/25" />}
+            </div>
 
-          {/* Nombre editable */}
-          <input
-            value={form.nombre ?? ""}
-            onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))}
-            placeholder="Nombre del reino"
-            className="flex-1 min-w-0 bg-transparent text-sm font-black text-primary outline-none placeholder:text-primary/25"
-          />
+            {/* Nombre editable */}
+            <input
+              value={form.nombre ?? ""}
+              onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))}
+              placeholder="Nombre del reino"
+              className="flex-1 min-w-0 bg-transparent text-sm font-black text-primary outline-none placeholder:text-primary/25"
+            />
 
-          {/* Acciones */}
-          <div className="shrink-0 flex items-center gap-2">
+            {/* Visibilidad — solo desktop */}
+            <button
+              onClick={() => setForm(f => ({ ...f, oculto: !f.oculto }))}
+              title={form.oculto ? "Mostrar en mapa" : "Ocultar del mapa"}
+              className="hidden sm:flex shrink-0 w-7 h-7 rounded-lg items-center justify-center transition-all border"
+              style={form.oculto ? {
+                color:       "oklch(0.75 0.15 60)",
+                background:  "color-mix(in srgb, oklch(0.75 0.15 60) 12%, transparent)",
+                borderColor: "color-mix(in srgb, oklch(0.75 0.15 60) 30%, transparent)",
+              } : {
+                color:       "color-mix(in srgb, var(--primary) 30%, transparent)",
+                background:  "color-mix(in srgb, var(--primary) 5%, transparent)",
+                borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
+              }}
+            >
+              {form.oculto ? <EyeOff size={12} /> : <Eye size={12} />}
+            </button>
+
             <SaveIndicator status={status} />
+
+            {/* Eliminar — solo desktop */}
             <button
               onClick={del}
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all min-h-[32px] min-w-[32px] justify-center"
+              className="hidden sm:flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all"
             >
               <Trash2 size={10} />
             </button>
+
+            {/* Guardar — siempre visible */}
             <button
               onClick={save}
               disabled={status === "saving"}
-              className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50"
+              className="flex items-center gap-1.5 px-3 sm:px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50"
             >
-              <Save size={11} /> Guardar
+              <Save size={11} />
+              <span className="hidden sm:inline">Guardar</span>
+            </button>
+          </div>
+
+          {/* Fila 2 — solo mobile: visibilidad + eliminar */}
+          <div className="flex sm:hidden items-center gap-2 px-3 pb-2.5">
+            <button
+              onClick={() => setForm(f => ({ ...f, oculto: !f.oculto }))}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest border transition-all"
+              style={form.oculto ? {
+                color:       "oklch(0.75 0.15 60)",
+                background:  "color-mix(in srgb, oklch(0.75 0.15 60) 8%, transparent)",
+                borderColor: "color-mix(in srgb, oklch(0.75 0.15 60) 25%, transparent)",
+              } : {
+                color:       "color-mix(in srgb, var(--primary) 40%, transparent)",
+                background:  "transparent",
+                borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
+              }}
+            >
+              {form.oculto ? <EyeOff size={10} /> : <Eye size={10} />}
+              <span>{form.oculto ? "Oculto del mapa" : "Visible en mapa"}</span>
+            </button>
+
+            <div className="flex-1" />
+
+            <button
+              onClick={del}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all"
+            >
+              <Trash2 size={10} /> Eliminar
             </button>
           </div>
         </div>
