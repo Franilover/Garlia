@@ -478,7 +478,7 @@ function FormularioMagico({ item, modo, grupos, loadingGrupos, onSaved, onDelete
       <ConfirmModal />
 
       {/* Header */}
-      <div className="shrink-0 flex flex-col gap-2 px-3 sm:px-4 py-3 border-b"
+      <div className="shrink-0 flex flex-col gap-2 px-4 py-3 border-b"
         style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}>
         <div className="flex items-center gap-3 min-w-0">
           <div className="shrink-0 w-8 h-8 sm:w-9 sm:h-9 rounded-xl overflow-hidden flex items-center justify-center border"
@@ -572,7 +572,7 @@ function FormularioRuna({ item, onSaved, onDeleted }: {
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
       <ConfirmModal />
       {/* Header */}
-      <div className="shrink-0 flex flex-wrap items-center gap-2 px-3 sm:px-4 py-3 border-b"
+      <div className="shrink-0 flex items-center gap-3 px-4 py-3 border-b"
         style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}>
         <input
           value={form.nombre ?? ""}
@@ -587,7 +587,7 @@ function FormularioRuna({ item, onSaved, onDeleted }: {
             <Trash2 size={10} />
           </button>
           <button onClick={save} disabled={status === "saving"}
-            className="flex items-center gap-1.5 px-3 sm:px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50">
+            className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50">
             <Save size={11} /> Guardar
           </button>
         </div>
@@ -2051,7 +2051,7 @@ export function EditorMundo({
   }, [onTabChange]);
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+    <div className="flex-1 flex min-h-0 overflow-hidden">
       <PanelListas
         initialSubTab={initialMundoTab ?? resolveInitialTab(activeSection, initialMundoTab)}
         initialItemId={initialItemId}
@@ -2112,9 +2112,10 @@ function PanelListas({
     if (t === "runas")      init.add("runas");
     if (t === "grupos")     { init.add("grupos"); init.add("gruposTodos"); }
     if (t === "notas")      init.add("notas");
-    // "todo" y "magia-objetos" necesitan todo — carga diferida igual, pero activamos todos
+    // "todo" y "magia-objetos" necesitan todo — carga en dos pasos para no saturar
     if (t === "todo" || t === "mundo-personajes" || t === "magia-objetos") {
-      ["reinos","criaturas","objetos","personajes","hechizos","dones","runas","grupos","gruposTodos","notas"].forEach(k => init.add(k));
+      ["reinos","criaturas","objetos","personajes"].forEach(k => init.add(k));
+      // Los secundarios se activan después via markVisited con timeout
     }
     return init;
   });
@@ -2134,7 +2135,15 @@ function PanelListas({
       else if (tab === "grupos")    add("grupos", "gruposTodos");
       else if (tab === "notas")     add("notas");
       else if (tab === "todo" || tab === "mundo-personajes" || tab === "magia-objetos") {
-        add("reinos","criaturas","objetos","personajes","hechizos","dones","runas","grupos","gruposTodos","notas");
+        // Cargar primero los datos principales, luego los secundarios con delay
+        add("reinos", "criaturas", "objetos", "personajes");
+        setTimeout(() => {
+          setVisited(prev => {
+            const next2 = new Set(prev);
+            ["hechizos","dones","runas","grupos","gruposTodos","notas"].forEach(k => next2.add(k));
+            return next2;
+          });
+        }, 400);
       }
       return next;
     });
@@ -2296,12 +2305,12 @@ function PanelListas({
   const TABS: TabDef[] = TAB_GROUPS.flatMap(g => g.tabs);
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 overflow-hidden relative">
+    <div className="flex-1 flex min-h-0 overflow-hidden relative">
 
       {/* ── Editor overlay — cubre toda la sección Listas ────────────────── */}
       {overlay && (
         <div className="absolute inset-0 z-20 flex flex-col" style={{ background: "var(--bg-main)" }}>
-          <div className="shrink-0 flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2.5 border-b"
+          <div className="shrink-0 flex items-center gap-3 px-4 py-2.5 border-b"
             style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}>
             <button
               onClick={() => {
@@ -2310,13 +2319,11 @@ function PanelListas({
                 setSelectedHechizo(null); setSelectedDon(null); setSelectedRuna(null);
                 setSelectedNota(null);  // ← agregar
               }}
-              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border border-primary/15 text-primary/50 hover:text-primary hover:border-primary/30 transition-all shrink-0"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border border-primary/15 text-primary/50 hover:text-primary hover:border-primary/30 transition-all"
             >
-              <ChevronRight size={12} className="rotate-180" />
-              <span className="hidden sm:inline">Volver a Listas</span>
-              <span className="sm:hidden">Volver</span>
+              <ChevronRight size={12} className="rotate-180" /> Volver a Listas
             </button>
-            <div className="flex items-center gap-2 min-w-0 flex-1">
+            <div className="flex items-center gap-2 min-w-0">
               {overlay === "reino"    && <Map        size={12} className="text-primary/40 shrink-0" />}
               {overlay === "criatura" && <Bug        size={12} className="text-primary/40 shrink-0" />}
               {overlay === "objeto"   && <Package    size={12} className="text-primary/40 shrink-0" />}
@@ -2433,7 +2440,7 @@ function PanelListas({
             if (!t) return null;
             const color = t.color ?? "var(--primary)";
             return (
-              <div className="shrink-0 flex items-center gap-2.5 px-3 sm:px-4 py-2.5 sm:py-3 border-b"
+              <div className="shrink-0 flex items-center gap-2.5 px-4 py-3 border-b"
                 style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, transparent)" }}>
                 <t.Icon size={13} style={{ color }} className="shrink-0" />
                 <p className="flex-1 text-[11px] font-black uppercase tracking-[0.2em]" style={{ color }}>{t.label}</p>
@@ -3107,9 +3114,9 @@ function PanelListas({
                     >
                       <t.Icon size={13} className="shrink-0" />
                     </button>
-                    {/* Tooltip — solo desktop */}
+                    {/* Tooltip */}
                     <div className="pointer-events-none absolute right-full top-1/2 -translate-y-1/2 mr-2 z-50
-                      hidden sm:block opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                      opacity-0 group-hover:opacity-100 transition-opacity duration-150">
                       <div className="px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest whitespace-nowrap shadow-lg"
                         style={{
                           background: "var(--bg-main)",
