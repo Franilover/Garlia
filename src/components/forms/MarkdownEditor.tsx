@@ -52,12 +52,14 @@ export function renderMarkdown(raw: string): string {
   const headingCounter: Record<string, number> = {};
   const tocEntries: { level: number; text: string; id: string }[] = [];
   const makeHeading = (level: number, rawText: string): string => {
+  if (!rawText.trim()) return `<h${level}>${"#".repeat(level)} </h${level}>`;
     const text = applyInline(rawText.trim());
     const base = slugify(rawText.trim());
     headingCounter[base] = (headingCounter[base] || 0) + 1;
     const id = headingCounter[base] > 1 ? `${base}-${headingCounter[base]}` : base;
     if (level <= 4) tocEntries.push({ level, text: rawText.trim(), id });
     return `<h${level} id="${id}">${text}<a class="heading-anchor" href="#${id}" aria-label="Enlace a sección" tabindex="-1">#</a></h${level}>`;
+    
   };
 
   // ── Tabla helper ──────────────────────────────────────────────────────────
