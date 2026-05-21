@@ -118,13 +118,14 @@ function MapaConPuntos({ mapaUrl, onMapaChange, detalles, onDetallesChange }: {
 
         {/* Hint overlay */}
         {selectedId && (
-          <div className="absolute inset-0 bg-primary/5 pointer-events-none flex items-end justify-center pb-3">
+          <div className="absolute inset-0 bg-primary/5 pointer-events-none flex items-end justify-center pb-3 px-3">
             <div
-              className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-white pointer-events-auto"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-white pointer-events-auto max-w-full"
               style={{ background: "color-mix(in srgb, var(--foreground) 70%, transparent)", backdropFilter: "blur(8px)" }}
             >
-              <MapPin size={10} /> Clickeá para mover el punto
-              <button onClick={e => { e.stopPropagation(); setSelectedId(null); }} className="ml-1 opacity-60 hover:opacity-100 transition-opacity">
+              <MapPin size={10} className="shrink-0" />
+              <span className="truncate">Tocá para mover el punto</span>
+              <button onClick={e => { e.stopPropagation(); setSelectedId(null); }} className="shrink-0 ml-1 opacity-60 hover:opacity-100 transition-opacity">
                 <X size={10} />
               </button>
             </div>
@@ -161,11 +162,11 @@ function ImagePickerModal({ onSelect, onClose }: { onSelect: (url: string) => vo
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4"
       onClick={onClose}
     >
       <div
-        className="bg-white-custom rounded-2xl shadow-2xl border border-primary/15 w-full max-w-lg p-5"
+        className="bg-white-custom rounded-t-2xl sm:rounded-2xl shadow-2xl border border-primary/15 w-full sm:max-w-lg p-5 max-h-[90dvh] overflow-y-auto"
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-4">
@@ -354,7 +355,7 @@ export function EditorReino({ item, onSaved, onDeleted, entities = [], onSelectP
   };
 
   return (
-    <div className="flex-1 flex min-h-0 overflow-hidden relative">
+    <div className="flex-1 flex flex-col min-h-0 overflow-hidden relative">
       <ConfirmModal />
 
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
@@ -460,7 +461,7 @@ export function EditorReino({ item, onSaved, onDeleted, entities = [], onSelectP
         </div>
 
         {/* Lore — ocupa todo el espacio restante */}
-        <div className="flex-1 min-h-0 overflow-hidden">
+        <div className="flex-1 min-h-0 overflow-hidden" style={{ minHeight: "0" }}>
           <LoreTab
             form={form}
             setForm={setForm}
