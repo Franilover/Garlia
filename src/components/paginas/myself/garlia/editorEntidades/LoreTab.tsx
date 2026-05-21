@@ -814,10 +814,10 @@ export function LoreTab({
   onDetallesArrayChange?: (d: ReinoDetalle[]) => void;
   MapaConPuntosComponent?: React.ComponentType<any>;
 }) {
-  const [activeKey, setActiveKey] = useState<LoreKey>("historia_cultura");
+  const [activeKey, setActiveKey] = useState<LoreKey | null>(null);
   const { onSnippetAction } = useWikilink();
 
-  const active = LORE_SECTIONS.find((s) => s.key === activeKey)!;
+  const active = activeKey ? LORE_SECTIONS.find((s) => s.key === activeKey) ?? null : null;
 
   // Función para determinar si una sección tiene contenido
   const sectionHasContent = (key: LoreKey): boolean => {
@@ -829,45 +829,168 @@ export function LoreTab({
     return !!raw?.trim();
   };
 
+  // ─── Home panel ──────────────────────────────────────────────────────────────
+
+  const sectionCount = (key: LoreKey): number => {
+    if (key === "personajes") return personajes.length;
+    if (key === "mapa") return detalles.length;
+    if (key === "historia_cultura") {
+      const events = decodeTimeline((form as any).historia ?? "");
+      return events.filter(e => e.year.trim() || e.title.trim()).length;
+    }
+    return 0;
+  };
+
+  const HOME_CARDS: { key: LoreKey; label: string; sublabel: string; Icon: React.ElementType }[] = [
+    { key: "mapa",             label: "Mapa & Puntos",      sublabel: "Geografía y lugares",      Icon: Map },
+    { key: "historia_cultura", label: "Historia & Cultura", sublabel: "Línea de tiempo + texto",  Icon: Globe },
+    { key: "politica_economia",label: "Política & Economía",sublabel: "Gobierno y comercio",      Icon: Users },
+    { key: "personajes",       label: "Personajes",         sublabel: "Habitantes del reino",     Icon: UserCircle2 },
+  ];
+
+  if (activeKey === null) {
+    return (
+      <div className="flex flex-col h-full min-h-0 overflow-y-auto p-4">
+        <div
+          className="shrink-0 mb-4 px-1 pb-3 border-b"
+          style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
+        >
+          <p className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/30">
+            Explorar reino
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          {HOME_CARDS.map(({ key, label, sublabel, Icon }) => {
+            const hasContent = sectionHasContent(key);
+            const count = sectionCount(key);
+
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setActiveKey(key)}
+                className="relative flex flex-col items-start gap-3 p-4 rounded-2xl text-left transition-all group"
+                style={{
+                  background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+                  border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                }}
+                onMouseEnter={e => {
+                  (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 8%, transparent)";
+                  (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 22%, transparent)";
+                }}
+                onMouseLeave={e => {
+                  (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 3%, transparent)";
+                  (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 10%, transparent)";
+                }}
+              >
+                {/* Indicador de contenido */}
+                {hasContent && (
+                  <span
+                    className="absolute top-3 right-3 flex items-center gap-1 text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full"
+                    style={{
+                      background: "color-mix(in srgb, var(--primary) 12%, transparent)",
+                      color: "color-mix(in srgb, var(--primary) 55%, transparent)",
+                    }}
+                  >
+                    {count > 0 ? count : <span className="w-1.5 h-1.5 rounded-full bg-current inline-block" />}
+                  </span>
+                )}
+
+                {/* Icono */}
+                <div
+                  className="flex items-center justify-center w-10 h-10 rounded-xl transition-all"
+                  style={{
+                    background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+                    color: "color-mix(in srgb, var(--primary) 55%, transparent)",
+                  }}
+                >
+                  <Icon size={18} strokeWidth={1.5} />
+                </div>
+
+                {/* Texto */}
+                <div>
+                  <p
+                    className="text-[11px] font-black uppercase tracking-widest leading-tight transition-colors"
+                    style={{ color: "color-mix(in srgb, var(--primary) 75%, transparent)" }}
+                  >
+                    {label}
+                  </p>
+                  <p
+                    className="text-[9px] mt-0.5 leading-snug"
+                    style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
+                  >
+                    {sublabel}
+                  </p>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col-reverse md:flex-row h-full min-h-0">
+    <div className="flex flex-col h-full min-h-0">
 
       {/* ── Panel editor ─────────────────────────────────────────────────────── */}
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
 
-        {/* Cabecera de la sección activa */}
+        {/* Cabecera con botón volver */}
         <div
-          className="shrink-0 flex items-center gap-2 px-4 py-2.5 border-b"
+          className="shrink-0 flex items-center gap-2 px-3 py-2.5 border-b"
           style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
         >
-          <active.Icon size={11} style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }} />
+          <button
+            type="button"
+            onClick={() => setActiveKey(null)}
+            className="shrink-0 flex items-center gap-1.5 px-2 py-1 rounded-lg transition-all text-[9px] font-black uppercase tracking-widest"
+            style={{
+              color: "color-mix(in srgb, var(--primary) 40%, transparent)",
+              background: "color-mix(in srgb, var(--primary) 5%, transparent)",
+              border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+            }}
+            onMouseEnter={e => {
+              (e.currentTarget as HTMLElement).style.color = "var(--primary)";
+              (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 25%, transparent)";
+            }}
+            onMouseLeave={e => {
+              (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--primary) 40%, transparent)";
+              (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 10%, transparent)";
+            }}
+          >
+            ← Volver
+          </button>
+
+          {active && <active.Icon size={11} style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }} />}
           <span className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/40">
-            {active.label}
+            {active?.label}
           </span>
 
           {/* Badge vacío */}
-          {!sectionHasContent(active.key) && (
+          {active && !sectionHasContent(active.key) && (
             <span className="text-[8px] font-black uppercase tracking-widest text-primary/20 border border-primary/10 px-1.5 py-0.5 rounded-md">
               vacío
             </span>
           )}
 
           {/* Badge count personajes */}
-          {active.key === "personajes" && personajes.length > 0 && (
+          {activeKey === "personajes" && personajes.length > 0 && (
             <span className="text-[8px] font-black uppercase tracking-widest text-primary/30 border border-primary/10 px-1.5 py-0.5 rounded-md">
               {personajes.length}
             </span>
           )}
 
           {/* Badge count puntos cuando es mapa */}
-          {active.key === "mapa" && detalles.length > 0 && (
+          {activeKey === "mapa" && detalles.length > 0 && (
             <span className="text-[8px] font-black uppercase tracking-widest text-primary/30 border border-primary/10 px-1.5 py-0.5 rounded-md flex items-center gap-1">
               <MapPin size={8} /> {detalles.length}
             </span>
           )}
 
           {/* Badge línea de tiempo */}
-          {active.key === "historia_cultura" && (
+          {activeKey === "historia_cultura" && (
             <span className="ml-auto text-[8px] font-black uppercase tracking-widest text-primary/25 border border-primary/10 px-1.5 py-0.5 rounded-md">
               Línea de tiempo + texto
             </span>
@@ -1034,11 +1157,11 @@ export function LoreTab({
           ) : (
             <div className="p-3 h-full">
               <MarkdownEditor
-                key={active.key}
-                value={(form as any)[active.key] ?? ""}
-                onChange={(v) => setForm((f) => ({ ...f, [active.key]: v }))}
-                placeholder={active.placeholder}
-                rows={active.rows}
+                key={active?.key}
+                value={(form as any)[active?.key ?? ""] ?? ""}
+                onChange={(v) => setForm((f) => ({ ...f, [active?.key ?? ""]: v }))}
+                placeholder={active?.placeholder}
+                rows={active?.rows}
                 toolbar
                 defaultMode="edit"
                 onSnippetAction={onSnippetAction}
@@ -1048,85 +1171,6 @@ export function LoreTab({
           )}
         </div>
       </div>
-
-      {/* ── Nav lateral derecha / barra inferior en mobile ───────────────────── */}
-      <nav
-        className="shrink-0 flex md:flex-col flex-row items-center gap-2 py-1.5 md:py-2 px-2 md:px-1.5 border-t md:border-t-0 md:border-l overflow-x-auto md:overflow-x-hidden overflow-y-hidden md:overflow-y-auto"
-        style={{
-          width: "auto",
-          minHeight: "48px",
-          borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
-          background: "color-mix(in srgb, var(--primary) 2%, transparent)",
-        }}
-      >
-        {([
-          ["mapa"],
-          ["historia_cultura", "politica_economia"],
-          ["personajes"],
-        ] as LoreKey[][]).map((group, gi) => (
-          <div
-            key={gi}
-            className="flex md:flex-col flex-row items-center gap-0.5 p-1 rounded-xl"
-            style={{
-              background: "color-mix(in srgb, var(--primary) 5%, transparent)",
-              border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-            }}
-          >
-            {group.map((key) => {
-              const section = LORE_SECTIONS.find(s => s.key === key)!;
-              const { Icon, label } = section;
-              const hasContent = sectionHasContent(key);
-              const isActive = key === activeKey;
-              const count = key === "personajes" ? personajes.length : key === "mapa" ? detalles.length : 0;
-
-              return (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => setActiveKey(key)}
-                  title={label}
-                  className="relative flex items-center justify-center w-6 h-6 rounded-lg transition-all"
-                  style={
-                    isActive
-                      ? {
-                          background: "color-mix(in srgb, var(--primary) 15%, transparent)",
-                          color: "var(--primary)",
-                          border: "1px solid color-mix(in srgb, var(--primary) 25%, transparent)",
-                        }
-                      : {
-                          color: "color-mix(in srgb, var(--primary) 30%, transparent)",
-                          border: "1px solid transparent",
-                        }
-                  }
-                >
-                  <Icon size={12} />
-
-                  {/* Dot — contenido de texto */}
-                  {hasContent && count === 0 && (
-                    <span
-                      className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full"
-                      style={{ background: isActive ? "var(--primary)" : "color-mix(in srgb, var(--primary) 45%, transparent)" }}
-                    />
-                  )}
-
-                  {/* Badge numérico */}
-                  {count > 0 && (
-                    <span
-                      className="absolute -top-1 -right-1 text-[7px] font-black min-w-[13px] h-[13px] rounded-full flex items-center justify-center px-0.5"
-                      style={{
-                        background: isActive ? "var(--primary)" : "color-mix(in srgb, var(--primary) 18%, transparent)",
-                        color: isActive ? "var(--btn-text, white)" : "color-mix(in srgb, var(--primary) 65%, transparent)",
-                      }}
-                    >
-                      {count}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        ))}
-      </nav>
 
     </div>
   );
