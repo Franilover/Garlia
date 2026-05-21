@@ -2480,40 +2480,46 @@ function PanelListas({
             </div>
           )}
 
-          {/* Vista combinada: Geografía + Magia mitad y mitad */}
+          {/* Vista combinada: Geografía + Magia — columna en mobile, lado a lado en desktop */}
           {mobileTab === "geo-magia" && textos && onTextoChange && onSave && (
-            <div className="flex-1 flex min-h-0 overflow-hidden">
-              {/* Geografía — mitad izquierda */}
-              <div className="flex-1 flex flex-col min-h-0 border-r" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+            <div className="flex-1 flex flex-col sm:flex-row min-h-0 overflow-y-auto sm:overflow-hidden">
+              {/* Geografía — arriba en mobile, izquierda en desktop */}
+              <div className="flex flex-col sm:flex-1 sm:min-h-0 border-b sm:border-b-0 sm:border-r"
+                style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", minHeight: "52vh" }}>
                 <div className="shrink-0 flex items-center gap-2 px-3 py-2 border-b"
                   style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, transparent)" }}>
                   <Mountain size={11} className="text-primary/40 shrink-0" />
                   <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/50">Geografía</span>
                 </div>
-                <PanelTexto
-                  texto={textos.geografia}
-                  onChange={v => onTextoChange("geografia", v)}
-                  onSave={() => onSave("geografia")}
-                  placeholder="Continentes, mares, climas, fronteras del mundo…"
-                  saveLabel="Guardar"
-                  SaveIcon={Mountain}
-                />
+                <div className="flex-1 flex flex-col min-h-0">
+                  <PanelTexto
+                    texto={textos.geografia}
+                    onChange={v => onTextoChange("geografia", v)}
+                    onSave={() => onSave("geografia")}
+                    placeholder="Continentes, mares, climas, fronteras del mundo…"
+                    saveLabel="Guardar"
+                    SaveIcon={Mountain}
+                  />
+                </div>
               </div>
-              {/* Magia — mitad derecha */}
-              <div className="flex-1 flex flex-col min-h-0">
+              {/* Magia — abajo en mobile, derecha en desktop */}
+              <div className="flex flex-col sm:flex-1 sm:min-h-0"
+                style={{ minHeight: "52vh" }}>
                 <div className="shrink-0 flex items-center gap-2 px-3 py-2 border-b"
                   style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--accent) 3%, transparent)" }}>
                   <Sparkles size={11} style={{ color: "var(--accent)" }} className="shrink-0" />
                   <span className="text-[9px] font-black uppercase tracking-[0.2em]" style={{ color: "var(--accent)" }}>Magia</span>
                 </div>
-                <PanelTexto
-                  texto={textos.magia}
-                  onChange={v => onTextoChange("magia", v)}
-                  onSave={() => onSave("magia")}
-                  placeholder="Sistema de magia, reglas, fuentes de poder, limitaciones…"
-                  saveLabel="Guardar"
-                  SaveIcon={Sparkles}
-                />
+                <div className="flex-1 flex flex-col min-h-0">
+                  <PanelTexto
+                    texto={textos.magia}
+                    onChange={v => onTextoChange("magia", v)}
+                    onSave={() => onSave("magia")}
+                    placeholder="Sistema de magia, reglas, fuentes de poder, limitaciones…"
+                    saveLabel="Guardar"
+                    SaveIcon={Sparkles}
+                  />
+                </div>
               </div>
             </div>
           )}
