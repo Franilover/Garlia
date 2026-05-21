@@ -27,9 +27,9 @@ export const metadata: Metadata = {
   metadataBase: new URL('https://franilover.vercel.app/'), 
 
   icons: {
-    icon: '/icon.jpg',      
-    shortcut: '/icon.jpg',  
-    apple: '/icon.jpg',     
+    icon: '/icon.jpg?v=2',      
+    shortcut: '/icon.jpg?v=2',  
+    apple: '/icon.jpg?v=2',     
   },
 
   verification: {
