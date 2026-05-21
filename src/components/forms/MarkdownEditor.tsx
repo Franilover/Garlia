@@ -7,7 +7,8 @@ import { RenderSegmentos }               from "@/components/paginas/garlia/libro
 
 // ── Slug helper for heading IDs ─────────────────────────────────────────────
 function slugify(text: string): string {
-  return text.toLowerCase().replace(/[^\w\s-]/g, "").trim().replace(/[\s]+/g, "-");
+  const slug = text.toLowerCase().replace(/[^\w\s-]/g, "").trim().replace(/[\s]+/g, "-");
+  return slug || "header-" + Math.random().toString(36).substr(2, 5); // Evita strings vacíos
 }
 
 // ── Callout config ───────────────────────────────────────────────────────────
