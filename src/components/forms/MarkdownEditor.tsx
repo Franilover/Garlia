@@ -105,6 +105,28 @@ export function renderMarkdown(raw: string): string {
   while (i < lines.length) {
     const line = lines[i];
 
+    if (line.trim().startsWith(":::links")) {
+      const customTitle = line.trim().replace(":::links", "").trim() || "ENLACES";
+      const linkLines: string[] = [];
+      i++; 
+      while (i < lines.length && !lines[i].trim().startsWith(":::")) {
+        if (lines[i].trim() !== "") linkLines.push(lines[i].trim());
+        i++;
+      }
+      i++; 
+      const linksHtml = linkLines.map(link => {
+        const href = link.startsWith('http') ? link : `https://${link}`;
+        return `<li><a href="${href}" target="_blank" rel="noopener noreferrer">${link}</a></li>`;
+      }).join('');
+
+      output.push(`
+        <div class="callout link-list-block">
+          <div class="callout-title"><span class="callout-title-icon">🔗</span> ${customTitle}</div>
+          <div class="callout-body"><ul>${linksHtml}</ul></div>
+        </div>`);
+      continue;
+    }
+
     // blank line → skip
     if (line.trim() === "") { i++; continue; }
 
@@ -228,6 +250,7 @@ export function renderMarkdown(raw: string): string {
       i < lines.length &&
       lines[i].trim() !== "" &&
       !lines[i].trimStart().startsWith("```") &&
+      !lines[i].trim().startsWith(":::links") &&
       !/^\[\[toc\]\]\s*$/i.test(lines[i].trim()) &&
       !/^---+$/.test(lines[i].trim()) &&
       !/^(#{1,6})\s/.test(lines[i]) &&
@@ -689,7 +712,7 @@ const COMMAND_ITEMS: CommandItem[] = [
     label: "Lista de Enlaces",
     description: "Bloque de links con título personalizado",
     keywords: ["link", "lista", "url", "enlace", "web"],
-    icon: "🔗",
+    icon: "",
     snippet: "",
   },
 ];
