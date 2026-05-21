@@ -3,7 +3,9 @@ import { tareaFullQuery, Tarea, Inserts, Updates } from '@/lib/types/queries';
 
 export const tareasQueries = {
   getAll: async (): Promise<Tarea[]> => {
-    const { data, error } = await tareaFullQuery
+    const { data, error } = await supabase // Llama directamente a supabase aquí
+      .from('tareas')
+      .select('*') // O las columnas que necesites
       .order('completada', { ascending: true })
       .order('prioridad', { ascending: false });
     
