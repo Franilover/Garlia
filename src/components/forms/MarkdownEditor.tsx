@@ -193,15 +193,21 @@ export function renderMarkdown(raw: string): string {
     }
 
 
-    // ── BLOQUE DE LINKS (Añadir aquí) ───────────────────────────────────────
+
+
+    // ── BLOQUE DE LINKS PERSONALIZADO ───────────────────────────────────────
     if (line.trim().startsWith(":::links")) {
+      // Capturamos el nombre: si pones ":::links Mis Webs", el nombre será "Mis Webs"
+      // Si no pones nada, por defecto dirá "ENLACES"
+      const customTitle = line.trim().replace(":::links", "").trim() || "ENLACES";
+      
       const linkLines: string[] = [];
-      i++; // saltar la línea que dice :::links
+      i++; 
       while (i < lines.length && !lines[i].trim().startsWith(":::")) {
         if (lines[i].trim() !== "") linkLines.push(lines[i].trim());
         i++;
       }
-      i++; // saltar la línea de cierre :::
+      i++; 
       
       const linksHtml = linkLines.map(link => {
         const href = link.startsWith('http') ? link : `https://${link}`;
@@ -210,7 +216,7 @@ export function renderMarkdown(raw: string): string {
 
       output.push(`
         <div class="callout link-list-block">
-          <div class="callout-title"><span class="callout-title-icon">🔗</span> ENLACES</div>
+          <div class="callout-title"><span class="callout-title-icon">🔗</span> ${customTitle}</div>
           <div class="callout-body"><ul>${linksHtml}</ul></div>
         </div>`);
       continue;
@@ -677,13 +683,14 @@ const COMMAND_ITEMS: CommandItem[] = [
     snippet: "\n# Reporte: {{título}}\n\n> [!NOTE]\n> Resumen ejecutivo del reporte.\n\n[[TOC]]\n\n## Contexto\n\nDescripción del contexto o problema.\n\n## Análisis\n\n| Métrica | Valor | Objetivo |\n|---|---|---|\n| KPI 1 | - | - |\n| KPI 2 | - | - |\n\n## Conclusiones\n\n> [!SUCCESS]\n> Escribe aquí los resultados positivos.\n\n## Próximos pasos\n\n- [ ] Acción 1\n- [ ] Acción 2\n",
   },
 
+
   {
     id: "link-list",
     label: "Lista de Enlaces",
-    description: "Bloque de links clickeables",
+    description: "Bloque de links con título personalizado",
     keywords: ["link", "lista", "url", "enlace", "web"],
     icon: "🔗",
-    snippet: "\n:::links\nwww.google.com\nwww.tuweb.com\n:::\n",
+    snippet: "",
   },
 ];
 
