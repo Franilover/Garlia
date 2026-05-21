@@ -2338,7 +2338,7 @@ function PanelListas({
     <div className="flex-1 flex min-h-0 overflow-hidden">
 
       {/* ── Área principal (contenido + overlay) ─────────────────────────── */}
-      <div className="flex-1 flex min-h-0 overflow-hidden relative">
+      <div className="flex-1 flex min-h-0 overflow-hidden relative" style={{ isolation: "isolate" }}>
 
       {/* ── Editor overlay — cubre solo el área de contenido ─────────────── */}
       {overlay && (
