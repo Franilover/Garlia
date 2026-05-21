@@ -14,9 +14,10 @@ import { SaveIndicator, SelectorImagen } from "../editorEntidades/UIComponents";
 import { MarkdownEditor } from "../../../../forms/MarkdownEditor";
 import { useWikilink } from "../../../../forms/WikilinkContext";
 import { EditorReino } from "./EditorReino";
-import { FormularioPersonaje } from "./EditorPersonaje";
+import { EditorPersonaje } from "./EditorPersonaje";
 import { EditorCriatura } from "./EditorCriatura";
 import { EditorItem } from "./EditorItem";
+import { type WikiEntity } from "../../../../forms/MarkdownEditor";
 import { type TimelineEvent } from "../editorEntidades/LoreTab";
 import { useNotas } from "../editorEntidades/useNotas";
 import { EditorNota, ListaNotas } from "./EditorNota";
@@ -1035,17 +1036,19 @@ function PanelHistoria({
                 </div>
               </div>
               <div className="flex-1 flex min-h-0 overflow-hidden">
-                <FormularioPersonaje
-                  form={selectedPersonaje}
-                  setForm={(updated) => {
-                    const p = typeof updated === "function" ? updated(selectedPersonaje) : updated;
-                    setSelectedPersonaje(p);
-                    setPersonajes(prev => prev.map(x => x.id === p.id ? p : x));
+                <EditorPersonaje
+                  key={selectedPersonaje.id}
+                  item={selectedPersonaje}
+                  entities={[]}
+                  onSaved={u => {
+                    setSelectedPersonaje(u);
+                    setPersonajes(prev => prev.map(x => x.id === u.id ? u : x));
                   }}
-                  status={personajeStatus}
-                  onSave={handleSavePersonaje}
-                  onDelete={handleDeletePersonaje}
-                  compacto
+                  onDeleted={id => {
+                    void dexieDel("personajes", id);
+                    setPersonajes(prev => prev.filter(x => x.id !== id));
+                    setSelectedPersonaje(null);
+                  }}
                 />
               </div>
             </div>
@@ -2013,6 +2016,7 @@ export function EditorMundo({
   initialMundoTab,
   initialItemId,
   onTabChange,
+  openItem,
 }: {
   activeSection: MundoSectionKey;
   textos: Record<MundoSectionKey, string>;
@@ -2021,6 +2025,8 @@ export function EditorMundo({
   initialMundoTab?: string;
   initialItemId?: string;
   onTabChange?: (section: MundoSectionKey, mundoTab: string) => void;
+  /** { tabla, id } — abre ese ítem directamente en el overlay */
+  openItem?: { tabla: string; id: string } | null;
 }) {
   const [tab, setTab] = useState<UnifiedTab>(() =>
     resolveInitialTab(activeSection, initialMundoTab)
@@ -2055,6 +2061,7 @@ export function EditorMundo({
       <PanelListas
         initialSubTab={initialMundoTab ?? resolveInitialTab(activeSection, initialMundoTab)}
         initialItemId={initialItemId}
+        openItem={openItem}
         textos={textos}
         onTextoChange={onTextoChange}
         onSave={onSave}
@@ -2086,11 +2093,12 @@ function SearchInput({ value, onChange, placeholder }: { value: string; onChange
 
 // ─── PanelListas: columnas side-by-side (reinos, criaturas, objetos, personajes, hechizos, dones) ──
 function PanelListas({
-  initialSubTab, initialItemId,
+  initialSubTab, initialItemId, openItem,
   textos, onTextoChange, onSave, onTabChange,
 }: {
   initialSubTab?: string;
   initialItemId?: string;
+  openItem?: { tabla: string; id: string } | null;
   textos?: Record<MundoSectionKey, string>;
   onTextoChange?: (section: MundoSectionKey, value: string) => void;
   onSave?: (section: MundoSectionKey) => Promise<void>;
@@ -2177,7 +2185,17 @@ function PanelListas({
   const [selectedHechizo,  setSelectedHechizo]  = useState<EntidadMagica | null>(null);
   const [selectedDon,      setSelectedDon]      = useState<EntidadMagica | null>(null);
   const [selectedRuna,     setSelectedRuna]     = useState<Runa | null>(null);
-  const [personajeStatus,  setPersonajeStatus]  = useState<SaveStatus>("idle");
+
+  // Nombres de todas las entidades para el WikilinkEditor
+  const allEntityNames = useMemo((): WikiEntity[] => [
+    ...personajes.map(e => ({ name: e.nombre, type: "personaje" })),
+    ...criaturas .map(e => ({ name: e.nombre, type: "criatura"  })),
+    ...objetos   .map(e => ({ name: e.nombre, type: "ítem"      })),
+    ...reinos    .map(e => ({ name: e.nombre, type: "reino"     })),
+    ...hechizos  .map(e => ({ name: e.nombre, type: "hechizo"   })),
+    ...dones     .map(e => ({ name: e.nombre, type: "don"       })),
+    ...runas     .map(e => ({ name: e.nombre, type: "runa"      })),
+  ], [personajes, criaturas, objetos, reinos, hechizos, dones, runas]);
 
   type ListaTab = "mundo" | "historia" | "magia" | "reinos" | "criaturas" | "objetos" | "personajes" | "hechizos" | "dones" | "runas" | "notas" | "grupos" | "magia-objetos" | "mundo-personajes" | "geo-magia" | "todo" | "capitulos" | "letras";
   const VALID_LISTA_TABS: ListaTab[] = ["mundo", "historia", "magia", "reinos", "criaturas", "objetos", "personajes", "hechizos", "dones", "runas", "notas", "grupos", "magia-objetos", "mundo-personajes", "geo-magia", "todo", "capitulos", "letras"];
@@ -2205,6 +2223,35 @@ function PanelListas({
       setSelectedRuna(null);     setSelectedNota(null);
     }
   }, [initialSubTab, markVisited]);
+
+  // Abrir un ítem concreto desde navegación externa (buscador global)
+  useEffect(() => {
+    if (!openItem) return;
+    const { tabla, id } = openItem;
+    const tablaToListaTab: Record<string, ListaTab> = {
+      personajes: "personajes", criaturas: "criaturas",
+      items: "objetos", reinos: "reinos",
+    };
+    const listaTab = tablaToListaTab[tabla];
+    if (!listaTab) return;
+    markVisited(listaTab);
+    setMobileTab(listaTab);
+    if (tabla === "personajes") {
+      const found = personajes.find(x => x.id === id);
+      if (found) setSelectedPersonaje(found);
+    } else if (tabla === "criaturas") {
+      const found = criaturas.find(x => x.id === id);
+      if (found) setSelectedCriatura(found);
+    } else if (tabla === "items") {
+      const found = objetos.find(x => x.id === id);
+      if (found) setSelectedObjeto(found);
+    } else if (tabla === "reinos") {
+      const found = reinos.find(x => x.id === id);
+      if (found) setSelectedReino(found);
+    }
+  // Reacciona cuando cambia openItem O cuando los datos cargan por primera vez
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openItem, personajes.length, criaturas.length, objetos.length, reinos.length]);
 
   // Editor overlay activo
   const overlay: "reino" | "criatura" | "objeto" | "personaje" | "hechizo" | "don" | "runa" | "nota" | null =
@@ -2246,32 +2293,6 @@ function PanelListas({
   // Reacciona a cambios de initialItemId (buscador) y a la carga inicial de datos
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialItemId, hechizos.length, dones.length, runas.length]);
-
-  const handleSavePersonaje = async () => {
-    if (!selectedPersonaje) return;
-    setPersonajeStatus("saving");
-    try {
-      const { error } = await supabase.from("personajes").update({
-        nombre: selectedPersonaje.nombre,
-        img_url: selectedPersonaje.img_url || null,
-        sobre: selectedPersonaje.sobre,
-        reino: selectedPersonaje.reino,
-        especie: selectedPersonaje.especie,
-      }).eq("id", selectedPersonaje.id);
-      if (error) throw error;
-      setPersonajes(prev => prev.map(p => p.id === selectedPersonaje.id ? selectedPersonaje : p));
-      setPersonajeStatus("saved");
-      setTimeout(() => setPersonajeStatus("idle"), 2000);
-    } catch { setPersonajeStatus("error"); }
-  };
-
-  const handleDeletePersonaje = async () => {
-    if (!selectedPersonaje) return;
-    await supabase.from("personajes").delete().eq("id", selectedPersonaje.id);
-    void dexieDel("personajes", selectedPersonaje.id);
-    setPersonajes(prev => prev.filter(p => p.id !== selectedPersonaje.id));
-    setSelectedPersonaje(null);
-  };
 
   // ── search state unified per active tab ──
 
@@ -2352,31 +2373,48 @@ function PanelListas({
           <div className="flex-1 flex min-h-0 overflow-hidden">
             {overlay === "reino" && selectedReino && (
               <EditorReino key={selectedReino.id} item={selectedReino}
+                entities={allEntityNames}
                 onSaved={u => { setReinos(p => p.map(r => r.id === u.id ? u : r)); setSelectedReino(u); }}
-                onDeleted={id => { setReinos(p => p.filter(r => r.id !== id)); setSelectedReino(null); }} />
+                onDeleted={id => { setReinos(p => p.filter(r => r.id !== id)); setSelectedReino(null); }}
+                onSelectPersonaje={p => {
+                  const found = personajes.find(x => x.id === p?.id || x.nombre === p?.nombre);
+                  if (found) setSelectedPersonaje(found);
+                }}
+              />
             )}
             {overlay === "criatura" && selectedCriatura && (
               <EditorCriatura key={selectedCriatura.id} item={selectedCriatura as any}
+                entities={allEntityNames}
                 onSaved={u => { setCriaturas(p => p.map(c => c.id === u.id ? { ...c, ...u } : c)); setSelectedCriatura({ ...selectedCriatura, ...u }); }}
-                onDeleted={id => { setCriaturas(p => p.filter(c => c.id !== id)); setSelectedCriatura(null); }} />
+                onDeleted={id => { setCriaturas(p => p.filter(c => c.id !== id)); setSelectedCriatura(null); }}
+                onSelectItem={id => { const o = objetos.find(x => x.id === id); if (o) setSelectedObjeto(o); }}
+                onSelectPersonaje={id => { const p = personajes.find(x => x.id === id); if (p) setSelectedPersonaje(p); }}
+                onSelectGrupo={() => { setMobileTab("grupos"); markVisited("grupos"); }}
+              />
             )}
             {overlay === "objeto" && selectedObjeto && (
               <EditorItem key={selectedObjeto.id} item={selectedObjeto as any}
+                entities={allEntityNames}
                 onSaved={u => { setObjetos(p => p.map(o => o.id === u.id ? { ...o, ...u } : o)); setSelectedObjeto({ ...selectedObjeto, ...u }); }}
-                onDeleted={id => { setObjetos(p => p.filter(o => o.id !== id)); setSelectedObjeto(null); }} />
+                onDeleted={id => { setObjetos(p => p.filter(o => o.id !== id)); setSelectedObjeto(null); }}
+                onSelectCriatura={id => { const c = criaturas.find(x => x.id === id); if (c) setSelectedCriatura(c); }}
+              />
             )}
             {overlay === "personaje" && selectedPersonaje && (
-              <FormularioPersonaje
-                form={selectedPersonaje}
-                setForm={updated => {
-                  const p = typeof updated === "function" ? updated(selectedPersonaje) : updated;
-                  setSelectedPersonaje(p);
-                  setPersonajes(prev => prev.map(x => x.id === p.id ? p : x));
+              <EditorPersonaje key={selectedPersonaje.id} item={selectedPersonaje}
+                entities={allEntityNames}
+                onSaved={u => { setPersonajes(p => p.map(x => x.id === u.id ? u : x)); setSelectedPersonaje(u); }}
+                onDeleted={id => { setPersonajes(p => p.filter(x => x.id !== id)); setSelectedPersonaje(null); }}
+                onNavigate={(tab, nombre) => {
+                  if (tab === "criaturas") {
+                    const c = criaturas.find(x => x.nombre.toLowerCase() === nombre.toLowerCase());
+                    if (c) setSelectedCriatura(c);
+                  } else if (tab === "reinos") {
+                    const r = reinos.find(x => x.nombre.toLowerCase() === nombre.toLowerCase());
+                    if (r) setSelectedReino(r);
+                  }
                 }}
-                status={personajeStatus}
-                onSave={handleSavePersonaje}
-                onDelete={handleDeletePersonaje}
-                compacto
+                onSelectPersonaje={id => { const p = personajes.find(x => x.id === id); if (p) setSelectedPersonaje(p); }}
               />
             )}
             {overlay === "hechizo" && selectedHechizo && (

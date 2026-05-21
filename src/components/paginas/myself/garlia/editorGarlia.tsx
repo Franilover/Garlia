@@ -8,20 +8,15 @@ import { ModalBase } from "@/components/templates/EstudioTemplates";
 import {
   TAB_CONFIG, MUNDO_SECTIONS,
   type TabKey, type MundoSectionKey,
-  type Personaje, type Criatura, type Item, type Reino,
   type Hechizo, type Don, type Runa, type Nota,
+  type Personaje, type Criatura, type Item, type Reino,
 } from "./editorEntidades/types";
 import { useMundoSecciones } from "./editorEntidades/hooks";
 import { GlobalSearchBar, ModalAcontecimiento, ModalNuevoGrupo, type AllItems, type MagicAddKey } from "./editorEntidades/SidebarComponents";
-import { EditorPersonaje } from "./editores/EditorPersonaje";
-import { EditorCriatura }  from "./editores/EditorCriatura";
-import { EditorItem }      from "./editores/EditorItem";
-import { EditorReino }     from "./editores/EditorReino";
 import { EditorMundo }     from "./editores/EditorMundo";
 import { EditorHechizos }  from "./editores/EditorHechizos";
 import { EditorGrupo }     from "./editores/EditorGrupo";
 import { WikilinkProvider } from "@/components/forms/WikilinkContext";
-import { EditorCapitulosPanel } from "@/components/paginas/myself/garlia/editores/editorCapitulos";
 
 
 // ─── Helpers Dexie locales ────────────────────────────────────────────────────
@@ -270,6 +265,7 @@ export default function EditorEntidades() {
   const [requestedSubTab, setRequestedSubTab] = useState<string | undefined>(session.current.mundoTab);
   const [requestedItemId, setRequestedItemId] = useState<string | undefined>(undefined);
   const [requestedGrupoId, setRequestedGrupoId] = useState<string | null>(null);
+  const [openItem, setOpenItem] = useState<{ tabla: string; id: string } | null>(null);
 
   const { textos: mundoTextos, setTextos: setMundoTextos, save: saveMundo } = useMundoSecciones();
   const { allItems, setAllItems, loadingAll, isOffline } = useAllEntidades();
@@ -305,10 +301,31 @@ export default function EditorEntidades() {
   }, [allItems, selectedId, tab]);
 
   // ── Handlers ────────────────────────────────────────────────────────────────
+  // Tabla de Supabase para tabs que ahora abren dentro del EditorMundo
+  const MUNDO_TABLAS: Partial<Record<Exclude<TabKey, "mundo">, string>> = {
+    personajes: "personajes",
+    criaturas:  "criaturas",
+    items:      "items",
+    reinos:     "reinos",
+  };
+
   const handleSelect = useCallback((item: any, itemTab: Exclude<TabKey, "mundo">) => {
-    setTab(itemTab);
-    setSelectedId(item.id);
-    setRequestedGrupoId(null);
+    const tabla = MUNDO_TABLAS[itemTab];
+    if (tabla) {
+      // Abrir dentro del EditorMundo para que la barra lateral sea siempre visible
+      setTab("mundo");
+      setSelectedId(item.id);
+      setMundoSection("geografia");
+      setRequestedSubTab(itemTab);
+      setOpenItem({ tabla, id: item.id });
+      setRequestedGrupoId(null);
+    } else {
+      // hechizos / dones / runas → siguen con editor standalone
+      setTab(itemTab);
+      setSelectedId(item.id);
+      setRequestedGrupoId(null);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleWikilinkNavigate = useCallback((target: string) => {
@@ -517,6 +534,7 @@ export default function EditorEntidades() {
               onSave={(section) => saveMundo(section, mundoTextos[section])}
               initialMundoTab={requestedSubTab}
               initialItemId={requestedItemId}
+              openItem={openItem}
               onTabChange={(section, mundoTab) => {
                 setMundoSection(section);
                 setRequestedSubTab(mundoTab);
@@ -554,40 +572,6 @@ export default function EditorEntidades() {
               initialSelectedId={selectedId ?? undefined}
               onSelectedIdChange={(id) => setSelectedId(id)}
             />
-          ) : selected ? (
-            <>
-              {tab === "personajes" && <EditorPersonaje key={selected.id} item={selected as Personaje} onSaved={handleSaved} onDeleted={handleDeleted} entities={allEntityNames}
-                onNavigate={(navTab, nombre) => {
-                  const found = allItems[navTab].find((i: any) => i.nombre?.toLowerCase() === nombre.toLowerCase());
-                  if (found) handleSelect(found, navTab);
-                }}
-                onSelectPersonaje={(personajeId) => {
-                  const found = allItems.personajes.find(p => p.id === personajeId);
-                  if (found) handleSelect(found, "personajes");
-                }}
-              />}
-              {tab === "criaturas"  && <EditorCriatura  key={selected.id} item={selected as Criatura}  onSaved={handleSaved} onDeleted={handleDeleted} entities={allEntityNames}
-                onSelectItem={(itemId) => {
-                  const found = allItems.items.find(i => i.id === itemId);
-                  if (found) handleSelect(found, "items");
-                }}
-                onSelectPersonaje={(personajeId) => {
-                  const found = allItems.personajes.find(p => p.id === personajeId);
-                  if (found) handleSelect(found, "personajes");
-                }}
-                onSelectGrupo={(grupoId) => {
-                  setTab("grupos");
-                  setRequestedGrupoId(grupoId);
-                }}
-              />}
-              {tab === "items"      && <EditorItem       key={selected.id} item={selected as Item}      onSaved={handleSaved} onDeleted={handleDeleted} entities={allEntityNames}
-                onSelectCriatura={(criaturaId) => {
-                  const found = allItems.criaturas.find(c => c.id === criaturaId);
-                  if (found) handleSelect(found, "criaturas");
-                }}
-              />}
-              {tab === "reinos"     && <EditorReino      key={selected.id} item={selected as Reino}     onSaved={handleSaved} onDeleted={handleDeleted} entities={allEntityNames} />}
-            </>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center gap-3 text-primary/15 select-none">
               <Globe size={48} strokeWidth={1} />
