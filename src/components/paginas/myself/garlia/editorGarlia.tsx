@@ -440,11 +440,11 @@ export default function EditorEntidades() {
               setShowAcontecimiento(true);
             } else if (key === "notas") {
               localStorage.setItem("estudio-notas-action", "nueva-nota");
-              window.dispatchEvent(new Event("estudio-notas-action"));
               setTab("mundo");
               setSelectedId(null);
               setMundoSection("geografia");
               setRequestedSubTab("notas");
+              setTimeout(() => window.dispatchEvent(new Event("estudio-notas-action")), 0);
             } else if (key === "grupos") {
               setShowNuevoGrupo(true);
             } else if (key === "libro") {
@@ -467,10 +467,10 @@ export default function EditorEntidades() {
               setRequestedSubTab("letras");
             } else if (key === "lugar") {
               localStorage.setItem("estudio-listas-action", "nuevo-lugar");
-              window.dispatchEvent(new Event("estudio-listas-action"));
               setTab("mundo");
               setMundoSection("geografia");
               setRequestedSubTab("listas");
+              setTimeout(() => window.dispatchEvent(new Event("estudio-listas-action")), 0);
             } else {
               // hechizos, dones, runas → abrir su editor directamente como tab
               setTab(key as any);
