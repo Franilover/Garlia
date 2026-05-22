@@ -387,8 +387,11 @@ export default function EditorEntidades() {
 
   const handleAddMagic = useCallback((key: MagicAddKey) => {
       if (key === "notas") {
+        localStorage.setItem("estudio-notas-action", "nueva-nota");
+        window.dispatchEvent(new Event("estudio-notas-action"));
         setTab("mundo");
         setMundoSection("geografia");
+        setRequestedSubTab("notas");
         return;
       }
     }, []);
@@ -436,6 +439,8 @@ export default function EditorEntidades() {
             if (key === "acontecimiento") {
               setShowAcontecimiento(true);
             } else if (key === "notas") {
+              localStorage.setItem("estudio-notas-action", "nueva-nota");
+              window.dispatchEvent(new Event("estudio-notas-action"));
               setTab("mundo");
               setSelectedId(null);
               setMundoSection("geografia");
