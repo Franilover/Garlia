@@ -2376,6 +2376,24 @@ function PanelListas({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Leer localStorage para auto-crear una nueva nota al navegar desde el menú Add
+  useEffect(() => {
+    const check = () => {
+      const action = localStorage.getItem("estudio-notas-action");
+      if (action !== "nueva-nota") return;
+      localStorage.removeItem("estudio-notas-action");
+      markVisited("notas");
+      setMobileTab("notas");
+      crearNota().then(nueva => {
+        if (nueva) setSelectedNota(nueva);
+      });
+    };
+    check(); // revisar al montar
+    window.addEventListener("estudio-notas-action", check);
+    return () => window.removeEventListener("estudio-notas-action", check);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // ── search state unified per active tab ──
 
   const searchMap: Record<string, string> = {
