@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import {
   Sparkles, Star, Globe, Plus, Trash2, Save, Loader2, Search, X, Bug,
   ChevronDown, Mountain, ScrollText, Map, ChevronRight, FileText, Users, UserCircle2, Package,
-  Crown, Clock, Filter, Layers, Check, BookOpen, Music,
+  Crown, Clock, Filter, Layers, Check, BookOpen, Music, MapPin,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
@@ -17,6 +17,7 @@ import { EditorReino } from "./EditorReino";
 import { EditorPersonaje } from "./EditorPersonaje";
 import { EditorCriatura } from "./EditorCriatura";
 import { EditorItem } from "./EditorItem";
+import { EditorLugar, type Lugar } from "./EditorLugar";
 import { type WikiEntity } from "../../../../forms/MarkdownEditor";
 import { type TimelineEvent } from "../editorEntidades/LoreTab";
 import { useNotas } from "../editorEntidades/useNotas";
@@ -166,7 +167,30 @@ function useObjetos(enabled = true) {
   return { objetos, setObjetos, loading };
 }
 
-// Hook full para personajes (PanelListas)
+// Hook full para lugares (PanelListas)
+type LugarMin = { id: string; nombre: string; imagen_url?: string; tipo?: string; reino_id?: string };
+function useLugares(enabled = true) {
+  const [lugares, setLugares] = useState<LugarMin[]>([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    if (!enabled) { setLoading(false); return; }
+    let cancelled = false;
+    const run = async () => {
+      const local = await dexieReadAll<LugarMin>("lugares");
+      if (local.length && !cancelled) { setLugares(local); setLoading(false); }
+      if (!navigator.onLine) { if (!local.length) setLoading(false); return; }
+      const { data } = await supabase.from("lugares").select("id, nombre, imagen_url, tipo, reino_id").order("nombre");
+      if (cancelled) return;
+      const result = (data ?? []) as LugarMin[];
+      setLugares(result); setLoading(false);
+      await dexieWriteAll("lugares", result);
+    };
+    run(); return () => { cancelled = true; };
+  }, [enabled]);
+  return { lugares, setLugares, loading };
+}
+
+
 function usePersonajesList(enabled = true) {
   const [personajes, setPersonajes] = useState<Personaje[]>([]);
   const [loading, setLoading] = useState(true);
@@ -635,7 +659,7 @@ function FormularioRuna({ item, onSaved, onDeleted }: {
   );
 }
 
-// ─── Panel Runas (sin criatura) ───────────────────────────────────────────────
+
 function PanelRunas() {
   const cfg = MAGIC_CONFIG.runas;
   const { items, setItems, loading } = useRunas();
@@ -2114,6 +2138,7 @@ function PanelListas({
     if (t === "reinos")     init.add("reinos");
     if (t === "criaturas")  init.add("criaturas");
     if (t === "objetos")    init.add("objetos");
+    if (t === "lugares")    init.add("lugares");
     if (t === "personajes") init.add("personajes");
     if (t === "hechizos")   { init.add("hechizos"); init.add("grupos"); }
     if (t === "dones")      { init.add("dones");    init.add("grupos"); }
@@ -2136,6 +2161,7 @@ function PanelListas({
       if (tab === "reinos")         add("reinos");
       else if (tab === "criaturas") add("criaturas");
       else if (tab === "objetos")   add("objetos");
+      else if (tab === "lugares")   add("lugares");
       else if (tab === "personajes")add("personajes");
       else if (tab === "hechizos")  add("hechizos", "grupos");
       else if (tab === "dones")     add("dones", "grupos");
@@ -2144,7 +2170,7 @@ function PanelListas({
       else if (tab === "notas")     add("notas");
       else if (tab === "todo" || tab === "mundo-personajes" || tab === "magia-objetos") {
         // Cargar primero los datos principales, luego los secundarios con delay
-        add("reinos", "criaturas", "objetos", "personajes");
+        add("reinos", "criaturas", "objetos", "personajes", "lugares");
         setTimeout(() => {
           setVisited(prev => {
             const next2 = new Set(prev);
@@ -2160,6 +2186,7 @@ function PanelListas({
   const { reinos,    setReinos,    loading: loadingReinos    } = useReinos(visited.has("reinos"));
   const { criaturas, setCriaturas, loading: loadingCriaturas } = useCriaturas(visited.has("criaturas"));
   const { objetos,   setObjetos,   loading: loadingObjetos   } = useObjetos(visited.has("objetos"));
+  const { lugares,   setLugares,   loading: loadingLugares   } = useLugares(visited.has("lugares"));
   const { personajes, setPersonajes, loading: loadingPersonajes } = usePersonajesList(visited.has("personajes"));
   const { items: hechizos, setItems: setHechizos, loading: loadingHechizos } = useEntidadesMagicas("hechizos", visited.has("hechizos"));
   const { items: dones,    setItems: setDones,    loading: loadingDones    } = useEntidadesMagicas("dones",    visited.has("dones"));
@@ -2173,6 +2200,7 @@ function PanelListas({
   const [searchR, setSearchR] = useState("");
   const [searchC, setSearchC] = useState("");
   const [searchO, setSearchO] = useState("");
+  const [searchLu, setSearchLu] = useState("");
   const [searchP, setSearchP] = useState("");
   const [searchH, setSearchH] = useState("");
   const [searchD, setSearchD] = useState("");
@@ -2181,6 +2209,7 @@ function PanelListas({
   const [selectedReino,    setSelectedReino]    = useState<Reino | null>(null);
   const [selectedCriatura, setSelectedCriatura] = useState<{ id: string; nombre: string; imagen_url?: string; habitat?: string } | null>(null);
   const [selectedObjeto,   setSelectedObjeto]   = useState<{ id: string; nombre: string; imagen_url?: string; categoria?: string } | null>(null);
+  const [selectedLugar,    setSelectedLugar]    = useState<Lugar | null>(null);
   const [selectedPersonaje, setSelectedPersonaje] = useState<Personaje | null>(null);
   const [selectedHechizo,  setSelectedHechizo]  = useState<EntidadMagica | null>(null);
   const [selectedDon,      setSelectedDon]      = useState<EntidadMagica | null>(null);
@@ -2192,13 +2221,14 @@ function PanelListas({
     ...criaturas .map(e => ({ name: e.nombre, type: "criatura"  })),
     ...objetos   .map(e => ({ name: e.nombre, type: "ítem"      })),
     ...reinos    .map(e => ({ name: e.nombre, type: "reino"     })),
+    ...lugares   .map(e => ({ name: e.nombre, type: "lugar"     })),
     ...hechizos  .map(e => ({ name: e.nombre, type: "hechizo"   })),
     ...dones     .map(e => ({ name: e.nombre, type: "don"       })),
     ...runas     .map(e => ({ name: e.nombre, type: "runa"      })),
-  ], [personajes, criaturas, objetos, reinos, hechizos, dones, runas]);
+  ], [personajes, criaturas, objetos, reinos, lugares, hechizos, dones, runas]);
 
-  type ListaTab = "mundo" | "historia" | "magia" | "reinos" | "criaturas" | "objetos" | "personajes" | "hechizos" | "dones" | "runas" | "notas" | "grupos" | "magia-objetos" | "mundo-personajes" | "geo-magia" | "todo" | "capitulos" | "letras";
-  const VALID_LISTA_TABS: ListaTab[] = ["mundo", "historia", "magia", "reinos", "criaturas", "objetos", "personajes", "hechizos", "dones", "runas", "notas", "grupos", "magia-objetos", "mundo-personajes", "geo-magia", "todo", "capitulos", "letras"];
+  type ListaTab = "mundo" | "historia" | "magia" | "reinos" | "criaturas" | "objetos" | "personajes" | "hechizos" | "dones" | "runas" | "notas" | "grupos" | "lugares" | "magia-objetos" | "mundo-personajes" | "geo-magia" | "todo" | "capitulos" | "letras";
+  const VALID_LISTA_TABS: ListaTab[] = ["mundo", "historia", "magia", "reinos", "criaturas", "objetos", "personajes", "hechizos", "dones", "runas", "notas", "grupos", "lugares", "magia-objetos", "mundo-personajes", "geo-magia", "todo", "capitulos", "letras"];
 
   const [mobileTab, setMobileTab] = useState<ListaTab>(() => {
     // initialSubTab puede ser un UnifiedTab ("mundo","historia","magia","listas") o un ListaTab directo
@@ -2221,6 +2251,7 @@ function PanelListas({
       setSelectedObjeto(null);   setSelectedPersonaje(null);
       setSelectedHechizo(null);  setSelectedDon(null);
       setSelectedRuna(null);     setSelectedNota(null);
+      setSelectedLugar(null);
     }
   }, [initialSubTab, markVisited]);
 
@@ -2254,10 +2285,11 @@ function PanelListas({
   }, [openItem, personajes.length, criaturas.length, objetos.length, reinos.length]);
 
   // Editor overlay activo
-  const overlay: "reino" | "criatura" | "objeto" | "personaje" | "hechizo" | "don" | "runa" | "nota" | null =
+  const overlay: "reino" | "criatura" | "objeto" | "personaje" | "hechizo" | "don" | "runa" | "nota" | "lugar" | null =
     selectedReino    ? "reino"    :
     selectedCriatura ? "criatura" :
     selectedObjeto   ? "objeto"   :
+    selectedLugar    ? "lugar"    :
     selectedPersonaje? "personaje":
     selectedHechizo  ? "hechizo"  :
     selectedDon      ? "don"      :
@@ -2267,6 +2299,7 @@ function PanelListas({
   const filteredR = reinos.filter(r    => r.nombre.toLowerCase().includes(searchR.toLowerCase()));
   const filteredC = criaturas.filter(c => c.nombre.toLowerCase().includes(searchC.toLowerCase()));
   const filteredO = objetos.filter(o   => o.nombre.toLowerCase().includes(searchO.toLowerCase()));
+  const filteredLu = lugares.filter(l  => l.nombre.toLowerCase().includes(searchLu.toLowerCase()));
   const filteredP = personajes.filter(p => p.nombre.toLowerCase().includes(searchP.toLowerCase()));
   const filteredH = hechizos.filter(h  => h.nombre.toLowerCase().includes(searchH.toLowerCase()));
   const filteredD = dones.filter(d     => d.nombre.toLowerCase().includes(searchD.toLowerCase()));
@@ -2298,11 +2331,13 @@ function PanelListas({
 
   const searchMap: Record<string, string> = {
     reinos: searchR, criaturas: searchC, objetos: searchO,
+    lugares: searchLu,
     personajes: searchP, hechizos: searchH, dones: searchD, runas: searchRu,
     notas: searchNotas, grupos: "",
   };
   const setSearchMap: Record<string, (v: string) => void> = {
     reinos: setSearchR, criaturas: setSearchC, objetos: setSearchO,
+    lugares: setSearchLu,
     personajes: setSearchP, hechizos: setSearchH, dones: setSearchD, runas: setSearchRu,
     notas: setSearchNotas, grupos: () => {},
   };
@@ -2320,7 +2355,17 @@ function PanelListas({
     {
       label: "Listas",
       tabs: [
-        { key: "todo" as ListaTab, label: "Todo", Icon: Layers, count: reinos.length + criaturas.length + personajes.length + dones.length + hechizos.length + runas.length + objetos.length + notas.length },
+        { key: "todo" as ListaTab, label: "Todo", Icon: Layers, count: reinos.length + criaturas.length + personajes.length + dones.length + hechizos.length + runas.length + objetos.length + lugares.length + notas.length },
+        { key: "reinos"    as ListaTab, label: "Reinos",    Icon: Map,        count: reinos.length    },
+        { key: "criaturas" as ListaTab, label: "Criaturas", Icon: Bug,        count: criaturas.length },
+        { key: "personajes"as ListaTab, label: "Personajes",Icon: Users,      count: personajes.length},
+        { key: "lugares"   as ListaTab, label: "Lugares",   Icon: MapPin,     count: lugares.length   },
+        { key: "objetos"   as ListaTab, label: "Objetos",   Icon: Package,    count: objetos.length   },
+        { key: "hechizos"  as ListaTab, label: "Hechizos",  Icon: Sparkles,   count: hechizos.length, color: "var(--accent)" },
+        { key: "dones"     as ListaTab, label: "Dones",     Icon: Star,       count: dones.length,    color: "var(--accent)" },
+        { key: "runas"     as ListaTab, label: "Runas",     Icon: ScrollText, count: runas.length     },
+        { key: "notas"     as ListaTab, label: "Notas",     Icon: FileText,   count: notas.length     },
+        { key: "grupos"    as ListaTab, label: "Grupos",    Icon: Layers,     count: gruposTodos.length},
       ],
     },
     {
@@ -2353,6 +2398,7 @@ function PanelListas({
                 setSelectedObjeto(null); setSelectedPersonaje(null);
                 setSelectedHechizo(null); setSelectedDon(null);
                 setSelectedRuna(null); setSelectedNota(null);
+                setSelectedLugar(null);
               }}
               className="relative flex items-center gap-1.5 px-3 py-3 text-[10px] font-black uppercase tracking-widest transition-all"
               style={{ color: active ? color : "color-mix(in srgb, var(--primary) 30%, transparent)" }}
@@ -2384,6 +2430,7 @@ function PanelListas({
                 setSelectedObjeto(null); setSelectedPersonaje(null);
                 setSelectedHechizo(null); setSelectedDon(null); setSelectedRuna(null);
                 setSelectedNota(null);  // ← agregar
+                setSelectedLugar(null);
               }}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border border-primary/15 text-primary/50 hover:text-primary hover:border-primary/30 transition-all"
             >
@@ -2393,13 +2440,14 @@ function PanelListas({
               {overlay === "reino"    && <Map        size={12} className="text-primary/40 shrink-0" />}
               {overlay === "criatura" && <Bug        size={12} className="text-primary/40 shrink-0" />}
               {overlay === "objeto"   && <Package    size={12} className="text-primary/40 shrink-0" />}
+              {overlay === "lugar"    && <MapPin     size={12} className="text-primary/40 shrink-0" />}
               {overlay === "personaje"&& <Users      size={12} className="text-primary/40 shrink-0" />}
               {overlay === "hechizo"  && <Sparkles   size={12} className="shrink-0" style={{ color: "var(--accent)" }} />}
               {overlay === "don"      && <Star       size={12} className="shrink-0" style={{ color: "color-mix(in srgb, var(--accent) 70%, var(--primary))" }} />}
               {overlay === "runa"     && <ScrollText size={12} className="shrink-0" style={{ color: "var(--primary)" }} />}
               {overlay === "nota"     && <FileText  size={12} className="text-primary/40 shrink-0" />}
               <span className="text-[11px] font-black uppercase tracking-[0.15em] text-primary/60 truncate">
-                  {selectedReino?.nombre ?? selectedCriatura?.nombre ?? selectedObjeto?.nombre ?? selectedPersonaje?.nombre ?? selectedHechizo?.nombre ?? selectedDon?.nombre ?? selectedRuna?.nombre ?? selectedNota?.titulo}
+                  {selectedReino?.nombre ?? selectedCriatura?.nombre ?? selectedObjeto?.nombre ?? selectedLugar?.nombre ?? selectedPersonaje?.nombre ?? selectedHechizo?.nombre ?? selectedDon?.nombre ?? selectedRuna?.nombre ?? selectedNota?.titulo}
               </span>
             </div>
           </div>
@@ -2431,6 +2479,16 @@ function PanelListas({
                 onSaved={u => { setObjetos(p => p.map(o => o.id === u.id ? { ...o, ...u } : o)); setSelectedObjeto({ ...selectedObjeto, ...u }); }}
                 onDeleted={id => { setObjetos(p => p.filter(o => o.id !== id)); setSelectedObjeto(null); }}
                 onSelectCriatura={id => { const c = criaturas.find(x => x.id === id); if (c) setSelectedCriatura(c); }}
+              />
+            )}
+            {overlay === "lugar" && selectedLugar && (
+              <EditorLugar key={selectedLugar.id} item={selectedLugar as Lugar}
+                entities={allEntityNames}
+                onSaved={u => { setLugares(p => p.map(l => l.id === u.id ? { ...l, ...u } : l)); setSelectedLugar({ ...selectedLugar, ...u }); }}
+                onDeleted={id => { setLugares(p => p.filter(l => l.id !== id)); setSelectedLugar(null); }}
+                onSelectPersonaje={id => { const p = personajes.find(x => x.id === id); if (p) setSelectedPersonaje(p); }}
+                onSelectCriatura={id => { const c = criaturas.find(x => x.id === id); if (c) setSelectedCriatura(c); }}
+                onSelectItem={id => { const o = objetos.find(x => x.id === id); if (o) setSelectedObjeto(o); }}
               />
             )}
             {overlay === "personaje" && selectedPersonaje && (
@@ -2536,6 +2594,25 @@ function PanelListas({
                     style={{ borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)" }}
                   >
                     <Plus size={9} /> Nueva
+                  </button>
+                )}
+                {mobileTab === "lugares" && (
+                  <button
+                    onClick={async () => {
+                      try {
+                        const { data, error } = await supabase.from("lugares")
+                          .insert([{ nombre: "Nuevo Lugar" }])
+                          .select("id, nombre, imagen_url, tipo, reino_id")
+                          .single();
+                        if (error) throw error;
+                        setLugares(prev => [data, ...prev]);
+                        setSelectedLugar(data);
+                      } catch {}
+                    }}
+                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-dashed transition-all text-primary/40 hover:text-primary hover:border-primary/30"
+                    style={{ borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)" }}
+                  >
+                    <Plus size={9} /> Nuevo
                   </button>
                 )}
                 {t.count > 0 && (
@@ -2705,6 +2782,25 @@ function PanelListas({
                       <button key={o.id} onClick={() => setSelectedObjeto(o)} type="button" className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02]" style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
                         <div className="w-6 h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center">{o.imagen_url ? <img src={o.imagen_url} alt={o.nombre} className="w-full h-full object-cover" /> : <Package size={10} className="text-primary/25" />}</div>
                         <span className="text-[11px] font-bold text-primary/70 truncate max-w-[90px]">{o.nombre}</span>
+                      </button>
+                    ))}</div>}
+              </div>
+              <div className="border-t my-2" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
+              {/* Lugares */}
+              <div className="pb-1">
+                <div className="flex items-center gap-1.5 mb-2"><MapPin size={10} className="text-primary/30 shrink-0" /><span className="text-[8px] font-black uppercase tracking-[0.25em]" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>Lugares · {lugares.length}</span></div>
+                {loadingLugares ? <div className="flex justify-center py-3"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
+                  : lugares.length === 0 ? <p className="text-[9px] text-primary/20 italic px-1 pb-2">Sin lugares aún</p>
+                  : <div className="flex flex-wrap gap-1.5">{lugares.map(l => (
+                      <button key={l.id} onClick={async () => {
+                        try {
+                          const { data } = await supabase.from("lugares").select("*").eq("id", l.id).single();
+                          if (data) { setSelectedLugar(data as Lugar); return; }
+                        } catch {}
+                        setSelectedLugar(l as Lugar);
+                      }} type="button" className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02]" style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
+                        <div className="w-6 h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center">{l.imagen_url ? <img src={l.imagen_url} alt={l.nombre} className="w-full h-full object-cover" /> : <MapPin size={10} className="text-primary/25" />}</div>
+                        <span className="text-[11px] font-bold text-primary/70 truncate max-w-[90px]">{l.nombre}</span>
                       </button>
                     ))}</div>}
               </div>
@@ -3016,6 +3112,30 @@ function PanelListas({
                 ))
             )}
 
+            {/* Lugares */}
+            {mobileTab === "lugares" && (loadingLugares
+              ? <div className="flex justify-center py-10"><Loader2 size={16} className="animate-spin text-primary/20" /></div>
+              : filteredLu.length === 0
+                ? <p className="text-[9px] text-primary/20 uppercase tracking-widest text-center py-10 italic">{searchLu ? "Sin resultados" : "Sin lugares aún"}</p>
+                : filteredLu.map(l => (
+                  <button key={l.id} onClick={async () => {
+                    // Cargar el lugar completo (con historia, secretos, etc.) antes de abrir el editor
+                    try {
+                      const { data } = await supabase.from("lugares").select("*").eq("id", l.id).single();
+                      if (data) { setSelectedLugar(data as Lugar); return; }
+                    } catch {}
+                    setSelectedLugar(l as Lugar);
+                  }} type="button"
+                    className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02] cursor-pointer"
+                    style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
+                    <div className="w-6 h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center">
+                      {l.imagen_url ? <img src={l.imagen_url} alt={l.nombre} className="w-full h-full object-cover" /> : <MapPin size={10} className="text-primary/25" />}
+                    </div>
+                    <span className="text-[11px] font-bold text-primary/70 truncate max-w-[90px]">{l.nombre}</span>
+                  </button>
+                ))
+            )}
+
             {/* Personajes */}
             {mobileTab === "personajes" && (loadingPersonajes
               ? <div className="flex justify-center py-10"><Loader2 size={16} className="animate-spin text-primary/20" /></div>
@@ -3136,6 +3256,7 @@ function PanelListas({
                     personajes: "personajes",
                     criaturas: "criaturas",
                     items: "objetos",
+                    lugares: "lugares",
                     hechizos: "hechizos",
                     dones: "dones",
                     runas: "runas",
