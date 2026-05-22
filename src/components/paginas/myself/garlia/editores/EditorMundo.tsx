@@ -2200,7 +2200,6 @@ function PanelListas({
   const [searchR, setSearchR] = useState("");
   const [searchC, setSearchC] = useState("");
   const [searchO, setSearchO] = useState("");
-  const [searchLu, setSearchLu] = useState("");
   const [searchP, setSearchP] = useState("");
   const [searchH, setSearchH] = useState("");
   const [searchD, setSearchD] = useState("");
@@ -2299,7 +2298,6 @@ function PanelListas({
   const filteredR = reinos.filter(r    => r.nombre.toLowerCase().includes(searchR.toLowerCase()));
   const filteredC = criaturas.filter(c => c.nombre.toLowerCase().includes(searchC.toLowerCase()));
   const filteredO = objetos.filter(o   => o.nombre.toLowerCase().includes(searchO.toLowerCase()));
-  const filteredLu = lugares.filter(l  => l.nombre.toLowerCase().includes(searchLu.toLowerCase()));
   const filteredP = personajes.filter(p => p.nombre.toLowerCase().includes(searchP.toLowerCase()));
   const filteredH = hechizos.filter(h  => h.nombre.toLowerCase().includes(searchH.toLowerCase()));
   const filteredD = dones.filter(d     => d.nombre.toLowerCase().includes(searchD.toLowerCase()));
@@ -2331,13 +2329,11 @@ function PanelListas({
 
   const searchMap: Record<string, string> = {
     reinos: searchR, criaturas: searchC, objetos: searchO,
-    lugares: searchLu,
     personajes: searchP, hechizos: searchH, dones: searchD, runas: searchRu,
     notas: searchNotas, grupos: "",
   };
   const setSearchMap: Record<string, (v: string) => void> = {
     reinos: setSearchR, criaturas: setSearchC, objetos: setSearchO,
-    lugares: setSearchLu,
     personajes: setSearchP, hechizos: setSearchH, dones: setSearchD, runas: setSearchRu,
     notas: setSearchNotas, grupos: () => {},
   };
@@ -2356,16 +2352,6 @@ function PanelListas({
       label: "Listas",
       tabs: [
         { key: "todo" as ListaTab, label: "Todo", Icon: Layers, count: reinos.length + criaturas.length + personajes.length + dones.length + hechizos.length + runas.length + objetos.length + lugares.length + notas.length },
-        { key: "reinos"    as ListaTab, label: "Reinos",    Icon: Map,        count: reinos.length    },
-        { key: "criaturas" as ListaTab, label: "Criaturas", Icon: Bug,        count: criaturas.length },
-        { key: "personajes"as ListaTab, label: "Personajes",Icon: Users,      count: personajes.length},
-        { key: "lugares"   as ListaTab, label: "Lugares",   Icon: MapPin,     count: lugares.length   },
-        { key: "objetos"   as ListaTab, label: "Objetos",   Icon: Package,    count: objetos.length   },
-        { key: "hechizos"  as ListaTab, label: "Hechizos",  Icon: Sparkles,   count: hechizos.length, color: "var(--accent)" },
-        { key: "dones"     as ListaTab, label: "Dones",     Icon: Star,       count: dones.length,    color: "var(--accent)" },
-        { key: "runas"     as ListaTab, label: "Runas",     Icon: ScrollText, count: runas.length     },
-        { key: "notas"     as ListaTab, label: "Notas",     Icon: FileText,   count: notas.length     },
-        { key: "grupos"    as ListaTab, label: "Grupos",    Icon: Layers,     count: gruposTodos.length},
       ],
     },
     {
@@ -2594,25 +2580,6 @@ function PanelListas({
                     style={{ borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)" }}
                   >
                     <Plus size={9} /> Nueva
-                  </button>
-                )}
-                {mobileTab === "lugares" && (
-                  <button
-                    onClick={async () => {
-                      try {
-                        const { data, error } = await supabase.from("lugares")
-                          .insert([{ nombre: "Nuevo Lugar" }])
-                          .select("id, nombre, imagen_url, tipo, reino_id")
-                          .single();
-                        if (error) throw error;
-                        setLugares(prev => [data, ...prev]);
-                        setSelectedLugar(data);
-                      } catch {}
-                    }}
-                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-dashed transition-all text-primary/40 hover:text-primary hover:border-primary/30"
-                    style={{ borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)" }}
-                  >
-                    <Plus size={9} /> Nuevo
                   </button>
                 )}
                 {t.count > 0 && (
@@ -3108,30 +3075,6 @@ function PanelListas({
                       {o.imagen_url ? <img src={o.imagen_url} alt={o.nombre} className="w-full h-full object-cover" /> : <Package size={10} className="text-primary/25" />}
                     </div>
                     <span className="text-[11px] font-bold text-primary/70 truncate max-w-[90px]">{o.nombre}</span>
-                  </button>
-                ))
-            )}
-
-            {/* Lugares */}
-            {mobileTab === "lugares" && (loadingLugares
-              ? <div className="flex justify-center py-10"><Loader2 size={16} className="animate-spin text-primary/20" /></div>
-              : filteredLu.length === 0
-                ? <p className="text-[9px] text-primary/20 uppercase tracking-widest text-center py-10 italic">{searchLu ? "Sin resultados" : "Sin lugares aún"}</p>
-                : filteredLu.map(l => (
-                  <button key={l.id} onClick={async () => {
-                    // Cargar el lugar completo (con historia, secretos, etc.) antes de abrir el editor
-                    try {
-                      const { data } = await supabase.from("lugares").select("*").eq("id", l.id).single();
-                      if (data) { setSelectedLugar(data as Lugar); return; }
-                    } catch {}
-                    setSelectedLugar(l as Lugar);
-                  }} type="button"
-                    className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02] cursor-pointer"
-                    style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
-                    <div className="w-6 h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center">
-                      {l.imagen_url ? <img src={l.imagen_url} alt={l.nombre} className="w-full h-full object-cover" /> : <MapPin size={10} className="text-primary/25" />}
-                    </div>
-                    <span className="text-[11px] font-bold text-primary/70 truncate max-w-[90px]">{l.nombre}</span>
                   </button>
                 ))
             )}
