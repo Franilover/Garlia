@@ -139,90 +139,97 @@ const SEARCH_STYLES = `
     font-weight: 900;
   }
 
-  /* ── Cards de canciones ── */
+  /* ── Pills de canciones ── */
   .song-card {
-    border: 1px solid color-mix(in srgb, var(--primary) 18%, transparent);
-    border-radius: 8px;
-    overflow: hidden;
-    background: var(--white-custom);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 8px 5px 6px;
+    border: 1px solid color-mix(in srgb, var(--primary) 12%, transparent);
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--primary) 3%, transparent);
     cursor: pointer;
-    transition: border-color 0.15s, box-shadow 0.15s;
+    transition: background 0.12s, border-color 0.12s;
     position: relative;
+    width: 100%;
+    text-align: left;
   }
   .song-card:hover {
-    border-color: color-mix(in srgb, var(--primary) 45%, transparent);
-    box-shadow: 0 2px 12px color-mix(in srgb, var(--primary) 10%, transparent);
+    background: color-mix(in srgb, var(--primary) 7%, transparent);
+    border-color: color-mix(in srgb, var(--primary) 22%, transparent);
   }
   .song-card-accent {
-    height: 2px;
-    width: 100%;
-    background: color-mix(in srgb, var(--primary) 25%, transparent);
+    flex-shrink: 0;
+    width: 3px;
+    height: 28px;
+    border-radius: 2px;
+    background: color-mix(in srgb, var(--primary) 20%, transparent);
   }
   .song-card-accent.terminada {
-    background: color-mix(in srgb, var(--callout-success-border) 55%, transparent);
+    background: color-mix(in srgb, var(--callout-success-border) 70%, transparent);
   }
   .song-card-accent.en-proceso {
-    background: color-mix(in srgb, var(--callout-warning-border) 55%, transparent);
+    background: color-mix(in srgb, var(--callout-warning-border) 70%, transparent);
   }
   .song-card-body {
-    padding: 12px 14px 14px;
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
   }
   .song-card-badge {
-    display: none;
+    display: inline-flex;
     align-items: center;
-    padding: 1px 6px;
+    padding: 1px 5px;
     border-radius: 3px;
     border: 1px solid;
     font-size: 7px;
     font-family: var(--font-mono, monospace);
     font-weight: 900;
     text-transform: uppercase;
-    letter-spacing: 0.12em;
-    margin-bottom: 7px;
-  }
-  @media (min-width: 640px) {
-    .song-card-badge {
-      display: inline-flex;
-    }
+    letter-spacing: 0.1em;
+    width: fit-content;
+    margin-bottom: 2px;
   }
   .song-card-title {
     font-size: 11px;
     font-weight: 900;
     font-style: italic;
     text-transform: uppercase;
-    letter-spacing: 0.06em;
-    line-height: 1.3;
+    letter-spacing: 0.05em;
+    line-height: 1.2;
     color: var(--primary);
-    margin-bottom: 5px;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
     overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .song-card-sub {
     font-size: 9px;
     font-family: var(--font-mono, monospace);
-    color: var(--text-on-card);
-    opacity: 0.5;
+    color: var(--primary);
+    opacity: 0.4;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.03em;
   }
   .song-card-lang {
     font-size: 8px;
     font-family: var(--font-mono, monospace);
     font-weight: 900;
     text-transform: uppercase;
-    letter-spacing: 0.12em;
-    color: var(--text-on-card);
-    opacity: 0.3;
-    margin-top: 4px;
+    letter-spacing: 0.1em;
+    color: var(--primary);
+    opacity: 0.25;
   }
   .song-card-actions {
-    position: absolute;
-    top: 10px;
-    right: 10px;
+    flex-shrink: 0;
+    opacity: 0;
+    transition: opacity 0.12s;
+  }
+  .song-card:hover .song-card-actions {
+    opacity: 1;
   }
 
   /* ── Estado vacío ── */
@@ -460,32 +467,31 @@ const CancionCard = ({
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      {/* Acento de estado */}
+      {/* Acento de estado — barra vertical izquierda */}
       <div className={`song-card-accent ${estadoAccentClass(cancion.estado)}`} />
 
       <div className="song-card-body">
-        {/* Badge */}
+        {/* Badge de estado */}
         <span className="song-card-badge" style={estadoBadgeStyle(cancion.estado)}>
           {estadoLabel(cancion.estado)}
         </span>
-
         {/* Título */}
         <div className="song-card-title">{cancion.titulo}</div>
-
-        {/* Subtítulo */}
+        {/* Subtítulo: personaje o cantante */}
         {nombre && <div className="song-card-sub">{nombre}</div>}
+        {/* Idioma */}
         {cancion.idioma && <div className="song-card-lang">{cancion.idioma}</div>}
+      </div>
 
-        {/* Acciones */}
-        <div className="song-card-actions" onClick={e => e.stopPropagation()}>
-          <CardActions
-            cancion={cancion}
-            onEdit={onEdit}
-            onDelete={onDelete}
-            onToggleVisible={onToggleVisible}
-            isCardHovered={hovered}
-          />
-        </div>
+      {/* Acciones en hover */}
+      <div className="song-card-actions" onClick={e => e.stopPropagation()}>
+        <CardActions
+          cancion={cancion}
+          onEdit={onEdit}
+          onDelete={onDelete}
+          onToggleVisible={onToggleVisible}
+          isCardHovered={hovered}
+        />
       </div>
     </div>
   );
@@ -1036,9 +1042,9 @@ export default function EstudioLetras() {
 
           ) : (
             <div style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
-              gap: 8,
+              display: "flex",
+              flexDirection: "column",
+              gap: 3,
             }}>
               {filtradas.map(c => (
                 <CancionCard
