@@ -2351,24 +2351,28 @@ function PanelListas({
 
   // Leer localStorage para auto-crear un nuevo lugar al navegar desde el menú Add
   useEffect(() => {
-    const action = localStorage.getItem("estudio-listas-action");
-    if (action !== "nuevo-lugar") return;
-    localStorage.removeItem("estudio-listas-action");
-    markVisited("lugares");
-    setMobileTab("lugares");
-    (async () => {
-      try {
-        const { data, error } = await supabase
-          .from("lugares")
-          .insert([{ nombre: "Nuevo lugar" }])
-          .select("*")
-          .single();
-        if (error || !data) return;
-        setLugares(prev => [data as LugarMin, ...prev]);
-        setSelectedLugar(data as Lugar);
-      } catch {}
-    })();
-  // Solo al montar
+    const check = () => {
+      const action = localStorage.getItem("estudio-listas-action");
+      if (action !== "nuevo-lugar") return;
+      localStorage.removeItem("estudio-listas-action");
+      markVisited("lugares");
+      setMobileTab("lugares");
+      (async () => {
+        try {
+          const { data, error } = await supabase
+            .from("lugares")
+            .insert([{ nombre: "Nuevo lugar" }])
+            .select("*")
+            .single();
+          if (error || !data) return;
+          setLugares(prev => [data as LugarMin, ...prev]);
+          setSelectedLugar(data as Lugar);
+        } catch {}
+      })();
+    };
+    check(); // revisar al montar
+    window.addEventListener("estudio-listas-action", check);
+    return () => window.removeEventListener("estudio-listas-action", check);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

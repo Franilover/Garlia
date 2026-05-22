@@ -2618,13 +2618,20 @@ export function EditorCapitulosPanel() {
 
   const { capitulos, setCapitulos, reload: reloadCaps } = useCapitulos(selectedLibroId);
 
-  // Señal desde el buscador para abrir "nuevo libro" o "nuevo capítulo" al montar
+  // Señal desde el buscador para abrir "nuevo libro" o "nuevo capítulo"
+  // Usamos también el evento "estudio-caps-action" para detectar la señal cuando el
+  // componente ya estaba montado (el useEffect con [] solo corre al montar por primera vez).
   useEffect(() => {
-    const action = localStorage.getItem("estudio-caps-action");
-    if (!action) return;
-    localStorage.removeItem("estudio-caps-action");
-    if (action === "nuevo-libro") setTimeout(() => setShowNuevoLibro(true), 120);
-    if (action === "nuevo-cap")   setTimeout(() => setShowNuevoCap(true), 120);
+    const check = () => {
+      const action = localStorage.getItem("estudio-caps-action");
+      if (!action) return;
+      localStorage.removeItem("estudio-caps-action");
+      if (action === "nuevo-libro") setTimeout(() => setShowNuevoLibro(true), 120);
+      if (action === "nuevo-cap")   setTimeout(() => setShowNuevoCap(true), 120);
+    };
+    check(); // revisar al montar
+    window.addEventListener("estudio-caps-action", check);
+    return () => window.removeEventListener("estudio-caps-action", check);
   }, []);
 
   const librosFiltrados = useMemo(() =>
