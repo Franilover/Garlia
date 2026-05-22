@@ -60,6 +60,8 @@ const MUNDO_NAV: { section: MundoSectionKey; label: string; subTab: string; alia
   { section: "magia",     label: "Hechizos",   subTab: "hechizos",   aliases: ["hechizo", "hechizos", "spell", "spells"] },
   { section: "magia",     label: "Dones",      subTab: "dones",      aliases: ["don", "dones", "gift", "gifts"] },
   { section: "magia",     label: "Runas",      subTab: "runas",      aliases: ["runa", "runas", "rune", "runes"] },
+  { section: "geografia", label: "Capítulos",  subTab: "capitulos",  aliases: ["capitulo", "capítulo", "capitulos", "capítulos", "cap", "chapter", "chapters"] },
+  { section: "geografia", label: "Canciones",  subTab: "letras",     aliases: ["cancion", "canción", "canciones", "canciones", "letra", "letras", "song", "songs", "music", "musica", "música"] },
 ];
 
 function normalize(s: string) {
@@ -290,7 +292,7 @@ function AddCommandMenu({
   // Entidades principales
   const tabEntries: AddEntry[] = (
     Object.entries(TAB_CONFIG) as [Exclude<TabKey, "mundo">, typeof TAB_CONFIG[Exclude<TabKey, "mundo">]][]
-  ).filter(([key]) => !["hechizos", "dones", "runas", "grupos"].includes(key))
+  ).filter(([key]) => !["hechizos", "dones", "runas", "grupos", "capitulos", "letras"].includes(key))
    .map(([key, cfg]) => ({ kind: "tab", key, label: cfg.label, Icon: cfg.Icon }));
 
   // Magia + notas — sin duplicar hechizos/dones/runas que ya están en tabEntries
