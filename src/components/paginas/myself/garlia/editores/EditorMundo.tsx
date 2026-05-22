@@ -2307,12 +2307,16 @@ function PanelListas({
     selectedRuna     ? "runa"     :
     selectedNota     ? "nota"     : null;
 
+  // Tab previo para restaurar al cerrar el overlay (ej: "todo" → item → volver → "todo")
+  const [prevMobileTab, setPrevMobileTab] = useState<ListaTab | null>(null);
+
   const clearAllOverlays = useCallback(() => {
     setSelectedReino(null); setSelectedCriatura(null);
     setSelectedObjeto(null); setSelectedPersonaje(null);
     setSelectedHechizo(null); setSelectedDon(null); setSelectedRuna(null);
     setSelectedNota(null); setSelectedLugar(null);
-  }, []);
+    if (prevMobileTab) { setMobileTab(prevMobileTab); setPrevMobileTab(null); }
+  }, [prevMobileTab]);
 
   useEffect(() => {
     onOverlayChange?.(!!overlay, clearAllOverlays);
@@ -2715,7 +2719,7 @@ function PanelListas({
                 {loadingReinos ? <div className="flex justify-center py-3"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
                   : reinos.length === 0 ? <p className="text-[9px] text-primary/20 italic px-1 pb-2">Sin reinos aún</p>
                   : <div className="flex flex-wrap gap-1.5">{reinos.map(r => (
-                      <button key={r.id} onClick={() => { markVisited("reinos"); setMobileTab("reinos"); setSelectedReino(r); }} type="button" className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02]" style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
+                      <button key={r.id} onClick={() => { setPrevMobileTab(mobileTab); markVisited("reinos"); setMobileTab("reinos"); setSelectedReino(r); }} type="button" className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02]" style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
                         <div className="w-6 h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center">{r.mapa_url ? <img src={r.mapa_url} alt={r.nombre} className="w-full h-full object-cover" /> : <Map size={10} className="text-primary/25" />}</div>
                         <span className="text-[11px] font-bold text-primary/70 truncate max-w-[90px]">{r.nombre}</span>
                       </button>
@@ -2728,7 +2732,7 @@ function PanelListas({
                 {loadingCriaturas ? <div className="flex justify-center py-3"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
                   : criaturas.length === 0 ? <p className="text-[9px] text-primary/20 italic px-1 pb-2">Sin criaturas aún</p>
                   : <div className="flex flex-wrap gap-1.5">{criaturas.map(c => (
-                      <button key={c.id} onClick={() => { markVisited("criaturas"); setMobileTab("criaturas"); setSelectedCriatura(c); }} type="button" className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02]" style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
+                      <button key={c.id} onClick={() => { setPrevMobileTab(mobileTab); markVisited("criaturas"); setMobileTab("criaturas"); setSelectedCriatura(c); }} type="button" className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02]" style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
                         <div className="w-6 h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center">{c.imagen_url ? <img src={c.imagen_url} alt={c.nombre} className="w-full h-full object-cover" /> : <Bug size={10} className="text-primary/25" />}</div>
                         <span className="text-[11px] font-bold text-primary/70 truncate max-w-[90px]">{c.nombre}</span>
                       </button>
@@ -2741,7 +2745,7 @@ function PanelListas({
                 {loadingPersonajes ? <div className="flex justify-center py-3"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
                   : personajes.length === 0 ? <p className="text-[9px] text-primary/20 italic px-1 pb-2">Sin personajes aún</p>
                   : <div className="flex flex-wrap gap-1.5">{personajes.map(p => (
-                      <button key={p.id} onClick={() => { markVisited("personajes"); setMobileTab("personajes"); setSelectedPersonaje(p); }} type="button" className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02]" style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
+                      <button key={p.id} onClick={() => { setPrevMobileTab(mobileTab); markVisited("personajes"); setMobileTab("personajes"); setSelectedPersonaje(p); }} type="button" className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02]" style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
                         <div className="w-6 h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center">{p.img_url ? <img src={p.img_url} alt={p.nombre} className="w-full h-full object-cover" /> : <UserCircle2 size={10} className="text-primary/25" />}</div>
                         <span className="text-[11px] font-bold text-primary/70 truncate max-w-[90px]">{p.nombre}</span>
                       </button>
@@ -2754,7 +2758,7 @@ function PanelListas({
                 {loadingDones ? <div className="flex justify-center py-3"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
                   : dones.length === 0 ? <p className="text-[9px] text-primary/20 italic px-1 pb-2">Sin dones aún</p>
                   : <div className="flex flex-wrap gap-1.5">{dones.map(d => (
-                      <button key={d.id} onClick={() => { markVisited("dones"); setMobileTab("dones"); setSelectedDon(d); }} type="button" className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02]" style={{ background: "color-mix(in srgb, var(--accent) 4%, transparent)", borderColor: "color-mix(in srgb, var(--accent) 13%, transparent)" }}>
+                      <button key={d.id} onClick={() => { setPrevMobileTab(mobileTab); markVisited("dones"); setMobileTab("dones"); setSelectedDon(d); }} type="button" className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02]" style={{ background: "color-mix(in srgb, var(--accent) 4%, transparent)", borderColor: "color-mix(in srgb, var(--accent) 13%, transparent)" }}>
                         <div className="w-6 h-6 rounded-lg border shrink-0 flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--accent) 8%, transparent)", borderColor: "color-mix(in srgb, var(--accent) 18%, transparent)" }}><Star size={10} style={{ color: "color-mix(in srgb, var(--accent) 65%, transparent)" }} /></div>
                         <span className="text-[11px] font-bold truncate max-w-[90px]" style={{ color: "color-mix(in srgb, var(--accent) 75%, var(--primary))" }}>{d.nombre}</span>
                       </button>
@@ -2767,7 +2771,7 @@ function PanelListas({
                 {loadingHechizos ? <div className="flex justify-center py-3"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
                   : hechizos.length === 0 ? <p className="text-[9px] text-primary/20 italic px-1 pb-2">Sin hechizos aún</p>
                   : <div className="flex flex-wrap gap-1.5">{hechizos.map(h => (
-                      <button key={h.id} onClick={() => { markVisited("hechizos"); setMobileTab("hechizos"); setSelectedHechizo(h); }} type="button" className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02]" style={{ background: "color-mix(in srgb, var(--accent) 5%, transparent)", borderColor: "color-mix(in srgb, var(--accent) 15%, transparent)" }}>
+                      <button key={h.id} onClick={() => { setPrevMobileTab(mobileTab); markVisited("hechizos"); setMobileTab("hechizos"); setSelectedHechizo(h); }} type="button" className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02]" style={{ background: "color-mix(in srgb, var(--accent) 5%, transparent)", borderColor: "color-mix(in srgb, var(--accent) 15%, transparent)" }}>
                         <div className="w-6 h-6 rounded-lg border shrink-0 flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--accent) 10%, transparent)", borderColor: "color-mix(in srgb, var(--accent) 20%, transparent)" }}><Sparkles size={10} style={{ color: "color-mix(in srgb, var(--accent) 70%, transparent)" }} /></div>
                         <span className="text-[11px] font-bold truncate max-w-[90px]" style={{ color: "color-mix(in srgb, var(--accent) 80%, var(--primary))" }}>{h.nombre}</span>
                       </button>
@@ -2780,7 +2784,7 @@ function PanelListas({
                 {loadingRunas ? <div className="flex justify-center py-3"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
                   : runas.length === 0 ? <p className="text-[9px] text-primary/20 italic px-1 pb-2">Sin runas aún</p>
                   : <div className="flex flex-wrap gap-1.5">{runas.map(r => (
-                      <button key={r.id} onClick={() => { markVisited("runas"); setMobileTab("runas"); setSelectedRuna(r); }} type="button" className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02]" style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
+                      <button key={r.id} onClick={() => { setPrevMobileTab(mobileTab); markVisited("runas"); setMobileTab("runas"); setSelectedRuna(r); }} type="button" className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02]" style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
                         <div className="w-6 h-6 rounded-lg border overflow-hidden shrink-0 flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--primary) 6%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 14%, transparent)" }}>{r.imagen_url ? <img src={r.imagen_url} alt={r.nombre} className="w-full h-full object-cover" /> : <ScrollText size={10} className="text-primary/40" />}</div>
                         <span className="text-[11px] font-bold text-primary/70 truncate max-w-[90px]">{r.nombre}</span>
                       </button>
@@ -2793,7 +2797,7 @@ function PanelListas({
                 {loadingObjetos ? <div className="flex justify-center py-3"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
                   : objetos.length === 0 ? <p className="text-[9px] text-primary/20 italic px-1 pb-2">Sin objetos aún</p>
                   : <div className="flex flex-wrap gap-1.5">{objetos.map(o => (
-                      <button key={o.id} onClick={() => { markVisited("objetos"); setMobileTab("objetos"); setSelectedObjeto(o); }} type="button" className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02]" style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
+                      <button key={o.id} onClick={() => { setPrevMobileTab(mobileTab); markVisited("objetos"); setMobileTab("objetos"); setSelectedObjeto(o); }} type="button" className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02]" style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
                         <div className="w-6 h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center">{o.imagen_url ? <img src={o.imagen_url} alt={o.nombre} className="w-full h-full object-cover" /> : <Package size={10} className="text-primary/25" />}</div>
                         <span className="text-[11px] font-bold text-primary/70 truncate max-w-[90px]">{o.nombre}</span>
                       </button>
@@ -2807,7 +2811,7 @@ function PanelListas({
                   : lugares.length === 0 ? <p className="text-[9px] text-primary/20 italic px-1 pb-2">Sin lugares aún</p>
                   : <div className="flex flex-wrap gap-1.5">{lugares.map(l => (
                       <button key={l.id} onClick={async () => {
-                        markVisited("lugares"); setMobileTab("lugares");
+                        setPrevMobileTab(mobileTab); markVisited("lugares"); setMobileTab("lugares");
                         try {
                           const { data } = await supabase.from("lugares").select("*").eq("id", l.id).single();
                           if (data) { setSelectedLugar(data as Lugar); return; }
@@ -2826,7 +2830,7 @@ function PanelListas({
                 {loadingNotas ? <div className="flex justify-center py-3"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
                   : notas.length === 0 ? <p className="text-[9px] text-primary/20 italic px-1 pb-2">Sin notas aún</p>
                   : <div className="flex flex-wrap gap-1.5">{notas.map(n => (
-                      <button key={n.id} onClick={() => { markVisited("notas"); setMobileTab("notas"); setSelectedNota(n); }} type="button" className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02]" style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
+                      <button key={n.id} onClick={() => { setPrevMobileTab(mobileTab); markVisited("notas"); setMobileTab("notas"); setSelectedNota(n); }} type="button" className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02]" style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
                         <div className="w-6 h-6 rounded-lg border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center"><FileText size={10} className="text-primary/25" /></div>
                         <span className="text-[11px] font-bold text-primary/70 truncate max-w-[90px]">{n.titulo || <span className="italic text-primary/30">Sin título</span>}</span>
                       </button>
