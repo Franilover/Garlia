@@ -163,12 +163,14 @@ export function renderMarkdown(raw: string): string {
     }
 
     // headings #
-    const hMatch = line.match(/^(#{1,6})(?:\s+(.*))?$/);
-    if (hMatch) {
-      output.push(makeHeading(hMatch[1].length, hMatch[2] || ""));
-      i++; continue;
-    }
-
+const hMatch = line.match(/^(#{1,6})(?:\s+(.*))?$/);
+if (hMatch) {
+  const level = hMatch[1].length;
+  const content = hMatch[2] || ""; // Si es solo "# ", el contenido es ""
+  output.push(makeHeading(level, content));
+  i++; 
+  continue; // Muy importante para saltar a la siguiente línea
+}
     // table |
     if (line.trim().startsWith("|")) {
       const tableLines: string[] = [];
@@ -256,7 +258,7 @@ const paraLines: string[] = [];
       !lines[i].trim().startsWith(":::links") &&
       !/^\[\[toc\]\]\s*$/i.test(lines[i].trim()) &&
       !/^---+$/.test(lines[i].trim()) &&
-      !/^(#{1,6})(\s|$)/.test(lines[i]) && // Coincide con el Heading
+      !/^(#{1,6})(\s|$)/.test(lines[i])
       !lines[i].trim().startsWith("|") &&
       !lines[i].trimStart().startsWith(">") &&
       !/^[ \t]*\d+\.\s/.test(lines[i]) &&
