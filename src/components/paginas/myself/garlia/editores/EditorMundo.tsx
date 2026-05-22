@@ -1291,12 +1291,6 @@ function PanelMundo({
                 <EditorReino key={selectedReino.id} item={selectedReino}
                   onSaved={updated => { setReinos(prev => prev.map(r => r.id === updated.id ? updated : r)); setSelectedReino(updated); }}
                   onDeleted={id => { setReinos(prev => prev.filter(r => r.id !== id)); setSelectedReino(null); }}
-                  onSelectLugar={async (id: string) => {
-                    const local = lugares.find(x => x.id === id);
-                    if (local) { setSelectedLugar(local as Lugar); return; }
-                    const { data } = await supabase.from("lugares").select("*").eq("id", id).single();
-                    if (data) { setSelectedLugar(data as Lugar); }
-                  }}
                 />
               </div>
             </div>
