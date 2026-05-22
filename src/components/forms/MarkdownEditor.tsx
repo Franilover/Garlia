@@ -243,7 +243,7 @@ if (hMatch) {
 
       output.push(`
         <div class="callout link-list-block">
-          <div class="callout-title"><span class="callout-title-icon">🔗</span> ${customTitle}</div>
+          <div class="callout-title"><span class="callout-title-icon"></span> ${customTitle}</div>
           <div class="callout-body"><ul>${linksHtml}</ul></div>
         </div>`);
       continue;
