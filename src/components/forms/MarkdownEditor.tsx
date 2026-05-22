@@ -163,9 +163,9 @@ export function renderMarkdown(raw: string): string {
     }
 
     // headings #
-    const hMatch = line.match(/^(#{1,6})\s+(.+)$/);
+    const hMatch = line.match(/^(#{1,6})(?:\s+(.*))?$/);
     if (hMatch) {
-      output.push(makeHeading(hMatch[1].length, hMatch[2]));
+      output.push(makeHeading(hMatch[1].length, hMatch[2] || ""));
       i++; continue;
     }
 
@@ -248,7 +248,7 @@ export function renderMarkdown(raw: string): string {
     }
 
     // paragraph — collect consecutive non-blank, non-block lines
-    const paraLines: string[] = [];
+const paraLines: string[] = [];
     while (
       i < lines.length &&
       lines[i].trim() !== "" &&
@@ -256,7 +256,7 @@ export function renderMarkdown(raw: string): string {
       !lines[i].trim().startsWith(":::links") &&
       !/^\[\[toc\]\]\s*$/i.test(lines[i].trim()) &&
       !/^---+$/.test(lines[i].trim()) &&
-      !/^(#{1,6})\s/.test(lines[i]) &&
+      !/^(#{1,6})(\s|$)/.test(lines[i]) && // Coincide con el Heading
       !lines[i].trim().startsWith("|") &&
       !lines[i].trimStart().startsWith(">") &&
       !/^[ \t]*\d+\.\s/.test(lines[i]) &&
@@ -265,8 +265,12 @@ export function renderMarkdown(raw: string): string {
       paraLines.push(lines[i]);
       i++;
     }
+
     if (paraLines.length > 0) {
       output.push(`<p>${applyInline(paraLines.join("<br/>"))}</p>`);
+    } else {
+      if (i < lines.length && output.length === output.length) { 
+      }
     }
   }
 
