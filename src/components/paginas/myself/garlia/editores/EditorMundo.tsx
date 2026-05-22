@@ -2384,7 +2384,7 @@ function PanelListas({
       localStorage.removeItem("estudio-notas-action");
       markVisited("notas");
       setMobileTab("notas");
-      crearNota().then(nueva => {
+      crearNota("Nueva nota").then(nueva => {
         if (nueva) setSelectedNota(nueva);
       });
     };
@@ -3328,4 +3328,4 @@ function PanelTexto({
       </div>
     </div>
   );
-}
+} 
