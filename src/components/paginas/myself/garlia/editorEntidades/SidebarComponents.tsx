@@ -5,6 +5,7 @@ import {
   Loader2, Eye, EyeOff, Plus, Search, X, SlidersHorizontal, Sparkles,
   Wand2, ScrollText, FileText, Zap, Clock, Globe, Check, Layers,
   Users, Bug, Package, Star, Feather, Swords, Gem, Map, BookOpen, Music,
+  ChevronLeft,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
@@ -1133,7 +1134,7 @@ export function GlobalSearchBar({
   onSelectNota,
   onNavigateToCapitulo,
   onNavigateToCancion,
-  
+  onBack,
 }: {
   allItems: AllItems;
   loadingAll: boolean;
@@ -1152,6 +1153,7 @@ export function GlobalSearchBar({
   onSelectNota?: (nota: any) => void;
   onNavigateToCapitulo?: (capId: string, libroId: string) => void;
   onNavigateToCancion?: (cancionId: string) => void;
+  onBack?: () => void;
 }) {
   const [query,           setQuery]           = useState("");
   const [open,            setOpen]            = useState(false);
@@ -1441,8 +1443,15 @@ export function GlobalSearchBar({
             borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
           }}
         >
-          {/* Icono contextual */}
-          {!focused && activeMundoLabel ? (
+          {/* Icono contextual / botón volver */}
+          {onBack ? (
+            <button
+              onClick={onBack}
+              className="shrink-0 flex items-center justify-center w-5 h-5 rounded-md text-primary/40 hover:text-primary transition-colors"
+            >
+              <ChevronLeft size={14} />
+            </button>
+          ) : !focused && activeMundoLabel ? (
             (() => {
               const sec = MUNDO_SECTIONS.find(s => s.key === activeMundoSection);
               return sec
@@ -1963,4 +1972,4 @@ export function GlobalSearchBar({
       </div>
     </div>
   );
-} 
+}

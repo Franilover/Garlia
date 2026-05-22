@@ -266,6 +266,8 @@ export default function EditorEntidades() {
   const [requestedItemId, setRequestedItemId] = useState<string | undefined>(undefined);
   const [requestedGrupoId, setRequestedGrupoId] = useState<string | null>(null);
   const [openItem, setOpenItem] = useState<{ tabla: string; id: string } | null>(null);
+  const [hasOverlay, setHasOverlay] = useState(false);
+  const overlayCloseFnRef = useRef<(() => void) | null>(null);
 
   const { textos: mundoTextos, setTextos: setMundoTextos, save: saveMundo } = useMundoSecciones();
   const { allItems, setAllItems, loadingAll, isOffline } = useAllEntidades();
@@ -424,6 +426,7 @@ export default function EditorEntidades() {
           activeTab={tab}
           selectedId={selectedId}
           activeMundoSection={tab === "mundo" ? mundoSection : null}
+          onBack={hasOverlay ? () => { overlayCloseFnRef.current?.(); } : undefined}
           onSelect={handleSelect}
           onAdd={(chosenTab) => {
             setTab(chosenTab);
@@ -544,6 +547,10 @@ export default function EditorEntidades() {
                 setMundoSection(section);
                 setRequestedSubTab(mundoTab);
                 setRequestedItemId(undefined);
+              }}
+              onOverlayChange={(active, clearFn) => {
+                setHasOverlay(active);
+                overlayCloseFnRef.current = clearFn;
               }}
             />
           ) : isGruposTab ? (

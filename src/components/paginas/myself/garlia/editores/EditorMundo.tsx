@@ -2042,6 +2042,7 @@ export function EditorMundo({
   initialItemId,
   onTabChange,
   openItem,
+  onOverlayChange,
 }: {
   activeSection: MundoSectionKey;
   textos: Record<MundoSectionKey, string>;
@@ -2052,6 +2053,7 @@ export function EditorMundo({
   onTabChange?: (section: MundoSectionKey, mundoTab: string) => void;
   /** { tabla, id } — abre ese ítem directamente en el overlay */
   openItem?: { tabla: string; id: string } | null;
+  onOverlayChange?: (hasOverlay: boolean, clearFn: () => void) => void;
 }) {
   const [tab, setTab] = useState<UnifiedTab>(() =>
     resolveInitialTab(activeSection, initialMundoTab)
@@ -2091,6 +2093,7 @@ export function EditorMundo({
         onTextoChange={onTextoChange}
         onSave={onSave}
         onTabChange={onTabChange}
+        onOverlayChange={onOverlayChange}
       />
     </div>
   );
@@ -2119,7 +2122,7 @@ function SearchInput({ value, onChange, placeholder }: { value: string; onChange
 // ─── PanelListas: columnas side-by-side (reinos, criaturas, objetos, personajes, hechizos, dones) ──
 function PanelListas({
   initialSubTab, initialItemId, openItem,
-  textos, onTextoChange, onSave, onTabChange,
+  textos, onTextoChange, onSave, onTabChange, onOverlayChange,
 }: {
   initialSubTab?: string;
   initialItemId?: string;
@@ -2128,6 +2131,7 @@ function PanelListas({
   onTextoChange?: (section: MundoSectionKey, value: string) => void;
   onSave?: (section: MundoSectionKey) => Promise<void>;
   onTabChange?: (section: MundoSectionKey, mundoTab: string) => void;
+  onOverlayChange?: (hasOverlay: boolean, clearFn: () => void) => void;
 }) {
   // ── Lazy loading: cada tabla solo carga cuando su tab fue visitado ────────
   // "geo-magia" y "historia" no necesitan datos de lista — empezamos con ellos off.
@@ -2303,6 +2307,17 @@ function PanelListas({
     selectedRuna     ? "runa"     :
     selectedNota     ? "nota"     : null;
 
+  const clearAllOverlays = useCallback(() => {
+    setSelectedReino(null); setSelectedCriatura(null);
+    setSelectedObjeto(null); setSelectedPersonaje(null);
+    setSelectedHechizo(null); setSelectedDon(null); setSelectedRuna(null);
+    setSelectedNota(null); setSelectedLugar(null);
+  }, []);
+
+  useEffect(() => {
+    onOverlayChange?.(!!overlay, clearAllOverlays);
+  }, [!!overlay, clearAllOverlays, onOverlayChange]);
+
   const filteredR = reinos.filter(r    => r.nombre.toLowerCase().includes(searchR.toLowerCase()));
   const filteredC = criaturas.filter(c => c.nombre.toLowerCase().includes(searchC.toLowerCase()));
   const filteredO = objetos.filter(o   => o.nombre.toLowerCase().includes(searchO.toLowerCase()));
@@ -2441,35 +2456,6 @@ function PanelListas({
       {/* ── Editor overlay — reemplaza la lista cuando hay selección ─────── */}
       {overlay ? (
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden" style={{ background: "var(--bg-main)" }}>
-          <div className="shrink-0 flex items-center gap-3 px-4 py-2.5 border-b"
-            style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}>
-            <button
-              onClick={() => {
-                setSelectedReino(null); setSelectedCriatura(null);
-                setSelectedObjeto(null); setSelectedPersonaje(null);
-                setSelectedHechizo(null); setSelectedDon(null); setSelectedRuna(null);
-                setSelectedNota(null);  // ← agregar
-                setSelectedLugar(null);
-              }}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border border-primary/15 text-primary/50 hover:text-primary hover:border-primary/30 transition-all"
-            >
-              <ChevronRight size={12} className="rotate-180" /> Volver a Listas
-            </button>
-            <div className="flex items-center gap-2 min-w-0">
-              {overlay === "reino"    && <Map        size={12} className="text-primary/40 shrink-0" />}
-              {overlay === "criatura" && <Bug        size={12} className="text-primary/40 shrink-0" />}
-              {overlay === "objeto"   && <Package    size={12} className="text-primary/40 shrink-0" />}
-              {overlay === "lugar"    && <MapPin     size={12} className="text-primary/40 shrink-0" />}
-              {overlay === "personaje"&& <Users      size={12} className="text-primary/40 shrink-0" />}
-              {overlay === "hechizo"  && <Sparkles   size={12} className="shrink-0" style={{ color: "var(--accent)" }} />}
-              {overlay === "don"      && <Star       size={12} className="shrink-0" style={{ color: "color-mix(in srgb, var(--accent) 70%, var(--primary))" }} />}
-              {overlay === "runa"     && <ScrollText size={12} className="shrink-0" style={{ color: "var(--primary)" }} />}
-              {overlay === "nota"     && <FileText  size={12} className="text-primary/40 shrink-0" />}
-              <span className="text-[11px] font-black uppercase tracking-[0.15em] text-primary/60 truncate">
-                  {selectedReino?.nombre ?? selectedCriatura?.nombre ?? selectedObjeto?.nombre ?? selectedLugar?.nombre ?? selectedPersonaje?.nombre ?? selectedHechizo?.nombre ?? selectedDon?.nombre ?? selectedRuna?.nombre ?? selectedNota?.titulo}
-              </span>
-            </div>
-          </div>
           <div className="flex-1 flex min-h-0 overflow-hidden">
             {overlay === "reino" && selectedReino && (
               <EditorReino key={selectedReino.id} item={selectedReino}
