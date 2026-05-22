@@ -247,7 +247,7 @@ function MundoSectionCard({
 // ─── AddCommandMenu ───────────────────────────────────────────────────────────
 // Floating menu triggered when user types "add" and presses Enter
 
-export type MagicAddKey = "hechizos" | "dones" | "runas" | "notas" | "acontecimiento" | "grupos" | "libro" | "capitulo" | "cancion";
+export type MagicAddKey = "hechizos" | "dones" | "runas" | "notas" | "acontecimiento" | "grupos" | "lugar" | "libro" | "capitulo" | "cancion";
 
 // Colores individuales por tipo — todos con la misma lógica color-mix
 const ADD_ITEM_COLOR: Record<string, string> = {
@@ -264,6 +264,7 @@ const ADD_ITEM_COLOR: Record<string, string> = {
   libro:           "var(--primary)",
   capitulo:        "var(--primary)",
   cancion:         "var(--primary)",
+  lugar:           "var(--primary)",
 };
 
 // Todas las entradas del menú en orden unificado
@@ -301,6 +302,7 @@ function AddCommandMenu({
     { kind: "magic", key: "notas",          label: "Nota",           Icon: FileText },
     { kind: "magic", key: "acontecimiento", label: "Acontecimiento", Icon: Clock    },
     { kind: "magic", key: "grupos",         label: "Grupo",          Icon: Layers   },
+    { kind: "magic", key: "lugar",          label: "Lugar",          Icon: Map      },
   ];
 
   useEffect(() => {
@@ -445,7 +447,7 @@ function AddCommandMenu({
         </div>
 
         {/* Magia + notas — bloques cuadrados */}
-        <div className="grid grid-cols-6 gap-1">
+        <div className="grid grid-cols-7 gap-1">
           {magicEntries.map(renderSquareEntry)}
         </div>
 
