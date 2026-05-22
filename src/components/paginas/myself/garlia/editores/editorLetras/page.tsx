@@ -2,24 +2,21 @@
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import {
-  Music, Plus, SlidersHorizontal, ChevronDown, BookOpen,
-  Loader2, Eye, EyeOff, X, ArrowLeft, Search,
+  Music, Loader2, Eye, EyeOff, ArrowLeft,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
-import { normalize, unique } from "@/components/templates/EstudioTemplates";
 import { useLastOpenedId } from "@/hooks/useEditorShared";
 import { db } from "@/lib/api/client/db";
 import { enqueueOperation } from "@/hooks/data/useOfflineSync";
 
 import { useCanciones } from "./hooks/useCanciones";
-import { ESTADOS, ESTADO_COLOR, FILTROS_VACIOS } from "./constants";
+import { ESTADOS, ESTADO_COLOR } from "./constants";
 import { SidebarItem } from "./components/sidebar/SidebarItem";
-import { PanelFiltros } from "./components/sidebar/PanelFiltros";
 import { PanelEditor } from "./components/editor/PanelEditor";
 import { ModalNuevaCancion } from "./components/modals/ModalNuevaCancion";
 import { ModalEditarCancion } from "./components/modals/ModalEditarCancion";
 
-import type { Cancion, Filtros } from "./types";
+import type { Cancion } from "./types";
 
 /* ─── Estilos compartidos con el MarkdownEditor ─────────────────────────────── */
 /*
@@ -702,9 +699,6 @@ export default function EstudioLetras() {
     setLastId(id);
   };
 
-  const [busqueda,        setBusqueda]        = useState("");
-  const [filtros,         setFiltros]         = useState<Filtros>(FILTROS_VACIOS);
-  const [showFiltros,     setShowFiltros]     = useState(false);
   const [showNueva,       setShowNueva]       = useState(false);
   const [editandoCancion, setEditandoCancion] = useState<Cancion | null>(null);
 
@@ -716,41 +710,15 @@ export default function EstudioLetras() {
     if (action === "nueva-cancion") setTimeout(() => setShowNueva(true), 120);
   }, []);
 
-  const opciones = useMemo(() => ({
-    idiomas:      unique(canciones.map(c => c.idioma     || "")),
-    cantantes:    unique(canciones.map(c => c.cantante   || "")),
-    compositores: unique(canciones.map(c => c.compositor || "")),
-    personajes:   unique(canciones.map(c => { const p = c.personaje; return (Array.isArray(p) ? p[0]?.nombre : p?.nombre) || ""; })),
-  }), [canciones]);
-
   const ORDEN_ESTADO: Record<string, number> = { TERMINADA: 0, "EN PROCESO": 1, PENDIENTE: 2 };
 
-  const filtradas = useMemo(() => canciones.filter(c => {
-    if (busqueda) {
-      const q = normalize(busqueda);
-      if (
-        !normalize(c.titulo).includes(q) &&
-        !normalize((Array.isArray(c.personaje) ? c.personaje[0]?.nombre : c.personaje?.nombre) || "").includes(q) &&
-        !normalize(c.cantante   || "").includes(q) &&
-        !normalize(c.compositor || "").includes(q)
-      ) return false;
-    }
-    if (filtros.estado     && c.estado      !== filtros.estado)        return false;
-    if (filtros.visible    && String(c.visible) !== filtros.visible)   return false;
-    if (filtros.idioma     && c.idioma      !== filtros.idioma)        return false;
-    if (filtros.cantante   && c.cantante    !== filtros.cantante)      return false;
-    if (filtros.compositor && c.compositor  !== filtros.compositor)    return false;
-    if (filtros.personaje  && ((Array.isArray(c.personaje) ? c.personaje[0]?.nombre : c.personaje?.nombre) !== filtros.personaje)) return false;
-    return true;
-  }).sort((a, b) => {
+  const cancionesOrdenadas = useMemo(() => [...canciones].sort((a, b) => {
     const estadoA = ORDEN_ESTADO[a.estado] ?? 9;
     const estadoB = ORDEN_ESTADO[b.estado] ?? 9;
     if (estadoA !== estadoB) return estadoA - estadoB;
     if (a.estado === "TERMINADA") return (b.visible ? 1 : 0) - (a.visible ? 1 : 0);
     return 0;
-  }), [canciones, busqueda, filtros]);
-
-  const numFiltros = Object.values(filtros).filter(Boolean).length;
+  }), [canciones]);
 
   const handleCancionCreada = (c: Cancion) => {
     setCanciones(prev => [c, ...prev]);
@@ -878,187 +846,30 @@ export default function EstudioLetras() {
   /* ── Vista lista ── */
   return (
     <>
-      <style>{SEARCH_STYLES}</style>
-      <div className="min-h-screen bg-bg-main">
-
-        {/* ── Header ── */}
-        <header className="page-header">
-          <div className="header-inner">
-
-            {/* Brand — solo visible en sm+ */}
-            <div className="header-brand">
-              <span style={{ color: "var(--primary)", opacity: 0.4 }}>
-                <Music size={12} />
-              </span>
-              <span className="header-brand-label">Canciones</span>
-            </div>
-
-            {/* ── Buscador — misma estética que el toolbar del MarkdownEditor ── */}
-            <div className="search-bar-wrap" style={{ flex: 1, height: 36 }}>
-              <div className="search-bar-icon">
-                <Search size={12} />
-              </div>
-
-              <input
-                type="text"
-                value={busqueda}
-                onChange={e => {
-                  const val = e.target.value;
-                  if (val.toLowerCase() === "add") {
-                    setBusqueda("");
-                    setShowNueva(true);
-                  } else {
-                    setBusqueda(val);
-                  }
-                }}
-                placeholder="buscar… (escribe «add» para añadir)"
-                className="search-bar-input"
+      <div style={{ padding: "8px 10px" }}>
+        {loadingLista ? (
+          <div style={{ display: "flex", justifyContent: "center", padding: "40px 0", color: "var(--primary)", opacity: 0.3 }}>
+            <Loader2 size={16} className="animate-spin" />
+          </div>
+        ) : canciones.length === 0 ? (
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, padding: "40px 0", color: "var(--primary)", opacity: 0.25 }}>
+            <Music size={18} strokeWidth={1.5} />
+            <span style={{ fontSize: 9, fontFamily: "var(--font-mono, monospace)", fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.2em" }}>sin canciones</span>
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+            {cancionesOrdenadas.map(c => (
+              <CancionCard
+                key={c.id}
+                cancion={c}
+                onClick={() => setSelectedId(c.id)}
+                onEdit={setEditandoCancion}
+                onDelete={handleCancionEliminada}
+                onToggleVisible={handleToggleVisibleWrite}
               />
-
-              {busqueda && (
-                <>
-                  <div className="search-bar-divider" />
-                  <button
-                    className="search-bar-clear"
-                    onClick={() => setBusqueda("")}
-                    title="Limpiar búsqueda"
-                  >
-                    <X size={11} />
-                  </button>
-                </>
-              )}
-
-              {/* Separador antes de filtros */}
-              <div className="search-bar-divider" />
-
-              {/* Filtros integrados en la barra */}
-              <button
-                className={`filters-btn ${numFiltros > 0 ? "active" : ""}`}
-                onClick={() => setShowFiltros(f => !f)}
-              >
-                <SlidersHorizontal size={10} />
-                <span className="hidden sm:inline">filtros</span>
-                {numFiltros > 0 && (
-                  <span className="filters-badge">{numFiltros}</span>
-                )}
-                <ChevronDown
-                  size={9}
-                  style={{
-                    transition: "transform 0.2s",
-                    transform: showFiltros ? "rotate(180deg)" : "rotate(0deg)",
-                  }}
-                />
-              </button>
-            </div>
-
-            {/* Nueva canción */}
-            <button
-              className="new-btn"
-              onClick={() => setShowNueva(true)}
-            >
-              <Plus size={11} />
-              <span className="hidden sm:inline">Nueva</span>
-            </button>
-
-            {/* Offline */}
-            {listaOffline && (
-              <button
-                onClick={refetch}
-                style={{
-                  fontSize: 8,
-                  fontFamily: "var(--font-mono, monospace)",
-                  fontWeight: 900,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.1em",
-                  color: "var(--accent)",
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  flexShrink: 0,
-                }}
-              >
-                sin conexión · reintentar
-              </button>
-            )}
+            ))}
           </div>
-
-          {/* Panel de filtros desplegable */}
-          {showFiltros && (
-            <div className="filters-panel">
-              <div style={{ maxWidth: 1152, margin: "0 auto", padding: "14px 24px" }}>
-                <PanelFiltros filtros={filtros} onChange={setFiltros} opciones={opciones} />
-              </div>
-            </div>
-          )}
-        </header>
-
-        {/* ── Cuerpo ── */}
-        <main style={{ maxWidth: 1152, margin: "0 auto", padding: "20px 24px" }}>
-
-          {/* Contador / meta */}
-          <div className="results-meta">
-            <span className="results-count">
-              {filtradas.length} {filtradas.length === 1 ? "canción" : "canciones"}
-              {(busqueda || numFiltros > 0) ? ` · de ${canciones.length} totales` : ""}
-            </span>
-            {(busqueda || numFiltros > 0) && (
-              <button
-                className="results-clear"
-                onClick={() => { setBusqueda(""); setFiltros(FILTROS_VACIOS); }}
-              >
-                ✕ limpiar todo
-              </button>
-            )}
-          </div>
-
-          {/* Contenido */}
-          {loadingLista ? (
-            <div style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: "80px 0",
-              color: "var(--primary)",
-              opacity: 0.35,
-            }}>
-              <Loader2 size={18} className="animate-spin" />
-            </div>
-
-          ) : filtradas.length === 0 ? (
-            <div className="empty-state">
-              <div className="empty-state-icon">
-                <BookOpen size={18} strokeWidth={1.5} />
-              </div>
-              <span className="empty-state-label">sin resultados</span>
-              {(busqueda || numFiltros > 0) && (
-                <button
-                  className="empty-state-clear"
-                  onClick={() => { setBusqueda(""); setFiltros(FILTROS_VACIOS); }}
-                >
-                  limpiar filtros
-                </button>
-              )}
-            </div>
-
-          ) : (
-            <div style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: 3,
-            }}>
-              {filtradas.map(c => (
-                <CancionCard
-                  key={c.id}
-                  cancion={c}
-                  onClick={() => setSelectedId(c.id)}
-                  onEdit={setEditandoCancion}
-                  onDelete={handleCancionEliminada}
-                  onToggleVisible={handleToggleVisibleWrite}
-                />
-              ))}
-            </div>
-          )}
-        </main>
+        )}
       </div>
 
       {showNueva && (
