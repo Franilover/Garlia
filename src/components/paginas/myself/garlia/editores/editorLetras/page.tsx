@@ -1,20 +1,15 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import {
-  Music, Loader2, Eye, EyeOff, ArrowLeft,
-} from "lucide-react";
+import React, { useState, useEffect, useMemo } from "react";
+import { Music, Loader2, ArrowLeft } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { useLastOpenedId } from "@/hooks/useEditorShared";
-import { db } from "@/lib/api/client/db";
-import { enqueueOperation } from "@/hooks/data/useOfflineSync";
 
 import { useCanciones } from "./hooks/useCanciones";
 import { ESTADOS, ESTADO_COLOR } from "./constants";
 import { SidebarItem } from "./components/sidebar/SidebarItem";
 import { PanelEditor } from "./components/editor/PanelEditor";
 import { ModalNuevaCancion } from "./components/modals/ModalNuevaCancion";
-import { ModalEditarCancion } from "./components/modals/ModalEditarCancion";
 
 import type { Cancion } from "./types";
 
@@ -399,298 +394,41 @@ const SEARCH_STYLES = `
   }
 `;
 
-/* ─── Estado de badge según estado ─────────────────────────────────────────── */
-// Los badges usan CSS custom properties del tema (--primary, --accent) + colores
-// semánticos absolutos. El fondo del badge siempre es --white-custom (background de la card),
-// pero en dark mode ese fondo es oscuro (#28202f), así que necesitamos que el COLOR
-// del texto sea legible sobre ambos fondos. Solución: usar opacity sobre colores base
-// que el tema ya tiene calibrados.
-const estadoBadgeStyle = (estado: string): React.CSSProperties => {
-  if (estado === "TERMINADA") return {
-    borderColor: "color-mix(in srgb, var(--callout-success-border) 50%, transparent)",
-    color: "var(--callout-success-title)",
-    background: "color-mix(in srgb, var(--callout-success-border) 10%, transparent)",
-  };
-  if (estado === "EN PROCESO") return {
-    borderColor: "color-mix(in srgb, var(--callout-warning-border) 50%, transparent)",
-    color: "var(--callout-warning-title)",
-    background: "color-mix(in srgb, var(--callout-warning-border) 10%, transparent)",
-  };
-  // PENDIENTE — usa el primary del tema
-  return {
-    borderColor: "color-mix(in srgb, var(--primary) 30%, transparent)",
-    color: "var(--primary)",
-    background: "color-mix(in srgb, var(--primary) 8%, transparent)",
-  };
+/* ─── Pill de canción — estilo "todo" de EditorMundo ─────────────────────── */
+const ESTADO_DOT: Record<string, string> = {
+  TERMINADA:    "color-mix(in srgb, var(--callout-success-border) 80%, transparent)",
+  "EN PROCESO": "color-mix(in srgb, var(--callout-warning-border) 80%, transparent)",
 };
 
-const estadoLabel = (estado: string) => {
-  if (estado === "EN PROCESO") return "WIP";
-  if (estado === "TERMINADA") return "done";
-  return "pending";
-};
-
-const estadoAccentClass = (estado: string) => {
-  if (estado === "TERMINADA") return "terminada";
-  if (estado === "EN PROCESO") return "en-proceso";
-  return "";
-};
-
-/* ─── Card de canción ─────────────────────────────────────────────────────── */
 const CancionCard = ({
   cancion,
   onClick,
-  onEdit,
-  onDelete,
-  onToggleVisible,
 }: {
   cancion: Cancion;
   onClick: () => void;
-  onEdit: (c: Cancion) => void;
-  onDelete: (id: string) => void;
-  onToggleVisible: (id: string, visible: boolean) => void | Promise<void>;
-}) => {
-  const [hovered, setHovered] = useState(false);
-
-  const nombre = (() => {
-    const p = cancion.personaje;
-    return (Array.isArray(p) ? p[0]?.nombre : p?.nombre) || cancion.cantante;
-  })();
-
-  return (
-    <div
-      className="song-card"
-      onClick={onClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-    >
-      {/* Acento de estado — barra vertical izquierda */}
-      <div className={`song-card-accent ${estadoAccentClass(cancion.estado)}`} />
-
-      <div className="song-card-body">
-        {/* Badge de estado */}
-        <span className="song-card-badge" style={estadoBadgeStyle(cancion.estado)}>
-          {estadoLabel(cancion.estado)}
-        </span>
-        {/* Título */}
-        <div className="song-card-title">{cancion.titulo}</div>
-        {/* Subtítulo: personaje o cantante */}
-        {nombre && <div className="song-card-sub">{nombre}</div>}
-        {/* Idioma */}
-        {cancion.idioma && <div className="song-card-lang">{cancion.idioma}</div>}
-      </div>
-
-      {/* Acciones en hover */}
-      <div className="song-card-actions" onClick={e => e.stopPropagation()}>
-        <CardActions
-          cancion={cancion}
-          onEdit={onEdit}
-          onDelete={onDelete}
-          onToggleVisible={onToggleVisible}
-          isCardHovered={hovered}
-        />
-      </div>
+}) => (
+  <button
+    key={cancion.id}
+    onClick={onClick}
+    type="button"
+    className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02] cursor-pointer"
+    style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}
+  >
+    {/* Icono con dot de color por estado */}
+    <div className="w-6 h-6 rounded-lg border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center relative">
+      <Music size={10} className="text-primary/25" />
+      {ESTADO_DOT[cancion.estado] && (
+        <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full" style={{ background: ESTADO_DOT[cancion.estado] }} />
+      )}
     </div>
-  );
-};
+    <span className="text-[11px] font-bold text-primary/70 truncate max-w-[90px]">{cancion.titulo}</span>
+  </button>
+);
 
 /* ─── Acciones flotantes de la card ──────────────────────────────────────── */
-import { useConfirm } from "@/components/ui/ConfirmModal";
-import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
-
-const CardActions = ({
-  cancion, onEdit, onDelete, onToggleVisible, isCardHovered,
-}: {
-  cancion: Cancion;
-  onEdit: (c: Cancion) => void;
-  onDelete: (id: string) => void;
-  onToggleVisible: (id: string, visible: boolean) => void | Promise<void>;
-  isCardHovered: boolean;
-}) => {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [toggling, setToggling] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-  const { confirm, ConfirmModal } = useConfirm();
-
-  const handleToggleVisible = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (toggling) return;
-    setToggling(true);
-    const nuevoVisible = !cancion.visible;
-    // Llamamos al handler del padre que ya maneja offline
-    await onToggleVisible(cancion.id, nuevoVisible);
-    setToggling(false);
-  };
-
-  useEffect(() => {
-    if (!menuOpen) return;
-    const handler = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [menuOpen]);
-
-  // Estrategia: color fijo via --primary + opacity CSS, sin color-mix sobre --foreground
-  // Esto funciona igual en temas claros y oscuros porque opacity es relativo al color base.
-  const iconBase: React.CSSProperties = {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    width: 24,
-    height: 24,
-    borderRadius: 4,
-    border: "none",
-    background: "transparent",
-    cursor: "pointer",
-    color: "var(--primary)",
-    transition: "opacity 0.1s, background 0.1s",
-  };
-
-  const onHoverIn = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.currentTarget.style.opacity = "1";
-    e.currentTarget.style.background = "color-mix(in srgb, var(--primary) 10%, transparent)";
-  };
-
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
-      {/* Visibilidad */}
-      <button
-        onClick={handleToggleVisible}
-        title={cancion.visible ? "Ocultar" : "Mostrar"}
-        style={{ ...iconBase, opacity: cancion.visible ? (isCardHovered ? 0.55 : 0) : 0.55 }}
-        onMouseEnter={onHoverIn}
-        onMouseLeave={e => {
-          e.currentTarget.style.opacity = cancion.visible ? (isCardHovered ? "0.55" : "0") : "0.55";
-          e.currentTarget.style.background = "transparent";
-        }}
-      >
-        {toggling
-          ? <Loader2 size={11} className="animate-spin" />
-          : cancion.visible ? <Eye size={11} /> : <EyeOff size={11} />}
-      </button>
-
-      {/* Menú */}
-      <div ref={menuRef} style={{ position: "relative" }}>
-        <button
-          onClick={e => { e.stopPropagation(); setMenuOpen(m => !m); }}
-          style={{
-            ...iconBase,
-            opacity: menuOpen ? 1 : (isCardHovered ? 0.55 : 0),
-            background: menuOpen ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent",
-          }}
-          onMouseEnter={onHoverIn}
-          onMouseLeave={e => {
-            if (!menuOpen) {
-              e.currentTarget.style.opacity = isCardHovered ? "0.55" : "0";
-              e.currentTarget.style.background = "transparent";
-            }
-          }}
-        >
-          <MoreHorizontal size={11} />
-        </button>
-
-        {menuOpen && (
-          <div style={{
-            position: "absolute",
-            right: 0,
-            top: "calc(100% + 4px)",
-            zIndex: 50,
-            minWidth: 144,
-            background: "var(--white-custom)",
-            border: "1px solid color-mix(in srgb, var(--primary) 22%, transparent)",
-            borderRadius: 6,
-            boxShadow: "0 8px 20px color-mix(in srgb, var(--primary) 12%, transparent)",
-            padding: "3px",
-            overflow: "hidden",
-          }}>
-            {/* Editar */}
-            <button
-              onClick={e => { e.stopPropagation(); setMenuOpen(false); onEdit(cancion); }}
-              style={{
-                width: "100%",
-                textAlign: "left",
-                display: "flex",
-                alignItems: "center",
-                gap: 7,
-                padding: "6px 10px",
-                borderRadius: 4,
-                border: "none",
-                background: "transparent",
-                fontSize: 9,
-                fontFamily: "var(--font-mono, monospace)",
-                fontWeight: 900,
-                textTransform: "uppercase" as const,
-                letterSpacing: "0.1em",
-                color: "var(--text-on-card)",
-                opacity: 0.65,
-                cursor: "pointer",
-                transition: "opacity 0.1s, background 0.1s",
-              }}
-              onMouseEnter={e => {
-                e.currentTarget.style.opacity = "1";
-                e.currentTarget.style.background = "color-mix(in srgb, var(--primary) 8%, transparent)";
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.opacity = "0.65";
-                e.currentTarget.style.background = "transparent";
-              }}
-            >
-              <Pencil size={10} /> Editar
-            </button>
-
-            <div style={{ height: 1, background: "color-mix(in srgb, var(--primary) 14%, transparent)", margin: "2px 6px" }} />
-
-            {/* Eliminar — usa --accent del tema, que en todos los temas tiene buen contraste sobre --white-custom */}
-            <button
-              onClick={async e => {
-                e.stopPropagation();
-                setMenuOpen(false);
-                const ok = await confirm({ message: `¿Eliminar "${cancion.titulo}"?`, danger: true });
-                if (ok) onDelete(cancion.id);
-              }}
-              style={{
-                width: "100%",
-                textAlign: "left",
-                display: "flex",
-                alignItems: "center",
-                gap: 7,
-                padding: "6px 10px",
-                borderRadius: 4,
-                border: "none",
-                background: "transparent",
-                fontSize: 9,
-                fontFamily: "var(--font-mono, monospace)",
-                fontWeight: 900,
-                textTransform: "uppercase" as const,
-                letterSpacing: "0.1em",
-                color: "var(--accent)",
-                opacity: 0.75,
-                cursor: "pointer",
-                transition: "opacity 0.1s, background 0.1s",
-              }}
-              onMouseEnter={e => {
-                e.currentTarget.style.opacity = "1";
-                e.currentTarget.style.background = "color-mix(in srgb, var(--accent) 10%, transparent)";
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.opacity = "0.75";
-                e.currentTarget.style.background = "transparent";
-              }}
-            >
-              <Trash2 size={10} /> Eliminar
-            </button>
-          </div>
-        )}
-      </div>
-      <ConfirmModal />
-    </div>
-  );
-};
-
 /* ─── Vista principal ─────────────────────────────────────────────────────── */
 export default function EstudioLetras() {
-  const { canciones, setCanciones, loading: loadingLista, isOffline: listaOffline, refetch } = useCanciones();
+  const { canciones, setCanciones, loading: loadingLista } = useCanciones();
   const [lastId, setLastId] = useLastOpenedId("estudio-letras-last-id");
   const [selectedId, _setSelectedId] = useState<string | null>(lastId);
 
@@ -699,8 +437,7 @@ export default function EstudioLetras() {
     setLastId(id);
   };
 
-  const [showNueva,       setShowNueva]       = useState(false);
-  const [editandoCancion, setEditandoCancion] = useState<Cancion | null>(null);
+  const [showNueva, setShowNueva] = useState(false);
 
   // Señal desde el buscador para abrir "nueva canción" al montar
   useEffect(() => {
@@ -716,7 +453,6 @@ export default function EstudioLetras() {
     const estadoA = ORDEN_ESTADO[a.estado] ?? 9;
     const estadoB = ORDEN_ESTADO[b.estado] ?? 9;
     if (estadoA !== estadoB) return estadoA - estadoB;
-    if (a.estado === "TERMINADA") return (b.visible ? 1 : 0) - (a.visible ? 1 : 0);
     return 0;
   }), [canciones]);
 
@@ -724,51 +460,6 @@ export default function EstudioLetras() {
     setCanciones(prev => [c, ...prev]);
     setSelectedId(c.id);
   };
-
-  const handleCancionEditada = (c: Cancion) => {
-    setCanciones(prev => prev.map(x => x.id === c.id ? c : x));
-  };
-
-  const handleCancionEliminada = async (id: string) => {
-    // Optimista: quitar de UI inmediatamente
-    setCanciones(prev => prev.filter(c => c.id !== id));
-    if (selectedId === id) setSelectedId(null);
-
-    if (!navigator.onLine) {
-      try { await (db as any)["canciones"]?.update(id, { deleted: true, status: "pending" }); } catch {}
-      await enqueueOperation("canciones", "delete", id);
-      return;
-    }
-    try {
-      await supabase.from("canciones").delete().eq("id", id);
-      try { await (db as any)["canciones"]?.delete(id); } catch {}
-    } catch {
-      try { await (db as any)["canciones"]?.update(id, { deleted: true, status: "pending" }); } catch {}
-      await enqueueOperation("canciones", "delete", id);
-    }
-  };
-
-  const handleToggleVisible = useCallback((id: string, visible: boolean) => {
-    setCanciones(prev => prev.map(c => c.id === id ? { ...c, visible } : c));
-  }, [setCanciones]);
-
-  // handleToggleVisibleWrite: persiste el cambio con fallback offline
-  const handleToggleVisibleWrite = useCallback(async (id: string, visible: boolean) => {
-    handleToggleVisible(id, visible); // optimista
-    const payload = { visible };
-    if (!navigator.onLine) {
-      try { await (db as any)["canciones"]?.update(id, { ...payload, status: "pending" }); } catch {}
-      await enqueueOperation("canciones", "update", id, payload);
-      return;
-    }
-    try {
-      await supabase.from("canciones").update(payload).eq("id", id);
-      try { await (db as any)["canciones"]?.update(id, { ...payload, status: "synced" }); } catch {}
-    } catch {
-      try { await (db as any)["canciones"]?.update(id, { ...payload, status: "pending" }); } catch {}
-      await enqueueOperation("canciones", "update", id, payload);
-    }
-  }, [handleToggleVisible]);
 
   /* ── Vista editor ── */
   if (selectedId) {
@@ -831,14 +522,6 @@ export default function EstudioLetras() {
             <PanelEditor key={selectedId} cancionId={selectedId} />
           </div>
         </div>
-
-        {editandoCancion && (
-          <ModalEditarCancion
-            cancion={editandoCancion}
-            onSaved={handleCancionEditada}
-            onClose={() => setEditandoCancion(null)}
-          />
-        )}
       </>
     );
   }
@@ -857,15 +540,12 @@ export default function EstudioLetras() {
             <span style={{ fontSize: 9, fontFamily: "var(--font-mono, monospace)", fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.2em" }}>sin canciones</span>
           </div>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
             {cancionesOrdenadas.map(c => (
               <CancionCard
                 key={c.id}
                 cancion={c}
                 onClick={() => setSelectedId(c.id)}
-                onEdit={setEditandoCancion}
-                onDelete={handleCancionEliminada}
-                onToggleVisible={handleToggleVisibleWrite}
               />
             ))}
           </div>
@@ -876,13 +556,6 @@ export default function EstudioLetras() {
         <ModalNuevaCancion
           onCreated={handleCancionCreada}
           onClose={() => setShowNueva(false)}
-        />
-      )}
-      {editandoCancion && (
-        <ModalEditarCancion
-          cancion={editandoCancion}
-          onSaved={handleCancionEditada}
-          onClose={() => setEditandoCancion(null)}
         />
       )}
     </>
