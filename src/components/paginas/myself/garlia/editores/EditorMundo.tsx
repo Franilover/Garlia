@@ -1290,7 +1290,14 @@ function PanelMundo({
               <div className="flex-1 flex min-h-0 overflow-hidden">
                 <EditorReino key={selectedReino.id} item={selectedReino}
                   onSaved={updated => { setReinos(prev => prev.map(r => r.id === updated.id ? updated : r)); setSelectedReino(updated); }}
-                  onDeleted={id => { setReinos(prev => prev.filter(r => r.id !== id)); setSelectedReino(null); }} />
+                  onDeleted={id => { setReinos(prev => prev.filter(r => r.id !== id)); setSelectedReino(null); }}
+                  onSelectLugar={async (id: string) => {
+                    const local = lugares.find(x => x.id === id);
+                    if (local) { setSelectedLugar(local as Lugar); return; }
+                    const { data } = await supabase.from("lugares").select("*").eq("id", id).single();
+                    if (data) { setSelectedLugar(data as Lugar); }
+                  }}
+                />
               </div>
             </div>
           )}
@@ -2472,6 +2479,12 @@ function PanelListas({
                 onSelectPersonaje={p => {
                   const found = personajes.find(x => x.id === p?.id || x.nombre === p?.nombre);
                   if (found) setSelectedPersonaje(found);
+                }}
+                onSelectLugar={async (id: string) => {
+                  const local = lugares.find(x => x.id === id);
+                  if (local) { setSelectedLugar(local as Lugar); return; }
+                  const { data } = await supabase.from("lugares").select("*").eq("id", id).single();
+                  if (data) { setSelectedLugar(data as Lugar); }
                 }}
               />
             )}
