@@ -2399,7 +2399,6 @@ function PanelListas({
       label: "Listas",
       tabs: [
         { key: "todo" as ListaTab,    label: "Todo",    Icon: Layers,  count: reinos.length + criaturas.length + personajes.length + dones.length + hechizos.length + runas.length + objetos.length + lugares.length + notas.length },
-        { key: "lugares" as ListaTab, label: "Lugares", Icon: MapPin,  count: lugares.length },
       ],
     },
     {
@@ -2606,26 +2605,6 @@ function PanelListas({
                     style={{ borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)" }}
                   >
                     <Plus size={9} /> Nueva
-                  </button>
-                )}
-                {mobileTab === "lugares" && (
-                  <button
-                    onClick={async () => {
-                      try {
-                        const { data, error } = await supabase
-                          .from("lugares")
-                          .insert([{ nombre: "Nuevo lugar" }])
-                          .select("*")
-                          .single();
-                        if (error || !data) return;
-                        setLugares(prev => [data as LugarMin, ...prev]);
-                        setSelectedLugar(data as Lugar);
-                      } catch {}
-                    }}
-                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-dashed transition-all text-primary/40 hover:text-primary hover:border-primary/30"
-                    style={{ borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)" }}
-                  >
-                    <Plus size={9} /> Nuevo
                   </button>
                 )}
                 {t.count > 0 && (
@@ -3125,53 +3104,7 @@ function PanelListas({
                 ))
             )}
 
-            {/* Lugares */}
-            {mobileTab === "lugares" && (loadingLugares
-              ? <div className="flex justify-center py-10"><Loader2 size={16} className="animate-spin text-primary/20" /></div>
-              : filteredL.length === 0
-                ? (
-                  <div className="flex flex-col items-center gap-3 py-14 text-center">
-                    <MapPin size={24} strokeWidth={1} className="text-primary/15" />
-                    <p className="text-[9px] font-black uppercase tracking-widest text-primary/20">{searchL ? "Sin resultados" : "Sin lugares aún"}</p>
-                    {!searchL && (
-                      <button
-                        onClick={async () => {
-                          try {
-                            const { data, error } = await supabase
-                              .from("lugares")
-                              .insert([{ nombre: "Nuevo lugar" }])
-                              .select("*")
-                              .single();
-                            if (error || !data) return;
-                            setLugares(prev => [data as LugarMin, ...prev]);
-                            setSelectedLugar(data as Lugar);
-                          } catch {}
-                        }}
-                        className="mt-1 text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-xl border border-dashed text-primary/30 hover:text-primary/60 transition-all"
-                        style={{ borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}
-                      >
-                        Crear primer lugar
-                      </button>
-                    )}
-                  </div>
-                )
-                : filteredL.map(l => (
-                  <button key={l.id} onClick={async () => {
-                    try {
-                      const { data } = await supabase.from("lugares").select("*").eq("id", l.id).single();
-                      if (data) { setSelectedLugar(data as Lugar); return; }
-                    } catch {}
-                    setSelectedLugar(l as Lugar);
-                  }} type="button"
-                    className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02] cursor-pointer"
-                    style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
-                    <div className="w-6 h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center">
-                      {l.imagen_url ? <img src={l.imagen_url} alt={l.nombre} className="w-full h-full object-cover" /> : <MapPin size={10} className="text-primary/25" />}
-                    </div>
-                    <span className="text-[11px] font-bold text-primary/70 truncate max-w-[90px]">{l.nombre}</span>
-                  </button>
-                ))
-            )}
+
 
             {/* Personajes */}
             {mobileTab === "personajes" && (loadingPersonajes
