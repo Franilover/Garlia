@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Globe, Mountain, Landmark, Users, Coins, Plus, Trash2, ChevronUp, ChevronDown, ChevronRight, UserCircle2, Loader2, MapPin, Map, Check, X, Eye, EyeOff } from "lucide-react";
-import { INPUT_CLS, type ReinoDetalle, type SaveStatus } from "./types";
+import { INPUT_CLS, type SaveStatus } from "./types";
 import { MarkdownEditor, WikiEntity } from "../../../../forms/MarkdownEditor";
 import { useWikilink } from "../../../../forms/WikilinkContext";
 import { type Reino } from "./types";
+import { type Lugar } from "@/components/paginas/myself/garlia/editores/EditorLugar";
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
 import { useConfirm } from "@/components/ui/ConfirmModal";
@@ -458,8 +459,12 @@ async function dexieDel(tabla: string, id: string): Promise<void> {
 }
 
 // ─── DetalleEditor ─────────────────────────────────────────────────────────────
-function DetalleEditor({ detalle, onSaved, onDeleted, entities = [] }: {
-  detalle: ReinoDetalle; onSaved: (d: ReinoDetalle) => void; onDeleted: (id: string) => void; entities?: WikiEntity[];
+function DetalleEditor({ detalle, onSaved, onDeleted, onOpenEditor, entities = [] }: {
+  detalle: Lugar;
+  onSaved: (d: Lugar) => void;
+  onDeleted: (id: string) => void;
+  onOpenEditor?: (id: string) => void;
+  entities?: WikiEntity[];
 }) {
   const [form, setForm] = useState(detalle);
   const [expanded, setExpanded] = useState(false);
@@ -475,16 +480,16 @@ function DetalleEditor({ detalle, onSaved, onDeleted, entities = [] }: {
     }
   }, [detalle.coord_x, detalle.coord_y]);
 
-  const saveDetalle = async (data: ReinoDetalle) => {
+  const saveDetalle = async (data: Lugar) => {
     setStatus("saving");
     try {
-      const { error } = await supabase.from("reino_detalles").update({
+      const { error } = await supabase.from("lugares").update({
         nombre: data.nombre, descripcion: data.descripcion,
         coord_x: data.coord_x, coord_y: data.coord_y, oculto: data.oculto ?? false,
       }).eq("id", data.id);
       if (error) throw error;
       setStatus("saved"); onSaved(data);
-      void dexiePut("reino_detalles", data);
+      void dexiePut("lugares", data);
       setTimeout(() => setStatus("idle"), 2000);
     } catch { setStatus("error"); }
   };
@@ -507,7 +512,7 @@ function DetalleEditor({ detalle, onSaved, onDeleted, entities = [] }: {
             <EyeOff size={8} /> Oculto
           </span>
         )}
-        <button onClick={toggleOculto} className={`shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all border ${
+        <button onClick={e => { e.stopPropagation(); toggleOculto(); }} className={`shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all border ${
           form.oculto ? "text-orange-400 bg-orange-400/10 border-orange-400/30" : "text-primary/40 bg-primary/5 border-primary/10 hover:text-primary"
         }`}>
           {form.oculto ? <Eye size={9} /> : <EyeOff size={9} />}
@@ -530,15 +535,26 @@ function DetalleEditor({ detalle, onSaved, onDeleted, entities = [] }: {
             />
           </div>
           <div className="flex items-center justify-between">
-            <button onClick={async () => {
-              const ok = await confirm({ message: `¿Eliminar punto "${form.nombre}"?`, danger: true });
-              if (!ok) return;
-              await supabase.from("reino_detalles").delete().eq("id", form.id);
-              void dexieDel("reino_detalles", form.id);
-              onDeleted(form.id);
-            }} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest text-red-400/60 hover:text-red-400 hover:bg-red-500/10 transition-all border border-transparent hover:border-red-500/20">
-              <Trash2 size={10} /> Eliminar
-            </button>
+            <div className="flex items-center gap-2">
+              <button onClick={async e => {
+                e.stopPropagation();
+                const ok = await confirm({ message: `¿Eliminar punto "${form.nombre}"?`, danger: true });
+                if (!ok) return;
+                await supabase.from("lugares").delete().eq("id", form.id);
+                void dexieDel("lugares", form.id);
+                onDeleted(form.id);
+              }} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest text-red-400/60 hover:text-red-400 hover:bg-red-500/10 transition-all border border-transparent hover:border-red-500/20">
+                <Trash2 size={10} /> Eliminar
+              </button>
+              {onOpenEditor && (
+                <button
+                  onClick={e => { e.stopPropagation(); onOpenEditor(form.id); }}
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest text-primary/40 hover:text-primary hover:bg-primary/5 transition-all border border-primary/10 hover:border-primary/20"
+                >
+                  <MapPin size={10} /> Ver ficha
+                </button>
+              )}
+            </div>
             <div className="flex items-center gap-2">
               <SaveIndicator status={status} />
               <button onClick={() => saveDetalle(form)}
@@ -558,18 +574,19 @@ type MapaSideTab = "puntos" | "geografia";
 
 function MapaPanel({
   mapaUrl, onMapaChange, onDetallesArrayChange, MapaConPuntosComponent,
-  detalles, entities, onDetalleUpdate, onDetalleDelete,
+  detalles, entities, onDetalleUpdate, onDetalleDelete, onOpenDetalleEditor,
   addingPoint, setAddingPoint, newPointName, setNewPointName, onAddPoint,
   form, setForm, onSnippetAction,
 }: {
   mapaUrl: string;
   onMapaChange?: (url: string) => void;
-  onDetallesArrayChange?: (d: ReinoDetalle[]) => void;
+  onDetallesArrayChange?: (d: Lugar[]) => void;
   MapaConPuntosComponent?: React.ComponentType<any>;
-  detalles: ReinoDetalle[];
+  detalles: Lugar[];
   entities: WikiEntity[];
-  onDetalleUpdate?: (d: ReinoDetalle) => void;
+  onDetalleUpdate?: (d: Lugar) => void;
   onDetalleDelete?: (id: string) => void;
+  onOpenDetalleEditor?: (id: string) => void;
   addingPoint?: boolean;
   setAddingPoint?: (v: boolean) => void;
   newPointName?: string;
@@ -667,6 +684,7 @@ function MapaPanel({
                 entities={entities}
                 onSaved={d => onDetalleUpdate?.(d)}
                 onDeleted={id => onDetalleDelete?.(id)}
+                onOpenEditor={onOpenDetalleEditor}
               />
             ))}
             {addingPoint ? (
@@ -786,6 +804,7 @@ export function LoreTab({
   setNewPointName,
   onDetalleUpdate,
   onDetalleDelete,
+  onOpenDetalleEditor,
   mapaUrl = "",
   onMapaChange,
   onDetallesArrayChange,
@@ -799,19 +818,20 @@ export function LoreTab({
   onSelectPersonaje?: (personaje: Personaje) => void;
   reinos?: { id: string; nombre: string }[];
   filtroReinoId?: string | null;
-  detalles?: ReinoDetalle[];
-  onDetallesChange?: (updated: ReinoDetalle) => void;
+  detalles?: Lugar[];
+  onDetallesChange?: (updated: Lugar) => void;
   onDeleteDetalle?: (id: string) => void;
   onAddPoint?: () => void;
   addingPoint?: boolean;
   setAddingPoint?: (v: boolean) => void;
   newPointName?: string;
   setNewPointName?: (v: string) => void;
-  onDetalleUpdate?: (d: ReinoDetalle) => void;
+  onDetalleUpdate?: (d: Lugar) => void;
   onDetalleDelete?: (id: string) => void;
+  onOpenDetalleEditor?: (id: string) => void;
   mapaUrl?: string;
   onMapaChange?: (url: string) => void;
-  onDetallesArrayChange?: (d: ReinoDetalle[]) => void;
+  onDetallesArrayChange?: (d: Lugar[]) => void;
   MapaConPuntosComponent?: React.ComponentType<any>;
 }) {
   const [activeKey, setActiveKey] = useState<LoreKey>("historia_cultura");
@@ -933,6 +953,7 @@ export function LoreTab({
               entities={entities}
               onDetalleUpdate={onDetalleUpdate}
               onDetalleDelete={onDetalleDelete}
+              onOpenDetalleEditor={onOpenDetalleEditor}
               addingPoint={addingPoint}
               setAddingPoint={setAddingPoint}
               newPointName={newPointName}

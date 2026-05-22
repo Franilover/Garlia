@@ -31,6 +31,9 @@ export type Lugar = {
   secretos?: string | null;
   imagen_url?: string | null;
   reino_id?: string | null;
+  coord_x?: number | null;
+  coord_y?: number | null;
+  oculto?: boolean;
 };
 
 type ReinoMin   = { id: string; nombre: string };

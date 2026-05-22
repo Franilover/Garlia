@@ -8,8 +8,9 @@ import {
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
 import { useConfirm } from "@/components/ui/ConfirmModal";
-import { type Reino, type ReinoDetalle, type SaveStatus, INPUT_CLS } from "@/components/paginas/myself/garlia/editorEntidades/types";
-import { useReinoDetalles, usePersonajesDelReino } from "@/components/paginas/myself/garlia/editorEntidades/hooks";
+import { type Reino, type SaveStatus, INPUT_CLS } from "@/components/paginas/myself/garlia/editorEntidades/types";
+import { usePersonajesDelReino } from "@/components/paginas/myself/garlia/editorEntidades/hooks";
+import { type Lugar } from "@/components/paginas/myself/garlia/editores/EditorLugar";
 import { SaveIndicator } from "@/components/paginas/myself/garlia/editorEntidades/UIComponents";
 import { MarkdownEditor, WikiEntity } from "../../../../forms/MarkdownEditor";
 import { useWikilink } from "../../../../forms/WikilinkContext";
@@ -43,12 +44,45 @@ async function dexieWriteAll(tabla: string, rows: any[]): Promise<void> {
   } catch {}
 }
 
-// ─── Mapa con puntos + botón cambiar imagen ───────────────────────────────────
+// ─── Hook: lugares del reino ──────────────────────────────────────────────────
+function useLugaresDelReino(reinoId: string) {
+  const [lugares, setLugares] = useState<Lugar[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      // Dexie primero
+      try {
+        if (db) {
+          const local: any[] = await (db as any).lugares?.toArray() ?? [];
+          const filtrados = local.filter((l: any) => l.reino_id === reinoId && !l.deleted);
+          if (filtrados.length && !cancelled) setLugares(filtrados);
+        }
+      } catch {}
+      if (!navigator.onLine) return;
+      const { data } = await supabase
+        .from("lugares")
+        .select("id, nombre, descripcion, coord_x, coord_y, oculto, imagen_url, tipo, historia, secretos, reino_id")
+        .eq("reino_id", reinoId)
+        .order("nombre");
+      if (!cancelled && data) {
+        setLugares(data as Lugar[]);
+        if (db) (db as any).lugares?.bulkPut(data).catch(() => {});
+      }
+    };
+    run();
+    return () => { cancelled = true; };
+  }, [reinoId]);
+
+  return { lugares, setLugares };
+}
+
+
 function MapaConPuntos({ mapaUrl, onMapaChange, detalles, onDetallesChange }: {
   mapaUrl: string;
   onMapaChange: (url: string) => void;
-  detalles: ReinoDetalle[];
-  onDetallesChange: (d: ReinoDetalle[]) => void;
+  detalles: Lugar[];
+  onDetallesChange: (d: Lugar[]) => void;
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -185,8 +219,10 @@ function ImagePickerModal({ onSelect, onClose }: { onSelect: (url: string) => vo
 }
 
 // ─── DetalleEditor ─────────────────────────────────────────────────────────────
-function DetalleEditor({ detalle, onSaved, onDeleted, entities = [] }: {
-  detalle: ReinoDetalle; onSaved: (d: ReinoDetalle) => void; onDeleted: (id: string) => void; entities?: WikiEntity[];
+function DetalleEditor({ detalle, onSaved, onDeleted, onOpenEditor, entities = [] }: {
+  detalle: Lugar; onSaved: (d: Lugar) => void; onDeleted: (id: string) => void;
+  onOpenEditor?: (id: string) => void;
+  entities?: WikiEntity[];
 }) {
   const [form, setForm] = useState(detalle);
   const [expanded, setExpanded] = useState(false);
@@ -202,16 +238,16 @@ function DetalleEditor({ detalle, onSaved, onDeleted, entities = [] }: {
     }
   }, [detalle.coord_x, detalle.coord_y]);
 
-  const saveDetalle = async (data: ReinoDetalle) => {
+  const saveDetalle = async (data: Lugar) => {
     setStatus("saving");
     try {
-      const { error } = await supabase.from("reino_detalles").update({
+      const { error } = await supabase.from("lugares").update({
         nombre: data.nombre, descripcion: data.descripcion,
         coord_x: data.coord_x, coord_y: data.coord_y, oculto: data.oculto ?? false,
       }).eq("id", data.id);
       if (error) throw error;
       setStatus("saved"); onSaved(data);
-      void dexiePut("reino_detalles", data);
+      void dexiePut("lugares", data);
       setTimeout(() => setStatus("idle"), 2000);
     } catch { setStatus("error"); }
   };
@@ -275,15 +311,25 @@ function DetalleEditor({ detalle, onSaved, onDeleted, entities = [] }: {
           </div>
           {/* Acciones: eliminar a la izq, guardar a la der */}
           <div className="flex items-center justify-between pt-1">
-            <button onClick={async () => {
-              const ok = await confirm({ message: `¿Eliminar punto "${form.nombre}"?`, danger: true });
-              if (!ok) return;
-              await supabase.from("reino_detalles").delete().eq("id", form.id);
-              void dexieDel("reino_detalles", form.id);
-              onDeleted(form.id);
-            }} className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest text-red-400/60 hover:text-red-400 hover:bg-red-500/10 transition-all border border-transparent hover:border-red-500/20 min-h-[36px]">
-              <Trash2 size={10} /> Eliminar
-            </button>
+            <div className="flex items-center gap-2">
+              <button onClick={async () => {
+                const ok = await confirm({ message: `¿Eliminar punto "${form.nombre}"?`, danger: true });
+                if (!ok) return;
+                await supabase.from("lugares").delete().eq("id", form.id);
+                void dexieDel("lugares", form.id);
+                onDeleted(form.id);
+              }} className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest text-red-400/60 hover:text-red-400 hover:bg-red-500/10 transition-all border border-transparent hover:border-red-500/20 min-h-[36px]">
+                <Trash2 size={10} /> Eliminar
+              </button>
+              {onOpenEditor && (
+                <button
+                  onClick={() => onOpenEditor(form.id)}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest text-primary/40 hover:text-primary hover:bg-primary/5 transition-all border border-primary/10 hover:border-primary/20 min-h-[36px]"
+                >
+                  <MapPin size={10} /> Ver ficha
+                </button>
+              )}
+            </div>
             <div className="flex items-center gap-2">
               <SaveIndicator status={status} />
               <button
@@ -301,15 +347,16 @@ function DetalleEditor({ detalle, onSaved, onDeleted, entities = [] }: {
 }
 
 // ─── EditorReino ───────────────────────────────────────────────────────────────
-export function EditorReino({ item, onSaved, onDeleted, entities = [], onSelectPersonaje }: {
+export function EditorReino({ item, onSaved, onDeleted, entities = [], onSelectPersonaje, onSelectLugar }: {
   item: Reino; onSaved: (r: Reino) => void; onDeleted: (id: string) => void; entities?: WikiEntity[];
   onSelectPersonaje?: (personaje: any) => void;
+  onSelectLugar?: (id: string) => void;
 }) {
   const [form,   setForm]   = useState<Reino>(item);
   const [status, setStatus] = useState<SaveStatus>("idle");
   const [addingPoint, setAddingPoint] = useState(false);
   const [newPointName, setNewPointName] = useState("");
-  const { detalles, setDetalles } = useReinoDetalles(item.id);
+  const { lugares: detalles, setLugares: setDetalles } = useLugaresDelReino(item.id);
   const { confirm, ConfirmModal } = useConfirm();
   const { onSnippetAction } = useWikilink();
   const { personajes, setPersonajes, loading: loadingPersonajes } = usePersonajesDelReino(form.nombre);
@@ -342,15 +389,15 @@ export function EditorReino({ item, onSaved, onDeleted, entities = [], onSelectP
 
   const handleAddPoint = async () => {
     if (!newPointName.trim()) return;
-    const { data, error } = await supabase.from("reino_detalles")
+    const { data, error } = await supabase.from("lugares")
       .insert([{ reino_id: form.id, nombre: newPointName.trim(), coord_x: 50, coord_y: 50 }]).select().single();
-    if (!error && data) { setDetalles(prev => [...prev, data]); void dexiePut("reino_detalles", data); setAddingPoint(false); setNewPointName(""); }
+    if (!error && data) { setDetalles(prev => [...prev, data as Lugar]); void dexiePut("lugares", data); setAddingPoint(false); setNewPointName(""); }
   };
 
-  const handleDetallesMapChange = async (updated: ReinoDetalle[]) => {
+  const handleDetallesMapChange = async (updated: Lugar[]) => {
     setDetalles(updated);
     await Promise.all(updated.map(d =>
-      supabase.from("reino_detalles").update({ coord_x: d.coord_x, coord_y: d.coord_y }).eq("id", d.id)
+      supabase.from("lugares").update({ coord_x: d.coord_x, coord_y: d.coord_y }).eq("id", d.id)
     ));
   };
 
@@ -477,6 +524,7 @@ export function EditorReino({ item, onSaved, onDeleted, entities = [], onSelectP
             setNewPointName={setNewPointName}
             onDetalleUpdate={d => setDetalles(prev => prev.map(x => x.id === d.id ? d : x))}
             onDetalleDelete={id => setDetalles(prev => prev.filter(x => x.id !== id))}
+            onOpenDetalleEditor={onSelectLugar}
             mapaUrl={form.mapa_url ?? ""}
             onMapaChange={url => setForm(f => ({ ...f, mapa_url: url }))}
             onDetallesArrayChange={handleDetallesMapChange}
@@ -487,4 +535,4 @@ export function EditorReino({ item, onSaved, onDeleted, entities = [], onSelectP
       </div>
     </div>
   );
-} 
+}
