@@ -454,6 +454,11 @@ export default function EditorEntidades() {
               setTab("mundo");
               setMundoSection("geografia");
               setRequestedSubTab("letras");
+            } else if (key === "lugar") {
+              localStorage.setItem("estudio-listas-action", "nuevo-lugar");
+              setTab("mundo");
+              setMundoSection("geografia");
+              setRequestedSubTab("listas");
             } else {
               // hechizos, dones, runas → abrir su editor directamente como tab
               setTab(key as any);

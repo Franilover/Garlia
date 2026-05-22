@@ -1963,4 +1963,4 @@ export function GlobalSearchBar({
       </div>
     </div>
   );
-}
+} 
