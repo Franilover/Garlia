@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import {
-  MapPin, Save, Trash2, Crown, Users, Bug, Package,
+  MapPin, Save, Trash2, Users, Bug, Package,
   Loader2, Plus, X, Mountain, ScrollText,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
@@ -298,43 +298,18 @@ export function FormularioLugar({
                   opciones={TIPOS_LUGAR}
                   placeholder="Ciudad, ruinas, bosque…"
                 />
-                <div className="space-y-1.5">
-                  <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Reino</label>
-                  <div className="relative">
-                    <select
-                      value={form.reino_id ?? ""}
-                      onChange={e => setForm(f => ({ ...f, reino_id: e.target.value || null }))}
-                      className="w-full appearance-none bg-primary/4 border border-primary/10 rounded-xl px-3 py-2 text-[11px] font-medium text-primary outline-none focus:border-primary/25 pr-8 cursor-pointer"
-                    >
-                      <option value="">Sin reino</option>
-                      {reinos.map(r => (
-                        <option key={r.id} value={r.id}>{r.nombre}</option>
-                      ))}
-                    </select>
-                    <Crown size={10} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-primary/25 pointer-events-none" />
-                  </div>
-                </div>
+                <SelectorTexto
+                  label="Reino"
+                  value={reinoActual?.nombre ?? ""}
+                  onChange={nombre => {
+                    const r = reinos.find(x => x.nombre === nombre);
+                    setForm(f => ({ ...f, reino_id: r?.id ?? null }));
+                  }}
+                  opciones={reinos.map(r => r.nombre)}
+                  placeholder="Sin reino asignado…"
+                  onNavigate={onNavigateReino ? () => { if (reinoActual) onNavigateReino(reinoActual.id); } : undefined}
+                />
               </div>
-
-              {/* Badge de reino actual */}
-              {reinoActual && (
-                <div className="flex items-center gap-1.5">
-                  <Crown size={9} className="text-primary/30" />
-                  {onNavigateReino ? (
-                    <button
-                      type="button"
-                      onClick={() => onNavigateReino(reinoActual.id)}
-                      className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/40 hover:text-primary transition-colors underline-offset-2 hover:underline cursor-pointer"
-                    >
-                      {reinoActual.nombre}
-                    </button>
-                  ) : (
-                  <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/40">
-                    {reinoActual.nombre}
-                  </span>
-                  )}
-                </div>
-              )}
 
               {/* Descripción */}
               <div className="space-y-1.5">
