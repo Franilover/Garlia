@@ -258,7 +258,7 @@ const paraLines: string[] = [];
       !lines[i].trim().startsWith(":::links") &&
       !/^\[\[toc\]\]\s*$/i.test(lines[i].trim()) &&
       !/^---+$/.test(lines[i].trim()) &&
-      !/^(#{1,6})(\s|$)/.test(lines[i])
+      !/^(#{1,6})(\s|$)/.test(lines[i]) && // Coincide con el Heading
       !lines[i].trim().startsWith("|") &&
       !lines[i].trimStart().startsWith(">") &&
       !/^[ \t]*\d+\.\s/.test(lines[i]) &&
