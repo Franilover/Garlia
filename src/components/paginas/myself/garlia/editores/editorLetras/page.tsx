@@ -439,12 +439,19 @@ export default function EstudioLetras() {
 
   const [showNueva, setShowNueva] = useState(false);
 
-  // Señal desde el buscador para abrir "nueva canción" al montar
+  // Señal desde el buscador para abrir "nueva canción"
+  // Usamos también el evento "storage" para detectar la señal cuando el componente
+  // ya estaba montado (el useEffect con [] solo corre al montar por primera vez).
   useEffect(() => {
-    const action = localStorage.getItem("estudio-letras-action");
-    if (!action) return;
-    localStorage.removeItem("estudio-letras-action");
-    if (action === "nueva-cancion") setTimeout(() => setShowNueva(true), 120);
+    const check = () => {
+      const action = localStorage.getItem("estudio-letras-action");
+      if (!action) return;
+      localStorage.removeItem("estudio-letras-action");
+      if (action === "nueva-cancion") setTimeout(() => setShowNueva(true), 120);
+    };
+    check(); // revisar al montar
+    window.addEventListener("estudio-letras-action", check);
+    return () => window.removeEventListener("estudio-letras-action", check);
   }, []);
 
   const ORDEN_ESTADO: Record<string, number> = { TERMINADA: 0, "EN PROCESO": 1, PENDIENTE: 2 };

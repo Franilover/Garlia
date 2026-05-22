@@ -444,21 +444,25 @@ export default function EditorEntidades() {
               setShowNuevoGrupo(true);
             } else if (key === "libro") {
               localStorage.setItem("estudio-caps-action", "nuevo-libro");
+              window.dispatchEvent(new Event("estudio-caps-action"));
               setTab("mundo");
               setMundoSection("geografia");
               setRequestedSubTab("capitulos");
             } else if (key === "capitulo") {
               localStorage.setItem("estudio-caps-action", "nuevo-cap");
+              window.dispatchEvent(new Event("estudio-caps-action"));
               setTab("mundo");
               setMundoSection("geografia");
               setRequestedSubTab("capitulos");
             } else if (key === "cancion") {
               localStorage.setItem("estudio-letras-action", "nueva-cancion");
+              window.dispatchEvent(new Event("estudio-letras-action"));
               setTab("mundo");
               setMundoSection("geografia");
               setRequestedSubTab("letras");
             } else if (key === "lugar") {
               localStorage.setItem("estudio-listas-action", "nuevo-lugar");
+              window.dispatchEvent(new Event("estudio-listas-action"));
               setTab("mundo");
               setMundoSection("geografia");
               setRequestedSubTab("listas");
@@ -506,6 +510,7 @@ export default function EditorEntidades() {
           onNavigateToCapitulo={(capId, libroId) => {
             localStorage.setItem("estudio-caps-last-cap",   capId);
             localStorage.setItem("estudio-caps-last-libro", libroId);
+            window.dispatchEvent(new Event("estudio-caps-action"));
             setTab("mundo");
             setMundoSection("geografia");
             setRequestedSubTab("capitulos");
@@ -513,6 +518,7 @@ export default function EditorEntidades() {
           }}
           onNavigateToCancion={(cancionId) => {
             localStorage.setItem("estudio-letras-last-id", cancionId);
+            window.dispatchEvent(new Event("estudio-letras-action"));
             setTab("mundo");
             setMundoSection("geografia");
             setRequestedSubTab("letras");
