@@ -2257,8 +2257,12 @@ function PanelListas({
   }, [initialSubTab, markVisited]);
 
   // Abrir un ítem concreto desde navegación externa (buscador global)
+  // Usamos una ref para no re-ejecutar cuando los arrays crecen con datos adicionales,
+  // evitando que la navegación interna (reino->lugar, lugar->reino) sea pisada.
+  const lastOpenItemRef = useRef<string | null>(null);
   useEffect(() => {
     if (!openItem) return;
+    const key = `${openItem.tabla}:${openItem.id}`;
     const { tabla, id } = openItem;
     const tablaToListaTab: Record<string, ListaTab> = {
       personajes: "personajes", criaturas: "criaturas",
@@ -2266,22 +2270,24 @@ function PanelListas({
     };
     const listaTab = tablaToListaTab[tabla];
     if (!listaTab) return;
+
+    // Buscar el item en los datos cargados
+    let found: any = null;
+    if (tabla === "personajes")      found = personajes.find(x => x.id === id);
+    else if (tabla === "criaturas")  found = criaturas.find(x => x.id === id);
+    else if (tabla === "items")      found = objetos.find(x => x.id === id);
+    else if (tabla === "reinos")     found = reinos.find(x => x.id === id);
+
+    // Solo procesar si el item está disponible Y no fue procesado antes
+    if (!found || lastOpenItemRef.current === key) return;
+    lastOpenItemRef.current = key;
+
     markVisited(listaTab);
     setMobileTab(listaTab);
-    if (tabla === "personajes") {
-      const found = personajes.find(x => x.id === id);
-      if (found) setSelectedPersonaje(found);
-    } else if (tabla === "criaturas") {
-      const found = criaturas.find(x => x.id === id);
-      if (found) setSelectedCriatura(found);
-    } else if (tabla === "items") {
-      const found = objetos.find(x => x.id === id);
-      if (found) setSelectedObjeto(found);
-    } else if (tabla === "reinos") {
-      const found = reinos.find(x => x.id === id);
-      if (found) setSelectedReino(found);
-    }
-  // Reacciona cuando cambia openItem O cuando los datos cargan por primera vez
+    if (tabla === "personajes")      setSelectedPersonaje(found);
+    else if (tabla === "criaturas")  setSelectedCriatura(found);
+    else if (tabla === "items")      setSelectedObjeto(found);
+    else if (tabla === "reinos")     setSelectedReino(found);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openItem, personajes.length, criaturas.length, objetos.length, reinos.length]);
 
