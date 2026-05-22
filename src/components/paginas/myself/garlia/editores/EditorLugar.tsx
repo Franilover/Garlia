@@ -202,7 +202,7 @@ function BloqueEntidades<T extends { id: string; nombre: string }>({
 // ─── FormularioLugar ──────────────────────────────────────────────────────────
 export function FormularioLugar({
   form, setForm, status, onSave, onDelete, entities = [],
-  onSelectPersonaje, onSelectCriatura, onSelectItem,
+  onSelectPersonaje, onSelectCriatura, onSelectItem, onNavigateReino,
 }: {
   form: Lugar;
   setForm: React.Dispatch<React.SetStateAction<Lugar>>;
@@ -213,6 +213,7 @@ export function FormularioLugar({
   onSelectPersonaje?: (id: string) => void;
   onSelectCriatura?:  (id: string) => void;
   onSelectItem?:      (id: string) => void;
+  onNavigateReino?:   (id: string) => void;
 }) {
   const reinos = useReinos();
   const { personajes, loading: loadingP } = usePersonajesDelLugar(form.id);
@@ -319,9 +320,19 @@ export function FormularioLugar({
               {reinoActual && (
                 <div className="flex items-center gap-1.5">
                   <Crown size={9} className="text-primary/30" />
+                  {onNavigateReino ? (
+                    <button
+                      type="button"
+                      onClick={() => onNavigateReino(reinoActual.id)}
+                      className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/40 hover:text-primary transition-colors underline-offset-2 hover:underline cursor-pointer"
+                    >
+                      {reinoActual.nombre}
+                    </button>
+                  ) : (
                   <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/40">
                     {reinoActual.nombre}
                   </span>
+                  )}
                 </div>
               )}
 
@@ -465,7 +476,7 @@ export function FormularioLugar({
 // ─── EditorLugar ──────────────────────────────────────────────────────────────
 export function EditorLugar({
   item, onSaved, onDeleted, entities = [],
-  onSelectPersonaje, onSelectCriatura, onSelectItem,
+  onSelectPersonaje, onSelectCriatura, onSelectItem, onNavigateReino,
 }: {
   item: Lugar;
   onSaved:   (l: Lugar) => void;
@@ -474,6 +485,7 @@ export function EditorLugar({
   onSelectPersonaje?: (id: string) => void;
   onSelectCriatura?:  (id: string) => void;
   onSelectItem?:      (id: string) => void;
+  onNavigateReino?:   (id: string) => void;
 }) {
   const [form,   setForm]   = useState<Lugar>(item);
   const [status, setStatus] = useState<SaveStatus>("idle");
@@ -522,6 +534,7 @@ export function EditorLugar({
         onSelectPersonaje={onSelectPersonaje}
         onSelectCriatura={onSelectCriatura}
         onSelectItem={onSelectItem}
+        onNavigateReino={onNavigateReino}
       />
     </>
   );

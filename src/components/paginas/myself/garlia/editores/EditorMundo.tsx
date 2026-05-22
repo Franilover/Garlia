@@ -2501,6 +2501,7 @@ function PanelListas({
                 onSelectPersonaje={id => { const p = personajes.find(x => x.id === id); if (p) setSelectedPersonaje(p); }}
                 onSelectCriatura={id => { const c = criaturas.find(x => x.id === id); if (c) setSelectedCriatura(c); }}
                 onSelectItem={id => { const o = objetos.find(x => x.id === id); if (o) setSelectedObjeto(o); }}
+                onNavigateReino={id => { const r = reinos.find(x => x.id === id); if (r) setSelectedReino(r); }}
               />
             )}
             {overlay === "personaje" && selectedPersonaje && (
