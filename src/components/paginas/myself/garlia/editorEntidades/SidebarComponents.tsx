@@ -60,8 +60,6 @@ const MUNDO_NAV: { section: MundoSectionKey; label: string; subTab: string; alia
   { section: "magia",     label: "Hechizos",   subTab: "hechizos",   aliases: ["hechizo", "hechizos", "spell", "spells"] },
   { section: "magia",     label: "Dones",      subTab: "dones",      aliases: ["don", "dones", "gift", "gifts"] },
   { section: "magia",     label: "Runas",      subTab: "runas",      aliases: ["runa", "runas", "rune", "runes"] },
-  { section: "geografia", label: "Capítulos",  subTab: "capitulos",  aliases: ["capitulo", "capítulo", "capitulos", "capítulos", "cap", "chapter", "chapters"] },
-  { section: "geografia", label: "Canciones",  subTab: "letras",     aliases: ["cancion", "canción", "canciones", "canciones", "letra", "letras", "song", "songs", "music", "musica", "música"] },
 ];
 
 function normalize(s: string) {
