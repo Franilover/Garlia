@@ -5,10 +5,10 @@ import React, {
   useState, useEffect, useCallback, useRef, useMemo,
 } from "react";
 import {
-  ArrowLeft, BookOpen, ChevronDown, ChevronRight, UserCircle2,
+  ChevronDown, ChevronRight, UserCircle2,
   Loader2,
   Plus, Save,
-  Trash2, WifiOff, X, Check, CheckCircle2, AlertCircle,
+  Trash2, X, Check, CheckCircle2, AlertCircle,
   Eye, EyeOff, Minimize2, Clock, Hash,
   AlignLeft, Calendar, BookMarked, Pencil, MoreHorizontal, Globe, Lock, Timer, Zap,
   Mic2, MapPin,
@@ -2612,7 +2612,7 @@ export function EditorCapitulosPanel() {
   const [showNuevoCap,    setShowNuevoCap]      = useState(false);
   const [showNuevoLibro,  setShowNuevoLibro]    = useState(false);
   const [editandoCap,     setEditandoCap]       = useState<Capitulo | null>(null);
-
+  const [capRefreshKey,   setCapRefreshKey]     = useState(0);
   const [editandoLibro,   setEditandoLibro]     = useState<Libro | null>(null);
 
   const { capitulos, setCapitulos, reload: reloadCaps } = useCapitulos(selectedLibroId);
@@ -2633,7 +2633,7 @@ export function EditorCapitulosPanel() {
     return () => window.removeEventListener("estudio-caps-action", check);
   }, []);
 
-
+  const librosFiltrados = libros;
 
   const handleSelectCap = (libroId: string, capId: string) => {
     setSelectedLibroId(libroId);
@@ -2645,10 +2645,12 @@ export function EditorCapitulosPanel() {
   const handleCapCreada = (cap: Capitulo) => {
     setCapitulos(prev => [...prev, cap]);
     setSelectedCapId(cap.id);
+    setCapRefreshKey(k => k + 1);
   };
 
   const handleCapEditada = (cap: Capitulo) => {
     setCapitulos(prev => prev.map(c => c.id === cap.id ? cap : c));
+    setCapRefreshKey(k => k + 1);
     setEditandoCap(null);
   };
 
@@ -2673,6 +2675,7 @@ export function EditorCapitulosPanel() {
       await capDelete(id);
       setCapitulos(prev => prev.filter(c => c.id !== id));
       if (selectedCapId === id) setSelectedCapId(null);
+      setCapRefreshKey(k => k + 1);
     } catch {}
   };
 
@@ -2684,76 +2687,89 @@ export function EditorCapitulosPanel() {
         setSelectedLibroId(null);
         setSelectedCapId(null);
       }
+      setCapRefreshKey(k => k + 1);
     } catch {}
   };
+
+  const bibliotecaAbierta = !selectedCapId || sidebarOpen;
 
   return (
     <>
       <div className="flex flex-col flex-1 min-h-0">
 
-        {/* ── Topbar ── */}
-        <div
-          style={{
-            flexShrink: 0,
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            padding: "10px 20px",
-            borderBottom: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
-            background: "var(--bg-main)",
-          }}
-        >
-          {/* Brand - desktop */}
-          <div className="hidden sm:flex" style={{ alignItems: "center", gap: 6, flexShrink: 0, borderRight: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)", paddingRight: 12, marginRight: 2 }}>
-            <BookOpen size={12} style={{ color: "var(--primary)", opacity: 0.4 }} />
-            <span style={{
-              fontSize: 9, fontFamily: "var(--font-mono, monospace)", fontWeight: 900,
-              textTransform: "uppercase", letterSpacing: "0.14em",
-              color: "var(--foreground)", opacity: 0.45,
-            }}>
-              Capítulos
-            </span>
-          </div>
 
-          {/* Mobile: botón volver */}
-          {selectedCapId && (
-            <button
-              onClick={() => { setSelectedCapId(null); setSidebarOpen(true); }}
-              className="sm:hidden"
-              style={{
-                display: "flex", alignItems: "center", gap: 5,
-                fontSize: 9, fontFamily: "var(--font-mono, monospace)", fontWeight: 900,
-                textTransform: "uppercase", letterSpacing: "0.12em",
-                color: "var(--primary)", opacity: 0.5, background: "none", border: "none",
-                cursor: "pointer", flexShrink: 0, transition: "opacity 0.1s",
-              }}
-              onMouseEnter={e => { e.currentTarget.style.opacity = "1"; }}
-              onMouseLeave={e => { e.currentTarget.style.opacity = "0.5"; }}
+        {/* ── Biblioteca de columnas (se colapsa cuando hay un cap abierto y sidebarOpen=false) ── */}
+        <AnimatePresence initial={false}>
+          {bibliotecaAbierta && (
+            <motion.div
+              key="biblioteca"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.22, ease: "easeInOut" }}
+              className="overflow-hidden border-b shrink-0"
+              style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
             >
-              <ArrowLeft size={11} /> Libros
-            </button>
+              {/* ── Mobile: grid de 2 columnas ── */}
+              <div
+                className="sm:hidden overflow-y-auto p-2"
+                style={{ height: selectedCapId ? "240px" : "260px" }}
+              >
+                <div className="grid grid-cols-2 gap-2">
+                  {loadingLibros ? (
+                    <div className="col-span-2 flex items-center justify-center py-8 text-primary/25">
+                      <Loader2 size={16} className="animate-spin" />
+                    </div>
+                  ) : librosFiltrados.length === 0 ? (
+                    <div className="col-span-2 flex items-center justify-center py-8 text-primary/20">
+                      <p className="text-[8px] font-black uppercase tracking-widest">Sin resultados · escribe «add» para crear</p>
+                    </div>
+                  ) : librosFiltrados.map(libro => (
+                    <LibroCard
+                      key={libro.id + capRefreshKey}
+                      libro={libro}
+                      selectedCapId={selectedCapId}
+                      onSelectCap={handleSelectCap}
+                      onEditCap={setEditandoCap}
+                      onDeleteCap={handleCapEliminada}
+                      onEditLibro={setEditandoLibro}
+                      onDeleteLibro={handleLibroEliminado}
+                      onNuevoCap={(libroId) => { setSelectedLibroId(libroId); setShowNuevoCap(true); }}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {/* ── Desktop: scroll horizontal de columnas ── */}
+              <div className="hidden sm:flex overflow-x-auto" style={{ maxHeight: selectedCapId ? "220px" : "340px" }}>
+
+                {/* Columna: Nuevo libro */}
+                {/* Columnas de libros */}
+                {loadingLibros ? (
+                  <div className="flex items-center justify-center px-12 py-8 text-primary/25">
+                    <Loader2 size={18} className="animate-spin" />
+                  </div>
+                ) : librosFiltrados.length === 0 ? (
+                  <div className="flex items-center justify-center px-12 py-8 text-primary/20">
+                    <p className="text-[9px] font-black uppercase tracking-widest">Sin resultados</p>
+                  </div>
+                ) : librosFiltrados.map(libro => (
+                  <LibroColumna
+                    key={libro.id + capRefreshKey}
+                    libro={libro}
+                    selectedCapId={selectedCapId}
+                    onSelectCap={handleSelectCap}
+                    onEditCap={setEditandoCap}
+                    onDeleteCap={handleCapEliminada}
+                    onEditLibro={setEditandoLibro}
+                    onDeleteLibro={handleLibroEliminado}
+                    onNuevoCap={(libroId) => { setSelectedLibroId(libroId); setShowNuevoCap(true); }}
+                  />
+                ))}
+              </div>
+            </motion.div>
           )}
-
-          {/* Offline badge */}
-          {listaOffline && (
-            <span style={{
-              display: "flex", alignItems: "center", gap: 4, flexShrink: 0,
-              fontSize: 8, fontFamily: "var(--font-mono, monospace)", fontWeight: 900,
-              textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--callout-warning-title)",
-              border: "1px solid color-mix(in srgb, var(--callout-warning-border) 30%, transparent)",
-              background: "color-mix(in srgb, var(--callout-warning-border) 8%, transparent)",
-              padding: "2px 8px", borderRadius: 20,
-            }}>
-              <WifiOff size={8} />
-              <span className="hidden sm:inline">Offline</span>
-            </span>
-          )}
-
-
-
-        </div>
-
-
+        </AnimatePresence>
 
         {/* ── Editor ── */}
         <div className="flex-1 min-h-0 flex flex-col">
@@ -2762,7 +2778,7 @@ export function EditorCapitulosPanel() {
               key={selectedCapId}
               capId={selectedCapId}
               libroId={selectedLibroId}
-              onCapitulosChange={() => {}}
+              onCapitulosChange={() => setCapRefreshKey(k => k + 1)}
               focusMode={focusMode}
               onToggleFocus={() => setFocusMode(m => !m)}
             />
