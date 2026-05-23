@@ -238,37 +238,45 @@ function useCriaturaVariantes(criaturaId: string | null) {
 function useEntidadesMagicas(tabla: string, enabled = true) {
   const [items, setItems] = useState<EntidadMagica[]>([]);
   const [loading, setLoading] = useState(true);
-  const load = useCallback(async () => {
+  useEffect(() => {
     if (!enabled) { setLoading(false); return; }
-    const local = await dexieReadAll<EntidadMagica>(tabla);
-    if (local.length) { setItems(local); setLoading(false); }
-    if (!navigator.onLine) { if (!local.length) setLoading(false); return; }
-    const { data } = await supabase
-      .from(tabla)
-      .select("id, nombre, explicacion, grupo_ids")
-      .order("nombre");
-    const result = (data ?? []) as EntidadMagica[];
-    setItems(result); setLoading(false);
-    await dexieWriteAll(tabla, result);
+    let cancelled = false;
+    const run = async () => {
+      const local = await dexieReadAll<EntidadMagica>(tabla);
+      if (local.length && !cancelled) { setItems(local); setLoading(false); }
+      if (!navigator.onLine) { if (!local.length && !cancelled) setLoading(false); return; }
+      const { data } = await supabase
+        .from(tabla)
+        .select("id, nombre, explicacion, grupo_ids")
+        .order("nombre");
+      if (cancelled) return;
+      const result = (data ?? []) as EntidadMagica[];
+      setItems(result); setLoading(false);
+      await dexieWriteAll(tabla, result);
+    };
+    run(); return () => { cancelled = true; };
   }, [tabla, enabled]);
-  useEffect(() => { load(); }, [load]);
   return { items, setItems, loading };
 }
 
 function useRunas(enabled = true) {
   const [items, setItems] = useState<Runa[]>([]);
   const [loading, setLoading] = useState(true);
-  const load = useCallback(async () => {
+  useEffect(() => {
     if (!enabled) { setLoading(false); return; }
-    const local = await dexieReadAll<Runa>("runas");
-    if (local.length) { setItems(local); setLoading(false); }
-    if (!navigator.onLine) { if (!local.length) setLoading(false); return; }
-    const { data } = await supabase.from("runas").select("id, nombre, explicacion, imagen_url").order("nombre");
-    const result = (data ?? []) as Runa[];
-    setItems(result); setLoading(false);
-    await dexieWriteAll("runas", result);
+    let cancelled = false;
+    const run = async () => {
+      const local = await dexieReadAll<Runa>("runas");
+      if (local.length && !cancelled) { setItems(local); setLoading(false); }
+      if (!navigator.onLine) { if (!local.length && !cancelled) setLoading(false); return; }
+      const { data } = await supabase.from("runas").select("id, nombre, explicacion, imagen_url").order("nombre");
+      if (cancelled) return;
+      const result = (data ?? []) as Runa[];
+      setItems(result); setLoading(false);
+      await dexieWriteAll("runas", result);
+    };
+    run(); return () => { cancelled = true; };
   }, [enabled]);
-  useEffect(() => { load(); }, [load]);
   return { items, setItems, loading };
 }
 
@@ -1376,9 +1384,7 @@ function PanelListas({
   const [selectedNota, setSelectedNota] = useState<Nota | null>(null);
 
   // Inyectar + abrir editor cuando llega un item recién creado.
-  // Se fusiona con el routing de openItem para evitar la race condition:
-  // el item se inyecta en el array local Y se abre el editor en el mismo effect,
-  // sin esperar a que el array se actualice primero.
+  // Fusionado con el routing para evitar race condition.
   useEffect(() => {
     if (!onItemCreated) return;
     const { tabla, item } = onItemCreated;
@@ -1393,7 +1399,7 @@ function PanelListas({
     else if (tabla === "dones")      setDones(p      => p.some(x => x.id === item.id) ? p : [item, ...p]);
     else if (tabla === "runas")      setRunas(p      => p.some(x => x.id === item.id) ? p : [item, ...p]);
 
-    // 2. Abrir editor directamente (sin buscar en el array — el item ya está aquí)
+    // 2. Abrir editor directamente (el item ya está aquí, sin buscar en el array)
     if      (tabla === "personajes") setSelectedPersonaje(item);
     else if (tabla === "criaturas")  setSelectedCriatura(item);
     else if (tabla === "items")      setSelectedObjeto(item);
@@ -1403,7 +1409,7 @@ function PanelListas({
     else if (tabla === "dones")      setSelectedDon(item);
     else if (tabla === "runas")      setSelectedRuna(item);
 
-    // 3. Navegar a "todo" con prevMobileTab para que "volver" regrese a la lista completa
+    // 3. Navegar a "todo" y guardar prevMobileTab para que "volver" funcione
     markVisited("todo");
     setPrevMobileTab("todo");
     setMobileTab("todo");
@@ -1476,7 +1482,6 @@ function PanelListas({
     const key = `${openItem.tabla}:${openItem.id}`;
     const { tabla, id } = openItem;
 
-    // Mapa completo tabla → ListaTab (incluyendo magia y lugares)
     const tablaToListaTab: Record<string, ListaTab> = {
       personajes: "personajes", criaturas: "criaturas",
       items: "objetos", reinos: "reinos",
@@ -1486,7 +1491,6 @@ function PanelListas({
     const listaTab = tablaToListaTab[tabla];
     if (!listaTab) return;
 
-    // Buscar el item en los datos cargados
     let found: any = null;
     if      (tabla === "personajes") found = personajes.find(x => x.id === id);
     else if (tabla === "criaturas")  found = criaturas.find(x => x.id === id);
@@ -1497,14 +1501,13 @@ function PanelListas({
     else if (tabla === "dones")      found = dones.find(x => x.id === id);
     else if (tabla === "runas")      found = runas.find(x => x.id === id);
 
-    // Solo procesar si el item está disponible Y no fue procesado antes
     if (!found || lastOpenItemRef.current === key) return;
     lastOpenItemRef.current = key;
 
     markVisited(listaTab);
     markVisited("todo");
 
-    // Primero abrir el editor (overlay visible), luego setear el tab
+    // Primero el editor (overlay visible), luego el tab
     if      (tabla === "personajes") setSelectedPersonaje(found);
     else if (tabla === "criaturas")  setSelectedCriatura(found);
     else if (tabla === "items")      setSelectedObjeto(found);
@@ -1514,7 +1517,6 @@ function PanelListas({
     else if (tabla === "dones")      setSelectedDon(found);
     else if (tabla === "runas")      setSelectedRuna(found);
 
-    // Después navegar a "todo" con prevMobileTab para que "volver" funcione
     setPrevMobileTab("todo");
     setMobileTab("todo");
   // eslint-disable-next-line react-hooks/exhaustive-deps
