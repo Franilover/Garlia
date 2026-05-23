@@ -1375,12 +1375,16 @@ function PanelListas({
   const [searchNotas, setSearchNotas] = useState("");
   const [selectedNota, setSelectedNota] = useState<Nota | null>(null);
 
-  // Inyectar item recién creado en los arrays locales de PanelListas
-  // para que aparezca en la lista sin esperar un reload de Supabase.
+  // Inyectar + abrir editor cuando llega un item recién creado.
+  // Se fusiona con el routing de openItem para evitar la race condition:
+  // el item se inyecta en el array local Y se abre el editor en el mismo effect,
+  // sin esperar a que el array se actualice primero.
   useEffect(() => {
     if (!onItemCreated) return;
     const { tabla, item } = onItemCreated;
-    if (tabla === "personajes")  setPersonajes(p  => p.some(x => x.id === item.id) ? p : [item, ...p]);
+
+    // 1. Inyectar en array local
+    if      (tabla === "personajes") setPersonajes(p => p.some(x => x.id === item.id) ? p : [item, ...p]);
     else if (tabla === "criaturas")  setCriaturas(p  => p.some(x => x.id === item.id) ? p : [item, ...p]);
     else if (tabla === "items")      setObjetos(p    => p.some(x => x.id === item.id) ? p : [item, ...p]);
     else if (tabla === "reinos")     setReinos(p     => p.some(x => x.id === item.id) ? p : [item, ...p]);
@@ -1388,6 +1392,21 @@ function PanelListas({
     else if (tabla === "hechizos")   setHechizos(p   => p.some(x => x.id === item.id) ? p : [item, ...p]);
     else if (tabla === "dones")      setDones(p      => p.some(x => x.id === item.id) ? p : [item, ...p]);
     else if (tabla === "runas")      setRunas(p      => p.some(x => x.id === item.id) ? p : [item, ...p]);
+
+    // 2. Abrir editor directamente (sin buscar en el array — el item ya está aquí)
+    if      (tabla === "personajes") setSelectedPersonaje(item);
+    else if (tabla === "criaturas")  setSelectedCriatura(item);
+    else if (tabla === "items")      setSelectedObjeto(item);
+    else if (tabla === "reinos")     setSelectedReino(item);
+    else if (tabla === "lugares")    setSelectedLugar(item);
+    else if (tabla === "hechizos")   setSelectedHechizo(item);
+    else if (tabla === "dones")      setSelectedDon(item);
+    else if (tabla === "runas")      setSelectedRuna(item);
+
+    // 3. Navegar a "todo" con prevMobileTab para que "volver" regrese a la lista completa
+    markVisited("todo");
+    setPrevMobileTab("todo");
+    setMobileTab("todo");
   }, [onItemCreated]);
 
   const [searchR, setSearchR] = useState("");
@@ -1456,35 +1475,52 @@ function PanelListas({
     if (!openItem) return;
     const key = `${openItem.tabla}:${openItem.id}`;
     const { tabla, id } = openItem;
+
+    // Mapa completo tabla → ListaTab (incluyendo magia y lugares)
     const tablaToListaTab: Record<string, ListaTab> = {
       personajes: "personajes", criaturas: "criaturas",
       items: "objetos", reinos: "reinos",
+      lugares: "lugares", hechizos: "hechizos",
+      dones: "dones", runas: "runas",
     };
     const listaTab = tablaToListaTab[tabla];
     if (!listaTab) return;
 
     // Buscar el item en los datos cargados
     let found: any = null;
-    if (tabla === "personajes")      found = personajes.find(x => x.id === id);
+    if      (tabla === "personajes") found = personajes.find(x => x.id === id);
     else if (tabla === "criaturas")  found = criaturas.find(x => x.id === id);
     else if (tabla === "items")      found = objetos.find(x => x.id === id);
     else if (tabla === "reinos")     found = reinos.find(x => x.id === id);
+    else if (tabla === "lugares")    found = lugares.find(x => x.id === id);
+    else if (tabla === "hechizos")   found = hechizos.find(x => x.id === id);
+    else if (tabla === "dones")      found = dones.find(x => x.id === id);
+    else if (tabla === "runas")      found = runas.find(x => x.id === id);
 
     // Solo procesar si el item está disponible Y no fue procesado antes
     if (!found || lastOpenItemRef.current === key) return;
     lastOpenItemRef.current = key;
 
     markVisited(listaTab);
-    // Siempre volver a "todo" al cerrar el overlay abierto desde navegación externa
-    setPrevMobileTab("todo");
-    setMobileTab("todo");
     markVisited("todo");
-    if (tabla === "personajes")      setSelectedPersonaje(found);
+
+    // Primero abrir el editor (overlay visible), luego setear el tab
+    if      (tabla === "personajes") setSelectedPersonaje(found);
     else if (tabla === "criaturas")  setSelectedCriatura(found);
     else if (tabla === "items")      setSelectedObjeto(found);
     else if (tabla === "reinos")     setSelectedReino(found);
+    else if (tabla === "lugares")    setSelectedLugar(found);
+    else if (tabla === "hechizos")   setSelectedHechizo(found);
+    else if (tabla === "dones")      setSelectedDon(found);
+    else if (tabla === "runas")      setSelectedRuna(found);
+
+    // Después navegar a "todo" con prevMobileTab para que "volver" funcione
+    setPrevMobileTab("todo");
+    setMobileTab("todo");
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [openItem, personajes.length, criaturas.length, objetos.length, reinos.length]);
+  }, [openItem,
+      personajes.length, criaturas.length, objetos.length, reinos.length,
+      lugares.length, hechizos.length, dones.length, runas.length]);
 
   // Editor overlay activo
   const overlay: "reino" | "criatura" | "objeto" | "personaje" | "hechizo" | "don" | "runa" | "nota" | "lugar" | null =
