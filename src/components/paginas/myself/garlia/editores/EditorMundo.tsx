@@ -1452,22 +1452,16 @@ function PanelListas({
   const LS_ITEM_KEY = "garlia-panel-item";
 
   const [mobileTab, setMobileTabRaw] = useState<ListaTab>(() => {
-    // Si hay item persistido, el tab guardado tiene prioridad (restauración de sesión)
-    try {
-      const hasItem = !!localStorage.getItem(LS_ITEM_KEY);
-      const savedTab = localStorage.getItem(LS_TAB_KEY) as ListaTab | null;
-      if (hasItem && savedTab && VALID_LISTA_TABS.includes(savedTab)) return savedTab;
-    } catch {}
-    // Sin item persistido: respetar la navegación externa (sidebar/URL)
-    if (initialSubTab) {
-      const mapped: Record<string, ListaTab> = { mundo: "geo-magia", historia: "historia", magia: "geo-magia", listas: "todo", notas: "todo", lugares: "todo", "geo-magia": "geo-magia" };
-      return mapped[initialSubTab] ?? (VALID_LISTA_TABS.includes(initialSubTab as ListaTab) ? initialSubTab as ListaTab : "geo-magia");
-    }
-    // Fallback: tab guardado sin item
+    // Siempre intentar restaurar desde localStorage primero
     try {
       const saved = localStorage.getItem(LS_TAB_KEY) as ListaTab | null;
       if (saved && VALID_LISTA_TABS.includes(saved)) return saved;
     } catch {}
+    // Sin nada guardado: usar navegación externa del sidebar
+    if (initialSubTab) {
+      const mapped: Record<string, ListaTab> = { mundo: "geo-magia", historia: "historia", magia: "geo-magia", listas: "todo", notas: "todo", lugares: "todo", "geo-magia": "geo-magia" };
+      return mapped[initialSubTab] ?? (VALID_LISTA_TABS.includes(initialSubTab as ListaTab) ? initialSubTab as ListaTab : "geo-magia");
+    }
     return "geo-magia";
   });
 
@@ -1487,7 +1481,10 @@ function PanelListas({
 
   // Sincronizar mobileTab cuando el buscador/sidebar navega a un subtab diferente
   // y cerrar el overlay abierto para que el contenido sea visible de inmediato
+  // Solo actuar en cambios reales del sidebar (no en la carga inicial)
+  const isFirstSubTabRender = useRef(true);
   useEffect(() => {
+    if (isFirstSubTabRender.current) { isFirstSubTabRender.current = false; return; }
     if (!initialSubTab) return;
     const mapped: Record<string, ListaTab> = { mundo: "geo-magia", historia: "historia", magia: "geo-magia", listas: "todo", notas: "todo", lugares: "todo", "geo-magia": "geo-magia" };
     const resolved = mapped[initialSubTab] ?? (VALID_LISTA_TABS.includes(initialSubTab as ListaTab) ? initialSubTab as ListaTab : null);
@@ -1495,13 +1492,14 @@ function PanelListas({
       setMobileTab(resolved);
       markVisited(resolved);
       // Cerrar editor abierto al navegar desde el sidebar externo
+      clearPersistedItem();
       setSelectedReino(null);    setSelectedCriatura(null);
       setSelectedObjeto(null);   setSelectedPersonaje(null);
       setSelectedHechizo(null);  setSelectedDon(null);
       setSelectedRuna(null);     setSelectedNota(null);
       setSelectedLugar(null);
     }
-  }, [initialSubTab, markVisited]);
+  }, [initialSubTab, markVisited, clearPersistedItem]);
 
   // Abrir un ítem concreto desde navegación externa (buscador global)
   // Usamos una ref para no re-ejecutar cuando los arrays crecen con datos adicionales,
@@ -1615,73 +1613,45 @@ function PanelListas({
 
   // Restaurar el item abierto desde localStorage al recargar la página.
   // Se re-evalúa cada vez que carga más data; para en cuanto encuentra el item.
-  const restoredItemRef = useRef(false);
+  // Restaurar item al montar — fetch directo a Supabase, sin esperar arrays en memoria
   useEffect(() => {
-    if (restoredItemRef.current) return;
-    try {
-      const raw = localStorage.getItem(LS_ITEM_KEY);
-      if (!raw) return;
-      const { tabla, id } = JSON.parse(raw) as { tabla: string; id: string };
+    void (async () => {
+      try {
+        const raw = localStorage.getItem(LS_ITEM_KEY);
+        if (!raw) return;
+        const { tabla, id } = JSON.parse(raw) as { tabla: string; id: string };
 
-      const tablaToListaTab: Record<string, ListaTab> = {
-        personajes: "personajes", criaturas: "criaturas",
-        items: "objetos", reinos: "reinos",
-        lugares: "lugares", hechizos: "hechizos",
-        dones: "dones", runas: "runas", notas: "notas",
-      };
-      const listaTab = tablaToListaTab[tabla];
-      if (!listaTab) return;
+        const tablaToListaTab: Record<string, ListaTab> = {
+          personajes: "personajes", criaturas: "criaturas",
+          items: "objetos", reinos: "reinos", lugares: "lugares",
+          hechizos: "hechizos", dones: "dones", runas: "runas",
+        };
+        const listaTab = tablaToListaTab[tabla];
+        if (!listaTab) return;
 
-      let found: any = null;
-      if      (tabla === "personajes") found = personajes.find(x => x.id === id);
-      else if (tabla === "criaturas")  found = criaturas.find(x => x.id === id);
-      else if (tabla === "items")      found = objetos.find(x => x.id === id);
-      else if (tabla === "reinos")     found = reinos.find(x => x.id === id);
-      else if (tabla === "lugares")    found = lugares.find(x => x.id === id);
-      else if (tabla === "hechizos")   found = hechizos.find(x => x.id === id);
-      else if (tabla === "dones")      found = dones.find(x => x.id === id);
-      else if (tabla === "runas")      found = runas.find(x => x.id === id);
+        const supabaseTable: Record<string, string> = {
+          personajes: "personajes", criaturas: "criaturas",
+          items: "items", reinos: "reinos", lugares: "lugares",
+          hechizos: "hechizos", dones: "dones", runas: "runas",
+        };
+        const { data } = await supabase.from(supabaseTable[tabla]).select("*").eq("id", id).single();
+        if (!data) return;
 
-      if (!found) return; // datos aún no cargados — se reintentará
+        markVisited(listaTab);
+        setPrevMobileTab(listaTab);
 
-      restoredItemRef.current = true;
-      markVisited(listaTab);
-      // prevMobileTab para que al cerrar el overlay vuelva al tab correcto
-      setPrevMobileTab(listaTab);
-
-      // Fetch completo desde Supabase para tener todos los campos del editor
-      const supabaseTable: Record<string, string> = {
-        personajes: "personajes", criaturas: "criaturas",
-        items: "items", reinos: "reinos", lugares: "lugares",
-        hechizos: "hechizos", dones: "dones", runas: "runas",
-      };
-      void (async () => {
-        try {
-          const { data } = await supabase.from(supabaseTable[tabla]).select("*").eq("id", id).single();
-          const item = data ?? found;
-          if      (tabla === "personajes") setSelectedPersonaje(item);
-          else if (tabla === "criaturas")  setSelectedCriatura(item);
-          else if (tabla === "items")      setSelectedObjeto(item);
-          else if (tabla === "reinos")     setSelectedReino(item);
-          else if (tabla === "hechizos")   setSelectedHechizo(item);
-          else if (tabla === "dones")      setSelectedDon(item);
-          else if (tabla === "runas")      setSelectedRuna(item);
-          else if (tabla === "lugares")    setSelectedLugar(item as Lugar);
-        } catch {
-          if      (tabla === "personajes") setSelectedPersonaje(found);
-          else if (tabla === "criaturas")  setSelectedCriatura(found);
-          else if (tabla === "items")      setSelectedObjeto(found);
-          else if (tabla === "reinos")     setSelectedReino(found);
-          else if (tabla === "hechizos")   setSelectedHechizo(found);
-          else if (tabla === "dones")      setSelectedDon(found);
-          else if (tabla === "runas")      setSelectedRuna(found);
-          else if (tabla === "lugares")    setSelectedLugar(found as Lugar);
-        }
-      })();
-    } catch {}
+        if      (tabla === "personajes") setSelectedPersonaje(data);
+        else if (tabla === "criaturas")  setSelectedCriatura(data);
+        else if (tabla === "items")      setSelectedObjeto(data);
+        else if (tabla === "reinos")     setSelectedReino(data);
+        else if (tabla === "hechizos")   setSelectedHechizo(data);
+        else if (tabla === "dones")      setSelectedDon(data);
+        else if (tabla === "runas")      setSelectedRuna(data);
+        else if (tabla === "lugares")    setSelectedLugar(data as Lugar);
+      } catch {}
+    })();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [personajes.length, criaturas.length, objetos.length, reinos.length,
-      lugares.length, hechizos.length, dones.length, runas.length]);
+  }, []);
 
   // ── Wrappers que persisten el item abierto en localStorage ──────────────────
   const selectReino    = useCallback((r: Reino | null)         => { setSelectedReino(r);     r ? persistOpenItem("reinos",     r.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
