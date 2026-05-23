@@ -7,7 +7,7 @@ import React, {
 import {
   ArrowLeft, BookOpen, ChevronDown, ChevronRight, UserCircle2,
   Loader2,
-  Plus, Save, Search,
+  Plus, Save,
   Trash2, WifiOff, X, Check, CheckCircle2, AlertCircle,
   Eye, EyeOff, Minimize2, Clock, Hash,
   AlignLeft, Calendar, BookMarked, Pencil, MoreHorizontal, Globe, Lock, Timer, Zap,
@@ -2609,7 +2609,6 @@ export function EditorCapitulosPanel() {
   const setSelectedCapId   = (id: string | null) => { _setSelectedCapId(id);   setLastCapId(id); };
   const [sidebarOpen,     setSidebarOpen]       = useState(true);
   const [focusMode,       setFocusMode]         = useState(false);
-  const [busqueda,        setBusqueda]          = useState("");
   const [showNuevoCap,    setShowNuevoCap]      = useState(false);
   const [showNuevoLibro,  setShowNuevoLibro]    = useState(false);
   const [editandoCap,     setEditandoCap]       = useState<Capitulo | null>(null);
@@ -2634,10 +2633,7 @@ export function EditorCapitulosPanel() {
     return () => window.removeEventListener("estudio-caps-action", check);
   }, []);
 
-  const librosFiltrados = useMemo(() =>
-    libros.filter(l => !busqueda || normalize(l.titulo).includes(normalize(busqueda))),
-    [libros, busqueda]
-  );
+  const librosFiltrados = libros;
 
   const handleSelectCap = (libroId: string, capId: string) => {
     setSelectedLibroId(libroId);
@@ -2759,78 +2755,6 @@ export function EditorCapitulosPanel() {
             </span>
           )}
 
-          {/* Buscador */}
-          <div style={{
-            flex: 1, height: 36, display: "flex", alignItems: "center",
-            border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)",
-            borderRadius: 8, overflow: "hidden", background: "var(--input-bg)",
-            transition: "border-color 0.15s, box-shadow 0.15s",
-          }}
-            onFocus={() => {}}
-            className="focus-within:[border-color:color-mix(in_srgb,var(--primary)_50%,transparent)]"
-          >
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "0 10px", color: "var(--primary)", opacity: 0.45, flexShrink: 0 }}>
-              <Search size={12} />
-            </div>
-            <input
-              type="text"
-              value={busqueda}
-              onChange={e => {
-                const v = e.target.value;
-                if (v.trim().toLowerCase() === "add") {
-                  setBusqueda("");
-                  setShowNuevoLibro(true);
-                } else {
-                  setBusqueda(v);
-                }
-              }}
-              placeholder="buscar libro… (escribe «add» para añadir)"
-              style={{
-                flex: 1, background: "transparent", border: "none", outline: "none",
-                padding: "9px 0", fontSize: 12, fontFamily: "var(--font-mono, monospace)",
-                color: "var(--input-text)", letterSpacing: "0.02em",
-              }}
-            />
-            {busqueda && (
-              <>
-                <div style={{ width: 1, height: 16, background: "color-mix(in srgb, var(--primary) 18%, transparent)", flexShrink: 0, margin: "0 2px" }} />
-                <button
-                  onClick={() => setBusqueda("")}
-                  title="Limpiar"
-                  style={{
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    width: 28, height: 28, marginRight: 3, borderRadius: 5, border: "none",
-                    background: "transparent", color: "var(--primary)", opacity: 0.5, cursor: "pointer",
-                    transition: "opacity 0.1s, background 0.1s",
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.background = "color-mix(in srgb, var(--primary) 10%, transparent)"; }}
-                  onMouseLeave={e => { e.currentTarget.style.opacity = "0.5"; e.currentTarget.style.background = "transparent"; }}
-                >
-                  <X size={11} />
-                </button>
-              </>
-            )}
-          </div>
-
-          {/* Botón nuevo libro */}
-          <button
-            onClick={() => setShowNuevoLibro(true)}
-            style={{
-              display: "flex", alignItems: "center", gap: 4, padding: "0 12px",
-              height: 36, flexShrink: 0, whiteSpace: "nowrap",
-              border: "1px solid color-mix(in srgb, var(--primary) 30%, transparent)",
-              borderRadius: 6, background: "transparent",
-              fontSize: 9, fontFamily: "var(--font-mono, monospace)", fontWeight: 900,
-              textTransform: "uppercase", letterSpacing: "0.1em",
-              color: "var(--primary)", opacity: 0.7, cursor: "pointer",
-              transition: "opacity 0.15s, background 0.15s, border-color 0.15s",
-            }}
-            onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.background = "color-mix(in srgb, var(--primary) 10%, transparent)"; e.currentTarget.style.borderColor = "var(--primary)"; }}
-            onMouseLeave={e => { e.currentTarget.style.opacity = "0.7"; e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = "color-mix(in srgb, var(--primary) 30%, transparent)"; }}
-          >
-            <Plus size={11} />
-            <span className="hidden sm:inline">Nuevo</span>
-          </button>
 
 
         </div>
