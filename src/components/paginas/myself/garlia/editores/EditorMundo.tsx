@@ -1722,10 +1722,19 @@ function PanelListas({
                 onDeleted={id => { setReinos(p => p.filter(r => r.id !== id)); setSelectedReino(null); }}
                 onSelectPersonaje={p => {
                   const found = personajes.find(x => x.id === p?.id || x.nombre === p?.nombre);
-                  if (found) setSelectedPersonaje(found);
+                  if (!found) return;
+                  setSelectedReino(null); setSelectedCriatura(null);
+                  setSelectedObjeto(null); setSelectedLugar(null);
+                  setSelectedHechizo(null); setSelectedDon(null);
+                  setSelectedRuna(null); setSelectedNota(null);
+                  setSelectedPersonaje(found);
                 }}
                 onSelectLugar={async (id: string) => {
                   const local = lugares.find(x => x.id === id);
+                  setSelectedReino(null); setSelectedCriatura(null);
+                  setSelectedObjeto(null); setSelectedPersonaje(null);
+                  setSelectedHechizo(null); setSelectedDon(null);
+                  setSelectedRuna(null); setSelectedNota(null);
                   if (local) { setSelectedLugar(local as Lugar); return; }
                   const { data } = await supabase.from("lugares").select("*").eq("id", id).single();
                   if (data) { setSelectedLugar(data as Lugar); }
@@ -1737,8 +1746,22 @@ function PanelListas({
                 entities={allEntityNames}
                 onSaved={u => { setCriaturas(p => p.map(c => c.id === u.id ? { ...c, ...u } : c)); setSelectedCriatura({ ...selectedCriatura, ...u }); }}
                 onDeleted={id => { setCriaturas(p => p.filter(c => c.id !== id)); setSelectedCriatura(null); }}
-                onSelectItem={id => { const o = objetos.find(x => x.id === id); if (o) setSelectedObjeto(o); }}
-                onSelectPersonaje={id => { const p = personajes.find(x => x.id === id); if (p) setSelectedPersonaje(p); }}
+                onSelectItem={id => {
+                  const o = objetos.find(x => x.id === id);
+                  if (!o) return;
+                  setSelectedReino(null); setSelectedCriatura(null); setSelectedPersonaje(null);
+                  setSelectedLugar(null); setSelectedHechizo(null); setSelectedDon(null);
+                  setSelectedRuna(null); setSelectedNota(null);
+                  setSelectedObjeto(o);
+                }}
+                onSelectPersonaje={id => {
+                  const p = personajes.find(x => x.id === id);
+                  if (!p) return;
+                  setSelectedReino(null); setSelectedCriatura(null); setSelectedObjeto(null);
+                  setSelectedLugar(null); setSelectedHechizo(null); setSelectedDon(null);
+                  setSelectedRuna(null); setSelectedNota(null);
+                  setSelectedPersonaje(p);
+                }}
                 onSelectGrupo={() => { setMobileTab("grupos"); markVisited("grupos"); }}
               />
             )}
@@ -1747,7 +1770,14 @@ function PanelListas({
                 entities={allEntityNames}
                 onSaved={u => { setObjetos(p => p.map(o => o.id === u.id ? { ...o, ...u } : o)); setSelectedObjeto({ ...selectedObjeto, ...u }); }}
                 onDeleted={id => { setObjetos(p => p.filter(o => o.id !== id)); setSelectedObjeto(null); }}
-                onSelectCriatura={id => { const c = criaturas.find(x => x.id === id); if (c) setSelectedCriatura(c); }}
+                onSelectCriatura={id => {
+                  const c = criaturas.find(x => x.id === id);
+                  if (!c) return;
+                  setSelectedReino(null); setSelectedPersonaje(null); setSelectedObjeto(null);
+                  setSelectedLugar(null); setSelectedHechizo(null); setSelectedDon(null);
+                  setSelectedRuna(null); setSelectedNota(null);
+                  setSelectedCriatura(c);
+                }}
               />
             )}
             {overlay === "lugar" && selectedLugar && (
@@ -1755,10 +1785,38 @@ function PanelListas({
                 entities={allEntityNames}
                 onSaved={u => { setLugares(p => p.map(l => l.id === u.id ? { ...l, ...u } : l)); setSelectedLugar({ ...selectedLugar, ...u }); }}
                 onDeleted={id => { setLugares(p => p.filter(l => l.id !== id)); setSelectedLugar(null); }}
-                onSelectPersonaje={id => { const p = personajes.find(x => x.id === id); if (p) setSelectedPersonaje(p); }}
-                onSelectCriatura={id => { const c = criaturas.find(x => x.id === id); if (c) setSelectedCriatura(c); }}
-                onSelectItem={id => { const o = objetos.find(x => x.id === id); if (o) setSelectedObjeto(o); }}
-                onNavigateReino={id => { const r = reinos.find(x => x.id === id); if (r) setSelectedReino(r); }}
+                onSelectPersonaje={id => {
+                  const p = personajes.find(x => x.id === id);
+                  if (!p) return;
+                  setSelectedReino(null); setSelectedCriatura(null); setSelectedObjeto(null);
+                  setSelectedLugar(null); setSelectedHechizo(null); setSelectedDon(null);
+                  setSelectedRuna(null); setSelectedNota(null);
+                  setSelectedPersonaje(p);
+                }}
+                onSelectCriatura={id => {
+                  const c = criaturas.find(x => x.id === id);
+                  if (!c) return;
+                  setSelectedReino(null); setSelectedPersonaje(null); setSelectedObjeto(null);
+                  setSelectedLugar(null); setSelectedHechizo(null); setSelectedDon(null);
+                  setSelectedRuna(null); setSelectedNota(null);
+                  setSelectedCriatura(c);
+                }}
+                onSelectItem={id => {
+                  const o = objetos.find(x => x.id === id);
+                  if (!o) return;
+                  setSelectedReino(null); setSelectedCriatura(null); setSelectedPersonaje(null);
+                  setSelectedLugar(null); setSelectedHechizo(null); setSelectedDon(null);
+                  setSelectedRuna(null); setSelectedNota(null);
+                  setSelectedObjeto(o);
+                }}
+                onNavigateReino={id => {
+                  const r = reinos.find(x => x.id === id);
+                  if (!r) return;
+                  setSelectedCriatura(null); setSelectedPersonaje(null); setSelectedObjeto(null);
+                  setSelectedLugar(null); setSelectedHechizo(null); setSelectedDon(null);
+                  setSelectedRuna(null); setSelectedNota(null);
+                  setSelectedReino(r);
+                }}
               />
             )}
             {overlay === "personaje" && selectedPersonaje && (
@@ -1769,13 +1827,28 @@ function PanelListas({
                 onNavigate={(tab, nombre) => {
                   if (tab === "criaturas") {
                     const c = criaturas.find(x => x.nombre.toLowerCase() === nombre.toLowerCase());
-                    if (c) setSelectedCriatura(c);
+                    if (!c) return;
+                    setSelectedReino(null); setSelectedPersonaje(null); setSelectedObjeto(null);
+                    setSelectedLugar(null); setSelectedHechizo(null); setSelectedDon(null);
+                    setSelectedRuna(null); setSelectedNota(null);
+                    setSelectedCriatura(c);
                   } else if (tab === "reinos") {
                     const r = reinos.find(x => x.nombre.toLowerCase() === nombre.toLowerCase());
-                    if (r) setSelectedReino(r);
+                    if (!r) return;
+                    setSelectedCriatura(null); setSelectedPersonaje(null); setSelectedObjeto(null);
+                    setSelectedLugar(null); setSelectedHechizo(null); setSelectedDon(null);
+                    setSelectedRuna(null); setSelectedNota(null);
+                    setSelectedReino(r);
                   }
                 }}
-                onSelectPersonaje={id => { const p = personajes.find(x => x.id === id); if (p) setSelectedPersonaje(p); }}
+                onSelectPersonaje={id => {
+                  const p = personajes.find(x => x.id === id);
+                  if (!p) return;
+                  setSelectedReino(null); setSelectedCriatura(null); setSelectedObjeto(null);
+                  setSelectedLugar(null); setSelectedHechizo(null); setSelectedDon(null);
+                  setSelectedRuna(null); setSelectedNota(null);
+                  setSelectedPersonaje(p);
+                }}
               />
             )}
             {overlay === "hechizo" && selectedHechizo && (
