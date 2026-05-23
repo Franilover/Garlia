@@ -747,15 +747,7 @@ function historiaHasContent(raw: string | undefined): boolean {
 
 type SectionId = "mapa" | "historia" | "cultura" | "politica" | "economia";
 
-const NAV_ITEMS: { id: SectionId; label: string; Icon: React.ElementType }[] = [
-  { id: "mapa",     label: "Mapa",     Icon: Map       },
-  { id: "historia", label: "Historia", Icon: Globe     },
-  { id: "cultura",  label: "Cultura",  Icon: Landmark  },
-  { id: "politica", label: "Política", Icon: Users     },
-  { id: "economia", label: "Economía", Icon: Coins     },
-];
-
-// ─── Componente principal — Triple columna con infinity scroll ────────────────
+// ─── Componente principal — Doble columna con infinity scroll ────────────────
 
 export function LoreTab({
   form,
@@ -807,41 +799,11 @@ export function LoreTab({
 }) {
   const { onSnippetAction } = useWikilink();
   const scrollRef = useRef<HTMLDivElement>(null);
-  const sectionRefs = useRef<Record<SectionId, HTMLElement | null>>({
-    mapa: null, historia: null, cultura: null, politica: null, economia: null,
-  });
-  const [activeNav, setActiveNav] = useState<SectionId>("mapa");
-
-  // Quick-jump: scroll suave hasta la sección
-  const jumpTo = (id: SectionId) => {
-    const el = sectionRefs.current[id];
-    if (!el || !scrollRef.current) return;
-    const containerTop = scrollRef.current.getBoundingClientRect().top;
-    const elTop = el.getBoundingClientRect().top;
-    scrollRef.current.scrollBy({ top: elTop - containerTop - 8, behavior: "smooth" });
-    setActiveNav(id);
-  };
-
-  // Resalta el nav item según scroll
-  const handleScroll = () => {
-    const container = scrollRef.current;
-    if (!container) return;
-    const containerTop = container.getBoundingClientRect().top;
-    let current: SectionId = "mapa";
-    for (const { id } of NAV_ITEMS) {
-      const el = sectionRefs.current[id];
-      if (!el) continue;
-      const elTop = el.getBoundingClientRect().top - containerTop;
-      if (elTop <= 40) current = id;
-    }
-    setActiveNav(current);
-  };
 
   // ── Etiqueta de sección ───────────────────────────────────────────────────
   const SectionHeader = ({ id, label, Icon }: { id: SectionId; label: string; Icon: React.ElementType }) => (
     <header
       id={`lore-section-${id}`}
-      ref={el => { sectionRefs.current[id] = el; }}
       className="flex items-center gap-1.5 mb-2 select-none"
     >
       <Icon size={10} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
@@ -861,42 +823,9 @@ export function LoreTab({
   return (
     <div className="flex h-full min-h-0 overflow-hidden">
 
-      {/* ── COLUMNA 1 — Navegador lateral (40px) ────────────────────────────── */}
-      <aside
-        className="shrink-0 w-10 flex flex-col items-center py-2 gap-1 border-r"
-        style={{ borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)" }}
-      >
-        {NAV_ITEMS.map(({ id, label, Icon }) => {
-          const isActive = activeNav === id;
-          return (
-            <button
-              key={id}
-              title={label}
-              onClick={() => jumpTo(id)}
-              className="w-8 h-8 flex items-center justify-center rounded-lg transition-all"
-              style={isActive ? {
-                background: "color-mix(in srgb, var(--primary) 12%, transparent)",
-                color: "var(--primary)",
-              } : {
-                color: "color-mix(in srgb, var(--primary) 30%, transparent)",
-              }}
-              onMouseEnter={e => {
-                if (!isActive) (e.currentTarget as HTMLElement).style.color = "var(--primary)";
-              }}
-              onMouseLeave={e => {
-                if (!isActive) (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--primary) 30%, transparent)";
-              }}
-            >
-              <Icon size={13} />
-            </button>
-          );
-        })}
-      </aside>
-
-      {/* ── COLUMNA 2 — Editor central (infinity scroll) ────────────────────── */}
+      {/* ── COLUMNA 1 — Editor central (infinity scroll) ────────────────────── */}
       <main
         ref={scrollRef}
-        onScroll={handleScroll}
         className="flex-1 min-w-0 overflow-y-auto"
         style={{ scrollbarWidth: "none" }}
       >
@@ -1104,7 +1033,7 @@ export function LoreTab({
           <div className="flex-1 p-2 overflow-hidden">
             {mapaUrl ? (
               <button
-                onClick={() => jumpTo("mapa")}
+                onClick={() => document.getElementById("lore-section-mapa")?.scrollIntoView({ behavior: "smooth", block: "start" })}
                 className="w-full h-full relative overflow-hidden rounded-lg transition-all group"
                 style={{
                   background: "color-mix(in srgb, var(--primary) 4%, transparent)",
@@ -1139,7 +1068,7 @@ export function LoreTab({
               </button>
             ) : (
               <button
-                onClick={() => jumpTo("mapa")}
+                onClick={() => document.getElementById("lore-section-mapa")?.scrollIntoView({ behavior: "smooth", block: "start" })}
                 className="w-full h-full flex flex-col items-center justify-center gap-1.5 rounded-lg transition-all"
                 style={{
                   background: "color-mix(in srgb, var(--primary) 3%, transparent)",
