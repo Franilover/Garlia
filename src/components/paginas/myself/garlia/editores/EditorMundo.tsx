@@ -1318,8 +1318,18 @@ function PanelListas({
   // "geo-magia" y "historia" no necesitan datos de lista — empezamos con ellos off.
   // Una vez que el usuario abre un tab, lo marcamos como "visitado" y ya no se desmonta.
   const [visited, setVisited] = useState<Set<string>>(() => {
-    // Pre-activar el tab inicial para que cargue de inmediato
     const init = new Set<string>();
+
+    // Si hay un item persistido, pre-activar todo para que las listas carguen al recargar
+    try {
+      if (localStorage.getItem(LS_ITEM_KEY)) {
+        ["reinos","criaturas","objetos","personajes","lugares",
+         "hechizos","dones","runas","notas","grupos","gruposTodos","todo"].forEach(k => init.add(k));
+        return init;
+      }
+    } catch {}
+
+    // Sin item persistido: pre-activar solo el tab inicial
     const t = initialSubTab ?? "geo-magia";
     if (t === "reinos")     init.add("reinos");
     if (t === "criaturas")  init.add("criaturas");
@@ -1331,10 +1341,8 @@ function PanelListas({
     if (t === "runas")      init.add("runas");
     if (t === "grupos")     { init.add("grupos"); init.add("gruposTodos"); }
     if (t === "notas")      init.add("notas");
-    // "todo" y "magia-objetos" necesitan todo — carga en dos pasos para no saturar
     if (t === "todo" || t === "mundo-personajes" || t === "magia-objetos") {
       ["reinos","criaturas","objetos","personajes"].forEach(k => init.add(k));
-      // Los secundarios se activan después via markVisited con timeout
     }
     return init;
   });
