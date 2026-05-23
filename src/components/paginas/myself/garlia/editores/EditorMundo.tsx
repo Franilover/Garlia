@@ -1651,9 +1651,14 @@ function PanelListas({
       else if (tabla === "runas")      setSelectedRuna(found);
       else if (tabla === "lugares") {
         // Para lugares, buscar datos completos en Supabase si es necesario
-        supabase.from("lugares").select("*").eq("id", id).single().then(({ data }) => {
-          setSelectedLugar((data ?? found) as Lugar);
-        }).catch(() => setSelectedLugar(found as Lugar));
+        void (async () => {
+          try {
+            const { data } = await supabase.from("lugares").select("*").eq("id", id).single();
+            setSelectedLugar((data ?? found) as Lugar);
+          } catch {
+            setSelectedLugar(found as Lugar);
+          }
+        })();
         return;
       }
     } catch {}
