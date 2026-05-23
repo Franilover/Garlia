@@ -244,6 +244,14 @@ export default function EditorEntidades() {
   const [requestedItemId, setRequestedItemId] = useState<string | undefined>(undefined);
   const [requestedGrupoId, setRequestedGrupoId] = useState<string | null>(null);
   const [openItem, setOpenItem] = useState<{ tabla: string; id: string } | null>(null);
+  const [onItemCreated, setOnItemCreated] = useState<{ tabla: string; item: any } | null>(null);
+
+  // Auto-limpiar onItemCreated después de que PanelListas lo consuma
+  useEffect(() => {
+    if (!onItemCreated) return;
+    const t = setTimeout(() => setOnItemCreated(null), 100);
+    return () => clearTimeout(t);
+  }, [onItemCreated]);
   const [hasOverlay, setHasOverlay] = useState(false);
   const overlayCloseFnRef = useRef<(() => void) | null>(null);
 
@@ -364,6 +372,7 @@ export default function EditorEntidades() {
       setMundoSection("geografia");
       setRequestedSubTab("listas");
       setOpenItem({ tabla, id: item.id });
+      setOnItemCreated({ tabla, item });
       setRequestedGrupoId(null);
     } else {
       setTab(t);
@@ -394,7 +403,11 @@ export default function EditorEntidades() {
         [key]: [item, ...(prev[key as keyof typeof prev] as any[])],
       }));
       void dexieWriteOne(key, item);
-      setTab(key as any);
+      setTab("mundo");
+      setMundoSection("geografia");
+      setRequestedSubTab("listas");
+      setOpenItem({ tabla: key, id: item.id });
+      setOnItemCreated({ tabla: key, item });
       setSelectedId(item.id);
     }
   }, [setAllItems]);
@@ -562,6 +575,7 @@ export default function EditorEntidades() {
               initialMundoTab={requestedSubTab}
               initialItemId={requestedItemId}
               openItem={openItem}
+              onItemCreated={onItemCreated}
               onTabChange={(section, mundoTab) => {
                 setMundoSection(section);
                 setRequestedSubTab(mundoTab);

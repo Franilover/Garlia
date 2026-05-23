@@ -1238,6 +1238,7 @@ export function EditorMundo({
   onTabChange,
   openItem,
   onOverlayChange,
+  onItemCreated,
 }: {
   activeSection: MundoSectionKey;
   textos: Record<MundoSectionKey, string>;
@@ -1249,6 +1250,8 @@ export function EditorMundo({
   /** { tabla, id } — abre ese ítem directamente en el overlay */
   openItem?: { tabla: string; id: string } | null;
   onOverlayChange?: (hasOverlay: boolean, clearFn: () => void) => void;
+  /** Notifica un item recién creado para que PanelListas lo inyecte en su lista local */
+  onItemCreated?: { tabla: string; item: any } | null;
 }) {
 
   return (
@@ -1262,6 +1265,7 @@ export function EditorMundo({
         onSave={onSave}
         onTabChange={onTabChange}
         onOverlayChange={onOverlayChange}
+        onItemCreated={onItemCreated}
       />
     </div>
   );
@@ -1290,7 +1294,7 @@ function SearchInput({ value, onChange, placeholder }: { value: string; onChange
 // ─── PanelListas: columnas side-by-side (reinos, criaturas, objetos, personajes, hechizos, dones) ──
 function PanelListas({
   initialSubTab, initialItemId, openItem,
-  textos, onTextoChange, onSave, onTabChange, onOverlayChange,
+  textos, onTextoChange, onSave, onTabChange, onOverlayChange, onItemCreated,
 }: {
   initialSubTab?: string;
   initialItemId?: string;
@@ -1300,6 +1304,7 @@ function PanelListas({
   onSave?: (section: MundoSectionKey) => Promise<void>;
   onTabChange?: (section: MundoSectionKey, mundoTab: string) => void;
   onOverlayChange?: (hasOverlay: boolean, clearFn: () => void) => void;
+  onItemCreated?: { tabla: string; item: any } | null;
 }) {
   // ── Lazy loading: cada tabla solo carga cuando su tab fue visitado ────────
   // "geo-magia" y "historia" no necesitan datos de lista — empezamos con ellos off.
@@ -1369,6 +1374,21 @@ function PanelListas({
   const { notas, loading: loadingNotas, crear: crearNota, actualizar: actualizarNota, eliminar: eliminarNota } = useNotas();
   const [searchNotas, setSearchNotas] = useState("");
   const [selectedNota, setSelectedNota] = useState<Nota | null>(null);
+
+  // Inyectar item recién creado en los arrays locales de PanelListas
+  // para que aparezca en la lista sin esperar un reload de Supabase.
+  useEffect(() => {
+    if (!onItemCreated) return;
+    const { tabla, item } = onItemCreated;
+    if (tabla === "personajes")  setPersonajes(p  => p.some(x => x.id === item.id) ? p : [item, ...p]);
+    else if (tabla === "criaturas")  setCriaturas(p  => p.some(x => x.id === item.id) ? p : [item, ...p]);
+    else if (tabla === "items")      setObjetos(p    => p.some(x => x.id === item.id) ? p : [item, ...p]);
+    else if (tabla === "reinos")     setReinos(p     => p.some(x => x.id === item.id) ? p : [item, ...p]);
+    else if (tabla === "lugares")    setLugares(p    => p.some(x => x.id === item.id) ? p : [item, ...p]);
+    else if (tabla === "hechizos")   setHechizos(p   => p.some(x => x.id === item.id) ? p : [item, ...p]);
+    else if (tabla === "dones")      setDones(p      => p.some(x => x.id === item.id) ? p : [item, ...p]);
+    else if (tabla === "runas")      setRunas(p      => p.some(x => x.id === item.id) ? p : [item, ...p]);
+  }, [onItemCreated]);
 
   const [searchR, setSearchR] = useState("");
   const [searchC, setSearchC] = useState("");

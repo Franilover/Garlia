@@ -1159,7 +1159,6 @@ export function GlobalSearchBar({
   const [open,            setOpen]            = useState(false);
   const [focused,         setFocused]         = useState(false);
   const [addMenuOpen,     setAddMenuOpen]     = useState(false);
-  const [magicNombreModal, setMagicNombreModal] = useState<"hechizos" | "dones" | "runas" | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const wrapRef  = useRef<HTMLDivElement>(null);
 
@@ -1358,16 +1357,30 @@ export function GlobalSearchBar({
     inputRef.current?.blur();
   }, [onSelectMagic, onSelectMundoSection, onSelectMundoSubTab, close]);
 
-  // Intercept magic add: hechizos/dones/runas → ask for name first
+  // Add magic: hechizos/dones/runas → insert directo con placeholder, sin modal
   const handleAddMagicWithModal = useCallback((key: MagicAddKey) => {
+    close();
     if (key === "hechizos" || key === "dones" || key === "runas") {
-      close();
-      setMagicNombreModal(key);
+      const tablaMap: Record<string, string> = { hechizos: "hechizos", dones: "dones", runas: "runas" };
+      const placeholderMap: Record<string, string> = {
+        hechizos: "Nuevo hechizo",
+        dones:    "Nuevo don",
+        runas:    "Nueva runa",
+      };
+      supabase
+        .from(tablaMap[key])
+        .insert([{ nombre: placeholderMap[key] }])
+        .select("id, nombre, explicacion")
+        .single()
+        .then(({ data, error }) => {
+          if (error || !data) return;
+          onAddMagic?.(key);
+          onSelectMagic?.(key as "hechizos" | "dones" | "runas", data);
+        });
     } else {
-      close();
       onAddMagic?.(key);
     }
-  }, [onAddMagic, close]);
+  }, [onAddMagic, onSelectMagic, close]);
 
   useEffect(() => {
     if (!open) return;
@@ -1497,19 +1510,6 @@ export function GlobalSearchBar({
           onAddMagic={handleAddMagicWithModal}
           onClose={() => { setAddMenuOpen(false); setQuery(""); setFocused(false); inputRef.current?.blur(); }}
         />
-
-        {/* Modal nombre para Hechizo / Don / Runa */}
-        {magicNombreModal && (
-          <ModalMagicNombre
-            tipo={magicNombreModal}
-            onClose={() => setMagicNombreModal(null)}
-            onCreated={(item) => {
-              onAddMagic?.(magicNombreModal);
-              onSelectMagic?.(magicNombreModal, item);
-              setMagicNombreModal(null);
-            }}
-          />
-        )}
 
         {/* Dropdown de búsqueda */}
         {open && focused && !addMenuOpen && (
