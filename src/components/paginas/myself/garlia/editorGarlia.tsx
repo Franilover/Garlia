@@ -243,7 +243,8 @@ export default function EditorEntidades() {
   const [requestedSubTab, setRequestedSubTab] = useState<string | undefined>(session.current.mundoTab);
   const [requestedItemId, setRequestedItemId] = useState<string | undefined>(undefined);
   const [requestedGrupoId, setRequestedGrupoId] = useState<string | null>(null);
-  const [openItem, setOpenItem] = useState<{ tabla: string; id: string } | null>(null);
+  const [openItem, setOpenItem] = useState<{ tabla: string; id: string; key?: number } | null>(null);
+  const openItemKeyRef = useRef(0);
   const [onItemCreated, setOnItemCreated] = useState<{ tabla: string; item: any } | null>(null);
 
   // Auto-limpiar onItemCreated después de que PanelListas lo consuma
@@ -300,14 +301,14 @@ export default function EditorEntidades() {
   const handleSelect = useCallback((item: any, itemTab: Exclude<TabKey, "mundo">) => {
     const tabla = MUNDO_TABLAS[itemTab];
     if (tabla) {
-      // Abrir dentro del EditorMundo para que la barra lateral sea siempre visible.
-      // No llamamos setSelectedId aquí: openItem es la fuente de verdad para qué
-      // entidad abrir, y sobreescribir selectedId rompía la navegación desde
-      // onSelectPersonaje / onSelectLugar dentro del EditorReino.
+      // Abrir dentro del EditorMundo. openItem lleva un key incremental para
+      // que EditorMundo re-triggeree su efecto incluso si el id no cambia
+      // (ej: click en el mismo personaje desde dentro del EditorReino).
       setTab("mundo");
+      setSelectedId(item.id);
       setMundoSection("geografia");
       setRequestedSubTab(itemTab);
-      setOpenItem({ tabla, id: item.id });
+      setOpenItem({ tabla, id: item.id, key: ++openItemKeyRef.current });
       setRequestedGrupoId(null);
     } else {
       // hechizos / dones / runas → siguen con editor standalone
@@ -369,12 +370,11 @@ export default function EditorEntidades() {
     // y al volver del overlay el usuario vea todas las listas, no solo una.
     const tabla = MUNDO_TABLAS[t];
     if (tabla) {
-      // Mismo fix que handleSelect: no sobreescribir selectedId cuando openItem
-      // ya lleva la información del item a abrir dentro de EditorMundo.
       setTab("mundo");
+      setSelectedId(item.id);
       setMundoSection("geografia");
       setRequestedSubTab("listas");
-      setOpenItem({ tabla, id: item.id });
+      setOpenItem({ tabla, id: item.id, key: ++openItemKeyRef.current });
       setOnItemCreated({ tabla, item });
       setRequestedGrupoId(null);
     } else {
@@ -409,7 +409,7 @@ export default function EditorEntidades() {
       setTab("mundo");
       setMundoSection("geografia");
       setRequestedSubTab("listas");
-      setOpenItem({ tabla: key, id: item.id });
+      setOpenItem({ tabla: key, id: item.id, key: ++openItemKeyRef.current });
       setOnItemCreated({ tabla: key, item });
       setSelectedId(item.id);
     }
