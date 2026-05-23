@@ -375,14 +375,16 @@ export default function EditorEntidades() {
     setAllItems(prev => ({ ...prev, [t]: [item, ...prev[t as keyof typeof prev]] }));
     void dexieWriteOne(TAB_CONFIG[t].tabla, item);
 
-    // Mismo routing que handleSelect: reinos/personajes/criaturas/items viven
-    // dentro de EditorMundo; hechizos/dones/runas tienen editor standalone.
+    // Mismo routing que handleSelect: reinos/personajes/criaturas/items viven dentro
+    // de EditorMundo; hechizos/dones/runas tienen editor standalone.
+    // Usamos "listas" como requestedSubTab para que mobileTab arranque en "todo"
+    // y al volver del overlay el usuario vea todas las listas, no solo una.
     const tabla = MUNDO_TABLAS[t];
     if (tabla) {
       setTab("mundo");
       setSelectedId(item.id);
       setMundoSection("geografia");
-      setRequestedSubTab(t);
+      setRequestedSubTab("listas");
       setOpenItem({ tabla, id: item.id });
       setRequestedGrupoId(null);
     } else {
@@ -456,7 +458,7 @@ export default function EditorEntidades() {
           onSelect={handleSelect}
           onAdd={(chosenTab) => {
             // No cambiamos el tab todavía — handleCreated routea correctamente
-            // una vez que el item existe (via MUNDO_TABLAS o editor standalone).
+            // una vez que el item existe.
             setShowNueva(chosenTab as Exclude<TabKey, "mundo">);
           }}
           onAddMagic={(key: MagicAddKey) => {
@@ -531,7 +533,6 @@ export default function EditorEntidades() {
               setTab(subTab as any);
               setSelectedId(item.id);
             } else {
-              // Recién creado desde ModalMagicNombre → agregar a allItems y routear
               handleAddMagic(subTab as MagicAddKey, item);
             }
           }}

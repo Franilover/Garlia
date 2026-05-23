@@ -2251,12 +2251,16 @@ function PanelListas({
     if (resolved) {
       setMobileTab(resolved);
       markVisited(resolved);
-      // Cerrar editor abierto al navegar desde el sidebar externo
-      setSelectedReino(null);    setSelectedCriatura(null);
-      setSelectedObjeto(null);   setSelectedPersonaje(null);
-      setSelectedHechizo(null);  setSelectedDon(null);
-      setSelectedRuna(null);     setSelectedNota(null);
-      setSelectedLugar(null);
+      // Solo cerrar overlays si navegamos a un tab de texto/navegación (no a listas),
+      // para no interrumpir la apertura de un overlay vía openItem.
+      const isTextTab = ["geo-magia", "historia", "magia", "capitulos", "letras"].includes(resolved);
+      if (isTextTab) {
+        setSelectedReino(null);    setSelectedCriatura(null);
+        setSelectedObjeto(null);   setSelectedPersonaje(null);
+        setSelectedHechizo(null);  setSelectedDon(null);
+        setSelectedRuna(null);     setSelectedNota(null);
+        setSelectedLugar(null);
+      }
     }
   }, [initialSubTab, markVisited]);
 
@@ -2286,8 +2290,10 @@ function PanelListas({
     if (!found || lastOpenItemRef.current === key) return;
     lastOpenItemRef.current = key;
 
-    markVisited(listaTab);
-    setMobileTab(listaTab);
+    // Guardar el tab actual como "prevMobileTab" para que al cerrar el overlay
+    // se restaure — si venimos desde "todo", vuelve a "todo"; si desde otro subtab, vuelve a ese.
+    // NO cambiamos mobileTab porque el overlay ya reemplaza la vista completa.
+    setPrevMobileTab(prev => prev ?? mobileTab);
     if (tabla === "personajes")      setSelectedPersonaje(found);
     else if (tabla === "criaturas")  setSelectedCriatura(found);
     else if (tabla === "items")      setSelectedObjeto(found);
