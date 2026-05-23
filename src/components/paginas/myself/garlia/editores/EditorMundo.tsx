@@ -1448,12 +1448,36 @@ function PanelListas({
   type ListaTab = "mundo" | "historia" | "magia" | "reinos" | "criaturas" | "objetos" | "personajes" | "hechizos" | "dones" | "runas" | "notas" | "grupos" | "lugares" | "magia-objetos" | "mundo-personajes" | "geo-magia" | "todo" | "capitulos" | "letras";
   const VALID_LISTA_TABS: ListaTab[] = ["mundo", "historia", "magia", "reinos", "criaturas", "objetos", "personajes", "hechizos", "dones", "runas", "notas", "grupos", "lugares", "magia-objetos", "mundo-personajes", "geo-magia", "todo", "capitulos", "letras"];
 
-  const [mobileTab, setMobileTab] = useState<ListaTab>(() => {
-    // initialSubTab puede ser un UnifiedTab ("mundo","historia","magia","listas") o un ListaTab directo
-    const mapped: Record<string, ListaTab> = { mundo: "geo-magia", historia: "historia", magia: "geo-magia", listas: "todo", notas: "todo", lugares: "todo", "geo-magia": "geo-magia" };
-    const resolved = mapped[initialSubTab ?? ""] ?? (VALID_LISTA_TABS.includes(initialSubTab as ListaTab) ? initialSubTab as ListaTab : "geo-magia");
-    return resolved;
+  const LS_TAB_KEY  = "garlia-panel-tab";
+  const LS_ITEM_KEY = "garlia-panel-item";
+
+  const [mobileTab, setMobileTabRaw] = useState<ListaTab>(() => {
+    // initialSubTab (navegación externa) tiene prioridad sobre localStorage
+    if (initialSubTab) {
+      const mapped: Record<string, ListaTab> = { mundo: "geo-magia", historia: "historia", magia: "geo-magia", listas: "todo", notas: "todo", lugares: "todo", "geo-magia": "geo-magia" };
+      return mapped[initialSubTab] ?? (VALID_LISTA_TABS.includes(initialSubTab as ListaTab) ? initialSubTab as ListaTab : "geo-magia");
+    }
+    // Intentar restaurar desde localStorage
+    try {
+      const saved = localStorage.getItem(LS_TAB_KEY) as ListaTab | null;
+      if (saved && VALID_LISTA_TABS.includes(saved)) return saved;
+    } catch {}
+    return "geo-magia";
   });
+
+  // Wrapper que persiste el tab activo
+  const setMobileTab = useCallback((tab: ListaTab) => {
+    setMobileTabRaw(tab);
+    try { localStorage.setItem(LS_TAB_KEY, tab); } catch {}
+  }, []);
+
+  // Persistir item abierto
+  const persistOpenItem = useCallback((tabla: string, id: string) => {
+    try { localStorage.setItem(LS_ITEM_KEY, JSON.stringify({ tabla, id })); } catch {}
+  }, []);
+  const clearPersistedItem = useCallback(() => {
+    try { localStorage.removeItem(LS_ITEM_KEY); } catch {}
+  }, []);
 
   // Sincronizar mobileTab cuando el buscador/sidebar navega a un subtab diferente
   // y cerrar el overlay abierto para que el contenido sea visible de inmediato
@@ -1544,8 +1568,9 @@ function PanelListas({
     setSelectedObjeto(null); setSelectedPersonaje(null);
     setSelectedHechizo(null); setSelectedDon(null); setSelectedRuna(null);
     setSelectedNota(null); setSelectedLugar(null);
+    clearPersistedItem();
     if (prevMobileTab) { setMobileTab(prevMobileTab); setPrevMobileTab(null); }
-  }, [prevMobileTab]);
+  }, [prevMobileTab, clearPersistedItem]);
 
   useEffect(() => {
     onOverlayChange?.(!!overlay, clearAllOverlays);
@@ -1581,6 +1606,60 @@ function PanelListas({
   // Reacciona a cambios de initialItemId (buscador) y a la carga inicial de datos
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialItemId, hechizos.length, dones.length, runas.length]);
+
+  // Restaurar el item abierto desde localStorage al recargar la página
+  const restoredItemRef = useRef(false);
+  useEffect(() => {
+    if (restoredItemRef.current) return;
+    // No restaurar si hay navegación externa activa
+    if (initialItemId || initialSubTab) return;
+    try {
+      const raw = localStorage.getItem(LS_ITEM_KEY);
+      if (!raw) return;
+      const { tabla, id } = JSON.parse(raw) as { tabla: string; id: string };
+
+      const tablaToListaTab: Record<string, ListaTab> = {
+        personajes: "personajes", criaturas: "criaturas",
+        items: "objetos", reinos: "reinos",
+        lugares: "lugares", hechizos: "hechizos",
+        dones: "dones", runas: "runas", notas: "notas",
+      };
+      const listaTab = tablaToListaTab[tabla];
+      if (!listaTab) return;
+
+      let found: any = null;
+      if      (tabla === "personajes") found = personajes.find(x => x.id === id);
+      else if (tabla === "criaturas")  found = criaturas.find(x => x.id === id);
+      else if (tabla === "items")      found = objetos.find(x => x.id === id);
+      else if (tabla === "reinos")     found = reinos.find(x => x.id === id);
+      else if (tabla === "lugares")    found = lugares.find(x => x.id === id);
+      else if (tabla === "hechizos")   found = hechizos.find(x => x.id === id);
+      else if (tabla === "dones")      found = dones.find(x => x.id === id);
+      else if (tabla === "runas")      found = runas.find(x => x.id === id);
+
+      if (!found) return; // datos aún no cargados, se reintentará
+
+      restoredItemRef.current = true;
+      markVisited(listaTab);
+
+      if      (tabla === "personajes") setSelectedPersonaje(found);
+      else if (tabla === "criaturas")  setSelectedCriatura(found);
+      else if (tabla === "items")      setSelectedObjeto(found);
+      else if (tabla === "reinos")     setSelectedReino(found);
+      else if (tabla === "hechizos")   setSelectedHechizo(found);
+      else if (tabla === "dones")      setSelectedDon(found);
+      else if (tabla === "runas")      setSelectedRuna(found);
+      else if (tabla === "lugares") {
+        // Para lugares, buscar datos completos en Supabase si es necesario
+        supabase.from("lugares").select("*").eq("id", id).single().then(({ data }) => {
+          setSelectedLugar((data ?? found) as Lugar);
+        }).catch(() => setSelectedLugar(found as Lugar));
+        return;
+      }
+    } catch {}
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [personajes.length, criaturas.length, objetos.length, reinos.length,
+      lugares.length, hechizos.length, dones.length, runas.length]);
 
   // Leer localStorage para auto-crear un nuevo lugar al navegar desde el menú Add
   useEffect(() => {
@@ -1630,6 +1709,16 @@ function PanelListas({
     return () => window.removeEventListener("estudio-notas-action", check);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // ── Wrappers que persisten el item abierto en localStorage ──────────────────
+  const selectReino    = useCallback((r: Reino | null)              => { setSelectedReino(r);     r    ? persistOpenItem("reinos",     r.id)    : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
+  const selectCriatura = useCallback((c: any | null)                => { setSelectedCriatura(c);  c    ? persistOpenItem("criaturas",  c.id)    : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
+  const selectObjeto   = useCallback((o: any | null)                => { setSelectedObjeto(o);    o    ? persistOpenItem("items",      o.id)    : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
+  const selectLugar    = useCallback((l: Lugar | null)              => { setSelectedLugar(l);     l    ? persistOpenItem("lugares",    l.id)    : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
+  const selectPersonaje= useCallback((p: Personaje | null)          => { setSelectedPersonaje(p); p    ? persistOpenItem("personajes", p.id)    : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
+  const selectHechizo  = useCallback((h: EntidadMagica | null)      => { setSelectedHechizo(h);   h    ? persistOpenItem("hechizos",   h.id)    : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
+  const selectDon      = useCallback((d: EntidadMagica | null)      => { setSelectedDon(d);       d    ? persistOpenItem("dones",      d.id)    : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
+  const selectRuna     = useCallback((r: Runa | null)               => { setSelectedRuna(r);      r    ? persistOpenItem("runas",      r.id)    : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
 
   // ── search state unified per active tab ──
 
@@ -2028,7 +2117,7 @@ function PanelListas({
                 {loadingReinos ? <div className="flex justify-center py-3"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
                   : reinos.length === 0 ? <p className="text-[9px] text-primary/20 italic px-1 pb-2">Sin reinos aún</p>
                   : <div className="flex flex-wrap gap-1.5">{reinos.map(r => (
-                      <button key={r.id} onClick={() => { setPrevMobileTab(mobileTab); markVisited("reinos"); setMobileTab("reinos"); setSelectedReino(r); }} type="button" className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02]" style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
+                      <button key={r.id} onClick={() => { setPrevMobileTab(mobileTab); markVisited("reinos"); setMobileTab("reinos"); selectReino(r); }} type="button" className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02]" style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
                         <div className="w-6 h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center">{r.mapa_url ? <img src={r.mapa_url} alt={r.nombre} className="w-full h-full object-cover" /> : <Map size={10} className="text-primary/25" />}</div>
                         <span className="text-[11px] font-bold text-primary/70 truncate max-w-[90px]">{r.nombre}</span>
                       </button>
@@ -2041,7 +2130,7 @@ function PanelListas({
                 {loadingCriaturas ? <div className="flex justify-center py-3"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
                   : criaturas.length === 0 ? <p className="text-[9px] text-primary/20 italic px-1 pb-2">Sin criaturas aún</p>
                   : <div className="flex flex-wrap gap-1.5">{criaturas.map(c => (
-                      <button key={c.id} onClick={() => { setPrevMobileTab(mobileTab); markVisited("criaturas"); setMobileTab("criaturas"); setSelectedCriatura(c); }} type="button" className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02]" style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
+                      <button key={c.id} onClick={() => { setPrevMobileTab(mobileTab); markVisited("criaturas"); setMobileTab("criaturas"); selectCriatura(c); }} type="button" className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02]" style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
                         <div className="w-6 h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center">{c.imagen_url ? <img src={c.imagen_url} alt={c.nombre} className="w-full h-full object-cover" /> : <Bug size={10} className="text-primary/25" />}</div>
                         <span className="text-[11px] font-bold text-primary/70 truncate max-w-[90px]">{c.nombre}</span>
                       </button>
@@ -2054,7 +2143,7 @@ function PanelListas({
                 {loadingPersonajes ? <div className="flex justify-center py-3"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
                   : personajes.length === 0 ? <p className="text-[9px] text-primary/20 italic px-1 pb-2">Sin personajes aún</p>
                   : <div className="flex flex-wrap gap-1.5">{personajes.map(p => (
-                      <button key={p.id} onClick={() => { setPrevMobileTab(mobileTab); markVisited("personajes"); setMobileTab("personajes"); setSelectedPersonaje(p); }} type="button" className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02]" style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
+                      <button key={p.id} onClick={() => { setPrevMobileTab(mobileTab); markVisited("personajes"); setMobileTab("personajes"); selectPersonaje(p); }} type="button" className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02]" style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
                         <div className="w-6 h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center">{p.img_url ? <img src={p.img_url} alt={p.nombre} className="w-full h-full object-cover" /> : <UserCircle2 size={10} className="text-primary/25" />}</div>
                         <span className="text-[11px] font-bold text-primary/70 truncate max-w-[90px]">{p.nombre}</span>
                       </button>
@@ -2067,7 +2156,7 @@ function PanelListas({
                 {loadingDones ? <div className="flex justify-center py-3"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
                   : dones.length === 0 ? <p className="text-[9px] text-primary/20 italic px-1 pb-2">Sin dones aún</p>
                   : <div className="flex flex-wrap gap-1.5">{dones.map(d => (
-                      <button key={d.id} onClick={() => { setPrevMobileTab(mobileTab); markVisited("dones"); setMobileTab("dones"); setSelectedDon(d); }} type="button" className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02]" style={{ background: "color-mix(in srgb, var(--accent) 4%, transparent)", borderColor: "color-mix(in srgb, var(--accent) 13%, transparent)" }}>
+                      <button key={d.id} onClick={() => { setPrevMobileTab(mobileTab); markVisited("dones"); setMobileTab("dones"); selectDon(d); }} type="button" className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02]" style={{ background: "color-mix(in srgb, var(--accent) 4%, transparent)", borderColor: "color-mix(in srgb, var(--accent) 13%, transparent)" }}>
                         <div className="w-6 h-6 rounded-lg border shrink-0 flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--accent) 8%, transparent)", borderColor: "color-mix(in srgb, var(--accent) 18%, transparent)" }}><Star size={10} style={{ color: "color-mix(in srgb, var(--accent) 65%, transparent)" }} /></div>
                         <span className="text-[11px] font-bold truncate max-w-[90px]" style={{ color: "color-mix(in srgb, var(--accent) 75%, var(--primary))" }}>{d.nombre}</span>
                       </button>
@@ -2080,7 +2169,7 @@ function PanelListas({
                 {loadingHechizos ? <div className="flex justify-center py-3"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
                   : hechizos.length === 0 ? <p className="text-[9px] text-primary/20 italic px-1 pb-2">Sin hechizos aún</p>
                   : <div className="flex flex-wrap gap-1.5">{hechizos.map(h => (
-                      <button key={h.id} onClick={() => { setPrevMobileTab(mobileTab); markVisited("hechizos"); setMobileTab("hechizos"); setSelectedHechizo(h); }} type="button" className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02]" style={{ background: "color-mix(in srgb, var(--accent) 5%, transparent)", borderColor: "color-mix(in srgb, var(--accent) 15%, transparent)" }}>
+                      <button key={h.id} onClick={() => { setPrevMobileTab(mobileTab); markVisited("hechizos"); setMobileTab("hechizos"); selectHechizo(h); }} type="button" className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02]" style={{ background: "color-mix(in srgb, var(--accent) 5%, transparent)", borderColor: "color-mix(in srgb, var(--accent) 15%, transparent)" }}>
                         <div className="w-6 h-6 rounded-lg border shrink-0 flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--accent) 10%, transparent)", borderColor: "color-mix(in srgb, var(--accent) 20%, transparent)" }}><Sparkles size={10} style={{ color: "color-mix(in srgb, var(--accent) 70%, transparent)" }} /></div>
                         <span className="text-[11px] font-bold truncate max-w-[90px]" style={{ color: "color-mix(in srgb, var(--accent) 80%, var(--primary))" }}>{h.nombre}</span>
                       </button>
@@ -2093,7 +2182,7 @@ function PanelListas({
                 {loadingRunas ? <div className="flex justify-center py-3"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
                   : runas.length === 0 ? <p className="text-[9px] text-primary/20 italic px-1 pb-2">Sin runas aún</p>
                   : <div className="flex flex-wrap gap-1.5">{runas.map(r => (
-                      <button key={r.id} onClick={() => { setPrevMobileTab(mobileTab); markVisited("runas"); setMobileTab("runas"); setSelectedRuna(r); }} type="button" className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02]" style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
+                      <button key={r.id} onClick={() => { setPrevMobileTab(mobileTab); markVisited("runas"); setMobileTab("runas"); selectRuna(r); }} type="button" className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02]" style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
                         <div className="w-6 h-6 rounded-lg border overflow-hidden shrink-0 flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--primary) 6%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 14%, transparent)" }}>{r.imagen_url ? <img src={r.imagen_url} alt={r.nombre} className="w-full h-full object-cover" /> : <ScrollText size={10} className="text-primary/40" />}</div>
                         <span className="text-[11px] font-bold text-primary/70 truncate max-w-[90px]">{r.nombre}</span>
                       </button>
@@ -2106,7 +2195,7 @@ function PanelListas({
                 {loadingObjetos ? <div className="flex justify-center py-3"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
                   : objetos.length === 0 ? <p className="text-[9px] text-primary/20 italic px-1 pb-2">Sin objetos aún</p>
                   : <div className="flex flex-wrap gap-1.5">{objetos.map(o => (
-                      <button key={o.id} onClick={() => { setPrevMobileTab(mobileTab); markVisited("objetos"); setMobileTab("objetos"); setSelectedObjeto(o); }} type="button" className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02]" style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
+                      <button key={o.id} onClick={() => { setPrevMobileTab(mobileTab); markVisited("objetos"); setMobileTab("objetos"); selectObjeto(o); }} type="button" className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02]" style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
                         <div className="w-6 h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center">{o.imagen_url ? <img src={o.imagen_url} alt={o.nombre} className="w-full h-full object-cover" /> : <Package size={10} className="text-primary/25" />}</div>
                         <span className="text-[11px] font-bold text-primary/70 truncate max-w-[90px]">{o.nombre}</span>
                       </button>
@@ -2123,9 +2212,9 @@ function PanelListas({
                         setPrevMobileTab(mobileTab);
                         try {
                           const { data } = await supabase.from("lugares").select("*").eq("id", l.id).single();
-                          if (data) { setSelectedLugar(data as Lugar); return; }
+                          if (data) { selectLugar(data as Lugar); return; }
                         } catch {}
-                        setSelectedLugar(l as Lugar);
+                        selectLugar(l as Lugar);
                       }} type="button" className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02]" style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
                         <div className="w-6 h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center">{l.imagen_url ? <img src={l.imagen_url} alt={l.nombre} className="w-full h-full object-cover" /> : <MapPin size={10} className="text-primary/25" />}</div>
                         <span className="text-[11px] font-bold text-primary/70 truncate max-w-[90px]">{l.nombre}</span>
@@ -2181,7 +2270,7 @@ function PanelListas({
                     ? <p className="text-[9px] text-primary/20 italic px-1 pb-2">Sin reinos aún</p>
                     : <div className="flex flex-wrap gap-1.5">
                         {reinos.map(r => (
-                          <button key={r.id} onClick={() => setSelectedReino(r)} type="button"
+                          <button key={r.id} onClick={() => selectReino(r)} type="button"
                             className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02] cursor-pointer"
                             style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
                             <div className="w-6 h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center">
@@ -2206,7 +2295,7 @@ function PanelListas({
                     ? <p className="text-[9px] text-primary/20 italic px-1 pb-2">Sin criaturas aún</p>
                     : <div className="flex flex-wrap gap-1.5">
                         {criaturas.map(c => (
-                          <button key={c.id} onClick={() => setSelectedCriatura(c)} type="button"
+                          <button key={c.id} onClick={() => selectCriatura(c)} type="button"
                             className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02] cursor-pointer"
                             style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
                             <div className="w-6 h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center">
@@ -2231,7 +2320,7 @@ function PanelListas({
                     ? <p className="text-[9px] text-primary/20 italic px-1 pb-2">Sin personajes aún</p>
                     : <div className="flex flex-wrap gap-1.5">
                         {personajes.map(p => (
-                          <button key={p.id} onClick={() => setSelectedPersonaje(p)} type="button"
+                          <button key={p.id} onClick={() => selectPersonaje(p)} type="button"
                             className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02] cursor-pointer"
                             style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
                             <div className="w-6 h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center">
@@ -2261,7 +2350,7 @@ function PanelListas({
                     ? <p className="text-[9px] text-primary/20 italic px-1 pb-2">Sin dones aún</p>
                     : <div className="flex flex-wrap gap-1.5">
                         {dones.map(d => (
-                          <button key={d.id} onClick={() => setSelectedDon(d)} type="button"
+                          <button key={d.id} onClick={() => selectDon(d)} type="button"
                             className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02] cursor-pointer"
                             style={{ background: "color-mix(in srgb, var(--accent) 4%, transparent)", borderColor: "color-mix(in srgb, var(--accent) 13%, transparent)" }}>
                             <div className="w-6 h-6 rounded-lg border shrink-0 flex items-center justify-center"
@@ -2287,7 +2376,7 @@ function PanelListas({
                     ? <p className="text-[9px] text-primary/20 italic px-1 pb-2">Sin hechizos aún</p>
                     : <div className="flex flex-wrap gap-1.5">
                         {hechizos.map(h => (
-                          <button key={h.id} onClick={() => setSelectedHechizo(h)} type="button"
+                          <button key={h.id} onClick={() => selectHechizo(h)} type="button"
                             className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02] cursor-pointer"
                             style={{ background: "color-mix(in srgb, var(--accent) 5%, transparent)", borderColor: "color-mix(in srgb, var(--accent) 15%, transparent)" }}>
                             <div className="w-6 h-6 rounded-lg border shrink-0 flex items-center justify-center"
@@ -2313,7 +2402,7 @@ function PanelListas({
                     ? <p className="text-[9px] text-primary/20 italic px-1 pb-2">Sin runas aún</p>
                     : <div className="flex flex-wrap gap-1.5">
                         {runas.map(r => (
-                          <button key={r.id} onClick={() => setSelectedRuna(r)} type="button"
+                          <button key={r.id} onClick={() => selectRuna(r)} type="button"
                             className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02] cursor-pointer"
                             style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
                             <div className="w-6 h-6 rounded-lg border overflow-hidden shrink-0 flex items-center justify-center"
@@ -2341,7 +2430,7 @@ function PanelListas({
                     ? <p className="text-[9px] text-primary/20 italic px-1 pb-2">Sin objetos aún</p>
                     : <div className="flex flex-wrap gap-1.5">
                         {objetos.map(o => (
-                          <button key={o.id} onClick={() => setSelectedObjeto(o)} type="button"
+                          <button key={o.id} onClick={() => selectObjeto(o)} type="button"
                             className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02] cursor-pointer"
                             style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
                             <div className="w-6 h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center">
@@ -2395,7 +2484,7 @@ function PanelListas({
               : filteredR.length === 0
                 ? <p className="text-[9px] text-primary/20 uppercase tracking-widest text-center py-10 italic">{searchR ? "Sin resultados" : "Sin reinos aún"}</p>
                 : filteredR.map(r => (
-                  <button key={r.id} onClick={() => setSelectedReino(r)} type="button"
+                  <button key={r.id} onClick={() => selectReino(r)} type="button"
                     className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02] cursor-pointer"
                     style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
                     <div className="w-6 h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center">
@@ -2412,7 +2501,7 @@ function PanelListas({
               : filteredC.length === 0
                 ? <p className="text-[9px] text-primary/20 uppercase tracking-widest text-center py-10 italic">{searchC ? "Sin resultados" : "Sin criaturas aún"}</p>
                 : filteredC.map(c => (
-                  <button key={c.id} onClick={() => setSelectedCriatura(c)} type="button"
+                  <button key={c.id} onClick={() => selectCriatura(c)} type="button"
                     className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02] cursor-pointer"
                     style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
                     <div className="w-6 h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center">
@@ -2429,7 +2518,7 @@ function PanelListas({
               : filteredO.length === 0
                 ? <p className="text-[9px] text-primary/20 uppercase tracking-widest text-center py-10 italic">{searchO ? "Sin resultados" : "Sin objetos aún"}</p>
                 : filteredO.map(o => (
-                  <button key={o.id} onClick={() => setSelectedObjeto(o)} type="button"
+                  <button key={o.id} onClick={() => selectObjeto(o)} type="button"
                     className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02] cursor-pointer"
                     style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
                     <div className="w-6 h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center">
@@ -2451,9 +2540,9 @@ function PanelListas({
                   <button key={l.id} onClick={async () => {
                     try {
                       const { data } = await supabase.from("lugares").select("*").eq("id", l.id).single();
-                      if (data) { setSelectedLugar(data as Lugar); return; }
+                      if (data) { selectLugar(data as Lugar); return; }
                     } catch {}
-                    setSelectedLugar(l as Lugar);
+                    selectLugar(l as Lugar);
                   }} type="button"
                     className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02] cursor-pointer"
                     style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
@@ -2471,7 +2560,7 @@ function PanelListas({
               : filteredP.length === 0
                 ? <p className="text-[9px] text-primary/20 uppercase tracking-widest text-center py-10 italic">{searchP ? "Sin resultados" : "Sin personajes aún"}</p>
                 : filteredP.map(p => (
-                  <button key={p.id} onClick={() => setSelectedPersonaje(p)} type="button"
+                  <button key={p.id} onClick={() => selectPersonaje(p)} type="button"
                     className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02] cursor-pointer"
                     style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
                     <div className="w-6 h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center">
@@ -2488,7 +2577,7 @@ function PanelListas({
               : filteredH.length === 0
                 ? <p className="text-[9px] text-primary/20 uppercase tracking-widest text-center py-10 italic">{searchH ? "Sin resultados" : "Sin hechizos aún"}</p>
                 : filteredH.map(h => (
-                  <button key={h.id} onClick={() => setSelectedHechizo(h)} type="button"
+                  <button key={h.id} onClick={() => selectHechizo(h)} type="button"
                     className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02] cursor-pointer"
                     style={{ background: "color-mix(in srgb, var(--accent) 5%, transparent)", borderColor: "color-mix(in srgb, var(--accent) 15%, transparent)" }}>
                     <div className="w-6 h-6 rounded-lg border shrink-0 flex items-center justify-center"
@@ -2506,7 +2595,7 @@ function PanelListas({
               : filteredD.length === 0
                 ? <p className="text-[9px] text-primary/20 uppercase tracking-widest text-center py-10 italic">{searchD ? "Sin resultados" : "Sin dones aún"}</p>
                 : filteredD.map(d => (
-                  <button key={d.id} onClick={() => setSelectedDon(d)} type="button"
+                  <button key={d.id} onClick={() => selectDon(d)} type="button"
                     className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02] cursor-pointer"
                     style={{ background: "color-mix(in srgb, var(--accent) 4%, transparent)", borderColor: "color-mix(in srgb, var(--accent) 13%, transparent)" }}>
                     <div className="w-6 h-6 rounded-lg border shrink-0 flex items-center justify-center"
@@ -2524,7 +2613,7 @@ function PanelListas({
               : filteredRu.length === 0
                 ? <p className="text-[9px] text-primary/20 uppercase tracking-widest text-center py-10 italic">{searchRu ? "Sin resultados" : "Sin runas aún"}</p>
                 : filteredRu.map(r => (
-                  <button key={r.id} onClick={() => setSelectedRuna(r)} type="button"
+                  <button key={r.id} onClick={() => selectRuna(r)} type="button"
                     className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02] cursor-pointer"
                     style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
                     <div className="w-6 h-6 rounded-lg border overflow-hidden shrink-0 flex items-center justify-center"
