@@ -4,7 +4,6 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { Plus, Loader2, Globe, WifiOff } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
-import { ModalBase } from "@/components/templates/EstudioTemplates";
 import {
   TAB_CONFIG, MUNDO_SECTIONS,
   type TabKey, type MundoSectionKey,
@@ -175,52 +174,32 @@ function useAllEntidades() {
   return { allItems, setAllItems, loadingAll, isOffline };
 }
 
-// ─── Modal nueva entrada ──────────────────────────────────────────────────────
-function ModalNueva({ tab, onCreated, onClose }: {
-  tab: Exclude<TabKey, "mundo">;
-  onCreated: (item: any) => void;
-  onClose: () => void;
-}) {
-  const [nombre,  setNombre]  = useState("");
-  const [loading, setLoading] = useState(false);
-
-  const create = async () => {
-    if (!nombre.trim()) return;
-    setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from(TAB_CONFIG[tab].tabla).insert([{ nombre: nombre.trim() }]).select().single();
-      if (error) throw error;
-      onCreated(data);
-      onClose();
-    } catch { setLoading(false); }
+// ─── createAndOpen: insert directo sin modal ─────────────────────────────────
+// Crea la fila en Supabase con nombre placeholder y abre el editor de inmediato.
+async function createAndOpen(
+  tab: Exclude<TabKey, "mundo">,
+  onCreated: (item: any, tab: Exclude<TabKey, "mundo">) => void,
+) {
+  const placeholders: Partial<Record<Exclude<TabKey, "mundo">, string>> = {
+    personajes: "Nuevo personaje",
+    criaturas:  "Nueva criatura",
+    items:      "Nuevo objeto",
+    reinos:     "Nuevo reino",
   };
-
-  return (
-    <ModalBase onClose={onClose}>
-      <h3 className="text-xs font-black uppercase tracking-[0.3em] text-primary/50 mb-4">
-        Nueva entrada · {TAB_CONFIG[tab].label}
-      </h3>
-      <input
-        autoFocus value={nombre}
-        onChange={e => setNombre(e.target.value)}
-        onKeyDown={e => e.key === "Enter" && create()}
-        placeholder="Nombre…"
-        className="w-full bg-input-bg text-input-text border border-primary/15 rounded-xl px-3 py-2.5 text-sm font-medium outline-none focus:border-primary/40 transition-colors mb-4"
-      />
-      <div className="flex gap-2">
-        <button onClick={onClose}
-          className="flex-1 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-primary/10 text-primary/30 hover:text-primary hover:border-primary/20 transition-all">
-          Cancelar
-        </button>
-        <button onClick={create} disabled={loading || !nombre.trim()}
-          className="flex-1 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary/10 border border-primary/20 text-primary hover:bg-primary/20 transition-all disabled:opacity-40 flex items-center justify-center gap-1.5">
-          {loading ? <Loader2 size={11} className="animate-spin" /> : <Plus size={11} />} Crear
-        </button>
-      </div>
-    </ModalBase>
-  );
+  const nombre = placeholders[tab] ?? "Nueva entrada";
+  try {
+    const { data, error } = await supabase
+      .from(TAB_CONFIG[tab].tabla)
+      .insert([{ nombre }])
+      .select()
+      .single();
+    if (error) throw error;
+    onCreated(data, tab);
+  } catch (e) {
+    console.error("[createAndOpen] error:", e);
+  }
 }
+
 
 // ─── Persistencia de sesión ───────────────────────────────────────────────────
 const STORAGE_KEY = "editorEntidades:session";
@@ -258,7 +237,6 @@ export default function EditorEntidades() {
 
   const [tab,          setTab]          = useState<TabKey>(session.current.tab);
   const [selectedId,   setSelectedId]   = useState<string | null>(session.current.selectedId);
-  const [showNueva,    setShowNueva]    = useState<Exclude<TabKey, "mundo"> | null>(null);
   const [showAcontecimiento, setShowAcontecimiento] = useState(false);
   const [showNuevoGrupo, setShowNuevoGrupo] = useState(false);
   const [mundoSection, setMundoSection] = useState<MundoSectionKey>(session.current.mundoSection);
@@ -457,9 +435,7 @@ export default function EditorEntidades() {
           onBack={hasOverlay ? () => { overlayCloseFnRef.current?.(); } : undefined}
           onSelect={handleSelect}
           onAdd={(chosenTab) => {
-            // No cambiamos el tab todavía — handleCreated routea correctamente
-            // una vez que el item existe.
-            setShowNueva(chosenTab as Exclude<TabKey, "mundo">);
+            createAndOpen(chosenTab as Exclude<TabKey, "mundo">, handleCreated);
           }}
           onAddMagic={(key: MagicAddKey) => {
             if (key === "acontecimiento") {
@@ -639,15 +615,6 @@ export default function EditorEntidades() {
           </WikilinkProvider>
         </div>
       </div>
-
-      {/* Modal nueva entrada */}
-      {showNueva && (
-        <ModalNueva
-          tab={showNueva}
-          onCreated={(item) => handleCreated(item, showNueva)}
-          onClose={() => setShowNueva(null)}
-        />
-      )}
 
       {/* Modal acontecimiento */}
       {showAcontecimiento && (
