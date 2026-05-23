@@ -2120,7 +2120,7 @@ function PanelListas({
                   : lugares.length === 0 ? <p className="text-[9px] text-primary/20 italic px-1 pb-2">Sin lugares aún</p>
                   : <div className="flex flex-wrap gap-1.5">{lugares.map(l => (
                       <button key={l.id} onClick={async () => {
-                        setPrevMobileTab(mobileTab); markVisited("lugares"); setMobileTab("lugares");
+                        setPrevMobileTab(mobileTab);
                         try {
                           const { data } = await supabase.from("lugares").select("*").eq("id", l.id).single();
                           if (data) { setSelectedLugar(data as Lugar); return; }
@@ -2441,6 +2441,29 @@ function PanelListas({
             )}
 
 
+
+            {/* Lugares */}
+            {mobileTab === "lugares" && (loadingLugares
+              ? <div className="flex justify-center py-10"><Loader2 size={16} className="animate-spin text-primary/20" /></div>
+              : filteredL.length === 0
+                ? <p className="text-[9px] text-primary/20 uppercase tracking-widest text-center py-10 italic">{searchL ? "Sin resultados" : "Sin lugares aún"}</p>
+                : filteredL.map(l => (
+                  <button key={l.id} onClick={async () => {
+                    try {
+                      const { data } = await supabase.from("lugares").select("*").eq("id", l.id).single();
+                      if (data) { setSelectedLugar(data as Lugar); return; }
+                    } catch {}
+                    setSelectedLugar(l as Lugar);
+                  }} type="button"
+                    className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02] cursor-pointer"
+                    style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
+                    <div className="w-6 h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center">
+                      {l.imagen_url ? <img src={l.imagen_url} alt={l.nombre} className="w-full h-full object-cover" /> : <MapPin size={10} className="text-primary/25" />}
+                    </div>
+                    <span className="text-[11px] font-bold text-primary/70 truncate max-w-[90px]">{l.nombre}</span>
+                  </button>
+                ))
+            )}
 
             {/* Personajes */}
             {mobileTab === "personajes" && (loadingPersonajes
