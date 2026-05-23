@@ -300,9 +300,11 @@ export default function EditorEntidades() {
   const handleSelect = useCallback((item: any, itemTab: Exclude<TabKey, "mundo">) => {
     const tabla = MUNDO_TABLAS[itemTab];
     if (tabla) {
-      // Abrir dentro del EditorMundo para que la barra lateral sea siempre visible
+      // Abrir dentro del EditorMundo para que la barra lateral sea siempre visible.
+      // No llamamos setSelectedId aquí: openItem es la fuente de verdad para qué
+      // entidad abrir, y sobreescribir selectedId rompía la navegación desde
+      // onSelectPersonaje / onSelectLugar dentro del EditorReino.
       setTab("mundo");
-      setSelectedId(item.id);
       setMundoSection("geografia");
       setRequestedSubTab(itemTab);
       setOpenItem({ tabla, id: item.id });
@@ -367,8 +369,9 @@ export default function EditorEntidades() {
     // y al volver del overlay el usuario vea todas las listas, no solo una.
     const tabla = MUNDO_TABLAS[t];
     if (tabla) {
+      // Mismo fix que handleSelect: no sobreescribir selectedId cuando openItem
+      // ya lleva la información del item a abrir dentro de EditorMundo.
       setTab("mundo");
-      setSelectedId(item.id);
       setMundoSection("geografia");
       setRequestedSubTab("listas");
       setOpenItem({ tabla, id: item.id });
