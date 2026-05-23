@@ -735,48 +735,7 @@ function MapaPanel({
   );
 }
 
-// ─── Definición de secciones ─────────────────────────────────────────────────
-
-type LoreKey = "historia_cultura" | "politica_economia" | "personajes" | "mapa";
-
-const LORE_SECTIONS: {
-  key: LoreKey;
-  label: string;
-  Icon: React.ElementType;
-  placeholder: string;
-  rows: number;
-}[] = [
-  {
-    key: "mapa",
-    label: "Mapa & Puntos",
-    Icon: Map,
-    placeholder: "",
-    rows: 0,
-  },
-  {
-    key: "historia_cultura",
-    label: "Historia & Cultura",
-    Icon: Globe,
-    placeholder: "",
-    rows: 0,
-  },
-  {
-    key: "politica_economia",
-    label: "Política & Economía",
-    Icon: Users,
-    placeholder: "",
-    rows: 0,
-  },
-  {
-    key: "personajes",
-    label: "Personajes",
-    Icon: UserCircle2,
-    placeholder: "",
-    rows: 0,
-  },
-];
-
-// ─── Helpers para saber si historia tiene contenido ───────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function historiaHasContent(raw: string | undefined): boolean {
   if (!raw?.trim()) return false;
@@ -784,7 +743,19 @@ function historiaHasContent(raw: string | undefined): boolean {
   return events.some((e) => e.year.trim() || e.title.trim() || e.description.trim());
 }
 
-// ─── Componente principal ─────────────────────────────────────────────────────
+// ─── NAV config ───────────────────────────────────────────────────────────────
+
+type SectionId = "mapa" | "historia" | "cultura" | "politica" | "economia";
+
+const NAV_ITEMS: { id: SectionId; label: string; Icon: React.ElementType }[] = [
+  { id: "mapa",     label: "Mapa",     Icon: Map       },
+  { id: "historia", label: "Historia", Icon: Globe     },
+  { id: "cultura",  label: "Cultura",  Icon: Landmark  },
+  { id: "politica", label: "Política", Icon: Users     },
+  { id: "economia", label: "Economía", Icon: Coins     },
+];
+
+// ─── Componente principal — Triple columna con infinity scroll ────────────────
 
 export function LoreTab({
   form,
@@ -834,116 +805,106 @@ export function LoreTab({
   onDetallesArrayChange?: (d: Lugar[]) => void;
   MapaConPuntosComponent?: React.ComponentType<any>;
 }) {
-  const [activeKey, setActiveKey] = useState<LoreKey>("historia_cultura");
   const { onSnippetAction } = useWikilink();
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const sectionRefs = useRef<Record<SectionId, HTMLElement | null>>({
+    mapa: null, historia: null, cultura: null, politica: null, economia: null,
+  });
+  const [activeNav, setActiveNav] = useState<SectionId>("mapa");
 
-  const active = LORE_SECTIONS.find((s) => s.key === activeKey)!;
-
-  // Función para determinar si una sección tiene contenido
-  const sectionHasContent = (key: LoreKey): boolean => {
-    if (key === "personajes") return personajes.length > 0;
-    if (key === "mapa") return !!mapaUrl || detalles.length > 0;
-    if (key === "historia_cultura") return historiaHasContent((form as any).historia) || !!((form as any).cultura?.trim());
-    if (key === "politica_economia") return !!((form as any).politica?.trim()) || !!((form as any).economia?.trim());
-    const raw = (form as any)[key] as string | undefined;
-    return !!raw?.trim();
+  // Quick-jump: scroll suave hasta la sección
+  const jumpTo = (id: SectionId) => {
+    const el = sectionRefs.current[id];
+    if (!el || !scrollRef.current) return;
+    const containerTop = scrollRef.current.getBoundingClientRect().top;
+    const elTop = el.getBoundingClientRect().top;
+    scrollRef.current.scrollBy({ top: elTop - containerTop - 8, behavior: "smooth" });
+    setActiveNav(id);
   };
 
-  const sectionCount = (key: LoreKey): number => {
-    if (key === "personajes") return personajes.length;
-    if (key === "mapa") return detalles.length;
-    if (key === "historia_cultura") {
-      const events = decodeTimeline((form as any).historia ?? "");
-      return events.filter(e => e.year.trim() || e.title.trim()).length;
+  // Resalta el nav item según scroll
+  const handleScroll = () => {
+    const container = scrollRef.current;
+    if (!container) return;
+    const containerTop = container.getBoundingClientRect().top;
+    let current: SectionId = "mapa";
+    for (const { id } of NAV_ITEMS) {
+      const el = sectionRefs.current[id];
+      if (!el) continue;
+      const elTop = el.getBoundingClientRect().top - containerTop;
+      if (elTop <= 40) current = id;
     }
-    return 0;
+    setActiveNav(current);
   };
 
-  const TAB_SECTIONS: { key: LoreKey; label: string; Icon: React.ElementType }[] = [
-    { key: "mapa",              label: "Mapa",      Icon: Map },
-    { key: "historia_cultura",  label: "Historia",  Icon: Globe },
-    { key: "politica_economia", label: "Política",  Icon: Users },
-    { key: "personajes",        label: "Personajes", Icon: UserCircle2 },
-  ];
+  // ── Etiqueta de sección ───────────────────────────────────────────────────
+  const SectionHeader = ({ id, label, Icon }: { id: SectionId; label: string; Icon: React.ElementType }) => (
+    <header
+      id={`lore-section-${id}`}
+      ref={el => { sectionRefs.current[id] = el; }}
+      className="flex items-center gap-1.5 mb-2 select-none"
+    >
+      <Icon size={10} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
+      <span
+        className="text-[9px] font-black uppercase tracking-[0.22em]"
+        style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
+      >
+        {label}
+      </span>
+      <div
+        className="flex-1 h-px"
+        style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
+      />
+    </header>
+  );
 
   return (
-    <div className="flex flex-col h-full min-h-0">
+    <div className="flex h-full min-h-0 overflow-hidden">
 
-      {/* ── Barra de tabs horizontal ─────────────────────────────────────────── */}
-      <nav
-        className="shrink-0 flex items-stretch gap-0 border-b overflow-x-auto"
-        style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
+      {/* ── COLUMNA 1 — Navegador lateral (40px) ────────────────────────────── */}
+      <aside
+        className="shrink-0 w-10 flex flex-col items-center py-2 gap-1 border-r"
+        style={{ borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)" }}
       >
-        {TAB_SECTIONS.map(({ key, label, Icon }) => {
-          const isActive = key === activeKey;
-          const hasContent = sectionHasContent(key);
-          const count = sectionCount(key);
-
+        {NAV_ITEMS.map(({ id, label, Icon }) => {
+          const isActive = activeNav === id;
           return (
             <button
-              key={key}
-              type="button"
-              onClick={() => setActiveKey(key)}
-              className="relative flex items-center gap-1.5 px-3 py-2.5 text-[9px] font-black uppercase tracking-widest whitespace-nowrap transition-all"
-              style={
-                isActive
-                  ? {
-                      color: "var(--primary)",
-                      borderBottom: "2px solid var(--primary)",
-                      background: "color-mix(in srgb, var(--primary) 5%, transparent)",
-                    }
-                  : {
-                      color: "color-mix(in srgb, var(--primary) 35%, transparent)",
-                      borderBottom: "2px solid transparent",
-                    }
-              }
+              key={id}
+              title={label}
+              onClick={() => jumpTo(id)}
+              className="w-8 h-8 flex items-center justify-center rounded-lg transition-all"
+              style={isActive ? {
+                background: "color-mix(in srgb, var(--primary) 12%, transparent)",
+                color: "var(--primary)",
+              } : {
+                color: "color-mix(in srgb, var(--primary) 30%, transparent)",
+              }}
               onMouseEnter={e => {
-                if (!isActive) (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--primary) 65%, transparent)";
+                if (!isActive) (e.currentTarget as HTMLElement).style.color = "var(--primary)";
               }}
               onMouseLeave={e => {
-                if (!isActive) (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--primary) 35%, transparent)";
+                if (!isActive) (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--primary) 30%, transparent)";
               }}
             >
-              <Icon size={11} />
-              {label}
-              {/* Badge numérico */}
-              {count > 0 && (
-                <span
-                  className="text-[7px] font-black px-1 py-0.5 rounded-full min-w-[14px] text-center"
-                  style={{
-                    background: isActive
-                      ? "color-mix(in srgb, var(--primary) 15%, transparent)"
-                      : "color-mix(in srgb, var(--primary) 8%, transparent)",
-                    color: isActive
-                      ? "var(--primary)"
-                      : "color-mix(in srgb, var(--primary) 45%, transparent)",
-                  }}
-                >
-                  {count}
-                </span>
-              )}
-              {/* Dot — tiene contenido de texto */}
-              {hasContent && count === 0 && (
-                <span
-                  className="w-1 h-1 rounded-full"
-                  style={{
-                    background: isActive
-                      ? "var(--primary)"
-                      : "color-mix(in srgb, var(--primary) 30%, transparent)",
-                  }}
-                />
-              )}
+              <Icon size={13} />
             </button>
           );
         })}
-      </nav>
+      </aside>
 
-      {/* ── Panel editor ─────────────────────────────────────────────────────── */}
-      <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+      {/* ── COLUMNA 2 — Editor central (infinity scroll) ────────────────────── */}
+      <main
+        ref={scrollRef}
+        onScroll={handleScroll}
+        className="flex-1 min-w-0 overflow-y-auto"
+        style={{ scrollbarWidth: "none" }}
+      >
+        <div className="p-3 space-y-6">
 
-        {/* Contenido */}
-        <div className="flex-1 min-h-0 overflow-auto md:overflow-hidden">
-          {activeKey === "mapa" ? (
+          {/* SECCIÓN: MAPA */}
+          <section>
+            <SectionHeader id="mapa" label="Mapa & Puntos" Icon={Map} />
             <MapaPanel
               mapaUrl={mapaUrl}
               onMapaChange={onMapaChange}
@@ -963,159 +924,238 @@ export function LoreTab({
               setForm={setForm}
               onSnippetAction={onSnippetAction}
             />
-          ) : activeKey === "historia_cultura" ? (
-            <div className="flex flex-col md:flex-row h-full min-h-0 overflow-y-auto md:overflow-hidden">
-              {/* Columna izquierda — Historia (timeline) */}
-              <div
-                className="flex-1 min-w-0 flex flex-col overflow-hidden"
-                style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
-              >
-                <div className="shrink-0 flex items-center gap-1.5 px-3 py-2 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-                  <Globe size={9} style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }} />
-                  <span className="text-[8px] font-black uppercase tracking-widest text-primary/35">Historia</span>
-                </div>
-                <div className="flex-1 min-h-0 overflow-hidden">
-                  <TimelineEditor
-                    key="historia-timeline"
-                    value={(form as any).historia ?? ""}
-                    onChange={(v) => setForm((f) => ({ ...f, historia: v }))}
-                    reinos={reinos}
-                    filtroReinoId={filtroReinoId}
-                  />
-                </div>
-              </div>
-              {/* Columna derecha — Cultura */}
-              <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
-                <div className="shrink-0 flex items-center gap-1.5 px-3 py-2 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-                  <Landmark size={9} style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }} />
-                  <span className="text-[8px] font-black uppercase tracking-widest text-primary/35">Cultura</span>
-                </div>
-                <div className="flex-1 min-h-0 overflow-y-auto p-3">
-                  <MarkdownEditor
-                    key="cultura"
-                    value={(form as any).cultura ?? ""}
-                    onChange={(v) => setForm((f) => ({ ...f, cultura: v }))}
-                    placeholder="Tradiciones, religión, idioma, costumbres, arte…"
-                    rows={20}
-                    toolbar
-                    defaultMode="edit"
-                    onSnippetAction={onSnippetAction}
-                    entities={entities}
-                  />
-                </div>
-              </div>
-            </div>
-          ) : activeKey === "politica_economia" ? (
-            <div className="flex flex-col md:flex-row h-full min-h-0 overflow-y-auto md:overflow-hidden">
-              {/* Columna izquierda — Política */}
-              <div
-                className="flex-1 min-w-0 flex flex-col overflow-hidden"
-                style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
-              >
-                <div className="shrink-0 flex items-center gap-1.5 px-3 py-2 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-                  <Users size={9} style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }} />
-                  <span className="text-[8px] font-black uppercase tracking-widest text-primary/35">Política</span>
-                </div>
-                <div className="flex-1 min-h-0 overflow-y-auto p-3">
-                  <MarkdownEditor
-                    key="politica"
-                    value={(form as any).politica ?? ""}
-                    onChange={(v) => setForm((f) => ({ ...f, politica: v }))}
-                    placeholder="Sistema de gobierno, facciones, líderes, leyes…"
-                    rows={20}
-                    toolbar
-                    defaultMode="edit"
-                    onSnippetAction={onSnippetAction}
-                    entities={entities}
-                  />
-                </div>
-              </div>
-              {/* Columna derecha — Economía */}
-              <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
-                <div className="shrink-0 flex items-center gap-1.5 px-3 py-2 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-                  <Coins size={9} style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }} />
-                  <span className="text-[8px] font-black uppercase tracking-widest text-primary/35">Economía</span>
-                </div>
-                <div className="flex-1 min-h-0 overflow-y-auto p-3">
-                  <MarkdownEditor
-                    key="economia"
-                    value={(form as any).economia ?? ""}
-                    onChange={(v) => setForm((f) => ({ ...f, economia: v }))}
-                    placeholder="Recursos, comercio, moneda, riqueza…"
-                    rows={20}
-                    toolbar
-                    defaultMode="edit"
-                    onSnippetAction={onSnippetAction}
-                    entities={entities}
-                  />
-                </div>
-              </div>
-            </div>
-          ) : activeKey === "personajes" ? (
-            <div className="p-4 space-y-2">
-              {loadingPersonajes ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 size={16} className="animate-spin text-primary/20" />
-                </div>
-              ) : personajes.length === 0 ? (
-                <div className="flex flex-col items-center gap-2 py-12 text-primary/20">
-                  <UserCircle2 size={28} strokeWidth={1} />
-                  <p className="text-[9px] font-black uppercase tracking-widest">Sin personajes en este reino</p>
-                </div>
-              ) : (
-                personajes.map(p => (
-                  <button
-                    key={p.id}
-                    onClick={() => onSelectPersonaje?.(p)}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all group"
-                    style={{
-                      background: "color-mix(in srgb, var(--primary) 3%, transparent)",
-                      border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
-                    }}
-                    onMouseEnter={e => {
-                      (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 7%, transparent)";
-                      (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 18%, transparent)";
-                    }}
-                    onMouseLeave={e => {
-                      (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 3%, transparent)";
-                      (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 8%, transparent)";
-                    }}
-                  >
-                    <div className="shrink-0 w-9 h-9 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
-                      {p.img_url
-                        ? <img src={p.img_url} alt={p.nombre} className="w-full h-full object-cover" />
-                        : <UserCircle2 size={14} className="text-primary/20" />}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[12px] font-bold text-primary/80 truncate group-hover:text-primary transition-colors">{p.nombre}</p>
-                      {(p.especie || p.sobre) && (
-                        <p className="text-[9px] text-primary/35 truncate mt-0.5">
-                          {[p.especie, p.sobre?.slice(0, 50)].filter(Boolean).join(" · ")}
-                        </p>
-                      )}
-                    </div>
-                    <ChevronRight size={11} className="shrink-0 text-primary/20 group-hover:text-primary/50 transition-colors" />
-                  </button>
-                ))
-              )}
-            </div>
-          ) : (
-            <div className="p-3 h-full">
-              <MarkdownEditor
-                key={active.key}
-                value={(form as any)[active.key] ?? ""}
-                onChange={(v) => setForm((f) => ({ ...f, [active.key]: v }))}
-                placeholder={active.placeholder}
-                rows={active.rows}
-                toolbar
-                defaultMode="edit"
-                onSnippetAction={onSnippetAction}
-                entities={entities}
+          </section>
+
+          {/* SECCIÓN: HISTORIA */}
+          <section>
+            <SectionHeader id="historia" label="Historia" Icon={Globe} />
+            <div
+              className="rounded-xl overflow-hidden"
+              style={{
+                border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+                minHeight: 200,
+              }}
+            >
+              <TimelineEditor
+                key="historia-timeline"
+                value={(form as any).historia ?? ""}
+                onChange={(v) => setForm((f) => ({ ...f, historia: v }))}
+                reinos={reinos}
+                filtroReinoId={filtroReinoId}
               />
             </div>
-          )}
+          </section>
+
+          {/* SECCIÓN: CULTURA */}
+          <section>
+            <SectionHeader id="cultura" label="Cultura" Icon={Landmark} />
+            <MarkdownEditor
+              key="cultura"
+              value={(form as any).cultura ?? ""}
+              onChange={(v) => setForm((f) => ({ ...f, cultura: v }))}
+              placeholder="Tradiciones, religión, idioma, costumbres, arte…"
+              rows={12}
+              toolbar
+              defaultMode="edit"
+              onSnippetAction={onSnippetAction}
+              entities={entities}
+            />
+          </section>
+
+          {/* SECCIÓN: POLÍTICA */}
+          <section>
+            <SectionHeader id="politica" label="Política" Icon={Users} />
+            <MarkdownEditor
+              key="politica"
+              value={(form as any).politica ?? ""}
+              onChange={(v) => setForm((f) => ({ ...f, politica: v }))}
+              placeholder="Sistema de gobierno, facciones, líderes, leyes…"
+              rows={12}
+              toolbar
+              defaultMode="edit"
+              onSnippetAction={onSnippetAction}
+              entities={entities}
+            />
+          </section>
+
+          {/* SECCIÓN: ECONOMÍA */}
+          <section>
+            <SectionHeader id="economia" label="Economía" Icon={Coins} />
+            <MarkdownEditor
+              key="economia"
+              value={(form as any).economia ?? ""}
+              onChange={(v) => setForm((f) => ({ ...f, economia: v }))}
+              placeholder="Recursos, comercio, moneda, riqueza…"
+              rows={12}
+              toolbar
+              defaultMode="edit"
+              onSnippetAction={onSnippetAction}
+              entities={entities}
+            />
+          </section>
+
+          {/* Espaciado final para que la última sección sea jumpeable */}
+          <div className="h-24" />
         </div>
-      </div>
+      </main>
+
+      {/* ── COLUMNA 3 — Utilidades (220px) ──────────────────────────────────── */}
+      <aside
+        className="shrink-0 w-52 flex flex-col border-l overflow-hidden"
+        style={{
+          borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)",
+          background: "color-mix(in srgb, var(--primary) 1%, transparent)",
+        }}
+      >
+        {/* Personajes */}
+        <div
+          className="flex flex-col min-h-0"
+          style={{
+            borderBottom: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)",
+            maxHeight: "55%",
+          }}
+        >
+          <div className="shrink-0 flex items-center gap-1.5 px-2.5 py-2 border-b"
+            style={{ borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)" }}>
+            <Users size={9} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
+            <span className="text-[8px] font-black uppercase tracking-[0.22em]"
+              style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
+              Personajes
+            </span>
+            {personajes.length > 0 && (
+              <span
+                className="ml-auto text-[7px] font-black px-1 py-0.5 rounded-full"
+                style={{
+                  background: "color-mix(in srgb, var(--primary) 10%, transparent)",
+                  color: "color-mix(in srgb, var(--primary) 45%, transparent)",
+                }}
+              >
+                {personajes.length}
+              </span>
+            )}
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-1.5 space-y-0.5" style={{ scrollbarWidth: "none" }}>
+            {loadingPersonajes ? (
+              <div className="flex items-center justify-center py-6">
+                <Loader2 size={12} className="animate-spin text-primary/20" />
+              </div>
+            ) : personajes.length === 0 ? (
+              <div className="flex flex-col items-center gap-1.5 py-6 text-primary/20">
+                <UserCircle2 size={18} strokeWidth={1} />
+                <p className="text-[8px] font-black uppercase tracking-widest text-center">Sin personajes</p>
+              </div>
+            ) : (
+              personajes.map(p => (
+                <button
+                  key={p.id}
+                  onClick={() => onSelectPersonaje?.(p)}
+                  className="w-full flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-left transition-all group"
+                  style={{ background: "transparent" }}
+                  onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 6%, transparent)"}
+                  onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = "transparent"}
+                >
+                  <div
+                    className="shrink-0 w-5 h-5 rounded-full overflow-hidden flex items-center justify-center"
+                    style={{
+                      background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+                      border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+                    }}
+                  >
+                    {p.img_url
+                      ? <img src={p.img_url} alt={p.nombre} className="w-full h-full object-cover" />
+                      : <UserCircle2 size={9} style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }} />}
+                  </div>
+                  <span
+                    className="flex-1 min-w-0 text-[10px] font-bold truncate transition-colors"
+                    style={{ color: "color-mix(in srgb, var(--primary) 60%, transparent)" }}
+                  >
+                    {p.nombre}
+                  </span>
+                  <ChevronRight size={8} className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                    style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }} />
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Mapa miniatura */}
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+          <div className="shrink-0 flex items-center gap-1.5 px-2.5 py-2 border-b"
+            style={{ borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)" }}>
+            <Map size={9} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
+            <span className="text-[8px] font-black uppercase tracking-[0.22em]"
+              style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
+              Mapa
+            </span>
+            {detalles.length > 0 && (
+              <span
+                className="ml-auto text-[7px] font-black px-1 py-0.5 rounded-full"
+                style={{
+                  background: "color-mix(in srgb, var(--primary) 10%, transparent)",
+                  color: "color-mix(in srgb, var(--primary) 45%, transparent)",
+                }}
+              >
+                {detalles.length}
+              </span>
+            )}
+          </div>
+          <div className="flex-1 p-2 overflow-hidden">
+            {mapaUrl ? (
+              <button
+                onClick={() => jumpTo("mapa")}
+                className="w-full h-full relative overflow-hidden rounded-lg transition-all group"
+                style={{
+                  background: "color-mix(in srgb, var(--primary) 4%, transparent)",
+                  border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                }}
+                title="Ir al mapa"
+              >
+                <img
+                  src={mapaUrl}
+                  alt="Mapa"
+                  className="w-full h-full object-cover pointer-events-none"
+                  draggable={false}
+                />
+                {/* Puntos sobre miniatura */}
+                {detalles.filter(d => d.coord_x != null && d.coord_y != null).map(d => (
+                  <div
+                    key={d.id}
+                    className="absolute w-1.5 h-1.5 rounded-full border border-white/80 shadow-sm"
+                    style={{
+                      top: `${d.coord_y ?? 50}%`,
+                      left: `${d.coord_x ?? 50}%`,
+                      transform: "translate(-50%, -50%)",
+                      background: "var(--primary)",
+                    }}
+                  />
+                ))}
+                <div className="absolute inset-0 bg-primary/0 group-hover:bg-primary/8 transition-colors flex items-center justify-center">
+                  <span className="text-[8px] font-black uppercase tracking-widest text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow">
+                    Ver mapa
+                  </span>
+                </div>
+              </button>
+            ) : (
+              <button
+                onClick={() => jumpTo("mapa")}
+                className="w-full h-full flex flex-col items-center justify-center gap-1.5 rounded-lg transition-all"
+                style={{
+                  background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+                  border: "1px dashed color-mix(in srgb, var(--primary) 12%, transparent)",
+                }}
+              >
+                <Map size={14} style={{ color: "color-mix(in srgb, var(--primary) 18%, transparent)" }} strokeWidth={1} />
+                <span className="text-[7px] font-black uppercase tracking-widest"
+                  style={{ color: "color-mix(in srgb, var(--primary) 22%, transparent)" }}>
+                  Sin mapa
+                </span>
+              </button>
+            )}
+          </div>
+        </div>
+      </aside>
 
     </div>
   );
