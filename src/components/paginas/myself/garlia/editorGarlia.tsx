@@ -373,8 +373,22 @@ export default function EditorEntidades() {
   const handleCreated = (item: any, chosenTab?: Exclude<TabKey, "mundo">) => {
     const t = chosenTab ?? tab as Exclude<TabKey, "mundo">;
     setAllItems(prev => ({ ...prev, [t]: [item, ...prev[t as keyof typeof prev]] }));
-    setSelectedId(item.id);
     void dexieWriteOne(TAB_CONFIG[t].tabla, item);
+
+    // Mismo routing que handleSelect: personajes/criaturas/items/reinos
+    // viven dentro de EditorMundo; hechizos/dones/runas tienen editor standalone.
+    const tabla = MUNDO_TABLAS[t];
+    if (tabla) {
+      setTab("mundo");
+      setSelectedId(item.id);
+      setMundoSection("geografia");
+      setRequestedSubTab(t);
+      setOpenItem({ tabla, id: item.id });
+      setRequestedGrupoId(null);
+    } else {
+      setTab(t);
+      setSelectedId(item.id);
+    }
   };
 
   const handleSaved = (item: any) => {
@@ -432,7 +446,8 @@ export default function EditorEntidades() {
           onBack={hasOverlay ? () => { overlayCloseFnRef.current?.(); } : undefined}
           onSelect={handleSelect}
           onAdd={(chosenTab) => {
-            setTab(chosenTab);
+            // No cambiamos el tab todavía — handleCreated se encarga del routing
+            // correcto una vez que el item existe.
             setShowNueva(chosenTab as Exclude<TabKey, "mundo">);
           }}
           onAddMagic={(key: MagicAddKey) => {
