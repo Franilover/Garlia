@@ -1452,12 +1452,18 @@ function PanelListas({
   const LS_ITEM_KEY = "garlia-panel-item";
 
   const [mobileTab, setMobileTabRaw] = useState<ListaTab>(() => {
-    // initialSubTab (navegación externa) tiene prioridad sobre localStorage
+    // Si hay item persistido, el tab guardado tiene prioridad (restauración de sesión)
+    try {
+      const hasItem = !!localStorage.getItem(LS_ITEM_KEY);
+      const savedTab = localStorage.getItem(LS_TAB_KEY) as ListaTab | null;
+      if (hasItem && savedTab && VALID_LISTA_TABS.includes(savedTab)) return savedTab;
+    } catch {}
+    // Sin item persistido: respetar la navegación externa (sidebar/URL)
     if (initialSubTab) {
       const mapped: Record<string, ListaTab> = { mundo: "geo-magia", historia: "historia", magia: "geo-magia", listas: "todo", notas: "todo", lugares: "todo", "geo-magia": "geo-magia" };
       return mapped[initialSubTab] ?? (VALID_LISTA_TABS.includes(initialSubTab as ListaTab) ? initialSubTab as ListaTab : "geo-magia");
     }
-    // Intentar restaurar desde localStorage
+    // Fallback: tab guardado sin item
     try {
       const saved = localStorage.getItem(LS_TAB_KEY) as ListaTab | null;
       if (saved && VALID_LISTA_TABS.includes(saved)) return saved;
@@ -1607,12 +1613,11 @@ function PanelListas({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialItemId, hechizos.length, dones.length, runas.length]);
 
-  // Restaurar el item abierto desde localStorage al recargar la página
+  // Restaurar el item abierto desde localStorage al recargar la página.
+  // Se re-evalúa cada vez que carga más data; para en cuanto encuentra el item.
   const restoredItemRef = useRef(false);
   useEffect(() => {
     if (restoredItemRef.current) return;
-    // No restaurar si hay navegación externa activa
-    if (initialItemId || initialSubTab) return;
     try {
       const raw = localStorage.getItem(LS_ITEM_KEY);
       if (!raw) return;
@@ -1637,34 +1642,56 @@ function PanelListas({
       else if (tabla === "dones")      found = dones.find(x => x.id === id);
       else if (tabla === "runas")      found = runas.find(x => x.id === id);
 
-      if (!found) return; // datos aún no cargados, se reintentará
+      if (!found) return; // datos aún no cargados — se reintentará
 
       restoredItemRef.current = true;
       markVisited(listaTab);
+      // prevMobileTab para que al cerrar el overlay vuelva al tab correcto
+      setPrevMobileTab(listaTab);
 
-      if      (tabla === "personajes") setSelectedPersonaje(found);
-      else if (tabla === "criaturas")  setSelectedCriatura(found);
-      else if (tabla === "items")      setSelectedObjeto(found);
-      else if (tabla === "reinos")     setSelectedReino(found);
-      else if (tabla === "hechizos")   setSelectedHechizo(found);
-      else if (tabla === "dones")      setSelectedDon(found);
-      else if (tabla === "runas")      setSelectedRuna(found);
-      else if (tabla === "lugares") {
-        // Para lugares, buscar datos completos en Supabase si es necesario
-        void (async () => {
-          try {
-            const { data } = await supabase.from("lugares").select("*").eq("id", id).single();
-            setSelectedLugar((data ?? found) as Lugar);
-          } catch {
-            setSelectedLugar(found as Lugar);
-          }
-        })();
-        return;
-      }
+      // Fetch completo desde Supabase para tener todos los campos del editor
+      const supabaseTable: Record<string, string> = {
+        personajes: "personajes", criaturas: "criaturas",
+        items: "items", reinos: "reinos", lugares: "lugares",
+        hechizos: "hechizos", dones: "dones", runas: "runas",
+      };
+      void (async () => {
+        try {
+          const { data } = await supabase.from(supabaseTable[tabla]).select("*").eq("id", id).single();
+          const item = data ?? found;
+          if      (tabla === "personajes") setSelectedPersonaje(item);
+          else if (tabla === "criaturas")  setSelectedCriatura(item);
+          else if (tabla === "items")      setSelectedObjeto(item);
+          else if (tabla === "reinos")     setSelectedReino(item);
+          else if (tabla === "hechizos")   setSelectedHechizo(item);
+          else if (tabla === "dones")      setSelectedDon(item);
+          else if (tabla === "runas")      setSelectedRuna(item);
+          else if (tabla === "lugares")    setSelectedLugar(item as Lugar);
+        } catch {
+          if      (tabla === "personajes") setSelectedPersonaje(found);
+          else if (tabla === "criaturas")  setSelectedCriatura(found);
+          else if (tabla === "items")      setSelectedObjeto(found);
+          else if (tabla === "reinos")     setSelectedReino(found);
+          else if (tabla === "hechizos")   setSelectedHechizo(found);
+          else if (tabla === "dones")      setSelectedDon(found);
+          else if (tabla === "runas")      setSelectedRuna(found);
+          else if (tabla === "lugares")    setSelectedLugar(found as Lugar);
+        }
+      })();
     } catch {}
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [personajes.length, criaturas.length, objetos.length, reinos.length,
       lugares.length, hechizos.length, dones.length, runas.length]);
+
+  // ── Wrappers que persisten el item abierto en localStorage ──────────────────
+  const selectReino    = useCallback((r: Reino | null)         => { setSelectedReino(r);     r ? persistOpenItem("reinos",     r.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
+  const selectCriatura = useCallback((c: any | null)           => { setSelectedCriatura(c);  c ? persistOpenItem("criaturas",  c.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
+  const selectObjeto   = useCallback((o: any | null)           => { setSelectedObjeto(o);    o ? persistOpenItem("items",      o.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
+  const selectLugar    = useCallback((l: Lugar | null)         => { setSelectedLugar(l);     l ? persistOpenItem("lugares",    l.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
+  const selectPersonaje= useCallback((p: Personaje | null)     => { setSelectedPersonaje(p); p ? persistOpenItem("personajes", p.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
+  const selectHechizo  = useCallback((h: EntidadMagica | null) => { setSelectedHechizo(h);   h ? persistOpenItem("hechizos",   h.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
+  const selectDon      = useCallback((d: EntidadMagica | null) => { setSelectedDon(d);       d ? persistOpenItem("dones",      d.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
+  const selectRuna     = useCallback((r: Runa | null)          => { setSelectedRuna(r);      r ? persistOpenItem("runas",      r.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
 
   // Leer localStorage para auto-crear un nuevo lugar al navegar desde el menú Add
   useEffect(() => {
@@ -1714,16 +1741,6 @@ function PanelListas({
     return () => window.removeEventListener("estudio-notas-action", check);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // ── Wrappers que persisten el item abierto en localStorage ──────────────────
-  const selectReino    = useCallback((r: Reino | null)              => { setSelectedReino(r);     r    ? persistOpenItem("reinos",     r.id)    : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
-  const selectCriatura = useCallback((c: any | null)                => { setSelectedCriatura(c);  c    ? persistOpenItem("criaturas",  c.id)    : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
-  const selectObjeto   = useCallback((o: any | null)                => { setSelectedObjeto(o);    o    ? persistOpenItem("items",      o.id)    : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
-  const selectLugar    = useCallback((l: Lugar | null)              => { setSelectedLugar(l);     l    ? persistOpenItem("lugares",    l.id)    : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
-  const selectPersonaje= useCallback((p: Personaje | null)          => { setSelectedPersonaje(p); p    ? persistOpenItem("personajes", p.id)    : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
-  const selectHechizo  = useCallback((h: EntidadMagica | null)      => { setSelectedHechizo(h);   h    ? persistOpenItem("hechizos",   h.id)    : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
-  const selectDon      = useCallback((d: EntidadMagica | null)      => { setSelectedDon(d);       d    ? persistOpenItem("dones",      d.id)    : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
-  const selectRuna     = useCallback((r: Runa | null)               => { setSelectedRuna(r);      r    ? persistOpenItem("runas",      r.id)    : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
 
   // ── search state unified per active tab ──
 
@@ -2214,7 +2231,7 @@ function PanelListas({
                   : lugares.length === 0 ? <p className="text-[9px] text-primary/20 italic px-1 pb-2">Sin lugares aún</p>
                   : <div className="flex flex-wrap gap-1.5">{lugares.map(l => (
                       <button key={l.id} onClick={async () => {
-                        setPrevMobileTab(mobileTab);
+                        setPrevMobileTab(mobileTab); markVisited("lugares"); setMobileTab("lugares");
                         try {
                           const { data } = await supabase.from("lugares").select("*").eq("id", l.id).single();
                           if (data) { selectLugar(data as Lugar); return; }
