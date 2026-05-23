@@ -2237,7 +2237,7 @@ function PanelListas({
 
   const [mobileTab, setMobileTab] = useState<ListaTab>(() => {
     // initialSubTab puede ser un UnifiedTab ("mundo","historia","magia","listas") o un ListaTab directo
-    const mapped: Record<string, ListaTab> = { mundo: "geo-magia", historia: "historia", magia: "geo-magia", listas: "reinos", "geo-magia": "geo-magia" };
+    const mapped: Record<string, ListaTab> = { mundo: "geo-magia", historia: "historia", magia: "geo-magia", listas: "todo", notas: "todo", lugares: "todo", "geo-magia": "geo-magia" };
     const resolved = mapped[initialSubTab ?? ""] ?? (VALID_LISTA_TABS.includes(initialSubTab as ListaTab) ? initialSubTab as ListaTab : "geo-magia");
     return resolved;
   });
@@ -2246,7 +2246,7 @@ function PanelListas({
   // y cerrar el overlay abierto para que el contenido sea visible de inmediato
   useEffect(() => {
     if (!initialSubTab) return;
-    const mapped: Record<string, ListaTab> = { mundo: "geo-magia", historia: "historia", magia: "geo-magia", listas: "reinos", "geo-magia": "geo-magia" };
+    const mapped: Record<string, ListaTab> = { mundo: "geo-magia", historia: "historia", magia: "geo-magia", listas: "todo", notas: "todo", lugares: "todo", "geo-magia": "geo-magia" };
     const resolved = mapped[initialSubTab] ?? (VALID_LISTA_TABS.includes(initialSubTab as ListaTab) ? initialSubTab as ListaTab : null);
     if (resolved) {
       setMobileTab(resolved);
@@ -2360,7 +2360,8 @@ function PanelListas({
       if (action !== "nuevo-lugar") return;
       localStorage.removeItem("estudio-listas-action");
       markVisited("lugares");
-      setMobileTab("lugares");
+      setMobileTab("todo");
+      markVisited("todo");
       (async () => {
         try {
           const { data, error } = await supabase
@@ -2387,7 +2388,8 @@ function PanelListas({
       if (action !== "nueva-nota") return;
       localStorage.removeItem("estudio-notas-action");
       markVisited("notas");
-      setMobileTab("notas");
+      setMobileTab("todo");
+      markVisited("todo");
       crearNota("Nueva nota").then(nueva => {
         if (nueva) setSelectedNota(nueva);
       });
