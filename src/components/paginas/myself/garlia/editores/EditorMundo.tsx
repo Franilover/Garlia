@@ -1455,7 +1455,10 @@ function PanelListas({
     lastOpenItemRef.current = key;
 
     markVisited(listaTab);
-    setMobileTab(listaTab);
+    // Siempre volver a "todo" al cerrar el overlay abierto desde navegación externa
+    setPrevMobileTab("todo");
+    setMobileTab("todo");
+    markVisited("todo");
     if (tabla === "personajes")      setSelectedPersonaje(found);
     else if (tabla === "criaturas")  setSelectedCriatura(found);
     else if (tabla === "items")      setSelectedObjeto(found);
@@ -1528,8 +1531,9 @@ function PanelListas({
       if (action !== "nuevo-lugar") return;
       localStorage.removeItem("estudio-listas-action");
       markVisited("lugares");
-      setMobileTab("todo");
       markVisited("todo");
+      setMobileTab("todo");
+      setPrevMobileTab("todo");
       (async () => {
         try {
           const { data, error } = await supabase
@@ -1556,8 +1560,9 @@ function PanelListas({
       if (action !== "nueva-nota") return;
       localStorage.removeItem("estudio-notas-action");
       markVisited("notas");
-      setMobileTab("todo");
       markVisited("todo");
+      setMobileTab("todo");
+      setPrevMobileTab("todo");
       crearNota("Nueva nota").then(nueva => {
         if (nueva) setSelectedNota(nueva);
       });
@@ -1608,48 +1613,48 @@ function PanelListas({
 
   const TABS: TabDef[] = TAB_GROUPS.flatMap(g => g.tabs);
 
+  // ── Tab bar (solo visible cuando no hay overlay) ──────────────────────────
+  const tabBar = (
+    <div className="shrink-0 flex items-center border-b px-2 gap-0.5"
+      style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+      {TABS.map(t => {
+        const active = mobileTab === t.key;
+        const color = t.color ?? "var(--primary)";
+        return (
+          <button
+            key={t.key}
+            onClick={() => {
+              setMobileTab(t.key);
+              markVisited(t.key);
+              setPrevMobileTab(null);
+              setSelectedReino(null); setSelectedCriatura(null);
+              setSelectedObjeto(null); setSelectedPersonaje(null);
+              setSelectedHechizo(null); setSelectedDon(null);
+              setSelectedRuna(null); setSelectedNota(null);
+              setSelectedLugar(null);
+            }}
+            className="relative flex items-center gap-1.5 px-3 py-3 text-[10px] font-black uppercase tracking-widest transition-all"
+            style={{ color: active ? color : "color-mix(in srgb, var(--primary) 30%, transparent)" }}
+          >
+            <t.Icon size={11} className="shrink-0" />
+            {t.label}
+            {active && (
+              <span
+                className="absolute bottom-0 left-2 right-2 h-0.5 rounded-t-full"
+                style={{ background: color }}
+              />
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
 
-      {/* ── Barra de tabs horizontal ─────────────────────────────────────── */}
-      <div className="shrink-0 flex items-center border-b px-2 gap-0.5"
-        style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-        {TABS.map(t => {
-          const active = mobileTab === t.key;
-          const color = t.color ?? "var(--primary)";
-          return (
-            <button
-              key={t.key}
-              onClick={() => {
-                setMobileTab(t.key);
-                markVisited(t.key);
-                setSelectedReino(null); setSelectedCriatura(null);
-                setSelectedObjeto(null); setSelectedPersonaje(null);
-                setSelectedHechizo(null); setSelectedDon(null);
-                setSelectedRuna(null); setSelectedNota(null);
-                setSelectedLugar(null);
-              }}
-              className="relative flex items-center gap-1.5 px-3 py-3 text-[10px] font-black uppercase tracking-widest transition-all"
-              style={{ color: active ? color : "color-mix(in srgb, var(--primary) 30%, transparent)" }}
-            >
-              <t.Icon size={11} className="shrink-0" />
-              {t.label}
-              {active && (
-                <span
-                  className="absolute bottom-0 left-2 right-2 h-0.5 rounded-t-full"
-                  style={{ background: color }}
-                />
-              )}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* ── Área principal (contenido) ───────────────────────────────────── */}
-      <div className="flex-1 flex min-h-0 overflow-hidden">
-
-      {/* ── Editor overlay — reemplaza la lista cuando hay selección ─────── */}
-      {overlay ? (
+      {/* ── Editor overlay — tapa TODO el panel incluyendo el tab bar ────── */}
+      {overlay && (
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden" style={{ background: "var(--bg-main)" }}>
           <div className="flex-1 flex min-h-0 overflow-hidden">
             {overlay === "reino" && selectedReino && (
@@ -1745,8 +1750,11 @@ function PanelListas({
             )}
           </div>
         </div>
-      ) : (
+      )}
 
+      {/* ── Vista normal: tab bar + contenido ───────────────────────────── */}
+      {!overlay && tabBar}
+      {!overlay && (
       <div className="flex-1 flex min-h-0 overflow-hidden">
 
         {/* Área de lista — ocupa el espacio principal */}
@@ -2461,8 +2469,7 @@ function PanelListas({
 
       </div>
 
-      )}{/* fin ternario overlay */}
-      </div>{/* fin área principal */}
+      )}
 
     </div>
   );
