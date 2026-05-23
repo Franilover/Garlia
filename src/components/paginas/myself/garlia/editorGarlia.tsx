@@ -375,8 +375,8 @@ export default function EditorEntidades() {
     setAllItems(prev => ({ ...prev, [t]: [item, ...prev[t as keyof typeof prev]] }));
     void dexieWriteOne(TAB_CONFIG[t].tabla, item);
 
-    // Mismo routing que handleSelect: personajes/criaturas/items/reinos
-    // viven dentro de EditorMundo; hechizos/dones/runas tienen editor standalone.
+    // Mismo routing que handleSelect: reinos/personajes/criaturas/items viven
+    // dentro de EditorMundo; hechizos/dones/runas tienen editor standalone.
     const tabla = MUNDO_TABLAS[t];
     if (tabla) {
       setTab("mundo");
@@ -399,16 +399,28 @@ export default function EditorEntidades() {
   };
 
 
-  const handleAddMagic = useCallback((key: MagicAddKey) => {
-      if (key === "notas") {
-        localStorage.setItem("estudio-notas-action", "nueva-nota");
-        window.dispatchEvent(new Event("estudio-notas-action"));
-        setTab("mundo");
-        setMundoSection("geografia");
-        setRequestedSubTab("notas");
-        return;
-      }
-    }, []);
+  // handleAddMagic: llamado desde ModalMagicNombre.onCreated con (key, item).
+  // Agrega el item a allItems y routea al editor standalone correspondiente.
+  const handleAddMagic = useCallback((key: MagicAddKey, item?: any) => {
+    if (key === "notas") {
+      localStorage.setItem("estudio-notas-action", "nueva-nota");
+      window.dispatchEvent(new Event("estudio-notas-action"));
+      setTab("mundo");
+      setMundoSection("geografia");
+      setRequestedSubTab("notas");
+      return;
+    }
+    if ((key === "hechizos" || key === "dones" || key === "runas") && item) {
+      // Agregar a allItems para que EditorHechizos lo encuentre inmediatamente
+      setAllItems(prev => ({
+        ...prev,
+        [key]: [item, ...(prev[key as keyof typeof prev] as any[])],
+      }));
+      void dexieWriteOne(key, item);
+      setTab(key as any);
+      setSelectedId(item.id);
+    }
+  }, [setAllItems]);
 
   const handleDeleted = (id: string) => {
     if (tab === "grupos" || tab === "mundo" || (tab as string) === "capitulos" || (tab as string) === "letras") return;
@@ -446,8 +458,8 @@ export default function EditorEntidades() {
           onBack={hasOverlay ? () => { overlayCloseFnRef.current?.(); } : undefined}
           onSelect={handleSelect}
           onAdd={(chosenTab) => {
-            // No cambiamos el tab todavía — handleCreated se encarga del routing
-            // correcto una vez que el item existe.
+            // No cambiamos el tab todavía — handleCreated routea correctamente
+            // una vez que el item existe (via MUNDO_TABLAS o editor standalone).
             setShowNueva(chosenTab as Exclude<TabKey, "mundo">);
           }}
           onAddMagic={(key: MagicAddKey) => {
@@ -516,8 +528,16 @@ export default function EditorEntidades() {
             }
           }}
           onSelectMagic={(subTab, item) => {
-            setTab(subTab as any);
-            setSelectedId(item.id);
+            // Si el item ya existe en allItems → viene de búsqueda, solo routear.
+            // Si NO existe → viene de ModalMagicNombre (recién creado), agregar + routear.
+            const alreadyInList = (allItems[subTab as keyof typeof allItems] as any[])
+              ?.some((i: any) => i.id === item.id);
+            if (alreadyInList) {
+              setTab(subTab as any);
+              setSelectedId(item.id);
+            } else {
+              handleAddMagic(subTab as MagicAddKey, item);
+            }
           }}
           onSelectNota={(nota) => {
             setTab("mundo");
