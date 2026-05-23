@@ -1965,15 +1965,14 @@ function PanelListas({
       )}
 
       {/* ── Vista normal: tab bar + contenido ───────────────────────────── */}
-      {!overlay && tabBar}
-      {!overlay && (
+      {tabBar}
       <div className="flex-1 flex min-h-0 overflow-hidden">
 
         {/* Área de lista — ocupa el espacio principal */}
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
 
-          {/* Paneles de texto — reemplazan toda el área de contenido */}
-          {mobileTab === "mundo" && textos && onTextoChange && onSave && (
+          {/* Paneles de texto y listas individuales — ocultos cuando hay editor abierto */}
+          {!overlay && mobileTab === "mundo" && textos && onTextoChange && onSave && (
             <PanelTexto
               texto={textos.geografia}
               onChange={v => onTextoChange("geografia", v)}
@@ -1983,14 +1982,14 @@ function PanelListas({
               SaveIcon={Mountain}
             />
           )}
-          {mobileTab === "historia" && textos && onTextoChange && onSave && (
+          {!overlay && mobileTab === "historia" && textos && onTextoChange && onSave && (
             <PanelHistoriaMundo
               texto={textos.historia}
               onChange={v => onTextoChange("historia", v)}
               onSave={() => onSave("historia")}
             />
           )}
-          {mobileTab === "magia" && textos && onTextoChange && onSave && (
+          {!overlay && mobileTab === "magia" && textos && onTextoChange && onSave && (
             <PanelTexto
               texto={textos.magia}
               onChange={v => onTextoChange("magia", v)}
@@ -2002,7 +2001,7 @@ function PanelListas({
           )}
 
           {/* Header del tab activo (solo para tabs de lista individuales) */}
-          {!["mundo", "historia", "magia", "magia-objetos", "mundo-personajes", "geo-magia", "todo", "capitulos", "letras"].includes(mobileTab) && (() => {
+          {!overlay && !["mundo", "historia", "magia", "magia-objetos", "mundo-personajes", "geo-magia", "todo", "capitulos", "letras"].includes(mobileTab) && (() => {
             const t = TABS.find(t => t.key === mobileTab);
             if (!t) return null;
             const color = t.color ?? "var(--primary)";
@@ -2034,7 +2033,7 @@ function PanelListas({
           })()}
 
           {/* Buscador */}
-          {!["mundo", "historia", "magia", "magia-objetos", "mundo-personajes", "geo-magia", "todo", "capitulos", "letras"].includes(mobileTab) && mobileTab !== "grupos" && (
+          {!overlay && !["mundo", "historia", "magia", "magia-objetos", "mundo-personajes", "geo-magia", "todo", "capitulos", "letras"].includes(mobileTab) && mobileTab !== "grupos" && (
             <SearchInput
               value={searchMap[mobileTab] ?? ""}
               onChange={v => setSearchMap[mobileTab]?.(v)}
@@ -2043,21 +2042,21 @@ function PanelListas({
           )}
 
           {/* Vista: Editor de Capítulos embebido */}
-          {mobileTab === "capitulos" && (
+          {!overlay && mobileTab === "capitulos" && (
             <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
               <EstudioCapitulos />
             </div>
           )}
 
           {/* Vista: Editor de Canciones embebido */}
-          {mobileTab === "letras" && (
+          {!overlay && mobileTab === "letras" && (
             <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
               <EditorLetrasPanel />
             </div>
           )}
 
           {/* Vista combinada: Geografía + Magia — columna en mobile, lado a lado en desktop */}
-          {mobileTab === "geo-magia" && textos && onTextoChange && onSave && (
+          {!overlay && mobileTab === "geo-magia" && textos && onTextoChange && onSave && (
             <div className="flex-1 flex flex-col sm:flex-row min-h-0 overflow-y-auto sm:overflow-hidden">
               {/* Geografía — arriba en mobile, izquierda en desktop */}
               <div className="flex flex-col sm:flex-1 sm:min-h-0 border-b sm:border-b-0 sm:border-r"
@@ -2248,7 +2247,7 @@ function PanelListas({
           )}
 
           {/* Vista combinada: Personajes & Mundo (reinos + criaturas + personajes) */}
-          {mobileTab === "mundo-personajes" && (
+          {!overlay && mobileTab === "mundo-personajes" && (
             <div className="flex-1 overflow-y-auto min-h-0 px-3 pb-3">
               {/* Reinos */}
               <div className="pt-3 pb-1">
@@ -2328,7 +2327,7 @@ function PanelListas({
           )}
 
           {/* Vista combinada: Magia & Objetos (dones + hechizos + runas + objetos) */}
-          {mobileTab === "magia-objetos" && (
+          {!overlay && mobileTab === "magia-objetos" && (
             <div className="flex-1 overflow-y-auto min-h-0 px-3 pb-3">
               {/* Dones */}
               <div className="pt-3 pb-1">
@@ -2463,7 +2462,7 @@ function PanelListas({
           )}
 
           {/* Listado */}
-          {!(["mundo", "historia", "magia", "magia-objetos", "mundo-personajes", "geo-magia", "todo", "capitulos", "letras"].includes(mobileTab)) && (
+          {!overlay && !(["mundo", "historia", "magia", "magia-objetos", "mundo-personajes", "geo-magia", "todo", "capitulos", "letras"].includes(mobileTab)) && (
           <div
             className={mobileTab === "grupos"
               ? "flex-1 flex min-h-0 overflow-hidden relative"
@@ -2703,8 +2702,6 @@ function PanelListas({
         </div>
 
       </div>
-
-      )}
 
     </div>
   );
