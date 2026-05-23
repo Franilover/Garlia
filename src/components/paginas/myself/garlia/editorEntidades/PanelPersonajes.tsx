@@ -98,12 +98,14 @@ export function OverlayEditorPersonaje({ personaje, onSaved, onClose }: {
 // ─── PanelPersonajes ──────────────────────────────────────────────────────────
 // inline=false → chip + drawer lateral (comportamiento original)
 // inline=true  → lista directa para embeber en una tab
-export function PanelPersonajes({ personajes, loading, setPersonajes, titulo = "Personajes", inline = false }: {
+export function PanelPersonajes({ personajes, loading, setPersonajes, titulo = "Personajes", inline = false, onSelect }: {
   personajes: Personaje[];
   loading: boolean;
   setPersonajes: React.Dispatch<React.SetStateAction<Personaje[]>>;
   titulo?: string;
   inline?: boolean;
+  /** Si se pasa, al hacer click navega al editor global en vez de abrir el overlay local */
+  onSelect?: (personaje: Personaje) => void;
 }) {
   const [editando,   setEditando]  = useState<Personaje | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -113,9 +115,17 @@ export function PanelPersonajes({ personajes, loading, setPersonajes, titulo = "
     setEditando(updated);
   };
 
+  const handleClick = (p: Personaje) => {
+    if (onSelect) {
+      onSelect(p);          // navegar al editor global
+    } else {
+      setEditando(p);       // fallback: overlay local
+    }
+  };
+
   const PersonajeRow = ({ p }: { p: Personaje }) => (
     <button
-      onClick={() => setEditando(p)}
+      onClick={() => handleClick(p)}
       className="w-full flex items-center gap-2.5 px-3 py-3 text-left hover:bg-primary/6 border border-transparent hover:border-primary/10 transition-all rounded-xl"
     >
       <div className="shrink-0 w-8 h-8 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
