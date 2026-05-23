@@ -399,8 +399,6 @@ export default function EditorEntidades() {
   };
 
 
-  // handleAddMagic: llamado desde ModalMagicNombre.onCreated con (key, item).
-  // Agrega el item a allItems y routea al editor standalone correspondiente.
   const handleAddMagic = useCallback((key: MagicAddKey, item?: any) => {
     if (key === "notas") {
       localStorage.setItem("estudio-notas-action", "nueva-nota");
@@ -411,7 +409,6 @@ export default function EditorEntidades() {
       return;
     }
     if ((key === "hechizos" || key === "dones" || key === "runas") && item) {
-      // Agregar a allItems para que EditorHechizos lo encuentre inmediatamente
       setAllItems(prev => ({
         ...prev,
         [key]: [item, ...(prev[key as keyof typeof prev] as any[])],
@@ -528,14 +525,13 @@ export default function EditorEntidades() {
             }
           }}
           onSelectMagic={(subTab, item) => {
-            // Si el item ya existe en allItems → viene de búsqueda, solo routear.
-            // Si NO existe → viene de ModalMagicNombre (recién creado), agregar + routear.
             const alreadyInList = (allItems[subTab as keyof typeof allItems] as any[])
               ?.some((i: any) => i.id === item.id);
             if (alreadyInList) {
               setTab(subTab as any);
               setSelectedId(item.id);
             } else {
+              // Recién creado desde ModalMagicNombre → agregar a allItems y routear
               handleAddMagic(subTab as MagicAddKey, item);
             }
           }}
@@ -644,7 +640,7 @@ export default function EditorEntidades() {
       </div>
 
       {/* Modal nueva entrada */}
-      {showNueva && !isMundo && (
+      {showNueva && (
         <ModalNueva
           tab={showNueva}
           onCreated={(item) => handleCreated(item, showNueva)}
