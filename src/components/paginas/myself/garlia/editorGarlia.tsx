@@ -215,15 +215,17 @@ function readSession(): {
     const hasPersistentItem = !!localStorage.getItem("garlia-panel-item");
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) {
-      return { tab: hasPersistentItem ? "mundo" : "personajes", selectedId: null, mundoSection: "geografia" };
+      return { tab: "mundo", selectedId: null, mundoSection: "geografia" };
     }
     const parsed = JSON.parse(raw);
     const validTabs: TabKey[] = [...Object.keys(TAB_CONFIG) as Exclude<TabKey, "mundo">[], "mundo", "capitulos" as any, "letras" as any];
-    const tab = hasPersistentItem ? "mundo" : (validTabs.includes(parsed.tab) ? parsed.tab as TabKey : "personajes");
+    const entityOnlyTabs = ["personajes", "criaturas", "items", "reinos"];
+    const rawTab = validTabs.includes(parsed.tab) ? parsed.tab as TabKey : "mundo";
+    const tab = hasPersistentItem ? "mundo" : (entityOnlyTabs.includes(rawTab as string) ? "mundo" : rawTab);
     const mundoSection = VALID_MUNDO_SECTIONS.includes(parsed.mundoSection) ? parsed.mundoSection as MundoSectionKey : "geografia";
     return { tab, selectedId: parsed.selectedId ?? null, mundoSection };
   } catch {
-    return { tab: "personajes", selectedId: null, mundoSection: "geografia" };
+    return { tab: "mundo", selectedId: null, mundoSection: "geografia" };
   }
 }
 
