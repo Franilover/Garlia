@@ -711,7 +711,7 @@ function newEvent(): TimelineEvent {
   return { id: crypto.randomUUID(), year: "", title: "", description: "" };
 }
 
-// ── Fila de evento del mundo (mismo diseño que TimelineRow en LoreTab) ────────
+// ── Tarjeta horizontal de evento (modo editar mundo) ─────────────────────────
 function MundoEventoRow({
   evt,
   idx,
@@ -734,164 +734,135 @@ function MundoEventoRow({
 
   const hasYear  = !!evt.year?.trim();
   const hasTitle = !!evt.title?.trim();
-  const hasDesc  = !!evt.description?.trim();
   const reinoId  = (evt as any).reinoId as string | null | undefined;
   const reinoNombre = reinoId ? reinos.find(r => r.id === reinoId)?.nombre : null;
 
   return (
-    <div className="relative flex gap-0 group/row">
-      {/* Línea vertical */}
-      <div className="flex flex-col items-center" style={{ width: 28, flexShrink: 0 }}>
+    <div className="flex flex-col shrink-0 group/card" style={{ width: 200 }}>
+      {/* Conector horizontal */}
+      <div className="flex items-center" style={{ height: 28, marginBottom: 0 }}>
+        {/* Línea izquierda */}
+        <div className="flex-1 h-px" style={{ background: idx === 0 ? "transparent" : "color-mix(in srgb, var(--primary) 12%, transparent)" }} />
+        {/* Nodo */}
         <div
-          className="relative z-10 mt-[22px] w-2 h-2 rounded-full shrink-0 transition-all"
+          className="shrink-0 rounded-full transition-all"
           style={{
+            width: hasYear ? 10 : 7,
+            height: hasYear ? 10 : 7,
             background: hasYear ? "var(--primary)" : "color-mix(in srgb, var(--primary) 20%, transparent)",
             boxShadow: hasYear ? "0 0 0 3px color-mix(in srgb, var(--primary) 15%, transparent)" : "none",
           }}
         />
-        {idx < total - 1 && (
-          <div className="flex-1 w-px mt-1" style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)", minHeight: 24 }} />
-        )}
+        {/* Línea derecha */}
+        <div className="flex-1 h-px" style={{ background: idx === total - 1 ? "transparent" : "color-mix(in srgb, var(--primary) 12%, transparent)" }} />
       </div>
 
       {/* Tarjeta */}
       <div
-        className="flex-1 mb-2.5 rounded-xl overflow-hidden transition-all"
+        className="mx-1.5 rounded-xl overflow-hidden transition-all"
         style={{
           border: `1px solid ${expanded ? "color-mix(in srgb, var(--primary) 22%, transparent)" : "color-mix(in srgb, var(--primary) 10%, transparent)"}`,
           background: expanded ? "color-mix(in srgb, var(--primary) 4%, transparent)" : "color-mix(in srgb, var(--primary) 2%, transparent)",
         }}
       >
-        {/* Cabecera clicable */}
-        <div className="flex items-stretch cursor-pointer select-none" onClick={() => setExpanded(x => !x)}>
-
-          {/* BLOQUE AÑO */}
-          <div
-            className="shrink-0 flex items-center justify-center border-r"
-            style={{
-              width: 70,
-              borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
-              background: hasYear ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "color-mix(in srgb, var(--primary) 3%, transparent)",
-            }}
-            onClick={e => e.stopPropagation()}
-          >
+        {/* Cabecera */}
+        <div className="flex flex-col gap-1 p-2 cursor-pointer" onClick={() => setExpanded(x => !x)}>
+          {/* Año */}
+          <div onClick={e => e.stopPropagation()}>
             <input
-              className="bg-transparent outline-none w-full text-[10px] font-black tracking-widest text-center placeholder:text-primary/20 px-2 py-2.5"
+              className="bg-transparent outline-none w-full text-[10px] font-black tracking-widest text-center placeholder:text-primary/20 px-1 py-1 rounded-lg border"
               value={evt.year}
               onChange={e => onUpdate({ year: e.target.value })}
               placeholder="Año"
-              style={{ color: hasYear ? "var(--primary)" : "color-mix(in srgb, var(--primary) 30%, transparent)" }}
+              style={{
+                color: hasYear ? "var(--primary)" : "color-mix(in srgb, var(--primary) 30%, transparent)",
+                borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
+                background: hasYear ? "color-mix(in srgb, var(--primary) 6%, transparent)" : "transparent",
+              }}
             />
           </div>
-
-          {/* BLOQUE TÍTULO */}
-          <div className="flex-1 flex items-center min-w-0 px-2.5 py-2 gap-2" onClick={e => e.stopPropagation()}>
+          {/* Título */}
+          <div onClick={e => e.stopPropagation()}>
             <input
-              className="bg-transparent outline-none flex-1 min-w-0 text-[11px] font-bold placeholder:text-primary/20 transition-colors"
+              className="bg-transparent outline-none w-full text-[10px] font-bold placeholder:text-primary/20 px-1"
               value={evt.title}
               onChange={e => onUpdate({ title: e.target.value })}
               placeholder="Nombre del evento…"
               style={{ color: hasTitle ? "var(--primary)" : "color-mix(in srgb, var(--primary) 40%, transparent)" }}
             />
-            {/* Badge de reino asignado */}
-            {reinoNombre && !expanded && (
-              <span className="shrink-0 flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest hidden sm:flex"
-                style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)", color: "color-mix(in srgb, var(--primary) 50%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)" }}>
-                <Crown size={7} />
-                {reinoNombre}
+          </div>
+          {/* Acciones */}
+          <div className="flex items-center justify-between mt-0.5">
+            {reinoNombre && (
+              <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest truncate"
+                style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)", color: "color-mix(in srgb, var(--primary) 50%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)", maxWidth: "80px" }}>
+                <Crown size={6} /> {reinoNombre}
               </span>
             )}
-            {hasDesc && !expanded && !reinoNombre && (
-              <span
-                className="shrink-0 text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md hidden sm:block"
-                style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)", color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
-              >
-                ver más
-              </span>
-            )}
-          </div>
-
-          {/* Eliminar — hover */}
-          <div className="shrink-0 flex items-center px-1 opacity-0 group-hover/row:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
-            <button type="button" onClick={onRemove}
-              className="p-1.5 rounded-lg transition-all"
-              style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}
-              onMouseEnter={e => ((e.currentTarget as HTMLButtonElement).style.color = "#f87171")}
-              onMouseLeave={e => ((e.currentTarget as HTMLButtonElement).style.color = "color-mix(in srgb, var(--primary) 25%, transparent)")}>
-              <Trash2 size={9} />
-            </button>
-          </div>
-
-          {/* Chevron — siempre visible */}
-          <div className="shrink-0 flex items-center px-2.5 border-l" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-            <ChevronDown size={10} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)", transform: expanded ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s ease" }} />
+            <div className="flex items-center gap-0.5 ml-auto opacity-0 group-hover/card:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
+              <button type="button" onClick={onRemove}
+                className="p-1 rounded-md transition-all"
+                style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }}
+                onMouseEnter={e => ((e.currentTarget as HTMLButtonElement).style.color = "#f87171")}
+                onMouseLeave={e => ((e.currentTarget as HTMLButtonElement).style.color = "color-mix(in srgb, var(--primary) 20%, transparent)")}>
+                <Trash2 size={8} />
+              </button>
+              <ChevronDown size={8}
+                style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)", transform: expanded ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s ease" }} />
+            </div>
           </div>
         </div>
 
         {/* Panel expandible */}
         {expanded && (
-          <div className="px-3 pb-3 pt-3 space-y-3" style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-
-            {/* Selector de Reino — botones pill con color del tema */}
+          <div className="px-2 pb-2 pt-1 space-y-2" style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
             {reinos.length > 0 && (
-              <div className="space-y-1.5">
-                <label className="text-[9px] font-black uppercase tracking-[0.3em] flex items-center gap-1"
+              <div className="space-y-1">
+                <label className="text-[8px] font-black uppercase tracking-[0.2em] flex items-center gap-1"
                   style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
-                  <Crown size={9} /> Reino del suceso
+                  <Crown size={8} /> Reino
                 </label>
-                <div className="flex flex-wrap gap-1.5">
-                  {/* Pill "Mundo" */}
-                  <button
-                    type="button"
-                    onClick={() => onUpdate({ reinoId: null } as any)}
-                    className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border transition-all"
+                <div className="flex flex-col gap-1">
+                  <button type="button" onClick={() => onUpdate({ reinoId: null } as any)}
+                    className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest border transition-all"
                     style={!reinoId ? {
                       background: "color-mix(in srgb, var(--primary) 14%, transparent)",
                       borderColor: "color-mix(in srgb, var(--primary) 30%, transparent)",
                       color: "var(--primary)",
-                      boxShadow: "0 0 0 1px color-mix(in srgb, var(--primary) 20%, transparent)",
                     } : {
                       background: "transparent",
                       borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
                       color: "color-mix(in srgb, var(--primary) 35%, transparent)",
-                    }}
-                  >
-                    <Globe size={8} /> Mundo
+                    }}>
+                    <Globe size={7} /> Mundo
                   </button>
-
-                  {/* Un pill por reino */}
                   {reinos.map(r => {
                     const active = reinoId === r.id;
                     return (
-                      <button
-                        key={r.id}
-                        type="button"
+                      <button key={r.id} type="button"
                         onClick={() => onUpdate({ reinoId: active ? null : r.id } as any)}
-                        className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border transition-all"
+                        className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest border transition-all truncate"
                         style={active ? {
                           background: "color-mix(in srgb, var(--primary) 14%, transparent)",
                           borderColor: "color-mix(in srgb, var(--primary) 30%, transparent)",
                           color: "var(--primary)",
-                          boxShadow: "0 0 0 1px color-mix(in srgb, var(--primary) 20%, transparent)",
                         } : {
                           background: "transparent",
                           borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
                           color: "color-mix(in srgb, var(--primary) 35%, transparent)",
-                        }}
-                      >
-                        <Crown size={8} /> {r.nombre}
+                        }}>
+                        <Crown size={7} /> {r.nombre}
                       </button>
                     );
                   })}
                 </div>
               </div>
             )}
-
             <MarkdownEditor
               value={evt.description}
               onChange={v => onUpdate({ description: v })}
-              placeholder="Descripción del evento, consecuencias, personajes involucrados…"
-              rows={14}
+              placeholder="Descripción del evento…"
+              rows={6}
               toolbar
               defaultMode="edit"
               onSnippetAction={onSnippetAction}
