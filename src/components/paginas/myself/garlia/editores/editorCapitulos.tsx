@@ -1134,13 +1134,14 @@ const MarkdownPreviewPane = ({ contenido }: { contenido: string }) => {
 };
 
 const PanelEditor = ({
-  capId, libroId, onCapitulosChange, focusMode, onToggleFocus,
+  capId, libroId, onCapitulosChange, focusMode, onToggleFocus, onVolver,
 }: {
   capId: string;
   libroId: string;
   onCapitulosChange: () => void;
   focusMode: boolean;
   onToggleFocus: () => void;
+  onVolver: () => void;
 }) => {
   const { cap, setCap, loading, isOffline, reload } = useCapituloEditor(capId);
   const [contenido,     setContenido]     = useState("");
@@ -1513,6 +1514,17 @@ const PanelEditor = ({
 
       {!focusMode && (
         <div className="shrink-0 px-4 sm:px-8 pt-4 sm:pt-6 pb-3 sm:pb-4 border-b border-primary/8 space-y-3">
+
+          {/* ── Botón volver a la biblioteca ── */}
+          <div className="flex items-center">
+            <button
+              onClick={onVolver}
+              className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-primary/30 hover:text-primary transition-colors group"
+            >
+              <ChevronRight size={10} className="rotate-180 transition-transform group-hover:-translate-x-0.5" />
+              Biblioteca
+            </button>
+          </div>
 
           {}
           <div className="flex items-start gap-2">
@@ -2663,7 +2675,7 @@ export function EditorCapitulosPanel() {
     } catch {}
   };
 
-  const bibliotecaAbierta = !selectedCapId || sidebarOpen;
+  const bibliotecaAbierta = !selectedCapId;
 
   return (
     <>
@@ -2753,6 +2765,7 @@ export function EditorCapitulosPanel() {
               onCapitulosChange={() => setCapRefreshKey(k => k + 1)}
               focusMode={focusMode}
               onToggleFocus={() => setFocusMode(m => !m)}
+              onVolver={() => { setSelectedCapId(null); setSidebarOpen(false); }}
             />
           ) : (
             <div className="flex-1 flex items-center justify-center">
