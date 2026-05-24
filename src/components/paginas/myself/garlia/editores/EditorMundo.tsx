@@ -874,7 +874,7 @@ function MundoEventoRow({
   );
 }
 
-// ── Editor de eventos propios del mundo ──────────────────────────────────────
+// ── Editor de eventos propios del mundo — scroll horizontal ──────────────────
 function MundoEventoEditor({
   events,
   onChange,
@@ -891,26 +891,56 @@ function MundoEventoEditor({
   const sorted = [...events].sort((a, b) => parseYear(a.year).localeCompare(parseYear(b.year)));
 
   return (
-    <div className="space-y-0">
-      {sorted.map((evt, idx) => (
-        <MundoEventoRow
-          key={evt.id}
-          evt={evt}
-          idx={idx}
-          total={sorted.length}
-          reinos={reinos}
-          onUpdate={patch => update(evt.id, patch)}
-          onRemove={() => remove(evt.id)}
-          onMove={() => {}}
-        />
-      ))}
-      <button type="button" onClick={add}
-        className="w-full flex items-center justify-center gap-2 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all mt-1"
-        style={{ border: "1px dashed color-mix(in srgb, var(--primary) 20%, transparent)", color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
-        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = "var(--primary)"; (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 40%, transparent)"; (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 5%, transparent)"; }}
-        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--primary) 40%, transparent)"; (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 20%, transparent)"; (e.currentTarget as HTMLElement).style.background = "transparent"; }}>
-        <Plus size={10} /> Añadir evento del mundo
-      </button>
+    <div className="flex flex-col gap-2 min-h-0">
+      {/* Pista horizontal con scroll */}
+      <div
+        className="overflow-x-auto pb-2"
+        style={{ scrollbarWidth: "thin", scrollbarColor: "color-mix(in srgb, var(--primary) 15%, transparent) transparent" }}
+      >
+        <div className="flex items-start" style={{ minWidth: "max-content", paddingLeft: 8, paddingRight: 8 }}>
+          {sorted.map((evt, idx) => (
+            <MundoEventoRow
+              key={evt.id}
+              evt={evt}
+              idx={idx}
+              total={sorted.length}
+              reinos={reinos}
+              onUpdate={patch => update(evt.id, patch)}
+              onRemove={() => remove(evt.id)}
+              onMove={() => {}}
+            />
+          ))}
+
+          {/* Botón añadir — inline al final de la pista */}
+          <div className="flex flex-col shrink-0 items-center justify-start" style={{ width: 160, paddingTop: 14 }}>
+            {/* Línea izquierda de conexión */}
+            <div className="flex items-center w-full" style={{ height: 28 }}>
+              <div className="flex-1 h-px" style={{ background: sorted.length > 0 ? "color-mix(in srgb, var(--primary) 12%, transparent)" : "transparent" }} />
+              <button
+                type="button"
+                onClick={add}
+                className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center border-2 border-dashed transition-all"
+                style={{ borderColor: "color-mix(in srgb, var(--primary) 20%, transparent)", color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 45%, transparent)"; (e.currentTarget as HTMLElement).style.color = "var(--primary)"; (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 6%, transparent)"; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 20%, transparent)"; (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--primary) 35%, transparent)"; (e.currentTarget as HTMLElement).style.background = "transparent"; }}
+              >
+                <Plus size={12} />
+              </button>
+              <div className="flex-1 h-px" style={{ background: "transparent" }} />
+            </div>
+            <span className="text-[8px] font-black uppercase tracking-widest mt-1.5 text-center"
+              style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
+              Añadir evento
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {events.length === 0 && (
+        <p className="text-[9px] text-primary/20 italic text-center px-4">
+          Usá el botón "+" para añadir eventos propios del mundo a la cronología.
+        </p>
+      )}
     </div>
   );
 }
@@ -1046,9 +1076,9 @@ function PanelHistoriaMundo({
       </div>
 
       {/* ── Contenido ─────────────────────────────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto min-h-0 px-4 py-4">
+      <div className="flex-1 min-h-0 flex flex-col overflow-hidden px-4 py-4">
 
-        {/* Vista: Cronología unificada */}
+        {/* Vista: Cronología unificada — scroll horizontal */}
         {view === "unified" && (
           <>
             {loadingReinos && (
@@ -1064,87 +1094,93 @@ function PanelHistoriaMundo({
                   Sin eventos históricos
                 </p>
                 <p className="text-[9px] text-primary/20 max-w-xs">
-                  Añadí eventos propios del mundo en "Editar mundo", o sumá eventos desde la historia de cada reino.
+                  Añadí eventos en "Editar mundo", o desde la historia de cada reino.
                 </p>
               </div>
             )}
-            {!loadingReinos && unifiedEvents.map((evt, idx) => (
-              <div key={evt.id + (evt.reinoId ?? "")} className="relative flex gap-0 mb-0">
-                {/* Línea vertical */}
-                <div className="flex flex-col items-center" style={{ width: 32, flexShrink: 0 }}>
-                  <div
-                    className="relative z-10 mt-5 shrink-0 rounded-full transition-all"
-                    style={evt.source === "mundo" ? {
-                      width: 10, height: 10,
-                      background: "var(--primary)",
-                      boxShadow: "0 0 0 3px color-mix(in srgb, var(--primary) 15%, transparent)",
-                    } : {
-                      width: 8, height: 8,
-                      background: "color-mix(in srgb, var(--primary) 50%, transparent)",
-                      boxShadow: "0 0 0 2px color-mix(in srgb, var(--primary) 10%, transparent)",
-                    }}
-                  />
-                  {idx < unifiedEvents.length - 1 && (
-                    <div className="flex-1 w-px mt-1" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)", minHeight: 20 }} />
-                  )}
-                </div>
+            {!loadingReinos && unifiedEvents.length > 0 && (
+              <div
+                className="overflow-x-auto pb-2"
+                style={{ scrollbarWidth: "thin", scrollbarColor: "color-mix(in srgb, var(--primary) 15%, transparent) transparent" }}
+              >
+                <div className="flex items-start" style={{ minWidth: "max-content", paddingLeft: 8, paddingRight: 8 }}>
+                  {unifiedEvents.map((evt, idx) => (
+                    <div key={evt.id + (evt.reinoId ?? "")} className="flex flex-col shrink-0" style={{ width: 190 }}>
+                      {/* Conector horizontal */}
+                      <div className="flex items-center" style={{ height: 28 }}>
+                        <div className="flex-1 h-px" style={{ background: idx === 0 ? "transparent" : "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
+                        <div
+                          className="shrink-0 rounded-full transition-all"
+                          style={evt.source === "mundo" ? {
+                            width: 10, height: 10,
+                            background: "var(--primary)",
+                            boxShadow: "0 0 0 3px color-mix(in srgb, var(--primary) 15%, transparent)",
+                          } : {
+                            width: 7, height: 7,
+                            background: "color-mix(in srgb, var(--primary) 45%, transparent)",
+                            boxShadow: "0 0 0 2px color-mix(in srgb, var(--primary) 10%, transparent)",
+                          }}
+                        />
+                        <div className="flex-1 h-px" style={{ background: idx === unifiedEvents.length - 1 ? "transparent" : "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
+                      </div>
 
-                {/* Tarjeta */}
-                <div className="flex-1 mb-3 rounded-xl overflow-hidden"
-                  style={{
-                    border: evt.source === "mundo"
-                      ? "1px solid color-mix(in srgb, var(--primary) 14%, transparent)"
-                      : "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
-                    background: evt.source === "mundo"
-                      ? "color-mix(in srgb, var(--primary) 3%, transparent)"
-                      : "color-mix(in srgb, var(--primary) 1%, transparent)",
-                  }}>
-                  <div className="flex items-center gap-2 px-3 py-2">
-                    {/* Año */}
-                    {evt.year?.trim() && (
-                      <span className="shrink-0 px-2 py-0.5 rounded-md text-[10px] font-black tracking-widest"
+                      {/* Tarjeta */}
+                      <div
+                        className="mx-1.5 rounded-xl overflow-hidden"
                         style={{
-                          background: "color-mix(in srgb, var(--primary) 8%, transparent)",
-                          color: "var(--primary)",
-                          border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
+                          border: evt.source === "mundo"
+                            ? "1px solid color-mix(in srgb, var(--primary) 14%, transparent)"
+                            : "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+                          background: evt.source === "mundo"
+                            ? "color-mix(in srgb, var(--primary) 3%, transparent)"
+                            : "color-mix(in srgb, var(--primary) 1%, transparent)",
                         }}>
-                        {evt.year}
-                      </span>
-                    )}
-
-                    {/* Título */}
-                    <span className="flex-1 text-[11px] font-bold text-primary/85 truncate">
-                      {evt.title || <span className="italic text-primary/30">Sin título</span>}
-                    </span>
-
-                    {/* Badge de reino */}
-                    {evt.source === "reino" && evt.reinoNombre && (
-                      <span className="shrink-0 flex items-center gap-1 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest"
-                        style={{ background: "color-mix(in srgb, var(--primary) 7%, transparent)", color: "color-mix(in srgb, var(--primary) 50%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)" }}>
-                        <Crown size={7} />
-                        {evt.reinoNombre}
-                      </span>
-                    )}
-                    {evt.source === "mundo" && (
-                      <span className="shrink-0 flex items-center gap-1 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest"
-                        style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)", color: "var(--primary)", border: "1px solid color-mix(in srgb, var(--primary) 18%, transparent)" }}>
-                        <Globe size={7} />
-                        Mundo
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Descripción */}
-                  {evt.description?.trim() && (
-                    <div className="px-3 pb-2.5 pt-0" style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" }}>
-                      <p className="text-[11px] leading-relaxed pt-2" style={{ color: "color-mix(in srgb, var(--primary) 60%, transparent)" }}>
-                        {evt.description}
-                      </p>
+                        <div className="flex flex-col gap-1 px-2.5 py-2">
+                          {/* Año */}
+                          {evt.year?.trim() && (
+                            <span className="self-start px-2 py-0.5 rounded-md text-[9px] font-black tracking-widest"
+                              style={{
+                                background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+                                color: "var(--primary)",
+                                border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
+                              }}>
+                              {evt.year}
+                            </span>
+                          )}
+                          {/* Título */}
+                          <span className="text-[10px] font-bold text-primary/85 leading-snug line-clamp-2">
+                            {evt.title || <span className="italic text-primary/30">Sin título</span>}
+                          </span>
+                          {/* Badge fuente */}
+                          <div className="flex items-center gap-1 mt-0.5">
+                            {evt.source === "reino" && evt.reinoNombre && (
+                              <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest truncate"
+                                style={{ background: "color-mix(in srgb, var(--primary) 7%, transparent)", color: "color-mix(in srgb, var(--primary) 50%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)", maxWidth: "100%" }}>
+                                <Crown size={6} /> {evt.reinoNombre}
+                              </span>
+                            )}
+                            {evt.source === "mundo" && (
+                              <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest"
+                                style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)", color: "var(--primary)", border: "1px solid color-mix(in srgb, var(--primary) 18%, transparent)" }}>
+                                <Globe size={6} /> Mundo
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        {/* Descripción — recortada */}
+                        {evt.description?.trim() && (
+                          <div className="px-2.5 pb-2" style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" }}>
+                            <p className="text-[9px] leading-relaxed pt-1.5 line-clamp-3" style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}>
+                              {evt.description}
+                            </p>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  )}
+                  ))}
                 </div>
               </div>
-            ))}
+            )}
           </>
         )}
 
@@ -1581,12 +1617,14 @@ function PanelListas({
 
           {/* HISTORIA */}
           {textos && onTextoChange && onSave && (
-            <div className="border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", minHeight: "42vh" }}>
+            <div className="border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", height: "320px", display: "flex", flexDirection: "column" }}>
               <div className="shrink-0 flex items-center gap-2 px-3 py-2 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, transparent)" }}>
                 <Clock size={11} className="text-primary/40 shrink-0" />
                 <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/50">Historia</span>
               </div>
-              <PanelHistoriaMundo texto={textos.historia} onChange={v => onTextoChange("historia", v)} onSave={() => onSave("historia")} />
+              <div className="flex-1 min-h-0 overflow-hidden">
+                <PanelHistoriaMundo texto={textos.historia} onChange={v => onTextoChange("historia", v)} onSave={() => onSave("historia")} />
+              </div>
             </div>
           )}
 
