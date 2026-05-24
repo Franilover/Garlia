@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
   Sparkles, Star, Globe, Plus, Trash2, Save, Loader2, Search, X, Bug,
-  ChevronDown, Mountain, ScrollText, Map, ChevronRight, FileText, Users, UserCircle2, Package,
+  ChevronDown, Mountain, ScrollText, Map, FileText, Users, UserCircle2, Package,
   Crown, Clock, Filter, Layers, Check, BookOpen, Music, MapPin,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
@@ -667,22 +667,6 @@ function FormularioRuna({ item, onSaved, onDeleted }: {
 
 // ─── Panel de lista + editor para hechizos o dones ───────────────────────────
 
-// ─── Hook: lista de personajes ────────────────────────────────────────────────
-
-type HistoriaTab = "texto" | "personajes";
-
-// ─── Panel Historia con tabs (texto + lista de personajes) ────────────────────
-
-// ─── Helper: lista con buscador reutilizable ──────────────────────────────────
-
-// ─── Hook: lista de criaturas (para PanelMundo) ───────────────────────────────
-
-type MundoGeoTab = "texto" | "reinos" | "criaturas" | "objetos";
-
-// ─── Panel Mundo con tabs (texto + reinos + criaturas) ────────────────────────
-
-// ─── Panel Historia del Mundo — línea de tiempo unificada ────────────────────
-
 type MundoTimelineEvent = TimelineEvent & {
   source: "mundo" | "reino";
   reinoNombre?: string;
@@ -1201,77 +1185,32 @@ function PanelHistoriaMundo({
   );
 }
 
-// ─── Tab unificada de Mundo ───────────────────────────────────────────────────
-type UnifiedTab =
-  | "mundo"     // texto geografía
-  | "historia"  // texto historia
-  | "listas"    // columnas: reinos · criaturas · objetos · personajes · hechizos · dones · runas
-  | "magia";    // texto sistema de magia
-
-type TabGroup = {
-  key: UnifiedTab;
-  label: string;
-  Icon: React.ElementType;
-  color?: string;
-};
-
-
-
-
-
-// Mapea el activeSection + subTab al nuevo UnifiedTab
-function resolveInitialTab(activeSection: MundoSectionKey, initialMundoTab?: string): UnifiedTab {
-  if (activeSection === "historia") return "historia";
-  if (activeSection === "magia") {
-    if (initialMundoTab === "magia") return "magia";
-    // hechizos, dones y runas ahora viven en listas
-    if (["hechizos", "dones", "runas"].includes(initialMundoTab ?? "")) return "listas";
-    return "magia";
-  }
-  // geografia
-  const listsKeys = ["listas", "reinos", "criaturas", "objetos", "personajes", "hechizos", "dones", "runas", "notas"];
-  if (initialMundoTab && listsKeys.includes(initialMundoTab)) return "listas";
-  // Por defecto abre geo-magia (geografía + magia juntos)
-  return "geo-magia" as any;
-}
-
 // ─── EditorMundo unificado ────────────────────────────────────────────────────
 export function EditorMundo({
-  activeSection,
   textos,
   onTextoChange,
   onSave,
-  initialMundoTab,
   initialItemId,
-  onTabChange,
   openItem,
   onOverlayChange,
   onItemCreated,
 }: {
-  activeSection: MundoSectionKey;
   textos: Record<MundoSectionKey, string>;
   onTextoChange: (section: MundoSectionKey, value: string) => void;
   onSave: (section: MundoSectionKey) => Promise<void>;
-  initialMundoTab?: string;
   initialItemId?: string;
-  onTabChange?: (section: MundoSectionKey, mundoTab: string) => void;
-  /** { tabla, id } — abre ese ítem directamente en el overlay */
   openItem?: { tabla: string; id: string } | null;
   onOverlayChange?: (hasOverlay: boolean, clearFn: () => void) => void;
-  /** Notifica un item recién creado para que PanelListas lo inyecte en su lista local */
   onItemCreated?: { tabla: string; item: any } | null;
 }) {
-
   return (
     <div className="flex-1 flex min-h-0 overflow-hidden">
       <PanelListas
-        initialSubTab={resolveInitialTab(activeSection, initialMundoTab)}
         initialItemId={initialItemId}
         openItem={openItem}
         textos={textos}
         onTextoChange={onTextoChange}
         onSave={onSave}
-        onTabChange={onTabChange}
         onOverlayChange={onOverlayChange}
         onItemCreated={onItemCreated}
       />
@@ -1279,174 +1218,109 @@ export function EditorMundo({
   );
 }
 
-
-// ─── Componentes auxiliares de PanelListas (definidos fuera para evitar re-montaje) ──
-
-function SearchInput({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder: string }) {
-  return (
-    <div className="shrink-0 px-3 py-2">
-      <div className="relative">
-        <Search size={9} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-primary/25" />
-        <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
-          className="w-full bg-primary/4 border border-primary/10 rounded-xl pl-7 pr-6 py-1.5 text-[10px] font-medium outline-none focus:border-primary/25 text-primary placeholder:text-primary/25" />
-        {value && (
-          <button onClick={() => onChange("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-primary/25 hover:text-primary transition-colors">
-            <X size={8} />
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// Constantes de localStorage — definidas a nivel de módulo para que los lazy
-// initializers de useState puedan acceder a ellas sin temporal dead zone.
-const LS_TAB_KEY  = "garlia-panel-tab";
+// ─── Constante de localStorage ────────────────────────────────────────────────
 const LS_ITEM_KEY = "garlia-panel-item";
+const LS_SCROLL_KEY = "garlia-scroll-pos";
 
-// ─── PanelListas: columnas side-by-side (reinos, criaturas, objetos, personajes, hechizos, dones) ──
+// ─── PanelListas: scroll vertical único ───────────────────────────────────────
 function PanelListas({
-  initialSubTab, initialItemId, openItem,
-  textos, onTextoChange, onSave, onTabChange, onOverlayChange, onItemCreated,
+  initialItemId, openItem,
+  textos, onTextoChange, onSave, onOverlayChange, onItemCreated,
 }: {
-  initialSubTab?: string;
   initialItemId?: string;
   openItem?: { tabla: string; id: string } | null;
   textos?: Record<MundoSectionKey, string>;
   onTextoChange?: (section: MundoSectionKey, value: string) => void;
   onSave?: (section: MundoSectionKey) => Promise<void>;
-  onTabChange?: (section: MundoSectionKey, mundoTab: string) => void;
   onOverlayChange?: (hasOverlay: boolean, clearFn: () => void) => void;
   onItemCreated?: { tabla: string; item: any } | null;
 }) {
-  // ── Lazy loading: cada tabla solo carga cuando su tab fue visitado ────────
-  // "geo-magia" y "historia" no necesitan datos de lista — empezamos con ellos off.
-  // Una vez que el usuario abre un tab, lo marcamos como "visitado" y ya no se desmonta.
-  const [visited, setVisited] = useState<Set<string>>(() => {
-    const init = new Set<string>();
+  // ── Datos — todos cargan al montar ───────────────────────────────────────
+  const { reinos,    setReinos,    loading: loadingReinos    } = useReinos();
+  const { criaturas, setCriaturas, loading: loadingCriaturas } = useCriaturas();
+  const { objetos,   setObjetos,   loading: loadingObjetos   } = useObjetos();
+  const { lugares,   setLugares,   loading: loadingLugares   } = useLugares();
+  const { personajes, setPersonajes, loading: loadingPersonajes } = usePersonajesList();
+  const { items: hechizos, setItems: setHechizos, loading: loadingHechizos } = useEntidadesMagicas("hechizos");
+  const { items: dones,    setItems: setDones,    loading: loadingDones    } = useEntidadesMagicas("dones");
+  const { items: runas,    setItems: setRunas,    loading: loadingRunas    } = useRunas();
+  const { grupos: gruposMagicos, loading: loadingGruposMagicos } = useGruposCriaturas();
+  const { grupos: gruposTodos,   loading: loadingGruposTodos   } = useGruposTodos();
+  const { notas, loading: loadingNotas, crear: crearNota, actualizar: actualizarNota, eliminar: eliminarNota } = useNotas();
 
-    // Si hay un item persistido, pre-activar todo para que las listas carguen al recargar
-    try {
-      if (localStorage.getItem("garlia-panel-item")) {
-        ["reinos","criaturas","objetos","personajes","lugares",
-         "hechizos","dones","runas","notas","grupos","gruposTodos","todo"].forEach(k => init.add(k));
-        return init;
-      }
-    } catch {}
+  // ── Estado de selección (overlay) ────────────────────────────────────────
+  const [selectedReino,     setSelectedReino]     = useState<Reino | null>(null);
+  const [selectedCriatura,  setSelectedCriatura]  = useState<{ id: string; nombre: string; imagen_url?: string; habitat?: string } | null>(null);
+  const [selectedObjeto,    setSelectedObjeto]    = useState<{ id: string; nombre: string; imagen_url?: string; categoria?: string } | null>(null);
+  const [selectedLugar,     setSelectedLugar]     = useState<Lugar | null>(null);
+  const [selectedPersonaje, setSelectedPersonaje] = useState<Personaje | null>(null);
+  const [selectedHechizo,   setSelectedHechizo]   = useState<EntidadMagica | null>(null);
+  const [selectedDon,       setSelectedDon]       = useState<EntidadMagica | null>(null);
+  const [selectedRuna,      setSelectedRuna]      = useState<Runa | null>(null);
+  const [selectedNota,      setSelectedNota]      = useState<Nota | null>(null);
 
-    // Sin item persistido: pre-activar solo el tab inicial
-    const t = initialSubTab ?? "geo-magia";
-    if (t === "reinos")     init.add("reinos");
-    if (t === "criaturas")  init.add("criaturas");
-    if (t === "objetos")    init.add("objetos");
-    if (t === "lugares")    init.add("lugares");
-    if (t === "personajes") init.add("personajes");
-    if (t === "hechizos")   { init.add("hechizos"); init.add("grupos"); }
-    if (t === "dones")      { init.add("dones");    init.add("grupos"); }
-    if (t === "runas")      init.add("runas");
-    if (t === "grupos")     { init.add("grupos"); init.add("gruposTodos"); }
-    if (t === "notas")      init.add("notas");
-    if (t === "todo" || t === "mundo-personajes" || t === "magia-objetos") {
-      ["reinos","criaturas","objetos","personajes"].forEach(k => init.add(k));
+  // ── Scroll position ───────────────────────────────────────────────────────
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const scrollSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Restaurar posición de scroll al montar
+  useEffect(() => {
+    const saved = (() => { try { return parseFloat(localStorage.getItem(LS_SCROLL_KEY) ?? ""); } catch { return NaN; } })();
+    if (!isNaN(saved) && scrollRef.current) {
+      scrollRef.current.scrollTop = saved;
     }
-    return init;
-  });
-
-  // Cuando el usuario cambia de tab, registrar visita y activar los hooks necesarios
-  const markVisited = useCallback((tab: string) => {
-    setVisited(prev => {
-      const next = new Set(prev);
-      const add = (...keys: string[]) => keys.forEach(k => next.add(k));
-      if (tab === "reinos")         add("reinos");
-      else if (tab === "criaturas") add("criaturas");
-      else if (tab === "objetos")   add("objetos");
-      else if (tab === "lugares")   add("lugares");
-      else if (tab === "personajes")add("personajes");
-      else if (tab === "hechizos")  add("hechizos", "grupos");
-      else if (tab === "dones")     add("dones", "grupos");
-      else if (tab === "runas")     add("runas");
-      else if (tab === "grupos")    add("grupos", "gruposTodos");
-      else if (tab === "notas")     add("notas");
-      else if (tab === "todo" || tab === "mundo-personajes" || tab === "magia-objetos") {
-        // Cargar primero los datos principales, luego los secundarios con delay
-        add("reinos", "criaturas", "objetos", "personajes", "lugares");
-        setTimeout(() => {
-          setVisited(prev => {
-            const next2 = new Set(prev);
-            ["hechizos","dones","runas","grupos","gruposTodos","notas"].forEach(k => next2.add(k));
-            return next2;
-          });
-        }, 400);
-      }
-      return next;
-    });
   }, []);
 
-  const { reinos,    setReinos,    loading: loadingReinos    } = useReinos(visited.has("reinos"));
-  const { criaturas, setCriaturas, loading: loadingCriaturas } = useCriaturas(visited.has("criaturas"));
-  const { objetos,   setObjetos,   loading: loadingObjetos   } = useObjetos(visited.has("objetos"));
-  const { lugares,   setLugares,   loading: loadingLugares   } = useLugares(visited.has("lugares"));
-  const { personajes, setPersonajes, loading: loadingPersonajes } = usePersonajesList(visited.has("personajes"));
-  const { items: hechizos, setItems: setHechizos, loading: loadingHechizos } = useEntidadesMagicas("hechizos", visited.has("hechizos"));
-  const { items: dones,    setItems: setDones,    loading: loadingDones    } = useEntidadesMagicas("dones",    visited.has("dones"));
-  const { items: runas,    setItems: setRunas,    loading: loadingRunas    } = useRunas(visited.has("runas"));
-  const { grupos: gruposMagicos, loading: loadingGruposMagicos } = useGruposCriaturas(visited.has("grupos"));
-  const { grupos: gruposTodos,   loading: loadingGruposTodos   } = useGruposTodos(visited.has("gruposTodos"));
-  const { notas, loading: loadingNotas, crear: crearNota, actualizar: actualizarNota, eliminar: eliminarNota } = useNotas();
-  const [searchNotas, setSearchNotas] = useState("");
-  const [selectedNota, setSelectedNota] = useState<Nota | null>(null);
+  const handleScroll = useCallback(() => {
+    if (scrollSaveTimer.current) clearTimeout(scrollSaveTimer.current);
+    scrollSaveTimer.current = setTimeout(() => {
+      try { localStorage.setItem(LS_SCROLL_KEY, String(scrollRef.current?.scrollTop ?? 0)); } catch {}
+    }, 200);
+  }, []);
 
-  // Inyectar + abrir editor cuando llega un item recién creado.
-  // Fusionado con el routing para evitar race condition.
+  // ── Persistencia del item abierto ─────────────────────────────────────────
+  const persistOpenItem = useCallback((tabla: string, id: string) => {
+    try { localStorage.setItem(LS_ITEM_KEY, JSON.stringify({ tabla, id })); } catch {}
+  }, []);
+  const clearPersistedItem = useCallback(() => {
+    try { localStorage.removeItem(LS_ITEM_KEY); } catch {}
+  }, []);
+
+  // ── Wrappers que persisten el item ────────────────────────────────────────
+  const selectReino     = useCallback((r: Reino | null)         => { setSelectedReino(r);     r ? persistOpenItem("reinos",     r.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
+  const selectCriatura  = useCallback((c: any | null)           => { setSelectedCriatura(c);  c ? persistOpenItem("criaturas",  c.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
+  const selectObjeto    = useCallback((o: any | null)           => { setSelectedObjeto(o);    o ? persistOpenItem("items",      o.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
+  const selectLugar     = useCallback((l: Lugar | null)         => { setSelectedLugar(l);     l ? persistOpenItem("lugares",    l.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
+  const selectPersonaje = useCallback((p: Personaje | null)     => { setSelectedPersonaje(p); p ? persistOpenItem("personajes", p.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
+  const selectHechizo   = useCallback((h: EntidadMagica | null) => { setSelectedHechizo(h);   h ? persistOpenItem("hechizos",   h.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
+  const selectDon       = useCallback((d: EntidadMagica | null) => { setSelectedDon(d);       d ? persistOpenItem("dones",      d.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
+  const selectRuna      = useCallback((r: Runa | null)          => { setSelectedRuna(r);      r ? persistOpenItem("runas",      r.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
+
+  // ── Overlay activo ────────────────────────────────────────────────────────
+  const overlay: "reino" | "criatura" | "objeto" | "personaje" | "hechizo" | "don" | "runa" | "nota" | "lugar" | null =
+    selectedReino     ? "reino"     :
+    selectedCriatura  ? "criatura"  :
+    selectedObjeto    ? "objeto"    :
+    selectedLugar     ? "lugar"     :
+    selectedPersonaje ? "personaje" :
+    selectedHechizo   ? "hechizo"   :
+    selectedDon       ? "don"       :
+    selectedRuna      ? "runa"      :
+    selectedNota      ? "nota"      : null;
+
+  const clearAllOverlays = useCallback(() => {
+    setSelectedReino(null); setSelectedCriatura(null);
+    setSelectedObjeto(null); setSelectedPersonaje(null);
+    setSelectedHechizo(null); setSelectedDon(null); setSelectedRuna(null);
+    setSelectedNota(null); setSelectedLugar(null);
+    clearPersistedItem();
+  }, [clearPersistedItem]);
+
   useEffect(() => {
-    if (!onItemCreated) return;
-    const { tabla, item } = onItemCreated;
+    onOverlayChange?.(!!overlay, clearAllOverlays);
+  }, [!!overlay, clearAllOverlays, onOverlayChange]);
 
-    // 1. Inyectar en array local
-    if      (tabla === "personajes") setPersonajes(p => p.some(x => x.id === item.id) ? p : [item, ...p]);
-    else if (tabla === "criaturas")  setCriaturas(p  => p.some(x => x.id === item.id) ? p : [item, ...p]);
-    else if (tabla === "items")      setObjetos(p    => p.some(x => x.id === item.id) ? p : [item, ...p]);
-    else if (tabla === "reinos")     setReinos(p     => p.some(x => x.id === item.id) ? p : [item, ...p]);
-    else if (tabla === "lugares")    setLugares(p    => p.some(x => x.id === item.id) ? p : [item, ...p]);
-    else if (tabla === "hechizos")   setHechizos(p   => p.some(x => x.id === item.id) ? p : [item, ...p]);
-    else if (tabla === "dones")      setDones(p      => p.some(x => x.id === item.id) ? p : [item, ...p]);
-    else if (tabla === "runas")      setRunas(p      => p.some(x => x.id === item.id) ? p : [item, ...p]);
-
-    // 2. Abrir editor directamente (el item ya está aquí, sin buscar en el array)
-    if      (tabla === "personajes") setSelectedPersonaje(item);
-    else if (tabla === "criaturas")  setSelectedCriatura(item);
-    else if (tabla === "items")      setSelectedObjeto(item);
-    else if (tabla === "reinos")     setSelectedReino(item);
-    else if (tabla === "lugares")    setSelectedLugar(item);
-    else if (tabla === "hechizos")   setSelectedHechizo(item);
-    else if (tabla === "dones")      setSelectedDon(item);
-    else if (tabla === "runas")      setSelectedRuna(item);
-
-    // 3. Navegar a "todo" y guardar prevMobileTab para que "volver" funcione
-    markVisited("todo");
-    setPrevMobileTab("todo");
-    setMobileTab("todo");
-  }, [onItemCreated]);
-
-  const [searchR, setSearchR] = useState("");
-  const [searchC, setSearchC] = useState("");
-  const [searchO, setSearchO] = useState("");
-  const [searchL, setSearchL] = useState("");
-  const [searchP, setSearchP] = useState("");
-  const [searchH, setSearchH] = useState("");
-  const [searchD, setSearchD] = useState("");
-  const [searchRu, setSearchRu] = useState("");
-
-  const [selectedReino,    setSelectedReino]    = useState<Reino | null>(null);
-  const [selectedCriatura, setSelectedCriatura] = useState<{ id: string; nombre: string; imagen_url?: string; habitat?: string } | null>(null);
-  const [selectedObjeto,   setSelectedObjeto]   = useState<{ id: string; nombre: string; imagen_url?: string; categoria?: string } | null>(null);
-  const [selectedLugar,    setSelectedLugar]    = useState<Lugar | null>(null);
-  const [selectedPersonaje, setSelectedPersonaje] = useState<Personaje | null>(null);
-  const [selectedHechizo,  setSelectedHechizo]  = useState<EntidadMagica | null>(null);
-  const [selectedDon,      setSelectedDon]      = useState<EntidadMagica | null>(null);
-  const [selectedRuna,     setSelectedRuna]     = useState<Runa | null>(null);
-
-  // Nombres de todas las entidades para el WikilinkEditor
+  // ── WikiEntity list ────────────────────────────────────────────────────────
   const allEntityNames = useMemo((): WikiEntity[] => [
     ...personajes.map(e => ({ name: e.nombre, type: "personaje" })),
     ...criaturas .map(e => ({ name: e.nombre, type: "criatura"  })),
@@ -1458,207 +1332,15 @@ function PanelListas({
     ...runas     .map(e => ({ name: e.nombre, type: "runa"      })),
   ], [personajes, criaturas, objetos, reinos, lugares, hechizos, dones, runas]);
 
-  type ListaTab = "mundo" | "historia" | "magia" | "reinos" | "criaturas" | "objetos" | "personajes" | "hechizos" | "dones" | "runas" | "notas" | "grupos" | "lugares" | "magia-objetos" | "mundo-personajes" | "geo-magia" | "todo" | "capitulos" | "letras";
-  const VALID_LISTA_TABS: ListaTab[] = ["mundo", "historia", "magia", "reinos", "criaturas", "objetos", "personajes", "hechizos", "dones", "runas", "notas", "grupos", "lugares", "magia-objetos", "mundo-personajes", "geo-magia", "todo", "capitulos", "letras"];
-
-  const [mobileTab, setMobileTabRaw] = useState<ListaTab>(() => {
-    // Si hay item persistido → siempre arrancar en "todo" para que las listas
-    // sean visibles detrás del overlay del editor restaurado
-    try {
-      if (localStorage.getItem("garlia-panel-item")) return "todo";
-    } catch {}
-    // Sin item: restaurar el tab guardado
-    try {
-      const saved = localStorage.getItem("garlia-panel-tab") as ListaTab | null;
-      if (saved && VALID_LISTA_TABS.includes(saved)) return saved;
-    } catch {}
-    // Fallback: navegación externa del sidebar
-    if (initialSubTab) {
-      const mapped: Record<string, ListaTab> = { mundo: "geo-magia", historia: "historia", magia: "geo-magia", listas: "todo", notas: "todo", lugares: "todo", "geo-magia": "geo-magia" };
-      return mapped[initialSubTab] ?? (VALID_LISTA_TABS.includes(initialSubTab as ListaTab) ? initialSubTab as ListaTab : "geo-magia");
-    }
-    return "geo-magia";
-  });
-
-  // Wrapper que persiste el tab activo
-  const setMobileTab = useCallback((tab: ListaTab) => {
-    setMobileTabRaw(tab);
-    try { localStorage.setItem(LS_TAB_KEY, tab); } catch {}
-  }, []);
-
-  // Persistir item abierto
-  const persistOpenItem = useCallback((tabla: string, id: string) => {
-    try { localStorage.setItem(LS_ITEM_KEY, JSON.stringify({ tabla, id })); } catch {}
-  }, []);
-  const clearPersistedItem = useCallback(() => {
-    try { localStorage.removeItem(LS_ITEM_KEY); } catch {}
-  }, []);
-
-  // Sincronizar mobileTab cuando el buscador/sidebar navega a un subtab diferente
-  // y cerrar el overlay abierto para que el contenido sea visible de inmediato
-  // Solo actuar en cambios reales del sidebar (no en la carga inicial)
-  const isFirstSubTabRender = useRef(true);
-  useEffect(() => {
-    if (isFirstSubTabRender.current) { isFirstSubTabRender.current = false; return; }
-    if (!initialSubTab) return;
-    // Si hay un item persistido, no pisar mobileTab — la restauración del item
-    // ya setea "todo" y el sidebar no debe interferir hasta que el usuario navegue manualmente.
-    try { if (localStorage.getItem("garlia-panel-item")) return; } catch {}
-    const mapped: Record<string, ListaTab> = { mundo: "geo-magia", historia: "historia", magia: "geo-magia", listas: "todo", notas: "todo", lugares: "todo", "geo-magia": "geo-magia" };
-    const resolved = mapped[initialSubTab] ?? (VALID_LISTA_TABS.includes(initialSubTab as ListaTab) ? initialSubTab as ListaTab : null);
-    if (resolved) {
-      setMobileTab(resolved);
-      markVisited(resolved);
-      // Cerrar editor abierto al navegar desde el sidebar externo
-      clearPersistedItem();
-      setSelectedReino(null);    setSelectedCriatura(null);
-      setSelectedObjeto(null);   setSelectedPersonaje(null);
-      setSelectedHechizo(null);  setSelectedDon(null);
-      setSelectedRuna(null);     setSelectedNota(null);
-      setSelectedLugar(null);
-    }
-  }, [initialSubTab, markVisited, clearPersistedItem]);
-
-  // Abrir un ítem concreto desde navegación externa (buscador global)
-  // Usamos una ref para no re-ejecutar cuando los arrays crecen con datos adicionales,
-  // evitando que la navegación interna (reino->lugar, lugar->reino) sea pisada.
-  const lastOpenItemRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (!openItem) return;
-    const key = `${openItem.tabla}:${openItem.id}`;
-    const { tabla, id } = openItem;
-
-    const tablaToListaTab: Record<string, ListaTab> = {
-      personajes: "personajes", criaturas: "criaturas",
-      items: "objetos", reinos: "reinos",
-      lugares: "lugares", hechizos: "hechizos",
-      dones: "dones", runas: "runas",
-    };
-    const listaTab = tablaToListaTab[tabla];
-    if (!listaTab) return;
-
-    let found: any = null;
-    if      (tabla === "personajes") found = personajes.find(x => x.id === id);
-    else if (tabla === "criaturas")  found = criaturas.find(x => x.id === id);
-    else if (tabla === "items")      found = objetos.find(x => x.id === id);
-    else if (tabla === "reinos")     found = reinos.find(x => x.id === id);
-    else if (tabla === "lugares")    found = lugares.find(x => x.id === id);
-    else if (tabla === "hechizos")   found = hechizos.find(x => x.id === id);
-    else if (tabla === "dones")      found = dones.find(x => x.id === id);
-    else if (tabla === "runas")      found = runas.find(x => x.id === id);
-
-    if (!found || lastOpenItemRef.current === key) return;
-    lastOpenItemRef.current = key;
-
-    markVisited(listaTab);
-    markVisited("todo");
-
-    // Primero el editor (overlay visible), luego el tab
-    if      (tabla === "personajes") setSelectedPersonaje(found);
-    else if (tabla === "criaturas")  setSelectedCriatura(found);
-    else if (tabla === "items")      setSelectedObjeto(found);
-    else if (tabla === "reinos")     setSelectedReino(found);
-    else if (tabla === "lugares")    setSelectedLugar(found);
-    else if (tabla === "hechizos")   setSelectedHechizo(found);
-    else if (tabla === "dones")      setSelectedDon(found);
-    else if (tabla === "runas")      setSelectedRuna(found);
-
-    setPrevMobileTab("todo");
-    setMobileTab("todo");
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [openItem,
-      personajes.length, criaturas.length, objetos.length, reinos.length,
-      lugares.length, hechizos.length, dones.length, runas.length]);
-
-  // Editor overlay activo
-  const overlay: "reino" | "criatura" | "objeto" | "personaje" | "hechizo" | "don" | "runa" | "nota" | "lugar" | null =
-    selectedReino    ? "reino"    :
-    selectedCriatura ? "criatura" :
-    selectedObjeto   ? "objeto"   :
-    selectedLugar    ? "lugar"    :
-    selectedPersonaje? "personaje":
-    selectedHechizo  ? "hechizo"  :
-    selectedDon      ? "don"      :
-    selectedRuna     ? "runa"     :
-    selectedNota     ? "nota"     : null;
-
-  // Tab previo para restaurar al cerrar el overlay (ej: "todo" → item → volver → "todo")
-  const [prevMobileTab, setPrevMobileTab] = useState<ListaTab | null>(null);
-
-  const clearAllOverlays = useCallback(() => {
-    setSelectedReino(null); setSelectedCriatura(null);
-    setSelectedObjeto(null); setSelectedPersonaje(null);
-    setSelectedHechizo(null); setSelectedDon(null); setSelectedRuna(null);
-    setSelectedNota(null); setSelectedLugar(null);
-    clearPersistedItem();
-    if (prevMobileTab) { setMobileTab(prevMobileTab); setPrevMobileTab(null); }
-  }, [prevMobileTab, clearPersistedItem]);
-
-  useEffect(() => {
-    onOverlayChange?.(!!overlay, clearAllOverlays);
-  }, [!!overlay, clearAllOverlays, onOverlayChange]);
-
-  const filteredR = reinos.filter(r    => r.nombre.toLowerCase().includes(searchR.toLowerCase()));
-  const filteredC = criaturas.filter(c => c.nombre.toLowerCase().includes(searchC.toLowerCase()));
-  const filteredO = objetos.filter(o   => o.nombre.toLowerCase().includes(searchO.toLowerCase()));
-  const filteredL = lugares.filter(l   => l.nombre.toLowerCase().includes(searchL.toLowerCase()));
-  const filteredP = personajes.filter(p => p.nombre.toLowerCase().includes(searchP.toLowerCase()));
-  const filteredH = hechizos.filter(h  => h.nombre.toLowerCase().includes(searchH.toLowerCase()));
-  const filteredD = dones.filter(d     => d.nombre.toLowerCase().includes(searchD.toLowerCase()));
-  const filteredRu = runas.filter(r    => r.nombre.toLowerCase().includes(searchRu.toLowerCase()));
-
-  // Auto-seleccionar item cuando se navega desde wikilink o buscador.
-  // Se dispara tanto al montar (cuando los datos cargan) como cuando
-  // initialItemId cambia (navegación desde el buscador global).
-  useEffect(() => {
-    if (!initialItemId || !initialSubTab) return;
-    if (initialSubTab === "hechizos") {
-      markVisited("hechizos");
-      const found = hechizos.find(i => i.id === initialItemId);
-      if (found) { setSelectedHechizo(found); setMobileTab("hechizos"); }
-    } else if (initialSubTab === "dones") {
-      markVisited("dones");
-      const found = dones.find(i => i.id === initialItemId);
-      if (found) { setSelectedDon(found); setMobileTab("dones"); }
-    } else if (initialSubTab === "runas") {
-      markVisited("runas");
-      const found = runas.find(i => i.id === initialItemId);
-      if (found) { setSelectedRuna(found); setMobileTab("runas"); }
-    }
-  // Reacciona a cambios de initialItemId (buscador) y a la carga inicial de datos
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialItemId, hechizos.length, dones.length, runas.length]);
-
-  // Restaurar el item abierto desde localStorage al recargar la página.
-  // Se re-evalúa cada vez que carga más data; para en cuanto encuentra el item.
-  // Restaurar item al montar — fetch directo a Supabase, sin esperar arrays en memoria
+  // ── Restaurar item al montar ───────────────────────────────────────────────
   useEffect(() => {
     void (async () => {
       try {
         const raw = localStorage.getItem(LS_ITEM_KEY);
         if (!raw) return;
         const { tabla, id } = JSON.parse(raw) as { tabla: string; id: string };
-
-        const tablaToListaTab: Record<string, ListaTab> = {
-          personajes: "personajes", criaturas: "criaturas",
-          items: "objetos", reinos: "reinos", lugares: "lugares",
-          hechizos: "hechizos", dones: "dones", runas: "runas",
-        };
-        const listaTab = tablaToListaTab[tabla];
-        if (!listaTab) return;
-
-        const supabaseTable: Record<string, string> = {
-          personajes: "personajes", criaturas: "criaturas",
-          items: "items", reinos: "reinos", lugares: "lugares",
-          hechizos: "hechizos", dones: "dones", runas: "runas",
-        };
-        const { data } = await supabase.from(supabaseTable[tabla]).select("*").eq("id", id).single();
+        const { data } = await supabase.from(tabla === "items" ? "items" : tabla).select("*").eq("id", id).single();
         if (!data) return;
-
-        markVisited(listaTab);
-        markVisited("todo");
-        setPrevMobileTab("todo"); // al cerrar vuelve a "todo" donde están todas las listas
-
         if      (tabla === "personajes") setSelectedPersonaje(data);
         else if (tabla === "criaturas")  setSelectedCriatura(data);
         else if (tabla === "items")      setSelectedObjeto(data);
@@ -1672,146 +1354,138 @@ function PanelListas({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ── Wrappers que persisten el item abierto en localStorage ──────────────────
-  const selectReino    = useCallback((r: Reino | null)         => { setSelectedReino(r);     r ? persistOpenItem("reinos",     r.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
-  const selectCriatura = useCallback((c: any | null)           => { setSelectedCriatura(c);  c ? persistOpenItem("criaturas",  c.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
-  const selectObjeto   = useCallback((o: any | null)           => { setSelectedObjeto(o);    o ? persistOpenItem("items",      o.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
-  const selectLugar    = useCallback((l: Lugar | null)         => { setSelectedLugar(l);     l ? persistOpenItem("lugares",    l.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
-  const selectPersonaje= useCallback((p: Personaje | null)     => { setSelectedPersonaje(p); p ? persistOpenItem("personajes", p.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
-  const selectHechizo  = useCallback((h: EntidadMagica | null) => { setSelectedHechizo(h);   h ? persistOpenItem("hechizos",   h.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
-  const selectDon      = useCallback((d: EntidadMagica | null) => { setSelectedDon(d);       d ? persistOpenItem("dones",      d.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
-  const selectRuna     = useCallback((r: Runa | null)          => { setSelectedRuna(r);      r ? persistOpenItem("runas",      r.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
+  // ── Abrir item desde buscador global (openItem prop) ─────────────────────
+  const lastOpenItemRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!openItem) return;
+    const key = `${openItem.tabla}:${openItem.id}`;
+    const { tabla, id } = openItem;
+    let found: any = null;
+    if      (tabla === "personajes") found = personajes.find(x => x.id === id);
+    else if (tabla === "criaturas")  found = criaturas.find(x => x.id === id);
+    else if (tabla === "items")      found = objetos.find(x => x.id === id);
+    else if (tabla === "reinos")     found = reinos.find(x => x.id === id);
+    else if (tabla === "lugares")    found = lugares.find(x => x.id === id);
+    else if (tabla === "hechizos")   found = hechizos.find(x => x.id === id);
+    else if (tabla === "dones")      found = dones.find(x => x.id === id);
+    else if (tabla === "runas")      found = runas.find(x => x.id === id);
+    if (!found || lastOpenItemRef.current === key) return;
+    lastOpenItemRef.current = key;
+    if      (tabla === "personajes") setSelectedPersonaje(found);
+    else if (tabla === "criaturas")  setSelectedCriatura(found);
+    else if (tabla === "items")      setSelectedObjeto(found);
+    else if (tabla === "reinos")     setSelectedReino(found);
+    else if (tabla === "lugares")    setSelectedLugar(found);
+    else if (tabla === "hechizos")   setSelectedHechizo(found);
+    else if (tabla === "dones")      setSelectedDon(found);
+    else if (tabla === "runas")      setSelectedRuna(found);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openItem,
+      personajes.length, criaturas.length, objetos.length, reinos.length,
+      lugares.length, hechizos.length, dones.length, runas.length]);
 
-  // Leer localStorage para auto-crear un nuevo lugar al navegar desde el menú Add
+  // ── onItemCreated ─────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!onItemCreated) return;
+    const { tabla, item } = onItemCreated;
+    if      (tabla === "personajes") setPersonajes(p => p.some(x => x.id === item.id) ? p : [item, ...p]);
+    else if (tabla === "criaturas")  setCriaturas(p  => p.some(x => x.id === item.id) ? p : [item, ...p]);
+    else if (tabla === "items")      setObjetos(p    => p.some(x => x.id === item.id) ? p : [item, ...p]);
+    else if (tabla === "reinos")     setReinos(p     => p.some(x => x.id === item.id) ? p : [item, ...p]);
+    else if (tabla === "lugares")    setLugares(p    => p.some(x => x.id === item.id) ? p : [item, ...p]);
+    else if (tabla === "hechizos")   setHechizos(p   => p.some(x => x.id === item.id) ? p : [item, ...p]);
+    else if (tabla === "dones")      setDones(p      => p.some(x => x.id === item.id) ? p : [item, ...p]);
+    else if (tabla === "runas")      setRunas(p      => p.some(x => x.id === item.id) ? p : [item, ...p]);
+    if      (tabla === "personajes") setSelectedPersonaje(item);
+    else if (tabla === "criaturas")  setSelectedCriatura(item);
+    else if (tabla === "items")      setSelectedObjeto(item);
+    else if (tabla === "reinos")     setSelectedReino(item);
+    else if (tabla === "lugares")    setSelectedLugar(item);
+    else if (tabla === "hechizos")   setSelectedHechizo(item);
+    else if (tabla === "dones")      setSelectedDon(item);
+    else if (tabla === "runas")      setSelectedRuna(item);
+  }, [onItemCreated]);
+
+  // ── nuevo-lugar / nueva-nota actions ─────────────────────────────────────
   useEffect(() => {
     const check = () => {
       const action = localStorage.getItem("estudio-listas-action");
       if (action !== "nuevo-lugar") return;
       localStorage.removeItem("estudio-listas-action");
-      markVisited("lugares");
-      markVisited("todo");
-      setMobileTab("todo");
-      setPrevMobileTab("todo");
       (async () => {
         try {
-          const { data, error } = await supabase
-            .from("lugares")
-            .insert([{ nombre: "Nuevo lugar" }])
-            .select("*")
-            .single();
+          const { data, error } = await supabase.from("lugares").insert([{ nombre: "Nuevo lugar" }]).select("*").single();
           if (error || !data) return;
           setLugares(prev => [data as LugarMin, ...prev]);
           setSelectedLugar(data as Lugar);
         } catch {}
       })();
     };
-    check(); // revisar al montar
+    check();
     window.addEventListener("estudio-listas-action", check);
     return () => window.removeEventListener("estudio-listas-action", check);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Leer localStorage para auto-crear una nueva nota al navegar desde el menú Add
   useEffect(() => {
     const check = () => {
       const action = localStorage.getItem("estudio-notas-action");
       if (action !== "nueva-nota") return;
       localStorage.removeItem("estudio-notas-action");
-      markVisited("notas");
-      markVisited("todo");
-      setMobileTab("todo");
-      setPrevMobileTab("todo");
-      crearNota("Nueva nota").then(nueva => {
-        if (nueva) setSelectedNota(nueva);
-      });
+      crearNota("Nueva nota").then(nueva => { if (nueva) setSelectedNota(nueva); });
     };
-    check(); // revisar al montar
+    check();
     window.addEventListener("estudio-notas-action", check);
     return () => window.removeEventListener("estudio-notas-action", check);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ── search state unified per active tab ──
+  // ── Helper: chip genérico ─────────────────────────────────────────────────
+  function Chip({ onClick, imgUrl, icon: Icon, nombre, accentBg, accentBorder, accentText }: {
+    onClick: () => void; imgUrl?: string | null; icon: React.ElementType;
+    nombre: string; accentBg?: string; accentBorder?: string; accentText?: string;
+  }) {
+    return (
+      <button onClick={onClick} type="button"
+        className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02]"
+        style={{ background: accentBg ?? "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: accentBorder ?? "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
+        <div className="w-6 h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center">
+          {imgUrl ? <img src={imgUrl} alt={nombre} className="w-full h-full object-cover" /> : <Icon size={10} className="text-primary/25" />}
+        </div>
+        <span className="text-[11px] font-bold truncate max-w-[90px]" style={{ color: accentText ?? "color-mix(in srgb, var(--primary) 70%, transparent)" }}>{nombre}</span>
+      </button>
+    );
+  }
 
-  const searchMap: Record<string, string> = {
-    reinos: searchR, criaturas: searchC, objetos: searchO, lugares: searchL,
-    personajes: searchP, hechizos: searchH, dones: searchD, runas: searchRu,
-    notas: searchNotas, grupos: "",
-  };
-  const setSearchMap: Record<string, (v: string) => void> = {
-    reinos: setSearchR, criaturas: setSearchC, objetos: setSearchO, lugares: setSearchL,
-    personajes: setSearchP, hechizos: setSearchH, dones: setSearchD, runas: setSearchRu,
-    notas: setSearchNotas, grupos: () => {},
-  };
+  // ── Helper: sección de entidades ─────────────────────────────────────────
+  function SeccionEntidades({ icon: Icon, label, count, loading, children }: {
+    icon: React.ElementType; label: string; count: number; loading: boolean; children: React.ReactNode;
+  }) {
+    return (
+      <div className="pb-1">
+        <div className="flex items-center gap-1.5 mb-2">
+          <Icon size={10} className="text-primary/30 shrink-0" />
+          <span className="text-[8px] font-black uppercase tracking-[0.25em]" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
+            {label} · {count}
+          </span>
+        </div>
+        {loading
+          ? <div className="flex justify-center py-3"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
+          : count === 0
+            ? <p className="text-[9px] text-primary/20 italic px-1 pb-2">Sin {label.toLowerCase()} aún</p>
+            : <div className="flex flex-wrap gap-1.5">{children}</div>
+        }
+      </div>
+    );
+  }
 
-  type TabDef = { key: ListaTab; label: string; Icon: React.ElementType; count: number; color?: string };
-
-  const TAB_GROUPS: { label: string; tabs: TabDef[] }[] = [
-    {
-      label: "Textos",
-      tabs: [
-        { key: "geo-magia" as ListaTab, label: "Geo & Magia", Icon: Mountain, count: 0 },
-        { key: "historia"  as ListaTab, label: "Historia",    Icon: Clock,    count: 0 },
-      ],
-    },
-    {
-      label: "Listas",
-      tabs: [
-        { key: "todo" as ListaTab,    label: "Todo",    Icon: Layers,  count: reinos.length + criaturas.length + personajes.length + dones.length + hechizos.length + runas.length + objetos.length + lugares.length + notas.length },
-      ],
-    },
-    {
-      label: "Escritura",
-      tabs: [
-        { key: "capitulos" as ListaTab, label: "Capítulos", Icon: BookOpen, count: 0 },
-        { key: "letras" as ListaTab, label: "Canciones", Icon: Music, count: 0 },
-      ],
-    },
-  ];
-
-  const TABS: TabDef[] = TAB_GROUPS.flatMap(g => g.tabs);
-
-  // ── Tab bar (solo visible cuando no hay overlay) ──────────────────────────
-  const tabBar = (
-    <div className="shrink-0 flex items-center border-b px-2 gap-0.5"
-      style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-      {TABS.map(t => {
-        const active = mobileTab === t.key;
-        const color = t.color ?? "var(--primary)";
-        return (
-          <button
-            key={t.key}
-            onClick={() => {
-              setMobileTab(t.key);
-              markVisited(t.key);
-              setPrevMobileTab(null);
-              setSelectedReino(null); setSelectedCriatura(null);
-              setSelectedObjeto(null); setSelectedPersonaje(null);
-              setSelectedHechizo(null); setSelectedDon(null);
-              setSelectedRuna(null); setSelectedNota(null);
-              setSelectedLugar(null);
-            }}
-            className="relative flex items-center gap-1.5 px-3 py-3 text-[10px] font-black uppercase tracking-widest transition-all"
-            style={{ color: active ? color : "color-mix(in srgb, var(--primary) 30%, transparent)" }}
-          >
-            <t.Icon size={11} className="shrink-0" />
-            {t.label}
-            {active && (
-              <span
-                className="absolute bottom-0 left-2 right-2 h-0.5 rounded-t-full"
-                style={{ background: color }}
-              />
-            )}
-          </button>
-        );
-      })}
-    </div>
-  );
+  const div = "border-t my-2" as const;
+  const divStyle = { borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" };
 
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
 
-      {/* ── Editor overlay — tapa TODO el panel incluyendo el tab bar ────── */}
+      {/* ── Editor overlay ──────────────────────────────────────────────── */}
       {overlay && (
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden" style={{ background: "var(--bg-main)" }}>
           <div className="flex-1 flex min-h-0 overflow-hidden">
@@ -1823,21 +1497,14 @@ function PanelListas({
                 onSelectPersonaje={p => {
                   const found = personajes.find(x => x.id === p?.id || x.nombre === p?.nombre);
                   if (!found) return;
-                  setSelectedReino(null); setSelectedCriatura(null);
-                  setSelectedObjeto(null); setSelectedLugar(null);
-                  setSelectedHechizo(null); setSelectedDon(null);
-                  setSelectedRuna(null); setSelectedNota(null);
-                  setSelectedPersonaje(found);
+                  clearAllOverlays(); setSelectedPersonaje(found);
                 }}
                 onSelectLugar={async (id: string) => {
                   const local = lugares.find(x => x.id === id);
-                  setSelectedReino(null); setSelectedCriatura(null);
-                  setSelectedObjeto(null); setSelectedPersonaje(null);
-                  setSelectedHechizo(null); setSelectedDon(null);
-                  setSelectedRuna(null); setSelectedNota(null);
+                  clearAllOverlays();
                   if (local) { setSelectedLugar(local as Lugar); return; }
                   const { data } = await supabase.from("lugares").select("*").eq("id", id).single();
-                  if (data) { setSelectedLugar(data as Lugar); }
+                  if (data) setSelectedLugar(data as Lugar);
                 }}
               />
             )}
@@ -1846,23 +1513,9 @@ function PanelListas({
                 entities={allEntityNames}
                 onSaved={u => { setCriaturas(p => p.map(c => c.id === u.id ? { ...c, ...u } : c)); setSelectedCriatura({ ...selectedCriatura, ...u }); }}
                 onDeleted={id => { setCriaturas(p => p.filter(c => c.id !== id)); setSelectedCriatura(null); }}
-                onSelectItem={id => {
-                  const o = objetos.find(x => x.id === id);
-                  if (!o) return;
-                  setSelectedReino(null); setSelectedCriatura(null); setSelectedPersonaje(null);
-                  setSelectedLugar(null); setSelectedHechizo(null); setSelectedDon(null);
-                  setSelectedRuna(null); setSelectedNota(null);
-                  setSelectedObjeto(o);
-                }}
-                onSelectPersonaje={id => {
-                  const p = personajes.find(x => x.id === id);
-                  if (!p) return;
-                  setSelectedReino(null); setSelectedCriatura(null); setSelectedObjeto(null);
-                  setSelectedLugar(null); setSelectedHechizo(null); setSelectedDon(null);
-                  setSelectedRuna(null); setSelectedNota(null);
-                  setSelectedPersonaje(p);
-                }}
-                onSelectGrupo={() => { setMobileTab("grupos"); markVisited("grupos"); }}
+                onSelectItem={id => { const o = objetos.find(x => x.id === id); if (!o) return; clearAllOverlays(); setSelectedObjeto(o); }}
+                onSelectPersonaje={id => { const p = personajes.find(x => x.id === id); if (!p) return; clearAllOverlays(); setSelectedPersonaje(p); }}
+                onSelectGrupo={() => {}}
               />
             )}
             {overlay === "objeto" && selectedObjeto && (
@@ -1870,14 +1523,7 @@ function PanelListas({
                 entities={allEntityNames}
                 onSaved={u => { setObjetos(p => p.map(o => o.id === u.id ? { ...o, ...u } : o)); setSelectedObjeto({ ...selectedObjeto, ...u }); }}
                 onDeleted={id => { setObjetos(p => p.filter(o => o.id !== id)); setSelectedObjeto(null); }}
-                onSelectCriatura={id => {
-                  const c = criaturas.find(x => x.id === id);
-                  if (!c) return;
-                  setSelectedReino(null); setSelectedPersonaje(null); setSelectedObjeto(null);
-                  setSelectedLugar(null); setSelectedHechizo(null); setSelectedDon(null);
-                  setSelectedRuna(null); setSelectedNota(null);
-                  setSelectedCriatura(c);
-                }}
+                onSelectCriatura={id => { const c = criaturas.find(x => x.id === id); if (!c) return; clearAllOverlays(); setSelectedCriatura(c); }}
               />
             )}
             {overlay === "lugar" && selectedLugar && (
@@ -1885,38 +1531,10 @@ function PanelListas({
                 entities={allEntityNames}
                 onSaved={u => { setLugares(p => p.map(l => l.id === u.id ? { ...l, ...u } : l)); setSelectedLugar({ ...selectedLugar, ...u }); }}
                 onDeleted={id => { setLugares(p => p.filter(l => l.id !== id)); setSelectedLugar(null); }}
-                onSelectPersonaje={id => {
-                  const p = personajes.find(x => x.id === id);
-                  if (!p) return;
-                  setSelectedReino(null); setSelectedCriatura(null); setSelectedObjeto(null);
-                  setSelectedLugar(null); setSelectedHechizo(null); setSelectedDon(null);
-                  setSelectedRuna(null); setSelectedNota(null);
-                  setSelectedPersonaje(p);
-                }}
-                onSelectCriatura={id => {
-                  const c = criaturas.find(x => x.id === id);
-                  if (!c) return;
-                  setSelectedReino(null); setSelectedPersonaje(null); setSelectedObjeto(null);
-                  setSelectedLugar(null); setSelectedHechizo(null); setSelectedDon(null);
-                  setSelectedRuna(null); setSelectedNota(null);
-                  setSelectedCriatura(c);
-                }}
-                onSelectItem={id => {
-                  const o = objetos.find(x => x.id === id);
-                  if (!o) return;
-                  setSelectedReino(null); setSelectedCriatura(null); setSelectedPersonaje(null);
-                  setSelectedLugar(null); setSelectedHechizo(null); setSelectedDon(null);
-                  setSelectedRuna(null); setSelectedNota(null);
-                  setSelectedObjeto(o);
-                }}
-                onNavigateReino={id => {
-                  const r = reinos.find(x => x.id === id);
-                  if (!r) return;
-                  setSelectedCriatura(null); setSelectedPersonaje(null); setSelectedObjeto(null);
-                  setSelectedLugar(null); setSelectedHechizo(null); setSelectedDon(null);
-                  setSelectedRuna(null); setSelectedNota(null);
-                  setSelectedReino(r);
-                }}
+                onSelectPersonaje={id => { const p = personajes.find(x => x.id === id); if (!p) return; clearAllOverlays(); setSelectedPersonaje(p); }}
+                onSelectCriatura={id => { const c = criaturas.find(x => x.id === id); if (!c) return; clearAllOverlays(); setSelectedCriatura(c); }}
+                onSelectItem={id => { const o = objetos.find(x => x.id === id); if (!o) return; clearAllOverlays(); setSelectedObjeto(o); }}
+                onNavigateReino={id => { const r = reinos.find(x => x.id === id); if (!r) return; clearAllOverlays(); setSelectedReino(r); }}
               />
             )}
             {overlay === "personaje" && selectedPersonaje && (
@@ -1925,30 +1543,10 @@ function PanelListas({
                 onSaved={u => { setPersonajes(p => p.map(x => x.id === u.id ? u : x)); setSelectedPersonaje(u); }}
                 onDeleted={id => { setPersonajes(p => p.filter(x => x.id !== id)); setSelectedPersonaje(null); }}
                 onNavigate={(tab, nombre) => {
-                  if (tab === "criaturas") {
-                    const c = criaturas.find(x => x.nombre.toLowerCase() === nombre.toLowerCase());
-                    if (!c) return;
-                    setSelectedReino(null); setSelectedPersonaje(null); setSelectedObjeto(null);
-                    setSelectedLugar(null); setSelectedHechizo(null); setSelectedDon(null);
-                    setSelectedRuna(null); setSelectedNota(null);
-                    setSelectedCriatura(c);
-                  } else if (tab === "reinos") {
-                    const r = reinos.find(x => x.nombre.toLowerCase() === nombre.toLowerCase());
-                    if (!r) return;
-                    setSelectedCriatura(null); setSelectedPersonaje(null); setSelectedObjeto(null);
-                    setSelectedLugar(null); setSelectedHechizo(null); setSelectedDon(null);
-                    setSelectedRuna(null); setSelectedNota(null);
-                    setSelectedReino(r);
-                  }
+                  if (tab === "criaturas") { const c = criaturas.find(x => x.nombre.toLowerCase() === nombre.toLowerCase()); if (!c) return; clearAllOverlays(); setSelectedCriatura(c); }
+                  else if (tab === "reinos") { const r = reinos.find(x => x.nombre.toLowerCase() === nombre.toLowerCase()); if (!r) return; clearAllOverlays(); setSelectedReino(r); }
                 }}
-                onSelectPersonaje={id => {
-                  const p = personajes.find(x => x.id === id);
-                  if (!p) return;
-                  setSelectedReino(null); setSelectedCriatura(null); setSelectedObjeto(null);
-                  setSelectedLugar(null); setSelectedHechizo(null); setSelectedDon(null);
-                  setSelectedRuna(null); setSelectedNota(null);
-                  setSelectedPersonaje(p);
-                }}
+                onSelectPersonaje={id => { const p = personajes.find(x => x.id === id); if (!p) return; clearAllOverlays(); setSelectedPersonaje(p); }}
               />
             )}
             {overlay === "hechizo" && selectedHechizo && (
@@ -1969,13 +1567,8 @@ function PanelListas({
                 onDeleted={id => { setRunas(p => p.filter(r => r.id !== id)); setSelectedRuna(null); }} />
             )}
             {overlay === "nota" && selectedNota && (
-              <EditorNota
-                key={selectedNota.id}
-                nota={selectedNota}
-                onSaved={async (updated) => {
-                  await actualizarNota(updated);
-                  setSelectedNota(updated);
-                }}
+              <EditorNota key={selectedNota.id} nota={selectedNota}
+                onSaved={async (updated) => { await actualizarNota(updated); setSelectedNota(updated); }}
                 onDeleted={id => { eliminarNota(id); setSelectedNota(null); }}
               />
             )}
@@ -1983,744 +1576,152 @@ function PanelListas({
         </div>
       )}
 
-      {/* ── Vista normal: tab bar + contenido ───────────────────────────── */}
-      {tabBar}
-      <div className="flex-1 flex min-h-0 overflow-hidden">
+      {/* ── Scroll vertical ─────────────────────────────────────────────── */}
+      {!overlay && (
+        <div ref={scrollRef} onScroll={handleScroll} className="flex-1 overflow-y-auto min-h-0">
 
-        {/* Área de lista — ocupa el espacio principal */}
-        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-
-          {/* Paneles de texto y listas individuales — ocultos cuando hay editor abierto */}
-          {!overlay && mobileTab === "mundo" && textos && onTextoChange && onSave && (
-            <PanelTexto
-              texto={textos.geografia}
-              onChange={v => onTextoChange("geografia", v)}
-              onSave={() => onSave("geografia")}
-              placeholder="Continentes, mares, climas, fronteras del mundo…"
-              saveLabel="Guardar Geografía"
-              SaveIcon={Mountain}
-            />
-          )}
-          {!overlay && mobileTab === "historia" && textos && onTextoChange && onSave && (
-            <PanelHistoriaMundo
-              texto={textos.historia}
-              onChange={v => onTextoChange("historia", v)}
-              onSave={() => onSave("historia")}
-            />
-          )}
-          {!overlay && mobileTab === "magia" && textos && onTextoChange && onSave && (
-            <PanelTexto
-              texto={textos.magia}
-              onChange={v => onTextoChange("magia", v)}
-              onSave={() => onSave("magia")}
-              placeholder="Sistema de magia, reglas, fuentes de poder, limitaciones…"
-              saveLabel="Guardar Magia"
-              SaveIcon={Sparkles}
-            />
-          )}
-
-          {/* Header del tab activo (solo para tabs de lista individuales) */}
-          {!overlay && !["mundo", "historia", "magia", "magia-objetos", "mundo-personajes", "geo-magia", "todo", "capitulos", "letras"].includes(mobileTab) && (() => {
-            const t = TABS.find(t => t.key === mobileTab);
-            if (!t) return null;
-            const color = t.color ?? "var(--primary)";
-            return (
-              <div className="shrink-0 flex items-center gap-2.5 px-4 py-3 border-b"
-                style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, transparent)" }}>
-                <t.Icon size={13} style={{ color }} className="shrink-0" />
-                <p className="flex-1 text-[11px] font-black uppercase tracking-[0.2em]" style={{ color }}>{t.label}</p>
-                {mobileTab === "notas" && (
-                  <button
-                    onClick={async () => {
-                      const nueva = await crearNota("Nueva nota");
-                      if (nueva) setSelectedNota(nueva);
-                    }}
-                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-dashed transition-all text-primary/40 hover:text-primary hover:border-primary/30"
-                    style={{ borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)" }}
-                  >
-                    <Plus size={9} /> Nueva
-                  </button>
-                )}
-                {t.count > 0 && (
-                  <span className="text-[9px] font-black tabular-nums"
-                    style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
-                    {t.count}
-                  </span>
-                )}
-              </div>
-            );
-          })()}
-
-          {/* Buscador */}
-          {!overlay && !["mundo", "historia", "magia", "magia-objetos", "mundo-personajes", "geo-magia", "todo", "capitulos", "letras"].includes(mobileTab) && mobileTab !== "grupos" && (
-            <SearchInput
-              value={searchMap[mobileTab] ?? ""}
-              onChange={v => setSearchMap[mobileTab]?.(v)}
-              placeholder={`Buscar ${TABS.find(t => t.key === mobileTab)?.label.toLowerCase()}…`}
-            />
-          )}
-
-          {/* Vista: Editor de Capítulos embebido */}
-          {!overlay && mobileTab === "capitulos" && (
-            <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
-              <EstudioCapitulos />
-            </div>
-          )}
-
-          {/* Vista: Editor de Canciones embebido */}
-          {!overlay && mobileTab === "letras" && (
-            <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
-              <EditorLetrasPanel />
-            </div>
-          )}
-
-          {/* Vista combinada: Geografía + Magia — columna en mobile, lado a lado en desktop */}
-          {!overlay && mobileTab === "geo-magia" && textos && onTextoChange && onSave && (
-            <div className="flex-1 flex flex-col sm:flex-row min-h-0 overflow-y-auto sm:overflow-hidden">
-              {/* Geografía — arriba en mobile, izquierda en desktop */}
-              <div className="flex flex-col sm:flex-1 sm:min-h-0 border-b sm:border-b-0 sm:border-r"
-                style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", minHeight: "52vh" }}>
-                <div className="shrink-0 flex items-center gap-2 px-3 py-2 border-b"
-                  style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, transparent)" }}>
+          {/* GEO & MAGIA */}
+          {textos && onTextoChange && onSave && (
+            <div className="flex flex-col sm:flex-row border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+              {/* Geografía */}
+              <div className="flex flex-col sm:flex-1 border-b sm:border-b-0 sm:border-r" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", minHeight: "42vh" }}>
+                <div className="shrink-0 flex items-center gap-2 px-3 py-2 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, transparent)" }}>
                   <Mountain size={11} className="text-primary/40 shrink-0" />
                   <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/50">Geografía</span>
                 </div>
                 <div className="flex-1 flex flex-col min-h-0">
-                  <PanelTexto
-                    texto={textos.geografia}
-                    onChange={v => onTextoChange("geografia", v)}
-                    onSave={() => onSave("geografia")}
-                    placeholder="Continentes, mares, climas, fronteras del mundo…"
-                    saveLabel="Guardar"
-                    SaveIcon={Mountain}
-                  />
+                  <PanelTexto texto={textos.geografia} onChange={v => onTextoChange("geografia", v)} onSave={() => onSave("geografia")} placeholder="Continentes, mares, climas, fronteras del mundo…" saveLabel="Guardar" SaveIcon={Mountain} />
                 </div>
               </div>
-              {/* Magia — abajo en mobile, derecha en desktop */}
-              <div className="flex flex-col sm:flex-1 sm:min-h-0"
-                style={{ minHeight: "52vh" }}>
-                <div className="shrink-0 flex items-center gap-2 px-3 py-2 border-b"
-                  style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--accent) 3%, transparent)" }}>
+              {/* Magia */}
+              <div className="flex flex-col sm:flex-1" style={{ minHeight: "42vh" }}>
+                <div className="shrink-0 flex items-center gap-2 px-3 py-2 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--accent) 3%, transparent)" }}>
                   <Sparkles size={11} style={{ color: "var(--accent)" }} className="shrink-0" />
                   <span className="text-[9px] font-black uppercase tracking-[0.2em]" style={{ color: "var(--accent)" }}>Magia</span>
                 </div>
                 <div className="flex-1 flex flex-col min-h-0">
-                  <PanelTexto
-                    texto={textos.magia}
-                    onChange={v => onTextoChange("magia", v)}
-                    onSave={() => onSave("magia")}
-                    placeholder="Sistema de magia, reglas, fuentes de poder, limitaciones…"
-                    saveLabel="Guardar"
-                    SaveIcon={Sparkles}
-                  />
+                  <PanelTexto texto={textos.magia} onChange={v => onTextoChange("magia", v)} onSave={() => onSave("magia")} placeholder="Sistema de magia, reglas, fuentes de poder, limitaciones…" saveLabel="Guardar" SaveIcon={Sparkles} />
                 </div>
               </div>
             </div>
           )}
 
-          {/* Vista combinada: TODO — reinos, criaturas, personajes, dones, hechizos, runas, objetos, notas */}
-          {mobileTab === "todo" && (
-            <div className="flex-1 overflow-y-auto min-h-0 px-3 pb-3">
-              {/* Reinos */}
-              <div className="pt-3 pb-1">
-                <div className="flex items-center gap-1.5 mb-2"><Map size={10} className="text-primary/30 shrink-0" /><span className="text-[8px] font-black uppercase tracking-[0.25em]" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>Reinos · {reinos.length}</span></div>
-                {loadingReinos ? <div className="flex justify-center py-3"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
-                  : reinos.length === 0 ? <p className="text-[9px] text-primary/20 italic px-1 pb-2">Sin reinos aún</p>
-                  : <div className="flex flex-wrap gap-1.5">{reinos.map(r => (
-                      <button key={r.id} onClick={() => { setPrevMobileTab(mobileTab); markVisited("reinos"); setMobileTab("reinos"); selectReino(r); }} type="button" className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02]" style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
-                        <div className="w-6 h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center">{r.mapa_url ? <img src={r.mapa_url} alt={r.nombre} className="w-full h-full object-cover" /> : <Map size={10} className="text-primary/25" />}</div>
-                        <span className="text-[11px] font-bold text-primary/70 truncate max-w-[90px]">{r.nombre}</span>
-                      </button>
-                    ))}</div>}
+          {/* HISTORIA */}
+          {textos && onTextoChange && onSave && (
+            <div className="border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", minHeight: "42vh" }}>
+              <div className="shrink-0 flex items-center gap-2 px-3 py-2 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, transparent)" }}>
+                <Clock size={11} className="text-primary/40 shrink-0" />
+                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/50">Historia</span>
               </div>
-              <div className="border-t my-2" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
-              {/* Criaturas */}
-              <div className="pb-1">
-                <div className="flex items-center gap-1.5 mb-2"><Bug size={10} className="text-primary/30 shrink-0" /><span className="text-[8px] font-black uppercase tracking-[0.25em]" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>Criaturas · {criaturas.length}</span></div>
-                {loadingCriaturas ? <div className="flex justify-center py-3"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
-                  : criaturas.length === 0 ? <p className="text-[9px] text-primary/20 italic px-1 pb-2">Sin criaturas aún</p>
-                  : <div className="flex flex-wrap gap-1.5">{criaturas.map(c => (
-                      <button key={c.id} onClick={() => { setPrevMobileTab(mobileTab); markVisited("criaturas"); setMobileTab("criaturas"); selectCriatura(c); }} type="button" className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02]" style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
-                        <div className="w-6 h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center">{c.imagen_url ? <img src={c.imagen_url} alt={c.nombre} className="w-full h-full object-cover" /> : <Bug size={10} className="text-primary/25" />}</div>
-                        <span className="text-[11px] font-bold text-primary/70 truncate max-w-[90px]">{c.nombre}</span>
-                      </button>
-                    ))}</div>}
-              </div>
-              <div className="border-t my-2" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
-              {/* Personajes */}
-              <div className="pb-1">
-                <div className="flex items-center gap-1.5 mb-2"><Users size={10} className="text-primary/30 shrink-0" /><span className="text-[8px] font-black uppercase tracking-[0.25em]" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>Personajes · {personajes.length}</span></div>
-                {loadingPersonajes ? <div className="flex justify-center py-3"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
-                  : personajes.length === 0 ? <p className="text-[9px] text-primary/20 italic px-1 pb-2">Sin personajes aún</p>
-                  : <div className="flex flex-wrap gap-1.5">{personajes.map(p => (
-                      <button key={p.id} onClick={() => { setPrevMobileTab(mobileTab); markVisited("personajes"); setMobileTab("personajes"); selectPersonaje(p); }} type="button" className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02]" style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
-                        <div className="w-6 h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center">{p.img_url ? <img src={p.img_url} alt={p.nombre} className="w-full h-full object-cover" /> : <UserCircle2 size={10} className="text-primary/25" />}</div>
-                        <span className="text-[11px] font-bold text-primary/70 truncate max-w-[90px]">{p.nombre}</span>
-                      </button>
-                    ))}</div>}
-              </div>
-              <div className="border-t my-2" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
-              {/* Dones */}
-              <div className="pb-1">
-                <div className="flex items-center gap-1.5 mb-2"><Star size={10} style={{ color: "color-mix(in srgb, var(--accent) 65%, transparent)" }} className="shrink-0" /><span className="text-[8px] font-black uppercase tracking-[0.25em]" style={{ color: "color-mix(in srgb, var(--accent) 45%, transparent)" }}>Dones · {dones.length}</span></div>
-                {loadingDones ? <div className="flex justify-center py-3"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
-                  : dones.length === 0 ? <p className="text-[9px] text-primary/20 italic px-1 pb-2">Sin dones aún</p>
-                  : <div className="flex flex-wrap gap-1.5">{dones.map(d => (
-                      <button key={d.id} onClick={() => { setPrevMobileTab(mobileTab); markVisited("dones"); setMobileTab("dones"); selectDon(d); }} type="button" className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02]" style={{ background: "color-mix(in srgb, var(--accent) 4%, transparent)", borderColor: "color-mix(in srgb, var(--accent) 13%, transparent)" }}>
-                        <div className="w-6 h-6 rounded-lg border shrink-0 flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--accent) 8%, transparent)", borderColor: "color-mix(in srgb, var(--accent) 18%, transparent)" }}><Star size={10} style={{ color: "color-mix(in srgb, var(--accent) 65%, transparent)" }} /></div>
-                        <span className="text-[11px] font-bold truncate max-w-[90px]" style={{ color: "color-mix(in srgb, var(--accent) 75%, var(--primary))" }}>{d.nombre}</span>
-                      </button>
-                    ))}</div>}
-              </div>
-              <div className="border-t my-2" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
-              {/* Hechizos */}
-              <div className="pb-1">
-                <div className="flex items-center gap-1.5 mb-2"><Sparkles size={10} style={{ color: "color-mix(in srgb, var(--accent) 70%, transparent)" }} className="shrink-0" /><span className="text-[8px] font-black uppercase tracking-[0.25em]" style={{ color: "color-mix(in srgb, var(--accent) 45%, transparent)" }}>Hechizos · {hechizos.length}</span></div>
-                {loadingHechizos ? <div className="flex justify-center py-3"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
-                  : hechizos.length === 0 ? <p className="text-[9px] text-primary/20 italic px-1 pb-2">Sin hechizos aún</p>
-                  : <div className="flex flex-wrap gap-1.5">{hechizos.map(h => (
-                      <button key={h.id} onClick={() => { setPrevMobileTab(mobileTab); markVisited("hechizos"); setMobileTab("hechizos"); selectHechizo(h); }} type="button" className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02]" style={{ background: "color-mix(in srgb, var(--accent) 5%, transparent)", borderColor: "color-mix(in srgb, var(--accent) 15%, transparent)" }}>
-                        <div className="w-6 h-6 rounded-lg border shrink-0 flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--accent) 10%, transparent)", borderColor: "color-mix(in srgb, var(--accent) 20%, transparent)" }}><Sparkles size={10} style={{ color: "color-mix(in srgb, var(--accent) 70%, transparent)" }} /></div>
-                        <span className="text-[11px] font-bold truncate max-w-[90px]" style={{ color: "color-mix(in srgb, var(--accent) 80%, var(--primary))" }}>{h.nombre}</span>
-                      </button>
-                    ))}</div>}
-              </div>
-              <div className="border-t my-2" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
-              {/* Runas */}
-              <div className="pb-1">
-                <div className="flex items-center gap-1.5 mb-2"><ScrollText size={10} className="text-primary/30 shrink-0" /><span className="text-[8px] font-black uppercase tracking-[0.25em]" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>Runas · {runas.length}</span></div>
-                {loadingRunas ? <div className="flex justify-center py-3"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
-                  : runas.length === 0 ? <p className="text-[9px] text-primary/20 italic px-1 pb-2">Sin runas aún</p>
-                  : <div className="flex flex-wrap gap-1.5">{runas.map(r => (
-                      <button key={r.id} onClick={() => { setPrevMobileTab(mobileTab); markVisited("runas"); setMobileTab("runas"); selectRuna(r); }} type="button" className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02]" style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
-                        <div className="w-6 h-6 rounded-lg border overflow-hidden shrink-0 flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--primary) 6%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 14%, transparent)" }}>{r.imagen_url ? <img src={r.imagen_url} alt={r.nombre} className="w-full h-full object-cover" /> : <ScrollText size={10} className="text-primary/40" />}</div>
-                        <span className="text-[11px] font-bold text-primary/70 truncate max-w-[90px]">{r.nombre}</span>
-                      </button>
-                    ))}</div>}
-              </div>
-              <div className="border-t my-2" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
-              {/* Objetos */}
-              <div className="pb-1">
-                <div className="flex items-center gap-1.5 mb-2"><Package size={10} className="text-primary/30 shrink-0" /><span className="text-[8px] font-black uppercase tracking-[0.25em]" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>Objetos · {objetos.length}</span></div>
-                {loadingObjetos ? <div className="flex justify-center py-3"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
-                  : objetos.length === 0 ? <p className="text-[9px] text-primary/20 italic px-1 pb-2">Sin objetos aún</p>
-                  : <div className="flex flex-wrap gap-1.5">{objetos.map(o => (
-                      <button key={o.id} onClick={() => { setPrevMobileTab(mobileTab); markVisited("objetos"); setMobileTab("objetos"); selectObjeto(o); }} type="button" className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02]" style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
-                        <div className="w-6 h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center">{o.imagen_url ? <img src={o.imagen_url} alt={o.nombre} className="w-full h-full object-cover" /> : <Package size={10} className="text-primary/25" />}</div>
-                        <span className="text-[11px] font-bold text-primary/70 truncate max-w-[90px]">{o.nombre}</span>
-                      </button>
-                    ))}</div>}
-              </div>
-              <div className="border-t my-2" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
-              {/* Lugares */}
-              <div className="pb-1">
-                <div className="flex items-center gap-1.5 mb-2"><MapPin size={10} className="text-primary/30 shrink-0" /><span className="text-[8px] font-black uppercase tracking-[0.25em]" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>Lugares · {lugares.length}</span></div>
-                {loadingLugares ? <div className="flex justify-center py-3"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
-                  : lugares.length === 0 ? <p className="text-[9px] text-primary/20 italic px-1 pb-2">Sin lugares aún</p>
-                  : <div className="flex flex-wrap gap-1.5">{lugares.map(l => (
-                      <button key={l.id} onClick={async () => {
-                        setPrevMobileTab(mobileTab); markVisited("lugares"); setMobileTab("lugares");
-                        try {
-                          const { data } = await supabase.from("lugares").select("*").eq("id", l.id).single();
-                          if (data) { selectLugar(data as Lugar); return; }
-                        } catch {}
-                        selectLugar(l as Lugar);
-                      }} type="button" className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02]" style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
-                        <div className="w-6 h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center">{l.imagen_url ? <img src={l.imagen_url} alt={l.nombre} className="w-full h-full object-cover" /> : <MapPin size={10} className="text-primary/25" />}</div>
-                        <span className="text-[11px] font-bold text-primary/70 truncate max-w-[90px]">{l.nombre}</span>
-                      </button>
-                    ))}</div>}
-              </div>
-              <div className="border-t my-2" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
-              {/* Notas */}
-              <div className="pb-1">
-                <div className="flex items-center gap-1.5 mb-2"><FileText size={10} className="text-primary/30 shrink-0" /><span className="text-[8px] font-black uppercase tracking-[0.25em]" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>Notas · {notas.length}</span></div>
-                {loadingNotas ? <div className="flex justify-center py-3"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
-                  : notas.length === 0 ? <p className="text-[9px] text-primary/20 italic px-1 pb-2">Sin notas aún</p>
-                  : <div className="flex flex-wrap gap-1.5">{notas.map(n => (
-                      <button key={n.id} onClick={() => { setPrevMobileTab(mobileTab); markVisited("notas"); setMobileTab("notas"); setSelectedNota(n); }} type="button" className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02]" style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
-                        <div className="w-6 h-6 rounded-lg border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center"><FileText size={10} className="text-primary/25" /></div>
-                        <span className="text-[11px] font-bold text-primary/70 truncate max-w-[90px]">{n.titulo || <span className="italic text-primary/30">Sin título</span>}</span>
-                      </button>
-                    ))}</div>}
-              </div>
-              <div className="border-t my-2" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
-              {/* Grupos */}
-              <div className="pb-3">
-                <div className="flex items-center gap-1.5 mb-2"><Layers size={10} className="text-primary/30 shrink-0" /><span className="text-[8px] font-black uppercase tracking-[0.25em]" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>Grupos · {gruposTodos.length}</span></div>
-                {loadingGruposTodos ? <div className="flex justify-center py-3"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
-                  : gruposTodos.length === 0 ? <p className="text-[9px] text-primary/20 italic px-1 pb-2">Sin grupos aún</p>
-                  : <div className="flex flex-wrap gap-1.5">{gruposTodos.map(g => (
-                      <button key={g.id} onClick={() => { setMobileTab("grupos"); markVisited("grupos"); }} type="button"
-                        className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02]"
-                        style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
-                        <div className="w-6 h-6 rounded-lg border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center"><Layers size={10} className="text-primary/25" /></div>
-                        <div className="flex flex-col min-w-0">
-                          <span className="text-[11px] font-bold text-primary/70 truncate max-w-[90px]">{g.nombre}</span>
-                          <span className="text-[8px] text-primary/30 truncate">{g.miembro_ids.length} miembros</span>
-                        </div>
-                      </button>
-                    ))}</div>}
-              </div>
+              <PanelHistoriaMundo texto={textos.historia} onChange={v => onTextoChange("historia", v)} onSave={() => onSave("historia")} />
             </div>
           )}
 
-          {/* Vista combinada: Personajes & Mundo (reinos + criaturas + personajes) */}
-          {!overlay && mobileTab === "mundo-personajes" && (
-            <div className="flex-1 overflow-y-auto min-h-0 px-3 pb-3">
-              {/* Reinos */}
-              <div className="pt-3 pb-1">
-                <div className="flex items-center gap-1.5 mb-2">
-                  <Map size={10} className="text-primary/30 shrink-0" />
-                  <span className="text-[8px] font-black uppercase tracking-[0.25em]" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>Reinos · {reinos.length}</span>
-                </div>
-                {loadingReinos
-                  ? <div className="flex justify-center py-4"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
-                  : reinos.length === 0
-                    ? <p className="text-[9px] text-primary/20 italic px-1 pb-2">Sin reinos aún</p>
-                    : <div className="flex flex-wrap gap-1.5">
-                        {reinos.map(r => (
-                          <button key={r.id} onClick={() => selectReino(r)} type="button"
-                            className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02] cursor-pointer"
-                            style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
-                            <div className="w-6 h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center">
-                              {r.mapa_url ? <img src={r.mapa_url} alt={r.nombre} className="w-full h-full object-cover" /> : <Map size={10} className="text-primary/25" />}
-                            </div>
-                            <span className="text-[11px] font-bold text-primary/70 truncate max-w-[90px]">{r.nombre}</span>
-                          </button>
-                        ))}
-                      </div>
-                }
-              </div>
-              <div className="border-t my-2" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
-              {/* Criaturas */}
-              <div className="pb-1">
-                <div className="flex items-center gap-1.5 mb-2">
-                  <Bug size={10} className="text-primary/30 shrink-0" />
-                  <span className="text-[8px] font-black uppercase tracking-[0.25em]" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>Criaturas · {criaturas.length}</span>
-                </div>
-                {loadingCriaturas
-                  ? <div className="flex justify-center py-4"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
-                  : criaturas.length === 0
-                    ? <p className="text-[9px] text-primary/20 italic px-1 pb-2">Sin criaturas aún</p>
-                    : <div className="flex flex-wrap gap-1.5">
-                        {criaturas.map(c => (
-                          <button key={c.id} onClick={() => selectCriatura(c)} type="button"
-                            className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02] cursor-pointer"
-                            style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
-                            <div className="w-6 h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center">
-                              {c.imagen_url ? <img src={c.imagen_url} alt={c.nombre} className="w-full h-full object-cover" /> : <Bug size={10} className="text-primary/25" />}
-                            </div>
-                            <span className="text-[11px] font-bold text-primary/70 truncate max-w-[90px]">{c.nombre}</span>
-                          </button>
-                        ))}
-                      </div>
-                }
-              </div>
-              <div className="border-t my-2" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
-              {/* Personajes */}
-              <div className="pb-1">
-                <div className="flex items-center gap-1.5 mb-2">
-                  <Users size={10} className="text-primary/30 shrink-0" />
-                  <span className="text-[8px] font-black uppercase tracking-[0.25em]" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>Personajes · {personajes.length}</span>
-                </div>
-                {loadingPersonajes
-                  ? <div className="flex justify-center py-4"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
-                  : personajes.length === 0
-                    ? <p className="text-[9px] text-primary/20 italic px-1 pb-2">Sin personajes aún</p>
-                    : <div className="flex flex-wrap gap-1.5">
-                        {personajes.map(p => (
-                          <button key={p.id} onClick={() => selectPersonaje(p)} type="button"
-                            className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02] cursor-pointer"
-                            style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
-                            <div className="w-6 h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center">
-                              {p.img_url ? <img src={p.img_url} alt={p.nombre} className="w-full h-full object-cover" /> : <UserCircle2 size={10} className="text-primary/25" />}
-                            </div>
-                            <span className="text-[11px] font-bold text-primary/70 truncate max-w-[90px]">{p.nombre}</span>
-                          </button>
-                        ))}
-                      </div>
-                }
-              </div>
+          {/* ENTIDADES */}
+          <div className="px-3 pb-3 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+            <div className="flex items-center gap-2 pt-3 pb-2">
+              <Globe size={11} className="text-primary/40 shrink-0" />
+              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/50">Entidades</span>
             </div>
-          )}
 
-          {/* Vista combinada: Magia & Objetos (dones + hechizos + runas + objetos) */}
-          {!overlay && mobileTab === "magia-objetos" && (
-            <div className="flex-1 overflow-y-auto min-h-0 px-3 pb-3">
-              {/* Dones */}
-              <div className="pt-3 pb-1">
-                <div className="flex items-center gap-1.5 mb-2">
-                  <Star size={10} style={{ color: "color-mix(in srgb, var(--accent) 65%, transparent)" }} className="shrink-0" />
-                  <span className="text-[8px] font-black uppercase tracking-[0.25em]" style={{ color: "color-mix(in srgb, var(--accent) 45%, transparent)" }}>Dones · {dones.length}</span>
-                </div>
-                {loadingDones
-                  ? <div className="flex justify-center py-4"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
-                  : dones.length === 0
-                    ? <p className="text-[9px] text-primary/20 italic px-1 pb-2">Sin dones aún</p>
-                    : <div className="flex flex-wrap gap-1.5">
-                        {dones.map(d => (
-                          <button key={d.id} onClick={() => selectDon(d)} type="button"
-                            className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02] cursor-pointer"
-                            style={{ background: "color-mix(in srgb, var(--accent) 4%, transparent)", borderColor: "color-mix(in srgb, var(--accent) 13%, transparent)" }}>
-                            <div className="w-6 h-6 rounded-lg border shrink-0 flex items-center justify-center"
-                              style={{ background: "color-mix(in srgb, var(--accent) 8%, transparent)", borderColor: "color-mix(in srgb, var(--accent) 18%, transparent)" }}>
-                              <Star size={10} style={{ color: "color-mix(in srgb, var(--accent) 65%, transparent)" }} />
-                            </div>
-                            <span className="text-[11px] font-bold truncate max-w-[90px]" style={{ color: "color-mix(in srgb, var(--accent) 75%, var(--primary))" }}>{d.nombre}</span>
-                          </button>
-                        ))}
-                      </div>
-                }
-              </div>
-              <div className="border-t my-2" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
-              {/* Hechizos */}
-              <div className="pb-1">
-                <div className="flex items-center gap-1.5 mb-2">
-                  <Sparkles size={10} style={{ color: "color-mix(in srgb, var(--accent) 70%, transparent)" }} className="shrink-0" />
-                  <span className="text-[8px] font-black uppercase tracking-[0.25em]" style={{ color: "color-mix(in srgb, var(--accent) 45%, transparent)" }}>Hechizos · {hechizos.length}</span>
-                </div>
-                {loadingHechizos
-                  ? <div className="flex justify-center py-4"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
-                  : hechizos.length === 0
-                    ? <p className="text-[9px] text-primary/20 italic px-1 pb-2">Sin hechizos aún</p>
-                    : <div className="flex flex-wrap gap-1.5">
-                        {hechizos.map(h => (
-                          <button key={h.id} onClick={() => selectHechizo(h)} type="button"
-                            className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02] cursor-pointer"
-                            style={{ background: "color-mix(in srgb, var(--accent) 5%, transparent)", borderColor: "color-mix(in srgb, var(--accent) 15%, transparent)" }}>
-                            <div className="w-6 h-6 rounded-lg border shrink-0 flex items-center justify-center"
-                              style={{ background: "color-mix(in srgb, var(--accent) 10%, transparent)", borderColor: "color-mix(in srgb, var(--accent) 20%, transparent)" }}>
-                              <Sparkles size={10} style={{ color: "color-mix(in srgb, var(--accent) 70%, transparent)" }} />
-                            </div>
-                            <span className="text-[11px] font-bold truncate max-w-[90px]" style={{ color: "color-mix(in srgb, var(--accent) 80%, var(--primary))" }}>{h.nombre}</span>
-                          </button>
-                        ))}
-                      </div>
-                }
-              </div>
-              <div className="border-t my-2" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
-              {/* Runas */}
-              <div className="pb-1">
-                <div className="flex items-center gap-1.5 mb-2">
-                  <ScrollText size={10} className="text-primary/30 shrink-0" />
-                  <span className="text-[8px] font-black uppercase tracking-[0.25em]" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>Runas · {runas.length}</span>
-                </div>
-                {loadingRunas
-                  ? <div className="flex justify-center py-4"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
-                  : runas.length === 0
-                    ? <p className="text-[9px] text-primary/20 italic px-1 pb-2">Sin runas aún</p>
-                    : <div className="flex flex-wrap gap-1.5">
-                        {runas.map(r => (
-                          <button key={r.id} onClick={() => selectRuna(r)} type="button"
-                            className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02] cursor-pointer"
-                            style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
-                            <div className="w-6 h-6 rounded-lg border overflow-hidden shrink-0 flex items-center justify-center"
-                              style={{ background: "color-mix(in srgb, var(--primary) 6%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 14%, transparent)" }}>
-                              {r.imagen_url
-                                ? <img src={r.imagen_url} alt={r.nombre} className="w-full h-full object-cover" />
-                                : <ScrollText size={10} className="text-primary/40" />}
-                            </div>
-                            <span className="text-[11px] font-bold text-primary/70 truncate max-w-[90px]">{r.nombre}</span>
-                          </button>
-                        ))}
-                      </div>
-                }
-              </div>
-              <div className="border-t my-2" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
-              {/* Objetos */}
-              <div className="pb-1">
-                <div className="flex items-center gap-1.5 mb-2">
-                  <Package size={10} className="text-primary/30 shrink-0" />
-                  <span className="text-[8px] font-black uppercase tracking-[0.25em]" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>Objetos · {objetos.length}</span>
-                </div>
-                {loadingObjetos
-                  ? <div className="flex justify-center py-4"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
-                  : objetos.length === 0
-                    ? <p className="text-[9px] text-primary/20 italic px-1 pb-2">Sin objetos aún</p>
-                    : <div className="flex flex-wrap gap-1.5">
-                        {objetos.map(o => (
-                          <button key={o.id} onClick={() => selectObjeto(o)} type="button"
-                            className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02] cursor-pointer"
-                            style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
-                            <div className="w-6 h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center">
-                              {o.imagen_url ? <img src={o.imagen_url} alt={o.nombre} className="w-full h-full object-cover" /> : <Package size={10} className="text-primary/25" />}
-                            </div>
-                            <span className="text-[11px] font-bold text-primary/70 truncate max-w-[90px]">{o.nombre}</span>
-                          </button>
-                        ))}
-                      </div>
-                }
-              </div>
-              <div className="border-t my-2" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
-              {/* Notas */}
-              <div className="pb-3">
-                <div className="flex items-center gap-1.5 mb-2">
-                  <FileText size={10} className="text-primary/30 shrink-0" />
-                  <span className="text-[8px] font-black uppercase tracking-[0.25em]" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>Notas · {notas.length}</span>
-                </div>
-                {loadingNotas
-                  ? <div className="flex justify-center py-4"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
-                  : notas.length === 0
-                    ? <p className="text-[9px] text-primary/20 italic px-1 pb-2">Sin notas aún</p>
-                    : <div className="flex flex-wrap gap-1.5">
-                        {notas.map(n => (
-                          <button key={n.id} onClick={() => setSelectedNota(n)} type="button"
-                            className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02] cursor-pointer"
-                            style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
-                            <div className="w-6 h-6 rounded-lg border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center">
-                              <FileText size={10} className="text-primary/25" />
-                            </div>
-                            <span className="text-[11px] font-bold text-primary/70 truncate max-w-[90px]">{n.titulo || <span className="italic text-primary/30">Sin título</span>}</span>
-                          </button>
-                        ))}
-                      </div>
-                }
-              </div>
-            </div>
-          )}
+            <SeccionEntidades icon={Map} label="Reinos" count={reinos.length} loading={loadingReinos}>
+              {reinos.map(r => <Chip key={r.id} onClick={() => selectReino(r)} imgUrl={r.mapa_url} icon={Map} nombre={r.nombre} />)}
+            </SeccionEntidades>
+            <div className={div} style={divStyle} />
 
-          {/* Listado */}
-          {!overlay && !(["mundo", "historia", "magia", "magia-objetos", "mundo-personajes", "geo-magia", "todo", "capitulos", "letras"].includes(mobileTab)) && (
-          <div
-            className={mobileTab === "grupos"
-              ? "flex-1 flex min-h-0 overflow-hidden relative"
-              : "flex-1 overflow-y-auto min-h-0 px-3 pb-3 pt-2 relative flex flex-wrap gap-1.5 content-start"
-            }
-          >
-            {/* Reinos */}
-            {mobileTab === "reinos" && (loadingReinos
-              ? <div className="flex justify-center py-10"><Loader2 size={16} className="animate-spin text-primary/20" /></div>
-              : filteredR.length === 0
-                ? <p className="text-[9px] text-primary/20 uppercase tracking-widest text-center py-10 italic">{searchR ? "Sin resultados" : "Sin reinos aún"}</p>
-                : filteredR.map(r => (
-                  <button key={r.id} onClick={() => selectReino(r)} type="button"
-                    className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02] cursor-pointer"
-                    style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
-                    <div className="w-6 h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center">
-                      {r.mapa_url ? <img src={r.mapa_url} alt={r.nombre} className="w-full h-full object-cover" /> : <Map size={10} className="text-primary/25" />}
-                    </div>
-                    <span className="text-[11px] font-bold text-primary/70 truncate max-w-[90px]">{r.nombre}</span>
-                  </button>
-                ))
-            )}
+            <SeccionEntidades icon={Bug} label="Criaturas" count={criaturas.length} loading={loadingCriaturas}>
+              {criaturas.map(c => <Chip key={c.id} onClick={() => selectCriatura(c)} imgUrl={c.imagen_url} icon={Bug} nombre={c.nombre} />)}
+            </SeccionEntidades>
+            <div className={div} style={divStyle} />
 
-            {/* Criaturas */}
-            {mobileTab === "criaturas" && (loadingCriaturas
-              ? <div className="flex justify-center py-10"><Loader2 size={16} className="animate-spin text-primary/20" /></div>
-              : filteredC.length === 0
-                ? <p className="text-[9px] text-primary/20 uppercase tracking-widest text-center py-10 italic">{searchC ? "Sin resultados" : "Sin criaturas aún"}</p>
-                : filteredC.map(c => (
-                  <button key={c.id} onClick={() => selectCriatura(c)} type="button"
-                    className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02] cursor-pointer"
-                    style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
-                    <div className="w-6 h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center">
-                      {c.imagen_url ? <img src={c.imagen_url} alt={c.nombre} className="w-full h-full object-cover" /> : <Bug size={10} className="text-primary/25" />}
-                    </div>
-                    <span className="text-[11px] font-bold text-primary/70 truncate max-w-[90px]">{c.nombre}</span>
-                  </button>
-                ))
-            )}
+            <SeccionEntidades icon={Users} label="Personajes" count={personajes.length} loading={loadingPersonajes}>
+              {personajes.map(p => <Chip key={p.id} onClick={() => selectPersonaje(p)} imgUrl={p.img_url} icon={UserCircle2} nombre={p.nombre} />)}
+            </SeccionEntidades>
+            <div className={div} style={divStyle} />
 
-            {/* Objetos */}
-            {mobileTab === "objetos" && (loadingObjetos
-              ? <div className="flex justify-center py-10"><Loader2 size={16} className="animate-spin text-primary/20" /></div>
-              : filteredO.length === 0
-                ? <p className="text-[9px] text-primary/20 uppercase tracking-widest text-center py-10 italic">{searchO ? "Sin resultados" : "Sin objetos aún"}</p>
-                : filteredO.map(o => (
-                  <button key={o.id} onClick={() => selectObjeto(o)} type="button"
-                    className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02] cursor-pointer"
-                    style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
-                    <div className="w-6 h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center">
-                      {o.imagen_url ? <img src={o.imagen_url} alt={o.nombre} className="w-full h-full object-cover" /> : <Package size={10} className="text-primary/25" />}
-                    </div>
-                    <span className="text-[11px] font-bold text-primary/70 truncate max-w-[90px]">{o.nombre}</span>
-                  </button>
-                ))
-            )}
+            <SeccionEntidades icon={Package} label="Objetos" count={objetos.length} loading={loadingObjetos}>
+              {objetos.map(o => <Chip key={o.id} onClick={() => selectObjeto(o)} imgUrl={o.imagen_url} icon={Package} nombre={o.nombre} />)}
+            </SeccionEntidades>
+            <div className={div} style={divStyle} />
 
+            <SeccionEntidades icon={MapPin} label="Lugares" count={lugares.length} loading={loadingLugares}>
+              {lugares.map(l => (
+                <Chip key={l.id} onClick={async () => {
+                  try { const { data } = await supabase.from("lugares").select("*").eq("id", l.id).single(); if (data) { selectLugar(data as Lugar); return; } } catch {}
+                  selectLugar(l as Lugar);
+                }} imgUrl={l.imagen_url} icon={MapPin} nombre={l.nombre} />
+              ))}
+            </SeccionEntidades>
+            <div className={div} style={divStyle} />
 
+            <SeccionEntidades icon={Sparkles} label="Hechizos" count={hechizos.length} loading={loadingHechizos}>
+              {hechizos.map(h => <Chip key={h.id} onClick={() => selectHechizo(h)} icon={Sparkles} nombre={h.nombre}
+                accentBg="color-mix(in srgb, var(--accent) 5%, transparent)" accentBorder="color-mix(in srgb, var(--accent) 15%, transparent)" accentText="color-mix(in srgb, var(--accent) 80%, var(--primary))" />)}
+            </SeccionEntidades>
+            <div className={div} style={divStyle} />
 
-            {/* Lugares */}
-            {mobileTab === "lugares" && (loadingLugares
-              ? <div className="flex justify-center py-10"><Loader2 size={16} className="animate-spin text-primary/20" /></div>
-              : filteredL.length === 0
-                ? <p className="text-[9px] text-primary/20 uppercase tracking-widest text-center py-10 italic">{searchL ? "Sin resultados" : "Sin lugares aún"}</p>
-                : filteredL.map(l => (
-                  <button key={l.id} onClick={async () => {
-                    try {
-                      const { data } = await supabase.from("lugares").select("*").eq("id", l.id).single();
-                      if (data) { selectLugar(data as Lugar); return; }
-                    } catch {}
-                    selectLugar(l as Lugar);
-                  }} type="button"
-                    className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02] cursor-pointer"
-                    style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
-                    <div className="w-6 h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center">
-                      {l.imagen_url ? <img src={l.imagen_url} alt={l.nombre} className="w-full h-full object-cover" /> : <MapPin size={10} className="text-primary/25" />}
-                    </div>
-                    <span className="text-[11px] font-bold text-primary/70 truncate max-w-[90px]">{l.nombre}</span>
-                  </button>
-                ))
-            )}
+            <SeccionEntidades icon={Star} label="Dones" count={dones.length} loading={loadingDones}>
+              {dones.map(d => <Chip key={d.id} onClick={() => selectDon(d)} icon={Star} nombre={d.nombre}
+                accentBg="color-mix(in srgb, var(--accent) 4%, transparent)" accentBorder="color-mix(in srgb, var(--accent) 13%, transparent)" accentText="color-mix(in srgb, var(--accent) 75%, var(--primary))" />)}
+            </SeccionEntidades>
+            <div className={div} style={divStyle} />
 
-            {/* Personajes */}
-            {mobileTab === "personajes" && (loadingPersonajes
-              ? <div className="flex justify-center py-10"><Loader2 size={16} className="animate-spin text-primary/20" /></div>
-              : filteredP.length === 0
-                ? <p className="text-[9px] text-primary/20 uppercase tracking-widest text-center py-10 italic">{searchP ? "Sin resultados" : "Sin personajes aún"}</p>
-                : filteredP.map(p => (
-                  <button key={p.id} onClick={() => selectPersonaje(p)} type="button"
-                    className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02] cursor-pointer"
-                    style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
-                    <div className="w-6 h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center">
-                      {p.img_url ? <img src={p.img_url} alt={p.nombre} className="w-full h-full object-cover" /> : <UserCircle2 size={10} className="text-primary/25" />}
-                    </div>
-                    <span className="text-[11px] font-bold text-primary/70 truncate max-w-[90px]">{p.nombre}</span>
-                  </button>
-                ))
-            )}
+            <SeccionEntidades icon={ScrollText} label="Runas" count={runas.length} loading={loadingRunas}>
+              {runas.map(r => <Chip key={r.id} onClick={() => selectRuna(r)} imgUrl={r.imagen_url} icon={ScrollText} nombre={r.nombre} />)}
+            </SeccionEntidades>
+            <div className={div} style={divStyle} />
 
-            {/* Hechizos */}
-            {mobileTab === "hechizos" && (loadingHechizos
-              ? <div className="flex justify-center py-10"><Loader2 size={16} className="animate-spin text-primary/20" /></div>
-              : filteredH.length === 0
-                ? <p className="text-[9px] text-primary/20 uppercase tracking-widest text-center py-10 italic">{searchH ? "Sin resultados" : "Sin hechizos aún"}</p>
-                : filteredH.map(h => (
-                  <button key={h.id} onClick={() => selectHechizo(h)} type="button"
-                    className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02] cursor-pointer"
-                    style={{ background: "color-mix(in srgb, var(--accent) 5%, transparent)", borderColor: "color-mix(in srgb, var(--accent) 15%, transparent)" }}>
-                    <div className="w-6 h-6 rounded-lg border shrink-0 flex items-center justify-center"
-                      style={{ background: "color-mix(in srgb, var(--accent) 10%, transparent)", borderColor: "color-mix(in srgb, var(--accent) 20%, transparent)" }}>
-                      <Sparkles size={10} style={{ color: "color-mix(in srgb, var(--accent) 70%, transparent)" }} />
-                    </div>
-                    <span className="text-[11px] font-bold truncate max-w-[90px]" style={{ color: "color-mix(in srgb, var(--accent) 80%, var(--primary))" }}>{h.nombre}</span>
-                  </button>
-                ))
-            )}
+            <SeccionEntidades icon={FileText} label="Notas" count={notas.length} loading={loadingNotas}>
+              {notas.map(n => (
+                <button key={n.id} onClick={() => setSelectedNota(n)} type="button"
+                  className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02]"
+                  style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
+                  <div className="w-6 h-6 rounded-lg border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center"><FileText size={10} className="text-primary/25" /></div>
+                  <span className="text-[11px] font-bold text-primary/70 truncate max-w-[90px]">{n.titulo || <span className="italic text-primary/30">Sin título</span>}</span>
+                </button>
+              ))}
+            </SeccionEntidades>
+            <div className={div} style={divStyle} />
 
-            {/* Dones */}
-            {mobileTab === "dones" && (loadingDones
-              ? <div className="flex justify-center py-10"><Loader2 size={16} className="animate-spin text-primary/20" /></div>
-              : filteredD.length === 0
-                ? <p className="text-[9px] text-primary/20 uppercase tracking-widest text-center py-10 italic">{searchD ? "Sin resultados" : "Sin dones aún"}</p>
-                : filteredD.map(d => (
-                  <button key={d.id} onClick={() => selectDon(d)} type="button"
-                    className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02] cursor-pointer"
-                    style={{ background: "color-mix(in srgb, var(--accent) 4%, transparent)", borderColor: "color-mix(in srgb, var(--accent) 13%, transparent)" }}>
-                    <div className="w-6 h-6 rounded-lg border shrink-0 flex items-center justify-center"
-                      style={{ background: "color-mix(in srgb, var(--accent) 8%, transparent)", borderColor: "color-mix(in srgb, var(--accent) 18%, transparent)" }}>
-                      <Star size={10} style={{ color: "color-mix(in srgb, var(--accent) 65%, transparent)" }} />
-                    </div>
-                    <span className="text-[11px] font-bold truncate max-w-[90px]" style={{ color: "color-mix(in srgb, var(--accent) 75%, var(--primary))" }}>{d.nombre}</span>
-                  </button>
-                ))
-            )}
-
-            {/* Runas */}
-            {mobileTab === "runas" && (loadingRunas
-              ? <div className="flex justify-center py-10"><Loader2 size={16} className="animate-spin text-primary/20" /></div>
-              : filteredRu.length === 0
-                ? <p className="text-[9px] text-primary/20 uppercase tracking-widest text-center py-10 italic">{searchRu ? "Sin resultados" : "Sin runas aún"}</p>
-                : filteredRu.map(r => (
-                  <button key={r.id} onClick={() => selectRuna(r)} type="button"
-                    className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02] cursor-pointer"
-                    style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
-                    <div className="w-6 h-6 rounded-lg border overflow-hidden shrink-0 flex items-center justify-center"
-                      style={{ background: "color-mix(in srgb, var(--primary) 6%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 14%, transparent)" }}>
-                      {r.imagen_url
-                        ? <img src={r.imagen_url} alt={r.nombre} className="w-full h-full object-cover" />
-                        : <ScrollText size={10} className="text-primary/40" />}
-                    </div>
-                    <span className="text-[11px] font-bold text-primary/70 truncate max-w-[90px]">{r.nombre}</span>
-                  </button>
-                ))
-            )}
-            {mobileTab === "notas" && (loadingNotas
-              ? <div className="flex justify-center py-10"><Loader2 size={16} className="animate-spin text-primary/20" /></div>
-              : notas.length === 0
-                ? (
-                  <div className="flex flex-col items-center gap-3 py-14 text-center">
-                    <FileText size={24} strokeWidth={1} className="text-primary/15" />
-                    <p className="text-[9px] font-black uppercase tracking-widest text-primary/20">Sin notas aún</p>
-                    <button
-                      onClick={async () => {
-                        const nueva = await crearNota("Nueva nota");
-                        if (nueva) setSelectedNota(nueva);
-                      }}
-                      className="mt-1 text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-xl border border-dashed text-primary/30 hover:text-primary/60 transition-all"
-                      style={{ borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}
-                    >
-                      Crear primera nota
-                    </button>
+            <SeccionEntidades icon={Layers} label="Grupos" count={gruposTodos.length} loading={loadingGruposTodos}>
+              {gruposTodos.map(g => (
+                <button key={g.id} type="button"
+                  className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02]"
+                  style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
+                  <div className="w-6 h-6 rounded-lg border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center"><Layers size={10} className="text-primary/25" /></div>
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-[11px] font-bold text-primary/70 truncate max-w-[90px]">{g.nombre}</span>
+                    <span className="text-[8px] text-primary/30">{g.miembro_ids.length} miembros</span>
                   </div>
-                )
-                : notas
-                    .filter(n =>
-                      n.titulo.toLowerCase().includes(searchNotas.toLowerCase()) ||
-                      (n.contenido ?? "").toLowerCase().includes(searchNotas.toLowerCase()) ||
-                      (n.etiquetas ?? "").toLowerCase().includes(searchNotas.toLowerCase())
-                    )
-                    .map(n => (
-                      <button key={n.id} onClick={() => setSelectedNota(n)} type="button"
-                        className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02] cursor-pointer"
-                        style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
-                        <div className="w-6 h-6 rounded-lg border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center">
-                          <FileText size={10} className="text-primary/25" />
-                        </div>
-                        <span className="text-[11px] font-bold text-primary/70 truncate max-w-[90px]">
-                          {n.titulo || <span className="italic text-primary/30">Sin título</span>}
-                        </span>
-                      </button>
-                    ))
-            )}
-
-            {/* Grupos */}
-            {mobileTab === "grupos" && (
-              <EditorGrupo
-                onClickMiembro={(id, tabla) => {
-                  // Mapa tabla → subtab de listas
-                  const tablaMap: Record<string, ListaTab> = {
-                    personajes: "personajes",
-                    criaturas: "criaturas",
-                    items: "objetos",
-                    lugares: "lugares",
-                    hechizos: "hechizos",
-                    dones: "dones",
-                    runas: "runas",
-                  };
-                  const subtab = tablaMap[tabla];
-                  if (!subtab) return;
-                  setMobileTab(subtab);
-                  markVisited(subtab);
-                  // Abrir el editor del ítem usando el mismo sistema de overlay
-                  if (tabla === "personajes") {
-                    const p = personajes.find(x => x.id === id);
-                    if (p) setSelectedPersonaje(p);
-                  } else if (tabla === "criaturas") {
-                    const c = criaturas.find(x => x.id === id);
-                    if (c) setSelectedCriatura(c);
-                  } else if (tabla === "items") {
-                    const o = objetos.find(x => x.id === id);
-                    if (o) setSelectedObjeto(o);
-                  } else if (tabla === "hechizos") {
-                    const h = hechizos.find(x => x.id === id);
-                    if (h) setSelectedHechizo(h);
-                  } else if (tabla === "dones") {
-                    const d = dones.find(x => x.id === id);
-                    if (d) setSelectedDon(d);
-                  } else if (tabla === "runas") {
-                    const r = runas.find(x => x.id === id);
-                    if (r) setSelectedRuna(r);
-                  }
-                }}
-              />
-            )}
+                </button>
+              ))}
+            </SeccionEntidades>
           </div>
-          )}
-        </div>
 
-      </div>
+          {/* CAPÍTULOS */}
+          <div className="border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", minHeight: "60vh" }}>
+            <div className="shrink-0 flex items-center gap-2 px-3 py-2 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, transparent)" }}>
+              <BookOpen size={11} className="text-primary/40 shrink-0" />
+              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/50">Capítulos</span>
+            </div>
+            <div className="flex flex-col min-h-0" style={{ minHeight: "58vh" }}>
+              <EstudioCapitulos />
+            </div>
+          </div>
+
+          {/* CANCIONES */}
+          <div style={{ minHeight: "60vh" }}>
+            <div className="shrink-0 flex items-center gap-2 px-3 py-2 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, transparent)" }}>
+              <Music size={11} className="text-primary/40 shrink-0" />
+              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/50">Canciones</span>
+            </div>
+            <div className="flex flex-col min-h-0" style={{ minHeight: "58vh" }}>
+              <EditorLetrasPanel />
+            </div>
+          </div>
+
+        </div>
+      )}
 
     </div>
   );

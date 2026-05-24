@@ -205,42 +205,25 @@ async function createAndOpen(
 const STORAGE_KEY = "editorEntidades:session";
 
 const VALID_MUNDO_SECTIONS: MundoSectionKey[] = ["geografia", "historia", "magia"];
-const VALID_MUNDO_TABS = ["mundo", "historia", "listas", "magia", "hechizos", "dones", "runas", "grupos"];
 
 function readSession(): {
   tab: TabKey;
   selectedId: string | null;
   mundoSection: MundoSectionKey;
-  mundoTab: string | undefined;
 } {
   try {
-    // Si hay un item persistido en PanelListas, forzar tab="mundo" para que EditorMundo monte
-    // y el effect de restauración pueda correr aunque la sesión diga otra cosa.
     const hasPersistentItem = !!localStorage.getItem("garlia-panel-item");
-
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) {
-      return {
-        tab: hasPersistentItem ? "mundo" : "personajes",
-        selectedId: null,
-        mundoSection: "geografia",
-        mundoTab: undefined,
-      };
+      return { tab: hasPersistentItem ? "mundo" : "personajes", selectedId: null, mundoSection: "geografia" };
     }
     const parsed = JSON.parse(raw);
     const validTabs: TabKey[] = [...Object.keys(TAB_CONFIG) as Exclude<TabKey, "mundo">[], "mundo", "capitulos" as any, "letras" as any];
-    const tab = hasPersistentItem
-      ? "mundo"
-      : (validTabs.includes(parsed.tab) ? parsed.tab as TabKey : "personajes");
-    const mundoSection = VALID_MUNDO_SECTIONS.includes(parsed.mundoSection)
-      ? parsed.mundoSection as MundoSectionKey
-      : "geografia";
-    const mundoTab = VALID_MUNDO_TABS.includes(parsed.mundoTab)
-      ? parsed.mundoTab as string
-      : undefined;
-    return { tab, selectedId: parsed.selectedId ?? null, mundoSection, mundoTab };
+    const tab = hasPersistentItem ? "mundo" : (validTabs.includes(parsed.tab) ? parsed.tab as TabKey : "personajes");
+    const mundoSection = VALID_MUNDO_SECTIONS.includes(parsed.mundoSection) ? parsed.mundoSection as MundoSectionKey : "geografia";
+    return { tab, selectedId: parsed.selectedId ?? null, mundoSection };
   } catch {
-    return { tab: "personajes", selectedId: null, mundoSection: "geografia", mundoTab: undefined };
+    return { tab: "personajes", selectedId: null, mundoSection: "geografia" };
   }
 }
 
@@ -253,7 +236,6 @@ export default function EditorEntidades() {
   const [showAcontecimiento, setShowAcontecimiento] = useState(false);
   const [showNuevoGrupo, setShowNuevoGrupo] = useState(false);
   const [mundoSection, setMundoSection] = useState<MundoSectionKey>(session.current.mundoSection);
-  const [requestedSubTab, setRequestedSubTab] = useState<string | undefined>(session.current.mundoTab);
   const [requestedItemId, setRequestedItemId] = useState<string | undefined>(undefined);
   const [requestedGrupoId, setRequestedGrupoId] = useState<string | null>(null);
   const [openItem, setOpenItem] = useState<{ tabla: string; id: string; key?: number } | null>(null);
@@ -286,14 +268,9 @@ export default function EditorEntidades() {
   // Persistir sesión
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        tab,
-        selectedId,
-        mundoSection,
-        mundoTab: requestedSubTab,
-      }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ tab, selectedId, mundoSection }));
     } catch {}
-  }, [tab, selectedId, mundoSection, requestedSubTab]);
+  }, [tab, selectedId, mundoSection]);
 
   const selected = useMemo(() => {
     if (tab === "mundo" || tab === "grupos" || (tab as string) === "capitulos" || (tab as string) === "letras") return null;
@@ -320,7 +297,6 @@ export default function EditorEntidades() {
       setTab("mundo");
       setSelectedId(item.id);
       setMundoSection("geografia");
-      setRequestedSubTab(itemTab);
       setOpenItem({ tabla, id: item.id, key: ++openItemKeyRef.current });
       setRequestedGrupoId(null);
     } else {
@@ -379,14 +355,11 @@ export default function EditorEntidades() {
 
     // Mismo routing que handleSelect: reinos/personajes/criaturas/items viven dentro
     // de EditorMundo; hechizos/dones/runas tienen editor standalone.
-    // Usamos "listas" como requestedSubTab para que mobileTab arranque en "todo"
-    // y al volver del overlay el usuario vea todas las listas, no solo una.
     const tabla = MUNDO_TABLAS[t];
     if (tabla) {
       setTab("mundo");
       setSelectedId(item.id);
       setMundoSection("geografia");
-      setRequestedSubTab("listas");
       setOpenItem({ tabla, id: item.id, key: ++openItemKeyRef.current });
       setOnItemCreated({ tabla, item });
       setRequestedGrupoId(null);
@@ -410,7 +383,6 @@ export default function EditorEntidades() {
       window.dispatchEvent(new Event("estudio-notas-action"));
       setTab("mundo");
       setMundoSection("geografia");
-      setRequestedSubTab("notas");
       return;
     }
     if ((key === "hechizos" || key === "dones" || key === "runas") && item) {
@@ -421,7 +393,6 @@ export default function EditorEntidades() {
       void dexieWriteOne(key, item);
       setTab("mundo");
       setMundoSection("geografia");
-      setRequestedSubTab("listas");
       setOpenItem({ tabla: key, id: item.id, key: ++openItemKeyRef.current });
       setOnItemCreated({ tabla: key, item });
       setSelectedId(item.id);
@@ -474,7 +445,6 @@ export default function EditorEntidades() {
               setTab("mundo");
               setSelectedId(null);
               setMundoSection("geografia");
-              setRequestedSubTab("notas");
               setTimeout(() => window.dispatchEvent(new Event("estudio-notas-action")), 0);
             } else if (key === "grupos") {
               setShowNuevoGrupo(true);
@@ -483,24 +453,20 @@ export default function EditorEntidades() {
               window.dispatchEvent(new Event("estudio-caps-action"));
               setTab("mundo");
               setMundoSection("geografia");
-              setRequestedSubTab("capitulos");
             } else if (key === "capitulo") {
               localStorage.setItem("estudio-caps-action", "nuevo-cap");
               window.dispatchEvent(new Event("estudio-caps-action"));
               setTab("mundo");
               setMundoSection("geografia");
-              setRequestedSubTab("capitulos");
             } else if (key === "cancion") {
               localStorage.setItem("estudio-letras-action", "nueva-cancion");
               window.dispatchEvent(new Event("estudio-letras-action"));
               setTab("mundo");
               setMundoSection("geografia");
-              setRequestedSubTab("letras");
             } else if (key === "lugar") {
               localStorage.setItem("estudio-listas-action", "nuevo-lugar");
               setTab("mundo");
               setMundoSection("geografia");
-              setRequestedSubTab("listas");
               setTimeout(() => window.dispatchEvent(new Event("estudio-listas-action")), 0);
             } else {
               // hechizos, dones, runas → abrir su editor directamente como tab
@@ -527,7 +493,6 @@ export default function EditorEntidades() {
               setTab("mundo");
               setSelectedId(null);
               setMundoSection(section);
-              setRequestedSubTab(subTab);
               setRequestedItemId(undefined);
             }
           }}
@@ -545,7 +510,6 @@ export default function EditorEntidades() {
             setTab("mundo");
             setSelectedId(null);
             setMundoSection("geografia");
-            setRequestedSubTab("notas");
             setRequestedItemId(undefined);
             setTimeout(() => setRequestedItemId(nota.id), 0);
           }}
@@ -555,7 +519,6 @@ export default function EditorEntidades() {
             window.dispatchEvent(new Event("estudio-caps-action"));
             setTab("mundo");
             setMundoSection("geografia");
-            setRequestedSubTab("capitulos");
             setRequestedItemId(undefined);
           }}
           onNavigateToCancion={(cancionId) => {
@@ -563,7 +526,6 @@ export default function EditorEntidades() {
             window.dispatchEvent(new Event("estudio-letras-action"));
             setTab("mundo");
             setMundoSection("geografia");
-            setRequestedSubTab("letras");
             setRequestedItemId(undefined);
           }}
           onToggleOculto={handleToggleOcultoReino}
@@ -584,19 +546,12 @@ export default function EditorEntidades() {
           <WikilinkProvider onWikilink={handleWikilinkNavigate}>
           {isMundo ? (
             <EditorMundo
-              activeSection={mundoSection}
               textos={mundoTextos}
               onTextoChange={(section, value) => setMundoTextos(t => ({ ...t, [section]: value }))}
               onSave={(section) => saveMundo(section, mundoTextos[section])}
-              initialMundoTab={requestedSubTab}
               initialItemId={requestedItemId}
               openItem={openItem}
               onItemCreated={onItemCreated}
-              onTabChange={(section, mundoTab) => {
-                setMundoSection(section);
-                setRequestedSubTab(mundoTab);
-                setRequestedItemId(undefined);
-              }}
               onOverlayChange={(active, clearFn) => {
                 setHasOverlay(active);
                 overlayCloseFnRef.current = clearFn;
@@ -653,7 +608,6 @@ export default function EditorEntidades() {
           onSaved={() => {
             setTab("mundo");
             setMundoSection("historia");
-            setRequestedSubTab("historia");
           }}
         />
       )}
