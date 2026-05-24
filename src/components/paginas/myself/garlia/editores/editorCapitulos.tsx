@@ -2685,7 +2685,7 @@ export function EditorCapitulosPanel() {
               {/* ── Mobile: grid de 2 columnas ── */}
               <div
                 className="sm:hidden overflow-y-auto p-2"
-                style={{ height: selectedCapId ? "240px" : "260px" }}
+                style={{ height: selectedCapId ? "380px" : "420px" }}
               >
                 <div className="grid grid-cols-2 gap-2">
                   {loadingLibros ? (
@@ -2713,7 +2713,7 @@ export function EditorCapitulosPanel() {
               </div>
 
               {/* ── Desktop: scroll horizontal de columnas ── */}
-              <div className="hidden sm:flex overflow-x-auto" style={{ maxHeight: selectedCapId ? "220px" : "340px" }}>
+              <div className="hidden sm:flex overflow-x-auto" style={{ maxHeight: selectedCapId ? "360px" : "480px" }}>
 
                 {/* Columna: Nuevo libro */}
                 {/* Columnas de libros */}
