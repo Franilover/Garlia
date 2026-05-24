@@ -439,115 +439,90 @@ const CapituloItem = ({
     return () => document.removeEventListener("mousedown", handler);
   }, [menuOpen]);
 
-  const btnOpacity = menuOpen ? 1 : hovered ? 0.55 : 0;
-
   return (
     <div
-      style={{ position: "relative" }}
+      className="flex items-center gap-2 px-2 py-1.5 rounded-lg transition-all group"
+      style={{
+        background: selected
+          ? "var(--primary)"
+          : hovered
+          ? "color-mix(in srgb, var(--primary) 5%, transparent)"
+          : "transparent",
+        cursor: "pointer",
+      }}
+      onClick={onClick}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      <button
-        onClick={onClick}
+      {/* Badge número */}
+      <div
+        className="shrink-0 w-5 h-5 rounded-md flex items-center justify-center text-[8px] font-black tabular-nums transition-all"
         style={{
-          width: "100%",
-          textAlign: "left",
-          padding: "6px 32px 6px 10px",
-          borderRadius: 7,
-          border: "1px solid",
-          borderColor: selected
-            ? "var(--primary)"
-            : hovered
-            ? "color-mix(in srgb, var(--primary) 18%, transparent)"
-            : "transparent",
           background: selected
-            ? "var(--primary)"
-            : hovered
-            ? "color-mix(in srgb, var(--primary) 5%, transparent)"
-            : "transparent",
+            ? "color-mix(in srgb, var(--bg-main) 15%, transparent)"
+            : "color-mix(in srgb, var(--primary) 8%, transparent)",
           color: selected ? "var(--bg-main)" : "var(--primary)",
-          fontSize: 10,
-          fontFamily: "var(--font-mono, monospace)",
-          fontWeight: 900,
-          textTransform: "uppercase" as const,
-          letterSpacing: "0.04em",
-          transition: "background 0.12s, border-color 0.12s, color 0.12s",
-          cursor: "pointer",
+          opacity: selected ? 1 : 0.6,
         }}
       >
-        <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          {/* Número de orden */}
-          <span style={{
-            fontSize: 8,
-            opacity: selected ? 0.6 : 0.35,
-            fontVariantNumeric: "tabular-nums",
-            flexShrink: 0,
-          }}>
-            {String(cap.orden).padStart(2, "0")}
-          </span>
-          {/* Indicadores */}
-          {cap.status === "pending" && (
-            <span style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--callout-info-border)", flexShrink: 0 }} title="Pendiente de sync" />
-          )}
-          {cap.visibilidad === "oculto" && (
-            <Lock size={8} style={{ opacity: selected ? 0.5 : 0.3, flexShrink: 0 }} />
-          )}
-          {cap.visibilidad === "programado" && cap.fecha_publicacion && new Date(cap.fecha_publicacion) > new Date() && (
-            <Timer size={8} style={{ opacity: selected ? 0.5 : 0.3, flexShrink: 0 }} />
-          )}
-          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            {cap.titulo_capitulo}
-          </span>
-        </span>
-      </button>
+        {String(cap.orden).padStart(2, "0")}
+      </div>
 
-      {/* Menú de tres puntos */}
-      <div ref={menuRef} style={{ position: "absolute", top: 4, right: 4 }}>
+      {/* Título */}
+      <span
+        className="flex-1 min-w-0 text-[10px] font-black uppercase italic tracking-tight truncate"
+        style={{ color: selected ? "var(--bg-main)" : "var(--primary)" }}
+      >
+        {cap.titulo_capitulo}
+      </span>
+
+      {/* Indicadores de estado */}
+      <span className="shrink-0 flex items-center gap-1">
+        {cap.status === "pending" && (
+          <span
+            title="Pendiente de sync"
+            style={{
+              width: 4, height: 4, borderRadius: "50%", flexShrink: 0,
+              background: selected ? "color-mix(in srgb, var(--bg-main) 60%, transparent)" : "var(--callout-info-border)",
+            }}
+          />
+        )}
+        {cap.visibilidad === "oculto" && (
+          <Lock size={7} style={{ opacity: selected ? 0.5 : 0.25, color: selected ? "var(--bg-main)" : "var(--primary)" }} />
+        )}
+        {cap.visibilidad === "programado" && cap.fecha_publicacion && new Date(cap.fecha_publicacion) > new Date() && (
+          <Timer size={7} style={{ opacity: selected ? 0.5 : 0.25, color: selected ? "var(--bg-main)" : "var(--primary)" }} />
+        )}
+      </span>
+
+      {/* Menú tres puntos */}
+      <div ref={menuRef} style={{ position: "relative", flexShrink: 0 }}>
         <button
           onClick={e => { e.stopPropagation(); setMenuOpen(m => !m); }}
+          className="flex items-center justify-center rounded transition-all"
           style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            width: 22,
-            height: 22,
-            borderRadius: 5,
-            border: "none",
+            width: 18, height: 18, border: "none",
             background: menuOpen
               ? "color-mix(in srgb, var(--primary) 12%, transparent)"
               : "transparent",
             color: selected ? "var(--bg-main)" : "var(--primary)",
-            opacity: btnOpacity,
+            opacity: hovered || menuOpen ? (selected ? 0.7 : 0.5) : 0,
             cursor: "pointer",
             transition: "opacity 0.1s, background 0.1s",
           }}
-          onMouseEnter={e => {
-            e.currentTarget.style.opacity = "1";
-            e.currentTarget.style.background = "color-mix(in srgb, var(--primary) 12%, transparent)";
-          }}
-          onMouseLeave={e => {
-            if (!menuOpen) {
-              e.currentTarget.style.opacity = hovered ? "0.55" : "0";
-              e.currentTarget.style.background = "transparent";
-            }
-          }}
+          onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.background = "color-mix(in srgb, var(--primary) 14%, transparent)"; }}
+          onMouseLeave={e => { e.currentTarget.style.opacity = hovered || menuOpen ? (selected ? "0.7" : "0.5") : "0"; e.currentTarget.style.background = menuOpen ? "color-mix(in srgb, var(--primary) 12%, transparent)" : "transparent"; }}
         >
-          <MoreHorizontal size={11} />
+          <MoreHorizontal size={9} />
         </button>
 
         {menuOpen && (
           <div style={{
-            position: "absolute",
-            right: 0,
-            top: "calc(100% + 4px)",
-            zIndex: 50,
-            minWidth: 148,
-            background: "var(--white-custom)",
+            position: "absolute", right: 0, top: "calc(100% + 4px)", zIndex: 50,
+            minWidth: 140, background: "var(--white-custom)",
             border: "1px solid color-mix(in srgb, var(--primary) 18%, transparent)",
-            borderRadius: 8,
-            boxShadow: "0 8px 24px color-mix(in srgb, var(--primary) 12%, transparent)",
-            padding: 3,
-            overflow: "hidden",
+            borderRadius: 8, boxShadow: "0 8px 24px color-mix(in srgb, var(--primary) 12%, transparent)",
+            padding: 3, overflow: "hidden",
           }}>
             <button
               onClick={e => { e.stopPropagation(); setMenuOpen(false); onEdit(cap); }}
@@ -2310,23 +2285,20 @@ const LibroCard = ({
       <ConfirmModal />
 
       {/* Lista de capítulos (máx 4 visibles, scroll) */}
-      <div className="flex-1 overflow-y-auto max-h-28 p-1 space-y-0.5">
+      <div className="flex-1 overflow-y-auto max-h-28 px-1 pt-1 pb-0.5 space-y-0.5">
         {loading ? (
           <div className="flex justify-center py-3"><Loader2 size={11} className="animate-spin text-primary/20" /></div>
         ) : capitulos.length === 0 ? (
           <p className="text-[8px] text-primary/20 font-black uppercase tracking-widest px-1 py-2 text-center">Sin caps</p>
         ) : capitulos.map(cap => (
-          <button
+          <CapituloItem
             key={cap.id}
+            cap={cap}
+            selected={selectedCapId === cap.id}
             onClick={() => onSelectCap(libro.id, cap.id)}
-            className={`w-full text-left px-2 py-1 rounded-md text-[9px] font-bold truncate transition-all border ${
-              selectedCapId === cap.id
-                ? "bg-primary text-bg-main border-primary"
-                : "border-transparent text-primary/60 hover:bg-primary/8 hover:text-primary"
-            }`}
-          >
-            {cap.orden}. {cap.titulo_capitulo}
-          </button>
+            onEdit={onEditCap}
+            onDelete={id => onDeleteCap(id, libro.id)}
+          />
         ))}
       </div>
 
@@ -2526,7 +2498,7 @@ const LibroColumna = ({
       <ConfirmModal />
 
       {/* Lista de capítulos */}
-      <div style={{ flex: 1, overflowY: "auto", padding: "6px 6px" }}>
+      <div style={{ flex: 1, overflowY: "auto", padding: "4px 4px" }}>
         {loading ? (
           <div style={{ display: "flex", justifyContent: "center", padding: "16px 0" }}>
             <Loader2 size={12} className="animate-spin" style={{ color: "var(--primary)", opacity: 0.2 }} />
