@@ -48,13 +48,8 @@ function decodeTimeline(raw: string | undefined): TimelineEvent[] {
   return [];
 }
 
-// ─── Componente de línea de tiempo ───────────────────────────────────────────
+// ─── Helpers de ordenamiento ─────────────────────────────────────────────────
 
-/** Ordena años lexicográficamente por su parte numérica, respetando ceros iniciales.
- *  "0001" < "0002" < "0003" < "02" < "1" < "10" < "100"
- *  Los ceros definen el "grupo" (0001 es antes que 02 que es antes que 1).
- *  Texto puro sin números queda al final.
- */
 function parseYear(year: string): string {
   if (!year?.trim()) return "~";
   const normalized = year.replace(/(\d)[.,](\d{3})/g, "$1$2");
@@ -62,12 +57,129 @@ function parseYear(year: string): string {
   if (!match) return "~" + year;
   const negative = match[1] === "-";
   const digits = match[2];
-  if (negative) {
-    // Negativos van primero: invertimos para que -100 < -10 < -1
-    return "!" + digits.split("").reverse().join("").padEnd(30, "0");
-  }
-  return digits; // lexicográfico puro
+  if (negative) return "!" + digits.split("").reverse().join("").padEnd(30, "0");
+  return digits;
 }
+
+// ─── Tarjeta horizontal de evento (igual que EditorMundo) ───────────────────
+
+function TimelineCard({
+  event,
+  onUpdate,
+  onRemove,
+  reinos = [],
+}: {
+  event: TimelineEvent;
+  onUpdate: (patch: Partial<TimelineEvent>) => void;
+  onRemove: () => void;
+  reinos?: { id: string; nombre: string }[];
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const { onSnippetAction } = useWikilink();
+
+  const hasYear  = !!event.year?.trim();
+  const hasTitle = !!event.title?.trim();
+  const reinoId  = event.reinoId;
+  const reinoNombre = reinoId ? reinos.find(r => r.id === reinoId)?.nombre : null;
+
+  return (
+    <div className="group/card" style={{ width: 188 }}>
+      <div
+        className="mx-1.5 rounded-xl transition-all"
+        style={{
+          border: `1px solid ${expanded ? "color-mix(in srgb, var(--primary) 22%, transparent)" : "color-mix(in srgb, var(--primary) 12%, transparent)"}`,
+          background: expanded ? "color-mix(in srgb, var(--primary) 4%, transparent)" : "color-mix(in srgb, var(--primary) 2.5%, transparent)",
+        }}
+      >
+        {/* Cabecera */}
+        <div className="flex flex-col gap-1 p-2 cursor-pointer" onClick={() => setExpanded(x => !x)}>
+          {/* Año */}
+          <div onClick={e => e.stopPropagation()}>
+            <input
+              className="bg-transparent outline-none w-full text-[10px] font-black tracking-widest text-center placeholder:text-primary/20 px-1 py-1 rounded-lg border"
+              value={event.year}
+              onChange={e => onUpdate({ year: e.target.value })}
+              placeholder="Año"
+              style={{
+                color: hasYear ? "var(--primary)" : "color-mix(in srgb, var(--primary) 30%, transparent)",
+                borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
+                background: hasYear ? "color-mix(in srgb, var(--primary) 6%, transparent)" : "transparent",
+              }}
+            />
+          </div>
+          {/* Título */}
+          <div onClick={e => e.stopPropagation()}>
+            <input
+              className="bg-transparent outline-none w-full text-[10px] font-bold placeholder:text-primary/20 px-1"
+              value={event.title}
+              onChange={e => onUpdate({ title: e.target.value })}
+              placeholder="Nombre del evento…"
+              style={{ color: hasTitle ? "var(--primary)" : "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+            />
+          </div>
+          {/* Acciones */}
+          <div className="flex items-center justify-between mt-0.5">
+            {reinoNombre && (
+              <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest truncate"
+                style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)", color: "color-mix(in srgb, var(--primary) 50%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)", maxWidth: "80px" }}>
+                <Globe size={6} /> {reinoNombre}
+              </span>
+            )}
+            <div className="flex items-center gap-0.5 ml-auto opacity-0 group-hover/card:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
+              <button type="button" onClick={onRemove}
+                className="p-1 rounded-md transition-all"
+                style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }}
+                onMouseEnter={e => ((e.currentTarget as HTMLButtonElement).style.color = "#f87171")}
+                onMouseLeave={e => ((e.currentTarget as HTMLButtonElement).style.color = "color-mix(in srgb, var(--primary) 20%, transparent)")}>
+                <Trash2 size={8} />
+              </button>
+              <ChevronDown size={8}
+                style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)", transform: expanded ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s ease" }} />
+            </div>
+          </div>
+        </div>
+
+        {/* Panel expandible */}
+        {expanded && (
+          <div className="px-2 pb-2 pt-1 space-y-2" style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+            {reinos.length > 0 && (
+              <div className="space-y-1">
+                <label className="text-[8px] font-black uppercase tracking-[0.2em] flex items-center gap-1"
+                  style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
+                  <Globe size={8} /> Reino
+                </label>
+                <select
+                  value={event.reinoId ?? ""}
+                  onChange={e => onUpdate({ reinoId: e.target.value || null })}
+                  className="w-full text-[9px] font-bold rounded-lg px-2 py-1 outline-none transition-all"
+                  style={{
+                    background: "color-mix(in srgb, var(--primary) 5%, transparent)",
+                    border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+                    color: event.reinoId ? "var(--primary)" : "color-mix(in srgb, var(--primary) 35%, transparent)",
+                  }}
+                >
+                  <option value="">— Sin reino —</option>
+                  {reinos.map(r => <option key={r.id} value={r.id}>{r.nombre}</option>)}
+                </select>
+              </div>
+            )}
+            <MarkdownEditor
+              value={event.description}
+              onChange={v => onUpdate({ description: v })}
+              placeholder="Descripción del evento, consecuencias, personajes involucrados…"
+              rows={6}
+              toolbar
+              defaultMode="edit"
+              onSnippetAction={onSnippetAction}
+            />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Componente de línea de tiempo horizontal ────────────────────────────────
 
 function TimelineEditor({
   value,
@@ -78,7 +190,7 @@ function TimelineEditor({
   value: string;
   onChange: (v: string) => void;
   reinos?: { id: string; nombre: string }[];
-  filtroReinoId?: string | null; // cuando hay filtro activo, se ocultan eventos sin reino
+  filtroReinoId?: string | null;
 }) {
   const [events, setEvents] = useState<TimelineEvent[]>(() => decodeTimeline(value));
 
@@ -88,361 +200,91 @@ function TimelineEditor({
   };
 
   const add = () => commit([...events, newEvent()]);
-
   const update = (id: string, patch: Partial<TimelineEvent>) =>
-    commit(events.map((e) => (e.id === id ? { ...e, ...patch } : e)));
+    commit(events.map(e => e.id === id ? { ...e, ...patch } : e));
+  const remove = (id: string) => commit(events.filter(e => e.id !== id));
 
-  const remove = (id: string) => commit(events.filter((e) => e.id !== id));
-
-  // Ordenar y luego filtrar: si hay filtro activo, ocultar eventos "Mundo" (sin reinoId)
   const sorted = [...events].sort((a, b) => parseYear(a.year).localeCompare(parseYear(b.year)));
   const visible = filtroReinoId
-    ? sorted.filter((e) => e.reinoId) // ocultar los de Mundo cuando hay filtro de reino
+    ? sorted.filter(e => e.reinoId)
     : sorted;
 
   return (
     <div className="flex flex-col gap-0 h-full">
 
-      {/* ── Lista de eventos ────────────────────────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-0">
+      {/* ── Pista horizontal ──────────────────────────────────────────────── */}
+      <div className="flex-1 overflow-x-auto overflow-y-hidden px-4 py-4"
+        style={{ scrollbarWidth: "thin", scrollbarColor: "color-mix(in srgb, var(--primary) 15%, transparent) transparent" }}>
 
+        {/* Aviso filtro activo */}
+        {filtroReinoId && sorted.length > visible.length && (
+          <div className="mb-3 inline-flex items-center gap-2 px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest"
+            style={{ background: "color-mix(in srgb, var(--primary) 5%, transparent)", border: "1px dashed color-mix(in srgb, var(--primary) 15%, transparent)", color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
+            <Globe size={10} />
+            {sorted.length - visible.length} evento{sorted.length - visible.length !== 1 ? "s" : ""} oculto{sorted.length - visible.length !== 1 ? "s" : ""} por filtro
+          </div>
+        )}
+
+        {/* Estado vacío */}
         {events.length === 0 && (
-          <div
-            className="flex flex-col items-center gap-3 py-14 rounded-2xl border border-dashed text-center"
-            style={{ borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)" }}
-          >
-            <Globe
-              size={28}
-              strokeWidth={1}
-              style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }}
-            />
-            <p
-              className="text-[9px] font-black uppercase tracking-[0.25em]"
-              style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}
-            >
+          <div className="flex flex-col items-center gap-3 py-14 rounded-2xl border border-dashed text-center"
+            style={{ borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)" }}>
+            <Globe size={28} strokeWidth={1} style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }} />
+            <p className="text-[9px] font-black uppercase tracking-[0.25em]"
+              style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>
               Sin eventos históricos
             </p>
-            <button
-              type="button"
-              onClick={add}
+            <button type="button" onClick={add}
               className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all"
-              style={{
-                background: "color-mix(in srgb, var(--primary) 8%, transparent)",
-                color: "color-mix(in srgb, var(--primary) 60%, transparent)",
-                border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
-              }}
-            >
+              style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)", color: "color-mix(in srgb, var(--primary) 60%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)" }}>
               <Plus size={10} /> Añadir primer evento
             </button>
           </div>
         )}
 
-        {/* Aviso cuando hay eventos de Mundo ocultos por filtro */}
-        {filtroReinoId && sorted.length > visible.length && (
-          <div
-            className="mb-2 px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2"
-            style={{
-              background: "color-mix(in srgb, var(--primary) 5%, transparent)",
-              border: "1px dashed color-mix(in srgb, var(--primary) 15%, transparent)",
-              color: "color-mix(in srgb, var(--primary) 35%, transparent)",
-            }}
-          >
-            <Globe size={10} />
-            {sorted.length - visible.length} evento{sorted.length - visible.length !== 1 ? "s" : ""} de Mundo oculto{sorted.length - visible.length !== 1 ? "s" : ""} por el filtro
-          </div>
-        )}
+        {events.length > 0 && (
+          <div className="flex items-start" style={{ minWidth: "max-content", paddingLeft: 8, paddingRight: 8 }}>
+            {visible.map((evt, idx) => (
+              <div key={evt.id} className="flex flex-col shrink-0" style={{ width: 190 }}>
+                {/* Conector */}
+                <div className="flex items-center" style={{ height: 26 }}>
+                  <div className="flex-1 h-px" style={{ background: idx === 0 ? "transparent" : "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
+                  <div className="shrink-0 w-2.5 h-2.5 rounded-full transition-all"
+                    style={{
+                      background: evt.year?.trim() ? "var(--primary)" : "color-mix(in srgb, var(--primary) 20%, transparent)",
+                      boxShadow: evt.year?.trim() ? "0 0 0 3px color-mix(in srgb, var(--primary) 15%, transparent)" : "none",
+                    }} />
+                  <div className="flex-1 h-px" style={{ background: idx === visible.length - 1 ? "transparent" : "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
+                </div>
+                <TimelineCard
+                  event={evt}
+                  onUpdate={patch => update(evt.id, patch)}
+                  onRemove={() => remove(evt.id)}
+                  reinos={reinos}
+                />
+              </div>
+            ))}
 
-        {visible.map((evt, idx) => (
-          <TimelineRow
-            key={evt.id}
-            event={evt}
-            index={idx}
-            total={visible.length}
-            onUpdate={(patch) => update(evt.id, patch)}
-            onRemove={() => remove(evt.id)}
-            onMove={() => {}}
-            reinos={reinos}
-          />
-        ))}
-      </div>
-
-      {/* ── Botón añadir ────────────────────────────────────────────────────── */}
-      {events.length > 0 && (
-        <div
-          className="shrink-0 px-4 py-3 border-t"
-          style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
-        >
-          <button
-            type="button"
-            onClick={add}
-            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all"
-            style={{
-              border: "1px dashed color-mix(in srgb, var(--primary) 20%, transparent)",
-              color: "color-mix(in srgb, var(--primary) 40%, transparent)",
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.color = "var(--primary)";
-              (e.currentTarget as HTMLButtonElement).style.borderColor =
-                "color-mix(in srgb, var(--primary) 40%, transparent)";
-              (e.currentTarget as HTMLButtonElement).style.background =
-                "color-mix(in srgb, var(--primary) 5%, transparent)";
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.color =
-                "color-mix(in srgb, var(--primary) 40%, transparent)";
-              (e.currentTarget as HTMLButtonElement).style.borderColor =
-                "color-mix(in srgb, var(--primary) 20%, transparent)";
-              (e.currentTarget as HTMLButtonElement).style.background = "transparent";
-            }}
-          >
-            <Plus size={10} /> Añadir evento
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─── Fila de evento ───────────────────────────────────────────────────────────
-
-function TimelineRow({
-  event,
-  index,
-  total,
-  onUpdate,
-  onRemove,
-  onMove,
-  reinos = [],
-}: {
-  event: TimelineEvent;
-  index: number;
-  total: number;
-  onUpdate: (patch: Partial<TimelineEvent>) => void;
-  onRemove: () => void;
-  onMove: (dir: -1 | 1) => void;
-  reinos?: { id: string; nombre: string }[];
-}) {
-  const [expanded, setExpanded] = useState(false);
-  const { onSnippetAction } = useWikilink();
-
-  const hasYear  = !!event.year?.trim();
-  const hasTitle = !!event.title?.trim();
-  const hasDesc  = !!event.description?.trim();
-
-  return (
-    <div className="relative flex gap-0 group/row">
-
-      {/* ── Línea vertical del timeline ──────────────────────────────────── */}
-      <div className="flex flex-col items-center" style={{ width: 32, flexShrink: 0 }}>
-        <div
-          className="relative z-10 mt-[22px] w-2.5 h-2.5 rounded-full shrink-0 transition-all"
-          style={{
-            background: hasYear
-              ? "var(--primary)"
-              : "color-mix(in srgb, var(--primary) 20%, transparent)",
-            boxShadow: hasYear
-              ? "0 0 0 3px color-mix(in srgb, var(--primary) 15%, transparent)"
-              : "none",
-          }}
-        />
-        {index < total - 1 && (
-          <div
-            className="flex-1 w-px mt-1"
-            style={{
-              background: "color-mix(in srgb, var(--primary) 10%, transparent)",
-              minHeight: 32,
-            }}
-          />
-        )}
-      </div>
-
-      {/* ── Tarjeta ──────────────────────────────────────────────────────── */}
-      <div
-        className="flex-1 mb-3 rounded-2xl overflow-hidden transition-all"
-        style={{
-          border: `1px solid ${expanded
-            ? "color-mix(in srgb, var(--primary) 22%, transparent)"
-            : "color-mix(in srgb, var(--primary) 10%, transparent)"}`,
-          background: expanded
-            ? "color-mix(in srgb, var(--primary) 4%, transparent)"
-            : "color-mix(in srgb, var(--primary) 2%, transparent)",
-        }}
-      >
-
-        {/* ── Cabecera clicable ─────────────────────────────────────────── */}
-        <div
-          className="flex items-stretch cursor-pointer select-none"
-          onClick={() => setExpanded((x) => !x)}
-        >
-
-          {/* BLOQUE AÑO */}
-          <div
-            className="shrink-0 flex items-center justify-center border-r"
-            style={{
-              width: 76,
-              borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
-              background: hasYear
-                ? "color-mix(in srgb, var(--primary) 8%, transparent)"
-                : "color-mix(in srgb, var(--primary) 3%, transparent)",
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <input
-              className="bg-transparent outline-none w-full text-[10px] font-black tracking-widest text-center placeholder:text-primary/20 px-2 py-3"
-              value={event.year}
-              onChange={(e) => onUpdate({ year: e.target.value })}
-              placeholder="Año"
-              style={{
-                color: hasYear
-                  ? "var(--primary)"
-                  : "color-mix(in srgb, var(--primary) 30%, transparent)",
-              }}
-            />
-          </div>
-
-          {/* BLOQUE TÍTULO */}
-          <div
-            className="flex-1 flex items-center min-w-0 px-3 py-2.5 gap-2"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <input
-              className="bg-transparent outline-none flex-1 min-w-0 text-[12px] font-bold placeholder:text-primary/20 transition-colors"
-              value={event.title}
-              onChange={(e) => onUpdate({ title: e.target.value })}
-              placeholder="Nombre del evento…"
-              style={{
-                color: hasTitle
-                  ? "var(--primary)"
-                  : "color-mix(in srgb, var(--primary) 40%, transparent)",
-              }}
-            />
-            {/* Badge reino */}
-            {event.reinoId && reinos.length > 0 && (() => {
-              const r = reinos.find(r => r.id === event.reinoId);
-              return r ? (
-                <span
-                  className="shrink-0 text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md hidden sm:block"
-                  style={{
-                    background: "color-mix(in srgb, var(--primary) 12%, transparent)",
-                    color: "color-mix(in srgb, var(--primary) 55%, transparent)",
-                    maxWidth: 80,
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {r.nombre}
-                </span>
-              ) : null;
-            })()}
-            {/* Badge "detalle" cuando hay descripción y está cerrado */}
-            {hasDesc && !expanded && (
-              <span
-                className="shrink-0 text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md hidden sm:block"
-                style={{
-                  background: "color-mix(in srgb, var(--primary) 8%, transparent)",
-                  color: "color-mix(in srgb, var(--primary) 35%, transparent)",
-                }}
-              >
-                ver más
-              </span>
-            )}
-          </div>
-
-          {/* Controles de orden — ocultos (el orden es automático por año) */}
-
-          {/* Botón eliminar — hover */}
-          <div
-            className="shrink-0 flex items-center px-1 opacity-0 group-hover/row:opacity-100 transition-opacity"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              type="button"
-              onClick={onRemove}
-              className="p-1.5 rounded-lg transition-all"
-              style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}
-              onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.color = "#f87171")}
-              onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.color = "color-mix(in srgb, var(--primary) 25%, transparent)")}
-            >
-              <Trash2 size={10} />
-            </button>
-          </div>
-
-          {/* Chevron toggle — siempre visible */}
-          <div
-            className="shrink-0 flex items-center px-3 border-l"
-            style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
-          >
-            <ChevronDown
-              size={11}
-              style={{
-                color: "color-mix(in srgb, var(--primary) 30%, transparent)",
-                transform: expanded ? "rotate(180deg)" : "rotate(0deg)",
-                transition: "transform 0.2s ease",
-              }}
-            />
-          </div>
-        </div>
-
-        {/* ── Panel expandible con MarkdownEditor ──────────────────────── */}
-        {expanded && (
-          <div
-            className="px-3 pb-3 pt-3 flex flex-col gap-3"
-            style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
-          >
-            {/* ── Selector de reino ─────────────────────────────────────── */}
-            {reinos.length > 0 && (
-              <div className="flex items-center gap-2">
-                <span
-                  className="shrink-0 text-[9px] font-black uppercase tracking-widest"
-                  style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
-                >
-                  Reino
-                </span>
-                <select
-                  value={event.reinoId ?? ""}
-                  onChange={(e) => onUpdate({ reinoId: e.target.value || null })}
-                  className="flex-1 text-[10px] font-bold rounded-lg px-2 py-1.5 outline-none transition-all"
-                  style={{
-                    background: "color-mix(in srgb, var(--primary) 5%, transparent)",
-                    border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
-                    color: event.reinoId
-                      ? "var(--primary)"
-                      : "color-mix(in srgb, var(--primary) 35%, transparent)",
-                  }}
-                >
-                  <option value="">— Mundo (sin reino) —</option>
-                  {reinos.map((r) => (
-                    <option key={r.id} value={r.id}>
-                      {r.nombre}
-                    </option>
-                  ))}
-                </select>
-                {event.reinoId && (
-                  <button
-                    type="button"
-                    onClick={() => onUpdate({ reinoId: null })}
-                    className="shrink-0 p-1.5 rounded-lg transition-all"
-                    title="Quitar reino"
-                    style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
-                    onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.color = "#f87171")}
-                    onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.color = "color-mix(in srgb, var(--primary) 30%, transparent)")}
-                  >
-                    <Trash2 size={10} />
+            {/* Botón "+" */}
+            {!filtroReinoId && (
+              <div className="flex flex-col shrink-0 items-center" style={{ width: 80 }}>
+                <div className="flex items-center w-full" style={{ height: 26 }}>
+                  <div className="flex-1 h-px" style={{ background: visible.length > 0 ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent" }} />
+                  <button type="button" onClick={add}
+                    className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center border-2 border-dashed transition-all"
+                    style={{ borderColor: "color-mix(in srgb, var(--primary) 20%, transparent)", color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
+                    onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = "color-mix(in srgb, var(--primary) 45%, transparent)"; el.style.color = "var(--primary)"; el.style.background = "color-mix(in srgb, var(--primary) 6%, transparent)"; }}
+                    onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = "color-mix(in srgb, var(--primary) 20%, transparent)"; el.style.color = "color-mix(in srgb, var(--primary) 35%, transparent)"; el.style.background = "transparent"; }}>
+                    <Plus size={11} />
                   </button>
-                )}
+                  <div className="flex-1 h-px" style={{ background: "transparent" }} />
+                </div>
+                <span className="text-[7px] font-black uppercase tracking-widest mt-1 text-center"
+                  style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>
+                  Nuevo
+                </span>
               </div>
             )}
-
-            <MarkdownEditor
-              value={event.description}
-              onChange={(v) => onUpdate({ description: v })}
-              placeholder="Descripción del evento, consecuencias, personajes involucrados…"
-              rows={14}
-              toolbar
-              defaultMode="edit"
-              onSnippetAction={onSnippetAction}
-            />
           </div>
         )}
       </div>
