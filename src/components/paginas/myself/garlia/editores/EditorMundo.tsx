@@ -1460,12 +1460,17 @@ function PanelListas({
   const LS_ITEM_KEY = "garlia-panel-item";
 
   const [mobileTab, setMobileTabRaw] = useState<ListaTab>(() => {
-    // Siempre intentar restaurar desde localStorage primero
+    // Si hay item persistido → siempre arrancar en "todo" para que las listas
+    // sean visibles detrás del overlay del editor restaurado
+    try {
+      if (localStorage.getItem(LS_ITEM_KEY)) return "todo";
+    } catch {}
+    // Sin item: restaurar el tab guardado
     try {
       const saved = localStorage.getItem(LS_TAB_KEY) as ListaTab | null;
       if (saved && VALID_LISTA_TABS.includes(saved)) return saved;
     } catch {}
-    // Sin nada guardado: usar navegación externa del sidebar
+    // Fallback: navegación externa del sidebar
     if (initialSubTab) {
       const mapped: Record<string, ListaTab> = { mundo: "geo-magia", historia: "historia", magia: "geo-magia", listas: "todo", notas: "todo", lugares: "todo", "geo-magia": "geo-magia" };
       return mapped[initialSubTab] ?? (VALID_LISTA_TABS.includes(initialSubTab as ListaTab) ? initialSubTab as ListaTab : "geo-magia");
@@ -1646,7 +1651,8 @@ function PanelListas({
         if (!data) return;
 
         markVisited(listaTab);
-        setPrevMobileTab(listaTab);
+        markVisited("todo");
+        setPrevMobileTab("todo"); // al cerrar vuelve a "todo" donde están todas las listas
 
         if      (tabla === "personajes") setSelectedPersonaje(data);
         else if (tabla === "criaturas")  setSelectedCriatura(data);
