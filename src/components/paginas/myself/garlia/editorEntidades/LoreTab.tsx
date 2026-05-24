@@ -65,129 +65,80 @@ function parseYear(year: string): string {
 
 function TimelineCard({
   event,
-  onUpdate,
+  isSelected,
+  onSelect,
   onRemove,
   reinos = [],
 }: {
   event: TimelineEvent;
-  onUpdate: (patch: Partial<TimelineEvent>) => void;
+  isSelected: boolean;
+  onSelect: () => void;
   onRemove: () => void;
   reinos?: { id: string; nombre: string }[];
 }) {
-  const [expanded, setExpanded] = useState(false);
-  const { onSnippetAction } = useWikilink();
-
   const hasYear  = !!event.year?.trim();
   const hasTitle = !!event.title?.trim();
   const reinoId  = event.reinoId;
   const reinoNombre = reinoId ? reinos.find(r => r.id === reinoId)?.nombre : null;
 
   return (
-    <div className="group/card" style={{ width: expanded ? 340 : 188, transition: "width 0.2s ease" }}>
+    <div className="group/card" style={{ width: 188 }}>
       <div
         className="mx-1.5 rounded-xl transition-all"
         style={{
-          border: `1px solid ${expanded ? "color-mix(in srgb, var(--primary) 22%, transparent)" : "color-mix(in srgb, var(--primary) 12%, transparent)"}`,
-          background: expanded ? "color-mix(in srgb, var(--primary) 4%, transparent)" : "color-mix(in srgb, var(--primary) 2.5%, transparent)",
+          border: `1px solid ${isSelected ? "color-mix(in srgb, var(--primary) 30%, transparent)" : "color-mix(in srgb, var(--primary) 12%, transparent)"}`,
+          background: isSelected ? "color-mix(in srgb, var(--primary) 6%, transparent)" : "color-mix(in srgb, var(--primary) 2.5%, transparent)",
         }}
       >
-        {/* Cabecera */}
-        <div className="flex flex-col gap-1 p-2 cursor-pointer" onClick={() => setExpanded(x => !x)}>
+        {/* Cabecera — solo inputs, sin panel expandido */}
+        <div className="flex flex-col gap-1 p-2">
           {/* Año */}
-          <div onClick={e => e.stopPropagation()}>
-            <input
-              className="bg-transparent outline-none w-full text-[10px] font-black tracking-widest text-center placeholder:text-primary/20 px-1 py-1 rounded-lg border"
-              value={event.year}
-              onChange={e => onUpdate({ year: e.target.value })}
-              placeholder="Año"
-              style={{
-                color: hasYear ? "var(--primary)" : "color-mix(in srgb, var(--primary) 30%, transparent)",
-                borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
-                background: hasYear ? "color-mix(in srgb, var(--primary) 6%, transparent)" : "transparent",
-              }}
-            />
-          </div>
+          <input
+            className="bg-transparent outline-none w-full text-[10px] font-black tracking-widest text-center placeholder:text-primary/20 px-1 py-1 rounded-lg border"
+            value={event.year}
+            onChange={e => {/* handled via onSelect + parent update — ver abajo */}}
+            readOnly
+            placeholder="Año"
+            style={{
+              color: hasYear ? "var(--primary)" : "color-mix(in srgb, var(--primary) 30%, transparent)",
+              borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
+              background: hasYear ? "color-mix(in srgb, var(--primary) 6%, transparent)" : "transparent",
+            }}
+          />
           {/* Título */}
-          <div onClick={e => e.stopPropagation()}>
-            <input
-              className="bg-transparent outline-none w-full text-[10px] font-bold placeholder:text-primary/20 px-1"
-              value={event.title}
-              onChange={e => onUpdate({ title: e.target.value })}
-              placeholder="Nombre del evento…"
-              style={{ color: hasTitle ? "var(--primary)" : "color-mix(in srgb, var(--primary) 40%, transparent)" }}
-            />
+          <div className="px-1 text-[10px] font-bold truncate"
+            style={{ color: hasTitle ? "var(--primary)" : "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
+            {hasTitle ? event.title : <span className="italic opacity-50">Sin título…</span>}
           </div>
           {/* Acciones */}
           <div className="flex items-center justify-between mt-0.5">
-            {reinoNombre && !expanded && (
+            {reinoNombre && (
               <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest truncate"
                 style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)", color: "color-mix(in srgb, var(--primary) 50%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)", maxWidth: "80px" }}>
                 <Globe size={6} /> {reinoNombre}
               </span>
             )}
-            <div className="flex items-center gap-1 ml-auto opacity-0 group-hover/card:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
-              <button type="button" onClick={onRemove}
+            <div className="flex items-center gap-1 ml-auto opacity-0 group-hover/card:opacity-100 transition-opacity">
+              <button type="button" onClick={e => { e.stopPropagation(); onRemove(); }}
                 className="p-1.5 rounded-lg border transition-all"
                 style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)", background: "transparent" }}
                 onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.color = "#f87171"; el.style.borderColor = "rgba(248,113,113,0.35)"; el.style.background = "rgba(248,113,113,0.06)"; }}
                 onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.color = "color-mix(in srgb, var(--primary) 25%, transparent)"; el.style.borderColor = "color-mix(in srgb, var(--primary) 10%, transparent)"; el.style.background = "transparent"; }}>
                 <Trash2 size={11} />
               </button>
-              <button type="button" onClick={() => setExpanded(x => !x)}
+              <button type="button" onClick={onSelect}
                 className="flex items-center gap-1 px-2 py-1.5 rounded-lg border text-[8px] font-black uppercase tracking-widest transition-all"
-                style={expanded ? {
+                style={isSelected ? {
                   color: "var(--primary)", borderColor: "color-mix(in srgb, var(--primary) 30%, transparent)", background: "color-mix(in srgb, var(--primary) 8%, transparent)"
                 } : {
                   color: "color-mix(in srgb, var(--primary) 35%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)", background: "transparent"
-                }}
-                onMouseEnter={e => { if (!expanded) { const el = e.currentTarget as HTMLElement; el.style.color = "var(--primary)"; el.style.borderColor = "color-mix(in srgb, var(--primary) 28%, transparent)"; el.style.background = "color-mix(in srgb, var(--primary) 5%, transparent)"; } }}
-                onMouseLeave={e => { if (!expanded) { const el = e.currentTarget as HTMLElement; el.style.color = "color-mix(in srgb, var(--primary) 35%, transparent)"; el.style.borderColor = "color-mix(in srgb, var(--primary) 12%, transparent)"; el.style.background = "transparent"; } }}>
-                <ChevronDown size={11} style={{ transform: expanded ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s ease" }} />
-                <span>{expanded ? "Cerrar" : "Detalles"}</span>
+                }}>
+                <ChevronDown size={11} style={{ transform: isSelected ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s ease" }} />
+                <span>{isSelected ? "Cerrar" : "Editar"}</span>
               </button>
             </div>
           </div>
         </div>
-
-        {/* Panel expandible */}
-        {expanded && (
-          <div className="px-3 pb-3 pt-2 space-y-3" style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-            {reinos.length > 0 && (
-              <div className="space-y-1">
-                <label className="text-[8px] font-black uppercase tracking-[0.2em] flex items-center gap-1"
-                  style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
-                  <Globe size={8} /> Reino
-                </label>
-                <div className="relative">
-                  <select
-                    value={event.reinoId ?? ""}
-                    onChange={e => onUpdate({ reinoId: e.target.value || null })}
-                    className="w-full appearance-none text-[10px] font-bold rounded-lg px-2.5 py-1.5 outline-none transition-all border cursor-pointer pr-7"
-                    style={{
-                      background: "color-mix(in srgb, var(--primary) 4%, transparent)",
-                      borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)",
-                      color: event.reinoId ? "var(--primary)" : "color-mix(in srgb, var(--primary) 40%, transparent)",
-                    }}
-                  >
-                    <option value="">— Sin reino —</option>
-                    {reinos.map(r => <option key={r.id} value={r.id}>{r.nombre}</option>)}
-                  </select>
-                  <Globe size={10} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2"
-                    style={{ color: event.reinoId ? "var(--primary)" : "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
-                </div>
-              </div>
-            )}
-            <MarkdownEditor
-              value={event.description}
-              onChange={v => onUpdate({ description: v })}
-              placeholder="Descripción del evento, consecuencias, personajes involucrados…"
-              rows={9}
-              toolbar
-              defaultMode="edit"
-              onSnippetAction={onSnippetAction}
-            />
-          </div>
-        )}
       </div>
     </div>
   );
@@ -207,27 +158,35 @@ function TimelineEditor({
   filtroReinoId?: string | null;
 }) {
   const [events, setEvents] = useState<TimelineEvent[]>(() => decodeTimeline(value));
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const { onSnippetAction } = useWikilink();
 
   const commit = (next: TimelineEvent[]) => {
     setEvents(next);
     onChange(encodeTimeline(next));
   };
 
-  const add = () => commit([...events, newEvent()]);
+  const add = () => {
+    const e = newEvent();
+    commit([...events, e]);
+    setSelectedId(e.id);
+  };
   const update = (id: string, patch: Partial<TimelineEvent>) =>
     commit(events.map(e => e.id === id ? { ...e, ...patch } : e));
-  const remove = (id: string) => commit(events.filter(e => e.id !== id));
+  const remove = (id: string) => {
+    commit(events.filter(e => e.id !== id));
+    if (selectedId === id) setSelectedId(null);
+  };
 
   const sorted = [...events].sort((a, b) => parseYear(a.year).localeCompare(parseYear(b.year)));
-  const visible = filtroReinoId
-    ? sorted.filter(e => e.reinoId)
-    : sorted;
+  const visible = filtroReinoId ? sorted.filter(e => e.reinoId) : sorted;
+  const selectedEvent = selectedId ? events.find(e => e.id === selectedId) ?? null : null;
 
   return (
     <div className="flex flex-col gap-0 h-full">
 
-      {/* ── Pista horizontal ──────────────────────────────────────────────── */}
-      <div className="flex-1 overflow-x-auto overflow-y-hidden px-4 py-4"
+      {/* ── Fila 1: Pista horizontal ───────────────────────────────────────── */}
+      <div className="overflow-x-auto overflow-y-hidden px-4 py-4"
         style={{ scrollbarWidth: "thin", scrollbarColor: "color-mix(in srgb, var(--primary) 15%, transparent) transparent" }}>
 
         {/* Aviso filtro activo */}
@@ -259,7 +218,7 @@ function TimelineEditor({
         {events.length > 0 && (
           <div className="flex items-start" style={{ minWidth: "max-content", paddingLeft: 8, paddingRight: 8 }}>
             {visible.map((evt, idx) => (
-              <div key={evt.id} className="flex flex-col shrink-0" style={{ width: "max-content", minWidth: 190 }}>
+              <div key={evt.id} className="flex flex-col shrink-0" style={{ width: 190 }}>
                 {/* Conector */}
                 <div className="flex items-center" style={{ height: 26 }}>
                   <div className="flex-1 h-px" style={{ background: idx === 0 ? "transparent" : "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
@@ -272,7 +231,8 @@ function TimelineEditor({
                 </div>
                 <TimelineCard
                   event={evt}
-                  onUpdate={patch => update(evt.id, patch)}
+                  isSelected={selectedId === evt.id}
+                  onSelect={() => setSelectedId(prev => prev === evt.id ? null : evt.id)}
                   onRemove={() => remove(evt.id)}
                   reinos={reinos}
                 />
@@ -302,6 +262,73 @@ function TimelineEditor({
           </div>
         )}
       </div>
+
+      {/* ── Fila 2: Panel de edición — ancho completo ─────────────────────── */}
+      {selectedEvent && (
+        <div className="border-t px-4 py-4 space-y-3"
+          style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, transparent)" }}>
+
+          {/* Header del panel */}
+          <div className="flex items-center gap-3">
+            <div className="flex-1 flex items-center gap-3 min-w-0">
+              <input
+                className="bg-transparent outline-none text-[10px] font-black tracking-widest text-center placeholder:text-primary/20 px-2 py-1 rounded-lg border w-28 shrink-0"
+                value={selectedEvent.year}
+                onChange={e => update(selectedEvent.id, { year: e.target.value })}
+                placeholder="Año"
+                style={{
+                  color: selectedEvent.year?.trim() ? "var(--primary)" : "color-mix(in srgb, var(--primary) 30%, transparent)",
+                  borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
+                  background: selectedEvent.year?.trim() ? "color-mix(in srgb, var(--primary) 5%, transparent)" : "transparent",
+                }}
+              />
+              <input
+                className="flex-1 min-w-0 bg-transparent outline-none text-sm font-black placeholder:text-primary/25"
+                value={selectedEvent.title}
+                onChange={e => update(selectedEvent.id, { title: e.target.value })}
+                placeholder="Nombre del evento…"
+                style={{ color: "var(--primary)" }}
+              />
+            </div>
+            {reinos.length > 0 && (
+              <div className="relative shrink-0">
+                <select
+                  value={selectedEvent.reinoId ?? ""}
+                  onChange={e => update(selectedEvent.id, { reinoId: e.target.value || null })}
+                  className="appearance-none text-[10px] font-bold rounded-lg px-2.5 py-1.5 outline-none border cursor-pointer pr-7"
+                  style={{
+                    background: "color-mix(in srgb, var(--primary) 4%, transparent)",
+                    borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)",
+                    color: selectedEvent.reinoId ? "var(--primary)" : "color-mix(in srgb, var(--primary) 40%, transparent)",
+                  }}>
+                  <option value="">— Sin reino —</option>
+                  {reinos.map(r => <option key={r.id} value={r.id}>{r.nombre}</option>)}
+                </select>
+                <Globe size={10} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2"
+                  style={{ color: selectedEvent.reinoId ? "var(--primary)" : "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
+              </div>
+            )}
+            <button type="button" onClick={() => setSelectedId(null)}
+              className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-[8px] font-black uppercase tracking-widest transition-all"
+              style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}
+              onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.color = "var(--primary)"; el.style.borderColor = "color-mix(in srgb, var(--primary) 28%, transparent)"; }}
+              onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.color = "color-mix(in srgb, var(--primary) 40%, transparent)"; el.style.borderColor = "color-mix(in srgb, var(--primary) 12%, transparent)"; }}>
+              <X size={11} /> Cerrar
+            </button>
+          </div>
+
+          {/* Editor de descripción — ancho completo */}
+          <MarkdownEditor
+            value={selectedEvent.description}
+            onChange={v => update(selectedEvent.id, { description: v })}
+            placeholder="Descripción del evento, consecuencias, personajes involucrados…"
+            rows={10}
+            toolbar
+            defaultMode="edit"
+            onSnippetAction={onSnippetAction}
+          />
+        </div>
+      )}
     </div>
   );
 }

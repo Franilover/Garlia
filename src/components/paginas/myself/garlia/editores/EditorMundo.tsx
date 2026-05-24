@@ -711,158 +711,88 @@ function newEvent(): TimelineEvent {
   return { id: crypto.randomUUID(), year: "", title: "", description: "" };
 }
 
-// ── Tarjeta horizontal de evento (mundo O reino) ─────────────────────────────
+// ── Tarjeta horizontal de evento (mundo O reino) — solo visualización ────────
 function MundoEventoRow({
   evt,
   source = "mundo",
-  onUpdate,
+  isSelected,
+  onSelect,
   onRemove,
   reinos = [],
 }: {
   evt: TimelineEvent;
   source?: "mundo" | "reino";
-  onUpdate: (patch: Partial<TimelineEvent>) => void;
+  isSelected: boolean;
+  onSelect: () => void;
   onRemove: () => void;
   reinos?: Reino[];
 }) {
-  const [expanded, setExpanded] = useState(false);
-  const { onSnippetAction } = useWikilink();
-
   const hasYear  = !!evt.year?.trim();
   const hasTitle = !!evt.title?.trim();
   const reinoId  = (evt as any).reinoId as string | null | undefined;
   const reinoNombre = reinoId ? reinos.find(r => r.id === reinoId)?.nombre : null;
 
-  // Nodo de conexión: más grande/sólido para mundo, más pequeño/tenue para reino
-  const nodeSizeMundo = 10;
-  const nodeSizeReino = 7;
-
   return (
-    <div className="group/card" style={{ width: expanded ? 340 : 188, transition: "width 0.2s ease" }}>
-      {/* Nodo de conexión (visible desde el contenedor padre a través del flex row) */}
-
-      {/* Tarjeta */}
+    <div className="group/card" style={{ width: 188 }}>
       <div
         className="mx-1.5 rounded-xl transition-all"
         style={{
-          border: `1px solid ${expanded
-            ? "color-mix(in srgb, var(--primary) 22%, transparent)"
+          border: `1px solid ${isSelected
+            ? "color-mix(in srgb, var(--primary) 30%, transparent)"
             : source === "reino"
               ? "color-mix(in srgb, var(--primary) 8%, transparent)"
               : "color-mix(in srgb, var(--primary) 12%, transparent)"}`,
-          background: expanded
-            ? "color-mix(in srgb, var(--primary) 4%, transparent)"
+          background: isSelected
+            ? "color-mix(in srgb, var(--primary) 6%, transparent)"
             : source === "reino"
               ? "color-mix(in srgb, var(--primary) 1.5%, transparent)"
               : "color-mix(in srgb, var(--primary) 2.5%, transparent)",
         }}
       >
-        {/* Cabecera */}
-        <div className="flex flex-col gap-1 p-2 cursor-pointer" onClick={() => setExpanded(x => !x)}>
-          {/* Año */}
-          <div onClick={e => e.stopPropagation()}>
-            <input
-              className="bg-transparent outline-none w-full text-[10px] font-black tracking-widest text-center placeholder:text-primary/20 px-1 py-1 rounded-lg border"
-              value={evt.year}
-              onChange={e => onUpdate({ year: e.target.value })}
-              placeholder="Año"
-              style={{
-                color: hasYear ? "var(--primary)" : "color-mix(in srgb, var(--primary) 30%, transparent)",
-                borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
-                background: hasYear ? "color-mix(in srgb, var(--primary) 6%, transparent)" : "transparent",
-              }}
-            />
+        <div className="flex flex-col gap-1 p-2">
+          {/* Año (solo lectura — editable en panel inferior) */}
+          <div className="text-[10px] font-black tracking-widest text-center px-1 py-1 rounded-lg border"
+            style={{
+              color: hasYear ? "var(--primary)" : "color-mix(in srgb, var(--primary) 25%, transparent)",
+              borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
+              background: hasYear ? "color-mix(in srgb, var(--primary) 6%, transparent)" : "transparent",
+            }}>
+            {hasYear ? evt.year : <span className="italic opacity-40">Año…</span>}
           </div>
           {/* Título */}
-          <div onClick={e => e.stopPropagation()}>
-            <input
-              className="bg-transparent outline-none w-full text-[10px] font-bold placeholder:text-primary/20 px-1"
-              value={evt.title}
-              onChange={e => onUpdate({ title: e.target.value })}
-              placeholder="Nombre del evento…"
-              style={{ color: hasTitle ? "var(--primary)" : "color-mix(in srgb, var(--primary) 40%, transparent)" }}
-            />
+          <div className="px-1 text-[10px] font-bold truncate"
+            style={{ color: hasTitle ? "var(--primary)" : "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
+            {hasTitle ? evt.title : <span className="italic opacity-50">Sin título…</span>}
           </div>
           {/* Acciones */}
           <div className="flex items-center justify-between mt-0.5">
-            {reinoNombre && !expanded && (
+            {reinoNombre && (
               <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest truncate"
                 style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)", color: "color-mix(in srgb, var(--primary) 50%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)", maxWidth: "80px" }}>
                 <Crown size={6} /> {reinoNombre}
               </span>
             )}
-            <div className="flex items-center gap-1 ml-auto opacity-0 group-hover/card:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
-              <button type="button" onClick={onRemove}
+            <div className="flex items-center gap-1 ml-auto opacity-0 group-hover/card:opacity-100 transition-opacity">
+              <button type="button" onClick={e => { e.stopPropagation(); onRemove(); }}
                 className="p-1.5 rounded-lg border transition-all"
                 style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)", background: "transparent" }}
                 onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.color = "#f87171"; el.style.borderColor = "rgba(248,113,113,0.35)"; el.style.background = "rgba(248,113,113,0.06)"; }}
                 onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.color = "color-mix(in srgb, var(--primary) 25%, transparent)"; el.style.borderColor = "color-mix(in srgb, var(--primary) 10%, transparent)"; el.style.background = "transparent"; }}>
                 <Trash2 size={11} />
               </button>
-              <button type="button" onClick={() => setExpanded(x => !x)}
+              <button type="button" onClick={onSelect}
                 className="flex items-center gap-1 px-2 py-1.5 rounded-lg border text-[8px] font-black uppercase tracking-widest transition-all"
-                style={expanded ? {
+                style={isSelected ? {
                   color: "var(--primary)", borderColor: "color-mix(in srgb, var(--primary) 30%, transparent)", background: "color-mix(in srgb, var(--primary) 8%, transparent)"
                 } : {
                   color: "color-mix(in srgb, var(--primary) 35%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)", background: "transparent"
-                }}
-                onMouseEnter={e => { if (!expanded) { const el = e.currentTarget as HTMLElement; el.style.color = "var(--primary)"; el.style.borderColor = "color-mix(in srgb, var(--primary) 28%, transparent)"; el.style.background = "color-mix(in srgb, var(--primary) 5%, transparent)"; } }}
-                onMouseLeave={e => { if (!expanded) { const el = e.currentTarget as HTMLElement; el.style.color = "color-mix(in srgb, var(--primary) 35%, transparent)"; el.style.borderColor = "color-mix(in srgb, var(--primary) 12%, transparent)"; el.style.background = "transparent"; } }}>
-                <ChevronDown size={11} style={{ transform: expanded ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s ease" }} />
-                <span>{expanded ? "Cerrar" : "Detalles"}</span>
+                }}>
+                <ChevronDown size={11} style={{ transform: isSelected ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s ease" }} />
+                <span>{isSelected ? "Cerrar" : "Editar"}</span>
               </button>
             </div>
           </div>
         </div>
-
-        {/* Panel expandible */}
-        {expanded && (
-          <div className="px-3 pb-3 pt-2 space-y-3" style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-            {/* Selector de reino — solo para eventos de mundo */}
-            {source === "mundo" && reinos.length > 0 && (
-              <div className="space-y-1">
-                <label className="text-[8px] font-black uppercase tracking-[0.2em] flex items-center gap-1"
-                  style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
-                  <Crown size={8} /> Reino
-                </label>
-                <div className="relative">
-                  <select
-                    value={reinoId ?? ""}
-                    onChange={e => onUpdate({ reinoId: e.target.value || null } as any)}
-                    className="w-full appearance-none rounded-lg px-2.5 py-1.5 text-[10px] font-bold outline-none border cursor-pointer pr-7"
-                    style={{
-                      background: "color-mix(in srgb, var(--primary) 4%, transparent)",
-                      borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)",
-                      color: reinoId ? "var(--primary)" : "color-mix(in srgb, var(--primary) 40%, transparent)",
-                    }}>
-                    <option value="">— Mundo (sin reino) —</option>
-                    {reinos.map(r => (
-                      <option key={r.id} value={r.id}>{r.nombre}</option>
-                    ))}
-                  </select>
-                  <Crown size={10} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2"
-                    style={{ color: reinoId ? "var(--primary)" : "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
-                </div>
-              </div>
-            )}
-            {/* Indicador de origen para eventos de reino */}
-            {source === "reino" && reinoNombre && (
-              <div className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest"
-                style={{ background: "color-mix(in srgb, var(--primary) 5%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)", color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>
-                <Crown size={8} /> {reinoNombre}
-              </div>
-            )}
-            <MarkdownEditor
-              value={evt.description}
-              onChange={v => onUpdate({ description: v })}
-              placeholder="Descripción del evento…"
-              rows={9}
-              toolbar
-              defaultMode="edit"
-              onSnippetAction={onSnippetAction}
-            />
-          </div>
-        )}
       </div>
     </div>
   );
@@ -881,11 +811,9 @@ function PanelHistoriaMundo({
   const [mundoEvents, setMundoEvents] = useState<TimelineEvent[]>(() => decodeTimeline(texto));
   useEffect(() => { setMundoEvents(decodeTimeline(texto)); }, [texto]);
 
-  // Mapa local de eventos por reino: reinoId → TimelineEvent[]
   const { reinos, setReinos, loading: loadingReinos } = useReinos();
   const [reinoEvents, setReinoEvents] = useState<Record<string, TimelineEvent[]>>({});
 
-  // Inicializar reinoEvents cuando cargan los reinos
   useEffect(() => {
     const map: Record<string, TimelineEvent[]> = {};
     for (const r of reinos) {
@@ -899,7 +827,6 @@ function PanelHistoriaMundo({
     onChange(encodeTimeline(evts));
   };
 
-  // Actualizar un evento de reino localmente
   const updateReinoEvent = useCallback((reinoId: string, id: string, patch: Partial<TimelineEvent>) => {
     setReinoEvents(prev => {
       const evts = (prev[reinoId] ?? []).map(e => e.id === id ? { ...e, ...patch } : e);
@@ -907,7 +834,6 @@ function PanelHistoriaMundo({
     });
   }, []);
 
-  // Eliminar un evento de reino localmente
   const removeReinoEvent = useCallback((reinoId: string, id: string) => {
     setReinoEvents(prev => {
       const evts = (prev[reinoId] ?? []).filter(e => e.id !== id);
@@ -915,7 +841,6 @@ function PanelHistoriaMundo({
     });
   }, []);
 
-  // Guardar cambios de un reino específico en Supabase
   const saveReinoHistory = useCallback(async (reinoId: string, evts: TimelineEvent[]) => {
     const encoded = encodeTimeline(evts);
     const { error } = await supabase.from("reinos").update({ historia: encoded }).eq("id", reinoId);
@@ -928,8 +853,9 @@ function PanelHistoriaMundo({
 
   const [filterReino, setFilterReino] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
-  // Track de reinos con guardado pendiente
   const [savingReinos, setSavingReinos] = useState<Set<string>>(new Set());
+  const [selectedEventKey, setSelectedEventKey] = useState<string | null>(null); // "evtId" o "reinoId:evtId"
+  const { onSnippetAction } = useWikilink();
 
   const handleSave = async () => {
     setSaveStatus("saving");
@@ -937,13 +863,18 @@ function PanelHistoriaMundo({
     catch { setSaveStatus("error"); }
   };
 
-  const add = () => handleMundoChange([...mundoEvents, newEvent()]);
+  const add = () => {
+    const e = newEvent();
+    handleMundoChange([...mundoEvents, e]);
+    setSelectedEventKey(e.id);
+  };
   const update = (id: string, patch: Partial<TimelineEvent>) =>
     handleMundoChange(mundoEvents.map(e => e.id === id ? { ...e, ...patch } : e));
-  const remove = (id: string) =>
+  const remove = (id: string) => {
     handleMundoChange(mundoEvents.filter(e => e.id !== id));
+    if (selectedEventKey === id) setSelectedEventKey(null);
+  };
 
-  // Guardar historia de un reino con debounce implícito (botón explícito en header)
   const handleSaveReinoEvent = useCallback(async (reinoId: string) => {
     const evts = reinoEvents[reinoId] ?? [];
     setSavingReinos(prev => new Set(prev).add(reinoId));
@@ -951,16 +882,13 @@ function PanelHistoriaMundo({
     setSavingReinos(prev => { const s = new Set(prev); s.delete(reinoId); return s; });
   }, [reinoEvents, saveReinoHistory]);
 
-  // Todos los eventos mezclados y ordenados
   const allEvents = useMemo<MundoTimelineEvent[]>(() => {
     const list: MundoTimelineEvent[] = [];
-
     for (const e of mundoEvents) {
       const reinoId = (e as any).reinoId as string | null | undefined;
       if (filterReino && reinoId !== filterReino) continue;
       list.push({ ...e, source: "mundo", yearNum: parseYear(e.year) });
     }
-
     for (const reino of reinos) {
       if (filterReino && reino.id !== filterReino) continue;
       const evts = reinoEvents[reino.id] ?? decodeTimeline((reino as any).historia);
@@ -969,7 +897,6 @@ function PanelHistoriaMundo({
         list.push({ ...e, source: "reino", reinoNombre: reino.nombre, reinoId: reino.id, yearNum: parseYear(e.year) });
       }
     }
-
     return list.sort((a, b) => parseYear(a.year).localeCompare(parseYear(b.year)));
   }, [mundoEvents, reinos, reinoEvents, filterReino]);
 
@@ -980,6 +907,21 @@ function PanelHistoriaMundo({
     }),
     [reinos, reinoEvents]
   );
+
+  // Resolver el evento seleccionado actual
+  const selectedEvt = useMemo(() => {
+    if (!selectedEventKey) return null;
+    return allEvents.find(e => {
+      const key = e.source === "mundo" ? e.id : `${e.reinoId}:${e.id}`;
+      return key === selectedEventKey;
+    }) ?? null;
+  }, [selectedEventKey, allEvents]);
+
+  const handleUpdateSelected = (patch: Partial<TimelineEvent>) => {
+    if (!selectedEvt) return;
+    if (selectedEvt.source === "mundo") update(selectedEvt.id, patch);
+    else if (selectedEvt.reinoId) updateReinoEvent(selectedEvt.reinoId, selectedEvt.id, patch);
+  };
 
   return (
     <div className="flex flex-col">
@@ -1019,7 +961,6 @@ function PanelHistoriaMundo({
           <SaveIndicator status={saveStatus} />
           <button onClick={async () => {
             handleSave();
-            // También guardar todos los reinos con eventos modificados
             for (const reinoId of Object.keys(reinoEvents)) {
               await handleSaveReinoEvent(reinoId);
             }
@@ -1030,7 +971,7 @@ function PanelHistoriaMundo({
         </div>
       </div>
 
-      {/* ── Pista horizontal — todos los eventos editables ────────────────── */}
+      {/* ── Fila 1: Pista horizontal ───────────────────────────────────────── */}
       <div className="px-3 py-3">
         {loadingReinos ? (
           <div className="flex justify-center py-4">
@@ -1041,12 +982,12 @@ function PanelHistoriaMundo({
             style={{ scrollbarWidth: "thin", scrollbarColor: "color-mix(in srgb, var(--primary) 15%, transparent) transparent" }}>
             <div className="flex items-start" style={{ minWidth: "max-content", paddingLeft: 8, paddingRight: 8 }}>
 
-              {/* Eventos mezclados — todos editables */}
               {allEvents.map((evt, idx) => {
                 const isMundo = evt.source === "mundo";
                 const totalLen = allEvents.length;
+                const key = isMundo ? evt.id : `${evt.reinoId}:${evt.id}`;
                 return (
-                  <div key={evt.id + (evt.reinoId ?? "")} className="flex flex-col shrink-0" style={{ width: "max-content", minWidth: 190 }}>
+                  <div key={key} className="flex flex-col shrink-0" style={{ width: 190 }}>
                     {/* Conector */}
                     <div className="flex items-center" style={{ height: 26 }}>
                       <div className="flex-1 h-px" style={{ background: idx === 0 ? "transparent" : "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
@@ -1063,21 +1004,19 @@ function PanelHistoriaMundo({
                       <div className="flex-1 h-px" style={{ background: idx === totalLen - 1 ? "transparent" : "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
                     </div>
 
-                    {/* Tarjeta editable */}
                     <MundoEventoRow
                       evt={evt}
                       source={isMundo ? "mundo" : "reino"}
                       reinos={reinos}
-                      onUpdate={patch => {
-                        if (isMundo) update(evt.id, patch);
-                        else if (evt.reinoId) updateReinoEvent(evt.reinoId, evt.id, patch);
-                      }}
+                      isSelected={selectedEventKey === key}
+                      onSelect={() => setSelectedEventKey(prev => prev === key ? null : key)}
                       onRemove={() => {
                         if (isMundo) remove(evt.id);
                         else if (evt.reinoId) {
                           removeReinoEvent(evt.reinoId, evt.id);
                           void handleSaveReinoEvent(evt.reinoId);
                         }
+                        if (selectedEventKey === key) setSelectedEventKey(null);
                       }}
                     />
                   </div>
@@ -1116,6 +1055,77 @@ function PanelHistoriaMundo({
           </div>
         )}
       </div>
+
+      {/* ── Fila 2: Panel de edición — ancho completo ─────────────────────── */}
+      {selectedEvt && (
+        <div className="border-t px-4 py-4 space-y-3"
+          style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, transparent)" }}>
+
+          {/* Header del panel con campos de edición inline */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <input
+              className="bg-transparent outline-none text-[10px] font-black tracking-widest text-center placeholder:text-primary/20 px-2 py-1 rounded-lg border w-28 shrink-0"
+              value={selectedEvt.year}
+              onChange={e => handleUpdateSelected({ year: e.target.value })}
+              placeholder="Año"
+              style={{
+                color: selectedEvt.year?.trim() ? "var(--primary)" : "color-mix(in srgb, var(--primary) 30%, transparent)",
+                borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
+                background: selectedEvt.year?.trim() ? "color-mix(in srgb, var(--primary) 5%, transparent)" : "transparent",
+              }}
+            />
+            <input
+              className="flex-1 min-w-0 bg-transparent outline-none text-sm font-black placeholder:text-primary/25"
+              value={selectedEvt.title}
+              onChange={e => handleUpdateSelected({ title: e.target.value })}
+              placeholder="Nombre del evento…"
+              style={{ color: "var(--primary)" }}
+            />
+            {selectedEvt.source === "mundo" && reinos.length > 0 && (
+              <div className="relative shrink-0">
+                <select
+                  value={(selectedEvt as any).reinoId ?? ""}
+                  onChange={e => handleUpdateSelected({ reinoId: e.target.value || null } as any)}
+                  className="appearance-none text-[10px] font-bold rounded-lg px-2.5 py-1.5 outline-none border cursor-pointer pr-7"
+                  style={{
+                    background: "color-mix(in srgb, var(--primary) 4%, transparent)",
+                    borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)",
+                    color: (selectedEvt as any).reinoId ? "var(--primary)" : "color-mix(in srgb, var(--primary) 40%, transparent)",
+                  }}>
+                  <option value="">— Mundo (sin reino) —</option>
+                  {reinos.map(r => <option key={r.id} value={r.id}>{r.nombre}</option>)}
+                </select>
+                <Crown size={10} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2"
+                  style={{ color: (selectedEvt as any).reinoId ? "var(--primary)" : "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
+              </div>
+            )}
+            {selectedEvt.source === "reino" && (
+              <span className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest shrink-0"
+                style={{ background: "color-mix(in srgb, var(--primary) 5%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)", color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}>
+                <Crown size={9} /> {(selectedEvt as any).reinoNombre}
+              </span>
+            )}
+            <button type="button" onClick={() => setSelectedEventKey(null)}
+              className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-[8px] font-black uppercase tracking-widest transition-all"
+              style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}
+              onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.color = "var(--primary)"; el.style.borderColor = "color-mix(in srgb, var(--primary) 28%, transparent)"; }}
+              onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.color = "color-mix(in srgb, var(--primary) 40%, transparent)"; el.style.borderColor = "color-mix(in srgb, var(--primary) 12%, transparent)"; }}>
+              <X size={11} /> Cerrar
+            </button>
+          </div>
+
+          {/* Editor de descripción — ancho completo */}
+          <MarkdownEditor
+            value={selectedEvt.description}
+            onChange={v => handleUpdateSelected({ description: v })}
+            placeholder="Descripción del evento…"
+            rows={10}
+            toolbar
+            defaultMode="edit"
+            onSnippetAction={onSnippetAction}
+          />
+        </div>
+      )}
     </div>
   );
 }
