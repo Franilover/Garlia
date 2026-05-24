@@ -1054,18 +1054,27 @@ export function MarkdownEditor({
     return () => document.removeEventListener("mousedown", handler);
   }, [wikiMenu.open]);
 
-  // En móvil, forzamos "edit" y ocultamos el botón split
-  const [isMobile, setIsMobile] = useState(false);
+  // Detectar ancho del contenedor para decidir si mostrar modo split.
+  // ResizeObserver sobre el propio div del editor, no el viewport —
+  // funciona correctamente en sidebars y paneles estrechos.
+  const containerRef = useRef<HTMLDivElement>(null);
+  const SPLIT_MIN_WIDTH = 480; // px mínimos para habilitar el modo split
+  const [containerWidth, setContainerWidth] = useState<number>(9999);
+  const isMobile = containerWidth < SPLIT_MIN_WIDTH;
+
   useEffect(() => {
-    const mq = window.matchMedia("(max-width: 639px)");
-    const check = (e: MediaQueryListEvent | MediaQueryList) => {
-      setIsMobile(e.matches);
-      if (e.matches && mode === "split") setMode("edit");
-    };
-    check(mq);
-    mq.addEventListener("change", check);
-    return () => mq.removeEventListener("change", check);
-  }, [mode]);
+    const el = containerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(entries => {
+      const w = entries[0]?.contentRect.width ?? el.offsetWidth;
+      setContainerWidth(w);
+      if (w < SPLIT_MIN_WIDTH && mode === "split") setMode("edit");
+    });
+    ro.observe(el);
+    setContainerWidth(el.offsetWidth); // medir inmediatamente al montar
+    return () => ro.disconnect();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const minH = `${rows * 1.6}rem`;
 
@@ -1614,6 +1623,7 @@ export function MarkdownEditor({
 
       {/* ── Contenedor principal ── */}
       <div
+        ref={containerRef}
         style={{
           border: toolbar ? "1px solid color-mix(in srgb, var(--foreground) 8%, transparent)" : "none",
           borderRadius: toolbar ? 8 : 0,
