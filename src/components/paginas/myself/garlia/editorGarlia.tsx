@@ -214,11 +214,24 @@ function readSession(): {
   mundoTab: string | undefined;
 } {
   try {
+    // Si hay un item persistido en PanelListas, forzar tab="mundo" para que EditorMundo monte
+    // y el effect de restauración pueda correr aunque la sesión diga otra cosa.
+    const hasPersistentItem = !!localStorage.getItem("garlia-panel-item");
+
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return { tab: "personajes", selectedId: null, mundoSection: "geografia", mundoTab: undefined };
+    if (!raw) {
+      return {
+        tab: hasPersistentItem ? "mundo" : "personajes",
+        selectedId: null,
+        mundoSection: "geografia",
+        mundoTab: undefined,
+      };
+    }
     const parsed = JSON.parse(raw);
     const validTabs: TabKey[] = [...Object.keys(TAB_CONFIG) as Exclude<TabKey, "mundo">[], "mundo", "capitulos" as any, "letras" as any];
-    const tab = validTabs.includes(parsed.tab) ? parsed.tab as TabKey : "personajes";
+    const tab = hasPersistentItem
+      ? "mundo"
+      : (validTabs.includes(parsed.tab) ? parsed.tab as TabKey : "personajes");
     const mundoSection = VALID_MUNDO_SECTIONS.includes(parsed.mundoSection)
       ? parsed.mundoSection as MundoSectionKey
       : "geografia";

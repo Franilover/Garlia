@@ -1265,7 +1265,7 @@ export function EditorMundo({
   return (
     <div className="flex-1 flex min-h-0 overflow-hidden">
       <PanelListas
-        initialSubTab={initialMundoTab ?? resolveInitialTab(activeSection, initialMundoTab)}
+        initialSubTab={resolveInitialTab(activeSection, initialMundoTab)}
         initialItemId={initialItemId}
         openItem={openItem}
         textos={textos}
@@ -1499,6 +1499,9 @@ function PanelListas({
   useEffect(() => {
     if (isFirstSubTabRender.current) { isFirstSubTabRender.current = false; return; }
     if (!initialSubTab) return;
+    // Si hay un item persistido, no pisar mobileTab — la restauración del item
+    // ya setea "todo" y el sidebar no debe interferir hasta que el usuario navegue manualmente.
+    try { if (localStorage.getItem(LS_ITEM_KEY)) return; } catch {}
     const mapped: Record<string, ListaTab> = { mundo: "geo-magia", historia: "historia", magia: "geo-magia", listas: "todo", notas: "todo", lugares: "todo", "geo-magia": "geo-magia" };
     const resolved = mapped[initialSubTab] ?? (VALID_LISTA_TABS.includes(initialSubTab as ListaTab) ? initialSubTab as ListaTab : null);
     if (resolved) {
