@@ -24,7 +24,6 @@ import { useNotas } from "../editorEntidades/useNotas";
 import { EditorNota, ListaNotas } from "./EditorNota";
 import { EditorGrupo } from "./EditorGrupo";
 import EstudioCapitulos from "@/components/paginas/myself/garlia/editores/editorCapitulos";
-import EditorLetrasPanel from "@/components/paginas/myself/garlia/editores/editorLetras/page";
 import { useCanciones } from "@/components/paginas/myself/garlia/editores/editorLetras/hooks/useCanciones";
 import type { Cancion } from "@/components/paginas/myself/garlia/editores/editorLetras/types";
 
@@ -1687,7 +1686,7 @@ function PanelListas({
             <div className={div} style={divStyle} />
 
             <SeccionEntidades icon={Music} label="Canciones" count={canciones.length} loading={loadingCanciones}>
-              {canciones.map(c => <Chip key={c.id} onClick={() => {}} imgUrl={c.portada_url} icon={Music} nombre={c.titulo} />)}
+              {canciones.map(c => <Chip key={c.id} onClick={() => {}} icon={Music} nombre={c.titulo} />)}
             </SeccionEntidades>
             <div className={div} style={divStyle} />
 
@@ -1707,24 +1706,13 @@ function PanelListas({
           </div>
 
           {/* CAPÍTULOS */}
-          <div className="border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", minHeight: "60vh" }}>
+          <div style={{ minHeight: "60vh" }}>
             <div className="shrink-0 flex items-center gap-2 px-3 py-2 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, transparent)" }}>
               <BookOpen size={11} className="text-primary/40 shrink-0" />
               <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/50">Capítulos</span>
             </div>
             <div className="flex flex-col min-h-0" style={{ minHeight: "58vh" }}>
               <EstudioCapitulos />
-            </div>
-          </div>
-
-          {/* CANCIONES */}
-          <div style={{ minHeight: "60vh" }}>
-            <div className="shrink-0 flex items-center gap-2 px-3 py-2 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, transparent)" }}>
-              <Music size={11} className="text-primary/40 shrink-0" />
-              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/50">Canciones</span>
-            </div>
-            <div className="flex flex-col min-h-0" style={{ minHeight: "58vh" }}>
-              <EditorLetrasPanel />
             </div>
           </div>
 
