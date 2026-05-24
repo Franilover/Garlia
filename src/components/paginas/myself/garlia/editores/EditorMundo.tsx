@@ -1299,6 +1299,11 @@ function SearchInput({ value, onChange, placeholder }: { value: string; onChange
   );
 }
 
+// Constantes de localStorage — definidas a nivel de módulo para que los lazy
+// initializers de useState puedan acceder a ellas sin temporal dead zone.
+const LS_TAB_KEY  = "garlia-panel-tab";
+const LS_ITEM_KEY = "garlia-panel-item";
+
 // ─── PanelListas: columnas side-by-side (reinos, criaturas, objetos, personajes, hechizos, dones) ──
 function PanelListas({
   initialSubTab, initialItemId, openItem,
@@ -1455,9 +1460,6 @@ function PanelListas({
 
   type ListaTab = "mundo" | "historia" | "magia" | "reinos" | "criaturas" | "objetos" | "personajes" | "hechizos" | "dones" | "runas" | "notas" | "grupos" | "lugares" | "magia-objetos" | "mundo-personajes" | "geo-magia" | "todo" | "capitulos" | "letras";
   const VALID_LISTA_TABS: ListaTab[] = ["mundo", "historia", "magia", "reinos", "criaturas", "objetos", "personajes", "hechizos", "dones", "runas", "notas", "grupos", "lugares", "magia-objetos", "mundo-personajes", "geo-magia", "todo", "capitulos", "letras"];
-
-  const LS_TAB_KEY  = "garlia-panel-tab";
-  const LS_ITEM_KEY = "garlia-panel-item";
 
   const [mobileTab, setMobileTabRaw] = useState<ListaTab>(() => {
     // Si hay item persistido → siempre arrancar en "todo" para que las listas
