@@ -339,21 +339,21 @@ export function renderMathInElement(el: HTMLElement | null) {
 
 // ── Estilos de vista previa ──────────────────────────────────────────────────
 export const PROSE_STYLES = `
-  .prose-mundo h1 { font-size:1.6rem;font-weight:800;margin:1.1rem 0 .4rem;letter-spacing:.02em;color:color-mix(in srgb,var(--color-primary,#7c6af7) 90%,white);padding-bottom:.25rem;border-bottom:1px solid color-mix(in srgb,var(--color-primary,#7c6af7) 18%,transparent) }
-  .prose-mundo h2 { font-size:1.25rem;font-weight:800;margin:.95rem 0 .35rem;letter-spacing:.03em;color:color-mix(in srgb,var(--color-primary,#7c6af7) 80%,white) }
-  .prose-mundo h3 { font-size:1rem;font-weight:700;margin:.75rem 0 .25rem;letter-spacing:.02em;color:color-mix(in srgb,var(--color-primary,#7c6af7) 65%,white) }
-  .prose-mundo h4 { font-size:.88rem;font-weight:700;margin:.65rem 0 .2rem;color:color-mix(in srgb,var(--color-primary,#7c6af7) 55%,white) }
-  .prose-mundo h5 { font-size:.82rem;font-weight:600;margin:.55rem 0 .15rem;color:color-mix(in srgb,var(--color-primary,#7c6af7) 45%,white) }
-  .prose-mundo h6 { font-size:.78rem;font-weight:600;margin:.5rem 0 .12rem;text-transform:uppercase;letter-spacing:.08em;color:color-mix(in srgb,var(--color-primary,#7c6af7) 38%,white) }
-  .prose-mundo p  { margin:.45rem 0;font-size:.85rem;line-height:1.65;color:var(--color-input-text,#d1c9ff) }
+  .prose-mundo h1 { font-size:1.2rem;font-weight:800;margin:.8rem 0 .3rem;letter-spacing:.02em;color:color-mix(in srgb,var(--color-primary,#7c6af7) 90%,white);padding-bottom:.2rem;border-bottom:1px solid color-mix(in srgb,var(--color-primary,#7c6af7) 18%,transparent) }
+  .prose-mundo h2 { font-size:.95rem;font-weight:800;margin:.7rem 0 .25rem;letter-spacing:.03em;color:color-mix(in srgb,var(--color-primary,#7c6af7) 80%,white) }
+  .prose-mundo h3 { font-size:.82rem;font-weight:700;margin:.55rem 0 .2rem;letter-spacing:.02em;color:color-mix(in srgb,var(--color-primary,#7c6af7) 65%,white) }
+  .prose-mundo h4 { font-size:.76rem;font-weight:700;margin:.5rem 0 .15rem;color:color-mix(in srgb,var(--color-primary,#7c6af7) 55%,white) }
+  .prose-mundo h5 { font-size:.72rem;font-weight:600;margin:.45rem 0 .12rem;color:color-mix(in srgb,var(--color-primary,#7c6af7) 45%,white) }
+  .prose-mundo h6 { font-size:.68rem;font-weight:600;margin:.4rem 0 .1rem;text-transform:uppercase;letter-spacing:.08em;color:color-mix(in srgb,var(--color-primary,#7c6af7) 38%,white) }
+  .prose-mundo p  { margin:.3rem 0;font-size:.75rem;line-height:1.6;color:var(--color-input-text,#d1c9ff) }
   .prose-mundo strong { font-weight:800;color:var(--color-primary,#7c6af7) }
   .prose-mundo em     { font-style:italic;opacity:.85 }
   .prose-mundo hr { border:none;border-top:1px solid color-mix(in srgb,var(--color-primary,#7c6af7) 20%,transparent);margin:.9rem 0 }
   .prose-mundo a { color:var(--color-primary,#7c6af7);text-decoration:underline;text-underline-offset:3px;transition:opacity 0.2s; }
   .prose-mundo a:hover { opacity:0.8; }
   .prose-mundo img { max-width:100%;height:auto;border-radius:0.5rem;margin:0.5rem 0;border:1px solid color-mix(in srgb,var(--color-primary,#7c6af7) 15%,transparent); }
-  .prose-mundo ul { list-style:none;padding-left:1rem;margin:.4rem 0 }
-  .prose-mundo ul li { position:relative;padding-left:.8rem;font-size:.82rem;margin:.2rem 0;color:var(--color-input-text,#d1c9ff) }
+  .prose-mundo ul { list-style:none;padding-left:1rem;margin:.3rem 0 }
+  .prose-mundo ul li { position:relative;padding-left:.8rem;font-size:.72rem;margin:.15rem 0;color:var(--color-input-text,#d1c9ff) }
   .prose-mundo ul li::before { content: "⋆"; position: absolute; left: -1.4rem; font-size: 1.6rem; color: var(--color-primary, #7c6af7); top: -0.2rem; line-height: 1; }
   .prose-mundo ul li::before { content: "⋆"; position: absolute; left: -0.1rem; font-size: 1.6rem; color: var(--color-primary, #7c6af7); top: -0.3rem; line-height: 1; }
   .prose-mundo .task-list-item { display:flex;align-items:flex-start;gap:0.4rem;padding-left:0; }
@@ -367,10 +367,10 @@ export const PROSE_STYLES = `
   .prose-mundo code { font-family:'Fira Code','Courier New',monospace;font-size:.78rem;color:color-mix(in srgb,var(--color-primary,#7c6af7) 90%,white) }
   .prose-mundo pre code { color:color-mix(in srgb,var(--color-primary,#7c6af7) 70%,white);line-height:1.6 }
   .prose-mundo .placeholder { color:color-mix(in srgb,var(--color-primary,#7c6af7) 25%,transparent);font-style:italic }
-  .prose-mundo ol { list-style:none;padding-left:1.2rem;margin:.4rem 0;counter-reset:ol-counter }
-  .prose-mundo ol li { position:relative;padding-left:.8rem;font-size:.82rem;margin:.2rem 0;color:var(--color-input-text,#d1c9ff);counter-increment:ol-counter }
-  .prose-mundo ol li::before { content:counter(ol-counter)".";position:absolute;left:-1rem;font-size:.7rem;font-weight:800;color:var(--color-primary,#7c6af7);font-family:var(--font-mono) }
-  .prose-mundo blockquote { border-left:3px solid var(--color-primary,#7c6af7);margin:.6rem 0;padding:.4rem .8rem .4rem 1rem;background:color-mix(in srgb,var(--color-primary,#7c6af7) 6%,transparent);border-radius:0 .4rem .4rem 0;font-style:italic;color:color-mix(in srgb,var(--color-input-text,#d1c9ff) 80%,transparent);font-size:.83rem;line-height:1.6 }
+  .prose-mundo ol { list-style:none;padding-left:1.2rem;margin:.3rem 0;counter-reset:ol-counter }
+  .prose-mundo ol li { position:relative;padding-left:.8rem;font-size:.72rem;margin:.15rem 0;color:var(--color-input-text,#d1c9ff);counter-increment:ol-counter }
+  .prose-mundo ol li::before { content:counter(ol-counter)".";position:absolute;left:-1rem;font-size:.65rem;font-weight:800;color:var(--color-primary,#7c6af7);font-family:var(--font-mono) }
+  .prose-mundo blockquote { border-left:3px solid var(--color-primary,#7c6af7);margin:.45rem 0;padding:.3rem .6rem .3rem .8rem;background:color-mix(in srgb,var(--color-primary,#7c6af7) 6%,transparent);border-radius:0 .4rem .4rem 0;font-style:italic;color:color-mix(in srgb,var(--color-input-text,#d1c9ff) 80%,transparent);font-size:.72rem;line-height:1.55 }
   .prose-mundo mark.md-mark { background:color-mix(in srgb,#f7d76a 25%,transparent);color:color-mix(in srgb,#f7d76a 90%,white);border-radius:2px;padding:0 2px }
   .prose-mundo sup { font-size:.65em;vertical-align:super;color:color-mix(in srgb,var(--color-primary,#7c6af7) 80%,white);font-weight:700 }
   .prose-mundo sub { font-size:.65em;vertical-align:sub;color:color-mix(in srgb,var(--color-primary,#7c6af7) 70%,white) }
@@ -1596,8 +1596,9 @@ export function MarkdownEditor({
     ...(maxHeight ? { maxHeight } : {}),
     color: "color-mix(in srgb, var(--foreground) 80%, transparent)",
     fontFamily: "var(--font-mono)",
-    fontSize: 13,
-    padding: "8px 20px 20px",
+    fontSize: 11,
+    lineHeight: 1.6,
+    padding: "6px 12px 12px",
   };
 
   const previewStyle: React.CSSProperties = {
