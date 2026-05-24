@@ -1327,7 +1327,7 @@ function PanelListas({
 
     // Si hay un item persistido, pre-activar todo para que las listas carguen al recargar
     try {
-      if (localStorage.getItem(LS_ITEM_KEY)) {
+      if (localStorage.getItem("garlia-panel-item")) {
         ["reinos","criaturas","objetos","personajes","lugares",
          "hechizos","dones","runas","notas","grupos","gruposTodos","todo"].forEach(k => init.add(k));
         return init;
@@ -1465,11 +1465,11 @@ function PanelListas({
     // Si hay item persistido → siempre arrancar en "todo" para que las listas
     // sean visibles detrás del overlay del editor restaurado
     try {
-      if (localStorage.getItem(LS_ITEM_KEY)) return "todo";
+      if (localStorage.getItem("garlia-panel-item")) return "todo";
     } catch {}
     // Sin item: restaurar el tab guardado
     try {
-      const saved = localStorage.getItem(LS_TAB_KEY) as ListaTab | null;
+      const saved = localStorage.getItem("garlia-panel-tab") as ListaTab | null;
       if (saved && VALID_LISTA_TABS.includes(saved)) return saved;
     } catch {}
     // Fallback: navegación externa del sidebar
@@ -1503,7 +1503,7 @@ function PanelListas({
     if (!initialSubTab) return;
     // Si hay un item persistido, no pisar mobileTab — la restauración del item
     // ya setea "todo" y el sidebar no debe interferir hasta que el usuario navegue manualmente.
-    try { if (localStorage.getItem(LS_ITEM_KEY)) return; } catch {}
+    try { if (localStorage.getItem("garlia-panel-item")) return; } catch {}
     const mapped: Record<string, ListaTab> = { mundo: "geo-magia", historia: "historia", magia: "geo-magia", listas: "todo", notas: "todo", lugares: "todo", "geo-magia": "geo-magia" };
     const resolved = mapped[initialSubTab] ?? (VALID_LISTA_TABS.includes(initialSubTab as ListaTab) ? initialSubTab as ListaTab : null);
     if (resolved) {
