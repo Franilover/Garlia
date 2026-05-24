@@ -25,6 +25,8 @@ import { EditorNota, ListaNotas } from "./EditorNota";
 import { EditorGrupo } from "./EditorGrupo";
 import EstudioCapitulos from "@/components/paginas/myself/garlia/editores/editorCapitulos";
 import EditorLetrasPanel from "@/components/paginas/myself/garlia/editores/editorLetras/page";
+import { useCanciones } from "@/components/paginas/myself/garlia/editores/editorLetras/hooks/useCanciones";
+import type { Cancion } from "@/components/paginas/myself/garlia/editores/editorLetras/types";
 
 
 // ─── Dexie helpers ────────────────────────────────────────────────────────────
@@ -1247,6 +1249,7 @@ function PanelListas({
   const { grupos: gruposMagicos, loading: loadingGruposMagicos } = useGruposCriaturas();
   const { grupos: gruposTodos,   loading: loadingGruposTodos   } = useGruposTodos();
   const { notas, loading: loadingNotas, crear: crearNota, actualizar: actualizarNota, eliminar: eliminarNota } = useNotas();
+  const { canciones, loading: loadingCanciones } = useCanciones();
 
   // ── Estado de selección (overlay) ────────────────────────────────────────
   const [selectedReino,     setSelectedReino]     = useState<Reino | null>(null);
@@ -1680,6 +1683,11 @@ function PanelListas({
                   <span className="text-[11px] font-bold text-primary/70 truncate max-w-[90px]">{n.titulo || <span className="italic text-primary/30">Sin título</span>}</span>
                 </button>
               ))}
+            </SeccionEntidades>
+            <div className={div} style={divStyle} />
+
+            <SeccionEntidades icon={Music} label="Canciones" count={canciones.length} loading={loadingCanciones}>
+              {canciones.map(c => <Chip key={c.id} onClick={() => {}} imgUrl={c.portada_url} icon={Music} nombre={c.titulo} />)}
             </SeccionEntidades>
             <div className={div} style={divStyle} />
 
