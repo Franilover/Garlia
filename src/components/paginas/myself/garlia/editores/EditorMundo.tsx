@@ -738,28 +738,10 @@ function MundoEventoRow({
   const reinoNombre = reinoId ? reinos.find(r => r.id === reinoId)?.nombre : null;
 
   return (
-    <div className="flex flex-col shrink-0 group/card" style={{ width: 200 }}>
-      {/* Conector horizontal */}
-      <div className="flex items-center" style={{ height: 28, marginBottom: 0 }}>
-        {/* Línea izquierda */}
-        <div className="flex-1 h-px" style={{ background: idx === 0 ? "transparent" : "color-mix(in srgb, var(--primary) 12%, transparent)" }} />
-        {/* Nodo */}
-        <div
-          className="shrink-0 rounded-full transition-all"
-          style={{
-            width: hasYear ? 10 : 7,
-            height: hasYear ? 10 : 7,
-            background: hasYear ? "var(--primary)" : "color-mix(in srgb, var(--primary) 20%, transparent)",
-            boxShadow: hasYear ? "0 0 0 3px color-mix(in srgb, var(--primary) 15%, transparent)" : "none",
-          }}
-        />
-        {/* Línea derecha */}
-        <div className="flex-1 h-px" style={{ background: idx === total - 1 ? "transparent" : "color-mix(in srgb, var(--primary) 12%, transparent)" }} />
-      </div>
-
+    <div className="group/card" style={{ width: 188 }}>
       {/* Tarjeta */}
       <div
-        className="mx-1.5 rounded-xl overflow-hidden transition-all"
+        className="mx-1.5 rounded-xl transition-all"
         style={{
           border: `1px solid ${expanded ? "color-mix(in srgb, var(--primary) 22%, transparent)" : "color-mix(in srgb, var(--primary) 10%, transparent)"}`,
           background: expanded ? "color-mix(in srgb, var(--primary) 4%, transparent)" : "color-mix(in srgb, var(--primary) 2%, transparent)",
@@ -880,7 +862,7 @@ function ReinoEventCard({ evt }: { evt: MundoTimelineEvent }) {
   const hasYear = !!evt.year?.trim();
   return (
     <div
-      className="mx-1.5 rounded-xl overflow-hidden cursor-pointer transition-all"
+      className="mx-1.5 rounded-xl cursor-pointer transition-all"
       onClick={() => setExpanded(x => !x)}
       style={{
         border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
@@ -977,7 +959,7 @@ function PanelHistoriaMundo({
   );
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+    <div className="flex flex-col">
 
       {/* ── Cabecera ──────────────────────────────────────────────────────── */}
       <div className="shrink-0 flex items-center gap-2 px-3 py-2 border-b flex-wrap"
@@ -1020,7 +1002,7 @@ function PanelHistoriaMundo({
       </div>
 
       {/* ── Pista única — vista + edición ─────────────────────────────────── */}
-      <div className="flex-1 min-h-0 flex flex-col justify-center overflow-hidden px-3 py-3">
+      <div className="px-3 py-3">
         {loadingReinos ? (
           <div className="flex justify-center py-4">
             <Loader2 size={14} className="animate-spin text-primary/20" />
@@ -1533,14 +1515,12 @@ function PanelListas({
 
           {/* HISTORIA */}
           {textos && onTextoChange && onSave && (
-            <div className="border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", height: "320px", display: "flex", flexDirection: "column" }}>
+            <div className="border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
               <div className="shrink-0 flex items-center gap-2 px-3 py-2 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, transparent)" }}>
                 <Clock size={11} className="text-primary/40 shrink-0" />
                 <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/50">Historia</span>
               </div>
-              <div className="flex-1 min-h-0 overflow-hidden">
-                <PanelHistoriaMundo texto={textos.historia} onChange={v => onTextoChange("historia", v)} onSave={() => onSave("historia")} />
-              </div>
+              <PanelHistoriaMundo texto={textos.historia} onChange={v => onTextoChange("historia", v)} onSave={() => onSave("historia")} />
             </div>
           )}
 
