@@ -738,7 +738,7 @@ function MundoEventoRow({
   const nodeSizeReino = 7;
 
   return (
-    <div className="group/card" style={{ width: 188 }}>
+    <div className="group/card" style={{ width: expanded ? 340 : 188, transition: "width 0.2s ease" }}>
       {/* Nodo de conexión (visible desde el contenedor padre a través del flex row) */}
 
       {/* Tarjeta */}
@@ -785,29 +785,39 @@ function MundoEventoRow({
           </div>
           {/* Acciones */}
           <div className="flex items-center justify-between mt-0.5">
-            {reinoNombre && (
+            {reinoNombre && !expanded && (
               <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest truncate"
                 style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)", color: "color-mix(in srgb, var(--primary) 50%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)", maxWidth: "80px" }}>
                 <Crown size={6} /> {reinoNombre}
               </span>
             )}
-            <div className="flex items-center gap-0.5 ml-auto opacity-0 group-hover/card:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center gap-1 ml-auto opacity-0 group-hover/card:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
               <button type="button" onClick={onRemove}
-                className="p-1 rounded-md transition-all"
-                style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }}
-                onMouseEnter={e => ((e.currentTarget as HTMLButtonElement).style.color = "#f87171")}
-                onMouseLeave={e => ((e.currentTarget as HTMLButtonElement).style.color = "color-mix(in srgb, var(--primary) 20%, transparent)")}>
-                <Trash2 size={8} />
+                className="p-1.5 rounded-lg border transition-all"
+                style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)", background: "transparent" }}
+                onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.color = "#f87171"; el.style.borderColor = "rgba(248,113,113,0.35)"; el.style.background = "rgba(248,113,113,0.06)"; }}
+                onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.color = "color-mix(in srgb, var(--primary) 25%, transparent)"; el.style.borderColor = "color-mix(in srgb, var(--primary) 10%, transparent)"; el.style.background = "transparent"; }}>
+                <Trash2 size={11} />
               </button>
-              <ChevronDown size={8}
-                style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)", transform: expanded ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s ease" }} />
+              <button type="button" onClick={() => setExpanded(x => !x)}
+                className="flex items-center gap-1 px-2 py-1.5 rounded-lg border text-[8px] font-black uppercase tracking-widest transition-all"
+                style={expanded ? {
+                  color: "var(--primary)", borderColor: "color-mix(in srgb, var(--primary) 30%, transparent)", background: "color-mix(in srgb, var(--primary) 8%, transparent)"
+                } : {
+                  color: "color-mix(in srgb, var(--primary) 35%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)", background: "transparent"
+                }}
+                onMouseEnter={e => { if (!expanded) { const el = e.currentTarget as HTMLElement; el.style.color = "var(--primary)"; el.style.borderColor = "color-mix(in srgb, var(--primary) 28%, transparent)"; el.style.background = "color-mix(in srgb, var(--primary) 5%, transparent)"; } }}
+                onMouseLeave={e => { if (!expanded) { const el = e.currentTarget as HTMLElement; el.style.color = "color-mix(in srgb, var(--primary) 35%, transparent)"; el.style.borderColor = "color-mix(in srgb, var(--primary) 12%, transparent)"; el.style.background = "transparent"; } }}>
+                <ChevronDown size={11} style={{ transform: expanded ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s ease" }} />
+                <span>{expanded ? "Cerrar" : "Detalles"}</span>
+              </button>
             </div>
           </div>
         </div>
 
         {/* Panel expandible */}
         {expanded && (
-          <div className="px-2 pb-2 pt-1 space-y-2" style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+          <div className="px-3 pb-3 pt-2 space-y-3" style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
             {/* Selector de reino — solo para eventos de mundo */}
             {source === "mundo" && reinos.length > 0 && (
               <div className="space-y-1">
@@ -815,54 +825,38 @@ function MundoEventoRow({
                   style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
                   <Crown size={8} /> Reino
                 </label>
-                <div className="flex flex-col gap-1">
-                  <button type="button" onClick={() => onUpdate({ reinoId: null } as any)}
-                    className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest border transition-all"
-                    style={!reinoId ? {
-                      background: "color-mix(in srgb, var(--primary) 14%, transparent)",
-                      borderColor: "color-mix(in srgb, var(--primary) 30%, transparent)",
-                      color: "var(--primary)",
-                    } : {
-                      background: "transparent",
-                      borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
-                      color: "color-mix(in srgb, var(--primary) 35%, transparent)",
+                <div className="relative">
+                  <select
+                    value={reinoId ?? ""}
+                    onChange={e => onUpdate({ reinoId: e.target.value || null } as any)}
+                    className="w-full appearance-none rounded-lg px-2.5 py-1.5 text-[10px] font-bold outline-none border cursor-pointer pr-7"
+                    style={{
+                      background: "color-mix(in srgb, var(--primary) 4%, transparent)",
+                      borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)",
+                      color: reinoId ? "var(--primary)" : "color-mix(in srgb, var(--primary) 40%, transparent)",
                     }}>
-                    <Globe size={7} /> Mundo
-                  </button>
-                  {reinos.map(r => {
-                    const active = reinoId === r.id;
-                    return (
-                      <button key={r.id} type="button"
-                        onClick={() => onUpdate({ reinoId: active ? null : r.id } as any)}
-                        className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest border transition-all truncate"
-                        style={active ? {
-                          background: "color-mix(in srgb, var(--primary) 14%, transparent)",
-                          borderColor: "color-mix(in srgb, var(--primary) 30%, transparent)",
-                          color: "var(--primary)",
-                        } : {
-                          background: "transparent",
-                          borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
-                          color: "color-mix(in srgb, var(--primary) 35%, transparent)",
-                        }}>
-                        <Crown size={7} /> {r.nombre}
-                      </button>
-                    );
-                  })}
+                    <option value="">— Mundo (sin reino) —</option>
+                    {reinos.map(r => (
+                      <option key={r.id} value={r.id}>{r.nombre}</option>
+                    ))}
+                  </select>
+                  <Crown size={10} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2"
+                    style={{ color: reinoId ? "var(--primary)" : "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
                 </div>
               </div>
             )}
             {/* Indicador de origen para eventos de reino */}
             {source === "reino" && reinoNombre && (
-              <div className="flex items-center gap-1 px-1.5 py-1 rounded-lg text-[7px] font-black uppercase tracking-widest"
+              <div className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest"
                 style={{ background: "color-mix(in srgb, var(--primary) 5%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)", color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>
-                <Crown size={7} /> {reinoNombre}
+                <Crown size={8} /> {reinoNombre}
               </div>
             )}
             <MarkdownEditor
               value={evt.description}
               onChange={v => onUpdate({ description: v })}
               placeholder="Descripción del evento…"
-              rows={6}
+              rows={9}
               toolbar
               defaultMode="edit"
               onSnippetAction={onSnippetAction}
@@ -1052,7 +1046,7 @@ function PanelHistoriaMundo({
                 const isMundo = evt.source === "mundo";
                 const totalLen = allEvents.length;
                 return (
-                  <div key={evt.id + (evt.reinoId ?? "")} className="flex flex-col shrink-0" style={{ width: 190 }}>
+                  <div key={evt.id + (evt.reinoId ?? "")} className="flex flex-col shrink-0" style={{ width: "max-content", minWidth: 190 }}>
                     {/* Conector */}
                     <div className="flex items-center" style={{ height: 26 }}>
                       <div className="flex-1 h-px" style={{ background: idx === 0 ? "transparent" : "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
