@@ -874,91 +874,59 @@ function MundoEventoRow({
   );
 }
 
-// ── Editor de eventos propios del mundo — scroll horizontal ──────────────────
-function MundoEventoEditor({
-  events,
-  onChange,
-  reinos = [],
-}: {
-  events: TimelineEvent[];
-  onChange: (events: TimelineEvent[]) => void;
-  reinos?: Reino[];
-}) {
-  const add = () => onChange([...events, newEvent()]);
-  const update = (id: string, patch: Partial<TimelineEvent>) => onChange(events.map(e => e.id === id ? { ...e, ...patch } : e));
-  const remove = (id: string) => onChange(events.filter(e => e.id !== id));
-
-  const sorted = [...events].sort((a, b) => parseYear(a.year).localeCompare(parseYear(b.year)));
-
+// ── Tarjeta de evento de reino (solo lectura, inline en la pista) ─────────────
+function ReinoEventCard({ evt }: { evt: MundoTimelineEvent }) {
+  const [expanded, setExpanded] = useState(false);
+  const hasYear = !!evt.year?.trim();
   return (
-    <div className="flex flex-col gap-2 min-h-0">
-      {/* Pista horizontal con scroll */}
-      <div
-        className="overflow-x-auto pb-2"
-        style={{ scrollbarWidth: "thin", scrollbarColor: "color-mix(in srgb, var(--primary) 15%, transparent) transparent" }}
-      >
-        <div className="flex items-start" style={{ minWidth: "max-content", paddingLeft: 8, paddingRight: 8 }}>
-          {sorted.map((evt, idx) => (
-            <MundoEventoRow
-              key={evt.id}
-              evt={evt}
-              idx={idx}
-              total={sorted.length}
-              reinos={reinos}
-              onUpdate={patch => update(evt.id, patch)}
-              onRemove={() => remove(evt.id)}
-              onMove={() => {}}
-            />
-          ))}
-
-          {/* Botón añadir — inline al final de la pista */}
-          <div className="flex flex-col shrink-0 items-center justify-start" style={{ width: 160, paddingTop: 14 }}>
-            {/* Línea izquierda de conexión */}
-            <div className="flex items-center w-full" style={{ height: 28 }}>
-              <div className="flex-1 h-px" style={{ background: sorted.length > 0 ? "color-mix(in srgb, var(--primary) 12%, transparent)" : "transparent" }} />
-              <button
-                type="button"
-                onClick={add}
-                className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center border-2 border-dashed transition-all"
-                style={{ borderColor: "color-mix(in srgb, var(--primary) 20%, transparent)", color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 45%, transparent)"; (e.currentTarget as HTMLElement).style.color = "var(--primary)"; (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 6%, transparent)"; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 20%, transparent)"; (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--primary) 35%, transparent)"; (e.currentTarget as HTMLElement).style.background = "transparent"; }}
-              >
-                <Plus size={12} />
-              </button>
-              <div className="flex-1 h-px" style={{ background: "transparent" }} />
-            </div>
-            <span className="text-[8px] font-black uppercase tracking-widest mt-1.5 text-center"
-              style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
-              Añadir evento
-            </span>
-          </div>
-        </div>
+    <div
+      className="mx-1.5 rounded-xl overflow-hidden cursor-pointer transition-all"
+      onClick={() => setExpanded(x => !x)}
+      style={{
+        border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+        background: expanded
+          ? "color-mix(in srgb, var(--primary) 3%, transparent)"
+          : "color-mix(in srgb, var(--primary) 1%, transparent)",
+      }}>
+      <div className="flex flex-col gap-1 px-2.5 py-2">
+        {hasYear && (
+          <span className="self-start px-2 py-0.5 rounded-md text-[9px] font-black tracking-widest"
+            style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)", color: "var(--primary)", border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)" }}>
+            {evt.year}
+          </span>
+        )}
+        <span className="text-[10px] font-bold text-primary/80 leading-snug line-clamp-2">
+          {evt.title || <span className="italic text-primary/25">Sin título</span>}
+        </span>
+        {evt.reinoNombre && (
+          <span className="self-start flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest"
+            style={{ background: "color-mix(in srgb, var(--primary) 6%, transparent)", color: "color-mix(in srgb, var(--primary) 45%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)" }}>
+            <Crown size={6} /> {evt.reinoNombre}
+          </span>
+        )}
       </div>
-
-      {events.length === 0 && (
-        <p className="text-[9px] text-primary/20 italic text-center px-4">
-          Usá el botón "+" para añadir eventos propios del mundo a la cronología.
-        </p>
+      {expanded && evt.description?.trim() && (
+        <div className="px-2.5 pb-2" style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" }}>
+          <p className="text-[9px] leading-relaxed pt-1.5" style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}>
+            {evt.description}
+          </p>
+        </div>
       )}
     </div>
   );
 }
 
-// ── Panel principal ───────────────────────────────────────────────────────────
+// ── Panel principal — vista y edición unificadas en una sola pista ────────────
 function PanelHistoriaMundo({
   texto,
   onChange,
   onSave,
 }: {
-  texto: string;       // JSON de eventos propios del mundo
+  texto: string;
   onChange: (v: string) => void;
   onSave: () => Promise<void>;
 }) {
-  // Eventos propios del mundo
   const [mundoEvents, setMundoEvents] = useState<TimelineEvent[]>(() => decodeTimeline(texto));
-
-  // Sync si cambia desde afuera
   useEffect(() => { setMundoEvents(decodeTimeline(texto)); }, [texto]);
 
   const handleMundoChange = (evts: TimelineEvent[]) => {
@@ -966,12 +934,8 @@ function PanelHistoriaMundo({
     onChange(encodeTimeline(evts));
   };
 
-  // Reinos con su historia
   const { reinos, loading: loadingReinos } = useReinos();
-
-  // Vista activa: "unificada" (todo junto) o "editar" (solo eventos del mundo)
-  const [view, setView] = useState<"unified" | "edit">("unified");
-  const [filterReino, setFilterReino] = useState<string | null>(null); // null = todos
+  const [filterReino, setFilterReino] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
 
   const handleSave = async () => {
@@ -980,29 +944,25 @@ function PanelHistoriaMundo({
     catch { setSaveStatus("error"); }
   };
 
-  // Construir línea de tiempo unificada
-  const unifiedEvents = useMemo<MundoTimelineEvent[]>(() => {
+  const add = () => handleMundoChange([...mundoEvents, newEvent()]);
+  const update = (id: string, patch: Partial<TimelineEvent>) =>
+    handleMundoChange(mundoEvents.map(e => e.id === id ? { ...e, ...patch } : e));
+  const remove = (id: string) =>
+    handleMundoChange(mundoEvents.filter(e => e.id !== id));
+
+  // Todos los eventos mezclados y ordenados
+  const allEvents = useMemo<MundoTimelineEvent[]>(() => {
     const list: MundoTimelineEvent[] = [];
 
-    // Eventos del mundo — se ocultan cuando hay un filtro de reino activo
-    if (!filterReino) {
-      for (const e of mundoEvents) {
-        list.push({ ...e, source: "mundo", yearNum: parseYear(e.year) });
-      }
-    } else {
-      // Incluir solo los eventos de mundo que tengan reinoId == filterReino
-      for (const e of mundoEvents) {
-        if ((e as any).reinoId === filterReino) {
-          list.push({ ...e, source: "mundo", yearNum: parseYear(e.year) });
-        }
-      }
+    for (const e of mundoEvents) {
+      const reinoId = (e as any).reinoId as string | null | undefined;
+      if (filterReino && reinoId !== filterReino) continue;
+      list.push({ ...e, source: "mundo", yearNum: parseYear(e.year) });
     }
 
-    // Eventos de cada reino
     for (const reino of reinos) {
       if (filterReino && reino.id !== filterReino) continue;
-      const events = decodeTimeline((reino as any).historia);
-      for (const e of events) {
+      for (const e of decodeTimeline((reino as any).historia)) {
         if (!e.year?.trim() && !e.title?.trim()) continue;
         list.push({ ...e, source: "reino", reinoNombre: reino.nombre, reinoId: reino.id, yearNum: parseYear(e.year) });
       }
@@ -1011,7 +971,6 @@ function PanelHistoriaMundo({
     return list.sort((a, b) => parseYear(a.year).localeCompare(parseYear(b.year)));
   }, [mundoEvents, reinos, filterReino]);
 
-  // Reinos que tienen al menos un evento
   const reinosConEventos = useMemo(
     () => reinos.filter(r => decodeTimeline((r as any).historia).some(e => e.year?.trim() || e.title?.trim())),
     [reinos]
@@ -1021,28 +980,13 @@ function PanelHistoriaMundo({
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
 
       {/* ── Cabecera ──────────────────────────────────────────────────────── */}
-      <div className="shrink-0 flex items-center gap-2 px-4 py-2.5 border-b flex-wrap"
+      <div className="shrink-0 flex items-center gap-2 px-3 py-2 border-b flex-wrap"
         style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
 
-        {/* Toggle vista */}
-        <div className="flex items-center gap-0.5 p-0.5 rounded-lg" style={{ background: "color-mix(in srgb, var(--primary) 6%, transparent)" }}>
-          {([["unified", Clock, "Cronología"], ["edit", Plus, "Editar mundo"]] as const).map(([key, Icon, label]) => (
-            <button key={key} type="button" onClick={() => setView(key as any)}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[9px] font-black uppercase tracking-widest transition-all"
-              style={view === key ? {
-                background: "color-mix(in srgb, var(--primary) 14%, transparent)",
-                color: "var(--primary)",
-                border: "1px solid color-mix(in srgb, var(--primary) 22%, transparent)",
-              } : { color: "color-mix(in srgb, var(--primary) 35%, transparent)", border: "1px solid transparent" }}>
-              <Icon size={9} /> {label}
-            </button>
-          ))}
-        </div>
-
-        {/* Filtro por reino — solo en vista unificada */}
-        {view === "unified" && reinosConEventos.length > 0 && (
+        {/* Filtro por reino */}
+        {reinosConEventos.length > 0 && (
           <div className="flex items-center gap-1 flex-wrap">
-            <Filter size={9} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
+            <Filter size={8} style={{ color: "color-mix(in srgb, var(--primary) 28%, transparent)" }} />
             <button onClick={() => setFilterReino(null)}
               className="px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border transition-all"
               style={filterReino === null ? {
@@ -1069,124 +1013,96 @@ function PanelHistoriaMundo({
         <div className="ml-auto flex items-center gap-2">
           <SaveIndicator status={saveStatus} />
           <button onClick={handleSave} disabled={saveStatus === "saving"}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-sm shadow-primary/20 disabled:opacity-50">
-            <Save size={10} /> Guardar
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-sm shadow-primary/20 disabled:opacity-50">
+            <Save size={9} /> Guardar
           </button>
         </div>
       </div>
 
-      {/* ── Contenido ─────────────────────────────────────────────────────── */}
-      <div className="flex-1 min-h-0 flex flex-col overflow-hidden px-4 py-4">
+      {/* ── Pista única — vista + edición ─────────────────────────────────── */}
+      <div className="flex-1 min-h-0 flex flex-col justify-center overflow-hidden px-3 py-3">
+        {loadingReinos ? (
+          <div className="flex justify-center py-4">
+            <Loader2 size={14} className="animate-spin text-primary/20" />
+          </div>
+        ) : (
+          <div
+            className="overflow-x-auto pb-1"
+            style={{ scrollbarWidth: "thin", scrollbarColor: "color-mix(in srgb, var(--primary) 15%, transparent) transparent" }}
+          >
+            <div className="flex items-start" style={{ minWidth: "max-content", paddingLeft: 8, paddingRight: 8 }}>
 
-        {/* Vista: Cronología unificada — scroll horizontal */}
-        {view === "unified" && (
-          <>
-            {loadingReinos && (
-              <div className="flex justify-center py-8">
-                <Loader2 size={14} className="animate-spin text-primary/20" />
-              </div>
-            )}
-            {!loadingReinos && unifiedEvents.length === 0 && (
-              <div className="flex flex-col items-center gap-3 py-14 rounded-2xl border border-dashed text-center"
-                style={{ borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)" }}>
-                <Clock size={28} strokeWidth={1} style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }} />
-                <p className="text-[9px] font-black uppercase tracking-[0.25em]" style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>
-                  Sin eventos históricos
-                </p>
-                <p className="text-[9px] text-primary/20 max-w-xs">
-                  Añadí eventos en "Editar mundo", o desde la historia de cada reino.
-                </p>
-              </div>
-            )}
-            {!loadingReinos && unifiedEvents.length > 0 && (
-              <div
-                className="overflow-x-auto pb-2"
-                style={{ scrollbarWidth: "thin", scrollbarColor: "color-mix(in srgb, var(--primary) 15%, transparent) transparent" }}
-              >
-                <div className="flex items-start" style={{ minWidth: "max-content", paddingLeft: 8, paddingRight: 8 }}>
-                  {unifiedEvents.map((evt, idx) => (
-                    <div key={evt.id + (evt.reinoId ?? "")} className="flex flex-col shrink-0" style={{ width: 190 }}>
-                      {/* Conector horizontal */}
-                      <div className="flex items-center" style={{ height: 28 }}>
-                        <div className="flex-1 h-px" style={{ background: idx === 0 ? "transparent" : "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
-                        <div
-                          className="shrink-0 rounded-full transition-all"
-                          style={evt.source === "mundo" ? {
-                            width: 10, height: 10,
-                            background: "var(--primary)",
-                            boxShadow: "0 0 0 3px color-mix(in srgb, var(--primary) 15%, transparent)",
-                          } : {
-                            width: 7, height: 7,
-                            background: "color-mix(in srgb, var(--primary) 45%, transparent)",
-                            boxShadow: "0 0 0 2px color-mix(in srgb, var(--primary) 10%, transparent)",
-                          }}
-                        />
-                        <div className="flex-1 h-px" style={{ background: idx === unifiedEvents.length - 1 ? "transparent" : "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
-                      </div>
-
-                      {/* Tarjeta */}
-                      <div
-                        className="mx-1.5 rounded-xl overflow-hidden"
-                        style={{
-                          border: evt.source === "mundo"
-                            ? "1px solid color-mix(in srgb, var(--primary) 14%, transparent)"
-                            : "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
-                          background: evt.source === "mundo"
-                            ? "color-mix(in srgb, var(--primary) 3%, transparent)"
-                            : "color-mix(in srgb, var(--primary) 1%, transparent)",
-                        }}>
-                        <div className="flex flex-col gap-1 px-2.5 py-2">
-                          {/* Año */}
-                          {evt.year?.trim() && (
-                            <span className="self-start px-2 py-0.5 rounded-md text-[9px] font-black tracking-widest"
-                              style={{
-                                background: "color-mix(in srgb, var(--primary) 8%, transparent)",
-                                color: "var(--primary)",
-                                border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
-                              }}>
-                              {evt.year}
-                            </span>
-                          )}
-                          {/* Título */}
-                          <span className="text-[10px] font-bold text-primary/85 leading-snug line-clamp-2">
-                            {evt.title || <span className="italic text-primary/30">Sin título</span>}
-                          </span>
-                          {/* Badge fuente */}
-                          <div className="flex items-center gap-1 mt-0.5">
-                            {evt.source === "reino" && evt.reinoNombre && (
-                              <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest truncate"
-                                style={{ background: "color-mix(in srgb, var(--primary) 7%, transparent)", color: "color-mix(in srgb, var(--primary) 50%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)", maxWidth: "100%" }}>
-                                <Crown size={6} /> {evt.reinoNombre}
-                              </span>
-                            )}
-                            {evt.source === "mundo" && (
-                              <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest"
-                                style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)", color: "var(--primary)", border: "1px solid color-mix(in srgb, var(--primary) 18%, transparent)" }}>
-                                <Globe size={6} /> Mundo
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        {/* Descripción — recortada */}
-                        {evt.description?.trim() && (
-                          <div className="px-2.5 pb-2" style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" }}>
-                            <p className="text-[9px] leading-relaxed pt-1.5 line-clamp-3" style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}>
-                              {evt.description}
-                            </p>
-                          </div>
-                        )}
-                      </div>
+              {/* Eventos mezclados */}
+              {allEvents.map((evt, idx) => {
+                const isMundo = evt.source === "mundo";
+                const mundoEvt = isMundo ? mundoEvents.find(e => e.id === evt.id) : null;
+                const totalLen = allEvents.length;
+                return (
+                  <div key={evt.id + (evt.reinoId ?? "")} className="flex flex-col shrink-0" style={{ width: 190 }}>
+                    {/* Conector */}
+                    <div className="flex items-center" style={{ height: 26 }}>
+                      <div className="flex-1 h-px" style={{ background: idx === 0 ? "transparent" : "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
+                      <div className="shrink-0 rounded-full transition-all"
+                        style={isMundo ? {
+                          width: 10, height: 10,
+                          background: "var(--primary)",
+                          boxShadow: "0 0 0 3px color-mix(in srgb, var(--primary) 15%, transparent)",
+                        } : {
+                          width: 7, height: 7,
+                          background: "color-mix(in srgb, var(--primary) 40%, transparent)",
+                          boxShadow: "0 0 0 2px color-mix(in srgb, var(--primary) 10%, transparent)",
+                        }} />
+                      <div className="flex-1 h-px" style={{ background: idx === totalLen - 1 ? "transparent" : "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
                     </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </>
-        )}
 
-        {/* Vista: Editar eventos propios del mundo */}
-        {view === "edit" && (
-          <MundoEventoEditor events={mundoEvents} onChange={handleMundoChange} reinos={reinos} />
+                    {/* Tarjeta editable (mundo) o de solo lectura (reino) */}
+                    {isMundo && mundoEvt ? (
+                      <MundoEventoRow
+                        evt={mundoEvt}
+                        idx={0}
+                        total={1}
+                        reinos={reinos}
+                        onUpdate={patch => update(mundoEvt.id, patch)}
+                        onRemove={() => remove(mundoEvt.id)}
+                        onMove={() => {}}
+                      />
+                    ) : (
+                      <ReinoEventCard evt={evt} />
+                    )}
+                  </div>
+                );
+              })}
+
+              {/* Botón "+" al final de la pista */}
+              {!filterReino && (
+                <div className="flex flex-col shrink-0 items-center" style={{ width: 80, paddingTop: 0 }}>
+                  <div className="flex items-center w-full" style={{ height: 26 }}>
+                    <div className="flex-1 h-px" style={{ background: allEvents.length > 0 ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent" }} />
+                    <button type="button" onClick={add}
+                      className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center border-2 border-dashed transition-all"
+                      style={{ borderColor: "color-mix(in srgb, var(--primary) 20%, transparent)", color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
+                      onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = "color-mix(in srgb, var(--primary) 45%, transparent)"; el.style.color = "var(--primary)"; el.style.background = "color-mix(in srgb, var(--primary) 6%, transparent)"; }}
+                      onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = "color-mix(in srgb, var(--primary) 20%, transparent)"; el.style.color = "color-mix(in srgb, var(--primary) 35%, transparent)"; el.style.background = "transparent"; }}>
+                      <Plus size={11} />
+                    </button>
+                    <div className="flex-1 h-px" style={{ background: "transparent" }} />
+                  </div>
+                  <span className="text-[7px] font-black uppercase tracking-widest mt-1 text-center"
+                    style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>
+                    Nuevo
+                  </span>
+                </div>
+              )}
+
+              {/* Estado vacío */}
+              {allEvents.length === 0 && filterReino && (
+                <p className="text-[9px] text-primary/20 italic px-4 py-2 self-center">Sin eventos para este reino.</p>
+              )}
+              {allEvents.length === 0 && !filterReino && (
+                <p className="text-[9px] text-primary/20 italic px-2 py-2 self-center">Usá el "+" para añadir el primer evento.</p>
+              )}
+            </div>
+          </div>
         )}
       </div>
     </div>
