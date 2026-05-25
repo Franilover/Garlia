@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { 
-  Info, Loader2, CheckCircle2, User, Mic2, 
+  Info, Loader2, CheckCircle2, User, Mic2, Music,
   PenLine, Globe, Beaker, FileText, Sparkles, ChevronDown 
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -18,6 +18,7 @@ export const PanelInfo = ({
   onCancionUpdate: (updates: any) => void;
 }) => {
   const [localData, setLocalData] = useState({
+    titulo: cancion.titulo || "",
     cantante: cancion.cantante || "",
     compositor: cancion.compositor || "",
     idioma: cancion.idioma || "",
@@ -58,6 +59,7 @@ export const PanelInfo = ({
       const { error } = await supabase
         .from("canciones")
         .update({
+          titulo: data.titulo || null,
           cantante: data.cantante || null,
           compositor: data.compositor || null,
           idioma: data.idioma || null,
@@ -117,6 +119,19 @@ export const PanelInfo = ({
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10">
+          {/* Título — ocupa toda la fila */}
+          <div className="group relative space-y-2 md:col-span-2">
+            <label className="text-[9px] font-black text-primary/25 uppercase tracking-[0.2em] flex items-center gap-2 group-focus-within:text-primary/50 transition-colors">
+              <Music size={12}/> Título
+            </label>
+            <input
+              value={localData.titulo}
+              onChange={(e) => handleChange("titulo", e.target.value)}
+              className="w-full bg-transparent border-b border-primary/10 py-2 text-sm font-bold text-primary outline-none focus:border-primary/40 transition-all"
+              placeholder="Nombre de la canción..."
+            />
+          </div>
+
           {[
             { label: "Cantante", key: "cantante", icon: <Mic2 size={12}/>, placeholder: "Hatsune Miku..." },
             { label: "Compositor", key: "compositor", icon: <PenLine size={12}/>, placeholder: "Deco*27..." },
