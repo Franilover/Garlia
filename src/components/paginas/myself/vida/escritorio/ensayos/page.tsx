@@ -309,12 +309,23 @@ export default function Ensayos() {
   }, [ensayos, todosLosTags]);
 
   const ensayosFiltrados = useMemo(() => {
-    return ensayos.filter((e: any) => {
-      const cumpleTag      = tagActivo ? e.tags?.includes(tagActivo) : true;
-      const q              = searchTerm.toLowerCase();
-      const cumpleBusqueda = e.titulo?.toLowerCase().includes(q) || e.contenido?.toLowerCase().includes(q);
-      return cumpleTag && cumpleBusqueda;
-    });
+    const q = searchTerm.toLowerCase();
+    return ensayos
+      .filter((e: any) => {
+        const cumpleTag      = tagActivo ? e.tags?.includes(tagActivo) : true;
+        const cumpleBusqueda = !q
+          || e.titulo?.toLowerCase().includes(q)
+          || e.contenido?.toLowerCase().includes(q);
+        return cumpleTag && cumpleBusqueda;
+      })
+      .sort((a: any, b: any) => {
+        if (!q) return 0; // sin búsqueda: mantener orden original (updated_at)
+        const aTitulo = a.titulo?.toLowerCase().includes(q);
+        const bTitulo = b.titulo?.toLowerCase().includes(q);
+        if (aTitulo && !bTitulo) return -1; // a sube
+        if (!aTitulo && bTitulo) return 1;  // b sube
+        return 0; // empate: mantener orden relativo
+      });
   }, [ensayos, tagActivo, searchTerm]);
 
   // ─── Guardado ──────────────────────────────────────────────────────────────
