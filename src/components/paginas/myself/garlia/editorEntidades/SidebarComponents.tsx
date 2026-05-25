@@ -76,7 +76,8 @@ export type AllItems = {
   hechizos:   any[];
   dones:      any[];
   runas:      any[];
-  notas:      any[]; 
+  notas:      any[];
+  grupos:     any[];
 };
 
 // Tipos para resultados de escritura
@@ -1132,6 +1133,7 @@ export function GlobalSearchBar({
   onSelectMagic,
   onToggleOculto,
   onSelectNota,
+  onSelectGrupo,
   onNavigateToCapitulo,
   onNavigateToCancion,
   onBack,
@@ -1151,6 +1153,7 @@ export function GlobalSearchBar({
   onSelectMagic?: (subTab: "hechizos" | "dones" | "runas", item: any) => void;
   onToggleOculto?: (id: string, oculto: boolean) => void;
   onSelectNota?: (nota: any) => void;
+  onSelectGrupo?: (grupo: any) => void;
   onNavigateToCapitulo?: (capId: string, libroId: string) => void;
   onNavigateToCancion?: (cancionId: string) => void;
   onBack?: () => void;
@@ -1265,6 +1268,15 @@ export function GlobalSearchBar({
       .map(item => ({ item }));
   }, [canciones, query]);
 
+  const grupoResults = useMemo((): { item: any }[] => {
+    const q = normalize(query.trim());
+    if (!q || q.length < 1) return [];
+    return (allItems.grupos ?? [])
+      .filter((g: any) => normalize(g.nombre ?? "").includes(q))
+      .slice(0, 8)
+      .map(item => ({ item }));
+  }, [allItems, query]);
+
   // Navegación a capítulo y canción — declaradas después de close (ver abajo)
   const tabNavResults = useMemo((): TabNavResult[] => {
     const q = normalize(query.trim());
@@ -1329,6 +1341,12 @@ export function GlobalSearchBar({
     close();
     inputRef.current?.blur();
   }, [onSelectNota, close]);
+
+  const handleSelectGrupo = useCallback((grupo: any) => {
+    onSelectGrupo?.(grupo);
+    close();
+    inputRef.current?.blur();
+  }, [onSelectGrupo, close]);
 
   const handleMundoSection = useCallback((key: MundoSectionKey) => {
     onSelectMundoSection(key);
@@ -1436,7 +1454,7 @@ export function GlobalSearchBar({
       ?? selectedItem?.nombre
       ?? (loadingAll ? "Cargando…" : `${totalCount} entidades`);
 
-  const totalResults = globalResults.length + mundoResults.length + tabNavResults.length + mundoSubTabResults.length + mundoNavResults.length + magicResults.length + capituloResults.length + cancionResults.length;
+  const totalResults = globalResults.length + mundoResults.length + tabNavResults.length + mundoSubTabResults.length + mundoNavResults.length + magicResults.length + capituloResults.length + cancionResults.length + grupoResults.length;
 
   return (
     <div
@@ -1822,6 +1840,37 @@ export function GlobalSearchBar({
                               <span className="shrink-0 text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md"
                                 style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)", color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
                                 Song
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
+
+                    {/* Resultados de grupos */}
+                    {grupoResults.length > 0 && (
+                      <>
+                        <div className="px-2 pt-3 pb-1">
+                          <p className="text-[8px] font-black uppercase tracking-widest text-primary/25">Grupos</p>
+                        </div>
+                        <div className="space-y-0.5 mb-1">
+                          {grupoResults.map(({ item }) => (
+                            <button
+                              key={item.id}
+                              onMouseDown={() => handleSelectGrupo(item)}
+                              className="w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-150 border border-transparent hover:bg-primary/6 hover:border-primary/10"
+                            >
+                              <div className="shrink-0 w-7 h-7 rounded-lg border flex items-center justify-center"
+                                style={{ background: "color-mix(in srgb, var(--primary) 7%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
+                                <Layers size={12} className="text-primary/35" />
+                              </div>
+                              <div className="flex-1 min-w-0 text-left">
+                                <p className="text-[11px] font-bold text-primary/70 truncate">{item.nombre}</p>
+                                <p className="text-[9px] text-primary/30 truncate">{item.miembro_ids?.length ?? 0} miembros</p>
+                              </div>
+                              <span className="shrink-0 text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md"
+                                style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)", color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
+                                Grupo
                               </span>
                             </button>
                           ))}

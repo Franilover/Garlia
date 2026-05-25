@@ -74,14 +74,14 @@ async function dexieDeleteOne(tabla: string, id: string): Promise<void> {
 function useAllEntidades() {
   const [allItems, setAllItems] = useState<AllItems>({
     personajes: [], criaturas: [], items: [], reinos: [],
-    hechizos: [], dones: [], runas: [], notas: [],
+    hechizos: [], dones: [], runas: [], notas: [], grupos: [],
   });
   const [loadingAll, setLoadingAll] = useState(true);
   const [isOffline,  setIsOffline]  = useState(false);
 
   const load = useCallback(async () => {
     // 1. Leer de Dexie primero para respuesta inmediata
-    const [localP, localC, localI, localR, localH, localD, localRu] = await Promise.all([
+    const [localP, localC, localI, localR, localH, localD, localRu, , localG] = await Promise.all([
       dexieReadAll<Personaje>("personajes"),
       dexieReadAll<Criatura>("criaturas"),
       dexieReadAll<Item>("items"),
@@ -90,6 +90,7 @@ function useAllEntidades() {
       dexieReadAll<Don>("dones"),
       dexieReadAll<Runa>("runas"),
       dexieReadAll<any>("notas"),
+      dexieReadAll<any>("grupos_mundo"),
     ]);
 
     const hasLocal =
@@ -107,6 +108,7 @@ function useAllEntidades() {
         dones:      localD,
         runas:      localRu,
         notas:      [],
+        grupos:     localG,
       }));
       setLoadingAll(false); // mostrar datos locales de inmediato, sin bloquear UI
     }
@@ -124,7 +126,7 @@ function useAllEntidades() {
 
     // 3. Fetch remoto y sincronizar Dexie
     try {
-      const [p, c, i, r, h, d, ru, n] = await Promise.all([
+      const [p, c, i, r, h, d, ru, n, g] = await Promise.all([
         supabase.from("personajes").select("*").order("nombre"),
         supabase.from("criaturas") .select("*").order("nombre"),
         supabase.from("items")     .select("*").order("nombre"),
@@ -133,7 +135,7 @@ function useAllEntidades() {
         supabase.from("dones")     .select("id, nombre, explicacion").order("nombre"),
         supabase.from("runas")     .select("id, nombre, explicacion").order("nombre"),
         supabase.from("notas") .select("*"),
-
+        supabase.from("grupos_mundo").select("id, nombre, tipo, miembro_ids").order("nombre"),
       ]);
       const remote = {
         personajes: (p.data ?? []) as Personaje[],
@@ -144,6 +146,7 @@ function useAllEntidades() {
         dones:      (d.data ?? []) as Don[],
         runas:      (ru.data ?? []) as Runa[],
         notas:      (n.data ?? []) as Nota[],
+        grupos:     (g.data ?? []).map((x: any) => ({ ...x, miembro_ids: x.miembro_ids ?? [] })),
       };
       setAllItems(remote);
 
@@ -514,6 +517,11 @@ export default function EditorEntidades() {
             setMundoSection("geografia");
             setRequestedItemId(undefined);
             setTimeout(() => setRequestedItemId(nota.id), 0);
+          }}
+          onSelectGrupo={(grupo) => {
+            setTab("grupos");
+            setSelectedId(grupo.id);
+            setRequestedGrupoId(grupo.id);
           }}
           onNavigateToCapitulo={(capId, libroId) => {
             localStorage.setItem("estudio-caps-last-cap",   capId);

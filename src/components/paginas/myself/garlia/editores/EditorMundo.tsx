@@ -1252,7 +1252,7 @@ function PanelListas({
   const { items: dones,    setItems: setDones,    loading: loadingDones    } = useEntidadesMagicas("dones");
   const { items: runas,    setItems: setRunas,    loading: loadingRunas    } = useRunas();
   const { grupos: gruposMagicos, loading: loadingGruposMagicos } = useGruposCriaturas();
-  const { grupos, loaded: loadedGrupos, crearGrupo, actualizarGrupo, eliminarGrupo } = useGrupos();
+  const { grupos, loaded: loadedGrupos, actualizarGrupo, eliminarGrupo } = useGrupos();
   const { notas, loading: loadingNotas, crear: crearNota, actualizar: actualizarNota, eliminar: eliminarNota } = useNotas();
   const { canciones, loading: loadingCanciones } = useCanciones();
 
@@ -1735,18 +1735,6 @@ function PanelListas({
                   </button>
                 );
               })}
-              <button type="button"
-                onClick={async () => {
-                  const nuevo = await crearGrupo("personajes");
-                  if (nuevo) selectGrupo(nuevo);
-                }}
-                className="flex items-center gap-1.5 pl-1.5 pr-3 py-1 rounded-xl border border-dashed transition-all hover:scale-[1.02]"
-                style={{ borderColor: "color-mix(in srgb, var(--primary) 18%, transparent)", color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>
-                <div className="w-6 h-6 rounded-lg border border-dashed border-primary/15 bg-primary/3 shrink-0 flex items-center justify-center">
-                  <Plus size={9} className="text-primary/25" />
-                </div>
-                <span className="text-[10px] font-bold">Nuevo grupo</span>
-              </button>
             </SeccionEntidades>
           </div>
 
