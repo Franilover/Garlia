@@ -87,15 +87,6 @@ export const PanelInfo = ({
       {/* ── SECCIÓN: FICHA TÉCNICA ── */}
       <section className="space-y-6">
         <div className="flex items-center justify-between border-b border-primary/5 pb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-primary/5 flex items-center justify-center text-primary/40">
-              <Beaker size={16} />
-            </div>
-            <div>
-              <h3 className="text-[11px] font-black uppercase tracking-[0.25em] text-primary">Ficha Técnica</h3>
-              <p className="text-[9px] font-medium text-primary/30 uppercase tracking-widest">Metadatos y créditos de la obra</p>
-            </div>
-          </div>
           
           <div className="flex items-center gap-2 h-6">
              {saving && <span className="flex items-center gap-2 text-[8px] font-bold text-primary/20 uppercase tracking-tighter"><Loader2 size={10} className="animate-spin" /> Guardando...</span>}
