@@ -1102,16 +1102,36 @@ export function MarkdownEditor({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [containerWidth, modeProp]);
 
+  // Tracks whether the user has manually changed mode so we don't override their choice
+  const userChangedModeRef = useRef(false);
+  const wrappedSetMode = useCallback((m: ViewMode) => {
+    userChangedModeRef.current = true;
+    setMode(m);
+  }, [setMode]);
+
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
     const ro = new ResizeObserver(entries => {
       const w = entries[0]?.contentRect.width ?? el.offsetWidth;
       setContainerWidth(w);
-      if (w < SPLIT_MIN_WIDTH && mode === "split") setMode("edit");
+      // If there's no room for split, collapse to edit
+      if (w < SPLIT_MIN_WIDTH && mode === "split") {
+        setMode("edit");
+        userChangedModeRef.current = false; // reset so it auto-expands again when space returns
+      }
+      // If space is now available and user hasn't manually chosen a mode, auto-enable split
+      if (w >= SPLIT_MIN_WIDTH && !userChangedModeRef.current && !modeProp) {
+        setMode("split");
+      }
     });
     ro.observe(el);
-    setContainerWidth(el.offsetWidth); // medir inmediatamente al montar
+    // Measure immediately on mount — auto-split if there's room
+    const initialWidth = el.offsetWidth;
+    setContainerWidth(initialWidth);
+    if (initialWidth >= SPLIT_MIN_WIDTH && !modeProp) {
+      setMode("split");
+    }
     return () => ro.disconnect();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -1725,14 +1745,15 @@ export function MarkdownEditor({
               overflow: "hidden",
             }}
           >
-          {(["edit", "split", "preview"] as ViewMode[]).filter(m => !(isMobile && m === "split")).map((m) => {
+          {(["edit", "split", "preview"] as ViewMode[]).map((m) => {
+            if (m === "split" && isMobile) return null;
             const Icon = m === "edit" ? Edit3 : m === "split" ? Columns : Eye;
             const isActive = mode === m;
             return (
               <button
                 key={m}
                 type="button"
-                onClick={() => setMode(m)}
+                onClick={() => wrappedSetMode(m)}
                 title={m === "edit" ? "Editar" : m === "split" ? "Split" : "Vista previa"}
                 style={{
                   display: "flex",
