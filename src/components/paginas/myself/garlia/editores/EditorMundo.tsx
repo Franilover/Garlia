@@ -22,7 +22,7 @@ import { type WikiEntity } from "../../../../forms/MarkdownEditor";
 import { type TimelineEvent } from "../editorEntidades/LoreTab";
 import { useNotas } from "../editorEntidades/useNotas";
 import { EditorNota, ListaNotas } from "./EditorNota";
-import { EditorGrupo } from "./EditorGrupo";
+import { EditorGrupo, useGrupos, type Grupo, GRUPO_TIPO_CONFIG } from "./EditorGrupo";
 import EstudioCapitulos from "@/components/paginas/myself/garlia/editores/editorCapitulos";
 import { useCanciones } from "@/components/paginas/myself/garlia/editores/editorLetras/hooks/useCanciones";
 import type { Cancion } from "@/components/paginas/myself/garlia/editores/editorLetras/types";
@@ -1252,7 +1252,7 @@ function PanelListas({
   const { items: dones,    setItems: setDones,    loading: loadingDones    } = useEntidadesMagicas("dones");
   const { items: runas,    setItems: setRunas,    loading: loadingRunas    } = useRunas();
   const { grupos: gruposMagicos, loading: loadingGruposMagicos } = useGruposCriaturas();
-  const { grupos: gruposTodos,   loading: loadingGruposTodos   } = useGruposTodos();
+  const { grupos, loaded: loadedGrupos, crearGrupo, actualizarGrupo, eliminarGrupo } = useGrupos();
   const { notas, loading: loadingNotas, crear: crearNota, actualizar: actualizarNota, eliminar: eliminarNota } = useNotas();
   const { canciones, loading: loadingCanciones } = useCanciones();
 
@@ -1266,6 +1266,7 @@ function PanelListas({
   const [selectedDon,       setSelectedDon]       = useState<EntidadMagica | null>(null);
   const [selectedRuna,      setSelectedRuna]      = useState<Runa | null>(null);
   const [selectedNota,      setSelectedNota]      = useState<Nota | null>(null);
+  const [selectedGrupo,     setSelectedGrupo]     = useState<Grupo | null>(null);
 
   // ── Scroll position ───────────────────────────────────────────────────────
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -1303,9 +1304,10 @@ function PanelListas({
   const selectHechizo   = useCallback((h: EntidadMagica | null) => { setSelectedHechizo(h);   h ? persistOpenItem("hechizos",   h.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
   const selectDon       = useCallback((d: EntidadMagica | null) => { setSelectedDon(d);       d ? persistOpenItem("dones",      d.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
   const selectRuna      = useCallback((r: Runa | null)          => { setSelectedRuna(r);      r ? persistOpenItem("runas",      r.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
+  const selectGrupo     = useCallback((g: Grupo | null)         => { setSelectedGrupo(g);     g ? persistOpenItem("grupos_mundo", g.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
 
   // ── Overlay activo ────────────────────────────────────────────────────────
-  const overlay: "reino" | "criatura" | "objeto" | "personaje" | "hechizo" | "don" | "runa" | "nota" | "lugar" | null =
+  const overlay: "reino" | "criatura" | "objeto" | "personaje" | "hechizo" | "don" | "runa" | "nota" | "lugar" | "grupo" | null =
     selectedReino     ? "reino"     :
     selectedCriatura  ? "criatura"  :
     selectedObjeto    ? "objeto"    :
@@ -1314,13 +1316,14 @@ function PanelListas({
     selectedHechizo   ? "hechizo"   :
     selectedDon       ? "don"       :
     selectedRuna      ? "runa"      :
-    selectedNota      ? "nota"      : null;
+    selectedNota      ? "nota"      :
+    selectedGrupo     ? "grupo"     : null;
 
   const clearAllOverlays = useCallback(() => {
     setSelectedReino(null); setSelectedCriatura(null);
     setSelectedObjeto(null); setSelectedPersonaje(null);
     setSelectedHechizo(null); setSelectedDon(null); setSelectedRuna(null);
-    setSelectedNota(null); setSelectedLugar(null);
+    setSelectedNota(null); setSelectedLugar(null); setSelectedGrupo(null);
     clearPersistedItem();
   }, [clearPersistedItem]);
 
@@ -1357,6 +1360,7 @@ function PanelListas({
         else if (tabla === "dones")      setSelectedDon(data);
         else if (tabla === "runas")      setSelectedRuna(data);
         else if (tabla === "lugares")    setSelectedLugar(data as Lugar);
+        else if (tabla === "grupos_mundo") setSelectedGrupo(data as Grupo);
       } catch {}
     })();
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1580,6 +1584,18 @@ function PanelListas({
                 onDeleted={id => { eliminarNota(id); setSelectedNota(null); }}
               />
             )}
+            {overlay === "grupo" && selectedGrupo && (
+              <EditorGrupo key={selectedGrupo.id} grupo={selectedGrupo}
+                onSaved={async updated => { await actualizarGrupo(updated); setSelectedGrupo(updated); }}
+                onDeleted={async id => { await eliminarGrupo(id); setSelectedGrupo(null); }}
+                onClickMiembro={(id, tabla) => {
+                  if (tabla === "personajes") { const p = personajes.find(x => x.id === id); if (!p) return; clearAllOverlays(); setSelectedPersonaje(p); }
+                  else if (tabla === "criaturas") { const c = criaturas.find(x => x.id === id); if (!c) return; clearAllOverlays(); setSelectedCriatura(c); }
+                  else if (tabla === "items") { const o = objetos.find(x => x.id === id); if (!o) return; clearAllOverlays(); setSelectedObjeto(o); }
+                  else if (tabla === "reinos") { const r = reinos.find(x => x.id === id); if (!r) return; clearAllOverlays(); setSelectedReino(r); }
+                }}
+              />
+            )}
           </div>
         </div>
       )}
@@ -1696,18 +1712,41 @@ function PanelListas({
             </SeccionEntidades>
             <div className={div} style={divStyle} />
 
-            <SeccionEntidades icon={Layers} label="Grupos" count={gruposTodos.length} loading={loadingGruposTodos}>
-              {gruposTodos.map(g => (
-                <button key={g.id} type="button"
-                  className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02]"
-                  style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
-                  <div className="w-6 h-6 rounded-lg border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center"><Layers size={10} className="text-primary/25" /></div>
-                  <div className="flex flex-col min-w-0">
-                    <span className="text-[11px] font-bold text-primary/70 truncate max-w-[90px]">{g.nombre}</span>
-                    <span className="text-[8px] text-primary/30">{g.miembro_ids.length} miembros</span>
-                  </div>
-                </button>
-              ))}
+            <SeccionEntidades icon={Layers} label="Grupos" count={grupos.length} loading={!loadedGrupos}>
+              {grupos.map(g => {
+                const cfg = GRUPO_TIPO_CONFIG[g.tipo as keyof typeof GRUPO_TIPO_CONFIG];
+                return (
+                  <button key={g.id} type="button"
+                    onClick={async () => {
+                      const full = grupos.find(x => x.id === g.id);
+                      if (full) { selectGrupo(full); return; }
+                      const { data } = await supabase.from("grupos_mundo").select("*").eq("id", g.id).single();
+                      if (data) selectGrupo({ ...data, miembro_ids: data.miembro_ids ?? [] } as Grupo);
+                    }}
+                    className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02]"
+                    style={{ background: `color-mix(in srgb, ${cfg?.color ?? "var(--primary)"} 4%, transparent)`, borderColor: `color-mix(in srgb, ${cfg?.color ?? "var(--primary)"} 12%, transparent)` }}>
+                    <div className="w-6 h-6 rounded-lg border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center">
+                      {cfg ? <cfg.Icon size={10} className="text-primary/25" /> : <Layers size={10} className="text-primary/25" />}
+                    </div>
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-[11px] font-bold text-primary/70 truncate max-w-[90px]">{g.nombre}</span>
+                      <span className="text-[8px] text-primary/30">{g.miembro_ids.length} miembros</span>
+                    </div>
+                  </button>
+                );
+              })}
+              <button type="button"
+                onClick={async () => {
+                  const nuevo = await crearGrupo("personajes");
+                  if (nuevo) selectGrupo(nuevo);
+                }}
+                className="flex items-center gap-1.5 pl-1.5 pr-3 py-1 rounded-xl border border-dashed transition-all hover:scale-[1.02]"
+                style={{ borderColor: "color-mix(in srgb, var(--primary) 18%, transparent)", color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>
+                <div className="w-6 h-6 rounded-lg border border-dashed border-primary/15 bg-primary/3 shrink-0 flex items-center justify-center">
+                  <Plus size={9} className="text-primary/25" />
+                </div>
+                <span className="text-[10px] font-bold">Nuevo grupo</span>
+              </button>
             </SeccionEntidades>
           </div>
 

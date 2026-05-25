@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
   Users, Bug, Package, Sparkles, Star, ScrollText, Map,
-  Plus, Trash2, Save, Search, X, ChevronLeft, ChevronRight,
+  Plus, Trash2, Save, Search, X,
   Loader2, Layers, UserCircle2, Swords, Wand2, Gem, Feather,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
@@ -68,7 +68,7 @@ export const GRUPO_TIPO_CONFIG: Record<GrupoTipo, {
   label: string;
   labelPlural: string;
   Icon: React.ElementType;
-  IconAlt: React.ElementType; // icono secundario para el selector de tipo
+  IconAlt: React.ElementType;
   color: string;
   tabla: string;
   ejemplo: string;
@@ -390,11 +390,13 @@ function SelectorMiembros({
                       className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left hover:bg-primary/6 transition-colors"
                     >
                       <div className="shrink-0 w-6 h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
-                        {img ? <img src={img} alt={e.nombre} className="w-full h-full object-cover" /> : <cfg.Icon size={10} className="text-primary/20" />}
+                        {img
+                          ? <img src={img} alt={e.nombre} className="w-full h-full object-cover" />
+                          : <cfg.Icon size={10} className="text-primary/25" />}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-[11px] font-medium text-primary/80 truncate">{e.nombre}</p>
-                        {sub && <p className="text-[9px] text-primary/35 truncate">{sub}</p>}
+                        <span className="text-[11px] font-medium text-primary/80 truncate block">{e.nombre}</span>
+                        {sub && <span className="text-[9px] text-primary/30 truncate block">{sub}</span>}
                       </div>
                     </button>
                   );
@@ -408,30 +410,52 @@ function SelectorMiembros({
   );
 }
 
-// ─── Formulario de edición de un grupo ────────────────────────────────────────
-function FormularioGrupo({
+// ─── EditorGrupo — formulario de edición de un grupo (sin sidebar) ────────────
+// Recibe un grupo como prop y lo edita in-place, igual que EditorPersonaje,
+// EditorReino, etc. EditorMundo lo muestra como overlay al hacer clic en un chip.
+export function EditorGrupo({
   grupo,
   onSaved,
   onDeleted,
   onClickMiembro,
 }: {
   grupo: Grupo;
-  onSaved: (g: Grupo) => void | Promise<void>;
+  onSaved: (updated: Grupo) => void | Promise<void>;
   onDeleted: (id: string) => void | Promise<void>;
   onClickMiembro?: (id: string, tabla: string) => void;
 }) {
   const [form, setForm] = useState<Grupo>(grupo);
+  const [status, setStatus] = useState<SaveStatus>("idle");
   const { confirm, ConfirmModal } = useConfirm();
   const cfg = GRUPO_TIPO_CONFIG[form.tipo];
 
-  useEffect(() => { setForm(grupo); }, [grupo.id]);
+  useEffect(() => { setForm(grupo); setStatus("idle"); }, [grupo.id]);
 
-  const save = () => { onSaved(form); };
+  const save = async () => {
+    setStatus("saving");
+    try {
+      await supabase
+        .from("grupos_mundo")
+        .update({
+          nombre: form.nombre,
+          tipo: form.tipo,
+          descripcion: form.descripcion ?? null,
+          miembro_ids: form.miembro_ids,
+        })
+        .eq("id", form.id);
+      void dexiePut("grupos_mundo", form);
+      await onSaved(form);
+      setStatus("saved");
+      setTimeout(() => setStatus("idle"), 2000);
+    } catch { setStatus("error"); }
+  };
 
   const del = async () => {
     const ok = await confirm({ message: `¿Eliminar el grupo "${form.nombre}"?`, danger: true });
     if (!ok) return;
-    onDeleted(form.id);
+    await supabase.from("grupos_mundo").delete().eq("id", form.id);
+    void dexieDel("grupos_mundo", form.id);
+    await onDeleted(form.id);
   };
 
   return (
@@ -468,12 +492,13 @@ function FormularioGrupo({
 
         {/* Acciones */}
         <div className="flex items-center justify-end gap-2">
+          <SaveIndicator status={status} />
           <button onClick={del}
             className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all">
             <Trash2 size={10} />
           </button>
-          <button onClick={save}
-            className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20">
+          <button onClick={save} disabled={status === "saving"}
+            className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50">
             <Save size={11} /> Guardar
           </button>
         </div>
@@ -513,288 +538,6 @@ function FormularioGrupo({
             </p>
             <p className="text-[9px] text-primary/15 text-center">
               Usá el botón de arriba para agregar {cfg.labelPlural.toLowerCase()}
-            </p>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ─── Selector de tipo al crear un grupo ───────────────────────────────────────
-function SelectorTipoGrupo({
-  onSelect,
-  onCancel,
-}: {
-  onSelect: (tipo: GrupoTipo) => void;
-  onCancel: () => void;
-}) {
-  return (
-    <div className="flex-1 flex flex-col items-center justify-center gap-5 p-6">
-      <div className="text-center">
-        <Layers size={28} strokeWidth={1} className="text-primary/20 mx-auto mb-2" />
-        <p className="text-[11px] font-black uppercase tracking-[0.2em] text-primary/50">Tipo de grupo</p>
-        <p className="text-[9px] text-primary/25 mt-0.5">¿De qué serán los miembros?</p>
-      </div>
-
-      <div className="w-full max-w-xs grid grid-cols-2 gap-2">
-        {(Object.entries(GRUPO_TIPO_CONFIG) as [GrupoTipo, typeof GRUPO_TIPO_CONFIG[GrupoTipo]][]).map(([tipo, cfg]) => (
-          <button
-            key={tipo}
-            onClick={() => onSelect(tipo)}
-            className="flex flex-col items-center gap-2 p-3 rounded-xl border transition-all hover:scale-[1.02]"
-            style={{
-              borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
-              background: "color-mix(in srgb, var(--primary) 3%, transparent)",
-            }}
-            onMouseEnter={e => {
-              (e.currentTarget as HTMLElement).style.borderColor = `color-mix(in srgb, ${cfg.color} 30%, transparent)`;
-              (e.currentTarget as HTMLElement).style.background = `color-mix(in srgb, ${cfg.color} 8%, transparent)`;
-            }}
-            onMouseLeave={e => {
-              (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 12%, transparent)";
-              (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 3%, transparent)";
-            }}
-          >
-            {/* Lucide icon en lugar de emoji */}
-            <cfg.IconAlt
-              size={20}
-              strokeWidth={1.5}
-              style={{ color: `color-mix(in srgb, ${cfg.color} 70%, transparent)` }}
-            />
-            <div className="text-center">
-              <p className="text-[10px] font-black uppercase tracking-widest text-primary/70">{cfg.labelPlural}</p>
-              <p className="text-[8px] text-primary/30 mt-0.5">{cfg.ejemplo}</p>
-            </div>
-          </button>
-        ))}
-      </div>
-
-      <button onClick={onCancel}
-        className="text-[9px] font-black uppercase tracking-widest text-primary/25 hover:text-primary/50 transition-colors">
-        Cancelar
-      </button>
-    </div>
-  );
-}
-
-// ─── EditorGrupo — ventana completa ───────────────────────────────────────────
-export function EditorGrupo({
-  onClickMiembro,
-  autoCrear = false,
-  initialSelectedId,
-}: {
-  onClickMiembro?: (id: string, tabla: string) => void;
-  autoCrear?: boolean;
-  initialSelectedId?: string | null;
-}) {
-  const { grupos, loaded, crearGrupo, actualizarGrupo, eliminarGrupo } = useGrupos();
-  const [selectedId, setSelectedId] = useState<string | null>(initialSelectedId ?? null);
-  const [search, setSearch] = useState("");
-  const [creando, setCreando] = useState(autoCrear);
-
-  // Si llega un nuevo initialSelectedId desde afuera (navegación desde criatura), aplicarlo
-  useEffect(() => {
-    if (initialSelectedId) {
-      setSelectedId(initialSelectedId);
-      setCreando(false);
-    }
-  }, [initialSelectedId]);
-
-  const selected = grupos.find(g => g.id === selectedId) ?? null;
-
-  const filtered = useMemo(() => {
-    const q = search.toLowerCase();
-    return grupos.filter(g =>
-      g.nombre.toLowerCase().includes(q) ||
-      GRUPO_TIPO_CONFIG[g.tipo].labelPlural.toLowerCase().includes(q)
-    );
-  }, [grupos, search]);
-
-  const gruposPorTipo = useMemo(() => {
-    const map: Partial<Record<GrupoTipo, Grupo[]>> = {};
-    for (const g of filtered) {
-      if (!map[g.tipo]) map[g.tipo] = [];
-      map[g.tipo]!.push(g);
-    }
-    return map;
-  }, [filtered]);
-
-  const handleCrear = async (tipo: GrupoTipo) => {
-    const nuevo = await crearGrupo(tipo);
-    if (nuevo) setSelectedId(nuevo.id);
-    setCreando(false);
-  };
-
-  if (!loaded) {
-    return (
-      <div className="w-full h-full flex items-center justify-center">
-        <Loader2 size={18} className="animate-spin text-primary/20" />
-      </div>
-    );
-  }
-
-  return (
-    // Ocupa todo el espacio disponible del contenedor padre
-    <div className="w-full h-full flex min-h-0 overflow-hidden">
-
-      {/* ── Sidebar / lista lateral ── */}
-      <div
-        className={`
-          flex-col border-r min-h-0
-          w-64 shrink-0
-          ${selected || creando ? "hidden sm:flex" : "flex flex-1 sm:flex-none"}
-        `}
-        style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
-      >
-        {/* Header del sidebar */}
-        <div
-          className="shrink-0 flex items-center gap-2 px-4 py-3 border-b"
-          style={{
-            borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
-            background: "color-mix(in srgb, var(--primary) 3%, transparent)",
-          }}
-        >
-          <Layers size={13} className="text-primary/40 shrink-0" />
-          <span className="text-[11px] font-black uppercase tracking-[0.2em] text-primary/50 flex-1">Grupos</span>
-          <span className="text-[9px] text-primary/25 tabular-nums">{grupos.length}</span>
-        </div>
-
-        {/* Buscador + nuevo */}
-        <div className="shrink-0 px-3 pt-3 pb-2 space-y-2">
-          <div className="relative">
-            <Search size={10} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-primary/25" />
-            <input
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Buscar grupos…"
-              className="w-full bg-primary/4 border border-primary/10 rounded-lg pl-7 pr-6 py-1.5 text-[10px] font-medium outline-none focus:border-primary/25 text-primary placeholder:text-primary/25"
-            />
-            {search && (
-              <button
-                onClick={() => setSearch("")}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-primary/30 hover:text-primary"
-              >
-                <X size={9} />
-              </button>
-            )}
-          </div>
-
-          <button
-            onClick={() => { setCreando(true); setSelectedId(null); }}
-            className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg border border-dashed text-[9px] font-black uppercase tracking-widest transition-all"
-            style={{
-              borderColor: "color-mix(in srgb, var(--primary) 20%, transparent)",
-              color: "color-mix(in srgb, var(--primary) 45%, transparent)",
-            }}
-            onMouseEnter={e => {
-              (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 35%, transparent)";
-              (e.currentTarget as HTMLElement).style.color = "var(--primary)";
-            }}
-            onMouseLeave={e => {
-              (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 20%, transparent)";
-              (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--primary) 45%, transparent)";
-            }}
-          >
-            <Plus size={9} /> Nuevo grupo
-          </button>
-        </div>
-
-        {/* Lista */}
-        <div className="flex-1 overflow-y-auto min-h-0 px-3 pb-3 space-y-3">
-          {grupos.length === 0 ? (
-            <div className="flex flex-col items-center gap-3 py-12 text-center">
-              <Layers size={26} strokeWidth={1} className="text-primary/15" />
-              <p className="text-[9px] font-black uppercase tracking-widest text-primary/20">Sin grupos aún</p>
-            </div>
-          ) : filtered.length === 0 ? (
-            <p className="text-[9px] text-primary/20 text-center py-8 italic">Sin resultados</p>
-          ) : (
-            (Object.entries(GRUPO_TIPO_CONFIG) as [GrupoTipo, typeof GRUPO_TIPO_CONFIG[GrupoTipo]][])
-              .filter(([tipo]) => gruposPorTipo[tipo]?.length)
-              .map(([tipo, cfg]) => (
-                <div key={tipo}>
-                  {/* Encabezado de tipo */}
-                  <div className="flex items-center gap-1.5 px-1 py-1 mb-0.5">
-                    <cfg.Icon
-                      size={9}
-                      style={{ color: `color-mix(in srgb, ${cfg.color} 50%, transparent)` }}
-                    />
-                    <span
-                      className="text-[8px] font-black uppercase tracking-[0.3em]"
-                      style={{ color: `color-mix(in srgb, ${cfg.color} 45%, transparent)` }}
-                    >
-                      {cfg.labelPlural}
-                    </span>
-                  </div>
-
-                  <div className="space-y-0.5">
-                    {gruposPorTipo[tipo]!.map(grupo => (
-                      <button
-                        key={grupo.id}
-                        onClick={() => { setSelectedId(grupo.id); setCreando(false); }}
-                        className={`w-full text-left px-2.5 py-2 rounded-xl transition-all border ${
-                          selectedId === grupo.id
-                            ? "border-primary/20 bg-primary/10"
-                            : "border-transparent hover:bg-primary/6 hover:border-primary/10"
-                        }`}
-                      >
-                        <p className={`text-[11px] font-bold truncate ${selectedId === grupo.id ? "text-primary" : "text-primary/70"}`}>
-                          {grupo.nombre}
-                        </p>
-                        <div className="flex items-center gap-1 mt-0.5">
-                          <span className="text-[8px] text-primary/30">{grupo.miembro_ids.length} miembros</span>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ))
-          )}
-        </div>
-      </div>
-
-      {/* ── Panel principal ── */}
-      <div className={`flex-1 flex flex-col min-h-0 overflow-hidden ${selected || creando ? "flex" : "hidden sm:flex"}`}>
-
-        {/* Botón volver — solo mobile */}
-        {(selected || creando) && (
-          <div
-            className="sm:hidden shrink-0 px-3 py-2 border-b"
-            style={{
-              borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
-              background: "color-mix(in srgb, var(--primary) 3%, transparent)",
-            }}
-          >
-            <button
-              onClick={() => { setSelectedId(null); setCreando(false); }}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border border-primary/15 text-primary/50 hover:text-primary transition-all"
-            >
-              <ChevronLeft size={12} /> Volver
-            </button>
-          </div>
-        )}
-
-        {creando ? (
-          <SelectorTipoGrupo
-            onSelect={handleCrear}
-            onCancel={() => setCreando(false)}
-          />
-        ) : selected ? (
-          <FormularioGrupo
-            key={selected.id}
-            grupo={selected}
-            onSaved={async updated => { await actualizarGrupo(updated); }}
-            onDeleted={async id => { await eliminarGrupo(id); setSelectedId(null); }}
-            onClickMiembro={onClickMiembro}
-          />
-        ) : (
-          /* Estado vacío — desktop */
-          <div className="flex-1 flex flex-col items-center justify-center gap-3 select-none">
-            <Layers size={36} strokeWidth={1} className="text-primary/15" />
-            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/25">Grupos</p>
-            <p className="text-[10px] text-primary/20 tracking-widest text-center max-w-xs px-4">
-              Agrupá personajes, criaturas, objetos o magia en facciones, manadas, colecciones y más
             </p>
           </div>
         )}
