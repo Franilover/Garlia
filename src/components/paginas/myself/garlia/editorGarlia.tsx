@@ -531,12 +531,19 @@ export default function EditorEntidades() {
             setMundoSection("geografia");
             setRequestedItemId(undefined);
           }}
+
           onNavigateToCancion={(cancionId) => {
+            // Mantenemos esto por si tu PanelEditor interno lo sigue necesitando al montar
             localStorage.setItem("estudio-letras-last-id", cancionId);
             window.dispatchEvent(new Event("estudio-letras-action"));
+            
             setTab("mundo");
             setMundoSection("geografia");
             setRequestedItemId(undefined);
+            
+            // 👇 ¡AQUÍ ESTÁ LA MAGIA QUE FALTABA! 👇
+            // Esto le dice a EditorMundo que cargue el ítem en su overlay usando la lógica que agregamos antes
+            setOpenItem({ tabla: "canciones", id: cancionId, key: ++openItemKeyRef.current });
           }}
           onToggleOculto={handleToggleOcultoReino}
         />
