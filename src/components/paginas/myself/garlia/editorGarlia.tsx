@@ -207,8 +207,6 @@ async function createAndOpen(
 // ─── Persistencia de sesión ───────────────────────────────────────────────────
 const STORAGE_KEY = "editorEntidades:session";
 
-const VALID_MUNDO_SECTIONS: MundoSectionKey[] = ["geografia", "historia", "magia"];
-
 function readSession(): {
   tab: TabKey;
   selectedId: string | null;
@@ -225,8 +223,7 @@ function readSession(): {
     const entityOnlyTabs = ["personajes", "criaturas", "items", "reinos"];
     const rawTab = validTabs.includes(parsed.tab) ? parsed.tab as TabKey : "mundo";
     const tab = hasPersistentItem ? "mundo" : (entityOnlyTabs.includes(rawTab as string) ? "mundo" : rawTab);
-    const mundoSection = VALID_MUNDO_SECTIONS.includes(parsed.mundoSection) ? parsed.mundoSection as MundoSectionKey : "geografia";
-    return { tab, selectedId: parsed.selectedId ?? null, mundoSection };
+    return { tab, selectedId: parsed.selectedId ?? null, mundoSection: "geografia" };
   } catch {
     return { tab: "mundo", selectedId: null, mundoSection: "geografia" };
   }

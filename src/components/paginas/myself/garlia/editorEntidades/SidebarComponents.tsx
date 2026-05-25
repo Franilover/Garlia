@@ -41,15 +41,6 @@ async function dexieWriteAll(tabla: string, rows: any[]): Promise<void> {
 
 
 
-// Subtabs internos del módulo Magia
-type MundoSubTab = "magia" | "hechizos" | "dones" | "runas";
-const MUNDO_SUBTABS: { key: MundoSubTab; label: string; aliases: string[]; section: MundoSectionKey }[] = [
-  { key: "magia",    label: "Magia",    section: "magia",    aliases: ["magia", "magic", "sistema de magia"] },
-  { key: "hechizos", label: "Hechizos", section: "magia",    aliases: ["hechizo", "hechizos", "spell", "spells"] },
-  { key: "dones",    label: "Dones",    section: "magia",    aliases: ["don", "dones", "gift", "gifts"] },
-  { key: "runas",    label: "Runas",    section: "magia",    aliases: ["runa", "runas", "rune", "runes"] },
-];
-
 // Todas las tabs del módulo Mundo navegables desde el buscador
 // section se usa para setear mundoSection; subTab es el tab unificado dentro de EditorMundo
 const MUNDO_NAV: { section: MundoSectionKey; label: string; subTab: string; aliases: string[] }[] = [
@@ -101,7 +92,7 @@ type TabNavResult = {
 
 type MundoSubTabResult = {
   section: MundoSectionKey;
-  subTab: MundoSubTab;
+  subTab: string;
   label: string;
 };
 
@@ -1296,7 +1287,7 @@ export function GlobalSearchBar({
     if (!q) return [];
     return MUNDO_NAV
       .filter(n => n.aliases.some(a => normalize(a).includes(q) || q.includes(normalize(a))))
-      .map(n => ({ section: n.section as MundoSectionKey, subTab: n.subTab as MundoSubTab, label: n.label }));
+      .map(n => ({ section: n.section as MundoSectionKey, subTab: n.subTab as string, label: n.label }));
   }, [query]);
 
   // mundoNavResults ya no se usa por separado — todo está en mundoSubTabResults

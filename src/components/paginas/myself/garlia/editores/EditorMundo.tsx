@@ -80,7 +80,7 @@ type CriaturaMin = { id: string; nombre: string; imagen_url?: string; habitat?: 
 type VarianteMin = { id: string; tipo: string };
 
 // ─── Hook: lista de reinos ─────────────────────────────────────────────────────
-function useReinos(enabled = true) {
+function useReinos() {
   const [reinos, setReinos] = useState<Reino[]>([]);
   const [loading, setLoading] = useState(true);
   const abortRef = useRef<AbortController | null>(null);
@@ -106,9 +106,9 @@ function useReinos(enabled = true) {
   }, []);
 
   useEffect(() => {
-    if (enabled) load(); else setLoading(false);
+    load();
     return () => { abortRef.current?.abort(); };
-  }, [load, enabled]);
+  }, [load]);
   return { reinos, setReinos, loading };
 }
 
@@ -136,12 +136,11 @@ const MAGIC_CONFIG = {
 } as const;
 
 // ─── Hooks ────────────────────────────────────────────────────────────────────
-function useCriaturas(enabled = true) {
+function useCriaturas() {
   const [criaturas, setCriaturas] = useState<CriaturaMin[]>([]);
   const [loading, setLoading] = useState(true);
   const abortRef = useRef<AbortController | null>(null);
   useEffect(() => {
-    if (!enabled) { setLoading(false); return; }
     abortRef.current?.abort();
     const ctrl = new AbortController();
     abortRef.current = ctrl;
@@ -159,18 +158,17 @@ function useCriaturas(enabled = true) {
       } catch (e: any) { if (ctrl.signal.aborted || e?.name === "AbortError") return; setLoading(false); }
     };
     run(); return () => { ctrl.abort(); };
-  }, [enabled]);
+  }, []);
   return { criaturas, setCriaturas, loading };
 }
 
 // Hook full para objetos (PanelListas)
 type ObjetoMin = { id: string; nombre: string; imagen_url?: string; categoria?: string };
-function useObjetos(enabled = true) {
+function useObjetos() {
   const [objetos, setObjetos] = useState<ObjetoMin[]>([]);
   const [loading, setLoading] = useState(true);
   const abortRef = useRef<AbortController | null>(null);
   useEffect(() => {
-    if (!enabled) { setLoading(false); return; }
     abortRef.current?.abort();
     const ctrl = new AbortController();
     abortRef.current = ctrl;
@@ -188,18 +186,17 @@ function useObjetos(enabled = true) {
       } catch (e: any) { if (ctrl.signal.aborted || e?.name === "AbortError") return; setLoading(false); }
     };
     run(); return () => { ctrl.abort(); };
-  }, [enabled]);
+  }, []);
   return { objetos, setObjetos, loading };
 }
 
 // Hook full para lugares (PanelListas)
 type LugarMin = { id: string; nombre: string; imagen_url?: string; tipo?: string; reino_id?: string };
-function useLugares(enabled = true) {
+function useLugares() {
   const [lugares, setLugares] = useState<LugarMin[]>([]);
   const [loading, setLoading] = useState(true);
   const abortRef = useRef<AbortController | null>(null);
   useEffect(() => {
-    if (!enabled) { setLoading(false); return; }
     abortRef.current?.abort();
     const ctrl = new AbortController();
     abortRef.current = ctrl;
@@ -217,17 +214,16 @@ function useLugares(enabled = true) {
       } catch (e: any) { if (ctrl.signal.aborted || e?.name === "AbortError") return; setLoading(false); }
     };
     run(); return () => { ctrl.abort(); };
-  }, [enabled]);
+  }, []);
   return { lugares, setLugares, loading };
 }
 
 
-function usePersonajesList(enabled = true) {
+function usePersonajesList() {
   const [personajes, setPersonajes] = useState<Personaje[]>([]);
   const [loading, setLoading] = useState(true);
   const abortRef = useRef<AbortController | null>(null);
   useEffect(() => {
-    if (!enabled) { setLoading(false); return; }
     abortRef.current?.abort();
     const ctrl = new AbortController();
     abortRef.current = ctrl;
@@ -245,7 +241,7 @@ function usePersonajesList(enabled = true) {
       } catch (e: any) { if (ctrl.signal.aborted || e?.name === "AbortError") return; setLoading(false); }
     };
     run(); return () => { ctrl.abort(); };
-  }, [enabled]);
+  }, []);
   return { personajes, setPersonajes, loading };
 }
 
@@ -279,12 +275,11 @@ function useCriaturaVariantes(criaturaId: string | null) {
   return { variantes, loading };
 }
 
-function useEntidadesMagicas(tabla: string, enabled = true) {
+function useEntidadesMagicas(tabla: string) {
   const [items, setItems] = useState<EntidadMagica[]>([]);
   const [loading, setLoading] = useState(true);
   const abortRef = useRef<AbortController | null>(null);
   useEffect(() => {
-    if (!enabled) { setLoading(false); return; }
     abortRef.current?.abort();
     const ctrl = new AbortController();
     abortRef.current = ctrl;
@@ -305,16 +300,15 @@ function useEntidadesMagicas(tabla: string, enabled = true) {
       } catch (e: any) { if (ctrl.signal.aborted || e?.name === "AbortError") return; setLoading(false); }
     };
     run(); return () => { ctrl.abort(); };
-  }, [tabla, enabled]);
+  }, [tabla]);
   return { items, setItems, loading };
 }
 
-function useRunas(enabled = true) {
+function useRunas() {
   const [items, setItems] = useState<Runa[]>([]);
   const [loading, setLoading] = useState(true);
   const abortRef = useRef<AbortController | null>(null);
   useEffect(() => {
-    if (!enabled) { setLoading(false); return; }
     abortRef.current?.abort();
     const ctrl = new AbortController();
     abortRef.current = ctrl;
@@ -332,19 +326,18 @@ function useRunas(enabled = true) {
       } catch (e: any) { if (ctrl.signal.aborted || e?.name === "AbortError") return; setLoading(false); }
     };
     run(); return () => { ctrl.abort(); };
-  }, [enabled]);
+  }, []);
   return { items, setItems, loading };
 }
 
 // ─── Hook: grupos de criaturas ────────────────────────────────────────────────
 type GrupoMin = { id: string; nombre: string; miembro_ids: string[] };
 
-function useGruposCriaturas(enabled = true) {
+function useGruposCriaturas() {
   const [grupos, setGrupos] = useState<GrupoMin[]>([]);
   const [loading, setLoading] = useState(true);
   const abortRef = useRef<AbortController | null>(null);
   useEffect(() => {
-    if (!enabled) { setLoading(false); return; }
     abortRef.current?.abort();
     const ctrl = new AbortController();
     abortRef.current = ctrl;
@@ -367,19 +360,18 @@ function useGruposCriaturas(enabled = true) {
     };
     run();
     return () => { ctrl.abort(); };
-  }, [enabled]);
+  }, []);
   return { grupos, loading };
 }
 
 // ─── Hook: todos los grupos (sin filtro de tipo) ──────────────────────────────
 type GrupoTodo = { id: string; nombre: string; tipo: string; miembro_ids: string[] };
 
-function useGruposTodos(enabled = true) {
+function useGruposTodos() {
   const [grupos, setGrupos] = useState<GrupoTodo[]>([]);
   const [loading, setLoading] = useState(true);
   const abortRef = useRef<AbortController | null>(null);
   useEffect(() => {
-    if (!enabled) { setLoading(false); return; }
     abortRef.current?.abort();
     const ctrl = new AbortController();
     abortRef.current = ctrl;
@@ -402,7 +394,7 @@ function useGruposTodos(enabled = true) {
     };
     run();
     return () => { ctrl.abort(); };
-  }, [enabled]);
+  }, []);
   return { grupos, loading };
 }
 

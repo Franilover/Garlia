@@ -1,5 +1,5 @@
 "use client";
-import { MotionDiv, MotionSpan } from "@/components/ui/Motion";
+import { MotionDiv } from "@/components/ui/Motion";
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -14,6 +14,17 @@ import {
   ChevronRight, Cat,
 } from "lucide-react";
 
+// ── Shared types ─────────────────────────────────────────────────────────────
+
+interface NavLinkDef {
+  href: string;
+  label: string;
+  icon: React.ElementType;
+  active: boolean;
+  fillActive?: boolean;
+}
+
+// ── Shared constants ──────────────────────────────────────────────────────────
 
 const navItemBase = {
   height: "44px",
@@ -36,11 +47,14 @@ const flyoutVariants = {
 
 const OUTLINE_THEMES = new Set(["pixel", "slate", "sepia"]);
 
+// ── Shared style helpers ──────────────────────────────────────────────────────
+
 function hoverIn(e: React.MouseEvent, active: boolean) {
   const el = e.currentTarget as HTMLElement;
   if (!active) el.style.background = "color-mix(in srgb, var(--primary) 6%, transparent)";
   el.style.color = "var(--primary)";
 }
+
 function hoverOut(e: React.MouseEvent, active: boolean) {
   const el = e.currentTarget as HTMLElement;
   if (!active) el.style.background = "transparent";
@@ -48,6 +62,8 @@ function hoverOut(e: React.MouseEvent, active: boolean) {
     ? "var(--primary)"
     : "color-mix(in srgb, var(--primary) 40%, transparent)";
 }
+
+// ── Sub-components ────────────────────────────────────────────────────────────
 
 function NavDivider({ margin = "6px 4px" }: { margin?: string }) {
   return (
@@ -59,9 +75,29 @@ function NavDivider({ margin = "6px 4px" }: { margin?: string }) {
   );
 }
 
-function SideSubItem({
-  href, label, icon: Icon, active, onClick,
-}: {
+function NavVerticalDivider() {
+  return (
+    <div style={{
+      width: "var(--border-width)",
+      alignSelf: "stretch",
+      background: "color-mix(in srgb, var(--primary) 12%, transparent)",
+      margin: "4px 2px",
+    }} />
+  );
+}
+
+function SubItemLabel({ active, icon: Icon, label }: {
+  active: boolean; icon: React.ElementType; label: string;
+}) {
+  return (
+    <>
+      <Icon size={13} strokeWidth={active ? 2.5 : 2} />
+      {label}
+    </>
+  );
+}
+
+function SideSubItem({ href, label, icon: Icon, active, onClick }: {
   href: string; label: string; icon: React.ElementType;
   active: boolean; onClick: () => void;
 }) {
@@ -85,19 +121,15 @@ function SideSubItem({
         el.style.color = active ? "var(--primary)" : "color-mix(in srgb, var(--primary) 60%, transparent)";
       }}
     >
-      <Icon size={13} strokeWidth={active ? 2.5 : 2} />
-      {label}
+      <SubItemLabel active={active} icon={Icon} label={label} />
     </Link>
   );
 }
 
-function SideNavItem({
-  href, label, icon: Icon, active, fillActive = false,
-  subLinks, onClose,
-}: {
+function SideNavItem({ href, label, icon: Icon, active, fillActive = false, subLinks, onClose }: {
   href: string; label: string; icon: React.ElementType;
   active: boolean; fillActive?: boolean;
-  subLinks?: { href: string; label: string; icon: React.ElementType }[];
+  subLinks?: NavLinkDef[];
   onClose: () => void;
 }) {
   const currentPath = usePathname();
@@ -167,13 +199,30 @@ function SideNavItem({
   );
 }
 
-function MobileNavItem({
-  href, label, icon: Icon, active, fillActive = false,
-  subLinks, isOpen, onToggle, onClose,
-}: {
+function MobileSubItem({ href, label, icon: Icon, active, onClose }: {
+  href: string; label: string; icon: React.ElementType;
+  active: boolean; onClose: () => void;
+}) {
+  return (
+    <Link
+      href={href}
+      onClick={() => setTimeout(onClose, 150)}
+      className="flex items-center gap-2.5 px-3 py-2 text-[10px] font-black uppercase tracking-widest transition-all"
+      style={{
+        borderRadius: "var(--radius-btn)",
+        background: active ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "transparent",
+        color: active ? "var(--primary)" : "color-mix(in srgb, var(--primary) 60%, transparent)",
+      }}
+    >
+      <SubItemLabel active={active} icon={Icon} label={label} />
+    </Link>
+  );
+}
+
+function MobileNavItem({ href, label, icon: Icon, active, fillActive = false, subLinks, isOpen, onToggle, onClose }: {
   href: string; label: string; icon: React.ElementType;
   active: boolean; fillActive?: boolean;
-  subLinks?: { href: string; label: string; icon: React.ElementType }[];
+  subLinks?: NavLinkDef[];
   isOpen: boolean; onToggle: () => void; onClose: () => void;
 }) {
   const currentPath = usePathname();
@@ -182,20 +231,19 @@ function MobileNavItem({
   const useOutline = OUTLINE_THEMES.has(theme);
 
   const btnStyle = (isActive: boolean, menuOpen: boolean): React.CSSProperties => {
+    const base = { borderRadius: "var(--radius-btn)", touchAction: "manipulation" as const };
     if (useOutline) {
       return {
-        borderRadius: "var(--radius-btn)",
+        ...base,
         border: isActive ? "var(--border-width) solid var(--primary)" : "var(--border-width) solid transparent",
         background: menuOpen ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent",
         color: (isActive || menuOpen) ? "var(--primary)" : "color-mix(in srgb, var(--primary) 40%, transparent)",
-        touchAction: "manipulation",
       };
     }
     return {
-      borderRadius: "var(--radius-btn)",
+      ...base,
       background: (isActive || menuOpen) ? "var(--primary)" : "transparent",
       color: (isActive || menuOpen) ? "var(--btn-text)" : "color-mix(in srgb, var(--primary) 40%, transparent)",
-      touchAction: "manipulation",
     };
   };
 
@@ -236,21 +284,11 @@ function MobileNavItem({
               {label}
             </p>
             {subLinks!.map(({ href: sub, label: subLabel, icon: SubIcon }) => (
-              <Link
-                key={sub} href={sub}
-                onClick={() => setTimeout(() => onClose(), 150)}
-                className="flex items-center gap-2.5 px-3 py-2 text-[10px] font-black uppercase tracking-widest transition-all"
-                style={{
-                  borderRadius: "var(--radius-btn)",
-                  background: currentPath?.includes(sub.split("?")[0])
-                    ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "transparent",
-                  color: currentPath?.includes(sub.split("?")[0])
-                    ? "var(--primary)" : "color-mix(in srgb, var(--primary) 60%, transparent)",
-                }}
-              >
-                <SubIcon size={13} />
-                {subLabel}
-              </Link>
+              <MobileSubItem
+                key={sub} href={sub} label={subLabel} icon={SubIcon}
+                active={!!currentPath?.includes(sub.split("?")[0])}
+                onClose={onClose}
+              />
             ))}
           </MotionDiv>
         )}
@@ -259,20 +297,16 @@ function MobileNavItem({
   );
 }
 
+// ── Main component ────────────────────────────────────────────────────────────
+
 const Navbar = () => {
   const currentPath = usePathname();
   const { user, isAdmin } = useAuth() as { user: any; isAdmin: boolean };
   const [themeMenuOpen,  setThemeMenuOpen]  = useState(false);
   const [mobileOpenMenu, setMobileOpenMenu] = useState<string | null>(null);
   const { dark, toggleDark, theme } = useTheme();
-  const isDark = dark === "dark";
   const useOutline = OUTLINE_THEMES.has(theme);
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    localStorage.clear();
-    window.location.href = "/";
-  };
+  const isDark = dark === "dark";
 
   const closeAll = () => {
     setThemeMenuOpen(false);
@@ -281,28 +315,46 @@ const Navbar = () => {
 
   useEffect(() => { closeAll(); }, [currentPath]);
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    localStorage.clear();
+    window.location.href = "/";
+  };
+
+  // ── Route flags ─────────────────────────────────────────────────────────────
+
   const isEscritorio   = currentPath?.startsWith("/myself/escritorio") ?? false;
   const isGarliaeditor = currentPath?.startsWith("/myself/garlia")     ?? false;
   const isGarlia       = currentPath?.startsWith("/garlia")            ?? false;
   const isPersonal     = currentPath?.startsWith("/personal")          ?? false;
   const personalIsActive = currentPath === "/garlia/personal";
 
-  const personalLinks = [
+  // ── Link definitions ─────────────────────────────────────────────────────────
+
+  const personalLinks: NavLinkDef[] = [
     { href: "/personal/sobre-mi", label: "Sobre Mí", icon: Star,    active: currentPath?.startsWith("/personal/sobre-mi") ?? false, fillActive: true  },
     { href: "/personal/galeria",  label: "Galería",  icon: Palette, active: currentPath?.startsWith("/personal/galeria")  ?? false, fillActive: false },
   ];
-  const garliaLinks = [
-    { href: "/garlia/mapa",      label: "Mapa",      icon: Compass,  active: currentPath?.startsWith("/garlia/mapa")      ?? false, fillActive: false },
-    { href: "/garlia/libros",    label: "Libros",     icon: BookText, active: currentPath?.startsWith("/garlia/libros")    ?? false, fillActive: false },
-    { href: "/garlia/canciones", label: "Canciones",  icon: Music,    active: currentPath?.startsWith("/garlia/canciones") ?? false, fillActive: false },
+
+  const garliaLinks: NavLinkDef[] = [
+    { href: "/garlia/mapa",      label: "Mapa",      icon: Compass,  active: currentPath?.startsWith("/garlia/mapa")      ?? false },
+    { href: "/garlia/libros",    label: "Libros",    icon: BookText, active: currentPath?.startsWith("/garlia/libros")    ?? false },
+    { href: "/garlia/canciones", label: "Canciones", icon: Music,    active: currentPath?.startsWith("/garlia/canciones") ?? false },
   ];
-  const mainLinks = [
+
+  const mainLinks: NavLinkDef[] = [
     { href: "/personal", label: "Personal", icon: Star,    active: isPersonal, fillActive: true  },
     { href: "/garlia",   label: "Jardín",   icon: Flower2, active: isGarlia,   fillActive: false },
   ];
-  const franiLinks = [
+
+  const franiLinks: NavLinkDef[] = [
     { href: "/myself/garlia", label: "Arte", icon: Cat, active: isGarliaeditor },
   ];
+
+  // ── Shared mobile toggle handler ─────────────────────────────────────────────
+
+  const mobileToggle = (href: string) =>
+    setMobileOpenMenu(mobileOpenMenu === href ? null : href);
 
   return (
     <>
@@ -351,6 +403,7 @@ const Navbar = () => {
         <div className="flex flex-col gap-1 px-2 pb-4 shrink-0">
           <NavDivider margin="4px 4px 8px" />
 
+          {/* Theme button */}
           <div className="relative">
             <button
               onClick={() => setThemeMenuOpen(!themeMenuOpen)}
@@ -391,6 +444,7 @@ const Navbar = () => {
             </AnimatePresence>
           </div>
 
+          {/* Auth buttons */}
           {user ? (
             <div className="flex flex-col gap-1">
               <Link href="/garlia/personal" title="Mi Personaje" onClick={closeAll}
@@ -400,8 +454,8 @@ const Navbar = () => {
                   color: personalIsActive ? "var(--primary)" : "color-mix(in srgb, var(--primary) 50%, transparent)",
                   background: personalIsActive ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent",
                 }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 6%, transparent)"; (e.currentTarget as HTMLElement).style.color = "var(--primary)"; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = personalIsActive ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent"; (e.currentTarget as HTMLElement).style.color = personalIsActive ? "var(--primary)" : "color-mix(in srgb, var(--primary) 50%, transparent)"; }}
+                onMouseEnter={(e) => hoverIn(e, personalIsActive)}
+                onMouseLeave={(e) => hoverOut(e, personalIsActive)}
               >
                 <span className="shrink-0 flex items-center justify-center" style={{ width: "28px" }}><CircleUser size={18} /></span>
               </Link>
@@ -418,8 +472,8 @@ const Navbar = () => {
             <Link href="/auth/login"
               className="flex items-center gap-3 transition-all duration-200 overflow-hidden"
               style={{ ...navItemBase, color: "color-mix(in srgb, var(--primary) 50%, transparent)" }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 6%, transparent)"; (e.currentTarget as HTMLElement).style.color = "var(--primary)"; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "transparent"; (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--primary) 50%, transparent)"; }}
+              onMouseEnter={(e) => hoverIn(e, false)}
+              onMouseLeave={(e) => hoverOut(e, false)}
             >
               <span className="shrink-0 flex items-center justify-center" style={{ width: "28px" }}><CircleUser size={18} /></span>
             </Link>
@@ -460,6 +514,7 @@ const Navbar = () => {
             borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
           }}
         >
+          {/* Theme toggle */}
           <div className="flex items-center z-[101]">
             <button
               onClick={() => { setThemeMenuOpen(!themeMenuOpen); setMobileOpenMenu(null); }}
@@ -474,6 +529,7 @@ const Navbar = () => {
             </button>
           </div>
 
+          {/* Center nav items */}
           <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1 p-1 z-[101]"
             style={{
               background: "color-mix(in srgb, var(--primary) 5%, transparent)",
@@ -488,11 +544,11 @@ const Navbar = () => {
                     key={href} href={href} label={label} icon={icon}
                     active={active} fillActive={fillActive}
                     isOpen={mobileOpenMenu === href}
-                    onToggle={() => setMobileOpenMenu(mobileOpenMenu === href ? null : href)}
+                    onToggle={() => mobileToggle(href)}
                     onClose={closeAll}
                   />
                 ))}
-                <div style={{ width: "var(--border-width)", alignSelf: "stretch", background: "color-mix(in srgb, var(--primary) 12%, transparent)", margin: "4px 2px" }} />
+                <NavVerticalDivider />
                 <Link
                   href="/myself/escritorio" onClick={closeAll}
                   className="flex items-center justify-center transition-all"
@@ -509,9 +565,9 @@ const Navbar = () => {
                 {franiLinks.map(({ href, label, icon, active }) => (
                   <MobileNavItem
                     key={href} href={href} label={label} icon={icon}
-                    active={active} fillActive={false}
+                    active={active}
                     isOpen={mobileOpenMenu === href}
-                    onToggle={() => setMobileOpenMenu(mobileOpenMenu === href ? null : href)}
+                    onToggle={() => mobileToggle(href)}
                     onClose={closeAll}
                   />
                 ))}
@@ -523,17 +579,17 @@ const Navbar = () => {
                     key={href} href={href} label={label} icon={icon}
                     active={active} fillActive={fillActive}
                     isOpen={mobileOpenMenu === href}
-                    onToggle={() => setMobileOpenMenu(mobileOpenMenu === href ? null : href)}
+                    onToggle={() => mobileToggle(href)}
                     onClose={closeAll}
                   />
                 ))}
-                <div style={{ width: "var(--border-width)", alignSelf: "stretch", background: "color-mix(in srgb, var(--primary) 12%, transparent)", margin: "4px 2px" }} />
+                <NavVerticalDivider />
                 {garliaLinks.map(({ href, label, icon, active, fillActive }) => (
                   <MobileNavItem
                     key={href} href={href} label={label} icon={icon}
                     active={active} fillActive={fillActive}
                     isOpen={mobileOpenMenu === href}
-                    onToggle={() => setMobileOpenMenu(mobileOpenMenu === href ? null : href)}
+                    onToggle={() => mobileToggle(href)}
                     onClose={closeAll}
                   />
                 ))}
@@ -541,6 +597,7 @@ const Navbar = () => {
             )}
           </div>
 
+          {/* Auth buttons */}
           <div className="flex items-center gap-1 z-[101]">
             {user ? (
               <>
@@ -572,13 +629,6 @@ const Navbar = () => {
           </div>
         </div>
       </div>
-
-      {themeMenuOpen && (
-        <div className="fixed inset-0 z-[90]"
-          style={{ background: "color-mix(in srgb, var(--foreground) 5%, transparent)" }}
-          onClick={closeAll}
-        />
-      )}
     </>
   );
 };
