@@ -1781,12 +1781,12 @@ function PanelTexto({
         <MarkdownEditor value={texto} onChange={onChange} placeholder={placeholder} rows={22} toolbar defaultMode="edit" onSnippetAction={onSnippetAction}
 />
       </div>
-      <div className="shrink-0 flex items-center justify-end gap-3 px-3 sm:px-5 py-2.5 sm:py-3 border-t"
+      <div className="shrink-0 flex items-center justify-end gap-2 px-3 py-1.5 border-t"
         style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
         <SaveIndicator status={status} />
         <button onClick={handle} disabled={status === "saving"}
-          className="flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50">
-          <SaveIcon size={11} /> <span className="hidden sm:inline">{saveLabel}</span><span className="sm:hidden">Guardar</span>
+          className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-sm shadow-primary/20 disabled:opacity-50">
+          <SaveIcon size={10} /> Guardar
         </button>
       </div>
     </div>
