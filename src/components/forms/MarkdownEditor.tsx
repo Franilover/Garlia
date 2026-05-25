@@ -4,6 +4,21 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Eye, Edit3, Columns, Search, Replace, X, ChevronUp, ChevronDown } from "lucide-react";
 import { parseContenido, parseSections } from "@/components/paginas/garlia/libros/leer/type";
 import { RenderSegmentos }               from "@/components/paginas/garlia/libros/leer/segmentos/ContenidoInteractivo";
+// ── Store global de sincronización de modo ───────────────────────────────────
+// Sin contexto ni provider — todos los MarkdownEditor de la app se sincronizan
+// automáticamente. Los suscriptores son callbacks registrados por cada instancia.
+type ViewModeSync = "edit" | "preview" | "split";
+let _syncMode: ViewModeSync | null = null;
+const _listeners = new Set<(m: ViewModeSync) => void>();
+function syncSetMode(m: ViewModeSync) {
+  if (_syncMode === m) return;
+  _syncMode = m;
+  _listeners.forEach(fn => fn(m));
+}
+function syncSubscribe(fn: (m: ViewModeSync) => void) {
+  _listeners.add(fn);
+  return () => { _listeners.delete(fn); };
+}
 
 // ── Slug helper for heading IDs ─────────────────────────────────────────────
 function slugify(text: string): string {
@@ -951,8 +966,18 @@ export function MarkdownEditor({
   renderOverlay,
   sectionTitle,
 }: MarkdownEditorProps) {
-  const [modeInternal, setMode] = useState<ViewMode>(modeProp ?? defaultMode);
+  const [modeInternal, setModeInternal] = useState<ViewMode>(
+    modeProp ?? (_syncMode ?? defaultMode)
+  );
   const mode = modeProp ?? modeInternal;
+
+  // Publicar al store global cuando el usuario cambia de modo
+  const setMode = useCallback((m: ViewMode) => {
+    setModeInternal(m);
+    syncSetMode(m as ViewModeSync);
+  }, []);
+
+
   const taRef = useRef<HTMLTextAreaElement>(null);
   const pvRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -1061,6 +1086,21 @@ export function MarkdownEditor({
   const SPLIT_MIN_WIDTH = 480; // px mínimos para habilitar el modo split
   const [containerWidth, setContainerWidth] = useState<number>(9999);
   const isMobile = containerWidth < SPLIT_MIN_WIDTH;
+
+  // Suscribirse al store global para recibir cambios de otros editores
+  // (declarado aquí para tener acceso a containerWidth)
+  useEffect(() => {
+    const unsub = syncSubscribe((m) => {
+      if (modeProp) return;
+      if (m === "split" && containerWidth < SPLIT_MIN_WIDTH) {
+        setModeInternal("edit");
+        return;
+      }
+      setModeInternal(m as ViewMode);
+    });
+    return () => { unsub(); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [containerWidth, modeProp]);
 
   useEffect(() => {
     const el = containerRef.current;
