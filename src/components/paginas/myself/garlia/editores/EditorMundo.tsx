@@ -26,6 +26,7 @@ import { EditorGrupo, useGrupos, type Grupo, GRUPO_TIPO_CONFIG } from "./EditorG
 import EstudioCapitulos from "@/components/paginas/myself/garlia/editores/editorCapitulos";
 import { useCanciones } from "@/components/paginas/myself/garlia/editores/editorLetras/hooks/useCanciones";
 import { PanelEditor } from "@/components/paginas/myself/garlia/editores/editorLetras/components/editor/PanelEditor";
+import { ModalNuevaCancion } from "@/components/paginas/myself/garlia/editores/editorLetras/components/modals/ModalNuevaCancion";
 import type { Cancion } from "@/components/paginas/myself/garlia/editores/editorLetras/types";
 
 
@@ -1146,6 +1147,7 @@ function PanelListas({
   const [selectedNota,      setSelectedNota]      = useState<Nota | null>(null);
   const [selectedGrupo,     setSelectedGrupo]     = useState<Grupo | null>(null);
   const [selectedCancion,   setSelectedCancion]   = useState<Cancion | null>(null);
+  const [showModalCancion,  setShowModalCancion]  = useState(false);
 
   // ── Scroll position ───────────────────────────────────────────────────────
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -1342,19 +1344,11 @@ function PanelListas({
   }, []);
 
   useEffect(() => {
-    const check = async () => {
+    const check = () => {
       const action = localStorage.getItem("estudio-letras-action");
       if (action !== "nueva-cancion") return;
       localStorage.removeItem("estudio-letras-action");
-      try {
-        const { data, error } = await supabase
-          .from("canciones")
-          .insert([{ titulo: "Nueva canción" }])
-          .select("*")
-          .single();
-        if (error || !data) return;
-        setSelectedCancion(data as unknown as Cancion);
-      } catch {}
+      setShowModalCancion(true);
     };
     check();
     window.addEventListener("estudio-letras-action", check);
@@ -1668,6 +1662,17 @@ function PanelListas({
           </div>
 
         </div>
+      )}
+
+      {/* Modal nueva canción */}
+      {showModalCancion && (
+        <ModalNuevaCancion
+          onCreated={(c: Cancion) => {
+            setShowModalCancion(false);
+            setSelectedCancion(c as unknown as Cancion);
+          }}
+          onClose={() => setShowModalCancion(false)}
+        />
       )}
 
     </div>
