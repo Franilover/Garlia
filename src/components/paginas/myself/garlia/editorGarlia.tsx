@@ -455,19 +455,19 @@ export default function EditorEntidades() {
               setShowNuevoGrupo(true);
             } else if (key === "libro") {
               localStorage.setItem("estudio-caps-action", "nuevo-libro");
-              window.dispatchEvent(new Event("estudio-caps-action"));
               setTab("mundo");
               setMundoSection("geografia");
+              setTimeout(() => window.dispatchEvent(new Event("estudio-caps-action")), 0);
             } else if (key === "capitulo") {
               localStorage.setItem("estudio-caps-action", "nuevo-cap");
-              window.dispatchEvent(new Event("estudio-caps-action"));
               setTab("mundo");
               setMundoSection("geografia");
+              setTimeout(() => window.dispatchEvent(new Event("estudio-caps-action")), 0);
             } else if (key === "cancion") {
               localStorage.setItem("estudio-letras-action", "nueva-cancion");
-              window.dispatchEvent(new Event("estudio-letras-action"));
               setTab("mundo");
               setMundoSection("geografia");
+              setTimeout(() => window.dispatchEvent(new Event("estudio-letras-action")), 0);
             } else if (key === "lugar") {
               localStorage.setItem("estudio-listas-action", "nuevo-lugar");
               setTab("mundo");
