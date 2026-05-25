@@ -14,7 +14,7 @@ import { useMundoSecciones } from "./editorEntidades/hooks";
 import { GlobalSearchBar, ModalAcontecimiento, ModalNuevoGrupo, type AllItems, type MagicAddKey } from "./editorEntidades/SidebarComponents";
 import { EditorMundo }     from "./editores/EditorMundo";
 import { EditorHechizos }  from "./editores/EditorHechizos";
-import { EditorGrupo }     from "./editores/EditorGrupo";
+import { EditorGrupoStandalone } from "./editores/EditorGrupo";
 import { WikilinkProvider } from "@/components/forms/WikilinkContext";
 
 
@@ -560,7 +560,7 @@ export default function EditorEntidades() {
               }}
             />
           ) : isGruposTab ? (
-            <EditorGrupo
+            <EditorGrupoStandalone
               key="grupos"
               initialSelectedId={requestedGrupoId}
               onClickMiembro={(id, tabla) => {
