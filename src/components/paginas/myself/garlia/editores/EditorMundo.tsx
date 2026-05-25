@@ -1710,10 +1710,8 @@ function PanelListas({
             <SeccionEntidades icon={Music} label="Canciones" count={canciones.length} loading={loadingCanciones}>
               {canciones.map(c => (
                 <Chip key={c.id} onClick={() => {
-                  try {
-                    localStorage.setItem("estudio-letras-last-id", c.id);
-                    window.dispatchEvent(new CustomEvent("estudio-letras-open", { detail: { id: c.id } }));
-                  } catch {}
+                  try { localStorage.setItem("estudio-letras-last-id", c.id); } catch {}
+                  window.location.href = "/garlia/canciones";
                 }} icon={Music} nombre={c.titulo} />
               ))}
             </SeccionEntidades>
