@@ -1365,10 +1365,11 @@ function PanelListas({
         else if (tabla === "runas")      setSelectedRuna(data);
         else if (tabla === "lugares")    setSelectedLugar(data as Lugar);
         else if (tabla === "grupos_mundo") setSelectedGrupo(data as Grupo);
+        else if (tabla === "canciones")  setSelectedCancion(data as Cancion); // <--- AÑADIDO
       } catch {}
     })();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
 
   // ── Abrir item desde buscador global (openItem prop) ─────────────────────
   const lastOpenItemRef = useRef<string | null>(null);
@@ -1377,6 +1378,7 @@ function PanelListas({
     const key = `${openItem.tabla}:${openItem.id}`;
     const { tabla, id } = openItem;
     let found: any = null;
+    
     if      (tabla === "personajes") found = personajes.find(x => x.id === id);
     else if (tabla === "criaturas")  found = criaturas.find(x => x.id === id);
     else if (tabla === "items")      found = objetos.find(x => x.id === id);
@@ -1385,8 +1387,11 @@ function PanelListas({
     else if (tabla === "hechizos")   found = hechizos.find(x => x.id === id);
     else if (tabla === "dones")      found = dones.find(x => x.id === id);
     else if (tabla === "runas")      found = runas.find(x => x.id === id);
+    else if (tabla === "canciones")  found = canciones.find(x => x.id === id); // <--- AÑADIDO
+
     if (!found || lastOpenItemRef.current === key) return;
     lastOpenItemRef.current = key;
+    
     if      (tabla === "personajes") setSelectedPersonaje(found);
     else if (tabla === "criaturas")  setSelectedCriatura(found);
     else if (tabla === "items")      setSelectedObjeto(found);
@@ -1395,12 +1400,13 @@ function PanelListas({
     else if (tabla === "hechizos")   setSelectedHechizo(found);
     else if (tabla === "dones")      setSelectedDon(found);
     else if (tabla === "runas")      setSelectedRuna(found);
+    else if (tabla === "canciones")  setSelectedCancion(found); // <--- AÑADIDO
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openItem,
       personajes.length, criaturas.length, objetos.length, reinos.length,
-      lugares.length, hechizos.length, dones.length, runas.length]);
+      lugares.length, hechizos.length, dones.length, runas.length, canciones.length]); // <--- AÑADIDA DEPENDENCIA
 
-  // ── onItemCreated ─────────────────────────────────────────────────────────
+// ── onItemCreated ─────────────────────────────────────────────────────────
   useEffect(() => {
     if (!onItemCreated) return;
     const { tabla, item } = onItemCreated;
@@ -1412,6 +1418,7 @@ function PanelListas({
     else if (tabla === "hechizos")   setHechizos(p   => p.some(x => x.id === item.id) ? p : [item, ...p]);
     else if (tabla === "dones")      setDones(p      => p.some(x => x.id === item.id) ? p : [item, ...p]);
     else if (tabla === "runas")      setRunas(p      => p.some(x => x.id === item.id) ? p : [item, ...p]);
+
     if      (tabla === "personajes") setSelectedPersonaje(item);
     else if (tabla === "criaturas")  setSelectedCriatura(item);
     else if (tabla === "items")      setSelectedObjeto(item);
@@ -1420,6 +1427,7 @@ function PanelListas({
     else if (tabla === "hechizos")   setSelectedHechizo(item);
     else if (tabla === "dones")      setSelectedDon(item);
     else if (tabla === "runas")      setSelectedRuna(item);
+    else if (tabla === "canciones")  setSelectedCancion(item); // <--- AÑADIDO
   }, [onItemCreated]);
 
   // ── nuevo-lugar / nueva-nota actions ─────────────────────────────────────
