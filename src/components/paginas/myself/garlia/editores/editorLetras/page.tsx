@@ -454,6 +454,17 @@ export default function EstudioLetras() {
     return () => window.removeEventListener("estudio-letras-action", check);
   }, []);
 
+  // Abrir canción específica desde EditorMundo
+  useEffect(() => {
+    const handleOpen = (e: Event) => {
+      const id = (e as CustomEvent<{ id: string }>).detail?.id;
+      if (id) setSelectedId(id);
+    };
+    window.addEventListener("estudio-letras-open", handleOpen);
+    return () => window.removeEventListener("estudio-letras-open", handleOpen);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const ORDEN_ESTADO: Record<string, number> = { TERMINADA: 0, "EN PROCESO": 1, PENDIENTE: 2 };
 
   const cancionesOrdenadas = useMemo(() => [...canciones].sort((a, b) => {

@@ -1708,7 +1708,14 @@ function PanelListas({
             <div className={div} style={divStyle} />
 
             <SeccionEntidades icon={Music} label="Canciones" count={canciones.length} loading={loadingCanciones}>
-              {canciones.map(c => <Chip key={c.id} onClick={() => {}} icon={Music} nombre={c.titulo} />)}
+              {canciones.map(c => (
+                <Chip key={c.id} onClick={() => {
+                  try {
+                    localStorage.setItem("estudio-letras-last-id", c.id);
+                    window.dispatchEvent(new CustomEvent("estudio-letras-open", { detail: { id: c.id } }));
+                  } catch {}
+                }} icon={Music} nombre={c.titulo} />
+              ))}
             </SeccionEntidades>
             <div className={div} style={divStyle} />
 
