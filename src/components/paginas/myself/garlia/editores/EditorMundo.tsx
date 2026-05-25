@@ -79,37 +79,102 @@ type Runa = {
 type CriaturaMin = { id: string; nombre: string; imagen_url?: string; habitat?: string };
 type VarianteMin = { id: string; tipo: string };
 
-// ─── Hook: lista de reinos ─────────────────────────────────────────────────────
-function useReinos() {
-  const [reinos, setReinos] = useState<Reino[]>([]);
+// ─── Hook genérico de carga: local (Dexie) → remoto (Supabase) ───────────────
+// Reemplaza useReinos, useCriaturas, useObjetos, useLugares, usePersonajesList,
+// useEntidadesMagicas y useRunas, que eran idénticos salvo la tabla y el select.
+function useEntityList<T>(
+  tablaLocal: string,
+  buildQuery: () => any,
+  mapResult: (row: any) => T = (r) => r as T,
+) {
+  const [items, setItems] = useState<T[]>([]);
   const [loading, setLoading] = useState(true);
   const abortRef = useRef<AbortController | null>(null);
 
-  const load = useCallback(async () => {
+  useEffect(() => {
     abortRef.current?.abort();
     const ctrl = new AbortController();
     abortRef.current = ctrl;
-    try {
-      const local = await dexieReadAll<Reino>("reinos");
-      if (ctrl.signal.aborted) return;
-      if (local.length) { setReinos(local); setLoading(false); }
-      if (!navigator.onLine) { if (!local.length) setLoading(false); return; }
-      const { data } = await (supabase.from("reinos").select("*").order("nombre") as any).abortSignal(ctrl.signal);
-      if (ctrl.signal.aborted) return;
-      const result = (data ?? []) as Reino[];
-      setReinos(result); setLoading(false);
-      await dexieWriteAll("reinos", result);
-    } catch (e: any) {
-      if (ctrl.signal.aborted || e?.name === "AbortError") return;
-      setLoading(false);
-    }
-  }, []);
+    const run = async () => {
+      try {
+        const local = await dexieReadAll<T>(tablaLocal);
+        if (ctrl.signal.aborted) return;
+        if (local.length) { setItems(local); setLoading(false); }
+        if (!navigator.onLine) { if (!local.length) setLoading(false); return; }
+        const { data } = await buildQuery().abortSignal(ctrl.signal);
+        if (ctrl.signal.aborted) return;
+        const result = (data ?? []).map(mapResult) as T[];
+        setItems(result); setLoading(false);
+        await dexieWriteAll(tablaLocal, result);
+      } catch (e: any) {
+        if (ctrl.signal.aborted || e?.name === "AbortError") return;
+        setLoading(false);
+      }
+    };
+    run();
+    return () => { ctrl.abort(); };
+  // buildQuery and mapResult are defined inline at call site — stable refs not needed
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tablaLocal]);
 
-  useEffect(() => {
-    load();
-    return () => { abortRef.current?.abort(); };
-  }, [load]);
-  return { reinos, setReinos, loading };
+  return { items, setItems, loading };
+}
+
+// Wrappers tipados que conservan los nombres originales usados en PanelListas
+function useReinos() {
+  const { items, setItems, loading } = useEntityList<Reino>(
+    "reinos",
+    () => supabase.from("reinos").select("*").order("nombre"),
+  );
+  return { reinos: items, setReinos: setItems, loading };
+}
+
+function useCriaturas() {
+  const { items, setItems, loading } = useEntityList<CriaturaMin>(
+    "criaturas",
+    () => supabase.from("criaturas").select("id, nombre, imagen_url, habitat").order("nombre"),
+  );
+  return { criaturas: items, setCriaturas: setItems, loading };
+}
+
+function useObjetos() {
+  const { items, setItems, loading } = useEntityList<ObjetoMin>(
+    "items",
+    () => supabase.from("items").select("id, nombre, imagen_url, categoria").order("nombre"),
+  );
+  return { objetos: items, setObjetos: setItems, loading };
+}
+
+function useLugares() {
+  const { items, setItems, loading } = useEntityList<LugarMin>(
+    "lugares",
+    () => supabase.from("lugares").select("id, nombre, imagen_url, tipo, reino_id").order("nombre"),
+  );
+  return { lugares: items, setLugares: setItems, loading };
+}
+
+function usePersonajesList() {
+  const { items, setItems, loading } = useEntityList<Personaje>(
+    "personajes",
+    () => supabase.from("personajes").select("*").order("nombre"),
+  );
+  return { personajes: items, setPersonajes: setItems, loading };
+}
+
+function useEntidadesMagicas(tabla: string) {
+  const { items, setItems, loading } = useEntityList<EntidadMagica>(
+    tabla,
+    () => supabase.from(tabla).select("id, nombre, explicacion, grupo_ids").order("nombre"),
+  );
+  return { items, setItems, loading };
+}
+
+function useRunas() {
+  const { items, setItems, loading } = useEntityList<Runa>(
+    "runas",
+    () => supabase.from("runas").select("id, nombre, explicacion, imagen_url").order("nombre"),
+  );
+  return { items, setItems, loading };
 }
 
 // ─── Configuración por subtab mágico ─────────────────────────────────────────
@@ -135,115 +200,9 @@ const MAGIC_CONFIG = {
   },
 } as const;
 
-// ─── Hooks ────────────────────────────────────────────────────────────────────
-function useCriaturas() {
-  const [criaturas, setCriaturas] = useState<CriaturaMin[]>([]);
-  const [loading, setLoading] = useState(true);
-  const abortRef = useRef<AbortController | null>(null);
-  useEffect(() => {
-    abortRef.current?.abort();
-    const ctrl = new AbortController();
-    abortRef.current = ctrl;
-    const run = async () => {
-      try {
-        const local = await dexieReadAll<CriaturaMin>("criaturas");
-        if (ctrl.signal.aborted) return;
-        if (local.length) { setCriaturas(local); setLoading(false); }
-        if (!navigator.onLine) { if (!local.length) setLoading(false); return; }
-        const { data } = await (supabase.from("criaturas").select("id, nombre, imagen_url, habitat").order("nombre") as any).abortSignal(ctrl.signal);
-        if (ctrl.signal.aborted) return;
-        const result = (data ?? []) as CriaturaMin[];
-        setCriaturas(result); setLoading(false);
-        await dexieWriteAll("criaturas", result);
-      } catch (e: any) { if (ctrl.signal.aborted || e?.name === "AbortError") return; setLoading(false); }
-    };
-    run(); return () => { ctrl.abort(); };
-  }, []);
-  return { criaturas, setCriaturas, loading };
-}
-
-// Hook full para objetos (PanelListas)
+// ─── Tipos locales de entidades mínimas ──────────────────────────────────────
 type ObjetoMin = { id: string; nombre: string; imagen_url?: string; categoria?: string };
-function useObjetos() {
-  const [objetos, setObjetos] = useState<ObjetoMin[]>([]);
-  const [loading, setLoading] = useState(true);
-  const abortRef = useRef<AbortController | null>(null);
-  useEffect(() => {
-    abortRef.current?.abort();
-    const ctrl = new AbortController();
-    abortRef.current = ctrl;
-    const run = async () => {
-      try {
-        const local = await dexieReadAll<ObjetoMin>("items");
-        if (ctrl.signal.aborted) return;
-        if (local.length) { setObjetos(local); setLoading(false); }
-        if (!navigator.onLine) { if (!local.length) setLoading(false); return; }
-        const { data } = await (supabase.from("items").select("id, nombre, imagen_url, categoria").order("nombre") as any).abortSignal(ctrl.signal);
-        if (ctrl.signal.aborted) return;
-        const result = (data ?? []) as ObjetoMin[];
-        setObjetos(result); setLoading(false);
-        await dexieWriteAll("items", result);
-      } catch (e: any) { if (ctrl.signal.aborted || e?.name === "AbortError") return; setLoading(false); }
-    };
-    run(); return () => { ctrl.abort(); };
-  }, []);
-  return { objetos, setObjetos, loading };
-}
-
-// Hook full para lugares (PanelListas)
-type LugarMin = { id: string; nombre: string; imagen_url?: string; tipo?: string; reino_id?: string };
-function useLugares() {
-  const [lugares, setLugares] = useState<LugarMin[]>([]);
-  const [loading, setLoading] = useState(true);
-  const abortRef = useRef<AbortController | null>(null);
-  useEffect(() => {
-    abortRef.current?.abort();
-    const ctrl = new AbortController();
-    abortRef.current = ctrl;
-    const run = async () => {
-      try {
-        const local = await dexieReadAll<LugarMin>("lugares");
-        if (ctrl.signal.aborted) return;
-        if (local.length) { setLugares(local); setLoading(false); }
-        if (!navigator.onLine) { if (!local.length) setLoading(false); return; }
-        const { data } = await (supabase.from("lugares").select("id, nombre, imagen_url, tipo, reino_id").order("nombre") as any).abortSignal(ctrl.signal);
-        if (ctrl.signal.aborted) return;
-        const result = (data ?? []) as LugarMin[];
-        setLugares(result); setLoading(false);
-        await dexieWriteAll("lugares", result);
-      } catch (e: any) { if (ctrl.signal.aborted || e?.name === "AbortError") return; setLoading(false); }
-    };
-    run(); return () => { ctrl.abort(); };
-  }, []);
-  return { lugares, setLugares, loading };
-}
-
-
-function usePersonajesList() {
-  const [personajes, setPersonajes] = useState<Personaje[]>([]);
-  const [loading, setLoading] = useState(true);
-  const abortRef = useRef<AbortController | null>(null);
-  useEffect(() => {
-    abortRef.current?.abort();
-    const ctrl = new AbortController();
-    abortRef.current = ctrl;
-    const run = async () => {
-      try {
-        const local = await dexieReadAll<Personaje>("personajes");
-        if (ctrl.signal.aborted) return;
-        if (local.length) { setPersonajes(local); setLoading(false); }
-        if (!navigator.onLine) { if (!local.length) setLoading(false); return; }
-        const { data } = await (supabase.from("personajes").select("*").order("nombre") as any).abortSignal(ctrl.signal);
-        if (ctrl.signal.aborted) return;
-        const result = (data ?? []) as Personaje[];
-        setPersonajes(result); setLoading(false);
-        await dexieWriteAll("personajes", result);
-      } catch (e: any) { if (ctrl.signal.aborted || e?.name === "AbortError") return; setLoading(false); }
-    };
-    run(); return () => { ctrl.abort(); };
-  }, []);
-  return { personajes, setPersonajes, loading };
-}
+type LugarMin  = { id: string; nombre: string; imagen_url?: string; tipo?: string; reino_id?: string };
 
 function useCriaturaVariantes(criaturaId: string | null) {
   const [variantes, setVariantes] = useState<VarianteMin[]>([]);
@@ -275,102 +234,15 @@ function useCriaturaVariantes(criaturaId: string | null) {
   return { variantes, loading };
 }
 
-function useEntidadesMagicas(tabla: string) {
-  const [items, setItems] = useState<EntidadMagica[]>([]);
-  const [loading, setLoading] = useState(true);
-  const abortRef = useRef<AbortController | null>(null);
-  useEffect(() => {
-    abortRef.current?.abort();
-    const ctrl = new AbortController();
-    abortRef.current = ctrl;
-    const run = async () => {
-      try {
-        const local = await dexieReadAll<EntidadMagica>(tabla);
-        if (ctrl.signal.aborted) return;
-        if (local.length) { setItems(local); setLoading(false); }
-        if (!navigator.onLine) { if (!local.length) setLoading(false); return; }
-        const { data } = await (supabase
-          .from(tabla)
-          .select("id, nombre, explicacion, grupo_ids")
-          .order("nombre") as any).abortSignal(ctrl.signal);
-        if (ctrl.signal.aborted) return;
-        const result = (data ?? []) as EntidadMagica[];
-        setItems(result); setLoading(false);
-        await dexieWriteAll(tabla, result);
-      } catch (e: any) { if (ctrl.signal.aborted || e?.name === "AbortError") return; setLoading(false); }
-    };
-    run(); return () => { ctrl.abort(); };
-  }, [tabla]);
-  return { items, setItems, loading };
-}
-
-function useRunas() {
-  const [items, setItems] = useState<Runa[]>([]);
-  const [loading, setLoading] = useState(true);
-  const abortRef = useRef<AbortController | null>(null);
-  useEffect(() => {
-    abortRef.current?.abort();
-    const ctrl = new AbortController();
-    abortRef.current = ctrl;
-    const run = async () => {
-      try {
-        const local = await dexieReadAll<Runa>("runas");
-        if (ctrl.signal.aborted) return;
-        if (local.length) { setItems(local); setLoading(false); }
-        if (!navigator.onLine) { if (!local.length) setLoading(false); return; }
-        const { data } = await (supabase.from("runas").select("id, nombre, explicacion, imagen_url").order("nombre") as any).abortSignal(ctrl.signal);
-        if (ctrl.signal.aborted) return;
-        const result = (data ?? []) as Runa[];
-        setItems(result); setLoading(false);
-        await dexieWriteAll("runas", result);
-      } catch (e: any) { if (ctrl.signal.aborted || e?.name === "AbortError") return; setLoading(false); }
-    };
-    run(); return () => { ctrl.abort(); };
-  }, []);
-  return { items, setItems, loading };
-}
-
-// ─── Hook: grupos de criaturas ────────────────────────────────────────────────
-type GrupoMin = { id: string; nombre: string; miembro_ids: string[] };
-
-function useGruposCriaturas() {
-  const [grupos, setGrupos] = useState<GrupoMin[]>([]);
-  const [loading, setLoading] = useState(true);
-  const abortRef = useRef<AbortController | null>(null);
-  useEffect(() => {
-    abortRef.current?.abort();
-    const ctrl = new AbortController();
-    abortRef.current = ctrl;
-    const run = async () => {
-      try {
-        if (db && (db as any).grupos_mundo) {
-          const all = await (db as any).grupos_mundo.toArray() as any[];
-          if (ctrl.signal.aborted) return;
-          const local: GrupoMin[] = all
-            .filter((g: any) => !g.deleted && g.tipo === "criaturas")
-            .map((g: any) => ({ id: g.id, nombre: g.nombre, miembro_ids: g.miembro_ids ?? [] }));
-          if (local.length) { setGrupos(local); setLoading(false); }
-        }
-        if (!navigator.onLine) { setLoading(false); return; }
-        const { data } = await (supabase.from("grupos_mundo").select("id, nombre, miembro_ids").eq("tipo", "criaturas").order("nombre") as any).abortSignal(ctrl.signal);
-        if (ctrl.signal.aborted) return;
-        const result: GrupoMin[] = (data ?? []).map((r: any) => ({ id: r.id, nombre: r.nombre, miembro_ids: r.miembro_ids ?? [] }));
-        setGrupos(result); setLoading(false);
-      } catch (e: any) { if (ctrl.signal.aborted || e?.name === "AbortError") return; setLoading(false); }
-    };
-    run();
-    return () => { ctrl.abort(); };
-  }, []);
-  return { grupos, loading };
-}
-
-// ─── Hook: todos los grupos (sin filtro de tipo) ──────────────────────────────
+// ─── Hook: grupos del mundo (filtrable por tipo) ──────────────────────────────
+type GrupoMin  = { id: string; nombre: string; miembro_ids: string[] };
 type GrupoTodo = { id: string; nombre: string; tipo: string; miembro_ids: string[] };
 
-function useGruposTodos() {
-  const [grupos, setGrupos] = useState<GrupoTodo[]>([]);
+function useGruposMundo(filtroTipo?: string) {
+  const [grupos, setGrupos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const abortRef = useRef<AbortController | null>(null);
+
   useEffect(() => {
     abortRef.current?.abort();
     const ctrl = new AbortController();
@@ -380,22 +252,35 @@ function useGruposTodos() {
         if (db && (db as any).grupos_mundo) {
           const all = await (db as any).grupos_mundo.toArray() as any[];
           if (ctrl.signal.aborted) return;
-          const local: GrupoTodo[] = all
-            .filter((g: any) => !g.deleted)
+          const local = all
+            .filter((g: any) => !g.deleted && (!filtroTipo || g.tipo === filtroTipo))
             .map((g: any) => ({ id: g.id, nombre: g.nombre, tipo: g.tipo ?? "", miembro_ids: g.miembro_ids ?? [] }));
           if (local.length) { setGrupos(local); setLoading(false); }
         }
         if (!navigator.onLine) { setLoading(false); return; }
-        const { data } = await (supabase.from("grupos_mundo").select("id, nombre, tipo, miembro_ids").order("nombre") as any).abortSignal(ctrl.signal);
+        let query = supabase.from("grupos_mundo").select("id, nombre, tipo, miembro_ids").order("nombre");
+        if (filtroTipo) query = (query as any).eq("tipo", filtroTipo);
+        const { data } = await (query as any).abortSignal(ctrl.signal);
         if (ctrl.signal.aborted) return;
-        const result: GrupoTodo[] = (data ?? []).map((r: any) => ({ id: r.id, nombre: r.nombre, tipo: r.tipo ?? "", miembro_ids: r.miembro_ids ?? [] }));
+        const result = (data ?? []).map((r: any) => ({ id: r.id, nombre: r.nombre, tipo: r.tipo ?? "", miembro_ids: r.miembro_ids ?? [] }));
         setGrupos(result); setLoading(false);
       } catch (e: any) { if (ctrl.signal.aborted || e?.name === "AbortError") return; setLoading(false); }
     };
     run();
     return () => { ctrl.abort(); };
-  }, []);
+  }, [filtroTipo]);
+
   return { grupos, loading };
+}
+
+function useGruposCriaturas() {
+  const { grupos, loading } = useGruposMundo("criaturas");
+  return { grupos: grupos as GrupoMin[], loading };
+}
+
+function useGruposTodos() {
+  const { grupos, loading } = useGruposMundo();
+  return { grupos: grupos as GrupoTodo[], loading };
 }
 
 function FilaGrupo({ grupo, color, onQuitar }: { grupo: GrupoMin; color: string; onQuitar: () => void }) {
