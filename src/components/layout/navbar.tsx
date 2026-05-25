@@ -27,9 +27,9 @@ interface NavLinkDef {
 // ── Shared constants ──────────────────────────────────────────────────────────
 
 const navItemBase = {
-  height: "44px",
+  height: "36px",
   borderRadius: "var(--radius-btn)",
-  paddingLeft: "10px",
+  paddingLeft: "8px",
 } as const;
 
 const submenuSurface = {
@@ -151,7 +151,7 @@ function SideNavItem({ href, label, icon: Icon, active, fillActive = false, subL
         className="flex items-center gap-3 transition-all duration-200 overflow-hidden"
         style={{
           ...navItemBase,
-          paddingRight: "10px",
+          paddingRight: "8px",
           background: active ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent",
           color: active ? "var(--primary)" : "color-mix(in srgb, var(--primary) 40%, transparent)",
           border: useOutline && active
@@ -164,8 +164,8 @@ function SideNavItem({ href, label, icon: Icon, active, fillActive = false, subL
         {active && !useOutline && (
           <span className="absolute left-[3px]" style={{ width: "3px", height: "20px", borderRadius: "0 2px 2px 0", background: "var(--primary)" }} />
         )}
-        <span className="shrink-0 flex items-center justify-center" style={{ width: "28px" }}>
-          <Icon size={18} fill={active && fillActive ? "currentColor" : "none"} strokeWidth={active ? 2.5 : 2} />
+        <span className="shrink-0 flex items-center justify-center" style={{ width: "22px" }}>
+          <Icon size={15} fill={active && fillActive ? "currentColor" : "none"} strokeWidth={active ? 2.5 : 2} />
         </span>
         {hasSublinks && (
           <ChevronRight size={12} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)", flexShrink: 0 }} />
@@ -362,7 +362,7 @@ const Navbar = () => {
       <aside
         className="hidden md:flex fixed left-0 top-0 h-full z-[100] flex-col"
         style={{
-          width: "68px",
+          width: "52px",
           background: "color-mix(in srgb, var(--bg-main) 92%, transparent)",
           borderRight: "var(--border-width) solid color-mix(in srgb, var(--primary) 12%, transparent)",
           backdropFilter: "blur(16px)",
@@ -371,8 +371,8 @@ const Navbar = () => {
         }}
       >
         <div className="flex items-center justify-center shrink-0 mx-auto"
-          style={{ width: "44px", height: "68px", color: "var(--primary)" }}>
-          <Flower2 size={22} />
+          style={{ width: "36px", height: "52px", color: "var(--primary)" }}>
+          <Flower2 size={18} />
         </div>
 
         <NavDivider margin="0 12px" />
@@ -416,7 +416,7 @@ const Navbar = () => {
               onMouseEnter={(e) => hoverIn(e, themeMenuOpen)}
               onMouseLeave={(e) => hoverOut(e, themeMenuOpen)}
             >
-              <span className="shrink-0 flex items-center justify-center" style={{ width: "28px" }}><Palette size={16} /></span>
+              <span className="shrink-0 flex items-center justify-center" style={{ width: "22px" }}><Palette size={14} /></span>
             </button>
 
             <AnimatePresence>
@@ -457,7 +457,7 @@ const Navbar = () => {
                 onMouseEnter={(e) => hoverIn(e, personalIsActive)}
                 onMouseLeave={(e) => hoverOut(e, personalIsActive)}
               >
-                <span className="shrink-0 flex items-center justify-center" style={{ width: "28px" }}><CircleUser size={18} /></span>
+                <span className="shrink-0 flex items-center justify-center" style={{ width: "22px" }}><CircleUser size={15} /></span>
               </Link>
               <button onClick={handleLogout} title="Salir"
                 className="flex items-center gap-3 transition-all duration-200 overflow-hidden w-full"
@@ -465,7 +465,7 @@ const Navbar = () => {
                 onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "oklch(0.97 0.01 25)"; }}
                 onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
               >
-                <span className="shrink-0 flex items-center justify-center" style={{ width: "28px" }}><LogOut size={16} /></span>
+                <span className="shrink-0 flex items-center justify-center" style={{ width: "22px" }}><LogOut size={14} /></span>
               </button>
             </div>
           ) : (
@@ -475,7 +475,7 @@ const Navbar = () => {
               onMouseEnter={(e) => hoverIn(e, false)}
               onMouseLeave={(e) => hoverOut(e, false)}
             >
-              <span className="shrink-0 flex items-center justify-center" style={{ width: "28px" }}><CircleUser size={18} /></span>
+              <span className="shrink-0 flex items-center justify-center" style={{ width: "22px" }}><CircleUser size={15} /></span>
             </Link>
           )}
         </div>
