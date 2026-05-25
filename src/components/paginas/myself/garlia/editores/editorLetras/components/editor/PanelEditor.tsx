@@ -335,10 +335,16 @@ export const PanelEditor = ({ cancionId }: { cancionId: string }) => {
           </div>
         )}
 
+
+        {/* Tab: Info */}
         {activeTab === "info" && (
-          <div className="max-w-4xl mx-auto py-6 px-4">
-            <PanelInfo cancionId={cancionId} infoInicial={cancion.info_cancion} onInfoChange={(v) => setCancion(prev => prev ? { ...prev, info_cancion: v } : prev)} />
-          </div>
+          <PanelInfo
+            cancionId={cancionId}
+            cancion={cancion}
+            onCancionUpdate={(updates) =>
+              setCancion(prev => prev ? { ...prev, ...updates } : prev)
+            }
+          />
         )}
 
         {activeTab === "guion" && (
