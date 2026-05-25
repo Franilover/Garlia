@@ -118,8 +118,8 @@ export const PanelInfo = ({
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10">
           {[
-            { label: "Vocal / Cantante", key: "cantante", icon: <Mic2 size={12}/>, placeholder: "Hatsune Miku..." },
-            { label: "Compositor / Productor", key: "compositor", icon: <PenLine size={12}/>, placeholder: "Deco*27..." },
+            { label: "Cantante", key: "cantante", icon: <Mic2 size={12}/>, placeholder: "Hatsune Miku..." },
+            { label: "Compositor", key: "compositor", icon: <PenLine size={12}/>, placeholder: "Deco*27..." },
             { label: "Idioma", key: "idioma", icon: <Globe size={12}/>, placeholder: "Japonés..." },
           ].map((field) => {
             const filtered = getFilteredSuggestions(field.key);
