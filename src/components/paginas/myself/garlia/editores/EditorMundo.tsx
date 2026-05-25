@@ -25,6 +25,7 @@ import { EditorNota, ListaNotas } from "./EditorNota";
 import { EditorGrupo, useGrupos, type Grupo, GRUPO_TIPO_CONFIG } from "./EditorGrupo";
 import EstudioCapitulos from "@/components/paginas/myself/garlia/editores/editorCapitulos";
 import { useCanciones } from "@/components/paginas/myself/garlia/editores/editorLetras/hooks/useCanciones";
+import { PanelEditor } from "@/components/paginas/myself/garlia/editores/editorLetras/components/editor/PanelEditor";
 import type { Cancion } from "@/components/paginas/myself/garlia/editores/editorLetras/types";
 
 
@@ -1267,6 +1268,7 @@ function PanelListas({
   const [selectedRuna,      setSelectedRuna]      = useState<Runa | null>(null);
   const [selectedNota,      setSelectedNota]      = useState<Nota | null>(null);
   const [selectedGrupo,     setSelectedGrupo]     = useState<Grupo | null>(null);
+  const [selectedCancion,   setSelectedCancion]   = useState<Cancion | null>(null);
 
   // ── Scroll position ───────────────────────────────────────────────────────
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -1307,7 +1309,7 @@ function PanelListas({
   const selectGrupo     = useCallback((g: Grupo | null)         => { setSelectedGrupo(g);     g ? persistOpenItem("grupos_mundo", g.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
 
   // ── Overlay activo ────────────────────────────────────────────────────────
-  const overlay: "reino" | "criatura" | "objeto" | "personaje" | "hechizo" | "don" | "runa" | "nota" | "lugar" | "grupo" | null =
+  const overlay: "reino" | "criatura" | "objeto" | "personaje" | "hechizo" | "don" | "runa" | "nota" | "lugar" | "grupo" | "cancion" | null =
     selectedReino     ? "reino"     :
     selectedCriatura  ? "criatura"  :
     selectedObjeto    ? "objeto"    :
@@ -1317,13 +1319,15 @@ function PanelListas({
     selectedDon       ? "don"       :
     selectedRuna      ? "runa"      :
     selectedNota      ? "nota"      :
-    selectedGrupo     ? "grupo"     : null;
+    selectedGrupo     ? "grupo"     :
+    selectedCancion   ? "cancion"   : null;
 
   const clearAllOverlays = useCallback(() => {
     setSelectedReino(null); setSelectedCriatura(null);
     setSelectedObjeto(null); setSelectedPersonaje(null);
     setSelectedHechizo(null); setSelectedDon(null); setSelectedRuna(null);
     setSelectedNota(null); setSelectedLugar(null); setSelectedGrupo(null);
+    setSelectedCancion(null);
     clearPersistedItem();
   }, [clearPersistedItem]);
 
@@ -1596,6 +1600,29 @@ function PanelListas({
                 }}
               />
             )}
+            {overlay === "cancion" && selectedCancion && (
+              <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                {/* Header con título y botón de cerrar */}
+                <div className="shrink-0 flex items-center gap-3 px-4 py-3 border-b"
+                  style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}>
+                  <Music size={13} className="text-primary/40 shrink-0" />
+                  <span className="flex-1 min-w-0 text-sm font-black uppercase italic tracking-tight text-primary truncate">
+                    {selectedCancion.titulo}
+                  </span>
+                  <button
+                    onClick={() => setSelectedCancion(null)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-[9px] font-black uppercase tracking-widest transition-all"
+                    style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}
+                    onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.color = "var(--primary)"; el.style.borderColor = "color-mix(in srgb, var(--primary) 28%, transparent)"; }}
+                    onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.color = "color-mix(in srgb, var(--primary) 40%, transparent)"; el.style.borderColor = "color-mix(in srgb, var(--primary) 12%, transparent)"; }}
+                  >
+                    <X size={11} /> Cerrar
+                  </button>
+                </div>
+                {/* Editor de la canción */}
+                <PanelEditor key={selectedCancion.id} cancionId={selectedCancion.id} />
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -1709,10 +1736,7 @@ function PanelListas({
 
             <SeccionEntidades icon={Music} label="Canciones" count={canciones.length} loading={loadingCanciones}>
               {canciones.map(c => (
-                <Chip key={c.id} onClick={() => {
-                  try { localStorage.setItem("estudio-letras-last-id", c.id); } catch {}
-                  window.location.href = "/garlia/canciones";
-                }} icon={Music} nombre={c.titulo} />
+                <Chip key={c.id} onClick={() => setSelectedCancion(c as unknown as Cancion)} icon={Music} nombre={c.titulo} />
               ))}
             </SeccionEntidades>
             <div className={div} style={divStyle} />
