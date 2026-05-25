@@ -42,32 +42,34 @@ export const PanelInfo = ({
     }
   }, [cancion, dirty]);
 
-  const doSave = useCallback(async (data: typeof localData) => {
-    clearTimeout(timer.current);
-    setSaving(true);
-    try {
-      const { error } = await supabase
-        .from("canciones")
-        .update({
-          cantante: data.cantante || null,
-          compositor: data.compositor || null,
-          personaje: data.personaje || null,
-          idioma: data.idioma || null,
-          info_cancion: data.info_cancion || null
-        })
-        .eq("id", cancionId);
 
-      if (error) throw error;
-      
-      onCancionUpdate(data);
-      setDirty(false);
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
-    } catch (e) {
-      console.error("Error al guardar info:", e);
-    }
-    setSaving(false);
-  }, [cancionId, onCancionUpdate]);
+  // En PanelInfo.tsx, cambia la función doSave por esta:
+const doSave = useCallback(async (data: typeof localData) => {
+  clearTimeout(timer.current);
+  setSaving(true);
+  try {
+    const { error } = await supabase
+      .from("canciones")
+      .update({
+        cantante: data.cantante || null,
+        compositor: data.compositor || null,
+        // personaje: data.personaje || null, // <--- COMENTA O ELIMINA ESTA LÍNEA
+        idioma: data.idioma || null,
+        info_cancion: data.info_cancion || null
+      })
+      .eq("id", cancionId);
+
+    if (error) throw error;
+    
+    onCancionUpdate(data);
+    setDirty(false);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  } catch (e) {
+    console.error("Error al guardar info:", e);
+  }
+  setSaving(false);
+}, [cancionId, onCancionUpdate]);
 
   const handleChange = (field: string, value: string) => {
     const newData = { ...localData, [field]: value };
@@ -87,7 +89,6 @@ export const PanelInfo = ({
       {/* ── SECCIÓN: FICHA TÉCNICA ── */}
       <section className="space-y-6">
         <div className="flex items-center justify-between border-b border-primary/5 pb-4">
-          
           <div className="flex items-center gap-2 h-6">
              {saving && <span className="flex items-center gap-2 text-[8px] font-bold text-primary/20 uppercase tracking-tighter"><Loader2 size={10} className="animate-spin" /> Guardando...</span>}
              {saved && <span className="flex items-center gap-1 text-[8px] font-bold text-emerald-500 uppercase tracking-tighter"><CheckCircle2 size={10} /> Sincronizado</span>}
