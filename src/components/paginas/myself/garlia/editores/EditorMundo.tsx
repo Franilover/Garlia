@@ -1602,23 +1602,6 @@ function PanelListas({
             )}
             {overlay === "cancion" && selectedCancion && (
               <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-                {/* Header con título y botón de cerrar */}
-                <div className="shrink-0 flex items-center gap-3 px-4 py-3 border-b"
-                  style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}>
-                  <Music size={13} className="text-primary/40 shrink-0" />
-                  <span className="flex-1 min-w-0 text-sm font-black uppercase italic tracking-tight text-primary truncate">
-                    {selectedCancion.titulo}
-                  </span>
-                  <button
-                    onClick={() => setSelectedCancion(null)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-[9px] font-black uppercase tracking-widest transition-all"
-                    style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}
-                    onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.color = "var(--primary)"; el.style.borderColor = "color-mix(in srgb, var(--primary) 28%, transparent)"; }}
-                    onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.color = "color-mix(in srgb, var(--primary) 40%, transparent)"; el.style.borderColor = "color-mix(in srgb, var(--primary) 12%, transparent)"; }}
-                  >
-                    <X size={11} /> Cerrar
-                  </button>
-                </div>
                 {/* Editor de la canción */}
                 <PanelEditor key={selectedCancion.id} cancionId={selectedCancion.id} />
               </div>
