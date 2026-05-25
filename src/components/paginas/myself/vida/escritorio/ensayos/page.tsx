@@ -255,92 +255,6 @@ export default function Ensayos() {
     } catch { connectZotero(); }
   }, [connectZotero]);
 
-  // ─── Tag-as-page navigation ────────────────────────────────────────────────
-
-  const autoCreateTagPage = useCallback(async (tag: string): Promise<string | null> => {
-    if (!user) return null;
-    const now = new Date().toISOString();
-
-    // Si ya existe una nota con ese nombre, NO la reemplazamos.
-    // Solo nos aseguramos de que la sección de links exista al final.
-    const existing = ensayos.find(
-      (e: any) => e.titulo?.toLowerCase() === tag.toLowerCase()
-    );
-    if (existing) {
-      // Preservar contenido propio; solo añadir sección de links si no existe
-      if (!existing.contenido?.includes(TAG_SECTION_MARKER)) {
-        const linkedNotes = ensayos
-          .filter((e: any) => e.id !== existing.id && e.tags?.includes(tag) && e.titulo)
-          .map((e: any) => `- [[${e.titulo}]]`)
-          .join("\n");
-        const newContent = (existing.contenido || "").trimEnd()
-          + `\n\n${buildTagLinksSection(tag, linkedNotes)}`;
-        scheduleSave(existing.id, { contenido: newContent });
-        setEnsayos((prev: any[]) =>
-          prev.map((e: any) => e.id === existing.id ? { ...e, contenido: newContent } : e)
-        );
-      }
-      return existing.id;
-    }
-
-    // No existe → crear la nota nueva con el template
-    const linkedNotes = ensayos
-      .filter((e: any) => e.tags?.includes(tag) && e.titulo)
-      .map((e: any) => `- [[${e.titulo}]]`)
-      .join("\n");
-
-    const contenido = `# ${tag}\n\n${buildTagLinksSection(tag, linkedNotes)}`;
-
-    const payload = {
-      titulo:     tag,
-      user_id:    user.id,
-      contenido,
-      tags:       [tag],
-      updated_at: now,
-    };
-
-    const { data, error } = await addRow(payload);
-    if (!error && data) {
-      setEnsayos((prev: any[]) => {
-        if (prev.find((e: any) => e.id === data.id)) return prev;
-        return [data, ...prev];
-      });
-      return data.id;
-    }
-    return null;
-  }, [user, ensayos, addRow, setEnsayos, scheduleSave]);
-
-  const navigateToPage = useCallback(async (name: string, isTag = false) => {
-    const normalized = name.trim().toLowerCase();
-    const found = ensayos.find(
-      (e: any) => e.titulo?.toLowerCase() === normalized
-    );
-    if (found) {
-      setEnsayoActivo(found.id);
-    } else if (isTag) {
-      const newId = await autoCreateTagPage(name.trim());
-      if (newId) {
-        setEnsayoActivo(newId);
-      }
-    } else {
-      setPendingNoteTitle(name.trim());
-      setShowNewNoteModal(true);
-    }
-  }, [ensayos, autoCreateTagPage]);
-
-  const autoCreateMissingTagPages = useCallback(async (tags: string[]) => {
-    for (const tag of tags) {
-      const exists = ensayos.some((e: any) => e.titulo?.toLowerCase() === tag.toLowerCase());
-      if (!exists) {
-        await autoCreateTagPage(tag);
-      }
-    }
-  }, [ensayos, autoCreateTagPage]);
-
-  const handleTagNavigate = useCallback((tag: string) => {
-    navigateToPage(tag, true);
-  }, [navigateToPage]);
-
   // ─── Helpers ───────────────────────────────────────────────────────────────
 
   const setEnsayoActivo = useCallback((id: string | null) => {
@@ -463,12 +377,100 @@ export default function Ensayos() {
     }, 1500);
   }, [updateRow, setEnsayos]);
 
+
+  // ─── Tag-as-page navigation ────────────────────────────────────────────────
+
+  const autoCreateTagPage = useCallback(async (tag: string): Promise<string | null> => {
+    if (!user) return null;
+    const now = new Date().toISOString();
+
+    // Si ya existe una nota con ese nombre, NO la reemplazamos.
+    // Solo nos aseguramos de que la sección de links exista al final.
+    const existing = ensayos.find(
+      (e: any) => e.titulo?.toLowerCase() === tag.toLowerCase()
+    );
+    if (existing) {
+      // Preservar contenido propio; solo añadir sección de links si no existe
+      if (!existing.contenido?.includes(TAG_SECTION_MARKER)) {
+        const linkedNotes = ensayos
+          .filter((e: any) => e.id !== existing.id && e.tags?.includes(tag) && e.titulo)
+          .map((e: any) => `- [[${e.titulo}]]`)
+          .join("\n");
+        const newContent = (existing.contenido || "").trimEnd()
+          + `\n\n${buildTagLinksSection(tag, linkedNotes)}`;
+        scheduleSave(existing.id, { contenido: newContent });
+        setEnsayos((prev: any[]) =>
+          prev.map((e: any) => e.id === existing.id ? { ...e, contenido: newContent } : e)
+        );
+      }
+      return existing.id;
+    }
+
+    // No existe → crear la nota nueva con el template
+    const linkedNotes = ensayos
+      .filter((e: any) => e.tags?.includes(tag) && e.titulo)
+      .map((e: any) => `- [[${e.titulo}]]`)
+      .join("\n");
+
+    const contenido = `# ${tag}\n\n${buildTagLinksSection(tag, linkedNotes)}`;
+
+    const payload = {
+      titulo:     tag,
+      user_id:    user.id,
+      contenido,
+      tags:       [tag],
+      updated_at: now,
+    };
+
+    const { data, error } = await addRow(payload);
+    if (!error && data) {
+      setEnsayos((prev: any[]) => {
+        if (prev.find((e: any) => e.id === data.id)) return prev;
+        return [data, ...prev];
+      });
+      return data.id;
+    }
+    return null;
+  }, [user, ensayos, addRow, setEnsayos, scheduleSave]);
+
+  const navigateToPage = useCallback(async (name: string, isTag = false) => {
+    const normalized = name.trim().toLowerCase();
+    const found = ensayos.find(
+      (e: any) => e.titulo?.toLowerCase() === normalized
+    );
+    if (found) {
+      setEnsayoActivo(found.id);
+    } else if (isTag) {
+      const newId = await autoCreateTagPage(name.trim());
+      if (newId) {
+        setEnsayoActivo(newId);
+      }
+    } else {
+      setPendingNoteTitle(name.trim());
+      setShowNewNoteModal(true);
+    }
+  }, [ensayos, autoCreateTagPage]);
+
+  const autoCreateMissingTagPages = useCallback(async (tags: string[]) => {
+    for (const tag of tags) {
+      const exists = ensayos.some((e: any) => e.titulo?.toLowerCase() === tag.toLowerCase());
+      if (!exists) {
+        await autoCreateTagPage(tag);
+      }
+    }
+  }, [ensayos, autoCreateTagPage]);
+
+  const handleTagNavigate = useCallback((tag: string) => {
+    navigateToPage(tag, true);
+  }, [navigateToPage]);
+
   const actualizarLocal = useCallback((id: string, field: string, value: any) => {
     scheduleSave(id, { [field]: value });
     if (field === "tags" && Array.isArray(value)) {
       autoCreateMissingTagPages(value);
     }
   }, [scheduleSave, autoCreateMissingTagPages]);
+
 
   // ─── CRUD ──────────────────────────────────────────────────────────────────
 
