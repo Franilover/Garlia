@@ -100,27 +100,30 @@ export const PanelInfo = ({
     <motion.div 
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="max-w-4xl mx-auto px-6 py-10 space-y-12"
+      className="max-w-5xl mx-auto px-6 py-10"
     >
-      {/* ── SECCIÓN: FICHA TÉCNICA ── */}
-      <section className="space-y-6">
-        <div className="flex items-center justify-between border-b border-primary/5 pb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-primary/5 flex items-center justify-center text-primary/40"><Beaker size={16} /></div>
-            <div>
-              <h3 className="text-[11px] font-black uppercase tracking-[0.25em] text-primary">Ficha Técnica</h3>
-              <p className="text-[9px] font-medium text-primary/30 uppercase tracking-widest">Metadatos y créditos</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-             {saving && <Loader2 size={10} className="animate-spin text-primary/20" />}
-             {saved && <CheckCircle2 size={10} className="text-emerald-500" />}
+      {/* Header row con indicador de guardado */}
+      <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-primary/5 flex items-center justify-center text-primary/40"><Beaker size={16} /></div>
+          <div>
+            <h3 className="text-[11px] font-black uppercase tracking-[0.25em] text-primary">Ficha Técnica</h3>
+            <p className="text-[9px] font-medium text-primary/30 uppercase tracking-widest">Metadatos y créditos</p>
           </div>
         </div>
+        <div className="flex items-center gap-2">
+          {saving && <Loader2 size={10} className="animate-spin text-primary/20" />}
+          {saved && <CheckCircle2 size={10} className="text-emerald-500" />}
+        </div>
+      </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10">
-          {/* Título — ocupa toda la fila */}
-          <div className="group relative space-y-2 md:col-span-2">
+      {/* ── DOS COLUMNAS ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+
+        {/* COLUMNA IZQUIERDA — campos de metadatos */}
+        <section className="space-y-8">
+          {/* Título */}
+          <div className="group relative space-y-2">
             <label className="text-[9px] font-black text-primary/25 uppercase tracking-[0.2em] flex items-center gap-2 group-focus-within:text-primary/50 transition-colors">
               <Music size={12}/> Título
             </label>
@@ -177,22 +180,22 @@ export const PanelInfo = ({
               </div>
             );
           })}
-        </div>
-      </section>
+        </section>
 
-      {/* ── SECCIÓN: NOTAS ── */}
-      <section className="space-y-6">
-        <div className="flex items-center gap-3 border-b border-primary/5 pb-4">
-          <div className="w-8 h-8 rounded-lg bg-primary/5 flex items-center justify-center text-primary/40"><FileText size={16} /></div>
-          <div><h3 className="text-[11px] font-black uppercase tracking-[0.25em] text-primary">Contexto y Notas</h3></div>
-        </div>
-        <textarea
-          value={localData.info_cancion}
-          onChange={e => handleChange("info_cancion", e.target.value)}
-          rows={10}
-          className="w-full bg-transparent border-l-2 border-primary/5 focus:border-primary/20 px-4 text-sm text-primary/80 outline-none transition-all"
-        />
-      </section>
+        {/* COLUMNA DERECHA — notas */}
+        <section className="space-y-4 flex flex-col h-full">
+          <div className="flex items-center gap-3 border-b border-primary/5 pb-4">
+            <div className="w-8 h-8 rounded-lg bg-primary/5 flex items-center justify-center text-primary/40"><FileText size={16} /></div>
+            <div><h3 className="text-[11px] font-black uppercase tracking-[0.25em] text-primary">Contexto y Notas</h3></div>
+          </div>
+          <textarea
+            value={localData.info_cancion}
+            onChange={e => handleChange("info_cancion", e.target.value)}
+            className="flex-1 w-full bg-transparent border-l-2 border-primary/5 focus:border-primary/20 px-4 text-sm text-primary/80 outline-none transition-all resize-none min-h-[300px]"
+          />
+        </section>
+
+      </div>
     </motion.div>
   );
 };
