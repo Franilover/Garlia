@@ -1083,7 +1083,7 @@ export function MarkdownEditor({
   // ResizeObserver sobre el propio div del editor, no el viewport —
   // funciona correctamente en sidebars y paneles estrechos.
   const containerRef = useRef<HTMLDivElement>(null);
-  const SPLIT_MIN_WIDTH = 480; // px mínimos para habilitar el modo split
+  const SPLIT_MIN_WIDTH = 700; // px mínimos para habilitar el modo split
   const [containerWidth, setContainerWidth] = useState<number>(9999);
   const isMobile = containerWidth < SPLIT_MIN_WIDTH;
 
