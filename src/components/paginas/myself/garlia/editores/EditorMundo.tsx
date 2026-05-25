@@ -1341,6 +1341,27 @@ function PanelListas({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    const check = async () => {
+      const action = localStorage.getItem("estudio-letras-action");
+      if (action !== "nueva-cancion") return;
+      localStorage.removeItem("estudio-letras-action");
+      try {
+        const { data, error } = await supabase
+          .from("canciones")
+          .insert([{ titulo: "Nueva canción" }])
+          .select("*")
+          .single();
+        if (error || !data) return;
+        setSelectedCancion(data as unknown as Cancion);
+      } catch {}
+    };
+    check();
+    window.addEventListener("estudio-letras-action", check);
+    return () => window.removeEventListener("estudio-letras-action", check);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // ── Helper: chip genérico ─────────────────────────────────────────────────
   function Chip({ onClick, imgUrl, icon: Icon, nombre, accentBg, accentBorder, accentText }: {
     onClick: () => void; imgUrl?: string | null; icon: React.ElementType;
