@@ -1,25 +1,9 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import { Eye, Edit3, Columns, Search, Replace, X, ChevronUp, ChevronDown } from "lucide-react";
+import { Eye, Edit3, Search, Replace, X, ChevronUp, ChevronDown } from "lucide-react";
 import { parseContenido, parseSections } from "@/components/paginas/garlia/libros/leer/type";
 import { RenderSegmentos }               from "@/components/paginas/garlia/libros/leer/segmentos/ContenidoInteractivo";
-// ── Store global de sincronización de modo ───────────────────────────────────
-// Sin contexto ni provider — todos los MarkdownEditor de la app se sincronizan
-// automáticamente. Los suscriptores son callbacks registrados por cada instancia.
-type ViewModeSync = "edit" | "preview" | "split";
-let _syncMode: ViewModeSync | null = null;
-const _listeners = new Set<(m: ViewModeSync) => void>();
-function syncSetMode(m: ViewModeSync) {
-  if (_syncMode === m) return;
-  _syncMode = m;
-  _listeners.forEach(fn => fn(m));
-}
-function syncSubscribe(fn: (m: ViewModeSync) => void) {
-  _listeners.add(fn);
-  return () => { _listeners.delete(fn); };
-}
-
 // ── Slug helper for heading IDs ─────────────────────────────────────────────
 function slugify(text: string): string {
   const slug = text.toLowerCase().replace(/[^\w\s-]/g, "").trim().replace(/[\s]+/g, "-");
@@ -955,7 +939,7 @@ export function MarkdownEditor({
   rows = 6,
   className = "",
   toolbar = true,
-  defaultMode = "split",
+  defaultMode = "preview",
   mode: modeProp,
   extraCommands = [],
   insertRef,
@@ -967,14 +951,12 @@ export function MarkdownEditor({
   sectionTitle,
 }: MarkdownEditorProps) {
   const [modeInternal, setModeInternal] = useState<ViewMode>(
-    modeProp ?? (_syncMode ?? defaultMode)
+    modeProp ?? defaultMode
   );
   const mode = modeProp ?? modeInternal;
 
-  // Publicar al store global cuando el usuario cambia de modo
   const setMode = useCallback((m: ViewMode) => {
     setModeInternal(m);
-    syncSetMode(m as ViewModeSync);
   }, []);
 
 
@@ -1093,21 +1075,6 @@ export function MarkdownEditor({
   const [containerWidth, setContainerWidth] = useState<number>(9999);
   const isMobile = containerWidth < SPLIT_MIN_WIDTH;
 
-  // Suscribirse al store global para recibir cambios de otros editores
-  // (declarado aquí para tener acceso a containerWidth)
-  useEffect(() => {
-    const unsub = syncSubscribe((m) => {
-      if (modeProp) return;
-      if (m === "split" && containerWidth < SPLIT_MIN_WIDTH) {
-        setModeInternal("edit");
-        return;
-      }
-      setModeInternal(m as ViewMode);
-    });
-    return () => { unsub(); };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [containerWidth, modeProp]);
-
   // Tracks whether the user has manually changed mode so we don't override their choice
   const userChangedModeRef = useRef(false);
   const wrappedSetMode = useCallback((m: ViewMode) => {
@@ -1121,22 +1088,18 @@ export function MarkdownEditor({
     const ro = new ResizeObserver(entries => {
       const w = entries[0]?.contentRect.width ?? el.offsetWidth;
       setContainerWidth(w);
-      // If there's no room for split, collapse to edit
+      // If there's no room for split, collapse to preview (or edit if already editing)
       if (w < SPLIT_MIN_WIDTH && mode === "split") {
-        setMode("edit");
-        userChangedModeRef.current = false; // reset so it auto-expands again when space returns
-      }
-      // If space is now available and user hasn't manually chosen a mode, auto-enable split
-      if (w >= SPLIT_MIN_WIDTH && !userChangedModeRef.current && !modeProp) {
-        setMode("split");
+        setMode("preview");
+        userChangedModeRef.current = false;
       }
     });
     ro.observe(el);
-    // Measure immediately on mount — auto-split if there's room
+    // Measure immediately on mount — default to preview on desktop
     const initialWidth = el.offsetWidth;
     setContainerWidth(initialWidth);
-    if (initialWidth >= SPLIT_MIN_WIDTH && !modeProp) {
-      setMode("split");
+    if (initialWidth >= SPLIT_MIN_WIDTH && !modeProp && !userChangedModeRef.current) {
+      setMode("preview");
     }
     return () => ro.disconnect();
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1338,6 +1301,28 @@ export function MarkdownEditor({
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
   }, []);
+
+  // Ctrl+E — toggle edit mode on desktop
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "e") {
+        e.preventDefault();
+        if (modeProp) return; // controlled externally
+        setModeInternal(prev => {
+          if (prev === "preview") {
+            // Enter edit: split if there's room, otherwise plain edit
+            return containerWidth >= SPLIT_MIN_WIDTH ? "split" : "edit";
+          }
+          // Already in edit or split → back to preview
+          return "preview";
+        });
+        userChangedModeRef.current = true;
+      }
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [containerWidth, modeProp]);
 
   // ── Table editor helpers ──────────────────────────────────────────────────
   /** Parse a markdown table block into a 2D array (header row first) */
@@ -1803,53 +1788,52 @@ export function MarkdownEditor({
             <Search size={10} />
           </button>
 
-          {/* Mode toggles — solo Editar y Vista */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              background: "color-mix(in srgb, var(--foreground) 4%, transparent)",
-              border: "1px solid color-mix(in srgb, var(--foreground) 8%, transparent)",
-              borderRadius: 5,
-              overflow: "hidden",
-            }}
-          >
-          {(["edit", "split", "preview"] as ViewMode[]).map((m) => {
-            if (m === "split" && isMobile) return null;
-            const Icon = m === "edit" ? Edit3 : m === "split" ? Columns : Eye;
-            const isActive = mode === m;
-            return (
-              <button
-                key={m}
-                type="button"
-                onClick={() => wrappedSetMode(m)}
-                title={m === "edit" ? "Editar" : m === "split" ? "Split" : "Vista previa"}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  width: 26,
-                  height: 22,
-                  background: isActive
-                    ? "color-mix(in srgb, var(--foreground) 10%, transparent)"
-                    : "transparent",
-                  color: isActive
-                    ? "color-mix(in srgb, var(--foreground) 70%, transparent)"
-                    : "color-mix(in srgb, var(--foreground) 22%, transparent)",
-                  border: "none",
-                  cursor: "pointer",
-                  transition: "background 0.1s, color 0.1s",
-                }}
-              >
-                <Icon size={10} />
-              </button>
-            );
-          })}
-          </div>
+          {/* Mobile mode toggles — solo en pantallas pequeñas */}
+          {isMobile && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                background: "color-mix(in srgb, var(--foreground) 4%, transparent)",
+                border: "1px solid color-mix(in srgb, var(--foreground) 8%, transparent)",
+                borderRadius: 5,
+                overflow: "hidden",
+              }}
+            >
+              {(["edit", "preview"] as ViewMode[]).map((m) => {
+                const Icon = m === "edit" ? Edit3 : Eye;
+                const isActive = mode === m;
+                return (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => wrappedSetMode(m)}
+                    title={m === "edit" ? "Editar" : "Vista previa"}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      width: 26,
+                      height: 22,
+                      background: isActive
+                        ? "color-mix(in srgb, var(--foreground) 10%, transparent)"
+                        : "transparent",
+                      color: isActive
+                        ? "color-mix(in srgb, var(--foreground) 70%, transparent)"
+                        : "color-mix(in srgb, var(--foreground) 22%, transparent)",
+                      border: "none",
+                      cursor: "pointer",
+                      transition: "background 0.1s, color 0.1s",
+                    }}
+                  >
+                    <Icon size={10} />
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
         )}
-
-        {/* ── Panel de corrección ortográfica ── */}
         {spellCheck.enabled && (
           <div style={{
             display: "flex",
