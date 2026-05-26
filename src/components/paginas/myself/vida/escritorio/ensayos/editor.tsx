@@ -58,8 +58,9 @@ export function Editor({
 
   const [localTitulo, setLocalTitulo] = useState<string>(ensayo.titulo || "");
   const [localContenido, setLocalContenido] = useState<string>(ensayo.contenido || "");
-  const [tagInput, setTagInput] = useState<string>(ensayo.tags?.join(", ") || "");
-  const [tagInputFocused, setTagInputFocused] = useState(false);
+  const [newTagInput, setNewTagInput] = useState("");
+  const [addingTag, setAddingTag] = useState(false);
+  const newTagRef = React.useRef<HTMLInputElement>(null);
 
   // Citation popup (@)
   const [tocOpenLocal, setTocOpenLocal] = useState(false);
@@ -96,7 +97,8 @@ export function Editor({
     setLocalTitulo(ensayo.titulo || "");
     const cleaned = stripTagLinks(ensayo.contenido || "");
     setLocalContenido(cleaned);
-    setTagInput(ensayo.tags?.join(", ") || "");
+    setAddingTag(false);
+    setNewTagInput("");
     if (cleaned !== (ensayo.contenido || "")) {
       onUpdateField(ensayo.id, "contenido", cleaned);
     }
@@ -301,90 +303,121 @@ export function Editor({
             </span>
 
             <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 5, minHeight: 24 }}>
-              {(ensayo.tags?.length > 0) && !tagInputFocused && ensayo.tags.map((tag: string) => (
-                <button
+              {/* Tag chips — cada uno con X para eliminar */}
+              {(ensayo.tags ?? []).map((tag: string) => (
+                <span
                   key={tag}
-                  onClick={() => onNavigateToPage(tag)}
                   style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
                     fontSize: 10,
                     fontFamily: "var(--font-mono)",
                     color: "color-mix(in srgb, var(--accent) 80%, transparent)",
                     background: "color-mix(in srgb, var(--accent) 10%, transparent)",
                     border: "1px solid color-mix(in srgb, var(--accent) 22%, transparent)",
-                    padding: "2px 8px",
+                    padding: "2px 4px 2px 8px",
                     borderRadius: 3,
-                    cursor: "pointer",
-                    transition: "all 0.1s",
-                  }}
-                  onMouseEnter={e => {
-                    (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--accent) 18%, transparent)";
-                    (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--accent) 40%, transparent)";
-                  }}
-                  onMouseLeave={e => {
-                    (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--accent) 10%, transparent)";
-                    (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--accent) 22%, transparent)";
                   }}
                 >
-                  #{tag}
-                </button>
+                  <button
+                    onClick={() => onNavigateToPage(tag)}
+                    style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: "inherit", fontFamily: "inherit", fontSize: "inherit" }}
+                  >
+                    #{tag}
+                  </button>
+                  <button
+                    onClick={() => {
+                      const next = (ensayo.tags ?? []).filter((t: string) => t !== tag);
+                      onUpdateField(ensayo.id, "tags", next);
+                    }}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      padding: "0 1px",
+                      color: "color-mix(in srgb, var(--accent) 40%, transparent)",
+                      fontSize: 10,
+                      lineHeight: 1,
+                      display: "flex",
+                      alignItems: "center",
+                    }}
+                    onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--accent) 80%, transparent)"}
+                    onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--accent) 40%, transparent)"}
+                  >
+                    ×
+                  </button>
+                </span>
               ))}
 
-              {tagInputFocused ? (
+              {/* Input nuevo tag inline */}
+              {addingTag ? (
                 <input
+                  ref={newTagRef}
                   type="text"
-                  value={tagInput}
+                  value={newTagInput}
                   autoFocus
-                  onChange={e => setTagInput(e.target.value)}
+                  onChange={e => setNewTagInput(e.target.value)}
                   onKeyDown={e => {
-                    if (e.key === "Enter") {
-                      const parsed = tagInput.split(",").map((t: string) => t.trim().toLowerCase()).filter(Boolean);
-                      onUpdateField(ensayo.id, "tags", parsed);
-                      setTagInputFocused(false);
+                    if (e.key === "Enter" || e.key === ",") {
+                      e.preventDefault();
+                      const val = newTagInput.trim().toLowerCase();
+                      if (val && !(ensayo.tags ?? []).includes(val)) {
+                        onUpdateField(ensayo.id, "tags", [...(ensayo.tags ?? []), val]);
+                      }
+                      setNewTagInput("");
+                      setAddingTag(false);
                     }
-                    if (e.key === "Escape") setTagInputFocused(false);
+                    if (e.key === "Escape") {
+                      setNewTagInput("");
+                      setAddingTag(false);
+                    }
                   }}
                   onBlur={() => {
-                    const parsed = tagInput.split(",").map((t: string) => t.trim().toLowerCase()).filter(Boolean);
-                    onUpdateField(ensayo.id, "tags", parsed);
-                    setTagInputFocused(false);
+                    const val = newTagInput.trim().toLowerCase();
+                    if (val && !(ensayo.tags ?? []).includes(val)) {
+                      onUpdateField(ensayo.id, "tags", [...(ensayo.tags ?? []), val]);
+                    }
+                    setNewTagInput("");
+                    setAddingTag(false);
                   }}
-                  placeholder="tag1, tag2, tag3"
+                  placeholder="nueva etiqueta..."
                   style={{
                     fontSize: 10,
                     fontFamily: "var(--font-mono)",
                     padding: "2px 8px",
                     borderRadius: 3,
-                    border: "1px solid color-mix(in srgb, var(--accent) 35%, transparent)",
+                    border: "1px dashed color-mix(in srgb, var(--accent) 40%, transparent)",
                     background: "color-mix(in srgb, var(--accent) 6%, transparent)",
                     color: "color-mix(in srgb, var(--foreground) 75%, transparent)",
                     outline: "none",
-                    width: "100%",
-                    maxWidth: 220,
+                    width: 120,
                   }}
                 />
               ) : (
                 <button
-                  onClick={() => { setTagInput(ensayo.tags?.join(", ") || ""); setTagInputFocused(true); }}
+                  onClick={() => setAddingTag(true)}
                   style={{
                     fontSize: 9,
                     fontFamily: "var(--font-mono)",
-                    color: "color-mix(in srgb, var(--foreground) 25%, transparent)",
+                    color: "color-mix(in srgb, var(--foreground) 22%, transparent)",
                     background: "none",
-                    border: "1px dashed color-mix(in srgb, var(--foreground) 12%, transparent)",
+                    border: "1px dashed color-mix(in srgb, var(--foreground) 10%, transparent)",
                     borderRadius: 3,
                     padding: "2px 7px",
                     cursor: "pointer",
+                    transition: "all 0.1s",
                   }}
                   onMouseEnter={e => {
-                    (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--foreground) 50%, transparent)";
-                    (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--foreground) 25%, transparent)";
+                    (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--foreground) 45%, transparent)";
+                    (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--foreground) 22%, transparent)";
                   }}
                   onMouseLeave={e => {
-                    (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--foreground) 25%, transparent)";
-                    (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--foreground) 12%, transparent)";
+                    (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--foreground) 22%, transparent)";
+                    (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--foreground) 10%, transparent)";
                   }}
                 >
-                  {ensayo.tags?.length > 0 ? "+ editar" : "+ añadir etiqueta"}
+                  + tag
                 </button>
               )}
             </div>
