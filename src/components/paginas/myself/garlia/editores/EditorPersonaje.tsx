@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import {
   Maximize2, UserCircle2, BookOpen, Mic2, Loader2,
   ChevronDown, X, Save, Trash2,
-  Sparkles,
+  Sparkles, Users,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
@@ -223,6 +223,97 @@ function useCriaturaVariantesPorNombre(nombreEspecie: string | null | undefined)
   return variantes;
 }
 
+// ─── Hook: grupos a los que pertenece el personaje ───────────────────────────
+type GrupoMin = { id: string; nombre: string; tipo: string };
+
+function useGruposDelPersonaje(personajeId: string): { grupos: GrupoMin[]; loading: boolean } {
+  const [grupos, setGrupos] = useState<GrupoMin[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      // 1. Dexie primero
+      if (db) {
+        const todos: any[] = await (db as any).grupos_mundo?.toArray() ?? [];
+        const local = todos.filter((g: any) =>
+          g.tipo === "personajes" && (g.miembro_ids ?? []).includes(personajeId)
+        );
+        if (local.length) {
+          setGrupos(local.map((g: any) => ({ id: g.id, nombre: g.nombre, tipo: g.tipo })));
+          setLoading(false);
+          if (!navigator.onLine) return;
+        }
+      }
+    } catch {}
+
+    if (!navigator.onLine) { setLoading(false); return; }
+
+    // 2. Supabase
+    try {
+      const { data } = await supabase
+        .from("grupos_mundo")
+        .select("id, nombre, tipo")
+        .eq("tipo", "personajes")
+        .contains("miembro_ids", [personajeId]);
+      setGrupos((data ?? []).map((g: any) => ({ id: g.id, nombre: g.nombre, tipo: g.tipo })));
+    } catch {}
+    setLoading(false);
+  }, [personajeId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  return { grupos, loading };
+}
+
+// ─── Bloque grupos del personaje ─────────────────────────────────────────────
+function BloqueGruposPersonaje({
+  personajeId,
+  onOpenGrupo,
+}: {
+  personajeId: string;
+  onOpenGrupo?: (id: string) => void;
+}) {
+  const { grupos, loading } = useGruposDelPersonaje(personajeId);
+
+  if (loading) return (
+    <div className="rounded-xl overflow-hidden border border-primary/10">
+      <div className="flex items-center gap-2 px-3 py-2 border-b border-primary/[0.06] bg-primary/[0.03]">
+        <Users size={10} className="text-primary/40" />
+        <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">Grupos</span>
+      </div>
+      <div className="flex justify-center py-4">
+        <Loader2 size={14} className="animate-spin text-primary/20" />
+      </div>
+    </div>
+  );
+
+  if (!grupos.length) return null;
+
+  return (
+    <div className="rounded-xl overflow-hidden border border-primary/10">
+      <div className="flex items-center gap-2 px-3 py-2 border-b border-primary/[0.06] bg-primary/[0.03]">
+        <Users size={10} className="text-primary/40" />
+        <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">Grupos</span>
+      </div>
+      <div className="flex flex-wrap gap-1.5 p-2.5">
+        {grupos.map(g => (
+          <button
+            key={g.id}
+            onClick={() => onOpenGrupo?.(g.id)}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-primary/15 bg-primary/[0.03] hover:bg-primary/[0.07] hover:border-primary/30 transition-all group"
+          >
+            <Users size={9} className="text-primary/35 group-hover:text-primary/60 transition-colors" />
+            <span className="text-[10px] font-black uppercase tracking-widest text-primary/50 group-hover:text-primary/80 transition-colors">
+              {g.nombre}
+            </span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ─── Sección Hechizos inline ──────────────────────────────────────────────────
 function SeccionHechizos({ personajeId, grupoIds }: { personajeId: string; grupoIds: string[] }) {
   return (
@@ -242,7 +333,7 @@ function SeccionHechizos({ personajeId, grupoIds }: { personajeId: string; grupo
 
 // ─── FormularioPersonaje ──────────────────────────────────────────────────────
 export function FormularioPersonaje({
-  form, setForm, status, onSave, onDelete, compacto = false, entities = [], onNavigate, onSelectPersonaje,
+  form, setForm, status, onSave, onDelete, compacto = false, entities = [], onNavigate, onSelectPersonaje, onOpenGrupo,
 }: {
   form: Personaje;
   setForm: React.Dispatch<React.SetStateAction<Personaje>>;
@@ -253,6 +344,7 @@ export function FormularioPersonaje({
   entities?: WikiEntity[];
   onNavigate?: (tab: "criaturas" | "reinos", nombre: string) => void;
   onSelectPersonaje?: (id: string) => void;
+  onOpenGrupo?: (id: string) => void;
 }) {
   const especies = useNombresDeTabla("criaturas");
   const reinos   = useNombresDeTabla("reinos");
@@ -451,6 +543,9 @@ export function FormularioPersonaje({
                     </div>
                   )}
 
+                  {/* Grupos del personaje */}
+                  <BloqueGruposPersonaje personajeId={form.id} onOpenGrupo={onOpenGrupo} />
+
                   {/* Relaciones */}
                   <BloqueRelaciones personajeId={form.id} onSelectPersonaje={onSelectPersonaje} />
 
@@ -481,11 +576,12 @@ export function FormularioPersonaje({
 
 // ─── EditorPersonaje ──────────────────────────────────────────────────────────
 export function EditorPersonaje({
-  item, onSaved, onDeleted, entities = [], onNavigate, onSelectPersonaje,
+  item, onSaved, onDeleted, entities = [], onNavigate, onSelectPersonaje, onOpenGrupo,
 }: {
   item: Personaje; onSaved: (p: Personaje) => void; onDeleted: (id: string) => void; entities?: WikiEntity[];
   onNavigate?: (tab: "criaturas" | "reinos", nombre: string) => void;
   onSelectPersonaje?: (id: string) => void;
+  onOpenGrupo?: (id: string) => void;
 }) {
   const [form,   setForm]   = useState<Personaje>(item);
   const [status, setStatus] = useState<SaveStatus>("idle");
@@ -525,7 +621,7 @@ export function EditorPersonaje({
   return (
     <>
       <ConfirmModal />
-      <FormularioPersonaje form={form} setForm={setForm} status={status} onSave={save} onDelete={del} entities={entities} onNavigate={onNavigate} onSelectPersonaje={onSelectPersonaje} />
+      <FormularioPersonaje form={form} setForm={setForm} status={status} onSave={save} onDelete={del} entities={entities} onNavigate={onNavigate} onSelectPersonaje={onSelectPersonaje} onOpenGrupo={onOpenGrupo} />
     </>
   );
 }
