@@ -270,127 +270,168 @@ export function Editor({
             )}
           </AnimatePresence>
         </div>
-        {/* ── Backlinks bar ── */}
+        {/* ── Info bar: dos columnas ── */}
         <div
-          className="shrink-0 px-8 py-3"
+          className="shrink-0"
           style={{
-            borderTop: "1px solid color-mix(in srgb, var(--foreground) 8%, transparent)",
-            background: "color-mix(in srgb, var(--primary) 6%, var(--bg-main))",
-            display: "flex",
-            alignItems: "center",
-            gap: 12,
-            flexWrap: "wrap",
+            borderTop: "1px solid color-mix(in srgb, var(--foreground) 7%, transparent)",
+            background: "color-mix(in srgb, var(--primary) 5%, var(--bg-main))",
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
           }}
         >
-          {/* Tags editable — right side */}
-          <div className="flex items-center gap-1.5 ml-auto shrink-0">
-            {!tagInputFocused && (ensayo.tags?.length > 0) ? (
-              <>
-                {ensayo.tags.map((tag: string) => (
-                  <span
-                    key={tag}
-                    style={{
-                      fontSize: 10,
-                      fontFamily: "var(--font-mono)",
-                      color: "color-mix(in srgb, var(--accent) 75%, transparent)",
-                      background: "color-mix(in srgb, var(--accent) 10%, transparent)",
-                      border: "1px solid color-mix(in srgb, var(--accent) 20%, transparent)",
-                      padding: "1px 7px",
-                      borderRadius: 3,
-                    }}
-                  >
-                    #{tag}
-                  </span>
-                ))}
+          {/* ── Columna izquierda: Tags ── */}
+          <div
+            style={{
+              padding: "10px 16px 10px 32px",
+              borderRight: "1px solid color-mix(in srgb, var(--foreground) 6%, transparent)",
+              display: "flex",
+              flexDirection: "column",
+              gap: 6,
+            }}
+          >
+            <span style={{
+              fontSize: 8,
+              fontFamily: "var(--font-mono)",
+              letterSpacing: "0.12em",
+              textTransform: "uppercase",
+              color: "color-mix(in srgb, var(--foreground) 35%, transparent)",
+            }}>
+              etiquetas
+            </span>
+
+            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 5, minHeight: 24 }}>
+              {(ensayo.tags?.length > 0) && !tagInputFocused && ensayo.tags.map((tag: string) => (
                 <button
-                  onClick={() => setTagInputFocused(true)}
+                  key={tag}
+                  onClick={() => onNavigateToPage(tag)}
                   style={{
-                    fontSize: 9,
+                    fontSize: 10,
                     fontFamily: "var(--font-mono)",
-                    color: "color-mix(in srgb, var(--foreground) 30%, transparent)",
-                    background: "none",
-                    border: "1px dashed color-mix(in srgb, var(--foreground) 15%, transparent)",
+                    color: "color-mix(in srgb, var(--accent) 80%, transparent)",
+                    background: "color-mix(in srgb, var(--accent) 10%, transparent)",
+                    border: "1px solid color-mix(in srgb, var(--accent) 22%, transparent)",
+                    padding: "2px 8px",
                     borderRadius: 3,
-                    padding: "1px 6px",
                     cursor: "pointer",
+                    transition: "all 0.1s",
+                  }}
+                  onMouseEnter={e => {
+                    (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--accent) 18%, transparent)";
+                    (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--accent) 40%, transparent)";
+                  }}
+                  onMouseLeave={e => {
+                    (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--accent) 10%, transparent)";
+                    (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--accent) 22%, transparent)";
                   }}
                 >
-                  editar
+                  #{tag}
                 </button>
-              </>
-            ) : (
-              <input
-                type="text"
-                value={tagInput}
-                autoFocus={tagInputFocused}
-                onChange={e => setTagInput(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key === "Enter") {
+              ))}
+
+              {tagInputFocused ? (
+                <input
+                  type="text"
+                  value={tagInput}
+                  autoFocus
+                  onChange={e => setTagInput(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === "Enter") {
+                      const parsed = tagInput.split(",").map((t: string) => t.trim().toLowerCase()).filter(Boolean);
+                      onUpdateField(ensayo.id, "tags", parsed);
+                      setTagInputFocused(false);
+                    }
+                    if (e.key === "Escape") setTagInputFocused(false);
+                  }}
+                  onBlur={() => {
                     const parsed = tagInput.split(",").map((t: string) => t.trim().toLowerCase()).filter(Boolean);
                     onUpdateField(ensayo.id, "tags", parsed);
                     setTagInputFocused(false);
-                  }
-                  if (e.key === "Escape") setTagInputFocused(false);
-                }}
-                onFocus={() => setTagInputFocused(true)}
-                onBlur={() => {
-                  const parsed = tagInput.split(",").map((t: string) => t.trim().toLowerCase()).filter(Boolean);
-                  onUpdateField(ensayo.id, "tags", parsed);
-                  setTagInputFocused(false);
-                }}
-                placeholder="tag1, tag2..."
-                style={{
+                  }}
+                  placeholder="tag1, tag2, tag3"
+                  style={{
+                    fontSize: 10,
+                    fontFamily: "var(--font-mono)",
+                    padding: "2px 8px",
+                    borderRadius: 3,
+                    border: "1px solid color-mix(in srgb, var(--accent) 35%, transparent)",
+                    background: "color-mix(in srgb, var(--accent) 6%, transparent)",
+                    color: "color-mix(in srgb, var(--foreground) 75%, transparent)",
+                    outline: "none",
+                    width: "100%",
+                    maxWidth: 220,
+                  }}
+                />
+              ) : (
+                <button
+                  onClick={() => { setTagInput(ensayo.tags?.join(", ") || ""); setTagInputFocused(true); }}
+                  style={{
+                    fontSize: 9,
+                    fontFamily: "var(--font-mono)",
+                    color: "color-mix(in srgb, var(--foreground) 25%, transparent)",
+                    background: "none",
+                    border: "1px dashed color-mix(in srgb, var(--foreground) 12%, transparent)",
+                    borderRadius: 3,
+                    padding: "2px 7px",
+                    cursor: "pointer",
+                  }}
+                  onMouseEnter={e => {
+                    (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--foreground) 50%, transparent)";
+                    (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--foreground) 25%, transparent)";
+                  }}
+                  onMouseLeave={e => {
+                    (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--foreground) 25%, transparent)";
+                    (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--foreground) 12%, transparent)";
+                  }}
+                >
+                  {ensayo.tags?.length > 0 ? "+ editar" : "+ añadir etiqueta"}
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* ── Columna derecha: Menciones ── */}
+          <div
+            style={{
+              padding: "10px 32px 10px 16px",
+              display: "flex",
+              flexDirection: "column",
+              gap: 6,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{
+                fontSize: 8,
+                fontFamily: "var(--font-mono)",
+                letterSpacing: "0.12em",
+                textTransform: "uppercase",
+                color: "color-mix(in srgb, var(--foreground) 35%, transparent)",
+              }}>
+                menciones
+              </span>
+              <span style={{
+                fontSize: 8,
+                fontFamily: "var(--font-mono)",
+                color: backlinks.length > 0 ? "var(--accent)" : "color-mix(in srgb, var(--foreground) 20%, transparent)",
+                background: backlinks.length > 0 ? "color-mix(in srgb, var(--accent) 14%, transparent)" : "color-mix(in srgb, var(--foreground) 6%, transparent)",
+                padding: "0px 6px",
+                borderRadius: 10,
+              }}>
+                {backlinks.length}
+              </span>
+            </div>
+
+            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 5, minHeight: 24 }}>
+              {backlinks.length === 0 ? (
+                <span style={{
                   fontSize: 10,
                   fontFamily: "var(--font-mono)",
-                  padding: "2px 8px",
-                  borderRadius: 4,
-                  border: "1px solid color-mix(in srgb, var(--accent) 30%, transparent)",
-                  background: "color-mix(in srgb, var(--accent) 6%, transparent)",
-                  color: "color-mix(in srgb, var(--foreground) 70%, transparent)",
-                  outline: "none",
-                  width: 150,
-                }}
-              />
-            )}
-          </div>
-          <span style={{
-            fontSize: 9,
-            fontFamily: "var(--font-mono)",
-            letterSpacing: "0.12em",
-            textTransform: "uppercase",
-            color: "color-mix(in srgb, var(--foreground) 45%, transparent)",
-            flexShrink: 0,
-          }}>
-            menciones
-          </span>
-          <span style={{
-            fontSize: 9,
-            fontFamily: "var(--font-mono)",
-            color: backlinks.length > 0
-              ? "var(--accent)"
-              : "color-mix(in srgb, var(--foreground) 25%, transparent)",
-            background: backlinks.length > 0
-              ? "color-mix(in srgb, var(--accent) 15%, transparent)"
-              : "color-mix(in srgb, var(--foreground) 7%, transparent)",
-            padding: "1px 7px",
-            borderRadius: 10,
-            flexShrink: 0,
-          }}>
-            {backlinks.length}
-          </span>
-
-          {backlinks.length === 0 ? (
-            <span style={{
-              fontSize: 11,
-              fontFamily: "var(--font-mono)",
-              color: "color-mix(in srgb, var(--foreground) 28%, transparent)",
-              fontStyle: "italic",
-            }}>
-              ninguna nota menciona esta página aún
-            </span>
-          ) : (
-            <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-              {backlinks.map((b: any) => {
+                  color: "color-mix(in srgb, var(--foreground) 22%, transparent)",
+                  fontStyle: "italic",
+                }}>
+                  ninguna nota menciona esta página
+                </span>
+              ) : backlinks.map((b: any) => {
                 const titulo = ensayo.titulo?.trim().toLowerCase() ?? "";
                 const contenido = (b.contenido || "").toLowerCase();
                 const viaWikilink = contenido.includes(`[[${titulo}]]`);
@@ -399,27 +440,30 @@ export function Editor({
                   <button
                     key={b.id}
                     onClick={() => onNavigateToPage(b.titulo)}
-                    className="flex items-center gap-1.5"
                     style={{
-                      background: "color-mix(in srgb, var(--primary) 8%, transparent)",
-                      border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 5,
+                      background: "color-mix(in srgb, var(--primary) 7%, transparent)",
+                      border: "1px solid color-mix(in srgb, var(--primary) 18%, transparent)",
                       borderRadius: 4,
                       cursor: "pointer",
-                      padding: "3px 10px 3px 7px",
+                      padding: "2px 9px 2px 6px",
+                      transition: "all 0.1s",
                     }}
                     onMouseEnter={e => {
-                      (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--accent) 50%, transparent)";
-                      (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--accent) 10%, transparent)";
+                      (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--accent) 45%, transparent)";
+                      (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--accent) 9%, transparent)";
                     }}
                     onMouseLeave={e => {
-                      (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 20%, transparent)";
-                      (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 8%, transparent)";
+                      (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 18%, transparent)";
+                      (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 7%, transparent)";
                     }}
                   >
                     <span style={{
-                      fontSize: 9,
+                      fontSize: 8,
                       fontFamily: "var(--font-mono)",
-                      color: "color-mix(in srgb, var(--accent) 70%, transparent)",
+                      color: "color-mix(in srgb, var(--accent) 65%, transparent)",
                     }}>
                       {viaWikilink && viaTag ? "[[]]#" : viaWikilink ? "[[]]" : "#"}
                     </span>
@@ -427,7 +471,7 @@ export function Editor({
                       fontSize: 11,
                       fontFamily: "var(--font-serif)",
                       fontStyle: "italic",
-                      color: "color-mix(in srgb, var(--foreground) 80%, transparent)",
+                      color: "color-mix(in srgb, var(--foreground) 78%, transparent)",
                     }}>
                       {b.titulo || "sin título"}
                     </span>
@@ -435,7 +479,7 @@ export function Editor({
                 );
               })}
             </div>
-          )}
+          </div>
         </div>
       </MotionDiv>
 
