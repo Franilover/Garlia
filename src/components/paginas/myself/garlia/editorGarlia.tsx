@@ -229,6 +229,14 @@ function readSession(): {
   }
 }
 
+// ─── Tabla de Supabase para tabs que ahora abren dentro del EditorMundo ────────
+const MUNDO_TABLAS: Partial<Record<Exclude<TabKey, "mundo">, string>> = {
+  personajes: "personajes",
+  criaturas:  "criaturas",
+  items:      "items",
+  reinos:     "reinos",
+};
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function EditorEntidades() {
   const session = useRef(readSession());
@@ -282,25 +290,20 @@ export default function EditorEntidades() {
   }, [allItems, selectedId, tab]);
 
   // ── Handlers ────────────────────────────────────────────────────────────────
-  // Tabla de Supabase para tabs que ahora abren dentro del EditorMundo
-  const MUNDO_TABLAS: Partial<Record<Exclude<TabKey, "mundo">, string>> = {
-    personajes: "personajes",
-    criaturas:  "criaturas",
-    items:      "items",
-    reinos:     "reinos",
-  };
 
   const handleSelect = useCallback((item: any, itemTab: Exclude<TabKey, "mundo">) => {
     const tabla = MUNDO_TABLAS[itemTab];
     if (tabla) {
-      // Abrir dentro del EditorMundo. openItem lleva un key incremental para
-      // que EditorMundo re-triggeree su efecto incluso si el id no cambia
-      // (ej: click en el mismo personaje desde dentro del EditorReino).
+      // Si ya estamos en mundo, limpiamos openItem primero para forzar re-trigger
+      setOpenItem(null);
       setTab("mundo");
       setSelectedId(item.id);
       setMundoSection("geografia");
-      setOpenItem({ tabla, id: item.id, key: ++openItemKeyRef.current });
       setRequestedGrupoId(null);
+      // Usar setTimeout para que el null se procese antes del nuevo valor
+      setTimeout(() => {
+        setOpenItem({ tabla, id: item.id, key: ++openItemKeyRef.current });
+      }, 0);
     } else {
       // hechizos / dones / runas → siguen con editor standalone
       setTab(itemTab);
