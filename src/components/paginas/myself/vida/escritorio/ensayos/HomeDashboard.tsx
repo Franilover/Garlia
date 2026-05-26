@@ -112,20 +112,179 @@ export function HomeDashboard({
       className="h-full overflow-y-auto"
       style={{ background: "var(--bg-main)" }}
     >
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "32px 32px 64px" }}>
+      <style>{`
+        @media (max-width: 767px) {
+          .hd-main-grid {
+            display: flex !important;
+            flex-direction: column !important;
+            min-height: unset !important;
+          }
+          .hd-mes { min-height: 340px !important; }
+          .hd-side-panel { display: none !important; }
+          .hd-favoritos, .hd-recientes, .hd-tags {
+            padding: 14px 16px !important;
+          }
+          .hd-notes-grid {
+            grid-template-columns: 1fr 1fr !important;
+          }
+          .hd-outer-padding {
+            padding: 16px 16px 80px !important;
+          }
+          .hd-stats {
+            font-size: 10px !important;
+            margin-bottom: 12px !important;
+          }
+          .hd-personal-grid {
+            grid-template-columns: 1fr 1fr 1fr !important;
+            gap: 5px !important;
+          }
+          .hd-personal-btn span {
+            font-size: 9px !important;
+          }
+          .hd-mobile-actions {
+            display: flex !important;
+          }
+        }
+        .hd-mobile-actions { display: none; }
+        @media (min-width: 768px) {
+          .hd-mobile-actions { display: none !important; }
+        }
+      `}</style>
+      <div className="hd-outer-padding" style={{ maxWidth: 1200, margin: "0 auto", padding: "32px 32px 64px" }}>
 
         {/* ── Stats mínimo arriba ── */}
-        <p style={{ ...mono, fontSize: 9, color: "color-mix(in srgb, var(--foreground) 18%, transparent)", marginBottom: 16, textTransform: "uppercase", letterSpacing: "0.12em" }}>
+        <p className="hd-stats" style={{ ...mono, fontSize: 9, color: "color-mix(in srgb, var(--foreground) 18%, transparent)", marginBottom: 16, textTransform: "uppercase", letterSpacing: "0.12em" }}>
           {ensayos.length} notas · {totalPalabras.toLocaleString("es-ES")} palabras
           {tagMasUsado && ` · #${tagMasUsado}`}
           {pendientes.length > 0 && ` · ${pendientes.length} pendiente${pendientes.length !== 1 ? "s" : ""}`}
         </p>
 
+        {/* Botones móvil: Reloj + Tareas (solo en mobile, arriba del grid) */}
+        <div className="hd-mobile-actions" style={{ gap: 6, marginBottom: 10 }}>
+          <button
+            onClick={() => setPanelAbierto(p => p === "reloj" ? null : "reloj")}
+            style={{
+              display: "flex", alignItems: "center", gap: 5,
+              padding: "6px 12px", borderRadius: 6, border: "none", cursor: "pointer",
+              transition: "all 0.12s", flex: 1, justifyContent: "center",
+              background: panelAbierto === "reloj"
+                ? "color-mix(in srgb, var(--foreground) 12%, transparent)"
+                : "color-mix(in srgb, var(--foreground) 5%, transparent)",
+              color: panelAbierto === "reloj"
+                ? "color-mix(in srgb, var(--foreground) 80%, transparent)"
+                : "color-mix(in srgb, var(--foreground) 40%, transparent)",
+            }}
+          >
+            <Clock size={12} />
+            <span style={{ ...mono, fontSize: 9, textTransform: "uppercase", letterSpacing: "0.1em" }}>Reloj</span>
+          </button>
+          <button
+            onClick={() => setPanelAbierto(p => p === "tareas" ? null : "tareas")}
+            style={{
+              display: "flex", alignItems: "center", gap: 5,
+              padding: "6px 12px", borderRadius: 6, border: "none", cursor: "pointer",
+              transition: "all 0.12s", flex: 1, justifyContent: "center",
+              background: panelAbierto === "tareas"
+                ? "color-mix(in srgb, var(--foreground) 12%, transparent)"
+                : "color-mix(in srgb, var(--foreground) 5%, transparent)",
+              color: panelAbierto === "tareas"
+                ? "color-mix(in srgb, var(--foreground) 80%, transparent)"
+                : "color-mix(in srgb, var(--foreground) 40%, transparent)",
+            }}
+          >
+            <CheckSquare size={12} />
+            <span style={{ ...mono, fontSize: 9, textTransform: "uppercase", letterSpacing: "0.1em" }}>Tareas {pendientes.length > 0 && `· ${pendientes.length}`}</span>
+          </button>
+        </div>
+
+        {/* Panel móvil: Reloj o Tareas inline (solo mobile) */}
+        <AnimatePresence>
+          {panelAbierto && (
+            <MotionDiv
+              key={`mobile-panel-${panelAbierto}`}
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.18 }}
+              style={{
+                overflow: "hidden",
+                borderRadius: 8,
+                background: "color-mix(in srgb, var(--foreground) 3%, transparent)",
+                border: "1px solid color-mix(in srgb, var(--foreground) 7%, transparent)",
+                marginBottom: 8,
+              }}
+              className="hd-mobile-actions"
+            >
+              <div style={{ padding: "12px 16px", minHeight: panelAbierto === "reloj" ? 200 : "auto" }}>
+                {panelAbierto === "reloj" && (
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: 180 }}>
+                    <RelojDigital horario={horario} tareas={tareas} />
+                  </div>
+                )}
+                {panelAbierto === "tareas" && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    <div style={{ display: "flex", alignItems: "center", marginBottom: 4 }}>
+                      <CheckSquare size={10} style={{ color: "color-mix(in srgb, var(--foreground) 25%, transparent)", marginRight: 6 }} />
+                      <span style={{ ...mono, fontSize: 8, color: "color-mix(in srgb, var(--foreground) 30%, transparent)", textTransform: "uppercase", letterSpacing: "0.12em" }}>Pendientes</span>
+                    </div>
+                    {onAddTarea && (
+                      <div style={{ display: "flex", gap: 6, marginBottom: 4 }}>
+                        <input
+                          type="text"
+                          value={nuevaTarea}
+                          onChange={e => setNuevaTarea(e.target.value)}
+                          onKeyDown={e => e.key === "Enter" && handleAddTarea()}
+                          placeholder="Nueva tarea..."
+                          style={{
+                            ...mono, flex: 1, fontSize: 12, padding: "8px 10px", borderRadius: 6,
+                            border: "1px solid color-mix(in srgb, var(--foreground) 10%, transparent)",
+                            background: "color-mix(in srgb, var(--foreground) 4%, transparent)",
+                            color: "color-mix(in srgb, var(--foreground) 70%, transparent)",
+                            outline: "none", minWidth: 0,
+                          }}
+                        />
+                        <button
+                          onClick={handleAddTarea}
+                          disabled={!nuevaTarea.trim()}
+                          style={{
+                            width: 36, height: 36, borderRadius: 6, border: "none", cursor: "pointer",
+                            background: nuevaTarea.trim() ? "color-mix(in srgb, var(--foreground) 12%, transparent)" : "color-mix(in srgb, var(--foreground) 4%, transparent)",
+                            color: "color-mix(in srgb, var(--foreground) 40%, transparent)",
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            transition: "all 0.1s", flexShrink: 0,
+                          }}
+                        ><Plus size={14} /></button>
+                      </div>
+                    )}
+                    {pendientes.length === 0 && (
+                      <p style={{ ...mono, fontSize: 11, color: "color-mix(in srgb, var(--foreground) 20%, transparent)", fontStyle: "italic" }}>Sin pendientes.</p>
+                    )}
+                    {pendientes.map((t, i) => (
+                      <button
+                        key={t.id}
+                        onClick={() => onToggleTarea?.(t.id, t.completada)}
+                        style={{
+                          display: "flex", alignItems: "center", gap: 10,
+                          padding: "8px 6px", borderRadius: 6, background: "transparent", border: "none",
+                          cursor: onToggleTarea ? "pointer" : "default", width: "100%", textAlign: "left",
+                        }}
+                      >
+                        <span style={{ width: 14, height: 14, borderRadius: 4, flexShrink: 0, border: "1px solid color-mix(in srgb, var(--foreground) 25%, transparent)", display: "inline-flex", alignItems: "center", justifyContent: "center" }} />
+                        <span style={{ ...mono, fontSize: 13, color: "color-mix(in srgb, var(--foreground) 65%, transparent)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{t.titulo}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </MotionDiv>
+          )}
+        </AnimatePresence>
+
         {/* ══════════════════════════════════════════
             FILA PRINCIPAL — grid con areas
             col: VistaMes | Reloj+Tareas | Favoritos+Recientes | Tags
         ══════════════════════════════════════════ */}
-        <div style={{
+        <div className="hd-main-grid" style={{
           display: "grid",
           gridTemplateColumns: "2.4fr 1fr 0.85fr",
           gridTemplateRows: "1fr 1fr",
@@ -143,7 +302,7 @@ export function HomeDashboard({
         }}>
 
           {/* ── Calendario — span 2 rows (expanded) ── */}
-          <div style={{ gridArea: "mes", background: "var(--bg-main)", overflow: "hidden", display: "flex", flexDirection: "column", position: "relative" }}>
+          <div className="hd-mes" style={{ gridArea: "mes", background: "var(--bg-main)", overflow: "hidden", display: "flex", flexDirection: "column", position: "relative" }}>
 
             {/* Barra superior: botones icono izquierda + toggle mes/semana derecha */}
             <div style={{
@@ -152,7 +311,7 @@ export function HomeDashboard({
               flexShrink: 0,
             }}>
               {/* Botones de icono — Reloj y Tareas */}
-              <div style={{ display: "flex", gap: 3 }}>
+              <div className="hd-side-panel" style={{ display: "flex", gap: 3 }}>
                 {/* Botón Reloj */}
                 <button
                   onClick={() => setPanelAbierto(p => p === "reloj" ? null : "reloj")}
@@ -425,7 +584,7 @@ export function HomeDashboard({
           </div>
 
           {/* ── Favoritos ── */}
-          <div style={{ gridArea: "favoritos", background: "var(--bg-main)", padding: "16px 18px", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          <div className="hd-favoritos" style={{ gridArea: "favoritos", background: "var(--bg-main)", padding: "16px 18px", display: "flex", flexDirection: "column", overflow: "hidden" }}>
             <SectionHeader
               icon={<Star size={9} style={{ color: "color-mix(in srgb, var(--foreground) 25%, transparent)" }} />}
               label="Favoritos"
@@ -455,12 +614,12 @@ export function HomeDashboard({
           </div>
 
           {/* ── Personal ── */}
-          <div style={{ gridArea: "recientes", background: "var(--bg-main)", padding: "16px 18px", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          <div className="hd-recientes" style={{ gridArea: "recientes", background: "var(--bg-main)", padding: "16px 18px", display: "flex", flexDirection: "column", overflow: "hidden" }}>
             <SectionHeader
               icon={<Star size={9} style={{ color: "color-mix(in srgb, var(--foreground) 25%, transparent)" }} />}
               label="Personal"
             />
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, flex: 1, alignContent: "start" }}>
+            <div className="hd-personal-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, flex: 1, alignContent: "start" }}>
               {([
                 { id: "compras", label: "Compras", icon: <ShoppingCart size={16} /> },
                 { id: "ejercicios", label: "Ejercicios", icon: <Dumbbell size={16} /> },
@@ -470,6 +629,7 @@ export function HomeDashboard({
               ] as const).map(({ id, label, icon }) => (
                 <MotionDiv key={id} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} style={{ gridColumn: id === "ropa" ? "1 / -1" : undefined }}>
                   <button
+                    className="hd-personal-btn"
                     onClick={() => setVistaPersonal(id)}
                     style={{
                       width: "100%", padding: "10px 8px", borderRadius: 7,
@@ -501,7 +661,7 @@ export function HomeDashboard({
           </div>
 
           {/* ── Tags — span 2 rows ── */}
-          <div style={{ gridArea: "tags", background: "var(--bg-main)", padding: "16px 18px", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          <div className="hd-tags" style={{ gridArea: "tags", background: "var(--bg-main)", padding: "16px 18px", display: "flex", flexDirection: "column", overflow: "hidden" }}>
             <SectionHeader
               icon={<Hash size={9} style={{ color: "color-mix(in srgb, var(--foreground) 25%, transparent)" }} />}
               label={`Tags · ${todosLosTags.length}`}
@@ -547,7 +707,7 @@ export function HomeDashboard({
                 Todas las notas · {ensayos.length}
               </span>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 1, background: divColor, borderRadius: 6, overflow: "hidden" }}>
+            <div className="hd-notes-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 1, background: divColor, borderRadius: 6, overflow: "hidden" }}>
               {ensayos.map((e, i) => (
                 <MotionDiv key={e.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: Math.min(i * 0.015, 0.4) }}>
                   <button
