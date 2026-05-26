@@ -1033,6 +1033,12 @@ export function MarkdownEditor({
   });
   const wikiMenuRef = useRef<HTMLDivElement>(null);
 
+  // ── Spell check state ─────────────────────────────────────────────────────
+  const [spellCheck, setSpellCheck] = useState<{
+    enabled: boolean;
+    lang: string;
+  }>({ enabled: false, lang: "es" });
+
   // ── Table editor state ────────────────────────────────────────────────────
   const [tableEditor, setTableEditor] = useState<{
     open: boolean;
@@ -1706,6 +1712,86 @@ export function MarkdownEditor({
             flexShrink: 0,
           }}
         >
+          {/* Word count */}
+          {(() => {
+            const words = value.trim() ? value.trim().split(/\s+/).filter(Boolean).length : 0;
+            const chars = value.length;
+            return words > 0 ? (
+              <span style={{
+                fontSize: 9,
+                fontFamily: "var(--font-mono)",
+                color: "color-mix(in srgb, var(--foreground) 22%, transparent)",
+                letterSpacing: "0.04em",
+                userSelect: "none",
+                whiteSpace: "nowrap",
+              }}>
+                {words}p · {chars}c
+              </span>
+            ) : null;
+          })()}
+
+          {/* Spell check toggle */}
+          <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
+            <button
+              type="button"
+              title={spellCheck.enabled ? "Desactivar corrección ortográfica" : "Activar corrección ortográfica"}
+              onClick={() => setSpellCheck(s => ({ ...s, enabled: !s.enabled }))}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: 26,
+                height: 22,
+                background: spellCheck.enabled
+                  ? "color-mix(in srgb, #22c55e 20%, transparent)"
+                  : "transparent",
+                color: spellCheck.enabled
+                  ? "#22c55e"
+                  : "color-mix(in srgb, var(--foreground) 30%, transparent)",
+                border: `1px solid ${spellCheck.enabled ? "color-mix(in srgb, #22c55e 40%, transparent)" : "color-mix(in srgb, var(--foreground) 10%, transparent)"}`,
+                borderRadius: 5,
+                cursor: "pointer",
+                fontSize: 12,
+                fontWeight: 700,
+                lineHeight: 1,
+                transition: "all 0.15s",
+              }}
+            >
+              <span style={{ fontFamily: "serif", fontSize: 13 }}>✓</span>
+            </button>
+            {spellCheck.enabled && (
+              <select
+                value={spellCheck.lang}
+                onChange={e => setSpellCheck(s => ({ ...s, lang: e.target.value }))}
+                title="Idioma del corrector"
+                style={{
+                  height: 22,
+                  background: "color-mix(in srgb, var(--foreground) 5%, transparent)",
+                  border: "1px solid color-mix(in srgb, var(--foreground) 10%, transparent)",
+                  borderRadius: 4,
+                  color: "color-mix(in srgb, var(--foreground) 55%, transparent)",
+                  fontSize: 9,
+                  fontFamily: "var(--font-mono)",
+                  padding: "0 4px",
+                  cursor: "pointer",
+                  outline: "none",
+                }}
+              >
+                <option value="es">ES</option>
+                <option value="es-MX">ES-MX</option>
+                <option value="es-AR">ES-AR</option>
+                <option value="en">EN</option>
+                <option value="en-US">EN-US</option>
+                <option value="en-GB">EN-GB</option>
+                <option value="fr">FR</option>
+                <option value="de">DE</option>
+                <option value="pt">PT</option>
+                <option value="pt-BR">PT-BR</option>
+                <option value="it">IT</option>
+              </select>
+            )}
+          </div>
+
           {/* Find button */}
           <button
             type="button"
@@ -1778,6 +1864,26 @@ export function MarkdownEditor({
           })}
           </div>
         </div>
+        )}
+
+        {/* ── Panel de corrección ortográfica ── */}
+        {spellCheck.enabled && (
+          <div style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            padding: "4px 10px",
+            background: "color-mix(in srgb, #22c55e 6%, transparent)",
+            borderBottom: "1px solid color-mix(in srgb, #22c55e 15%, transparent)",
+            fontSize: 9.5,
+            fontFamily: "var(--font-mono)",
+            color: "color-mix(in srgb, #22c55e 70%, var(--foreground))",
+            letterSpacing: "0.03em",
+            userSelect: "none",
+          }}>
+            <span style={{ opacity: 0.8 }}>✓</span>
+            <span>Corrección ortográfica activa · idioma: <strong>{spellCheck.lang}</strong> · Las palabras con error aparecen subrayadas en rojo · Clic derecho para ver sugerencias</span>
+          </div>
         )}
 
         {/* ── Panel Buscar y Reemplazar ── */}
@@ -1957,7 +2063,8 @@ export function MarkdownEditor({
                 placeholder={placeholder}
                 className={textareaCls}
                 style={textareaStyle}
-
+                spellCheck={spellCheck.enabled}
+                lang={spellCheck.enabled ? spellCheck.lang : undefined}
               />
 
               {/* ── Overlay externo (ej: contadores de sílabas) ── */}
