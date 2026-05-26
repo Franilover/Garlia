@@ -60,6 +60,10 @@ export default function AppLogic({ children }) {
     if (typeof window === "undefined") return;
 
     const manejarEventos = (e: Event) => {
+      if (e.type === "contextmenu") {
+        const target = e.target as HTMLElement;
+        if (target.tagName === "TEXTAREA") return;
+      }
       if (e.type === "contextmenu" || e.type === "dragstart") e.preventDefault();
       const ke = e as KeyboardEvent;
       if ((ke.ctrlKey || ke.metaKey) && (ke.key === "s" || ke.key === "p" || ke.key === "u")) {
