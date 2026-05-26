@@ -1553,17 +1553,6 @@ function PanelListas({
             </div>
           )}
 
-          {/* HISTORIA */}
-          {textos && onTextoChange && onSave && (
-            <div className="border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-              <div className="shrink-0 flex items-center gap-2 px-3 py-2 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, transparent)" }}>
-                <Clock size={11} className="text-primary/40 shrink-0" />
-                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/50">Historia</span>
-              </div>
-              <PanelHistoriaMundo texto={textos.historia} onChange={v => onTextoChange("historia", v)} onSave={() => onSave("historia")} />
-            </div>
-          )}
-
           {/* ENTIDADES */}
           <div className="px-3 pb-3 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
             <div className="flex items-center gap-2 pt-3 pb-2">
@@ -1662,6 +1651,17 @@ function PanelListas({
               })}
             </SeccionEntidades>
           </div>
+
+          {/* HISTORIA */}
+          {textos && onTextoChange && onSave && (
+            <div className="border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+              <div className="shrink-0 flex items-center gap-2 px-3 py-2 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, transparent)" }}>
+                <Clock size={11} className="text-primary/40 shrink-0" />
+                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/50">Historia</span>
+              </div>
+              <PanelHistoriaMundo texto={textos.historia} onChange={v => onTextoChange("historia", v)} onSave={() => onSave("historia")} />
+            </div>
+          )}
 
           {/* CAPÍTULOS */}
           <div style={{ minHeight: "60vh" }}>
