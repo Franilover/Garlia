@@ -447,10 +447,49 @@ export default function Ensayos() {
 
   const actualizarLocal = useCallback((id: string, field: string, value: any) => {
     scheduleSave(id, { [field]: value });
+
     if (field === "tags" && Array.isArray(value)) {
       autoCreateMissingTagPages(value);
     }
-  }, [scheduleSave, autoCreateMissingTagPages]);
+
+    // ── Rename en cascada cuando cambia el título ──────────────────────────
+    if (field === "titulo") {
+      const oldTitulo = ensayos.find((e: any) => e.id === id)?.titulo?.trim();
+      const newTitulo = (value as string).trim();
+      if (!oldTitulo || oldTitulo === newTitulo) return;
+
+      const oldLower = oldTitulo.toLowerCase();
+
+      ensayos.forEach((e: any) => {
+        if (e.id === id) return;
+        let changed = false;
+        const updates: Record<string, any> = {};
+
+        // 1. Reemplazar [[viejo]] → [[nuevo]] en el contenido
+        if (e.contenido?.includes(`[[${oldTitulo}]]`) || e.contenido?.includes(`[[${oldLower}]]`)) {
+          const escaped = oldTitulo.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+          const regex = new RegExp(`\\[\\[${escaped}\\]\\]`, "gi");
+          updates.contenido = e.contenido.replace(regex, `[[${newTitulo}]]`);
+          changed = true;
+        }
+
+        // 2. Reemplazar el valor en el array tags
+        if (e.tags?.some((t: string) => t.toLowerCase() === oldLower)) {
+          updates.tags = e.tags.map((t: string) =>
+            t.toLowerCase() === oldLower ? newTitulo.toLowerCase() : t
+          );
+          changed = true;
+        }
+
+        if (changed) {
+          scheduleSave(e.id, updates);
+          setEnsayos((prev: any[]) =>
+            prev.map((p: any) => p.id === e.id ? { ...p, ...updates } : p)
+          );
+        }
+      });
+    }
+  }, [scheduleSave, autoCreateMissingTagPages, ensayos, setEnsayos]);
 
 
   // ─── CRUD ──────────────────────────────────────────────────────────────────
