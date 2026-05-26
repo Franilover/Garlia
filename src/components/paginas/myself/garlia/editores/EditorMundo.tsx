@@ -1431,7 +1431,13 @@ function PanelListas({
                 onDeleted={id => { setCriaturas(p => p.filter(c => c.id !== id)); setSelectedCriatura(null); }}
                 onSelectItem={id => { const o = objetos.find(x => x.id === id); if (!o) return; clearAllOverlays(); setSelectedObjeto(o); }}
                 onSelectPersonaje={id => { const p = personajes.find(x => x.id === id); if (!p) return; clearAllOverlays(); setSelectedPersonaje(p); }}
-                onSelectGrupo={() => {}}
+                onSelectGrupo={async (id) => {
+                  const local = grupos.find(x => x.id === id);
+                  clearAllOverlays();
+                  if (local) { selectGrupo(local); return; }
+                  const { data } = await supabase.from("grupos_mundo").select("*").eq("id", id).single();
+                  if (data) selectGrupo({ ...data, miembro_ids: data.miembro_ids ?? [] } as Grupo);
+                }}
               />
             )}
             {overlay === "objeto" && selectedObjeto && (
