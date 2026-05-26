@@ -1073,7 +1073,17 @@ export function MarkdownEditor({
   const containerRef = useRef<HTMLDivElement>(null);
   const SPLIT_MIN_WIDTH = 700; // px mínimos para habilitar el modo split
   const [containerWidth, setContainerWidth] = useState<number>(9999);
-  const isMobile = containerWidth < SPLIT_MIN_WIDTH;
+  // isMobile usa el ancho REAL de la ventana, no el del contenedor —
+  // así un panel angosto en desktop no activa la barra móvil.
+  const [windowWidth, setWindowWidth] = useState<number>(
+    typeof window !== "undefined" ? window.innerWidth : 9999
+  );
+  useEffect(() => {
+    const onResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+  const isMobile = windowWidth < SPLIT_MIN_WIDTH;
 
   // Tracks whether the user has manually changed mode so we don't override their choice
   const userChangedModeRef = useRef(false);
