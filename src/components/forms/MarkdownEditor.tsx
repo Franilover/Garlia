@@ -1019,7 +1019,7 @@ export function MarkdownEditor({
   const [spellCheck, setSpellCheck] = useState<{
     enabled: boolean;
     lang: string;
-  }>({ enabled: false, lang: "es" });
+  }>({ enabled: true, lang: "es" });
 
   // ── Table editor state ────────────────────────────────────────────────────
   const [tableEditor, setTableEditor] = useState<{
@@ -1684,8 +1684,8 @@ export function MarkdownEditor({
           position: "relative",
         }}
       >
-        {/* ── Toolbar de vista ── */}
-        {toolbar && (
+        {/* ── Toolbar: solo visible en mobile, solo botones edit/preview ── */}
+        {toolbar && isMobile && (
         <div
           style={{
             display: "flex",
@@ -1697,100 +1697,8 @@ export function MarkdownEditor({
             flexShrink: 0,
           }}
         >
-
-          {/* Spell check toggle */}
-          <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
-            <button
-              type="button"
-              title={spellCheck.enabled ? "Desactivar corrección ortográfica" : "Activar corrección ortográfica"}
-              onClick={() => setSpellCheck(s => ({ ...s, enabled: !s.enabled }))}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                width: 26,
-                height: 22,
-                background: spellCheck.enabled
-                  ? "color-mix(in srgb, var(--color-primary, #7c6af7) 20%, transparent)"
-                  : "transparent",
-                color: spellCheck.enabled
-                  ? "var(--color-primary, #7c6af7)"
-                  : "color-mix(in srgb, var(--foreground) 30%, transparent)",
-                border: `1px solid ${spellCheck.enabled ? "color-mix(in srgb, var(--color-primary, #7c6af7) 40%, transparent)" : "color-mix(in srgb, var(--foreground) 10%, transparent)"}`,
-                borderRadius: 5,
-                cursor: "pointer",
-                fontSize: 12,
-                fontWeight: 700,
-                lineHeight: 1,
-                transition: "all 0.15s",
-              }}
-            >
-              <span style={{ fontFamily: "serif", fontSize: 13 }}>✓</span>
-            </button>
-            {spellCheck.enabled && (
-              <select
-                value={spellCheck.lang}
-                onChange={e => setSpellCheck(s => ({ ...s, lang: e.target.value }))}
-                title="Idioma del corrector"
-                style={{
-                  height: 22,
-                  background: "color-mix(in srgb, var(--foreground) 5%, transparent)",
-                  border: "1px solid color-mix(in srgb, var(--foreground) 10%, transparent)",
-                  borderRadius: 4,
-                  color: "color-mix(in srgb, var(--foreground) 55%, transparent)",
-                  fontSize: 9,
-                  fontFamily: "var(--font-mono)",
-                  padding: "0 4px",
-                  cursor: "pointer",
-                  outline: "none",
-                }}
-              >
-                <option value="es">ES</option>
-                <option value="es-MX">ES-MX</option>
-                <option value="es-AR">ES-AR</option>
-                <option value="en">EN</option>
-                <option value="en-US">EN-US</option>
-                <option value="en-GB">EN-GB</option>
-                <option value="fr">FR</option>
-                <option value="de">DE</option>
-                <option value="pt">PT</option>
-                <option value="pt-BR">PT-BR</option>
-                <option value="it">IT</option>
-              </select>
-            )}
-          </div>
-
-          {/* Find button */}
-          <button
-            type="button"
-            title="Buscar y reemplazar (Ctrl+F)"
-            onClick={() => {
-              setFindReplace(s => ({ ...s, open: !s.open }));
-              setTimeout(() => findInputRef.current?.focus(), 50);
-            }}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              width: 26,
-              height: 22,
-              background: findReplace.open
-                ? "color-mix(in srgb, var(--color-primary,#7c6af7) 20%, transparent)"
-                : "transparent",
-              color: findReplace.open
-                ? "var(--color-primary,#7c6af7)"
-                : "color-mix(in srgb, var(--foreground) 30%, transparent)",
-              border: "1px solid color-mix(in srgb, var(--foreground) 10%, transparent)",
-              borderRadius: 5,
-              cursor: "pointer",
-            }}
-          >
-            <Search size={10} />
-          </button>
-
-          {/* Mobile mode toggles — solo en pantallas pequeñas */}
-          {isMobile && (
-            <div
+          {/* Botones edit/preview — solo en mobile */}
+          <div
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -1831,26 +1739,7 @@ export function MarkdownEditor({
                 );
               })}
             </div>
-          )}
         </div>
-        )}
-        {spellCheck.enabled && (
-          <div style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            padding: "4px 10px",
-            background: "color-mix(in srgb, var(--color-primary, #7c6af7) 6%, transparent)",
-            borderBottom: "1px solid color-mix(in srgb, var(--color-primary, #7c6af7) 15%, transparent)",
-            fontSize: 9.5,
-            fontFamily: "var(--font-mono)",
-            color: "color-mix(in srgb, var(--color-primary, #7c6af7) 70%, var(--foreground))",
-            letterSpacing: "0.03em",
-            userSelect: "none",
-          }}>
-            <span style={{ opacity: 0.8 }}>✓</span>
-            <span>Corrección ortográfica activa · idioma: <strong>{spellCheck.lang}</strong> · Las palabras con error aparecen subrayadas en rojo · Clic derecho para ver sugerencias</span>
-          </div>
         )}
 
         {/* ── Panel Buscar y Reemplazar ── */}
@@ -1858,7 +1747,7 @@ export function MarkdownEditor({
           <div
             style={{
               position: "absolute",
-              top: 40,
+              top: 8,
               right: 8,
               zIndex: 300,
               width: 320,
