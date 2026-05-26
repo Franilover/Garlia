@@ -1463,6 +1463,13 @@ function PanelListas({
                   else if (tab === "reinos") { const r = reinos.find(x => x.nombre.toLowerCase() === nombre.toLowerCase()); if (!r) return; clearAllOverlays(); setSelectedReino(r); }
                 }}
                 onSelectPersonaje={id => { const p = personajes.find(x => x.id === id); if (!p) return; clearAllOverlays(); setSelectedPersonaje(p); }}
+                onOpenGrupo={async (id) => {
+                  const local = grupos.find(x => x.id === id);
+                  clearAllOverlays();
+                  if (local) { selectGrupo(local); return; }
+                  const { data } = await supabase.from("grupos_mundo").select("*").eq("id", id).single();
+                  if (data) selectGrupo({ ...data, miembro_ids: data.miembro_ids ?? [] } as Grupo);
+                }}
               />
             )}
             {overlay === "hechizo" && selectedHechizo && (
