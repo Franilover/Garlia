@@ -31,7 +31,7 @@ interface EditorProps {
   sources?: ZoteroSource[];
   editMode: boolean;
   onToggleEditMode: () => void;
-  onUpdateField: (id: string, field: string, value: any) => void;
+  onUpdateField: (id: string, field: string, value: any, extra?: any) => void;
   onNavigateToPage: (name: string) => void;
   entities?: WikiEntity[];
   tocOpen?: boolean;
@@ -55,6 +55,7 @@ export function Editor({
   onTocEntriesChange,
 }: EditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const tituloOriginalRef = useRef<string | null>(null);
 
   const [localTitulo, setLocalTitulo] = useState<string>(ensayo.titulo || "");
   const [localContenido, setLocalContenido] = useState<string>(ensayo.contenido || "");
@@ -193,6 +194,14 @@ export function Editor({
           <input
             type="text"
             value={localTitulo}
+            onFocus={() => { tituloOriginalRef.current = localTitulo; }}
+            onBlur={e => {
+              const finalVal = e.target.value.trim();
+              if (tituloOriginalRef.current !== null && tituloOriginalRef.current !== finalVal) {
+                onUpdateField(ensayo.id, "titulo:rename", finalVal, tituloOriginalRef.current);
+              }
+              tituloOriginalRef.current = null;
+            }}
             onChange={e => {
               setLocalTitulo(e.target.value);
               onUpdateField(ensayo.id, "titulo", e.target.value);

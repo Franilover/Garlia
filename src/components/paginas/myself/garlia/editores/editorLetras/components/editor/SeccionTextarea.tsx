@@ -40,11 +40,11 @@ function contar(linea: string, modo: CountMode) {
 
 // ── Constantes de layout ─────────────────────────────────────────────────────
 // Deben coincidir con los valores reales del textarea en MarkdownEditor:
-//   fontSize: 13px  ·  lineHeight: "relaxed" = ~1.625 → ~21px  ·  paddingTop: 16px
+//   fontSize: 11px  ·  lineHeight: 1.6 → ~18px  ·  paddingTop: 6px
 // Si cambias los estilos del MarkdownEditor, actualiza estas constantes.
-const FONT_SIZE_PX = 13;
-const LINE_H_PX    = Math.round(FONT_SIZE_PX * 1.625); // ≈ 21px  (leading-relaxed)
-const PAD_TOP      = 8;                                 // padding-top del textarea (px)
+const FONT_SIZE_PX = 11;
+const LINE_H_PX    = Math.round(FONT_SIZE_PX * 1.6); // ≈ 18px  (line-height: 1.6)
+const PAD_TOP      = 6;                               // padding-top del textarea (px)
 
 // ── Overlay de contadores ────────────────────────────────────────────────────
 
