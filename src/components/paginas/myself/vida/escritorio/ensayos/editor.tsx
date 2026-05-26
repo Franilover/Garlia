@@ -58,6 +58,8 @@ export function Editor({
 
   const [localTitulo, setLocalTitulo] = useState<string>(ensayo.titulo || "");
   const [localContenido, setLocalContenido] = useState<string>(ensayo.contenido || "");
+  const [tagInput, setTagInput] = useState<string>(ensayo.tags?.join(", ") || "");
+  const [tagInputFocused, setTagInputFocused] = useState(false);
 
   // Citation popup (@)
   const [tocOpenLocal, setTocOpenLocal] = useState(false);
@@ -94,6 +96,7 @@ export function Editor({
     setLocalTitulo(ensayo.titulo || "");
     const cleaned = stripTagLinks(ensayo.contenido || "");
     setLocalContenido(cleaned);
+    setTagInput(ensayo.tags?.join(", ") || "");
     if (cleaned !== (ensayo.contenido || "")) {
       onUpdateField(ensayo.id, "contenido", cleaned);
     }
@@ -200,11 +203,6 @@ export function Editor({
               <span style={{ fontSize: 9, color: "color-mix(in srgb, var(--foreground) 20%, transparent)", ...monoStyle }}>
                 {wordCount} palabras · ~{readTime}min
               </span>
-              {(ensayo.tags?.length > 0) && (
-                <span style={{ fontSize: 9, color: "color-mix(in srgb, var(--foreground) 15%, transparent)", ...monoStyle }}>
-                  {ensayo.tags.map((t: string) => `#${t}`).join(" ")}
-                </span>
-              )}
             </div>
 
             {/* Stats + GrafoEnsayos + save — right */}
@@ -284,6 +282,77 @@ export function Editor({
             flexWrap: "wrap",
           }}
         >
+          {/* Tags editable — right side */}
+          <div className="flex items-center gap-1.5 ml-auto shrink-0">
+            {!tagInputFocused && (ensayo.tags?.length > 0) ? (
+              <>
+                {ensayo.tags.map((tag: string) => (
+                  <span
+                    key={tag}
+                    style={{
+                      fontSize: 10,
+                      fontFamily: "var(--font-mono)",
+                      color: "color-mix(in srgb, var(--accent) 75%, transparent)",
+                      background: "color-mix(in srgb, var(--accent) 10%, transparent)",
+                      border: "1px solid color-mix(in srgb, var(--accent) 20%, transparent)",
+                      padding: "1px 7px",
+                      borderRadius: 3,
+                    }}
+                  >
+                    #{tag}
+                  </span>
+                ))}
+                <button
+                  onClick={() => setTagInputFocused(true)}
+                  style={{
+                    fontSize: 9,
+                    fontFamily: "var(--font-mono)",
+                    color: "color-mix(in srgb, var(--foreground) 30%, transparent)",
+                    background: "none",
+                    border: "1px dashed color-mix(in srgb, var(--foreground) 15%, transparent)",
+                    borderRadius: 3,
+                    padding: "1px 6px",
+                    cursor: "pointer",
+                  }}
+                >
+                  editar
+                </button>
+              </>
+            ) : (
+              <input
+                type="text"
+                value={tagInput}
+                autoFocus={tagInputFocused}
+                onChange={e => setTagInput(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === "Enter") {
+                    const parsed = tagInput.split(",").map((t: string) => t.trim().toLowerCase()).filter(Boolean);
+                    onUpdateField(ensayo.id, "tags", parsed);
+                    setTagInputFocused(false);
+                  }
+                  if (e.key === "Escape") setTagInputFocused(false);
+                }}
+                onFocus={() => setTagInputFocused(true)}
+                onBlur={() => {
+                  const parsed = tagInput.split(",").map((t: string) => t.trim().toLowerCase()).filter(Boolean);
+                  onUpdateField(ensayo.id, "tags", parsed);
+                  setTagInputFocused(false);
+                }}
+                placeholder="tag1, tag2..."
+                style={{
+                  fontSize: 10,
+                  fontFamily: "var(--font-mono)",
+                  padding: "2px 8px",
+                  borderRadius: 4,
+                  border: "1px solid color-mix(in srgb, var(--accent) 30%, transparent)",
+                  background: "color-mix(in srgb, var(--accent) 6%, transparent)",
+                  color: "color-mix(in srgb, var(--foreground) 70%, transparent)",
+                  outline: "none",
+                  width: 150,
+                }}
+              />
+            )}
+          </div>
           <span style={{
             fontSize: 9,
             fontFamily: "var(--font-mono)",
