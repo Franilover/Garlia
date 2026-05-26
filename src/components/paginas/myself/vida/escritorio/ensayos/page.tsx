@@ -386,6 +386,8 @@ export default function Ensayos() {
 
   // ─── Tag-as-page navigation ────────────────────────────────────────────────
 
+  const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
   const autoCreateTagPage = useCallback(async (tag: string): Promise<string | null> => {
     if (!user) return null;
     const now = new Date().toISOString();
@@ -396,9 +398,9 @@ export default function Ensayos() {
     if (existing) return existing.id;
 
     const { data, error } = await addRow({
-      titulo:     tag,
+      titulo:     capitalize(tag),
       user_id:    user.id,
-      contenido:  `# ${tag}\n`,
+      contenido:  `# ${capitalize(tag)}\n`,
       tags:       [tag],
       updated_at: now,
     });
@@ -458,7 +460,7 @@ export default function Ensayos() {
     const now = new Date().toISOString();
 
     const payload = {
-      titulo:     titulo.trim(),
+      titulo:     capitalize(titulo.trim()),
       user_id:    user.id,
       contenido:  "",
       tags:       tagActivo ? [tagActivo] : [],
