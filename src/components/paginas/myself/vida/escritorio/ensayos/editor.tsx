@@ -58,7 +58,6 @@ export function Editor({
 
   const [localTitulo, setLocalTitulo] = useState<string>(ensayo.titulo || "");
   const [localContenido, setLocalContenido] = useState<string>(ensayo.contenido || "");
-  const [backlinksOpen, setBacklinksOpen] = useState(false);
 
   // Citation popup (@)
   const [tocOpenLocal, setTocOpenLocal] = useState(false);
@@ -86,7 +85,6 @@ export function Editor({
   useEffect(() => {
     setLocalTitulo(ensayo.titulo || "");
     setLocalContenido(ensayo.contenido || "");
-    setBacklinksOpen(false);
   }, [ensayo.id]);
 
   const wordCount = localContenido.split(/\s+/).filter(Boolean).length || 0;
@@ -264,121 +262,99 @@ export function Editor({
         </div>
         {/* ── Backlinks bar ── */}
         <div
-          className="shrink-0"
+          className="shrink-0 px-8 py-2.5"
           style={{
             borderTop: "1px solid color-mix(in srgb, var(--foreground) 5%, transparent)",
             background: "color-mix(in srgb, var(--foreground) 1.5%, transparent)",
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            flexWrap: "wrap",
           }}
         >
-          {/* Header row — always visible */}
-          <button
-            onClick={() => setBacklinksOpen(p => !p)}
-            className="w-full flex items-center gap-2 px-8 py-2"
-            style={{ background: "none", border: "none", cursor: "pointer", textAlign: "left" }}
-          >
-            <span style={{
-              fontSize: 8,
-              fontFamily: "var(--font-mono)",
-              letterSpacing: "0.12em",
-              textTransform: "uppercase",
-              color: "color-mix(in srgb, var(--foreground) 22%, transparent)",
-            }}>
-              menciones
-            </span>
-            <span style={{
-              fontSize: 8,
-              fontFamily: "var(--font-mono)",
-              color: backlinks.length > 0
-                ? "color-mix(in srgb, var(--accent) 60%, transparent)"
-                : "color-mix(in srgb, var(--foreground) 12%, transparent)",
-              background: backlinks.length > 0
-                ? "color-mix(in srgb, var(--accent) 10%, transparent)"
-                : "color-mix(in srgb, var(--foreground) 5%, transparent)",
-              padding: "1px 5px",
-              borderRadius: 10,
-            }}>
-              {backlinks.length}
-            </span>
-            <span style={{
-              marginLeft: "auto",
-              fontSize: 8,
-              fontFamily: "var(--font-mono)",
-              color: "color-mix(in srgb, var(--foreground) 15%, transparent)",
-              transform: backlinksOpen ? "rotate(180deg)" : "rotate(0deg)",
-              transition: "transform 0.15s",
-              display: "inline-block",
-            }}>▾</span>
-          </button>
+          <span style={{
+            fontSize: 8,
+            fontFamily: "var(--font-mono)",
+            letterSpacing: "0.12em",
+            textTransform: "uppercase",
+            color: "color-mix(in srgb, var(--foreground) 22%, transparent)",
+            flexShrink: 0,
+          }}>
+            menciones
+          </span>
+          <span style={{
+            fontSize: 8,
+            fontFamily: "var(--font-mono)",
+            color: backlinks.length > 0
+              ? "color-mix(in srgb, var(--accent) 60%, transparent)"
+              : "color-mix(in srgb, var(--foreground) 12%, transparent)",
+            background: backlinks.length > 0
+              ? "color-mix(in srgb, var(--accent) 10%, transparent)"
+              : "color-mix(in srgb, var(--foreground) 5%, transparent)",
+            padding: "1px 6px",
+            borderRadius: 10,
+            flexShrink: 0,
+          }}>
+            {backlinks.length}
+          </span>
 
-          {/* Expanded list */}
-          <AnimatePresence>
-            {backlinksOpen && (
-              <motion.div
-                key="backlinks-panel"
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "auto", opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.18 }}
-                style={{ overflow: "hidden" }}
-              >
-                <div
-                  className="px-8 pb-3"
-                  style={{ display: "flex", flexDirection: "column", gap: 4 }}
-                >
-                  {backlinks.length === 0 ? (
-                    <p style={{
-                      fontSize: 9,
+          {backlinks.length === 0 ? (
+            <span style={{
+              fontSize: 9,
+              fontFamily: "var(--font-mono)",
+              color: "color-mix(in srgb, var(--foreground) 12%, transparent)",
+              fontStyle: "italic",
+            }}>
+              ninguna nota menciona esta página aún
+            </span>
+          ) : (
+            <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+              {backlinks.map((b: any) => {
+                const titulo = ensayo.titulo?.trim().toLowerCase() ?? "";
+                const contenido = (b.contenido || "").toLowerCase();
+                const viaWikilink = contenido.includes(`[[${titulo}]]`);
+                const viaTag = b.tags?.some((t: string) => t.toLowerCase() === titulo);
+                return (
+                  <button
+                    key={b.id}
+                    onClick={() => onNavigateToPage(b.titulo)}
+                    className="flex items-center gap-1.5"
+                    style={{
+                      background: "color-mix(in srgb, var(--foreground) 4%, transparent)",
+                      border: "1px solid color-mix(in srgb, var(--foreground) 8%, transparent)",
+                      borderRadius: 4,
+                      cursor: "pointer",
+                      padding: "2px 8px 2px 6px",
+                    }}
+                    onMouseEnter={e => {
+                      (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--foreground) 18%, transparent)";
+                      (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--foreground) 7%, transparent)";
+                    }}
+                    onMouseLeave={e => {
+                      (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--foreground) 8%, transparent)";
+                      (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--foreground) 4%, transparent)";
+                    }}
+                  >
+                    <span style={{
+                      fontSize: 7,
                       fontFamily: "var(--font-mono)",
-                      color: "color-mix(in srgb, var(--foreground) 15%, transparent)",
-                      fontStyle: "italic",
+                      color: "color-mix(in srgb, var(--foreground) 20%, transparent)",
                     }}>
-                      ninguna nota menciona esta página aún
-                    </p>
-                  ) : (
-                    backlinks.map((b: any) => {
-                      const titulo = ensayo.titulo?.trim().toLowerCase() ?? "";
-                      const contenido = (b.contenido || "").toLowerCase();
-                      const viaWikilink = contenido.includes(`[[${titulo}]]`);
-                      const viaTag = b.tags?.some((t: string) => t.toLowerCase() === titulo);
-                      return (
-                        <button
-                          key={b.id}
-                          onClick={() => onNavigateToPage(b.titulo)}
-                          className="flex items-center gap-2"
-                          style={{
-                            background: "none",
-                            border: "none",
-                            cursor: "pointer",
-                            padding: "3px 0",
-                            textAlign: "left",
-                          }}
-                        >
-                          <span style={{
-                            fontSize: 9,
-                            fontFamily: "var(--font-serif)",
-                            fontStyle: "italic",
-                            color: "color-mix(in srgb, var(--foreground) 55%, transparent)",
-                          }}>
-                            {b.titulo || "sin título"}
-                          </span>
-                          <span style={{
-                            fontSize: 7,
-                            fontFamily: "var(--font-mono)",
-                            color: "color-mix(in srgb, var(--foreground) 20%, transparent)",
-                            background: "color-mix(in srgb, var(--foreground) 5%, transparent)",
-                            padding: "1px 5px",
-                            borderRadius: 3,
-                          }}>
-                            {viaWikilink && viaTag ? "[[]] + #tag" : viaWikilink ? "[[wikilink]]" : "#tag"}
-                          </span>
-                        </button>
-                      );
-                    })
-                  )}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                      {viaWikilink && viaTag ? "[[]]#" : viaWikilink ? "[[]]" : "#"}
+                    </span>
+                    <span style={{
+                      fontSize: 9,
+                      fontFamily: "var(--font-serif)",
+                      fontStyle: "italic",
+                      color: "color-mix(in srgb, var(--foreground) 55%, transparent)",
+                    }}>
+                      {b.titulo || "sin título"}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
       </MotionDiv>
 
