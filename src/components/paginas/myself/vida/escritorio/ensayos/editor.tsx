@@ -274,10 +274,10 @@ export function Editor({
         </div>
         {/* ── Backlinks bar ── */}
         <div
-          className="shrink-0 px-8 py-2.5"
+          className="shrink-0 px-8 py-3"
           style={{
-            borderTop: "1px solid color-mix(in srgb, var(--foreground) 5%, transparent)",
-            background: "color-mix(in srgb, var(--foreground) 1.5%, transparent)",
+            borderTop: "1px solid color-mix(in srgb, var(--foreground) 8%, transparent)",
+            background: "color-mix(in srgb, var(--primary) 6%, var(--bg-main))",
             display: "flex",
             alignItems: "center",
             gap: 12,
@@ -285,25 +285,25 @@ export function Editor({
           }}
         >
           <span style={{
-            fontSize: 8,
+            fontSize: 9,
             fontFamily: "var(--font-mono)",
             letterSpacing: "0.12em",
             textTransform: "uppercase",
-            color: "color-mix(in srgb, var(--foreground) 22%, transparent)",
+            color: "color-mix(in srgb, var(--foreground) 45%, transparent)",
             flexShrink: 0,
           }}>
             menciones
           </span>
           <span style={{
-            fontSize: 8,
+            fontSize: 9,
             fontFamily: "var(--font-mono)",
             color: backlinks.length > 0
-              ? "color-mix(in srgb, var(--accent) 60%, transparent)"
-              : "color-mix(in srgb, var(--foreground) 12%, transparent)",
+              ? "var(--accent)"
+              : "color-mix(in srgb, var(--foreground) 25%, transparent)",
             background: backlinks.length > 0
-              ? "color-mix(in srgb, var(--accent) 10%, transparent)"
-              : "color-mix(in srgb, var(--foreground) 5%, transparent)",
-            padding: "1px 6px",
+              ? "color-mix(in srgb, var(--accent) 15%, transparent)"
+              : "color-mix(in srgb, var(--foreground) 7%, transparent)",
+            padding: "1px 7px",
             borderRadius: 10,
             flexShrink: 0,
           }}>
@@ -312,9 +312,9 @@ export function Editor({
 
           {backlinks.length === 0 ? (
             <span style={{
-              fontSize: 9,
+              fontSize: 11,
               fontFamily: "var(--font-mono)",
-              color: "color-mix(in srgb, var(--foreground) 12%, transparent)",
+              color: "color-mix(in srgb, var(--foreground) 28%, transparent)",
               fontStyle: "italic",
             }}>
               ninguna nota menciona esta página aún
@@ -332,33 +332,33 @@ export function Editor({
                     onClick={() => onNavigateToPage(b.titulo)}
                     className="flex items-center gap-1.5"
                     style={{
-                      background: "color-mix(in srgb, var(--foreground) 4%, transparent)",
-                      border: "1px solid color-mix(in srgb, var(--foreground) 8%, transparent)",
+                      background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+                      border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)",
                       borderRadius: 4,
                       cursor: "pointer",
-                      padding: "2px 8px 2px 6px",
+                      padding: "3px 10px 3px 7px",
                     }}
                     onMouseEnter={e => {
-                      (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--foreground) 18%, transparent)";
-                      (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--foreground) 7%, transparent)";
+                      (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--accent) 50%, transparent)";
+                      (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--accent) 10%, transparent)";
                     }}
                     onMouseLeave={e => {
-                      (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--foreground) 8%, transparent)";
-                      (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--foreground) 4%, transparent)";
+                      (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 20%, transparent)";
+                      (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 8%, transparent)";
                     }}
                   >
                     <span style={{
-                      fontSize: 7,
+                      fontSize: 9,
                       fontFamily: "var(--font-mono)",
-                      color: "color-mix(in srgb, var(--foreground) 20%, transparent)",
+                      color: "color-mix(in srgb, var(--accent) 70%, transparent)",
                     }}>
                       {viaWikilink && viaTag ? "[[]]#" : viaWikilink ? "[[]]" : "#"}
                     </span>
                     <span style={{
-                      fontSize: 9,
+                      fontSize: 11,
                       fontFamily: "var(--font-serif)",
                       fontStyle: "italic",
-                      color: "color-mix(in srgb, var(--foreground) 55%, transparent)",
+                      color: "color-mix(in srgb, var(--foreground) 80%, transparent)",
                     }}>
                       {b.titulo || "sin título"}
                     </span>
