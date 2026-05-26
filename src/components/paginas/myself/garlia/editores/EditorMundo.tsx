@@ -23,7 +23,7 @@ import { type TimelineEvent } from "../editorEntidades/LoreTab";
 import { useNotas } from "../editorEntidades/useNotas";
 import { EditorNota, ListaNotas } from "./EditorNota";
 import { EditorGrupo, useGrupos, type Grupo, GRUPO_TIPO_CONFIG } from "./EditorGrupo";
-import EstudioCapitulos from "@/components/paginas/myself/garlia/editores/editorCapitulos/page.tsx";
+import EstudioCapitulos from "@/components/paginas/myself/garlia/editores/editorCapitulos/page";
 import { useCanciones } from "@/components/paginas/myself/garlia/editores/editorLetras/hooks/useCanciones";
 import { PanelEditor } from "@/components/paginas/myself/garlia/editores/editorLetras/components/editor/PanelEditor";
 import { ModalNuevaCancion } from "@/components/paginas/myself/garlia/editores/editorLetras/components/modals/ModalNuevaCancion";
