@@ -58,8 +58,7 @@ export function Editor({
 
   const [localTitulo, setLocalTitulo] = useState<string>(ensayo.titulo || "");
   const [localContenido, setLocalContenido] = useState<string>(ensayo.contenido || "");
-  const [tagInput, setTagInput] = useState<string>(ensayo.tags?.join(", ") || "");
-  const [tagInputFocused, setTagInputFocused] = useState(false);
+  const [backlinksOpen, setBacklinksOpen] = useState(false);
 
   // Citation popup (@)
   const [tocOpenLocal, setTocOpenLocal] = useState(false);
@@ -87,7 +86,7 @@ export function Editor({
   useEffect(() => {
     setLocalTitulo(ensayo.titulo || "");
     setLocalContenido(ensayo.contenido || "");
-    setTagInput(ensayo.tags?.join(", ") || "");
+    setBacklinksOpen(false);
   }, [ensayo.id]);
 
   const wordCount = localContenido.split(/\s+/).filter(Boolean).length || 0;
@@ -133,12 +132,22 @@ export function Editor({
     setCitePopup(null);
   }, [citePopup, ensayo.id, localContenido, onUpdateField]);
 
-  const parsedTags: string[] = tagInput
-    .split(",")
-    .map(t => t.trim().toLowerCase())
-    .filter(Boolean);
-
   const monoStyle: React.CSSProperties = { fontFamily: "var(--font-mono)" };
+
+  // ── Backlinks: notas que mencionan esta página por [[título]] o por tag ──────
+  const backlinks = useMemo(() => {
+    const titulo = ensayo.titulo?.trim().toLowerCase();
+    if (!titulo) return [];
+    return ensayos.filter((e: any) => {
+      if (e.id === ensayo.id) return false;
+      // wikilink [[titulo]]
+      const contenido = (e.contenido || "").toLowerCase();
+      const wikilinkMatch = contenido.includes(`[[${titulo}]]`);
+      // tag match
+      const tagMatch = e.tags?.some((t: string) => t.toLowerCase() === titulo);
+      return wikilinkMatch || tagMatch;
+    });
+  }, [ensayos, ensayo.id, ensayo.titulo]);
 
   return (
     <div className="relative h-full flex flex-col" ref={containerRef}>
@@ -176,89 +185,15 @@ export function Editor({
             className="flex items-center mt-1.5"
             style={{ borderBottom: "1px solid color-mix(in srgb, var(--foreground) 6%, transparent)", paddingBottom: 8 }}
           >
-            {/* Tags — left */}
-            <div className="flex items-center gap-1.5 flex-1 min-w-0">
-              {!tagInputFocused && parsedTags.length > 0 ? (
-                <>
-                  {parsedTags.map(tag => (
-                    <button
-                      key={tag}
-                      onClick={() => onNavigateToPage(tag)}
-                      title={`Ir a la página "${tag}"`}
-                      style={{
-                        fontSize: 9,
-                        padding: "2px 7px",
-                        borderRadius: 3,
-                        border: "1px solid color-mix(in srgb, var(--foreground) 12%, transparent)",
-                        background: "color-mix(in srgb, var(--foreground) 5%, transparent)",
-                        color: "color-mix(in srgb, var(--foreground) 40%, transparent)",
-                        cursor: "pointer",
-                        transition: "all 0.1s",
-                        ...monoStyle,
-                      }}
-                      onMouseEnter={e => {
-                        (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--accent) 40%, transparent)";
-                        (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--accent) 80%, transparent)";
-                        (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--accent) 8%, transparent)";
-                      }}
-                      onMouseLeave={e => {
-                        (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--foreground) 12%, transparent)";
-                        (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--foreground) 40%, transparent)";
-                        (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--foreground) 5%, transparent)";
-                      }}
-                    >
-                      #{tag}
-                    </button>
-                  ))}
-                  <button
-                    onClick={() => setTagInputFocused(true)}
-                    style={{
-                      fontSize: 9,
-                      padding: "2px 6px",
-                      borderRadius: 3,
-                      border: "1px dashed color-mix(in srgb, var(--foreground) 8%, transparent)",
-                      background: "transparent",
-                      color: "color-mix(in srgb, var(--foreground) 20%, transparent)",
-                      cursor: "pointer",
-                      ...monoStyle,
-                    }}
-                  >
-                    +tag
-                  </button>
-                </>
-              ) : (
-                <input
-                  type="text"
-                  value={tagInput}
-                  autoFocus={tagInputFocused}
-                  onChange={e => setTagInput(e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === "Enter") {
-                      const parsed = tagInput.split(",").map((t: string) => t.trim().toLowerCase()).filter((t: string) => t !== "");
-                      onUpdateField(ensayo.id, "tags", parsed);
-                      setTagInputFocused(false);
-                    }
-                    if (e.key === "Escape") setTagInputFocused(false);
-                  }}
-                  onFocus={() => setTagInputFocused(true)}
-                  onBlur={() => {
-                    const parsed = tagInput.split(",").map((t: string) => t.trim().toLowerCase()).filter((t: string) => t !== "");
-                    onUpdateField(ensayo.id, "tags", parsed);
-                    setTagInputFocused(false);
-                  }}
-                  placeholder="tag1, tag2, tag3"
-                  style={{
-                    fontSize: 10,
-                    padding: "2px 8px",
-                    borderRadius: 4,
-                    border: "1px solid color-mix(in srgb, var(--foreground) 15%, transparent)",
-                    background: "color-mix(in srgb, var(--foreground) 5%, transparent)",
-                    color: "color-mix(in srgb, var(--foreground) 60%, transparent)",
-                    outline: "none",
-                    width: 140,
-                    ...monoStyle,
-                  }}
-                />
+            {/* Stats — left */}
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <span style={{ fontSize: 9, color: "color-mix(in srgb, var(--foreground) 20%, transparent)", ...monoStyle }}>
+                {wordCount} palabras · ~{readTime}min
+              </span>
+              {(ensayo.tags?.length > 0) && (
+                <span style={{ fontSize: 9, color: "color-mix(in srgb, var(--foreground) 15%, transparent)", ...monoStyle }}>
+                  {ensayo.tags.map((t: string) => `#${t}`).join(" ")}
+                </span>
               )}
             </div>
 
@@ -324,6 +259,124 @@ export function Editor({
                   activeIndex={citeActiveIdx}
                 />
               </div>
+            )}
+          </AnimatePresence>
+        </div>
+        {/* ── Backlinks bar ── */}
+        <div
+          className="shrink-0"
+          style={{
+            borderTop: "1px solid color-mix(in srgb, var(--foreground) 5%, transparent)",
+            background: "color-mix(in srgb, var(--foreground) 1.5%, transparent)",
+          }}
+        >
+          {/* Header row — always visible */}
+          <button
+            onClick={() => setBacklinksOpen(p => !p)}
+            className="w-full flex items-center gap-2 px-8 py-2"
+            style={{ background: "none", border: "none", cursor: "pointer", textAlign: "left" }}
+          >
+            <span style={{
+              fontSize: 8,
+              fontFamily: "var(--font-mono)",
+              letterSpacing: "0.12em",
+              textTransform: "uppercase",
+              color: "color-mix(in srgb, var(--foreground) 22%, transparent)",
+            }}>
+              menciones
+            </span>
+            <span style={{
+              fontSize: 8,
+              fontFamily: "var(--font-mono)",
+              color: backlinks.length > 0
+                ? "color-mix(in srgb, var(--accent) 60%, transparent)"
+                : "color-mix(in srgb, var(--foreground) 12%, transparent)",
+              background: backlinks.length > 0
+                ? "color-mix(in srgb, var(--accent) 10%, transparent)"
+                : "color-mix(in srgb, var(--foreground) 5%, transparent)",
+              padding: "1px 5px",
+              borderRadius: 10,
+            }}>
+              {backlinks.length}
+            </span>
+            <span style={{
+              marginLeft: "auto",
+              fontSize: 8,
+              fontFamily: "var(--font-mono)",
+              color: "color-mix(in srgb, var(--foreground) 15%, transparent)",
+              transform: backlinksOpen ? "rotate(180deg)" : "rotate(0deg)",
+              transition: "transform 0.15s",
+              display: "inline-block",
+            }}>▾</span>
+          </button>
+
+          {/* Expanded list */}
+          <AnimatePresence>
+            {backlinksOpen && (
+              <motion.div
+                key="backlinks-panel"
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.18 }}
+                style={{ overflow: "hidden" }}
+              >
+                <div
+                  className="px-8 pb-3"
+                  style={{ display: "flex", flexDirection: "column", gap: 4 }}
+                >
+                  {backlinks.length === 0 ? (
+                    <p style={{
+                      fontSize: 9,
+                      fontFamily: "var(--font-mono)",
+                      color: "color-mix(in srgb, var(--foreground) 15%, transparent)",
+                      fontStyle: "italic",
+                    }}>
+                      ninguna nota menciona esta página aún
+                    </p>
+                  ) : (
+                    backlinks.map((b: any) => {
+                      const titulo = ensayo.titulo?.trim().toLowerCase() ?? "";
+                      const contenido = (b.contenido || "").toLowerCase();
+                      const viaWikilink = contenido.includes(`[[${titulo}]]`);
+                      const viaTag = b.tags?.some((t: string) => t.toLowerCase() === titulo);
+                      return (
+                        <button
+                          key={b.id}
+                          onClick={() => onNavigateToPage(b.titulo)}
+                          className="flex items-center gap-2"
+                          style={{
+                            background: "none",
+                            border: "none",
+                            cursor: "pointer",
+                            padding: "3px 0",
+                            textAlign: "left",
+                          }}
+                        >
+                          <span style={{
+                            fontSize: 9,
+                            fontFamily: "var(--font-serif)",
+                            fontStyle: "italic",
+                            color: "color-mix(in srgb, var(--foreground) 55%, transparent)",
+                          }}>
+                            {b.titulo || "sin título"}
+                          </span>
+                          <span style={{
+                            fontSize: 7,
+                            fontFamily: "var(--font-mono)",
+                            color: "color-mix(in srgb, var(--foreground) 20%, transparent)",
+                            background: "color-mix(in srgb, var(--foreground) 5%, transparent)",
+                            padding: "1px 5px",
+                            borderRadius: 3,
+                          }}>
+                            {viaWikilink && viaTag ? "[[]] + #tag" : viaWikilink ? "[[wikilink]]" : "#tag"}
+                          </span>
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              </motion.div>
             )}
           </AnimatePresence>
         </div>
