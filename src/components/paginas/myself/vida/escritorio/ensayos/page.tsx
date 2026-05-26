@@ -45,11 +45,6 @@ const LS_ACTIVE       = "ensayos-active-id";
 const LS_HOME         = "ensayos-at-home";
 const DEXIE_ZOTERO_KEY = "zotero_file_handle";
 
-// ── Sección auto-generada de links de tags ─────────────────────────────────
-const TAG_SECTION_MARKER = "<!-- tag-links -->";
-const buildTagLinksSection = (tag: string, linkedNotes: string) =>
-  `${TAG_SECTION_MARKER}\n\n## Notas con esta etiqueta\n\n${linkedNotes || "_ninguna aún_"}`;
-
 
 async function saveZoteroHandle(handle: FileSystemFileHandle) {
   try {
@@ -395,45 +390,18 @@ export default function Ensayos() {
     if (!user) return null;
     const now = new Date().toISOString();
 
-    // Si ya existe una nota con ese nombre, NO la reemplazamos.
-    // Solo nos aseguramos de que la sección de links exista al final.
     const existing = ensayos.find(
       (e: any) => e.titulo?.toLowerCase() === tag.toLowerCase()
     );
-    if (existing) {
-      // Preservar contenido propio; solo añadir sección de links si no existe
-      if (!existing.contenido?.includes(TAG_SECTION_MARKER)) {
-        const linkedNotes = ensayos
-          .filter((e: any) => e.id !== existing.id && e.tags?.includes(tag) && e.titulo)
-          .map((e: any) => `- [[${e.titulo}]]`)
-          .join("\n");
-        const newContent = (existing.contenido || "").trimEnd()
-          + `\n\n${buildTagLinksSection(tag, linkedNotes)}`;
-        scheduleSave(existing.id, { contenido: newContent });
-        setEnsayos((prev: any[]) =>
-          prev.map((e: any) => e.id === existing.id ? { ...e, contenido: newContent } : e)
-        );
-      }
-      return existing.id;
-    }
+    if (existing) return existing.id;
 
-    // No existe → crear la nota nueva con el template
-    const linkedNotes = ensayos
-      .filter((e: any) => e.tags?.includes(tag) && e.titulo)
-      .map((e: any) => `- [[${e.titulo}]]`)
-      .join("\n");
-
-    const contenido = `# ${tag}\n\n${buildTagLinksSection(tag, linkedNotes)}`;
-
-    const payload = {
+    const { data, error } = await addRow({
       titulo:     tag,
       user_id:    user.id,
-      contenido,
+      contenido:  `# ${tag}\n`,
       tags:       [tag],
       updated_at: now,
-    };
-
-    const { data, error } = await addRow(payload);
+    });
     if (!error && data) {
       setEnsayos((prev: any[]) => {
         if (prev.find((e: any) => e.id === data.id)) return prev;
@@ -442,7 +410,7 @@ export default function Ensayos() {
       return data.id;
     }
     return null;
-  }, [user, ensayos, addRow, setEnsayos, scheduleSave]);
+  }, [user, ensayos, addRow, setEnsayos]);
 
   const navigateToPage = useCallback(async (name: string, isTag = false) => {
     const normalized = name.trim().toLowerCase();
@@ -568,46 +536,7 @@ export default function Ensayos() {
 
   const ensayoActivo = ensayos.find((e: any) => e.id === ensayoActivoId) ?? null;
 
-  // ─── Keep tag-pages content in sync ───────────────────────────────────────
-  useEffect(() => {
-    if (!ensayos.length) return;
-    const allTags = new Set<string>();
-    ensayos.forEach((e: any) => e.tags?.forEach((t: string) => allTags.add(t)));
 
-    allTags.forEach(tag => {
-      const tagPage = ensayos.find((e: any) => e.titulo?.toLowerCase() === tag.toLowerCase());
-      if (!tagPage) return;
-
-      const linkedNotes = ensayos
-        .filter((e: any) => e.id !== tagPage.id && e.tags?.includes(tag) && e.titulo)
-        .map((e: any) => `- [[${e.titulo}]]`)
-        .join("\n");
-
-      const newSection = buildTagLinksSection(tag, linkedNotes);
-      const existingContent: string = tagPage.contenido || "";
-
-      let newContent: string;
-      if (existingContent.includes(TAG_SECTION_MARKER)) {
-        // Reemplazar solo la sección auto-generada, preservar el resto
-        newContent = existingContent.replace(
-          new RegExp(`${TAG_SECTION_MARKER}[\\s\\S]*$`),
-          newSection
-        );
-      } else {
-        // Añadir la sección al final sin tocar el contenido propio
-        newContent = existingContent.trimEnd()
-          + (existingContent.trim() ? `\n\n${newSection}` : `# ${tag}\n\n${newSection}`);
-      }
-
-      if (existingContent !== newContent) {
-        scheduleSave(tagPage.id, { contenido: newContent });
-        setEnsayos((prev: any[]) =>
-          prev.map((e: any) => e.id === tagPage.id ? { ...e, contenido: newContent } : e)
-        );
-      }
-    });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ensayos.map((e: any) => `${e.id}:${e.tags?.join(",")}`).join("|")]);
 
   // ─── Render ────────────────────────────────────────────────────────────────
 

@@ -82,9 +82,21 @@ export function Editor({
   } | null>(null);
   const [citeActiveIdx, setCiteActiveIdx] = useState(0);
 
+  // Strip the old auto-generated tag-links section if it still exists in saved content
+  const stripTagLinks = (c: string) => {
+    const marker = "<!-- tag-links -->";
+    const idx = c.indexOf(marker);
+    if (idx === -1) return c;
+    return c.slice(0, Math.max(0, c.lastIndexOf("\n\n", idx))).trimEnd();
+  };
+
   useEffect(() => {
     setLocalTitulo(ensayo.titulo || "");
-    setLocalContenido(ensayo.contenido || "");
+    const cleaned = stripTagLinks(ensayo.contenido || "");
+    setLocalContenido(cleaned);
+    if (cleaned !== (ensayo.contenido || "")) {
+      onUpdateField(ensayo.id, "contenido", cleaned);
+    }
   }, [ensayo.id]);
 
   const wordCount = localContenido.split(/\s+/).filter(Boolean).length || 0;
