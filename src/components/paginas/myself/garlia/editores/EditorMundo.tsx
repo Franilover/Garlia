@@ -613,26 +613,19 @@ type MundoTimelineEvent = TimelineEvent & {
   source: "mundo" | "reino";
   reinoNombre?: string;
   reinoId?: string;
-  yearNum: string; // para ordenar (clave lexicográfica)
+  yearNum: number; // para ordenar (valor numérico)
 };
 
-/** Ordena años lexicográficamente por su parte numérica, respetando ceros iniciales.
- *  "0001" < "0002" < "0003" < "02" < "1" < "10" < "100"
- *  Los ceros definen el "grupo" (0001 es antes que 02 que es antes que 1).
- *  Texto puro sin números queda al final.
+/** Extrae el valor numérico de un año para ordenamiento.
+ *  Soporta negativos: -100 < -10 < -1 < 1 < 2 < 10 < 100 …
+ *  Texto puro sin números queda al final (Infinity).
  */
-function parseYear(year: string): string {
-  if (!year?.trim()) return "~";
+function parseYear(year: string): number {
+  if (!year?.trim()) return Infinity;
   const normalized = year.replace(/(\d)[.,](\d{3})/g, "$1$2");
-  const match = normalized.match(/(-?)(\d+)/);
-  if (!match) return "~" + year;
-  const negative = match[1] === "-";
-  const digits = match[2];
-  if (negative) {
-    // Negativos van primero: invertimos para que -100 < -10 < -1
-    return "!" + digits.split("").reverse().join("").padEnd(30, "0");
-  }
-  return digits; // lexicográfico puro
+  const match = normalized.match(/(-?\d+)/);
+  if (!match) return Infinity;
+  return parseInt(match[1], 10);
 }
 
 function decodeTimeline(raw: string | undefined): TimelineEvent[] {
@@ -838,7 +831,7 @@ function PanelHistoriaMundo({
         list.push({ ...e, source: "reino", reinoNombre: reino.nombre, reinoId: reino.id, yearNum: parseYear(e.year) });
       }
     }
-    return list.sort((a, b) => parseYear(a.year).localeCompare(parseYear(b.year)));
+    return list.sort((a, b) => parseYear(a.year) - parseYear(b.year));
   }, [mundoEvents, reinos, reinoEvents, filterReino]);
 
   const reinosConEventos = useMemo(

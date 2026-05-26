@@ -50,15 +50,18 @@ function decodeTimeline(raw: string | undefined): TimelineEvent[] {
 
 // ─── Helpers de ordenamiento ─────────────────────────────────────────────────
 
-function parseYear(year: string): string {
-  if (!year?.trim()) return "~";
+/** Extrae el valor numérico de un año (soporta negativos y texto libre).
+ *  Retorna [hasNumber, numericValue] para poder separar eventos sin año. */
+function parseYear(year: string): number {
+  if (!year?.trim()) return Infinity; // sin año → al final
   const normalized = year.replace(/(\d)[.,](\d{3})/g, "$1$2");
-  const match = normalized.match(/(-?)(\d+)/);
-  if (!match) return "~" + year;
-  const negative = match[1] === "-";
-  const digits = match[2];
-  if (negative) return "!" + digits.split("").reverse().join("").padEnd(30, "0");
-  return digits;
+  const match = normalized.match(/(-?\d+)/);
+  if (!match) return Infinity; // texto puro sin número → al final
+  return parseInt(match[1], 10);
+}
+
+function compareYears(a: string, b: string): number {
+  return parseYear(a) - parseYear(b);
 }
 
 // ─── Tarjeta horizontal de evento (igual que EditorMundo) ───────────────────
@@ -178,7 +181,7 @@ function TimelineEditor({
     if (selectedId === id) setSelectedId(null);
   };
 
-  const sorted = [...events].sort((a, b) => parseYear(a.year).localeCompare(parseYear(b.year)));
+  const sorted = [...events].sort((a, b) => compareYears(a.year, b.year));
   const visible = filtroReinoId ? sorted.filter(e => e.reinoId) : sorted;
   const selectedEvent = selectedId ? events.find(e => e.id === selectedId) ?? null : null;
 
