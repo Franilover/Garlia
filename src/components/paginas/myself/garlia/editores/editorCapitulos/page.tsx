@@ -28,7 +28,7 @@ import { SoundPicker } from "@/components/forms/SoundPicker";
 import { EntidadPicker } from "@/components/forms/EntidadPicker";
 import SimpleImagePicker from "@/components/forms/SimpleImagePicker";
 import { useConfirm } from "@/components/ui/ConfirmModal";
-import { SnippetToolbar, ModalDrop, ModalSonido, ModalSection, ModalChoice, ModalUseItem, ModalImagen } from "../snippets/SnippetToolbar";
+import { SnippetToolbar, ModalDrop, ModalSonido, ModalSection, ModalChoice, ModalUseItem, ModalImagen } from "./snippets/SnippetToolbar";
 import { MarkdownEditor, renderMarkdown, renderMathInElement, PROSE_STYLES } from "@/components/forms/MarkdownEditor";
 import type { CommandItem as MdCommandItem, SnippetAction } from "@/components/forms/MarkdownEditor";
 
