@@ -1186,6 +1186,7 @@ function PanelListas({
   const selectDon       = useCallback((d: EntidadMagica | null) => { setSelectedDon(d);       d ? persistOpenItem("dones",      d.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
   const selectRuna      = useCallback((r: Runa | null)          => { setSelectedRuna(r);      r ? persistOpenItem("runas",      r.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
   const selectGrupo     = useCallback((g: Grupo | null)         => { setSelectedGrupo(g);     g ? persistOpenItem("grupos_mundo", g.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
+  const selectCancion   = useCallback((c: Cancion | null)       => { setSelectedCancion(c);   c ? persistOpenItem("canciones",   c.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
 
   // ── Overlay activo ────────────────────────────────────────────────────────
   const overlay: "reino" | "criatura" | "objeto" | "personaje" | "hechizo" | "don" | "runa" | "nota" | "lugar" | "grupo" | "cancion" | null =
@@ -1621,7 +1622,7 @@ function PanelListas({
 
             <SeccionEntidades icon={Music} label="Canciones" count={canciones.length} loading={loadingCanciones}>
               {canciones.map(c => (
-                <Chip key={c.id} onClick={() => setSelectedCancion(c as unknown as Cancion)} icon={Music} nombre={c.titulo} />
+                <Chip key={c.id} onClick={() => selectCancion(c as unknown as Cancion)} icon={Music} nombre={c.titulo} />
               ))}
             </SeccionEntidades>
             <div className={div} style={divStyle} />
@@ -1682,7 +1683,7 @@ function PanelListas({
         <ModalNuevaCancion
           onCreated={(c: Cancion) => {
             setShowModalCancion(false);
-            setSelectedCancion(c as unknown as Cancion);
+            selectCancion(c as unknown as Cancion);
           }}
           onClose={() => setShowModalCancion(false)}
         />
