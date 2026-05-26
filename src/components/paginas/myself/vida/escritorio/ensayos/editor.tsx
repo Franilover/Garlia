@@ -164,6 +164,20 @@ export function Editor({
     });
   }, [ensayos, ensayo.id, ensayo.titulo]);
 
+  // All existing tags across all notes (for autocomplete)
+  const allTags = useMemo(() => {
+    const set = new Set<string>();
+    ensayos.forEach((e: any) => e.tags?.forEach((t: string) => set.add(t)));
+    (ensayo.tags ?? []).forEach((t: string) => set.delete(t)); // exclude already-added
+    return Array.from(set).sort();
+  }, [ensayos, ensayo.tags]);
+
+  const tagSuggestions = useMemo(() => {
+    if (!newTagInput.trim()) return [];
+    const q = newTagInput.trim().toLowerCase();
+    return allTags.filter(t => t.includes(q)).slice(0, 6);
+  }, [allTags, newTagInput]);
+
   return (
     <div className="relative h-full flex flex-col" ref={containerRef}>
       <MotionDiv
@@ -350,50 +364,109 @@ export function Editor({
                 </span>
               ))}
 
-              {/* Input nuevo tag inline */}
+              {/* Input nuevo tag inline con autocomplete */}
               {addingTag ? (
-                <input
-                  ref={newTagRef}
-                  type="text"
-                  value={newTagInput}
-                  autoFocus
-                  onChange={e => setNewTagInput(e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === "Enter" || e.key === ",") {
-                      e.preventDefault();
-                      const val = newTagInput.trim().toLowerCase();
-                      if (val && !(ensayo.tags ?? []).includes(val)) {
-                        onUpdateField(ensayo.id, "tags", [...(ensayo.tags ?? []), val]);
+                <div style={{ position: "relative" }}>
+                  <input
+                    ref={newTagRef}
+                    type="text"
+                    value={newTagInput}
+                    autoFocus
+                    onChange={e => setNewTagInput(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === "Enter" || e.key === ",") {
+                        e.preventDefault();
+                        const val = newTagInput.trim().toLowerCase();
+                        if (val && !(ensayo.tags ?? []).includes(val)) {
+                          onUpdateField(ensayo.id, "tags", [...(ensayo.tags ?? []), val]);
+                        }
+                        setNewTagInput("");
+                        setAddingTag(false);
                       }
-                      setNewTagInput("");
-                      setAddingTag(false);
-                    }
-                    if (e.key === "Escape") {
-                      setNewTagInput("");
-                      setAddingTag(false);
-                    }
-                  }}
-                  onBlur={() => {
-                    const val = newTagInput.trim().toLowerCase();
-                    if (val && !(ensayo.tags ?? []).includes(val)) {
-                      onUpdateField(ensayo.id, "tags", [...(ensayo.tags ?? []), val]);
-                    }
-                    setNewTagInput("");
-                    setAddingTag(false);
-                  }}
-                  placeholder="nueva etiqueta..."
-                  style={{
-                    fontSize: 10,
-                    fontFamily: "var(--font-mono)",
-                    padding: "2px 8px",
-                    borderRadius: 3,
-                    border: "1px dashed color-mix(in srgb, var(--accent) 40%, transparent)",
-                    background: "color-mix(in srgb, var(--accent) 6%, transparent)",
-                    color: "color-mix(in srgb, var(--foreground) 75%, transparent)",
-                    outline: "none",
-                    width: 120,
-                  }}
-                />
+                      if (e.key === "Escape") {
+                        setNewTagInput("");
+                        setAddingTag(false);
+                      }
+                    }}
+                    onBlur={() => {
+                      // small delay so clicks on suggestions register
+                      setTimeout(() => {
+                        const val = newTagInput.trim().toLowerCase();
+                        if (val && !(ensayo.tags ?? []).includes(val)) {
+                          onUpdateField(ensayo.id, "tags", [...(ensayo.tags ?? []), val]);
+                        }
+                        setNewTagInput("");
+                        setAddingTag(false);
+                      }, 150);
+                    }}
+                    placeholder="nueva etiqueta..."
+                    style={{
+                      fontSize: 10,
+                      fontFamily: "var(--font-mono)",
+                      padding: "2px 8px",
+                      borderRadius: 3,
+                      border: "1px dashed color-mix(in srgb, var(--accent) 40%, transparent)",
+                      background: "color-mix(in srgb, var(--accent) 6%, transparent)",
+                      color: "color-mix(in srgb, var(--foreground) 75%, transparent)",
+                      outline: "none",
+                      width: 130,
+                    }}
+                  />
+                  {/* Suggestions dropdown */}
+                  {tagSuggestions.length > 0 && (
+                    <div style={{
+                      position: "absolute",
+                      bottom: "calc(100% + 4px)",
+                      left: 0,
+                      background: "var(--bg-menu)",
+                      border: "1px solid color-mix(in srgb, var(--foreground) 10%, transparent)",
+                      borderRadius: 4,
+                      padding: "3px",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 1,
+                      zIndex: 50,
+                      minWidth: 130,
+                      boxShadow: "0 -4px 12px color-mix(in srgb, var(--foreground) 8%, transparent)",
+                    }}>
+                      {tagSuggestions.map(tag => (
+                        <button
+                          key={tag}
+                          onMouseDown={e => {
+                            e.preventDefault();
+                            if (!(ensayo.tags ?? []).includes(tag)) {
+                              onUpdateField(ensayo.id, "tags", [...(ensayo.tags ?? []), tag]);
+                            }
+                            setNewTagInput("");
+                            setAddingTag(false);
+                          }}
+                          style={{
+                            fontSize: 10,
+                            fontFamily: "var(--font-mono)",
+                            color: "color-mix(in srgb, var(--menu-text) 75%, transparent)",
+                            background: "transparent",
+                            border: "none",
+                            borderRadius: 3,
+                            padding: "3px 8px",
+                            cursor: "pointer",
+                            textAlign: "left",
+                            transition: "all 0.08s",
+                          }}
+                          onMouseEnter={e => {
+                            (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--accent) 12%, transparent)";
+                            (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--accent) 90%, transparent)";
+                          }}
+                          onMouseLeave={e => {
+                            (e.currentTarget as HTMLElement).style.background = "transparent";
+                            (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--menu-text) 75%, transparent)";
+                          }}
+                        >
+                          #{tag}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               ) : (
                 <button
                   onClick={() => setAddingTag(true)}
