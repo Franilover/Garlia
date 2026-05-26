@@ -1743,12 +1743,12 @@ export function MarkdownEditor({
                 width: 26,
                 height: 22,
                 background: spellCheck.enabled
-                  ? "color-mix(in srgb, #22c55e 20%, transparent)"
+                  ? "color-mix(in srgb, var(--color-primary, #7c6af7) 20%, transparent)"
                   : "transparent",
                 color: spellCheck.enabled
-                  ? "#22c55e"
+                  ? "var(--color-primary, #7c6af7)"
                   : "color-mix(in srgb, var(--foreground) 30%, transparent)",
-                border: `1px solid ${spellCheck.enabled ? "color-mix(in srgb, #22c55e 40%, transparent)" : "color-mix(in srgb, var(--foreground) 10%, transparent)"}`,
+                border: `1px solid ${spellCheck.enabled ? "color-mix(in srgb, var(--color-primary, #7c6af7) 40%, transparent)" : "color-mix(in srgb, var(--foreground) 10%, transparent)"}`,
                 borderRadius: 5,
                 cursor: "pointer",
                 fontSize: 12,
@@ -1873,11 +1873,11 @@ export function MarkdownEditor({
             alignItems: "center",
             gap: 6,
             padding: "4px 10px",
-            background: "color-mix(in srgb, #22c55e 6%, transparent)",
-            borderBottom: "1px solid color-mix(in srgb, #22c55e 15%, transparent)",
+            background: "color-mix(in srgb, var(--color-primary, #7c6af7) 6%, transparent)",
+            borderBottom: "1px solid color-mix(in srgb, var(--color-primary, #7c6af7) 15%, transparent)",
             fontSize: 9.5,
             fontFamily: "var(--font-mono)",
-            color: "color-mix(in srgb, #22c55e 70%, var(--foreground))",
+            color: "color-mix(in srgb, var(--color-primary, #7c6af7) 70%, var(--foreground))",
             letterSpacing: "0.03em",
             userSelect: "none",
           }}>
