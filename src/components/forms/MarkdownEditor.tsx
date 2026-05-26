@@ -1712,23 +1712,6 @@ export function MarkdownEditor({
             flexShrink: 0,
           }}
         >
-          {/* Word count */}
-          {(() => {
-            const words = value.trim() ? value.trim().split(/\s+/).filter(Boolean).length : 0;
-            const chars = value.length;
-            return words > 0 ? (
-              <span style={{
-                fontSize: 9,
-                fontFamily: "var(--font-mono)",
-                color: "color-mix(in srgb, var(--foreground) 22%, transparent)",
-                letterSpacing: "0.04em",
-                userSelect: "none",
-                whiteSpace: "nowrap",
-              }}>
-                {words}p · {chars}c
-              </span>
-            ) : null;
-          })()}
 
           {/* Spell check toggle */}
           <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
