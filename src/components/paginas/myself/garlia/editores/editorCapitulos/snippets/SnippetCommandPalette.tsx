@@ -19,8 +19,8 @@ import React, {
 } from "react";
 import { useEntidades } from "./useEntidades";
 import { parseSnippetRaw } from "./parseSnippetRaw";
-import { SoundPicker }   from "@/components/forms/SoundPicker";
-import SimpleImagePicker from "@/components/forms/SimpleImagePicker";
+import { SoundPicker }   from "@/components/paginas/myself/garlia/editores/editorCapitulos/snippets/forms/SoundPicker";
+import SimpleImagePicker from "@/components/paginas/myself/garlia/editores/editorCapitulos/snippets//forms/SimpleImagePicker";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 

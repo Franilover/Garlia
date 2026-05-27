@@ -5,9 +5,9 @@ import {
   ChevronRight as ChevronR, Music2, GitFork,
 } from "lucide-react";
 import { ModalBase, CampoInput } from "@/components/templates/EstudioTemplates";
-import { SoundPicker }      from "@/components/forms/SoundPicker";
+import { SoundPicker }      from "@/components/paginas/myself/garlia/editores/editorCapitulos/snippets/forms/SoundPicker";
 import { EntidadPicker }    from "@/components/forms/EntidadPicker";
-import SimpleImagePicker    from "@/components/forms/SimpleImagePicker";
+import SimpleImagePicker    from "@/components/paginas/myself/garlia/editores/editorCapitulos/snippets//forms/SimpleImagePicker";
 import { useEntidades }     from "./useEntidades";
 import { parseSnippetRaw } from "./parseSnippetRaw";
 

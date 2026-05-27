@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { Save, X, Loader2, Image as ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import SimpleImagePicker from "@/components/forms/SimpleImagePicker";
+import SimpleImagePicker from "@/components/paginas/myself/garlia/editores/editorCapitulos/snippets//forms/SimpleImagePicker";
 import { ChipGroup } from "@/components/ui/Chip";
 
 export type Categoria = "Superior" | "Inferior" | "Calzado" | "Accesorios" | "Outfit";

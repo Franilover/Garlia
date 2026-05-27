@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
-import SimpleImagePicker from "@/components/forms/SimpleImagePicker";
+import SimpleImagePicker from "@/components/paginas/myself/garlia/editores/editorCapitulos/snippets//forms/SimpleImagePicker";
 
 type Temporada = "Primavera" | "Verano" | "Otoño" | "Invierno";
 type Vibra     = "Casual" | "Formal" | "Sport" | "Noche" | "Aesthetic";

@@ -11,7 +11,7 @@ import { useConfirm } from "@/components/ui/ConfirmModal";
 import { ToastContainer } from "@/components/ui/ToastContainer";
 import { SeccionMusica, SelectorMusicaAdmin } from "./SeccionMusica";
 import { SelectorVariantes } from "./SelectorVariantes";
-import SimpleImagePicker from "@/components/forms/SimpleImagePicker";
+import SimpleImagePicker from "@/components/paginas/myself/garlia/editores/editorCapitulos/snippets//forms/SimpleImagePicker";
 
 interface DetalleMaestroProps {
   isOpen: boolean;

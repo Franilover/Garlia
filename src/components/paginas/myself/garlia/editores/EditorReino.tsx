@@ -191,7 +191,7 @@ function MapaConPuntos({ mapaUrl, onMapaChange, detalles, onDetallesChange }: {
 function ImagePickerModal({ onSelect, onClose }: { onSelect: (url: string) => void; onClose: () => void }) {
   const [SimpleImagePicker, setComponent] = useState<React.ComponentType<any> | null>(null);
   useEffect(() => {
-    import("@/components/forms/SimpleImagePicker").then(m => setComponent(() => m.default));
+    import("@/components/paginas/myself/garlia/editores/editorCapitulos/snippets//forms/SimpleImagePicker").then(m => setComponent(() => m.default));
   }, []);
 
   return (

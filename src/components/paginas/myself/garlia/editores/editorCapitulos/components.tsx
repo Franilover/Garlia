@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { SaveIndicator } from "@/components/templates/EstudioTemplates";
-import SimpleImagePicker from "@/components/forms/SimpleImagePicker";
+import SimpleImagePicker from "@/components/paginas/myself/garlia/editores/editorCapitulos/snippets//forms/SimpleImagePicker";
 import { usePersonajes } from "@/hooks/useEditorShared";
 import {
   Libro, Capitulo,
