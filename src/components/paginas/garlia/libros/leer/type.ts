@@ -125,7 +125,18 @@ export function parseContenido(texto: string): Segment[] {
     else if (kind === "img")     segs.push({ type: "img",     url: parts[0], caption: parts[1] });
     else if (kind === "float")   segs.push({ type: "float",   word: parts[0], url: parts[1], caption: parts[2] });
     else if (kind === "sound")   segs.push({ type: "sound",   url: parts[0], volume: parseFloat(parts[1] ?? "0.5") });
-    else if (kind === "drop")    segs.push({ type: "drop",    word: parts[0], entidadTipo: parts[1] as "item" | "criatura" | "personaje", entidadId: parts[2], entidadNombre: parts[3] ?? parts[0] });
+    else if (kind === "drop") {
+      // Formato guardado: [[drop|id|nombre]] (2 partes)
+      // Formato legacy:   [[drop|word|tipo|id|nombre]] (4 partes)
+      const isLegacy = parts.length >= 4;
+      segs.push({
+        type:          "drop",
+        word:          isLegacy ? parts[0] : parts[1] ?? parts[0],
+        entidadTipo:   isLegacy ? parts[1] as "item" | "criatura" | "personaje" : "personaje",
+        entidadId:     isLegacy ? parts[2] : parts[0],
+        entidadNombre: isLegacy ? parts[3] : parts[1] ?? parts[0],
+      });
+    }
     else if (kind === "choice")  segs.push({ type: "choice",  label: parts[0], target: parts[1] });
     else if (kind === "section") segs.push({ type: "section", id: parts[0], label: parts[1] });
     else if (kind === "use")     segs.push({ type: "use",     word: parts[0], itemId: parts[1], targetSuccess: parts[2], targetFail: parts[3] });
