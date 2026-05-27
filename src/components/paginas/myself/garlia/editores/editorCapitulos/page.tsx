@@ -20,7 +20,15 @@ import { isReallyOnline } from "@/hooks/data/useOfflineSync";
 import EstudioLayout from "@/components/layout/EstudioLayout";
 import { BannerOffline, ModalBase, SaveIndicator, CampoInput, BotonSubmit } from "@/components/templates/EstudioTemplates";
 import { useConfirm } from "@/components/ui/ConfirmModal";
-import { SnippetToolbar, ModalDrop, ModalSonido, ModalSection, ModalChoice, ModalUseItem, ModalImagen } from "./snippets/SnippetToolbar";
+import { 
+  SnippetToolbar, 
+  ModalDrop, 
+  ModalSonido, 
+  ModalSection, 
+  ModalChoice, 
+  ModalUseItem, 
+  ModalImagen 
+} from "./snippets/SnippetToolbar";
 import { makeSnippetOverlay } from "./snippets/SnippetOverlay";
 import { MarkdownEditor, renderMarkdown, renderMathInElement, PROSE_STYLES } from "@/components/forms/MarkdownEditor";
 import type { CommandItem as MdCommandItem, SnippetAction } from "@/components/forms/MarkdownEditor";
@@ -89,7 +97,7 @@ const PanelEditor = ({
   const [listaSnippetCaps, setListaSnippetCaps] = useState<{id:string;orden:number;titulo_capitulo:string}[]>([]);
   const [openSnippetModal, setOpenSnippetModal] = useState<"drop" | "choice" | "use" | "section" | "sound" | "imagen" | null>(null);
   const timer          = useRef<any>(null);
-  const textareaRef    = useRef<HTMLTextAreaElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollRef      = useRef<HTMLDivElement>(null);
   const caretMirrorRef = useRef<HTMLDivElement>(null);
   const mdInsertRef          = useRef<((text: string) => void) | null>(null);
@@ -551,13 +559,14 @@ const PanelEditor = ({
           <MarkdownEditor
             value={contenido}
             onChange={onChange}
+            textareaRef={textareaRef}      // <--- IMPORTANTE
+            renderOverlay={snippetOverlay} // <--- IMPORTANTE
             placeholder="Empieza a escribir…"
             defaultMode={focusMode ? "edit" : "split"}
             rows={focusMode ? 30 : 20}
             extraCommands={extraCommands}
             insertRef={mdInsertRef}
             onSnippetAction={handleSnippetAction}
-            renderOverlay={snippetOverlay}
           />
         </div>
       </div>
@@ -573,8 +582,9 @@ const PanelEditor = ({
       {openSnippetModal === "imagen"  && <ModalImagen  onInsert={insertOrReplace} onClose={() => { setOpenSnippetModal(null); pendingSnippetRawRef.current = null; }} initialRaw={pendingSnippetRawRef.current ?? undefined} />}
       {openSnippetModal === "choice"  && <ModalChoice  onInsert={insertOrReplace} onClose={() => { setOpenSnippetModal(null); pendingSnippetRawRef.current = null; }} listaCapitulos={listaSnippetCaps} initialRaw={pendingSnippetRawRef.current ?? undefined} />}
       {openSnippetModal === "use"     && <ModalUseItem onInsert={insertOrReplace} onClose={() => { setOpenSnippetModal(null); pendingSnippetRawRef.current = null; }} listaCapitulos={listaSnippetCaps} initialRaw={pendingSnippetRawRef.current ?? undefined} />}
-      {openSnippetModal === "section" && <ModalSection onInsert={insertOrReplace} onClose={() => { setOpenSnippetModal(null); pendingSnippetRawRef.current = null; }} initialRaw={pendingSnippetRawRef.current ?? undefined} />}
       {openSnippetModal === "sound"   && <ModalSonido  onInsert={insertOrReplace} onClose={() => { setOpenSnippetModal(null); pendingSnippetRawRef.current = null; }} initialRaw={pendingSnippetRawRef.current ?? undefined} />}
+      {openSnippetModal === "section" && <ModalSection onInsert={insertOrReplace} onClose={() => { setOpenSnippetModal(null); pendingSnippetRawRef.current = null; }} initialRaw={pendingSnippetRawRef.current ?? undefined} />}
+      
     </div>
   );
 };
@@ -1086,4 +1096,4 @@ export default function EstudioCapitulos() {
       <EditorCapitulosPanel />
     </div>
   );
-}
+} 
