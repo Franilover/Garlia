@@ -20,16 +20,7 @@ import { isReallyOnline } from "@/hooks/data/useOfflineSync";
 import EstudioLayout from "@/components/layout/EstudioLayout";
 import { BannerOffline, ModalBase, SaveIndicator, CampoInput, BotonSubmit } from "@/components/templates/EstudioTemplates";
 import { useConfirm } from "@/components/ui/ConfirmModal";
-import { 
-  SnippetToolbar, 
-  ModalDrop, 
-  ModalSonido, 
-  ModalSection, 
-  ModalChoice, 
-  ModalUseItem, 
-  ModalImagen 
-} from "./snippets/SnippetToolbar";
-import { makeSnippetOverlay } from "./snippets/SnippetOverlay";
+import { RichBlockEditor } from "./snippets/RichBlockEditor";
 import { MarkdownEditor, renderMarkdown, renderMathInElement, PROSE_STYLES } from "@/components/forms/MarkdownEditor";
 import type { CommandItem as MdCommandItem, SnippetAction } from "@/components/forms/MarkdownEditor";
 
@@ -95,14 +86,8 @@ const PanelEditor = ({
   const [savingMeta,       setSavingMeta]       = useState(false);
   const [previewOpen,      setPreviewOpen]      = useState(false);
   const [listaSnippetCaps, setListaSnippetCaps] = useState<{id:string;orden:number;titulo_capitulo:string}[]>([]);
-  const [openSnippetModal, setOpenSnippetModal] = useState<"drop" | "choice" | "use" | "section" | "sound" | "imagen" | null>(null);
   const timer          = useRef<any>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollRef      = useRef<HTMLDivElement>(null);
-  const caretMirrorRef = useRef<HTMLDivElement>(null);
-  const mdInsertRef          = useRef<((text: string) => void) | null>(null);
-  const pendingReplaceRef    = useRef<((next: string) => void) | null>(null);
-  const pendingSnippetRawRef = useRef<string | null>(null);
   const isMountedRef   = useRef(true);
   const { confirm, ConfirmModal } = useConfirm();
 
@@ -138,46 +123,6 @@ const PanelEditor = ({
       });
   }, [libroId]);
 
-  useEffect(() => {
-    const ta = textareaRef.current;
-    if (!ta) return;
-    ta.style.height = "auto";
-    ta.style.height = `${ta.scrollHeight}px`;
-  }, [contenido]);
-
-  const centerCursor = useCallback(() => {
-    const ta        = textareaRef.current;
-    const container = scrollRef.current;
-    const mirror    = caretMirrorRef.current;
-    if (!ta || !container || !mirror) return;
-
-    const cs = getComputedStyle(ta);
-    mirror.style.cssText = `
-      position: absolute; visibility: hidden; pointer-events: none;
-      white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word;
-      width: ${ta.clientWidth}px; font: ${cs.font}; line-height: ${cs.lineHeight};
-      padding: ${cs.padding}; border: ${cs.border}; box-sizing: ${cs.boxSizing};
-      top: 0; left: 0;
-    `;
-
-    const textBefore = ta.value.slice(0, ta.selectionStart ?? ta.value.length);
-    mirror.innerHTML =
-      textBefore
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/\n/g, "<br>") +
-      '<span id="caret-pos">\u200b</span>';
-
-    const caretSpan = mirror.querySelector("#caret-pos") as HTMLElement | null;
-    if (!caretSpan) return;
-
-    const mirrorRect  = mirror.getBoundingClientRect();
-    const caretRect   = caretSpan.getBoundingClientRect();
-    const caretTop    = caretRect.top - mirrorRect.top;
-    const targetScroll = ta.offsetTop + caretTop - container.clientHeight / 2;
-    container.scrollTo({ top: Math.max(0, targetScroll), behavior: "smooth" });
-  }, []);
-
   const doSave = useCallback(async (val: string) => {
     clearTimeout(timer.current);
     if (!isMountedRef.current) return;
@@ -208,9 +153,7 @@ const PanelEditor = ({
     setSaveStatus("saving");
     clearTimeout(timer.current);
     timer.current = setTimeout(() => doSave(val), 2000);
-    const isTouchDevice = window.matchMedia("(pointer: coarse)").matches;
-    if (!isTouchDevice) requestAnimationFrame(() => centerCursor());
-  }, [doSave, draft, centerCursor]);
+  }, [doSave, draft]);
 
   const handleSnippetAction = useCallback((action: SnippetAction) => {
     switch (action.type) {
@@ -236,55 +179,6 @@ const PanelEditor = ({
       default: break;
     }
   }, [listaSnippetCaps]);
-
-  const snippetCommands: MdCommandItem[] = useMemo(() => [
-    { id: "snip-drop",    label: "Drop (entidad)",    description: "Inserta personaje, criatura o ítem interactivo", keywords: ["drop", "enti", "personaj", "criatur", "item", "add"], icon: "⚔️", action: () => setOpenSnippetModal("drop") },
-    { id: "snip-imagen",  label: "Imagen",            description: "Inserta imagen inline o flotante [[img|…]]",     keywords: ["img", "imagen", "foto", "imag", "add"],              icon: "🖼️", action: () => setOpenSnippetModal("imagen") },
-    { id: "snip-choice",  label: "Choice (decisión)", description: "Botón de decisión [[choice|texto|capítulo]]",    keywords: ["choi", "choice", "decis", "boton", "botón", "add"],  icon: "🔀", action: () => setOpenSnippetModal("choice") },
-    { id: "snip-use",     label: "Use Ítem",          description: "Interacción con ítem del inventario [[use|…]]",  keywords: ["use", "item", "ítem", "inven", "add"],               icon: "🖱️", action: () => setOpenSnippetModal("use") },
-    { id: "snip-section", label: "Sección",           description: "Marca de sección para choices [[section|id]]",   keywords: ["secc", "section", "ancora", "add"],                  icon: "📌", action: () => setOpenSnippetModal("section") },
-    { id: "snip-sound",   label: "Sonido",            description: "Inserta un efecto de sonido o música",           keywords: ["son", "sound", "music", "audio", "add"],             icon: "🎵", action: () => setOpenSnippetModal("sound") },
-    { id: "snip-cita",    label: "Cita",              description: "[[cita|Texto — Fuente]]",                        keywords: ["cita", "quote", "add"],                              icon: "«»", snippet: "[[cita|Texto de la cita — Fuente]]" },
-    { id: "snip-parrafo", label: "Párrafo",           description: "Salto de párrafo doble",                         keywords: ["parr", "párr", "salto", "add"],                      icon: "¶",  snippet: " " },
-  ], []);
-
-  const extraCommands: MdCommandItem[] = useMemo(
-    () => [...snippetCommands, ...DIALOG_COMMANDS],
-    [snippetCommands],
-  );
-
-  // ── Snippet overlay — chips visuales sobre el textarea ──
-  const snippetOverlay = useMemo(
-    () => makeSnippetOverlay({
-      taRef: textareaRef,
-      onChange,
-      onEdit: (raw, replace) => {
-        const inner = raw.slice(2, -2);
-        const kind  = inner.split("|")[0].trim();
-        pendingReplaceRef.current    = replace;
-        pendingSnippetRawRef.current = raw;
-        const modalMap: Record<string, typeof openSnippetModal> = {
-          drop: "drop", img: "imagen", float: "imagen",
-          choice: "choice", use: "use", section: "section",
-          sound: "sound",
-        };
-        const modal = modalMap[kind];
-        if (modal) setOpenSnippetModal(modal);
-      },
-    }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [textareaRef, onChange],
-  );
-
-  const insertOrReplace = useCallback((s: string) => {
-    if (pendingReplaceRef.current) {
-      pendingReplaceRef.current(s);
-      pendingReplaceRef.current    = null;
-      pendingSnippetRawRef.current = null;
-    } else {
-      mdInsertRef.current?.(s);
-    }
-  }, []);
 
   const handleSaveTitle = async () => {
     if (!titulo.trim()) return;
@@ -554,19 +448,15 @@ const PanelEditor = ({
       )}
 
       <div ref={scrollRef} className={`flex-1 overflow-y-auto relative ${focusMode ? "px-5 sm:px-16 py-8 sm:py-12" : "px-4 sm:px-8 py-4 sm:py-6"}`} style={{ WebkitOverflowScrolling: "touch" }}>
-        <div ref={caretMirrorRef} aria-hidden="true" />
         <div className={focusMode ? "max-w-3xl mx-auto w-full" : ""}>
-          <MarkdownEditor
+          <RichBlockEditor
             value={contenido}
             onChange={onChange}
-            textareaRef={textareaRef}      // <--- IMPORTANTE
-            renderOverlay={snippetOverlay} // <--- IMPORTANTE
             placeholder="Empieza a escribir…"
             defaultMode={focusMode ? "edit" : "split"}
-            rows={focusMode ? 30 : 20}
-            extraCommands={extraCommands}
-            insertRef={mdInsertRef}
+            extraCommands={DIALOG_COMMANDS}
             onSnippetAction={handleSnippetAction}
+            listaCapitulos={listaSnippetCaps}
           />
         </div>
       </div>
@@ -577,13 +467,6 @@ const PanelEditor = ({
         </div>
       )}
       <ConfirmModal />
-
-      {openSnippetModal === "drop"    && <ModalDrop    onInsert={insertOrReplace} onClose={() => { setOpenSnippetModal(null); pendingSnippetRawRef.current = null; }} initialRaw={pendingSnippetRawRef.current ?? undefined} />}
-      {openSnippetModal === "imagen"  && <ModalImagen  onInsert={insertOrReplace} onClose={() => { setOpenSnippetModal(null); pendingSnippetRawRef.current = null; }} initialRaw={pendingSnippetRawRef.current ?? undefined} />}
-      {openSnippetModal === "choice"  && <ModalChoice  onInsert={insertOrReplace} onClose={() => { setOpenSnippetModal(null); pendingSnippetRawRef.current = null; }} listaCapitulos={listaSnippetCaps} initialRaw={pendingSnippetRawRef.current ?? undefined} />}
-      {openSnippetModal === "use"     && <ModalUseItem onInsert={insertOrReplace} onClose={() => { setOpenSnippetModal(null); pendingSnippetRawRef.current = null; }} listaCapitulos={listaSnippetCaps} initialRaw={pendingSnippetRawRef.current ?? undefined} />}
-      {openSnippetModal === "sound"   && <ModalSonido  onInsert={insertOrReplace} onClose={() => { setOpenSnippetModal(null); pendingSnippetRawRef.current = null; }} initialRaw={pendingSnippetRawRef.current ?? undefined} />}
-      {openSnippetModal === "section" && <ModalSection onInsert={insertOrReplace} onClose={() => { setOpenSnippetModal(null); pendingSnippetRawRef.current = null; }} initialRaw={pendingSnippetRawRef.current ?? undefined} />}
       
     </div>
   );
@@ -1096,4 +979,4 @@ export default function EstudioCapitulos() {
       <EditorCapitulosPanel />
     </div>
   );
-} 
+}
