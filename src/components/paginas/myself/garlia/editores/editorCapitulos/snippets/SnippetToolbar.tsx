@@ -17,8 +17,6 @@ type SnippetProps = {
   initialRaw?: string;
 };
 
-type CapItem = { id: string; orden: number; titulo_capitulo: string };
-
 export const ModalDrop = ({ onInsert, onClose, initialRaw }: SnippetProps) => {
   const init = parseSnippetRaw(initialRaw);
   const initialEntidadId = init?.kind === "drop" ? init.entidadId : undefined;
@@ -52,7 +50,7 @@ export const ModalSection = ({ onInsert, onClose, initialRaw }: SnippetProps) =>
       </div>
       <div className="space-y-4">
         <CampoInput label="Nombre visible (opcional)" value={label} onChange={setLabel} placeholder="ej: Abrir el cofre" autoFocus />
-        <CampoInput label="ID (debe coincidir con choice target)" value={sectionId}
+        <CampoInput label="ID (debe coincidir con targets)" value={sectionId}
           onChange={v => setSectionId(v.toLowerCase().replace(/\s+/g, "-"))}
           placeholder={autoId || "ej: cofre"} />
         {snippet && (
@@ -69,18 +67,13 @@ export const ModalSection = ({ onInsert, onClose, initialRaw }: SnippetProps) =>
   );
 };
 
-export const ModalChoice = ({ onInsert, onClose, listaCapitulos, initialRaw }: SnippetProps & { listaCapitulos: CapItem[] }) => {
+export const ModalChoice = ({ onInsert, onClose, initialRaw }: SnippetProps) => {
   const init     = parseSnippetRaw(initialRaw);
   const isChoice = init?.kind === "choice";
   const [label,  setLabel]  = useState(isChoice ? init.texto  : "");
   const [target, setTarget] = useState(isChoice ? init.target : "");
-  // Detectar si el target inicial es una sección (no UUID) para poner el modo correcto
-  const isUuidLike = (s: string) => /^[0-9a-f-]{36}$/i.test(s);
-  const [modo,   setModo]   = useState<"cap" | "section">(
-    isChoice && init.target && !isUuidLike(init.target) ? "section" : "cap"
-  );
 
-  const snippet    = label.trim() && target.trim() ? `[[choice|${label.trim()}|${target.trim()}]]` : "";
+  const snippet = label.trim() && target.trim() ? `[[choice|${label.trim()}|${target.trim()}]]` : "";
   const handleInsert = () => { if (!snippet) return; onInsert(snippet); onClose(); };
 
   return (
@@ -92,27 +85,8 @@ export const ModalChoice = ({ onInsert, onClose, listaCapitulos, initialRaw }: S
         <button onClick={onClose} className="text-primary/30 hover:text-primary"><X size={16} /></button>
       </div>
       <div className="space-y-4">
-        <div className="flex gap-1 bg-primary/5 p-1 rounded-btn">
-          {([["cap", "Capítulo"], ["section", "Sección interna"]] as const).map(([k, v]) => (
-            <button key={k} type="button" onClick={() => { setModo(k); setTarget(""); }}
-              className={`flex-1 py-1.5 rounded-input text-[9px] font-black uppercase transition-all ${modo === k ? "bg-white-custom shadow text-primary" : "text-primary/40"}`}>
-              {v}
-            </button>
-          ))}
-        </div>
-        <CampoInput label="Texto del botón" value={label} onChange={setLabel} placeholder="ej: Abrir el cofre, Huir…" autoFocus />
-        {modo === "cap" ? (
-          <div className="space-y-1.5">
-            <label className="text-[9px] font-black uppercase tracking-widest text-primary/40">Capítulo destino</label>
-            <select value={target} onChange={e => setTarget(e.target.value)}
-              className="w-full bg-bg-main border border-primary/15 rounded-btn px-3 py-2 text-[11px] text-primary outline-none">
-              <option value="">— Seleccionar —</option>
-              {listaCapitulos.map(c => <option key={c.id} value={c.id}>Cap. {c.orden} — {c.titulo_capitulo}</option>)}
-            </select>
-          </div>
-        ) : (
-          <CampoInput label="ID de sección" value={target} onChange={setTarget} placeholder="ej: cofre (debe coincidir con [[section|cofre]])" />
-        )}
+        <CampoInput label="Texto del botón" value={label} onChange={setLabel} placeholder="ej: Inspeccionar pared, Huir…" autoFocus />
+        <CampoInput label="ID de sección destino" value={target} onChange={setTarget} placeholder="ej: exito-pared (debe coincidir con la sección)" />
         {snippet && (
           <div className="bg-primary/8 border border-primary/20 rounded-btn px-3 py-2">
             <code className="text-[10px] text-primary/70 font-mono break-all">{snippet}</code>
@@ -127,28 +101,27 @@ export const ModalChoice = ({ onInsert, onClose, listaCapitulos, initialRaw }: S
   );
 };
 
-export const ModalUseItem = ({ onInsert, onClose, listaCapitulos, initialRaw }: SnippetProps & { listaCapitulos: CapItem[] }) => {
+export const ModalUseItem = ({ onInsert, onClose, initialRaw }: SnippetProps) => {
   const init   = parseSnippetRaw(initialRaw);
   const isUse  = init?.kind === "use";
   const [palabra,      setPalabra]      = useState(isUse ? init.label  : "");
   const [busqueda,     setBusqueda]     = useState("");
   const [selectedItem, setSelectedItem] = useState<{ id: string; nombre: string } | null>(
-    isUse && init.itemId ? { id: init.itemId, nombre: init.itemId } : null
+    isUse && (init as any).itemId ? { id: (init as any).itemId, nombre: (init as any).itemId } : null
   );
-  const [targetOk,     setTargetOk]     = useState(isUse ? init.capId  : "");
-  const [targetFail,   setTargetFail]   = useState("");
+  const [targetOk,     setTargetOk]     = useState(isUse ? (init as any).sectionOk : "");
+  const [targetFail,   setTargetFail]   = useState(isUse ? (init as any).sectionFail : "");
   const { items, loading } = useEntidades("item");
   const filtrados = items.filter(i => i.nombre.toLowerCase().includes(busqueda.toLowerCase()));
 
-  // Cuando los items carguen, resuelve el nombre real del ítem pre-seleccionado
   React.useEffect(() => {
     if (!isUse || !(init as any)?.itemId || !items.length) return;
     const found = items.find(i => i.id === (init as any).itemId);
     if (found) setSelectedItem(found);
-  }, [items]);
+  }, [items, isUse, init]);
 
-  const snippet = palabra.trim() && selectedItem && targetOk
-    ? `[[use|${palabra.trim()}|${selectedItem.id}|${targetOk}${targetFail ? `|${targetFail}` : ""}]]`
+  const snippet = palabra.trim() && selectedItem && targetOk.trim()
+    ? `[[use|${palabra.trim()}|${selectedItem.id}|${targetOk.trim()}${targetFail.trim() ? `|${targetFail.trim()}` : ""}]]`
     : "";
 
   return (
@@ -160,7 +133,7 @@ export const ModalUseItem = ({ onInsert, onClose, listaCapitulos, initialRaw }: 
         <button onClick={onClose} className="text-primary/30 hover:text-primary"><X size={16} /></button>
       </div>
       <div className="space-y-4 max-h-[65vh] overflow-y-auto pr-1">
-        <CampoInput label="Palabra en el texto" value={palabra} onChange={setPalabra} placeholder="ej: usar llave, abrir cofre…" autoFocus />
+        <CampoInput label="Palabra en el texto" value={palabra} onChange={setPalabra} placeholder="ej: usar llave, forzar cofre…" autoFocus />
         <div className="space-y-1.5">
           <label className="text-[9px] font-black uppercase tracking-widest text-primary/40">Ítem requerido</label>
           <input value={busqueda} onChange={e => setBusqueda(e.target.value)} placeholder="Buscar ítem…"
@@ -177,22 +150,9 @@ export const ModalUseItem = ({ onInsert, onClose, listaCapitulos, initialRaw }: 
             }
           </div>
         </div>
-        <div className="space-y-1.5">
-          <label className="text-[9px] font-black uppercase tracking-widest text-primary/40">Cap. si TIENE el ítem *</label>
-          <select value={targetOk} onChange={e => setTargetOk(e.target.value)}
-            className="w-full bg-bg-main border border-primary/15 rounded-btn px-3 py-2 text-[11px] text-primary outline-none">
-            <option value="">— Seleccionar —</option>
-            {listaCapitulos.map(c => <option key={c.id} value={c.id}>Cap. {c.orden} — {c.titulo_capitulo}</option>)}
-          </select>
-        </div>
-        <div className="space-y-1.5">
-          <label className="text-[9px] font-black uppercase tracking-widest text-primary/40">Cap. si NO tiene <span className="opacity-50">(opcional)</span></label>
-          <select value={targetFail} onChange={e => setTargetFail(e.target.value)}
-            className="w-full bg-bg-main border border-primary/15 rounded-btn px-3 py-2 text-[11px] text-primary outline-none">
-            <option value="">— Ninguno —</option>
-            {listaCapitulos.map(c => <option key={c.id} value={c.id}>Cap. {c.orden} — {c.titulo_capitulo}</option>)}
-          </select>
-        </div>
+        <CampoInput label="ID Sección si TIENE el ítem *" value={targetOk} onChange={setTargetOk} placeholder="ej: abrir-cofre" />
+        <CampoInput label="ID Sección si NO tiene (opcional)" value={targetFail} onChange={setTargetFail} placeholder="ej: falla-cofre" />
+        
         {snippet && (
           <div className="bg-primary/8 border border-primary/20 rounded-btn px-3 py-2">
             <code className="text-[10px] text-primary/70 font-mono break-all">{snippet}</code>
@@ -223,7 +183,7 @@ export const ModalGate = ({ onInsert, onClose, initialRaw }: SnippetProps) => {
     if (!isGate || !(init as any)?.itemId || !items.length) return;
     const found = items.find(i => i.id === (init as any).itemId);
     if (found) setSelectedItem(found);
-  }, [items]);
+  }, [items, init, isGate]);
 
   const snippet = selectedItem && tieneTexto.trim()
     ? `[[gate|${selectedItem.id}|\n${tieneTexto.trim()}\n===\n${noTieneTexto.trim()}\n]]`
@@ -347,12 +307,11 @@ export const ModalImagen = ({ onInsert, onClose, initialRaw }: SnippetProps) => 
 };
 
 export const SnippetToolbar = ({
-  textareaRef, value, onChange, listaCapitulos,
+  textareaRef, value, onChange,
 }: {
   textareaRef:    React.RefObject<HTMLTextAreaElement>;
   value:          string;
   onChange:       (v: string) => void;
-  listaCapitulos: CapItem[];
 }) => {
   const [openModal, setOpenModal] = useState<"drop" | "choice" | "use" | "section" | "sound" | "imagen" | "gate" | null>(null);
 
@@ -395,8 +354,8 @@ export const SnippetToolbar = ({
       </div>
 
       {openModal === "drop"    && <ModalDrop    onInsert={insertAtCursor} onClose={close} />}
-      {openModal === "choice"  && <ModalChoice  onInsert={insertAtCursor} onClose={close} listaCapitulos={listaCapitulos} />}
-      {openModal === "use"     && <ModalUseItem onInsert={insertAtCursor} onClose={close} listaCapitulos={listaCapitulos} />}
+      {openModal === "choice"  && <ModalChoice  onInsert={insertAtCursor} onClose={close} />}
+      {openModal === "use"     && <ModalUseItem onInsert={insertAtCursor} onClose={close} />}
       {openModal === "gate"    && <ModalGate    onInsert={insertAtCursor} onClose={close} />}
       {openModal === "section" && <ModalSection onInsert={insertAtCursor} onClose={close} />}
       {openModal === "sound"   && <ModalSonido  onInsert={insertAtCursor} onClose={close} />}

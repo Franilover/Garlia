@@ -948,7 +948,7 @@ interface MarkdownEditorProps {
    * Se monta dentro del div position:relative que envuelve el <textarea>, por lo que
    * las coordenadas top/right/etc. son relativas a ese contenedor.
    */
-  renderOverlay?: (value: string) => React.ReactNode;
+  renderOverlay?: (value: string, taEl: HTMLTextAreaElement | null) => React.ReactNode;
   /**
    * Título de sección opcional.
    * - En modo edición: se muestra como línea de encabezado `# título` no editable
@@ -989,6 +989,7 @@ export function MarkdownEditor({
 
 
   const taRef = useRef<HTMLTextAreaElement>(null);
+  const [taEl, setTaEl] = useState<HTMLTextAreaElement | null>(null);
 
   // Sincronizar ref externo con el elemento interno
   useEffect(() => {
@@ -1956,7 +1957,13 @@ export function MarkdownEditor({
                 </div>
               )}
               <textarea
-                ref={taRef}
+                ref={(node) => {
+                  (taRef as React.MutableRefObject<HTMLTextAreaElement | null>).current = node;
+                  if (textareaRef) {
+                    (textareaRef as React.MutableRefObject<HTMLTextAreaElement | null>).current = node;
+                  }
+                  if (node !== taEl) setTaEl(node);
+                }}
                 value={value}
                 onChange={handleChange}
                 onKeyDown={handleKeyDown}
@@ -1980,7 +1987,7 @@ export function MarkdownEditor({
                     overflow: "visible",
                   }}
                 >
-                  {renderOverlay(value)}
+                  {renderOverlay(value, taEl)}
                 </div>
               )}
 
