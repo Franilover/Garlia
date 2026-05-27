@@ -193,7 +193,7 @@ const PanelEditor = ({
     }
   }, [capId, setCap, draft]);
 
-  const onChange = (val: string) => {
+  const onChange = useCallback((val: string) => {
     setContenido(val);
     draft.save(val);
     setSaveStatus("saving");
@@ -201,7 +201,7 @@ const PanelEditor = ({
     timer.current = setTimeout(() => doSave(val), 2000);
     const isTouchDevice = window.matchMedia("(pointer: coarse)").matches;
     if (!isTouchDevice) requestAnimationFrame(() => centerCursor());
-  };
+  }, [doSave, draft, centerCursor]);
 
   const handleSnippetAction = useCallback((action: SnippetAction) => {
     switch (action.type) {
