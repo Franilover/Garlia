@@ -932,6 +932,8 @@ interface MarkdownEditorProps {
   extraCommands?: CommandItem[];
   /** Ref opcional: se le asigna una función insertAtCursor(text) para uso externo */
   insertRef?: React.MutableRefObject<((text: string) => void) | null>;
+  /** Ref externo que recibe el HTMLTextAreaElement interno (para overlays externos) */
+  textareaRef?: React.RefObject<HTMLTextAreaElement>;
   /** Callback cuando el usuario interactúa con un snippet en el preview */
   onSnippetAction?: (action: SnippetAction) => void;
   /** Lista de entidades disponibles para autocompletado de [[wikilinks]] */
@@ -968,6 +970,7 @@ export function MarkdownEditor({
   mode: modeProp,
   extraCommands = [],
   insertRef,
+  textareaRef,
   onSnippetAction,
   entities = [],
   autoResize = false,
@@ -986,6 +989,12 @@ export function MarkdownEditor({
 
 
   const taRef = useRef<HTMLTextAreaElement>(null);
+
+  // Sincronizar ref externo con el elemento interno
+  useEffect(() => {
+    if (!textareaRef) return;
+    (textareaRef as React.MutableRefObject<HTMLTextAreaElement | null>).current = taRef.current;
+  });
   const pvRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -1958,10 +1967,9 @@ export function MarkdownEditor({
                 lang={spellCheck.enabled ? spellCheck.lang : undefined}
               />
 
-              {/* ── Overlay externo (ej: contadores de sílabas) ── */}
+              {/* ── Overlay externo (ej: chips de snippets) ── */}
               {renderOverlay && (
                 <div
-                  aria-hidden
                   style={{
                     position: "absolute",
                     top: 0,
@@ -1969,7 +1977,7 @@ export function MarkdownEditor({
                     right: 0,
                     bottom: 0,
                     pointerEvents: "none",
-                    overflow: "hidden",
+                    overflow: "visible",
                   }}
                 >
                   {renderOverlay(value)}
