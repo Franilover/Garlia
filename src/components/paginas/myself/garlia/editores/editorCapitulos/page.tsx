@@ -87,6 +87,10 @@ const PanelEditor = ({
   const [savingMeta,       setSavingMeta]       = useState(false);
   const [previewOpen,      setPreviewOpen]      = useState(false);
   const [listaSnippetCaps, setListaSnippetCaps] = useState<{id:string;orden:number;titulo_capitulo:string}[]>([]);
+  const listaSecciones = useMemo(() => {
+    const matches = [...contenido.matchAll(/\[\[section\|([^\|\]]+)(?:\|([^\]]+))?\]\]/g)];
+    return matches.map(m => ({ id: m[1].trim(), label: (m[2] ?? m[1]).trim() }));
+  }, [contenido]);
   const [palette, setPalette] = useState<{ anchorRect: { top: number; left: number }; initialRaw?: string } | null>(null);
   const timer          = useRef<any>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -242,9 +246,14 @@ const PanelEditor = ({
   }, []);
 
   const snippetCommands: MdCommandItem[] = useMemo(() => [
-    { id: "snip-add",     label: "Insertar elemento", description: "Drop, Choice, Imagen, Sonido, Sección…", keywords: ["add","drop","choice","imagen","sonido","use","gate","section","insert"], icon: "✦", action: () => openPalette() },
-    { id: "snip-cita",    label: "Cita",              description: "[[cita|Texto — Fuente]]",                keywords: ["cita","quote","add"],                           icon: "«»", snippet: "[[cita|Texto de la cita — Fuente]]" },
-    { id: "snip-parrafo", label: "Párrafo",           description: "Salto de párrafo doble",                keywords: ["parr","párr","salto","add"],                    icon: "¶",  snippet: " " },
+    { id: "snip-drop",    label: "Drop (entidad)",    description: "Inserta personaje, criatura o ítem interactivo", keywords: ["drop","enti","personaj","criatur","item","add"], icon: "⚔️",  action: () => openPalette() },
+    { id: "snip-imagen",  label: "Imagen",            description: "Inserta imagen inline o flotante",               keywords: ["img","imagen","foto","imag","add"],             icon: "🖼️",  action: () => openPalette() },
+    { id: "snip-choice",  label: "Choice (decisión)", description: "Botón de decisión",                              keywords: ["choi","choice","decis","boton","botón","add"],  icon: "🔀",  action: () => openPalette() },
+    { id: "snip-use",     label: "Use Ítem",          description: "Interacción con ítem del inventario",            keywords: ["use","item","ítem","inven","add"],               icon: "🖱️",  action: () => openPalette() },
+    { id: "snip-section", label: "Sección",           description: "Marca de sección para choices",                  keywords: ["secc","section","ancora","add"],                icon: "📌",  action: () => openPalette() },
+    { id: "snip-sound",   label: "Sonido",            description: "Inserta un efecto de sonido o música",           keywords: ["son","sound","music","audio","add"],            icon: "🎵",  action: () => openPalette() },
+    { id: "snip-cita",    label: "Cita",              description: "[[cita|Texto — Fuente]]",                        keywords: ["cita","quote","add"],                           icon: "«»",  snippet: "[[cita|Texto de la cita — Fuente]]" },
+    { id: "snip-parrafo", label: "Párrafo",           description: "Salto de párrafo doble",                         keywords: ["parr","párr","salto","add"],                    icon: "¶",   snippet: " " },
   ], [openPalette]);
 
   const extraCommands: MdCommandItem[] = useMemo(
@@ -556,7 +565,6 @@ const PanelEditor = ({
             defaultMode={focusMode ? "edit" : "split"}
             rows={focusMode ? 30 : 20}
             extraCommands={extraCommands}
-            hideBuiltinCommands
             insertRef={mdInsertRef}
             onSnippetAction={handleSnippetAction}
           />
@@ -575,6 +583,7 @@ const PanelEditor = ({
           anchorRect={palette.anchorRect}
           initialRaw={palette.initialRaw}
           listaCapitulos={listaSnippetCaps}
+          listaSecciones={listaSecciones}
           onInsert={(raw) => {
             insertOrReplace(raw);
             setPalette(null);

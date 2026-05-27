@@ -34,6 +34,8 @@ interface PaletteProps {
   initialRaw?: string;
   /** Lista de capítulos para Choice/Use */
   listaCapitulos?: { id: string; orden: number; titulo_capitulo: string }[];
+  /** Secciones [[section|id|label]] detectadas en el capítulo actual */
+  listaSecciones?: { id: string; label: string }[];
   onInsert: (raw: string) => void;
   onClose:  () => void;
 }
@@ -164,100 +166,13 @@ const S = {
   },
 };
 
-// ─── Buscador de entidades (Drop) — personajes + criaturas + items ────────────
-
-const TIPO_CONFIG = {
-  personaje: { label: "Personaje", icon: "👤", color: "#a09af0" },
-  criatura:  { label: "Criatura",  icon: "🐉", color: "#f07574" },
-  item:      { label: "Ítem",      icon: "🗡",  color: "#e09a2a" },
-} as const;
-
-function DropBrowser({
-  initialId, onSelect,
-}: {
-  initialId?: string;
-  onSelect: (id: string, nombre: string) => void;
-}) {
-  const [q, setQ] = useState("");
-  const [active, setActive] = useState(0);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  const { items: personajes, loading: lp } = useEntidades("personaje");
-  const { items: criaturas,  loading: lc } = useEntidades("criatura");
-  const { items: itemsData,  loading: li } = useEntidades("item");
-  const loading = lp || lc || li;
-
-  const all = useMemo(() => [
-    ...personajes.map(e => ({ ...e, tipo: "personaje" as const })),
-    ...criaturas.map(e  => ({ ...e, tipo: "criatura"  as const })),
-    ...itemsData.map(e  => ({ ...e, tipo: "item"       as const })),
-  ].sort((a, b) => a.nombre.localeCompare(b.nombre)), [personajes, criaturas, itemsData]);
-
-  const filtered = useMemo(() =>
-    all.filter(e => e.nombre.toLowerCase().includes(q.toLowerCase())),
-    [all, q]
-  );
-
-  useEffect(() => { inputRef.current?.focus(); }, []);
-  useEffect(() => { setActive(0); }, [q]);
-
-  const handleKey = (e: React.KeyboardEvent) => {
-    if (e.key === "ArrowDown") { e.preventDefault(); setActive(v => Math.min(v + 1, filtered.length - 1)); }
-    if (e.key === "ArrowUp")   { e.preventDefault(); setActive(v => Math.max(v - 1, 0)); }
-    if (e.key === "Enter" && filtered[active]) {
-      e.preventDefault();
-      onSelect(filtered[active].id, filtered[active].nombre);
-    }
-  };
-
-  return (
-    <>
-      <div style={{ padding: "8px 12px 6px" }}>
-        <div style={{ ...S.fieldLabel }}>Buscar entidad</div>
-        <input
-          ref={inputRef}
-          value={q}
-          onChange={e => setQ(e.target.value)}
-          onKeyDown={handleKey}
-          placeholder="Personaje, criatura o ítem…"
-          style={S.input}
-        />
-      </div>
-      <div style={S.list}>
-        {loading && <div style={S.emptyMsg}>Cargando…</div>}
-        {!loading && filtered.length === 0 && <div style={S.emptyMsg}>Sin resultados</div>}
-        {filtered.map((item, i) => {
-          const cfg = TIPO_CONFIG[item.tipo];
-          return (
-            <div
-              key={item.id}
-              style={S.row(i === active)}
-              onClick={() => onSelect(item.id, item.nombre)}
-              onMouseEnter={() => setActive(i)}
-            >
-              <span style={S.iconBox(cfg.color)}>{cfg.icon}</span>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <span style={S.label}>{item.nombre}</span>
-                <span style={{ ...S.desc, display: "block" }}>{cfg.label}</span>
-              </div>
-              {initialId === item.id && (
-                <span style={{ ...S.kbd, marginLeft: "auto" }}>actual</span>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </>
-  );
-}
-
-// ─── Buscador simple (Use ítem) ───────────────────────────────────────────────
+// ─── Buscador de entidades (Drop / Use) ───────────────────────────────────────
 
 function EntidadBrowser({
   tipo, color, icon, label,
   initialId, onSelect,
 }: {
-  tipo: "personaje" | "criatura" | "item";
+  tipo: "entidad" | "item";
   color: string; icon: string; label: string;
   initialId?: string;
   onSelect: (id: string, nombre: string) => void;
@@ -325,7 +240,8 @@ function FormDrop({ initialRaw, onInsert }: { initialRaw?: string; onInsert: (s:
   const init = parseSnippetRaw(initialRaw);
   const initialId = init?.kind === "drop" ? init.entidadId : undefined;
   return (
-    <DropBrowser
+    <EntidadBrowser
+      tipo="entidad" color="#a09af0" icon="⚔" label="Entidad"
       initialId={initialId}
       onSelect={(id, nombre) => onInsert(`[[drop|${id}|${nombre}]]`)}
     />
@@ -333,20 +249,13 @@ function FormDrop({ initialRaw, onInsert }: { initialRaw?: string; onInsert: (s:
 }
 
 function FormChoice({
-  initialRaw, listaCapitulos, onInsert,
-}: { initialRaw?: string; listaCapitulos: { id: string; orden: number; titulo_capitulo: string }[]; onInsert: (s: string) => void }) {
+  initialRaw, listaSecciones = [], onInsert,
+}: { initialRaw?: string; listaSecciones?: { id: string; label: string }[]; onInsert: (s: string) => void }) {
   const init = parseSnippetRaw(initialRaw);
   const [texto,  setTexto]  = useState(init?.kind === "choice" ? init.texto  : "");
   const [target, setTarget] = useState(init?.kind === "choice" ? init.target : "");
-  const [q, setQ] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   useEffect(() => { inputRef.current?.focus(); }, []);
-
-  const filtrados = useMemo(() =>
-    listaCapitulos.filter(c =>
-      c.titulo_capitulo.toLowerCase().includes(q.toLowerCase()) ||
-      c.id.toLowerCase().includes(q.toLowerCase())
-    ), [listaCapitulos, q]);
 
   const snippet = texto.trim() && target.trim()
     ? `[[choice|${texto.trim()}|${target.trim()}]]` : "";
@@ -358,26 +267,45 @@ function FormChoice({
         <input ref={inputRef} value={texto} onChange={e => setTexto(e.target.value)}
           placeholder="ej: Inspeccionar pared…" style={S.input} />
       </div>
-      <div>
-        <div style={S.fieldLabel}>ID destino</div>
-        <input value={target} onChange={e => setTarget(e.target.value)}
-          placeholder="ej: cofre-secreto" style={S.input} />
-      </div>
-      {listaCapitulos.length > 0 && (
+
+      {listaSecciones.length > 0 ? (
         <div>
-          <div style={S.fieldLabel}>O elegí un capítulo</div>
-          <input value={q} onChange={e => setQ(e.target.value)}
-            placeholder="Buscar capítulo…" style={{ ...S.input, marginBottom: 4 }} />
-          <div style={{ maxHeight: 100, overflowY: "auto" }}>
-            {filtrados.slice(0, 6).map(c => (
-              <div key={c.id} style={S.row(false)} onClick={() => setTarget(c.id)}>
-                <span style={{ fontSize: 10, color: "color-mix(in srgb, var(--foreground) 35%, transparent)", marginRight: 4 }}>#{c.orden}</span>
-                <span style={{ ...S.label, fontSize: 11 }}>{c.titulo_capitulo}</span>
+          <div style={S.fieldLabel}>Sección destino</div>
+          <div style={{ maxHeight: 140, overflowY: "auto" }}>
+            {listaSecciones.map(sec => (
+              <div
+                key={sec.id}
+                style={{
+                  ...S.row(target === sec.id),
+                  borderRadius: 6,
+                  marginBottom: 2,
+                  border: target === sec.id
+                    ? "1px solid color-mix(in srgb, #5aabf5 40%, transparent)"
+                    : "1px solid transparent",
+                }}
+                onClick={() => setTarget(sec.id)}
+              >
+                <span style={S.iconBox("#5aabf5")}>›</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <span style={S.label}>{sec.label || sec.id}</span>
+                  <span style={{ ...S.desc, display: "block", fontFamily: "var(--font-mono, monospace)" }}>{sec.id}</span>
+                </div>
+                {target === sec.id && <span style={S.kbd}>✓</span>}
               </div>
             ))}
           </div>
         </div>
+      ) : (
+        <div>
+          <div style={S.fieldLabel}>ID de sección destino</div>
+          <input value={target} onChange={e => setTarget(e.target.value)}
+            placeholder="ej: cofre-secreto" style={{ ...S.input, fontFamily: "var(--font-mono, monospace)" }} />
+          <div style={{ ...S.desc, marginTop: 4 }}>
+            Creá primero una sección con ‹ Insertar Sección › en este capítulo.
+          </div>
+        </div>
       )}
+
       <button
         style={S.insertBtn("#5aabf5")}
         disabled={!snippet}
@@ -593,7 +521,7 @@ function FormSound({ initialRaw, onInsert, onClose }: { initialRaw?: string; onI
 // ─── Paleta principal ─────────────────────────────────────────────────────────
 
 export function SnippetCommandPalette({
-  anchorRect, initialRaw, listaCapitulos = [], onInsert, onClose,
+  anchorRect, initialRaw, listaCapitulos = [], listaSecciones = [], onInsert, onClose,
 }: PaletteProps) {
   const [q,            setQ]            = useState("");
   const [activeIdx,    setActiveIdx]    = useState(0);
@@ -720,7 +648,7 @@ export function SnippetCommandPalette({
       ) : (
         <div style={{ maxHeight: 360, overflowY: "auto" }}>
           {selectedType === "drop"    && <FormDrop    initialRaw={initialRaw} onInsert={handleInsert} />}
-          {selectedType === "choice"  && <FormChoice  initialRaw={initialRaw} listaCapitulos={listaCapitulos} onInsert={handleInsert} />}
+          {selectedType === "choice"  && <FormChoice  initialRaw={initialRaw} listaSecciones={listaSecciones} onInsert={handleInsert} />}
           {selectedType === "section" && <FormSection initialRaw={initialRaw} onInsert={handleInsert} />}
           {selectedType === "use"     && <FormUse     initialRaw={initialRaw} listaCapitulos={listaCapitulos} onInsert={handleInsert} />}
           {selectedType === "gate"    && <FormGate    initialRaw={initialRaw} onInsert={handleInsert} />}
