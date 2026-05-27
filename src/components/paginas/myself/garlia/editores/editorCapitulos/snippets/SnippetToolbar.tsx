@@ -9,25 +9,35 @@ import { SoundPicker }      from "@/components/forms/SoundPicker";
 import { EntidadPicker }    from "@/components/forms/EntidadPicker";
 import SimpleImagePicker    from "@/components/forms/SimpleImagePicker";
 import { useEntidades }     from "./useEntidades";
+import { parseSnippetRaw } from "./parseSnippetRaw";
 
 type SnippetProps = {
-  onInsert: (s: string) => void;
-  onClose:  () => void;
+  onInsert:    (s: string) => void;
+  onClose:     () => void;
+  initialRaw?: string;
 };
 
 type CapItem = { id: string; orden: number; titulo_capitulo: string };
 
-export const ModalDrop = ({ onInsert, onClose }: SnippetProps) => (
-  <EntidadPicker open onClose={onClose} onInsert={onInsert} />
-);
+export const ModalDrop = ({ onInsert, onClose, initialRaw }: SnippetProps) => {
+  const init = parseSnippetRaw(initialRaw);
+  const initialEntidadId = init?.kind === "drop" ? init.entidadId : undefined;
+  const EP = EntidadPicker as React.ComponentType<any>;
+  return <EP open onClose={onClose} onInsert={onInsert} initialEntidadId={initialEntidadId} />;
+};
 
-export const ModalSonido = ({ onInsert, onClose }: SnippetProps) => (
-  <SoundPicker open onClose={onClose} onInsert={onInsert} />
-);
+export const ModalSonido = ({ onInsert, onClose, initialRaw }: SnippetProps) => {
+  const init = parseSnippetRaw(initialRaw);
+  const initialSrc = init?.kind === "sound" ? init.src : undefined;
+  const SP = SoundPicker as React.ComponentType<any>;
+  return <SP open onClose={onClose} onInsert={onInsert} initialSrc={initialSrc} />;
+};
 
-export const ModalSection = ({ onInsert, onClose }: SnippetProps) => {
-  const [sectionId, setSectionId] = useState("");
-  const [label,     setLabel]     = useState("");
+export const ModalSection = ({ onInsert, onClose, initialRaw }: SnippetProps) => {
+  const init       = parseSnippetRaw(initialRaw);
+  const isSection  = init?.kind === "section";
+  const [sectionId, setSectionId] = useState(isSection ? init.id    : "");
+  const [label,     setLabel]     = useState(isSection ? init.label : "");
 
   const autoId  = sectionId || label.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
   const snippet = label ? `[[section|${autoId}|${label}]]` : autoId ? `[[section|${autoId}]]` : "";
@@ -46,12 +56,12 @@ export const ModalSection = ({ onInsert, onClose }: SnippetProps) => {
           onChange={v => setSectionId(v.toLowerCase().replace(/\s+/g, "-"))}
           placeholder={autoId || "ej: cofre"} />
         {snippet && (
-          <div className="bg-violet-500/10 border border-violet-500/20 rounded-[var(--radius-btn)] px-3 py-2">
+          <div className="bg-violet-500/10 border border-violet-500/20 rounded-btn px-3 py-2">
             <code className="text-[10px] text-primary/70 font-mono">{snippet}</code>
           </div>
         )}
         <button type="button" onClick={() => { if (!autoId) return; onInsert(snippet); onClose(); }} disabled={!autoId}
-          className="w-full flex items-center justify-center gap-2 bg-primary text-btn-text py-3 rounded-[var(--radius-btn)] font-black uppercase text-[10px] tracking-widest disabled:opacity-40 transition-all hover:opacity-80">
+          className="w-full flex items-center justify-center gap-2 bg-primary text-btn-text py-3 rounded-btn font-black uppercase text-[10px] tracking-widest disabled:opacity-40 transition-all hover:opacity-80">
           <ChevronR size={13} /> Insertar Sección
         </button>
       </div>
@@ -59,10 +69,16 @@ export const ModalSection = ({ onInsert, onClose }: SnippetProps) => {
   );
 };
 
-export const ModalChoice = ({ onInsert, onClose, listaCapitulos }: SnippetProps & { listaCapitulos: CapItem[] }) => {
-  const [label,  setLabel]  = useState("");
-  const [target, setTarget] = useState("");
-  const [modo,   setModo]   = useState<"cap" | "section">("cap");
+export const ModalChoice = ({ onInsert, onClose, listaCapitulos, initialRaw }: SnippetProps & { listaCapitulos: CapItem[] }) => {
+  const init     = parseSnippetRaw(initialRaw);
+  const isChoice = init?.kind === "choice";
+  const [label,  setLabel]  = useState(isChoice ? init.texto  : "");
+  const [target, setTarget] = useState(isChoice ? init.target : "");
+  // Detectar si el target inicial es una sección (no UUID) para poner el modo correcto
+  const isUuidLike = (s: string) => /^[0-9a-f-]{36}$/i.test(s);
+  const [modo,   setModo]   = useState<"cap" | "section">(
+    isChoice && init.target && !isUuidLike(init.target) ? "section" : "cap"
+  );
 
   const snippet    = label.trim() && target.trim() ? `[[choice|${label.trim()}|${target.trim()}]]` : "";
   const handleInsert = () => { if (!snippet) return; onInsert(snippet); onClose(); };
@@ -76,10 +92,10 @@ export const ModalChoice = ({ onInsert, onClose, listaCapitulos }: SnippetProps 
         <button onClick={onClose} className="text-primary/30 hover:text-primary"><X size={16} /></button>
       </div>
       <div className="space-y-4">
-        <div className="flex gap-1 bg-primary/5 p-1 rounded-[var(--radius-btn)]">
+        <div className="flex gap-1 bg-primary/5 p-1 rounded-btn">
           {([["cap", "Capítulo"], ["section", "Sección interna"]] as const).map(([k, v]) => (
             <button key={k} type="button" onClick={() => { setModo(k); setTarget(""); }}
-              className={`flex-1 py-1.5 rounded-[var(--radius-input)] text-[9px] font-black uppercase transition-all ${modo === k ? "bg-white-custom shadow text-primary" : "text-primary/40"}`}>
+              className={`flex-1 py-1.5 rounded-input text-[9px] font-black uppercase transition-all ${modo === k ? "bg-white-custom shadow text-primary" : "text-primary/40"}`}>
               {v}
             </button>
           ))}
@@ -89,7 +105,7 @@ export const ModalChoice = ({ onInsert, onClose, listaCapitulos }: SnippetProps 
           <div className="space-y-1.5">
             <label className="text-[9px] font-black uppercase tracking-widest text-primary/40">Capítulo destino</label>
             <select value={target} onChange={e => setTarget(e.target.value)}
-              className="w-full bg-bg-main border border-primary/15 rounded-[var(--radius-btn)] px-3 py-2 text-[11px] text-primary outline-none">
+              className="w-full bg-bg-main border border-primary/15 rounded-btn px-3 py-2 text-[11px] text-primary outline-none">
               <option value="">— Seleccionar —</option>
               {listaCapitulos.map(c => <option key={c.id} value={c.id}>Cap. {c.orden} — {c.titulo_capitulo}</option>)}
             </select>
@@ -98,12 +114,12 @@ export const ModalChoice = ({ onInsert, onClose, listaCapitulos }: SnippetProps 
           <CampoInput label="ID de sección" value={target} onChange={setTarget} placeholder="ej: cofre (debe coincidir con [[section|cofre]])" />
         )}
         {snippet && (
-          <div className="bg-primary/8 border border-primary/20 rounded-[var(--radius-btn)] px-3 py-2">
+          <div className="bg-primary/8 border border-primary/20 rounded-btn px-3 py-2">
             <code className="text-[10px] text-primary/70 font-mono break-all">{snippet}</code>
           </div>
         )}
         <button type="button" onClick={handleInsert} disabled={!snippet}
-          className="w-full flex items-center justify-center gap-2 bg-primary text-btn-text py-3 rounded-[var(--radius-btn)] font-black uppercase text-[10px] tracking-widest disabled:opacity-40 transition-all hover:opacity-80">
+          className="w-full flex items-center justify-center gap-2 bg-primary text-btn-text py-3 rounded-btn font-black uppercase text-[10px] tracking-widest disabled:opacity-40 transition-all hover:opacity-80">
           <GitMerge size={13} /> Insertar Choice
         </button>
       </div>
@@ -111,14 +127,25 @@ export const ModalChoice = ({ onInsert, onClose, listaCapitulos }: SnippetProps 
   );
 };
 
-export const ModalUseItem = ({ onInsert, onClose, listaCapitulos }: SnippetProps & { listaCapitulos: CapItem[] }) => {
-  const [palabra,      setPalabra]      = useState("");
+export const ModalUseItem = ({ onInsert, onClose, listaCapitulos, initialRaw }: SnippetProps & { listaCapitulos: CapItem[] }) => {
+  const init   = parseSnippetRaw(initialRaw);
+  const isUse  = init?.kind === "use";
+  const [palabra,      setPalabra]      = useState(isUse ? init.label  : "");
   const [busqueda,     setBusqueda]     = useState("");
-  const [selectedItem, setSelectedItem] = useState<{ id: string; nombre: string } | null>(null);
-  const [targetOk,     setTargetOk]     = useState("");
+  const [selectedItem, setSelectedItem] = useState<{ id: string; nombre: string } | null>(
+    isUse && init.itemId ? { id: init.itemId, nombre: init.itemId } : null
+  );
+  const [targetOk,     setTargetOk]     = useState(isUse ? init.capId  : "");
   const [targetFail,   setTargetFail]   = useState("");
   const { items, loading } = useEntidades("item");
   const filtrados = items.filter(i => i.nombre.toLowerCase().includes(busqueda.toLowerCase()));
+
+  // Cuando los items carguen, resuelve el nombre real del ítem pre-seleccionado
+  React.useEffect(() => {
+    if (!isUse || !(init as any)?.itemId || !items.length) return;
+    const found = items.find(i => i.id === (init as any).itemId);
+    if (found) setSelectedItem(found);
+  }, [items]);
 
   const snippet = palabra.trim() && selectedItem && targetOk
     ? `[[use|${palabra.trim()}|${selectedItem.id}|${targetOk}${targetFail ? `|${targetFail}` : ""}]]`
@@ -137,13 +164,13 @@ export const ModalUseItem = ({ onInsert, onClose, listaCapitulos }: SnippetProps
         <div className="space-y-1.5">
           <label className="text-[9px] font-black uppercase tracking-widest text-primary/40">Ítem requerido</label>
           <input value={busqueda} onChange={e => setBusqueda(e.target.value)} placeholder="Buscar ítem…"
-            className="w-full bg-bg-main border border-primary/15 rounded-[var(--radius-btn)] px-3 py-2 text-[11px] text-primary outline-none focus:border-primary/30" />
+            className="w-full bg-bg-main border border-primary/15 rounded-btn px-3 py-2 text-[11px] text-primary outline-none focus:border-primary/30" />
           <div className="max-h-28 overflow-y-auto space-y-0.5 mt-1">
             {loading
               ? <p className="text-[9px] text-primary/30 p-2">Cargando…</p>
               : filtrados.map(item => (
                 <button key={item.id} type="button" onClick={() => setSelectedItem(item)}
-                  className={`w-full text-left px-3 py-2 rounded-[var(--radius-btn)] text-[11px] font-bold transition-all ${selectedItem?.id === item.id ? "bg-primary text-btn-text" : "hover:bg-primary/8 text-primary"}`}>
+                  className={`w-full text-left px-3 py-2 rounded-btn text-[11px] font-bold transition-all ${selectedItem?.id === item.id ? "bg-primary text-btn-text" : "hover:bg-primary/8 text-primary"}`}>
                   {item.nombre}
                 </button>
               ))
@@ -153,7 +180,7 @@ export const ModalUseItem = ({ onInsert, onClose, listaCapitulos }: SnippetProps
         <div className="space-y-1.5">
           <label className="text-[9px] font-black uppercase tracking-widest text-primary/40">Cap. si TIENE el ítem *</label>
           <select value={targetOk} onChange={e => setTargetOk(e.target.value)}
-            className="w-full bg-bg-main border border-primary/15 rounded-[var(--radius-btn)] px-3 py-2 text-[11px] text-primary outline-none">
+            className="w-full bg-bg-main border border-primary/15 rounded-btn px-3 py-2 text-[11px] text-primary outline-none">
             <option value="">— Seleccionar —</option>
             {listaCapitulos.map(c => <option key={c.id} value={c.id}>Cap. {c.orden} — {c.titulo_capitulo}</option>)}
           </select>
@@ -161,18 +188,18 @@ export const ModalUseItem = ({ onInsert, onClose, listaCapitulos }: SnippetProps
         <div className="space-y-1.5">
           <label className="text-[9px] font-black uppercase tracking-widest text-primary/40">Cap. si NO tiene <span className="opacity-50">(opcional)</span></label>
           <select value={targetFail} onChange={e => setTargetFail(e.target.value)}
-            className="w-full bg-bg-main border border-primary/15 rounded-[var(--radius-btn)] px-3 py-2 text-[11px] text-primary outline-none">
+            className="w-full bg-bg-main border border-primary/15 rounded-btn px-3 py-2 text-[11px] text-primary outline-none">
             <option value="">— Ninguno —</option>
             {listaCapitulos.map(c => <option key={c.id} value={c.id}>Cap. {c.orden} — {c.titulo_capitulo}</option>)}
           </select>
         </div>
         {snippet && (
-          <div className="bg-primary/8 border border-primary/20 rounded-[var(--radius-btn)] px-3 py-2">
+          <div className="bg-primary/8 border border-primary/20 rounded-btn px-3 py-2">
             <code className="text-[10px] text-primary/70 font-mono break-all">{snippet}</code>
           </div>
         )}
         <button type="button" onClick={() => { if (!snippet) return; onInsert(snippet); onClose(); }} disabled={!snippet}
-          className="w-full flex items-center justify-center gap-2 bg-primary text-btn-text py-3 rounded-[var(--radius-btn)] font-black uppercase text-[10px] tracking-widest disabled:opacity-40 transition-all hover:opacity-80">
+          className="w-full flex items-center justify-center gap-2 bg-primary text-btn-text py-3 rounded-btn font-black uppercase text-[10px] tracking-widest disabled:opacity-40 transition-all hover:opacity-80">
           <MousePointerClick size={13} /> Insertar Use
         </button>
       </div>
@@ -180,13 +207,23 @@ export const ModalUseItem = ({ onInsert, onClose, listaCapitulos }: SnippetProps
   );
 };
 
-export const ModalGate = ({ onInsert, onClose }: SnippetProps) => {
+export const ModalGate = ({ onInsert, onClose, initialRaw }: SnippetProps) => {
+  const init   = parseSnippetRaw(initialRaw);
+  const isGate = init?.kind === "gate";
   const [busqueda,     setBusqueda]     = useState("");
-  const [selectedItem, setSelectedItem] = useState<{ id: string; nombre: string } | null>(null);
-  const [tieneTexto,   setTieneTexto]   = useState("");
-  const [noTieneTexto, setNoTieneTexto] = useState("");
+  const [selectedItem, setSelectedItem] = useState<{ id: string; nombre: string } | null>(
+    isGate && (init as any).itemId ? { id: (init as any).itemId, nombre: (init as any).itemId } : null
+  );
+  const [tieneTexto,   setTieneTexto]   = useState(isGate ? (init as any).tieneTexto   ?? "" : "");
+  const [noTieneTexto, setNoTieneTexto] = useState(isGate ? (init as any).noTieneTexto ?? "" : "");
   const { items, loading } = useEntidades("item");
   const filtrados = items.filter(i => i.nombre.toLowerCase().includes(busqueda.toLowerCase()));
+
+  React.useEffect(() => {
+    if (!isGate || !(init as any)?.itemId || !items.length) return;
+    const found = items.find(i => i.id === (init as any).itemId);
+    if (found) setSelectedItem(found);
+  }, [items]);
 
   const snippet = selectedItem && tieneTexto.trim()
     ? `[[gate|${selectedItem.id}|\n${tieneTexto.trim()}\n===\n${noTieneTexto.trim()}\n]]`
@@ -205,13 +242,13 @@ export const ModalGate = ({ onInsert, onClose }: SnippetProps) => {
         <div className="space-y-1.5">
           <label className="text-[9px] font-black uppercase tracking-widest text-primary/40">Ítem requerido *</label>
           <input value={busqueda} onChange={e => setBusqueda(e.target.value)} placeholder="Buscar ítem…"
-            className="w-full bg-bg-main border border-primary/15 rounded-[var(--radius-btn)] px-3 py-2 text-[11px] text-primary outline-none focus:border-primary/30" />
+            className="w-full bg-bg-main border border-primary/15 rounded-btn px-3 py-2 text-[11px] text-primary outline-none focus:border-primary/30" />
           <div className="max-h-28 overflow-y-auto space-y-0.5 mt-1">
             {loading
               ? <p className="text-[9px] text-primary/30 p-2">Cargando…</p>
               : filtrados.map(item => (
                 <button key={item.id} type="button" onClick={() => setSelectedItem(item)}
-                  className={`w-full text-left px-3 py-2 rounded-[var(--radius-btn)] text-[11px] font-bold transition-all ${selectedItem?.id === item.id ? "bg-primary text-btn-text" : "hover:bg-primary/8 text-primary"}`}>
+                  className={`w-full text-left px-3 py-2 rounded-btn text-[11px] font-bold transition-all ${selectedItem?.id === item.id ? "bg-primary text-btn-text" : "hover:bg-primary/8 text-primary"}`}>
                   {item.nombre}
                 </button>
               ))
@@ -227,7 +264,7 @@ export const ModalGate = ({ onInsert, onClose }: SnippetProps) => {
             value={tieneTexto} onChange={e => setTieneTexto(e.target.value)}
             placeholder={"El personaje saca la llave y abre la puerta...\nPodés usar **markdown**, [[choice|...]] etc."}
             rows={4}
-            className="w-full bg-bg-main border border-primary/15 rounded-[var(--radius-btn)] px-3 py-2 text-[11px] text-primary outline-none focus:border-primary/30 resize-none font-mono"
+            className="w-full bg-bg-main border border-primary/15 rounded-btn px-3 py-2 text-[11px] text-primary outline-none focus:border-primary/30 resize-none font-mono"
           />
         </div>
 
@@ -239,19 +276,19 @@ export const ModalGate = ({ onInsert, onClose }: SnippetProps) => {
             value={noTieneTexto} onChange={e => setNoTieneTexto(e.target.value)}
             placeholder={"La puerta no cede. Le falta algo...\nDejá vacío para no mostrar nada."}
             rows={4}
-            className="w-full bg-bg-main border border-primary/15 rounded-[var(--radius-btn)] px-3 py-2 text-[11px] text-primary outline-none focus:border-primary/30 resize-none font-mono"
+            className="w-full bg-bg-main border border-primary/15 rounded-btn px-3 py-2 text-[11px] text-primary outline-none focus:border-primary/30 resize-none font-mono"
           />
         </div>
 
         {snippet && (
-          <div className="bg-amber-500/10 border border-amber-500/20 rounded-[var(--radius-btn)] px-3 py-2">
+          <div className="bg-amber-500/10 border border-amber-500/20 rounded-btn px-3 py-2">
             <p className="text-[8px] font-black uppercase tracking-widest text-amber-500/60 mb-1">Preview</p>
             <pre className="text-[10px] text-primary/70 font-mono whitespace-pre-wrap break-all">{snippet}</pre>
           </div>
         )}
 
         <button type="button" onClick={() => { if (!snippet) return; onInsert(snippet); onClose(); }} disabled={!snippet}
-          className="w-full flex items-center justify-center gap-2 bg-primary text-btn-text py-3 rounded-[var(--radius-btn)] font-black uppercase text-[10px] tracking-widest disabled:opacity-40 transition-all hover:opacity-80">
+          className="w-full flex items-center justify-center gap-2 bg-primary text-btn-text py-3 rounded-btn font-black uppercase text-[10px] tracking-widest disabled:opacity-40 transition-all hover:opacity-80">
           <GitFork size={13} /> Insertar Gate
         </button>
       </div>
@@ -259,11 +296,13 @@ export const ModalGate = ({ onInsert, onClose }: SnippetProps) => {
   );
 };
 
-export const ModalImagen = ({ onInsert, onClose }: SnippetProps) => {
-  const [selected, setSelected] = useState<string | null>(null);
-  const [caption,  setCaption]  = useState("");
-  const [word,     setWord]     = useState("");
-  const [mode,     setMode]     = useState<"img" | "float">("img");
+export const ModalImagen = ({ onInsert, onClose, initialRaw }: SnippetProps) => {
+  const init    = parseSnippetRaw(initialRaw);
+  const isImg   = init?.kind === "img" || init?.kind === "float";
+  const [selected, setSelected] = useState<string | null>(isImg ? (init as any).url   : null);
+  const [caption,  setCaption]  = useState(              isImg ? (init as any).alt   : "");
+  const [word,     setWord]     = useState(              isImg && init?.kind === "float" ? (init as any).alt : "");
+  const [mode,     setMode]     = useState<"img" | "float">(init?.kind === "float" ? "float" : "img");
 
   const handleInsert = () => {
     if (!selected) return;
@@ -286,7 +325,7 @@ export const ModalImagen = ({ onInsert, onClose }: SnippetProps) => {
         <div className="flex gap-2">
           {([{ k: "img", l: "Inline" }, { k: "float", l: "Flotante" }] as const).map(o => (
             <button key={o.k} type="button" onClick={() => setMode(o.k)}
-              className={`flex-1 py-2 rounded-[var(--radius-btn)] text-[9px] font-black uppercase border transition-all ${mode === o.k ? "bg-primary text-btn-text border-primary" : "border-primary/15 text-primary/40 hover:border-primary/30"}`}>
+              className={`flex-1 py-2 rounded-btn text-[9px] font-black uppercase border transition-all ${mode === o.k ? "bg-primary text-btn-text border-primary" : "border-primary/15 text-primary/40 hover:border-primary/30"}`}>
               {o.l}
             </button>
           ))}
@@ -297,7 +336,7 @@ export const ModalImagen = ({ onInsert, onClose }: SnippetProps) => {
             {mode === "float" && <CampoInput label="Palabra en el texto" value={word} onChange={setWord} placeholder="ej: el castillo, Kael…" />}
             <CampoInput label="Caption (opcional)" value={caption} onChange={setCaption} placeholder="Descripción breve…" />
             <button type="button" onClick={handleInsert}
-              className="w-full flex items-center justify-center gap-2 bg-primary text-btn-text py-3 rounded-[var(--radius-btn)] font-black uppercase text-[10px] tracking-widest transition-all hover:opacity-80">
+              className="w-full flex items-center justify-center gap-2 bg-primary text-btn-text py-3 rounded-btn font-black uppercase text-[10px] tracking-widest transition-all hover:opacity-80">
               <Image size={13} /> Insertar Imagen
             </button>
           </>
@@ -326,7 +365,7 @@ export const SnippetToolbar = ({
     setTimeout(() => { el.focus(); el.setSelectionRange(s + snippet.length, s + snippet.length); }, 0);
   }, [textareaRef, value, onChange]);
 
-  const btnCls = "flex items-center gap-1 px-2.5 py-1.5 rounded-[var(--radius-btn)] text-[9px] font-black uppercase tracking-wide transition-all text-primary/50 hover:text-primary hover:bg-primary/8 border border-transparent hover:border-primary/10";
+  const btnCls = "flex items-center gap-1 px-2.5 py-1.5 rounded-btn text-[9px] font-black uppercase tracking-wide transition-all text-primary/50 hover:text-primary hover:bg-primary/8 border border-transparent hover:border-primary/10";
 
   const btns = [
     { key: "drop",    label: "Drop",       icon: <Sword size={11} /> },

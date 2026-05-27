@@ -92,8 +92,9 @@ const PanelEditor = ({
   const textareaRef    = useRef<HTMLTextAreaElement>(null);
   const scrollRef      = useRef<HTMLDivElement>(null);
   const caretMirrorRef = useRef<HTMLDivElement>(null);
-  const mdInsertRef       = useRef<((text: string) => void) | null>(null);
-  const pendingReplaceRef = useRef<((next: string) => void) | null>(null);
+  const mdInsertRef          = useRef<((text: string) => void) | null>(null);
+  const pendingReplaceRef    = useRef<((next: string) => void) | null>(null);
+  const pendingSnippetRawRef = useRef<string | null>(null);
   const isMountedRef   = useRef(true);
   const { confirm, ConfirmModal } = useConfirm();
 
@@ -252,7 +253,8 @@ const PanelEditor = ({
       onEdit: (raw, replace) => {
         const inner = raw.slice(2, -2);
         const kind  = inner.split("|")[0].trim();
-        pendingReplaceRef.current = replace;
+        pendingReplaceRef.current    = replace;
+        pendingSnippetRawRef.current = raw;
         const modalMap: Record<string, typeof openSnippetModal> = {
           drop: "drop", img: "imagen", float: "imagen",
           choice: "choice", use: "use", section: "section",
@@ -269,7 +271,8 @@ const PanelEditor = ({
   const insertOrReplace = useCallback((s: string) => {
     if (pendingReplaceRef.current) {
       pendingReplaceRef.current(s);
-      pendingReplaceRef.current = null;
+      pendingReplaceRef.current    = null;
+      pendingSnippetRawRef.current = null;
     } else {
       mdInsertRef.current?.(s);
     }
@@ -566,12 +569,12 @@ const PanelEditor = ({
       )}
       <ConfirmModal />
 
-      {openSnippetModal === "drop"    && <ModalDrop    onInsert={insertOrReplace} onClose={() => setOpenSnippetModal(null)} />}
-      {openSnippetModal === "imagen"  && <ModalImagen  onInsert={insertOrReplace} onClose={() => setOpenSnippetModal(null)} />}
-      {openSnippetModal === "choice"  && <ModalChoice  onInsert={insertOrReplace} onClose={() => setOpenSnippetModal(null)} listaCapitulos={listaSnippetCaps} />}
-      {openSnippetModal === "use"     && <ModalUseItem onInsert={insertOrReplace} onClose={() => setOpenSnippetModal(null)} listaCapitulos={listaSnippetCaps} />}
-      {openSnippetModal === "section" && <ModalSection onInsert={insertOrReplace} onClose={() => setOpenSnippetModal(null)} />}
-      {openSnippetModal === "sound"   && <ModalSonido  onInsert={insertOrReplace} onClose={() => setOpenSnippetModal(null)} />}
+      {openSnippetModal === "drop"    && <ModalDrop    onInsert={insertOrReplace} onClose={() => { setOpenSnippetModal(null); pendingSnippetRawRef.current = null; }} initialRaw={pendingSnippetRawRef.current ?? undefined} />}
+      {openSnippetModal === "imagen"  && <ModalImagen  onInsert={insertOrReplace} onClose={() => { setOpenSnippetModal(null); pendingSnippetRawRef.current = null; }} initialRaw={pendingSnippetRawRef.current ?? undefined} />}
+      {openSnippetModal === "choice"  && <ModalChoice  onInsert={insertOrReplace} onClose={() => { setOpenSnippetModal(null); pendingSnippetRawRef.current = null; }} listaCapitulos={listaSnippetCaps} initialRaw={pendingSnippetRawRef.current ?? undefined} />}
+      {openSnippetModal === "use"     && <ModalUseItem onInsert={insertOrReplace} onClose={() => { setOpenSnippetModal(null); pendingSnippetRawRef.current = null; }} listaCapitulos={listaSnippetCaps} initialRaw={pendingSnippetRawRef.current ?? undefined} />}
+      {openSnippetModal === "section" && <ModalSection onInsert={insertOrReplace} onClose={() => { setOpenSnippetModal(null); pendingSnippetRawRef.current = null; }} initialRaw={pendingSnippetRawRef.current ?? undefined} />}
+      {openSnippetModal === "sound"   && <ModalSonido  onInsert={insertOrReplace} onClose={() => { setOpenSnippetModal(null); pendingSnippetRawRef.current = null; }} initialRaw={pendingSnippetRawRef.current ?? undefined} />}
     </div>
   );
 };
