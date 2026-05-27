@@ -9,8 +9,8 @@ import {
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
 import { useConfirm } from "@/components/ui/ConfirmModal";
-import { type SaveStatus } from "../editorEntidades/types";
-import { SaveIndicator } from "../editorEntidades/UIComponents";
+import { type SaveStatus } from "../components/types";
+import { SaveIndicator } from "../components/UIComponents";
 
 // ─── Dexie helpers ────────────────────────────────────────────────────────────
 async function dexiePut(tabla: string, row: any): Promise<void> {

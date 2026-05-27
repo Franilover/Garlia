@@ -9,9 +9,9 @@ import {
   type TabKey, type MundoSectionKey,
   type Hechizo, type Don, type Runa, type Nota,
   type Personaje, type Criatura, type Item, type Reino,
-} from "./editorEntidades/types";
-import { useMundoSecciones } from "./editorEntidades/hooks";
-import { GlobalSearchBar, ModalAcontecimiento, ModalNuevoGrupo, type AllItems, type MagicAddKey } from "./editorEntidades/SidebarComponents";
+} from "./components/types";
+import { useMundoSecciones } from "./components/hooks";
+import { GlobalSearchBar, ModalAcontecimiento, ModalNuevoGrupo, type AllItems, type MagicAddKey } from "./components/SidebarComponents";
 import { EditorMundo }     from "./editores/EditorMundo";
 import { EditorHechizos }  from "./editores/EditorHechizos";
 import { EditorGrupoStandalone } from "./editores/EditorGrupo";

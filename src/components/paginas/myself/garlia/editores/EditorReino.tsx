@@ -8,13 +8,13 @@ import {
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
 import { useConfirm } from "@/components/ui/ConfirmModal";
-import { type Reino, type SaveStatus, INPUT_CLS } from "@/components/paginas/myself/garlia/editorEntidades/types";
-import { usePersonajesDelReino } from "@/components/paginas/myself/garlia/editorEntidades/hooks";
+import { type Reino, type SaveStatus, INPUT_CLS } from "@/components/paginas/myself/garlia/components/types";
+import { usePersonajesDelReino } from "@/components/paginas/myself/garlia/components/hooks";
 import { type Lugar } from "@/components/paginas/myself/garlia/editores/EditorLugar";
-import { SaveIndicator } from "@/components/paginas/myself/garlia/editorEntidades/UIComponents";
+import { SaveIndicator } from "@/components/paginas/myself/garlia/components/UIComponents";
 import { MarkdownEditor, WikiEntity } from "../../../../forms/MarkdownEditor";
 import { useWikilink } from "../../../../forms/WikilinkContext";
-import { LoreTab } from "@/components/paginas/myself/garlia/editorEntidades/LoreTab";
+import { LoreTab } from "@/components/paginas/myself/garlia/components/LoreTab";
 
 // ─── Dexie helpers ────────────────────────────────────────────────────────────
 async function dexiePut(tabla: string, row: any): Promise<void> {

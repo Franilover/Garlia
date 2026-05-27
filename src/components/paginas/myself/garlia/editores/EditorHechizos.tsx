@@ -7,8 +7,8 @@ import {
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
 import { useConfirm } from "@/components/ui/ConfirmModal";
-import { type SaveStatus } from "../editorEntidades/types";
-import { SaveIndicator, SelectorImagen } from "../editorEntidades/UIComponents";
+import { type SaveStatus } from "../components/types";
+import { SaveIndicator, SelectorImagen } from "../components/UIComponents";
 import { MarkdownEditor } from "../../../../forms/MarkdownEditor";
 import { useWikilink } from "../../../../forms/WikilinkContext";
 

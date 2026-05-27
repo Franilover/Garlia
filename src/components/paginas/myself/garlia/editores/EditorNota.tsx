@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { FileText, Save, Trash2, Loader2, Tag, X, Plus, Check } from "lucide-react";
-import { type Nota, SaveStatus } from "../editorEntidades/types";
-import { SaveIndicator } from "../editorEntidades/UIComponents";
+import { type Nota, SaveStatus } from "../components/types";
+import { SaveIndicator } from "../components/UIComponents";
 import { MarkdownEditor } from "../../../../forms/MarkdownEditor";
 import { useWikilink } from "../../../../forms/WikilinkContext";
 import { useConfirm } from "@/components/ui/ConfirmModal";
