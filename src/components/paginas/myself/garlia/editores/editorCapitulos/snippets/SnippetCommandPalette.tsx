@@ -164,7 +164,94 @@ const S = {
   },
 };
 
-// ─── Buscador de entidades (Drop / Use) ───────────────────────────────────────
+// ─── Buscador de entidades (Drop) — personajes + criaturas + items ────────────
+
+const TIPO_CONFIG = {
+  personaje: { label: "Personaje", icon: "👤", color: "#a09af0" },
+  criatura:  { label: "Criatura",  icon: "🐉", color: "#f07574" },
+  item:      { label: "Ítem",      icon: "🗡",  color: "#e09a2a" },
+} as const;
+
+function DropBrowser({
+  initialId, onSelect,
+}: {
+  initialId?: string;
+  onSelect: (id: string, nombre: string) => void;
+}) {
+  const [q, setQ] = useState("");
+  const [active, setActive] = useState(0);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const { items: personajes, loading: lp } = useEntidades("personaje");
+  const { items: criaturas,  loading: lc } = useEntidades("criatura");
+  const { items: itemsData,  loading: li } = useEntidades("item");
+  const loading = lp || lc || li;
+
+  const all = useMemo(() => [
+    ...personajes.map(e => ({ ...e, tipo: "personaje" as const })),
+    ...criaturas.map(e  => ({ ...e, tipo: "criatura"  as const })),
+    ...itemsData.map(e  => ({ ...e, tipo: "item"       as const })),
+  ].sort((a, b) => a.nombre.localeCompare(b.nombre)), [personajes, criaturas, itemsData]);
+
+  const filtered = useMemo(() =>
+    all.filter(e => e.nombre.toLowerCase().includes(q.toLowerCase())),
+    [all, q]
+  );
+
+  useEffect(() => { inputRef.current?.focus(); }, []);
+  useEffect(() => { setActive(0); }, [q]);
+
+  const handleKey = (e: React.KeyboardEvent) => {
+    if (e.key === "ArrowDown") { e.preventDefault(); setActive(v => Math.min(v + 1, filtered.length - 1)); }
+    if (e.key === "ArrowUp")   { e.preventDefault(); setActive(v => Math.max(v - 1, 0)); }
+    if (e.key === "Enter" && filtered[active]) {
+      e.preventDefault();
+      onSelect(filtered[active].id, filtered[active].nombre);
+    }
+  };
+
+  return (
+    <>
+      <div style={{ padding: "8px 12px 6px" }}>
+        <div style={{ ...S.fieldLabel }}>Buscar entidad</div>
+        <input
+          ref={inputRef}
+          value={q}
+          onChange={e => setQ(e.target.value)}
+          onKeyDown={handleKey}
+          placeholder="Personaje, criatura o ítem…"
+          style={S.input}
+        />
+      </div>
+      <div style={S.list}>
+        {loading && <div style={S.emptyMsg}>Cargando…</div>}
+        {!loading && filtered.length === 0 && <div style={S.emptyMsg}>Sin resultados</div>}
+        {filtered.map((item, i) => {
+          const cfg = TIPO_CONFIG[item.tipo];
+          return (
+            <div
+              key={item.id}
+              style={S.row(i === active)}
+              onClick={() => onSelect(item.id, item.nombre)}
+              onMouseEnter={() => setActive(i)}
+            >
+              <span style={S.iconBox(cfg.color)}>{cfg.icon}</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <span style={S.label}>{item.nombre}</span>
+                <span style={{ ...S.desc, display: "block" }}>{cfg.label}</span>
+              </div>
+              {initialId === item.id && (
+                <span style={{ ...S.kbd, marginLeft: "auto" }}>actual</span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </>
+  );
+}
+
+// ─── Buscador simple (Use ítem) ───────────────────────────────────────────────
 
 function EntidadBrowser({
   tipo, color, icon, label,
@@ -238,8 +325,7 @@ function FormDrop({ initialRaw, onInsert }: { initialRaw?: string; onInsert: (s:
   const init = parseSnippetRaw(initialRaw);
   const initialId = init?.kind === "drop" ? init.entidadId : undefined;
   return (
-    <EntidadBrowser
-      tipo="personaje" color="#a09af0" icon="⚔" label="Entidad"
+    <DropBrowser
       initialId={initialId}
       onSelect={(id, nombre) => onInsert(`[[drop|${id}|${nombre}]]`)}
     />
