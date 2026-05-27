@@ -2,38 +2,17 @@
 /**
  * SnippetOverlay
  *
- * Renderiza chips visuales encima del textarea del MarkdownEditor para cada
- * snippet [[...]] encontrado en el texto. Usa un div espejo (mirror) con las
- * mismas medidas y fuente que el textarea para calcular coordenadas exactas.
- *
- * USO en page.tsx — dentro de PanelEditor, pasar como renderOverlay al MarkdownEditor:
- *
- *   import { makeSnippetOverlay } from "./SnippetOverlay";
- *
- *   // dentro del componente:
- *   const snippetOverlay = useMemo(
- *     () => makeSnippetOverlay({
- *       taRef: textareaRef,
- *       onDelete: (token) => ...,
- *       onEdit:   (raw, replace) => { ... abre modal ... }
- *     }),
- *     [textareaRef, ...]
- *   );
- *
- *   <MarkdownEditor
- *     ...
- *     renderOverlay={snippetOverlay}
- *   />
- *
- * IMPORTANTE: El wrapper del overlay en MarkdownEditor tiene pointerEvents:none,
- * pero los chips internos setean pointerEvents:all para ser clicables.
+ * Renderiza chips visuales sobre el textarea. Cada token [[...]] queda
+ * tapado por una máscara del color de fondo + un chip compacto encima.
+ * Click en el chip → abre el modal de edición directamente.
+ * Hover → aparece botón × para eliminar.
  */
 
 import React, {
   useRef, useState, useEffect, useCallback, useMemo,
 } from "react";
 
-// ─── Tipos de snippet ─────────────────────────────────────────────────────────
+// ─── Tipos ────────────────────────────────────────────────────────────────────
 
 type SnippetKind =
   | "drop" | "img" | "float" | "choice" | "use" | "gate"
@@ -43,14 +22,14 @@ interface SnippetToken {
   raw: string;
   kind: SnippetKind;
   parts: string[];
-  index: number; // posición en el string original
+  index: number;
 }
 
 // ─── Config visual por tipo ───────────────────────────────────────────────────
 
 interface KindDef {
   label: string;
-  icon: string;          // emoji o símbolo
+  icon: string;
   bg: string;
   border: string;
   text: string;
@@ -59,25 +38,24 @@ interface KindDef {
 }
 
 const KIND_DEFS: Record<string, KindDef> = {
-  drop:    { label: "Drop",    icon: "⚔",  bg: "rgba(127,119,221,.12)", border: "rgba(127,119,221,.35)", text: "#7f77dd", dot: "#7f77dd", summary: p => p[4] ?? p[1] ?? "" },
-  img:     { label: "Img",     icon: "🖼",  bg: "rgba(29,158,117,.12)",  border: "rgba(29,158,117,.35)",  text: "#1d9e75", dot: "#1d9e75", summary: p => p[2] ?? p[1] ?? "" },
-  float:   { label: "Float",   icon: "🖼",  bg: "rgba(15,110,86,.12)",   border: "rgba(15,110,86,.35)",   text: "#0f6e56", dot: "#0f6e56", summary: p => p[1] ?? "" },
-  choice:  { label: "Choice",  icon: "🔀", bg: "rgba(55,138,221,.12)",  border: "rgba(55,138,221,.35)",  text: "#378add", dot: "#378add", summary: p => p[1] ?? "" },
-  use:     { label: "Use",     icon: "👆", bg: "rgba(226,75,74,.12)",   border: "rgba(226,75,74,.35)",   text: "#e24b4a", dot: "#e24b4a", summary: p => p[1] ?? "" },
-  gate:    { label: "Gate",    icon: "🚪", bg: "rgba(186,117,23,.12)",  border: "rgba(186,117,23,.35)",  text: "#ba7517", dot: "#ba7517", summary: p => p[1] ?? "" },
-  section: { label: "Sección", icon: "›",  bg: "rgba(83,74,183,.12)",   border: "rgba(83,74,183,.35)",   text: "#534ab7", dot: "#534ab7", summary: p => p[2] ?? p[1] ?? "" },
-  sound:   { label: "Sonido",  icon: "♪",  bg: "rgba(212,83,126,.12)",  border: "rgba(212,83,126,.35)",  text: "#d4537e", dot: "#d4537e", summary: p => p[1] ?? "" },
-  cita:    { label: "Cita",    icon: "«»", bg: "rgba(186,117,23,.10)",  border: "rgba(186,117,23,.3)",   text: "#ba7517", dot: "#ba7517", summary: p => { const t = p.slice(1).join("|"); return t.length > 22 ? t.slice(0,22)+"…" : t; } },
+  drop:    { label: "Drop",    icon: "⚔",  bg: "rgba(127,119,221,.15)", border: "rgba(127,119,221,.45)", text: "#a09af0", dot: "#7f77dd", summary: p => p[4] ?? p[1] ?? "" },
+  img:     { label: "Img",     icon: "🖼",  bg: "rgba(29,158,117,.15)",  border: "rgba(29,158,117,.45)",  text: "#2dc896", dot: "#1d9e75", summary: p => p[2] ?? p[1] ?? "" },
+  float:   { label: "Float",   icon: "🖼",  bg: "rgba(15,110,86,.15)",   border: "rgba(15,110,86,.45)",   text: "#14a87e", dot: "#0f6e56", summary: p => p[1] ?? "" },
+  choice:  { label: "Choice",  icon: "🔀", bg: "rgba(55,138,221,.15)",  border: "rgba(55,138,221,.45)",  text: "#5aabf5", dot: "#378add", summary: p => p[1] ?? "" },
+  use:     { label: "Use",     icon: "👆", bg: "rgba(226,75,74,.15)",   border: "rgba(226,75,74,.45)",   text: "#f07574", dot: "#e24b4a", summary: p => p[1] ?? "" },
+  gate:    { label: "Gate",    icon: "🚪", bg: "rgba(186,117,23,.15)",  border: "rgba(186,117,23,.45)",  text: "#e09a2a", dot: "#ba7517", summary: p => p[1] ?? "" },
+  section: { label: "Sección", icon: "›",  bg: "rgba(83,74,183,.15)",   border: "rgba(83,74,183,.45)",   text: "#8b83e8", dot: "#534ab7", summary: p => p[2] ?? p[1] ?? "" },
+  sound:   { label: "Sonido",  icon: "♪",  bg: "rgba(212,83,126,.15)",  border: "rgba(212,83,126,.45)",  text: "#e87aaa", dot: "#d4537e", summary: p => p[1] ?? "" },
+  cita:    { label: "Cita",    icon: "«»", bg: "rgba(186,117,23,.10)",  border: "rgba(186,117,23,.3)",   text: "#e09a2a", dot: "#ba7517", summary: p => { const t = p.slice(1).join("|"); return t.length > 22 ? t.slice(0,22)+"…" : t; } },
 };
 
 const FALLBACK_DEF: KindDef = {
-  label: "Snippet", icon: "◆", bg: "rgba(128,128,128,.1)", border: "rgba(128,128,128,.3)",
-  text: "#888", dot: "#888", summary: p => p.slice(1).join("|").slice(0, 20),
+  label: "Snippet", icon: "◆", bg: "rgba(128,128,128,.12)", border: "rgba(128,128,128,.35)",
+  text: "#aaa", dot: "#888", summary: p => p.slice(1).join("|").slice(0, 20),
 };
 
 // ─── Parser ───────────────────────────────────────────────────────────────────
 
-/** Extrae todos los tokens [[...]] con su posición en el string */
 function parseTokens(raw: string): SnippetToken[] {
   const RE = /\[\[[\s\S]*?\]\]/g;
   const tokens: SnippetToken[] = [];
@@ -91,18 +69,14 @@ function parseTokens(raw: string): SnippetToken[] {
   return tokens;
 }
 
-// ─── Chip positioner ─────────────────────────────────────────────────────────
-/**
- * Crea un div espejo del textarea para medir la posición exacta de cada token.
- * Devuelve las coordenadas { top, left } relativas al padre del textarea.
- */
+// ─── Medición de posiciones ───────────────────────────────────────────────────
+
 function measureTokenPositions(
   ta: HTMLTextAreaElement,
   tokens: SnippetToken[],
 ): Array<{ top: number; left: number; width: number; height: number }> {
   const cs = window.getComputedStyle(ta);
 
-  // Crear mirror
   const mirror = document.createElement("div");
   const copyProps = [
     "fontFamily", "fontSize", "fontWeight", "lineHeight",
@@ -128,7 +102,6 @@ function measureTokenPositions(
   const raw = ta.value;
 
   for (const token of tokens) {
-    // Texto antes del token
     const before = raw.slice(0, token.index);
     mirror.innerHTML =
       escapeHtml(before) +
@@ -141,7 +114,6 @@ function measureTokenPositions(
 
     if (!spanStart || !spanEnd) { results.push({ top: 0, left: 0, width: 0, height: 0 }); continue; }
 
-    // Ajustar scroll del mirror al del textarea
     mirror.scrollTop  = ta.scrollTop;
     mirror.scrollLeft = ta.scrollLeft;
 
@@ -185,94 +157,114 @@ function SnippetChip({ token, pos, onDelete, onEdit, onReplace }: ChipProps) {
   const summary = def.summary(token.parts);
   const [hovered, setHovered] = useState(false);
 
-  // Chip ocupa el mismo espacio que el texto crudo pero visualmente lo tapa
+  const handleClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onEdit) {
+      onEdit(token.raw, (next) => onReplace(token, next));
+    }
+  }, [onEdit, onReplace, token]);
+
+  const handleDelete = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    onDelete(token);
+  }, [onDelete, token]);
+
   return (
-    <div
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        position: "absolute",
-        top: pos.top,
-        left: pos.left,
-        height: pos.height || 20,
-        // El chip tiene su propio ancho natural (fit-content), no el del texto raw
-        width: "fit-content",
-        maxWidth: 260,
-        pointerEvents: "all",
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 4,
-        padding: "0 7px 0 5px",
-        borderRadius: 999,
-        background: def.bg,
-        border: `1px solid ${def.border}`,
-        color: def.text,
-        fontSize: 10,
-        fontWeight: 700,
-        fontFamily: "var(--font-sans, system-ui)",
-        whiteSpace: "nowrap",
-        overflow: "hidden",
-        cursor: "default",
-        userSelect: "none",
-        transition: "box-shadow .12s",
-        boxShadow: hovered ? `0 2px 8px ${def.border}` : "none",
-        zIndex: 2,
-      }}
-    >
-      {/* Dot */}
-      <span style={{
-        width: 5, height: 5, borderRadius: "50%",
-        background: def.dot, flexShrink: 0,
-      }} />
+    <>
+      {/* ── Máscara: tapa el texto raw del textarea ── */}
+      <div
+        style={{
+          position: "absolute",
+          top: pos.top,
+          left: pos.left,
+          width: pos.width || 4,
+          height: pos.height || 20,
+          // Usa el mismo color de fondo que el textarea
+          background: "var(--bg-menu, #1a1730)",
+          pointerEvents: "none",
+          zIndex: 1,
+        }}
+      />
 
-      {/* Kind label */}
-      <span style={{ opacity: .65, fontSize: 9, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".07em" }}>
-        {def.label}
-      </span>
+      {/* ── Chip visual ── */}
+      <div
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        onClick={onEdit ? handleClick : undefined}
+        style={{
+          position: "absolute",
+          top: pos.top + 1,
+          left: pos.left,
+          height: (pos.height || 20) - 2,
+          width: "fit-content",
+          maxWidth: 240,
+          pointerEvents: "all",
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 4,
+          padding: "0 6px 0 5px",
+          borderRadius: 999,
+          background: hovered
+            ? def.bg.replace(/[\d.]+\)$/, m => String(Math.min(parseFloat(m) * 2.2, 0.35)) + ")")
+            : def.bg,
+          border: `1px solid ${def.border}`,
+          color: def.text,
+          fontSize: 10,
+          fontWeight: 700,
+          fontFamily: "var(--font-sans, system-ui)",
+          whiteSpace: "nowrap",
+          overflow: "hidden",
+          cursor: onEdit ? "pointer" : "default",
+          userSelect: "none",
+          transition: "background .12s, box-shadow .12s",
+          boxShadow: hovered ? `0 2px 10px ${def.border}` : "none",
+          zIndex: 2,
+        }}
+        title={onEdit ? `Editar ${def.label}` : def.label}
+      >
+        {/* Dot */}
+        <span style={{
+          width: 5, height: 5, borderRadius: "50%",
+          background: def.dot, flexShrink: 0,
+        }} />
 
-      {/* Summary */}
-      {summary && (
-        <span style={{ maxWidth: 110, overflow: "hidden", textOverflow: "ellipsis" }}>
-          {summary}
+        {/* Icon */}
+        <span style={{ fontSize: 9, lineHeight: 1, flexShrink: 0 }}>
+          {def.icon}
         </span>
-      )}
 
-      {/* Botones — sólo en hover */}
-      {hovered && (
-        <>
-          {onEdit && (
-            <button
-              type="button"
-              onClick={e => { e.stopPropagation(); onEdit(token.raw, (next) => onReplace(token, next)); }}
-              title="Editar"
-              style={{
-                marginLeft: 3,
-                background: "none", border: "none", padding: "1px 2px",
-                cursor: "pointer", color: "inherit", opacity: .7,
-                fontSize: 10, lineHeight: 1, borderRadius: 3,
-                display: "inline-flex", alignItems: "center",
-              }}
-            >
-              ✎
-            </button>
-          )}
+        {/* Kind label */}
+        <span style={{ opacity: .7, fontSize: 9, fontWeight: 900, textTransform: "uppercase", letterSpacing: ".07em" }}>
+          {def.label}
+        </span>
+
+        {/* Summary */}
+        {summary && (
+          <span style={{ maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", opacity: .9 }}>
+            {summary}
+          </span>
+        )}
+
+        {/* Botón × — solo en hover */}
+        {hovered && (
           <button
             type="button"
-            onClick={e => { e.stopPropagation(); onDelete(token); }}
+            onClick={handleDelete}
             title="Eliminar"
             style={{
-              marginLeft: onEdit ? 0 : 3,
+              marginLeft: 3,
               background: "none", border: "none", padding: "1px 2px",
-              cursor: "pointer", color: "inherit", opacity: .7,
-              fontSize: 11, lineHeight: 1, borderRadius: 3,
+              cursor: "pointer", color: "inherit", opacity: .65,
+              fontSize: 12, lineHeight: 1, borderRadius: 3,
               display: "inline-flex", alignItems: "center",
+              flexShrink: 0,
             }}
           >
             ×
           </button>
-        </>
-      )}
-    </div>
+        )}
+      </div>
+    </>
   );
 }
 
@@ -302,10 +294,7 @@ function SnippetOverlayInner({ value, taRef, onChange, onEdit }: SnippetOverlayI
     }
   }, [taRef, tokens]);
 
-  // Medir al montar, al cambiar valor, y al hacer scroll/resize
-  useEffect(() => {
-    measure();
-  }, [measure]);
+  useEffect(() => { measure(); }, [measure]);
 
   useEffect(() => {
     const ta = taRef.current;
@@ -361,25 +350,9 @@ function SnippetOverlayInner({ value, taRef, onChange, onEdit }: SnippetOverlayI
 interface MakeSnippetOverlayOptions {
   taRef: React.RefObject<HTMLTextAreaElement>;
   onChange: (next: string) => void;
-  /**
-   * Llamado cuando el usuario hace clic en el ícono de editar de un chip.
-   * Recibe el raw string actual y un callback replace(next) para reemplazarlo.
-   * Aquí podés abrir el modal correspondiente (ModalDrop, ModalChoice, etc.)
-   */
   onEdit?: (raw: string, replace: (next: string) => void) => void;
 }
 
-/**
- * Devuelve una función compatible con la prop `renderOverlay` de MarkdownEditor.
- * Llamar con useMemo para evitar recrear en cada render.
- *
- * Ejemplo:
- *   const overlay = useMemo(
- *     () => makeSnippetOverlay({ taRef: textareaRef, onChange, onEdit: handleEditSnippet }),
- *     [textareaRef, onChange, handleEditSnippet]
- *   );
- *   <MarkdownEditor renderOverlay={overlay} ... />
- */
 export function makeSnippetOverlay({
   taRef,
   onChange,
