@@ -12,9 +12,10 @@ import { useEntidades }     from "./useEntidades";
 import { parseSnippetRaw } from "./parseSnippetRaw";
 
 type SnippetProps = {
-  onInsert:    (s: string) => void;
-  onClose:     () => void;
-  initialRaw?: string;
+  onInsert:       (s: string) => void;
+  onClose:        () => void;
+  initialRaw?:    string;
+  listaCapitulos?: { id: string; orden: number; titulo_capitulo: string }[];
 };
 
 export const ModalDrop = ({ onInsert, onClose, initialRaw }: SnippetProps) => {
@@ -67,7 +68,7 @@ export const ModalSection = ({ onInsert, onClose, initialRaw }: SnippetProps) =>
   );
 };
 
-export const ModalChoice = ({ onInsert, onClose, initialRaw }: SnippetProps) => {
+export const ModalChoice = ({ onInsert, onClose, initialRaw, listaCapitulos }: SnippetProps) => {
   const init     = parseSnippetRaw(initialRaw);
   const isChoice = init?.kind === "choice";
   const [label,  setLabel]  = useState(isChoice ? init.texto  : "");
@@ -101,7 +102,7 @@ export const ModalChoice = ({ onInsert, onClose, initialRaw }: SnippetProps) => 
   );
 };
 
-export const ModalUseItem = ({ onInsert, onClose, initialRaw }: SnippetProps) => {
+export const ModalUseItem = ({ onInsert, onClose, initialRaw, listaCapitulos }: SnippetProps) => {
   const init   = parseSnippetRaw(initialRaw);
   const isUse  = init?.kind === "use";
   const [palabra,      setPalabra]      = useState(isUse ? init.label  : "");
