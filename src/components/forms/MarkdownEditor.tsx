@@ -732,6 +732,7 @@ export type SnippetAction =
   | { type: "choice";    target: string }
   | { type: "section";   id: string; label?: string }
   | { type: "use";       word: string; itemId: string; targetOk: string; targetFail?: string }
+  | { type: "gate";      itemId: string }
   | { type: "drop";      raw: string }
   | { type: "sound";     raw: string }
   | { type: "img";       url: string; caption?: string }
@@ -831,15 +832,39 @@ function MarkdownPreviewWithSnippets({
     return () => el.removeEventListener("click", handler, { capture: true });
   }, [onSnippetAction]);
 
-  // Separar el raw text en bloques: md puro vs líneas que tienen snippets
+  // Separar el raw text en bloques: md puro vs líneas que tienen snippets.
+  //
+  // PROBLEMA: [[gate|...]] es multilinea — el split("\n") lo rompe en pedazos
+  // y SNIPPET_LINE_RE nunca matchea ninguna línea individual.
+  //
+  // SOLUCIÓN: antes de dividir por líneas, extraemos todos los bloques gate
+  // y los reemplazamos por un placeholder de una sola línea. Después del split
+  // los placeholders se tratan como "segs" y se pasan a parseContenido, que
+  // los resuelve correctamente vía extractGateBlocks en type.ts.
   const blocks = React.useMemo(() => {
-    const SNIPPET_LINE_RE = /\[\[\w+\|[\s\S]*?\]\]/;
+    // Paso 1 — extraer bloques [[gate|...]] multilinea y reemplazar por placeholder
+    const gateMap = new Map<string, string>();
+    let gateCounter = 0;
+    const valueWithPlaceholders = value.replace(
+      /\[\[gate\|[^\|]+\|[\s\S]+?\]\]/g,
+      (match) => {
+        const placeholder = `\x00GATEPREVIEW_${gateCounter++}\x00`;
+        gateMap.set(placeholder, match);
+        return placeholder;
+      }
+    );
+
+    // Paso 2 — split por líneas y clasificar
+    const SNIPPET_LINE_RE = /\[\[\w+\|[\s\S]*?\]\]|\x00GATEPREVIEW_\d+\x00/;
     const result: Array<{ kind: "md"; text: string } | { kind: "segs"; text: string }> = [];
     let mdAccum = "";
-    for (const line of value.split("\n")) {
+
+    for (const line of valueWithPlaceholders.split("\n")) {
       if (SNIPPET_LINE_RE.test(line)) {
         if (mdAccum) { result.push({ kind: "md", text: mdAccum }); mdAccum = ""; }
-        result.push({ kind: "segs", text: line });
+        // Restaurar los placeholders al texto original del gate
+        const restored = line.replace(/\x00GATEPREVIEW_\d+\x00/g, (ph) => gateMap.get(ph) ?? ph);
+        result.push({ kind: "segs", text: restored });
       } else {
         mdAccum += (mdAccum ? "\n" : "") + line;
       }

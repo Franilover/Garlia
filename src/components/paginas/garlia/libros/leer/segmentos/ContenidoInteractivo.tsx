@@ -1,16 +1,14 @@
 "use client";
-import { MotionDiv, MotionMain, MotionH1, MotionH2, MotionButton, MotionLi, MotionSpan, MotionP, MotionSection, MotionArticle, MotionImg } from "@/components/ui/Motion";
-import React, { useState, useEffect, useRef } from "react";
-import { ChevronLeft } from "lucide-react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { cn } from "@/lib/utils";
 import { DropWord } from "@/components/ui/DropWord";
 import { Segment, SectionMap, parseContenido, parseSections } from "../type";
-import { CitaVisual }   from "./CitaVisual";
-import { ImgInline }    from "./ImgInline";
-import { FloatWord }    from "./FloatWord";
-import { SoundInline }  from "./SoundInline";
+import { CitaVisual }  from "./CitaVisual";
+import { ImgInline }   from "./ImgInline";
+import { FloatWord }   from "./FloatWord";
+import { SoundInline } from "./SoundInline";
 import { ChoiceButton, UseWord } from "./Interactivos";
+import { renderMarkdown } from "@/components/forms/MarkdownEditor";
 
 /* ─────────────────────────────────────────────
    Drop cap animado — la primera letra "aparece
@@ -45,14 +43,102 @@ function AnimatedDropCap({ char, rest }: { char: string; rest: string }) {
 }
 
 /* ─────────────────────────────────────────────
-   Renderizado de segmentos con drop cap en el
-   primer párrafo
+   Texto con markdown inline.
+   Usamos dangerouslySetInnerHTML con el HTML
+   que devuelve renderMarkdown, pero dentro de
+   un <span> para no romper el flujo de texto.
    ───────────────────────────────────────────── */
-export function RenderSegmentos({ segs, onNavigate, isFirst = false, esExtra = false }: {
-  segs: Segment[];
-  onNavigate: (id: string) => void;
-  isFirst?: boolean;
-  esExtra?: boolean;
+function TextoMarkdown({ value, className }: { value: string; className?: string }) {
+  const html = renderMarkdown(value);
+  return (
+    <span
+      className={className}
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
+  );
+}
+
+/* ─────────────────────────────────────────────
+   GateBlock — consulta el inventario del lector
+   y renderiza inline los segs correctos.
+   Es transparente: el lector ve el texto sin
+   saber que hay una bifurcación.
+   ───────────────────────────────────────────── */
+function GateBlock({
+  itemId,
+  tieneSegs,
+  noTieneSegs,
+  onNavigate,
+}: {
+  itemId:      string;
+  tieneSegs:   Segment[];
+  noTieneSegs: Segment[];
+  onNavigate:  (id: string) => void;
+}) {
+  const [tiene, setTiene] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { supabase } = await import("@/lib/api/client/supabase");
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || cancelled) return;
+      const { data } = await supabase
+        .from("descubrimientos_items")
+        .select("id")
+        .eq("item_id", itemId)
+        .eq("perfil_id", user.id)
+        .maybeSingle();
+      if (!cancelled) setTiene(!!data);
+    })();
+    return () => { cancelled = true; };
+  }, [itemId]);
+
+  // Mientras carga, no renderizamos nada para evitar flash
+  if (tiene === null) return null;
+
+  const segs = tiene ? tieneSegs : noTieneSegs;
+  return (
+    <RenderSegmentos segs={segs} onNavigate={onNavigate} />
+  );
+}
+
+/* ─────────────────────────────────────────────
+   Separador visual entre secciones reveladas
+   ───────────────────────────────────────────── */
+function SectionDivider({ label }: { label?: string }) {
+  return (
+    <div className="flex items-center gap-3 my-8">
+      <div className="flex-1 h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
+      {label && (
+        <span className="text-[9px] font-black uppercase tracking-widest text-primary/20 italic">
+          {label}
+        </span>
+      )}
+      <div className="flex-1 h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────
+   RenderSegmentos — renderiza una lista de
+   segmentos. Ahora:
+   - "text" pasa por renderMarkdown (negritas,
+     cursivas, etc.)
+   - "gate" usa GateBlock transparente
+   - "choice" desaparece al elegir (marca como
+     usado via onReveal)
+   ───────────────────────────────────────────── */
+export function RenderSegmentos({
+  segs,
+  onNavigate,
+  isFirst    = false,
+  esExtra    = false,
+}: {
+  segs:        Segment[];
+  onNavigate:  (id: string) => void;
+  isFirst?:    boolean;
+  esExtra?:    boolean;
 }) {
   return (
     <>
@@ -61,25 +147,38 @@ export function RenderSegmentos({ segs, onNavigate, isFirst = false, esExtra = f
 
         if (seg.type === "text") {
           if (isFirstText && seg.value.length > 0) {
-            // Separar primera letra del resto
             const firstChar = seg.value.charAt(0);
             const restText  = seg.value.slice(1);
             return (
-              <span key={i} className="whitespace-pre-line">
+              <span key={i}>
                 <AnimatedDropCap char={firstChar} rest={restText} />
               </span>
             );
           }
-          return <span key={i} className="whitespace-pre-line">{seg.value}</span>;
+          // Texto normal con soporte markdown
+          return <TextoMarkdown key={i} value={seg.value} />;
         }
 
-        if (seg.type === "cita")   return <CitaVisual key={i} content={seg.content} />;
-        if (seg.type === "img")    return <ImgInline key={i} url={seg.url} caption={seg.caption} />;
-        if (seg.type === "float")  return <FloatWord key={i} word={seg.word} url={seg.url} caption={seg.caption} />;
+        if (seg.type === "cita")   return <CitaVisual  key={i} content={seg.content} />;
+        if (seg.type === "img")    return <ImgInline   key={i} url={seg.url} caption={seg.caption} />;
+        if (seg.type === "float")  return <FloatWord   key={i} word={seg.word} url={seg.url} caption={seg.caption} />;
         if (seg.type === "sound")  return <SoundInline key={i} url={seg.url} volume={seg.volume} />;
-        if (seg.type === "drop")   return <DropWord key={i} word={seg.word} tipo={seg.entidadTipo} entidadId={seg.entidadId} entidadNombre={seg.entidadNombre} />;
-        if (seg.type === "choice") return <ChoiceButton key={i} label={seg.label} onSelect={() => onNavigate(seg.target)} />;
-        if (seg.type === "use")    return <UseWord key={i} word={seg.word} itemId={seg.itemId} targetSuccess={seg.targetSuccess} targetFail={seg.targetFail} onNavigate={onNavigate} />;
+        if (seg.type === "drop")   return (
+          <DropWord key={i} word={seg.word} tipo={seg.entidadTipo}
+            entidadId={seg.entidadId} entidadNombre={seg.entidadNombre} />
+        );
+        if (seg.type === "choice") return (
+          <ChoiceButton key={i} label={seg.label} onSelect={() => onNavigate(seg.target)} />
+        );
+        if (seg.type === "use")    return (
+          <UseWord key={i} word={seg.word} itemId={seg.itemId}
+            targetSuccess={seg.targetSuccess} targetFail={seg.targetFail} onNavigate={onNavigate} />
+        );
+        if (seg.type === "gate")   return (
+          <GateBlock key={i} itemId={seg.itemId}
+            tieneSegs={seg.tieneSegs} noTieneSegs={seg.noTieneSegs} onNavigate={onNavigate} />
+        );
+
         return null;
       })}
     </>
@@ -87,76 +186,100 @@ export function RenderSegmentos({ segs, onNavigate, isFirst = false, esExtra = f
 }
 
 /* ─────────────────────────────────────────────
+   Bloque de sección revelada con animación de
+   entrada. Una vez revelada no desaparece —
+   el texto se acumula como en un libro real.
+   ───────────────────────────────────────────── */
+function RevealedSection({
+  id,
+  segs,
+  onNavigate,
+}: {
+  id:         string;
+  segs:       Segment[];
+  onNavigate: (id: string) => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // Scroll suave al aparecer
+    setTimeout(() => ref.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+  }, []);
+
+  return (
+    <motion.div
+      ref={ref}
+      key={id}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+    >
+      <SectionDivider label={id} />
+      <RenderSegmentos segs={segs} onNavigate={onNavigate} />
+    </motion.div>
+  );
+}
+
+/* ─────────────────────────────────────────────
    Componente principal
    ───────────────────────────────────────────── */
-export function ContenidoInteractivo({ texto, onNavigate, esExtra = false }: {
-  texto: string;
+export function ContenidoInteractivo({
+  texto,
+  onNavigate,
+  esExtra = false,
+}: {
+  texto:      string;
   onNavigate: (capId: string) => void;
-  esExtra?: boolean;
+  esExtra?:   boolean;
 }) {
-  const allSegs     = parseContenido(texto);
-  const sectionMap  = parseSections(allSegs);
-  const hasSections = Object.keys(sectionMap).length > 1;
+  const allSegs    = parseContenido(texto);
+  const sectionMap = parseSections(allSegs);
 
-  const [history, setHistory] = useState<string[]>([""]);
-  const sectionRef = useRef<HTMLDivElement>(null);
+  // Set ordenado de secciones reveladas (en orden de revelación)
+  const [revealed, setRevealed] = useState<string[]>([]);
 
-  useEffect(() => { setHistory([""]); }, [texto]);
+  // Reset al cambiar el capítulo
+  useEffect(() => { setRevealed([]); }, [texto]);
 
-  const handleNavigate = (target: string) => {
+  const handleNavigate = useCallback((target: string) => {
     const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(target);
-    const isLocalSection = hasSections && !isUUID && sectionMap[target] !== undefined;
+    const isLocalSection = !isUUID && sectionMap[target] !== undefined;
+
     if (isLocalSection) {
-      setHistory(prev => [...prev, target]);
-      setTimeout(() => sectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+      // Acumular — si ya está revelada no la duplicamos
+      setRevealed(prev => prev.includes(target) ? prev : [...prev, target]);
     } else {
       onNavigate(target);
     }
-  };
-
-  const handleBack  = () => setHistory(prev => prev.length > 1 ? prev.slice(0, -1) : prev);
-  const currentId   = history[history.length - 1];
-  const currentSegs = sectionMap[currentId] ?? sectionMap[""] ?? [];
-  const canGoBack   = history.length > 1;
+  }, [sectionMap, onNavigate]);
 
   return (
     <div
       className="text-primary-dark/90 lector-texto"
       style={{
-        fontSize: "clamp(1rem, 2.5vw, 1.125rem)",
-        lineHeight: 1.85,
-        letterSpacing: "0.01em",
+        fontSize:           "clamp(1rem, 2.5vw, 1.125rem)",
+        lineHeight:         1.85,
+        letterSpacing:      "0.01em",
         fontFeatureSettings: '"kern" 1, "liga" 1, "onum" 1',
       }}
     >
-      <RenderSegmentos segs={sectionMap[""]} onNavigate={handleNavigate} isFirst esExtra={esExtra} />
+      {/* Contenido raíz — siempre visible */}
+      <RenderSegmentos
+        segs={sectionMap[""]}
+        onNavigate={handleNavigate}
+        isFirst
+        esExtra={esExtra}
+      />
 
-      <AnimatePresence mode="wait">
-        {currentId !== "" && (
-          <MotionDiv
-            key={currentId} ref={sectionRef}
-            initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.35, ease: "easeOut" }}
-            className="mt-2"
-          >
-            <div className="flex items-center gap-3 my-8">
-              <div className="flex-1 h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
-              <div className="flex items-center gap-2">
-                {canGoBack && (
-                  <button onClick={handleBack} className="text-[9px] font-black uppercase tracking-widest text-primary/30 hover:text-primary transition-colors flex items-center gap-1">
-                    <ChevronLeft size={10} /> volver
-                  </button>
-                )}
-                <span className="text-[9px] font-black uppercase tracking-widest text-primary/20 italic">
-                  {history.filter(h => h !== "").join(" › ")}
-                </span>
-              </div>
-              <div className="flex-1 h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
-            </div>
-            <RenderSegmentos segs={currentSegs} onNavigate={handleNavigate} />
-          </MotionDiv>
-        )}
-      </AnimatePresence>
+      {/* Secciones reveladas — se acumulan debajo en orden de elección */}
+      {revealed.map(id => (
+        <RevealedSection
+          key={id}
+          id={id}
+          segs={sectionMap[id] ?? []}
+          onNavigate={handleNavigate}
+        />
+      ))}
     </div>
   );
 }
