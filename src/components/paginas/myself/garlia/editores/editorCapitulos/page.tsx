@@ -556,6 +556,7 @@ const PanelEditor = ({
             defaultMode={focusMode ? "edit" : "split"}
             rows={focusMode ? 30 : 20}
             extraCommands={extraCommands}
+            hideBuiltinCommands
             insertRef={mdInsertRef}
             onSnippetAction={handleSnippetAction}
           />

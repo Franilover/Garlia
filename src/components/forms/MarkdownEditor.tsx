@@ -930,6 +930,8 @@ interface MarkdownEditorProps {
   /** Modo controlado externamente. Si se pasa, sobreescribe el estado interno. */
   mode?: ViewMode;
   extraCommands?: CommandItem[];
+  /** Si true, oculta los COMMAND_ITEMS internos del editor (heading, bold, tabla…) y muestra solo extraCommands */
+  hideBuiltinCommands?: boolean;
   /** Ref opcional: se le asigna una función insertAtCursor(text) para uso externo */
   insertRef?: React.MutableRefObject<((text: string) => void) | null>;
   /** Ref externo que recibe el HTMLTextAreaElement interno (para overlays externos) */
@@ -969,6 +971,7 @@ export function MarkdownEditor({
   defaultMode = "preview",
   mode: modeProp,
   extraCommands = [],
+  hideBuiltinCommands = false,
   insertRef,
   textareaRef,
   onSnippetAction,
@@ -1153,7 +1156,7 @@ export function MarkdownEditor({
   const minH = `${rows * 1.6}rem`;
 
   // ── Filtrar items del menú ──────────────────────────────────────────────
-  const allCommands = [...extraCommands, ...COMMAND_ITEMS];
+  const allCommands = hideBuiltinCommands ? extraCommands : [...extraCommands, ...COMMAND_ITEMS];
   const filteredItems = cmdMenu.query.length === 0
     ? allCommands
     : allCommands.filter(item =>
