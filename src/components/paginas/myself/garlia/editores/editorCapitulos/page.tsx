@@ -21,6 +21,7 @@ import EstudioLayout from "@/components/layout/EstudioLayout";
 import { BannerOffline, ModalBase, SaveIndicator, CampoInput, BotonSubmit } from "@/components/templates/EstudioTemplates";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { SnippetToolbar, ModalDrop, ModalSonido, ModalSection, ModalChoice, ModalUseItem, ModalImagen } from "./snippets/SnippetToolbar";
+import { makeSnippetOverlay } from "./snippets/SnippetOverlay";
 import { MarkdownEditor, renderMarkdown, renderMathInElement, PROSE_STYLES } from "@/components/forms/MarkdownEditor";
 import type { CommandItem as MdCommandItem, SnippetAction } from "@/components/forms/MarkdownEditor";
 
@@ -91,7 +92,8 @@ const PanelEditor = ({
   const textareaRef    = useRef<HTMLTextAreaElement>(null);
   const scrollRef      = useRef<HTMLDivElement>(null);
   const caretMirrorRef = useRef<HTMLDivElement>(null);
-  const mdInsertRef    = useRef<((text: string) => void) | null>(null);
+  const mdInsertRef       = useRef<((text: string) => void) | null>(null);
+  const pendingReplaceRef = useRef<((next: string) => void) | null>(null);
   const isMountedRef   = useRef(true);
   const { confirm, ConfirmModal } = useConfirm();
 
@@ -241,6 +243,37 @@ const PanelEditor = ({
     () => [...snippetCommands, ...DIALOG_COMMANDS],
     [snippetCommands],
   );
+
+  // ── Snippet overlay — chips visuales sobre el textarea ──
+  const snippetOverlay = useMemo(
+    () => makeSnippetOverlay({
+      taRef: textareaRef,
+      onChange,
+      onEdit: (raw, replace) => {
+        const inner = raw.slice(2, -2);
+        const kind  = inner.split("|")[0].trim();
+        pendingReplaceRef.current = replace;
+        const modalMap: Record<string, typeof openSnippetModal> = {
+          drop: "drop", img: "imagen", float: "imagen",
+          choice: "choice", use: "use", section: "section",
+          sound: "sound",
+        };
+        const modal = modalMap[kind];
+        if (modal) setOpenSnippetModal(modal);
+      },
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [textareaRef, onChange],
+  );
+
+  const insertOrReplace = useCallback((s: string) => {
+    if (pendingReplaceRef.current) {
+      pendingReplaceRef.current(s);
+      pendingReplaceRef.current = null;
+    } else {
+      mdInsertRef.current?.(s);
+    }
+  }, []);
 
   const handleSaveTitle = async () => {
     if (!titulo.trim()) return;
@@ -521,6 +554,7 @@ const PanelEditor = ({
             extraCommands={extraCommands}
             insertRef={mdInsertRef}
             onSnippetAction={handleSnippetAction}
+            renderOverlay={snippetOverlay}
           />
         </div>
       </div>
@@ -532,12 +566,12 @@ const PanelEditor = ({
       )}
       <ConfirmModal />
 
-      {openSnippetModal === "drop"    && <ModalDrop    onInsert={s => mdInsertRef.current?.(s)} onClose={() => setOpenSnippetModal(null)} />}
-      {openSnippetModal === "imagen"  && <ModalImagen  onInsert={s => mdInsertRef.current?.(s)} onClose={() => setOpenSnippetModal(null)} />}
-      {openSnippetModal === "choice"  && <ModalChoice  onInsert={s => mdInsertRef.current?.(s)} onClose={() => setOpenSnippetModal(null)} listaCapitulos={listaSnippetCaps} />}
-      {openSnippetModal === "use"     && <ModalUseItem onInsert={s => mdInsertRef.current?.(s)} onClose={() => setOpenSnippetModal(null)} listaCapitulos={listaSnippetCaps} />}
-      {openSnippetModal === "section" && <ModalSection onInsert={s => mdInsertRef.current?.(s)} onClose={() => setOpenSnippetModal(null)} />}
-      {openSnippetModal === "sound"   && <ModalSonido  onInsert={s => mdInsertRef.current?.(s)} onClose={() => setOpenSnippetModal(null)} />}
+      {openSnippetModal === "drop"    && <ModalDrop    onInsert={insertOrReplace} onClose={() => setOpenSnippetModal(null)} />}
+      {openSnippetModal === "imagen"  && <ModalImagen  onInsert={insertOrReplace} onClose={() => setOpenSnippetModal(null)} />}
+      {openSnippetModal === "choice"  && <ModalChoice  onInsert={insertOrReplace} onClose={() => setOpenSnippetModal(null)} listaCapitulos={listaSnippetCaps} />}
+      {openSnippetModal === "use"     && <ModalUseItem onInsert={insertOrReplace} onClose={() => setOpenSnippetModal(null)} listaCapitulos={listaSnippetCaps} />}
+      {openSnippetModal === "section" && <ModalSection onInsert={insertOrReplace} onClose={() => setOpenSnippetModal(null)} />}
+      {openSnippetModal === "sound"   && <ModalSonido  onInsert={insertOrReplace} onClose={() => setOpenSnippetModal(null)} />}
     </div>
   );
 };
