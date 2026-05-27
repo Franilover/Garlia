@@ -59,7 +59,7 @@ interface KindDef {
 }
 
 const KIND_DEFS: Record<string, KindDef> = {
-  drop:    { label: "Drop",    icon: "⚔",  bg: "rgba(127,119,221,.12)", border: "rgba(127,119,221,.35)", text: "#7f77dd", dot: "#7f77dd", summary: p => p[1] ?? "" },
+  drop:    { label: "Drop",    icon: "⚔",  bg: "rgba(127,119,221,.12)", border: "rgba(127,119,221,.35)", text: "#7f77dd", dot: "#7f77dd", summary: p => p[4] ?? p[1] ?? "" },
   img:     { label: "Img",     icon: "🖼",  bg: "rgba(29,158,117,.12)",  border: "rgba(29,158,117,.35)",  text: "#1d9e75", dot: "#1d9e75", summary: p => p[2] ?? p[1] ?? "" },
   float:   { label: "Float",   icon: "🖼",  bg: "rgba(15,110,86,.12)",   border: "rgba(15,110,86,.35)",   text: "#0f6e56", dot: "#0f6e56", summary: p => p[1] ?? "" },
   choice:  { label: "Choice",  icon: "🔀", bg: "rgba(55,138,221,.12)",  border: "rgba(55,138,221,.35)",  text: "#378add", dot: "#378add", summary: p => p[1] ?? "" },
@@ -195,8 +195,9 @@ function SnippetChip({ token, pos, onDelete, onEdit, onReplace }: ChipProps) {
         top: pos.top,
         left: pos.left,
         height: pos.height || 20,
-        // Mínimo ancho que se vea bien independientemente del texto subyacente
-        minWidth: pos.width || 60,
+        // El chip tiene su propio ancho natural (fit-content), no el del texto raw
+        width: "fit-content",
+        maxWidth: 260,
         pointerEvents: "all",
         display: "inline-flex",
         alignItems: "center",
