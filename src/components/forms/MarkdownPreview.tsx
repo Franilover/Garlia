@@ -27,7 +27,7 @@ import { renderMarkdown, renderMathInElement, PROSE_STYLES } from "./MarkdownEdi
 // Este import asume que WikilinkContext.tsx está en la misma carpeta.
 // Si onWikilink no está disponible (fuera del provider), los clicks simplemente
 // llaman e.preventDefault() sin navegar — sin crash.
-import { useWikilink } from "./WikilinkContext";
+import { useWikilink } from "@/components/paginas/myself/garlia/components/WikilinkContext";
 
 // ── Inyección de estilos (una sola vez por página) ────────────────────────────
 let stylesInjected = false;

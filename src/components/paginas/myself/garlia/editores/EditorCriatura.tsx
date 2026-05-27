@@ -12,7 +12,7 @@ import { type Criatura, type CriaturaVariante, type SaveStatus, INPUT_CLS } from
 import { useCriaturaVariantes, useGruposDeCriatura, usePersonajesDeEspecie, type GrupoMin } from "../components/hooks";
 import { SelectorImagen, SelectorTexto, SaveIndicator } from "../components/UIComponents";
 import { MarkdownEditor, WikiEntity } from "../../../../forms/MarkdownEditor";
-import { useWikilink } from "../../../../forms/WikilinkContext";
+import { useWikilink } from "../components/WikilinkContext";
 import { BloqueHechizos } from "../components/BloqueHechizos";
 import { BloqueDones } from "../components/BloqueDones";
 

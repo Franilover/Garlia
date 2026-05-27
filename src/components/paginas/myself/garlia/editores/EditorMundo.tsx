@@ -12,7 +12,7 @@ import { useConfirm } from "@/components/ui/ConfirmModal";
 import { MUNDO_SECTIONS, type MundoSectionKey, type SaveStatus, type Reino, type Personaje, type Nota } from "../components/types";
 import { SaveIndicator, SelectorImagen } from "../components/UIComponents";
 import { MarkdownEditor } from "../../../../forms/MarkdownEditor";
-import { useWikilink } from "../../../../forms/WikilinkContext";
+import { useWikilink } from "../components/WikilinkContext";
 import { EditorReino } from "./EditorReino";
 import { EditorPersonaje } from "./EditorPersonaje";
 import { EditorCriatura } from "./EditorCriatura";

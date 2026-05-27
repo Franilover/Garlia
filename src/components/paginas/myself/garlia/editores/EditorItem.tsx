@@ -9,7 +9,7 @@ import { type Item, type SaveStatus } from "../components/types";
 import { useUniqueValues } from "../components/hooks";
 import { SelectorImagen, SelectorTexto, SaveIndicator } from "../components/UIComponents";
 import { MarkdownEditor, WikiEntity } from "../../../../forms/MarkdownEditor";
-import { useWikilink } from "../../../../forms/WikilinkContext";
+import { useWikilink } from "../components/WikilinkContext";
 
 
 // ─── Dexie helpers ────────────────────────────────────────────────────────────

@@ -11,7 +11,7 @@ import { useConfirm } from "@/components/ui/ConfirmModal";
 import { type SaveStatus } from "../components/types";
 import { SelectorImagen, SelectorTexto, SaveIndicator } from "../components/UIComponents";
 import { MarkdownEditor, WikiEntity } from "../../../../forms/MarkdownEditor";
-import { useWikilink } from "../../../../forms/WikilinkContext";
+import { useWikilink } from "../components/WikilinkContext";
 
 // ─── Dexie helpers ────────────────────────────────────────────────────────────
 async function dexiePut(tabla: string, row: any): Promise<void> {

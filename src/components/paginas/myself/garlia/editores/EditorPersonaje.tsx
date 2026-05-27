@@ -13,7 +13,7 @@ import { type Personaje, type SaveStatus } from "../components/types";
 import { useCapitulosNarrados, useNombresDeTabla } from "../components/hooks";
 import { SelectorImagen, SelectorTexto, SaveIndicator } from "../components/UIComponents";
 import { MarkdownEditor, WikiEntity } from "../../../../forms/MarkdownEditor";
-import { useWikilink } from "../../../../forms/WikilinkContext";
+import { useWikilink } from "../components/WikilinkContext";
 import SimpleImagePicker from "@/components/paginas/myself/garlia/editores/editorCapitulos/snippets//forms/SimpleImagePicker";
 import { BloqueHechizos } from "../components/BloqueHechizos";
 import { BloqueDones } from "../components/BloqueDones";

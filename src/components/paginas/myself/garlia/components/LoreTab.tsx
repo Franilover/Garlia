@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { Globe, Mountain, Landmark, Users, Coins, Plus, Trash2, ChevronUp, ChevronDown, ChevronRight, UserCircle2, Loader2, MapPin, Map, Check, X, Eye, EyeOff } from "lucide-react";
 import { INPUT_CLS, type SaveStatus } from "./types";
 import { MarkdownEditor, WikiEntity } from "../../../../forms/MarkdownEditor";
-import { useWikilink } from "../../../../forms/WikilinkContext";
+import { useWikilink } from "./WikilinkContext";
 import { type Reino } from "./types";
 import { type Lugar } from "@/components/paginas/myself/garlia/editores/EditorLugar";
 import { supabase } from "@/lib/api/client/supabase";

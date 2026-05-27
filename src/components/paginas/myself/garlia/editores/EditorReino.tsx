@@ -13,7 +13,7 @@ import { usePersonajesDelReino } from "@/components/paginas/myself/garlia/compon
 import { type Lugar } from "@/components/paginas/myself/garlia/editores/EditorLugar";
 import { SaveIndicator } from "@/components/paginas/myself/garlia/components/UIComponents";
 import { MarkdownEditor, WikiEntity } from "../../../../forms/MarkdownEditor";
-import { useWikilink } from "../../../../forms/WikilinkContext";
+import { useWikilink } from "../components/WikilinkContext";
 import { LoreTab } from "@/components/paginas/myself/garlia/components/LoreTab";
 
 // ─── Dexie helpers ────────────────────────────────────────────────────────────

@@ -5,7 +5,7 @@ import { FileText, Save, Trash2, Loader2, Tag, X, Plus, Check } from "lucide-rea
 import { type Nota, SaveStatus } from "../components/types";
 import { SaveIndicator } from "../components/UIComponents";
 import { MarkdownEditor } from "../../../../forms/MarkdownEditor";
-import { useWikilink } from "../../../../forms/WikilinkContext";
+import { useWikilink } from "../components/WikilinkContext";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 
 // ─── Etiqueta chip ────────────────────────────────────────────────────────────
