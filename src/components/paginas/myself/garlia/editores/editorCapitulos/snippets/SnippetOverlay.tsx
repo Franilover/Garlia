@@ -14,7 +14,7 @@
  *   const snippetOverlay = useMemo(
  *     () => makeSnippetOverlay({
  *       taRef: textareaRef,
- *       onDelete: (raw) => mdInsertRef.current && ...,
+ *       onDelete: (token) => ...,
  *       onEdit:   (raw, replace) => { ... abre modal ... }
  *     }),
  *     [textareaRef, ...]
@@ -175,9 +175,9 @@ function escapeHtml(s: string): string {
 interface ChipProps {
   token: SnippetToken;
   pos: { top: number; left: number; width: number; height: number };
-  onDelete: (raw: string) => void;
+  onDelete: (token: SnippetToken) => void;
   onEdit?: (raw: string, replace: (next: string) => void) => void;
-  onReplace: (raw: string, next: string) => void;
+  onReplace: (token: SnippetToken, next: string) => void;
 }
 
 function SnippetChip({ token, pos, onDelete, onEdit, onReplace }: ChipProps) {
@@ -242,7 +242,7 @@ function SnippetChip({ token, pos, onDelete, onEdit, onReplace }: ChipProps) {
           {onEdit && (
             <button
               type="button"
-              onClick={e => { e.stopPropagation(); onEdit(token.raw, (next) => onReplace(token.raw, next)); }}
+              onClick={e => { e.stopPropagation(); onEdit(token.raw, (next) => onReplace(token, next)); }}
               title="Editar"
               style={{
                 marginLeft: 3,
@@ -257,7 +257,7 @@ function SnippetChip({ token, pos, onDelete, onEdit, onReplace }: ChipProps) {
           )}
           <button
             type="button"
-            onClick={e => { e.stopPropagation(); onDelete(token.raw); }}
+            onClick={e => { e.stopPropagation(); onDelete(token); }}
             title="Eliminar"
             style={{
               marginLeft: onEdit ? 0 : 3,
@@ -318,12 +318,19 @@ function SnippetOverlayInner({ value, taRef, onChange, onEdit }: SnippetOverlayI
     };
   }, [taRef, measure]);
 
-  const handleDelete = useCallback((raw: string) => {
-    onChange(value.replace(raw, ""));
+  const handleDelete = useCallback((token: SnippetToken) => {
+    onChange(
+      value.slice(0, token.index) +
+      value.slice(token.index + token.raw.length)
+    );
   }, [value, onChange]);
 
-  const handleReplace = useCallback((raw: string, next: string) => {
-    onChange(value.replace(raw, next));
+  const handleReplace = useCallback((token: SnippetToken, next: string) => {
+    onChange(
+      value.slice(0, token.index) +
+      next +
+      value.slice(token.index + token.raw.length)
+    );
   }, [value, onChange]);
 
   if (tokens.length === 0 || positions.length === 0) return null;
