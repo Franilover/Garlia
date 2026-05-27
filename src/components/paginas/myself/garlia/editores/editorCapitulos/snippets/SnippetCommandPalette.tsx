@@ -170,7 +170,7 @@ function EntidadBrowser({
   tipo, color, icon, label,
   initialId, onSelect,
 }: {
-  tipo: "entidad" | "item";
+  tipo: "personaje" | "criatura" | "item";
   color: string; icon: string; label: string;
   initialId?: string;
   onSelect: (id: string, nombre: string) => void;
@@ -239,7 +239,7 @@ function FormDrop({ initialRaw, onInsert }: { initialRaw?: string; onInsert: (s:
   const initialId = init?.kind === "drop" ? init.entidadId : undefined;
   return (
     <EntidadBrowser
-      tipo="entidad" color="#a09af0" icon="⚔" label="Entidad"
+      tipo="personaje" color="#a09af0" icon="⚔" label="Entidad"
       initialId={initialId}
       onSelect={(id, nombre) => onInsert(`[[drop|${id}|${nombre}]]`)}
     />
