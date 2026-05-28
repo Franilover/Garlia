@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Eye, Edit3, Search, Replace, X, ChevronUp, ChevronDown } from "lucide-react";
-import { parseContenido, parseSections } from "@/components/paginas/myself/garlia/editores/editorCapitulos/leer/type";
+import { parseContenido, parseSections } from "@/components/paginas/myself/garlia/editores/editorCapitulos/snippets/type";
 import { RenderSegmentos }               from "@/components/paginas/myself/garlia/editores/editorCapitulos/leer/segmentos/ContenidoInteractivo";
 // ── Slug helper for heading IDs ─────────────────────────────────────────────
 function slugify(text: string): string {
