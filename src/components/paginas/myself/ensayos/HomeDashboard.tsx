@@ -12,7 +12,7 @@ import ComprasPage from "@/components/paginas/myself/ensayos/personal/compras";
 import { PaginaEjercicios } from "@/components/paginas/myself/ensayos/personal/ejerciciosComponent";
 import { IngredientesPage } from "@/components/paginas/myself/ensayos/personal/ingredientes";
 import RecetasPage from "@/components/paginas/myself/ensayos/personal/recetas";
-import ArmarioPage from "@/components/paginas/myself/ensayosensayos/personal/ropa";
+import ArmarioPage from "@/components/paginas/myself/ensayos/personal/ropa";
 
 interface HomeDashboardProps {
   ensayos: any[];
