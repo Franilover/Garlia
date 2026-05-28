@@ -6,7 +6,7 @@ import {
   MotionDiv, MotionButton,
 } from "@/components/ui/Motion";
 import {
-  X, MapPin, Loader2, ChevronRight, ArrowLeft, House,
+  X, ArrowLeft,
   Save, Edit3, ImagePlus, Move, CheckCircle2, AlertCircle, UserX, ZoomIn, ZoomOut, User,
   BookOpen, BookMarked,
 } from "lucide-react";
@@ -15,6 +15,29 @@ import { useIsAdmin } from "@/hooks/auth/useIsAdmin";
 import { ModalDetalle } from "@/components/paginas/garlia/personal/PersonalComponents";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import { db } from "@/lib/api/client/db";
+
+// ─── Hourglass — reemplaza Loader2 en todos los indicadores de carga ──────────
+function Hourglass({ size = 14 }: { size?: number }) {
+  return (
+    <svg
+      width={size} height={size * 1.45}
+      viewBox="0 0 22 32" fill="none" xmlns="http://www.w3.org/2000/svg"
+      style={{ animation: "hg-flip 2.4s ease-in-out infinite", transformOrigin: "center", flexShrink: 0 }}
+    >
+      <style>{`
+        @keyframes hg-flip {
+          0%,40%  { transform: rotate(0deg); }
+          50%,90% { transform: rotate(180deg); }
+          100%    { transform: rotate(180deg); }
+        }
+      `}</style>
+      <rect x="1" y="0"  width="20" height="2.5" rx="0" fill="currentColor" opacity="0.7"/>
+      <rect x="1" y="29.5" width="20" height="2.5" rx="0" fill="currentColor" opacity="0.7"/>
+      <path d="M2 2.5 L11 16 L20 2.5 Z"  fill="currentColor" opacity="0.2" stroke="currentColor" strokeWidth="0.8" opacity="0.6"/>
+      <path d="M2 29.5 L11 16 L20 29.5 Z" fill="currentColor" opacity="0.5" stroke="currentColor" strokeWidth="0.8" opacity="0.6"/>
+    </svg>
+  );
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type EntidadModal =
@@ -114,9 +137,9 @@ function PanelContenido({
             </div>
             <button
               onClick={() => setReinoSeleccionado((r: any) => ({ ...r, oculto: !r.oculto }))}
-              className={`relative w-10 h-5 rounded-full transition-all border ${reinoSeleccionado.oculto ? "bg-orange-400/20 border-orange-400/40" : "bg-amber-400/15 border-amber-400/20"}`}
+              className={`relative w-10 h-5 transition-all border ${reinoSeleccionado.oculto ? "bg-orange-400/20 border-orange-400/40" : "bg-amber-400/15 border-amber-400/20"}`}
             >
-              <span className={`absolute top-0.5 w-4 h-4 rounded-full transition-all shadow-sm ${reinoSeleccionado.oculto ? "left-5 bg-orange-400" : "left-0.5 bg-amber-400/50"}`} />
+              <span className={`absolute top-0.5 w-4 h-4 transition-all ${reinoSeleccionado.oculto ? "left-5 bg-orange-400" : "left-0.5 bg-amber-400/50"}`} />
             </button>
           </div>
         )}
@@ -136,9 +159,9 @@ function PanelContenido({
                 setDetallesReino((prev: any[]) => prev.map(p => p.id === puntoSeleccionado.id ? { ...p, oculto: nuevoOculto } : p));
                 setModifiedDetalles((prev: Set<string>) => new Set(prev).add(puntoSeleccionado.id));
               }}
-              className={`relative w-10 h-5 rounded-full transition-all border ${puntoSeleccionado.oculto ? "bg-orange-400/20 border-orange-400/40" : "bg-amber-400/15 border-amber-400/20"}`}
+              className={`relative w-10 h-5 transition-all border ${puntoSeleccionado.oculto ? "bg-orange-400/20 border-orange-400/40" : "bg-amber-400/15 border-amber-400/20"}`}
             >
-              <span className={`absolute top-0.5 w-4 h-4 rounded-full transition-all shadow-sm ${puntoSeleccionado.oculto ? "left-5 bg-orange-400" : "left-0.5 bg-amber-400/50"}`} />
+              <span className={`absolute top-0.5 w-4 h-4 transition-all ${puntoSeleccionado.oculto ? "left-5 bg-orange-400" : "left-0.5 bg-amber-400/50"}`} />
             </button>
           </div>
         )}
@@ -165,7 +188,7 @@ function PanelContenido({
               style={{ borderColor: "color-mix(in srgb, var(--primary) 30%, transparent)", color: "var(--accent)", background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
             >
               {isUploadingImg
-                ? <><Loader2 size={12} className="animate-spin" /> Subiendo...</>
+                ? <><Hourglass size={12} /> Subiendo...</>
                 : <><ImagePlus size={12} /> {reinoSeleccionado.mapa_url ? "Cambiar imagen" : "Subir imagen"}</>}
             </button>
           </div>
@@ -176,7 +199,7 @@ function PanelContenido({
           className="btn-brand w-full justify-center text-[11px] uppercase py-4 mt-auto disabled:opacity-50"
           style={{ letterSpacing: "0.12em" }}
         >
-          {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+          {isSaving ? <Hourglass size={14} /> : <Save size={14} />}
           Guardar cambios
         </button>
       </div>
@@ -391,7 +414,7 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
   // Pulse animation
   const pulseRef = useRef(0);
   // Theme CSS vars read at draw time
-  const cssColorsRef = useRef({ primary: "#6b4423", accent: "#c08040", bg: "#f0e6d0", fg: "#2a1304", bgMenu: "#3d2010", pinFill: "#6b4423", parchBg: "#3d2010", parchText: "#2a1304", whiteCustom: "#fdf6ee" });
+  const cssColorsRef = useRef({ primary: "#6b4423", accent: "#c08040", bg: "#f0e6d0", fg: "#2a1304", bgMenu: "#3d2010", parchBg: "#3d2010", parchText: "#2a1304", whiteCustom: "#fdf6ee" });
   // Fog cache — rebuilt only when markers/size change, not every frame
   const fogCacheRef = useRef<{ canvas: OffscreenCanvas; deep: OffscreenCanvas; iw: number; ih: number; bg: string } | null>(null);
 
@@ -405,7 +428,6 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
         bg:          get("--bg-main")      || "#f0e6d0",
         fg:          get("--foreground")   || "#2a1304",
         bgMenu:      get("--bg-menu")      || "#3d2010",
-        pinFill:     get("--primary")      || "#6b4423",
         parchBg:     get("--bg-menu")      || "#3d2010",
         parchText:   get("--foreground")   || "#2a1304",
         whiteCustom: get("--white-custom") || "#fdf6ee",
@@ -497,7 +519,7 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
 
       pulseRef.current = t;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      const { primary, accent, bg, fg, pinFill, parchBg, parchText, whiteCustom } = cssColorsRef.current;
+      const { primary, accent, bg, fg, parchBg, parchText, whiteCustom } = cssColorsRef.current;
 
       ctx.fillStyle = bg;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -1269,9 +1291,6 @@ export default function MapaInteractivo() {
     ? reinos.filter(r => r.oculto)
     : detallesReino.filter(p => p.oculto);
 
-  // What the canvas actually draws: all if admin in edit mode, otherwise only visible
-  const currentMarkers = editMode ? [...visibleMarkers, ...hiddenMarkers] : visibleMarkers;
-
   const currentImage = vistaActual === "reino" && reinoSeleccionado?.mapa_url
     ? reinoSeleccionado.mapa_url
     : "/dibujos/reinos/mapa.png";
@@ -1287,16 +1306,20 @@ export default function MapaInteractivo() {
 
   // Solo bloquea la UI si no hay absolutamente ningún dato todavía (primera carga ever)
   if (loading && reinos.length === 0) return (
-    <div className="fixed inset-0 md:left-[68px] flex flex-col items-center justify-center" style={{ background: "var(--bg-main)" }}>
-      <div className="relative">
-        <div className="w-8 h-8 border" style={{ borderColor: "color-mix(in srgb, var(--accent) 25%, transparent)", animation: "spin 3s linear infinite", borderRadius: "50%" }} />
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-1.5 h-1.5 rounded-full" style={{ background: "color-mix(in srgb, var(--accent) 50%, transparent)" }} />
+    <div className="fixed inset-0 md:left-[68px] flex flex-col items-center justify-center gap-6" style={{ background: "var(--bg-main)" }}>
+      <div style={{ color: "color-mix(in srgb, var(--accent) 55%, transparent)" }}>
+        <Hourglass size={28} />
+      </div>
+      <div className="flex flex-col items-center gap-1">
+        <span className="text-[9px] font-bold uppercase tracking-[0.35em]" style={{ color: "color-mix(in srgb, var(--accent) 45%, transparent)", fontFamily: "'Cinzel', serif" }}>
+          Desplegando Cartografía
+        </span>
+        <div className="flex items-center gap-2" style={{ color: "color-mix(in srgb, var(--accent) 20%, transparent)" }}>
+          <div className="h-px w-10" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }} />
+          <div className="w-1 h-1 rotate-45" style={{ background: "color-mix(in srgb, var(--accent) 30%, transparent)" }} />
+          <div className="h-px w-10" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }} />
         </div>
       </div>
-      <span className="text-[9px] font-medium uppercase tracking-[0.35em] mt-5" style={{ color: "color-mix(in srgb, var(--accent) 35%, transparent)", fontFamily: "'Cinzel', serif" }}>
-        Desplegando Cartografía...
-      </span>
     </div>
   );
 
@@ -1347,7 +1370,7 @@ export default function MapaInteractivo() {
                   letterSpacing: "0.12em",
                   boxShadow: "0 1px 4px rgba(0,0,0,0.3)",
                 }}>
-                {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                {isSaving ? <Hourglass size={14} /> : <Save size={14} />}
                 Guardar
               </button>
             )}
@@ -1468,7 +1491,7 @@ export default function MapaInteractivo() {
             <div className="absolute top-0 left-0 right-0 h-px"
               style={{ background: "linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 60%, transparent), transparent)" }} />
             <div className="flex justify-center pt-3 pb-1">
-              <div className="w-10 h-0.5 rounded-full" style={{ background: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
+              <div className="w-10 h-0.5" style={{ background: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
             </div>
             <button
               onClick={() => setPanelOpen(false)}
