@@ -215,7 +215,7 @@ const TIPOS_LUGAR = [
 // ─── Bloque de entidades relacionadas (personajes/criaturas/ítems) ────────────
 function BloqueEntidades<T extends { id: string; nombre: string }>({
   Icon, items, loading, onSelect, renderThumb,
-  emptyText, allItems, onAdd, addingId,
+  emptyText, allItems, onAdd, addingId, onRemove, removingId,
 }: {
   Icon: React.ElementType;
   items: T[];
@@ -226,6 +226,8 @@ function BloqueEntidades<T extends { id: string; nombre: string }>({
   allItems: T[];
   onAdd: (item: T) => void;
   addingId?: string | null;
+  onRemove: (id: string) => void;
+  removingId?: string | null;
 }) {
   const [query, setQuery] = useState("");
   const [open, setOpen]   = useState(false);
@@ -337,22 +339,37 @@ function BloqueEntidades<T extends { id: string; nombre: string }>({
       ) : (
         <div className="flex flex-wrap gap-1.5">
           {items.map(item => (
-            <button
+            <div
               key={item.id}
-              type="button"
-              onClick={() => onSelect?.(item.id)}
-              disabled={!onSelect}
-              className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02] disabled:hover:scale-100 disabled:cursor-default cursor-pointer"
+              className="group flex items-center gap-0 rounded-xl border overflow-hidden transition-all"
               style={{
                 background:  "color-mix(in srgb, var(--primary) 4%, transparent)",
                 borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
               }}
             >
-              <div className="w-6 h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center">
-                {renderThumb(item)}
-              </div>
-              <span className="text-[11px] font-bold text-primary/70 truncate max-w-[110px]">{item.nombre}</span>
-            </button>
+              <button
+                type="button"
+                onClick={() => onSelect?.(item.id)}
+                disabled={!onSelect}
+                className="flex items-center gap-2 pl-1.5 pr-2.5 py-1 transition-all hover:bg-primary/5 disabled:cursor-default cursor-pointer"
+              >
+                <div className="w-6 h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center">
+                  {renderThumb(item)}
+                </div>
+                <span className="text-[11px] font-bold text-primary/70 truncate max-w-[110px]">{item.nombre}</span>
+              </button>
+              <button
+                type="button"
+                disabled={removingId === item.id}
+                onClick={() => onRemove(item.id)}
+                className="flex items-center justify-center w-5 h-full pr-1 opacity-0 group-hover:opacity-100 transition-opacity text-primary/30 hover:text-red-400 disabled:cursor-not-allowed"
+                title="Quitar del lugar"
+              >
+                {removingId === item.id
+                  ? <Loader2 size={9} className="animate-spin" />
+                  : <X size={9} />}
+              </button>
+            </div>
           ))}
         </div>
       )}
@@ -388,6 +405,9 @@ export function FormularioLugar({
   const [addingP, setAddingP] = useState<string | null>(null);
   const [addingC, setAddingC] = useState<string | null>(null);
   const [addingI, setAddingI] = useState<string | null>(null);
+  const [removingP, setRemovingP] = useState<string | null>(null);
+  const [removingC, setRemovingC] = useState<string | null>(null);
+  const [removingI, setRemovingI] = useState<string | null>(null);
 
   const reinoActual = reinos.find(r => r.id === form.reino_id);
 
@@ -413,6 +433,30 @@ export function FormularioLugar({
     if (db) try { await (db as any).items?.update(i.id, { lugar_id: form.id }); } catch {}
     await reloadI();
     setAddingI(null);
+  };
+
+  const handleRemovePersonaje = async (id: string) => {
+    setRemovingP(id);
+    await supabase.from("personajes").update({ lugar_id: null }).eq("id", id);
+    if (db) try { await (db as any).personajes?.update(id, { lugar_id: null }); } catch {}
+    await reloadP();
+    setRemovingP(null);
+  };
+
+  const handleRemoveCriatura = async (id: string) => {
+    setRemovingC(id);
+    await supabase.from("criaturas").update({ lugar_id: null }).eq("id", id);
+    if (db) try { await (db as any).criaturas?.update(id, { lugar_id: null }); } catch {}
+    await reloadC();
+    setRemovingC(null);
+  };
+
+  const handleRemoveItem = async (id: string) => {
+    setRemovingI(id);
+    await supabase.from("items").update({ lugar_id: null }).eq("id", id);
+    if (db) try { await (db as any).items?.update(id, { lugar_id: null }); } catch {}
+    await reloadI();
+    setRemovingI(null);
   };
 
   return (
@@ -577,6 +621,8 @@ export function FormularioLugar({
                   allItems={todosPersonajes}
                   onAdd={handleAddPersonaje}
                   addingId={addingP}
+                  onRemove={handleRemovePersonaje}
+                  removingId={removingP}
                   renderThumb={p => (p as any).img_url
                     ? <img src={(p as any).img_url} alt={p.nombre} className="w-full h-full object-cover" />
                     : <Users size={10} className="text-primary/20" />}
@@ -604,6 +650,8 @@ export function FormularioLugar({
                   allItems={todasCriaturas}
                   onAdd={handleAddCriatura}
                   addingId={addingC}
+                  onRemove={handleRemoveCriatura}
+                  removingId={removingC}
                   renderThumb={c => (c as any).imagen_url
                     ? <img src={(c as any).imagen_url} alt={c.nombre} className="w-full h-full object-cover" />
                     : <Bug size={10} className="text-primary/20" />}
@@ -631,6 +679,8 @@ export function FormularioLugar({
                   allItems={todosItems}
                   onAdd={handleAddItem}
                   addingId={addingI}
+                  onRemove={handleRemoveItem}
+                  removingId={removingI}
                   renderThumb={i => (i as any).imagen_url
                     ? <img src={(i as any).imagen_url} alt={i.nombre} className="w-full h-full object-cover" />
                     : <Package size={10} className="text-primary/20" />}
