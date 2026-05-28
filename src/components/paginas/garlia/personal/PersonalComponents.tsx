@@ -2,7 +2,8 @@
 import { MotionDiv, MotionMain, MotionH1, MotionH2, MotionButton, MotionLi, MotionSpan, MotionP, MotionSection, MotionArticle, MotionImg } from "@/components/ui/Motion";
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { User, Sword, Package, ShieldCheck, X, Star } from "lucide-react";
+import { User, Sword, Package, ShieldCheck, X, Star, Music2, ChevronRight } from "lucide-react";
+import Link from "next/link";
 
 export interface Descubrimiento {
   tipo: "item" | "criatura" | "personaje";
@@ -35,7 +36,12 @@ export type EntidadModal =
   | { tipo: "item_inv"; data: ItemInventario }
   | { tipo: "item" | "criatura" | "personaje"; data: Descubrimiento };
 
-export function ModalDetalle({ entidad, onClose }: { entidad: EntidadModal; onClose: () => void }) {
+export function ModalDetalle({ entidad, onClose, canciones, cargandoCanciones }: {
+  entidad: EntidadModal;
+  onClose: () => void;
+  canciones?: { id: string; titulo: string; portada_url?: string; info_cancion?: string }[];
+  cargandoCanciones?: boolean;
+}) {
   const isItemInv  = entidad.tipo === "item_inv";
   const isItem     = isItemInv || entidad.tipo === "item";
   const isCriatura = entidad.tipo === "criatura";
@@ -172,6 +178,81 @@ export function ModalDetalle({ entidad, onClose }: { entidad: EntidadModal; onCl
                   </p>
               }
             </div>
+
+            {/* Canciones del personaje */}
+            {!isItem && !isCriatura && (
+              <div className="pt-3" style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" }}>
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
+                  <div className="flex items-center gap-1.5">
+                    <Music2 size={10} style={{ color: "color-mix(in srgb, var(--primary) 28%, transparent)" }} />
+                    <span className="text-[9px] font-black uppercase tracking-widest italic"
+                      style={{ color: "color-mix(in srgb, var(--primary) 28%, transparent)" }}>
+                      Canciones
+                    </span>
+                  </div>
+                  <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
+                </div>
+                {cargandoCanciones ? (
+                  <p className="text-[9px] italic text-center py-3"
+                    style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
+                    Cargando canciones…
+                  </p>
+                ) : !canciones || canciones.length === 0 ? (
+                  <p className="text-[9px] italic text-center py-3"
+                    style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }}>
+                    "Este personaje no tiene canciones aún…"
+                  </p>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    {canciones.map((cancion, i) => (
+                      <Link key={cancion.id ?? i} href={`/garlia/canciones/${cancion.id}`}
+                        className="group flex items-center gap-3 px-3 py-2.5 transition-all"
+                        style={{
+                          background: "color-mix(in srgb, var(--primary) 3%, var(--white-custom))",
+                          border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+                          borderRadius: "var(--radius-btn)",
+                        }}
+                        onMouseEnter={e => {
+                          (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 22%, transparent)";
+                          (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 6%, var(--white-custom))";
+                        }}
+                        onMouseLeave={e => {
+                          (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 8%, transparent)";
+                          (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 3%, var(--white-custom))";
+                        }}>
+                        {cancion.portada_url && !cancion.portada_url.includes("placeholder") ? (
+                          <div className="w-10 h-10 shrink-0 overflow-hidden"
+                            style={{ borderRadius: "var(--radius-btn)", background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+                            <img src={cancion.portada_url} alt={cancion.titulo}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                          </div>
+                        ) : (
+                          <div className="w-10 h-10 shrink-0 flex items-center justify-center"
+                            style={{ borderRadius: "var(--radius-btn)", background: "color-mix(in srgb, var(--primary) 6%, transparent)" }}>
+                            <Music2 size={13} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <span className="font-serif italic text-[12px] truncate block group-hover:underline"
+                            style={{ color: "var(--primary)" }}>
+                            {cancion.titulo ?? `Canción ${i + 1}`}
+                          </span>
+                          {cancion.info_cancion && (
+                            <span className="text-[9px] font-black uppercase tracking-wider truncate block mt-0.5"
+                              style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
+                              {cancion.info_cancion}
+                            </span>
+                          )}
+                        </div>
+                        <ChevronRight size={13} style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)", flexShrink: 0 }}
+                          className="group-hover:translate-x-0.5 transition-transform" />
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Equipped badge */}
             {isItemInv && (entidad.data as ItemInventario).equipado && (

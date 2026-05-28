@@ -1189,6 +1189,8 @@ export default function MapaInteractivo() {
   const [personajesReino, setPersonajesReino] = useState<any[]>([]);
   const [personajesDesbloqueados, setPersonajesDesbloqueados] = useState<Set<string>>(new Set());
   const [modalEntidad, setModalEntidad] = useState<EntidadModal | null>(null);
+  const [cancionesPersonaje, setCancionesPersonaje] = useState<any[]>([]);
+  const [cargandoCanciones, setCargandoCanciones] = useState(false);
   // Books & chapters
   const [librosReino, setLibrosReino] = useState<any[]>([]);
   const [capitulosReino, setCapitulosReino] = useState<any[]>([]);
@@ -1300,7 +1302,8 @@ export default function MapaInteractivo() {
     }
   };
 
-  const handlePersonajeClick = (p: any) => {
+  const handlePersonajeClick = async (p: any) => {
+    setCancionesPersonaje([]);
     setModalEntidad({
       tipo: "personaje",
       data: {
@@ -1314,6 +1317,20 @@ export default function MapaInteractivo() {
         fecha_descubrimiento: "",
       },
     });
+    if (!p.id) return;
+    setCargandoCanciones(true);
+    try {
+      const { data, error } = await supabase
+        .from("canciones")
+        .select("id, titulo, portada_url, info_cancion, personaje_id")
+        .eq("personaje_id", p.id)
+        .eq("visible", true);
+      if (!error && data) setCancionesPersonaje(data);
+    } catch (err) {
+      console.warn("[Mapa] Error cargando canciones:", err);
+    } finally {
+      setCargandoCanciones(false);
+    }
   };
 
   const handleMapClick = (x: number, y: number) => {
@@ -1427,7 +1444,12 @@ export default function MapaInteractivo() {
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&display=swap');`}</style>
 
       {modalEntidad && (
-        <ModalDetalle entidad={modalEntidad} onClose={() => setModalEntidad(null)} />
+        <ModalDetalle
+          entidad={modalEntidad}
+          onClose={() => { setModalEntidad(null); setCancionesPersonaje([]); }}
+          canciones={cancionesPersonaje}
+          cargandoCanciones={cargandoCanciones}
+        />
       )}
 
       <AnimatePresence>
