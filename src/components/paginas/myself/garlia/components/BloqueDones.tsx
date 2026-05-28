@@ -1,11 +1,10 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { X, Loader2, ChevronDown } from "lucide-react";
+import { X, Loader2, Pencil } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
 import { normalize } from "@/components/templates/EstudioTemplates";
-import { INPUT_CLS } from "./types";
 import { loreReadRelaciones, loreSyncRelaciones } from "@/lib/api/client/loreDb";
 
 // ─── Types locales ─────────────────────────────────────────────────────────────
@@ -178,9 +177,11 @@ export function BloqueDones({ personajeId, grupoIds = [] }: {
   grupoIds?: string[];
 }) {
   const { dones, donId, loading, assign, clear } = useDones(personajeId);
-  const [input, setInput] = useState("");
-  const [open,  setOpen]  = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const [editing, setEditing] = useState(false);
+  const [input,   setInput]   = useState("");
+  const [open,    setOpen]    = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const ref      = useRef<HTMLDivElement>(null);
 
   const sinGrupos = grupoIds.length === 0;
 
@@ -197,75 +198,138 @@ export function BloqueDones({ personajeId, grupoIds = [] }: {
     [disponibles, input]
   );
 
+  // Cerrar al hacer click fuera
   useEffect(() => {
-    if (!open) return;
+    if (!editing) return;
     const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setEditing(false);
+        setOpen(false);
+        setInput("");
+      }
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
-  }, [open]);
+  }, [editing]);
+
+  const startEdit = () => {
+    if (sinGrupos || loading) return;
+    setInput("");
+    setEditing(true);
+    setOpen(true);
+    setTimeout(() => inputRef.current?.focus(), 30);
+  };
 
   return (
-    <div className="space-y-1.5" ref={ref}>
+    <div className="space-y-1" ref={ref}>
       <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">Don</label>
-      <div className="relative">
-        {donActual ? (
-          <div className={INPUT_CLS + " pr-8 flex items-center"}>
+
+      {editing ? (
+        /* ── Modo edición: input + dropdown ── */
+        <div className="relative">
+          <input
+            ref={inputRef}
+            value={input}
+            onChange={e => { setInput(e.target.value); setOpen(true); }}
+            onFocus={() => setOpen(true)}
+            onKeyDown={e => {
+              if (e.key === "Escape") { setEditing(false); setOpen(false); setInput(""); }
+            }}
+            placeholder="Buscar don…"
+            className="w-full px-2.5 py-1.5 rounded-xl text-[11px] font-medium border outline-none transition-all pr-7"
+            style={{
+              background:   "color-mix(in srgb, var(--primary) 4%, transparent)",
+              borderColor:  "color-mix(in srgb, var(--primary) 30%, transparent)",
+              color:        "var(--primary)",
+            }}
+          />
+          <button
+            type="button"
+            onMouseDown={e => { e.preventDefault(); setEditing(false); setOpen(false); setInput(""); }}
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-primary/30 hover:text-primary transition-colors"
+          >
+            <X size={10} />
+          </button>
+
+          {open && filtrados.length > 0 && (
+            <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white-custom border border-primary/15 rounded-xl shadow-xl overflow-hidden max-h-48 overflow-y-auto">
+              {donActual && (
+                <button
+                  onMouseDown={e => { e.preventDefault(); clear(); setEditing(false); setOpen(false); }}
+                  className="w-full px-3 py-2 text-left text-[10px] font-bold text-red-400/60 hover:text-red-400 hover:bg-red-400/5 transition-colors border-b border-primary/8 italic"
+                >
+                  Quitar don
+                </button>
+              )}
+              {filtrados.map(d => (
+                <button key={d.id}
+                  onMouseDown={() => { assign(d.id); setInput(""); setEditing(false); setOpen(false); }}
+                  className={`w-full px-3 py-2 text-left text-xs font-medium transition-colors hover:bg-primary/8 hover:text-primary ${d.id === donId ? "text-primary bg-primary/5" : "text-primary/70"}`}>
+                  {d.nombre}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {open && filtrados.length === 0 && (
+            <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white-custom border border-primary/15 rounded-xl shadow-xl px-3 py-2.5">
+              <p className="text-[9px] text-primary/25 text-center italic">Sin dones compatibles</p>
+            </div>
+          )}
+        </div>
+
+      ) : donActual ? (
+        /* ── Modo display: chip + botón lápiz + botón quitar ── */
+        <div className="flex items-center gap-1">
+          <div
+            className="flex-1 min-w-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-bold border"
+            style={{
+              background:  "color-mix(in srgb, var(--primary) 5%, transparent)",
+              borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
+              color:       "var(--primary)",
+            }}
+          >
             {loading
-              ? <Loader2 size={10} className="animate-spin text-primary/20" />
-              : <span className="flex-1 text-xs font-medium text-primary/70 truncate">{donActual.nombre}</span>
+              ? <Loader2 size={9} className="animate-spin text-primary/30" />
+              : <span className="truncate flex-1">{donActual.nombre}</span>
             }
-            <button
-              onClick={clear}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-primary/30 hover:text-red-400 transition-colors"
-              title="Quitar don"
-            >
-              <X size={12} />
-            </button>
           </div>
-        ) : (
-          <>
-            <input
-              value={input}
-              onChange={e => { setInput(e.target.value); setOpen(true); }}
-              onFocus={() => setOpen(true)}
-              disabled={sinGrupos || loading}
-              placeholder={
-                loading    ? "Cargando…"
-                : sinGrupos ? "Sin grupos…"
-                : "Buscar don…"
-              }
-              className={INPUT_CLS + " pr-8 disabled:opacity-40 disabled:cursor-not-allowed"}
-            />
-            <button
-              type="button"
-              onClick={() => !sinGrupos && setOpen(o => !o)}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-primary/30 hover:text-primary transition-colors"
-            >
-              <ChevronDown size={13} className={`transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
-            </button>
+          <button
+            type="button"
+            onClick={startEdit}
+            className="shrink-0 w-6 h-6 rounded-lg flex items-center justify-center border border-transparent text-primary/25 hover:text-primary hover:bg-primary/8 hover:border-primary/15 transition-all"
+            title="Cambiar don"
+          >
+            <Pencil size={9} />
+          </button>
+          <button
+            type="button"
+            onClick={clear}
+            className="shrink-0 w-6 h-6 rounded-lg flex items-center justify-center border border-transparent text-primary/25 hover:text-red-400 hover:bg-red-400/5 hover:border-red-400/15 transition-all"
+            title="Quitar don"
+          >
+            <X size={9} />
+          </button>
+        </div>
 
-            {open && disponibles.length === 0 && (
-              <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white-custom border border-primary/15 rounded-xl shadow-xl px-3 py-2.5">
-                <p className="text-[9px] text-primary/25 text-center italic">Sin dones compatibles</p>
-              </div>
-            )}
-
-            {open && filtrados.length > 0 && (
-              <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white-custom border border-primary/15 rounded-xl shadow-xl overflow-hidden max-h-48 overflow-y-auto">
-                {filtrados.map(d => (
-                  <button key={d.id}
-                    onMouseDown={() => { assign(d.id); setInput(""); setOpen(false); }}
-                    className="w-full px-3 py-2 text-left text-xs font-medium text-primary/70 hover:bg-primary/8 hover:text-primary transition-colors">
-                    {d.nombre}
-                  </button>
-                ))}
-              </div>
-            )}
-          </>
-        )}
-      </div>
+      ) : (
+        /* ── Modo vacío: placeholder como botón ── */
+        <button
+          type="button"
+          onClick={startEdit}
+          disabled={sinGrupos || loading}
+          className="w-full flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-bold text-left transition-all border border-dashed disabled:opacity-40 disabled:cursor-not-allowed"
+          style={{
+            borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
+            color:       "color-mix(in srgb, var(--primary) 25%, transparent)",
+          }}
+        >
+          <Pencil size={9} className="opacity-50" />
+          <span className="italic">
+            {loading ? "Cargando…" : sinGrupos ? "Sin grupos…" : "Elegir don…"}
+          </span>
+        </button>
+      )}
     </div>
   );
 }
