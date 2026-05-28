@@ -1614,7 +1614,7 @@ export default function MapaInteractivo() {
             <div className="absolute top-0 left-0 right-0 h-px"
               style={{ background: "linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 50%, transparent), transparent)" }} />
             <button
-              onClick={() => setPanelOpen(false)}
+              onClick={() => { setPanelOpen(false); setPuntoSeleccionado(null); }}
               className="absolute top-4 right-4 z-10 w-7 h-7 flex items-center justify-center transition-colors border"
               style={{
                 background: "color-mix(in srgb, var(--bg-main) 80%, transparent)",
@@ -1655,7 +1655,7 @@ export default function MapaInteractivo() {
               <div className="w-10 h-0.5" style={{ background: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
             </div>
             <button
-              onClick={() => setPanelOpen(false)}
+              onClick={() => { setPanelOpen(false); setPuntoSeleccionado(null); }}
               className="absolute top-3 right-4 w-7 h-7 flex items-center justify-center transition-colors"
               style={{ color: "color-mix(in srgb, var(--foreground) 50%, transparent)" }}
             >

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   MapPin, Save, Trash2, Users, Bug, Package,
   Loader2, Plus, X, Mountain, ScrollText,
@@ -86,7 +86,7 @@ function usePersonajesDelLugar(lugarId: string) {
   }, [lugarId]);
 
   useEffect(() => { load(); }, [load]);
-  return { personajes, loading };
+  return { personajes, loading, reload: load };
 }
 
 // ─── Hook: criaturas del lugar ────────────────────────────────────────────────
@@ -114,7 +114,7 @@ function useCriaturasDeLugar(lugarId: string) {
   }, [lugarId]);
 
   useEffect(() => { load(); }, [load]);
-  return { criaturas, loading };
+  return { criaturas, loading, reload: load };
 }
 
 // ─── Hook: ítems del lugar ────────────────────────────────────────────────────
@@ -142,7 +142,67 @@ function useItemsDelLugar(lugarId: string) {
   }, [lugarId]);
 
   useEffect(() => { load(); }, [load]);
-  return { items, loading };
+  return { items, loading, reload: load };
+}
+
+// ─── Hook: todos los personajes (para búsqueda) ───────────────────────────────
+function useTodosPersonajes() {
+  const [todos, setTodos] = useState<PersonajeMin[]>([]);
+  useEffect(() => {
+    const run = async () => {
+      try {
+        if (db) {
+          const local: any[] = await (db as any).personajes?.toArray() ?? [];
+          if (local.length) { setTodos(local.filter((p: any) => !p.deleted).sort((a: any, b: any) => a.nombre.localeCompare(b.nombre))); if (!navigator.onLine) return; }
+        }
+      } catch {}
+      if (!navigator.onLine) return;
+      const { data } = await supabase.from("personajes").select("id, nombre, img_url").order("nombre");
+      if (data) setTodos(data);
+    };
+    run();
+  }, []);
+  return todos;
+}
+
+// ─── Hook: todas las criaturas (para búsqueda) ────────────────────────────────
+function useTodasCriaturas() {
+  const [todas, setTodas] = useState<CriaturaMin[]>([]);
+  useEffect(() => {
+    const run = async () => {
+      try {
+        if (db) {
+          const local: any[] = await (db as any).criaturas?.toArray() ?? [];
+          if (local.length) { setTodas(local.filter((c: any) => !c.deleted).sort((a: any, b: any) => a.nombre.localeCompare(b.nombre))); if (!navigator.onLine) return; }
+        }
+      } catch {}
+      if (!navigator.onLine) return;
+      const { data } = await supabase.from("criaturas").select("id, nombre, imagen_url").order("nombre");
+      if (data) setTodas(data);
+    };
+    run();
+  }, []);
+  return todas;
+}
+
+// ─── Hook: todos los ítems (para búsqueda) ────────────────────────────────────
+function useTodosItems() {
+  const [todos, setTodos] = useState<ItemMin[]>([]);
+  useEffect(() => {
+    const run = async () => {
+      try {
+        if (db) {
+          const local: any[] = await (db as any).items?.toArray() ?? [];
+          if (local.length) { setTodos(local.filter((i: any) => !i.deleted).sort((a: any, b: any) => a.nombre.localeCompare(b.nombre))); if (!navigator.onLine) return; }
+        }
+      } catch {}
+      if (!navigator.onLine) return;
+      const { data } = await supabase.from("items").select("id, nombre, imagen_url").order("nombre");
+      if (data) setTodos(data);
+    };
+    run();
+  }, []);
+  return todos;
 }
 
 // ─── Tipos de lugar predefinidos ──────────────────────────────────────────────
@@ -154,47 +214,148 @@ const TIPOS_LUGAR = [
 
 // ─── Bloque de entidades relacionadas (personajes/criaturas/ítems) ────────────
 function BloqueEntidades<T extends { id: string; nombre: string }>({
-  label, Icon, items, loading, onSelect, renderThumb,
-  emptyText,
+  Icon, items, loading, onSelect, renderThumb,
+  emptyText, allItems, onAdd, addingId,
 }: {
-  label: string;
   Icon: React.ElementType;
   items: T[];
   loading: boolean;
   onSelect?: (id: string) => void;
   renderThumb: (item: T) => React.ReactNode;
   emptyText: string;
+  allItems: T[];
+  onAdd: (item: T) => void;
+  addingId?: string | null;
 }) {
-  if (loading) return (
-    <div className="flex justify-center py-4">
-      <Loader2 size={14} className="animate-spin text-primary/20" />
-    </div>
-  );
-  if (!items.length) return (
-    <p className="text-[10px] font-bold text-primary/20 uppercase tracking-widest text-center py-3 italic">
-      {emptyText}
-    </p>
-  );
+  const [query, setQuery] = useState("");
+  const [open, setOpen]   = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const listRef  = useRef<HTMLDivElement>(null);
+
+  const linkedIds = new Set(items.map(i => i.id));
+
+  const suggestions = query.trim().length > 0
+    ? allItems.filter(i =>
+        !linkedIds.has(i.id) &&
+        i.nombre.toLowerCase().includes(query.toLowerCase())
+      ).slice(0, 8)
+    : [];
+
+  // Cerrar dropdown al hacer click fuera
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (
+        listRef.current && !listRef.current.contains(e.target as Node) &&
+        inputRef.current && !inputRef.current.contains(e.target as Node)
+      ) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
   return (
-    <div className="flex flex-wrap gap-1.5">
-      {items.map(item => (
-        <button
-          key={item.id}
-          type="button"
-          onClick={() => onSelect?.(item.id)}
-          disabled={!onSelect}
-          className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02] disabled:hover:scale-100 disabled:cursor-default cursor-pointer"
+    <div className="space-y-2">
+      {/* Buscador */}
+      <div className="relative">
+        <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border transition-all"
           style={{
-            background:   "color-mix(in srgb, var(--primary) 4%, transparent)",
-            borderColor:  "color-mix(in srgb, var(--primary) 12%, transparent)",
-          }}
-        >
-          <div className="w-6 h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center">
-            {renderThumb(item)}
+            background:  "color-mix(in srgb, var(--primary) 3%, transparent)",
+            borderColor: open
+              ? "color-mix(in srgb, var(--primary) 30%, transparent)"
+              : "color-mix(in srgb, var(--primary) 12%, transparent)",
+          }}>
+          <Plus size={9} className="text-primary/30 shrink-0" />
+          <input
+            ref={inputRef}
+            value={query}
+            onChange={e => { setQuery(e.target.value); setOpen(true); }}
+            onFocus={() => setOpen(true)}
+            placeholder="Buscar y añadir…"
+            className="flex-1 min-w-0 bg-transparent text-[11px] font-medium text-primary/70 placeholder:text-primary/25 outline-none"
+          />
+          {query && (
+            <button type="button" onClick={() => { setQuery(""); setOpen(false); inputRef.current?.blur(); }}>
+              <X size={9} className="text-primary/30 hover:text-primary/60 transition-colors" />
+            </button>
+          )}
+        </div>
+
+        {/* Dropdown */}
+        {open && suggestions.length > 0 && (
+          <div
+            ref={listRef}
+            className="absolute z-20 top-full mt-1 left-0 right-0 rounded-xl border overflow-hidden shadow-lg"
+            style={{
+              background:  "color-mix(in srgb, var(--background) 98%, var(--primary) 2%)",
+              borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)",
+            }}
+          >
+            {suggestions.map(s => (
+              <button
+                key={s.id}
+                type="button"
+                disabled={addingId === s.id}
+                onClick={() => { onAdd(s); setQuery(""); setOpen(false); }}
+                className="w-full flex items-center gap-2 px-2.5 py-1.5 text-left transition-colors hover:bg-primary/5 disabled:opacity-50"
+              >
+                <div className="w-5 h-5 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center">
+                  {renderThumb(s)}
+                </div>
+                <span className="text-[11px] font-semibold text-primary/70 truncate flex-1">{s.nombre}</span>
+                {addingId === s.id
+                  ? <Loader2 size={9} className="animate-spin text-primary/30 shrink-0" />
+                  : <Plus size={9} className="text-primary/30 shrink-0" />}
+              </button>
+            ))}
           </div>
-          <span className="text-[11px] font-bold text-primary/70 truncate max-w-[110px]">{item.nombre}</span>
-        </button>
-      ))}
+        )}
+
+        {/* Sin resultados */}
+        {open && query.trim().length > 0 && suggestions.length === 0 && (
+          <div
+            ref={listRef}
+            className="absolute z-20 top-full mt-1 left-0 right-0 rounded-xl border px-3 py-2"
+            style={{
+              background:  "color-mix(in srgb, var(--background) 98%, var(--primary) 2%)",
+              borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)",
+            }}
+          >
+            <p className="text-[10px] text-primary/30 italic">Sin resultados</p>
+          </div>
+        )}
+      </div>
+
+      {/* Lista vinculada */}
+      {loading ? (
+        <div className="flex justify-center py-3">
+          <Loader2 size={14} className="animate-spin text-primary/20" />
+        </div>
+      ) : items.length === 0 ? (
+        <p className="text-[10px] font-bold text-primary/20 uppercase tracking-widest text-center py-3 italic">
+          {emptyText}
+        </p>
+      ) : (
+        <div className="flex flex-wrap gap-1.5">
+          {items.map(item => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => onSelect?.(item.id)}
+              disabled={!onSelect}
+              className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02] disabled:hover:scale-100 disabled:cursor-default cursor-pointer"
+              style={{
+                background:  "color-mix(in srgb, var(--primary) 4%, transparent)",
+                borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
+              }}
+            >
+              <div className="w-6 h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center">
+                {renderThumb(item)}
+              </div>
+              <span className="text-[11px] font-bold text-primary/70 truncate max-w-[110px]">{item.nombre}</span>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -216,12 +377,43 @@ export function FormularioLugar({
   onNavigateReino?:   (id: string) => void;
 }) {
   const reinos = useReinos();
-  const { personajes, loading: loadingP } = usePersonajesDelLugar(form.id);
-  const { criaturas,  loading: loadingC } = useCriaturasDeLugar(form.id);
-  const { items,      loading: loadingI } = useItemsDelLugar(form.id);
+  const { personajes, loading: loadingP, reload: reloadP } = usePersonajesDelLugar(form.id);
+  const { criaturas,  loading: loadingC, reload: reloadC } = useCriaturasDeLugar(form.id);
+  const { items,      loading: loadingI, reload: reloadI } = useItemsDelLugar(form.id);
+  const todosPersonajes = useTodosPersonajes();
+  const todasCriaturas  = useTodasCriaturas();
+  const todosItems      = useTodosItems();
   const { onSnippetAction } = useWikilink();
 
+  const [addingP, setAddingP] = useState<string | null>(null);
+  const [addingC, setAddingC] = useState<string | null>(null);
+  const [addingI, setAddingI] = useState<string | null>(null);
+
   const reinoActual = reinos.find(r => r.id === form.reino_id);
+
+  const handleAddPersonaje = async (p: PersonajeMin) => {
+    setAddingP(p.id);
+    await supabase.from("personajes").update({ lugar_id: form.id }).eq("id", p.id);
+    if (db) try { await (db as any).personajes?.update(p.id, { lugar_id: form.id }); } catch {}
+    await reloadP();
+    setAddingP(null);
+  };
+
+  const handleAddCriatura = async (c: CriaturaMin) => {
+    setAddingC(c.id);
+    await supabase.from("criaturas").update({ lugar_id: form.id }).eq("id", c.id);
+    if (db) try { await (db as any).criaturas?.update(c.id, { lugar_id: form.id }); } catch {}
+    await reloadC();
+    setAddingC(null);
+  };
+
+  const handleAddItem = async (i: ItemMin) => {
+    setAddingI(i.id);
+    await supabase.from("items").update({ lugar_id: form.id }).eq("id", i.id);
+    if (db) try { await (db as any).items?.update(i.id, { lugar_id: form.id }); } catch {}
+    await reloadI();
+    setAddingI(null);
+  };
 
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
@@ -377,12 +569,14 @@ export function FormularioLugar({
               </div>
               <div className="p-3">
                 <BloqueEntidades
-                  label="Personajes"
                   Icon={Users}
                   items={personajes}
                   loading={loadingP}
                   onSelect={onSelectPersonaje}
                   emptyText="Sin personajes en este lugar"
+                  allItems={todosPersonajes}
+                  onAdd={handleAddPersonaje}
+                  addingId={addingP}
                   renderThumb={p => (p as any).img_url
                     ? <img src={(p as any).img_url} alt={p.nombre} className="w-full h-full object-cover" />
                     : <Users size={10} className="text-primary/20" />}
@@ -402,12 +596,14 @@ export function FormularioLugar({
               </div>
               <div className="p-3">
                 <BloqueEntidades
-                  label="Criaturas"
                   Icon={Bug}
                   items={criaturas}
                   loading={loadingC}
                   onSelect={onSelectCriatura}
                   emptyText="Sin criaturas en este lugar"
+                  allItems={todasCriaturas}
+                  onAdd={handleAddCriatura}
+                  addingId={addingC}
                   renderThumb={c => (c as any).imagen_url
                     ? <img src={(c as any).imagen_url} alt={c.nombre} className="w-full h-full object-cover" />
                     : <Bug size={10} className="text-primary/20" />}
@@ -427,12 +623,14 @@ export function FormularioLugar({
               </div>
               <div className="p-3">
                 <BloqueEntidades
-                  label="Ítems"
                   Icon={Package}
                   items={items}
                   loading={loadingI}
                   onSelect={onSelectItem}
                   emptyText="Sin ítems en este lugar"
+                  allItems={todosItems}
+                  onAdd={handleAddItem}
+                  addingId={addingI}
                   renderThumb={i => (i as any).imagen_url
                     ? <img src={(i as any).imagen_url} alt={i.nombre} className="w-full h-full object-cover" />
                     : <Package size={10} className="text-primary/20" />}
