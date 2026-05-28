@@ -1342,7 +1342,8 @@ export default function MapaInteractivo() {
       <div className={`relative flex-1 transition-all duration-500 pb-14 md:pb-0 ${panelOpen && !isMobile ? "" : "w-full"}`}>
 
         {isAdmin && (
-          <div className="absolute top-4 right-4 z-70 flex gap-2">
+          <div className="absolute z-70 flex gap-2"
+            style={{ top: (!panelOpen && (reinoSeleccionado || puntoSeleccionado)) ? "3rem" : "1rem", right: "1rem", transition: "top 0.2s ease" }}>
             <button
               onClick={() => setEditMode(!editMode)}
               className="flex items-center gap-2 px-4 py-2 text-[10px] font-semibold uppercase tracking-widest transition-all border"
@@ -1414,6 +1415,32 @@ export default function MapaInteractivo() {
                 boxShadow: "0 1px 4px rgba(0,0,0,0.3)",
               }}>
               <ArrowLeft size={14} /> Volver
+            </MotionButton>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {!panelOpen && (reinoSeleccionado || puntoSeleccionado) && (
+            <MotionButton
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              onClick={() => setPanelOpen(true)}
+              className="absolute top-4 z-50 flex items-center gap-2.5 px-3 py-2 text-[10px] font-bold uppercase transition-all"
+              style={{
+                right: "1rem",
+                background: "color-mix(in srgb, var(--bg-menu) 92%, transparent)",
+                border: "1px solid color-mix(in srgb, var(--primary) 30%, transparent)",
+                color: "var(--accent)",
+                borderRadius: "2px",
+                letterSpacing: "0.12em",
+                boxShadow: "0 1px 4px rgba(0,0,0,0.3)",
+              }}
+            >
+              <BookOpen size={13} />
+              <span className="max-w-[120px] truncate" style={{ fontFamily: "'Cinzel', serif" }}>
+                {puntoSeleccionado?.nombre ?? reinoSeleccionado?.nombre}
+              </span>
             </MotionButton>
           )}
         </AnimatePresence>
