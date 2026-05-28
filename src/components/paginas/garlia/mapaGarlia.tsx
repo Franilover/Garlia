@@ -413,6 +413,7 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
   const lastPinchDist = useRef<number | null>(null);
   // Pulse animation
   const pulseRef = useRef(0);
+  const compassStartRef = useRef<number | null>(null); // timestamp when compass started spinning
   // Theme CSS vars read at draw time
   const cssColorsRef = useRef({ primary: "#6b4423", accent: "#c08040", bg: "#f0e6d0", fg: "#2a1304", bgMenu: "#3d2010", parchBg: "#3d2010", parchText: "#2a1304", whiteCustom: "#fdf6ee" });
   // Fog cache — rebuilt only when markers/size change, not every frame
@@ -453,6 +454,7 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
 
   useEffect(() => {
     setImgLoaded(false);
+    compassStartRef.current = null; // reset so compass spins fresh on next load
     imgRef.current = null;
     const img = new Image();
     img.crossOrigin = "anonymous";
@@ -822,11 +824,22 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
         const cx2 = canvas.width  / 2;
         const cy2 = canvas.height / 2;
 
-        // Slow pulse for overall opacity
-        const pulse = 0.55 + 0.2 * Math.sin(t * 0.0018);
-        // Two counter-rotating angles
-        const angleOuter = (t * 0.00018) % (Math.PI * 2);
-        const angleInner = -(t * 0.00028) % (Math.PI * 2);
+        // Track when the compass first appeared
+        if (compassStartRef.current === null) compassStartRef.current = t;
+        const elapsed = t - compassStartRef.current;
+        const SPIN_DURATION = 3200; // ms to complete the spin
+        const progress = Math.min(elapsed / SPIN_DURATION, 1);
+        // ease-out cubic: fast start, decelerates to a stop
+        const eased = 1 - Math.pow(1 - progress, 3);
+
+        // Outer ring: 1.5 full rotations; inner rose: 2 full rotations (opposite)
+        const angleOuter =  eased * Math.PI * 3;
+        const angleInner = -eased * Math.PI * 4;
+
+        // Pulse fades in, then settles once stopped
+        const pulse = progress < 1
+          ? 0.55 + 0.2 * Math.sin(t * 0.0018)
+          : 0.65;
 
         ctx.save();
         ctx.globalAlpha = pulse;
