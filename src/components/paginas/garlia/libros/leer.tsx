@@ -9,12 +9,9 @@ import { db } from "@/lib/api/client/db";
 import { motion, AnimatePresence } from "framer-motion";
 
 import { CapituloLista, CapituloScrollItem } from "../../myself/garlia/editores/editorCapitulos/snippets/type";
-// ── NUEVO: helpers de slug ───────────────────────────────────────────────────
 import { toSlug, esUUID } from "@/lib/utils/slugify";
-import { LectorSkeleton }      from "../../myself/garlia/editores/editorCapitulos/leer/ui/LectorSkeleton";
-import { IndexPanel }          from "../../myself/garlia/editores/editorCapitulos/leer/ui/IndexPanel";
-import { CapituloScrollBlock } from "../../myself/garlia/editores/editorCapitulos/leer/CapituloScrollBlock";
-import { Vignette }            from "../../myself/garlia/editores/editorCapitulos/leer/ui/LectorOrnamentos";
+import { CapituloScrollBlock } from "@/components/paginas/myself/garlia/editores/editorCapitulos/leer/CapituloScrollBlock";
+import { LectorSkeleton, ReadingProgressBar, Vignette, CapituloHeader, FinCapituloSeparador, IndexPanel, ChapterSelector } from "../../myself/garlia/editores/editorCapitulos/leer/LectorUI";
 
 /* ─────────────────────────────────────────────
    Tipos
@@ -1124,7 +1121,7 @@ export default function Lector() {
       el.scrollIntoView({ behavior: "smooth", block: "start" });
       router.replace(`/garlia/libros/${slugParam}/leer/${segSlug}`, { scroll: false });
     } else {
-      router.push(`/garliaia/libros/${slugParam}/leer/${segSlug}`);
+      router.push(`/garlia/libros/${slugParam}/leer/${segSlug}`);
     }
     setCapId(targetCapId);
   }, [slugParam, router, segmentos, segActivo]);

@@ -1,11 +1,13 @@
 "use client";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { X, Sword } from "lucide-react";
-import { MotionDiv } from '@/components/ui/Motion';
-import { motion } from "framer-motion";
+import { MotionDiv } from "@/components/ui/Motion";
 import { supabase } from "@/lib/api/client/supabase";
-import { CapituloScrollItem } from "../../snippets/type";
 
+/* ─────────────────────────────────────────────
+   Hook: desbloquear personajes al terminar un capítulo
+   Se llama una sola vez por capítulo (ref guard)
+   ───────────────────────────────────────────── */
 export function useDesbloquearPersonajes(capId: string, personajesIds: string[] | undefined) {
   const [desbloqueados, setDesbloqueados] = useState<string[]>([]);
   const [mostrarCelebration, setMostrarCelebration] = useState(false);
@@ -42,6 +44,10 @@ export function useDesbloquearPersonajes(capId: string, personajesIds: string[] 
   return { disparar, mostrarCelebration, desbloqueados, cerrar };
 }
 
+/* ─────────────────────────────────────────────
+   Toast de personajes desbloqueados
+   Se auto-cierra a los 6 segundos
+   ───────────────────────────────────────────── */
 export function PersonajesDesbloqueadosToast({ personajesIds, onClose }: {
   personajesIds: string[];
   onClose: () => void;
@@ -50,7 +56,10 @@ export function PersonajesDesbloqueadosToast({ personajesIds, onClose }: {
 
   useEffect(() => {
     if (!personajesIds.length) return;
-    supabase.from("personajes").select("id, nombre, img_url").in("id", personajesIds)
+    supabase
+      .from("personajes")
+      .select("id, nombre, img_url")
+      .in("id", personajesIds)
       .then(({ data }) => { if (data) setPersonajes(data); });
   }, [personajesIds]);
 
@@ -63,7 +72,9 @@ export function PersonajesDesbloqueadosToast({ personajesIds, onClose }: {
 
   return (
     <MotionDiv
-      initial={{ opacity: 0, y: 40, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 20, scale: 0.95 }}
+      initial={{ opacity: 0, y: 40, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: 20, scale: 0.95 }}
       transition={{ type: "spring", stiffness: 400, damping: 30 }}
       className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[300] w-[calc(100vw-2rem)] max-w-sm"
     >
@@ -73,7 +84,9 @@ export function PersonajesDesbloqueadosToast({ personajesIds, onClose }: {
             <Sword size={11} />
             {personajes.length === 1 ? "Personaje desbloqueado" : `${personajes.length} personajes desbloqueados`}
           </span>
-          <button onClick={onClose} className="text-primary/30 hover:text-primary transition-colors"><X size={14} /></button>
+          <button onClick={onClose} className="text-primary/30 hover:text-primary transition-colors">
+            <X size={14} />
+          </button>
         </div>
         <div className="p-4 flex flex-col gap-3">
           {personajes.map((p) => (
@@ -93,54 +106,5 @@ export function PersonajesDesbloqueadosToast({ personajesIds, onClose }: {
         </div>
       </div>
     </MotionDiv>
-  );
-}
-
-/* ─────────────────────────────────────────────
-   Separador ornamentado al final de cada capítulo
-   Las líneas "se dibujan" desde el centro hacia afuera
-   cuando el elemento entra en viewport
-   ───────────────────────────────────────────── */
-export function FinCapituloSeparador({ cap, onVisible }: {
-  cap: CapituloScrollItem;
-  onVisible: () => void;
-}) {
-  const ref     = useRef<HTMLDivElement>(null);
-  const firedRef = useRef(false);
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setVisible(true);
-          if (!firedRef.current) {
-            firedRef.current = true;
-            onVisible();
-          }
-        }
-      },
-      { threshold: 0.5 }
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [onVisible]);
-
-  return (
-    <div ref={ref} className="mt-20 mb-4 flex flex-col items-center gap-3">
-      {/* Líneas animadas que se expanden */}
-      <div className="flex items-center gap-4 w-full max-w-xs">
-        <motion.div
-          className="flex-1 h-px"
-          style={{ background: "linear-gradient(to left, color-mix(in srgb, var(--primary) 20%, transparent), transparent)" }}
-          initial={{ scaleX: 0, originX: 1 }}
-          animate={visible ? { scaleX: 1 } : { scaleX: 0 }}
-          transition={{ duration: 0.7, ease: "easeOut", delay: 0.1 }}
-        />
-      </div>
-      
-    </div>
   );
 }
