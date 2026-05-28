@@ -33,8 +33,8 @@ function Hourglass({ size = 14 }: { size?: number }) {
       `}</style>
       <rect x="1" y="0"  width="20" height="2.5" rx="0" fill="currentColor" opacity="0.7"/>
       <rect x="1" y="29.5" width="20" height="2.5" rx="0" fill="currentColor" opacity="0.7"/>
-      <path d="M2 2.5 L11 16 L20 2.5 Z"  fill="currentColor" opacity="0.2" stroke="currentColor" strokeWidth="0.8" opacity="0.6"/>
-      <path d="M2 29.5 L11 16 L20 29.5 Z" fill="currentColor" opacity="0.5" stroke="currentColor" strokeWidth="0.8" opacity="0.6"/>
+      <path d="M2 2.5 L11 16 L20 2.5 Z"  fill="currentColor" fillOpacity="0.2" stroke="currentColor" strokeWidth="0.8" strokeOpacity="0.6"/>
+      <path d="M2 29.5 L11 16 L20 29.5 Z" fill="currentColor" fillOpacity="0.5" stroke="currentColor" strokeWidth="0.8" strokeOpacity="0.6"/>
     </svg>
   );
 }
@@ -53,7 +53,7 @@ function Toast({ message, type, onClose }: { message: string; type: ToastType; o
   return (
     <MotionDiv
       initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
-      className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[300] flex items-center gap-3 px-5 py-3 shadow-lg text-[10px] font-bold uppercase tracking-widest"
+      className="fixed bottom-24 left-1/2 -translate-x-1/2 z-300 flex items-center gap-3 px-5 py-3 shadow-lg text-[10px] font-bold uppercase tracking-widest"
       style={{
         background: type === "success" ? "rgba(5,150,105,0.92)" : "rgba(185,28,28,0.92)",
         color: "var(--btn-text, #fff)",
@@ -80,7 +80,7 @@ function PanelContenido({
   const router = useRouter();
   if (editMode) {
     return (
-      <div className="flex flex-col gap-4 flex-grow">
+      <div className="flex flex-col gap-4 grow">
         <div className="flex flex-col gap-1">
           <label className="text-[9px] font-bold uppercase tracking-widest ml-1" style={{ color: "color-mix(in srgb, var(--foreground) 60%, transparent)" }}>Nombre</label>
           <input
@@ -97,7 +97,7 @@ function PanelContenido({
             style={{ borderRadius: "1px", letterSpacing: "0.08em" }}
           />
         </div>
-        <div className="flex flex-col gap-1 flex-grow">
+        <div className="flex flex-col gap-1 grow">
           <label className="text-[9px] font-bold uppercase tracking-widest ml-1" style={{ color: "color-mix(in srgb, var(--foreground) 60%, transparent)" }}>Descripción / Lore</label>
           <textarea
             value={puntoSeleccionado ? puntoSeleccionado.descripcion : reinoSeleccionado.descripcion}
@@ -226,7 +226,7 @@ function PanelContenido({
         </div>
       </div>
 
-      <div className="space-y-6 flex-grow overflow-y-auto pr-1 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-accent/20">
+      <div className="space-y-6 grow overflow-y-auto pr-1 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-accent/20">
         {/* Lore text */}
         <div className="relative p-5 border"
           style={{ borderColor: "color-mix(in srgb, var(--accent) 15%, transparent)", background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
@@ -1339,7 +1339,7 @@ export default function MapaInteractivo() {
       <div className={`relative flex-1 transition-all duration-500 pb-14 md:pb-0 ${panelOpen && !isMobile ? "" : "w-full"}`}>
 
         {isAdmin && (
-          <div className="absolute top-4 right-4 z-[70] flex gap-2">
+          <div className="absolute top-4 right-4 z-70 flex gap-2">
             <button
               onClick={() => setEditMode(!editMode)}
               className="flex items-center gap-2 px-4 py-2 text-[10px] font-semibold uppercase tracking-widest transition-all border"
@@ -1443,7 +1443,7 @@ export default function MapaInteractivo() {
             animate={{ width: 380, opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
             transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
-            className="relative overflow-hidden flex-shrink-0"
+            className="relative overflow-hidden shrink-0"
             style={{
               background: "var(--white-custom)",
               borderLeft: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
@@ -1479,7 +1479,7 @@ export default function MapaInteractivo() {
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
-            className="fixed left-0 right-0 z-[999] overflow-hidden"
+            className="fixed left-0 right-0 z-999 overflow-hidden"
             style={{
               bottom: "56px",
               background: "var(--white-custom)",
