@@ -827,14 +827,14 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
         // Track when the compass first appeared
         if (compassStartRef.current === null) compassStartRef.current = t;
         const elapsed = t - compassStartRef.current;
-        const SPIN_DURATION = 3200; // ms to complete the spin
+        const SPIN_DURATION = 6000; // ms to complete the spin
         const progress = Math.min(elapsed / SPIN_DURATION, 1);
-        // ease-out cubic: fast start, decelerates to a stop
-        const eased = 1 - Math.pow(1 - progress, 3);
+        // ease-out quint: very gradual deceleration
+        const eased = 1 - Math.pow(1 - progress, 5);
 
-        // Outer ring: 1.5 full rotations; inner rose: 2 full rotations (opposite)
-        const angleOuter =  eased * Math.PI * 3;
-        const angleInner = -eased * Math.PI * 4;
+        // Outer ring: 1 full rotation; inner rose: 1.5 rotations (opposite)
+        const angleOuter =  eased * Math.PI * 2;
+        const angleInner = -eased * Math.PI * 3;
 
         // Pulse fades in, then settles once stopped
         const pulse = progress < 1
