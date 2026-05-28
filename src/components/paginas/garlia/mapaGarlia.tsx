@@ -827,7 +827,7 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
         // Track when the compass first appeared
         if (compassStartRef.current === null) compassStartRef.current = t;
         const elapsed = t - compassStartRef.current;
-        const SPIN_DURATION = 6000; // ms to complete the spin
+        const SPIN_DURATION = 9000; // ms to complete the spin
         const progress = Math.min(elapsed / SPIN_DURATION, 1);
         // ease-out quint: very gradual deceleration
         const eased = 1 - Math.pow(1 - progress, 5);
