@@ -1,22 +1,18 @@
 "use client";
+/**
+ * useSnippetEditHandler.tsx
+ * ─────────────────────────
+ * Hook para editar snippets existentes al hacer click en un chip del overlay.
+ * Usa SnippetModalDispatcher directamente — sin duplicar el switch de modales.
+ */
 import React, { useState, useCallback } from "react";
-import {
-  ModalDrop,
-  ModalSonido,
-  ModalSection,
-  ModalChoice,
-  ModalUseItem,
-  ModalGate,
-  ModalImagen,
-} from "./SnippetToolbar";
-
-type SnippetKind =
-  | "drop" | "img" | "float" | "choice" | "use" | "gate"
-  | "section" | "sound" | "cita" | string;
+import { SnippetModalDispatcher } from "./SnippetModals";
+import type { ModalKind } from "./snippetDefs";
+import { KIND_DEFS } from "./snippetDefs";
 
 interface ActiveEdit {
-  kind: SnippetKind;
-  raw: string;
+  kind: ModalKind;
+  raw:  string;
   replace: (next: string) => void;
 }
 
@@ -24,37 +20,26 @@ export function useSnippetEditHandler() {
   const [activeEdit, setActiveEdit] = useState<ActiveEdit | null>(null);
 
   const onEdit = useCallback((raw: string, replace: (next: string) => void) => {
-    const inner = raw.slice(2, -2);
-    const parts  = inner.split("|");
-    const kind   = parts[0].trim() as SnippetKind;
-    setActiveEdit({ kind, raw, replace });
+    const kind = raw.slice(2, -2).split("|")[0].trim();
+    const def  = KIND_DEFS[kind];
+    const modal = def?.modal ?? null;
+    if (!modal) return; // cita y desconocidos no tienen modal de edición
+    setActiveEdit({ kind: modal, raw, replace });
   }, []);
 
   const close = useCallback(() => setActiveEdit(null), []);
 
-  const handleInsert = useCallback((next: string) => {
-    activeEdit?.replace(next);
-    close();
-  }, [activeEdit, close]);
-
   const SnippetEditModals = useCallback(() => {
     if (!activeEdit) return null;
-    const { kind, raw } = activeEdit;
-
-    const sharedProps = { onInsert: handleInsert, onClose: close, initialRaw: raw };
-
-    switch (kind) {
-      case "drop": return <ModalDrop {...sharedProps} />;
-      case "sound": return <ModalSonido {...sharedProps} />;
-      case "img":
-      case "float": return <ModalImagen {...sharedProps} />;
-      case "section": return <ModalSection {...sharedProps} />;
-      case "choice": return <ModalChoice {...sharedProps} />;
-      case "use": return <ModalUseItem {...sharedProps} />;
-      case "gate": return <ModalGate {...sharedProps} />;
-      default: return null;
-    }
-  }, [activeEdit, handleInsert, close]);
+    return (
+      <SnippetModalDispatcher
+        kind={activeEdit.kind}
+        initialRaw={activeEdit.raw}
+        onInsert={next => { activeEdit.replace(next); close(); }}
+        onClose={close}
+      />
+    );
+  }, [activeEdit, close]);
 
   return { onEdit, SnippetEditModals };
 }

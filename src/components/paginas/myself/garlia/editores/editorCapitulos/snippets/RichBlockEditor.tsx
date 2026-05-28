@@ -18,20 +18,16 @@ import React, {
 } from "react";
 import { nanoid } from "nanoid";
 
-import {
-  ModalDrop, ModalSonido, ModalSection,
-  ModalChoice, ModalUseItem, ModalGate, ModalImagen,
-} from "./SnippetToolbar";
+import { SnippetModalDispatcher } from "./SnippetModals";
+import { KIND_DEFS, KIND_FALLBACK, SNIPPET_TYPES } from "./snippetDefs";
+import type { SnippetKind, ModalKind } from "./snippetDefs";
 
 import { MarkdownEditor } from "@/components/forms/MarkdownEditor";
 import type { CommandItem as MdCommandItem, SnippetAction } from "@/components/forms/MarkdownEditor";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// TIPOS
+// TIPOS LOCALES
 // ─────────────────────────────────────────────────────────────────────────────
-
-type SnippetKind =
-  | "drop" | "img" | "float" | "choice" | "use" | "gate" | "section" | "sound" | "cita";
 
 interface TextBlock  { id: string; type: "text"; content: string }
 interface SnipBlock  { id: string; type: "snippet"; kind: SnippetKind; raw: string }
@@ -46,7 +42,6 @@ const SNIPPET_RE = /(\[\[[\s\S]*?\]\])/g;
 function parse(raw: string): Block[] {
   const parts = raw.split(SNIPPET_RE);
   const blocks: Block[] = [];
-
   for (const part of parts) {
     if (!part) continue;
     if (part.startsWith("[[") && part.endsWith("]]")) {
@@ -54,18 +49,13 @@ function parse(raw: string): Block[] {
       blocks.push({ id: nanoid(8), type: "snippet", kind, raw: part });
     } else {
       const prev = blocks[blocks.length - 1];
-      if (prev?.type === "text") {
-        prev.content += part;
-      } else {
-        blocks.push({ id: nanoid(8), type: "text", content: part });
-      }
+      if (prev?.type === "text") { prev.content += part; }
+      else { blocks.push({ id: nanoid(8), type: "text", content: part }); }
     }
   }
-
   if (blocks.length === 0 || blocks[blocks.length - 1].type === "snippet") {
     blocks.push({ id: nanoid(8), type: "text", content: "" });
   }
-
   return blocks;
 }
 
@@ -74,89 +64,21 @@ function serialize(blocks: Block[]): string {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// CONFIG VISUAL
+// MODAL — delegado a SnippetModalDispatcher
 // ─────────────────────────────────────────────────────────────────────────────
-
-interface KindDef {
-  label: string; icon: string;
-  bg: string; border: string; text: string; dot: string;
-  summary: (raw: string) => string;
-}
-
-const KIND_DEFS: Record<string, KindDef> = {
-  drop:    { label:"Drop",    icon:"⚔",  bg:"rgba(127,119,221,.13)", border:"rgba(127,119,221,.4)",  text:"#a09af0", dot:"#7f77dd",
-             summary: r => { const p=r.slice(2,-2).split("|"); return p[4]??p[1]??""; } },
-  img:     { label:"Img",     icon:"🖼",  bg:"rgba(29,158,117,.13)",  border:"rgba(29,158,117,.4)",   text:"#2dc896", dot:"#1d9e75",
-             summary: r => { const p=r.slice(2,-2).split("|"); return p[2]??p[1]??""; } },
-  float:   { label:"Float",   icon:"🖼",  bg:"rgba(15,110,86,.13)",   border:"rgba(15,110,86,.4)",    text:"#14a87e", dot:"#0f6e56",
-             summary: r => { const p=r.slice(2,-2).split("|"); return p[1]??""; } },
-  choice:  { label:"Choice",  icon:"🔀", bg:"rgba(55,138,221,.13)",  border:"rgba(55,138,221,.4)",   text:"#5aabf5", dot:"#378add",
-             summary: r => { const p=r.slice(2,-2).split("|"); return p[1]??""; } },
-  use:     { label:"Use",     icon:"👆", bg:"rgba(226,75,74,.13)",   border:"rgba(226,75,74,.4)",    text:"#f07574", dot:"#e24b4a",
-             summary: r => { const p=r.slice(2,-2).split("|"); return p[1]??""; } },
-  gate:    { label:"Gate",    icon:"🚪", bg:"rgba(186,117,23,.13)",  border:"rgba(186,117,23,.4)",   text:"#e09a2a", dot:"#ba7517",
-             summary: r => { const p=r.slice(2,-2).split("|"); return p[1]??""; } },
-  section: { label:"Sección", icon:"›",  bg:"rgba(83,74,183,.13)",   border:"rgba(83,74,183,.4)",    text:"#8b83e8", dot:"#534ab7",
-             summary: r => { const p=r.slice(2,-2).split("|"); return p[2]??p[1]??""; } },
-  sound:   { label:"Sonido",  icon:"♪",  bg:"rgba(212,83,126,.13)",  border:"rgba(212,83,126,.4)",   text:"#e87aaa", dot:"#d4537e",
-             summary: r => { const p=r.slice(2,-2).split("|"); return p[1]??""; } },
-  cita:    { label:"Cita",    icon:"«»", bg:"rgba(186,117,23,.10)",  border:"rgba(186,117,23,.3)",   text:"#e09a2a", dot:"#ba7517",
-             summary: r => { const t=r.slice(2,-2).split("|").slice(1).join("|"); return t.length>28?t.slice(0,28)+"…":t; } },
-};
-
-const FALLBACK: KindDef = {
-  label:"?", icon:"◆", bg:"rgba(128,128,128,.1)", border:"rgba(128,128,128,.3)",
-  text:"#aaa", dot:"#888", summary: r => r.slice(2,-2).slice(0,20),
-};
-
-const KIND_TO_MODAL: Record<string, ModalKind> = {
-  drop:"drop", img:"imagen", float:"imagen",
-  choice:"choice", use:"use", gate:"gate", section:"section", sound:"sound",
-};
-
-// ─────────────────────────────────────────────────────────────────────────────
-// MODAL
-// ─────────────────────────────────────────────────────────────────────────────
-
-type ModalKind = "drop"|"imagen"|"choice"|"use"|"gate"|"section"|"sound"|null;
 
 interface ModalState {
-  kind: ModalKind;
+  kind:        ModalKind;
   initialRaw?: string;
-  onInsert: (s: string) => void;
-}
-
-function SnippetModal({ state, listaCapitulos, onClose }: {
-  state: ModalState;
-  listaCapitulos: { id: string; orden: number; titulo_capitulo: string }[];
-  onClose: () => void;
-}) {
-  const shared = { onInsert: state.onInsert, onClose, initialRaw: state.initialRaw };
-  switch (state.kind) {
-    case "drop":    return <ModalDrop    {...shared} />;
-    case "imagen":  return <ModalImagen  {...shared} />;
-    case "choice":  return <ModalChoice  {...shared} listaCapitulos={listaCapitulos} />;
-    case "use":     return <ModalUseItem {...shared} listaCapitulos={listaCapitulos} />;
-    case "gate":    return <ModalGate    {...shared} />;
-    case "section": return <ModalSection {...shared} />;
-    case "sound":   return <ModalSonido  {...shared} />;
-    default: return null;
-  }
+  onInsert:    (s: string) => void;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ADD MENU
 // ─────────────────────────────────────────────────────────────────────────────
 
-const ADD_ITEMS: { kind: ModalKind; label: string; icon: string; color: string }[] = [
-  { kind:"drop",    label:"Drop (entidad)",    icon:"⚔",  color:"#a09af0" },
-  { kind:"choice",  label:"Choice (decisión)", icon:"🔀", color:"#5aabf5" },
-  { kind:"use",     label:"Usar ítem",         icon:"👆", color:"#f07574" },
-  { kind:"gate",    label:"Puerta de ítem",    icon:"🚪", color:"#e09a2a" },
-  { kind:"section", label:"Sección / ancla",   icon:"›",  color:"#8b83e8" },
-  { kind:"imagen",  label:"Imagen",            icon:"🖼",  color:"#2dc896" },
-  { kind:"sound",   label:"Sonido / música",   icon:"♪",  color:"#e87aaa" },
-];
+// ADD_ITEMS viene de SNIPPET_TYPES en snippetDefs.ts
+const ADD_ITEMS = SNIPPET_TYPES.map(t => ({ ...t, color: KIND_DEFS[t.kind === "imagen" ? "img" : t.kind]?.text ?? "#aaa" }));
 
 function AddMenu({ onPick, onClose }: { onPick:(k:ModalKind)=>void; onClose:()=>void }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -258,7 +180,7 @@ function SnipCard({ block, onEdit, onDelete }: {
   onEdit: (b: SnipBlock) => void;
   onDelete: (id: string) => void;
 }) {
-  const def = KIND_DEFS[block.kind] ?? FALLBACK;
+  const def = KIND_DEFS[block.kind] ?? KIND_FALLBACK;
   const summary = def.summary(block.raw);
   const [hov, setHov] = useState(false);
 
@@ -417,7 +339,8 @@ export function RichBlockEditor({
 
   // Open edit-snippet modal
   const openEdit = useCallback((block: SnipBlock) => {
-    const kind = KIND_TO_MODAL[block.kind] ?? null;
+    const def  = KIND_DEFS[block.kind];
+    const kind = def?.modal ?? null;
     if (!kind) return;
     setModal({
       kind, initialRaw: block.raw,
@@ -498,7 +421,13 @@ export function RichBlockEditor({
       })}
 
       {modal && (
-        <SnippetModal state={modal} listaCapitulos={listaCapitulos} onClose={closeModal} />
+        <SnippetModalDispatcher
+          kind={modal.kind}
+          initialRaw={modal.initialRaw}
+          onInsert={modal.onInsert}
+          onClose={closeModal}
+          listaCapitulos={listaCapitulos}
+        />
       )}
     </div>
   );
@@ -528,4 +457,4 @@ const TextBlockWrapper = React.memo(function TextBlockWrapper({
       onSnippetAction={onSnippetAction}
     />
   );
-}); 
+});
