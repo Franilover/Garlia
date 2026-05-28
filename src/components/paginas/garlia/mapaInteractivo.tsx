@@ -1306,18 +1306,21 @@ export default function MapaInteractivo() {
 
   // Solo bloquea la UI si no hay absolutamente ningún dato todavía (primera carga ever)
   if (loading && reinos.length === 0) return (
-    <div className="fixed inset-0 md:left-[68px] flex flex-col items-center justify-center gap-6" style={{ background: "var(--bg-main)" }}>
+    <div className="fixed inset-0 md:left-[68px] flex flex-col items-center justify-center gap-4" style={{ background: "var(--bg-main)" }}>
+      <style>{`
+        @keyframes parch-blink { 0%,100% { opacity: 0.2; } 50% { opacity: 0.7; } }
+      `}</style>
       <div style={{ color: "color-mix(in srgb, var(--accent) 55%, transparent)" }}>
         <Hourglass size={28} />
       </div>
-      <div className="flex flex-col items-center gap-1">
+      <div className="flex flex-col items-center gap-2">
         <span className="text-[9px] font-bold uppercase tracking-[0.35em]" style={{ color: "color-mix(in srgb, var(--accent) 45%, transparent)", fontFamily: "'Cinzel', serif" }}>
           Desplegando Cartografía
         </span>
-        <div className="flex items-center gap-2" style={{ color: "color-mix(in srgb, var(--accent) 20%, transparent)" }}>
-          <div className="h-px w-10" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }} />
-          <div className="w-1 h-1 rotate-45" style={{ background: "color-mix(in srgb, var(--accent) 30%, transparent)" }} />
-          <div className="h-px w-10" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }} />
+        <div className="flex items-center gap-2">
+          {[0, 0.4, 0.8].map((delay) => (
+            <div key={delay} className="w-1 h-1 rotate-45" style={{ background: "color-mix(in srgb, var(--accent) 40%, transparent)", animation: `parch-blink 1.8s ease-in-out ${delay}s infinite` }} />
+          ))}
         </div>
       </div>
     </div>
