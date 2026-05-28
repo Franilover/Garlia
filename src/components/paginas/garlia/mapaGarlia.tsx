@@ -476,19 +476,38 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
     const canvas = canvasRef.current;
     const container = containerRef.current;
     if (!canvas || !container) return;
+
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
     const resize = () => {
-      const prevW = canvas.width;
-      const prevH = canvas.height;
-      canvas.width = container.clientWidth;
-      canvas.height = container.clientHeight;
-      if (imgRef.current && (prevW !== canvas.width || prevH !== canvas.height)) {
-        centerImage();
-      }
+      const newW = container.clientWidth;
+      const newH = container.clientHeight;
+      // Si el tamaño no cambió, no tocar el canvas — evita parpadeo por limpieza
+      if (canvas.width === newW && canvas.height === newH) return;
+      // Debounce: durante la animación del panel el contenedor cambia frame a frame.
+      // Esperamos a que se detenga antes de reasignar canvas.width (lo que lo borra).
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        const finalW = container.clientWidth;
+        const finalH = container.clientHeight;
+        if (canvas.width === finalW && canvas.height === finalH) return;
+        canvas.width  = finalW;
+        canvas.height = finalH;
+        if (imgRef.current) centerImage();
+      }, 150); // 150ms — más que un frame, menos que la animación del panel (350ms)
     };
-    resize();
+
+    // Primera llamada inmediata (sin debounce, el panel no está animando todavía)
+    canvas.width  = container.clientWidth;
+    canvas.height = container.clientHeight;
+    if (imgRef.current) centerImage();
+
     const ro = new ResizeObserver(resize);
     ro.observe(container);
-    return () => ro.disconnect();
+    return () => {
+      ro.disconnect();
+      if (debounceTimer) clearTimeout(debounceTimer);
+    };
   }, [centerImage]);
 
   // ── Render loop with fog effect ──────────────────────────────────────────────
