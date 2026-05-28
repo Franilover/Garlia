@@ -126,15 +126,17 @@ export function parseContenido(texto: string): Segment[] {
     else if (kind === "float")   segs.push({ type: "float",   word: parts[0], url: parts[1], caption: parts[2] });
     else if (kind === "sound")   segs.push({ type: "sound",   url: parts[0], volume: parseFloat(parts[1] ?? "0.5") });
     else if (kind === "drop") {
-      // Formato guardado: [[drop|id|nombre]] (2 partes)
-      // Formato legacy:   [[drop|word|tipo|id|nombre]] (4 partes)
-      const isLegacy = parts.length >= 4;
+      // Formato: [[drop|palabra|tipo|id|nombre]]
+      // parts[0] = palabra visible en el texto
+      // parts[1] = tipo (item | criatura | personaje)
+      // parts[2] = id (UUID de la entidad)
+      // parts[3] = nombre de la entidad
       segs.push({
         type:          "drop",
-        word:          isLegacy ? parts[0] : parts[1] ?? parts[0],
-        entidadTipo:   isLegacy ? parts[1] as "item" | "criatura" | "personaje" : "personaje",
-        entidadId:     isLegacy ? parts[2] : parts[0],
-        entidadNombre: isLegacy ? parts[3] : parts[1] ?? parts[0],
+        word:          parts[0] ?? "",
+        entidadTipo:   (parts[1] ?? "personaje") as "item" | "criatura" | "personaje",
+        entidadId:     parts[2] ?? "",
+        entidadNombre: parts[3] ?? parts[0] ?? "",
       });
     }
     else if (kind === "choice")  segs.push({ type: "choice",  label: parts[0], target: parts[1] });
