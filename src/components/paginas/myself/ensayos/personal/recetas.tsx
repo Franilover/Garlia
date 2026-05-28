@@ -18,7 +18,7 @@ import { recetasQueries } from "@/lib/api/queries/personal/cocina/recetas";
 import { Btn, BtnIcon, Loading } from "@/components/ui";
 import { useToast } from "@/hooks/ui/useToast";
 import { ToastContainer } from "@/components/ui/ToastContainer";
-import { SectionTitle, FieldInput } from "@/components/paginas/myself/vida/salud/ui/SaludUi";
+import { SectionTitle, FieldInput } from "@/components/paginas/myself/vida/ensayos/personal/ui/SaludUi";
 import {
   Utensils, Clock, ChevronRight, Search, ChefHat, Flame,
   Plus, X, ChevronLeft, Minus, Carrot, Save, Activity,

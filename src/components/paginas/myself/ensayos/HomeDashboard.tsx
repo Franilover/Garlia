@@ -4,15 +4,15 @@ import { MotionDiv } from "@/components/ui/Motion";
 import { Star, FileText, ArrowRight, Hash, Clock, CheckSquare, Plus, Check, X, ShoppingCart, Dumbbell, Package, UtensilsCrossed, ChevronLeft, Search, Shirt } from "lucide-react";
 
 import { AnimatePresence } from "framer-motion";
-import { RelojDigital } from "@/components/paginas/myself/vida/escritorio/tareas/relojDigital";
-import { VistaMes } from "@/components/paginas/myself/vida/escritorio/tareas/vistaMes";
-import { VistaSemanal } from "@/components/paginas/myself/vida/escritorio/tareas/vistaSemanal";
-import type { ModoCalendario } from "@/components/paginas/myself/vida/escritorio/tareas/types";
-import ComprasPage from "@/components/paginas/myself/vida/salud/compras";
-import { PaginaEjercicios } from "@/components/paginas/myself/vida/salud/ejerciciosComponent";
-import { IngredientesPage } from "@/components/paginas/myself/vida/salud/ingredientes";
-import RecetasPage from "@/components/paginas/myself/vida/salud/recetas";
-import ArmarioPage from "@/components/paginas/myself/vida/ropa";
+import { RelojDigital } from "@/components/paginas/myself/ensayos/personal/tareas/relojDigital";
+import { VistaMes } from "@/components/paginas/myself/ensayos/personal/tareas/vistaMes";
+import { VistaSemanal } from "@/components/paginas/myself/ensayos/personal/tareas/vistaSemanal";
+import type { ModoCalendario } from "@/components/paginas/myself/ensayos/personal/tareas/types";
+import ComprasPage from "@/components/paginas/myself/ensayos/personal/compras";
+import { PaginaEjercicios } from "@/components/paginas/myself/ensayos/personal/ejerciciosComponent";
+import { IngredientesPage } from "@/components/paginas/myself/ensayos/personal/ingredientes";
+import RecetasPage from "@/components/paginas/myself/ensayos/personal/recetas";
+import ArmarioPage from "@/components/paginas/myself/vida/ensayos/personal/ropa";
 
 interface HomeDashboardProps {
   ensayos: any[];

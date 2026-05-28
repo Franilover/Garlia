@@ -14,7 +14,7 @@ import Link from "next/link";
 import { Btn, BtnIcon, Badge, Modal, InputLine, Textarea, Loading, EmptyState, BackBtn, Divider, PageHeader } from "@/components/ui";
 import { useToast } from "@/hooks/ui/useToast";
 import { ToastContainer } from "@/components/ui/ToastContainer";
-import { SectionTitle, FieldInput, MacroBadge } from "@/components/paginas/myself/vida/salud/ui/SaludUi";
+import { SectionTitle, FieldInput, MacroBadge } from "@/components/paginas/myself/vida/ensayos/personal/ui/SaludUi";
 
 const CATEGORIAS: { label: string; Icon: LucideIcon }[] = [
   { label: "Proteínas",     Icon: Drumstick  },
