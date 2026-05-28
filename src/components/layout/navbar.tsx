@@ -363,8 +363,11 @@ const Navbar = () => {
         className="hidden md:flex fixed left-0 top-0 h-full z-[100] flex-col"
         style={{
           width: "52px",
-          background: "var(--bg-menu)",
+          background: "color-mix(in srgb, var(--bg-main) 92%, transparent)",
           borderRight: "var(--border-width) solid color-mix(in srgb, var(--primary) 12%, transparent)",
+          backdropFilter: "blur(16px)",
+          WebkitBackdropFilter: "blur(16px)",
+          boxShadow: "var(--shadow-card)",
         }}
       >
         <div className="flex items-center justify-center shrink-0 mx-auto"
@@ -506,8 +509,9 @@ const Navbar = () => {
         <div className="flex items-center justify-between w-full px-4 relative z-[100]"
           style={{
             height: "56px",
-            background: "var(--bg-menu)",
-            borderTop: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+            background: "color-mix(in srgb, var(--bg-main) 90%, transparent)",
+            backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
+            borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
           }}
         >
           {/* Theme toggle */}
