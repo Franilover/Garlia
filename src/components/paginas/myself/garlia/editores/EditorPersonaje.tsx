@@ -223,6 +223,32 @@ function useCriaturaVariantesPorNombre(nombreEspecie: string | null | undefined)
   return variantes;
 }
 
+
+// ─── Hook: nombres de lugares (para el selector) ─────────────────────────────
+type LugarMin = { id: string; nombre: string };
+
+function useLugares(): LugarMin[] {
+  const [lugares, setLugares] = useState<LugarMin[]>([]);
+  useEffect(() => {
+    const run = async () => {
+      try {
+        if (db) {
+          const local: any[] = await (db as any).lugares?.toArray() ?? [];
+          if (local.length) {
+            setLugares(local.filter((l: any) => !l.deleted).sort((a: any, b: any) => a.nombre.localeCompare(b.nombre)));
+            if (!navigator.onLine) return;
+          }
+        }
+      } catch {}
+      if (!navigator.onLine) return;
+      const { data } = await supabase.from("lugares").select("id, nombre").order("nombre");
+      if (data) setLugares(data);
+    };
+    run();
+  }, []);
+  return lugares;
+}
+
 // ─── Hook: grupos a los que pertenece el personaje ───────────────────────────
 type GrupoMin = { id: string; nombre: string; tipo: string };
 
@@ -333,7 +359,7 @@ function SeccionHechizos({ personajeId, grupoIds }: { personajeId: string; grupo
 
 // ─── FormularioPersonaje ──────────────────────────────────────────────────────
 export function FormularioPersonaje({
-  form, setForm, status, onSave, onDelete, compacto = false, entities = [], onNavigate, onSelectPersonaje, onOpenGrupo,
+  form, setForm, status, onSave, onDelete, compacto = false, entities = [], onNavigate, onSelectPersonaje, onOpenGrupo, onNavigateLugar,
 }: {
   form: Personaje;
   setForm: React.Dispatch<React.SetStateAction<Personaje>>;
@@ -345,9 +371,11 @@ export function FormularioPersonaje({
   onNavigate?: (tab: "criaturas" | "reinos", nombre: string) => void;
   onSelectPersonaje?: (id: string) => void;
   onOpenGrupo?: (id: string) => void;
+  onNavigateLugar?: (id: string) => void;
 }) {
   const especies = useNombresDeTabla("criaturas");
   const reinos   = useNombresDeTabla("reinos");
+  const lugares  = useLugares();
   const variantes  = useCriaturaVariantesPorNombre(form.especie);
   const grupoIds   = useGruposDeCriaturaPorNombre(form.especie);
   const { onSnippetAction } = useWikilink();
@@ -462,8 +490,8 @@ export function FormularioPersonaje({
                 <div className="flex-1 min-w-0 space-y-3">
                   {/* Fila de dropdowns + Don */}
                   <div className="flex flex-col sm:flex-row gap-2 items-start">
-                    <div className="flex-1 min-w-0 grid grid-cols-2 sm:grid-cols-2 gap-2">
-                      <div className="space-y-1">
+                    <div className="flex-1 min-w-0 grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      <div className="space-y-1 col-span-1">
                         <SelectorTexto label="Especie" value={form.especie ?? ""} onChange={v => setForm(f => ({ ...f, especie: v, variante_id: null }))} opciones={especies} placeholder="Humano, elfo, demonio…" onNavigate={onNavigate ? (n) => onNavigate("criaturas", n) : undefined} />
                         {variantes.length > 0 && (
                           <div className="flex flex-wrap items-center gap-1 pt-0.5">
@@ -489,6 +517,22 @@ export function FormularioPersonaje({
                         )}
                       </div>
                       <SelectorTexto label="Reino" value={form.reino ?? ""} onChange={v => setForm(f => ({ ...f, reino: v }))} opciones={reinos} placeholder="Reino, grupo, nación…" onNavigate={onNavigate ? (n) => onNavigate("reinos", n) : undefined} />
+                      {(() => {
+                        const lugarActual = lugares.find(l => l.id === (form as any).lugar_id);
+                        return (
+                          <SelectorTexto
+                            label="Lugar"
+                            value={lugarActual?.nombre ?? ""}
+                            onChange={nombre => {
+                              const l = lugares.find(x => x.nombre === nombre);
+                              setForm(f => ({ ...f, lugar_id: l?.id ?? null } as any));
+                            }}
+                            opciones={lugares.map(l => l.nombre)}
+                            placeholder="Aldea, ciudad, mazmorra…"
+                            onNavigate={onNavigateLugar && lugarActual ? () => onNavigateLugar(lugarActual.id) : undefined}
+                          />
+                        );
+                      })()}
                     </div>
 
                     {/* Don — mismo estilo que Especie / Reino */}
@@ -576,12 +620,13 @@ export function FormularioPersonaje({
 
 // ─── EditorPersonaje ──────────────────────────────────────────────────────────
 export function EditorPersonaje({
-  item, onSaved, onDeleted, entities = [], onNavigate, onSelectPersonaje, onOpenGrupo,
+  item, onSaved, onDeleted, entities = [], onNavigate, onSelectPersonaje, onOpenGrupo, onNavigateLugar,
 }: {
   item: Personaje; onSaved: (p: Personaje) => void; onDeleted: (id: string) => void; entities?: WikiEntity[];
   onNavigate?: (tab: "criaturas" | "reinos", nombre: string) => void;
   onSelectPersonaje?: (id: string) => void;
   onOpenGrupo?: (id: string) => void;
+  onNavigateLugar?: (id: string) => void;
 }) {
   const [form,   setForm]   = useState<Personaje>(item);
   const [status, setStatus] = useState<SaveStatus>("idle");
@@ -601,6 +646,7 @@ export function EditorPersonaje({
         especie:         form.especie,
         caracteristicas: form.caracteristicas || null,
         variante_id:     (form as any).variante_id    || null,
+        lugar_id:        (form as any).lugar_id        || null,
       }).eq("id", form.id);
       if (error) throw error;
       setStatus("saved");
@@ -621,7 +667,7 @@ export function EditorPersonaje({
   return (
     <>
       <ConfirmModal />
-      <FormularioPersonaje form={form} setForm={setForm} status={status} onSave={save} onDelete={del} entities={entities} onNavigate={onNavigate} onSelectPersonaje={onSelectPersonaje} onOpenGrupo={onOpenGrupo} />
+      <FormularioPersonaje form={form} setForm={setForm} status={status} onSave={save} onDelete={del} entities={entities} onNavigate={onNavigate} onSelectPersonaje={onSelectPersonaje} onOpenGrupo={onOpenGrupo} onNavigateLugar={onNavigateLugar} />
     </>
   );
 }
