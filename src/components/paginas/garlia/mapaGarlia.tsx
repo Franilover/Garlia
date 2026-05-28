@@ -1385,74 +1385,7 @@ export default function MapaInteractivo() {
 
   // Solo bloquea la UI si no hay absolutamente ningún dato todavía (primera carga ever)
   if (loading && reinos.length === 0) return (
-    <div className="fixed inset-0 md:left-[68px] flex flex-col items-center justify-center gap-6" style={{ background: "var(--bg-main)" }}>
-      <style>{`
-        @keyframes compass-outer { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        @keyframes compass-inner { from { transform: rotate(0deg); } to { transform: rotate(-360deg); } }
-        @keyframes compass-fade  { 0%,100% { opacity: 0.35; } 50% { opacity: 0.85; } }
-      `}</style>
-
-      {/* ── Antique compass rose ── */}
-      <div style={{ position: "relative", width: 72, height: 72 }}>
-        {/* Outer ring — ticks + dashes, rotates slowly */}
-        <svg width="72" height="72" viewBox="0 0 72 72" fill="none"
-          style={{ position: "absolute", inset: 0, animation: "compass-outer 12s linear infinite",
-                   color: "color-mix(in srgb, var(--accent) 35%, transparent)" }}>
-          <circle cx="36" cy="36" r="32" stroke="currentColor" strokeWidth="0.8" strokeDasharray="3 6" />
-          {[0,45,90,135,180,225,270,315].map(deg => {
-            const r = deg * Math.PI / 180;
-            const long = [0,90,180,270].includes(deg);
-            const r1 = long ? 26 : 28;
-            return (
-              <line key={deg}
-                x1={36 + r1 * Math.cos(r)} y1={36 + r1 * Math.sin(r)}
-                x2={36 + 32 * Math.cos(r)} y2={36 + 32 * Math.sin(r)}
-                stroke="currentColor" strokeWidth={long ? 1.2 : 0.7} />
-            );
-          })}
-        </svg>
-
-        {/* Inner compass — 8-pointed rose, counter-rotates */}
-        <svg width="72" height="72" viewBox="0 0 72 72" fill="none"
-          style={{ position: "absolute", inset: 0, animation: "compass-inner 8s linear infinite",
-                   color: "color-mix(in srgb, var(--accent) 65%, transparent)" }}>
-          {/* 4 cardinal points */}
-          <polygon points="36,8 38.5,30 36,36 33.5,30"  fill="currentColor" fillOpacity="0.9" />
-          <polygon points="36,64 38.5,42 36,36 33.5,42" fill="currentColor" fillOpacity="0.5" />
-          <polygon points="8,36 30,38.5 36,36 30,33.5"  fill="currentColor" fillOpacity="0.5" />
-          <polygon points="64,36 42,38.5 36,36 42,33.5" fill="currentColor" fillOpacity="0.5" />
-          {/* 4 diagonal minor points */}
-          {[45,135,225,315].map(deg => {
-            const r = deg * Math.PI / 180;
-            const tip = { x: 36 + 20 * Math.cos(r), y: 36 + 20 * Math.sin(r) };
-            const lx = 36 + 8 * Math.cos(r - 1.2), ly = 36 + 8 * Math.sin(r - 1.2);
-            const rx = 36 + 8 * Math.cos(r + 1.2), ry = 36 + 8 * Math.sin(r + 1.2);
-            return <polygon key={deg} points={`${tip.x},${tip.y} ${lx},${ly} 36,36 ${rx},${ry}`}
-              fill="currentColor" fillOpacity="0.3" />;
-          })}
-          {/* Center jewel */}
-          <circle cx="36" cy="36" r="4"   fill="currentColor" fillOpacity="0.25" stroke="currentColor" strokeWidth="0.8" strokeOpacity="0.6" />
-          <circle cx="36" cy="36" r="1.8" fill="currentColor" fillOpacity="0.9" />
-        </svg>
-      </div>
-
-      {/* ── Label ── */}
-      <div className="flex flex-col items-center gap-3">
-        <span className="text-[9px] font-bold uppercase tracking-[0.35em]"
-          style={{ color: "color-mix(in srgb, var(--accent) 45%, transparent)", fontFamily: "'Cinzel', serif" }}>
-          Desplegando Cartografía
-        </span>
-        {/* Ornamental divider — ink flourish */}
-        <svg width="120" height="12" viewBox="0 0 120 12" fill="none"
-          style={{ color: "color-mix(in srgb, var(--accent) 40%, transparent)", animation: "compass-fade 2.4s ease-in-out infinite" }}>
-          <line x1="0"  y1="6" x2="46" y2="6" stroke="currentColor" strokeWidth="0.7" />
-          <polygon points="50,6 53,3 56,6 53,9" fill="currentColor" fillOpacity="0.8" />
-          <polygon points="60,6 63,3 66,6 63,9" fill="currentColor" fillOpacity="0.5" />
-          <polygon points="70,6 73,3 76,6 73,9" fill="currentColor" fillOpacity="0.3" />
-          <line x1="79" y1="6" x2="120" y2="6" stroke="currentColor" strokeWidth="0.7" />
-        </svg>
-      </div>
-    </div>
+    <div className="fixed inset-0 md:left-[68px]" style={{ background: "var(--bg-main)" }} />
   );
 
   return (
