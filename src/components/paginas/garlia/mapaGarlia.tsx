@@ -1260,7 +1260,7 @@ export default function MapaInteractivo() {
     if (db) {
       try {
         const [cachedDetalles, cachedPersonajes, cachedLibros, cachedCaps] = await Promise.all([
-          db.reino_detalles.where("reino_id").equals(reino.id).toArray().catch(() => []),
+          (db as any).lugares?.where("reino_id").equals(reino.id).toArray().catch(() => []) ?? [],
           db.personajes.filter((p: any) => p.reino === reino.nombre).toArray().catch(() => []),
           db.libros.filter((l: any) => l.reino_id === reino.id).toArray().catch(() => []),
           db.capitulos.filter((c: any) => c.reino_id === reino.id).toArray().catch(() => []),
@@ -1276,7 +1276,7 @@ export default function MapaInteractivo() {
 
     // ── 2. Fetch Supabase — siempre pisa el caché con datos frescos ──────
     const [detallesRes, personajesRes, librosRes, capitulosRes] = await Promise.all([
-      supabase.from("reino_detalles").select("*").eq("reino_id", reino.id),
+      supabase.from("lugares").select("*").eq("reino_id", reino.id),
       supabase.from("personajes").select("id, nombre, img_url, especie, reino, sobre").eq("reino", reino.nombre),
       supabase.from("libros").select("id, titulo, portada_url, estado").eq("reino_id", reino.id).eq("visibilidad", "publico"),
       supabase.from("capitulos")
@@ -1292,7 +1292,7 @@ export default function MapaInteractivo() {
     // Aplicar resultados — siempre setear aunque sea array vacío, para no dejar datos stale
     if (!detallesRes.error) {
       setDetallesReino(detallesRes.data ?? []);
-      try { if (db && detallesRes.data?.length) await db.reino_detalles.bulkPut(detallesRes.data); } catch {}
+      try { if (db && detallesRes.data?.length) await (db as any).lugares?.bulkPut(detallesRes.data); } catch {}
     }
 
     if (!personajesRes.error) {
@@ -1388,7 +1388,7 @@ export default function MapaInteractivo() {
       if (vistaActual === "reino" && modifiedDetalles.size > 0) {
         const toSave = detallesReino.filter(p => modifiedDetalles.has(p.id));
         await Promise.all(toSave.map(p =>
-          supabase.from("reino_detalles").update({
+          supabase.from("lugares").update({
             nombre: p.nombre, descripcion: p.descripcion,
             coord_x: p.coord_x, coord_y: p.coord_y, oculto: p.oculto ?? false,
           }).eq("id", p.id)
