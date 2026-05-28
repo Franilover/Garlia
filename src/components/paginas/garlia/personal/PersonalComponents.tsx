@@ -43,7 +43,7 @@ export function ModalDetalle({ entidad, onClose }: { entidad: EntidadModal; onCl
   const nombre = isItemInv
     ? (entidad.data as ItemInventario).items.nombre
     : (entidad.data as Descubrimiento).nombre
-      ?? (isCriatura ? "Criatura Desconocida" : entidad.tipo === "item" ? "Objeto" : "Contacto");
+      ?? (isCriatura ? "Criatura Desconocida" : entidad.tipo === "item" ? "Objeto" : "Personaje");
 
   const descripcion = isItemInv
     ? (entidad.data as ItemInventario).items.descripcion
@@ -125,7 +125,7 @@ export function ModalDetalle({ entidad, onClose }: { entidad: EntidadModal; onCl
               style={{ background: "var(--primary)", borderRadius: "2px" }}>
               <IconComp size={9} style={{ color: "var(--btn-text, white)" }} />
               <span className="text-[8px] font-black uppercase tracking-widest" style={{ color: "var(--btn-text, white)" }}>
-                {isItem ? "objeto" : isCriatura ? "criatura" : "contacto"}
+                {isItem ? "objeto" : isCriatura ? "criatura" : "personaje"}
               </span>
             </div>
           </div>
