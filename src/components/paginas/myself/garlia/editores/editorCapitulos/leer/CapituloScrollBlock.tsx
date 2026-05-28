@@ -4,8 +4,9 @@ import { AlignLeft, Clock } from "lucide-react";
 import { AnimatePresence } from "framer-motion";
 import { CapituloScrollItem } from "../snippets/type";
 import { ContenidoInteractivo } from "./ContenidoInteractivo";
-import { useDesbloquearPersonajes, PersonajesDesbloqueadosToast, FinCapituloSeparador } from "./ui/PersonajesYSeparador";
 
+import { LectorSkeleton, ReadingProgressBar, Vignette, CapituloHeader, FinCapituloSeparador, IndexPanel, ChapterSelector } from "./LectorUI";
+import { useDesbloquearPersonajes, PersonajesDesbloqueadosToast } from "./usePersonajes";
 /**
  * Estilos de fuente fluida para el lector.
  * Usamos container queries para que el tamaño de fuente responda al ancho
