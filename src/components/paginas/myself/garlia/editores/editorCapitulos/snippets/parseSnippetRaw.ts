@@ -6,7 +6,7 @@
  */
 
 export type ParsedSnippet =
-  | { kind: "drop";    entidadId: string; label: string }
+  | { kind: "drop";    entidadId: string; entidadTipo: string; label: string }
   | { kind: "img";     url: string; alt: string; float: boolean }
   | { kind: "float";   url: string; alt: string; float: true }
   | { kind: "choice";  texto: string; target: string }
@@ -28,7 +28,17 @@ export function parseSnippetRaw(raw: string | undefined): ParsedSnippet | null {
 
   switch (kind) {
     case "drop":
-      return { kind: "drop", entidadId: parts[1] ?? "", label: parts[2] ?? "" };
+      // Formato: [[drop|palabra|tipo|id|nombre]]
+      // parts[1] = palabra (label visible en el texto)
+      // parts[2] = tipo (item | criatura | personaje)
+      // parts[3] = id de la entidad
+      // parts[4] = nombre de la entidad
+      return {
+        kind:        "drop",
+        label:       parts[1] ?? "",
+        entidadTipo: parts[2] ?? "",
+        entidadId:   parts[3] ?? "",
+      };
     case "img":
       return { kind: "img", url: parts[1] ?? "", alt: parts[2] ?? "", float: false };
     case "float":

@@ -20,9 +20,19 @@ type SnippetProps = {
 
 export const ModalDrop = ({ onInsert, onClose, initialRaw }: SnippetProps) => {
   const init = parseSnippetRaw(initialRaw);
-  const initialEntidadId = init?.kind === "drop" ? init.entidadId : undefined;
+  // FIX: ahora extraemos tanto el id como el tipo de la entidad
+  const initialEntidadId   = init?.kind === "drop" ? init.entidadId   : undefined;
+  const initialEntidadTipo = init?.kind === "drop" ? init.entidadTipo : undefined;
   const EP = EntidadPicker as React.ComponentType<any>;
-  return <EP open onClose={onClose} onInsert={onInsert} initialEntidadId={initialEntidadId} />;
+  return (
+    <EP
+      open
+      onClose={onClose}
+      onInsert={onInsert}
+      initialEntidadId={initialEntidadId}
+      initialEntidadTipo={initialEntidadTipo}
+    />
+  );
 };
 
 export const ModalSonido = ({ onInsert, onClose, initialRaw }: SnippetProps) => {

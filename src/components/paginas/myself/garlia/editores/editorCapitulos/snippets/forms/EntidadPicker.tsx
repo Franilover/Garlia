@@ -19,10 +19,26 @@ interface EntidadPickerProps {
   onClose: () => void;
   onInsert: (snippet: string) => void;
   tipoFijo?: "item" | "criatura" | "personaje";
+  // FIX: nuevas props para pre-poblar al editar un snippet existente
+  initialEntidadId?:   string;
+  initialEntidadTipo?: string;
 }
 
-export function EntidadPicker({ open, onClose, onInsert, tipoFijo }: EntidadPickerProps) {
-  const [tab, setTab] = useState<"item" | "criatura" | "personaje">(tipoFijo ?? "item");
+export function EntidadPicker({
+  open,
+  onClose,
+  onInsert,
+  tipoFijo,
+  initialEntidadId,
+  initialEntidadTipo,
+}: EntidadPickerProps) {
+  // FIX: el tab inicial usa initialEntidadTipo cuando viene de edición
+  const resolvedInitialTipo =
+    tipoFijo ??
+    (initialEntidadTipo as "item" | "criatura" | "personaje" | undefined) ??
+    "item";
+
+  const [tab, setTab] = useState<"item" | "criatura" | "personaje">(resolvedInitialTipo);
   const [entidades, setEntidades] = useState<Entidad[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -32,52 +48,61 @@ export function EntidadPicker({ open, onClose, onInsert, tipoFijo }: EntidadPick
 
   useEffect(() => {
     if (!open) return;
-    setSelected(null); setQuery(""); setPalabra("");
-    setLoading(true); setError(null);
+    // FIX: al abrir, respetar el tipo que venía del snippet
+    setTab(resolvedInitialTipo);
+    setSelected(null);
+    setQuery("");
+    setPalabra("");
+    setLoading(true);
+    setError(null);
 
     fetch(`/api/entidades?tipo=${tipoFijo ?? ""}`)
       .then(r => r.json())
       .then(d => {
         if (!d.ok) throw new Error(d.error);
-        
-        
+
         const items = (d.data?.items ?? []).map((x: any) => ({
-          id: x.id, 
-          nombre: x.nombre, 
+          id: x.id,
+          nombre: x.nombre,
           tipo: "item" as const,
           subtipo: x.categoria || "Objeto",
           imagen_url: x.imagen_url,
           descripcion: x.descripcion
         }));
-        
-        
+
         const criaturas = (d.data?.criaturas ?? []).map((x: any) => ({
-          id: x.id, 
-          nombre: x.nombre, 
+          id: x.id,
+          nombre: x.nombre,
           tipo: "criatura" as const,
           subtipo: x.habitat || "Criatura",
-          imagen_url: x.img_url || x.imagen_url, 
+          imagen_url: x.img_url || x.imagen_url,
           descripcion: x.descripcion || x.sobre
         }));
 
-        
         const personajes = (d.data?.personajes ?? []).map((x: any) => ({
-          id: x.id, 
-          nombre: x.nombre, 
+          id: x.id,
+          nombre: x.nombre,
           tipo: "personaje" as const,
           subtipo: x.ocupacion || (x.visible ? "Poblador" : "Misterioso"),
-          imagen_url: x.img_url || x.imagen_url, 
+          imagen_url: x.img_url || x.imagen_url,
           descripcion: x.descripcion || x.sobre
         }));
 
-        setEntidades([...items, ...criaturas, ...personajes]);
+        const todas = [...items, ...criaturas, ...personajes];
+        setEntidades(todas);
+
+        // FIX: pre-seleccionar la entidad del snippet una vez que cargaron los datos
+        if (initialEntidadId) {
+          const encontrada = todas.find(e => e.id === initialEntidadId);
+          if (encontrada) setSelected(encontrada);
+        }
       })
       .catch(e => {
         console.error("Error en Picker:", e);
         setError("Error al cargar entidades");
       })
       .finally(() => setLoading(false));
-  }, [open, tipoFijo]);
+  }, [open, tipoFijo, initialEntidadId, initialEntidadTipo]);
 
   const lista = entidades
     .filter(e => e.tipo === tab)
@@ -106,7 +131,7 @@ export function EntidadPicker({ open, onClose, onInsert, tipoFijo }: EntidadPick
             className="fixed z-[73] inset-x-4 bottom-0 md:inset-auto md:left-1/2 md:-translate-x-1/2 md:top-1/2 md:-translate-y-1/2 md:w-[600px] bg-white rounded-t-3xl md:rounded-3xl shadow-2xl overflow-hidden flex flex-col"
             style={{ maxHeight: "85vh" }}
           >
-            {}
+            {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-primary/8 shrink-0">
               <div>
                 <h3 className="text-sm font-black text-primary-dark uppercase tracking-tight">Easter Egg — Drop</h3>
@@ -116,7 +141,7 @@ export function EntidadPicker({ open, onClose, onInsert, tipoFijo }: EntidadPick
             </div>
 
             <div className="flex flex-1 overflow-hidden min-h-0">
-              {}
+              {/* Lista */}
               <div className="w-1/2 border-r border-primary/8 flex flex-col">
                 <div className="flex border-b border-primary/8 shrink-0">
                   {(["item", "criatura", "personaje"] as const).map(t => (
@@ -163,7 +188,7 @@ export function EntidadPicker({ open, onClose, onInsert, tipoFijo }: EntidadPick
                 </div>
               </div>
 
-              {}
+              {/* Detalle */}
               <div className="w-1/2 flex flex-col overflow-y-auto bg-primary/[0.01]">
                 {selected ? (
                   <div className="p-5 flex flex-col gap-5 flex-1">
@@ -178,11 +203,11 @@ export function EntidadPicker({ open, onClose, onInsert, tipoFijo }: EntidadPick
                     </div>
                     <div className="space-y-2">
                       <label className="text-[9px] font-black text-primary/40 uppercase tracking-widest ml-1">Palabra en el texto</label>
-                      <input 
-                        value={palabra} 
-                        onChange={e => setPalabra(e.target.value)} 
-                        placeholder="Ej: la espada antigua..." 
-                        className="w-full px-4 py-3 rounded-xl border border-primary/12 text-sm focus:outline-none focus:border-primary/30 transition-all bg-white shadow-sm" 
+                      <input
+                        value={palabra}
+                        onChange={e => setPalabra(e.target.value)}
+                        placeholder="Ej: la espada antigua..."
+                        className="w-full px-4 py-3 rounded-xl border border-primary/12 text-sm focus:outline-none focus:border-primary/30 transition-all bg-white shadow-sm"
                       />
                     </div>
                   </div>
@@ -195,7 +220,7 @@ export function EntidadPicker({ open, onClose, onInsert, tipoFijo }: EntidadPick
               </div>
             </div>
 
-            {}
+            {/* Footer */}
             <div className="px-6 py-4 border-t border-primary/8 shrink-0 flex items-center justify-between bg-white">
               <button onClick={onClose} className="text-[10px] font-black uppercase text-primary/40 hover:text-primary/60 transition-colors">Cancelar</button>
               <button onClick={handleInsert} disabled={!selected || !palabra.trim()} className="px-6 py-2.5 rounded-xl text-[10px] font-black uppercase bg-primary text-white disabled:opacity-30 shadow-lg shadow-primary/20 transition-all active:scale-95">Insertar Drop</button>
