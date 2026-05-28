@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { DropWord } from "@/components/ui/DropWord";
+import { DropWord } from "@/components/paginas/myself/garlia/editores/editorCapitulos/leer/segmentos/DropWord";
 import { Segment, SectionMap, parseContenido, parseSections } from "../type";
 import { CitaVisual }  from "./CitaVisual";
 import { ImgInline }   from "./ImgInline";
