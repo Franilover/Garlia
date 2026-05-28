@@ -15,7 +15,7 @@ import { GlobalSearchBar, ModalAcontecimiento, ModalNuevoGrupo, type AllItems, t
 import { EditorMundo }     from "./editores/EditorMundo";
 import { EditorHechizos }  from "./editores/EditorHechizos";
 import { EditorGrupoStandalone } from "./editores/EditorGrupo";
-import { WikilinkProvider } from "@/components/forms/WikilinkContext";
+import { WikilinkProvider } from "@/components/paginas/myself/garlia/components/WikilinkContext";
 
 
 // ─── Helpers Dexie locales ────────────────────────────────────────────────────
