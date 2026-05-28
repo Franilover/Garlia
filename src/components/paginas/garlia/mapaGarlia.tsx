@@ -1175,6 +1175,7 @@ export default function MapaInteractivo() {
   const [capitulosReino, setCapitulosReino] = useState<any[]>([]);
 
   const imgInputRef = useRef<HTMLInputElement>(null);
+  const currentReinoIdRef = useRef<string | null>(null);
   const showToast = (message: string, type: ToastType) => setToast({ message, type });
 
   useEffect(() => {
@@ -1198,37 +1199,48 @@ export default function MapaInteractivo() {
     });
   }, []);
 
+  // Ref para detectar si el usuario cambió de reino antes de que lleguen los datos
+
   const handleReinoClick = async (reino: any) => {
     if (editMode) { setReinoSeleccionado(reino); setPanelOpen(true); return; }
 
-    // Abrir el panel inmediatamente sin esperar las queries
+    // Marcar qué reino estamos cargando — cualquier respuesta async va a chequear esto
+    currentReinoIdRef.current = reino.id;
+
+    // Limpiar todo inmediatamente para no mostrar datos del reino anterior
     setReinoSeleccionado(reino);
     setPuntoSeleccionado(null);
     setVistaActual("reino");
     setPanelOpen(true);
+    setDetallesReino([]);
     setPersonajesReino([]);
     setLibrosReino([]);
     setCapitulosReino([]);
 
-    // Mostrar desde Dexie todo lo que ya tengamos cacheado — la UI se abre al instante
-    try {
-      if (db) {
+    // Helper — solo aplica el set si el usuario no cambió de reino mientras esperábamos
+    const apply = (fn: () => void) => {
+      if (currentReinoIdRef.current === reino.id) fn();
+    };
+
+    // ── 1. Caché Dexie — mostrar lo que ya tenemos guardado ──────────────
+    if (db) {
+      try {
         const [cachedDetalles, cachedPersonajes, cachedLibros, cachedCaps] = await Promise.all([
           db.reino_detalles.where("reino_id").equals(reino.id).toArray().catch(() => []),
           db.personajes.filter((p: any) => p.reino === reino.nombre).toArray().catch(() => []),
           db.libros.filter((l: any) => l.reino_id === reino.id).toArray().catch(() => []),
           db.capitulos.filter((c: any) => c.reino_id === reino.id).toArray().catch(() => []),
         ]);
-        if (cachedDetalles.length > 0) setDetallesReino(cachedDetalles.filter((d: any) => !d.deleted));
-        if (cachedPersonajes.length > 0) setPersonajesReino(cachedPersonajes);
-        if (cachedLibros.length > 0)     setLibrosReino(cachedLibros);
-        if (cachedCaps.length > 0)       setCapitulosReino(cachedCaps.map((c: any) => ({ ...c, libro_titulo: c.libro_titulo ?? null })));
-      }
-    } catch {
-      setDetallesReino([]);
+        apply(() => {
+          if (cachedDetalles.length > 0) setDetallesReino(cachedDetalles.filter((d: any) => !d.deleted));
+          if (cachedPersonajes.length > 0) setPersonajesReino(cachedPersonajes);
+          if (cachedLibros.length > 0)     setLibrosReino(cachedLibros);
+          if (cachedCaps.length > 0)       setCapitulosReino(cachedCaps.map((c: any) => ({ ...c, libro_titulo: c.libro_titulo ?? null })));
+        });
+      } catch { /* caché falló — no importa, el fetch de abajo lo cubre */ }
     }
 
-    // Fetch en background — la UI ya está abierta con datos locales
+    // ── 2. Fetch Supabase — siempre pisa el caché con datos frescos ──────
     const [detallesRes, personajesRes, librosRes, capitulosRes] = await Promise.all([
       supabase.from("reino_detalles").select("*").eq("reino_id", reino.id),
       supabase.from("personajes").select("id, nombre, img_url, especie, reino, sobre").eq("reino", reino.nombre),
@@ -1240,29 +1252,32 @@ export default function MapaInteractivo() {
         .order("orden", { ascending: true }),
     ]);
 
-    if (!detallesRes.error && detallesRes.data) {
-      setDetallesReino(detallesRes.data);
-      // Guardar en Dexie para próxima visita
-      try {
-        if (db) await db.reino_detalles.bulkPut(detallesRes.data);
-      } catch {}
+    // Si el usuario ya clickeó otro reino, descartar todo
+    if (currentReinoIdRef.current !== reino.id) return;
+
+    // Aplicar resultados — siempre setear aunque sea array vacío, para no dejar datos stale
+    if (!detallesRes.error) {
+      setDetallesReino(detallesRes.data ?? []);
+      try { if (db && detallesRes.data?.length) await db.reino_detalles.bulkPut(detallesRes.data); } catch {}
     }
 
-    if (!personajesRes.error && personajesRes.data) {
-      setPersonajesReino(personajesRes.data);
-      try { if (db) await db.personajes.bulkPut(personajesRes.data); } catch {}
+    if (!personajesRes.error) {
+      setPersonajesReino(personajesRes.data ?? []);
+      try { if (db && personajesRes.data?.length) await db.personajes.bulkPut(personajesRes.data); } catch {}
     }
-    if (!librosRes.error && librosRes.data) {
-      setLibrosReino(librosRes.data);
-      try { if (db) await db.libros.bulkPut(librosRes.data); } catch {}
+
+    if (!librosRes.error) {
+      setLibrosReino(librosRes.data ?? []);
+      try { if (db && librosRes.data?.length) await db.libros.bulkPut(librosRes.data); } catch {}
     }
+
     if (!capitulosRes.error) {
       const caps = (capitulosRes.data ?? []).map((c: any) => ({
         ...c,
         libro_titulo: c.libros?.titulo ?? null,
       }));
       setCapitulosReino(caps);
-      try { if (db) await db.capitulos.bulkPut(caps); } catch {}
+      try { if (db && caps.length) await db.capitulos.bulkPut(caps); } catch {}
     }
   };
 
