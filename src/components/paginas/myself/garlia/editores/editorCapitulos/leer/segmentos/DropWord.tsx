@@ -27,25 +27,23 @@ export function DropWord({ word, tipo, entidadId, entidadNombre }: DropWordProps
     setOpen(true);
     setState("loading");
 
-    
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      setState("no_auth");
-      return;
-    }
-
-    const userId = user.id;
-
-    
-    const tablaMap = {
-      item:      { tabla: "descubrimientos_items",     col: "item_id" },
-      criatura:  { tabla: "descubrimientos_criaturas", col: "criatura_id" },
-      personaje: { tabla: "descubrimientos_personajes", col: "personaje_id" },
-    };
-    const { tabla, col } = tablaMap[tipo];
-
     try {
+      const authResult = await supabase.auth.getUser();
+      const user = authResult?.data?.user ?? null;
+
+      if (!user) {
+        setState("no_auth");
+        return;
+      }
+
+      const userId = user.id;
+
+      const tablaMap = {
+        item:      { tabla: "descubrimientos_items",      col: "item_id"      },
+        criatura:  { tabla: "descubrimientos_criaturas",  col: "criatura_id"  },
+        personaje: { tabla: "descubrimientos_personajes", col: "personaje_id" },
+      };
+      const { tabla, col } = tablaMap[tipo];
       
       const { data: existing, error: checkError } = await supabase
         .from(tabla)
