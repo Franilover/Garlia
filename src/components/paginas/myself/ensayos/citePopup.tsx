@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import { MotionDiv } from "@/components/ui/Motion";
-import { ZoteroSource } from "@/components/paginas/myself/ensayosescritorio/ensayos/page";
+import { ZoteroSource } from "@/components/paginas/myself/ensayos/page";
 
 interface CitePopupProps {
   sources: ZoteroSource[];

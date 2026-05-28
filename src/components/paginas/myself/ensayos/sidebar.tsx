@@ -2,7 +2,7 @@
 import React, { useState, useMemo } from "react";
 import { Hash, Trash2, BookOpen, RefreshCw, Link, CheckCircle2, ChevronRight } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
-import type { ZoteroSource } from "@/components/paginas/myself/ensayosescritorio/ensayos/page";
+import type { ZoteroSource } from "@/components/paginas/myself/ensayos/page";
 
 interface SidebarProps {
   ensayos: any[];
