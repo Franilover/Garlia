@@ -798,14 +798,93 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
         }
 
       } else {
-        const gr = ctx.createLinearGradient(0, 0, canvas.width, 0);
-        const off = ((t * 0.001) % 1);
-        const { primary, accent } = cssColorsRef.current;
-        gr.addColorStop(Math.max(0, off - 0.1), `${primary}1a`);
-        gr.addColorStop(off, `${accent}20`);
-        gr.addColorStop(Math.min(1, off + 0.1), `${primary}1a`);
-        ctx.fillStyle = gr;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        // ── Antique compass rose — shown while map image loads ────────────
+        const { accent, primary } = cssColorsRef.current;
+        const cx2 = canvas.width  / 2;
+        const cy2 = canvas.height / 2;
+
+        // Slow pulse for overall opacity
+        const pulse = 0.55 + 0.2 * Math.sin(t * 0.0018);
+        // Two counter-rotating angles
+        const angleOuter = (t * 0.00018) % (Math.PI * 2);
+        const angleInner = -(t * 0.00028) % (Math.PI * 2);
+
+        ctx.save();
+        ctx.globalAlpha = pulse;
+        ctx.translate(cx2, cy2);
+
+        const R = Math.min(canvas.width, canvas.height) * 0.22; // overall scale
+
+        // ── Outer ring with tick marks ──────────────────────────────────
+        ctx.save();
+        ctx.rotate(angleOuter);
+        ctx.beginPath();
+        ctx.arc(0, 0, R, 0, Math.PI * 2);
+        ctx.strokeStyle = `${accent}55`;
+        ctx.lineWidth = 0.8;
+        ctx.setLineDash([4, 9]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        // 16 tick marks
+        for (let i = 0; i < 16; i++) {
+          const a = (i / 16) * Math.PI * 2;
+          const long = i % 4 === 0;
+          const r1 = long ? R * 0.84 : R * 0.9;
+          ctx.beginPath();
+          ctx.moveTo(Math.cos(a) * r1,          Math.sin(a) * r1);
+          ctx.lineTo(Math.cos(a) * R,            Math.sin(a) * R);
+          ctx.strokeStyle = long ? `${accent}77` : `${accent}40`;
+          ctx.lineWidth   = long ? 1.2 : 0.6;
+          ctx.stroke();
+        }
+        // Second inner ring
+        ctx.beginPath();
+        ctx.arc(0, 0, R * 0.72, 0, Math.PI * 2);
+        ctx.strokeStyle = `${accent}30`;
+        ctx.lineWidth = 0.6;
+        ctx.stroke();
+        ctx.restore();
+
+        // ── 8-pointed compass rose ────────────────────────────────────
+        ctx.save();
+        ctx.rotate(angleInner);
+        const drawPoint = (len: number, width: number, alpha: number) => {
+          ctx.beginPath();
+          ctx.moveTo(0, -len);
+          ctx.lineTo(-width, 0);
+          ctx.lineTo(0, len * 0.18);
+          ctx.lineTo(width, 0);
+          ctx.closePath();
+          ctx.fillStyle = accent + Math.round(alpha * 255).toString(16).padStart(2, "0");
+          ctx.fill();
+        };
+        // 4 cardinal points
+        for (let i = 0; i < 4; i++) {
+          ctx.save();
+          ctx.rotate((i / 4) * Math.PI * 2);
+          drawPoint(R * 0.62, R * 0.07, i === 0 ? 0.85 : 0.45);
+          ctx.restore();
+        }
+        // 4 diagonal points (smaller)
+        for (let i = 0; i < 4; i++) {
+          ctx.save();
+          ctx.rotate((i / 4) * Math.PI * 2 + Math.PI / 4);
+          drawPoint(R * 0.38, R * 0.045, 0.28);
+          ctx.restore();
+        }
+        // Center jewel
+        ctx.beginPath();
+        ctx.arc(0, 0, R * 0.09, 0, Math.PI * 2);
+        ctx.strokeStyle = `${accent}66`;
+        ctx.lineWidth = 0.8;
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(0, 0, R * 0.045, 0, Math.PI * 2);
+        ctx.fillStyle = `${accent}cc`;
+        ctx.fill();
+        ctx.restore();
+
+        ctx.restore();
       }
 
       // ── Edge vignette — subtle fade at canvas borders ─────────────────
@@ -1306,22 +1385,72 @@ export default function MapaInteractivo() {
 
   // Solo bloquea la UI si no hay absolutamente ningún dato todavía (primera carga ever)
   if (loading && reinos.length === 0) return (
-    <div className="fixed inset-0 md:left-[68px] flex flex-col items-center justify-center gap-4" style={{ background: "var(--bg-main)" }}>
+    <div className="fixed inset-0 md:left-[68px] flex flex-col items-center justify-center gap-6" style={{ background: "var(--bg-main)" }}>
       <style>{`
-        @keyframes parch-blink { 0%,100% { opacity: 0.2; } 50% { opacity: 0.7; } }
+        @keyframes compass-outer { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes compass-inner { from { transform: rotate(0deg); } to { transform: rotate(-360deg); } }
+        @keyframes compass-fade  { 0%,100% { opacity: 0.35; } 50% { opacity: 0.85; } }
       `}</style>
-      <div style={{ color: "color-mix(in srgb, var(--accent) 55%, transparent)" }}>
-        <Hourglass size={28} />
+
+      {/* ── Antique compass rose ── */}
+      <div style={{ position: "relative", width: 72, height: 72 }}>
+        {/* Outer ring — ticks + dashes, rotates slowly */}
+        <svg width="72" height="72" viewBox="0 0 72 72" fill="none"
+          style={{ position: "absolute", inset: 0, animation: "compass-outer 12s linear infinite",
+                   color: "color-mix(in srgb, var(--accent) 35%, transparent)" }}>
+          <circle cx="36" cy="36" r="32" stroke="currentColor" strokeWidth="0.8" strokeDasharray="3 6" />
+          {[0,45,90,135,180,225,270,315].map(deg => {
+            const r = deg * Math.PI / 180;
+            const long = [0,90,180,270].includes(deg);
+            const r1 = long ? 26 : 28;
+            return (
+              <line key={deg}
+                x1={36 + r1 * Math.cos(r)} y1={36 + r1 * Math.sin(r)}
+                x2={36 + 32 * Math.cos(r)} y2={36 + 32 * Math.sin(r)}
+                stroke="currentColor" strokeWidth={long ? 1.2 : 0.7} />
+            );
+          })}
+        </svg>
+
+        {/* Inner compass — 8-pointed rose, counter-rotates */}
+        <svg width="72" height="72" viewBox="0 0 72 72" fill="none"
+          style={{ position: "absolute", inset: 0, animation: "compass-inner 8s linear infinite",
+                   color: "color-mix(in srgb, var(--accent) 65%, transparent)" }}>
+          {/* 4 cardinal points */}
+          <polygon points="36,8 38.5,30 36,36 33.5,30"  fill="currentColor" fillOpacity="0.9" />
+          <polygon points="36,64 38.5,42 36,36 33.5,42" fill="currentColor" fillOpacity="0.5" />
+          <polygon points="8,36 30,38.5 36,36 30,33.5"  fill="currentColor" fillOpacity="0.5" />
+          <polygon points="64,36 42,38.5 36,36 42,33.5" fill="currentColor" fillOpacity="0.5" />
+          {/* 4 diagonal minor points */}
+          {[45,135,225,315].map(deg => {
+            const r = deg * Math.PI / 180;
+            const tip = { x: 36 + 20 * Math.cos(r), y: 36 + 20 * Math.sin(r) };
+            const lx = 36 + 8 * Math.cos(r - 1.2), ly = 36 + 8 * Math.sin(r - 1.2);
+            const rx = 36 + 8 * Math.cos(r + 1.2), ry = 36 + 8 * Math.sin(r + 1.2);
+            return <polygon key={deg} points={`${tip.x},${tip.y} ${lx},${ly} 36,36 ${rx},${ry}`}
+              fill="currentColor" fillOpacity="0.3" />;
+          })}
+          {/* Center jewel */}
+          <circle cx="36" cy="36" r="4"   fill="currentColor" fillOpacity="0.25" stroke="currentColor" strokeWidth="0.8" strokeOpacity="0.6" />
+          <circle cx="36" cy="36" r="1.8" fill="currentColor" fillOpacity="0.9" />
+        </svg>
       </div>
-      <div className="flex flex-col items-center gap-2">
-        <span className="text-[9px] font-bold uppercase tracking-[0.35em]" style={{ color: "color-mix(in srgb, var(--accent) 45%, transparent)", fontFamily: "'Cinzel', serif" }}>
+
+      {/* ── Label ── */}
+      <div className="flex flex-col items-center gap-3">
+        <span className="text-[9px] font-bold uppercase tracking-[0.35em]"
+          style={{ color: "color-mix(in srgb, var(--accent) 45%, transparent)", fontFamily: "'Cinzel', serif" }}>
           Desplegando Cartografía
         </span>
-        <div className="flex items-center gap-2">
-          {[0, 0.4, 0.8].map((delay) => (
-            <div key={delay} className="w-1 h-1 rotate-45" style={{ background: "color-mix(in srgb, var(--accent) 40%, transparent)", animation: `parch-blink 1.8s ease-in-out ${delay}s infinite` }} />
-          ))}
-        </div>
+        {/* Ornamental divider — ink flourish */}
+        <svg width="120" height="12" viewBox="0 0 120 12" fill="none"
+          style={{ color: "color-mix(in srgb, var(--accent) 40%, transparent)", animation: "compass-fade 2.4s ease-in-out infinite" }}>
+          <line x1="0"  y1="6" x2="46" y2="6" stroke="currentColor" strokeWidth="0.7" />
+          <polygon points="50,6 53,3 56,6 53,9" fill="currentColor" fillOpacity="0.8" />
+          <polygon points="60,6 63,3 66,6 63,9" fill="currentColor" fillOpacity="0.5" />
+          <polygon points="70,6 73,3 76,6 73,9" fill="currentColor" fillOpacity="0.3" />
+          <line x1="79" y1="6" x2="120" y2="6" stroke="currentColor" strokeWidth="0.7" />
+        </svg>
       </div>
     </div>
   );
