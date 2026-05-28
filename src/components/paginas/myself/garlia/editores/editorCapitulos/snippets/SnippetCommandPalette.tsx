@@ -9,7 +9,7 @@
 import React, {
   useState, useEffect, useRef, useCallback, useMemo,
 } from "react";
-import { parseSnippetRaw } from "./parseSnippetRaw";
+import { parseSnippetRaw } from "./type";
 
 type SnippetType = "drop" | "choice" | "use" | "gate" | "section" | "imagen" | "sound";
 

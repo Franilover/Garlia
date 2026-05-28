@@ -4,7 +4,7 @@ import { X, Sword } from "lucide-react";
 import { MotionDiv } from '@/components/ui/Motion';
 import { motion } from "framer-motion";
 import { supabase } from "@/lib/api/client/supabase";
-import { CapituloScrollItem } from "../type";
+import { CapituloScrollItem } from "../../snippets/type";
 
 export function useDesbloquearPersonajes(capId: string, personajesIds: string[] | undefined) {
   const [desbloqueados, setDesbloqueados] = useState<string[]>([]);

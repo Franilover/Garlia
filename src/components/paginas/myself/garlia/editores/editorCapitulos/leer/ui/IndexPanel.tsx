@@ -5,7 +5,7 @@ import { List, X, ChevronRight as ChevronR } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { BtnIcon } from "@/components/ui";
-import { CapituloLista } from "../type";
+import { CapituloLista } from "../../snippets/type";
 
 export function IndexPanel({ open, onClose, lista, capIdActual, libroTitulo, onSelect }: {
   open: boolean;

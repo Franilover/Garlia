@@ -1,13 +1,11 @@
 "use client";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { DropWord } from "@/components/paginas/myself/garlia/editores/editorCapitulos/leer/segmentos/DropWord";
-import { Segment, SectionMap, parseContenido, parseSections } from "../type";
-import { CitaVisual }  from "./CitaVisual";
-import { ImgInline }   from "./ImgInline";
-import { FloatWord }   from "./FloatWord";
-import { SoundInline } from "./SoundInline";
-import { ChoiceButton, UseWord } from "./Interactivos";
+import { Segment, SectionMap, parseContenido, parseSections } from "../snippets/type";
+import {
+  CitaVisual, ImgInline, FloatWord, SoundInline,
+  DropWord, ChoiceButton, UseWord,
+} from "./SegmentRenderers";
 import { renderMarkdown } from "@/components/forms/MarkdownEditor";
 
 /* ─────────────────────────────────────────────

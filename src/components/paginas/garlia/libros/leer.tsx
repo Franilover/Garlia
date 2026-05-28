@@ -8,7 +8,7 @@ import { librosQueries } from "@/lib/api/queries/garlia/libros";
 import { db } from "@/lib/api/client/db";
 import { motion, AnimatePresence } from "framer-motion";
 
-import { CapituloLista, CapituloScrollItem } from "../../myself/garlia/editores/editorCapitulos/leer/type";
+import { CapituloLista, CapituloScrollItem } from "../../myself/garlia/editores/editorCapitulos/snippets/type";
 // ── NUEVO: helpers de slug ───────────────────────────────────────────────────
 import { toSlug, esUUID } from "@/lib/utils/slugify";
 import { LectorSkeleton }      from "../../myself/garlia/editores/editorCapitulos/leer/ui/LectorSkeleton";
