@@ -1,7 +1,7 @@
 "use client";
 
 import { AdminOnly } from "@/components/forms/AdminOnly";
-import EnsayosView from "@/components/paginas/myself/vida/escritorio/ensayos/page";
+import EnsayosView from "@/components/paginas/myself/ensayosescritorio/ensayos/page";
 
 export default function SaludPage() {
   return (

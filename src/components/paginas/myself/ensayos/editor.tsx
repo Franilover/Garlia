@@ -5,7 +5,7 @@ import { Save, List } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { CitePopup } from "./citePopup";
 import { MarkdownEditor, WikiEntity } from "@/components/forms/MarkdownEditor";
-import { ZoteroSource } from "@/components/paginas/myself/vida/escritorio/ensayos/page";
+import { ZoteroSource } from "@/components/paginas/myself/ensayosescritorio/ensayos/page";
 
 // ── TOC extractor ─────────────────────────────────────────────────────────────
 function extractTOC(content: string): { level: number; text: string; id: string }[] {
