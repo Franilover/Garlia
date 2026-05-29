@@ -8,10 +8,10 @@ import {
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
 import { useConfirm } from "@/components/ui/ConfirmModal";
-import { type SaveStatus } from "../components/types";
-import { SelectorImagen, SelectorTexto, SaveIndicator } from "../components/UIComponents";
-import { MarkdownEditor, WikiEntity } from "../../../../forms/MarkdownEditor";
-import { useWikilink } from "../components/WikilinkContext";
+import { type SaveStatus } from "./components/types";
+import { SelectorImagen, SelectorTexto, SaveIndicator } from "./components/UIComponents";
+import { MarkdownEditor, WikiEntity } from "../../../forms/MarkdownEditor";
+import { useWikilink } from "./components/WikilinkContext";
 
 // ─── Dexie helpers ────────────────────────────────────────────────────────────
 async function dexiePut(tabla: string, row: any): Promise<void> {

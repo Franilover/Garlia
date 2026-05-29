@@ -5,11 +5,11 @@ import { Package, Save, Trash2, Bug, Loader2, Leaf, Wrench, ChevronDown, X, Plus
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
 import { useConfirm } from "@/components/ui/ConfirmModal";
-import { type Item, type SaveStatus } from "../components/types";
-import { useUniqueValues } from "../components/hooks";
-import { SelectorImagen, SelectorTexto, SaveIndicator } from "../components/UIComponents";
-import { MarkdownEditor, WikiEntity } from "../../../../forms/MarkdownEditor";
-import { useWikilink } from "../components/WikilinkContext";
+import { type Item, type SaveStatus } from "./components/types";
+import { useUniqueValues } from "./components/hooks";
+import { SelectorImagen, SelectorTexto, SaveIndicator } from "./components/UIComponents";
+import { MarkdownEditor, WikiEntity } from "../../../forms/MarkdownEditor";
+import { useWikilink } from "./components/WikilinkContext";
 
 
 // ─── Dexie helpers ────────────────────────────────────────────────────────────

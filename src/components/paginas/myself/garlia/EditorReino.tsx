@@ -12,8 +12,8 @@ import { type Reino, type SaveStatus, INPUT_CLS } from "@/components/paginas/mys
 import { usePersonajesDelReino } from "@/components/paginas/myself/garlia/components/hooks";
 import { type Lugar } from "@/components/paginas/myself/garlia/editores/EditorLugar";
 import { SaveIndicator } from "@/components/paginas/myself/garlia/components/UIComponents";
-import { MarkdownEditor, WikiEntity } from "../../../../forms/MarkdownEditor";
-import { useWikilink } from "../components/WikilinkContext";
+import { MarkdownEditor, WikiEntity } from "../../../forms/MarkdownEditor";
+import { useWikilink } from "./components/WikilinkContext";
 import { LoreTab } from "@/components/paginas/myself/garlia/components/LoreTab";
 
 // ─── Dexie helpers ────────────────────────────────────────────────────────────

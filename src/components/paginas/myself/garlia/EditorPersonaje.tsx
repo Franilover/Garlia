@@ -9,15 +9,15 @@ import {
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
 import { useConfirm } from "@/components/ui/ConfirmModal";
-import { type Personaje, type SaveStatus } from "../components/types";
-import { useCapitulosNarrados, useNombresDeTabla } from "../components/hooks";
-import { SelectorImagen, SelectorTexto, SaveIndicator } from "../components/UIComponents";
-import { MarkdownEditor, WikiEntity } from "../../../../forms/MarkdownEditor";
-import { useWikilink } from "../components/WikilinkContext";
+import { type Personaje, type SaveStatus } from "./components/types";
+import { useCapitulosNarrados, useNombresDeTabla } from "./components/hooks";
+import { SelectorImagen, SelectorTexto, SaveIndicator } from "./components/UIComponents";
+import { MarkdownEditor, WikiEntity } from "../../../forms/MarkdownEditor";
+import { useWikilink } from "./components/WikilinkContext";
 import SimpleImagePicker from "@/components/paginas/myself/garlia/editores/editorCapitulos/snippets//forms/SimpleImagePicker";
-import { BloqueHechizos } from "../components/BloqueHechizos";
-import { BloqueDones } from "../components/BloqueDones";
-import { BloqueRelaciones } from "../components/BloqueRelaciones";
+import { BloqueHechizos } from "./components/BloqueHechizos";
+import { BloqueDones } from "./components/BloqueDones";
+import { BloqueRelaciones } from "./components/BloqueRelaciones";
 
 // ─── Dexie helpers ────────────────────────────────────────────────────────────
 async function dexiePut(tabla: string, row: any): Promise<void> {

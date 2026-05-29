@@ -9,13 +9,13 @@ import {
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
 import { useConfirm } from "@/components/ui/ConfirmModal";
-import { type Criatura, type CriaturaVariante, type SaveStatus, INPUT_CLS } from "../components/types";
-import { useCriaturaVariantes, useGruposDeCriatura, usePersonajesDeEspecie, type GrupoMin } from "../components/hooks";
-import { SelectorImagen, SelectorTexto, SaveIndicator } from "../components/UIComponents";
-import { MarkdownEditor, WikiEntity } from "../../../../forms/MarkdownEditor";
-import { useWikilink } from "../components/WikilinkContext";
-import { BloqueHechizos } from "../components/BloqueHechizos";
-import { BloqueDones } from "../components/BloqueDones";
+import { type Criatura, type CriaturaVariante, type SaveStatus, INPUT_CLS } from "./components/types";
+import { useCriaturaVariantes, useGruposDeCriatura, usePersonajesDeEspecie, type GrupoMin } from "./components/hooks";
+import { SelectorImagen, SelectorTexto, SaveIndicator } from "./components/UIComponents";
+import { MarkdownEditor, WikiEntity } from "../../../forms/MarkdownEditor";
+import { useWikilink } from "./components/WikilinkContext";
+import { BloqueHechizos } from "./components/BloqueHechizos";
+import { BloqueDones } from "./components/BloqueDones";
 
 // ─── Dexie helpers ────────────────────────────────────────────────────────────
 async function dexiePut(tabla: string, row: any): Promise<void> {

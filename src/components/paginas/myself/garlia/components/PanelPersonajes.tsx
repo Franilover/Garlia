@@ -6,7 +6,7 @@ import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { type Personaje, type SaveStatus } from "./types";
-import { FormularioPersonaje } from "../editores/EditorPersonaje";
+import { FormularioPersonaje } from "../EditorPersonaje";
 
 
 // ─── Dexie helpers ────────────────────────────────────────────────────────────

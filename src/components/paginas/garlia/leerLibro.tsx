@@ -8,10 +8,10 @@ import { librosQueries } from "@/lib/api/queries/garlia/libros";
 import { db } from "@/lib/api/client/db";
 import { motion, AnimatePresence } from "framer-motion";
 
-import { CapituloLista, CapituloScrollItem } from "../myself/garlia/editores/editorCapitulos/snippets/type";
+import { CapituloLista, CapituloScrollItem } from "../myself/garlia/editorCapitulos/snippets/type";
 import { toSlug, esUUID } from "@/lib/utils/slugify";
 import { CapituloScrollBlock } from "@/components/paginas/myself/garlia/editores/editorCapitulos/leer/CapituloScrollBlock";
-import { LectorSkeleton, ReadingProgressBar, Vignette, CapituloHeader, FinCapituloSeparador, IndexPanel, ChapterSelector } from "../myself/garlia/editores/editorCapitulos/leer/LectorUI";
+import { LectorSkeleton, ReadingProgressBar, Vignette, CapituloHeader, FinCapituloSeparador, IndexPanel, ChapterSelector } from "../myself/garlia/editorCapitulos/leer/LectorUI";
 
 /* ─────────────────────────────────────────────
    Tipos

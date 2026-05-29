@@ -12,9 +12,9 @@ import {
 } from "./components/types";
 import { useMundoSecciones } from "./components/hooks";
 import { GlobalSearchBar, ModalAcontecimiento, ModalNuevoGrupo, type AllItems, type MagicAddKey } from "./components/SidebarComponents";
-import { EditorMundo }     from "./editores/EditorMundo";
-import { EditorHechizos }  from "./editores/EditorHechizos";
-import { EditorGrupoStandalone } from "./editores/EditorGrupo";
+import { EditorMundo }     from "./EditorMundo";
+import { EditorHechizos }  from "./EditorHechizos";
+import { EditorGrupoStandalone } from "./EditorGrupo";
 import { WikilinkProvider } from "@/components/paginas/myself/garlia/components/WikilinkContext";
 
 
