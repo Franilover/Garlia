@@ -1135,6 +1135,160 @@ export function SelectorImagenPortada({ value, onChange }: { value: string; onCh
   );
 }
 
+// ─── PanelPersonajesCapitulo ──────────────────────────────────────────────────
+
+export const PanelPersonajesCapitulo = ({
+  capId,
+  value,
+  onChange,
+}: {
+  capId: string;
+  value: string[];
+  onChange: (ids: string[]) => void;
+}) => {
+  const { personajes, loading } = usePersonajes();
+  const [open, setOpen]         = useState(false);
+  const [saving, setSaving]     = useState(false);
+  const dropRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const h = (e: MouseEvent) => {
+      if (dropRef.current && !dropRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, [open]);
+
+  const selected   = personajes.filter(p => value.includes(p.id));
+  const available  = personajes.filter(p => !value.includes(p.id));
+
+  const handleToggle = async (id: string, add: boolean) => {
+    const next = add ? [...value, id] : value.filter(x => x !== id);
+    onChange(next);
+    setSaving(true);
+    try {
+      await capUpdateMeta(capId, { personajes_ids: next });
+    } catch {}
+    setSaving(false);
+  };
+
+  return (
+    <div
+      className="hidden lg:flex flex-col shrink-0 border-l"
+      style={{
+        width: "180px",
+        borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
+        background: "color-mix(in srgb, var(--primary) 2%, transparent)",
+      }}
+    >
+      {/* Header */}
+      <div
+        className="shrink-0 flex items-center justify-between px-3 py-2.5 border-b"
+        style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
+      >
+        <span className="flex items-center gap-1.5 text-[8px] font-black uppercase tracking-widest text-primary/40">
+          <UserCircle2 size={9} />
+          Personajes
+          {saving && <Loader2 size={8} className="animate-spin opacity-50" />}
+        </span>
+        {/* Botón añadir */}
+        <div className="relative" ref={dropRef}>
+          <button
+            type="button"
+            onClick={() => setOpen(o => !o)}
+            title="Añadir personaje"
+            className="w-5 h-5 rounded-md flex items-center justify-center transition-all hover:bg-primary/10"
+            style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+          >
+            <Plus size={11} />
+          </button>
+          {open && (
+            <div
+              className="absolute right-0 top-full mt-1 z-50 rounded-xl border overflow-hidden shadow-lg"
+              style={{
+                width: "160px",
+                background: "var(--bg-main)",
+                borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)",
+              }}
+            >
+              {loading ? (
+                <div className="flex items-center justify-center py-4 text-primary/25">
+                  <Loader2 size={13} className="animate-spin" />
+                </div>
+              ) : available.length === 0 ? (
+                <p className="text-[9px] font-black uppercase text-primary/25 px-3 py-3 text-center tracking-widest">
+                  {personajes.length === 0 ? "Sin personajes" : "Todos añadidos"}
+                </p>
+              ) : (
+                <div className="max-h-52 overflow-y-auto py-1">
+                  {available.map(p => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => { handleToggle(p.id, true); setOpen(false); }}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-[10px] font-black uppercase tracking-wide transition-all hover:bg-primary/5 text-left"
+                      style={{ color: "color-mix(in srgb, var(--primary) 60%, transparent)" }}
+                    >
+                      <UserCircle2 size={10} className="shrink-0 opacity-40" />
+                      <span className="truncate">{p.nombre}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Lista de personajes seleccionados */}
+      <div className="flex-1 overflow-y-auto py-2">
+        {selected.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-24 gap-2 px-3">
+            <UserCircle2 size={18} style={{ color: "color-mix(in srgb, var(--primary) 15%, transparent)" }} />
+            <p className="text-[8px] font-black uppercase tracking-widest text-center"
+              style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }}>
+              Sin personajes
+            </p>
+          </div>
+        ) : (
+          selected.map(p => (
+            <div
+              key={p.id}
+              className="group flex items-center gap-2 px-3 py-1.5 transition-all hover:bg-primary/5"
+            >
+              <div
+                className="w-5 h-5 rounded-full shrink-0 flex items-center justify-center text-[7px] font-black uppercase"
+                style={{
+                  background: "color-mix(in srgb, var(--primary) 12%, transparent)",
+                  color: "color-mix(in srgb, var(--primary) 60%, transparent)",
+                }}
+              >
+                {p.nombre.charAt(0)}
+              </div>
+              <span
+                className="flex-1 min-w-0 text-[10px] font-black uppercase tracking-wide truncate"
+                style={{ color: "color-mix(in srgb, var(--primary) 65%, transparent)" }}
+              >
+                {p.nombre}
+              </span>
+              <button
+                type="button"
+                onClick={() => handleToggle(p.id, false)}
+                title="Quitar"
+                className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity rounded p-0.5 hover:bg-red-500/10"
+                style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
+              >
+                <X size={9} />
+              </button>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+};
+
 // ─── DialogSnippets ───────────────────────────────────────────────────────────
 
 type DialogSnippet = {

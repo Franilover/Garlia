@@ -36,6 +36,7 @@ import {
   EstadisticasEscritura, CapituloItem, LibroItem, LibroCard, LibroColumna,
   VisibilidadCapPicker, SelectorVisibilidad, SelectorNarrador, SelectorReino,
   SelectorPersonajesCapitulo, NarradorPill, SelectorImagenPortada, DialogSnippets,
+  PanelPersonajesCapitulo,
 } from "./components";
 
 // ─── Dialog commands ──────────────────────────────────────────────────────────
@@ -86,6 +87,7 @@ const PanelEditor = ({
   const [capVisibilidad,   setCapVisibilidad]   = useState<"publico" | "programado" | "oculto">("oculto");
   const [savingMeta,       setSavingMeta]       = useState(false);
   const [previewOpen,      setPreviewOpen]      = useState(false);
+  const [personajesIds,    setPersonajesIds]    = useState<string[]>([]);
   const [listaSnippetCaps, setListaSnippetCaps] = useState<{id:string;orden:number;titulo_capitulo:string}[]>([]);
   const listaSecciones = useMemo(() => {
     const matches = [...contenido.matchAll(/\[\[section\|([^\|\]]+)(?:\|([^\]]+))?\]\]/g)];
@@ -122,6 +124,7 @@ const PanelEditor = ({
     setTitulo(cap.titulo_capitulo || "");
     setFecha(toDateInput(cap.fecha_publicacion));
     setCapVisibilidad(cap.visibilidad ?? "oculto");
+    setPersonajesIds(cap.personajes_ids ?? []);
     if (cap.status === "pending") setSaveStatus("pending");
     else setSaveStatus("idle");
   }, [cap?.id]);
@@ -553,22 +556,32 @@ const PanelEditor = ({
         </div>
       )}
 
-      <div ref={scrollRef} className={`flex-1 overflow-y-auto relative ${focusMode ? "px-5 sm:px-16 py-8 sm:py-12" : "px-4 sm:px-8 py-4 sm:py-6"}`} style={{ WebkitOverflowScrolling: "touch" }}>
-        <div ref={caretMirrorRef} aria-hidden="true" />
-        <div className={focusMode ? "max-w-3xl mx-auto w-full" : ""}>
-          <MarkdownEditor
-            value={contenido}
-            onChange={onChange}
-            textareaRef={textareaRef}      // <--- IMPORTANTE
-            renderOverlay={snippetOverlay} // <--- IMPORTANTE
-            placeholder="Empieza a escribir…"
-            defaultMode={focusMode ? "edit" : "split"}
-            rows={focusMode ? 30 : 20}
-            extraCommands={extraCommands}
-            insertRef={mdInsertRef}
-            onSnippetAction={handleSnippetAction}
-          />
+      <div className="flex-1 min-h-0 flex overflow-hidden">
+        <div ref={scrollRef} className={`flex-1 overflow-y-auto relative ${focusMode ? "px-5 sm:px-16 py-8 sm:py-12" : "px-4 sm:px-8 py-4 sm:py-6"}`} style={{ WebkitOverflowScrolling: "touch" }}>
+          <div ref={caretMirrorRef} aria-hidden="true" />
+          <div className={focusMode ? "max-w-3xl mx-auto w-full" : ""}>
+            <MarkdownEditor
+              value={contenido}
+              onChange={onChange}
+              textareaRef={textareaRef}
+              renderOverlay={snippetOverlay}
+              placeholder="Empieza a escribir…"
+              defaultMode={focusMode ? "edit" : "split"}
+              rows={focusMode ? 30 : 20}
+              extraCommands={extraCommands}
+              insertRef={mdInsertRef}
+              onSnippetAction={handleSnippetAction}
+            />
+          </div>
         </div>
+
+        {!focusMode && (
+          <PanelPersonajesCapitulo
+            capId={capId}
+            value={personajesIds}
+            onChange={setPersonajesIds}
+          />
+        )}
       </div>
 
       {!focusMode && (
@@ -576,6 +589,7 @@ const PanelEditor = ({
           <EstadisticasEscritura texto={contenido}/>
         </div>
       )}
+
       <ConfirmModal />
 
       {palette && (
