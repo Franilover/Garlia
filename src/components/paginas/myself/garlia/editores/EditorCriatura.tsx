@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Bug, Plus, Check, X, Trash2, Save, ChevronDown, Lock,
   Dna, Brain, Wand2, GitBranch, Package, Wrench, Leaf, Layers, Users,
+  MapPin, Globe,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
@@ -785,14 +786,315 @@ function BloqueGruposCriatura({
   );
 }
 
+// ─── Tipos mínimos ────────────────────────────────────────────────────────────
+type ReinoMin  = { id: string; nombre: string };
+type LugarMin2 = { id: string; nombre: string; reino_id: string | null };
+
+// ─── Hook: reinos de la criatura (criatura_reinos) ────────────────────────────
+function useCriaturaReinos(criaturaId: string) {
+  type Row = { rowId: string; reinoId: string; reinoNombre: string };
+  const [rows, setRows] = useState<Row[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const { data } = await supabase
+      .from("criatura_reinos")
+      .select("id, reino_id, reinos!reino_id(nombre)")
+      .eq("criatura_id", criaturaId);
+    setRows((data ?? []).map((r: any) => ({
+      rowId:       r.id,
+      reinoId:     r.reino_id,
+      reinoNombre: (Array.isArray(r.reinos) ? r.reinos[0]?.nombre : r.reinos?.nombre) ?? "—",
+    })));
+    setLoading(false);
+  }, [criaturaId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const add = async (reino: ReinoMin) => {
+    if (rows.some(r => r.reinoId === reino.id)) return;
+    const { data, error } = await supabase
+      .from("criatura_reinos")
+      .insert([{ criatura_id: criaturaId, reino_id: reino.id }])
+      .select().single();
+    if (!error && data) setRows(prev => [...prev, { rowId: data.id, reinoId: reino.id, reinoNombre: reino.nombre }]);
+  };
+
+  const remove = async (rowId: string) => {
+    await supabase.from("criatura_reinos").delete().eq("id", rowId);
+    setRows(prev => prev.filter(r => r.rowId !== rowId));
+  };
+
+  return { rows, loading, add, remove };
+}
+
+// ─── Hook: lugares de la criatura (criatura_lugares) ─────────────────────────
+function useCriaturaLugares(criaturaId: string) {
+  type Row = { rowId: string; lugarId: string; lugarNombre: string; reinoId: string | null };
+  const [rows, setRows] = useState<Row[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const { data } = await supabase
+      .from("criatura_lugares")
+      .select("id, lugar_id, lugares!lugar_id(nombre, reino_id)")
+      .eq("criatura_id", criaturaId);
+    setRows((data ?? []).map((r: any) => {
+      const l = Array.isArray(r.lugares) ? r.lugares[0] : r.lugares;
+      return {
+        rowId:      r.id,
+        lugarId:    r.lugar_id,
+        lugarNombre: l?.nombre   ?? "—",
+        reinoId:    l?.reino_id  ?? null,
+      };
+    }));
+    setLoading(false);
+  }, [criaturaId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const add = async (lugar: LugarMin2) => {
+    if (rows.some(r => r.lugarId === lugar.id)) return;
+    const { data, error } = await supabase
+      .from("criatura_lugares")
+      .insert([{ criatura_id: criaturaId, lugar_id: lugar.id }])
+      .select().single();
+    if (!error && data) setRows(prev => [...prev, { rowId: data.id, lugarId: lugar.id, lugarNombre: lugar.nombre, reinoId: lugar.reino_id }]);
+  };
+
+  const remove = async (rowId: string) => {
+    await supabase.from("criatura_lugares").delete().eq("id", rowId);
+    setRows(prev => prev.filter(r => r.rowId !== rowId));
+  };
+
+  return { rows, loading, add, remove };
+}
+
+// ─── BloqueHabitat ────────────────────────────────────────────────────────────
+function BloqueHabitat({
+  criaturaId,
+  onNavigateLugar,
+}: {
+  criaturaId: string;
+  onNavigateLugar?: (id: string) => void;
+}) {
+  const { rows: reinoRows, loading: loadingR, add: addReino, remove: removeReino } = useCriaturaReinos(criaturaId);
+  const { rows: lugarRows, loading: loadingL, add: addLugar, remove: removeLugar } = useCriaturaLugares(criaturaId);
+
+  const [allReinos,  setAllReinos]  = useState<ReinoMin[]>([]);
+  const [allLugares, setAllLugares] = useState<LugarMin2[]>([]);
+  const [reinoFiltro, setReinoFiltro] = useState<string | null>(null); // reino_id activo
+  const [openR, setOpenR] = useState(false);
+  const [openL, setOpenL] = useState(false);
+  const [searchR, setSearchR] = useState("");
+  const [searchL, setSearchL] = useState("");
+
+  useEffect(() => {
+    supabase.from("reinos").select("id, nombre").order("nombre")
+      .then(({ data }) => setAllReinos(data ?? []));
+    supabase.from("lugares").select("id, nombre, reino_id").order("nombre")
+      .then(({ data }) => setAllLugares((data ?? []).map((l: any) => ({ ...l, reino_id: l.reino_id ?? null }))));
+  }, []);
+
+  // Lugares filtrados por reino activo (o sin reino si no hay activo)
+  const lugaresFiltrados = allLugares.filter(l =>
+    reinoFiltro ? l.reino_id === reinoFiltro : !l.reino_id
+  );
+
+  // Lugares ya asignados visibles según filtro actual
+  const lugaresAsignados = lugarRows.filter(r =>
+    reinoFiltro ? r.reinoId === reinoFiltro : !r.reinoId
+  );
+
+  const reinosDisponibles = allReinos.filter(r =>
+    r.nombre.toLowerCase().includes(searchR.toLowerCase()) &&
+    !reinoRows.some(rr => rr.reinoId === r.id)
+  );
+
+  const lugaresDisponibles = lugaresFiltrados.filter(l =>
+    l.nombre.toLowerCase().includes(searchL.toLowerCase()) &&
+    !lugarRows.some(lr => lr.lugarId === l.id)
+  );
+
+  return (
+    <div className="space-y-3">
+      <p className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Hábitat</p>
+
+      {/* ── Reinos ── */}
+      <div className="space-y-1.5">
+        <label className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/25 flex items-center gap-1">
+          <Globe size={9} /> Reinos
+        </label>
+
+        {loadingR ? (
+          <p className="text-[9px] text-primary/20 italic">Cargando…</p>
+        ) : (
+          <>
+            {reinoRows.length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                {reinoRows.map(r => (
+                  <div key={r.rowId}
+                    className="flex items-center gap-0.5 pl-2 pr-1 py-0.5 rounded-lg border text-[10px] font-bold cursor-pointer transition-all"
+                    style={{
+                      background: reinoFiltro === r.reinoId
+                        ? "color-mix(in srgb, var(--primary) 18%, transparent)"
+                        : "color-mix(in srgb, var(--primary) 6%, transparent)",
+                      borderColor: reinoFiltro === r.reinoId
+                        ? "color-mix(in srgb, var(--primary) 35%, transparent)"
+                        : "color-mix(in srgb, var(--primary) 15%, transparent)",
+                      color: "var(--primary)",
+                    }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setReinoFiltro(prev => prev === r.reinoId ? null : r.reinoId)}
+                      className="leading-none"
+                      title={reinoFiltro === r.reinoId ? "Quitar filtro" : "Filtrar lugares por este reino"}
+                    >
+                      {r.reinoNombre}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        removeReino(r.rowId);
+                        if (reinoFiltro === r.reinoId) setReinoFiltro(null);
+                      }}
+                      className="w-3.5 h-3.5 rounded flex items-center justify-center text-primary/30 hover:text-red-400 transition-colors"
+                    >
+                      <X size={8} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="relative">
+              <button type="button" onClick={() => setOpenR(o => !o)}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-dashed text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer"
+                style={{ borderColor: "color-mix(in srgb, var(--primary) 18%, transparent)", color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
+                <Plus size={8} /> Añadir reino
+              </button>
+              {openR && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => { setOpenR(false); setSearchR(""); }} />
+                  <div className="absolute z-50 top-full left-0 mt-1 w-48 rounded-xl border shadow-xl overflow-hidden"
+                    style={{ background: "var(--bg-main)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
+                    <div className="p-1.5 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+                      <input autoFocus value={searchR} onChange={e => setSearchR(e.target.value)}
+                        placeholder="Buscar reino…"
+                        className="w-full bg-transparent text-[10px] text-primary outline-none placeholder:text-primary/30 px-1.5 py-0.5" />
+                    </div>
+                    <div className="max-h-40 overflow-y-auto p-1">
+                      {reinosDisponibles.length === 0
+                        ? <p className="text-[9px] text-primary/25 italic text-center py-3">Sin resultados</p>
+                        : reinosDisponibles.map(r => (
+                          <button key={r.id} type="button"
+                            onMouseDown={() => { addReino(r); setOpenR(false); setSearchR(""); }}
+                            className="w-full text-left px-2.5 py-1.5 rounded-lg text-[11px] font-medium text-primary/75 hover:bg-primary/6 hover:text-primary transition-colors truncate cursor-pointer">
+                            {r.nombre}
+                          </button>
+                        ))}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* ── Lugares ── */}
+      <div className="space-y-1.5">
+        <label className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/25 flex items-center gap-1.5">
+          <MapPin size={9} />
+          Lugares
+          {reinoFiltro && (
+            <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-md"
+              style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)", color: "color-mix(in srgb, var(--primary) 60%, transparent)" }}>
+              {reinoRows.find(r => r.reinoId === reinoFiltro)?.reinoNombre}
+            </span>
+          )}
+        </label>
+
+        {loadingL ? (
+          <p className="text-[9px] text-primary/20 italic">Cargando…</p>
+        ) : (
+          <>
+            {lugaresAsignados.length === 0 && (
+              <p className="text-[9px] text-primary/20 italic py-1">
+                {reinoFiltro ? "Sin lugares en este reino" : "Sin lugares sin reino"}
+              </p>
+            )}
+            {lugaresAsignados.length > 0 && (
+              <div className="space-y-1">
+                {lugaresAsignados.map(r => (
+                  <div key={r.rowId} className="relative group flex items-center gap-2 px-2.5 py-1.5 rounded-xl transition-colors"
+                    style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+                    <button onClick={() => onNavigateLugar?.(r.lugarId)}
+                      className="flex items-center gap-2 flex-1 min-w-0 text-left">
+                      <MapPin size={9} className="shrink-0 text-primary/30" />
+                      <span className="text-[10px] font-bold text-primary/65 truncate hover:text-primary transition-colors">
+                        {r.lugarNombre}
+                      </span>
+                    </button>
+                    <button onClick={() => removeLugar(r.rowId)}
+                      className="shrink-0 opacity-0 group-hover:opacity-100 transition-all p-0.5 rounded text-red-400/50 hover:text-red-400 cursor-pointer">
+                      <X size={9} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="relative">
+              <button type="button" onClick={() => setOpenL(o => !o)}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-dashed text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer"
+                style={{ borderColor: "color-mix(in srgb, var(--primary) 18%, transparent)", color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
+                <Plus size={8} /> Añadir lugar
+              </button>
+              {openL && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => { setOpenL(false); setSearchL(""); }} />
+                  <div className="absolute z-50 top-full left-0 mt-1 w-52 rounded-xl border shadow-xl overflow-hidden"
+                    style={{ background: "var(--bg-main)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
+                    <div className="p-1.5 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+                      <input autoFocus value={searchL} onChange={e => setSearchL(e.target.value)}
+                        placeholder="Buscar lugar…"
+                        className="w-full bg-transparent text-[10px] text-primary outline-none placeholder:text-primary/30 px-1.5 py-0.5" />
+                    </div>
+                    <div className="max-h-40 overflow-y-auto p-1">
+                      {lugaresDisponibles.length === 0
+                        ? <p className="text-[9px] text-primary/25 italic text-center py-3">Sin resultados</p>
+                        : lugaresDisponibles.map(l => (
+                          <button key={l.id} type="button"
+                            onMouseDown={() => { addLugar(l); setOpenL(false); setSearchL(""); }}
+                            className="w-full text-left px-2.5 py-1.5 rounded-lg text-[11px] font-medium text-primary/75 hover:bg-primary/6 hover:text-primary transition-colors truncate cursor-pointer">
+                            {l.nombre}
+                          </button>
+                        ))}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── EditorCriatura ───────────────────────────────────────────────────────────
 export function EditorCriatura({
-  item, onSaved, onDeleted, entities = [], onSelectItem, onSelectPersonaje, onSelectGrupo,
+  item, onSaved, onDeleted, entities = [], onSelectItem, onSelectPersonaje, onSelectGrupo, onNavigateLugar,
 }: {
   item: Criatura; onSaved: (c: Criatura) => void; onDeleted: (id: string) => void; entities?: WikiEntity[];
   onSelectItem?: (itemId: string) => void;
   onSelectPersonaje?: (personajeId: string) => void;
   onSelectGrupo?: (grupoId: string) => void;
+  onNavigateLugar?: (id: string) => void;
 }) {
   const [form,   setForm]   = useState<Criatura>(item);
   const [status, setStatus] = useState<SaveStatus>("idle");
@@ -918,6 +1220,11 @@ export function EditorCriatura({
                       entities={entities}
                       />
                   </div>
+                </div>
+
+                {/* Columna hábitat: reinos + lugares */}
+                <div className="sm:shrink-0 sm:w-52 space-y-3">
+                  <BloqueHabitat criaturaId={form.id} onNavigateLugar={onNavigateLugar} />
                 </div>
 
                 {/* Columna derecha: Catálogo Mágico */}
