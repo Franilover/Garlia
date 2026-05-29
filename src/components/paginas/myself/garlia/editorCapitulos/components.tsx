@@ -1376,29 +1376,37 @@ export const PanelPersonajesCapitulo = ({
   const [reinoOpen,   setReinoOpen]   = useState(false);
   const [savingReino, setSavingReino] = useState(false);
   const reinoRef = useRef<HTMLDivElement>(null);
+  const reinoBtnRef = useRef<HTMLButtonElement>(null);
+  const [reinoDropPos, setReinoDropPos] = useState<{ top: number; left: number; width: number } | null>(null);
 
   // ── Visibilidad del capítulo ──────────────────────────────────────────────
   const [visibilidad,   setVisibilidad]   = useState<"publico" | "programado" | "oculto">("oculto");
   const [savingVis,     setSavingVis]     = useState(false);
+  const [fechaProg,     setFechaProg]     = useState<string>("");
+  const [savingFecha,   setSavingFecha]   = useState(false);
 
   useEffect(() => {
     if (!capId) return;
     supabase
       .from("capitulos")
-      .select("orden_linea_tiempo, reino_id, visibilidad")
+      .select("orden_linea_tiempo, reino_id, visibilidad, fecha_publicacion")
       .eq("id", capId)
       .single()
       .then(({ data }) => {
         setOrdenLinea(data?.orden_linea_tiempo != null ? String(data.orden_linea_tiempo) : "");
         setReinoId(data?.reino_id ?? null);
         setVisibilidad(data?.visibilidad ?? "oculto");
+        setFechaProg(data?.fecha_publicacion ? data.fecha_publicacion.slice(0, 10) : "");
       });
   }, [capId]);
 
   useEffect(() => {
     if (!reinoOpen) return;
     const h = (e: MouseEvent) => {
-      if (reinoRef.current && !reinoRef.current.contains(e.target as Node)) setReinoOpen(false);
+      const target = e.target as Node;
+      const inContainer = reinoRef.current?.contains(target);
+      const inBtn = reinoBtnRef.current?.contains(target);
+      if (!inContainer && !inBtn) setReinoOpen(false);
     };
     document.addEventListener("mousedown", h);
     return () => document.removeEventListener("mousedown", h);
@@ -1416,8 +1424,21 @@ export const PanelPersonajesCapitulo = ({
     if (v === visibilidad || savingVis) return;
     setVisibilidad(v);
     setSavingVis(true);
-    try { await capUpdateMeta(capId, { visibilidad: v }); } catch {}
+    try {
+      await capUpdateMeta(capId, { visibilidad: v });
+      if (v !== "programado") {
+        setFechaProg("");
+        await capUpdateMeta(capId, { fecha_publicacion: null as any });
+      }
+    } catch {}
     setSavingVis(false);
+  };
+
+  const handleSaveFechaProg = async () => {
+    if (!fechaProg) return;
+    setSavingFecha(true);
+    try { await capUpdateMeta(capId, { fecha_publicacion: fechaProg }); } catch {}
+    setSavingFecha(false);
   };
 
   const handleSaveOrden = async () => {
@@ -1520,7 +1541,7 @@ export const PanelPersonajesCapitulo = ({
       {/* ── Reino ───────────────────────────────────────────────────────── */}
       <div
         ref={reinoRef}
-        className="shrink-0 px-3 py-2.5 border-b relative"
+        className="shrink-0 px-3 py-2.5 border-b"
         style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
       >
         <div className="flex items-center gap-1 mb-1.5">
@@ -1537,8 +1558,15 @@ export const PanelPersonajesCapitulo = ({
           )}
         </div>
         <button
+          ref={reinoBtnRef}
           type="button"
-          onClick={() => setReinoOpen(o => !o)}
+          onClick={() => {
+            if (!reinoOpen && reinoBtnRef.current) {
+              const rect = reinoBtnRef.current.getBoundingClientRect();
+              setReinoDropPos({ top: rect.bottom + 4, left: rect.left, width: rect.width });
+            }
+            setReinoOpen(o => !o);
+          }}
           className="w-full flex items-center justify-between rounded-lg border px-2 py-1.5 text-left transition-all"
           style={{
             background: reinoId ? "color-mix(in srgb, var(--primary) 6%, transparent)" : "transparent",
@@ -1563,13 +1591,19 @@ export const PanelPersonajesCapitulo = ({
             style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
           />
         </button>
-        {reinoOpen && (
+        {reinoOpen && reinoDropPos && (
           <div
-            className="absolute left-2 right-2 z-50 rounded-lg border overflow-hidden shadow-lg"
             style={{
-              top: "calc(100% - 4px)",
+              position: "fixed",
+              top: reinoDropPos.top,
+              left: reinoDropPos.left,
+              width: reinoDropPos.width,
+              zIndex: 9999,
               background: "var(--bg-main)",
-              borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)",
+              border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
+              borderRadius: 8,
+              boxShadow: "0 8px 24px color-mix(in srgb, var(--primary) 12%, transparent)",
+              overflow: "hidden",
             }}
           >
             <button
@@ -1660,10 +1694,31 @@ export const PanelPersonajesCapitulo = ({
             );
           })}
         </div>
+        {visibilidad === "programado" && (
+          <div className="mt-2 flex items-center gap-1">
+            <Calendar size={8} style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)", flexShrink: 0 }} />
+            <input
+              type="date"
+              value={fechaProg}
+              onChange={e => setFechaProg(e.target.value)}
+              onBlur={handleSaveFechaProg}
+              onKeyDown={e => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+              className="flex-1 min-w-0 rounded-lg border px-1.5 py-1 text-[8px] font-black outline-none transition-all"
+              style={{
+                background: fechaProg ? "color-mix(in srgb, var(--primary) 6%, transparent)" : "transparent",
+                borderColor: fechaProg
+                  ? "color-mix(in srgb, var(--primary) 22%, transparent)"
+                  : "color-mix(in srgb, var(--primary) 12%, transparent)",
+                color: fechaProg ? "var(--primary)" : "color-mix(in srgb, var(--primary) 30%, transparent)",
+              }}
+            />
+            {savingFecha && (
+              <Loader2 size={8} className="animate-spin shrink-0"
+                style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
+            )}
+          </div>
+        )}
       </div>
-
-      <SeccionEntidad
-        label="Personajes"
         icon={<UserCircle2 size={9} />}
         fallbackIcon={<UserCircle2 size={10} />}
         emptyLabel="Sin personajes"
