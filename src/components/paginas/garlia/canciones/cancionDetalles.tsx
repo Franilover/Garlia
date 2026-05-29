@@ -8,10 +8,6 @@ import { SmartImage } from "@/components/display/SmartImage";
 import { Btn, Loading } from "@/components/ui";
 import { db } from "@/lib/api/client/db";
 import { toSlug, esUUID } from "@/lib/utils/slugify";
-import {
-  getLetra,
-  type Seccion,
-} from "@/components/paginas/garlia/canciones/CancionComponents";
 
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(false);
@@ -24,6 +20,23 @@ function useIsMobile() {
   }, []);
   return isMobile;
 }
+
+export interface Seccion {
+  id: string;
+  nombre_seccion: string;
+  letra_es?: string;
+  letra_en?: string;
+  letra_jp?: string;
+  letra_romaji?: string;
+  orden: number;
+  timings_es?:     Record<string, number> | null;
+  timings_en?:     Record<string, number> | null;
+  timings_jp?:     Record<string, number> | null;
+  timings_romaji?: Record<string, number> | null;
+}
+
+const getLetra = (sec: Seccion, lang: "es" | "en" | "jp" | "romaji"): string =>
+  (lang === "es" ? sec.letra_es : lang === "en" ? sec.letra_en : lang === "jp" ? sec.letra_jp : sec.letra_romaji) || "";
 
 interface PersonajeRef {
   id: string;
