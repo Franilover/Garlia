@@ -1,2 +1,2 @@
-import CancionDetalles from "@/components/paginas/garlia/canciones/cancionDetalles";
+import CancionDetalles from "@/components/paginas/garlia/detallesCancion";
 export default CancionDetalles;

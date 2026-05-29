@@ -1,5 +1,5 @@
 
-import Leer from '@/components/paginas/garlia/libros/leer';
+import Leer from '@/components/paginas/garlia/leerLibro';
 export default function Page() {
   return <Leer />;
 }
