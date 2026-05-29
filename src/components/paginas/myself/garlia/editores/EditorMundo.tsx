@@ -1416,6 +1416,7 @@ function PanelListas({
                   const { data } = await supabase.from("lugares").select("*").eq("id", id).single();
                   if (data) setSelectedLugar(data as Lugar);
                 }}
+                onSelectCriatura={id => { const c = criaturas.find(x => x.id === id); if (!c) return; clearAllOverlays(); setSelectedCriatura(c); }}
               />
             )}
             {overlay === "criatura" && selectedCriatura && (
