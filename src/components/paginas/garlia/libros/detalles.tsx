@@ -98,7 +98,9 @@ async function resolverLibroPorSlug(slugParam: string): Promise<Libro | null> {
     if (db?.libros) {
       const todos = await db.libros.toArray() as any[];
       if (todos.length > 0) {
-        const encontrado = todos.find((l: any) => toSlug(l.titulo ?? "") === slugParam);
+        const encontrado = todos.find((l: any) =>
+          toSlug(l.titulo ?? "") === slugParam && l.visibilidad === "publico"
+        );
         if (encontrado) return encontrado as Libro;
       }
     }
@@ -107,7 +109,8 @@ async function resolverLibroPorSlug(slugParam: string): Promise<Libro | null> {
   // 2. Fallback a Supabase — UNA sola query con los campos necesarios
   const { data } = await supabase
     .from("libros")
-    .select("id, titulo, sinopsis, portada_url, categoria");
+    .select("id, titulo, sinopsis, portada_url, categoria")
+    .eq("visibilidad", "publico");
   if (!data) return null;
 
   // Guardar en Dexie para la próxima visita
@@ -285,6 +288,7 @@ export default function LibroDetalle() {
             .from("libros")
             .select("id, titulo, sinopsis, portada_url, categoria")
             .eq("id", slugParam)
+            .eq("visibilidad", "publico")
             .single();
           libroData = data as Libro | null;
           if (libroData) { try { await db?.libros?.put(libroData as any); } catch {} }
@@ -337,6 +341,7 @@ export default function LibroDetalle() {
         const dexieCaps = (await db?.capitulos
           ?.where("libro_id")
           .equals(libroData.id)
+          .filter((c: any) => c.visibilidad === "publico")
           .sortBy("orden")) as Capitulo[] | undefined;
         if (dexieCaps?.length && mounted) {
           setCapitulos(dexieCaps);
