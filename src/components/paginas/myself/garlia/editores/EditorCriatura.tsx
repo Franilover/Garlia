@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Bug, Plus, Check, X, Trash2, Save, ChevronDown, Lock,
   Dna, Brain, Wand2, GitBranch, Package, Wrench, Leaf, Layers, Users,
-  MapPin, Globe,
+  MapPin, Globe, ExternalLink,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
@@ -1027,9 +1027,11 @@ function useCriaturaLugares(criaturaId: string) {
 function BloqueHabitat({
   criaturaId,
   onNavigateLugar,
+  onNavigateReino,
 }: {
   criaturaId: string;
   onNavigateLugar?: (id: string) => void;
+  onNavigateReino?: (id: string) => void;
 }) {
   const { rows: reinoRows, loading: loadingR, add: addReino, remove: removeReino } = useCriaturaReinos(criaturaId);
   const { rows: lugarRows, loading: loadingL, add: addLugar, remove: removeLugar } = useCriaturaLugares(criaturaId);
@@ -1087,31 +1089,26 @@ function BloqueHabitat({
               <div className="flex flex-wrap gap-1">
                 {reinoRows.map(r => (
                   <div key={r.rowId}
-                    className="flex items-center gap-0.5 pl-2 pr-1 py-0.5 rounded-lg border text-[10px] font-bold cursor-pointer transition-all"
+                    className="flex items-center gap-0.5 pl-2 pr-1 py-0.5 rounded-lg border text-[10px] font-bold transition-all"
                     style={{
-                      background: reinoFiltro === r.reinoId
-                        ? "color-mix(in srgb, var(--primary) 18%, transparent)"
-                        : "color-mix(in srgb, var(--primary) 6%, transparent)",
-                      borderColor: reinoFiltro === r.reinoId
-                        ? "color-mix(in srgb, var(--primary) 35%, transparent)"
-                        : "color-mix(in srgb, var(--primary) 15%, transparent)",
+                      background: "color-mix(in srgb, var(--primary) 6%, transparent)",
+                      borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)",
                       color: "var(--primary)",
                     }}
                   >
                     <button
                       type="button"
-                      onClick={() => setReinoFiltro(prev => prev === r.reinoId ? null : r.reinoId)}
-                      className="leading-none"
-                      title={reinoFiltro === r.reinoId ? "Quitar filtro" : "Filtrar lugares por este reino"}
+                      onClick={() => onNavigateReino?.(r.reinoId)}
+                      className="leading-none flex items-center gap-1 hover:underline transition-opacity"
+                      style={{ cursor: onNavigateReino ? "pointer" : "default", opacity: onNavigateReino ? 1 : 0.75 }}
+                      title="Abrir reino"
                     >
                       {r.reinoNombre}
+                      {onNavigateReino && <ExternalLink size={7} className="opacity-40" />}
                     </button>
                     <button
                       type="button"
-                      onClick={() => {
-                        removeReino(r.rowId);
-                        if (reinoFiltro === r.reinoId) setReinoFiltro(null);
-                      }}
+                      onClick={() => removeReino(r.rowId)}
                       className="w-3.5 h-3.5 rounded flex items-center justify-center text-primary/30 hover:text-red-400 transition-colors"
                     >
                       <X size={8} />
@@ -1239,13 +1236,14 @@ function BloqueHabitat({
 
 // ─── EditorCriatura ───────────────────────────────────────────────────────────
 export function EditorCriatura({
-  item, onSaved, onDeleted, entities = [], onSelectItem, onSelectPersonaje, onSelectGrupo, onNavigateLugar,
+  item, onSaved, onDeleted, entities = [], onSelectItem, onSelectPersonaje, onSelectGrupo, onNavigateLugar, onNavigateReino,
 }: {
   item: Criatura; onSaved: (c: Criatura) => void; onDeleted: (id: string) => void; entities?: WikiEntity[];
   onSelectItem?: (itemId: string) => void;
   onSelectPersonaje?: (personajeId: string) => void;
   onSelectGrupo?: (grupoId: string) => void;
   onNavigateLugar?: (id: string) => void;
+  onNavigateReino?: (id: string) => void;
 }) {
   const [form,   setForm]   = useState<Criatura>(item);
   const [status, setStatus] = useState<SaveStatus>("idle");
@@ -1401,7 +1399,7 @@ export function EditorCriatura({
 
                 {/* Columna hábitat: reinos + lugares */}
                 <div className="sm:shrink-0 sm:w-52 space-y-3">
-                  <BloqueHabitat criaturaId={form.id} onNavigateLugar={onNavigateLugar} />
+                  <BloqueHabitat criaturaId={form.id} onNavigateLugar={onNavigateLugar} onNavigateReino={onNavigateReino} />
                 </div>
 
                 {/* Columna derecha: Catálogo Mágico */}
