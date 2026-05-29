@@ -547,12 +547,18 @@ interface CanvasMapProps {
   onMapClick: (x: number, y: number) => void;
   selectedMarkerId?: string | null;
   tipo: "global" | "reino";
+  isFirstOpen?: boolean; // true only the very first time the map opens in a session
 }
 
-function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, onMapClick, selectedMarkerId, tipo, onOpenPanel }: CanvasMapProps & { onOpenPanel?: () => void }) {
+function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, onMapClick, selectedMarkerId, tipo, onOpenPanel, isFirstOpen }: CanvasMapProps & { onOpenPanel?: () => void }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [imgLoaded, setImgLoaded] = useState(false);
+  // showCompass: on first open stays true for at least 5s after image loads
+  const [showCompass, setShowCompass] = useState(true);
+  // mapFading: subtle fade overlay when switching maps (non-first transitions)
+  const [mapFading, setMapFading] = useState(false);
+  const compassTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const imgRef = useRef<HTMLImageElement | null>(null);
   const animFrameRef = useRef<number>(0);
   // Camera state
@@ -603,6 +609,20 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
   }, []);
 
   useEffect(() => {
+    // Clear any pending compass timer
+    if (compassTimerRef.current) clearTimeout(compassTimerRef.current);
+
+    if (isFirstOpen) {
+      // First open: show full compass animation, keep it for ≥5s after load
+      setShowCompass(true);
+      setMapFading(false);
+    } else if (imgLoaded) {
+      // Map switch: show a brief subtle fade overlay instead of compass
+      setMapFading(true);
+      setTimeout(() => setMapFading(false), 600);
+      setShowCompass(false);
+    }
+
     setImgLoaded(false);
     compassStartRef.current = null; // reset so compass spins fresh on next load
     imgRef.current = null;
@@ -613,16 +633,35 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
       imgRef.current = img;
       centerImage();
       setImgLoaded(true);
+      if (isFirstOpen) {
+        // Keep compass visible for at least 5 seconds after the image is ready
+        compassTimerRef.current = setTimeout(() => setShowCompass(false), 5000);
+      } else {
+        setShowCompass(false);
+      }
     };
     img.onerror = () => {
       setTimeout(() => {
         const retry = new Image();
         retry.crossOrigin = "anonymous";
         retry.src = imageSrc + (imageSrc.includes("?") ? "&" : "?") + "_r=" + Date.now();
-        retry.onload = () => { imgRef.current = retry; centerImage(); setImgLoaded(true); };
+        retry.onload = () => {
+          imgRef.current = retry;
+          centerImage();
+          setImgLoaded(true);
+          if (isFirstOpen) {
+            compassTimerRef.current = setTimeout(() => setShowCompass(false), 5000);
+          } else {
+            setShowCompass(false);
+          }
+        };
       }, 800);
     };
-  }, [imageSrc, centerImage]);
+    return () => {
+      if (compassTimerRef.current) clearTimeout(compassTimerRef.current);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [imageSrc, centerImage, isFirstOpen]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -698,7 +737,7 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
       const { x: cx, y: cy, scale } = camRef.current;
       const img = imgRef.current;
 
-      if (img && imgLoaded) {
+      if (img && imgLoaded && !showCompass) {
         const iw = img.width * scale;
         const ih = img.height * scale;
 
@@ -968,8 +1007,8 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
           }
         }
 
-      } else {
-        // ── Antique compass rose — shown while map image loads ────────────
+      } else if (!img || !imgLoaded || showCompass) {
+        // ── Antique compass rose — shown on first open for ≥5s, or while image loads ──
         const { accent, primary } = cssColorsRef.current;
         const cx2 = canvas.width  / 2;
         const cy2 = canvas.height / 2;
@@ -987,9 +1026,13 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
         const angleInner = -eased * Math.PI * 3;
 
         // Pulse fades in, then settles once stopped
-        const pulse = progress < 1
+        // When image is loaded but still in 5s hold window, fade the compass out
+        // compassStartRef tracks when compass first appeared; 5s hold starts at load
+        // We fade out in the last 1.2s of the 5s window via imgLoaded flag
+        const basePulse = progress < 1
           ? 0.55 + 0.2 * Math.sin(t * 0.0018)
           : 0.65;
+        const pulse = basePulse;
 
         ctx.save();
         ctx.globalAlpha = pulse;
@@ -1121,7 +1164,7 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
     };
     animFrameRef.current = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(animFrameRef.current);
-  }, [imgLoaded, markers, hiddenMarkers, editMode, selectedMarkerId, tipo]);
+  }, [imgLoaded, showCompass, markers, hiddenMarkers, editMode, selectedMarkerId, tipo]);
 
   // Invalidate fog cache when markers or edit mode changes
   useEffect(() => { fogCacheRef.current = null; }, [markers, editMode, tipo]);
@@ -1295,6 +1338,26 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
         onMouseUp={handleMouseUp}
         onWheel={handleWheel}
       />
+
+      {/* ── Subtle map-switch fade overlay (non-first transitions) ── */}
+      {mapFading && (
+        <div
+          className="absolute inset-0 pointer-events-none z-20"
+          style={{
+            background: "var(--bg-main)",
+            animation: "mapFadeOut 0.6s ease-out forwards",
+          }}
+        />
+      )}
+
+      {/* ── Inline keyframes for fade overlay ── */}
+      <style>{`
+        @keyframes mapFadeOut {
+          0%   { opacity: 0.55; }
+          100% { opacity: 0; }
+        }
+      `}</style>
+
       <div className="absolute right-4 bottom-[calc(56px+1rem)] md:bottom-6 flex flex-col gap-1.5 z-10">
         {[
           { icon: <ZoomIn size={14} />, fn: () => zoom(1.25) },
@@ -1337,6 +1400,17 @@ export default function MapaInteractivo() {
 
   // reinos con caché Dexie automático — instantáneo en visitas posteriores
   const { data: reinos, setData: setReinos, loading } = useSupabaseData<any>("reinos");
+
+  // isFirstOpen: true only the very first time the map is visited in this session
+  const [isFirstOpen] = useState<boolean>(() => {
+    if (typeof window === "undefined") return true;
+    const seen = sessionStorage.getItem("garlia_map_seen");
+    if (!seen) {
+      sessionStorage.setItem("garlia_map_seen", "1");
+      return true;
+    }
+    return false;
+  });
 
   const [detallesReino, setDetallesReino] = useState<any[]>([]);
   const [vistaActual, setVistaActual] = useState<"global" | "reino">("global");
@@ -1792,6 +1866,7 @@ export default function MapaInteractivo() {
           onMapClick={handleMapClick}
           selectedMarkerId={puntoSeleccionado?.id ?? reinoSeleccionado?.id ?? null}
           tipo={vistaActual}
+          isFirstOpen={isFirstOpen}
           onOpenPanel={isMobile && (reinoSeleccionado || puntoSeleccionado) ? () => setPanelOpen(true) : undefined}
         />
       </div>
