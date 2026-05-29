@@ -554,11 +554,13 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [imgLoaded, setImgLoaded] = useState(false);
-  // showCompass: on first open stays true for at least 5s after image loads
+  // showCompass: true while compass should be displayed (first open only, ≥5s)
   const [showCompass, setShowCompass] = useState(true);
   // mapFading: subtle fade overlay when switching maps (non-first transitions)
   const [mapFading, setMapFading] = useState(false);
   const compassTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // hasShownCompass: consumed once — prevents re-showing compass on subsequent imageSrc changes
+  const hasShownCompassRef = useRef(false);
   const imgRef = useRef<HTMLImageElement | null>(null);
   const animFrameRef = useRef<number>(0);
   // Camera state
@@ -612,19 +614,26 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
     // Clear any pending compass timer
     if (compassTimerRef.current) clearTimeout(compassTimerRef.current);
 
-    if (isFirstOpen) {
-      // First open: show full compass animation, keep it for ≥5s after load
+    // shouldShowCompass: only true the very first time this component loads
+    const shouldShowCompass = isFirstOpen && !hasShownCompassRef.current;
+
+    if (shouldShowCompass) {
+      // First open: show full compass animation — mark it as consumed immediately
+      hasShownCompassRef.current = true;
       setShowCompass(true);
       setMapFading(false);
-    } else if (imgLoaded) {
-      // Map switch: show a brief subtle fade overlay instead of compass
-      setMapFading(true);
-      setTimeout(() => setMapFading(false), 600);
+    } else {
+      // Any subsequent image change: subtle fade overlay, no compass
       setShowCompass(false);
+      if (hasShownCompassRef.current) {
+        // Only fade if we've already shown the first load (not during initial mount)
+        setMapFading(true);
+        setTimeout(() => setMapFading(false), 600);
+      }
     }
 
     setImgLoaded(false);
-    compassStartRef.current = null; // reset so compass spins fresh on next load
+    compassStartRef.current = null;
     imgRef.current = null;
     const img = new Image();
     img.crossOrigin = "anonymous";
@@ -633,7 +642,7 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
       imgRef.current = img;
       centerImage();
       setImgLoaded(true);
-      if (isFirstOpen) {
+      if (shouldShowCompass) {
         // Keep compass visible for at least 5 seconds after the image is ready
         compassTimerRef.current = setTimeout(() => setShowCompass(false), 5000);
       } else {
@@ -649,7 +658,7 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
           imgRef.current = retry;
           centerImage();
           setImgLoaded(true);
-          if (isFirstOpen) {
+          if (shouldShowCompass) {
             compassTimerRef.current = setTimeout(() => setShowCompass(false), 5000);
           } else {
             setShowCompass(false);
