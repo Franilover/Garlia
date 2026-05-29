@@ -666,6 +666,157 @@ function VarianteEditor({
   );
 }
 
+// ─── Tipo extendido localmente (GrupoMin + subtipo) ──────────────────────────
+type GrupoMinExt = GrupoMin & { subtipo?: string | null };
+
+// ─── BloqueGrupoCategoria — bloque filtrado por subtipo ───────────────────────
+// Reemplaza BloqueGruposCriatura mostrando un bloque por categoría (Hábitat,
+// Inteligencia, Alma) en lugar de todos los grupos juntos. El estilo imita los
+// chips de especie / reino de EditorPersonaje.
+
+function BloqueGrupoCategoria({
+  label,
+  subtipo,
+  icon: Icon,
+  gruposActuales,
+  todosGrupos,
+  onAdd,
+  onRemove,
+  onSelectGrupo,
+}: {
+  label: string;
+  subtipo: string;
+  icon: React.ElementType;
+  gruposActuales: GrupoMinExt[];
+  todosGrupos: GrupoMinExt[];
+  onAdd: (grupoId: string) => void;
+  onRemove: (grupoId: string) => void;
+  onSelectGrupo?: (grupoId: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+
+  // Grupos de esta categoría disponibles en el mundo
+  const gruposDeCat = todosGrupos.filter(g => g.subtipo === subtipo);
+
+  // Cuáles ya están asignados a esta criatura
+  const actual = gruposActuales.filter(g => gruposDeCat.some(c => c.id === g.id));
+
+  // Opciones aún no asignadas
+  const disponibles = gruposDeCat.filter(
+    g => !gruposActuales.some(a => a.id === g.id) &&
+         g.nombre.toLowerCase().includes(search.toLowerCase())
+  );
+
+  return (
+    <div className="space-y-1.5">
+      {/* Label */}
+      <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35 flex items-center gap-1">
+        <Icon size={9} /> {label}
+      </label>
+
+      {/* Chips actuales */}
+      {actual.length > 0 ? (
+        <div className="flex flex-col gap-1">
+          {actual.map(g => (
+            <div
+              key={g.id}
+              className="flex items-center gap-1 pl-2 pr-1 py-1 rounded-xl border text-[10px] font-bold transition-all"
+              style={{
+                background: "color-mix(in srgb, var(--primary) 5%, transparent)",
+                borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
+                color: "var(--primary)",
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => onSelectGrupo?.(g.id)}
+                className="flex-1 min-w-0 truncate text-left leading-none hover:underline cursor-pointer"
+                title="Ir al grupo"
+              >
+                {g.nombre}
+              </button>
+              <button
+                type="button"
+                onClick={() => onRemove(g.id)}
+                className="shrink-0 w-4 h-4 rounded flex items-center justify-center text-primary/25 hover:text-red-400 transition-colors cursor-pointer"
+              >
+                <X size={8} />
+              </button>
+            </div>
+          ))}
+        </div>
+      ) : (
+        /* Estado vacío */
+        <p className="text-[9px] text-primary/20 italic px-0.5">Sin asignar</p>
+      )}
+
+      {/* Botón añadir + dropdown */}
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => setOpen(o => !o)}
+          className="flex items-center gap-1 px-2 py-1 rounded-lg border border-dashed text-[8px] font-black uppercase tracking-widest transition-all cursor-pointer"
+          style={{
+            borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)",
+            color: "color-mix(in srgb, var(--primary) 30%, transparent)",
+          }}
+        >
+          <Plus size={7} /> Añadir
+        </button>
+
+        {open && (
+          <>
+            <div className="fixed inset-0 z-40" onClick={() => { setOpen(false); setSearch(""); }} />
+            <div
+              className="absolute z-50 top-full left-0 mt-1 w-44 rounded-xl border shadow-xl overflow-hidden"
+              style={{ background: "var(--bg-main)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}
+            >
+              {/* Header del dropdown */}
+              <div
+                className="px-2.5 py-1.5 border-b flex items-center gap-1.5"
+                style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}
+              >
+                <Icon size={8} className="text-primary/30" />
+                <span className="text-[8px] font-black uppercase tracking-[0.25em] text-primary/40">{label}</span>
+              </div>
+              <div className="p-1.5 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 6%, transparent)" }}>
+                <input
+                  autoFocus
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder={`Buscar ${label.toLowerCase()}…`}
+                  className="w-full bg-transparent text-[10px] text-primary outline-none placeholder:text-primary/30 px-1 py-0.5"
+                />
+              </div>
+              <div className="max-h-36 overflow-y-auto p-1">
+                {gruposDeCat.length === 0 ? (
+                  <p className="text-[9px] text-primary/25 italic text-center py-3 px-2">
+                    No hay grupos de tipo "{label}" creados
+                  </p>
+                ) : disponibles.length === 0 ? (
+                  <p className="text-[9px] text-primary/25 italic text-center py-3">
+                    {search ? "Sin resultados" : "Ya están todos asignados"}
+                  </p>
+                ) : disponibles.map(g => (
+                  <button
+                    key={g.id}
+                    type="button"
+                    onMouseDown={() => { onAdd(g.id); setOpen(false); setSearch(""); }}
+                    className="w-full text-left px-2.5 py-1.5 rounded-lg text-[11px] font-medium text-primary/75 hover:bg-primary/6 hover:text-primary transition-colors truncate cursor-pointer"
+                  >
+                    {g.nombre}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── BloqueGruposCriatura ─────────────────────────────────────────────────────
 // Muestra a qué grupos pertenece la criatura y permite añadir/quitar.
 // Es la mitad del enlace bidireccional: el grupo almacena miembro_ids,
@@ -1206,13 +1357,39 @@ export function EditorCriatura({
 
                 {/* Columna central: grupos + descripción */}
                 <div className="flex-1 min-w-0 space-y-4">
-                  <BloqueGruposCriatura
-                    gruposActuales={gruposActuales}
-                    todosGrupos={todosGrupos}
-                    onAdd={addToGrupo}
-                    onRemove={removeFromGrupo}
-                    onSelectGrupo={onSelectGrupo}
-                  />
+                  {/* Tres bloques de categoría: Hábitat · Inteligencia · Alma */}
+                  <div className="grid grid-cols-3 gap-2">
+                    <BloqueGrupoCategoria
+                      label="Hábitat"
+                      subtipo="Hábitat"
+                      icon={Globe}
+                      gruposActuales={gruposActuales as GrupoMinExt[]}
+                      todosGrupos={todosGrupos as GrupoMinExt[]}
+                      onAdd={addToGrupo}
+                      onRemove={removeFromGrupo}
+                      onSelectGrupo={onSelectGrupo}
+                    />
+                    <BloqueGrupoCategoria
+                      label="Inteligencia"
+                      subtipo="Inteligencia"
+                      icon={Brain}
+                      gruposActuales={gruposActuales as GrupoMinExt[]}
+                      todosGrupos={todosGrupos as GrupoMinExt[]}
+                      onAdd={addToGrupo}
+                      onRemove={removeFromGrupo}
+                      onSelectGrupo={onSelectGrupo}
+                    />
+                    <BloqueGrupoCategoria
+                      label="Alma"
+                      subtipo="Alma"
+                      icon={Wand2}
+                      gruposActuales={gruposActuales as GrupoMinExt[]}
+                      todosGrupos={todosGrupos as GrupoMinExt[]}
+                      onAdd={addToGrupo}
+                      onRemove={removeFromGrupo}
+                      onSelectGrupo={onSelectGrupo}
+                    />
+                  </div>
                   <div className="space-y-1.5">
                     <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Descripción</label>
                     <MarkdownEditor value={form.descripcion ?? ""} onChange={v => setForm(f => ({ ...f, descripcion: v }))}
