@@ -243,8 +243,8 @@ function PanelContenido({
         {/* ── Habitantes del lugar seleccionado ── */}
         {puntoSeleccionado && (
           loadingLugar ? (
-            <div className="flex justify-center py-6">
-              <Hourglass size={14} style={{ color: "color-mix(in srgb, var(--accent) 50%, transparent)" }} />
+            <div className="flex justify-center py-6" style={{ color: "color-mix(in srgb, var(--accent) 50%, transparent)" }}>
+              <Hourglass size={14} />
             </div>
           ) : (
             <>
