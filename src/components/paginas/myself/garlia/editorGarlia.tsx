@@ -252,12 +252,35 @@ export default function EditorEntidades() {
   const openItemKeyRef = useRef(0);
   const [onItemCreated, setOnItemCreated] = useState<{ tabla: string; item: any } | null>(null);
 
+  useEffect(() => {
+    const handleOpenEntity = (e: Event) => {
+      const evt = e as CustomEvent<{ tabla: string; id: string }>;
+      
+      // 1. Cambiamos a la pestaña de mundo
+      setTab("mundo");
+      
+      // 2. IMPORTANTE: Ponemos una sección neutral para que el PanelListas se monte
+      setMundoSection("geografia"); 
+      
+      // 3. Ejecutamos la apertura
+      setOpenItem({ 
+        tabla: evt.detail.tabla, 
+        id: evt.detail.id, 
+        key: ++openItemKeyRef.current 
+      });
+    };
+    
+    window.addEventListener("garlia-open-entity", handleOpenEntity);
+    return () => window.removeEventListener("garlia-open-entity", handleOpenEntity);
+  }, []); // <-- Aquí faltaba cerrar el primer useEffect correctamente
+
   // Auto-limpiar onItemCreated después de que PanelListas lo consuma
   useEffect(() => {
     if (!onItemCreated) return;
     const t = setTimeout(() => setOnItemCreated(null), 100);
     return () => clearTimeout(t);
   }, [onItemCreated]);
+
   const [hasOverlay, setHasOverlay] = useState(false);
   const overlayCloseFnRef = useRef<(() => void) | null>(null);
 

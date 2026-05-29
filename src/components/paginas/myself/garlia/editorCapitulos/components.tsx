@@ -1177,6 +1177,7 @@ const SeccionEntidad = ({
   loading,
   saving,
   onToggle,
+  onEntityClick,
 }: {
   label: string;
   icon: React.ReactNode;
@@ -1188,7 +1189,8 @@ const SeccionEntidad = ({
   loading: boolean;
   saving: boolean;
   onToggle: (id: string, add: boolean) => void;
-}) => {
+  onEntityClick?: (id: string) => void; 
+  }) => {
   const [open, setOpen] = useState(false);
   const dropRef = useRef<HTMLDivElement>(null);
 
@@ -1293,6 +1295,7 @@ const SeccionEntidad = ({
         selected.map(e => (
           <div
             key={e.id}
+            onClick={() => onEntityClick?.(e.id)}
             className="group flex items-center gap-2 px-3 py-1.5 transition-all hover:bg-primary/5"
           >
             {e.imagen_url ? (
@@ -1321,7 +1324,7 @@ const SeccionEntidad = ({
             </span>
             <button
               type="button"
-              onClick={() => onToggle(e.id, false)}
+              onClick={(ev) => { ev.stopPropagation(); onToggle(e.id, false); }} 
               title="Quitar"
               className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity rounded p-0.5 hover:bg-red-500/10"
               style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
@@ -1386,6 +1389,10 @@ export const PanelPersonajesCapitulo = ({
     setSavingI(false);
   };
 
+  const dispatchOpen = (tabla: string, id: string) => {
+    window.dispatchEvent(new CustomEvent("garlia-open-entity", { detail: { tabla, id } }));
+  };
+
   return (
     <div
       className="hidden lg:flex flex-col shrink-0 border-l overflow-y-auto"
@@ -1406,6 +1413,7 @@ export const PanelPersonajesCapitulo = ({
         loading={loadingP}
         saving={savingP}
         onToggle={handleTogglePersonaje}
+        onEntityClick={(id) => dispatchOpen("personajes", id)} 
       />
 
       {/* Divisor */}
@@ -1422,6 +1430,7 @@ export const PanelPersonajesCapitulo = ({
         loading={loadingC}
         saving={savingC}
         onToggle={handleToggleCriatura}
+        onEntityClick={(id) => dispatchOpen("criaturas", id)} 
       />
 
       {/* Divisor */}
@@ -1438,6 +1447,7 @@ export const PanelPersonajesCapitulo = ({
         loading={loadingI}
         saving={savingI}
         onToggle={handleToggleItem}
+        onEntityClick={(id) => dispatchOpen("items", id)} 
       />
     </div>
   );
