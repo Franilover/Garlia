@@ -8,7 +8,7 @@ import {
 import {
   X, ArrowLeft,
   Save, Edit3, ImagePlus, Move, CheckCircle2, AlertCircle, UserX, ZoomIn, ZoomOut, User,
-  BookOpen, BookMarked,
+  BookOpen, BookMarked, Bug, Package,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { useIsAdmin } from "@/hooks/auth/useIsAdmin";
@@ -76,6 +76,7 @@ function PanelContenido({
   handlePersonajeClick, modifiedDetalles, isSaving, handleSaveChanges,
   isUploadingImg, handleImageUpload, imgInputRef,
   librosReino, capitulosReino,
+  personajesLugar, criaturasLugar, itemsLugar, loadingLugar,
 }: any) {
   const router = useRouter();
   if (editMode) {
@@ -238,6 +239,155 @@ function PanelContenido({
             &ldquo;{puntoSeleccionado ? puntoSeleccionado.descripcion : reinoSeleccionado.descripcion}&rdquo;
           </p>
         </div>
+
+        {/* ── Habitantes del lugar seleccionado ── */}
+        {puntoSeleccionado && (
+          loadingLugar ? (
+            <div className="flex justify-center py-6">
+              <Hourglass size={14} style={{ color: "color-mix(in srgb, var(--accent) 50%, transparent)" }} />
+            </div>
+          ) : (
+            <>
+              {/* Personajes */}
+              {personajesLugar.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }} />
+                    <span className="text-[8px] font-black uppercase tracking-[0.3em]" style={{ color: "color-mix(in srgb, var(--accent) 60%, transparent)" }}>
+                      <User size={8} className="inline mr-1" />Habitantes
+                    </span>
+                    <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {personajesLugar.map((p: any) => {
+                      const desbloqueado = personajesDesbloqueados.has(p.id);
+                      return (
+                        <button
+                          key={p.id}
+                          onClick={desbloqueado ? () => handlePersonajeClick(p) : undefined}
+                          className="flex items-center gap-2 p-2 w-full text-left transition-all"
+                          style={{
+                            background: desbloqueado
+                              ? "color-mix(in srgb, var(--primary) 15%, transparent)"
+                              : "color-mix(in srgb, var(--bg-main) 50%, transparent)",
+                            border: `1px solid ${desbloqueado ? "color-mix(in srgb, var(--accent) 20%, transparent)" : "color-mix(in srgb, var(--accent) 7%, transparent)"}`,
+                            opacity: desbloqueado ? 1 : 0.5,
+                            cursor: desbloqueado ? "pointer" : "default",
+                          }}
+                        >
+                          <div className="shrink-0 w-9 h-9 overflow-hidden flex items-center justify-center border"
+                            style={{
+                              borderColor: desbloqueado ? "color-mix(in srgb, var(--accent) 25%, transparent)" : "color-mix(in srgb, var(--accent) 8%, transparent)",
+                              background: "color-mix(in srgb, var(--bg-main) 80%, transparent)",
+                              filter: desbloqueado ? "none" : "grayscale(100%) blur(2px)",
+                              borderRadius: "1px",
+                            }}>
+                            {desbloqueado && p.img_url
+                              ? <img src={p.img_url} alt={p.nombre} className="w-full h-full object-cover" />
+                              : <UserX size={14} style={{ color: "color-mix(in srgb, var(--accent) 30%, transparent)" }} />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[10px] font-semibold uppercase leading-tight truncate"
+                              style={{ color: desbloqueado ? "var(--foreground)" : "color-mix(in srgb, var(--accent) 30%, transparent)" }}>
+                              {desbloqueado ? p.nombre : "???"}
+                            </p>
+                            {p.especie && (
+                              <p className="text-[8px] mt-0.5 truncate" style={{ color: "color-mix(in srgb, var(--accent) 55%, transparent)" }}>
+                                {desbloqueado ? p.especie : "Desconocido"}
+                              </p>
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Criaturas */}
+              {criaturasLugar.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }} />
+                    <span className="text-[8px] font-black uppercase tracking-[0.3em]" style={{ color: "color-mix(in srgb, var(--accent) 60%, transparent)" }}>
+                      <Bug size={8} className="inline mr-1" />Criaturas avistadas
+                    </span>
+                    <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }} />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    {criaturasLugar.map((c: any) => (
+                      <div key={c.id} className="flex items-center gap-2.5 px-3 py-2 border"
+                        style={{
+                          background: "color-mix(in srgb, var(--primary) 10%, transparent)",
+                          borderColor: "color-mix(in srgb, var(--accent) 12%, transparent)",
+                          borderRadius: "1px",
+                        }}>
+                        <div className="shrink-0 w-8 h-8 overflow-hidden border"
+                          style={{
+                            borderColor: "color-mix(in srgb, var(--accent) 20%, transparent)",
+                            background: "color-mix(in srgb, var(--bg-main) 80%, transparent)",
+                            borderRadius: "1px",
+                          }}>
+                          {c.imagen_url
+                            ? <img src={c.imagen_url} alt={c.nombre} className="w-full h-full object-cover" />
+                            : <Bug size={14} className="m-auto mt-1" style={{ color: "color-mix(in srgb, var(--accent) 40%, transparent)" }} />}
+                        </div>
+                        <p className="text-[10px] font-semibold uppercase truncate" style={{ color: "var(--foreground)" }}>
+                          {c.nombre}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Items */}
+              {itemsLugar.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }} />
+                    <span className="text-[8px] font-black uppercase tracking-[0.3em]" style={{ color: "color-mix(in srgb, var(--accent) 60%, transparent)" }}>
+                      <Package size={8} className="inline mr-1" />Objetos encontrables
+                    </span>
+                    <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }} />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    {itemsLugar.map((item: any) => (
+                      <div key={item.id} className="flex items-center gap-2.5 px-3 py-2 border"
+                        style={{
+                          background: "color-mix(in srgb, var(--primary) 10%, transparent)",
+                          borderColor: "color-mix(in srgb, var(--accent) 12%, transparent)",
+                          borderRadius: "1px",
+                        }}>
+                        <div className="shrink-0 w-8 h-8 overflow-hidden border"
+                          style={{
+                            borderColor: "color-mix(in srgb, var(--accent) 20%, transparent)",
+                            background: "color-mix(in srgb, var(--bg-main) 80%, transparent)",
+                            borderRadius: "1px",
+                          }}>
+                          {item.imagen_url
+                            ? <img src={item.imagen_url} alt={item.nombre} className="w-full h-full object-cover" />
+                            : <Package size={14} className="m-auto mt-1" style={{ color: "color-mix(in srgb, var(--accent) 40%, transparent)" }} />}
+                        </div>
+                        <p className="text-[10px] font-semibold uppercase truncate" style={{ color: "var(--foreground)" }}>
+                          {item.nombre}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Vacío */}
+              {personajesLugar.length === 0 && criaturasLugar.length === 0 && itemsLugar.length === 0 && (
+                <p className="text-center text-[9px] font-black uppercase tracking-widest py-4"
+                  style={{ color: "color-mix(in srgb, var(--accent) 25%, transparent)" }}>
+                  Sin habitantes registrados
+                </p>
+              )}
+            </>
+          )
+        )}
 
         {/* Characters grid — 2 per row, no "ver" button */}
         {!puntoSeleccionado && personajesReino.length > 0 && (
@@ -1207,6 +1357,11 @@ export default function MapaInteractivo() {
   // Books & chapters
   const [librosReino, setLibrosReino] = useState<any[]>([]);
   const [capitulosReino, setCapitulosReino] = useState<any[]>([]);
+  // Habitantes del lugar seleccionado
+  const [personajesLugar, setPersonajesLugar] = useState<any[]>([]);
+  const [criaturasLugar, setCriaturasLugar] = useState<any[]>([]);
+  const [itemsLugar, setItemsLugar] = useState<any[]>([]);
+  const [loadingLugar, setLoadingLugar] = useState(false);
 
   const imgInputRef = useRef<HTMLInputElement>(null);
   const currentReinoIdRef = useRef<string | null>(null);
@@ -1232,6 +1387,50 @@ export default function MapaInteractivo() {
         });
     });
   }, []);
+
+  // Cargar personajes, criaturas e items cuando se selecciona un lugar
+  useEffect(() => {
+    if (!puntoSeleccionado) {
+      setPersonajesLugar([]);
+      setCriaturasLugar([]);
+      setItemsLugar([]);
+      return;
+    }
+    const lugarId = puntoSeleccionado.id;
+    const currentId = lugarId;
+    setLoadingLugar(true);
+
+    const run = async () => {
+      // 1. Dexie cache
+      if (db) {
+        try {
+          const [cachedP, cachedC, cachedI] = await Promise.all([
+            (db as any).personajes?.filter((p: any) => p.lugar_id === lugarId && !p.deleted).toArray().catch(() => []) ?? [],
+            (db as any).criaturas?.filter((c: any) => c.lugar_id === lugarId && !c.deleted).toArray().catch(() => []) ?? [],
+            (db as any).items?.filter((i: any) => i.lugar_id === lugarId && !i.deleted).toArray().catch(() => []) ?? [],
+          ]);
+          if (currentId !== lugarId) return;
+          if (cachedP.length) setPersonajesLugar(cachedP);
+          if (cachedC.length) setCriaturasLugar(cachedC);
+          if (cachedI.length) setItemsLugar(cachedI);
+          if (!navigator.onLine) { setLoadingLugar(false); return; }
+        } catch {}
+      }
+
+      // 2. Supabase
+      const [pRes, cRes, iRes] = await Promise.all([
+        supabase.from("personajes").select("id, nombre, img_url, especie").eq("lugar_id", lugarId).order("nombre"),
+        supabase.from("criaturas").select("id, nombre, imagen_url").eq("lugar_id", lugarId).order("nombre"),
+        supabase.from("items").select("id, nombre, imagen_url").eq("lugar_id", lugarId).order("nombre"),
+      ]);
+      if (currentId !== lugarId) return;
+      if (!pRes.error) setPersonajesLugar(pRes.data ?? []);
+      if (!cRes.error) setCriaturasLugar(cRes.data ?? []);
+      if (!iRes.error) setItemsLugar(iRes.data ?? []);
+      setLoadingLugar(false);
+    };
+    run();
+  }, [puntoSeleccionado?.id]);
 
   // Ref para detectar si el usuario cambió de reino antes de que lleguen los datos
 
@@ -1445,6 +1644,7 @@ export default function MapaInteractivo() {
     handlePersonajeClick, modifiedDetalles, isSaving, handleSaveChanges,
     isUploadingImg, handleImageUpload, imgInputRef,
     librosReino, capitulosReino,
+    personajesLugar, criaturasLugar, itemsLugar, loadingLugar,
   };
 
   // Solo bloquea la UI si no hay absolutamente ningún dato todavía (primera carga ever)
