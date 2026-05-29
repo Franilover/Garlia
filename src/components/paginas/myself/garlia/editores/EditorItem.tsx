@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { Package, Save, Trash2, Bug, Loader2, Leaf, Wrench, ChevronDown, X, Plus } from "lucide-react";
+import { Package, Save, Trash2, Bug, Loader2, Leaf, Wrench, ChevronDown, X, Plus, MapPin } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
 import { useConfirm } from "@/components/ui/ConfirmModal";
@@ -194,13 +194,149 @@ function PanelCrafterSources({ itemId, onSelectCriatura }: { itemId: string; onS
   );
 }
 
+// ─── Hook: lugar donde se encuentra el ítem ───────────────────────────────────
+
+type LugarMin = { id: string; nombre: string };
+
+function useLugarItem(itemId: string) {
+  const [lugar, setLugar] = useState<LugarMin | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    // Leer lugar_id del ítem
+    const { data: itemData } = await supabase
+      .from("items")
+      .select("lugar_id")
+      .eq("id", itemId)
+      .single();
+    const lugarId = itemData?.lugar_id ?? null;
+    if (!lugarId) { setLugar(null); setLoading(false); return; }
+    // Resolver nombre
+    const { data: lugarData } = await supabase
+      .from("lugares")
+      .select("id, nombre")
+      .eq("id", lugarId)
+      .single();
+    setLugar(lugarData ?? null);
+    setLoading(false);
+  }, [itemId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const set = async (l: LugarMin) => {
+    await supabase.from("items").update({ lugar_id: l.id }).eq("id", itemId);
+    setLugar(l);
+  };
+
+  const clear = async () => {
+    await supabase.from("items").update({ lugar_id: null }).eq("id", itemId);
+    setLugar(null);
+  };
+
+  return { lugar, loading, set, clear };
+}
+
+// ─── Panel selector de lugares ────────────────────────────────────────────────
+
+function PanelLugares({ itemId, onNavigateLugar }: { itemId: string; onNavigateLugar?: (id: string) => void }) {
+  const { lugar, loading, set, clear } = useLugarItem(itemId);
+  const [allLugares, setAllLugares] = useState<LugarMin[]>([]);
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    supabase.from("lugares").select("id, nombre").order("nombre")
+      .then(({ data }) => setAllLugares(data ?? []));
+  }, []);
+
+  const filtered = allLugares.filter(l =>
+    l.nombre.toLowerCase().includes(search.toLowerCase()) &&
+    l.id !== lugar?.id
+  );
+
+  if (loading) {
+    return (
+      <div className="flex items-center gap-2 py-4">
+        <Loader2 size={13} className="animate-spin text-primary/20" />
+        <span className="text-[10px] text-primary/25 italic">Cargando…</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      {!lugar && (
+        <p className="text-[9px] font-bold text-primary/20 uppercase tracking-widest text-center py-4 border border-dashed border-primary/10 rounded-xl italic">
+          Sin lugar asignado
+        </p>
+      )}
+      {lugar && (
+        <div className="relative group flex items-center gap-2.5 px-3 py-2 rounded-xl transition-colors"
+          style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+          <button
+            onClick={() => onNavigateLugar?.(lugar.id)}
+            className="flex items-center gap-2.5 flex-1 min-w-0 text-left"
+          >
+            <div className="shrink-0 w-6 h-6 rounded-lg border border-primary/10 bg-primary/5 flex items-center justify-center">
+              <MapPin size={10} className="text-primary/40" />
+            </div>
+            <span className="flex-1 text-[11px] font-bold text-primary/70 truncate hover:text-primary transition-colors">
+              {lugar.nombre}
+            </span>
+          </button>
+          <button onClick={clear}
+            className="shrink-0 opacity-0 group-hover:opacity-100 transition-all p-1 rounded text-red-400/50 hover:text-red-400 hover:bg-red-500/8">
+            <X size={11} />
+          </button>
+        </div>
+      )}
+
+      {!lugar && (
+        <div className="relative">
+          <button onClick={() => setOpen(o => !o)}
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-primary/20 text-[10px] font-black uppercase tracking-widest text-primary/40 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all">
+            <Plus size={10} /> Asignar lugar
+            <ChevronDown size={10} className="ml-auto" style={{ transform: open ? "rotate(180deg)" : undefined, transition: "transform 0.2s" }} />
+          </button>
+          {open && (
+            <div className="absolute top-full left-0 right-0 z-20 mt-1 rounded-xl shadow-xl overflow-hidden"
+              style={{ background: "var(--bg-main)", border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)" }}>
+              <div className="p-2 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+                <input autoFocus value={search} onChange={e => setSearch(e.target.value)}
+                  placeholder="Buscar lugar…"
+                  className="w-full bg-transparent text-[11px] text-primary outline-none placeholder:text-primary/30 px-2 py-1" />
+              </div>
+              <div className="max-h-48 overflow-y-auto">
+                {filtered.length === 0 && (
+                  <p className="text-[10px] text-primary/25 italic text-center py-4">Sin resultados</p>
+                )}
+                {filtered.map(l => (
+                  <button key={l.id} onClick={() => { set(l); setOpen(false); setSearch(""); }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-primary/5 transition-colors text-left">
+                    <div className="shrink-0 w-6 h-6 rounded-md border border-primary/10 bg-primary/5 flex items-center justify-center">
+                      <MapPin size={9} className="text-primary/20" />
+                    </div>
+                    <span className="text-[11px] font-bold text-primary/70 truncate">{l.nombre}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── EditorItem ───────────────────────────────────────────────────────────────
 
 export function EditorItem({
-  item, onSaved, onDeleted, entities = [], onSelectCriatura,
+  item, onSaved, onDeleted, entities = [], onSelectCriatura, onNavigateLugar,
 }: {
   item: Item; onSaved: (i: Item) => void; onDeleted: (id: string) => void; entities?: WikiEntity[];
   onSelectCriatura?: (criaturaId: string) => void;
+  onNavigateLugar?: (id: string) => void;
 }) {
   const [form,     setForm]     = useState<Item>(item);
   const [status,   setStatus]   = useState<SaveStatus>("idle");
@@ -294,9 +430,12 @@ export function EditorItem({
                   onChange={v => setForm(f => ({ ...f, categoria: v }))} opciones={categorias}
                   placeholder="Arma, reliquia, objeto…" />
 
-                {/* Origen: Natural / Artificial */}
-                <div className="space-y-2">
-                  <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Origen</label>
+                {/* Origen + Lugares en dos columnas */}
+                <div className="flex flex-col sm:flex-row gap-4">
+
+                  {/* Columna Origen */}
+                  <div className="flex-1 min-w-0 space-y-2">
+                <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Origen</label>
 
                   {/* Nivel 1: Natural / Artificial */}
                   <div className="flex gap-2">
@@ -376,6 +515,16 @@ export function EditorItem({
                       <PanelCrafterSources itemId={form.id} onSelectCriatura={onSelectCriatura} />
                     </div>
                   )}
+                  </div>
+
+                  {/* Columna Lugares */}
+                  <div className="flex-1 min-w-0 space-y-2">
+                    <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35 flex items-center gap-1.5">
+                      <MapPin size={9} /> Lugar donde encontrarlo
+                    </label>
+                    <PanelLugares itemId={form.id} onNavigateLugar={onNavigateLugar} />
+                  </div>
+
                 </div>
 
                 <div className="space-y-1.5">
