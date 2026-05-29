@@ -3,12 +3,13 @@ import React, { useState, useEffect, useRef } from "react";
 import {
   ChevronDown, ChevronRight, UserCircle2, Loader2, Plus, Trash2,
   X, Check, Clock, Hash, AlignLeft, Calendar, BookMarked, Pencil,
-  MoreHorizontal, Globe, Lock, Timer, Mic2, MapPin,
+  MoreHorizontal, Globe, Lock, Timer, Mic2, MapPin, Cat, Sword,
 } from "lucide-react";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { SaveIndicator } from "@/components/templates/EstudioTemplates";
 import SimpleImagePicker from "@/components/paginas/myself/garlia/editorCapitulos/snippets//forms/SimpleImagePicker";
 import { usePersonajes } from "@/hooks/useEditorShared";
+import { supabase } from "@/lib/api/client/supabase";
 import {
   Libro, Capitulo,
   VISIBILIDAD_CONFIG,
@@ -1135,20 +1136,60 @@ export function SelectorImagenPortada({ value, onChange }: { value: string; onCh
   );
 }
 
-// ─── PanelPersonajesCapitulo ──────────────────────────────────────────────────
+// ─── hooks internos de criaturas e items ─────────────────────────────────────
 
-export const PanelPersonajesCapitulo = ({
+function useCriaturas() {
+  const [criaturas, setCriaturas] = useState<{ id: string; nombre: string; imagen_url?: string }[]>([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    supabase.from("criaturas").select("id, nombre, imagen_url").order("nombre").then(({ data }) => {
+      setCriaturas((data ?? []) as any[]);
+      setLoading(false);
+    });
+  }, []);
+  return { criaturas, loading };
+}
+
+function useItems() {
+  const [items, setItems] = useState<{ id: string; nombre: string; imagen_url?: string; categoria?: string }[]>([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    supabase.from("items").select("id, nombre, imagen_url, categoria").order("nombre").then(({ data }) => {
+      setItems((data ?? []) as any[]);
+      setLoading(false);
+    });
+  }, []);
+  return { items, loading };
+}
+
+// ─── SeccionEntidad — sección vertical reutilizable ──────────────────────────
+
+type EntidadBase = { id: string; nombre: string; imagen_url?: string };
+
+const SeccionEntidad = ({
+  label,
+  icon,
+  emptyLabel,
+  fallbackIcon,
   capId,
-  value,
-  onChange,
+  allEntities,
+  selectedIds,
+  loading,
+  saving,
+  onToggle,
 }: {
+  label: string;
+  icon: React.ReactNode;
+  emptyLabel: string;
+  fallbackIcon: React.ReactNode;
   capId: string;
-  value: string[];
-  onChange: (ids: string[]) => void;
+  allEntities: EntidadBase[];
+  selectedIds: string[];
+  loading: boolean;
+  saving: boolean;
+  onToggle: (id: string, add: boolean) => void;
 }) => {
-  const { personajes, loading } = usePersonajes();
-  const [open, setOpen]         = useState(false);
-  const [saving, setSaving]     = useState(false);
+  const [open, setOpen] = useState(false);
   const dropRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -1160,54 +1201,42 @@ export const PanelPersonajesCapitulo = ({
     return () => document.removeEventListener("mousedown", h);
   }, [open]);
 
-  const selected   = personajes.filter(p => value.includes(p.id));
-  const available  = personajes.filter(p => !value.includes(p.id));
-
-  const handleToggle = async (id: string, add: boolean) => {
-    const next = add ? [...value, id] : value.filter(x => x !== id);
-    onChange(next);
-    setSaving(true);
-    try {
-      await capUpdateMeta(capId, { personajes_ids: next });
-    } catch {}
-    setSaving(false);
-  };
+  const selected  = allEntities.filter(e => selectedIds.includes(e.id));
+  const available = allEntities.filter(e => !selectedIds.includes(e.id));
 
   return (
-    <div
-      className="hidden lg:flex flex-col shrink-0 border-l"
-      style={{
-        width: "180px",
-        borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
-        background: "color-mix(in srgb, var(--primary) 2%, transparent)",
-      }}
-    >
-      {/* Header */}
+    <div className="shrink-0 flex flex-col">
+      {/* ── Cabecera de sección ── */}
       <div
-        className="shrink-0 flex items-center justify-between px-3 py-2.5 border-b"
-        style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
+        className="flex items-center justify-between px-3 py-2"
+        style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" }}
       >
-        <span className="flex items-center gap-1.5 text-[8px] font-black uppercase tracking-widest text-primary/40">
-          <UserCircle2 size={9} />
-          Personajes
+        <span
+          className="flex items-center gap-1.5 text-[8px] font-black uppercase tracking-widest"
+          style={{ color: "color-mix(in srgb, var(--primary) 38%, transparent)" }}
+        >
+          {icon}
+          {label}
           {saving && <Loader2 size={8} className="animate-spin opacity-50" />}
         </span>
-        {/* Botón añadir */}
+
+        {/* Dropdown añadir */}
         <div className="relative" ref={dropRef}>
           <button
             type="button"
             onClick={() => setOpen(o => !o)}
-            title="Añadir personaje"
+            title={`Añadir ${label.toLowerCase()}`}
             className="w-5 h-5 rounded-md flex items-center justify-center transition-all hover:bg-primary/10"
             style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
           >
             <Plus size={11} />
           </button>
+
           {open && (
             <div
               className="absolute right-0 top-full mt-1 z-50 rounded-xl border overflow-hidden shadow-lg"
               style={{
-                width: "160px",
+                width: "165px",
                 background: "var(--bg-main)",
                 borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)",
               }}
@@ -1218,20 +1247,25 @@ export const PanelPersonajesCapitulo = ({
                 </div>
               ) : available.length === 0 ? (
                 <p className="text-[9px] font-black uppercase text-primary/25 px-3 py-3 text-center tracking-widest">
-                  {personajes.length === 0 ? "Sin personajes" : "Todos añadidos"}
+                  {allEntities.length === 0 ? emptyLabel : "Todos añadidos"}
                 </p>
               ) : (
-                <div className="max-h-52 overflow-y-auto py-1">
-                  {available.map(p => (
+                <div className="max-h-44 overflow-y-auto py-1">
+                  {available.map(e => (
                     <button
-                      key={p.id}
+                      key={e.id}
                       type="button"
-                      onClick={() => { handleToggle(p.id, true); setOpen(false); }}
+                      onClick={() => { onToggle(e.id, true); setOpen(false); }}
                       className="w-full flex items-center gap-2 px-3 py-2 text-[10px] font-black uppercase tracking-wide transition-all hover:bg-primary/5 text-left"
                       style={{ color: "color-mix(in srgb, var(--primary) 60%, transparent)" }}
                     >
-                      <UserCircle2 size={10} className="shrink-0 opacity-40" />
-                      <span className="truncate">{p.nombre}</span>
+                      {e.imagen_url
+                        ? <img src={e.imagen_url} alt={e.nombre}
+                            className="w-4 h-4 rounded shrink-0 object-contain"
+                            style={{ background: "color-mix(in srgb, var(--primary) 6%, transparent)" }} />
+                        : <span className="shrink-0 opacity-40">{fallbackIcon}</span>
+                      }
+                      <span className="truncate">{e.nombre}</span>
                     </button>
                   ))}
                 </div>
@@ -1241,22 +1275,34 @@ export const PanelPersonajesCapitulo = ({
         </div>
       </div>
 
-      {/* Lista de personajes seleccionados */}
-      <div className="flex-1 overflow-y-auto py-2">
-        {selected.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-24 gap-2 px-3">
-            <UserCircle2 size={18} style={{ color: "color-mix(in srgb, var(--primary) 15%, transparent)" }} />
-            <p className="text-[8px] font-black uppercase tracking-widest text-center"
-              style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }}>
-              Sin personajes
-            </p>
-          </div>
-        ) : (
-          selected.map(p => (
-            <div
-              key={p.id}
-              className="group flex items-center gap-2 px-3 py-1.5 transition-all hover:bg-primary/5"
-            >
+      {/* ── Entidades seleccionadas ── */}
+      {selected.length === 0 ? (
+        <div
+          className="flex items-center gap-2 px-3 py-2.5"
+          style={{ opacity: 0.35 }}
+        >
+          <span style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>
+            {fallbackIcon}
+          </span>
+          <p className="text-[8px] font-black uppercase tracking-widest"
+            style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
+            {emptyLabel}
+          </p>
+        </div>
+      ) : (
+        selected.map(e => (
+          <div
+            key={e.id}
+            className="group flex items-center gap-2 px-3 py-1.5 transition-all hover:bg-primary/5"
+          >
+            {e.imagen_url ? (
+              <img
+                src={e.imagen_url}
+                alt={e.nombre}
+                className="w-5 h-5 rounded-full shrink-0 object-contain"
+                style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
+              />
+            ) : (
               <div
                 className="w-5 h-5 rounded-full shrink-0 flex items-center justify-center text-[7px] font-black uppercase"
                 style={{
@@ -1264,27 +1310,135 @@ export const PanelPersonajesCapitulo = ({
                   color: "color-mix(in srgb, var(--primary) 60%, transparent)",
                 }}
               >
-                {p.nombre.charAt(0)}
+                {e.nombre.charAt(0)}
               </div>
-              <span
-                className="flex-1 min-w-0 text-[10px] font-black uppercase tracking-wide truncate"
-                style={{ color: "color-mix(in srgb, var(--primary) 65%, transparent)" }}
-              >
-                {p.nombre}
-              </span>
-              <button
-                type="button"
-                onClick={() => handleToggle(p.id, false)}
-                title="Quitar"
-                className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity rounded p-0.5 hover:bg-red-500/10"
-                style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
-              >
-                <X size={9} />
-              </button>
-            </div>
-          ))
-        )}
-      </div>
+            )}
+            <span
+              className="flex-1 min-w-0 text-[10px] font-black uppercase tracking-wide truncate"
+              style={{ color: "color-mix(in srgb, var(--primary) 65%, transparent)" }}
+            >
+              {e.nombre}
+            </span>
+            <button
+              type="button"
+              onClick={() => onToggle(e.id, false)}
+              title="Quitar"
+              className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity rounded p-0.5 hover:bg-red-500/10"
+              style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
+            >
+              <X size={9} />
+            </button>
+          </div>
+        ))
+      )}
+    </div>
+  );
+};
+
+// ─── PanelPersonajesCapitulo (Personajes + Criaturas + Items en vertical) ─────
+
+export const PanelPersonajesCapitulo = ({
+  capId,
+  value,
+  onChange,
+  criaturas_ids = [],
+  onCriaturasChange,
+  items_ids = [],
+  onItemsChange,
+}: {
+  capId: string;
+  value: string[];
+  onChange: (ids: string[]) => void;
+  criaturas_ids?: string[];
+  onCriaturasChange?: (ids: string[]) => void;
+  items_ids?: string[];
+  onItemsChange?: (ids: string[]) => void;
+}) => {
+  const { personajes, loading: loadingP } = usePersonajes();
+  const { criaturas, loading: loadingC }  = useCriaturas();
+  const { items,     loading: loadingI }  = useItems();
+
+  const [savingP, setSavingP] = useState(false);
+  const [savingC, setSavingC] = useState(false);
+  const [savingI, setSavingI] = useState(false);
+
+  const handleTogglePersonaje = async (id: string, add: boolean) => {
+    const next = add ? [...value, id] : value.filter(x => x !== id);
+    onChange(next);
+    setSavingP(true);
+    try { await capUpdateMeta(capId, { personajes_ids: next }); } catch {}
+    setSavingP(false);
+  };
+
+  const handleToggleCriatura = async (id: string, add: boolean) => {
+    const next = add ? [...criaturas_ids, id] : criaturas_ids.filter(x => x !== id);
+    onCriaturasChange?.(next);
+    setSavingC(true);
+    try { await capUpdateMeta(capId, { criaturas_ids: next } as any); } catch {}
+    setSavingC(false);
+  };
+
+  const handleToggleItem = async (id: string, add: boolean) => {
+    const next = add ? [...items_ids, id] : items_ids.filter(x => x !== id);
+    onItemsChange?.(next);
+    setSavingI(true);
+    try { await capUpdateMeta(capId, { items_ids: next } as any); } catch {}
+    setSavingI(false);
+  };
+
+  return (
+    <div
+      className="hidden lg:flex flex-col shrink-0 border-l overflow-y-auto"
+      style={{
+        width: "180px",
+        borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
+        background: "color-mix(in srgb, var(--primary) 2%, transparent)",
+      }}
+    >
+      <SeccionEntidad
+        label="Personajes"
+        icon={<UserCircle2 size={9} />}
+        fallbackIcon={<UserCircle2 size={10} />}
+        emptyLabel="Sin personajes"
+        capId={capId}
+        allEntities={personajes}
+        selectedIds={value}
+        loading={loadingP}
+        saving={savingP}
+        onToggle={handleTogglePersonaje}
+      />
+
+      {/* Divisor */}
+      <div style={{ height: "1px", background: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
+
+      <SeccionEntidad
+        label="Criaturas"
+        icon={<Cat size={9} />}
+        fallbackIcon={<Cat size={10} />}
+        emptyLabel="Sin criaturas"
+        capId={capId}
+        allEntities={criaturas}
+        selectedIds={criaturas_ids}
+        loading={loadingC}
+        saving={savingC}
+        onToggle={handleToggleCriatura}
+      />
+
+      {/* Divisor */}
+      <div style={{ height: "1px", background: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
+
+      <SeccionEntidad
+        label="Ítems"
+        icon={<Sword size={9} />}
+        fallbackIcon={<Sword size={10} />}
+        emptyLabel="Sin ítems"
+        capId={capId}
+        allEntities={items}
+        selectedIds={items_ids}
+        loading={loadingI}
+        saving={savingI}
+        onToggle={handleToggleItem}
+      />
     </div>
   );
 };

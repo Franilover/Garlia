@@ -88,6 +88,8 @@ const PanelEditor = ({
   const [savingMeta,       setSavingMeta]       = useState(false);
   const [previewOpen,      setPreviewOpen]      = useState(false);
   const [personajesIds,    setPersonajesIds]    = useState<string[]>([]);
+  const [criaturasIds,     setCriaturasIds]     = useState<string[]>([]);
+  const [itemsIds,         setItemsIds]         = useState<string[]>([]);
   const [listaSnippetCaps, setListaSnippetCaps] = useState<{id:string;orden:number;titulo_capitulo:string}[]>([]);
   const listaSecciones = useMemo(() => {
     const matches = [...contenido.matchAll(/\[\[section\|([^\|\]]+)(?:\|([^\]]+))?\]\]/g)];
@@ -125,6 +127,8 @@ const PanelEditor = ({
     setFecha(toDateInput(cap.fecha_publicacion));
     setCapVisibilidad(cap.visibilidad ?? "oculto");
     setPersonajesIds(cap.personajes_ids ?? []);
+    setCriaturasIds((cap as any).criaturas_ids ?? []);
+    setItemsIds((cap as any).items_ids ?? []);
     if (cap.status === "pending") setSaveStatus("pending");
     else setSaveStatus("idle");
   }, [cap?.id]);
@@ -580,6 +584,10 @@ const PanelEditor = ({
             capId={capId}
             value={personajesIds}
             onChange={setPersonajesIds}
+            criaturas_ids={criaturasIds}
+            onCriaturasChange={setCriaturasIds}
+            items_ids={itemsIds}
+            onItemsChange={setItemsIds}
           />
         )}
       </div>
