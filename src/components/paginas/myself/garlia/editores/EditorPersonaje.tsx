@@ -225,7 +225,7 @@ function useCriaturaVariantesPorNombre(nombreEspecie: string | null | undefined)
 
 
 // ─── Hook: nombres de lugares (para el selector) ─────────────────────────────
-type LugarMin = { id: string; nombre: string };
+type LugarMin = { id: string; nombre: string; reino_id: string | null };
 
 function useLugares(): LugarMin[] {
   const [lugares, setLugares] = useState<LugarMin[]>([]);
@@ -235,18 +235,48 @@ function useLugares(): LugarMin[] {
         if (db) {
           const local: any[] = await (db as any).lugares?.toArray() ?? [];
           if (local.length) {
-            setLugares(local.filter((l: any) => !l.deleted).sort((a: any, b: any) => a.nombre.localeCompare(b.nombre)));
+            setLugares(
+              local
+                .filter((l: any) => !l.deleted)
+                .map((l: any) => ({ id: l.id, nombre: l.nombre, reino_id: l.reino_id ?? null }))
+                .sort((a, b) => a.nombre.localeCompare(b.nombre))
+            );
             if (!navigator.onLine) return;
           }
         }
       } catch {}
       if (!navigator.onLine) return;
-      const { data } = await supabase.from("lugares").select("id, nombre").order("nombre");
-      if (data) setLugares(data);
+      const { data } = await supabase.from("lugares").select("id, nombre, reino_id").order("nombre");
+      if (data) setLugares(data.map((l: any) => ({ id: l.id, nombre: l.nombre, reino_id: l.reino_id ?? null })));
     };
     run();
   }, []);
   return lugares;
+}
+
+// ─── Hook: reinos con id (para filtrar lugares) ───────────────────────────────
+type ReinoMin = { id: string; nombre: string };
+
+function useReinosMin(): ReinoMin[] {
+  const [reinos, setReinos] = useState<ReinoMin[]>([]);
+  useEffect(() => {
+    const run = async () => {
+      try {
+        if (db) {
+          const local: any[] = await (db as any).reinos?.toArray() ?? [];
+          if (local.length) {
+            setReinos(local.filter((r: any) => !r.deleted).map((r: any) => ({ id: r.id, nombre: r.nombre })));
+            if (!navigator.onLine) return;
+          }
+        }
+      } catch {}
+      if (!navigator.onLine) return;
+      const { data } = await supabase.from("reinos").select("id, nombre").order("nombre");
+      if (data) setReinos(data);
+    };
+    run();
+  }, []);
+  return reinos;
 }
 
 // ─── Hook: grupos a los que pertenece el personaje ───────────────────────────
@@ -373,11 +403,20 @@ export function FormularioPersonaje({
   onOpenGrupo?: (id: string) => void;
   onNavigateLugar?: (id: string) => void;
 }) {
-  const especies = useNombresDeTabla("criaturas");
-  const reinos   = useNombresDeTabla("reinos");
-  const lugares  = useLugares();
+  const especies   = useNombresDeTabla("criaturas");
+  const reinos     = useNombresDeTabla("reinos");
+  const lugares    = useLugares();
+  const reinosMin  = useReinosMin();
   const variantes  = useCriaturaVariantesPorNombre(form.especie);
   const grupoIds   = useGruposDeCriaturaPorNombre(form.especie);
+
+  // Filtrar lugares según el reino seleccionado:
+  // - Con reino → solo los lugares que pertenecen a ese reino
+  // - Sin reino → solo los lugares sin reino asignado
+  const reinoSeleccionadoId = reinosMin.find(r => r.nombre === form.reino)?.id ?? null;
+  const lugaresFiltrados = lugares.filter(l =>
+    reinoSeleccionadoId ? l.reino_id === reinoSeleccionadoId : !l.reino_id
+  );
   const { onSnippetAction } = useWikilink();
 
   const field = (k: keyof Personaje) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
@@ -516,18 +555,33 @@ export function FormularioPersonaje({
                           </div>
                         )}
                       </div>
-                      <SelectorTexto label="Reino" value={form.reino ?? ""} onChange={v => setForm(f => ({ ...f, reino: v }))} opciones={reinos} placeholder="Reino, grupo, nación…" onNavigate={onNavigate ? (n) => onNavigate("reinos", n) : undefined} />
+                      <SelectorTexto
+                        label="Reino"
+                        value={form.reino ?? ""}
+                        onChange={v => {
+                          const nuevoReinoId = reinosMin.find(r => r.nombre === v)?.id ?? null;
+                          setForm(f => {
+                            const lugarActual = lugares.find(l => l.id === (f as any).lugar_id);
+                            const lugarSigueValido = lugarActual &&
+                              (nuevoReinoId ? lugarActual.reino_id === nuevoReinoId : !lugarActual.reino_id);
+                            return { ...f, reino: v, ...(!lugarSigueValido ? { lugar_id: null } : {}) };
+                          });
+                        }}
+                        opciones={reinos}
+                        placeholder="Reino, grupo, nación…"
+                        onNavigate={onNavigate ? (n) => onNavigate("reinos", n) : undefined}
+                      />
                       {(() => {
-                        const lugarActual = lugares.find(l => l.id === (form as any).lugar_id);
+                        const lugarActual = lugaresFiltrados.find(l => l.id === (form as any).lugar_id);
                         return (
                           <SelectorTexto
                             label="Lugar"
                             value={lugarActual?.nombre ?? ""}
                             onChange={nombre => {
-                              const l = lugares.find(x => x.nombre === nombre);
+                              const l = lugaresFiltrados.find(x => x.nombre === nombre);
                               setForm(f => ({ ...f, lugar_id: l?.id ?? null } as any));
                             }}
-                            opciones={lugares.map(l => l.nombre)}
+                            opciones={lugaresFiltrados.map(l => l.nombre)}
                             placeholder="Aldea, ciudad, mazmorra…"
                             onNavigate={onNavigateLugar && lugarActual ? () => onNavigateLugar(lugarActual.id) : undefined}
                           />
