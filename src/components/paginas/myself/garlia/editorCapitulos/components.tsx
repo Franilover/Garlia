@@ -1370,13 +1370,55 @@ export const PanelPersonajesCapitulo = ({
   const [savingOrden,    setSavingOrden]    = useState(false);
   const ordenInputRef = useRef<HTMLInputElement>(null);
 
+  // ── Reino del capítulo ────────────────────────────────────────────────────
+  const { reinos, loading: loadingReinos } = useReinos();
+  const [reinoId,     setReinoId]     = useState<string | null>(null);
+  const [reinoOpen,   setReinoOpen]   = useState(false);
+  const [savingReino, setSavingReino] = useState(false);
+  const reinoRef = useRef<HTMLDivElement>(null);
+
+  // ── Visibilidad del capítulo ──────────────────────────────────────────────
+  const [visibilidad,   setVisibilidad]   = useState<"publico" | "programado" | "oculto">("oculto");
+  const [savingVis,     setSavingVis]     = useState(false);
+
   useEffect(() => {
     if (!capId) return;
-    supabase.from("capitulos").select("orden_linea_tiempo").eq("id", capId).single()
+    supabase
+      .from("capitulos")
+      .select("orden_linea_tiempo, reino_id, visibilidad")
+      .eq("id", capId)
+      .single()
       .then(({ data }) => {
         setOrdenLinea(data?.orden_linea_tiempo != null ? String(data.orden_linea_tiempo) : "");
+        setReinoId(data?.reino_id ?? null);
+        setVisibilidad(data?.visibilidad ?? "oculto");
       });
   }, [capId]);
+
+  useEffect(() => {
+    if (!reinoOpen) return;
+    const h = (e: MouseEvent) => {
+      if (reinoRef.current && !reinoRef.current.contains(e.target as Node)) setReinoOpen(false);
+    };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, [reinoOpen]);
+
+  const handleSaveReino = async (id: string | null) => {
+    setReinoId(id);
+    setReinoOpen(false);
+    setSavingReino(true);
+    try { await capUpdateMeta(capId, { reino_id: id } as any); } catch {}
+    setSavingReino(false);
+  };
+
+  const handleSaveVisibilidad = async (v: "publico" | "programado" | "oculto") => {
+    if (v === visibilidad || savingVis) return;
+    setVisibilidad(v);
+    setSavingVis(true);
+    try { await capUpdateMeta(capId, { visibilidad: v }); } catch {}
+    setSavingVis(false);
+  };
 
   const handleSaveOrden = async () => {
     const val = ordenLinea.trim();
@@ -1473,6 +1515,151 @@ export const PanelPersonajesCapitulo = ({
         >
           Nº de posición en la línea de tiempo del mundo
         </p>
+      </div>
+
+      {/* ── Reino ───────────────────────────────────────────────────────── */}
+      <div
+        ref={reinoRef}
+        className="shrink-0 px-3 py-2.5 border-b relative"
+        style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
+      >
+        <div className="flex items-center gap-1 mb-1.5">
+          <MapPin size={8} style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }} />
+          <span
+            className="text-[8px] font-black uppercase tracking-[0.2em] flex-1"
+            style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
+          >
+            Reino
+          </span>
+          {savingReino && (
+            <Loader2 size={8} className="animate-spin shrink-0"
+              style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={() => setReinoOpen(o => !o)}
+          className="w-full flex items-center justify-between rounded-lg border px-2 py-1.5 text-left transition-all"
+          style={{
+            background: reinoId ? "color-mix(in srgb, var(--primary) 6%, transparent)" : "transparent",
+            borderColor: reinoId
+              ? "color-mix(in srgb, var(--primary) 22%, transparent)"
+              : "color-mix(in srgb, var(--primary) 12%, transparent)",
+          }}
+        >
+          <span
+            className="text-[9px] font-black uppercase tracking-wide truncate flex-1 text-left"
+            style={{ color: reinoId ? "var(--primary)" : "color-mix(in srgb, var(--primary) 30%, transparent)" }}
+          >
+            {loadingReinos
+              ? "…"
+              : reinoId
+                ? (reinos.find(r => r.id === reinoId)?.nombre ?? "—")
+                : "Sin reino"}
+          </span>
+          <ChevronDown
+            size={9}
+            className={`shrink-0 transition-transform ${reinoOpen ? "rotate-180" : ""}`}
+            style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
+          />
+        </button>
+        {reinoOpen && (
+          <div
+            className="absolute left-2 right-2 z-50 rounded-lg border overflow-hidden shadow-lg"
+            style={{
+              top: "calc(100% - 4px)",
+              background: "var(--bg-main)",
+              borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)",
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => handleSaveReino(null)}
+              className="w-full flex items-center gap-1.5 px-2.5 py-1.5 text-left transition-all hover:bg-primary/5"
+            >
+              <X size={8} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
+              <span className="text-[9px] font-bold uppercase"
+                style={{ color: !reinoId ? "var(--primary)" : "color-mix(in srgb, var(--primary) 40%, transparent)" }}>
+                Ninguno
+              </span>
+              {!reinoId && <Check size={8} className="ml-auto" style={{ color: "var(--primary)" }} />}
+            </button>
+            <div style={{ height: "1px", background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
+            <div className="max-h-40 overflow-y-auto">
+              {reinos.map(r => (
+                <button
+                  key={r.id}
+                  type="button"
+                  onClick={() => handleSaveReino(r.id)}
+                  className="w-full flex items-center gap-1.5 px-2.5 py-1.5 text-left transition-all hover:bg-primary/5"
+                >
+                  <MapPin size={8} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)", flexShrink: 0 }} />
+                  <span className="text-[9px] font-bold uppercase truncate flex-1"
+                    style={{ color: reinoId === r.id ? "var(--primary)" : "color-mix(in srgb, var(--primary) 50%, transparent)" }}>
+                    {r.nombre}
+                  </span>
+                  {reinoId === r.id && <Check size={8} className="shrink-0" style={{ color: "var(--primary)" }} />}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── Visibilidad ─────────────────────────────────────────────────── */}
+      <div
+        className="shrink-0 px-3 py-2.5 border-b"
+        style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
+      >
+        <div className="flex items-center gap-1 mb-1.5">
+          {visibilidad === "publico"
+            ? <Globe size={8} style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }} />
+            : visibilidad === "programado"
+              ? <Timer size={8} style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }} />
+              : <Lock size={8} style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }} />
+          }
+          <span
+            className="text-[8px] font-black uppercase tracking-[0.2em] flex-1"
+            style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
+          >
+            Visibilidad
+          </span>
+          {savingVis && (
+            <Loader2 size={8} className="animate-spin shrink-0"
+              style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
+          )}
+        </div>
+        <div className="flex gap-1">
+          {(["oculto", "programado", "publico"] as const).map(v => {
+            const cfg = VISIBILIDAD_CONFIG[v];
+            const Icon = cfg.icon;
+            const active = visibilidad === v;
+            return (
+              <button
+                key={v}
+                type="button"
+                onClick={() => handleSaveVisibilidad(v)}
+                title={cfg.label}
+                disabled={savingVis}
+                className="flex-1 flex flex-col items-center justify-center gap-0.5 py-1.5 rounded-lg border transition-all disabled:opacity-40"
+                style={active ? {
+                  background: "color-mix(in srgb, var(--primary) 10%, transparent)",
+                  borderColor: "color-mix(in srgb, var(--primary) 28%, transparent)",
+                  color: "var(--primary)",
+                } : {
+                  background: "transparent",
+                  borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
+                  color: "color-mix(in srgb, var(--primary) 28%, transparent)",
+                }}
+              >
+                <Icon size={9} />
+                <span className="text-[6px] font-black uppercase tracking-wide leading-none">
+                  {cfg.label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       <SeccionEntidad
