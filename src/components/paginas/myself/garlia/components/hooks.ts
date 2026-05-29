@@ -812,3 +812,35 @@ export function useGruposDeCriatura(criaturaId: string) {
 
   return { grupos, todosGrupos, loading, addToGrupo, removeFromGrupo, reload: load };
 }
+// ─── useReinos ────────────────────────────────────────────────────────────────
+// Trae TODOS los reinos (sin filtrar por oculto) para uso interno del editor.
+
+export function useReinos() {
+  const [reinos,  setReinos]  = useState<{ id: string; nombre: string; oculto?: boolean }[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      // 1. Caché local Dexie primero
+      const local = await dexieRead<{ id: string; nombre: string; oculto?: boolean }>("reinos");
+      if (local.length && !cancelled) { setReinos(local); setLoading(false); }
+      if (!navigator.onLine) { if (!local.length) setLoading(false); return; }
+
+      // 2. Fetch remoto — SIN filtrar por oculto para ver todos los reinos
+      try {
+        const { data } = await supabase
+          .from("reinos")
+          .select("id, nombre, oculto")
+          .order("nombre");
+        if (!data || cancelled) return;
+        setReinos(data);
+        setLoading(false);
+      } catch { if (!cancelled) setLoading(false); }
+    };
+    run();
+    return () => { cancelled = true; };
+  }, []);
+
+  return { reinos, loading };
+}
