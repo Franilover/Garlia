@@ -31,9 +31,10 @@ interface CapsInfo {
 // TTL de 5 minutos: si el usuario vuelve a la página antes de eso, ve datos
 // instantáneos sin ningún fetch.
 const CACHE_TTL_MS = 5 * 60 * 1_000;
+const DEXIE_CAPS_KEY = "biblioteca_caps_v1"; // versionar la key para evitar datos corruptos
 
-let _librosCache:  { data: Libro[];                  ts: number } | null = null;
-let _capsCache:    { data: Record<string, CapsInfo>; ts: number } | null = null;
+let _librosCache: { data: Libro[];                  ts: number } | null = null;
+let _capsCache:   { data: Record<string, CapsInfo>; ts: number } | null = null;
 
 function isFresh(cache: { ts: number } | null): boolean {
   return !!cache && Date.now() - cache.ts < CACHE_TTL_MS;
@@ -57,85 +58,156 @@ function leerTodosLeidos(libros: Libro[]): Record<string, number> {
   return result;
 }
 
-// ─── Hook de datos: Dexie primero, luego Supabase en paralelo ────────────────
+/** Construye el mapa CapsInfo desde rows crudos de Supabase. */
+function buildCapsMap(
+  rows: { libro_id: string; fecha_publicacion: string | null }[]
+): Record<string, CapsInfo> {
+  const map: Record<string, CapsInfo> = {};
+  for (const row of rows) {
+    if (!map[row.libro_id]) map[row.libro_id] = { count: 0, ultimaFecha: null };
+    map[row.libro_id].count++;
+    const f = row.fecha_publicacion;
+    if (f && (!map[row.libro_id].ultimaFecha || f > map[row.libro_id].ultimaFecha!)) {
+      map[row.libro_id].ultimaFecha = f;
+    }
+  }
+  return map;
+}
+
+// ─── Hook de datos ────────────────────────────────────────────────────────────
+// Estrategia de tres capas:
+//   1. Caché de módulo  → 0 ms  (sobrevive entre páginas SPA, no recarga)
+//   2. Dexie (IndexedDB) → ~5 ms (sobrevive recarga, offline)
+//   3. Supabase          → red   (fuente de verdad, solo si la capa anterior no está fresca)
+//
+// Bugs corregidos vs. versión anterior:
+//   • .limit(5000) en caps: Supabase corta en 1000 rows por defecto → libros con más
+//     de 1000 caps aparecían con count=0.
+//   • El mapa de caps ahora se persiste en session_cache de Dexie → si el usuario
+//     recarga la página, ve los conteos instantáneamente en vez de esperar a Supabase.
+//   • Si ambos caches de módulo están frescos se hace return inmediato: cero requests.
+//   • Si solo uno de los dos está fresco, se fetchea solo el que falta.
+//   • bulkDelete limpia libros que Supabase ya no devuelve, evitando datos fantasma.
+//   • Si capsRes falla por red, se usa el mapa guardado en Dexie como fallback.
 function useBibliotecaData() {
-  const [libros,    setLibros]    = useState<Libro[]>([]);
-  const [capsInfo,  setCapsInfo]  = useState<Record<string, CapsInfo>>({});
-  const [loading,   setLoading]   = useState(true);
+  const [libros,   setLibros]   = useState<Libro[]>([]);
+  const [capsInfo, setCapsInfo] = useState<Record<string, CapsInfo>>({});
+  const [loading,  setLoading]  = useState(true);
   const mounted = useRef(true);
 
   useEffect(() => {
     mounted.current = true;
 
     async function load() {
-      // ── 1. Mostrar caché de módulo inmediatamente (0ms) ──────────────────
-      if (isFresh(_librosCache)) {
-        setLibros(_librosCache!.data);
+      const librosOk = isFresh(_librosCache);
+      const capsOk   = isFresh(_capsCache);
+
+      // ── 1. Caché de módulo: instantáneo ─────────────────────────────────
+      if (librosOk) { setLibros(_librosCache!.data); setLoading(false); }
+      if (capsOk)   { setCapsInfo(_capsCache!.data); }
+
+      // Ambos frescos → nada más que hacer
+      if (librosOk && capsOk) return;
+
+      // ── 2. Dexie: datos persistidos de la sesión anterior ────────────────
+      //    Se ejecuta en paralelo para libros y mapa de caps.
+      const dexiePromises: [
+        Promise<Libro[] | undefined>,
+        Promise<{ key: string; value: any; updated_at: number } | undefined>
+      ] = [
+        !librosOk
+          ? (db?.libros?.toArray() as unknown as Promise<Libro[] | undefined>).catch(() => undefined)
+          : Promise.resolve(undefined),
+        !capsOk
+          ? (db?.session_cache?.get(DEXIE_CAPS_KEY) as Promise<any>).catch(() => undefined)
+          : Promise.resolve(undefined),
+      ];
+
+      const [dexieLibros, dexieCapsEntry] = await Promise.all(dexiePromises);
+
+      if (!mounted.current) return;
+
+      if (!librosOk && dexieLibros?.length) {
+        setLibros(
+          dexieLibros.filter(
+            (l) => l.visibilidad === "publico" || l.visibilidad === "programado"
+          )
+        );
         setLoading(false);
       }
-      if (isFresh(_capsCache)) {
-        setCapsInfo(_capsCache!.data);
-      }
 
-      // ── 2. Mostrar datos de Dexie si no hay caché de módulo ──────────────
-      if (!isFresh(_librosCache)) {
+      if (!capsOk && dexieCapsEntry?.value) {
         try {
-          const dexieLibros = (await db?.libros?.toArray()) as Libro[] | undefined;
-          if (dexieLibros && dexieLibros.length > 0 && mounted.current) {
-            const visibles = dexieLibros.filter(
-              (l) => l.visibilidad === "publico" || l.visibilidad === "programado"
-            );
-            setLibros(visibles);
-            setLoading(false); // ya hay algo que mostrar
-          }
+          const mapDexie = JSON.parse(dexieCapsEntry.value) as Record<string, CapsInfo>;
+          setCapsInfo(mapDexie);
         } catch {}
       }
 
-      // ── 3. Fetch en paralelo: libros + capítulos al mismo tiempo ─────────
+      // ── 3. Supabase: solo lo que necesita actualizarse ───────────────────
       try {
         const [librosRes, capsRes] = await Promise.all([
-          supabase
-            .from("libros")
-            .select("id, titulo, sinopsis, portada_url, estado, visibilidad, created_at, categoria")
-            .in("visibilidad", ["publico", "programado"])
-            .order("created_at", { ascending: false }),
+          // FIX: no fetchear si ya está fresco
+          librosOk
+            ? Promise.resolve(null)
+            : supabase
+                .from("libros")
+                .select("id, titulo, sinopsis, portada_url, estado, visibilidad, created_at, categoria")
+                .in("visibilidad", ["publico", "programado"])
+                .order("created_at", { ascending: false }),
 
-          supabase
-            .from("capitulos")
-            .select("libro_id, fecha_publicacion")
-            .eq("visibilidad", "publico")
-            .not("titulo_capitulo", "like", "[Ruta]%"),
+          // FIX: .limit(5000) evita el corte default de 1000 rows de Supabase
+          capsOk
+            ? Promise.resolve(null)
+            : supabase
+                .from("capitulos")
+                .select("libro_id, fecha_publicacion")
+                .eq("visibilidad", "publico")
+                .not("titulo_capitulo", "like", "[Ruta]%")
+                .limit(5000),
         ]);
 
         if (!mounted.current) return;
 
-        // ── Libros ─────────────────────────────────────────────────────────
-        if (librosRes.data) {
+        // ── Libros ──────────────────────────────────────────────────────────
+        if (librosRes && librosRes.data) {
           const nuevosLibros = librosRes.data as Libro[];
           _librosCache = { data: nuevosLibros, ts: Date.now() };
           setLibros(nuevosLibros);
           setLoading(false);
 
-          // Guardar en Dexie para la próxima visita offline
-          try { await db?.libros?.bulkPut(nuevosLibros as any[]); } catch {}
+          try {
+            await db?.libros?.bulkPut(nuevosLibros as any[]);
+
+            // FIX: limpiar libros que ya no existen en Supabase
+            const idsActuales = new Set(nuevosLibros.map((l) => l.id));
+            const todos = (await db?.libros?.toArray()) as Libro[] | undefined;
+            const stale = todos?.filter((l) => !idsActuales.has(l.id)).map((l) => l.id) ?? [];
+            if (stale.length) await db?.libros?.bulkDelete(stale);
+          } catch {}
+        } else if (!librosOk && mounted.current) {
+          // Supabase falló y Dexie tampoco tenía nada → quitar loading
+          setLoading(false);
         }
 
         // ── Capítulos → mapa de conteos ────────────────────────────────────
-        if (capsRes.data) {
-          const map: Record<string, CapsInfo> = {};
-          for (const row of capsRes.data as { libro_id: string; fecha_publicacion: string | null }[]) {
-            if (!map[row.libro_id]) map[row.libro_id] = { count: 0, ultimaFecha: null };
-            map[row.libro_id].count++;
-            const f = row.fecha_publicacion;
-            if (f && (!map[row.libro_id].ultimaFecha || f > map[row.libro_id].ultimaFecha!)) {
-              map[row.libro_id].ultimaFecha = f;
-            }
-          }
+        if (capsRes && capsRes.data) {
+          const map = buildCapsMap(
+            capsRes.data as { libro_id: string; fecha_publicacion: string | null }[]
+          );
           _capsCache = { data: map, ts: Date.now() };
           setCapsInfo(map);
+
+          // FIX: persistir mapa en Dexie session_cache para la próxima recarga
+          try {
+            await db?.session_cache?.put({
+              key: DEXIE_CAPS_KEY,
+              value: JSON.stringify(map),
+              updated_at: Date.now(),
+            });
+          } catch {}
         }
-      } catch (e) {
-        // Si falla el fetch pero ya mostramos Dexie, simplemente dejamos lo que hay.
+        // Si capsRes falló, el mapa de Dexie ya se aplicó en el paso 2 → no hay parpadeo.
+      } catch {
         if (mounted.current) setLoading(false);
       }
     }
@@ -313,10 +385,10 @@ const Biblioteca = () => {
   if (loading && libros.length === 0) return <Loading text="Abriendo archivos..." />;
 
   const renderLibro = (libro: Libro, index: number) => {
-    const info     = capsInfo[libro.id];
-    const numCaps  = info?.count ?? 0;
-    const nuevo    = esReciente(info?.ultimaFecha);
-    const leidos   = leidosMap[libro.id] ?? 0;
+    const info    = capsInfo[libro.id];
+    const numCaps = info?.count ?? 0;
+    const nuevo   = esReciente(info?.ultimaFecha);
+    const leidos  = leidosMap[libro.id] ?? 0;
     return (
       <LibroCard
         key={libro.id}
