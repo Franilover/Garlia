@@ -653,6 +653,8 @@ function MundoEventoRow({
   onSelect,
   onRemove,
   reinos = [],
+  capMatch,
+  onNavigateCap,
 }: {
   evt: TimelineEvent;
   source?: "mundo" | "reino";
@@ -660,6 +662,8 @@ function MundoEventoRow({
   onSelect: () => void;
   onRemove: () => void;
   reinos?: Reino[];
+  capMatch?: { id: string; titulo_capitulo: string; libroTitulo?: string };
+  onNavigateCap?: () => void;
 }) {
   const hasYear  = !!evt.year?.trim();
   const hasTitle = !!evt.title?.trim();
@@ -698,6 +702,43 @@ function MundoEventoRow({
             style={{ color: hasTitle ? "var(--primary)" : "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
             {hasTitle ? evt.title : <span className="italic opacity-50">Sin título…</span>}
           </div>
+          {/* Badge de capítulo vinculado */}
+          {capMatch && onNavigateCap && (
+            <button
+              type="button"
+              onClick={e => { e.stopPropagation(); onNavigateCap(); }}
+              className="flex items-center gap-1 px-1.5 py-0.5 rounded-lg border w-full text-left transition-all group/cap"
+              style={{
+                background: "color-mix(in srgb, var(--primary) 4%, transparent)",
+                borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
+              }}
+              onMouseEnter={e => {
+                const el = e.currentTarget as HTMLElement;
+                el.style.background = "color-mix(in srgb, var(--primary) 9%, transparent)";
+                el.style.borderColor = "color-mix(in srgb, var(--primary) 22%, transparent)";
+              }}
+              onMouseLeave={e => {
+                const el = e.currentTarget as HTMLElement;
+                el.style.background = "color-mix(in srgb, var(--primary) 4%, transparent)";
+                el.style.borderColor = "color-mix(in srgb, var(--primary) 10%, transparent)";
+              }}
+              title={`Abrir: ${capMatch.titulo_capitulo}`}
+            >
+              <BookOpen size={7} style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)", flexShrink: 0 }} />
+              <span className="flex flex-col min-w-0">
+                {capMatch.libroTitulo && (
+                  <span className="text-[6px] font-black uppercase tracking-widest truncate"
+                    style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
+                    {capMatch.libroTitulo}
+                  </span>
+                )}
+                <span className="text-[7px] font-bold truncate"
+                  style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}>
+                  {capMatch.titulo_capitulo}
+                </span>
+              </span>
+            </button>
+          )}
           {/* Acciones */}
           <div className="flex items-center justify-between mt-0.5">
             {reinoNombre && (
@@ -732,6 +773,15 @@ function MundoEventoRow({
   );
 }
 
+// ─── Tipo para capítulos con posición en línea de tiempo ─────────────────────
+type CapTimeline = {
+  id: string;
+  libro_id: string;
+  titulo_capitulo: string;
+  orden_linea_tiempo: number;
+  libroTitulo?: string;
+};
+
 // ── Panel principal — vista y edición unificadas, ambas pistas editables ──────
 function PanelHistoriaMundo({
   texto,
@@ -746,6 +796,34 @@ function PanelHistoriaMundo({
   useEffect(() => { setMundoEvents(decodeTimeline(texto)); }, [texto]);
 
   const { reinos, setReinos, loading: loadingReinos } = useReinos();
+
+  // ── Capítulos con posición en línea de tiempo ─────────────────────────────
+  const [capsTimeline, setCapsTimeline] = useState<CapTimeline[]>([]);
+  useEffect(() => {
+    supabase
+      .from("capitulos")
+      .select("id, libro_id, titulo_capitulo, orden_linea_tiempo")
+      .not("orden_linea_tiempo", "is", null)
+      .then(async ({ data }) => {
+        if (!data?.length) return;
+        const libroIds = [...new Set(data.map((c: any) => c.libro_id))];
+        const { data: libros } = await supabase
+          .from("libros")
+          .select("id, titulo")
+          .in("id", libroIds);
+        const libroMap: Record<string, string> = {};
+        (libros ?? []).forEach((l: any) => { libroMap[l.id] = l.titulo; });
+        setCapsTimeline(
+          (data as any[]).map(c => ({
+            id: c.id,
+            libro_id: c.libro_id,
+            titulo_capitulo: c.titulo_capitulo,
+            orden_linea_tiempo: c.orden_linea_tiempo,
+            libroTitulo: libroMap[c.libro_id] ?? "",
+          }))
+        );
+      });
+  }, []);
   const [reinoEvents, setReinoEvents] = useState<Record<string, TimelineEvent[]>>({});
 
   useEffect(() => {
@@ -920,6 +998,10 @@ function PanelHistoriaMundo({
                 const isMundo = evt.source === "mundo";
                 const totalLen = allEvents.length;
                 const key = isMundo ? evt.id : `${evt.reinoId}:${evt.id}`;
+                const yearNum = parseYear(evt.year);
+                const capMatch = isFinite(yearNum)
+                  ? capsTimeline.find(c => c.orden_linea_tiempo === yearNum)
+                  : undefined;
                 return (
                   <div key={key} className="flex flex-col shrink-0" style={{ width: 190 }}>
                     {/* Conector */}
@@ -952,6 +1034,12 @@ function PanelHistoriaMundo({
                         }
                         if (selectedEventKey === key) setSelectedEventKey(null);
                       }}
+                      capMatch={capMatch}
+                      onNavigateCap={capMatch ? () => {
+                        localStorage.setItem("estudio-caps-last-cap",   capMatch.id);
+                        localStorage.setItem("estudio-caps-last-libro", capMatch.libro_id);
+                        window.dispatchEvent(new Event("estudio-caps-action"));
+                      } : undefined}
                     />
                   </div>
                 );

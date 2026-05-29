@@ -1365,6 +1365,30 @@ export const PanelPersonajesCapitulo = ({
   const [savingC, setSavingC] = useState(false);
   const [savingI, setSavingI] = useState(false);
 
+  // ── Posición en línea de tiempo ───────────────────────────────────────────
+  const [ordenLinea,     setOrdenLinea]     = useState<string>("");
+  const [savingOrden,    setSavingOrden]    = useState(false);
+  const ordenInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!capId) return;
+    supabase.from("capitulos").select("orden_linea_tiempo").eq("id", capId).single()
+      .then(({ data }) => {
+        setOrdenLinea(data?.orden_linea_tiempo != null ? String(data.orden_linea_tiempo) : "");
+      });
+  }, [capId]);
+
+  const handleSaveOrden = async () => {
+    const val = ordenLinea.trim();
+    const num = val === "" ? null : parseInt(val, 10);
+    if (val !== "" && isNaN(num as number)) return;
+    setSavingOrden(true);
+    try {
+      await capUpdateMeta(capId, { orden_linea_tiempo: num } as any);
+    } catch {}
+    setSavingOrden(false);
+  };
+
   const handleTogglePersonaje = async (id: string, add: boolean) => {
     const next = add ? [...value, id] : value.filter(x => x !== id);
     onChange(next);
@@ -1402,6 +1426,55 @@ export const PanelPersonajesCapitulo = ({
         background: "color-mix(in srgb, var(--primary) 2%, transparent)",
       }}
     >
+      {/* ── Posición en línea de tiempo ─────────────────────────────────── */}
+      <div
+        className="shrink-0 px-3 py-2.5 border-b"
+        style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
+      >
+        <div className="flex items-center gap-1 mb-1.5">
+          <Clock size={8} style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }} />
+          <span
+            className="text-[8px] font-black uppercase tracking-[0.2em]"
+            style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
+          >
+            Línea de tiempo
+          </span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <input
+            ref={ordenInputRef}
+            type="number"
+            value={ordenLinea}
+            onChange={e => setOrdenLinea(e.target.value)}
+            onBlur={handleSaveOrden}
+            onKeyDown={e => { if (e.key === "Enter") { e.currentTarget.blur(); } }}
+            placeholder="Nº"
+            className="flex-1 min-w-0 rounded-lg border px-2 py-1 text-[10px] font-black text-center outline-none transition-all"
+            style={{
+              background: ordenLinea ? "color-mix(in srgb, var(--primary) 6%, transparent)" : "transparent",
+              borderColor: ordenLinea
+                ? "color-mix(in srgb, var(--primary) 22%, transparent)"
+                : "color-mix(in srgb, var(--primary) 12%, transparent)",
+              color: ordenLinea ? "var(--primary)" : "color-mix(in srgb, var(--primary) 30%, transparent)",
+            }}
+          />
+          {savingOrden && (
+            <Loader2 size={9} className="animate-spin shrink-0"
+              style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
+          )}
+          {!savingOrden && ordenLinea && (
+            <Check size={9} className="shrink-0"
+              style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }} />
+          )}
+        </div>
+        <p
+          className="mt-1 text-[7px] leading-tight"
+          style={{ color: "color-mix(in srgb, var(--primary) 22%, transparent)" }}
+        >
+          Nº de posición en la línea de tiempo del mundo
+        </p>
+      </div>
+
       <SeccionEntidad
         label="Personajes"
         icon={<UserCircle2 size={9} />}
