@@ -1033,9 +1033,9 @@ function BloqueHabitat({
                   <div key={r.rowId} className="relative group flex items-center gap-2 px-2.5 py-1.5 rounded-xl transition-colors"
                     style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
                     <button onClick={() => onNavigateLugar?.(r.lugarId)}
-                      className="flex items-center gap-2 flex-1 min-w-0 text-left">
-                      <MapPin size={9} className="shrink-0 text-primary/30" />
-                      <span className="text-[10px] font-bold text-primary/65 truncate hover:text-primary transition-colors">
+                      className="flex items-center gap-2 flex-1 min-w-0 text-left cursor-pointer hover:text-primary transition-colors group/lugar">
+                      <MapPin size={9} className="shrink-0 text-primary/30 group-hover/lugar:text-primary/60 transition-colors" />
+                      <span className="text-[10px] font-bold text-primary/65 truncate group-hover/lugar:text-primary transition-colors underline-offset-2 group-hover/lugar:underline">
                         {r.lugarNombre}
                       </span>
                     </button>
