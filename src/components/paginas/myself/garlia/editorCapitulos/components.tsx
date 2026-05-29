@@ -1719,6 +1719,9 @@ export const PanelPersonajesCapitulo = ({
           </div>
         )}
       </div>
+
+      <SeccionEntidad
+        label="Personajes"
         icon={<UserCircle2 size={9} />}
         fallbackIcon={<UserCircle2 size={10} />}
         emptyLabel="Sin personajes"
