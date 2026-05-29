@@ -782,6 +782,51 @@ type CapTimeline = {
   libroTitulo?: string;
 };
 
+// ── Carga reinos con historia completa (query dedicada, no el hook genérico) ──
+function useReinosConHistoria() {
+  const [reinos, setReinos] = useState<Reino[]>([]);
+  const [loading, setLoading] = useState(true);
+  const loadedRef = useRef(false); // evita re-inicializar desde Dexie si ya tenemos datos remotos
+
+  const cargar = useCallback(async (force = false) => {
+    if (!force) setLoading(true);
+
+    // 1. Dexie primero — solo si aún no tenemos datos remotos
+    if (!loadedRef.current) {
+      try {
+        const local: any[] = db ? await (db as any).reinos?.toArray() ?? [] : [];
+        const filtered = local.filter((r: any) => !r.deleted);
+        if (filtered.length) {
+          setReinos(filtered as Reino[]);
+          setLoading(false);
+        }
+      } catch {}
+    }
+
+    // 2. Supabase — siempre, trae historia completa
+    if (!navigator.onLine) { setLoading(false); return; }
+    try {
+      const { data } = await supabase
+        .from("reinos")
+        .select("*") // necesitamos historia completa
+        .order("nombre");
+      if (data?.length) {
+        loadedRef.current = true;
+        setReinos(data as Reino[]);
+        // Persistir en Dexie con historia incluida
+        try {
+          if (db) await (db as any).reinos?.bulkPut(data);
+        } catch {}
+      }
+    } catch {}
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { cargar(); }, [cargar]);
+
+  return { reinos, setReinos, loading, recargar: () => cargar(true) };
+}
+
 // ── Panel principal — vista y edición unificadas, ambas pistas editables ──────
 function PanelHistoriaMundo({
   texto,
@@ -792,10 +837,25 @@ function PanelHistoriaMundo({
   onChange: (v: string) => void;
   onSave: () => Promise<void>;
 }) {
-  const [mundoEvents, setMundoEvents] = useState<TimelineEvent[]>(() => decodeTimeline(texto));
-  useEffect(() => { setMundoEvents(decodeTimeline(texto)); }, [texto]);
+  // mundoEvents: se inicializa con texto y se actualiza cuando texto cambia,
+  // pero solo si el texto externo es más rico que lo que ya tenemos (evita pisar ediciones)
+  const mundoInitRef   = useRef(false);
+  const [mundoEvents, setMundoEvents] = useState<TimelineEvent[]>([]);
 
-  const { reinos, setReinos, loading: loadingReinos } = useReinos();
+  useEffect(() => {
+    const decoded = decodeTimeline(texto);
+    if (!mundoInitRef.current && decoded.length > 0) {
+      // Primera carga real con datos
+      mundoInitRef.current = true;
+      setMundoEvents(decoded);
+    } else if (!mundoInitRef.current && texto !== undefined) {
+      // texto llegó pero está vacío — igual marcamos para no volver a pisar
+      mundoInitRef.current = true;
+      setMundoEvents(decoded);
+    }
+  }, [texto]);
+
+  const { reinos, setReinos, loading: loadingReinos, recargar } = useReinosConHistoria();
 
   // ── Capítulos con posición en línea de tiempo ─────────────────────────────
   const [capsTimeline, setCapsTimeline] = useState<CapTimeline[]>([]);
@@ -824,14 +884,25 @@ function PanelHistoriaMundo({
         );
       });
   }, []);
+
+  // ── reinoEvents: se inicializa UNA SOLA VEZ por reino, no se re-inicializa ──
+  const reinoInitedRef = useRef<Set<string>>(new Set());
   const [reinoEvents, setReinoEvents] = useState<Record<string, TimelineEvent[]>>({});
 
   useEffect(() => {
-    const map: Record<string, TimelineEvent[]> = {};
+    // Solo inicializa los reinos que aún no fueron agregados
+    const nuevos: Record<string, TimelineEvent[]> = {};
+    let hayNuevos = false;
     for (const r of reinos) {
-      map[r.id] = decodeTimeline((r as any).historia);
+      if (!reinoInitedRef.current.has(r.id)) {
+        reinoInitedRef.current.add(r.id);
+        nuevos[r.id] = decodeTimeline((r as any).historia);
+        hayNuevos = true;
+      }
     }
-    setReinoEvents(map);
+    if (hayNuevos) {
+      setReinoEvents(prev => ({ ...prev, ...nuevos }));
+    }
   }, [reinos]);
 
   const handleMundoChange = (evts: TimelineEvent[]) => {
@@ -909,7 +980,13 @@ function PanelHistoriaMundo({
         list.push({ ...e, source: "reino", reinoNombre: reino.nombre, reinoId: reino.id, yearNum: parseYear(e.year) });
       }
     }
-    return list.sort((a, b) => parseYear(a.year) - parseYear(b.year));
+    // Sort estable: por año numérico; en empate, eventos del mundo antes que los de reino
+    return list.sort((a, b) => {
+      const diff = a.yearNum - b.yearNum;
+      if (diff !== 0) return diff;
+      if (a.source !== b.source) return a.source === "mundo" ? -1 : 1;
+      return 0;
+    });
   }, [mundoEvents, reinos, reinoEvents, filterReino]);
 
   const reinosConEventos = useMemo(
@@ -971,6 +1048,27 @@ function PanelHistoriaMundo({
 
         <div className="ml-auto flex items-center gap-2">
           <SaveIndicator status={saveStatus} />
+          <button
+            type="button"
+            onClick={() => {
+              mundoInitRef.current = false;
+              reinoInitedRef.current = new Set();
+              recargar();
+            }}
+            title="Recargar línea de tiempo"
+            className="flex items-center gap-1 px-2 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-widest border transition-all"
+            style={{
+              borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
+              color: "color-mix(in srgb, var(--primary) 35%, transparent)",
+            }}
+            onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.color = "var(--primary)"; el.style.borderColor = "color-mix(in srgb, var(--primary) 28%, transparent)"; }}
+            onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.color = "color-mix(in srgb, var(--primary) 35%, transparent)"; el.style.borderColor = "color-mix(in srgb, var(--primary) 12%, transparent)"; }}
+          >
+            {loadingReinos
+              ? <Loader2 size={9} className="animate-spin" />
+              : <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+            }
+          </button>
           <button onClick={async () => {
             handleSave();
             for (const reinoId of Object.keys(reinoEvents)) {
