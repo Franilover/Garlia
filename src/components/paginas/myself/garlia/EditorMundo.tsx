@@ -1078,7 +1078,7 @@ export function EditorMundo({
   onTextoChange: (section: MundoSectionKey, value: string) => void;
   onSave: (section: MundoSectionKey) => Promise<void>;
   initialItemId?: string;
-  openItem?: { tabla: string; id: string } | null;
+  openItem?: { tabla: string; id: string; key?: number } | null;
   onOverlayChange?: (hasOverlay: boolean, clearFn: () => void) => void;
   onItemCreated?: { tabla: string; item: any } | null;
 }) {
@@ -1107,7 +1107,7 @@ function PanelListas({
   textos, onTextoChange, onSave, onOverlayChange, onItemCreated,
 }: {
   initialItemId?: string;
-  openItem?: { tabla: string; id: string } | null;
+  openItem?: { tabla: string; id: string; key?: number } | null;
   textos?: Record<MundoSectionKey, string>;
   onTextoChange?: (section: MundoSectionKey, value: string) => void;
   onSave?: (section: MundoSectionKey) => Promise<void>;
@@ -1248,7 +1248,7 @@ function PanelListas({
   const lastOpenItemRef = useRef<string | null>(null);
   useEffect(() => {
     if (!openItem) return;
-    const key = `${openItem.tabla}:${openItem.id}`;
+    const refKey = `${openItem.tabla}:${openItem.id}:${openItem.key || 0}`;
     const { tabla, id } = openItem;
     let found: any = null;
     
@@ -1262,8 +1262,8 @@ function PanelListas({
     else if (tabla === "runas")      found = runas.find(x => x.id === id);
     else if (tabla === "canciones")  found = canciones.find(x => x.id === id); // <--- AÑADIDO
 
-    if (!found || lastOpenItemRef.current === key) return;
-    lastOpenItemRef.current = key;
+    if (!found || lastOpenItemRef.current === refKey) return;
+    lastOpenItemRef.current = refKey;
     
     if      (tabla === "personajes") setSelectedPersonaje(found);
     else if (tabla === "criaturas")  setSelectedCriatura(found);
