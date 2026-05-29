@@ -900,12 +900,12 @@ function BloqueHabitat({
 
   // Lugares filtrados por reino activo (o sin reino si no hay activo)
   const lugaresFiltrados = allLugares.filter(l =>
-    reinoFiltro ? l.reino_id === reinoFiltro : !l.reino_id
+    reinoFiltro ? l.reino_id === reinoFiltro : true
   );
 
   // Lugares ya asignados visibles según filtro actual
   const lugaresAsignados = lugarRows.filter(r =>
-    reinoFiltro ? r.reinoId === reinoFiltro : !r.reinoId
+    reinoFiltro ? r.reinoId === reinoFiltro : true
   );
 
   const reinosDisponibles = allReinos.filter(r =>
@@ -1024,7 +1024,7 @@ function BloqueHabitat({
           <>
             {lugaresAsignados.length === 0 && (
               <p className="text-[9px] text-primary/20 italic py-1">
-                {reinoFiltro ? "Sin lugares en este reino" : "Sin lugares sin reino"}
+                {reinoFiltro ? "Sin lugares en este reino" : "Sin lugares asignados"}
               </p>
             )}
             {lugaresAsignados.length > 0 && (
