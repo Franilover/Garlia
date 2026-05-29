@@ -57,6 +57,15 @@ function normOne<T>(v: T | T[] | null | undefined): T | null {
   return Array.isArray(v) ? (v[0] ?? null) : v;
 }
 
+// ─── Caché de módulo para caps (sobrevive navegación SPA) ────────────────────
+const CAPS_TTL_MS = 5 * 60 * 1_000;
+const _capsCache: Record<string, { data: Capitulo[]; ts: number }> = {};
+
+function capsCacheados(libroId: string): Capitulo[] | null {
+  const c = _capsCache[libroId];
+  return c && Date.now() - c.ts < CAPS_TTL_MS ? c.data : null;
+}
+
 function buildGrupos(caps: Capitulo[]): GrupoSegmento[] {
   const grupos: GrupoSegmento[] = [];
   for (const cap of caps) {
@@ -208,9 +217,10 @@ export default function LibroDetalle() {
   const router   = useRouter();
 
   const [loading,          setLoading]          = useState(true);
+  const [loadingCaps,      setLoadingCaps]      = useState(true);
   const [libro,            setLibro]            = useState<Libro | null>(null);
   const [libroId,          setLibroId]          = useState<string | null>(null);
-  const [capitulos,        setCapitulos]         = useState<Capitulo[]>([]);
+  const [capitulos,        setCapitulos]        = useState<Capitulo[]>([]);
   const [capituloProximo,  setCapituloProximo]  = useState<CapituloProximo | null | false>(null);
   const [notFound,         setNotFound]         = useState(false);
   const [leidos,           setLeidos]           = useState<Set<string>>(new Set());
@@ -245,21 +255,29 @@ export default function LibroDetalle() {
   };
 
   // ── Carga principal ───────────────────────────────────────────────────────────
+  // Estrategia de tres capas para libro + caps:
+  //   1. Libro: Dexie → mostrar portada/sinopsis sin spinner
+  //   2. Caps:  caché de módulo → Dexie → Supabase (fuente de verdad)
+  //   3. Caps se guardan en Dexie para la próxima visita (offline-ready)
   useEffect(() => {
     if (!slugParam) return;
+    let mounted = true;
+
     setLoading(true);
+    setLoadingCaps(true);
     setNotFound(false);
     setLibro(null);
     setLibroId(null);
+    setCapitulos([]);
+    setCapituloProximo(null);
 
     const cargar = async () => {
       let libroData: Libro | null = null;
 
       // ── Caso 1: UUID directo (links viejos) ──────────────────────────────
       if (esUUID(slugParam)) {
-        // Buscar en Dexie primero
         try {
-          libroData = (await db?.libros?.get(slugParam) as any) ?? null;
+          libroData = ((await db?.libros?.get(slugParam)) as any) ?? null;
         } catch {}
 
         if (!libroData) {
@@ -269,63 +287,121 @@ export default function LibroDetalle() {
             .eq("id", slugParam)
             .single();
           libroData = data as Libro | null;
-          if (libroData) {
-            try { await db?.libros?.put(libroData as any); } catch {}
-          }
+          if (libroData) { try { await db?.libros?.put(libroData as any); } catch {} }
         }
 
-        if (!libroData) { setNotFound(true); setLoading(false); return; }
-        // Redirigir a la URL canónica con slug
+        if (!libroData) {
+          if (mounted) { setNotFound(true); setLoading(false); setLoadingCaps(false); }
+          return;
+        }
         const slug = toSlug(libroData.titulo);
         if (slug) router.replace(`/garlia/libros/${slug}`);
 
       // ── Caso 2: slug normal ──────────────────────────────────────────────
       } else {
         libroData = await resolverLibroPorSlug(slugParam);
-        if (!libroData) { setNotFound(true); setLoading(false); return; }
+        if (!libroData) {
+          if (mounted) { setNotFound(true); setLoading(false); setLoadingCaps(false); }
+          return;
+        }
       }
 
+      if (!mounted) return;
+
+      // Libro resuelto: mostrar portada/sinopsis ya, sin esperar caps
       setLibro(libroData);
       setLibroId(libroData.id);
+      setLoading(false); // ← quita el spinner principal aquí, no al final
 
-      // ── Caps + próximo en paralelo ────────────────────────────────────────
-      const ahora = new Date().toISOString();
-      const [capsRes, proximoRes] = await Promise.all([
-        supabase
-          .from("capitulos")
-          .select(`
-            *,
-            narrador:personajes!narrador_id(id, nombre, img_url),
-            reino:reinos!reino_id(id, nombre, imagen_reino)
-          `)
-          .eq("libro_id", libroData.id)
-          .eq("visibilidad", "publico")
-          .not("titulo_capitulo", "like", "[Ruta]%")
-          .order("orden", { ascending: true }),
+      // ── Caps: caché de módulo (0ms) ───────────────────────────────────────
+      const cached = capsCacheados(libroData.id);
+      if (cached) {
+        setCapitulos(cached);
+        setLoadingCaps(false);
+        // Próximo siempre se refresca (es tiempo-sensitivo)
         supabase
           .from("capitulos")
           .select("titulo_capitulo, fecha_publicacion")
           .eq("libro_id", libroData.id)
           .eq("visibilidad", "programado")
-          .gt("fecha_publicacion", ahora)
+          .gt("fecha_publicacion", new Date().toISOString())
           .order("fecha_publicacion", { ascending: true })
           .limit(1)
-          .maybeSingle(),
-      ]);
+          .maybeSingle()
+          .then(({ data }) => { if (mounted) setCapituloProximo(data ?? false); });
+        return;
+      }
 
-      const capsNorm = ((capsRes.data as any[]) ?? []).map((c) => ({
-        ...c,
-        narrador: normOne(c.narrador),
-        reino:    normOne(c.reino),
-      })) as Capitulo[];
+      // ── Caps: Dexie (sin red, ~5ms) ───────────────────────────────────────
+      try {
+        const dexieCaps = (await db?.capitulos
+          ?.where("libro_id")
+          .equals(libroData.id)
+          .sortBy("orden")) as Capitulo[] | undefined;
+        if (dexieCaps?.length && mounted) {
+          setCapitulos(dexieCaps);
+          setLoadingCaps(false); // ya hay algo útil que mostrar
+        }
+      } catch {}
 
-      setCapitulos(capsNorm);
-      setCapituloProximo(proximoRes.data ?? false);
+      // ── Caps: Supabase (fuente de verdad) ─────────────────────────────────
+      try {
+        const ahora = new Date().toISOString();
+        const [capsRes, proximoRes] = await Promise.all([
+          supabase
+            .from("capitulos")
+            // FIX: select específico en vez de * — evita traer `contenido` (puede ser MBs)
+            .select(`
+              id, titulo_capitulo, orden, fecha_publicacion, libro_id, narrador_id, reino_id,
+              narrador:personajes!narrador_id(id, nombre, img_url),
+              reino:reinos!reino_id(id, nombre, imagen_reino)
+            `)
+            .eq("libro_id", libroData.id)
+            .eq("visibilidad", "publico")
+            .not("titulo_capitulo", "like", "[Ruta]%")
+            .order("orden", { ascending: true }),
+          supabase
+            .from("capitulos")
+            .select("titulo_capitulo, fecha_publicacion")
+            .eq("libro_id", libroData.id)
+            .eq("visibilidad", "programado")
+            .gt("fecha_publicacion", ahora)
+            .order("fecha_publicacion", { ascending: true })
+            .limit(1)
+            .maybeSingle(),
+        ]);
+
+        if (!mounted) return;
+
+        if (capsRes.data) {
+          const capsNorm = (capsRes.data as any[]).map((c) => ({
+            ...c,
+            narrador: normOne(c.narrador),
+            reino:    normOne(c.reino),
+          })) as Capitulo[];
+
+          // Actualizar caché de módulo
+          _capsCache[libroData.id] = { data: capsNorm, ts: Date.now() };
+          setCapitulos(capsNorm);
+
+          // Guardar caps en Dexie para la próxima visita
+          try { await db?.capitulos?.bulkPut(capsNorm as any[]); } catch {}
+        }
+
+        setCapituloProximo(proximoRes.data ?? false);
+      } catch {}
+
+      if (mounted) setLoadingCaps(false);
     };
 
-    cargar().finally(() => setLoading(false));
+    cargar().catch(() => {
+      if (mounted) { setLoading(false); setLoadingCaps(false); }
+    });
+
+    return () => { mounted = false; };
   }, [slugParam]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Spinner solo mientras no tenemos el libro — los caps tienen su propio estado
   if (loading) return <Loading text="Cargando libro…" />;
   if (notFound || !libro || !libroId) return (
     <div className="min-h-screen bg-bg-main flex flex-col items-center justify-center gap-4">
@@ -366,7 +442,11 @@ export default function LibroDetalle() {
             <h1 className="text-4xl font-black text-primary italic tracking-tighter leading-[0.9] mb-10 uppercase text-center">
               {libro.titulo}
             </h1>
-            {capitulos.length === 0 ? (
+            {loadingCaps && capitulos.length === 0 ? (
+              <p className="text-center text-primary/25 font-bold text-[10px] uppercase tracking-widest py-12 italic animate-pulse">
+                Cargando capítulos…
+              </p>
+            ) : capitulos.length === 0 ? (
               <p className="text-center text-primary/30 font-bold text-xs uppercase tracking-widest py-12 italic">
                 Aún no hay capítulos publicados
               </p>
@@ -458,7 +538,11 @@ export default function LibroDetalle() {
         {/* ── Contenido principal ── */}
         <main>
           <div className="space-y-4">
-            {capitulos.length === 0 ? (
+            {loadingCaps && capitulos.length === 0 ? (
+              <p className="text-center text-primary/25 font-bold text-[10px] uppercase tracking-widest py-12 italic animate-pulse">
+                Cargando capítulos…
+              </p>
+            ) : capitulos.length === 0 ? (
               <p className="text-center text-primary/30 font-bold text-xs uppercase tracking-widest py-12 italic">
                 Aún no hay capítulos publicados
               </p>
