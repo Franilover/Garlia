@@ -724,6 +724,7 @@ export type GrupoMin = {
   id: string;
   nombre: string;
   tipo: GrupoTipo;
+  subtipo?: string | null;
   miembro_ids: string[];
 };
 
@@ -752,7 +753,7 @@ export function useGruposDeCriatura(criaturaId: string) {
     try {
       const { data } = await supabase
         .from("grupos_mundo")
-        .select("id, nombre, tipo, miembro_ids")
+        .select("id, nombre, tipo, subtipo, miembro_ids")
         .eq("tipo", "criaturas")
         .order("nombre");
       const todos = (data ?? []) as GrupoMin[];
