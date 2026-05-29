@@ -75,7 +75,7 @@ function PanelContenido({
   setReinoSeleccionado, personajesReino, personajesDesbloqueados,
   handlePersonajeClick, modifiedDetalles, isSaving, handleSaveChanges,
   isUploadingImg, handleImageUpload, imgInputRef,
-  librosReino, capitulosReino,
+  librosReino, capitulosReino, loadingLibros,
   personajesLugar, criaturasLugar, itemsLugar, loadingLugar,
 }: any) {
   const router = useRouter();
@@ -452,85 +452,95 @@ function PanelContenido({
         )}
 
         {/* Books of this kingdom */}
-        {!puntoSeleccionado && librosReino && librosReino.length > 0 && (
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }} />
-              <span className="text-[8px] font-black uppercase tracking-[0.3em] flex items-center gap-1.5" style={{ color: "color-mix(in srgb, var(--accent) 60%, transparent)" }}>
-                <BookOpen size={9} /> Relatos de este reino
-              </span>
-              <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }} />
+        {!puntoSeleccionado && (
+          loadingLibros ? (
+            <div className="flex justify-center py-6" style={{ color: "color-mix(in srgb, var(--accent) 50%, transparent)" }}>
+              <Hourglass size={14} />
             </div>
-            <div className="flex flex-col gap-2">
-              {librosReino.map((libro: any) => (
-                <button
-                  key={libro.id}
-                  onClick={() => router.push(`/garlia/libros/${libro.id}`)}
-                  className="flex items-center gap-3 p-3 border w-full text-left transition-all hover:opacity-80 active:scale-[0.98]"
-                  style={{
-                    background: "color-mix(in srgb, var(--primary) 10%, transparent)",
-                    borderColor: "color-mix(in srgb, var(--accent) 15%, transparent)",
-                    cursor: "pointer",
-                  }}>
-                  {libro.portada_url && (
-                    <img src={libro.portada_url} alt={libro.titulo} className="w-10 h-12 object-cover shrink-0"
-                      style={{ filter: "brightness(0.9)" }} />
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[11px] font-semibold uppercase leading-tight truncate" style={{ color: "var(--foreground)" }}>
-                      {libro.titulo}
-                    </p>
-                    {libro.estado && (
-                      <p className="text-[8px] font-bold uppercase mt-0.5" style={{ color: "color-mix(in srgb, var(--accent) 60%, transparent)" }}>
-                        {libro.estado}
-                      </p>
-                    )}
+          ) : (
+            <>
+              {librosReino && librosReino.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }} />
+                    <span className="text-[8px] font-black uppercase tracking-[0.3em] flex items-center gap-1.5" style={{ color: "color-mix(in srgb, var(--accent) 60%, transparent)" }}>
+                      <BookOpen size={9} /> Relatos de este reino
+                    </span>
+                    <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }} />
                   </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+                  <div className="flex flex-col gap-2">
+                    {librosReino.map((libro: any) => (
+                      <button
+                        key={libro.id}
+                        onClick={() => router.push(`/garlia/libros/${libro.id}`)}
+                        className="flex items-center gap-3 p-3 border w-full text-left transition-all hover:opacity-80 active:scale-[0.98]"
+                        style={{
+                          background: "color-mix(in srgb, var(--primary) 10%, transparent)",
+                          borderColor: "color-mix(in srgb, var(--accent) 15%, transparent)",
+                          cursor: "pointer",
+                        }}>
+                        {libro.portada_url && (
+                          <img src={libro.portada_url} alt={libro.titulo} className="w-10 h-12 object-cover shrink-0"
+                            style={{ filter: "brightness(0.9)" }} />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[11px] font-semibold uppercase leading-tight truncate" style={{ color: "var(--foreground)" }}>
+                            {libro.titulo}
+                          </p>
+                          {libro.estado && (
+                            <p className="text-[8px] font-bold uppercase mt-0.5" style={{ color: "color-mix(in srgb, var(--accent) 60%, transparent)" }}>
+                              {libro.estado}
+                            </p>
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
-        {/* Chapters that take place in this kingdom */}
-        {!puntoSeleccionado && capitulosReino && capitulosReino.length > 0 && (
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }} />
-              <span className="text-[8px] font-black uppercase tracking-[0.3em] flex items-center gap-1.5" style={{ color: "color-mix(in srgb, var(--accent) 60%, transparent)" }}>
-                <BookMarked size={9} /> One shots
-              </span>
-              <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }} />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              {capitulosReino.map((cap: any) => (
-                <button
-                  key={cap.id}
-                  onClick={() => router.push(`/garlia/libros/${cap.libro_id}/leer/${cap.id}`)}
-                  className="flex items-center gap-2 px-3 py-2.5 border w-full text-left transition-all hover:opacity-80 active:scale-[0.98]"
-                  style={{
-                    background: "color-mix(in srgb, var(--primary) 8%, transparent)",
-                    borderColor: "color-mix(in srgb, var(--accent) 10%, transparent)",
-                    cursor: "pointer",
-                  }}>
-                  <span className="text-[8px] font-black shrink-0 px-1.5 py-0.5"
-                    style={{ background: "color-mix(in srgb, var(--accent) 12%, transparent)", color: "var(--accent)" }}>
-                    {cap.orden}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[10px] font-semibold uppercase truncate" style={{ color: "var(--foreground)" }}>
-                      {cap.titulo_capitulo}
-                    </p>
-                    {cap.libro_titulo && (
-                      <p className="text-[8px] mt-0.5 truncate" style={{ color: "color-mix(in srgb, var(--accent) 50%, transparent)" }}>
-                        {cap.libro_titulo}
-                      </p>
-                    )}
+              {/* Chapters that take place in this kingdom */}
+              {capitulosReino && capitulosReino.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }} />
+                    <span className="text-[8px] font-black uppercase tracking-[0.3em] flex items-center gap-1.5" style={{ color: "color-mix(in srgb, var(--accent) 60%, transparent)" }}>
+                      <BookMarked size={9} /> One shots
+                    </span>
+                    <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }} />
                   </div>
-                </button>
-              ))}
-            </div>
-          </div>
+                  <div className="flex flex-col gap-1.5">
+                    {capitulosReino.map((cap: any) => (
+                      <button
+                        key={cap.id}
+                        onClick={() => router.push(`/garlia/libros/${cap.libro_id}/leer/${cap.id}`)}
+                        className="flex items-center gap-2 px-3 py-2.5 border w-full text-left transition-all hover:opacity-80 active:scale-[0.98]"
+                        style={{
+                          background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+                          borderColor: "color-mix(in srgb, var(--accent) 10%, transparent)",
+                          cursor: "pointer",
+                        }}>
+                        <span className="text-[8px] font-black shrink-0 px-1.5 py-0.5"
+                          style={{ background: "color-mix(in srgb, var(--accent) 12%, transparent)", color: "var(--accent)" }}>
+                          {cap.orden}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[10px] font-semibold uppercase truncate" style={{ color: "var(--foreground)" }}>
+                            {cap.titulo_capitulo}
+                          </p>
+                          {cap.libro_titulo && (
+                            <p className="text-[8px] mt-0.5 truncate" style={{ color: "color-mix(in srgb, var(--accent) 50%, transparent)" }}>
+                              {cap.libro_titulo}
+                            </p>
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )
         )}
       </div>
     </>
@@ -1440,6 +1450,7 @@ export default function MapaInteractivo() {
   // Books & chapters
   const [librosReino, setLibrosReino] = useState<any[]>([]);
   const [capitulosReino, setCapitulosReino] = useState<any[]>([]);
+  const [loadingLibros, setLoadingLibros] = useState(false);
   // Habitantes del lugar seleccionado
   const [personajesLugar, setPersonajesLugar] = useState<any[]>([]);
   const [criaturasLugar, setCriaturasLugar] = useState<any[]>([]);
@@ -1532,6 +1543,7 @@ export default function MapaInteractivo() {
     setPersonajesReino([]);
     setLibrosReino([]);
     setCapitulosReino([]);
+    setLoadingLibros(true);
 
     // Helper — solo aplica el set si el usuario no cambió de reino mientras esperábamos
     const apply = (fn: () => void) => {
@@ -1550,8 +1562,8 @@ export default function MapaInteractivo() {
         apply(() => {
           if (cachedDetalles.length > 0) setDetallesReino(cachedDetalles.filter((d: any) => !d.deleted));
           if (cachedPersonajes.length > 0) setPersonajesReino(cachedPersonajes);
-          if (cachedLibros.length > 0)     setLibrosReino(cachedLibros);
-          if (cachedCaps.length > 0)       setCapitulosReino(cachedCaps.map((c: any) => ({ ...c, libro_titulo: c.libro_titulo ?? null })));
+          // libros y capítulos NO se aplican desde caché para evitar spoilers —
+          // se esperan los datos frescos de Supabase antes de mostrarlos
         });
       } catch { /* caché falló — no importa, el fetch de abajo lo cubre */ }
     }
@@ -1595,6 +1607,9 @@ export default function MapaInteractivo() {
       setCapitulosReino(caps);
       try { if (db && caps.length) await db.capitulos.bulkPut(caps); } catch {}
     }
+
+    // Libros y capítulos ya están seteados — ocultar spinner
+    if (currentReinoIdRef.current === reino.id) setLoadingLibros(false);
   };
 
   const handlePersonajeClick = async (p: any) => {
@@ -1702,6 +1717,7 @@ export default function MapaInteractivo() {
     setPersonajesReino([]);
     setLibrosReino([]);
     setCapitulosReino([]);
+    setLoadingLibros(false);
     setModifiedDetalles(new Set());
     setEditMode(false);
     setPanelOpen(false);
@@ -1726,7 +1742,7 @@ export default function MapaInteractivo() {
     setReinoSeleccionado, personajesReino, personajesDesbloqueados,
     handlePersonajeClick, modifiedDetalles, isSaving, handleSaveChanges,
     isUploadingImg, handleImageUpload, imgInputRef,
-    librosReino, capitulosReino,
+    librosReino, capitulosReino, loadingLibros,
     personajesLugar, criaturasLugar, itemsLugar, loadingLugar,
   };
 
