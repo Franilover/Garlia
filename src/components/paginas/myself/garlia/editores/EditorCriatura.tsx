@@ -751,8 +751,8 @@ function BloqueGrupoCategoria({
         <p className="text-[9px] text-primary/20 italic px-0.5">Sin asignar</p>
       )}
 
-      {/* Botón añadir + dropdown */}
-      <div className="relative">
+      {/* Botón añadir + dropdown — solo si no hay ninguno asignado */}
+      {actual.length === 0 && <div className="relative">
         <button
           type="button"
           onClick={() => setOpen(o => !o)}
@@ -812,7 +812,7 @@ function BloqueGrupoCategoria({
             </div>
           </>
         )}
-      </div>
+      </div>}
     </div>
   );
 }
