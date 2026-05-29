@@ -1432,6 +1432,20 @@ function PanelListas({
                   const { data } = await supabase.from("grupos_mundo").select("*").eq("id", id).single();
                   if (data) selectGrupo({ ...data, miembro_ids: data.miembro_ids ?? [] } as Grupo);
                 }}
+                onNavigateLugar={async (id) => {
+                  const local = lugares.find(x => x.id === id);
+                  clearAllOverlays();
+                  if (local) { selectLugar(local); return; }
+                  const { data } = await supabase.from("lugares").select("*").eq("id", id).single();
+                  if (data) selectLugar(data as Lugar);
+                }}
+                onNavigateReino={async (id) => {
+                  const local = reinos.find(x => x.id === id);
+                  clearAllOverlays();
+                  if (local) { selectReino(local); return; }
+                  const { data } = await supabase.from("reinos").select("*").eq("id", id).single();
+                  if (data) selectReino(data as Reino);
+                }}
               />
             )}
             {overlay === "objeto" && selectedObjeto && (
