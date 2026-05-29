@@ -14,7 +14,7 @@ import { useCapitulosNarrados, useNombresDeTabla } from "./components/hooks";
 import { SelectorImagen, SelectorTexto, SaveIndicator } from "./components/UIComponents";
 import { MarkdownEditor, WikiEntity } from "../../../forms/MarkdownEditor";
 import { useWikilink } from "./components/WikilinkContext";
-import SimpleImagePicker from "@/components/paginas/myself/garlia/editores/editorCapitulos/snippets//forms/SimpleImagePicker";
+import SimpleImagePicker from "@/components/paginas/myself/garlia/editorCapitulos/snippets//forms/SimpleImagePicker";
 import { BloqueHechizos } from "./components/BloqueHechizos";
 import { BloqueDones } from "./components/BloqueDones";
 import { BloqueRelaciones } from "./components/BloqueRelaciones";

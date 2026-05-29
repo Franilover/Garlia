@@ -23,11 +23,11 @@ import { type TimelineEvent } from "./components/LoreTab";
 import { useNotas } from "./components/useNotas";
 import { EditorNota, ListaNotas } from "./EditorNota";
 import { EditorGrupo, useGrupos, type Grupo, GRUPO_TIPO_CONFIG } from "./EditorGrupo";
-import EstudioCapitulos from "@/components/paginas/myself/garlia/editores/editorCapitulos/page";
-import { useCanciones } from "@/components/paginas/myself/garlia/editores/editorLetras/hooks/useCanciones";
-import { PanelEditor } from "@/components/paginas/myself/garlia/editores/editorLetras/components/editor/PanelEditor";
-import { ModalNuevaCancion } from "@/components/paginas/myself/garlia/editores/editorLetras/components/modals/ModalNuevaCancion";
-import type { Cancion } from "@/components/paginas/myself/garlia/editores/editorLetras/types";
+import EstudioCapitulos from "@/components/paginas/myself/garlia/editorCapitulos/page";
+import { useCanciones } from "@/components/paginas/myself/garlia/editorLetras/hooks/useCanciones";
+import { PanelEditor } from "@/components/paginas/myself/garlia/editorLetras/components/editor/PanelEditor";
+import { ModalNuevaCancion } from "@/components/paginas/myself/garlia/editorLetras/components/modals/ModalNuevaCancion";
+import type { Cancion } from "@/components/paginas/myself/garlia/editorLetras/types";
 
 
 // ─── Dexie helpers ────────────────────────────────────────────────────────────

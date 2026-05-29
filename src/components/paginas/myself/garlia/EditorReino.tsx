@@ -10,7 +10,7 @@ import { db } from "@/lib/api/client/db";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { type Reino, type SaveStatus, INPUT_CLS } from "@/components/paginas/myself/garlia/components/types";
 import { usePersonajesDelReino } from "@/components/paginas/myself/garlia/components/hooks";
-import { type Lugar } from "@/components/paginas/myself/garlia/editores/EditorLugar";
+import { type Lugar } from "@/components/paginas/myself/garlia/EditorLugar";
 import { SaveIndicator } from "@/components/paginas/myself/garlia/components/UIComponents";
 import { MarkdownEditor, WikiEntity } from "../../../forms/MarkdownEditor";
 import { useWikilink } from "./components/WikilinkContext";
@@ -191,7 +191,7 @@ function MapaConPuntos({ mapaUrl, onMapaChange, detalles, onDetallesChange }: {
 function ImagePickerModal({ onSelect, onClose }: { onSelect: (url: string) => void; onClose: () => void }) {
   const [SimpleImagePicker, setComponent] = useState<React.ComponentType<any> | null>(null);
   useEffect(() => {
-    import("@/components/paginas/myself/garlia/editores/editorCapitulos/snippets//forms/SimpleImagePicker").then(m => setComponent(() => m.default));
+    import("@/components/paginas/myself/garlia/editorCapitulos/snippets//forms/SimpleImagePicker").then(m => setComponent(() => m.default));
   }, []);
 
   return (

@@ -5,7 +5,7 @@ import { MotionDiv } from "@/components/ui/Motion";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { BtnIcon } from "@/components/ui";
-import { CapituloLista, CapituloScrollItem } from "@/components/paginas/myself/garlia/editores/editorCapitulos/snippets/type";
+import { CapituloLista, CapituloScrollItem } from "@/components/paginas/myself/garlia/editorCapitulos/snippets/type";
 
 /* ─────────────────────────────────────────────
    Skeleton de carga

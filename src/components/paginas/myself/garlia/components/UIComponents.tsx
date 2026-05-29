@@ -5,7 +5,7 @@ import {
   Loader2, AlertCircle, CheckCircle2,
   Image as ImageIcon, X, Save, Trash2, Pencil, ExternalLink,
 } from "lucide-react";
-import SimpleImagePicker from "@/components/paginas/myself/garlia/editores/editorCapitulos/snippets//forms/SimpleImagePicker";
+import SimpleImagePicker from "@/components/paginas/myself/garlia/editorCapitulos/snippets//forms/SimpleImagePicker";
 import { normalize } from "@/components/templates/EstudioTemplates";
 import { INPUT_CLS, type SaveStatus } from "./types";
 import { MarkdownEditor } from "../../../../forms/MarkdownEditor";

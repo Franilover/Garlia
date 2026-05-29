@@ -2,8 +2,8 @@
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Eye, Edit3, Search, Replace, X, ChevronUp, ChevronDown } from "lucide-react";
-import { parseContenido, parseSections } from "@/components/paginas/myself/garlia/editores/editorCapitulos/snippets/type";
-import { RenderSegmentos }               from "@/components/paginas/myself/garlia/editores/editorCapitulos/leer/ContenidoInteractivo";
+import { parseContenido, parseSections } from "@/components/paginas/myself/garlia/editorCapitulos/snippets/type";
+import { RenderSegmentos }               from "@/components/paginas/myself/garlia/editorCapitulos/leer/ContenidoInteractivo";
 // ── Slug helper for heading IDs ─────────────────────────────────────────────
 function slugify(text: string): string {
   const slug = text.toLowerCase().replace(/[^\w\s-]/g, "").trim().replace(/[\s]+/g, "-");

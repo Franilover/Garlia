@@ -4,7 +4,7 @@ import { INPUT_CLS, type SaveStatus } from "./types";
 import { MarkdownEditor, WikiEntity } from "../../../../forms/MarkdownEditor";
 import { useWikilink } from "./WikilinkContext";
 import { type Reino } from "./types";
-import { type Lugar } from "@/components/paginas/myself/garlia/editores/EditorLugar";
+import { type Lugar } from "@/components/paginas/myself/garlia/EditorLugar";
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
 import { useConfirm } from "@/components/ui/ConfirmModal";
