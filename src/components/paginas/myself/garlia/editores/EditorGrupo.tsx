@@ -47,6 +47,7 @@ export type Grupo = {
   id: string;
   nombre: string;
   tipo: GrupoTipo;
+  subtipo?: string | null;
   descripcion?: string | null;
   miembro_ids: string[];
   created_at?: string;
@@ -72,48 +73,56 @@ export const GRUPO_TIPO_CONFIG: Record<GrupoTipo, {
   color: string;
   tabla: string;
   ejemplo: string;
+  sugerenciasDefault: string[];
 }> = {
   personajes: {
     label: "Personaje", labelPlural: "Personajes",
     Icon: Users, IconAlt: UserCircle2,
     color: "var(--primary)", tabla: "personajes",
-    ejemplo: "Facción, clan, gremio…",
+    ejemplo: "Familia, partido político, gremio…",
+    sugerenciasDefault: ["Familia", "Partido político", "Agrupación", "Secta", "Gremio", "Clan", "Facción", "Orden", "Hermandad", "Tribu"],
   },
   criaturas: {
     label: "Criatura", labelPlural: "Criaturas",
     Icon: Bug, IconAlt: Feather,
     color: "color-mix(in srgb, var(--primary) 70%, #4ade80)", tabla: "criaturas",
-    ejemplo: "Manada, especie, orden…",
+    ejemplo: "Manada, especie, bandada…",
+    sugerenciasDefault: ["Manada", "Especie", "Bandada", "Colonia", "Horda", "Enjambre", "Orden", "Estirpe", "Clan", "Nidada"],
   },
   items: {
     label: "Objeto", labelPlural: "Objetos",
     Icon: Package, IconAlt: Swords,
     color: "color-mix(in srgb, var(--primary) 60%, #f59e0b)", tabla: "items",
     ejemplo: "Arsenal, colección, reliquias…",
+    sugerenciasDefault: ["Arsenal", "Colección", "Reliquias", "Juego de piezas", "Equipamiento", "Tesoro", "Set legendario", "Artefactos"],
   },
   reinos: {
     label: "Reino", labelPlural: "Reinos",
     Icon: Map, IconAlt: Map,
     color: "color-mix(in srgb, var(--primary) 60%, #60a5fa)", tabla: "reinos",
     ejemplo: "Alianza, confederación, imperio…",
+    sugerenciasDefault: ["Alianza", "Confederación", "Imperio", "Liga", "Pacto", "Unión", "Federación", "Coalición"],
   },
   hechizos: {
     label: "Hechizo", labelPlural: "Hechizos",
     Icon: Sparkles, IconAlt: Wand2,
     color: "var(--accent)", tabla: "hechizos",
     ejemplo: "Escuela, elemento, estilo…",
+    sugerenciasDefault: ["Escuela", "Elemento", "Estilo", "Tradición", "Arte arcano", "Linaje mágico", "Especialidad", "Corriente"],
   },
   dones: {
     label: "Don", labelPlural: "Dones",
     Icon: Star, IconAlt: Gem,
     color: "color-mix(in srgb, var(--accent) 70%, var(--primary))", tabla: "dones",
     ejemplo: "Linaje, maldición, don ancestral…",
+    sugerenciasDefault: ["Linaje", "Maldición", "Don ancestral", "Bendición", "Legado", "Herencia divina", "Pacto", "Señal"],
   },
   runas: {
     label: "Runa", labelPlural: "Runas",
     Icon: ScrollText, IconAlt: ScrollText,
     color: "var(--primary)", tabla: "runas",
     ejemplo: "Conjunto rúnico, tradición…",
+    sugerenciasDefault: ["Conjunto rúnico", "Tradición", "Sistema", "Alfabeto", "Escuela rúnica", "Legado", "Ciclo"],
   },
 };
 
@@ -194,6 +203,7 @@ export function useGrupos() {
       id: crypto.randomUUID(),
       nombre: `Nuevo ${cfg.label.toLowerCase()}`,
       tipo,
+      subtipo: null,
       descripcion: null,
       miembro_ids: [],
       created_at: new Date().toISOString(),
@@ -204,7 +214,7 @@ export function useGrupos() {
 
     const { data, error } = await supabase
       .from("grupos_mundo")
-      .insert([{ id: optimista.id, nombre: optimista.nombre, tipo, descripcion: null, miembro_ids: [] }])
+      .insert([{ id: optimista.id, nombre: optimista.nombre, tipo, subtipo: null, descripcion: null, miembro_ids: [] }])
       .select()
       .single();
 
@@ -224,6 +234,7 @@ export function useGrupos() {
       .update({
         nombre: updated.nombre,
         tipo: updated.tipo,
+        subtipo: updated.subtipo ?? null,
         descripcion: updated.descripcion ?? null,
         miembro_ids: updated.miembro_ids,
       })
@@ -410,6 +421,110 @@ function SelectorMiembros({
   );
 }
 
+
+// ─── SubtipoInput — campo con autocompletado por tipo ─────────────────────────
+function SubtipoInput({
+  value,
+  onChange,
+  tipo,
+  sugerencias,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  tipo: GrupoTipo;
+  sugerencias: string[];  // ya filtradas para este tipo
+}) {
+  const cfg = GRUPO_TIPO_CONFIG[tipo];
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Merge default suggestions with user-created ones, deduplicated
+  const allSugerencias = useMemo(() => {
+    const defaults = cfg.sugerenciasDefault;
+    const custom = sugerencias.filter(s => !defaults.some(d => d.toLowerCase() === s.toLowerCase()));
+    return [...custom, ...defaults];
+  }, [cfg.sugerenciasDefault, sugerencias]);
+
+  const filtered = useMemo(() => {
+    const q = value.toLowerCase().trim();
+    if (!q) return allSugerencias;
+    return allSugerencias.filter(s => s.toLowerCase().includes(q));
+  }, [allSugerencias, value]);
+
+  useEffect(() => {
+    if (!open) return;
+    const h = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, [open]);
+
+  const select = (s: string) => {
+    onChange(s);
+    setOpen(false);
+    inputRef.current?.blur();
+  };
+
+  return (
+    <div className="relative" ref={ref}>
+      <input
+        ref={inputRef}
+        value={value}
+        onChange={e => { onChange(e.target.value); setOpen(true); }}
+        onFocus={() => setOpen(true)}
+        placeholder={cfg.ejemplo}
+        className="w-full bg-primary/4 border border-primary/10 rounded-xl px-3 py-2 text-[11px] text-primary outline-none focus:border-primary/25 placeholder:text-primary/25 transition-colors"
+      />
+      {open && filtered.length > 0 && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div
+            className="absolute z-50 top-full left-0 right-0 mt-1 rounded-xl border shadow-xl overflow-hidden"
+            style={{ background: "var(--bg-main)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}
+          >
+            {/* Header de la lista */}
+            <div className="px-3 py-1.5 border-b flex items-center gap-1.5"
+              style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}>
+              <cfg.Icon size={8} style={{ color: `color-mix(in srgb, ${cfg.color} 55%, transparent)` }} />
+              <span className="text-[8px] font-black uppercase tracking-[0.25em]"
+                style={{ color: `color-mix(in srgb, ${cfg.color} 45%, transparent)` }}>
+                Tipos de {cfg.labelPlural.toLowerCase()}
+              </span>
+            </div>
+            <div className="max-h-44 overflow-y-auto p-1">
+              {filtered.map(s => {
+                const isCustom = sugerencias.some(c => c.toLowerCase() === s.toLowerCase()) &&
+                  !cfg.sugerenciasDefault.some(d => d.toLowerCase() === s.toLowerCase());
+                return (
+                  <button
+                    key={s}
+                    type="button"
+                    onMouseDown={() => select(s)}
+                    className="w-full flex items-center justify-between gap-2 px-3 py-1.5 rounded-lg text-left transition-colors hover:bg-primary/6"
+                  >
+                    <span className="text-[11px] text-primary/75">{s}</span>
+                    {isCustom && (
+                      <span className="text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md"
+                        style={{
+                          background: `color-mix(in srgb, ${cfg.color} 10%, transparent)`,
+                          color: `color-mix(in srgb, ${cfg.color} 60%, transparent)`,
+                        }}>
+                        usado
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 // ─── EditorGrupo — formulario de edición de un grupo (sin sidebar) ────────────
 // Recibe un grupo como prop y lo edita in-place, igual que EditorPersonaje,
 // EditorReino, etc. EditorMundo lo muestra como overlay al hacer clic en un chip.
@@ -418,11 +533,13 @@ export function EditorGrupo({
   onSaved,
   onDeleted,
   onClickMiembro,
+  sugerenciasSubtipo = [],
 }: {
   grupo: Grupo;
   onSaved: (updated: Grupo) => void | Promise<void>;
   onDeleted: (id: string) => void | Promise<void>;
   onClickMiembro?: (id: string, tabla: string) => void;
+  sugerenciasSubtipo?: string[];
 }) {
   const [form, setForm] = useState<Grupo>(grupo);
   const [status, setStatus] = useState<SaveStatus>("idle");
@@ -439,6 +556,7 @@ export function EditorGrupo({
         .update({
           nombre: form.nombre,
           tipo: form.tipo,
+          subtipo: form.subtipo ?? null,
           descripcion: form.descripcion ?? null,
           miembro_ids: form.miembro_ids,
         })
@@ -481,13 +599,20 @@ export function EditorGrupo({
           />
         </div>
 
-        {/* Badge tipo */}
-        <div className="flex items-center gap-2">
+        {/* Badge tipo + subtipo */}
+        <div className="flex items-center gap-2 flex-wrap">
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest"
             style={{ background: `color-mix(in srgb, ${cfg.color} 10%, transparent)`, color: `color-mix(in srgb, ${cfg.color} 70%, transparent)`, border: `1px solid color-mix(in srgb, ${cfg.color} 20%, transparent)` }}>
             <cfg.Icon size={8} /> {cfg.labelPlural}
           </span>
-          <span className="text-[9px] text-primary/25 italic">{cfg.ejemplo}</span>
+          {form.subtipo ? (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[8px] font-semibold"
+              style={{ background: `color-mix(in srgb, ${cfg.color} 7%, transparent)`, color: `color-mix(in srgb, ${cfg.color} 55%, transparent)`, border: `1px solid color-mix(in srgb, ${cfg.color} 15%, transparent)` }}>
+              {form.subtipo}
+            </span>
+          ) : (
+            <span className="text-[9px] text-primary/25 italic">{cfg.ejemplo}</span>
+          )}
         </div>
 
         {/* Acciones */}
@@ -506,6 +631,16 @@ export function EditorGrupo({
 
       {/* Body */}
       <div className="flex-1 overflow-y-auto min-h-0 p-4 space-y-5">
+        <div className="space-y-1.5">
+          <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">Tipo de grupo</label>
+          <SubtipoInput
+            value={form.subtipo ?? ""}
+            onChange={v => setForm(f => ({ ...f, subtipo: v || null }))}
+            tipo={form.tipo}
+            sugerencias={sugerenciasSubtipo}
+          />
+        </div>
+
         <div className="space-y-1.5">
           <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">Descripción</label>
           <textarea
@@ -568,6 +703,18 @@ export function EditorGrupoStandalone({
   }, [initialSelectedId]);
 
   const selected = grupos.find(g => g.id === selectedId) ?? null;
+
+  // Sugerencias de subtipo aisladas por tipo — nunca se mezclan
+  const sugerenciasSubtipo = useMemo(() => {
+    if (!selected) return [];
+    return [
+      ...new Set(
+        grupos
+          .filter(g => g.tipo === selected.tipo && g.id !== selected.id && g.subtipo)
+          .map(g => g.subtipo as string)
+      ),
+    ];
+  }, [grupos, selected]);
 
   const filtered = useMemo(() => {
     if (!search.trim()) return grupos;
@@ -662,7 +809,13 @@ export function EditorGrupoStandalone({
                           selectedId === grupo.id ? "border-primary/20 bg-primary/10" : "border-transparent hover:bg-primary/6 hover:border-primary/10"
                         }`}>
                         <p className={`text-[11px] font-bold truncate ${selectedId === grupo.id ? "text-primary" : "text-primary/70"}`}>{grupo.nombre}</p>
-                        <div className="flex items-center gap-1 mt-0.5">
+                        <div className="flex items-center gap-1 mt-0.5 flex-wrap">
+                          {grupo.subtipo && (
+                            <span className="text-[7px] font-semibold px-1.5 py-px rounded-md"
+                              style={{ background: `color-mix(in srgb, ${GRUPO_TIPO_CONFIG[grupo.tipo].color} 10%, transparent)`, color: `color-mix(in srgb, ${GRUPO_TIPO_CONFIG[grupo.tipo].color} 55%, transparent)` }}>
+                              {grupo.subtipo}
+                            </span>
+                          )}
                           <span className="text-[8px] text-primary/30">{grupo.miembro_ids.length} miembros</span>
                         </div>
                       </button>
@@ -685,6 +838,7 @@ export function EditorGrupoStandalone({
             onSaved={async updated => { await actualizarGrupo(updated); }}
             onDeleted={async id => { await eliminarGrupo(id); setSelectedId(null); }}
             onClickMiembro={onClickMiembro}
+            sugerenciasSubtipo={sugerenciasSubtipo}
           />
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center gap-3 select-none">
