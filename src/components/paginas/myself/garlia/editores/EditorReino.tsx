@@ -347,10 +347,11 @@ function DetalleEditor({ detalle, onSaved, onDeleted, onOpenEditor, entities = [
 }
 
 // ─── EditorReino ───────────────────────────────────────────────────────────────
-export function EditorReino({ item, onSaved, onDeleted, entities = [], onSelectPersonaje, onSelectLugar }: {
+export function EditorReino({ item, onSaved, onDeleted, entities = [], onSelectPersonaje, onSelectLugar, onSelectCriatura }: {
   item: Reino; onSaved: (r: Reino) => void; onDeleted: (id: string) => void; entities?: WikiEntity[];
   onSelectPersonaje?: (personaje: any) => void;
   onSelectLugar?: (id: string) => void;
+  onSelectCriatura?: (id: string) => void;
 }) {
   const [form,   setForm]   = useState<Reino>(item);
   const [status, setStatus] = useState<SaveStatus>("idle");
@@ -516,6 +517,7 @@ export function EditorReino({ item, onSaved, onDeleted, entities = [], onSelectP
             personajes={personajes}
             loadingPersonajes={loadingPersonajes}
             onSelectPersonaje={onSelectPersonaje}
+            onSelectCriatura={onSelectCriatura}
             detalles={detalles}
             onAddPoint={handleAddPoint}
             addingPoint={addingPoint}

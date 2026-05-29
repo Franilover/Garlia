@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Globe, Mountain, Landmark, Users, Coins, Plus, Trash2, ChevronUp, ChevronDown, ChevronRight, UserCircle2, Loader2, MapPin, Map, Check, X, Eye, EyeOff } from "lucide-react";
+import { Globe, Mountain, Landmark, Users, Coins, Plus, Trash2, ChevronUp, ChevronDown, ChevronRight, UserCircle2, Loader2, MapPin, Map, Check, X, Eye, EyeOff, Bug } from "lucide-react";
 import { INPUT_CLS, type SaveStatus } from "./types";
 import { MarkdownEditor, WikiEntity } from "../../../../forms/MarkdownEditor";
 import { useWikilink } from "./WikilinkContext";
@@ -621,6 +621,43 @@ function MapaPanel({
   );
 }
 
+// ─── Tipo mínimo de criatura ──────────────────────────────────────────────────
+type CriaturaMin = { id: string; nombre: string; imagen_url?: string | null };
+
+// ─── Hook: criaturas que habitan un reino ─────────────────────────────────────
+function useCriaturasDelReino(reinoId: string) {
+  const [criaturas, setCriaturas] = useState<CriaturaMin[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      setLoading(true);
+      const { data } = await supabase
+        .from("criatura_reinos")
+        .select("criatura_id, criaturas!criatura_id(id, nombre, imagen_url)")
+        .eq("reino_id", reinoId);
+      if (!cancelled && data) {
+        setCriaturas(
+          data.map((r: any) => {
+            const c = Array.isArray(r.criaturas) ? r.criaturas[0] : r.criaturas;
+            return {
+              id:         c?.id         ?? r.criatura_id,
+              nombre:     c?.nombre     ?? "—",
+              imagen_url: c?.imagen_url ?? null,
+            };
+          })
+        );
+      }
+      if (!cancelled) setLoading(false);
+    };
+    run();
+    return () => { cancelled = true; };
+  }, [reinoId]);
+
+  return { criaturas, loading };
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function historiaHasContent(raw: string | undefined): boolean {
@@ -642,6 +679,7 @@ export function LoreTab({
   personajes = [],
   loadingPersonajes = false,
   onSelectPersonaje,
+  onSelectCriatura,
   reinos = [],
   filtroReinoId,
   detalles = [],
@@ -665,6 +703,7 @@ export function LoreTab({
   personajes?: Personaje[];
   loadingPersonajes?: boolean;
   onSelectPersonaje?: (personaje: Personaje) => void;
+  onSelectCriatura?: (id: string) => void;
   reinos?: { id: string; nombre: string }[];
   filtroReinoId?: string | null;
   detalles?: Lugar[];
@@ -685,6 +724,7 @@ export function LoreTab({
 }) {
   const { onSnippetAction } = useWikilink();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const { criaturas, loading: loadingCriaturas } = useCriaturasDelReino(form.id);
 
   // ── Etiqueta de sección ───────────────────────────────────────────────────
   const SectionHeader = ({ id, label, Icon }: { id: SectionId; label: string; Icon: React.ElementType }) => (
@@ -895,16 +935,16 @@ export function LoreTab({
           </div>
         </div>
 
-        {/* Mapa miniatura */}
+        {/* Criaturas del reino */}
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
           <div className="shrink-0 flex items-center gap-1.5 px-2.5 py-2 border-b"
             style={{ borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)" }}>
-            <Map size={9} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
+            <Bug size={9} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
             <span className="text-[8px] font-black uppercase tracking-[0.22em]"
               style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
-              Mapa
+              Criaturas
             </span>
-            {detalles.length > 0 && (
+            {criaturas.length > 0 && (
               <span
                 className="ml-auto text-[7px] font-black px-1 py-0.5 rounded-full"
                 style={{
@@ -912,61 +952,52 @@ export function LoreTab({
                   color: "color-mix(in srgb, var(--primary) 45%, transparent)",
                 }}
               >
-                {detalles.length}
+                {criaturas.length}
               </span>
             )}
           </div>
-          <div className="flex-1 p-2 overflow-hidden">
-            {mapaUrl ? (
-              <button
-                onClick={() => document.getElementById("lore-section-mapa")?.scrollIntoView({ behavior: "smooth", block: "start" })}
-                className="w-full h-full relative overflow-hidden rounded-lg transition-all group"
-                style={{
-                  background: "color-mix(in srgb, var(--primary) 4%, transparent)",
-                  border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-                }}
-                title="Ir al mapa"
-              >
-                <img
-                  src={mapaUrl}
-                  alt="Mapa"
-                  className="w-full h-full object-cover pointer-events-none"
-                  draggable={false}
-                />
-                {/* Puntos sobre miniatura */}
-                {detalles.filter(d => d.coord_x != null && d.coord_y != null).map(d => (
-                  <div
-                    key={d.id}
-                    className="absolute w-1.5 h-1.5 rounded-full border border-white/80 shadow-sm"
-                    style={{
-                      top: `${d.coord_y ?? 50}%`,
-                      left: `${d.coord_x ?? 50}%`,
-                      transform: "translate(-50%, -50%)",
-                      background: "var(--primary)",
-                    }}
-                  />
-                ))}
-                <div className="absolute inset-0 bg-primary/0 group-hover:bg-primary/8 transition-colors flex items-center justify-center">
-                  <span className="text-[8px] font-black uppercase tracking-widest text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow">
-                    Ver mapa
-                  </span>
-                </div>
-              </button>
+
+          <div className="flex-1 overflow-y-auto p-1.5 space-y-0.5" style={{ scrollbarWidth: "none" }}>
+            {loadingCriaturas ? (
+              <div className="flex items-center justify-center py-6">
+                <Loader2 size={12} className="animate-spin text-primary/20" />
+              </div>
+            ) : criaturas.length === 0 ? (
+              <div className="flex flex-col items-center gap-1.5 py-6 text-primary/20">
+                <Bug size={18} strokeWidth={1} />
+                <p className="text-[8px] font-black uppercase tracking-widest text-center">Sin criaturas</p>
+              </div>
             ) : (
-              <button
-                onClick={() => document.getElementById("lore-section-mapa")?.scrollIntoView({ behavior: "smooth", block: "start" })}
-                className="w-full h-full flex flex-col items-center justify-center gap-1.5 rounded-lg transition-all"
-                style={{
-                  background: "color-mix(in srgb, var(--primary) 3%, transparent)",
-                  border: "1px dashed color-mix(in srgb, var(--primary) 12%, transparent)",
-                }}
-              >
-                <Map size={14} style={{ color: "color-mix(in srgb, var(--primary) 18%, transparent)" }} strokeWidth={1} />
-                <span className="text-[7px] font-black uppercase tracking-widest"
-                  style={{ color: "color-mix(in srgb, var(--primary) 22%, transparent)" }}>
-                  Sin mapa
-                </span>
-              </button>
+              criaturas.map(c => (
+                <button
+                  key={c.id}
+                  onClick={() => onSelectCriatura?.(c.id)}
+                  className="w-full flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-left transition-all group"
+                  style={{ background: "transparent" }}
+                  onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 6%, transparent)"}
+                  onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = "transparent"}
+                >
+                  <div
+                    className="shrink-0 w-5 h-5 rounded-full overflow-hidden flex items-center justify-center"
+                    style={{
+                      background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+                      border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+                    }}
+                  >
+                    {c.imagen_url
+                      ? <img src={c.imagen_url} alt={c.nombre} className="w-full h-full object-cover" />
+                      : <Bug size={9} style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }} />}
+                  </div>
+                  <span
+                    className="flex-1 min-w-0 text-[10px] font-bold truncate transition-colors"
+                    style={{ color: "color-mix(in srgb, var(--primary) 60%, transparent)" }}
+                  >
+                    {c.nombre}
+                  </span>
+                  <ChevronRight size={8} className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                    style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }} />
+                </button>
+              ))
             )}
           </div>
         </div>
