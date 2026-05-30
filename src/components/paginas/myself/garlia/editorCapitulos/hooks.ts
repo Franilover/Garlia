@@ -162,7 +162,6 @@ export function useReinos() {
     supabase
       .from("reinos")
       .select("id, nombre")
-      .eq("oculto", false)
       .order("nombre", { ascending: true })
       .then(({ data }) => {
         setReinos((data ?? []) as { id: string; nombre: string }[]);
