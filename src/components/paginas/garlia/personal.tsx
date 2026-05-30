@@ -1382,12 +1382,13 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                         ? reinos.map((r, i) => (
                           <button
                             key={i}
-                            onClick={() => setModalEntidad({ tipo: "item", data: {
+                            onClick={() => setModalEntidad({ tipo: "reino", data: {
+                              tipo: "item",
                               entidad_id: r.id,
                               nombre: r.nombre,
                               imagen_url: r.imagen_reino ?? undefined,
                               descripcion: r.descripcion ?? undefined,
-                              tipo: "item",
+                              fecha_descubrimiento: "",
                             }})}
                             className="group relative overflow-hidden text-left transition-all duration-150"
                             style={{

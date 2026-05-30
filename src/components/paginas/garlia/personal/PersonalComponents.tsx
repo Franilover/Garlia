@@ -2,7 +2,7 @@
 import { MotionDiv, MotionMain, MotionH1, MotionH2, MotionButton, MotionLi, MotionSpan, MotionP, MotionSection, MotionArticle, MotionImg } from "@/components/ui/Motion";
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { User, Sword, Package, ShieldCheck, X, Star, Music2, ChevronRight } from "lucide-react";
+import { User, Sword, Package, ShieldCheck, X, Star, Music2, ChevronRight, MapPin } from "lucide-react";
 import Link from "next/link";
 
 export interface Descubrimiento {
@@ -34,7 +34,7 @@ export interface ItemInventario {
 
 export type EntidadModal =
   | { tipo: "item_inv"; data: ItemInventario }
-  | { tipo: "item" | "criatura" | "personaje"; data: Descubrimiento };
+  | { tipo: "item" | "criatura" | "personaje" | "reino"; data: Descubrimiento };
 
 export function ModalDetalle({ entidad, onClose, canciones, cargandoCanciones }: {
   entidad: EntidadModal;
@@ -45,11 +45,12 @@ export function ModalDetalle({ entidad, onClose, canciones, cargandoCanciones }:
   const isItemInv  = entidad.tipo === "item_inv";
   const isItem     = isItemInv || entidad.tipo === "item";
   const isCriatura = entidad.tipo === "criatura";
+  const isReino    = entidad.tipo === "reino";
 
   const nombre = isItemInv
     ? (entidad.data as ItemInventario).items.nombre
     : (entidad.data as Descubrimiento).nombre
-      ?? (isCriatura ? "Criatura Desconocida" : entidad.tipo === "item" ? "Objeto" : "Personaje");
+      ?? (isCriatura ? "Criatura Desconocida" : isReino ? "Reino" : entidad.tipo === "item" ? "Objeto" : "Personaje");
 
   const descripcion = isItemInv
     ? (entidad.data as ItemInventario).items.descripcion
@@ -74,7 +75,7 @@ export function ModalDetalle({ entidad, onClose, canciones, cargandoCanciones }:
     if (d.especie)   tags.push(d.especie!);
   }
 
-  const IconComp = isItem ? Package : isCriatura ? Sword : User;
+  const IconComp = isReino ? MapPin : isItem ? Package : isCriatura ? Sword : User;
 
   return (
     <AnimatePresence>
@@ -131,7 +132,7 @@ export function ModalDetalle({ entidad, onClose, canciones, cargandoCanciones }:
               style={{ background: "var(--primary)", borderRadius: "2px" }}>
               <IconComp size={9} style={{ color: "var(--btn-text, white)" }} />
               <span className="text-[8px] font-black uppercase tracking-widest" style={{ color: "var(--btn-text, white)" }}>
-                {isItem ? "objeto" : isCriatura ? "criatura" : "personaje"}
+                {isReino ? "reino" : isItem ? "objeto" : isCriatura ? "criatura" : "personaje"}
               </span>
             </div>
           </div>
@@ -179,7 +180,7 @@ export function ModalDetalle({ entidad, onClose, canciones, cargandoCanciones }:
               }
             </div>
 
-            {/* Canciones del personaje */}
+            {/* Canciones del personaje — solo para personajes */}
             {!isItem && !isCriatura && (
               <div className="pt-3" style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" }}>
                 <div className="flex items-center gap-3 mb-3">
