@@ -952,7 +952,12 @@ function PanelHistoriaMundo({
 
   // ── Capítulos con posición en línea de tiempo ─────────────────────────────
   const [capsTimeline, setCapsTimeline] = useState<CapTimeline[]>([]);
+  // Mapa de todos los capítulos con reinos_ids (para los botones de filtro,
+  // independientemente de si tienen orden_linea_tiempo)
+  const [capsReinosIds, setCapsReinosIds] = useState<Record<string, string[]>>({});
+
   useEffect(() => {
+    // Query 1: capítulos con orden_linea_tiempo → se muestran en la pista
     supabase
       .from("capitulos")
       .select("id, libro_id, titulo_capitulo, orden_linea_tiempo, reinos_ids")
@@ -976,6 +981,21 @@ function PanelHistoriaMundo({
             reinos_ids: c.reinos_ids ?? [],
           }))
         );
+      });
+
+    // Query 2: todos los capítulos con reinos_ids → alimenta los botones de filtro
+    // (aunque no tengan número en la línea de tiempo)
+    supabase
+      .from("capitulos")
+      .select("id, reinos_ids")
+      .not("reinos_ids", "is", null)
+      .then(({ data }) => {
+        if (!data?.length) return;
+        const map: Record<string, string[]> = {};
+        for (const c of data as any[]) {
+          if (c.reinos_ids?.length) map[c.id] = c.reinos_ids;
+        }
+        setCapsReinosIds(map);
       });
   }, []);
 
@@ -1122,10 +1142,12 @@ function PanelHistoriaMundo({
     () => reinos.filter(r => {
       const evts = reinoEvents[r.id] ?? decodeTimeline((r as any).historia);
       const tieneEventos = evts.some(e => e.year?.trim() || e.title?.trim());
-      const tieneCaps = capsTimeline.some(c => c.reinos_ids?.includes(r.id));
+      // Usar capsReinosIds (todos los caps con reinos) para los botones de filtro,
+      // no solo los que tienen orden_linea_tiempo
+      const tieneCaps = Object.values(capsReinosIds).some(ids => ids.includes(r.id));
       return tieneEventos || tieneCaps;
     }),
-    [reinos, reinoEvents, capsTimeline]
+    [reinos, reinoEvents, capsReinosIds]
   );
 
   // Resolver el evento seleccionado actual
