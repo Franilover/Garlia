@@ -1053,20 +1053,26 @@ function PanelHistoriaMundo({
         list.push({ ...e, source: "reino", reinoNombre: reino.nombre, reinoId: reino.id, yearNum: parseYear(e.year) });
       }
     }
-    // Sort estable: por año numérico; en empate, mundo antes que reino
+    // Capítulos — cada uno como tarjeta propia, ordenada por año, sin agrupar
+    for (const cap of capsTimeline) {
+      list.push({
+        id: `cap:${cap.id}`,
+        year: String(cap.orden_linea_tiempo),
+        title: cap.titulo_capitulo,
+        description: "",
+        source: "capitulo",
+        yearNum: cap.orden_linea_tiempo,
+        capData: cap,
+      });
+    }
+    // Sort estable: por año; en empate, mundo → reino → capítulo
     return list.sort((a, b) => {
       const diff = a.yearNum - b.yearNum;
       if (diff !== 0) return diff;
       const order = { mundo: 0, reino: 1, capitulo: 2 };
       return (order[a.source] ?? 1) - (order[b.source] ?? 1);
     });
-  }, [mundoEvents, reinos, reinoEvents, filterReino]);
-
-  // ── Pista de capítulos — siempre separada, ordenada por orden_linea_tiempo ──
-  const capsOrdenadas = useMemo(
-    () => [...capsTimeline].sort((a, b) => a.orden_linea_tiempo - b.orden_linea_tiempo),
-    [capsTimeline]
-  );
+  }, [mundoEvents, reinos, reinoEvents, filterReino, capsTimeline]);
 
   const reinosConEventos = useMemo(
     () => reinos.filter(r => {
@@ -1175,13 +1181,14 @@ function PanelHistoriaMundo({
             style={{ scrollbarWidth: "thin", scrollbarColor: "color-mix(in srgb, var(--primary) 15%, transparent) transparent" }}>
             <div className="flex items-start" style={{ minWidth: "max-content", paddingLeft: 8, paddingRight: 8 }}>
 
-              {/* ── Bloque de acontecimientos ── */}
               {allEvents.map((evt, idx) => {
                 const isMundo = evt.source === "mundo";
+                const isCapitulo = evt.source === "capitulo";
                 const totalLen = allEvents.length;
-                const key = isMundo ? evt.id : `${evt.reinoId}:${evt.id}`;
+                const key = isCapitulo ? evt.id : isMundo ? evt.id : `${evt.reinoId}:${evt.id}`;
                 return (
                   <div key={key} className="flex flex-col shrink-0" style={{ width: 190 }}>
+                    {/* Nodo en la línea */}
                     <div className="flex items-center" style={{ height: 26 }}>
                       <div className="flex-1 h-px" style={{ background: idx === 0 ? "transparent" : "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
                       <div className="shrink-0 rounded-full transition-all"
@@ -1189,33 +1196,49 @@ function PanelHistoriaMundo({
                           width: 10, height: 10,
                           background: "var(--primary)",
                           boxShadow: "0 0 0 3px color-mix(in srgb, var(--primary) 15%, transparent)",
+                        } : isCapitulo ? {
+                          width: 8, height: 8,
+                          background: "color-mix(in srgb, var(--accent) 70%, var(--primary))",
+                          boxShadow: "0 0 0 2px color-mix(in srgb, var(--accent) 15%, transparent)",
                         } : {
                           width: 7, height: 7,
                           background: "color-mix(in srgb, var(--primary) 40%, transparent)",
                           boxShadow: "0 0 0 2px color-mix(in srgb, var(--primary) 10%, transparent)",
                         }} />
-                      <div className="flex-1 h-px" style={{ background: idx === totalLen - 1 && capsOrdenadas.length === 0 ? "transparent" : "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
+                      <div className="flex-1 h-px" style={{ background: idx === totalLen - 1 ? "transparent" : "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
                     </div>
-                    <MundoEventoRow
-                      evt={evt}
-                      source={isMundo ? "mundo" : "reino"}
-                      reinos={reinos}
-                      isSelected={selectedEventKey === key}
-                      onSelect={() => setSelectedEventKey(prev => prev === key ? null : key)}
-                      onRemove={() => {
-                        if (isMundo) remove(evt.id);
-                        else if (evt.reinoId) {
-                          removeReinoEvent(evt.reinoId, evt.id);
-                          void handleSaveReinoEvent(evt.reinoId);
-                        }
-                        if (selectedEventKey === key) setSelectedEventKey(null);
-                      }}
-                    />
+                    {/* Tarjeta */}
+                    {isCapitulo && evt.capData ? (
+                      <CapituloEventoRow
+                        cap={evt.capData}
+                        onNavigate={() => {
+                          localStorage.setItem("estudio-caps-last-cap", evt.capData!.id);
+                          localStorage.setItem("estudio-caps-last-libro", evt.capData!.libro_id);
+                          window.dispatchEvent(new Event("estudio-caps-action"));
+                        }}
+                      />
+                    ) : (
+                      <MundoEventoRow
+                        evt={evt}
+                        source={isMundo ? "mundo" : "reino"}
+                        reinos={reinos}
+                        isSelected={selectedEventKey === key}
+                        onSelect={() => setSelectedEventKey(prev => prev === key ? null : key)}
+                        onRemove={() => {
+                          if (isMundo) remove(evt.id);
+                          else if (evt.reinoId) {
+                            removeReinoEvent(evt.reinoId, evt.id);
+                            void handleSaveReinoEvent(evt.reinoId);
+                          }
+                          if (selectedEventKey === key) setSelectedEventKey(null);
+                        }}
+                      />
+                    )}
                   </div>
                 );
               })}
 
-              {/* Botón "+" al final de los acontecimientos */}
+              {/* Botón "+" al final */}
               {!filterReino && (
                 <div className="flex flex-col shrink-0 items-center" style={{ width: 80 }}>
                   <div className="flex items-center w-full" style={{ height: 26 }}>
@@ -1227,7 +1250,7 @@ function PanelHistoriaMundo({
                       onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = "color-mix(in srgb, var(--primary) 20%, transparent)"; el.style.color = "color-mix(in srgb, var(--primary) 35%, transparent)"; el.style.background = "transparent"; }}>
                       <Plus size={11} />
                     </button>
-                    <div className="flex-1 h-px" style={{ background: capsOrdenadas.length > 0 ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent" }} />
+                    <div className="flex-1 h-px" style={{ background: "transparent" }} />
                   </div>
                   <span className="text-[7px] font-black uppercase tracking-widest mt-1 text-center"
                     style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>
@@ -1236,55 +1259,13 @@ function PanelHistoriaMundo({
                 </div>
               )}
 
-              {/* Estado vacío de acontecimientos */}
+              {/* Estado vacío */}
               {allEvents.length === 0 && filterReino && (
                 <p className="text-[9px] text-primary/20 italic px-4 py-2 self-center">Sin eventos para este reino.</p>
               )}
-              {allEvents.length === 0 && !filterReino && capsOrdenadas.length === 0 && (
+              {allEvents.length === 0 && !filterReino && (
                 <p className="text-[9px] text-primary/20 italic px-2 py-2 self-center">Usá el "+" para añadir el primer evento.</p>
               )}
-
-              {/* ── Divisor vertical entre bloques ── */}
-              {capsOrdenadas.length > 0 && (
-                <div className="flex flex-col shrink-0 items-center justify-start" style={{ width: 56, paddingTop: 0 }}>
-                  <div className="flex items-center w-full" style={{ height: 26 }}>
-                    <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
-                    <div className="shrink-0 flex items-center justify-center"
-                      style={{ width: 22, height: 22, borderRadius: "50%", border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)", background: "color-mix(in srgb, var(--primary) 4%, transparent)" }}>
-                      <BookOpen size={9} style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }} />
-                    </div>
-                    <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
-                  </div>
-                  <span className="text-[6px] font-black uppercase tracking-[0.2em] mt-1 text-center"
-                    style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>
-                    Caps
-                  </span>
-                </div>
-              )}
-
-              {/* ── Bloque de capítulos ── */}
-              {capsOrdenadas.map((cap, idx) => (
-                <div key={cap.id} className="flex flex-col shrink-0" style={{ width: 190 }}>
-                  <div className="flex items-center" style={{ height: 26 }}>
-                    <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
-                    <div className="shrink-0 rounded-full"
-                      style={{
-                        width: 8, height: 8,
-                        background: "color-mix(in srgb, var(--accent) 70%, var(--primary))",
-                        boxShadow: "0 0 0 2px color-mix(in srgb, var(--accent) 15%, transparent)",
-                      }} />
-                    <div className="flex-1 h-px" style={{ background: idx === capsOrdenadas.length - 1 ? "transparent" : "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
-                  </div>
-                  <CapituloEventoRow
-                    cap={cap}
-                    onNavigate={() => {
-                      localStorage.setItem("estudio-caps-last-cap", cap.id);
-                      localStorage.setItem("estudio-caps-last-libro", cap.libro_id);
-                      window.dispatchEvent(new Event("estudio-caps-action"));
-                    }}
-                  />
-                </div>
-              ))}
 
             </div>
           </div>
