@@ -1444,6 +1444,7 @@ export default function MapaInteractivo() {
   const [isMobile, setIsMobile] = useState(false);
   const [personajesReino, setPersonajesReino] = useState<any[]>([]);
   const [personajesDesbloqueados, setPersonajesDesbloqueados] = useState<Set<string>>(new Set());
+  const [reinosDesbloqueados, setReinosDesbloqueados] = useState<Set<string>>(new Set());
   const [modalEntidad, setModalEntidad] = useState<EntidadModal | null>(null);
   const [cancionesPersonaje, setCancionesPersonaje] = useState<any[]>([]);
   const [cargandoCanciones, setCargandoCanciones] = useState(false);
@@ -1468,17 +1469,17 @@ export default function MapaInteractivo() {
     return () => window.removeEventListener("resize", check);
   }, []);
 
-  // Solo descubrimientos — reinos ya lo maneja useSupabaseData
+  // Descubrimientos — personajes y reinos del perfil
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) return;
-      supabase
-        .from("descubrimientos_personajes")
-        .select("personaje_id")
-        .eq("perfil_id", user.id)
-        .then(({ data }) => {
-          if (data) setPersonajesDesbloqueados(new Set(data.map((r: any) => r.personaje_id)));
-        });
+      Promise.all([
+        supabase.from("descubrimientos_personajes").select("personaje_id").eq("perfil_id", user.id),
+        supabase.from("descubrimientos_reinos").select("reino_id").eq("perfil_id", user.id),
+      ]).then(([pRes, rRes]) => {
+        if (pRes.data) setPersonajesDesbloqueados(new Set(pRes.data.map((r: any) => r.personaje_id)));
+        if (rRes.data) setReinosDesbloqueados(new Set(rRes.data.map((r: any) => r.reino_id)));
+      });
     });
   }, []);
 
@@ -1557,7 +1558,7 @@ export default function MapaInteractivo() {
           (db as any).lugares?.where("reino_id").equals(reino.id).toArray().catch(() => []) ?? [],
           db.personajes.filter((p: any) => p.reino === reino.nombre).toArray().catch(() => []),
           db.libros.filter((l: any) => l.reino_id === reino.id).toArray().catch(() => []),
-          db.capitulos.filter((c: any) => c.reino_id === reino.id).toArray().catch(() => []),
+          db.capitulos.filter((c: any) => Array.isArray(c.reinos_ids) && c.reinos_ids.includes(reino.id)).toArray().catch(() => []),
         ]);
         apply(() => {
           if (cachedDetalles.length > 0) setDetallesReino(cachedDetalles.filter((d: any) => !d.deleted));
@@ -1575,7 +1576,7 @@ export default function MapaInteractivo() {
       supabase.from("libros").select("id, titulo, portada_url, estado").eq("reino_id", reino.id).eq("visibilidad", "publico"),
       supabase.from("capitulos")
         .select("id, titulo_capitulo, orden, libro_id, libros(titulo)")
-        .eq("reino_id", reino.id)
+        .contains("reinos_ids", [reino.id])
         .eq("visibilidad", "publico")
         .order("orden", { ascending: true }),
     ]);
@@ -1723,13 +1724,13 @@ export default function MapaInteractivo() {
     setPanelOpen(false);
   };
 
-  // Visible markers (shown to users) vs hidden (fog-covered, shown only to admin)
+  // Visible markers: admins ven todos; usuarios solo ven los reinos que desbloquearon
   const visibleMarkers = vistaActual === "global"
-    ? reinos.filter(r => !r.oculto)
+    ? reinos.filter(r => isAdmin ? !r.oculto : (!r.oculto && reinosDesbloqueados.has(r.id)))
     : detallesReino.filter(p => !p.oculto);
 
   const hiddenMarkers = vistaActual === "global"
-    ? reinos.filter(r => r.oculto)
+    ? reinos.filter(r => isAdmin ? r.oculto : (!r.oculto && !reinosDesbloqueados.has(r.id)))
     : detallesReino.filter(p => p.oculto);
 
   const currentImage = vistaActual === "reino" && reinoSeleccionado?.mapa_url
