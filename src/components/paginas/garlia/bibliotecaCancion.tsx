@@ -283,16 +283,14 @@ export default function CancionesPage() {
   return (
     <div className="min-h-screen bg-bg-main pb-20">
       <div className="max-w-6xl mx-auto pt-16 px-6">
-        {/* Cabecera optimizada: Título y botón en la misma línea */}
-        <div className="flex items-center justify-between mb-10 gap-4">
-          <div className="flex-1">
-            <PageHeader title="Canciones" icon={<Music size={22} />} />
-          </div>
-          
+        {/* Cabecera: Título y botón en la misma línea */}
+        <div className="flex items-end justify-between mb-10 gap-4">
+          <PageHeader title="Canciones" icon={<Music size={22} />} />
+
           <button
             onClick={() => setVistaFila(v => !v)}
             title={vistaFila ? "Vista cuadrícula" : "Vista lista"}
-            className="p-3 rounded-btn border border-primary/10 hover:bg-primary/5 hover:border-primary/20 text-primary/40 hover:text-primary transition-all shrink-0"
+            className="p-3 rounded-btn border border-primary/10 hover:bg-primary/5 hover:border-primary/20 text-primary/40 hover:text-primary transition-all shrink-0 mb-[2px]"
           >
             {vistaFila ? <LayoutGrid size={18} /> : <List size={18} />}
           </button>
