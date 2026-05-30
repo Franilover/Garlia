@@ -17,6 +17,7 @@ import {
   capUpdateMeta,
 } from "./types";
 import { useCapitulos, useReinos } from "./hooks";
+import { ComboSelector } from "@/components/ui/ComboSelector";
 
 // ─── EstadisticasEscritura ────────────────────────────────────────────────────
 
@@ -814,212 +815,55 @@ export const SelectorNarrador = ({
   onChange: (id: string | null) => void;
 }) => {
   const { personajes, loading } = usePersonajes();
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const h = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
-  }, [open]);
-
-  const selected = personajes.find(p => p.id === value) ?? null;
-
+  const items = personajes.map(p => ({
+    id: p.id,
+    label: p.nombre,
+    imgUrl: (p as any).img_url ?? null,
+  }));
   return (
-    <div className="space-y-1.5" ref={ref}>
-      <label className="text-[9px] font-black uppercase tracking-widest text-primary/40 flex items-center gap-2">
-        <Mic2 size={10} />
-        Narrador / Protagonista del capítulo
-      </label>
-      <button
-        type="button"
-        onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between px-4 py-2.5 rounded-[var(--radius-btn)] text-[11px] font-bold transition-all"
-        style={{
-          background: "color-mix(in srgb, var(--primary) 5%, transparent)",
-          border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
-          color: selected ? "var(--primary)" : "color-mix(in srgb, var(--primary) 40%, transparent)",
-        }}
-      >
-        <span className="flex items-center gap-2">
-          {selected ? (
-            <>
-              {(selected as any).img_url && (
-                <img src={(selected as any).img_url} className="w-5 h-5 rounded-full object-cover border border-primary/20" alt="" />
-              )}
-              <span className="font-black uppercase">{selected.nombre}</span>
-            </>
-          ) : (
-            loading ? "Cargando…" : "Sin narrador asignado"
-          )}
-        </span>
-        <ChevronDown size={12} className={`transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
-      </button>
-      {open && (
-        <div className="border rounded-[var(--radius-btn)] overflow-hidden"
-          style={{ borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)", background: "var(--bg-main)" }}
-        >
-          <button
-            type="button"
-            onClick={() => { onChange(null); setOpen(false); }}
-            className="w-full flex items-center justify-between px-4 py-2.5 text-[11px] font-bold uppercase transition-all hover:bg-primary/5"
-            style={{ color: !value ? "var(--primary)" : "color-mix(in srgb, var(--primary) 45%, transparent)" }}
-          >
-            <span className="flex items-center gap-2">
-              <span className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center"><X size={9} className="opacity-50" /></span>
-              Ninguno
-            </span>
-            {!value && <Check size={11} style={{ color: "var(--primary)" }} />}
-          </button>
-          <div className="h-px mx-3" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
-          <div className="max-h-48 overflow-y-auto">
-            {personajes.length === 0 ? (
-              <p className="text-[10px] text-primary/30 px-4 py-3 font-bold uppercase">Sin personajes</p>
-            ) : personajes.map(p => {
-              const sel = value === p.id;
-              return (
-                <button key={p.id} type="button" onClick={() => { onChange(p.id); setOpen(false); }}
-                  className="w-full flex items-center justify-between px-4 py-2.5 text-[11px] font-bold uppercase transition-all hover:bg-primary/5"
-                  style={{ color: sel ? "var(--primary)" : "color-mix(in srgb, var(--primary) 50%, transparent)" }}
-                >
-                  <span className="flex items-center gap-2">
-                    {(p as any).img_url ? (
-                      <img src={(p as any).img_url} className="w-5 h-5 rounded-full object-cover border border-primary/15" alt="" />
-                    ) : (
-                      <span className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center">
-                        <UserCircle2 size={10} className="opacity-40" />
-                      </span>
-                    )}
-                    {p.nombre}
-                  </span>
-                  {sel && <Check size={11} style={{ color: "var(--primary)" }} />}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
-    </div>
+    <ComboSelector
+      mode="single"
+      items={items}
+      value={value}
+      onChange={onChange}
+      label="Narrador / Protagonista del capítulo"
+      icon={<Mic2 size={10} />}
+      placeholder="Sin narrador asignado"
+      emptyText="Sin personajes"
+      loading={loading}
+      allowNone
+      noneLabel="Ninguno"
+    />
   );
 };
-
 // ─── SelectorReino ────────────────────────────────────────────────────────────
 
 export const SelectorReino = ({
-  value,
-  onChange,
+  value, onChange,
 }: {
   value: string[];
   onChange: (ids: string[]) => void;
 }) => {
   const { reinos, loading } = useReinos();
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const h = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
-  }, [open]);
-
-  const toggle = (id: string) =>
-    onChange(value.includes(id) ? value.filter(x => x !== id) : [...value, id]);
-
-  const selected = reinos.filter(r => value.includes(r.id));
-
+  const items = reinos.map(r => ({
+    id: r.id,
+    label: r.nombre,
+  }));
   return (
-    <div className="space-y-1.5" ref={ref}>
-      <label className="text-[9px] font-black uppercase tracking-widest text-primary/40 flex items-center gap-2">
-        <MapPin size={10} />
-        Reinos / Ubicaciones
-        <span className="text-primary/25 normal-case font-medium">(se desbloquean al terminar)</span>
-      </label>
-
-      {selected.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
-          {selected.map(r => (
-            <span
-              key={r.id}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wide border"
-              style={{
-                background: "color-mix(in srgb, var(--primary) 10%, transparent)",
-                borderColor: "color-mix(in srgb, var(--primary) 20%, transparent)",
-                color: "var(--primary)",
-              }}
-            >
-              {r.nombre}
-              <button
-                type="button"
-                onClick={() => toggle(r.id)}
-                className="opacity-50 hover:opacity-100 transition-opacity ml-0.5"
-              >
-                ✕
-              </button>
-            </span>
-          ))}
-        </div>
-      )}
-
-      <button
-        type="button"
-        onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between px-4 py-2.5 rounded-[var(--radius-btn)] text-[11px] font-bold transition-all"
-        style={{
-          background: "color-mix(in srgb, var(--primary) 5%, transparent)",
-          border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
-          color: "color-mix(in srgb, var(--primary) 50%, transparent)",
-        }}
-      >
-        <span className="flex items-center gap-2">
-          <MapPin size={12} className="opacity-50 shrink-0" />
-          <span>
-            {loading
-              ? "Cargando…"
-              : selected.length > 0
-                ? `${selected.length} reino${selected.length > 1 ? "s" : ""} seleccionado${selected.length > 1 ? "s" : ""}`
-                : "Añadir reinos…"}
-          </span>
-        </span>
-        <ChevronDown size={12} className={`transition-transform duration-200 shrink-0 ${open ? "rotate-180" : ""}`} />
-      </button>
-
-      {open && (
-        <div
-          className="border rounded-[var(--radius-btn)] overflow-hidden max-h-44 overflow-y-auto"
-          style={{ borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)", background: "var(--bg-main)" }}
-        >
-          {reinos.length === 0 ? (
-            <p className="text-[10px] text-primary/30 px-4 py-3 font-bold uppercase">Sin reinos</p>
-          ) : reinos.map(r => {
-            const sel = value.includes(r.id);
-            return (
-              <button
-                key={r.id}
-                type="button"
-                onClick={() => toggle(r.id)}
-                className="w-full flex items-center justify-between px-4 py-2.5 text-[11px] font-bold uppercase transition-all hover:bg-primary/5"
-                style={{ color: sel ? "var(--primary)" : "color-mix(in srgb, var(--primary) 50%, transparent)" }}
-              >
-                <span className="flex items-center gap-2">
-                  <MapPin size={10} className="opacity-40 shrink-0" />
-                  {r.nombre}
-                </span>
-                {sel && <Check size={11} className="shrink-0" style={{ color: "var(--primary)" }} />}
-              </button>
-            );
-          })}
-        </div>
-      )}
-    </div>
+    <ComboSelector
+      mode="multi"
+      items={items}
+      value={value}
+      onChange={onChange}
+      label="Reinos / Ubicaciones"
+      icon={<MapPin size={10} />}
+      hint="(se desbloquean al terminar)"
+      placeholder="Añadir reinos…"
+      emptyText="Sin reinos"
+      loading={loading}
+    />
   );
 };
-
 // ─── SelectorPersonajesCapitulo ───────────────────────────────────────────────
 
 export const SelectorPersonajesCapitulo = ({
@@ -1029,54 +873,24 @@ export const SelectorPersonajesCapitulo = ({
   onChange: (ids: string[]) => void;
 }) => {
   const { personajes, loading } = usePersonajes();
-  const [open, setOpen] = useState(false);
-  const toggle = (id: string) =>
-    onChange(value.includes(id) ? value.filter(x => x !== id) : [...value, id]);
-  const selected = personajes.filter(p => value.includes(p.id));
-
+  const items = personajes.map(p => ({
+    id: p.id,
+    label: p.nombre,
+    imgUrl: (p as any).img_url ?? null,
+  }));
   return (
-    <div className="space-y-1.5">
-      <label className="text-[9px] font-black uppercase tracking-widest text-primary/40 flex items-center gap-2">
-        <UserCircle2 size={10} />
-        Personajes que aparecen
-        <span className="text-primary/25 normal-case font-medium">(se desbloquean al terminar)</span>
-      </label>
-      {selected.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
-          {selected.map(p => (
-            <span key={p.id} className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wide border"
-              style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 20%, transparent)", color: "var(--primary)" }}>
-              {p.nombre}
-              <button type="button" onClick={() => toggle(p.id)} className="opacity-50 hover:opacity-100 transition-opacity ml-0.5">✕</button>
-            </span>
-          ))}
-        </div>
-      )}
-      <button type="button" onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between px-4 py-2.5 rounded-[var(--radius-btn)] text-[11px] font-bold transition-all"
-        style={{ background: "color-mix(in srgb, var(--primary) 5%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)", color: "color-mix(in srgb, var(--primary) 50%, transparent)" }}>
-        <span>{loading ? "Cargando…" : selected.length > 0 ? `${selected.length} seleccionado${selected.length > 1 ? "s" : ""}` : "Añadir personajes…"}</span>
-        <ChevronDown size={12} className={`transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
-      </button>
-      {open && (
-        <div className="border rounded-[var(--radius-btn)] overflow-hidden max-h-44 overflow-y-auto"
-          style={{ borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)", background: "var(--bg-main)" }}>
-          {personajes.length === 0 ? (
-            <p className="text-[10px] text-primary/30 px-4 py-3 font-bold uppercase">Sin personajes</p>
-          ) : personajes.map(p => {
-            const sel = value.includes(p.id);
-            return (
-              <button key={p.id} type="button" onClick={() => toggle(p.id)}
-                className="w-full flex items-center justify-between px-4 py-2.5 text-[11px] font-bold uppercase transition-all hover:bg-primary/5"
-                style={{ color: sel ? "var(--primary)" : "color-mix(in srgb, var(--primary) 50%, transparent)" }}>
-                <span>{p.nombre}</span>
-                {sel && <Check size={11} className="shrink-0" style={{ color: "var(--primary)" }} />}
-              </button>
-            );
-          })}
-        </div>
-      )}
-    </div>
+    <ComboSelector
+      mode="multi"
+      items={items}
+      value={value}
+      onChange={onChange}
+      label="Personajes que aparecen"
+      icon={<UserCircle2 size={10} />}
+      hint="(se desbloquean al terminar)"
+      placeholder="Añadir personajes…"
+      emptyText="Sin personajes"
+      loading={loading}
+    />
   );
 };
 
