@@ -444,7 +444,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                     {modalEntidad.data.descripcion}
                   </p>
                 )}
-                <div className="flex items-center gap-3 mb-4">
+                {modalEntidad.tipo === "personaje" && <div className="flex items-center gap-3 mb-4">
                   <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
                   <div className="flex items-center gap-1.5">
                     <Music2 size={10} style={{ color: "color-mix(in srgb, var(--primary) 28%, transparent)" }} />
@@ -454,8 +454,8 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                     </span>
                   </div>
                   <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
-                </div>
-                {cargandoCanciones ? (
+                </div>}
+                {modalEntidad.tipo === "personaje" && (cargandoCanciones ? (
                   <div className="flex items-center gap-2 py-5 justify-center">
                     <Loader2 size={13} className="animate-spin" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
                     <span className="font-serif italic text-[9px]"
@@ -518,7 +518,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                       </Link>
                     ))}
                   </div>
-                )}
+                ))}
               </div>
             </MotionDiv>
           </>
@@ -1428,7 +1428,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                             <div className="flex-1 relative overflow-hidden flex items-center justify-center p-2">
                               {r.imagen_reino
                                 ? <img src={r.imagen_reino} alt={r.nombre}
-                                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" />
+                                    className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-110" />
                                 : <MapPin size={22} style={{ color: "color-mix(in srgb, var(--primary) 14%, transparent)" }} />}
                             </div>
                             <div className="px-1.5 py-1" style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 4%, transparent)" }}>
