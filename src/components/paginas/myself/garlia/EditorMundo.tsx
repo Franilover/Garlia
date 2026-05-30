@@ -610,10 +610,11 @@ function FormularioRuna({ item, onSaved, onDeleted }: {
 // ─── Panel de lista + editor para hechizos o dones ───────────────────────────
 
 type MundoTimelineEvent = TimelineEvent & {
-  source: "mundo" | "reino";
+  source: "mundo" | "reino" | "capitulo";
   reinoNombre?: string;
   reinoId?: string;
   yearNum: number; // para ordenar (valor numérico)
+  capData?: CapTimeline; // solo para source === "capitulo"
 };
 
 /** Extrae el valor numérico de un año para ordenamiento.
@@ -643,6 +644,97 @@ function encodeTimeline(events: TimelineEvent[]): string {
 
 function newEvent(): TimelineEvent {
   return { id: crypto.randomUUID(), year: "", title: "", description: "" };
+}
+
+// ── Tarjeta de capítulo en la línea de tiempo (solo lectura, con link) ─────────
+function CapituloEventoRow({
+  cap,
+  reinoNombre,
+  onNavigate,
+}: {
+  cap: CapTimeline;
+  reinoNombre?: string;
+  onNavigate: () => void;
+}) {
+  return (
+    <div className="group/card" style={{ width: 188 }}>
+      <div
+        className="mx-1.5 rounded-xl transition-all"
+        style={{
+          border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+          background: "color-mix(in srgb, var(--primary) 2%, transparent)",
+        }}
+      >
+        <div className="flex flex-col gap-1 p-2">
+          {/* Año */}
+          <div className="flex items-center gap-1">
+            <span
+              className="text-[9px] font-black tracking-widest px-1.5 py-0.5 rounded-md"
+              style={{
+                background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+                color: "var(--primary)",
+              }}
+            >
+              {cap.orden_linea_tiempo}
+            </span>
+            {cap.libroTitulo && (
+              <span
+                className="text-[7px] font-black uppercase tracking-widest truncate"
+                style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
+              >
+                {cap.libroTitulo}
+              </span>
+            )}
+          </div>
+
+          {/* Título del capítulo como botón navegable */}
+          <button
+            type="button"
+            onClick={onNavigate}
+            className="flex items-center gap-1 px-1.5 py-1 rounded-lg border w-full text-left transition-all"
+            style={{
+              background: "color-mix(in srgb, var(--primary) 4%, transparent)",
+              borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
+            }}
+            onMouseEnter={e => {
+              const el = e.currentTarget as HTMLElement;
+              el.style.background = "color-mix(in srgb, var(--primary) 9%, transparent)";
+              el.style.borderColor = "color-mix(in srgb, var(--primary) 22%, transparent)";
+            }}
+            onMouseLeave={e => {
+              const el = e.currentTarget as HTMLElement;
+              el.style.background = "color-mix(in srgb, var(--primary) 4%, transparent)";
+              el.style.borderColor = "color-mix(in srgb, var(--primary) 10%, transparent)";
+            }}
+            title={`Abrir: ${cap.titulo_capitulo}`}
+          >
+            <BookOpen size={8} style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)", flexShrink: 0 }} />
+            <span
+              className="text-[8px] font-bold truncate"
+              style={{ color: "color-mix(in srgb, var(--primary) 65%, transparent)" }}
+            >
+              {cap.titulo_capitulo}
+            </span>
+          </button>
+
+          {/* Badge del reino */}
+          {reinoNombre && (
+            <span
+              className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest truncate self-start"
+              style={{
+                background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+                color: "color-mix(in srgb, var(--primary) 50%, transparent)",
+                border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+                maxWidth: "100%",
+              }}
+            >
+              <Crown size={6} /> {reinoNombre}
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // ── Tarjeta horizontal de evento (mundo O reino) — solo visualización ────────
@@ -780,6 +872,7 @@ type CapTimeline = {
   titulo_capitulo: string;
   orden_linea_tiempo: number;
   libroTitulo?: string;
+  reino_id?: string | null;
 };
 
 // ── Carga reinos con historia completa (query dedicada, no el hook genérico) ──
@@ -862,7 +955,7 @@ function PanelHistoriaMundo({
   useEffect(() => {
     supabase
       .from("capitulos")
-      .select("id, libro_id, titulo_capitulo, orden_linea_tiempo")
+      .select("id, libro_id, titulo_capitulo, orden_linea_tiempo, reino_id")
       .not("orden_linea_tiempo", "is", null)
       .then(async ({ data }) => {
         if (!data?.length) return;
@@ -880,6 +973,7 @@ function PanelHistoriaMundo({
             titulo_capitulo: c.titulo_capitulo,
             orden_linea_tiempo: c.orden_linea_tiempo,
             libroTitulo: libroMap[c.libro_id] ?? "",
+            reino_id: c.reino_id ?? null,
           }))
         );
       });
@@ -980,21 +1074,40 @@ function PanelHistoriaMundo({
         list.push({ ...e, source: "reino", reinoNombre: reino.nombre, reinoId: reino.id, yearNum: parseYear(e.year) });
       }
     }
-    // Sort estable: por año numérico; en empate, eventos del mundo antes que los de reino
+    // Capítulos con reino_id y orden_linea_tiempo como eventos propios
+    for (const cap of capsTimeline) {
+      if (!cap.reino_id) continue;
+      if (filterReino && cap.reino_id !== filterReino) continue;
+      const reinoNombre = reinos.find(r => r.id === cap.reino_id)?.nombre;
+      list.push({
+        id: `cap:${cap.id}`,
+        year: String(cap.orden_linea_tiempo),
+        title: cap.titulo_capitulo,
+        description: "",
+        source: "capitulo",
+        reinoId: cap.reino_id,
+        reinoNombre,
+        yearNum: cap.orden_linea_tiempo,
+        capData: cap,
+      });
+    }
+    // Sort estable: por año numérico; en empate, eventos del mundo antes que los de reino, capítulos al final
     return list.sort((a, b) => {
       const diff = a.yearNum - b.yearNum;
       if (diff !== 0) return diff;
-      if (a.source !== b.source) return a.source === "mundo" ? -1 : 1;
-      return 0;
+      const order = { mundo: 0, reino: 1, capitulo: 2 };
+      return (order[a.source] ?? 1) - (order[b.source] ?? 1);
     });
-  }, [mundoEvents, reinos, reinoEvents, filterReino]);
+  }, [mundoEvents, reinos, reinoEvents, filterReino, capsTimeline]);
 
   const reinosConEventos = useMemo(
     () => reinos.filter(r => {
       const evts = reinoEvents[r.id] ?? decodeTimeline((r as any).historia);
-      return evts.some(e => e.year?.trim() || e.title?.trim());
+      const tieneEventos = evts.some(e => e.year?.trim() || e.title?.trim());
+      const tieneCaps = capsTimeline.some(c => c.reino_id === r.id);
+      return tieneEventos || tieneCaps;
     }),
-    [reinos, reinoEvents]
+    [reinos, reinoEvents, capsTimeline]
   );
 
   // Resolver el evento seleccionado actual
@@ -1094,11 +1207,13 @@ function PanelHistoriaMundo({
 
               {allEvents.map((evt, idx) => {
                 const isMundo = evt.source === "mundo";
+                const isCapitulo = evt.source === "capitulo";
                 const totalLen = allEvents.length;
                 const key = isMundo ? evt.id : `${evt.reinoId}:${evt.id}`;
                 const yearNum = parseYear(evt.year);
-                const capMatch = isFinite(yearNum)
-                  ? capsTimeline.find(c => c.orden_linea_tiempo === yearNum)
+                // Solo buscar capMatch para eventos no-capitulo
+                const capMatch = !isCapitulo && isFinite(yearNum)
+                  ? capsTimeline.find(c => c.orden_linea_tiempo === yearNum && !c.reino_id)
                   : undefined;
                 return (
                   <div key={key} className="flex flex-col shrink-0" style={{ width: 190 }}>
@@ -1110,6 +1225,10 @@ function PanelHistoriaMundo({
                           width: 10, height: 10,
                           background: "var(--primary)",
                           boxShadow: "0 0 0 3px color-mix(in srgb, var(--primary) 15%, transparent)",
+                        } : isCapitulo ? {
+                          width: 8, height: 8,
+                          background: "color-mix(in srgb, var(--primary) 55%, var(--accent))",
+                          boxShadow: "0 0 0 2px color-mix(in srgb, var(--primary) 12%, transparent)",
                         } : {
                           width: 7, height: 7,
                           background: "color-mix(in srgb, var(--primary) 40%, transparent)",
@@ -1118,6 +1237,17 @@ function PanelHistoriaMundo({
                       <div className="flex-1 h-px" style={{ background: idx === totalLen - 1 ? "transparent" : "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
                     </div>
 
+                    {isCapitulo && evt.capData ? (
+                      <CapituloEventoRow
+                        cap={evt.capData}
+                        reinoNombre={evt.reinoNombre}
+                        onNavigate={() => {
+                          localStorage.setItem("estudio-caps-last-cap",   evt.capData!.id);
+                          localStorage.setItem("estudio-caps-last-libro", evt.capData!.libro_id);
+                          window.dispatchEvent(new Event("estudio-caps-action"));
+                        }}
+                      />
+                    ) : (
                     <MundoEventoRow
                       evt={evt}
                       source={isMundo ? "mundo" : "reino"}
@@ -1139,6 +1269,7 @@ function PanelHistoriaMundo({
                         window.dispatchEvent(new Event("estudio-caps-action"));
                       } : undefined}
                     />
+                    )}
                   </div>
                 );
               })}
