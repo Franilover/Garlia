@@ -1164,7 +1164,7 @@ function PanelHistoriaMundo({
         </div>
       </div>
 
-      {/* ── Fila 1: Pista horizontal ───────────────────────────────────────── */}
+      {/* ── Pista única: acontecimientos + capítulos en un solo scroll ──────── */}
       <div className="px-3 py-3">
         {loadingReinos ? (
           <div className="flex justify-center py-4">
@@ -1175,13 +1175,13 @@ function PanelHistoriaMundo({
             style={{ scrollbarWidth: "thin", scrollbarColor: "color-mix(in srgb, var(--primary) 15%, transparent) transparent" }}>
             <div className="flex items-start" style={{ minWidth: "max-content", paddingLeft: 8, paddingRight: 8 }}>
 
+              {/* ── Bloque de acontecimientos ── */}
               {allEvents.map((evt, idx) => {
                 const isMundo = evt.source === "mundo";
                 const totalLen = allEvents.length;
                 const key = isMundo ? evt.id : `${evt.reinoId}:${evt.id}`;
                 return (
                   <div key={key} className="flex flex-col shrink-0" style={{ width: 190 }}>
-                    {/* Conector */}
                     <div className="flex items-center" style={{ height: 26 }}>
                       <div className="flex-1 h-px" style={{ background: idx === 0 ? "transparent" : "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
                       <div className="shrink-0 rounded-full transition-all"
@@ -1194,7 +1194,7 @@ function PanelHistoriaMundo({
                           background: "color-mix(in srgb, var(--primary) 40%, transparent)",
                           boxShadow: "0 0 0 2px color-mix(in srgb, var(--primary) 10%, transparent)",
                         }} />
-                      <div className="flex-1 h-px" style={{ background: idx === totalLen - 1 ? "transparent" : "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
+                      <div className="flex-1 h-px" style={{ background: idx === totalLen - 1 && capsOrdenadas.length === 0 ? "transparent" : "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
                     </div>
                     <MundoEventoRow
                       evt={evt}
@@ -1215,9 +1215,9 @@ function PanelHistoriaMundo({
                 );
               })}
 
-              {/* Botón "+" al final de la pista */}
+              {/* Botón "+" al final de los acontecimientos */}
               {!filterReino && (
-                <div className="flex flex-col shrink-0 items-center" style={{ width: 80, paddingTop: 0 }}>
+                <div className="flex flex-col shrink-0 items-center" style={{ width: 80 }}>
                   <div className="flex items-center w-full" style={{ height: 26 }}>
                     <div className="flex-1 h-px" style={{ background: allEvents.length > 0 ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent" }} />
                     <button type="button" onClick={add}
@@ -1227,7 +1227,7 @@ function PanelHistoriaMundo({
                       onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = "color-mix(in srgb, var(--primary) 20%, transparent)"; el.style.color = "color-mix(in srgb, var(--primary) 35%, transparent)"; el.style.background = "transparent"; }}>
                       <Plus size={11} />
                     </button>
-                    <div className="flex-1 h-px" style={{ background: "transparent" }} />
+                    <div className="flex-1 h-px" style={{ background: capsOrdenadas.length > 0 ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent" }} />
                   </div>
                   <span className="text-[7px] font-black uppercase tracking-widest mt-1 text-center"
                     style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>
@@ -1236,61 +1236,60 @@ function PanelHistoriaMundo({
                 </div>
               )}
 
-              {/* Estado vacío */}
+              {/* Estado vacío de acontecimientos */}
               {allEvents.length === 0 && filterReino && (
                 <p className="text-[9px] text-primary/20 italic px-4 py-2 self-center">Sin eventos para este reino.</p>
               )}
-              {allEvents.length === 0 && !filterReino && (
+              {allEvents.length === 0 && !filterReino && capsOrdenadas.length === 0 && (
                 <p className="text-[9px] text-primary/20 italic px-2 py-2 self-center">Usá el "+" para añadir el primer evento.</p>
               )}
+
+              {/* ── Divisor vertical entre bloques ── */}
+              {capsOrdenadas.length > 0 && (
+                <div className="flex flex-col shrink-0 items-center justify-start" style={{ width: 56, paddingTop: 0 }}>
+                  <div className="flex items-center w-full" style={{ height: 26 }}>
+                    <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
+                    <div className="shrink-0 flex items-center justify-center"
+                      style={{ width: 22, height: 22, borderRadius: "50%", border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)", background: "color-mix(in srgb, var(--primary) 4%, transparent)" }}>
+                      <BookOpen size={9} style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }} />
+                    </div>
+                    <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
+                  </div>
+                  <span className="text-[6px] font-black uppercase tracking-[0.2em] mt-1 text-center"
+                    style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>
+                    Caps
+                  </span>
+                </div>
+              )}
+
+              {/* ── Bloque de capítulos ── */}
+              {capsOrdenadas.map((cap, idx) => (
+                <div key={cap.id} className="flex flex-col shrink-0" style={{ width: 190 }}>
+                  <div className="flex items-center" style={{ height: 26 }}>
+                    <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
+                    <div className="shrink-0 rounded-full"
+                      style={{
+                        width: 8, height: 8,
+                        background: "color-mix(in srgb, var(--accent) 70%, var(--primary))",
+                        boxShadow: "0 0 0 2px color-mix(in srgb, var(--accent) 15%, transparent)",
+                      }} />
+                    <div className="flex-1 h-px" style={{ background: idx === capsOrdenadas.length - 1 ? "transparent" : "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
+                  </div>
+                  <CapituloEventoRow
+                    cap={cap}
+                    onNavigate={() => {
+                      localStorage.setItem("estudio-caps-last-cap", cap.id);
+                      localStorage.setItem("estudio-caps-last-libro", cap.libro_id);
+                      window.dispatchEvent(new Event("estudio-caps-action"));
+                    }}
+                  />
+                </div>
+              ))}
+
             </div>
           </div>
         )}
       </div>
-
-      {/* ── Pista de capítulos — siempre visible, siempre separada ──────────── */}
-      {capsOrdenadas.length > 0 && (
-        <div className="border-t" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-          {/* Label de la pista */}
-          <div className="flex items-center gap-2 px-4 pt-2 pb-0">
-            <BookOpen size={9} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)", flexShrink: 0 }} />
-            <span className="text-[8px] font-black uppercase tracking-[0.25em]"
-              style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
-              Capítulos
-            </span>
-          </div>
-          <div className="px-3 py-2">
-            <div className="overflow-x-auto pb-1"
-              style={{ scrollbarWidth: "thin", scrollbarColor: "color-mix(in srgb, var(--primary) 15%, transparent) transparent" }}>
-              <div className="flex items-start" style={{ minWidth: "max-content", paddingLeft: 8, paddingRight: 8 }}>
-                {capsOrdenadas.map((cap, idx) => (
-                  <div key={cap.id} className="flex flex-col shrink-0" style={{ width: 190 }}>
-                    {/* Conector */}
-                    <div className="flex items-center" style={{ height: 22 }}>
-                      <div className="flex-1 h-px" style={{ background: idx === 0 ? "transparent" : "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
-                      <div className="shrink-0 rounded-full"
-                        style={{
-                          width: 7, height: 7,
-                          background: "color-mix(in srgb, var(--primary) 45%, var(--accent))",
-                          boxShadow: "0 0 0 2px color-mix(in srgb, var(--primary) 10%, transparent)",
-                        }} />
-                      <div className="flex-1 h-px" style={{ background: idx === capsOrdenadas.length - 1 ? "transparent" : "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
-                    </div>
-                    <CapituloEventoRow
-                      cap={cap}
-                      onNavigate={() => {
-                        localStorage.setItem("estudio-caps-last-cap", cap.id);
-                        localStorage.setItem("estudio-caps-last-libro", cap.libro_id);
-                        window.dispatchEvent(new Event("estudio-caps-action"));
-                      }}
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ── Fila 2: Panel de edición — ancho completo ─────────────────────── */}
       {selectedEvt && (
