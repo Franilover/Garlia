@@ -28,19 +28,10 @@ interface Cancion {
   visible?: boolean;
 }
 
-// Normaliza el join que Supabase puede devolver como array o objeto
 function normPersonaje(v: Personaje | Personaje[] | null | undefined): Personaje | null {
   if (!v) return null;
   return Array.isArray(v) ? (v[0] ?? null) : v;
 }
-
-// Rotación de acentos por grupo
-const ACENTOS = [
-  { bg: "bg-primary/5",           borderLeft: "color-mix(in srgb, var(--primary) 18%, transparent)" },
-  { bg: "bg-accent/5",            borderLeft: "color-mix(in srgb, var(--accent) 22%, transparent)"  },
-  { bg: "bg-primary/8",           borderLeft: "color-mix(in srgb, var(--primary) 25%, transparent)" },
-  { bg: "bg-accent/8",            borderLeft: "color-mix(in srgb, var(--accent) 28%, transparent)"  },
-];
 
 const CancionCardGrid = ({ cancion, index }: { cancion: Cancion; index: number }) => (
   <MotionDiv
@@ -51,7 +42,7 @@ const CancionCardGrid = ({ cancion, index }: { cancion: Cancion; index: number }
   >
     <Link href={`/garlia/canciones/${toSlug(cancion.titulo)}`}>
       <MotionDiv
-        whileHover={{ y: -8 }}
+        whileHover={{ y: -6 }}
         transition={{ type: "spring", stiffness: 300, damping: 20 }}
         className="cursor-pointer h-full"
       >
@@ -72,12 +63,13 @@ const CancionCardGrid = ({ cancion, index }: { cancion: Cancion; index: number }
           <div className="absolute inset-0 bg-linear-to-t from-black/75 via-black/20 to-transparent" />
           <div className="absolute inset-0 bg-linear-to-b from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-400" />
 
-          <div className="absolute bottom-0 left-0 right-0 p-4">
-            <h2 className="text-white font-black uppercase text-base leading-tight tracking-tighter italic line-clamp-2 drop-shadow-sm group-hover:text-accent transition-colors duration-300">
+          {/* Textos más pequeños para restarles protagonismo frente al personaje */}
+          <div className="absolute bottom-0 left-0 right-0 p-3">
+            <h2 className="text-white font-black uppercase text-sm leading-tight tracking-tighter italic line-clamp-2 drop-shadow-sm group-hover:text-accent transition-colors duration-300">
               {cancion.titulo}
             </h2>
             {cancion.cantante && (
-              <p className="text-white/50 text-[9px] font-bold uppercase tracking-widest mt-1 truncate">
+              <p className="text-white/60 text-[8px] font-bold uppercase tracking-widest mt-1 truncate">
                 {cancion.cantante}
               </p>
             )}
@@ -95,8 +87,9 @@ const CancionCardFila = ({ cancion, index }: { cancion: Cancion; index: number }
     transition={{ delay: index * 0.03 }}
   >
     <Link href={`/garlia/canciones/${toSlug(cancion.titulo)}`}>
+      {/* Reducimos padding y tamaños generales de la fila */}
       <div
-        className="group flex items-center gap-4 bg-white-custom/50 hover:bg-white-custom/80 backdrop-blur-sm px-4 py-3 transition-all duration-300 cursor-pointer"
+        className="group flex items-center gap-3 bg-white-custom/50 hover:bg-white-custom/80 backdrop-blur-sm px-3 py-2 transition-all duration-300 cursor-pointer"
         style={{
           borderRadius: "var(--radius-btn)",
           border: "var(--border-width) solid color-mix(in srgb, var(--primary) 10%, transparent)",
@@ -104,23 +97,24 @@ const CancionCardFila = ({ cancion, index }: { cancion: Cancion; index: number }
         onMouseEnter={e => { e.currentTarget.style.borderColor = "color-mix(in srgb, var(--primary) 25%, transparent)"; }}
         onMouseLeave={e => { e.currentTarget.style.borderColor = "color-mix(in srgb, var(--primary) 10%, transparent)"; }}
       >
-        <span className="font-mono text-[10px] font-black text-primary/20 w-6 text-right shrink-0 select-none group-hover:text-primary/40 transition-colors">
+        <span className="font-mono text-[9px] font-black text-primary/20 w-5 text-right shrink-0 select-none group-hover:text-primary/40 transition-colors">
           {String(index + 1).padStart(2, "0")}
         </span>
 
+        {/* Imagen en miniatura más pequeña (w-10 h-10 en lugar de 14) */}
         <div
-          className="w-14 h-14 overflow-hidden shrink-0"
+          className="w-10 h-10 overflow-hidden shrink-0"
           style={{ borderRadius: "var(--radius-btn)", border: "var(--border-width) solid color-mix(in srgb, var(--primary) 15%, transparent)" }}
         >
           <SmartImage src={cancion.portada_url || "/placeholder-cover.jpg"} alt={cancion.titulo} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
         </div>
 
         <div className="min-w-0 flex-1">
-          <h2 className="text-primary font-black uppercase text-sm group-hover:text-accent transition-colors tracking-tighter italic truncate">
+          <h2 className="text-primary font-black uppercase text-xs group-hover:text-accent transition-colors tracking-tighter italic truncate">
             {cancion.titulo}
           </h2>
           {cancion.cantante && (
-            <p className="text-primary/40 text-[10px] font-bold uppercase tracking-widest truncate mt-0.5">
+            <p className="text-primary/40 text-[9px] font-bold uppercase tracking-widest truncate mt-0.5">
               {cancion.cantante}
             </p>
           )}
@@ -129,66 +123,6 @@ const CancionCardFila = ({ cancion, index }: { cancion: Cancion; index: number }
         <ChevronRight size={14} className="text-primary/20 group-hover:text-primary/50 transition-colors shrink-0" />
       </div>
     </Link>
-  </MotionDiv>
-);
-
-const PersonajeHeader = ({
-  nombre,
-  count,
-  imgUrl,
-}: {
-  nombre: string;
-  count: number;
-  imgUrl?: string;
-}) => (
-  <MotionDiv
-    initial={{ opacity: 0, x: -16 }}
-    animate={{ opacity: 1, x: 0 }}
-    transition={{ duration: 0.4 }}
-    className="flex items-center gap-4 mb-6"
-  >
-    {imgUrl ? (
-      <img
-        src={imgUrl}
-        alt={nombre}
-        className="w-10 h-10 object-cover shrink-0"
-        style={{
-          borderRadius: "var(--radius-btn)",
-          border: "var(--border-width) solid color-mix(in srgb, var(--primary) 15%, transparent)",
-        }}
-      />
-    ) : (
-      <div
-        className="w-10 h-10 flex items-center justify-center bg-primary/5 shrink-0"
-        style={{
-          borderRadius: "var(--radius-btn)",
-          border: "var(--border-width) solid color-mix(in srgb, var(--primary) 15%, transparent)",
-        }}
-      >
-        <User size={14} className="text-primary/40" />
-      </div>
-    )}
-
-    <div className="flex-1 flex items-center gap-3 min-w-0">
-      <div
-        className="h-px flex-1 hidden sm:block"
-        style={{ background: "linear-gradient(to left, color-mix(in srgb, var(--primary) 10%, transparent), transparent)" }}
-      />
-
-      <div className="flex flex-col items-start sm:items-center gap-0.5 min-w-0">
-        <p className="text-primary font-black uppercase text-sm tracking-tight leading-none">
-          {nombre}
-        </p>
-        <p className="text-[8px] font-mono font-bold text-primary/30 tracking-widest">
-          ── {count} {count !== 1 ? "canciones" : "canción"} ──
-        </p>
-      </div>
-
-      <div
-        className="h-px flex-1"
-        style={{ background: "linear-gradient(to right, color-mix(in srgb, var(--primary) 10%, transparent), transparent)" }}
-      />
-    </div>
   </MotionDiv>
 );
 
@@ -209,23 +143,65 @@ const PersonajeBloque = ({
     initial={{ opacity: 0, y: 24 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ duration: 0.5 }}
-    className="mb-16"
+    className="mb-24 flex flex-col md:flex-row gap-8 lg:gap-12 items-start"
   >
-    <PersonajeHeader nombre={personaje} count={canciones.length} imgUrl={imgUrl} />
+    {/* COLUMNA IZQUIERDA: Personaje en Grande */}
+    <div className="w-full md:w-1/3 lg:w-1/4 shrink-0 flex flex-col items-center md:items-start text-center md:text-left sticky top-24">
+      {imgUrl ? (
+        <div 
+          className="w-48 h-48 md:w-full md:aspect-square mb-5 overflow-hidden shadow-lg bg-primary/5"
+          style={{
+            borderRadius: "var(--radius-card)",
+            border: "var(--border-width) solid color-mix(in srgb, var(--primary) 15%, transparent)"
+          }}
+        >
+          <img
+            src={imgUrl}
+            alt={personaje}
+            className="w-full h-full object-cover"
+          />
+        </div>
+      ) : (
+        <div
+          className="w-48 h-48 md:w-full md:aspect-square mb-5 flex items-center justify-center bg-primary/5 shadow-lg"
+          style={{
+            borderRadius: "var(--radius-card)",
+            border: "var(--border-width) solid color-mix(in srgb, var(--primary) 15%, transparent)"
+          }}
+        >
+          <User size={64} className="text-primary/20" />
+        </div>
+      )}
 
-    {vistaFila ? (
-      <div className="flex flex-col gap-3">
-        {canciones.map((c, i) => (
-          <CancionCardFila key={c.id} cancion={c} index={globalOffset + i} />
-        ))}
+      <h2 className="text-3xl lg:text-4xl font-black uppercase text-primary tracking-tighter leading-none mb-2">
+        {personaje}
+      </h2>
+      <div className="flex items-center gap-2 mb-4 w-full justify-center md:justify-start">
+        <div className="h-px w-8" style={{ background: "color-mix(in srgb, var(--primary) 20%, transparent)" }} />
+        <p className="text-[10px] font-mono font-bold text-primary/40 tracking-widest uppercase whitespace-nowrap">
+          {canciones.length} {canciones.length !== 1 ? "canciones" : "canción"}
+        </p>
+        <div className="h-px flex-1" style={{ background: "linear-gradient(to right, color-mix(in srgb, var(--primary) 20%, transparent), transparent)" }} />
       </div>
-    ) : (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-10">
-        {canciones.map((c, i) => (
-          <CancionCardGrid key={c.id} cancion={c} index={globalOffset + i} />
-        ))}
-      </div>
-    )}
+    </div>
+
+    {/* COLUMNA DERECHA: Canciones en Pequeñito */}
+    <div className="w-full md:w-2/3 lg:w-3/4 flex-1">
+      {vistaFila ? (
+        <div className="flex flex-col gap-2">
+          {canciones.map((c, i) => (
+            <CancionCardFila key={c.id} cancion={c} index={globalOffset + i} />
+          ))}
+        </div>
+      ) : (
+        // Utilizamos un grid más denso (más columnas) para que las tarjetas se vean más pequeñas
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+          {canciones.map((c, i) => (
+            <CancionCardGrid key={c.id} cancion={c} index={globalOffset + i} />
+          ))}
+        </div>
+      )}
+    </div>
   </MotionDiv>
 );
 
@@ -283,7 +259,6 @@ export default function CancionesPage() {
   return (
     <div className="min-h-screen bg-bg-main pb-20">
       <div className="max-w-6xl mx-auto pt-16 px-6">
-        {/* Cabecera: Título y botón en la misma línea */}
         <div className="flex items-end justify-between mb-10 gap-4">
           <PageHeader title="Canciones" icon={<Music size={22} />} />
 
