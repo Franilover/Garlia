@@ -759,7 +759,10 @@ const ModalEditarLibro = ({
           onFechaChange={setFechaLibro}
           label="Visibilidad del Libro"
         />
-        <SelectorReino value={reinoId} onChange={setReinoId} />
+        <SelectorReino
+  value={reinoId ? [reinoId] : []}
+  onChange={(ids) => setReinoId(ids[0] ?? null)}
+/>
         <div className="space-y-1.5">
           <label className="text-[9px] font-black uppercase tracking-widest text-primary/40">Categoría</label>
           <div className="flex gap-1.5 flex-wrap">
@@ -844,7 +847,10 @@ const ModalEditarCapitulo = ({
           label="Visibilidad del Capítulo"
         />
         <SelectorNarrador value={narradorId} onChange={setNarradorId} />
-        <SelectorReino value={reinoId} onChange={setReinoId} />
+        <SelectorReino
+  value={reinoId ? [reinoId] : []}
+  onChange={(ids) => setReinoId(ids[0] ?? null)}
+/>
         <SelectorPersonajesCapitulo value={personajesIds} onChange={setPersonajesIds} />
         <BotonSubmit
           loading={saving}
@@ -908,7 +914,10 @@ const ModalNuevoCapitulo = ({
           label="Visibilidad del Capítulo"
         />
         <SelectorNarrador value={narradorId} onChange={setNarradorId} />
-        <SelectorReino value={reinoId} onChange={setReinoId} />
+        <SelectorReino
+  value={reinoId ? [reinoId] : []}
+  onChange={(ids) => setReinoId(ids[0] ?? null)}
+/>
         <SelectorPersonajesCapitulo value={personajesIds} onChange={setPersonajesIds} />
         <BotonSubmit
           loading={saving}
