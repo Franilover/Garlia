@@ -122,7 +122,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
             .eq("perfil_id", user.id),
           supabase
             .from("descubrimientos_reinos")
-            .select("fecha_descubrimiento, reinos:reino_id(id, nombre, imagen_reino, mapa_url, descripcion)")
+            .select("fecha_descubrimiento, reino_data:reino_id(id, nombre, imagen_reino, mapa_url, descripcion)")
             .eq("perfil_id", user.id),
           supabase
             .from("lugares_desbloqueados")
@@ -137,11 +137,11 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
         if (lugaresRes.error)    console.warn("[Personal] lugares_desbloqueados error:", lugaresRes.error.message);
 
         const reinosData = (reinosRes.data ?? []).map((r: any) => ({
-          id:           r.reinos?.id,
-          nombre:       r.reinos?.nombre,
-          imagen_reino: r.reinos?.imagen_reino,
-          mapa_url:     r.reinos?.mapa_url,
-          descripcion:  r.reinos?.descripcion,
+          id:           r.reino_data?.id,
+          nombre:       r.reino_data?.nombre,
+          imagen_reino: r.reino_data?.imagen_reino,
+          mapa_url:     r.reino_data?.mapa_url,
+          descripcion:  r.reino_data?.descripcion,
         })).filter(r => r.id);
         setReinos(reinosData);
 
@@ -217,6 +217,73 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
     }
 
     cargarTodo();
+  }, []);
+
+  // Refrescar reinos, lugares y descubrimientos cuando el usuario vuelve a esta pestaña
+  // (por ejemplo, después de leer un capítulo que desbloqueó algo nuevo).
+  useEffect(() => {
+    const refrescarDescubrimientos = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const [personajesRes, reinosRes, lugaresRes] = await Promise.all([
+        supabase
+          .from("descubrimientos_personajes")
+          .select("fecha_descubrimiento, personajes:personaje_id(id, nombre, reino, especie, img_url, sobre)")
+          .eq("perfil_id", user.id),
+        supabase
+          .from("descubrimientos_reinos")
+          .select("fecha_descubrimiento, reino_data:reino_id(id, nombre, imagen_reino, mapa_url, descripcion)")
+          .eq("perfil_id", user.id),
+        supabase
+          .from("lugares_desbloqueados")
+          .select("lugares:lugar_id(id, nombre, imagen_url, descripcion)")
+          .eq("user_id", user.id),
+      ]);
+
+      if (reinosRes.data) {
+        const reinosData = reinosRes.data.map((r: any) => ({
+          id:           r.reino_data?.id,
+          nombre:       r.reino_data?.nombre,
+          imagen_reino: r.reino_data?.imagen_reino,
+          mapa_url:     r.reino_data?.mapa_url,
+          descripcion:  r.reino_data?.descripcion,
+        })).filter((r: any) => r.id);
+        setReinos(reinosData);
+      }
+
+      if (lugaresRes.data) {
+        const lugaresData = lugaresRes.data.map((r: any) => ({
+          id:          r.lugares?.id,
+          nombre:      r.lugares?.nombre,
+          imagen_url:  r.lugares?.imagen_url,
+          descripcion: r.lugares?.descripcion,
+        })).filter((l: any) => l.id);
+        setLugares(lugaresData);
+      }
+
+      if (personajesRes.data) {
+        setDescubrimientos(prev => [
+          ...prev.filter(d => d.tipo !== "personaje"),
+          ...personajesRes.data!.map((r: any) => ({
+            tipo: "personaje" as const,
+            entidad_id:           r.personajes?.id,
+            fecha_descubrimiento: r.fecha_descubrimiento,
+            nombre:    r.personajes?.nombre,
+            img_url:   r.personajes?.img_url,
+            reino:     r.personajes?.reino,
+            especie:   r.personajes?.especie,
+          })),
+        ]);
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") refrescarDescubrimientos();
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, []);
 
   const misPersonajes = descubrimientos.filter(d => d.tipo === "personaje");
