@@ -541,6 +541,7 @@ export function FormularioPersonaje({
                           placeholder="Humano, elfo…"
                           allowNone
                           noneLabel="Sin especie"
+                          onNavigate={onNavigate ? (nombre) => onNavigate("criaturas", nombre) : undefined}
                         />
                         {variantes.length > 0 && (
                           <div className="flex flex-wrap items-center gap-1 pt-0.5">
@@ -582,6 +583,7 @@ export function FormularioPersonaje({
                         placeholder="Reino, nación…"
                         allowNone
                         noneLabel="Sin reino"
+                        onNavigate={onNavigate ? (nombre) => onNavigate("reinos", nombre) : undefined}
                       />
                       {(() => {
                         const lugarActual = lugaresFiltrados.find(l => l.id === (form as any).lugar_id);

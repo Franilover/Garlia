@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { ChevronDown, Check, X, Search } from "lucide-react";
+import { ChevronDown, Check, X, Search, Pencil } from "lucide-react";
 
 /* ─────────────────────────────────────────────────────────────────────────────
    ComboSelector — selector reutilizable con búsqueda, flechas y Tab
@@ -51,12 +51,15 @@ type ComboSelectorProps = {
   loading?: boolean;
   hint?: string;
   className?: string;
+  /** Si se provee, el trigger (cuando hay valor seleccionado) navega en lugar de abrir el editor.
+   *  Un ícono de lápiz aparece a la derecha para abrir el selector y editar. */
+  onNavigate?: (value: string) => void;
 } & (SingleProps | MultiProps);
 
 export function ComboSelector(props: ComboSelectorProps) {
   const {
     items, label, icon, placeholder, emptyText = "Sin resultados",
-    loading, hint, className = "",
+    loading, hint, className = "", onNavigate,
   } = props;
 
   const [open, setOpen]         = useState(false);
@@ -253,35 +256,74 @@ export function ComboSelector(props: ComboSelectorProps) {
       )}
 
       {/* Trigger */}
-      <button
-        type="button"
-        onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between px-4 py-2.5 rounded-[var(--radius-btn)] text-[11px] font-bold transition-all"
-        style={{
-          background: "color-mix(in srgb, var(--primary) 5%, transparent)",
-          border: open ? borderFocus : border,
-          color: selectedItems.length > 0
-            ? "var(--primary)"
-            : "color-mix(in srgb, var(--primary) 40%, transparent)",
-        }}
-      >
-        <span className="flex items-center gap-2 min-w-0">
-          {/* Imagen en single */}
-          {props.mode === "single" && selectedItems[0]?.imgUrl && (
-            <img
-              src={selectedItems[0].imgUrl}
-              alt=""
-              className="w-5 h-5 rounded-full object-cover border border-primary/20 shrink-0"
-            />
-          )}
-          <span className="truncate font-black uppercase">{triggerLabel}</span>
-        </span>
-        <ChevronDown
-          size={12}
-          className={`shrink-0 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
-          style={{ opacity: 0.5 }}
-        />
-      </button>
+      {onNavigate && props.mode === "single" && selectedItems.length > 0 ? (
+        /* Modo navegación: click principal navega, lápiz abre el editor */
+        <div
+          className="w-full flex items-center rounded-[var(--radius-btn)] overflow-hidden transition-all"
+          style={{
+            background: "color-mix(in srgb, var(--primary) 5%, transparent)",
+            border: open ? borderFocus : border,
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => onNavigate(selectedItems[0].label)}
+            className="flex-1 flex items-center gap-2 px-4 py-2.5 text-[11px] font-bold transition-all min-w-0 hover:bg-primary/5"
+            style={{ color: "var(--primary)" }}
+          >
+            {selectedItems[0].imgUrl && (
+              <img
+                src={selectedItems[0].imgUrl}
+                alt=""
+                className="w-5 h-5 rounded-full object-cover border border-primary/20 shrink-0"
+              />
+            )}
+            <span className="truncate font-black uppercase">{triggerLabel}</span>
+          </button>
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); setOpen(o => !o); }}
+            className="shrink-0 flex items-center justify-center px-2.5 py-2.5 transition-all hover:bg-primary/10"
+            style={{
+              borderLeft: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+              color: "color-mix(in srgb, var(--primary) 35%, transparent)",
+            }}
+            title="Editar"
+          >
+            <Pencil size={11} />
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setOpen(o => !o)}
+          className="w-full flex items-center justify-between px-4 py-2.5 rounded-[var(--radius-btn)] text-[11px] font-bold transition-all"
+          style={{
+            background: "color-mix(in srgb, var(--primary) 5%, transparent)",
+            border: open ? borderFocus : border,
+            color: selectedItems.length > 0
+              ? "var(--primary)"
+              : "color-mix(in srgb, var(--primary) 40%, transparent)",
+          }}
+        >
+          <span className="flex items-center gap-2 min-w-0">
+            {/* Imagen en single */}
+            {props.mode === "single" && selectedItems[0]?.imgUrl && (
+              <img
+                src={selectedItems[0].imgUrl}
+                alt=""
+                className="w-5 h-5 rounded-full object-cover border border-primary/20 shrink-0"
+              />
+            )}
+            <span className="truncate font-black uppercase">{triggerLabel}</span>
+          </span>
+          <ChevronDown
+            size={12}
+            className={`shrink-0 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+            style={{ opacity: 0.5 }}
+          />
+        </button>
+      )}
 
       {/* Dropdown */}
       {open && (
