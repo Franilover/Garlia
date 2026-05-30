@@ -3,7 +3,7 @@ import { MotionDiv, MotionMain, MotionH1, MotionH2, MotionButton, MotionLi, Moti
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { Cat, Star, Sword, User, Loader2, X, Users, Music2, ChevronRight } from "lucide-react";
+import { Cat, Star, Sword, User, Loader2, X, Users, Music2, ChevronRight, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/api/client/supabase";
 import {
@@ -44,7 +44,7 @@ interface PersonalProps {
 }
 
 export default function Personal({ datos: datosProp }: PersonalProps) {
-  const [tab, setTab] = useState<"items" | "criaturas" | "personajes">("personajes");
+  const [tab, setTab] = useState<"items" | "criaturas" | "personajes" | "reinos">("personajes");
   const [modalEntidad, setModalEntidad] = useState<EntidadModal | null>(null);
 
   const [perfil, setPerfil]           = useState<Perfil | null>(null);
@@ -62,6 +62,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
   const [otrosPerfiles, setOtrosPerfiles] = useState<PerfilResumen[]>([]);
   const [cancionesPersonaje, setCancionesPersonaje] = useState<any[]>([]);
   const [cargandoCanciones, setCargandoCanciones] = useState(false);
+  const [reinos, setReinos] = useState<{ id: string; nombre: string; imagen_reino?: string | null; descripcion?: string | null }[]>([]);
   const userIdRef = React.useRef<string | null>(null);
 
   useEffect(() => {
@@ -105,7 +106,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
           if (invData)  setInventario(invData as unknown as ItemInventario[]);
         }
 
-        const [itemsRes, criaturasRes, personajesRes] = await Promise.all([
+        const [itemsRes, criaturasRes, personajesRes, reinosRes] = await Promise.all([
           supabase
             .from("descubrimientos_items")
             .select("fecha_descubrimiento, items:item_id(id, nombre, categoria, imagen_url, descripcion)")
@@ -118,11 +119,24 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
             .from("descubrimientos_personajes")
             .select("fecha_descubrimiento, personajes:personaje_id(id, nombre, reino, especie, img_url, sobre)")
             .eq("perfil_id", user.id),
+          supabase
+            .from("descubrimientos_reinos")
+            .select("fecha_descubrimiento, reinos:reino_id(id, nombre, imagen_reino, descripcion)")
+            .eq("perfil_id", user.id),
         ]);
 
         if (itemsRes.error)      console.warn("[Personal] descubrimientos_items error:", itemsRes.error.message);
         if (criaturasRes.error)  console.warn("[Personal] descubrimientos_criaturas error:", criaturasRes.error.message);
         if (personajesRes.error) console.warn("[Personal] descubrimientos_personajes error:", personajesRes.error.message);
+        if (reinosRes.error)     console.warn("[Personal] descubrimientos_reinos error:", reinosRes.error.message);
+
+        const reinosData = (reinosRes.data ?? []).map((r: any) => ({
+          id:           r.reinos?.id,
+          nombre:       r.reinos?.nombre,
+          imagen_reino: r.reinos?.imagen_reino,
+          descripcion:  r.reinos?.descripcion,
+        })).filter(r => r.id);
+        setReinos(reinosData);
 
         const planos: Descubrimiento[] = [
           ...(itemsRes.data ?? []).map((r: any) => ({
@@ -264,9 +278,10 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
   };
 
   const tabs = [
-    { id: "personajes", label: "Agenda",     icon: User,  count: misPersonajes.length },
-    { id: "criaturas",  label: "Bestiario",  icon: Cat,   count: misCriaturas.length },
-    { id: "items",      label: "Inventario", icon: Sword, count: inventario.length + misItemsDesc.length },
+    { id: "personajes", label: "Agenda",     icon: User,    count: misPersonajes.length },
+    { id: "criaturas",  label: "Bestiario",  icon: Cat,     count: misCriaturas.length },
+    { id: "items",      label: "Inventario", icon: Sword,   count: inventario.length + misItemsDesc.length },
+    { id: "reinos",     label: "Mapa",       icon: MapPin,  count: reinos.length },
   ] as const;
 
   if (cargando) return (
@@ -1360,6 +1375,55 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                           </button>
                         ))
                         : <EmptyTab label="Sin registros en la agenda" />
+                    )}
+
+                    {tab === "reinos" && (
+                      reinos.length > 0
+                        ? reinos.map((r, i) => (
+                          <button
+                            key={i}
+                            onClick={() => setModalEntidad({ tipo: "item", data: {
+                              entidad_id: r.id,
+                              nombre: r.nombre,
+                              imagen_url: r.imagen_reino ?? undefined,
+                              descripcion: r.descripcion ?? undefined,
+                              tipo: "item",
+                            }})}
+                            className="group relative overflow-hidden text-left transition-all duration-150"
+                            style={{
+                              background: "color-mix(in srgb, var(--primary) 3%, var(--white-custom))",
+                              border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
+                              borderRadius: "4px",
+                              boxShadow: "inset 0 1px 0 color-mix(in srgb, var(--primary) 6%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--primary) 10%, transparent)",
+                              aspectRatio: "1",
+                              display: "flex",
+                              flexDirection: "column",
+                            }}
+                            onMouseEnter={e => {
+                              (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 35%, transparent)";
+                              (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 7%, var(--white-custom))";
+                              (e.currentTarget as HTMLElement).style.boxShadow = "inset 0 1px 0 color-mix(in srgb, var(--primary) 12%, transparent), 0 0 0 1px color-mix(in srgb, var(--primary) 20%, transparent)";
+                            }}
+                            onMouseLeave={e => {
+                              (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 14%, transparent)";
+                              (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 3%, var(--white-custom))";
+                              (e.currentTarget as HTMLElement).style.boxShadow = "inset 0 1px 0 color-mix(in srgb, var(--primary) 6%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--primary) 10%, transparent)";
+                            }}>
+                            <div className="flex-1 relative overflow-hidden flex items-center justify-center p-2">
+                              {r.imagen_reino
+                                ? <img src={r.imagen_reino} alt={r.nombre}
+                                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" />
+                                : <MapPin size={22} style={{ color: "color-mix(in srgb, var(--primary) 14%, transparent)" }} />}
+                            </div>
+                            <div className="px-1.5 py-1" style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 4%, transparent)" }}>
+                              <p className="font-serif italic text-[9px] leading-tight capitalize truncate text-center"
+                                style={{ color: "var(--primary)" }}>
+                                {r.nombre}
+                              </p>
+                            </div>
+                          </button>
+                        ))
+                        : <EmptyTab label="Ningún reino descubierto aún" />
                     )}
 
                   </MotionDiv>
