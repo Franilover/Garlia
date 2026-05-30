@@ -1187,6 +1187,18 @@ function useItems() {
   return { items, loading };
 }
 
+function useLugares() {
+  const [lugares, setLugares] = useState<{ id: string; nombre: string; imagen_url?: string | null }[]>([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    supabase.from("lugares").select("id, nombre, imagen_url").order("nombre").then(({ data }) => {
+      setLugares((data ?? []) as any[]);
+      setLoading(false);
+    });
+  }, []);
+  return { lugares, loading };
+}
+
 // ─── SeccionEntidad — sección vertical reutilizable ──────────────────────────
 
 type EntidadBase = { id: string; nombre: string; imagen_url?: string };
@@ -1401,6 +1413,11 @@ export const PanelPersonajesCapitulo = ({
   const [savingReino, setSavingReino] = useState(false);
   const reinoRef = useRef<HTMLDivElement>(null);
 
+  // ── Lugares del capítulo ──────────────────────────────────────────────────
+  const { lugares, loading: loadingLugares } = useLugares();
+  const [lugaresIds,  setLugaresIds]  = useState<string[]>([]);
+  const [savingLugar, setSavingLugar] = useState(false);
+
   // ── Visibilidad del capítulo ──────────────────────────────────────────────
   const [visibilidad,   setVisibilidad]   = useState<"publico" | "programado" | "oculto">("oculto");
   const [savingVis,     setSavingVis]     = useState(false);
@@ -1411,12 +1428,13 @@ export const PanelPersonajesCapitulo = ({
     if (!capId) return;
     supabase
       .from("capitulos")
-      .select("orden_linea_tiempo, reinos_ids, visibilidad, fecha_publicacion")
+      .select("orden_linea_tiempo, reinos_ids, visibilidad, fecha_publicacion, lugares_ids")
       .eq("id", capId)
       .single()
       .then(({ data }) => {
         setOrdenLinea(data?.orden_linea_tiempo != null ? String(data.orden_linea_tiempo) : "");
         setReinosIds(data?.reinos_ids ?? []);
+        setLugaresIds(data?.lugares_ids ?? []);
         setVisibilidad(data?.visibilidad ?? "oculto");
         setFechaProg(data?.fecha_publicacion ? data.fecha_publicacion.slice(0, 10) : "");
       });
@@ -1428,6 +1446,14 @@ export const PanelPersonajesCapitulo = ({
     setSavingReino(true);
     try { await capUpdateMeta(capId, { reinos_ids: next } as any); } catch {}
     setSavingReino(false);
+  };
+
+  const handleToggleLugar = async (id: string, add: boolean) => {
+    const next = add ? [...lugaresIds, id] : lugaresIds.filter(x => x !== id);
+    setLugaresIds(next);
+    setSavingLugar(true);
+    try { await capUpdateMeta(capId, { lugares_ids: next } as any); } catch {}
+    setSavingLugar(false);
   };
 
   const handleSaveVisibilidad = async (v: "publico" | "programado" | "oculto") => {
@@ -1565,6 +1591,25 @@ export const PanelPersonajesCapitulo = ({
           loading={loadingReinos}
           saving={savingReino}
           onToggle={handleToggleReino}
+        />
+      </div>
+
+      {/* ── Lugares ──────────────────────────────────────────────────────── */}
+      <div
+        className="shrink-0 border-b"
+        style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
+      >
+        <SeccionEntidad
+          label="Lugares"
+          icon={<MapPin size={9} />}
+          fallbackIcon={<MapPin size={10} />}
+          emptyLabel="Sin lugares"
+          capId={capId}
+          allEntities={lugares.map(l => ({ id: l.id, nombre: l.nombre, imagen_url: l.imagen_url ?? undefined }))}
+          selectedIds={lugaresIds}
+          loading={loadingLugares}
+          saving={savingLugar}
+          onToggle={handleToggleLugar}
         />
       </div>
 

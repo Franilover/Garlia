@@ -1408,6 +1408,7 @@ export default function MapaInteractivo() {
   const [personajesReino, setPersonajesReino] = useState<any[]>([]);
   const [personajesDesbloqueados, setPersonajesDesbloqueados] = useState<Set<string>>(new Set());
   const [reinosDesbloqueados, setReinosDesbloqueados] = useState<Set<string>>(new Set());
+  const [lugaresDesbloqueados, setLugaresDesbloqueados] = useState<Set<string>>(new Set());
   const [modalEntidad, setModalEntidad] = useState<EntidadModal | null>(null);
   const [cancionesPersonaje, setCancionesPersonaje] = useState<any[]>([]);
   const [cargandoCanciones, setCargandoCanciones] = useState(false);
@@ -1432,16 +1433,18 @@ export default function MapaInteractivo() {
     return () => window.removeEventListener("resize", check);
   }, []);
 
-  // Descubrimientos — personajes y reinos del perfil
+  // Descubrimientos — personajes, reinos y lugares del perfil
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) return;
       Promise.all([
         supabase.from("descubrimientos_personajes").select("personaje_id").eq("perfil_id", user.id),
         supabase.from("descubrimientos_reinos").select("reino_id").eq("perfil_id", user.id),
-      ]).then(([pRes, rRes]) => {
+        supabase.from("lugares_desbloqueados").select("lugar_id").eq("user_id", user.id),
+      ]).then(([pRes, rRes, lRes]) => {
         if (pRes.data) setPersonajesDesbloqueados(new Set(pRes.data.map((r: any) => r.personaje_id)));
         if (rRes.data) setReinosDesbloqueados(new Set(rRes.data.map((r: any) => r.reino_id)));
+        if (lRes.data) setLugaresDesbloqueados(new Set(lRes.data.map((r: any) => r.lugar_id)));
       });
     });
   }, []);
@@ -1689,12 +1692,12 @@ export default function MapaInteractivo() {
   // Visible markers: admins ven todos los reinos; usuarios solo los que desbloquearon
   const visibleMarkers = vistaActual === "global"
     ? reinos.filter(r => isAdmin ? true : reinosDesbloqueados.has(r.id))
-    : detallesReino;
+    : detallesReino.filter(l => isAdmin ? true : lugaresDesbloqueados.has(l.id));
 
-  // hiddenMarkers: para usuarios son los reinos no desbloqueados (se muestran en niebla)
+  // hiddenMarkers: para usuarios son los marcadores no desbloqueados (se muestran en niebla)
   const hiddenMarkers = vistaActual === "global"
     ? (isAdmin ? [] : reinos.filter(r => !reinosDesbloqueados.has(r.id)))
-    : [];
+    : (isAdmin ? [] : detallesReino.filter(l => !lugaresDesbloqueados.has(l.id)));
 
   const currentImage = vistaActual === "reino" && reinoSeleccionado?.mapa_url
     ? reinoSeleccionado.mapa_url
