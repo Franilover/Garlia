@@ -62,7 +62,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
   const [otrosPerfiles, setOtrosPerfiles] = useState<PerfilResumen[]>([]);
   const [cancionesPersonaje, setCancionesPersonaje] = useState<any[]>([]);
   const [cargandoCanciones, setCargandoCanciones] = useState(false);
-  const [reinos, setReinos] = useState<{ id: string; nombre: string; imagen_reino?: string | null; mapa_url?: string | null; descripcion?: string | null }[]>([]);
+  const [reinos, setReinos] = useState<{ id: string; nombre: string; mapa_url?: string | null; descripcion?: string | null }[]>([]);
   const [lugares, setLugares] = useState<{ id: string; nombre: string; imagen_url?: string | null; descripcion?: string | null }[]>([]);
   const userIdRef = React.useRef<string | null>(null);
 
@@ -122,7 +122,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
             .eq("perfil_id", user.id),
           supabase
             .from("descubrimientos_reinos")
-            .select("fecha_descubrimiento, reino_data:reino_id(id, nombre, imagen_reino, mapa_url, descripcion)")
+            .select("fecha_descubrimiento, reino_data:reino_id(id, nombre, mapa_url, descripcion)")
             .eq("perfil_id", user.id),
           supabase
             .from("lugares_desbloqueados")
@@ -139,7 +139,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
         const reinosData = (reinosRes.data ?? []).map((r: any) => ({
           id:           r.reino_data?.id,
           nombre:       r.reino_data?.nombre,
-          imagen_reino: r.reino_data?.imagen_reino,
+          
           mapa_url:     r.reino_data?.mapa_url,
           descripcion:  r.reino_data?.descripcion,
         })).filter(r => r.id);
@@ -233,7 +233,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
           .eq("perfil_id", user.id),
         supabase
           .from("descubrimientos_reinos")
-          .select("fecha_descubrimiento, reino_data:reino_id(id, nombre, imagen_reino, mapa_url, descripcion)")
+          .select("fecha_descubrimiento, reino_data:reino_id(id, nombre, mapa_url, descripcion)")
           .eq("perfil_id", user.id),
         supabase
           .from("lugares_desbloqueados")
@@ -245,7 +245,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
         const reinosData = reinosRes.data.map((r: any) => ({
           id:           r.reino_data?.id,
           nombre:       r.reino_data?.nombre,
-          imagen_reino: r.reino_data?.imagen_reino,
+          
           mapa_url:     r.reino_data?.mapa_url,
           descripcion:  r.reino_data?.descripcion,
         })).filter((r: any) => r.id);
