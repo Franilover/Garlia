@@ -11,7 +11,8 @@ import { db } from "@/lib/api/client/db";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { type Personaje, type SaveStatus } from "./components/types";
 import { useCapitulosNarrados, useNombresDeTabla } from "./components/hooks";
-import { SelectorImagen, SelectorTexto, SaveIndicator } from "./components/UIComponents";
+import { SelectorImagen, SaveIndicator } from "./components/UIComponents";
+import { ComboSelector } from "@/components/ui/ComboSelector";
 import { MarkdownEditor, WikiEntity } from "../../../forms/MarkdownEditor";
 import { useWikilink } from "./components/WikilinkContext";
 import SimpleImagePicker from "@/components/paginas/myself/garlia/editorCapitulos/snippets//forms/SimpleImagePicker";
@@ -531,7 +532,16 @@ export function FormularioPersonaje({
                   <div className="flex flex-col sm:flex-row gap-2 items-start">
                     <div className="flex-1 min-w-0 grid grid-cols-2 sm:grid-cols-3 gap-2">
                       <div className="space-y-1 col-span-1">
-                        <SelectorTexto label="Especie" value={form.especie ?? ""} onChange={v => setForm(f => ({ ...f, especie: v, variante_id: null }))} opciones={especies} placeholder="Humano, elfo, demonio…" onNavigate={onNavigate ? (n) => onNavigate("criaturas", n) : undefined} />
+                        <ComboSelector
+                          mode="single"
+                          items={especies.map(e => ({ id: e, label: e }))}
+                          value={form.especie ?? null}
+                          onChange={v => setForm(f => ({ ...f, especie: v ?? "", variante_id: null }))}
+                          label="Especie"
+                          placeholder="Humano, elfo…"
+                          allowNone
+                          noneLabel="Sin especie"
+                        />
                         {variantes.length > 0 && (
                           <div className="flex flex-wrap items-center gap-1 pt-0.5">
                             <span className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/25 mr-0.5">Variante</span>
@@ -555,35 +565,36 @@ export function FormularioPersonaje({
                           </div>
                         )}
                       </div>
-                      <SelectorTexto
-                        label="Reino"
-                        value={form.reino ?? ""}
+                      <ComboSelector
+                        mode="single"
+                        items={reinos.map(r => ({ id: r, label: r }))}
+                        value={form.reino ?? null}
                         onChange={v => {
                           const nuevoReinoId = reinosMin.find(r => r.nombre === v)?.id ?? null;
                           setForm(f => {
                             const lugarActual = lugares.find(l => l.id === (f as any).lugar_id);
                             const lugarSigueValido = lugarActual &&
                               (nuevoReinoId ? lugarActual.reino_id === nuevoReinoId : !lugarActual.reino_id);
-                            return { ...f, reino: v, ...(!lugarSigueValido ? { lugar_id: null } : {}) };
+                            return { ...f, reino: v ?? "", ...(!lugarSigueValido ? { lugar_id: null } : {}) };
                           });
                         }}
-                        opciones={reinos}
-                        placeholder="Reino, grupo, nación…"
-                        onNavigate={onNavigate ? (n) => onNavigate("reinos", n) : undefined}
+                        label="Reino"
+                        placeholder="Reino, nación…"
+                        allowNone
+                        noneLabel="Sin reino"
                       />
                       {(() => {
                         const lugarActual = lugaresFiltrados.find(l => l.id === (form as any).lugar_id);
                         return (
-                          <SelectorTexto
+                          <ComboSelector
+                            mode="single"
+                            items={lugaresFiltrados.map(l => ({ id: l.id, label: l.nombre }))}
+                            value={(form as any).lugar_id ?? null}
+                            onChange={id => setForm(f => ({ ...f, lugar_id: id } as any))}
                             label="Lugar"
-                            value={lugarActual?.nombre ?? ""}
-                            onChange={nombre => {
-                              const l = lugaresFiltrados.find(x => x.nombre === nombre);
-                              setForm(f => ({ ...f, lugar_id: l?.id ?? null } as any));
-                            }}
-                            opciones={lugaresFiltrados.map(l => l.nombre)}
-                            placeholder="Aldea, ciudad, mazmorra…"
-                            onNavigate={onNavigateLugar && lugarActual ? () => onNavigateLugar(lugarActual.id) : undefined}
+                            placeholder="Aldea, ciudad…"
+                            allowNone
+                            noneLabel="Sin lugar"
                           />
                         );
                       })()}
