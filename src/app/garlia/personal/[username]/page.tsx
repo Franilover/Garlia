@@ -48,7 +48,7 @@ export default function PerfilPublico() {
   const [modalPersonaje, setModalPersonaje]       = useState<Descubrimiento | null>(null);
   const [cancionesPersonaje, setCancionesPersonaje] = useState<any[]>([]);
   const [cargandoCanciones, setCargandoCanciones] = useState(false);
-  const [reinos, setReinos] = useState<{ id: string; nombre: string; imagen_reino?: string | null; descripcion?: string | null }[]>([]);
+  const [reinos, setReinos] = useState<{ id: string; nombre: string; imagen_reino?: string | null; mapa_url?: string | null; descripcion?: string | null }[]>([]);
 
   useEffect(() => {
     if (!username) return;
@@ -83,7 +83,7 @@ export default function PerfilPublico() {
           .select("fecha_descubrimiento, personajes:personaje_id(id, nombre, reino, especie, img_url, sobre)")
           .eq("perfil_id", uid),
         supabase.from("descubrimientos_reinos")
-          .select("fecha_descubrimiento, reinos:reino_id(id, nombre, imagen_reino, descripcion)")
+          .select("fecha_descubrimiento, reinos:reino_id(id, nombre, imagen_reino, mapa_url, descripcion)")
           .eq("perfil_id", uid),
       ]);
 
@@ -91,6 +91,7 @@ export default function PerfilPublico() {
         id:           r.reinos?.id,
         nombre:       r.reinos?.nombre,
         imagen_reino: r.reinos?.imagen_reino,
+        mapa_url:     r.reinos?.mapa_url,
         descripcion:  r.reinos?.descripcion,
       })).filter((r: any) => r.id);
       setReinos(reinosData);
@@ -686,7 +687,7 @@ export default function PerfilPublico() {
                               tipo: "item",
                               entidad_id: r.id,
                               nombre: r.nombre,
-                              imagen_url: r.imagen_reino ?? undefined,
+                              imagen_url: r.mapa_url ?? undefined,
                               descripcion: r.descripcion ?? undefined,
                               fecha_descubrimiento: "",
                             }})}
@@ -702,9 +703,9 @@ export default function PerfilPublico() {
                             onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 35%, transparent)"; }}
                             onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 14%, transparent)"; }}>
                             <div className="flex-1 relative overflow-hidden flex items-center justify-center">
-                              {r.imagen_reino
-                                ? <img src={r.imagen_reino} alt={r.nombre}
-                                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" />
+                              {r.mapa_url
+                                ? <img src={r.mapa_url} alt={r.nombre}
+                                    className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-110" />
                                 : <MapPin size={22} style={{ color: "color-mix(in srgb, var(--primary) 14%, transparent)" }} />}
                             </div>
                             <div className="px-1.5 py-1" style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 4%, transparent)" }}>
