@@ -1441,21 +1441,68 @@ export function EditorCriatura({
                   </div>
                 </div>
 
-                {/* Columna hábitat: reinos + lugares */}
-                <div className="sm:shrink-0 sm:w-52 space-y-3">
-                  <BloqueHabitat criaturaId={form.id} onNavigateLugar={onNavigateLugar} onNavigateReino={onNavigateReino} />
-                </div>
-
                 {/* Columna derecha: Catálogo Mágico */}
                 <div className="sm:shrink-0 sm:w-64 space-y-3">
-                 <div className="space-y-3">
+                  <div className="space-y-3">
                     <BloqueHechizos personajeId={form.id} grupoIds={gruposActuales.map(g => g.id)} />
                     <BloqueDones personajeId={form.id} grupoIds={gruposActuales.map(g => g.id)} />
                   </div>
                 </div>
               </div>
 
-              {/* Naturales + Creaciones: fila entre descripción y variantes */}
+              {/* ── Fila: Personajes · Reinos · Lugares ───────────────────────── */}
+              <div
+                className="flex flex-col sm:flex-row gap-5 rounded-2xl border p-4"
+                style={{
+                  borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
+                  background: "color-mix(in srgb, var(--primary) 2%, transparent)",
+                }}
+              >
+                {/* Personajes de esta especie */}
+                <div className="flex-1 min-w-0 space-y-2">
+                  <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/30 flex items-center gap-1">
+                    <Users size={9} /> Personajes de esta especie
+                  </label>
+                  {personajesDeEspecie.length === 0 ? (
+                    <p className="text-[9px] text-primary/20 italic py-1">Sin personajes registrados</p>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {personajesDeEspecie.map(p => (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => onSelectPersonaje?.(p.id)}
+                          className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02] cursor-pointer"
+                          style={{
+                            background: "color-mix(in srgb, var(--primary) 4%, transparent)",
+                            borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
+                          }}
+                        >
+                          <div className="w-6 h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center">
+                            {p.img_url
+                              ? <img src={p.img_url} alt={p.nombre} className="w-full h-full object-cover" />
+                              : <Users size={10} className="text-primary/20" />}
+                          </div>
+                          <span className="text-[11px] font-bold text-primary/70">{p.nombre}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Divisor vertical */}
+                <div
+                  className="hidden sm:block w-px shrink-0 self-stretch"
+                  style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
+                />
+
+                {/* Hábitat: reinos + lugares (ahora más grandes, sm:w-80) */}
+                <div className="sm:w-80 shrink-0">
+                  <BloqueHabitat criaturaId={form.id} onNavigateLugar={onNavigateLugar} onNavigateReino={onNavigateReino} />
+                </div>
+              </div>
+
+              {/* Naturales + Creaciones */}
               <div className="flex flex-col sm:flex-row gap-4">
                 {/* Naturales: drops de criatura */}
                 <div className="flex-1 space-y-2">
@@ -1472,36 +1519,6 @@ export function EditorCriatura({
                   <BloqueItemsCraftedos criaturaId={form.id} onSelectItem={onSelectItem} />
                 </div>
               </div>
-
-              {/* Personajes de esta especie */}
-              {personajesDeEspecie.length > 0 && (
-                <div className="space-y-2">
-                  <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/30 flex items-center gap-1">
-                    <Users size={9} /> Personajes de esta especie
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    {personajesDeEspecie.map(p => (
-                      <button
-                        key={p.id}
-                        type="button"
-                        onClick={() => onSelectPersonaje?.(p.id)}
-                        className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02] cursor-pointer"
-                        style={{
-                          background: "color-mix(in srgb, var(--primary) 4%, transparent)",
-                          borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
-                        }}
-                      >
-                        <div className="w-6 h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center">
-                          {p.img_url
-                            ? <img src={p.img_url} alt={p.nombre} className="w-full h-full object-cover" />
-                            : <Users size={10} className="text-primary/20" />}
-                        </div>
-                        <span className="text-[11px] font-bold text-primary/70">{p.nombre}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
 
               {/* Variantes */}
                 <div className="flex-1 space-y-3">
