@@ -914,7 +914,6 @@ export default function Lector() {
         fecha_publicacion: string; personajes_ids: string[]; reinos_ids: string[] | null;
         libros: { titulo: string } | { titulo: string }[] | null;
         narrador: NarradorInfo | NarradorInfo[] | null;
-        reino: ReinoInfo | ReinoInfo[] | null;
       };
 
       let rawList: CapRaw[] = [];
@@ -925,8 +924,7 @@ export default function Lector() {
         const { data: contenidos, error: capsError } = await supabase
           .from("capitulos")
           .select(`id, orden, titulo_capitulo, contenido, fecha_publicacion, personajes_ids, reinos_ids,
-            libros(titulo), narrador:personajes!narrador_id(id, nombre, img_url),
-            reino:reinos!reino_id(id, nombre, imagen_reino)`)
+            libros(titulo), narrador:personajes!narrador_id(id, nombre, img_url)`)
           .eq("libro_id", libroId)
           .or(`visibilidad.eq.publico,and(visibilidad.eq.programado,fecha_publicacion.lte.${hoy.split("T")[0]})`)
           .not("titulo_capitulo", "like", "[Ruta]%")
@@ -938,8 +936,7 @@ export default function Lector() {
         const { data: contenidos } = await supabase
           .from("capitulos")
           .select(`id, orden, titulo_capitulo, contenido, fecha_publicacion, personajes_ids, reinos_ids,
-            libros(titulo), narrador:personajes!narrador_id(id, nombre, img_url),
-            reino:reinos!reino_id(id, nombre, imagen_reino)`)
+            libros(titulo), narrador:personajes!narrador_id(id, nombre, img_url)`)
           .eq("libro_id", libroId)
           .or(`visibilidad.eq.publico,and(visibilidad.eq.programado,fecha_publicacion.lte.${hoy.split("T")[0]})`)
           .not("titulo_capitulo", "like", "[Ruta]%")
@@ -954,10 +951,27 @@ export default function Lector() {
         libro_id: libroId,
         libros: normOne(c.libros) ?? undefined,
         _narrador: normOne(c.narrador),
-        _reino: normOne(c.reino),
+        _reino: null, // resuelto en segundo paso por reinos_ids
       }));
 
       cachearEnDexie(capsValidas);
+
+      // Resolver reinos desde reinos_ids[] — fetch en batch de los ids únicos
+      const todosReinosIds = [...new Set(capsValidas.flatMap(c => (c as any).reinos_ids ?? []))];
+      if (todosReinosIds.length > 0) {
+        const { data: reinosData } = await supabase
+          .from("reinos")
+          .select("id, nombre, imagen_reino")
+          .in("id", todosReinosIds);
+        if (reinosData) {
+          const reinosMap = Object.fromEntries(reinosData.map((r: any) => [r.id, r]));
+          for (const cap of capsValidas) {
+            const ids = (cap as any).reinos_ids as string[] ?? [];
+            // Usar el primer reino del array como reino representativo del segmento
+            (cap as any)._reino = ids.length > 0 ? (reinosMap[ids[0]] ?? null) : null;
+          }
+        }
+      }
 
       const listaCapitulosData = capsValidas.map(c => ({
         id: c.id, orden: c.orden,
