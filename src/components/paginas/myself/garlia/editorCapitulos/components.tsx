@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from "react";
 import {
   ChevronDown, ChevronRight, UserCircle2, Loader2, Trash2,
   X, Check, Clock, Hash, AlignLeft, Calendar, BookMarked, Pencil,
-  MoreHorizontal, Globe, Lock, Timer, Mic2, MapPin, Cat, Sword,
+  MoreHorizontal, Globe, Lock, Timer, Mic2, MapPin, Cat, Sword, Plus
 } from "lucide-react";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { SaveIndicator } from "@/components/templates/EstudioTemplates";
