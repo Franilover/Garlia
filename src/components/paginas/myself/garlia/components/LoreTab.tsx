@@ -80,9 +80,9 @@ function useCapitulosDelReino(reinoId: string) {
     if (!reinoId) return;
     supabase
       .from("capitulos")
-      .select("id, libro_id, titulo_capitulo, orden_linea_tiempo")
-      .eq("reino_id", reinoId)
+      .select("id, libro_id, titulo_capitulo, orden_linea_tiempo, reinos_ids")
       .not("orden_linea_tiempo", "is", null)
+      .contains("reinos_ids", [reinoId])
       .then(async ({ data }) => {
         if (!data?.length) return;
         const libroIds = [...new Set(data.map((c: any) => c.libro_id))];

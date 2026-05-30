@@ -872,7 +872,7 @@ type CapTimeline = {
   titulo_capitulo: string;
   orden_linea_tiempo: number;
   libroTitulo?: string;
-  reino_id?: string | null;
+  reinos_ids?: string[];
 };
 
 // ── Carga reinos con historia completa (query dedicada, no el hook genérico) ──
@@ -955,7 +955,7 @@ function PanelHistoriaMundo({
   useEffect(() => {
     supabase
       .from("capitulos")
-      .select("id, libro_id, titulo_capitulo, orden_linea_tiempo, reino_id")
+      .select("id, libro_id, titulo_capitulo, orden_linea_tiempo, reinos_ids")
       .not("orden_linea_tiempo", "is", null)
       .then(async ({ data }) => {
         if (!data?.length) return;
@@ -973,7 +973,7 @@ function PanelHistoriaMundo({
             titulo_capitulo: c.titulo_capitulo,
             orden_linea_tiempo: c.orden_linea_tiempo,
             libroTitulo: libroMap[c.libro_id] ?? "",
-            reino_id: c.reino_id ?? null,
+            reinos_ids: c.reinos_ids ?? [],
           }))
         );
       });
@@ -1074,22 +1074,24 @@ function PanelHistoriaMundo({
         list.push({ ...e, source: "reino", reinoNombre: reino.nombre, reinoId: reino.id, yearNum: parseYear(e.year) });
       }
     }
-    // Capítulos con reino_id y orden_linea_tiempo como eventos propios
+    // Capítulos con reinos_ids y orden_linea_tiempo como eventos propios
     for (const cap of capsTimeline) {
-      if (!cap.reino_id) continue;
-      if (filterReino && cap.reino_id !== filterReino) continue;
-      const reinoNombre = reinos.find(r => r.id === cap.reino_id)?.nombre;
-      list.push({
-        id: `cap:${cap.id}`,
-        year: String(cap.orden_linea_tiempo),
-        title: cap.titulo_capitulo,
-        description: "",
-        source: "capitulo",
-        reinoId: cap.reino_id,
-        reinoNombre,
-        yearNum: cap.orden_linea_tiempo,
-        capData: cap,
-      });
+      if (!cap.reinos_ids?.length) continue;
+      for (const reinoId of cap.reinos_ids) {
+        if (filterReino && reinoId !== filterReino) continue;
+        const reinoNombre = reinos.find(r => r.id === reinoId)?.nombre;
+        list.push({
+          id: `cap:${cap.id}:${reinoId}`,
+          year: String(cap.orden_linea_tiempo),
+          title: cap.titulo_capitulo,
+          description: "",
+          source: "capitulo",
+          reinoId,
+          reinoNombre,
+          yearNum: cap.orden_linea_tiempo,
+          capData: cap,
+        });
+      }
     }
     // Sort estable: por año numérico; en empate, eventos del mundo antes que los de reino, capítulos al final
     return list.sort((a, b) => {
@@ -1104,7 +1106,7 @@ function PanelHistoriaMundo({
     () => reinos.filter(r => {
       const evts = reinoEvents[r.id] ?? decodeTimeline((r as any).historia);
       const tieneEventos = evts.some(e => e.year?.trim() || e.title?.trim());
-      const tieneCaps = capsTimeline.some(c => c.reino_id === r.id);
+      const tieneCaps = capsTimeline.some(c => c.reinos_ids?.includes(r.id));
       return tieneEventos || tieneCaps;
     }),
     [reinos, reinoEvents, capsTimeline]
@@ -1213,7 +1215,7 @@ function PanelHistoriaMundo({
                 const yearNum = parseYear(evt.year);
                 // Solo buscar capMatch para eventos no-capitulo
                 const capMatch = !isCapitulo && isFinite(yearNum)
-                  ? capsTimeline.find(c => c.orden_linea_tiempo === yearNum && !c.reino_id)
+                  ? capsTimeline.find(c => c.orden_linea_tiempo === yearNum && !c.reinos_ids?.length)
                   : undefined;
                 return (
                   <div key={key} className="flex flex-col shrink-0" style={{ width: 190 }}>
