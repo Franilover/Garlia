@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { AnimatePresence } from "framer-motion";
 import { MotionDiv } from "@/components/ui/Motion";
-import { User, Sword, Cat, X, Loader2, Music2, ChevronRight, Star, Users } from "lucide-react";
+import { User, Sword, Cat, X, Loader2, Music2, ChevronRight, Star, Users, MapPin } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import {
   ModalDetalle, EntidadCard, EmptyTab,
@@ -43,11 +43,12 @@ export default function PerfilPublico() {
   const [otrosPerfiles, setOtrosPerfiles]         = useState<PerfilResumen[]>([]);
   const [cargando, setCargando]                   = useState(true);
   const [notFound, setNotFound]                   = useState(false);
-  const [tab, setTab]                             = useState<"items" | "criaturas" | "personajes">("personajes");
+  const [tab, setTab]                             = useState<"items" | "criaturas" | "personajes" | "reinos">("personajes");
   const [modalD, setModalD]                       = useState<EntidadModal | null>(null);
   const [modalPersonaje, setModalPersonaje]       = useState<Descubrimiento | null>(null);
   const [cancionesPersonaje, setCancionesPersonaje] = useState<any[]>([]);
   const [cargandoCanciones, setCargandoCanciones] = useState(false);
+  const [reinos, setReinos] = useState<{ id: string; nombre: string; imagen_reino?: string | null; descripcion?: string | null }[]>([]);
 
   useEffect(() => {
     if (!username) return;
@@ -71,7 +72,7 @@ export default function PerfilPublico() {
         .eq("perfil_id", uid);
       if (invData) setInventario(invData as unknown as ItemInventario[]);
 
-      const [itemsRes, criaturasRes, personajesRes] = await Promise.all([
+      const [itemsRes, criaturasRes, personajesRes, reinosRes] = await Promise.all([
         supabase.from("descubrimientos_items")
           .select("fecha_descubrimiento, items:item_id(id, nombre, categoria, imagen_url, descripcion)")
           .eq("perfil_id", uid),
@@ -81,7 +82,18 @@ export default function PerfilPublico() {
         supabase.from("descubrimientos_personajes")
           .select("fecha_descubrimiento, personajes:personaje_id(id, nombre, reino, especie, img_url, sobre)")
           .eq("perfil_id", uid),
+        supabase.from("descubrimientos_reinos")
+          .select("fecha_descubrimiento, reinos:reino_id(id, nombre, imagen_reino, descripcion)")
+          .eq("perfil_id", uid),
       ]);
+
+      const reinosData = (reinosRes.data ?? []).map((r: any) => ({
+        id:           r.reinos?.id,
+        nombre:       r.reinos?.nombre,
+        imagen_reino: r.reinos?.imagen_reino,
+        descripcion:  r.reinos?.descripcion,
+      })).filter((r: any) => r.id);
+      setReinos(reinosData);
 
       setDescubrimientos([
         ...(itemsRes.data ?? []).map((r: any) => ({
@@ -162,9 +174,10 @@ export default function PerfilPublico() {
   };
 
   const tabs = [
-    { id: "personajes", label: "Agenda",     icon: User  },
-    { id: "criaturas",  label: "Bestiario",  icon: Cat   },
-    { id: "items",      label: "Inventario", icon: Sword },
+    { id: "personajes", label: "Agenda",     icon: User    },
+    { id: "criaturas",  label: "Bestiario",  icon: Cat     },
+    { id: "items",      label: "Inventario", icon: Sword   },
+    { id: "reinos",     label: "Mapa",       icon: MapPin  },
   ] as const;
 
   /* ── Loading ── */
@@ -581,7 +594,7 @@ export default function PerfilPublico() {
                 <Star size={8} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
                 <span className="text-[8px] font-black uppercase tracking-[0.22em] tabular-nums"
                   style={{ color: "color-mix(in srgb, var(--primary) 38%, transparent)" }}>
-                  {tab === "items" ? inventario.length + misItemsDesc.length : tab === "criaturas" ? misCriaturas.length : misPersonajes.length} entradas
+                  {tab === "items" ? inventario.length + misItemsDesc.length : tab === "criaturas" ? misCriaturas.length : tab === "reinos" ? reinos.length : misPersonajes.length} entradas
                 </span>
               </div>
             </div>
@@ -663,6 +676,46 @@ export default function PerfilPublico() {
                           </button>
                         ))
                       : <EmptyTab label="Sin registros en la agenda" />
+                  )}
+
+                  {tab === "reinos" && (
+                    reinos.length > 0
+                      ? reinos.map((r, i) => (
+                          <button key={i}
+                            onClick={() => setModalD({ tipo: "reino", data: {
+                              tipo: "item",
+                              entidad_id: r.id,
+                              nombre: r.nombre,
+                              imagen_url: r.imagen_reino ?? undefined,
+                              descripcion: r.descripcion ?? undefined,
+                              fecha_descubrimiento: "",
+                            }})}
+                            className="group relative overflow-hidden text-left transition-all duration-150"
+                            style={{
+                              background: "color-mix(in srgb, var(--primary) 3%, var(--white-custom))",
+                              border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
+                              borderRadius: "4px",
+                              aspectRatio: "1",
+                              display: "flex",
+                              flexDirection: "column",
+                            }}
+                            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 35%, transparent)"; }}
+                            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 14%, transparent)"; }}>
+                            <div className="flex-1 relative overflow-hidden flex items-center justify-center">
+                              {r.imagen_reino
+                                ? <img src={r.imagen_reino} alt={r.nombre}
+                                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" />
+                                : <MapPin size={22} style={{ color: "color-mix(in srgb, var(--primary) 14%, transparent)" }} />}
+                            </div>
+                            <div className="px-1.5 py-1" style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 4%, transparent)" }}>
+                              <p className="font-serif italic text-[9px] leading-tight capitalize truncate text-center"
+                                style={{ color: "var(--primary)" }}>
+                                {r.nombre}
+                              </p>
+                            </div>
+                          </button>
+                        ))
+                      : <EmptyTab label="Ningún reino descubierto aún" />
                   )}
 
                 </MotionDiv>
