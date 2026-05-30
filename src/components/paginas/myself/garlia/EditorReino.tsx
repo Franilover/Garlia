@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
   Map, MapPin, Plus, Check, X, Trash2, Save,
-  Eye, EyeOff, Loader2, Image as ImageIcon,
+  Loader2, Image as ImageIcon,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
@@ -62,7 +62,7 @@ function useLugaresDelReino(reinoId: string) {
       if (!navigator.onLine) return;
       const { data } = await supabase
         .from("lugares")
-        .select("id, nombre, descripcion, coord_x, coord_y, oculto, imagen_url, tipo, historia, secretos, reino_id")
+        .select("id, nombre, descripcion, coord_x, coord_y, imagen_url, tipo, historia, secretos, reino_id")
         .eq("reino_id", reinoId)
         .order("nombre");
       if (!cancelled && data) {
@@ -243,19 +243,13 @@ function DetalleEditor({ detalle, onSaved, onDeleted, onOpenEditor, entities = [
     try {
       const { error } = await supabase.from("lugares").update({
         nombre: data.nombre, descripcion: data.descripcion,
-        coord_x: data.coord_x, coord_y: data.coord_y, oculto: data.oculto ?? false,
+        coord_x: data.coord_x, coord_y: data.coord_y,
       }).eq("id", data.id);
       if (error) throw error;
       setStatus("saved"); onSaved(data);
       void dexiePut("lugares", data);
       setTimeout(() => setStatus("idle"), 2000);
     } catch { setStatus("error"); }
-  };
-
-  const toggleOculto = async (e?: React.MouseEvent) => {
-    e?.stopPropagation();
-    const nuevo = { ...form, oculto: !form.oculto };
-    setForm(nuevo); await saveDetalle(nuevo);
   };
 
   return (
@@ -265,26 +259,10 @@ function DetalleEditor({ detalle, onSaved, onDeleted, onOpenEditor, entities = [
 
       {/* Cabecera del punto — toque grande para mobile */}
       <div className="flex items-center gap-2 px-3 py-3 cursor-pointer select-none" onClick={() => setExpanded(!expanded)}>
-        <MapPin size={12} className={`shrink-0 ${form.oculto ? "text-primary/20" : "text-primary/40"}`} />
-        <span className={`flex-1 text-[11px] font-black uppercase tracking-widest truncate ${form.oculto ? "text-primary/30 line-through" : "text-primary"}`}>
+        <MapPin size={12} className="shrink-0 text-primary/40" />
+        <span className="flex-1 text-[11px] font-black uppercase tracking-widest truncate text-primary">
           {form.nombre}
         </span>
-        {form.oculto && (
-          <span className="shrink-0 text-[8px] font-black uppercase tracking-widest text-orange-400/70 bg-orange-400/10 border border-orange-400/20 px-1.5 py-0.5 rounded-lg flex items-center gap-1">
-            <EyeOff size={8} /> Oculto
-          </span>
-        )}
-        {/* Botón visibilidad con área de toque amplia */}
-        <button
-          onClick={e => { e.stopPropagation(); toggleOculto(); }}
-          className={`shrink-0 flex items-center justify-center w-8 h-8 rounded-lg transition-all border ${
-            form.oculto
-              ? "text-orange-400 bg-orange-400/10 border-orange-400/30"
-              : "text-primary/40 bg-primary/5 border-primary/10 hover:text-primary"
-          }`}
-        >
-          {form.oculto ? <Eye size={11} /> : <EyeOff size={11} />}
-        </button>
         <div className="w-6 h-6 flex items-center justify-center">
           <X size={12} className="text-primary/25 transition-transform duration-200" style={{ transform: expanded ? "rotate(45deg)" : undefined }} />
         </div>
@@ -371,7 +349,6 @@ export function EditorReino({ item, onSaved, onDeleted, entities = [], onSelectP
         nombre: form.nombre, historia: form.historia, politica: form.politica,
         economia: form.economia, geografia: form.geografia, cultura: form.cultura,
         mapa_url: form.mapa_url, coord_x: form.coord_x, coord_y: form.coord_y,
-        oculto: form.oculto ?? false,
       }).eq("id", form.id);
       if (error) throw error;
       setStatus("saved"); onSaved(form);
@@ -439,24 +416,6 @@ export function EditorReino({ item, onSaved, onDeleted, entities = [], onSelectP
               className="flex-1 min-w-0 bg-transparent text-sm font-black text-primary outline-none placeholder:text-primary/25"
             />
 
-            {/* Visibilidad — solo desktop */}
-            <button
-              onClick={() => setForm(f => ({ ...f, oculto: !f.oculto }))}
-              title={form.oculto ? "Mostrar en mapa" : "Ocultar del mapa"}
-              className="hidden sm:flex shrink-0 w-7 h-7 rounded-lg items-center justify-center transition-all border"
-              style={form.oculto ? {
-                color:       "oklch(0.75 0.15 60)",
-                background:  "color-mix(in srgb, oklch(0.75 0.15 60) 12%, transparent)",
-                borderColor: "color-mix(in srgb, oklch(0.75 0.15 60) 30%, transparent)",
-              } : {
-                color:       "color-mix(in srgb, var(--primary) 30%, transparent)",
-                background:  "color-mix(in srgb, var(--primary) 5%, transparent)",
-                borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
-              }}
-            >
-              {form.oculto ? <EyeOff size={12} /> : <Eye size={12} />}
-            </button>
-
             <SaveIndicator status={status} />
 
             {/* Eliminar — solo desktop */}
@@ -478,27 +437,8 @@ export function EditorReino({ item, onSaved, onDeleted, entities = [], onSelectP
             </button>
           </div>
 
-          {/* Fila 2 — solo mobile: visibilidad + eliminar */}
-          <div className="flex sm:hidden items-center gap-2 px-3 pb-2.5">
-            <button
-              onClick={() => setForm(f => ({ ...f, oculto: !f.oculto }))}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest border transition-all"
-              style={form.oculto ? {
-                color:       "oklch(0.75 0.15 60)",
-                background:  "color-mix(in srgb, oklch(0.75 0.15 60) 8%, transparent)",
-                borderColor: "color-mix(in srgb, oklch(0.75 0.15 60) 25%, transparent)",
-              } : {
-                color:       "color-mix(in srgb, var(--primary) 40%, transparent)",
-                background:  "transparent",
-                borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
-              }}
-            >
-              {form.oculto ? <EyeOff size={10} /> : <Eye size={10} />}
-              <span>{form.oculto ? "Oculto del mapa" : "Visible en mapa"}</span>
-            </button>
-
-            <div className="flex-1" />
-
+          {/* Fila 2 — solo mobile: eliminar */}
+          <div className="flex sm:hidden items-center justify-end gap-2 px-3 pb-2.5">
             <button
               onClick={del}
               className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all"

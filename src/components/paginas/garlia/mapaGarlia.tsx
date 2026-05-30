@@ -127,45 +127,8 @@ function PanelContenido({
             ))}
           </div>
         </div>
-        {!puntoSeleccionado && (
-          <div className="flex items-center justify-between px-3 py-2.5 border"
-            style={{ borderColor: "color-mix(in srgb, var(--primary) 20%, transparent)", background: "color-mix(in srgb, var(--bg-main) 60%, transparent)" }}>
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: "color-mix(in srgb, var(--foreground) 60%, transparent)" }}>Visibilidad en el mapa</p>
-              <p className="text-[9px] mt-0.5" style={{ color: "color-mix(in srgb, var(--foreground) 35%, transparent)" }}>
-                {reinoSeleccionado.oculto ? "Este reino no aparece para usuarios" : "Este reino es visible en el mapa"}
-              </p>
-            </div>
-            <button
-              onClick={() => setReinoSeleccionado((r: any) => ({ ...r, oculto: !r.oculto }))}
-              className={`relative w-10 h-5 transition-all border ${reinoSeleccionado.oculto ? "bg-orange-400/20 border-orange-400/40" : "bg-amber-400/15 border-amber-400/20"}`}
-            >
-              <span className={`absolute top-0.5 w-4 h-4 transition-all ${reinoSeleccionado.oculto ? "left-5 bg-orange-400" : "left-0.5 bg-amber-400/50"}`} />
-            </button>
-          </div>
-        )}
-        {puntoSeleccionado && (
-          <div className="flex items-center justify-between px-3 py-2.5 border"
-            style={{ borderColor: "color-mix(in srgb, var(--primary) 20%, transparent)", background: "color-mix(in srgb, var(--bg-main) 60%, transparent)" }}>
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: "color-mix(in srgb, var(--foreground) 60%, transparent)" }}>Visibilidad en el mapa</p>
-              <p className="text-[9px] mt-0.5" style={{ color: "color-mix(in srgb, var(--foreground) 35%, transparent)" }}>
-                {puntoSeleccionado.oculto ? "Este punto no aparece para usuarios" : "Este punto es visible en el mapa"}
-              </p>
-            </div>
-            <button
-              onClick={() => {
-                const nuevoOculto = !puntoSeleccionado.oculto;
-                setPuntoSeleccionado((p: any) => ({ ...p, oculto: nuevoOculto }));
-                setDetallesReino((prev: any[]) => prev.map(p => p.id === puntoSeleccionado.id ? { ...p, oculto: nuevoOculto } : p));
-                setModifiedDetalles((prev: Set<string>) => new Set(prev).add(puntoSeleccionado.id));
-              }}
-              className={`relative w-10 h-5 transition-all border ${puntoSeleccionado.oculto ? "bg-orange-400/20 border-orange-400/40" : "bg-amber-400/15 border-amber-400/20"}`}
-            >
-              <span className={`absolute top-0.5 w-4 h-4 transition-all ${puntoSeleccionado.oculto ? "left-5 bg-orange-400" : "left-0.5 bg-amber-400/50"}`} />
-            </button>
-          </div>
-        )}
+
+
         {!puntoSeleccionado && (
           <div className="flex flex-col gap-1">
             <label className="text-[9px] font-bold uppercase tracking-widest ml-1 flex items-center gap-1"
@@ -946,7 +909,7 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
             ctx.arc(headR, -tailH * 0.4 - headR, 3, 0, Math.PI * 2);
             ctx.fillStyle = accent;
             ctx.fill();
-            if (m.oculto) {
+            if (true) {
               ctx.beginPath();
               ctx.arc(-headR, -tailH * 0.4 - headR, 3, 0, Math.PI * 2);
               ctx.fillStyle = "#f97316";
@@ -1688,7 +1651,7 @@ export default function MapaInteractivo() {
         await Promise.all(toSave.map(p =>
           supabase.from("lugares").update({
             nombre: p.nombre, descripcion: p.descripcion,
-            coord_x: p.coord_x, coord_y: p.coord_y, oculto: p.oculto ?? false,
+            coord_x: p.coord_x, coord_y: p.coord_y,
           }).eq("id", p.id)
         ));
         setModifiedDetalles(new Set());
@@ -1696,7 +1659,6 @@ export default function MapaInteractivo() {
         const { error } = await supabase.from("reinos").update({
           nombre: reinoSeleccionado.nombre, descripcion: reinoSeleccionado.descripcion,
           coord_x: reinoSeleccionado.coord_x, coord_y: reinoSeleccionado.coord_y,
-          oculto: reinoSeleccionado.oculto ?? false,
         }).eq("id", reinoSeleccionado.id);
         if (error) throw error;
         setReinos(prev => prev.map(r => r.id === reinoSeleccionado.id ? reinoSeleccionado : r));
@@ -1724,14 +1686,15 @@ export default function MapaInteractivo() {
     setPanelOpen(false);
   };
 
-  // Visible markers: admins ven todos; usuarios solo ven los reinos que desbloquearon
+  // Visible markers: admins ven todos los reinos; usuarios solo los que desbloquearon
   const visibleMarkers = vistaActual === "global"
-    ? reinos.filter(r => isAdmin ? !r.oculto : (!r.oculto && reinosDesbloqueados.has(r.id)))
-    : detallesReino.filter(p => !p.oculto);
+    ? reinos.filter(r => isAdmin ? true : reinosDesbloqueados.has(r.id))
+    : detallesReino;
 
+  // hiddenMarkers: para usuarios son los reinos no desbloqueados (se muestran en niebla)
   const hiddenMarkers = vistaActual === "global"
-    ? reinos.filter(r => isAdmin ? r.oculto : (!r.oculto && !reinosDesbloqueados.has(r.id)))
-    : detallesReino.filter(p => p.oculto);
+    ? (isAdmin ? [] : reinos.filter(r => !reinosDesbloqueados.has(r.id)))
+    : [];
 
   const currentImage = vistaActual === "reino" && reinoSeleccionado?.mapa_url
     ? reinoSeleccionado.mapa_url
