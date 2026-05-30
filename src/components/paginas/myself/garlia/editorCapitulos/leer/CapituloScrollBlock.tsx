@@ -48,35 +48,45 @@ const FLUID_FONT_STYLES = `
   }
 `;
 
-export function CapituloScrollBlock({ cap, onNavigate, esExtra = false }: {
+export function CapituloScrollBlock({ cap, onNavigate, esExtra = false, acumPersonajesIds, acumReinosIds, acumLugaresIds }: {
   cap: CapituloScrollItem;
   onNavigate: (capId: string) => void;
   esExtra?: boolean;
+  /** IDs acumulados de TODO el segmento — solo se pasan al último cap del segmento
+   *  para que su FinCapituloSeparador desbloquee de golpe todos los personajes/reinos/lugares. */
+  acumPersonajesIds?: string[];
+  acumReinosIds?: string[];
+  acumLugaresIds?: string[];
 }) {
   const words = (cap.contenido ?? "").trim()
     ? (cap.contenido ?? "").trim().split(/\s+/).length
     : 0;
+
+  // Si se pasaron ids acumulados (último cap del segmento), usarlos; si no, los propios del cap.
+  const personajesIdsEfectivos = acumPersonajesIds ?? cap.personajes_ids;
+  const reinosIdsEfectivos     = acumReinosIds     ?? (cap.reinos_ids as string[] | undefined);
+  const lugaresIdsEfectivos    = acumLugaresIds    ?? (cap as any).lugares_ids;
 
   const {
     disparar: dispararPersonajes,
     mostrarCelebration: mostrarPersonajes,
     desbloqueados: personajesDesbloqueados,
     cerrar: cerrarPersonajes,
-  } = useDesbloquearPersonajes(cap.id, cap.personajes_ids);
+  } = useDesbloquearPersonajes(cap.id, personajesIdsEfectivos);
 
   const {
     disparar: dispararReinos,
     mostrarCelebration: mostrarReinos,
     desbloqueados: reinosDesbloqueados,
     cerrar: cerrarReinos,
-  } = useDesbloquearReinos(cap.id, cap.reinos_ids);
+  } = useDesbloquearReinos(cap.id, reinosIdsEfectivos);
 
   const {
     disparar: dispararLugares,
     mostrarCelebration: mostrarLugares,
     desbloqueados: lugaresDesbloqueados,
     cerrar: cerrarLugares,
-  } = useDesbloquearLugares(cap.id, (cap as any).lugares_ids);
+  } = useDesbloquearLugares(cap.id, lugaresIdsEfectivos);
 
   // Dispara los tres hooks al llegar al final del capítulo
   const handleFinCapitulo = () => {

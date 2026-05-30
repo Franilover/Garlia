@@ -1284,9 +1284,28 @@ export default function Lector() {
         />
 
         {/* Capítulos */}
-        {!loading && capsARenderizar.map((cap) => (
-          <CapituloScrollBlock key={cap.id} cap={cap} onNavigate={handleNavigate} esExtra={esExtra} />
-        ))}
+        {!loading && (() => {
+          // IDs acumulados de todo el segmento — se pasan solo al último cap
+          // para que su FinCapituloSeparador desbloquee todo el segmento de golpe.
+          const acumPersonajesIds = [...new Set(capsARenderizar.flatMap(c => c.personajes_ids ?? []))];
+          const acumReinosIds     = [...new Set(capsARenderizar.flatMap(c => (c as any).reinos_ids ?? []))];
+          const acumLugaresIds    = [...new Set(capsARenderizar.flatMap(c => (c as any).lugares_ids ?? []))];
+          const ultimoIdx         = capsARenderizar.length - 1;
+
+          return capsARenderizar.map((cap, idx) => (
+            <CapituloScrollBlock
+              key={cap.id}
+              cap={cap}
+              onNavigate={handleNavigate}
+              esExtra={esExtra}
+              {...(idx === ultimoIdx && {
+                acumPersonajesIds,
+                acumReinosIds,
+                acumLugaresIds,
+              })}
+            />
+          ));
+        })()}
 
         {/* Transición o fin del libro */}
         {segSiguiente ? (
