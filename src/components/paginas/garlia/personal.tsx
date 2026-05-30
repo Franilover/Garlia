@@ -62,7 +62,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
   const [otrosPerfiles, setOtrosPerfiles] = useState<PerfilResumen[]>([]);
   const [cancionesPersonaje, setCancionesPersonaje] = useState<any[]>([]);
   const [cargandoCanciones, setCargandoCanciones] = useState(false);
-  const [reinos, setReinos] = useState<{ id: string; nombre: string; imagen_reino?: string | null; descripcion?: string | null }[]>([]);
+  const [reinos, setReinos] = useState<{ id: string; nombre: string; imagen_reino?: string | null; mapa_url?: string | null; descripcion?: string | null }[]>([]);
   const [lugares, setLugares] = useState<{ id: string; nombre: string; imagen_url?: string | null; descripcion?: string | null }[]>([]);
   const userIdRef = React.useRef<string | null>(null);
 
@@ -122,7 +122,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
             .eq("perfil_id", user.id),
           supabase
             .from("descubrimientos_reinos")
-            .select("fecha_descubrimiento, reinos:reino_id(id, nombre, imagen_reino, descripcion)")
+            .select("fecha_descubrimiento, reinos:reino_id(id, nombre, imagen_reino, mapa_url, descripcion)")
             .eq("perfil_id", user.id),
           supabase
             .from("lugares_desbloqueados")
@@ -140,6 +140,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
           id:           r.reinos?.id,
           nombre:       r.reinos?.nombre,
           imagen_reino: r.reinos?.imagen_reino,
+          mapa_url:     r.reinos?.mapa_url,
           descripcion:  r.reinos?.descripcion,
         })).filter(r => r.id);
         setReinos(reinosData);
@@ -444,7 +445,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                     {modalEntidad.data.descripcion}
                   </p>
                 )}
-                {modalEntidad.tipo === "personaje" && <div className="flex items-center gap-3 mb-4">
+                <div className="flex items-center gap-3 mb-4">
                   <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
                   <div className="flex items-center gap-1.5">
                     <Music2 size={10} style={{ color: "color-mix(in srgb, var(--primary) 28%, transparent)" }} />
@@ -454,8 +455,8 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                     </span>
                   </div>
                   <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
-                </div>}
-                {modalEntidad.tipo === "personaje" && (cargandoCanciones ? (
+                </div>
+                {cargandoCanciones ? (
                   <div className="flex items-center gap-2 py-5 justify-center">
                     <Loader2 size={13} className="animate-spin" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
                     <span className="font-serif italic text-[9px]"
@@ -518,7 +519,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                       </Link>
                     ))}
                   </div>
-                ))}
+                )}
               </div>
             </MotionDiv>
           </>
@@ -1401,7 +1402,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                               tipo: "item",
                               entidad_id: r.id,
                               nombre: r.nombre,
-                              imagen_url: r.imagen_reino ?? undefined,
+                              imagen_url: r.mapa_url ?? undefined,
                               descripcion: r.descripcion ?? undefined,
                               fecha_descubrimiento: "",
                             }})}
@@ -1426,8 +1427,8 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                               (e.currentTarget as HTMLElement).style.boxShadow = "inset 0 1px 0 color-mix(in srgb, var(--primary) 6%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--primary) 10%, transparent)";
                             }}>
                             <div className="flex-1 relative overflow-hidden flex items-center justify-center p-2">
-                              {r.imagen_reino
-                                ? <img src={r.imagen_reino} alt={r.nombre}
+                              {r.mapa_url
+                                ? <img src={r.mapa_url} alt={r.nombre}
                                     className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-110" />
                                 : <MapPin size={22} style={{ color: "color-mix(in srgb, var(--primary) 14%, transparent)" }} />}
                             </div>
