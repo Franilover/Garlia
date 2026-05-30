@@ -225,10 +225,10 @@ function DetalleEditor({ detalle, onSaved, onDeleted, onOpenEditor, entities = [
   entities?: WikiEntity[];
 }) {
   const [form, setForm] = useState(detalle);
-  const [expanded, setExpanded] = useState(false);
+  const [editing, setEditing] = useState(false);
   const [status, setStatus] = useState<SaveStatus>("idle");
   const { confirm, ConfirmModal } = useConfirm();
-  const { onSnippetAction } = useWikilink();
+  const nameRef = useRef<HTMLInputElement>(null);
 
   const prevCoords = useRef({ x: detalle.coord_x, y: detalle.coord_y });
   useEffect(() => {
@@ -252,72 +252,86 @@ function DetalleEditor({ detalle, onSaved, onDeleted, onOpenEditor, entities = [
     } catch { setStatus("error"); }
   };
 
+  const handleSave = () => {
+    saveDetalle(form);
+    setEditing(false);
+  };
+
+  const handleDelete = async () => {
+    const ok = await confirm({ message: `¿Eliminar "${form.nombre}"?`, danger: true });
+    if (!ok) return;
+    await supabase.from("lugares").delete().eq("id", form.id);
+    void dexieDel("lugares", form.id);
+    onDeleted(form.id);
+  };
+
   return (
-    <div className="rounded-xl overflow-hidden transition-all"
-      style={{ border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, transparent)" }}>
+    <div
+      className="rounded-lg overflow-hidden transition-all group/lugar"
+      style={{ border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, transparent)" }}
+    >
       <ConfirmModal />
 
-      {/* Cabecera del punto — toque grande para mobile */}
-      <div className="flex items-center gap-2 px-3 py-3 cursor-pointer select-none" onClick={() => setExpanded(!expanded)}>
-        <MapPin size={12} className="shrink-0 text-primary/40" />
-        <span className="flex-1 text-[11px] font-black uppercase tracking-widest truncate text-primary">
-          {form.nombre}
-        </span>
-        <div className="w-6 h-6 flex items-center justify-center">
-          <X size={12} className="text-primary/25 transition-transform duration-200" style={{ transform: expanded ? "rotate(45deg)" : undefined }} />
+      {/* Fila compacta siempre visible */}
+      <div className="flex items-center gap-1.5 px-2.5 py-2 min-h-[36px]">
+        <MapPin size={10} className="shrink-0 text-primary/30" />
+
+        {/* Nombre inline-editable */}
+        <input
+          ref={nameRef}
+          value={form.nombre}
+          onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))}
+          onFocus={() => setEditing(true)}
+          onBlur={() => { if (!form.descripcion?.trim()) handleSave(); }}
+          onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleSave(); nameRef.current?.blur(); } }}
+          className="flex-1 min-w-0 bg-transparent text-[11px] font-black uppercase tracking-widest text-primary outline-none placeholder:text-primary/25 truncate"
+          placeholder="Nombre del lugar"
+        />
+
+        {/* Acciones — visibles al hacer hover o al editar */}
+        <div className={`flex items-center gap-1 transition-opacity ${editing ? "opacity-100" : "opacity-0 group-hover/lugar:opacity-100"}`}>
+          <SaveIndicator status={status} />
+          {editing && (
+            <button
+              onClick={handleSave}
+              className="flex items-center justify-center w-6 h-6 rounded-md bg-primary text-btn-text hover:bg-primary/90 transition-all"
+              title="Guardar"
+            >
+              <Check size={10} />
+            </button>
+          )}
+          {onOpenEditor && (
+            <button
+              onClick={() => onOpenEditor(form.id)}
+              className="flex items-center justify-center w-6 h-6 rounded-md text-primary/30 hover:text-primary hover:bg-primary/8 transition-all"
+              title="Ver ficha completa"
+            >
+              <MapPin size={10} />
+            </button>
+          )}
+          <button
+            onClick={handleDelete}
+            className="flex items-center justify-center w-6 h-6 rounded-md text-red-400/40 hover:text-red-400 hover:bg-red-500/8 transition-all"
+            title="Eliminar"
+          >
+            <Trash2 size={10} />
+          </button>
         </div>
       </div>
 
-      {expanded && (
-        <div className="px-3 pb-4 pt-0 border-t space-y-3.5" style={{ borderColor: "color-mix(in srgb, var(--primary) 6%, transparent)" }}>
-          <div className="mt-3.5">
-            <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">Nombre</label>
-            <input value={form.nombre} onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))} className={INPUT_CLS + " mt-1"} placeholder="Nombre del lugar" />
-          </div>
-          <div>
-            <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35 block mb-1">Descripción</label>
-            <MarkdownEditor
-              value={form.descripcion ?? ""}
-              onChange={v => setForm(f => ({ ...f, descripcion: v }))}
-              rows={4}
-              placeholder="Describe este lugar…"
-              toolbar
-              defaultMode="edit"
-              onSnippetAction={onSnippetAction}
-              entities={entities}
-            />
-          </div>
-          {/* Acciones: eliminar a la izq, guardar a la der */}
-          <div className="flex items-center justify-between pt-1">
-            <div className="flex items-center gap-2">
-              <button onClick={async () => {
-                const ok = await confirm({ message: `¿Eliminar punto "${form.nombre}"?`, danger: true });
-                if (!ok) return;
-                await supabase.from("lugares").delete().eq("id", form.id);
-                void dexieDel("lugares", form.id);
-                onDeleted(form.id);
-              }} className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest text-red-400/60 hover:text-red-400 hover:bg-red-500/10 transition-all border border-transparent hover:border-red-500/20 min-h-[36px]">
-                <Trash2 size={10} /> Eliminar
-              </button>
-              {onOpenEditor && (
-                <button
-                  onClick={() => onOpenEditor(form.id)}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest text-primary/40 hover:text-primary hover:bg-primary/5 transition-all border border-primary/10 hover:border-primary/20 min-h-[36px]"
-                >
-                  <MapPin size={10} /> Ver ficha
-                </button>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              <SaveIndicator status={status} />
-              <button
-                onClick={() => saveDetalle(form)}
-                className="flex items-center gap-1.5 px-4 py-2 bg-primary text-btn-text rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-primary/90 transition-all min-h-[36px]"
-              >
-                <Check size={10} /> Guardar
-              </button>
-            </div>
-          </div>
+      {/* Descripción — solo visible al editar */}
+      {editing && (
+        <div
+          className="px-2.5 pb-2.5 border-t"
+          style={{ borderColor: "color-mix(in srgb, var(--primary) 6%, transparent)" }}
+        >
+          <textarea
+            value={form.descripcion ?? ""}
+            onChange={e => setForm(f => ({ ...f, descripcion: e.target.value }))}
+            rows={3}
+            placeholder="Descripción breve…"
+            className="mt-2 w-full bg-transparent text-[11px] text-primary/80 placeholder:text-primary/25 outline-none resize-none leading-relaxed"
+          />
         </div>
       )}
     </div>
