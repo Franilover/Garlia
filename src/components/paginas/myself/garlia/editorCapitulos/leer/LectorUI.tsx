@@ -180,7 +180,11 @@ export function FinCapituloSeparador({ cap, onVisible }: {
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const firedRef = useRef(false);
+  const onVisibleRef = useRef(onVisible);
   const [visible, setVisible] = useState(false);
+
+  // Mantener la ref actualizada sin re-crear el observer en cada render
+  useEffect(() => { onVisibleRef.current = onVisible; }, [onVisible]);
 
   useEffect(() => {
     const el = ref.current;
@@ -191,18 +195,19 @@ export function FinCapituloSeparador({ cap, onVisible }: {
           setVisible(true);
           if (!firedRef.current) {
             firedRef.current = true;
-            onVisible();
+            onVisibleRef.current(); // usa ref para evitar closure stale
           }
         }
       },
-      { threshold: 0.5 }
+      { threshold: 0.1 } // bajado de 0.5: el h-px nunca alcanzaba el 50%
     );
     observer.observe(el);
     return () => observer.disconnect();
-  }, [onVisible]);
+  }, []); // sin dependencias: el observer se monta una sola vez
 
   return (
-    <div ref={ref} className="mt-20 mb-4 flex flex-col items-center gap-3">
+    // minHeight para que el IntersectionObserver tenga superficie real que medir
+    <div ref={ref} className="mt-20 mb-4 flex flex-col items-center gap-3" style={{ minHeight: "20px" }}>
       <div className="flex items-center gap-4 w-full max-w-xs">
         <motion.div
           className="flex-1 h-px"
