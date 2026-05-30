@@ -28,7 +28,7 @@ interface Capitulo {
   fecha_publicacion: string | null;
   libro_id: string;
   narrador_id: string | null;
-  reino_id: string | null;
+  reinos_ids?: string[] | null;
   narrador?: Narrador | null;
   reino?: Reino | null;
 }
@@ -357,7 +357,7 @@ export default function LibroDetalle() {
             .from("capitulos")
             // FIX: select específico en vez de * — evita traer `contenido` (puede ser MBs)
             .select(`
-              id, titulo_capitulo, orden, fecha_publicacion, libro_id, narrador_id, reino_id,
+              id, titulo_capitulo, orden, fecha_publicacion, libro_id, narrador_id, reinos_ids,
               narrador:personajes!narrador_id(id, nombre, img_url),
               reino:reinos!reino_id(id, nombre, imagen_reino)
             `)

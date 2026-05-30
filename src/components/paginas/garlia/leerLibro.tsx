@@ -911,7 +911,7 @@ export default function Lector() {
       //    si es slug cargamos directo por libro_id (sin roundtrip extra)
       type CapRaw = {
         id: string; orden: number; titulo_capitulo: string; contenido: string;
-        fecha_publicacion: string; personajes_ids: string[];
+        fecha_publicacion: string; personajes_ids: string[]; reinos_ids: string[] | null;
         libros: { titulo: string } | { titulo: string }[] | null;
         narrador: NarradorInfo | NarradorInfo[] | null;
         reino: ReinoInfo | ReinoInfo[] | null;
@@ -924,7 +924,7 @@ export default function Lector() {
         // UUID de capítulo: cargar todos los caps del libro directamente
         const { data: contenidos, error: capsError } = await supabase
           .from("capitulos")
-          .select(`id, orden, titulo_capitulo, contenido, fecha_publicacion, personajes_ids,
+          .select(`id, orden, titulo_capitulo, contenido, fecha_publicacion, personajes_ids, reinos_ids,
             libros(titulo), narrador:personajes!narrador_id(id, nombre, img_url),
             reino:reinos!reino_id(id, nombre, imagen_reino)`)
           .eq("libro_id", libroId)
@@ -937,7 +937,7 @@ export default function Lector() {
         // Slug de segmento: una sola query por libro_id
         const { data: contenidos } = await supabase
           .from("capitulos")
-          .select(`id, orden, titulo_capitulo, contenido, fecha_publicacion, personajes_ids,
+          .select(`id, orden, titulo_capitulo, contenido, fecha_publicacion, personajes_ids, reinos_ids,
             libros(titulo), narrador:personajes!narrador_id(id, nombre, img_url),
             reino:reinos!reino_id(id, nombre, imagen_reino)`)
           .eq("libro_id", libroId)
@@ -950,7 +950,8 @@ export default function Lector() {
       const capsValidas = rawList.map(c => ({
         id: c.id, orden: c.orden, titulo_capitulo: c.titulo_capitulo,
         contenido: c.contenido, fecha_publicacion: c.fecha_publicacion,
-        personajes_ids: c.personajes_ids, libro_id: libroId,
+        personajes_ids: c.personajes_ids, reinos_ids: c.reinos_ids ?? [],
+        libro_id: libroId,
         libros: normOne(c.libros) ?? undefined,
         _narrador: normOne(c.narrador),
         _reino: normOne(c.reino),
