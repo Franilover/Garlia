@@ -909,10 +909,11 @@ export const SelectorNarrador = ({
 // ─── SelectorReino ────────────────────────────────────────────────────────────
 
 export const SelectorReino = ({
-  value, onChange,
+  value,
+  onChange,
 }: {
-  value: string | null;
-  onChange: (id: string | null) => void;
+  value: string[];
+  onChange: (ids: string[]) => void;
 }) => {
   const { reinos, loading } = useReinos();
   const [open, setOpen] = useState(false);
@@ -927,14 +928,44 @@ export const SelectorReino = ({
     return () => document.removeEventListener("mousedown", h);
   }, [open]);
 
-  const selected = reinos.find(r => r.id === value) ?? null;
+  const toggle = (id: string) =>
+    onChange(value.includes(id) ? value.filter(x => x !== id) : [...value, id]);
+
+  const selected = reinos.filter(r => value.includes(r.id));
 
   return (
     <div className="space-y-1.5" ref={ref}>
       <label className="text-[9px] font-black uppercase tracking-widest text-primary/40 flex items-center gap-2">
         <MapPin size={10} />
-        Reino / Ubicación
+        Reinos / Ubicaciones
+        <span className="text-primary/25 normal-case font-medium">(se desbloquean al terminar)</span>
       </label>
+
+      {selected.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {selected.map(r => (
+            <span
+              key={r.id}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wide border"
+              style={{
+                background: "color-mix(in srgb, var(--primary) 10%, transparent)",
+                borderColor: "color-mix(in srgb, var(--primary) 20%, transparent)",
+                color: "var(--primary)",
+              }}
+            >
+              {r.nombre}
+              <button
+                type="button"
+                onClick={() => toggle(r.id)}
+                className="opacity-50 hover:opacity-100 transition-opacity ml-0.5"
+              >
+                ✕
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+
       <button
         type="button"
         onClick={() => setOpen(o => !o)}
@@ -942,53 +973,47 @@ export const SelectorReino = ({
         style={{
           background: "color-mix(in srgb, var(--primary) 5%, transparent)",
           border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
-          color: selected ? "var(--primary)" : "color-mix(in srgb, var(--primary) 40%, transparent)",
+          color: "color-mix(in srgb, var(--primary) 50%, transparent)",
         }}
       >
         <span className="flex items-center gap-2">
           <MapPin size={12} className="opacity-50 shrink-0" />
-          <span className="font-black uppercase truncate">
-            {selected ? selected.nombre : loading ? "Cargando…" : "Sin reino asignado"}
+          <span>
+            {loading
+              ? "Cargando…"
+              : selected.length > 0
+                ? `${selected.length} reino${selected.length > 1 ? "s" : ""} seleccionado${selected.length > 1 ? "s" : ""}`
+                : "Añadir reinos…"}
           </span>
         </span>
         <ChevronDown size={12} className={`transition-transform duration-200 shrink-0 ${open ? "rotate-180" : ""}`} />
       </button>
+
       {open && (
-        <div className="border rounded-[var(--radius-btn)] overflow-hidden"
+        <div
+          className="border rounded-[var(--radius-btn)] overflow-hidden max-h-44 overflow-y-auto"
           style={{ borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)", background: "var(--bg-main)" }}
         >
-          <button
-            type="button"
-            onClick={() => { onChange(null); setOpen(false); }}
-            className="w-full flex items-center justify-between px-4 py-2.5 text-[11px] font-bold uppercase transition-all hover:bg-primary/5"
-            style={{ color: !value ? "var(--primary)" : "color-mix(in srgb, var(--primary) 45%, transparent)" }}
-          >
-            <span className="flex items-center gap-2">
-              <span className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center"><X size={9} className="opacity-50" /></span>
-              Ninguno
-            </span>
-            {!value && <Check size={11} style={{ color: "var(--primary)" }} />}
-          </button>
-          <div className="h-px mx-3" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
-          <div className="max-h-48 overflow-y-auto">
-            {reinos.length === 0 ? (
-              <p className="text-[10px] text-primary/30 px-4 py-3 font-bold uppercase">Sin reinos</p>
-            ) : reinos.map(r => {
-              const sel = value === r.id;
-              return (
-                <button key={r.id} type="button" onClick={() => { onChange(r.id); setOpen(false); }}
-                  className="w-full flex items-center justify-between px-4 py-2.5 text-[11px] font-bold uppercase transition-all hover:bg-primary/5"
-                  style={{ color: sel ? "var(--primary)" : "color-mix(in srgb, var(--primary) 50%, transparent)" }}
-                >
-                  <span className="flex items-center gap-2">
-                    <MapPin size={10} className="opacity-40 shrink-0" />
-                    {r.nombre}
-                  </span>
-                  {sel && <Check size={11} style={{ color: "var(--primary)" }} />}
-                </button>
-              );
-            })}
-          </div>
+          {reinos.length === 0 ? (
+            <p className="text-[10px] text-primary/30 px-4 py-3 font-bold uppercase">Sin reinos</p>
+          ) : reinos.map(r => {
+            const sel = value.includes(r.id);
+            return (
+              <button
+                key={r.id}
+                type="button"
+                onClick={() => toggle(r.id)}
+                className="w-full flex items-center justify-between px-4 py-2.5 text-[11px] font-bold uppercase transition-all hover:bg-primary/5"
+                style={{ color: sel ? "var(--primary)" : "color-mix(in srgb, var(--primary) 50%, transparent)" }}
+              >
+                <span className="flex items-center gap-2">
+                  <MapPin size={10} className="opacity-40 shrink-0" />
+                  {r.nombre}
+                </span>
+                {sel && <Check size={11} className="shrink-0" style={{ color: "var(--primary)" }} />}
+              </button>
+            );
+          })}
         </div>
       )}
     </div>
@@ -1370,14 +1395,11 @@ export const PanelPersonajesCapitulo = ({
   const [savingOrden,    setSavingOrden]    = useState(false);
   const ordenInputRef = useRef<HTMLInputElement>(null);
 
-  // ── Reino del capítulo ────────────────────────────────────────────────────
+  // ── Reinos del capítulo ───────────────────────────────────────────────────
   const { reinos, loading: loadingReinos } = useReinos();
-  const [reinoId,     setReinoId]     = useState<string | null>(null);
-  const [reinoOpen,   setReinoOpen]   = useState(false);
+  const [reinosIds,   setReinosIds]   = useState<string[]>([]);
   const [savingReino, setSavingReino] = useState(false);
   const reinoRef = useRef<HTMLDivElement>(null);
-  const reinoBtnRef = useRef<HTMLButtonElement>(null);
-  const [reinoDropPos, setReinoDropPos] = useState<{ top: number; left: number; width: number } | null>(null);
 
   // ── Visibilidad del capítulo ──────────────────────────────────────────────
   const [visibilidad,   setVisibilidad]   = useState<"publico" | "programado" | "oculto">("oculto");
@@ -1389,34 +1411,22 @@ export const PanelPersonajesCapitulo = ({
     if (!capId) return;
     supabase
       .from("capitulos")
-      .select("orden_linea_tiempo, reino_id, visibilidad, fecha_publicacion")
+      .select("orden_linea_tiempo, reinos_ids, visibilidad, fecha_publicacion")
       .eq("id", capId)
       .single()
       .then(({ data }) => {
         setOrdenLinea(data?.orden_linea_tiempo != null ? String(data.orden_linea_tiempo) : "");
-        setReinoId(data?.reino_id ?? null);
+        setReinosIds(data?.reinos_ids ?? []);
         setVisibilidad(data?.visibilidad ?? "oculto");
         setFechaProg(data?.fecha_publicacion ? data.fecha_publicacion.slice(0, 10) : "");
       });
   }, [capId]);
 
-  useEffect(() => {
-    if (!reinoOpen) return;
-    const h = (e: MouseEvent) => {
-      const target = e.target as Node;
-      const inContainer = reinoRef.current?.contains(target);
-      const inBtn = reinoBtnRef.current?.contains(target);
-      if (!inContainer && !inBtn) setReinoOpen(false);
-    };
-    document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
-  }, [reinoOpen]);
-
-  const handleSaveReino = async (id: string | null) => {
-    setReinoId(id);
-    setReinoOpen(false);
+  const handleToggleReino = async (id: string, add: boolean) => {
+    const next = add ? [...reinosIds, id] : reinosIds.filter(x => x !== id);
+    setReinosIds(next);
     setSavingReino(true);
-    try { await capUpdateMeta(capId, { reino_id: id } as any); } catch {}
+    try { await capUpdateMeta(capId, { reinos_ids: next } as any); } catch {}
     setSavingReino(false);
   };
 
@@ -1538,106 +1548,24 @@ export const PanelPersonajesCapitulo = ({
         </p>
       </div>
 
-      {/* ── Reino ───────────────────────────────────────────────────────── */}
+      {/* ── Reinos ──────────────────────────────────────────────────────── */}
       <div
         ref={reinoRef}
-        className="shrink-0 px-3 py-2.5 border-b"
+        className="shrink-0 border-b"
         style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
       >
-        <div className="flex items-center gap-1 mb-1.5">
-          <MapPin size={8} style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }} />
-          <span
-            className="text-[8px] font-black uppercase tracking-[0.2em] flex-1"
-            style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
-          >
-            Reino
-          </span>
-          {savingReino && (
-            <Loader2 size={8} className="animate-spin shrink-0"
-              style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
-          )}
-        </div>
-        <button
-          ref={reinoBtnRef}
-          type="button"
-          onClick={() => {
-            if (!reinoOpen && reinoBtnRef.current) {
-              const rect = reinoBtnRef.current.getBoundingClientRect();
-              setReinoDropPos({ top: rect.bottom + 4, left: rect.left, width: rect.width });
-            }
-            setReinoOpen(o => !o);
-          }}
-          className="w-full flex items-center justify-between rounded-lg border px-2 py-1.5 text-left transition-all"
-          style={{
-            background: reinoId ? "color-mix(in srgb, var(--primary) 6%, transparent)" : "transparent",
-            borderColor: reinoId
-              ? "color-mix(in srgb, var(--primary) 22%, transparent)"
-              : "color-mix(in srgb, var(--primary) 12%, transparent)",
-          }}
-        >
-          <span
-            className="text-[9px] font-black uppercase tracking-wide truncate flex-1 text-left"
-            style={{ color: reinoId ? "var(--primary)" : "color-mix(in srgb, var(--primary) 30%, transparent)" }}
-          >
-            {loadingReinos
-              ? "…"
-              : reinoId
-                ? (reinos.find(r => r.id === reinoId)?.nombre ?? "—")
-                : "Sin reino"}
-          </span>
-          <ChevronDown
-            size={9}
-            className={`shrink-0 transition-transform ${reinoOpen ? "rotate-180" : ""}`}
-            style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
-          />
-        </button>
-        {reinoOpen && reinoDropPos && (
-          <div
-            style={{
-              position: "fixed",
-              top: reinoDropPos.top,
-              left: reinoDropPos.left,
-              width: reinoDropPos.width,
-              zIndex: 9999,
-              background: "var(--bg-main)",
-              border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
-              borderRadius: 8,
-              boxShadow: "0 8px 24px color-mix(in srgb, var(--primary) 12%, transparent)",
-              overflow: "hidden",
-            }}
-          >
-            <button
-              type="button"
-              onClick={() => handleSaveReino(null)}
-              className="w-full flex items-center gap-1.5 px-2.5 py-1.5 text-left transition-all hover:bg-primary/5"
-            >
-              <X size={8} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
-              <span className="text-[9px] font-bold uppercase"
-                style={{ color: !reinoId ? "var(--primary)" : "color-mix(in srgb, var(--primary) 40%, transparent)" }}>
-                Ninguno
-              </span>
-              {!reinoId && <Check size={8} className="ml-auto" style={{ color: "var(--primary)" }} />}
-            </button>
-            <div style={{ height: "1px", background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
-            <div className="max-h-40 overflow-y-auto">
-              {reinos.map(r => (
-                <button
-                  key={r.id}
-                  type="button"
-                  onClick={() => handleSaveReino(r.id)}
-                  className="w-full flex items-center gap-1.5 px-2.5 py-1.5 text-left transition-all hover:bg-primary/5"
-                >
-                  <MapPin size={8} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)", flexShrink: 0 }} />
-                  <span className="text-[9px] font-bold uppercase truncate flex-1"
-                    style={{ color: reinoId === r.id ? "var(--primary)" : "color-mix(in srgb, var(--primary) 50%, transparent)" }}>
-                    {r.nombre}
-                  </span>
-                  {reinoId === r.id && <Check size={8} className="shrink-0" style={{ color: "var(--primary)" }} />}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+        <SeccionEntidad
+          label="Reinos"
+          icon={<MapPin size={9} />}
+          fallbackIcon={<MapPin size={10} />}
+          emptyLabel="Sin reinos"
+          capId={capId}
+          allEntities={reinos.map(r => ({ id: r.id, nombre: r.nombre, imagen_url: (r as any).imagen_reino ?? undefined }))}
+          selectedIds={reinosIds}
+          loading={loadingReinos}
+          saving={savingReino}
+          onToggle={handleToggleReino}
+        />
       </div>
 
       {/* ── Visibilidad ─────────────────────────────────────────────────── */}

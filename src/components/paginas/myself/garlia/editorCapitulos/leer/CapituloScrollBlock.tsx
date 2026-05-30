@@ -7,6 +7,8 @@ import { ContenidoInteractivo } from "./ContenidoInteractivo";
 
 import { LectorSkeleton, ReadingProgressBar, Vignette, CapituloHeader, FinCapituloSeparador, IndexPanel, ChapterSelector } from "./LectorUI";
 import { useDesbloquearPersonajes, PersonajesDesbloqueadosToast } from "./usePersonajes";
+import { useDesbloquearReinos, ReinosDesbloqueadosToast } from "./useReinos";
+
 /**
  * Estilos de fuente fluida para el lector.
  * Usamos container queries para que el tamaño de fuente responda al ancho
@@ -54,8 +56,25 @@ export function CapituloScrollBlock({ cap, onNavigate, esExtra = false }: {
     ? (cap.contenido ?? "").trim().split(/\s+/).length
     : 0;
 
-  const { disparar, mostrarCelebration, desbloqueados, cerrar } =
-    useDesbloquearPersonajes(cap.id, cap.personajes_ids);
+  const {
+    disparar: dispararPersonajes,
+    mostrarCelebration: mostrarPersonajes,
+    desbloqueados: personajesDesbloqueados,
+    cerrar: cerrarPersonajes,
+  } = useDesbloquearPersonajes(cap.id, cap.personajes_ids);
+
+  const {
+    disparar: dispararReinos,
+    mostrarCelebration: mostrarReinos,
+    desbloqueados: reinosDesbloqueados,
+    cerrar: cerrarReinos,
+  } = useDesbloquearReinos(cap.id, cap.reinos_ids);
+
+  // Dispara ambos hooks al llegar al final del capítulo
+  const handleFinCapitulo = () => {
+    dispararPersonajes();
+    dispararReinos();
+  };
 
   return (
     <div id={`cap-${cap.id}`} className="lector-article-wrap scroll-mt-20">
@@ -102,11 +121,23 @@ export function CapituloScrollBlock({ cap, onNavigate, esExtra = false }: {
           />
         </div>
 
-        {!esExtra && <FinCapituloSeparador cap={cap} onVisible={disparar} />}
+        {!esExtra && <FinCapituloSeparador cap={cap} onVisible={handleFinCapitulo} />}
 
         <AnimatePresence>
-          {mostrarCelebration && (
-            <PersonajesDesbloqueadosToast personajesIds={desbloqueados} onClose={cerrar} />
+          {mostrarPersonajes && (
+            <PersonajesDesbloqueadosToast
+              personajesIds={personajesDesbloqueados}
+              onClose={cerrarPersonajes}
+            />
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {mostrarReinos && (
+            <ReinosDesbloqueadosToast
+              reinosIds={reinosDesbloqueados}
+              onClose={cerrarReinos}
+            />
           )}
         </AnimatePresence>
       </article>

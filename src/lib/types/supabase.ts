@@ -92,6 +92,7 @@ export type Database = {
           narrador_id: string | null
           orden: number
           personajes_ids: string[] | null
+          reinos_ids: string[] | null
           reino_id: string | null
           titulo_capitulo: string | null
           visibilidad: string
@@ -106,6 +107,7 @@ export type Database = {
           orden: number
           personajes_ids?: string[] | null
           reino_id?: string | null
+          reinos_ids?: string[] | null
           titulo_capitulo?: string | null
           visibilidad?: string
         }
@@ -119,6 +121,7 @@ export type Database = {
           orden?: number
           personajes_ids?: string[] | null
           reino_id?: string | null
+          reinos_ids?: string[] | null
           titulo_capitulo?: string | null
           visibilidad?: string
         }
@@ -451,6 +454,35 @@ export type Database = {
             columns: ["personaje_id"]
             isOneToOne: false
             referencedRelation: "personajes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      descubrimientos_reinos: {
+        Row: {
+          fecha_descubrimiento: string | null
+          id: string
+          perfil_id: string | null
+          reino_id: string | null
+        }
+        Insert: {
+          fecha_descubrimiento?: string | null
+          id?: string
+          perfil_id?: string | null
+          reino_id?: string | null
+        }
+        Update: {
+          fecha_descubrimiento?: string | null
+          id?: string
+          perfil_id?: string | null
+          reino_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "descubrimientos_reinos_reino_id_fkey"
+            columns: ["reino_id"]
+            isOneToOne: false
+            referencedRelation: "reinos"
             referencedColumns: ["id"]
           },
         ]

@@ -23,6 +23,7 @@ export interface CapituloScrollItem {
   fecha_publicacion:  string;
   libros?:            { titulo?: string };
   personajes_ids?:    string[];
+  reinos_ids?:        string[];
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
