@@ -854,6 +854,10 @@ export default function Lector() {
   // capId es siempre el UUID real del capítulo activo
   const [capId, setCapId] = useState<string>("");
 
+  // URL canónica a aplicar DESPUÉS de que termine la carga,
+  // para no re-disparar el efecto principal con router.replace.
+  const urlCanonica = useRef<string | null>(null);
+
   const [capitulos,      setCapitulos]      = useState<CapituloScrollItem[]>([]);
   const [listaCapitulos, setListaCapitulos] = useState<CapituloLista[]>([]);
   const [segmentos,      setSegmentos]      = useState<Segmento[]>([]);
@@ -877,8 +881,6 @@ export default function Lector() {
         const { data } = await supabase
           .from("libros").select("id, titulo, categoria").eq("id", slugParam).single();
         if (!data) { setError("Libro no encontrado"); return; }
-        const slug = toSlug(data.titulo);
-        router.replace(`/garlia/libros/${slug}/leer/${capIdParam}`, { scroll: false });
         libroId = data.id;
         if (data.categoria?.toLowerCase() === "extra") setEsExtra(true);
       } else {
@@ -989,9 +991,10 @@ export default function Lector() {
         si = segs.findIndex(s => s.capitulos.some(c => c.id === capIdParam));
         if (si === -1) si = 0;
         capIdActivo = capIdParam;
-        // Canonicalizar URL: UUID → slug de segmento
+        // Guardar URL canónica para reemplazar DESPUÉS de setLoading(false),
+        // así no se re-dispara el efecto principal y no hay doble carga.
         const segSlug = slugSegmento(segs, si);
-        router.replace(`/garlia/libros/${slugParam}/leer/${segSlug}`, { scroll: false });
+        urlCanonica.current = `/garlia/libros/${slugParam}/leer/${segSlug}`;
       } else {
         si = resolverSegmentoDesdeSlug(segs, capIdParam);
         capIdActivo = segs[si]?.capitulos[0]?.id ?? capsValidas[0]?.id ?? "";
@@ -1044,6 +1047,15 @@ export default function Lector() {
       .finally(() => setLoading(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slugParam, capIdParam]);
+
+  // Canonicalizar URL (UUID → slug) DESPUÉS de que termine la carga.
+  // Hacerlo dentro de run() disparaba el efecto principal de nuevo → doble carga.
+  useEffect(() => {
+    if (!loading && urlCanonica.current) {
+      router.replace(urlCanonica.current, { scroll: false });
+      urlCanonica.current = null;
+    }
+  }, [loading]); // eslint-disable-line
 
   const libroTitulo = capitulos[0]?.libros?.titulo;
   const hasScrolled = useRef(false);
@@ -1100,10 +1112,7 @@ export default function Lector() {
     }, 180);
   }, [loading, capId]);
 
-  useEffect(() => {
-    if (loading || !capId) return;
-    document.getElementById(`cap-${capId}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, [capId]); // eslint-disable-line
+  // (efecto de scroll duplicado eliminado — el de arriba ya lo maneja con hasScrolled guard)
 
   const getDexieTable = async () => {
     try {
