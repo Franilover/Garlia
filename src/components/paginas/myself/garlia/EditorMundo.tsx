@@ -1074,20 +1074,36 @@ function PanelHistoriaMundo({
         list.push({ ...e, source: "reino", reinoNombre: reino.nombre, reinoId: reino.id, yearNum: parseYear(e.year) });
       }
     }
-    // Capítulos con reinos_ids y orden_linea_tiempo como eventos propios
+    // Capítulos con orden_linea_tiempo como eventos propios
     for (const cap of capsTimeline) {
-      if (!cap.reinos_ids?.length) continue;
-      for (const reinoId of cap.reinos_ids) {
-        if (filterReino && reinoId !== filterReino) continue;
-        const reinoNombre = reinos.find(r => r.id === reinoId)?.nombre;
+      if (cap.reinos_ids?.length) {
+        // Capítulo asociado a uno o más reinos: aparece una vez por reino
+        for (const reinoId of cap.reinos_ids) {
+          if (filterReino && reinoId !== filterReino) continue;
+          const reinoNombre = reinos.find(r => r.id === reinoId)?.nombre;
+          list.push({
+            id: `cap:${cap.id}:${reinoId}`,
+            year: String(cap.orden_linea_tiempo),
+            title: cap.titulo_capitulo,
+            description: "",
+            source: "capitulo",
+            reinoId,
+            reinoNombre,
+            yearNum: cap.orden_linea_tiempo,
+            capData: cap,
+          });
+        }
+      } else {
+        // Capítulo sin reinos: aparece igual, sin badge de reino
+        if (filterReino) continue;
         list.push({
-          id: `cap:${cap.id}:${reinoId}`,
+          id: `cap:${cap.id}`,
           year: String(cap.orden_linea_tiempo),
           title: cap.titulo_capitulo,
           description: "",
           source: "capitulo",
-          reinoId,
-          reinoNombre,
+          reinoId: undefined,
+          reinoNombre: undefined,
           yearNum: cap.orden_linea_tiempo,
           capData: cap,
         });
@@ -1116,7 +1132,7 @@ function PanelHistoriaMundo({
   const selectedEvt = useMemo(() => {
     if (!selectedEventKey) return null;
     return allEvents.find(e => {
-      const key = e.source === "mundo" ? e.id : `${e.reinoId}:${e.id}`;
+      const key = e.source === "mundo" ? e.id : e.source === "capitulo" ? e.id : `${e.reinoId}:${e.id}`;
       return key === selectedEventKey;
     }) ?? null;
   }, [selectedEventKey, allEvents]);
@@ -1211,7 +1227,7 @@ function PanelHistoriaMundo({
                 const isMundo = evt.source === "mundo";
                 const isCapitulo = evt.source === "capitulo";
                 const totalLen = allEvents.length;
-                const key = isMundo ? evt.id : `${evt.reinoId}:${evt.id}`;
+                const key = isMundo ? evt.id : isCapitulo ? evt.id : `${evt.reinoId}:${evt.id}`;
                 const yearNum = parseYear(evt.year);
                 // Solo buscar capMatch para eventos no-capitulo
                 const capMatch = !isCapitulo && isFinite(yearNum)
