@@ -34,7 +34,7 @@ export interface ItemInventario {
 
 export type EntidadModal =
   | { tipo: "item_inv"; data: ItemInventario }
-  | { tipo: "item" | "criatura" | "personaje" | "reino"; data: Descubrimiento };
+  | { tipo: "item" | "criatura" | "personaje" | "reino" | "lugar"; data: Descubrimiento };
 
 export function ModalDetalle({ entidad, onClose, canciones, cargandoCanciones }: {
   entidad: EntidadModal;
@@ -46,11 +46,12 @@ export function ModalDetalle({ entidad, onClose, canciones, cargandoCanciones }:
   const isItem     = isItemInv || entidad.tipo === "item";
   const isCriatura = entidad.tipo === "criatura";
   const isReino    = entidad.tipo === "reino";
+  const isLugar    = entidad.tipo === "lugar";
 
   const nombre = isItemInv
     ? (entidad.data as ItemInventario).items.nombre
     : (entidad.data as Descubrimiento).nombre
-      ?? (isCriatura ? "Criatura Desconocida" : isReino ? "Reino" : entidad.tipo === "item" ? "Objeto" : "Personaje");
+      ?? (isCriatura ? "Criatura Desconocida" : isReino ? "Reino" : isLugar ? "Lugar" : entidad.tipo === "item" ? "Objeto" : "Personaje");
 
   const descripcion = isItemInv
     ? (entidad.data as ItemInventario).items.descripcion
@@ -75,7 +76,7 @@ export function ModalDetalle({ entidad, onClose, canciones, cargandoCanciones }:
     if (d.especie)   tags.push(d.especie!);
   }
 
-  const IconComp = isReino ? MapPin : isItem ? Package : isCriatura ? Sword : User;
+  const IconComp = isReino || isLugar ? MapPin : isItem ? Package : isCriatura ? Sword : User;
 
   return (
     <AnimatePresence>

@@ -8,6 +8,7 @@ import { ContenidoInteractivo } from "./ContenidoInteractivo";
 import { LectorSkeleton, ReadingProgressBar, Vignette, CapituloHeader, FinCapituloSeparador, IndexPanel, ChapterSelector } from "./LectorUI";
 import { useDesbloquearPersonajes, PersonajesDesbloqueadosToast } from "./usePersonajes";
 import { useDesbloquearReinos, ReinosDesbloqueadosToast } from "./useReinos";
+import { useDesbloquearLugares, LugaresDesbloqueadosToast } from "./useLugares";
 
 /**
  * Estilos de fuente fluida para el lector.
@@ -70,10 +71,18 @@ export function CapituloScrollBlock({ cap, onNavigate, esExtra = false }: {
     cerrar: cerrarReinos,
   } = useDesbloquearReinos(cap.id, cap.reinos_ids);
 
-  // Dispara ambos hooks al llegar al final del capítulo
+  const {
+    disparar: dispararLugares,
+    mostrarCelebration: mostrarLugares,
+    desbloqueados: lugaresDesbloqueados,
+    cerrar: cerrarLugares,
+  } = useDesbloquearLugares(cap.id, (cap as any).lugares_ids);
+
+  // Dispara los tres hooks al llegar al final del capítulo
   const handleFinCapitulo = () => {
     dispararPersonajes();
     dispararReinos();
+    dispararLugares();
   };
 
   return (
@@ -137,6 +146,15 @@ export function CapituloScrollBlock({ cap, onNavigate, esExtra = false }: {
             <ReinosDesbloqueadosToast
               reinosIds={reinosDesbloqueados}
               onClose={cerrarReinos}
+            />
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {mostrarLugares && (
+            <LugaresDesbloqueadosToast
+              lugaresIds={lugaresDesbloqueados}
+              onClose={cerrarLugares}
             />
           )}
         </AnimatePresence>

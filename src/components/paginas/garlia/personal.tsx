@@ -44,7 +44,7 @@ interface PersonalProps {
 }
 
 export default function Personal({ datos: datosProp }: PersonalProps) {
-  const [tab, setTab] = useState<"items" | "criaturas" | "personajes" | "reinos">("personajes");
+  const [tab, setTab] = useState<"items" | "criaturas" | "personajes" | "reinos" | "lugares">("personajes");
   const [modalEntidad, setModalEntidad] = useState<EntidadModal | null>(null);
 
   const [perfil, setPerfil]           = useState<Perfil | null>(null);
@@ -63,6 +63,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
   const [cancionesPersonaje, setCancionesPersonaje] = useState<any[]>([]);
   const [cargandoCanciones, setCargandoCanciones] = useState(false);
   const [reinos, setReinos] = useState<{ id: string; nombre: string; imagen_reino?: string | null; descripcion?: string | null }[]>([]);
+  const [lugares, setLugares] = useState<{ id: string; nombre: string; imagen_url?: string | null; descripcion?: string | null }[]>([]);
   const userIdRef = React.useRef<string | null>(null);
 
   useEffect(() => {
@@ -106,7 +107,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
           if (invData)  setInventario(invData as unknown as ItemInventario[]);
         }
 
-        const [itemsRes, criaturasRes, personajesRes, reinosRes] = await Promise.all([
+        const [itemsRes, criaturasRes, personajesRes, reinosRes, lugaresRes] = await Promise.all([
           supabase
             .from("descubrimientos_items")
             .select("fecha_descubrimiento, items:item_id(id, nombre, categoria, imagen_url, descripcion)")
@@ -123,12 +124,17 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
             .from("descubrimientos_reinos")
             .select("fecha_descubrimiento, reinos:reino_id(id, nombre, imagen_reino, descripcion)")
             .eq("perfil_id", user.id),
+          supabase
+            .from("lugares_desbloqueados")
+            .select("lugares:lugar_id(id, nombre, imagen_url, descripcion)")
+            .eq("user_id", user.id),
         ]);
 
         if (itemsRes.error)      console.warn("[Personal] descubrimientos_items error:", itemsRes.error.message);
         if (criaturasRes.error)  console.warn("[Personal] descubrimientos_criaturas error:", criaturasRes.error.message);
         if (personajesRes.error) console.warn("[Personal] descubrimientos_personajes error:", personajesRes.error.message);
         if (reinosRes.error)     console.warn("[Personal] descubrimientos_reinos error:", reinosRes.error.message);
+        if (lugaresRes.error)    console.warn("[Personal] lugares_desbloqueados error:", lugaresRes.error.message);
 
         const reinosData = (reinosRes.data ?? []).map((r: any) => ({
           id:           r.reinos?.id,
@@ -137,6 +143,14 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
           descripcion:  r.reinos?.descripcion,
         })).filter(r => r.id);
         setReinos(reinosData);
+
+        const lugaresData = (lugaresRes.data ?? []).map((r: any) => ({
+          id:          r.lugares?.id,
+          nombre:      r.lugares?.nombre,
+          imagen_url:  r.lugares?.imagen_url,
+          descripcion: r.lugares?.descripcion,
+        })).filter(l => l.id);
+        setLugares(lugaresData);
 
         const planos: Descubrimiento[] = [
           ...(itemsRes.data ?? []).map((r: any) => ({
@@ -282,6 +296,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
     { id: "criaturas",  label: "Bestiario",  icon: Cat,     count: misCriaturas.length },
     { id: "items",      label: "Inventario", icon: Sword,   count: inventario.length + misItemsDesc.length },
     { id: "reinos",     label: "Mapa",       icon: MapPin,  count: reinos.length },
+    { id: "lugares",    label: "Lugares",    icon: MapPin,  count: lugares.length },
   ] as const;
 
   if (cargando) return (
@@ -1425,6 +1440,56 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                           </button>
                         ))
                         : <EmptyTab label="Ningún reino descubierto aún" />
+                    )}
+
+                    {tab === "lugares" && (
+                      lugares.length > 0
+                        ? lugares.map((l, i) => (
+                          <button
+                            key={i}
+                            onClick={() => setModalEntidad({ tipo: "lugar", data: {
+                              tipo: "item",
+                              entidad_id: l.id,
+                              nombre: l.nombre,
+                              imagen_url: l.imagen_url ?? undefined,
+                              descripcion: l.descripcion ?? undefined,
+                              fecha_descubrimiento: "",
+                            }})}
+                            className="group relative overflow-hidden text-left transition-all duration-150"
+                            style={{
+                              background: "color-mix(in srgb, var(--primary) 3%, var(--white-custom))",
+                              border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
+                              borderRadius: "4px",
+                              boxShadow: "inset 0 1px 0 color-mix(in srgb, var(--primary) 6%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--primary) 10%, transparent)",
+                              aspectRatio: "1",
+                              display: "flex",
+                              flexDirection: "column",
+                            }}
+                            onMouseEnter={e => {
+                              (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 35%, transparent)";
+                              (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 7%, var(--white-custom))";
+                              (e.currentTarget as HTMLElement).style.boxShadow = "inset 0 1px 0 color-mix(in srgb, var(--primary) 12%, transparent), 0 0 0 1px color-mix(in srgb, var(--primary) 20%, transparent)";
+                            }}
+                            onMouseLeave={e => {
+                              (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 14%, transparent)";
+                              (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 3%, var(--white-custom))";
+                              (e.currentTarget as HTMLElement).style.boxShadow = "inset 0 1px 0 color-mix(in srgb, var(--primary) 6%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--primary) 10%, transparent)";
+                            }}>
+                            <div className="flex-1 relative overflow-hidden flex items-center justify-center p-2">
+                              {l.imagen_url
+                                ? <img src={l.imagen_url} alt={l.nombre}
+                                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" />
+                                : <MapPin size={22} style={{ color: "color-mix(in srgb, var(--primary) 14%, transparent)" }} />}
+                            </div>
+                            <div className="px-1.5 py-1" style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 4%, transparent)" }}>
+                              <p className="font-serif italic text-[9px] leading-tight capitalize truncate text-center"
+                                style={{ color: "var(--primary)" }}>
+                                {l.nombre}
+                              </p>
+                            </div>
+                          </button>
+                        ))
+                        : <EmptyTab label="Ningún lugar descubierto aún" />
                     )}
 
                   </MotionDiv>
