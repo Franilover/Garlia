@@ -2050,8 +2050,7 @@ function PanelTexto({
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
       <div className="flex-1 min-h-0 overflow-y-auto p-3 sm:p-5">
-        <MarkdownEditor value={texto} onChange={onChange} placeholder={placeholder} rows={22} toolbar defaultMode="edit" onSnippetAction={onSnippetAction}
-/>
+        <MarkdownEditor value={texto} onChange={onChange} placeholder={placeholder} rows={22} toolbar defaultMode="edit" onSnippetAction={onSnippetAction} />
       </div>
       <div className="shrink-0 flex items-center justify-end gap-2 px-3 py-1.5 border-t"
         style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
