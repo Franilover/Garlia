@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
 import {
-  ChevronDown, ChevronRight, UserCircle2, Loader2, Plus, Trash2,
+  ChevronDown, ChevronRight, UserCircle2, Loader2, Trash2,
   X, Check, Clock, Hash, AlignLeft, Calendar, BookMarked, Pencil,
   MoreHorizontal, Globe, Lock, Timer, Mic2, MapPin, Cat, Sword,
 } from "lucide-react";
@@ -18,6 +18,7 @@ import {
 } from "./types";
 import { useCapitulos, useReinos } from "./hooks";
 import { ComboSelector } from "@/components/ui/ComboSelector";
+import { SeccionEntidad } from "@/components/ui/SeccionEntidad";
 
 // ─── EstadisticasEscritura ────────────────────────────────────────────────────
 
@@ -1012,182 +1013,6 @@ function useLugares() {
   }, []);
   return { lugares, loading };
 }
-
-// ─── SeccionEntidad — sección vertical reutilizable ──────────────────────────
-
-type EntidadBase = { id: string; nombre: string; imagen_url?: string };
-
-const SeccionEntidad = ({
-  label,
-  icon,
-  emptyLabel,
-  fallbackIcon,
-  capId,
-  allEntities,
-  selectedIds,
-  loading,
-  saving,
-  onToggle,
-  onEntityClick,
-}: {
-  label: string;
-  icon: React.ReactNode;
-  emptyLabel: string;
-  fallbackIcon: React.ReactNode;
-  capId: string;
-  allEntities: EntidadBase[];
-  selectedIds: string[];
-  loading: boolean;
-  saving: boolean;
-  onToggle: (id: string, add: boolean) => void;
-  onEntityClick?: (id: string) => void; 
-  }) => {
-  const [open, setOpen] = useState(false);
-  const dropRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const h = (e: MouseEvent) => {
-      if (dropRef.current && !dropRef.current.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
-  }, [open]);
-
-  const selected  = allEntities.filter(e => selectedIds.includes(e.id));
-  const available = allEntities.filter(e => !selectedIds.includes(e.id));
-
-  return (
-    <div className="shrink-0 flex flex-col">
-      {/* ── Cabecera de sección ── */}
-      <div
-        className="flex items-center justify-between px-3 py-2"
-        style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" }}
-      >
-        <span
-          className="flex items-center gap-1.5 text-[8px] font-black uppercase tracking-widest"
-          style={{ color: "color-mix(in srgb, var(--primary) 38%, transparent)" }}
-        >
-          {icon}
-          {label}
-          {saving && <Loader2 size={8} className="animate-spin opacity-50" />}
-        </span>
-
-        {/* Dropdown añadir */}
-        <div className="relative" ref={dropRef}>
-          <button
-            type="button"
-            onClick={() => setOpen(o => !o)}
-            title={`Añadir ${label.toLowerCase()}`}
-            className="w-5 h-5 rounded-md flex items-center justify-center transition-all hover:bg-primary/10"
-            style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
-          >
-            <Plus size={11} />
-          </button>
-
-          {open && (
-            <div
-              className="absolute right-0 top-full mt-1 z-50 rounded-xl border overflow-hidden shadow-lg"
-              style={{
-                width: "165px",
-                background: "var(--bg-main)",
-                borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)",
-              }}
-            >
-              {loading ? (
-                <div className="flex items-center justify-center py-4 text-primary/25">
-                  <Loader2 size={13} className="animate-spin" />
-                </div>
-              ) : available.length === 0 ? (
-                <p className="text-[9px] font-black uppercase text-primary/25 px-3 py-3 text-center tracking-widest">
-                  {allEntities.length === 0 ? emptyLabel : "Todos añadidos"}
-                </p>
-              ) : (
-                <div className="max-h-44 overflow-y-auto py-1">
-                  {available.map(e => (
-                    <button
-                      key={e.id}
-                      type="button"
-                      onClick={() => { onToggle(e.id, true); setOpen(false); }}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-[10px] font-black uppercase tracking-wide transition-all hover:bg-primary/5 text-left"
-                      style={{ color: "color-mix(in srgb, var(--primary) 60%, transparent)" }}
-                    >
-                      {e.imagen_url
-                        ? <img src={e.imagen_url} alt={e.nombre}
-                            className="w-4 h-4 rounded shrink-0 object-contain"
-                            style={{ background: "color-mix(in srgb, var(--primary) 6%, transparent)" }} />
-                        : <span className="shrink-0 opacity-40">{fallbackIcon}</span>
-                      }
-                      <span className="truncate">{e.nombre}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* ── Entidades seleccionadas ── */}
-      {selected.length === 0 ? (
-        <div
-          className="flex items-center gap-2 px-3 py-2.5"
-          style={{ opacity: 0.35 }}
-        >
-          <span style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>
-            {fallbackIcon}
-          </span>
-          <p className="text-[8px] font-black uppercase tracking-widest"
-            style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
-            {emptyLabel}
-          </p>
-        </div>
-      ) : (
-        selected.map(e => (
-          <div
-            key={e.id}
-            onClick={() => onEntityClick?.(e.id)}
-            className="group flex items-center gap-2 px-3 py-1.5 transition-all hover:bg-primary/5"
-          >
-            {e.imagen_url ? (
-              <img
-                src={e.imagen_url}
-                alt={e.nombre}
-                className="w-5 h-5 rounded-full shrink-0 object-contain"
-                style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
-              />
-            ) : (
-              <div
-                className="w-5 h-5 rounded-full shrink-0 flex items-center justify-center text-[7px] font-black uppercase"
-                style={{
-                  background: "color-mix(in srgb, var(--primary) 12%, transparent)",
-                  color: "color-mix(in srgb, var(--primary) 60%, transparent)",
-                }}
-              >
-                {e.nombre.charAt(0)}
-              </div>
-            )}
-            <span
-              className="flex-1 min-w-0 text-[10px] font-black uppercase tracking-wide truncate"
-              style={{ color: "color-mix(in srgb, var(--primary) 65%, transparent)" }}
-            >
-              {e.nombre}
-            </span>
-            <button
-              type="button"
-              onClick={(ev) => { ev.stopPropagation(); onToggle(e.id, false); }} 
-              title="Quitar"
-              className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity rounded p-0.5 hover:bg-red-500/10"
-              style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
-            >
-              <X size={9} />
-            </button>
-          </div>
-        ))
-      )}
-    </div>
-  );
-};
 
 // ─── PanelPersonajesCapitulo (Personajes + Criaturas + Items en vertical) ─────
 
