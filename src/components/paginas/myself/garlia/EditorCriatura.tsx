@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Bug, Plus, Check, X, Trash2, Save, ChevronDown, Lock,
   Dna, Brain, Wand2, GitBranch, Package, Wrench, Leaf, Layers, Users,
-  MapPin, Globe, ExternalLink, Pencil, Search,
+  MapPin, Globe, ExternalLink,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
@@ -695,175 +695,124 @@ function BloqueGrupoCategoria({
 }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const containerRef = React.useRef<HTMLDivElement>(null);
 
+  // Grupos de esta categoría disponibles en el mundo
   const gruposDeCat = todosGrupos.filter(g => g.subtipo === subtipo);
+
+  // Cuáles ya están asignados a esta criatura
   const actual = gruposActuales.filter(g => gruposDeCat.some(c => c.id === g.id));
+
+  // Opciones aún no asignadas
   const disponibles = gruposDeCat.filter(
     g => !gruposActuales.some(a => a.id === g.id) &&
          g.nombre.toLowerCase().includes(search.toLowerCase())
   );
 
-  const border = "1px solid color-mix(in srgb, var(--primary) 15%, transparent)";
-  const borderFocus = "1px solid color-mix(in srgb, var(--primary) 35%, transparent)";
-
-  // Cerrar al click fuera
-  useEffect(() => {
-    if (!open) return;
-    const h = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false); setSearch("");
-      }
-    };
-    document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
-  }, [open]);
-
   return (
-    <div className="space-y-1.5" ref={containerRef}>
-      {/* Label — idéntico al de ComboSelector */}
-      <label className="text-[9px] font-black uppercase tracking-widest text-primary/40 flex items-center gap-1.5">
-        <Icon size={9} className="opacity-70" /> {label}
+    <div className="space-y-1.5">
+      {/* Label */}
+      <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35 flex items-center gap-1">
+        <Icon size={9} /> {label}
       </label>
 
-      {/* Filas de valores asignados */}
-      {actual.length > 0 && (
+      {/* Chips actuales */}
+      {actual.length > 0 ? (
         <div className="flex flex-col gap-1">
           {actual.map(g => (
-            /* Mismo layout que el trigger con onNavigate del ComboSelector */
             <div
               key={g.id}
-              className="w-full flex items-center rounded-[var(--radius-btn)] overflow-hidden transition-all"
+              className="flex items-center gap-1 pl-2 pr-1 py-1 rounded-xl border text-[10px] font-bold transition-all"
               style={{
                 background: "color-mix(in srgb, var(--primary) 5%, transparent)",
-                border,
+                borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
+                color: "var(--primary)",
               }}
             >
-              {/* Click principal → navegar al grupo */}
               <button
                 type="button"
                 onClick={() => onSelectGrupo?.(g.id)}
-                className="flex-1 flex items-center gap-2 px-3 py-2 text-[11px] font-black uppercase truncate transition-all hover:bg-primary/5 min-w-0"
-                style={{ color: "var(--primary)" }}
+                className="flex-1 min-w-0 truncate text-left leading-none hover:underline cursor-pointer"
                 title="Ir al grupo"
               >
-                <span className="truncate">{g.nombre}</span>
+                {g.nombre}
               </button>
-              {/* Lápiz → abre el dropdown para cambiar */}
               <button
                 type="button"
-                onClick={() => { setOpen(o => !o); setSearch(""); }}
-                className="shrink-0 flex items-center justify-center px-2.5 py-2 transition-all hover:bg-primary/10"
-                style={{
-                  borderLeft: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-                  color: "color-mix(in srgb, var(--primary) 35%, transparent)",
-                }}
-                title="Cambiar"
+                onClick={() => onRemove(g.id)}
+                className="shrink-0 w-4 h-4 rounded flex items-center justify-center text-primary/25 hover:text-red-400 transition-colors cursor-pointer"
               >
-                <Pencil size={10} />
+                <X size={8} />
               </button>
             </div>
           ))}
         </div>
+      ) : (
+        /* Estado vacío */
+        <p className="text-[9px] text-primary/20 italic px-0.5">Sin asignar</p>
       )}
 
-      {/* Trigger vacío — igual que el ComboSelector sin valor */}
-      {actual.length === 0 && (
+      {/* Botón añadir + dropdown — solo si no hay ninguno asignado */}
+      {actual.length === 0 && <div className="relative">
         <button
           type="button"
           onClick={() => setOpen(o => !o)}
-          className="w-full flex items-center justify-between px-3 py-2 rounded-[var(--radius-btn)] text-[11px] font-bold transition-all"
+          className="flex items-center gap-1 px-2 py-1 rounded-lg border border-dashed text-[8px] font-black uppercase tracking-widest transition-all cursor-pointer"
           style={{
-            background: "color-mix(in srgb, var(--primary) 5%, transparent)",
-            border: open ? borderFocus : border,
-            color: "color-mix(in srgb, var(--primary) 40%, transparent)",
+            borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)",
+            color: "color-mix(in srgb, var(--primary) 30%, transparent)",
           }}
         >
-          <span className="font-black uppercase text-[10px] tracking-wide">Sin asignar</span>
-          <ChevronDown
-            size={12}
-            className={`shrink-0 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
-            style={{ opacity: 0.5 }}
-          />
+          <Plus size={7} /> Añadir
         </button>
-      )}
 
-      {/* Dropdown — mismo estilo que el de ComboSelector */}
-      {open && (
-        <div
-          className="rounded-[var(--radius-btn)] overflow-hidden"
-          style={{
-            border,
-            background: "var(--bg-main)",
-            boxShadow: "0 8px 24px color-mix(in srgb, var(--primary) 10%, transparent)",
-          }}
-        >
-          {/* Buscador */}
-          <div
-            className="flex items-center gap-2 px-3 py-2"
-            style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
-          >
-            <Search size={11} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)", flexShrink: 0 }} />
-            <input
-              autoFocus
-              type="text"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              onKeyDown={e => e.key === "Escape" && (setOpen(false), setSearch(""))}
-              placeholder="Buscar…"
-              className="flex-1 bg-transparent outline-none text-[11px] font-bold uppercase tracking-wide placeholder:normal-case placeholder:font-medium placeholder:tracking-normal"
-              style={{ color: "var(--primary)", caretColor: "var(--primary)" }}
-            />
-            {search && (
-              <button
-                type="button"
-                onClick={() => setSearch("")}
-                className="opacity-30 hover:opacity-70 transition-opacity"
+        {open && (
+          <>
+            <div className="fixed inset-0 z-40" onClick={() => { setOpen(false); setSearch(""); }} />
+            <div
+              className="absolute z-50 top-full left-0 mt-1 w-44 rounded-xl border shadow-xl overflow-hidden"
+              style={{ background: "var(--bg-main)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}
+            >
+              {/* Header del dropdown */}
+              <div
+                className="px-2.5 py-1.5 border-b flex items-center gap-1.5"
+                style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}
               >
-                <X size={10} style={{ color: "var(--primary)" }} />
-              </button>
-            )}
-          </div>
-
-          {/* Lista de opciones */}
-          <div className="max-h-48 overflow-y-auto">
-            {/* Opción "quitar" si hay algo asignado */}
-            {actual.length > 0 && (
-              <button
-                type="button"
-                onMouseDown={() => { actual.forEach(g => onRemove(g.id)); setOpen(false); setSearch(""); }}
-                className="w-full flex items-center gap-2 px-4 py-2.5 text-[11px] font-bold uppercase transition-all"
-                style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}
-              >
-                <span className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center">
-                  <X size={9} className="opacity-50" />
-                </span>
-                Sin asignar
-              </button>
-            )}
-
-            {gruposDeCat.length === 0 ? (
-              <p className="text-[10px] text-primary/30 px-4 py-3 font-bold uppercase">
-                No hay grupos de «{label}» creados
-              </p>
-            ) : disponibles.length === 0 && !actual.length ? (
-              <p className="text-[10px] text-primary/30 px-4 py-3 font-bold uppercase">
-                {search ? `Sin resultados para "${search}"` : "Todos asignados"}
-              </p>
-            ) : disponibles.map(g => (
-              <button
-                key={g.id}
-                type="button"
-                onMouseDown={() => { onAdd(g.id); setOpen(false); setSearch(""); }}
-                className="w-full flex items-center justify-between px-4 py-2.5 text-[11px] font-bold uppercase transition-all hover:bg-primary/6"
-                style={{ color: "color-mix(in srgb, var(--primary) 50%, transparent)" }}
-              >
-                <span className="truncate">{g.nombre}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+                <Icon size={8} className="text-primary/30" />
+                <span className="text-[8px] font-black uppercase tracking-[0.25em] text-primary/40">{label}</span>
+              </div>
+              <div className="p-1.5 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 6%, transparent)" }}>
+                <input
+                  autoFocus
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder={`Buscar ${label.toLowerCase()}…`}
+                  className="w-full bg-transparent text-[10px] text-primary outline-none placeholder:text-primary/30 px-1 py-0.5"
+                />
+              </div>
+              <div className="max-h-36 overflow-y-auto p-1">
+                {gruposDeCat.length === 0 ? (
+                  <p className="text-[9px] text-primary/25 italic text-center py-3 px-2">
+                    No hay grupos de tipo "{label}" creados
+                  </p>
+                ) : disponibles.length === 0 ? (
+                  <p className="text-[9px] text-primary/25 italic text-center py-3">
+                    {search ? "Sin resultados" : "Ya están todos asignados"}
+                  </p>
+                ) : disponibles.map(g => (
+                  <button
+                    key={g.id}
+                    type="button"
+                    onMouseDown={() => { onAdd(g.id); setOpen(false); setSearch(""); }}
+                    className="w-full text-left px-2.5 py-1.5 rounded-lg text-[11px] font-medium text-primary/75 hover:bg-primary/6 hover:text-primary transition-colors truncate cursor-pointer"
+                  >
+                    {g.nombre}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+      </div>}
     </div>
   );
 }
@@ -1124,8 +1073,6 @@ function BloqueHabitat({
 
   return (
     <div className="space-y-3">
-      <p className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Hábitat</p>
-
       {/* ── Reinos ── */}
       <div className="space-y-1.5">
         <label className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/25 flex items-center gap-1">
@@ -1455,18 +1402,9 @@ export function EditorCriatura({
 
                 {/* Columna derecha: Catálogo Mágico */}
                 <div className="sm:shrink-0 sm:w-64 space-y-3">
-                  <p className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Catálogo Mágico</p>
                  <div className="space-y-3">
-                    <div className="space-y-1.5">
-                      <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/25">Hechizos</p>
-                      {/* Los grupos actuales de la criatura determinan la compatibilidad */}
-                      <BloqueHechizos personajeId={form.id} grupoIds={gruposActuales.map(g => g.id)} />
-                    </div>
-                    <div className="space-y-1.5">
-                      <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/25">Dones</p>
-                      {/* Los grupos actuales de la criatura determinan la compatibilidad */}
-                      <BloqueDones personajeId={form.id} grupoIds={gruposActuales.map(g => g.id)} />
-                    </div>
+                    <BloqueHechizos personajeId={form.id} grupoIds={gruposActuales.map(g => g.id)} />
+                    <BloqueDones personajeId={form.id} grupoIds={gruposActuales.map(g => g.id)} />
                   </div>
                 </div>
               </div>
