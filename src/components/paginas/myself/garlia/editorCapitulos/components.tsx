@@ -1230,6 +1230,7 @@ export const PanelPersonajesCapitulo = ({
           loading={loadingReinos}
           saving={savingReino}
           onToggle={handleToggleReino}
+          onEntityClick={(id) => dispatchOpen("reinos", id)}
         />
       </div>
 
@@ -1249,6 +1250,7 @@ export const PanelPersonajesCapitulo = ({
           loading={loadingLugares}
           saving={savingLugar}
           onToggle={handleToggleLugar}
+          onEntityClick={(id) => dispatchOpen("lugares", id)}
         />
       </div>
 
