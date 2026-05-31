@@ -9,7 +9,7 @@ import { supabase } from "@/lib/api/client/supabase";
 import {
   ModalDetalle, EntidadCard, EmptyTab,
   type EntidadModal, type Descubrimiento, type ItemInventario,
-} from "./PersonalComponents";
+} from "./personal/PersonalComponents";
 
 interface PerfilResumen {
   id: string;
@@ -1476,7 +1476,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                               (e.currentTarget as HTMLElement).style.boxShadow = "inset 0 1px 0 color-mix(in srgb, var(--primary) 6%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--primary) 10%, transparent)";
                             }}>
                             {/* Imagen */}
-                            <div className="flex-1 relative overflow-hidden flex items-center justify-center p-2">
+                            <div className="flex-1 relative overflow-hidden flex items-center justify-center p-2" style={{ minHeight: "56px" }}>
                               {item.items.imagen_url
                                 ? <img src={item.items.imagen_url} alt={item.items.nombre}
                                     className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-125"
@@ -1515,7 +1515,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                               (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 14%, transparent)";
                               (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 3%, var(--white-custom))";
                               (e.currentTarget as HTMLElement).style.boxShadow = "inset 0 1px 0 color-mix(in srgb, var(--primary) 6%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--primary) 10%, transparent)";
-                            }}>                            <div className="flex-1 relative overflow-hidden flex items-center justify-center p-2">
+                            }}>                            <div className="flex-1 relative overflow-hidden flex items-center justify-center p-2" style={{ minHeight: "56px" }}>
                               {d.imagen_url
                                 ? <img src={d.imagen_url} alt={d.nombre}
                                     className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-125"
@@ -1530,7 +1530,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                             </div>
                           </button>
                         ))}
-                        {inventario.length === 0 && misItemsDesc.length === 0 && <EmptyTab label="Sin items registrados aún" />}
+                        {inventario.length === 0 && misItemsDesc.length === 0 && <div className="col-span-3"><EmptyTab label="Sin items registrados aún" /></div>}
                       </>
                     )}
 
@@ -1559,7 +1559,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                               (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 14%, transparent)";
                               (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 3%, var(--white-custom))";
                               (e.currentTarget as HTMLElement).style.boxShadow = "inset 0 1px 0 color-mix(in srgb, var(--primary) 6%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--primary) 10%, transparent)";
-                            }}>                            <div className="flex-1 relative overflow-hidden flex items-center justify-center p-2">
+                            }}>                            <div className="flex-1 relative overflow-hidden flex items-center justify-center p-2" style={{ minHeight: "56px" }}>
                               {d.imagen_url
                                 ? <img src={d.imagen_url} alt={d.nombre}
                                     className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-125"
@@ -1574,7 +1574,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                             </div>
                           </button>
                         ))
-                        : <EmptyTab label="Sin registros en el bestiario" />
+                        : <div className="col-span-3"><EmptyTab label="Sin registros en el bestiario" /></div>
                     )}
 
                     {tab === "personajes" && (
@@ -1602,7 +1602,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                               (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 14%, transparent)";
                               (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 3%, var(--white-custom))";
                               (e.currentTarget as HTMLElement).style.boxShadow = "inset 0 1px 0 color-mix(in srgb, var(--primary) 6%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--primary) 10%, transparent)";
-                            }}>                            <div className="flex-1 relative overflow-hidden flex items-center justify-center p-2">
+                            }}>                            <div className="flex-1 relative overflow-hidden flex items-center justify-center p-2" style={{ minHeight: "56px" }}>
                               {d.imagen_url
                                 ? <img src={d.imagen_url} alt={d.nombre}
                                     className="w-full h-full object-contain transition-transform duration-300"
@@ -1619,7 +1619,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                             </div>
                           </button>
                         ))
-                        : <EmptyTab label="Sin registros en la agenda" />
+                        : <div className="col-span-3"><EmptyTab label="Sin registros en la agenda" /></div>
                     )}
 
                     {tab === "reinos" && (
@@ -1658,7 +1658,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                               (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 3%, var(--white-custom))";
                               (e.currentTarget as HTMLElement).style.boxShadow = "inset 0 1px 0 color-mix(in srgb, var(--primary) 6%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--primary) 10%, transparent)";
                             }}>
-                            <div className="flex-1 relative overflow-hidden flex items-center justify-center p-2">
+                            <div className="flex-1 relative overflow-hidden flex items-center justify-center p-2" style={{ minHeight: "56px" }}>
                               {r.mapa_url
                                 ? <img src={r.mapa_url} alt={r.nombre}
                                     className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-110" />
@@ -1672,7 +1672,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                             </div>
                           </button>
                         ))
-                        : <EmptyTab label="Ningún reino descubierto aún" />
+                        : <div className="col-span-3"><EmptyTab label="Ningún reino descubierto aún" /></div>
                     )}
 
                     {/* Lugares sin reino — aparecen como tarjetas independientes en la tab Mapa */}
@@ -1707,7 +1707,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                           (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 3%, var(--white-custom))";
                           (e.currentTarget as HTMLElement).style.boxShadow = "inset 0 1px 0 color-mix(in srgb, var(--primary) 6%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--primary) 10%, transparent)";
                         }}>
-                        <div className="flex-1 relative overflow-hidden flex items-center justify-center p-2">
+                        <div className="flex-1 relative overflow-hidden flex items-center justify-center p-2" style={{ minHeight: "56px" }}>
                           {l.imagen_url
                             ? <img src={l.imagen_url} alt={l.nombre}
                                 className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" />
