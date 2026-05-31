@@ -2,16 +2,16 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
-  Bug, Plus, Check, X, Trash2, Save, ChevronDown, Lock,
-  Dna, Brain, Wand2, GitBranch, Package, Wrench, Leaf, Layers, Users,
+  Bug, Plus, Check, X, Trash2, Save, ChevronDown,
+  Brain, Wand2, Package, Wrench, Leaf, Layers, Users,
   MapPin, Globe, ExternalLink, Pencil, Search,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
 import { useConfirm } from "@/components/ui/ConfirmModal";
-import { type Criatura, type CriaturaVariante, type SaveStatus, INPUT_CLS } from "./components/types";
-import { useCriaturaVariantes, useGruposDeCriatura, usePersonajesDeEspecie, type GrupoMin } from "./components/hooks";
-import { SelectorImagen, SelectorTexto, SaveIndicator } from "./components/UIComponents";
+import { type Criatura, type SaveStatus } from "./components/types";
+import { useGruposDeCriatura, usePersonajesDeEspecie, type GrupoMin } from "./components/hooks";
+import { SelectorImagen, SaveIndicator } from "./components/UIComponents";
 import { MarkdownEditor, WikiEntity } from "../../../forms/MarkdownEditor";
 import { useWikilink } from "./components/WikilinkContext";
 import { SeccionHechizos } from "./components/SeccionHechizos"; 
@@ -528,138 +528,6 @@ function CampoLore({
         <div className="px-4 pb-4 pt-1">
           <MarkdownEditor value={value} onChange={onChange} placeholder={placeholder} rows={rows} toolbar defaultMode="edit" onSnippetAction={onSnippetAction} entities={entities}
 />
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─── VarianteEditor ────────────────────────────────────────────────────────────
-function VarianteEditor({
-  variante, criaturaId, onSaved, onDeleted, entities = [],
-}: {
-  variante: CriaturaVariante;
-  criaturaId: string;
-  onSaved: (v: CriaturaVariante) => void;
-  onDeleted: (id: string) => void;
-  entities?: WikiEntity[];
-}) {
-  const [form,     setForm]     = useState(variante);
-  const [expanded, setExpanded] = useState(false);
-  const [status,   setStatus]   = useState<SaveStatus>("idle");
-  const { confirm, ConfirmModal } = useConfirm();
-  const { onSnippetAction } = useWikilink();
-
-  const handleSave = async () => {
-    setStatus("saving");
-    try {
-      const { error } = await supabase.from("criatura_variantes").update({
-        tipo: form.tipo, descripcion: form.descripcion || null,
-        imagen_url: form.imagen_url || null,
-      }).eq("id", form.id);
-
-      if (error) throw error;
-      setStatus("saved");
-      onSaved(form);
-      void dexiePut("criatura_variantes", form);
-      setTimeout(() => setStatus("idle"), 2000);
-    } catch { setStatus("error"); }
-  };
-
-  const handleDelete = async () => {
-    const ok = await confirm({ message: `¿Eliminar la variante "${form.tipo}"?`, danger: true });
-    if (!ok) return;
-    await supabase.from("criatura_variantes").delete().eq("id", form.id);
-    void dexieDel("criatura_variantes", form.id);
-    onDeleted(form.id);
-  };
-
-  return (
-    <div
-      className="rounded-xl overflow-hidden transition-all cursor-pointer"
-      style={{
-        border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-        background: "color-mix(in srgb, var(--primary) 2%, transparent)",
-      }}
-    >
-      <ConfirmModal />
-
-      {/* Header row */}
-      <div
-        className="flex items-center gap-2 px-3 py-2.5 cursor-pointer select-none"
-        onClick={() => setExpanded(e => !e)}
-      >
-        {form.imagen_url && (
-          <div className="w-7 h-7 rounded-lg overflow-hidden border border-primary/10 shrink-0">
-            <img src={form.imagen_url} alt={form.tipo} className="w-full h-full object-cover" />
-          </div>
-        )}
-        <Bug size={11} className="text-primary/30 shrink-0" />
-        <span className="flex-1 text-[11px] font-black uppercase tracking-widest text-primary truncate">{form.tipo}</span>
-        <div className="flex items-center gap-2 shrink-0">
-          <SaveIndicator status={status} />
-          <X size={12} className="text-primary/30 transition-transform duration-200"
-            style={{ transform: expanded ? "rotate(45deg)" : undefined }} />
-        </div>
-      </div>
-
-      {expanded && (
-        <div
-          className="border-t px-3 pb-3 pt-3"
-          style={{ borderColor: "color-mix(in srgb, var(--primary) 6%, transparent)" }}
-        >
-          {/* Layout de columnas: imagen | descripción | naturales+creaciones */}
-          <div className="flex flex-col sm:flex-row gap-4 items-stretch">
-            {/* Imagen */}
-            <div className="shrink-0 sm:w-48 flex flex-col">
-              <div className="flex-1 flex flex-col">
-                <SelectorImagen label="Imagen" value={form.imagen_url ?? ""}
-                  onChange={url => setForm(f => ({ ...f, imagen_url: url }))}
-                  aspect="square" placeholder={<Bug size={16} className="opacity-20" />} />
-              </div>
-            </div>
-
-            {/* Tipo + Descripción */}
-            <div className="flex-1 min-w-0 space-y-2">
-              <div>
-                <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">Tipo / Nombre</label>
-                <input value={form.tipo} onChange={e => setForm(f => ({ ...f, tipo: e.target.value }))}
-                  className={INPUT_CLS + " mt-1"} placeholder="Joven, Adulto, Albino, Nocturno…" />
-              </div>
-              <div>
-                <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35 block mb-1">Descripción</label>
-                <MarkdownEditor value={form.descripcion ?? ""} onChange={v => setForm(f => ({ ...f, descripcion: v }))}
-                  rows={4} placeholder="Diferencias físicas, comportamiento particular…" toolbar defaultMode="edit"                   onSnippetAction={onSnippetAction}
-                  entities={entities}
-                  />
-              </div>
-            </div>
-
-            {/* Naturales + Creaciones */}
-            <div className="sm:shrink-0 sm:w-52 space-y-3">
-              <div className="space-y-1.5">
-                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/30 flex items-center gap-1"><Leaf size={9} /> Naturales</p>
-                <BloqueItemsNaturales criaturaId={criaturaId} varianteId={form.id} />
-              </div>
-              <div className="space-y-1.5">
-                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/30 flex items-center gap-1"><Wrench size={9} /> Creaciones</p>
-                <BloqueItemsCraftedos criaturaId={criaturaId} />
-              </div>
-            </div>
-
-
-          </div>
-
-          <div className="flex items-center justify-between pt-3">
-            <button onClick={handleDelete}
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest text-red-400/60 hover:text-red-400 hover:bg-red-500/10 transition-all border border-transparent hover:border-red-500/20 cursor-pointer">
-              <Trash2 size={10} /> Eliminar
-            </button>
-            <button onClick={handleSave}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-btn-text rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-primary/90 transition-all cursor-pointer">
-              <Check size={10} /> Guardar
-            </button>
-          </div>
         </div>
       )}
     </div>
@@ -1296,10 +1164,7 @@ export function EditorCriatura({
     addToGrupo,
     removeFromGrupo,
   } = useGruposDeCriatura(form.id);
-  const { variantes, setVariantes } = useCriaturaVariantes(item.id);
   const { personajes: personajesDeEspecie } = usePersonajesDeEspecie(form.nombre);
-  const [addingVariante,  setAddingVariante]  = useState(false);
-  const [newVarianteTipo, setNewVarianteTipo] = useState("");
 
   useEffect(() => { setForm(item); setStatus("idle"); }, [item.id]);
 
@@ -1330,13 +1195,6 @@ export function EditorCriatura({
     await supabase.from("criaturas").delete().eq("id", form.id);
     void dexieDel("criaturas", form.id);
     onDeleted(form.id);
-  };
-
-  const handleAddVariante = async () => {
-    if (!newVarianteTipo.trim()) return;
-    const { data, error } = await supabase.from("criatura_variantes")
-      .insert([{ criatura_id: form.id, tipo: newVarianteTipo.trim() }]).select().single();
-    if (!error && data) { setVariantes(prev => [...prev, data]); void dexiePut("criatura_variantes", data); setAddingVariante(false); setNewVarianteTipo(""); }
   };
 
   return (
@@ -1523,51 +1381,7 @@ export function EditorCriatura({
                   <BloqueItemsCraftedos criaturaId={form.id} onSelectItem={onSelectItem} />
                 </div>
               </div>
-
-              {/* Variantes */}
-                <div className="flex-1 space-y-3">
-                  <div className="space-y-2">
-                    {variantes.map(v => (
-                      <VarianteEditor
-                        key={v.id}
-                        variante={v}
-                        criaturaId={form.id}
-                        onSaved={updated => setVariantes(prev => prev.map(x => x.id === updated.id ? updated : x))}
-                        onDeleted={id => setVariantes(prev => prev.filter(x => x.id !== id))} entities={entities}
-                      />
-                    ))}
-                  </div>
-
-                  {variantes.length === 0 && !addingVariante && (
-                    <p className="text-[10px] font-bold text-primary/25 uppercase tracking-widest text-center py-8 border border-dashed border-primary/15 rounded-xl italic">
-                      Sin variantes registradas
-                    </p>
-                  )}
-
-                  {addingVariante ? (
-                    <div className="flex gap-2 p-3 rounded-xl border border-primary/15"
-                      style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)" }}>
-                      <input autoFocus value={newVarianteTipo} onChange={e => setNewVarianteTipo(e.target.value)}
-                        onKeyDown={e => { if (e.key === "Enter") handleAddVariante(); if (e.key === "Escape") setAddingVariante(false); }}
-                        className="flex-1 bg-bg-main border border-primary/20 rounded-lg px-3 py-2 text-xs font-black uppercase text-primary outline-none focus:border-primary/50 tracking-widest"
-                        placeholder="TIPO DE VARIANTE..." />
-                      <button onClick={handleAddVariante} disabled={!newVarianteTipo.trim()}
-                        className="bg-primary text-btn-text px-3 py-2 rounded-lg font-black hover:bg-primary/90 transition-all disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed">
-                        <Check size={13} />
-                      </button>
-                      <button onClick={() => setAddingVariante(false)}
-                        className="px-2.5 py-2 rounded-lg text-primary/40 hover:text-primary transition-all cursor-pointer">
-                        <X size={13} />
-                      </button>
-                    </div>
-                  ) : (
-                    <button onClick={() => setAddingVariante(true)}
-                      className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-dashed border-primary/20 text-[10px] font-black uppercase text-primary/40 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all tracking-widest cursor-pointer">
-                      <Plus size={11} /> Añadir Variante
-                    </button>
-                  )}
-                </div>
-            </div>
+          </div>
 
         </div>
       </div>
