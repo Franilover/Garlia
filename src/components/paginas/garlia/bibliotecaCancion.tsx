@@ -54,12 +54,13 @@ const CancionCardGrid = ({ cancion, index }: { cancion: Cancion; index: number }
             boxShadow: "3px 3px 0 color-mix(in srgb, var(--primary) 8%, transparent), var(--shadow-card)",
           }}
         >
-          <SmartImage
-            src={cancion.portada_url || "/placeholder-cover.jpg"}
-            alt={cancion.titulo}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-            style={{ filter: "sepia(30%) contrast(0.93) brightness(0.93)" }}
-          />
+          <div className="w-full h-full" style={{ filter: "sepia(30%) contrast(0.93) brightness(0.93)" }}>
+            <SmartImage
+              src={cancion.portada_url || "/placeholder-cover.jpg"}
+              alt={cancion.titulo}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+            />
+          </div>
           <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/15 to-transparent" />
           {/* Esquina doblada estilo papel */}
           <div
