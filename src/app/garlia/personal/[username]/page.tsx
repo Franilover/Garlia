@@ -540,23 +540,25 @@ export default function PerfilPublico() {
           <div className="flex-1 min-w-0 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
 
             {/* Mobile tabs */}
-            <div className="flex md:hidden">
+            <div className="flex md:hidden w-full"
+              style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)" }}>
               {tabs.map(t => {
                 const isActive = tab === t.id;
                 return (
                   <button key={t.id} onClick={() => setTab(t.id)}
                     className="flex-1 flex items-center justify-center gap-1.5 py-2.5 transition-all duration-200"
                     style={{
-                      background: isActive ? "color-mix(in srgb, var(--primary) 4%, var(--bg-main))" : "color-mix(in srgb, var(--primary) 3%, var(--white-custom))",
+                      background: isActive ? "color-mix(in srgb, var(--primary) 2%, var(--bg-main))" : "transparent",
                       color: isActive ? "var(--primary)" : "color-mix(in srgb, var(--primary) 35%, transparent)",
-                      border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-                      borderBottom: isActive ? "1px solid transparent" : undefined,
-                      borderRadius: "var(--radius-btn) var(--radius-btn) 0 0",
+                      borderTop:    isActive ? "1px solid color-mix(in srgb, var(--primary) 14%, transparent)" : "1px solid transparent",
+                      borderLeft:   isActive ? "1px solid color-mix(in srgb, var(--primary) 14%, transparent)" : "1px solid transparent",
+                      borderRight:  isActive ? "1px solid color-mix(in srgb, var(--primary) 14%, transparent)" : "1px solid transparent",
+                      borderBottom: isActive ? "1px solid color-mix(in srgb, var(--primary) 2%, var(--bg-main))" : "1px solid transparent",
+                      borderRadius: "4px 4px 0 0",
                       marginBottom: isActive ? "-1px" : "0",
-                      zIndex: isActive ? 1 : 0,
+                      zIndex: isActive ? 2 : 1,
                       position: "relative",
                     }}>
-                    {isActive && <Star size={8} style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }} />}
                     <t.icon size={11} />
                     <span className="text-[9px] font-black uppercase tracking-widest">{t.label}</span>
                   </button>
@@ -566,13 +568,13 @@ export default function PerfilPublico() {
 
             {/* Desktop tabs */}
             <div className="hidden md:flex items-center justify-between mb-0">
-              <div className="flex items-end gap-0"
+              <div className="flex items-end gap-0 w-full"
                 style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)" }}>
                 {tabs.map(t => {
                   const isActive = tab === t.id;
                   return (
                     <button key={t.id} onClick={() => setTab(t.id)}
-                      className="relative flex items-center gap-2 px-5 py-2.5 transition-all duration-200"
+                      className="relative flex flex-1 items-center justify-center gap-2 px-5 py-2.5 transition-all duration-200"
                       style={{
                         background: isActive ? "var(--white-custom)" : "transparent",
                         color: isActive ? "var(--primary)" : "color-mix(in srgb, var(--primary) 35%, transparent)",
@@ -583,7 +585,6 @@ export default function PerfilPublico() {
                         borderRadius: "4px 4px 0 0",
                         marginBottom: isActive ? "-1px" : "0",
                       }}>
-                      {isActive && <Star size={8} style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }} />}
                       <t.icon size={11} />
                       <span className="text-[10px] font-black uppercase tracking-widest">{t.label}</span>
                     </button>

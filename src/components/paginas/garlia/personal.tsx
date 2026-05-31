@@ -1426,7 +1426,6 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                         marginBottom: isActive ? "-1px" : "0",
                         zIndex: isActive ? 2 : 1,
                       }}>
-                      {isActive && <Star size={8} style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }} />}
                       <t.icon size={11} />
                       <span className="text-[9px] font-black uppercase tracking-widest">{t.label}</span>
                     </button>
