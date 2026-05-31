@@ -128,7 +128,7 @@ function EntidadCard({
 
   return (
     <button
-      onClick={onClick}
+      onMouseDown={onClick}
       className="group relative w-full text-left transition-all duration-150"
     >
       <div
@@ -176,6 +176,7 @@ function EntidadCard({
           </span>
           {tab === "reinos" && onToggleOculto && (
             <button
+              onMouseDown={e => e.stopPropagation()}
               onClick={handleToggle}
               className={`w-4 h-4 rounded-md flex items-center justify-center transition-all border ${
                 item.oculto
@@ -562,7 +563,7 @@ export function ModalAcontecimiento({ onClose, onSaved }: {
 
   return (
     <div
-      className="fixed inset-0 z-[80] flex items-center justify-center p-4"
+      className="fixed inset-0 z-80 flex items-center justify-center p-4"
       style={{ background: "color-mix(in srgb, var(--primary) 30%, transparent)", backdropFilter: "blur(6px)" }}
       onClick={onClose}
     >
@@ -781,7 +782,7 @@ export function ModalMagicNombre({
 
   return (
     <div
-      className="fixed inset-0 z-[80] flex items-center justify-center p-4"
+      className="fixed inset-0 z-80 flex items-center justify-center p-4"
       style={{ background: "color-mix(in srgb, var(--primary) 30%, transparent)", backdropFilter: "blur(6px)" }}
       onClick={onClose}
     >
@@ -968,7 +969,7 @@ export function ModalNuevoGrupo({
 
   return (
     <div
-      className="fixed inset-0 z-[80] flex items-center justify-center p-4"
+      className="fixed inset-0 z-80 flex items-center justify-center p-4"
       style={{ background: "color-mix(in srgb, var(--primary) 30%, transparent)", backdropFilter: "blur(6px)" }}
       onClick={onClose}
     >
@@ -1153,8 +1154,11 @@ export function GlobalSearchBar({
   const [open,            setOpen]            = useState(false);
   const [focused,         setFocused]         = useState(false);
   const [addMenuOpen,     setAddMenuOpen]     = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const wrapRef  = useRef<HTMLDivElement>(null);
+  const [activeIndex,     setActiveIndex]     = useState(-1);
+  const inputRef      = useRef<HTMLInputElement>(null);
+  const wrapRef       = useRef<HTMLDivElement>(null);
+  const dropdownRef   = useRef<HTMLDivElement>(null);
+  const activeItemRef = useRef<HTMLButtonElement | null>(null);
 
   // Detect "add" command
   const isAddCommand = normalize(query.trim()) === "add";
@@ -1305,7 +1309,16 @@ export function GlobalSearchBar({
     setFocused(false);
     setQuery("");
     setAddMenuOpen(false);
+    setActiveIndex(-1);
   }, []);
+
+  // ── Lista plana de todos los resultados navegables con flechas ──────────────
+  // Se construye aquí (antes de los handlers) para usarla también en el teclado.
+  // Cada entrada tiene un `action` que se llama al pulsar Enter o al hacer click.
+  // Las acciones se definen más abajo via useCallback, por lo que usamos refs
+  // para evitar dependencias circulares.
+  type FlatResult = { id: string; action: () => void };
+  const flatResultsRef = useRef<FlatResult[]>([]);
 
   // Navegación a capítulo
   const handleSelectCapitulo = useCallback((cap: any) => {
@@ -1397,35 +1410,46 @@ export function GlobalSearchBar({
       if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) close();
     };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") { close(); inputRef.current?.blur(); }
+      if (e.key === "Escape") { close(); inputRef.current?.blur(); return; }
+
+      const flat = flatResultsRef.current;
+
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setActiveIndex(prev => (prev + 1) % Math.max(flat.length, 1));
+        return;
+      }
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setActiveIndex(prev => prev <= 0 ? flat.length - 1 : prev - 1);
+        return;
+      }
+
       if (e.key === "Enter") {
+        e.preventDefault();
         if (isAddCommand) {
-          e.preventDefault();
           setOpen(false);
           setAddMenuOpen(true);
           return;
         }
-        if (globalResults.length > 0) {
-          handleSelect(globalResults[0].item, globalResults[0].tab);
-        } else if (magicResults.length > 0) {
-          handleMagic(magicResults[0].subTab, magicResults[0].item);
-        } else if (mundoSubTabResults.length > 0) {
-          handleMundoSubTab(mundoSubTabResults[0].section, mundoSubTabResults[0].subTab);
-        } else if (mundoNavResults.length > 0) {
-          const first = mundoNavResults[0];
-          if (first.subTab) handleMundoSubTab(first.section, first.subTab);
-          else handleMundoSection(first.section);
-        } else if (tabNavResults.length > 0) {
-          handleTabNav(tabNavResults[0].tab);
-        } else if (mundoResults.length > 0 && query.trim()) {
-          handleMundoSection(mundoResults[0].key as MundoSectionKey);
+        // Si hay un item activo con flecha, ejecutarlo
+        if (flat.length > 0) {
+          const idx = activeIndex >= 0 && activeIndex < flat.length ? activeIndex : 0;
+          flat[idx]?.action();
+          return;
         }
       }
     };
     document.addEventListener("mousedown", onMouse);
     document.addEventListener("keydown", onKey);
     return () => { document.removeEventListener("mousedown", onMouse); document.removeEventListener("keydown", onKey); };
-  }, [open, globalResults, close, handleSelect, isAddCommand]);
+  }, [open, close, isAddCommand, activeIndex]);
+
+  // Auto-scroll al item activo
+  useEffect(() => {
+    if (activeIndex < 0) return;
+    activeItemRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [activeIndex]);
 
   useEffect(() => {
     const k = (e: KeyboardEvent) => {
@@ -1434,6 +1458,16 @@ export function GlobalSearchBar({
     document.addEventListener("keydown", k);
     return () => document.removeEventListener("keydown", k);
   }, []);
+
+  // Returns ref + active style for a flat-list item id
+  const itemProps = (id: string) => {
+    const idx = flatResultsRef.current.findIndex(r => r.id === id);
+    const isActive = idx >= 0 && idx === activeIndex;
+    return {
+      ref: isActive ? (el: HTMLButtonElement | null) => { activeItemRef.current = el; } : undefined,
+      "data-active": isActive,
+    } as any;
+  };
 
   const activeMundoLabel = isMundo && activeMundoSection
     ? MUNDO_SECTIONS.find(s => s.key === activeMundoSection)?.label
@@ -1498,7 +1532,7 @@ export function GlobalSearchBar({
           <input
             ref={inputRef}
             value={focused ? query : ""}
-            onChange={e => { setQuery(e.target.value); setOpen(true); }}
+            onChange={e => { setQuery(e.target.value); setOpen(true); setActiveIndex(-1); }}
             onFocus={() => { setFocused(true); setOpen(true); setQuery(""); }}
             placeholder={placeholder}
             className="flex-1 min-w-0 bg-transparent text-[12px] font-medium text-primary outline-none placeholder:text-primary/40"
@@ -1543,10 +1577,51 @@ export function GlobalSearchBar({
                       ? `${totalResults} resultado${totalResults !== 1 ? "s" : ""}`
                       : `${totalCount} entidades · Mundo`}
               </span>
-              {isOffline && <span className="text-[8px] font-black uppercase tracking-widest text-orange-400">Offline</span>}
+              <div className="flex items-center gap-2">
+                {isOffline && <span className="text-[8px] font-black uppercase tracking-widest text-orange-400">Offline</span>}
+                {query.trim() && flatResultsRef.current.length > 0 && (
+                  <span className="hidden sm:flex items-center gap-1 text-[8px] font-black uppercase tracking-widest text-primary/20">
+                    <kbd className="px-1 py-0.5 rounded border border-primary/15 font-mono">↑↓</kbd>
+                    <kbd className="px-1 py-0.5 rounded border border-primary/15 font-mono">↵</kbd>
+                  </span>
+                )}
+              </div>
             </div>
 
-            <div className="max-h-80 overflow-y-auto p-2">
+            <div ref={dropdownRef} className="max-h-80 overflow-y-auto p-2">
+              {/* Build flat results list for keyboard navigation — runs every render */}
+              {(() => {
+                const flat: { id: string; action: () => void }[] = [];
+                if (query.trim()) {
+                  tabNavResults.forEach(({ tab }) =>
+                    flat.push({ id: `tabnav-${tab}`, action: () => handleTabNav(tab) })
+                  );
+                  mundoSubTabResults.forEach(({ section, subTab }) =>
+                    flat.push({ id: `subtab-${section}-${subTab}`, action: () => handleMundoSubTab(section, subTab) })
+                  );
+                  globalResults.forEach(({ item, tab }) =>
+                    flat.push({ id: `entity-${tab}-${item.id}`, action: () => handleSelect(item, tab) })
+                  );
+                  magicResults.forEach(({ item, subTab }) =>
+                    flat.push({ id: `magic-${subTab}-${item.id}`, action: () => handleMagic(subTab, item) })
+                  );
+                  notaResults.forEach(({ item }) =>
+                    flat.push({ id: `nota-${item.id}`, action: () => handleSelectNota(item) })
+                  );
+                  capituloResults.forEach(({ item }) =>
+                    flat.push({ id: `cap-${item.id}`, action: () => handleSelectCapitulo(item) })
+                  );
+                  cancionResults.forEach(({ item }) =>
+                    flat.push({ id: `cancion-${item.id}`, action: () => handleSelectCancion(item) })
+                  );
+                  grupoResults.forEach(({ item }) =>
+                    flat.push({ id: `grupo-${item.id}`, action: () => handleSelectGrupo(item) })
+                  );
+                }
+                flatResultsRef.current = flat;
+                return null;
+              })()}
+
               {loadingAll ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 size={16} className="animate-spin text-primary/20" />
@@ -1573,10 +1648,13 @@ export function GlobalSearchBar({
                               <button
                                 key={tab}
                                 onMouseDown={() => handleTabNav(tab)}
+                                {...itemProps(`tabnav-${tab}`)}
                                 className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-150 border ${
                                   activeTab === tab
                                     ? "bg-primary/12 border-primary/20"
-                                    : "border-transparent hover:bg-primary/6 hover:border-primary/10"
+                                    : itemProps(`tabnav-${tab}`)["data-active"]
+                                      ? "bg-primary/8 border-primary/15"
+                                      : "border-transparent hover:bg-primary/6 hover:border-primary/10"
                                 }`}
                               >
                                 <div className="shrink-0 w-7 h-7 rounded-lg border flex items-center justify-center"
@@ -1655,10 +1733,13 @@ export function GlobalSearchBar({
                               <button
                                 key={section + subTab}
                                 onMouseDown={() => handleMundoSubTab(section, subTab)}
+                                {...itemProps(`subtab-${section}-${subTab}`)}
                                 className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-150 border ${
                                   isMundo && activeMundoSection === section
                                     ? "bg-primary/12 border-primary/20"
-                                    : "border-transparent hover:bg-primary/6 hover:border-primary/10"
+                                    : itemProps(`subtab-${section}-${subTab}`)["data-active"]
+                                      ? "bg-primary/8 border-primary/15"
+                                      : "border-transparent hover:bg-primary/6 hover:border-primary/10"
                                 }`}
                               >
                                 <div className="shrink-0 w-7 h-7 rounded-lg border flex items-center justify-center"
@@ -1687,15 +1768,24 @@ export function GlobalSearchBar({
                     {/* Search results */}
                     {globalResults.length > 0 && (
                       <div className="grid grid-cols-3 sm:grid-cols-6 gap-1">
-                        {globalResults.map(({ item, tab }) => (
-                          <EntidadCard
-                            key={`${tab}-${item.id}`}
-                            item={item} tab={tab}
-                            selected={selectedId === item.id && activeTab === tab}
-                            onClick={() => handleSelect(item, tab)}
-                            onToggleOculto={tab === "reinos" ? onToggleOculto : undefined}
-                          />
-                        ))}
+                        {globalResults.map(({ item, tab }) => {
+                            const fid = `entity-${tab}-${item.id}`;
+                            const props = itemProps(fid);
+                            return (
+                              <div
+                                key={`${tab}-${item.id}`}
+                                ref={props.ref}
+                                className={props["data-active"] ? "rounded-xl outline-2 outline-primary/30" : ""}
+                              >
+                                <EntidadCard
+                                  item={item} tab={tab}
+                                  selected={selectedId === item.id && activeTab === tab}
+                                  onClick={() => handleSelect(item, tab)}
+                                  onToggleOculto={tab === "reinos" ? onToggleOculto : undefined}
+                                />
+                              </div>
+                            );
+                          })}
                       </div>
                     )}
 
@@ -1712,7 +1802,8 @@ export function GlobalSearchBar({
                               <button
                                 key={`${subTab}-${item.id}`}
                                 onMouseDown={() => handleMagic(subTab, item)}
-                                className="group flex flex-col items-center gap-1 p-1.5 rounded-xl transition-all duration-150 border border-transparent hover:border-primary/10"
+                                {...itemProps(`magic-${subTab}-${item.id}`)}
+                                className={`group flex flex-col items-center gap-1 p-1.5 rounded-xl transition-all duration-150 border ${itemProps(`magic-${subTab}-${item.id}`)["data-active"] ? "border-primary/25 bg-primary/6" : "border-transparent hover:border-primary/10"}`}
                                 style={{ aspectRatio: "1 / 1" }}
                                 onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = `color-mix(in srgb, ${color} 7%, transparent)`; }}
                                 onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
@@ -1752,7 +1843,8 @@ export function GlobalSearchBar({
                             <button
                               key={item.id}
                               onMouseDown={() => handleSelectNota(item)}
-                              className="w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-150 border border-transparent hover:bg-primary/6 hover:border-primary/10"
+                              {...itemProps(`nota-${item.id}`)}
+                              className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-150 border ${itemProps(`nota-${item.id}`)["data-active"] ? "bg-primary/8 border-primary/15" : "border-transparent hover:bg-primary/6 hover:border-primary/10"}`}
                             >
                               <div
                                 className="shrink-0 w-7 h-7 rounded-lg border flex items-center justify-center"
@@ -1787,7 +1879,8 @@ export function GlobalSearchBar({
                             <button
                               key={item.id}
                               onMouseDown={() => handleSelectCapitulo(item)}
-                              className="w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-150 border border-transparent hover:bg-primary/6 hover:border-primary/10"
+                              {...itemProps(`cap-${item.id}`)}
+                              className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-150 border ${itemProps(`cap-${item.id}`)["data-active"] ? "bg-primary/8 border-primary/15" : "border-transparent hover:bg-primary/6 hover:border-primary/10"}`}
                             >
                               <div className="shrink-0 w-7 h-7 rounded-lg border flex items-center justify-center"
                                 style={{ background: "color-mix(in srgb, var(--primary) 7%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
@@ -1818,7 +1911,8 @@ export function GlobalSearchBar({
                             <button
                               key={item.id}
                               onMouseDown={() => handleSelectCancion(item)}
-                              className="w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-150 border border-transparent hover:bg-primary/6 hover:border-primary/10"
+                              {...itemProps(`cancion-${item.id}`)}
+                              className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-150 border ${itemProps(`cancion-${item.id}`)["data-active"] ? "bg-primary/8 border-primary/15" : "border-transparent hover:bg-primary/6 hover:border-primary/10"}`}
                             >
                               <div className="shrink-0 w-7 h-7 rounded-lg border flex items-center justify-center"
                                 style={{ background: "color-mix(in srgb, var(--primary) 7%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
@@ -1849,7 +1943,8 @@ export function GlobalSearchBar({
                             <button
                               key={item.id}
                               onMouseDown={() => handleSelectGrupo(item)}
-                              className="w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-150 border border-transparent hover:bg-primary/6 hover:border-primary/10"
+                              {...itemProps(`grupo-${item.id}`)}
+                              className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-150 border ${itemProps(`grupo-${item.id}`)["data-active"] ? "bg-primary/8 border-primary/15" : "border-transparent hover:bg-primary/6 hover:border-primary/10"}`}
                             >
                               <div className="shrink-0 w-7 h-7 rounded-lg border flex items-center justify-center"
                                 style={{ background: "color-mix(in srgb, var(--primary) 7%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
