@@ -1405,36 +1405,30 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
             {/* Grid area */}
             <div className="flex-1 min-w-0 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
 
-              {/* ── TABS — conectadas al panel, se levantan al activarse ── */}
-              <div className="flex items-end gap-0 w-full">
-                {tabs.map((t, idx) => {
+              {/* ── TABS ── */}
+              <div className="flex items-end gap-0 w-full"
+                style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)" }}>
+                {tabs.map((t) => {
                   const isActive = tab === t.id;
                   return (
                     <button
                       key={t.id}
                       onClick={() => setTab(t.id)}
-                      className="relative flex flex-1 items-center justify-center gap-2 px-2 transition-all duration-150"
+                      className="relative flex flex-1 items-center justify-center gap-1.5 py-2.5 transition-all duration-200"
                       style={{
-                        paddingTop: isActive ? "9px" : "7px",
-                        paddingBottom: isActive ? "9px" : "7px",
-                        color: isActive ? "var(--primary)" : "color-mix(in srgb, var(--primary) 38%, transparent)",
-                        background: isActive
-                          ? "color-mix(in srgb, var(--primary) 2%, var(--bg-main))"
-                          : "color-mix(in srgb, var(--primary) 5%, var(--bg-main))",
-                        border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-                        borderBottom: isActive
-                          ? "1px solid color-mix(in srgb, var(--primary) 2%, var(--bg-main))"
-                          : "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+                        background: isActive ? "color-mix(in srgb, var(--primary) 2%, var(--bg-main))" : "transparent",
+                        color: isActive ? "var(--primary)" : "color-mix(in srgb, var(--primary) 35%, transparent)",
+                        borderTop:    isActive ? "1px solid color-mix(in srgb, var(--primary) 14%, transparent)" : "1px solid transparent",
+                        borderLeft:   isActive ? "1px solid color-mix(in srgb, var(--primary) 14%, transparent)" : "1px solid transparent",
+                        borderRight:  isActive ? "1px solid color-mix(in srgb, var(--primary) 14%, transparent)" : "1px solid transparent",
+                        borderBottom: isActive ? "1px solid color-mix(in srgb, var(--primary) 2%, var(--bg-main))" : "1px solid transparent",
                         borderRadius: "4px 4px 0 0",
-                        marginRight: idx < tabs.length - 1 ? "-1px" : 0,
+                        marginBottom: isActive ? "-1px" : "0",
                         zIndex: isActive ? 2 : 1,
-                        transform: isActive ? "translateY(1px)" : "translateY(3px)",
                       }}>
+                      {isActive && <Star size={8} style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }} />}
+                      <t.icon size={11} />
                       <span className="text-[9px] font-black uppercase tracking-widest">{t.label}</span>
-                      <span className="text-[8px] tabular-nums"
-                        style={{ color: isActive ? "color-mix(in srgb, var(--primary) 40%, transparent)" : "color-mix(in srgb, var(--primary) 22%, transparent)" }}>
-                        {t.count}
-                      </span>
                     </button>
                   );
                 })}
@@ -1442,8 +1436,9 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
 
               {/* Inventory panel */}
               <div style={{
-                border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-                borderRadius: "0 4px 4px 4px",
+                border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                borderTop: "none",
+                borderRadius: "0 0 var(--radius-card) var(--radius-card)",
                 background: "color-mix(in srgb, var(--primary) 2%, var(--bg-main))",
                 padding: "16px",
                 position: "relative",
