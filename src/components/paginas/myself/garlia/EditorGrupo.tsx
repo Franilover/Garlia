@@ -314,37 +314,35 @@ function SelectorMiembros({
           <p className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">
             Miembros ({miembros.length})
           </p>
-          <div className="space-y-0.5">
+          <div className="grid grid-cols-2 gap-1">
             {miembros.map(e => {
               const img = getImg(e);
               const sub = getSubtitle(e);
               return (
                 <div key={e.id}
-                  className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl border transition-all"
+                  className="flex items-center gap-2 px-2 py-1.5 rounded-xl border transition-all"
                   style={{ borderColor: `color-mix(in srgb, ${cfg.color} 15%, transparent)`, background: `color-mix(in srgb, ${cfg.color} 5%, transparent)` }}>
-                  <div className="shrink-0 w-7 h-7 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
+                  <div className="shrink-0 w-6 h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
                     {img
                       ? <img src={img} alt={e.nombre} className="w-full h-full object-cover" />
-                      : <cfg.Icon size={11} className="text-primary/25" />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <button
-                      type="button"
-                      onClick={() => onClickMiembro?.(e.id, cfg.tabla)}
-                      className="text-left w-full group"
-                    >
-                      <p className="text-[11px] font-bold text-primary/85 truncate group-hover:text-primary transition-colors">
-                        {e.nombre}
-                      </p>
-                      {sub && <p className="text-[9px] text-primary/35 truncate">{sub}</p>}
-                    </button>
+                      : <cfg.Icon size={10} className="text-primary/25" />}
                   </div>
                   <button
                     type="button"
-                    onClick={() => toggle(e.id)}
-                    className="shrink-0 w-5 h-5 rounded flex items-center justify-center text-primary/25 hover:text-red-400 transition-colors"
+                    onClick={() => onClickMiembro?.(e.id, cfg.tabla)}
+                    className="flex-1 min-w-0 text-left group"
                   >
-                    <X size={9} />
+                    <p className="text-[10px] font-bold text-primary/85 truncate group-hover:text-primary transition-colors leading-tight">
+                      {e.nombre}
+                    </p>
+                    {sub && <p className="text-[8px] text-primary/35 truncate leading-tight">{sub}</p>}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => toggle(e.id)}
+                    className="shrink-0 w-4 h-4 rounded flex items-center justify-center text-primary/20 hover:text-red-400 transition-colors"
+                  >
+                    <X size={8} />
                   </button>
                 </div>
               );
