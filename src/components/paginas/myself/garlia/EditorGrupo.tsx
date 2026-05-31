@@ -580,102 +580,99 @@ export function EditorGrupo({
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
       <ConfirmModal />
 
-      {/* Header */}
-      <div className="shrink-0 flex flex-col gap-2 px-4 py-3 border-b"
+      {/* Header — una sola fila compacta */}
+      <div className="shrink-0 flex items-center gap-2.5 px-4 py-2.5 border-b"
         style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}>
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="shrink-0 w-9 h-9 rounded-xl flex items-center justify-center border"
-            style={{
-              background: `color-mix(in srgb, ${cfg.color} 12%, transparent)`,
-              borderColor: `color-mix(in srgb, ${cfg.color} 25%, transparent)`,
-            }}>
-            <cfg.Icon size={15} style={{ color: cfg.color }} />
-          </div>
-          <input
-            value={form.nombre}
-            onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))}
-            placeholder="Nombre del grupo…"
-            className="flex-1 min-w-0 bg-transparent text-sm font-black text-primary outline-none placeholder:text-primary/25"
-          />
+
+        {/* Ícono tipo */}
+        <div className="shrink-0 w-7 h-7 rounded-lg flex items-center justify-center border"
+          style={{
+            background: `color-mix(in srgb, ${cfg.color} 12%, transparent)`,
+            borderColor: `color-mix(in srgb, ${cfg.color} 25%, transparent)`,
+          }}>
+          <cfg.Icon size={12} style={{ color: cfg.color }} />
         </div>
 
-        {/* Badge tipo + subtipo */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest"
-            style={{ background: `color-mix(in srgb, ${cfg.color} 10%, transparent)`, color: `color-mix(in srgb, ${cfg.color} 70%, transparent)`, border: `1px solid color-mix(in srgb, ${cfg.color} 20%, transparent)` }}>
-            <cfg.Icon size={8} /> {cfg.labelPlural}
-          </span>
-          {form.subtipo ? (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[8px] font-semibold"
-              style={{ background: `color-mix(in srgb, ${cfg.color} 7%, transparent)`, color: `color-mix(in srgb, ${cfg.color} 55%, transparent)`, border: `1px solid color-mix(in srgb, ${cfg.color} 15%, transparent)` }}>
-              {form.subtipo}
-            </span>
-          ) : (
-            <span className="text-[9px] text-primary/25 italic">{cfg.ejemplo}</span>
-          )}
-        </div>
+        {/* Nombre */}
+        <input
+          value={form.nombre}
+          onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))}
+          placeholder="Nombre del grupo…"
+          className="flex-1 min-w-0 bg-transparent text-sm font-black text-primary outline-none placeholder:text-primary/25"
+        />
+
+        {/* Badge tipo */}
+        <span className="hidden sm:inline-flex shrink-0 items-center gap-1 px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest"
+          style={{ background: `color-mix(in srgb, ${cfg.color} 10%, transparent)`, color: `color-mix(in srgb, ${cfg.color} 70%, transparent)`, border: `1px solid color-mix(in srgb, ${cfg.color} 20%, transparent)` }}>
+          {cfg.labelPlural}
+        </span>
 
         {/* Acciones */}
-        <div className="flex items-center justify-end gap-2">
+        <div className="shrink-0 flex items-center gap-1.5">
           <SaveIndicator status={status} />
           <button onClick={del}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all">
+            className="flex items-center gap-1 px-2 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all">
             <Trash2 size={10} />
           </button>
           <button onClick={save} disabled={status === "saving"}
-            className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50">
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50">
             <Save size={11} /> Guardar
           </button>
         </div>
       </div>
 
-      {/* Body */}
-      <div className="flex-1 overflow-y-auto min-h-0 p-4 space-y-5">
-        <div className="space-y-1.5">
-          <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">Tipo de grupo</label>
-          <SubtipoInput
-            value={form.subtipo ?? ""}
-            onChange={v => setForm(f => ({ ...f, subtipo: v || null }))}
-            tipo={form.tipo}
-            sugerencias={sugerenciasSubtipo}
-          />
-        </div>
+      {/* Body — dos columnas: info · miembros */}
+      <div className="flex-1 overflow-y-auto min-h-0 p-4">
+        <div className="flex flex-col sm:flex-row gap-4 h-full">
 
-        <div className="space-y-1.5">
-          <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">Descripción</label>
-          <textarea
-            value={form.descripcion ?? ""}
-            onChange={e => setForm(f => ({ ...f, descripcion: e.target.value || null }))}
-            placeholder={`¿Qué es este grupo? ${cfg.ejemplo}`}
-            rows={3}
-            className="w-full bg-primary/4 border border-primary/10 rounded-xl px-3 py-2.5 text-[11px] text-primary outline-none focus:border-primary/25 resize-none placeholder:text-primary/25 leading-relaxed"
-          />
-        </div>
+          {/* Columna izquierda: subtipo + descripción */}
+          <div className="flex flex-col gap-3 sm:w-48 sm:shrink-0">
+            <div className="space-y-1.5">
+              <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">Tipo</label>
+              <SubtipoInput
+                value={form.subtipo ?? ""}
+                onChange={v => setForm(f => ({ ...f, subtipo: v || null }))}
+                tipo={form.tipo}
+                sugerencias={sugerenciasSubtipo}
+              />
+            </div>
 
-        <div className="space-y-1.5">
-          <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">
-            {cfg.labelPlural} del grupo
-          </label>
-          <SelectorMiembros
-            tipo={form.tipo}
-            miembro_ids={form.miembro_ids}
-            onChange={ids => setForm(f => ({ ...f, miembro_ids: ids }))}
-            onClickMiembro={onClickMiembro}
-          />
-        </div>
-
-        {form.miembro_ids.length === 0 && (
-          <div className="flex flex-col items-center gap-2 py-6 rounded-xl border border-dashed"
-            style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)" }}>
-            <cfg.Icon size={20} strokeWidth={1} style={{ color: `color-mix(in srgb, ${cfg.color} 30%, transparent)` }} />
-            <p className="text-[9px] font-black uppercase tracking-widest text-primary/20">
-              Sin miembros aún
-            </p>
-            <p className="text-[9px] text-primary/15 text-center">
-              Usá el botón de arriba para agregar {cfg.labelPlural.toLowerCase()}
-            </p>
+            <div className="space-y-1.5 flex-1 flex flex-col">
+              <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">Descripción</label>
+              <textarea
+                value={form.descripcion ?? ""}
+                onChange={e => setForm(f => ({ ...f, descripcion: e.target.value || null }))}
+                placeholder={`¿Qué es este grupo? ${cfg.ejemplo}`}
+                rows={4}
+                className="flex-1 w-full bg-primary/4 border border-primary/10 rounded-xl px-3 py-2.5 text-[11px] text-primary outline-none focus:border-primary/25 resize-none placeholder:text-primary/25 leading-relaxed"
+              />
+            </div>
           </div>
-        )}
+
+          {/* Columna derecha: miembros */}
+          <div className="flex-1 min-w-0 space-y-1.5">
+            <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">
+              {cfg.labelPlural} del grupo
+            </label>
+            <SelectorMiembros
+              tipo={form.tipo}
+              miembro_ids={form.miembro_ids}
+              onChange={ids => setForm(f => ({ ...f, miembro_ids: ids }))}
+              onClickMiembro={onClickMiembro}
+            />
+            {form.miembro_ids.length === 0 && (
+              <div className="flex flex-col items-center gap-2 py-6 rounded-xl border border-dashed mt-1"
+                style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)" }}>
+                <cfg.Icon size={18} strokeWidth={1} style={{ color: `color-mix(in srgb, ${cfg.color} 30%, transparent)` }} />
+                <p className="text-[9px] font-black uppercase tracking-widest text-primary/20">Sin miembros aún</p>
+                <p className="text-[9px] text-primary/15 text-center">
+                  Usá el botón de arriba para agregar {cfg.labelPlural.toLowerCase()}
+                </p>
+              </div>
+            )}
+          </div>
+
+        </div>
       </div>
     </div>
   );
