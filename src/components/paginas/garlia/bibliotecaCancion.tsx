@@ -280,9 +280,6 @@ export default function CancionesPage() {
               <div className="w-1 h-1 rounded-full bg-primary" />
             </div>
             <div>
-              <p className="text-[9px] font-mono font-bold uppercase tracking-[0.3em] text-primary/30 mb-1">
-                — Archivo musical —
-              </p>
               <h1 className="text-4xl font-black italic tracking-tighter text-primary leading-none">
                 Registro musical
               </h1>
