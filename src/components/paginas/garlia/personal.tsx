@@ -9,7 +9,7 @@ import { supabase } from "@/lib/api/client/supabase";
 import {
   ModalDetalle, EntidadCard, EmptyTab,
   type EntidadModal, type Descubrimiento, type ItemInventario,
-} from "./personal/PersonalComponents";
+} from "./PersonalComponents";
 
 interface PerfilResumen {
   id: string;
