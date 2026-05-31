@@ -155,7 +155,7 @@ const PersonajeBloque = ({
     className="mb-24 flex flex-col md:flex-row gap-8 lg:gap-12 items-start"
   >
     {/* COLUMNA IZQUIERDA: Personaje en Grande */}
-    <div className="w-full md:w-1/3 lg:w-1/4 shrink-0 flex flex-col items-center md:items-start text-center md:text-left sticky top-24">
+    <div className="w-full md:w-1/3 lg:w-1/4 shrink-0 flex flex-col items-center md:items-start text-center md:text-left md:sticky md:top-24">
       {imgUrl ? (
         <div 
           className="w-48 h-48 md:w-full md:aspect-square mb-5 overflow-hidden bg-primary/5"
