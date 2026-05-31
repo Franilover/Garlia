@@ -1405,8 +1405,37 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
             {/* Grid area */}
             <div className="flex-1 min-w-0 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
 
-              {/* ── TABS ── */}
-              <div className="flex items-end gap-0 w-full"
+              {/* ── TABS Mobile ── */}
+              <div className="flex md:hidden w-full"
+                style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)" }}>
+                {tabs.map((t) => {
+                  const isActive = tab === t.id;
+                  return (
+                    <button
+                      key={t.id}
+                      onClick={() => setTab(t.id)}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2.5 transition-all duration-200"
+                      style={{
+                        background: isActive ? "color-mix(in srgb, var(--primary) 2%, var(--bg-main))" : "transparent",
+                        color: isActive ? "var(--primary)" : "color-mix(in srgb, var(--primary) 35%, transparent)",
+                        borderTop:    isActive ? "1px solid color-mix(in srgb, var(--primary) 14%, transparent)" : "1px solid transparent",
+                        borderLeft:   isActive ? "1px solid color-mix(in srgb, var(--primary) 14%, transparent)" : "1px solid transparent",
+                        borderRight:  isActive ? "1px solid color-mix(in srgb, var(--primary) 14%, transparent)" : "1px solid transparent",
+                        borderBottom: isActive ? "1px solid color-mix(in srgb, var(--primary) 2%, var(--bg-main))" : "1px solid transparent",
+                        borderRadius: "4px 4px 0 0",
+                        marginBottom: isActive ? "-1px" : "0",
+                        zIndex: isActive ? 2 : 1,
+                        position: "relative",
+                      }}>
+                      <t.icon size={11} />
+                      <span className="text-[9px] font-black uppercase tracking-widest">{t.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* ── TABS Desktop ── */}
+              <div className="hidden md:flex items-end gap-0 w-full"
                 style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)" }}>
                 {tabs.map((t) => {
                   const isActive = tab === t.id;
