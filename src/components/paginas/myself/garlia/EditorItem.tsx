@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { Package, Save, Trash2, Bug, Loader2, Leaf, Wrench, ChevronDown, X, Plus, MapPin } from "lucide-react";
+import { Package, Save, Trash2, Bug, Loader2, Leaf, Wrench, ChevronDown, X, Plus, MapPin, Globe } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
 import { useConfirm } from "@/components/ui/ConfirmModal";
@@ -195,6 +195,97 @@ function PanelCrafterSources({ itemId, onSelectCriatura }: { itemId: string; onS
   );
 }
 
+// ─── Hook: reinos donde se encuentra el ítem (item_reinos) ──────────────────
+type ReinoMin = { id: string; nombre: string };
+type ItemReinoRow = { rowId: string; reinoId: string; reinoNombre: string };
+
+function useItemReinos(itemId: string) {
+  const [rows, setRows] = useState<ItemReinoRow[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const { data } = await supabase
+      .from("item_reinos")
+      .select("id, reino_id, reinos!reino_id(nombre)")
+      .eq("item_id", itemId);
+    setRows(
+      (data ?? []).map((r: any) => ({
+        rowId:       r.id,
+        reinoId:     r.reino_id,
+        reinoNombre: (Array.isArray(r.reinos) ? r.reinos[0]?.nombre : r.reinos?.nombre) ?? "—",
+      }))
+    );
+    setLoading(false);
+  }, [itemId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const add = async (reino: ReinoMin) => {
+    if (rows.some(r => r.reinoId === reino.id)) return;
+    const { data, error } = await supabase
+      .from("item_reinos")
+      .insert([{ item_id: itemId, reino_id: reino.id }])
+      .select().single();
+    if (!error && data) {
+      setRows(prev => [...prev, { rowId: data.id, reinoId: reino.id, reinoNombre: reino.nombre }]);
+    }
+  };
+
+  const remove = async (rowId: string) => {
+    await supabase.from("item_reinos").delete().eq("id", rowId);
+    setRows(prev => prev.filter(r => r.rowId !== rowId));
+  };
+
+  return { rows, loading, add, remove };
+}
+
+// ─── Panel selector de reinos (usa ComboSelector) ────────────────────────────
+
+function PanelReinos({ itemId, onNavigateReino }: { itemId: string; onNavigateReino?: (id: string) => void }) {
+  const { rows, loading, add, remove } = useItemReinos(itemId);
+  const [allReinos, setAllReinos] = useState<ReinoMin[]>([]);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    supabase.from("reinos").select("id, nombre").order("nombre")
+      .then(({ data }) => setAllReinos(data ?? []));
+  }, []);
+
+  const reinoItems = allReinos.map(r => ({ id: r.id, label: r.nombre }));
+
+  const handleChange = async (ids: string[]) => {
+    const current = rows.map(r => r.reinoId);
+    const toAdd    = ids.filter(id => !current.includes(id));
+    const toRemove = rows.filter(r => !ids.includes(r.reinoId));
+
+    setSaving(true);
+    await Promise.all([
+      ...toAdd.map(id => {
+        const reino = allReinos.find(r => r.id === id);
+        if (reino) return add(reino);
+      }),
+      ...toRemove.map(r => remove(r.rowId)),
+    ]);
+    setSaving(false);
+  };
+
+  return (
+    <ComboSelector
+      mode="multi"
+      label="Reinos donde encontrarlo"
+      icon={<Globe size={9} />}
+      items={reinoItems}
+      value={rows.map(r => r.reinoId)}
+      onChange={handleChange}
+      loading={loading || saving}
+      placeholder="Añadir reino…"
+      emptyText="No hay reinos disponibles"
+      onNavigate={onNavigateReino}
+    />
+  );
+}
+
 // ─── Hook: lugares donde se encuentra el ítem (item_lugares) ─────────────────
 
 type LugarMin = { id: string; nombre: string };
@@ -285,11 +376,12 @@ function PanelLugares({ itemId, onNavigateLugar }: { itemId: string; onNavigateL
 // ─── EditorItem ───────────────────────────────────────────────────────────────
 
 export function EditorItem({
-  item, onSaved, onDeleted, entities = [], onSelectCriatura, onNavigateLugar,
+  item, onSaved, onDeleted, entities = [], onSelectCriatura, onNavigateLugar, onNavigateReino,
 }: {
   item: Item; onSaved: (i: Item) => void; onDeleted: (id: string) => void; entities?: WikiEntity[];
   onSelectCriatura?: (criaturaId: string) => void;
   onNavigateLugar?: (id: string) => void;
+  onNavigateReino?: (id: string) => void;
 }) {
   const [form,     setForm]     = useState<Item>(item);
   const [status,   setStatus]   = useState<SaveStatus>("idle");
@@ -482,6 +574,11 @@ export function EditorItem({
                       <PanelCrafterSources itemId={form.id} onSelectCriatura={onSelectCriatura} />
                     </div>
                   )}
+                  </div>
+
+                  {/* Columna Reinos */}
+                  <div className="flex-1 min-w-0">
+                    <PanelReinos itemId={form.id} onNavigateReino={onNavigateReino} />
                   </div>
 
                   {/* Columna Lugares */}
