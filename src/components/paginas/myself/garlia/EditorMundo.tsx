@@ -1754,6 +1754,20 @@ function PanelListas({
                 onSaved={u => { setObjetos(p => p.map(o => o.id === u.id ? { ...o, ...u } : o)); setSelectedObjeto({ ...selectedObjeto, ...u }); }}
                 onDeleted={id => { setObjetos(p => p.filter(o => o.id !== id)); setSelectedObjeto(null); }}
                 onSelectCriatura={id => { const c = criaturas.find(x => x.id === id); if (!c) return; clearAllOverlays(); setSelectedCriatura(c); }}
+                onNavigateLugar={async (id) => {
+                  const local = lugares.find(x => x.id === id);
+                  clearAllOverlays();
+                  if (local) { selectLugar(local); return; }
+                  const { data } = await supabase.from("lugares").select("*").eq("id", id).single();
+                  if (data) selectLugar(data as Lugar);
+                }}
+                onNavigateReino={async (id) => {
+                  const local = reinos.find(x => x.id === id);
+                  clearAllOverlays();
+                  if (local) { selectReino(local); return; }
+                  const { data } = await supabase.from("reinos").select("*").eq("id", id).single();
+                  if (data) selectReino(data as Reino);
+                }}
               />
             )}
             {overlay === "lugar" && selectedLugar && (
