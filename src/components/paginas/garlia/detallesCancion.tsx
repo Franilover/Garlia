@@ -581,7 +581,7 @@ useEffect(() => {
   return (
     <div
       style={{
-        height: "100%",
+        height: "100dvh",
         overflow: "hidden",
         background: "var(--bg-main)",
         display: "flex",
