@@ -6,8 +6,8 @@ import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { type Item, type SaveStatus } from "./components/types";
-import { useUniqueValues } from "./components/hooks";
-import { SelectorImagen, SelectorTexto, SaveIndicator } from "./components/UIComponents";
+import { SelectorImagen, SaveIndicator } from "./components/UIComponents";
+import { SeccionEntidad } from "@/components/ui/SeccionEntidad";
 import { MarkdownEditor, WikiEntity } from "../../../forms/MarkdownEditor";
 import { useWikilink } from "./components/WikilinkContext";
 
@@ -241,97 +241,43 @@ function useLugaresItem(itemId: string) {
   return { rows, loading, add, remove };
 }
 
-// ─── Panel selector de lugares ────────────────────────────────────────────────
+// ─── Panel selector de lugares (usa SeccionEntidad) ──────────────────────────
 
 function PanelLugares({ itemId, onNavigateLugar }: { itemId: string; onNavigateLugar?: (id: string) => void }) {
   const { rows, loading, add, remove } = useLugaresItem(itemId);
   const [allLugares, setAllLugares] = useState<LugarMin[]>([]);
-  const [open, setOpen] = useState(false);
-  const [search, setSearch] = useState("");
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     supabase.from("lugares").select("id, nombre").order("nombre")
       .then(({ data }) => setAllLugares(data ?? []));
   }, []);
 
-  const filtered = allLugares.filter(l =>
-    l.nombre.toLowerCase().includes(search.toLowerCase()) &&
-    !rows.some(r => r.lugarId === l.id)
-  );
-
-  if (loading) {
-    return (
-      <div className="flex items-center gap-2 py-4">
-        <Loader2 size={13} className="animate-spin text-primary/20" />
-        <span className="text-[10px] text-primary/25 italic">Cargando…</span>
-      </div>
-    );
-  }
+  const handleToggle = async (id: string, addIt: boolean) => {
+    setSaving(true);
+    if (addIt) {
+      const lugar = allLugares.find(l => l.id === id);
+      if (lugar) await add(lugar);
+    } else {
+      const row = rows.find(r => r.lugarId === id);
+      if (row) await remove(row.rowId);
+    }
+    setSaving(false);
+  };
 
   return (
-    <div className="space-y-2">
-      {rows.length === 0 && (
-        <p className="text-[9px] font-bold text-primary/20 uppercase tracking-widest text-center py-4 border border-dashed border-primary/10 rounded-xl italic">
-          Ningún lugar asignado
-        </p>
-      )}
-      {rows.length > 0 && (
-        <div className="space-y-1">
-          {rows.map(r => (
-            <div key={r.rowId} className="relative group flex items-center gap-2.5 px-3 py-2 rounded-xl transition-colors"
-              style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-              <button
-                onClick={() => onNavigateLugar?.(r.lugarId)}
-                className="flex items-center gap-2.5 flex-1 min-w-0 text-left"
-              >
-                <div className="shrink-0 w-6 h-6 rounded-lg border border-primary/10 bg-primary/5 flex items-center justify-center">
-                  <MapPin size={10} className="text-primary/40" />
-                </div>
-                <span className="flex-1 text-[11px] font-bold text-primary/70 truncate hover:text-primary transition-colors">
-                  {r.lugarNombre}
-                </span>
-              </button>
-              <button onClick={() => remove(r.rowId)}
-                className="shrink-0 opacity-0 group-hover:opacity-100 transition-all p-1 rounded text-red-400/50 hover:text-red-400 hover:bg-red-500/8">
-                <X size={11} />
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <div className="relative">
-        <button onClick={() => setOpen(o => !o)}
-          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-primary/20 text-[10px] font-black uppercase tracking-widest text-primary/40 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all">
-          <Plus size={10} /> Añadir lugar
-          <ChevronDown size={10} className="ml-auto" style={{ transform: open ? "rotate(180deg)" : undefined, transition: "transform 0.2s" }} />
-        </button>
-        {open && (
-          <div className="absolute top-full left-0 right-0 z-20 mt-1 rounded-xl shadow-xl overflow-hidden"
-            style={{ background: "var(--bg-main)", border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)" }}>
-            <div className="p-2 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-              <input autoFocus value={search} onChange={e => setSearch(e.target.value)}
-                placeholder="Buscar lugar…"
-                className="w-full bg-transparent text-[11px] text-primary outline-none placeholder:text-primary/30 px-2 py-1" />
-            </div>
-            <div className="max-h-48 overflow-y-auto">
-              {filtered.length === 0 && (
-                <p className="text-[10px] text-primary/25 italic text-center py-4">Sin resultados</p>
-              )}
-              {filtered.map(l => (
-                <button key={l.id} onClick={() => { add(l); setOpen(false); setSearch(""); }}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-primary/5 transition-colors text-left">
-                  <div className="shrink-0 w-6 h-6 rounded-md border border-primary/10 bg-primary/5 flex items-center justify-center">
-                    <MapPin size={9} className="text-primary/20" />
-                  </div>
-                  <span className="text-[11px] font-bold text-primary/70 truncate">{l.nombre}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
+    <SeccionEntidad
+      label="Lugar donde encontrarlo"
+      icon={<MapPin size={9} />}
+      fallbackIcon={<MapPin size={9} />}
+      emptyLabel="Ningún lugar asignado"
+      allEntities={allLugares}
+      selectedIds={rows.map(r => r.lugarId)}
+      loading={loading}
+      saving={saving}
+      onToggle={handleToggle}
+      onEntityClick={onNavigateLugar}
+    />
   );
 }
 
@@ -349,7 +295,14 @@ export function EditorItem({
   const { confirm, ConfirmModal } = useConfirm();
 
   const { onSnippetAction } = useWikilink();
-  const categorias = useUniqueValues("items", "categoria");
+  // Cargamos las categorías únicas existentes como entidades para SeccionEntidad
+  const [categoriaEntidades, setCategoriaEntidades] = useState<{ id: string; nombre: string }[]>([]);
+  useEffect(() => {
+    supabase.from("items").select("categoria").then(({ data }) => {
+      const unique = [...new Set((data ?? []).map((r: any) => r.categoria).filter(Boolean))] as string[];
+      setCategoriaEntidades(unique.map(c => ({ id: c, nombre: c })));
+    });
+  }, []);
 
   useEffect(() => { setForm(item); setStatus("idle"); }, [item.id]);
 
@@ -432,9 +385,17 @@ export function EditorItem({
 
               {/* Columna derecha: categoría + origen + descripción */}
               <div className="flex-1 min-w-0 space-y-4">
-                <SelectorTexto label="Categoría" value={form.categoria ?? ""}
-                  onChange={v => setForm(f => ({ ...f, categoria: v }))} opciones={categorias}
-                  placeholder="Arma, reliquia, objeto…" />
+                <SeccionEntidad
+                  label="Categoría"
+                  icon={<Package size={9} />}
+                  fallbackIcon={<Package size={9} />}
+                  emptyLabel="Sin categoría"
+                  allEntities={categoriaEntidades}
+                  selectedIds={form.categoria ? [form.categoria] : []}
+                  loading={false}
+                  saving={false}
+                  onToggle={(id, add) => setForm(f => ({ ...f, categoria: add ? id : "" }))}
+                />
 
                 {/* Origen + Lugares en dos columnas */}
                 <div className="flex flex-col sm:flex-row gap-4">
