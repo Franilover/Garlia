@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { Package, Save, Trash2, Bug, Loader2, Leaf, Wrench, ChevronDown, X, Plus, MapPin, Globe } from "lucide-react";
+import { Package, Save, Trash2, Bug, Loader2, Leaf, Wrench, X, MapPin, Globe } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
 import { useConfirm } from "@/components/ui/ConfirmModal";
@@ -99,99 +99,43 @@ function useCrafterSources(itemId: string) {
   return { crafters, loading, add, remove };
 }
 
-// ─── Panel selector de criaturas creadoras ────────────────────────────────────
+// ─── Panel selector de criaturas creadoras (usa SeccionEntidad) ──────────────
 
 function PanelCrafterSources({ itemId, onSelectCriatura }: { itemId: string; onSelectCriatura?: (criaturaId: string) => void }) {
   const { crafters, loading, add, remove } = useCrafterSources(itemId);
   const [allCriaturas, setAllCriaturas] = useState<{ id: string; nombre: string; imagen_url?: string | null }[]>([]);
-  const [open, setOpen] = useState(false);
-  const [search, setSearch] = useState("");
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     supabase.from("criaturas").select("id, nombre, imagen_url").order("nombre")
       .then(({ data }) => setAllCriaturas(data ?? []));
   }, []);
 
-  const filtered = allCriaturas.filter(c =>
-    c.nombre.toLowerCase().includes(search.toLowerCase()) &&
-    !crafters.some(cr => cr.criaturaId === c.id)
-  );
-
-  if (loading) {
-    return (
-      <div className="flex items-center gap-2 py-4">
-        <Loader2 size={13} className="animate-spin text-primary/20" />
-        <span className="text-[10px] text-primary/25 italic">Cargando…</span>
-      </div>
-    );
-  }
+  const handleToggle = async (id: string, addIt: boolean) => {
+    setSaving(true);
+    if (addIt) {
+      const criatura = allCriaturas.find(c => c.id === id);
+      if (criatura) await add(criatura);
+    } else {
+      const crafter = crafters.find(c => c.criaturaId === id);
+      if (crafter) await remove(crafter.crafterId);
+    }
+    setSaving(false);
+  };
 
   return (
-    <div className="space-y-2">
-      {crafters.length === 0 && (
-        <p className="text-[9px] font-bold text-primary/20 uppercase tracking-widest text-center py-4 border border-dashed border-primary/10 rounded-xl italic">
-          Ninguna criatura asignada todavía
-        </p>
-      )}
-      {crafters.length > 0 && (
-        <div className="space-y-1">
-          {crafters.map(c => (
-            <div key={c.crafterId} className="relative group flex items-center gap-2.5 px-3 py-2 rounded-xl transition-colors"
-              style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-              <button
-                onClick={() => onSelectCriatura?.(c.criaturaId)}
-                className="flex items-center gap-2.5 flex-1 min-w-0 text-left"
-              >
-                <div className="shrink-0 w-6 h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
-                  {c.criaturaImg
-                    ? <img src={c.criaturaImg} alt={c.criaturaName} className="w-full h-full object-cover" />
-                    : <Bug size={10} className="text-primary/20" />}
-                </div>
-                <span className="flex-1 text-[11px] font-bold text-primary/70 truncate hover:text-primary transition-colors">{c.criaturaName}</span>
-              </button>
-              <button onClick={() => remove(c.crafterId)}
-                className="shrink-0 opacity-0 group-hover:opacity-100 transition-all p-1 rounded text-red-400/50 hover:text-red-400 hover:bg-red-500/8">
-                <X size={11} />
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <div className="relative">
-        <button onClick={() => setOpen(o => !o)}
-          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-primary/20 text-[10px] font-black uppercase tracking-widest text-primary/40 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all">
-          <Plus size={10} /> Añadir criatura
-          <ChevronDown size={10} className="ml-auto" style={{ transform: open ? "rotate(180deg)" : undefined, transition: "transform 0.2s" }} />
-        </button>
-        {open && (
-          <div className="absolute top-full left-0 right-0 z-20 mt-1 rounded-xl shadow-xl overflow-hidden"
-            style={{ background: "var(--bg-main)", border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)" }}>
-            <div className="p-2 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-              <input autoFocus value={search} onChange={e => setSearch(e.target.value)}
-                placeholder="Buscar criatura…"
-                className="w-full bg-transparent text-[11px] text-primary outline-none placeholder:text-primary/30 px-2 py-1" />
-            </div>
-            <div className="max-h-48 overflow-y-auto">
-              {filtered.length === 0 && (
-                <p className="text-[10px] text-primary/25 italic text-center py-4">Sin resultados</p>
-              )}
-              {filtered.map(c => (
-                <button key={c.id} onClick={() => { add(c); setOpen(false); setSearch(""); }}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-primary/5 transition-colors text-left">
-                  <div className="shrink-0 w-6 h-6 rounded-md overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
-                    {c.imagen_url
-                      ? <img src={c.imagen_url} alt={c.nombre} className="w-full h-full object-cover" />
-                      : <Bug size={9} className="text-primary/20" />}
-                  </div>
-                  <span className="text-[11px] font-bold text-primary/70 truncate">{c.nombre}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
+    <SeccionEntidad
+      label="Criaturas"
+      icon={<Bug size={9} />}
+      fallbackIcon={<Bug size={9} />}
+      emptyLabel="Ninguna criatura asignada"
+      allEntities={allCriaturas.map(c => ({ id: c.id, nombre: c.nombre, imagen_url: c.imagen_url }))}
+      selectedIds={crafters.map(c => c.criaturaId)}
+      loading={loading}
+      saving={saving}
+      onToggle={handleToggle}
+      onEntityClick={onSelectCriatura}
+    />
   );
 }
 
