@@ -5,7 +5,7 @@ import { MotionDiv } from '@/components/ui/Motion';
 import Link from "next/link";
 import { supabase } from "@/lib/api/client/supabase";
 import { SmartImage } from "@/components/display/SmartImage";
-import { Loading, PageHeader } from "@/components/ui";
+import { Loading } from "@/components/ui";
 import { Music, User, ChevronRight, List, LayoutGrid } from "lucide-react";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import { toSlug } from "@/lib/utils/slugify";
@@ -42,34 +42,41 @@ const CancionCardGrid = ({ cancion, index }: { cancion: Cancion; index: number }
   >
     <Link href={`/garlia/canciones/${toSlug(cancion.titulo)}`}>
       <MotionDiv
-        whileHover={{ y: -6 }}
-        transition={{ type: "spring", stiffness: 300, damping: 20 }}
+        whileHover={{ y: -4, rotate: -0.4 }}
+        transition={{ type: "spring", stiffness: 200, damping: 20 }}
         className="cursor-pointer h-full"
       >
         <div
-          className="relative aspect-square overflow-hidden bg-linear-to-br from-primary/10 to-primary/5"
+          className="relative aspect-square overflow-hidden"
           style={{
-            borderRadius: "var(--radius-card)",
-            border: "var(--border-width) solid color-mix(in srgb, var(--primary) 10%, transparent)",
-            boxShadow: "var(--shadow-card)",
+            borderRadius: "2px",
+            border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)",
+            boxShadow: "3px 3px 0 color-mix(in srgb, var(--primary) 8%, transparent), var(--shadow-card)",
           }}
         >
           <SmartImage
             src={cancion.portada_url || "/placeholder-cover.jpg"}
             alt={cancion.titulo}
-            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+            style={{ filter: "sepia(30%) contrast(0.93) brightness(0.93)" }}
           />
-
-          <div className="absolute inset-0 bg-linear-to-t from-black/75 via-black/20 to-transparent" />
-          <div className="absolute inset-0 bg-linear-to-b from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-400" />
-
-          {/* Textos más pequeños para restarles protagonismo frente al personaje */}
+          <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/15 to-transparent" />
+          {/* Esquina doblada estilo papel */}
+          <div
+            className="absolute top-0 right-0 w-5 h-5 opacity-70"
+            style={{ background: "var(--bg-main)", clipPath: "polygon(100% 0, 0 0, 100% 100%)" }}
+          />
           <div className="absolute bottom-0 left-0 right-0 p-3">
-            <h2 className="text-white font-black uppercase text-sm leading-tight tracking-tighter italic line-clamp-2 drop-shadow-sm group-hover:text-accent transition-colors duration-300">
+            <div className="flex items-center gap-1 mb-1.5 opacity-40">
+              <div className="h-px flex-1 bg-white/50" />
+              <span className="text-white/60 text-[7px]">✦</span>
+              <div className="h-px w-3 bg-white/50" />
+            </div>
+            <h2 className="text-white font-black uppercase text-xs leading-tight tracking-wider italic line-clamp-2 drop-shadow-sm group-hover:text-accent transition-colors duration-300">
               {cancion.titulo}
             </h2>
             {cancion.cantante && (
-              <p className="text-white/60 text-[8px] font-bold uppercase tracking-widest mt-1 truncate">
+              <p className="text-white/45 text-[7px] font-bold uppercase tracking-[0.2em] mt-1 truncate">
                 {cancion.cantante}
               </p>
             )}
@@ -87,40 +94,41 @@ const CancionCardFila = ({ cancion, index }: { cancion: Cancion; index: number }
     transition={{ delay: index * 0.03 }}
   >
     <Link href={`/garlia/canciones/${toSlug(cancion.titulo)}`}>
-      {/* Reducimos padding y tamaños generales de la fila */}
       <div
-        className="group flex items-center gap-3 bg-white-custom/50 hover:bg-white-custom/80 backdrop-blur-sm px-3 py-2 transition-all duration-300 cursor-pointer"
+        className="group flex items-center gap-3 bg-primary/[0.03] hover:bg-primary/[0.06] px-3 py-2 transition-all duration-300 cursor-pointer"
         style={{
-          borderRadius: "var(--radius-btn)",
-          border: "var(--border-width) solid color-mix(in srgb, var(--primary) 10%, transparent)",
+          borderRadius: "2px",
+          border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+          boxShadow: "1px 1px 0 color-mix(in srgb, var(--primary) 5%, transparent)",
         }}
-        onMouseEnter={e => { e.currentTarget.style.borderColor = "color-mix(in srgb, var(--primary) 25%, transparent)"; }}
+        onMouseEnter={e => { e.currentTarget.style.borderColor = "color-mix(in srgb, var(--primary) 22%, transparent)"; }}
         onMouseLeave={e => { e.currentTarget.style.borderColor = "color-mix(in srgb, var(--primary) 10%, transparent)"; }}
       >
-        <span className="font-mono text-[9px] font-black text-primary/20 w-5 text-right shrink-0 select-none group-hover:text-primary/40 transition-colors">
-          {String(index + 1).padStart(2, "0")}
+        <span className="font-mono text-[8px] font-black text-primary/15 w-6 text-right shrink-0 select-none group-hover:text-primary/35 transition-colors tracking-wider">
+          {String(index + 1).padStart(3, "0")}
         </span>
-
-        {/* Imagen en miniatura más pequeña (w-10 h-10 en lugar de 14) */}
+        <div className="w-px h-7 bg-primary/10 shrink-0" />
         <div
           className="w-10 h-10 overflow-hidden shrink-0"
-          style={{ borderRadius: "var(--radius-btn)", border: "var(--border-width) solid color-mix(in srgb, var(--primary) 15%, transparent)" }}
+          style={{
+            borderRadius: "1px",
+            border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+            filter: "sepia(20%) contrast(0.95)",
+          }}
         >
           <SmartImage src={cancion.portada_url || "/placeholder-cover.jpg"} alt={cancion.titulo} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
         </div>
-
         <div className="min-w-0 flex-1">
-          <h2 className="text-primary font-black uppercase text-xs group-hover:text-accent transition-colors tracking-tighter italic truncate">
+          <h2 className="text-primary font-black uppercase text-[11px] group-hover:text-accent transition-colors tracking-wide italic truncate">
             {cancion.titulo}
           </h2>
           {cancion.cantante && (
-            <p className="text-primary/40 text-[9px] font-bold uppercase tracking-widest truncate mt-0.5">
+            <p className="text-primary/35 text-[8px] font-bold uppercase tracking-[0.2em] truncate mt-0.5">
               {cancion.cantante}
             </p>
           )}
         </div>
-
-        <ChevronRight size={14} className="text-primary/20 group-hover:text-primary/50 transition-colors shrink-0" />
+        <ChevronRight size={12} className="text-primary/15 group-hover:text-primary/45 transition-colors shrink-0" />
       </div>
     </Link>
   </MotionDiv>
@@ -149,10 +157,12 @@ const PersonajeBloque = ({
     <div className="w-full md:w-1/3 lg:w-1/4 shrink-0 flex flex-col items-center md:items-start text-center md:text-left sticky top-24">
       {imgUrl ? (
         <div 
-          className="w-48 h-48 md:w-full md:aspect-square mb-5 overflow-hidden shadow-lg bg-primary/5"
+          className="w-48 h-48 md:w-full md:aspect-square mb-5 overflow-hidden bg-primary/5"
           style={{
-            borderRadius: "var(--radius-card)",
-            border: "var(--border-width) solid color-mix(in srgb, var(--primary) 15%, transparent)"
+            borderRadius: "2px",
+            border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)",
+            boxShadow: "4px 4px 0 color-mix(in srgb, var(--primary) 8%, transparent)",
+            filter: "sepia(15%)",
           }}
         >
           <img
@@ -163,10 +173,11 @@ const PersonajeBloque = ({
         </div>
       ) : (
         <div
-          className="w-48 h-48 md:w-full md:aspect-square mb-5 flex items-center justify-center bg-primary/5 shadow-lg"
+          className="w-48 h-48 md:w-full md:aspect-square mb-5 flex items-center justify-center bg-primary/5"
           style={{
-            borderRadius: "var(--radius-card)",
-            border: "var(--border-width) solid color-mix(in srgb, var(--primary) 15%, transparent)"
+            borderRadius: "2px",
+            border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)",
+            boxShadow: "4px 4px 0 color-mix(in srgb, var(--primary) 8%, transparent)",
           }}
         >
           <User size={64} className="text-primary/20" />
@@ -257,17 +268,34 @@ export default function CancionesPage() {
   let offsetAccumulator = 0;
 
   return (
-    <div className="min-h-screen bg-bg-main pb-20">
+    <div className="min-h-screen bg-bg-main pb-20" style={{ backgroundImage: "radial-gradient(ellipse at 20% 50%, color-mix(in srgb, var(--primary) 2%, transparent) 0%, transparent 60%), radial-gradient(ellipse at 80% 20%, color-mix(in srgb, var(--primary) 1.5%, transparent) 0%, transparent 50%)" }}>
       <div className="max-w-6xl mx-auto pt-16 px-6">
+        {/* Header corregido: sin PageHeader wrapper que duplica el flex layout */}
         <div className="flex items-end justify-between mb-10 gap-4">
-          <PageHeader title="Canciones" icon={<Music size={22} />} />
+          <div className="flex items-end gap-3">
+            {/* Línea decorativa vertical estilo antiguo */}
+            <div className="flex flex-col items-center gap-1 pb-1 opacity-30">
+              <div className="w-px h-6 bg-primary" />
+              <div className="w-1 h-1 rounded-full bg-primary" />
+            </div>
+            <div>
+              <p className="text-[9px] font-mono font-bold uppercase tracking-[0.3em] text-primary/30 mb-1">
+                — Archivo musical —
+              </p>
+              <h1 className="text-4xl font-black italic tracking-tighter text-primary leading-none flex items-center gap-3">
+                <Music size={22} className="opacity-50" />
+                Canciones
+              </h1>
+            </div>
+          </div>
 
           <button
             onClick={() => setVistaFila(v => !v)}
             title={vistaFila ? "Vista cuadrícula" : "Vista lista"}
-            className="p-3 rounded-btn border border-primary/10 hover:bg-primary/5 hover:border-primary/20 text-primary/40 hover:text-primary transition-all shrink-0 mb-[2px]"
+            className="p-2.5 border border-primary/15 hover:bg-primary/5 hover:border-primary/30 text-primary/35 hover:text-primary/70 transition-all shrink-0 mb-1"
+            style={{ borderRadius: "var(--radius-btn)" }}
           >
-            {vistaFila ? <LayoutGrid size={18} /> : <List size={18} />}
+            {vistaFila ? <LayoutGrid size={16} /> : <List size={16} />}
           </button>
         </div>
       </div>

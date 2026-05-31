@@ -1427,6 +1427,7 @@ function PanelListas({
   // ── Scroll position ───────────────────────────────────────────────────────
   const scrollRef = useRef<HTMLDivElement>(null);
   const scrollSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const capitulosRef = useRef<HTMLDivElement>(null);
 
   // Restaurar posición de scroll al montar
   useEffect(() => {
@@ -1631,6 +1632,22 @@ function PanelListas({
     return () => window.removeEventListener("estudio-letras-action", check);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // ── Navegar a la sección Capítulos desde el sidebar ──────────────────────
+  // El sidebar ya lanza "estudio-caps-action" con el capítulo seleccionado en
+  // localStorage. Aquí sólo necesitamos hacer scroll hasta la sección y dejar
+  // que EstudioCapitulos se encargue del detalle interno.
+  useEffect(() => {
+    const scrollToCapitulos = () => {
+      if (overlay) return; // si hay overlay abierto, primero cerrar
+      // Pequeño delay para que el DOM esté visible antes de scrollear
+      setTimeout(() => {
+        capitulosRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 80);
+    };
+    window.addEventListener("estudio-caps-action", scrollToCapitulos);
+    return () => window.removeEventListener("estudio-caps-action", scrollToCapitulos);
+  }, [overlay]);
 
   // ── Helper: chip genérico ─────────────────────────────────────────────────
   function Chip({ onClick, imgUrl, icon: Icon, nombre, accentBg, accentBorder, accentText }: {
@@ -1947,7 +1964,7 @@ function PanelListas({
           )}
 
           {/* CAPÍTULOS */}
-          <div style={{ minHeight: "60vh" }}>
+          <div ref={capitulosRef} style={{ minHeight: "60vh" }}>
             <div className="shrink-0 flex items-center gap-2 px-3 py-2 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, transparent)" }}>
               <BookOpen size={11} className="text-primary/40 shrink-0" />
               <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/50">Capítulos</span>
