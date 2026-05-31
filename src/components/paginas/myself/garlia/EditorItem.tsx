@@ -383,87 +383,76 @@ export function EditorItem({
                 <div className="flex flex-col sm:flex-row gap-4">
 
                   {/* Columna Origen */}
-                  <div className="flex-1 min-w-0 space-y-2">
-                <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Origen</label>
+                  <div className="flex-1 min-w-0 rounded-xl overflow-hidden"
+                    style={{ border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
 
-                  {/* Nivel 1: Natural / Artificial */}
-                  <div className="flex gap-2">
-                    {(["Natural", "Artificial"] as const).map(op => {
-                      const isSelected = form.origen === op;
-                      const Icon = op === "Natural" ? Leaf : Wrench;
-                      return (
-                        <button key={op} type="button"
-                          onClick={() => setForm(f => ({
-                            ...f,
-                            origen: isSelected ? null : op,
-                            sub_origen: null,
-                          }))}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all"
-                          style={isSelected ? {
-                            background: "color-mix(in srgb, var(--primary) 12%, transparent)",
-                            color: "var(--primary)",
-                            border: "1px solid color-mix(in srgb, var(--primary) 25%, transparent)",
-                          } : {
-                            color: "color-mix(in srgb, var(--primary) 35%, transparent)",
-                            border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-                          }}
-                        >
-                          <Icon size={10} /> {op}
-                        </button>
-                      );
-                    })}
-                  </div>
+                    {/* Cabecera */}
+                    <div className="flex items-center gap-1.5 px-3 py-2"
+                      style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, transparent)" }}>
+                      <Package size={9} style={{ color: "color-mix(in srgb, var(--primary) 38%, transparent)" }} />
+                      <span className="text-[8px] font-black uppercase tracking-widest"
+                        style={{ color: "color-mix(in srgb, var(--primary) 38%, transparent)" }}>Origen</span>
+                    </div>
 
-                  {/* Nivel 2: sub-origen de Natural */}
-                  {form.origen === "Natural" && (
-                    <div className="pl-3 border-l-2 space-y-2" style={{ borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)" }}>
-                      <div className="flex gap-2">
-                        {(["Planta", "Criatura"] as const).map(sub => {
-                          const isSelected = form.sub_origen === sub;
-                          const Icon = sub === "Planta" ? Leaf : Bug;
-                          return (
-                            <button key={sub} type="button"
-                              onClick={() => setForm(f => ({
-                                ...f,
-                                sub_origen: isSelected ? null : sub,
-                              }))}
-                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all"
-                              style={isSelected ? {
-                                background: "color-mix(in srgb, var(--primary) 10%, transparent)",
-                                color: "var(--primary)",
-                                border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)",
-                              } : {
-                                color: "color-mix(in srgb, var(--primary) 30%, transparent)",
-                                border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-                              }}
-                            >
-                              <Icon size={10} /> {sub}
-                            </button>
-                          );
-                        })}
-                      </div>
+                    {/* Nivel 1: Natural / Artificial */}
+                    <div className="flex"
+                      style={{ borderBottom: form.origen ? "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" : undefined }}>
+                      {(["Natural", "Artificial"] as const).map((op, i) => {
+                        const isSelected = form.origen === op;
+                        const Icon = op === "Natural" ? Leaf : Wrench;
+                        return (
+                          <button key={op} type="button"
+                            onClick={() => setForm(f => ({ ...f, origen: isSelected ? null : op, sub_origen: null }))}
+                            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[9px] font-black uppercase tracking-widest transition-all"
+                            style={{
+                              borderRight: i === 0 ? "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" : undefined,
+                              background: isSelected ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent",
+                              color: isSelected ? "var(--primary)" : "color-mix(in srgb, var(--primary) 30%, transparent)",
+                            }}
+                          >
+                            <Icon size={10} /> {op}
+                          </button>
+                        );
+                      })}
+                    </div>
 
-                      {/* Si Natural → Criatura: selector de criaturas */}
-                      {form.sub_origen === "Criatura" && (
-                        <div className="space-y-1.5">
-                          <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35 flex items-center gap-1.5">
-                            <Bug size={9} /> Criaturas de origen
-                          </label>
-                          <PanelCrafterSources itemId={form.id} onSelectCriatura={onSelectCriatura} />
+                    {/* Nivel 2: sub-origen de Natural */}
+                    {form.origen === "Natural" && (
+                      <div>
+                        <div className="flex"
+                          style={{ borderBottom: form.sub_origen === "Criatura" ? "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" : undefined }}>
+                          {(["Planta", "Criatura"] as const).map((sub, i) => {
+                            const isSelected = form.sub_origen === sub;
+                            const Icon = sub === "Planta" ? Leaf : Bug;
+                            return (
+                              <button key={sub} type="button"
+                                onClick={() => setForm(f => ({ ...f, sub_origen: isSelected ? null : sub }))}
+                                className="flex-1 flex items-center justify-center gap-1.5 py-2 text-[9px] font-black uppercase tracking-widest transition-all"
+                                style={{
+                                  borderRight: i === 0 ? "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" : undefined,
+                                  background: isSelected ? "color-mix(in srgb, var(--primary) 7%, transparent)" : "color-mix(in srgb, var(--primary) 2%, transparent)",
+                                  color: isSelected ? "var(--primary)" : "color-mix(in srgb, var(--primary) 25%, transparent)",
+                                }}
+                              >
+                                <Icon size={9} /> {sub}
+                              </button>
+                            );
+                          })}
                         </div>
-                      )}
-                    </div>
-                  )}
+                        {form.sub_origen === "Criatura" && (
+                          <div className="p-2">
+                            <PanelCrafterSources itemId={form.id} onSelectCriatura={onSelectCriatura} />
+                          </div>
+                        )}
+                      </div>
+                    )}
 
-                  {/* Nivel 2: Artificial → selector de criaturas */}
-                  {form.origen === "Artificial" && (
-                    <div className="pl-3 border-l-2 space-y-1.5" style={{ borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)" }}>
-                      <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35 flex items-center gap-1.5">
-                        <Wrench size={9} /> Criaturas que lo crean
-                      </label>
-                      <PanelCrafterSources itemId={form.id} onSelectCriatura={onSelectCriatura} />
-                    </div>
-                  )}
+                    {/* Nivel 2: Artificial → selector de criaturas */}
+                    {form.origen === "Artificial" && (
+                      <div className="p-2">
+                        <PanelCrafterSources itemId={form.id} onSelectCriatura={onSelectCriatura} />
+                      </div>
+                    )}
                   </div>
 
                   {/* Columna Reinos */}
