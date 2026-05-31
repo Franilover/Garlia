@@ -9,7 +9,7 @@ import { supabase } from "@/lib/api/client/supabase";
 import {
   ModalDetalle, EntidadCard, EmptyTab,
   type EntidadModal, type Descubrimiento, type ItemInventario,
-} from "./PersonalComponents";
+} from "./personal/PersonalComponents";
 
 interface PerfilResumen {
   id: string;
@@ -1435,8 +1435,10 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
 
               {/* Inventory panel */}
               <div style={{
-                border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-                borderTop: "none",
+                borderLeft: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                borderRight: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                borderBottom: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                borderTop: "0px solid transparent",
                 borderRadius: "0 0 var(--radius-card) var(--radius-card)",
                 background: "color-mix(in srgb, var(--primary) 2%, var(--bg-main))",
                 padding: "16px",
@@ -1461,9 +1463,10 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                               border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
                               borderRadius: "4px",
                               boxShadow: "inset 0 1px 0 color-mix(in srgb, var(--primary) 6%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--primary) 10%, transparent)",
-                              aspectRatio: "1",
+                              aspectRatio: "1 / 1",
                               display: "flex",
                               flexDirection: "column",
+                              minHeight: "80px",
                             }}
                             onMouseEnter={e => {
                               (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 35%, transparent)";
@@ -1476,7 +1479,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                               (e.currentTarget as HTMLElement).style.boxShadow = "inset 0 1px 0 color-mix(in srgb, var(--primary) 6%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--primary) 10%, transparent)";
                             }}>
                             {/* Imagen */}
-                            <div className="flex-1 relative overflow-hidden flex items-center justify-center p-2" style={{ minHeight: "56px" }}>
+                            <div className="flex-1 relative overflow-hidden flex items-center justify-center p-2" style={{ minHeight: "64px", width: "100%" }}>
                               {item.items.imagen_url
                                 ? <img src={item.items.imagen_url} alt={item.items.nombre}
                                     className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-125"
@@ -1502,9 +1505,10 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                               border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
                               borderRadius: "4px",
                               boxShadow: "inset 0 1px 0 color-mix(in srgb, var(--primary) 6%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--primary) 10%, transparent)",
-                              aspectRatio: "1",
+                              aspectRatio: "1 / 1",
                               display: "flex",
                               flexDirection: "column",
+                              minHeight: "80px",
                             }}
                             onMouseEnter={e => {
                               (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 35%, transparent)";
@@ -1515,7 +1519,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                               (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 14%, transparent)";
                               (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 3%, var(--white-custom))";
                               (e.currentTarget as HTMLElement).style.boxShadow = "inset 0 1px 0 color-mix(in srgb, var(--primary) 6%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--primary) 10%, transparent)";
-                            }}>                            <div className="flex-1 relative overflow-hidden flex items-center justify-center p-2" style={{ minHeight: "56px" }}>
+                            }}>                            <div className="flex-1 relative overflow-hidden flex items-center justify-center p-2" style={{ minHeight: "64px", width: "100%" }}>
                               {d.imagen_url
                                 ? <img src={d.imagen_url} alt={d.nombre}
                                     className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-125"
@@ -1546,9 +1550,10 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                               border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
                               borderRadius: "4px",
                               boxShadow: "inset 0 1px 0 color-mix(in srgb, var(--primary) 6%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--primary) 10%, transparent)",
-                              aspectRatio: "1",
+                              aspectRatio: "1 / 1",
                               display: "flex",
                               flexDirection: "column",
+                              minHeight: "80px",
                             }}
                             onMouseEnter={e => {
                               (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 35%, transparent)";
@@ -1559,7 +1564,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                               (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 14%, transparent)";
                               (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 3%, var(--white-custom))";
                               (e.currentTarget as HTMLElement).style.boxShadow = "inset 0 1px 0 color-mix(in srgb, var(--primary) 6%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--primary) 10%, transparent)";
-                            }}>                            <div className="flex-1 relative overflow-hidden flex items-center justify-center p-2" style={{ minHeight: "56px" }}>
+                            }}>                            <div className="flex-1 relative overflow-hidden flex items-center justify-center p-2" style={{ minHeight: "64px", width: "100%" }}>
                               {d.imagen_url
                                 ? <img src={d.imagen_url} alt={d.nombre}
                                     className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-125"
@@ -1589,9 +1594,10 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                               border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
                               borderRadius: "4px",
                               boxShadow: "inset 0 1px 0 color-mix(in srgb, var(--primary) 6%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--primary) 10%, transparent)",
-                              aspectRatio: "1",
+                              aspectRatio: "1 / 1",
                               display: "flex",
                               flexDirection: "column",
+                              minHeight: "80px",
                             }}
                             onMouseEnter={e => {
                               (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 35%, transparent)";
@@ -1602,7 +1608,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                               (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 14%, transparent)";
                               (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 3%, var(--white-custom))";
                               (e.currentTarget as HTMLElement).style.boxShadow = "inset 0 1px 0 color-mix(in srgb, var(--primary) 6%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--primary) 10%, transparent)";
-                            }}>                            <div className="flex-1 relative overflow-hidden flex items-center justify-center p-2" style={{ minHeight: "56px" }}>
+                            }}>                            <div className="flex-1 relative overflow-hidden flex items-center justify-center p-2" style={{ minHeight: "64px", width: "100%" }}>
                               {d.imagen_url
                                 ? <img src={d.imagen_url} alt={d.nombre}
                                     className="w-full h-full object-contain transition-transform duration-300"
@@ -1644,9 +1650,10 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                               border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
                               borderRadius: "4px",
                               boxShadow: "inset 0 1px 0 color-mix(in srgb, var(--primary) 6%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--primary) 10%, transparent)",
-                              aspectRatio: "1",
+                              aspectRatio: "1 / 1",
                               display: "flex",
                               flexDirection: "column",
+                              minHeight: "80px",
                             }}
                             onMouseEnter={e => {
                               (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 35%, transparent)";
@@ -1658,7 +1665,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                               (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 3%, var(--white-custom))";
                               (e.currentTarget as HTMLElement).style.boxShadow = "inset 0 1px 0 color-mix(in srgb, var(--primary) 6%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--primary) 10%, transparent)";
                             }}>
-                            <div className="flex-1 relative overflow-hidden flex items-center justify-center p-2" style={{ minHeight: "56px" }}>
+                            <div className="flex-1 relative overflow-hidden flex items-center justify-center p-2" style={{ minHeight: "64px", width: "100%" }}>
                               {r.mapa_url
                                 ? <img src={r.mapa_url} alt={r.nombre}
                                     className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-110" />
@@ -1693,9 +1700,10 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                           border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
                           borderRadius: "4px",
                           boxShadow: "inset 0 1px 0 color-mix(in srgb, var(--primary) 6%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--primary) 10%, transparent)",
-                          aspectRatio: "1",
+                          aspectRatio: "1 / 1",
                           display: "flex",
                           flexDirection: "column",
+                          minHeight: "80px",
                         }}
                         onMouseEnter={e => {
                           (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 35%, transparent)";
@@ -1707,7 +1715,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                           (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 3%, var(--white-custom))";
                           (e.currentTarget as HTMLElement).style.boxShadow = "inset 0 1px 0 color-mix(in srgb, var(--primary) 6%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--primary) 10%, transparent)";
                         }}>
-                        <div className="flex-1 relative overflow-hidden flex items-center justify-center p-2" style={{ minHeight: "56px" }}>
+                        <div className="flex-1 relative overflow-hidden flex items-center justify-center p-2" style={{ minHeight: "64px", width: "100%" }}>
                           {l.imagen_url
                             ? <img src={l.imagen_url} alt={l.nombre}
                                 className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" />
