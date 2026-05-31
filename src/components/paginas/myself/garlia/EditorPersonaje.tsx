@@ -53,7 +53,7 @@ async function dexieWriteAll(tabla: string, rows: any[]): Promise<void> {
 
 
 // ─── Bloque capítulos en los que aparece ─────────────────────────────────────
-type CapAparece = { id: string; orden: number; titulo_capitulo: string; libro_titulo?: string | null };
+type CapAparece = { id: string; orden: number; titulo_capitulo: string; libro_titulo?: string | null; libro_id?: string | null };
 
 function useCapitulosConPersonaje(personajeId: string): { caps: CapAparece[]; loading: boolean } {
   const [caps, setCaps] = useState<CapAparece[]>([]);
@@ -78,6 +78,7 @@ function useCapitulosConPersonaje(personajeId: string): { caps: CapAparece[]; lo
               orden: c.orden ?? 0,
               titulo_capitulo: c.titulo_capitulo ?? "Sin título",
               libro_titulo: libroMap[c.libro_id] ?? null,
+              libro_id: c.libro_id ?? null,
             })));
           setLoading(false);
           if (!navigator.onLine) return;
@@ -91,7 +92,7 @@ function useCapitulosConPersonaje(personajeId: string): { caps: CapAparece[]; lo
     try {
       const { data } = await supabase
         .from("capitulos")
-        .select("id, orden, titulo_capitulo, libros!libro_id(titulo)")
+        .select("id, orden, titulo_capitulo, libro_id, libros!libro_id(titulo)")
         .contains("personajes_ids", [personajeId])
         .order("orden");
       setCaps((data ?? []).map((c: any) => ({
@@ -99,6 +100,7 @@ function useCapitulosConPersonaje(personajeId: string): { caps: CapAparece[]; lo
         orden: c.orden ?? 0,
         titulo_capitulo: c.titulo_capitulo ?? "Sin título",
         libro_titulo: (Array.isArray(c.libros) ? c.libros[0]?.titulo : c.libros?.titulo) ?? null,
+        libro_id: c.libro_id ?? null,
       })));
     } catch {}
     setLoading(false);
@@ -111,6 +113,14 @@ function useCapitulosConPersonaje(personajeId: string): { caps: CapAparece[]; lo
 
 function BloqueCapsAparece({ personajeId }: { personajeId: string }) {
   const { caps, loading } = useCapitulosConPersonaje(personajeId);
+
+  const navigateToCap = (cap: CapAparece) => {
+    if (!cap.libro_id) return;
+    localStorage.setItem("estudio-caps-last-cap",   cap.id);
+    localStorage.setItem("estudio-caps-last-libro", cap.libro_id);
+    window.dispatchEvent(new Event("estudio-caps-action"));
+  };
+
   if (loading) return <div className="flex justify-center py-4"><Loader2 size={16} className="animate-spin text-primary/20" /></div>;
   if (!caps.length) return (
     <p className="text-[10px] font-bold text-primary/25 uppercase tracking-widest text-center py-4 italic">
@@ -120,19 +130,25 @@ function BloqueCapsAparece({ personajeId }: { personajeId: string }) {
   return (
     <div className="space-y-1">
       {caps.map(cap => (
-        <div key={cap.id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-primary/3 transition-colors">
-          <div className="shrink-0 w-6 h-6 rounded-lg flex items-center justify-center text-[9px] font-black bg-accent/10 text-accent">
+        <button
+          key={cap.id}
+          type="button"
+          onClick={() => navigateToCap(cap)}
+          disabled={!cap.libro_id}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-primary/5 active:bg-primary/10 transition-colors text-left group disabled:opacity-40 disabled:cursor-default cursor-pointer"
+        >
+          <div className="shrink-0 w-6 h-6 rounded-lg flex items-center justify-center text-[9px] font-black bg-accent/10 text-accent group-hover:bg-accent/20 transition-colors">
             {cap.orden}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-[11px] font-bold text-primary truncate uppercase italic">{cap.titulo_capitulo}</p>
+            <p className="text-[11px] font-bold text-primary truncate uppercase italic group-hover:text-primary/80 transition-colors">{cap.titulo_capitulo}</p>
             {cap.libro_titulo && (
               <p className="text-[9px] text-primary/35 truncate flex items-center gap-1">
                 <BookOpen size={8} /> {cap.libro_titulo}
               </p>
             )}
           </div>
-        </div>
+        </button>
       ))}
     </div>
   );
