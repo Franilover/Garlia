@@ -90,6 +90,18 @@ function CoverFlip({
       }}
       onClick={() => hasInfo && setFlipped((f) => !f)}
     >
+      {/* Sombra offset estilo impresión antigua — fuera del contexto 3D */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          borderRadius: "2px",
+          boxShadow: "5px 5px 0 color-mix(in srgb, var(--primary) 10%, transparent)",
+          pointerEvents: "none",
+          zIndex: 0,
+        }}
+      />
+
       {/* Card container */}
       <div
         style={{
@@ -99,10 +111,10 @@ function CoverFlip({
           transformStyle: "preserve-3d",
           transition: "transform 0.55s cubic-bezier(0.4, 0, 0.2, 1)",
           transform: flipped ? "rotateY(180deg)" : "rotateY(0deg)",
-          borderRadius: "var(--radius-btn, 8px)",
-          border,
+          borderRadius: "2px",
+          border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)",
+          zIndex: 1,
           // overflow: "hidden" NO VA ACÁ — destruye el contexto 3D
-          // y la cara trasera nunca se ve aunque rote correctamente.
         }}
       >
         {/* Frente: portada */}
@@ -112,14 +124,30 @@ function CoverFlip({
             inset: 0,
             backfaceVisibility: "hidden",
             WebkitBackfaceVisibility: "hidden",
-            borderRadius: "var(--radius-btn, 8px)",
-            overflow: "hidden", // overflow por cara, no en el contenedor 3D
+            borderRadius: "2px",
+            overflow: "hidden",
           }}
         >
-          <SmartImage
-            src={portada_url || "/placeholder-cover.jpg"}
-            alt={titulo}
-            className="w-full h-full object-cover"
+          {/* Filtro sepia sobre la imagen */}
+          <div style={{ width: "100%", height: "100%", filter: "sepia(25%) contrast(0.93) brightness(0.93)" }}>
+            <SmartImage
+              src={portada_url || "/placeholder-cover.jpg"}
+              alt={titulo}
+              className="w-full h-full object-cover"
+            />
+          </div>
+          {/* Esquina doblada estilo papel antiguo */}
+          <div
+            style={{
+              position: "absolute",
+              top: 0,
+              right: 0,
+              width: 22,
+              height: 22,
+              background: "var(--bg-main)",
+              clipPath: "polygon(100% 0, 0 0, 100% 100%)",
+              opacity: 0.65,
+            }}
           />
           {/* Hint sutil: borde inferior con gradiente cuando hay info */}
           {hasInfo && (
@@ -150,7 +178,7 @@ function CoverFlip({
             display: "flex",
             flexDirection: "column",
             gap: 10,
-            borderRadius: "var(--radius-btn, 8px)",
+            borderRadius: "2px",
             overflow: "hidden",
           }}
         >
