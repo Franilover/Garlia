@@ -1406,14 +1406,14 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
             <div className="flex-1 min-w-0 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
 
               {/* ── TABS — conectadas al panel, se levantan al activarse ── */}
-              <div className="flex items-end gap-0">
+              <div className="flex items-end gap-0 w-full">
                 {tabs.map((t, idx) => {
                   const isActive = tab === t.id;
                   return (
                     <button
                       key={t.id}
                       onClick={() => setTab(t.id)}
-                      className="relative flex items-center gap-2 px-4 transition-all duration-150"
+                      className="relative flex flex-1 items-center justify-center gap-2 px-2 transition-all duration-150"
                       style={{
                         paddingTop: isActive ? "9px" : "7px",
                         paddingBottom: isActive ? "9px" : "7px",
@@ -1453,7 +1453,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                   <MotionDiv key={tab}
                     initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
                     transition={{ duration: 0.16 }}
-                    className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                    className="grid grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-3">
 
                     {tab === "items" && (
                       <>
