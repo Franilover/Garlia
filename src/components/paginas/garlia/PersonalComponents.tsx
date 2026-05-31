@@ -133,7 +133,7 @@ export function ModalDetalle({ entidad, onClose, canciones, cargandoCanciones }:
               style={{ background: "var(--primary)", borderRadius: "2px" }}>
               <IconComp size={9} style={{ color: "var(--btn-text, white)" }} />
               <span className="text-[8px] font-black uppercase tracking-widest" style={{ color: "var(--btn-text, white)" }}>
-                {isReino ? "reino" : isItem ? "objeto" : isCriatura ? "criatura" : "personaje"}
+                {isReino ? "reino" : isLugar ? "lugar" : isItem ? "objeto" : isCriatura ? "criatura" : "personaje"}
               </span>
             </div>
           </div>
@@ -182,7 +182,7 @@ export function ModalDetalle({ entidad, onClose, canciones, cargandoCanciones }:
             </div>
 
             {/* Canciones del personaje — solo para personajes */}
-            {!isItem && !isCriatura && (
+            {!isItem && !isCriatura && !isReino && !isLugar && (
               <div className="pt-3" style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" }}>
                 <div className="flex items-center gap-3 mb-3">
                   <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
