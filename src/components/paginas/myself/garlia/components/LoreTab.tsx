@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Globe, Mountain, Landmark, Users, Coins, Plus, Trash2, ChevronUp, ChevronDown, ChevronRight, UserCircle2, Loader2, MapPin, Map, Check, X, Eye, EyeOff, Bug, BookOpen } from "lucide-react";
+import { SeccionEntidad } from "@/components/ui/SeccionEntidad";
 import { INPUT_CLS, type SaveStatus } from "./types";
 import { MarkdownEditor, WikiEntity } from "../../../../forms/MarkdownEditor";
 import { useWikilink } from "./WikilinkContext";
@@ -1003,151 +1004,40 @@ export function LoreTab({
 
       {/* ── COLUMNA 3 — Utilidades (220px) ──────────────────────────────────── */}
       <aside
-        className="shrink-0 w-52 flex flex-col border-l overflow-hidden"
+        className="shrink-0 w-52 flex flex-col border-l overflow-y-auto overflow-x-hidden"
         style={{
           borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)",
           background: "color-mix(in srgb, var(--primary) 1%, transparent)",
+          scrollbarWidth: "none",
         }}
       >
-        {/* Personajes */}
-        <div
-          className="flex flex-col min-h-0"
-          style={{
-            borderBottom: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)",
-            maxHeight: "55%",
-          }}
-        >
-          <div className="shrink-0 flex items-center gap-1.5 px-2.5 py-2 border-b"
-            style={{ borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)" }}>
-            <Users size={9} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
-            <span className="text-[8px] font-black uppercase tracking-[0.22em]"
-              style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
-              Personajes
-            </span>
-            {personajes.length > 0 && (
-              <span
-                className="ml-auto text-[7px] font-black px-1 py-0.5 rounded-full"
-                style={{
-                  background: "color-mix(in srgb, var(--primary) 10%, transparent)",
-                  color: "color-mix(in srgb, var(--primary) 45%, transparent)",
-                }}
-              >
-                {personajes.length}
-              </span>
-            )}
-          </div>
+        <SeccionEntidad
+          label="Personajes"
+          icon={<Users size={9} />}
+          fallbackIcon={<UserCircle2 size={14} strokeWidth={1} />}
+          emptyLabel="Sin personajes"
+          allEntities={personajes.map(p => ({ id: p.id, nombre: p.nombre, imagen_url: p.img_url }))}
+          selectedIds={personajes.map(p => p.id)}
+          loading={loadingPersonajes}
+          saving={false}
+          onToggle={(id) => { const p = personajes.find(x => x.id === id); if (p) onSelectPersonaje?.(p); }}
+          onEntityClick={(id) => { const p = personajes.find(x => x.id === id); if (p) onSelectPersonaje?.(p); }}
+        />
 
-          <div className="flex-1 overflow-y-auto p-1.5 space-y-0.5" style={{ scrollbarWidth: "none" }}>
-            {loadingPersonajes ? (
-              <div className="flex items-center justify-center py-6">
-                <Loader2 size={12} className="animate-spin text-primary/20" />
-              </div>
-            ) : personajes.length === 0 ? (
-              <div className="flex flex-col items-center gap-1.5 py-6 text-primary/20">
-                <UserCircle2 size={18} strokeWidth={1} />
-                <p className="text-[8px] font-black uppercase tracking-widest text-center">Sin personajes</p>
-              </div>
-            ) : (
-              personajes.map(p => (
-                <button
-                  key={p.id}
-                  onClick={() => onSelectPersonaje?.(p)}
-                  className="w-full flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-left transition-all group"
-                  style={{ background: "transparent" }}
-                  onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 6%, transparent)"}
-                  onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = "transparent"}
-                >
-                  <div
-                    className="shrink-0 w-5 h-5 rounded-full overflow-hidden flex items-center justify-center"
-                    style={{
-                      background: "color-mix(in srgb, var(--primary) 8%, transparent)",
-                      border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-                    }}
-                  >
-                    {p.img_url
-                      ? <img src={p.img_url} alt={p.nombre} className="w-full h-full object-cover" />
-                      : <UserCircle2 size={9} style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }} />}
-                  </div>
-                  <span
-                    className="flex-1 min-w-0 text-[10px] font-bold truncate transition-colors"
-                    style={{ color: "color-mix(in srgb, var(--primary) 60%, transparent)" }}
-                  >
-                    {p.nombre}
-                  </span>
-                  <ChevronRight size={8} className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                    style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }} />
-                </button>
-              ))
-            )}
-          </div>
-        </div>
+        <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
 
-        {/* Criaturas del reino */}
-        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-          <div className="shrink-0 flex items-center gap-1.5 px-2.5 py-2 border-b"
-            style={{ borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)" }}>
-            <Bug size={9} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
-            <span className="text-[8px] font-black uppercase tracking-[0.22em]"
-              style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
-              Criaturas
-            </span>
-            {criaturas.length > 0 && (
-              <span
-                className="ml-auto text-[7px] font-black px-1 py-0.5 rounded-full"
-                style={{
-                  background: "color-mix(in srgb, var(--primary) 10%, transparent)",
-                  color: "color-mix(in srgb, var(--primary) 45%, transparent)",
-                }}
-              >
-                {criaturas.length}
-              </span>
-            )}
-          </div>
-
-          <div className="flex-1 overflow-y-auto p-1.5 space-y-0.5" style={{ scrollbarWidth: "none" }}>
-            {loadingCriaturas ? (
-              <div className="flex items-center justify-center py-6">
-                <Loader2 size={12} className="animate-spin text-primary/20" />
-              </div>
-            ) : criaturas.length === 0 ? (
-              <div className="flex flex-col items-center gap-1.5 py-6 text-primary/20">
-                <Bug size={18} strokeWidth={1} />
-                <p className="text-[8px] font-black uppercase tracking-widest text-center">Sin criaturas</p>
-              </div>
-            ) : (
-              criaturas.map(c => (
-                <button
-                  key={c.id}
-                  onClick={() => onSelectCriatura?.(c.id)}
-                  className="w-full flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-left transition-all group"
-                  style={{ background: "transparent" }}
-                  onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 6%, transparent)"}
-                  onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = "transparent"}
-                >
-                  <div
-                    className="shrink-0 w-5 h-5 rounded-full overflow-hidden flex items-center justify-center"
-                    style={{
-                      background: "color-mix(in srgb, var(--primary) 8%, transparent)",
-                      border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-                    }}
-                  >
-                    {c.imagen_url
-                      ? <img src={c.imagen_url} alt={c.nombre} className="w-full h-full object-cover" />
-                      : <Bug size={9} style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }} />}
-                  </div>
-                  <span
-                    className="flex-1 min-w-0 text-[10px] font-bold truncate transition-colors"
-                    style={{ color: "color-mix(in srgb, var(--primary) 60%, transparent)" }}
-                  >
-                    {c.nombre}
-                  </span>
-                  <ChevronRight size={8} className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                    style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }} />
-                </button>
-              ))
-            )}
-          </div>
-        </div>
+        <SeccionEntidad
+          label="Criaturas"
+          icon={<Bug size={9} />}
+          fallbackIcon={<Bug size={14} strokeWidth={1} />}
+          emptyLabel="Sin criaturas"
+          allEntities={criaturas.map(c => ({ id: c.id, nombre: c.nombre, imagen_url: c.imagen_url }))}
+          selectedIds={criaturas.map(c => c.id)}
+          loading={loadingCriaturas}
+          saving={false}
+          onToggle={(id) => onSelectCriatura?.(id)}
+          onEntityClick={(id) => onSelectCriatura?.(id)}
+        />
       </aside>
 
     </div>
