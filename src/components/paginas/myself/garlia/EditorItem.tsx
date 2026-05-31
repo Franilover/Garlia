@@ -8,6 +8,7 @@ import { useConfirm } from "@/components/ui/ConfirmModal";
 import { type Item, type SaveStatus } from "./components/types";
 import { SelectorImagen, SaveIndicator } from "./components/UIComponents";
 import { SeccionEntidad } from "@/components/ui/SeccionEntidad";
+import { ComboSelector } from "@/components/ui/ComboSelector";
 import { MarkdownEditor, WikiEntity } from "../../../forms/MarkdownEditor";
 import { useWikilink } from "./components/WikilinkContext";
 
@@ -295,14 +296,14 @@ export function EditorItem({
   const { confirm, ConfirmModal } = useConfirm();
 
   const { onSnippetAction } = useWikilink();
-  // Cargamos las categorías únicas existentes como entidades para SeccionEntidad
-  const [categoriaEntidades, setCategoriaEntidades] = useState<{ id: string; nombre: string }[]>([]);
+  const [categoriasRaw, setCategoriasRaw] = useState<string[]>([]);
   useEffect(() => {
     supabase.from("items").select("categoria").then(({ data }) => {
       const unique = [...new Set((data ?? []).map((r: any) => r.categoria).filter(Boolean))] as string[];
-      setCategoriaEntidades(unique.map(c => ({ id: c, nombre: c })));
+      setCategoriasRaw(unique);
     });
   }, []);
+  const categoriaItems = categoriasRaw.map(c => ({ id: c, label: c }));
 
   useEffect(() => { setForm(item); setStatus("idle"); }, [item.id]);
 
@@ -385,16 +386,15 @@ export function EditorItem({
 
               {/* Columna derecha: categoría + origen + descripción */}
               <div className="flex-1 min-w-0 space-y-4">
-                <SeccionEntidad
+                <ComboSelector
+                  mode="single"
                   label="Categoría"
                   icon={<Package size={9} />}
-                  fallbackIcon={<Package size={9} />}
-                  emptyLabel="Sin categoría"
-                  allEntities={categoriaEntidades}
-                  selectedIds={form.categoria ? [form.categoria] : []}
-                  loading={false}
-                  saving={false}
-                  onToggle={(id, add) => setForm(f => ({ ...f, categoria: add ? id : "" }))}
+                  items={categoriaItems}
+                  value={form.categoria ?? null}
+                  onChange={v => setForm(f => ({ ...f, categoria: v ?? "" }))}
+                  placeholder="Arma, reliquia, objeto…"
+                  noneLabel="Sin categoría"
                 />
 
                 {/* Origen + Lugares en dos columnas */}
