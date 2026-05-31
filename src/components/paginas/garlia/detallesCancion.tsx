@@ -581,7 +581,11 @@ useEffect(() => {
   return (
     <div
       style={{
-        height: "100dvh",
+        position: "fixed",
+        top: 0,
+        left: "52px", // ancho del sidebar
+        right: 0,
+        bottom: 0,
         overflow: "hidden",
         background: "var(--bg-main)",
         display: "flex",
