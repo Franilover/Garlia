@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import {
-  Maximize2, UserCircle2, BookOpen, Mic2, Loader2,
+  Maximize2, UserCircle2, BookOpen, Loader2,
   ChevronDown, X, Save, Trash2,
   Sparkles, Users,
 } from "lucide-react";
@@ -10,7 +10,7 @@ import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { type Personaje, type SaveStatus } from "./components/types";
-import { useCapitulosNarrados, useNombresDeTabla } from "./components/hooks";
+import { useNombresDeTabla } from "./components/hooks";
 import { SelectorImagen, SaveIndicator } from "./components/UIComponents";
 import { ComboSelector } from "@/components/ui/ComboSelector";
 import { MarkdownEditor, WikiEntity } from "../../../forms/MarkdownEditor";
@@ -52,22 +52,76 @@ async function dexieWriteAll(tabla: string, rows: any[]): Promise<void> {
 
 
 
-// ─── Bloque capítulos narrados ────────────────────────────────────────────────
-function BloqueCapsNarrados({ personajeId }: { personajeId: string }) {
-  const { caps, loading } = useCapitulosNarrados(personajeId);
+// ─── Bloque capítulos en los que aparece ─────────────────────────────────────
+type CapAparece = { id: string; orden: number; titulo_capitulo: string; libro_titulo?: string | null };
+
+function useCapitulosConPersonaje(personajeId: string): { caps: CapAparece[]; loading: boolean } {
+  const [caps, setCaps] = useState<CapAparece[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+
+    // 1. Dexie primero
+    try {
+      if (db) {
+        const local: any[] = await (db as any).capitulos?.toArray() ?? [];
+        const filtered = local.filter((c: any) => (c.personajes_ids ?? []).includes(personajeId));
+        if (filtered.length > 0) {
+          const libroIds = [...new Set(filtered.map((c: any) => c.libro_id).filter(Boolean))];
+          const librosLocal: any[] = await (db as any).libros?.toArray() ?? [];
+          const libroMap = Object.fromEntries(librosLocal.map((l: any) => [l.id, l.titulo]));
+          setCaps(filtered
+            .sort((a: any, b: any) => (a.orden ?? 0) - (b.orden ?? 0))
+            .map((c: any) => ({
+              id: c.id,
+              orden: c.orden ?? 0,
+              titulo_capitulo: c.titulo_capitulo ?? "Sin título",
+              libro_titulo: libroMap[c.libro_id] ?? null,
+            })));
+          setLoading(false);
+          if (!navigator.onLine) return;
+        }
+      }
+    } catch {}
+
+    if (!navigator.onLine) { setLoading(false); return; }
+
+    // 2. Supabase
+    try {
+      const { data } = await supabase
+        .from("capitulos")
+        .select("id, orden, titulo_capitulo, libros!libro_id(titulo)")
+        .contains("personajes_ids", [personajeId])
+        .order("orden");
+      setCaps((data ?? []).map((c: any) => ({
+        id: c.id,
+        orden: c.orden ?? 0,
+        titulo_capitulo: c.titulo_capitulo ?? "Sin título",
+        libro_titulo: (Array.isArray(c.libros) ? c.libros[0]?.titulo : c.libros?.titulo) ?? null,
+      })));
+    } catch {}
+    setLoading(false);
+  }, [personajeId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  return { caps, loading };
+}
+
+function BloqueCapsAparece({ personajeId }: { personajeId: string }) {
+  const { caps, loading } = useCapitulosConPersonaje(personajeId);
   if (loading) return <div className="flex justify-center py-4"><Loader2 size={16} className="animate-spin text-primary/20" /></div>;
   if (!caps.length) return (
     <p className="text-[10px] font-bold text-primary/25 uppercase tracking-widest text-center py-4 italic">
-      Sin capítulos narrados aún
+      Sin apariciones registradas
     </p>
   );
   return (
     <div className="space-y-1">
       {caps.map(cap => (
         <div key={cap.id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-primary/3 transition-colors">
-          <div
-            className="shrink-0 w-6 h-6 rounded-lg flex items-center justify-center text-[9px] font-black bg-accent/10 text-accent"
-          >
+          <div className="shrink-0 w-6 h-6 rounded-lg flex items-center justify-center text-[9px] font-black bg-accent/10 text-accent">
             {cap.orden}
           </div>
           <div className="flex-1 min-w-0">
@@ -660,16 +714,16 @@ export function FormularioPersonaje({
                   {/* Relaciones */}
                   <BloqueRelaciones personajeId={form.id} onSelectPersonaje={onSelectPersonaje} />
 
-                  {/* Capítulos narrados + Hechizos en fila */}
+                  {/* Capítulos en los que aparece + Hechizos en fila */}
                   <div className="flex flex-col sm:flex-row gap-3">
                     <div
                       className="flex-1 min-w-0 rounded-xl overflow-hidden border border-primary/10"
                     >
                       <div className="flex items-center gap-2 px-3 py-2 border-b border-primary/[0.06] bg-primary/[0.03]">
-                        <Mic2 size={10} className="text-primary/40" />
-                        <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">Capítulos narrados</span>
+                        <BookOpen size={10} className="text-primary/40" />
+                        <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">Capítulos en los que aparece</span>
                       </div>
-                      <BloqueCapsNarrados personajeId={form.id} />
+                      <BloqueCapsAparece personajeId={form.id} />
                     </div>
                     <div className="w-full sm:w-56 sm:shrink-0">
                       <SeccionHechizos personajeId={form.id} grupoIds={grupoIds} />
