@@ -1716,6 +1716,7 @@ function PanelListas({
                   if (data) setSelectedLugar(data as Lugar);
                 }}
                 onSelectCriatura={id => { const c = criaturas.find(x => x.id === id); if (!c) return; clearAllOverlays(); setSelectedCriatura(c); }}
+                onSelectItem={id => { const o = objetos.find(x => x.id === id); if (!o) return; clearAllOverlays(); setSelectedObjeto(o); }}
               />
             )}
             {overlay === "criatura" && selectedCriatura && (
