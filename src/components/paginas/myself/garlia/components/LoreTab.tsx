@@ -1,7 +1,7 @@
-import React, { useState, useRef, useEffect } from "react";
-import { Globe, Mountain, Landmark, Users, Coins, Plus, Trash2, ChevronUp, ChevronDown, ChevronRight, UserCircle2, Loader2, MapPin, Map, Check, X, Eye, EyeOff, Bug, BookOpen } from "lucide-react";
-import { SeccionEntidad } from "@/components/ui/SeccionEntidad";
+import React, { useState, useRef, useEffect, useCallback } from "react";
+import { Globe, Mountain, Landmark, Users, Coins, Plus, Trash2, ChevronUp, ChevronDown, ChevronRight, UserCircle2, Loader2, MapPin, Map, Check, X, Eye, EyeOff, Bug, BookOpen, Package } from "lucide-react";
 import { INPUT_CLS, type SaveStatus } from "./types";
+import { SeccionEntidad } from "@/components/ui/SeccionEntidad";
 import { MarkdownEditor, WikiEntity } from "../../../../forms/MarkdownEditor";
 import { useWikilink } from "./WikilinkContext";
 import { type Reino } from "./types";
@@ -767,41 +767,168 @@ function MapaPanel({
   );
 }
 
-// ─── Tipo mínimo de criatura ──────────────────────────────────────────────────
-type CriaturaMin = { id: string; nombre: string; imagen_url?: string | null };
+// ─── Tipos mínimos ────────────────────────────────────────────────────────────
+type CriaturaMin  = { id: string; nombre: string; imagen_url?: string | null };
+type PersonajeMin = { id: string; nombre: string; img_url?: string | null };
+type ItemMin      = { id: string; nombre: string; imagen_url?: string | null };
 
-// ─── Hook: criaturas que habitan un reino ─────────────────────────────────────
+// ─── Hook: criaturas vinculadas al reino (criatura_reinos) ────────────────────
+// Soporta add (INSERT) y remove (DELETE) además de carga.
 function useCriaturasDelReino(reinoId: string) {
-  const [criaturas, setCriaturas] = useState<CriaturaMin[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [criaturas,    setCriaturas]    = useState<CriaturaMin[]>([]);
+  const [allCriaturas, setAllCriaturas] = useState<CriaturaMin[]>([]);
+  const [loading,      setLoading]      = useState(true);
+  const [rowMap,       setRowMap]       = useState<Record<string, string>>({}); // criaturaId → rowId
 
-  useEffect(() => {
-    let cancelled = false;
-    const run = async () => {
-      setLoading(true);
-      const { data } = await supabase
+  const load = useCallback(async () => {
+    setLoading(true);
+    const [{ data: linked }, { data: all }] = await Promise.all([
+      supabase
         .from("criatura_reinos")
-        .select("criatura_id, criaturas!criatura_id(id, nombre, imagen_url)")
-        .eq("reino_id", reinoId);
-      if (!cancelled && data) {
-        setCriaturas(
-          data.map((r: any) => {
-            const c = Array.isArray(r.criaturas) ? r.criaturas[0] : r.criaturas;
-            return {
-              id:         c?.id         ?? r.criatura_id,
-              nombre:     c?.nombre     ?? "—",
-              imagen_url: c?.imagen_url ?? null,
-            };
-          })
-        );
-      }
-      if (!cancelled) setLoading(false);
-    };
-    run();
-    return () => { cancelled = true; };
+        .select("id, criatura_id, criaturas!criatura_id(id, nombre, imagen_url)")
+        .eq("reino_id", reinoId),
+      supabase.from("criaturas").select("id, nombre, imagen_url").order("nombre"),
+    ]);
+    if (linked) {
+      const map: Record<string, string> = {};
+      setCriaturas(linked.map((r: any) => {
+        const c = Array.isArray(r.criaturas) ? r.criaturas[0] : r.criaturas;
+        map[c?.id ?? r.criatura_id] = r.id;
+        return { id: c?.id ?? r.criatura_id, nombre: c?.nombre ?? "—", imagen_url: c?.imagen_url ?? null };
+      }));
+      setRowMap(map);
+    }
+    if (all) setAllCriaturas(all);
+    setLoading(false);
   }, [reinoId]);
 
-  return { criaturas, loading };
+  useEffect(() => { load(); }, [load]);
+
+  const add = async (criaturaId: string) => {
+    const { data, error } = await supabase
+      .from("criatura_reinos")
+      .insert([{ reino_id: reinoId, criatura_id: criaturaId }])
+      .select().single();
+    if (!error && data) {
+      const found = allCriaturas.find(c => c.id === criaturaId);
+      if (found) {
+        setCriaturas(prev => [...prev, found]);
+        setRowMap(prev => ({ ...prev, [criaturaId]: data.id }));
+      }
+    }
+  };
+
+  const remove = async (criaturaId: string) => {
+    const rowId = rowMap[criaturaId];
+    if (!rowId) return;
+    await supabase.from("criatura_reinos").delete().eq("id", rowId);
+    setCriaturas(prev => prev.filter(c => c.id !== criaturaId));
+    setRowMap(prev => { const next = { ...prev }; delete next[criaturaId]; return next; });
+  };
+
+  return { criaturas, allCriaturas, loading, add, remove };
+}
+
+// ─── Hook: personajes del reino (personajes.reino = nombre del reino) ─────────
+// add → UPDATE personajes SET reino = reinoNombre WHERE id = personajeId
+// remove → UPDATE personajes SET reino = null WHERE id = personajeId
+function usePersonajesDelReinoEditable(reinoId: string, reinoNombre: string) {
+  const [personajes,    setPersonajes]    = useState<PersonajeMin[]>([]);
+  const [allPersonajes, setAllPersonajes] = useState<PersonajeMin[]>([]);
+  const [loading,       setLoading]       = useState(true);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const [{ data: linked }, { data: all }] = await Promise.all([
+      supabase
+        .from("personajes")
+        .select("id, nombre, img_url")
+        .eq("reino", reinoNombre)
+        .order("nombre"),
+      supabase.from("personajes").select("id, nombre, img_url").order("nombre"),
+    ]);
+    if (linked) setPersonajes(linked);
+    if (all)    setAllPersonajes(all);
+    setLoading(false);
+  }, [reinoNombre]);
+
+  useEffect(() => { if (reinoNombre) load(); }, [load, reinoNombre]);
+
+  const add = async (personajeId: string) => {
+    const { error } = await supabase
+      .from("personajes")
+      .update({ reino: reinoNombre })
+      .eq("id", personajeId);
+    if (!error) {
+      const found = allPersonajes.find(p => p.id === personajeId);
+      if (found) setPersonajes(prev => [...prev, found]);
+    }
+  };
+
+  const remove = async (personajeId: string) => {
+    const { error } = await supabase
+      .from("personajes")
+      .update({ reino: null })
+      .eq("id", personajeId);
+    if (!error) setPersonajes(prev => prev.filter(p => p.id !== personajeId));
+  };
+
+  return { personajes, allPersonajes, loading, add, remove };
+}
+
+// ─── Hook: items del reino (items.reino_ids contiene el reinoId) ──────────────
+// add → UPDATE items SET reino_ids = array_append(reino_ids, reinoId)
+// remove → UPDATE items SET reino_ids = array_remove(reino_ids, reinoId)
+function useItemsDelReino(reinoId: string) {
+  const [items,    setItems]    = useState<ItemMin[]>([]);
+  const [allItems, setAllItems] = useState<ItemMin[]>([]);
+  const [loading,  setLoading]  = useState(true);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const [{ data: linked }, { data: all }] = await Promise.all([
+      supabase
+        .from("items")
+        .select("id, nombre, imagen_url")
+        .contains("reino_ids", [reinoId])
+        .order("nombre"),
+      supabase.from("items").select("id, nombre, imagen_url").order("nombre"),
+    ]);
+    if (linked) setItems(linked);
+    if (all)    setAllItems(all);
+    setLoading(false);
+  }, [reinoId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const add = async (itemId: string) => {
+    // Leemos primero para no pisar otros reinos ya asignados
+    const { data: current } = await supabase
+      .from("items").select("reino_ids").eq("id", itemId).single();
+    const prev = (current?.reino_ids ?? []) as string[];
+    if (prev.includes(reinoId)) return;
+    const { error } = await supabase
+      .from("items")
+      .update({ reino_ids: [...prev, reinoId] })
+      .eq("id", itemId);
+    if (!error) {
+      const found = allItems.find(i => i.id === itemId);
+      if (found) setItems(p => [...p, found]);
+    }
+  };
+
+  const remove = async (itemId: string) => {
+    const { data: current } = await supabase
+      .from("items").select("reino_ids").eq("id", itemId).single();
+    const prev = (current?.reino_ids ?? []) as string[];
+    const { error } = await supabase
+      .from("items")
+      .update({ reino_ids: prev.filter(id => id !== reinoId) })
+      .eq("id", itemId);
+    if (!error) setItems(p => p.filter(i => i.id !== itemId));
+  };
+
+  return { items, allItems, loading, add, remove };
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -826,6 +953,7 @@ export function LoreTab({
   loadingPersonajes = false,
   onSelectPersonaje,
   onSelectCriatura,
+  onSelectItem,
   reinos = [],
   filtroReinoId,
   detalles = [],
@@ -850,6 +978,7 @@ export function LoreTab({
   loadingPersonajes?: boolean;
   onSelectPersonaje?: (personaje: Personaje) => void;
   onSelectCriatura?: (id: string) => void;
+  onSelectItem?: (id: string) => void;
   reinos?: { id: string; nombre: string }[];
   filtroReinoId?: string | null;
   detalles?: Lugar[];
@@ -870,8 +999,40 @@ export function LoreTab({
 }) {
   const { onSnippetAction } = useWikilink();
   const scrollRef = useRef<HTMLDivElement>(null);
-  const { criaturas, loading: loadingCriaturas } = useCriaturasDelReino(form.id);
+  const {
+    criaturas, allCriaturas, loading: loadingCriaturas,
+    add: addCriatura, remove: removeCriatura,
+  } = useCriaturasDelReino(form.id);
+  const {
+    personajes: personajesEditables, allPersonajes, loading: loadingPersonajesEditables,
+    add: addPersonaje, remove: removePersonaje,
+  } = usePersonajesDelReinoEditable(form.id, form.nombre);
+  const {
+    items, allItems, loading: loadingItems,
+    add: addItem, remove: removeItem,
+  } = useItemsDelReino(form.id);
   const capsTimeline = useCapitulosDelReino(form.id);
+
+  // Estado saving por sección
+  const [savingCriaturas,  setSavingCriaturas]  = useState(false);
+  const [savingPersonajes, setSavingPersonajes]  = useState(false);
+  const [savingItems,      setSavingItems]       = useState(false);
+
+  const handleToggleCriatura = async (id: string, add: boolean) => {
+    setSavingCriaturas(true);
+    if (add) await addCriatura(id); else await removeCriatura(id);
+    setSavingCriaturas(false);
+  };
+  const handleTogglePersonaje = async (id: string, add: boolean) => {
+    setSavingPersonajes(true);
+    if (add) await addPersonaje(id); else await removePersonaje(id);
+    setSavingPersonajes(false);
+  };
+  const handleToggleItem = async (id: string, add: boolean) => {
+    setSavingItems(true);
+    if (add) await addItem(id); else await removeItem(id);
+    setSavingItems(false);
+  };
 
   // ── Etiqueta de sección ───────────────────────────────────────────────────
   const SectionHeader = ({ id, label, Icon }: { id: SectionId; label: string; Icon: React.ElementType }) => (
@@ -1016,12 +1177,12 @@ export function LoreTab({
           icon={<Users size={9} />}
           fallbackIcon={<UserCircle2 size={14} strokeWidth={1} />}
           emptyLabel="Sin personajes"
-          allEntities={personajes.map(p => ({ id: p.id, nombre: p.nombre, imagen_url: p.img_url }))}
-          selectedIds={personajes.map(p => p.id)}
-          loading={loadingPersonajes}
-          saving={false}
-          onToggle={(id) => { const p = personajes.find(x => x.id === id); if (p) onSelectPersonaje?.(p); }}
-          onEntityClick={(id) => { const p = personajes.find(x => x.id === id); if (p) onSelectPersonaje?.(p); }}
+          allEntities={allPersonajes.map(p => ({ id: p.id, nombre: p.nombre, imagen_url: p.img_url }))}
+          selectedIds={personajesEditables.map(p => p.id)}
+          loading={loadingPersonajesEditables}
+          saving={savingPersonajes}
+          onToggle={handleTogglePersonaje}
+          onEntityClick={id => { const p = personajesEditables.find(x => x.id === id); if (p) onSelectPersonaje?.(p as any); }}
         />
 
         <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
@@ -1031,12 +1192,27 @@ export function LoreTab({
           icon={<Bug size={9} />}
           fallbackIcon={<Bug size={14} strokeWidth={1} />}
           emptyLabel="Sin criaturas"
-          allEntities={criaturas.map(c => ({ id: c.id, nombre: c.nombre, imagen_url: c.imagen_url }))}
+          allEntities={allCriaturas.map(c => ({ id: c.id, nombre: c.nombre, imagen_url: c.imagen_url }))}
           selectedIds={criaturas.map(c => c.id)}
           loading={loadingCriaturas}
-          saving={false}
-          onToggle={(id) => onSelectCriatura?.(id)}
-          onEntityClick={(id) => onSelectCriatura?.(id)}
+          saving={savingCriaturas}
+          onToggle={handleToggleCriatura}
+          onEntityClick={id => onSelectCriatura?.(id)}
+        />
+
+        <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
+
+        <SeccionEntidad
+          label="Items"
+          icon={<Package size={9} />}
+          fallbackIcon={<Package size={14} strokeWidth={1} />}
+          emptyLabel="Sin items"
+          allEntities={allItems.map(i => ({ id: i.id, nombre: i.nombre, imagen_url: i.imagen_url }))}
+          selectedIds={items.map(i => i.id)}
+          loading={loadingItems}
+          saving={savingItems}
+          onToggle={handleToggleItem}
+          onEntityClick={id => onSelectItem?.(id)}
         />
       </aside>
 
