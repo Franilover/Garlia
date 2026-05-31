@@ -6,7 +6,7 @@ import Link from "next/link";
 import { supabase } from "@/lib/api/client/supabase";
 import { SmartImage } from "@/components/display/SmartImage";
 import { Loading } from "@/components/ui";
-import { Music, User, ChevronRight, List, LayoutGrid } from "lucide-react";
+import { User, ChevronRight, List, LayoutGrid } from "lucide-react";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import { toSlug } from "@/lib/utils/slugify";
 
@@ -283,9 +283,8 @@ export default function CancionesPage() {
               <p className="text-[9px] font-mono font-bold uppercase tracking-[0.3em] text-primary/30 mb-1">
                 — Archivo musical —
               </p>
-              <h1 className="text-4xl font-black italic tracking-tighter text-primary leading-none flex items-center gap-3">
-                <Music size={22} className="opacity-50" />
-                Canciones
+              <h1 className="text-4xl font-black italic tracking-tighter text-primary leading-none">
+                Registro musical
               </h1>
             </div>
           </div>
