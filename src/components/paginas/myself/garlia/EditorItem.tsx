@@ -195,7 +195,7 @@ function PanelCrafterSources({ itemId, onSelectCriatura }: { itemId: string; onS
   );
 }
 
-// ─── Panel selector de reinos (usa ComboSelector + reino_ids en form) ────────
+// ─── Panel selector de reinos (usa SeccionEntidad + reino_ids en form) ──────
 type ReinoMin = { id: string; nombre: string };
 
 function PanelReinos({
@@ -214,17 +214,19 @@ function PanelReinos({
   }, []);
 
   return (
-    <ComboSelector
-      mode="multi"
+    <SeccionEntidad
       label="Reinos donde encontrarlo"
       icon={<Globe size={9} />}
-      items={allReinos.map(r => ({ id: r.id, label: r.nombre }))}
-      value={value}
-      onChange={onChange}
+      fallbackIcon={<Globe size={9} />}
+      emptyLabel="Ningún reino asignado"
+      allEntities={allReinos}
+      selectedIds={value}
       loading={loading}
-      placeholder="Añadir reino…"
-      emptyText="No hay reinos disponibles"
-      onNavigate={onNavigateReino}
+      saving={false}
+      onToggle={(id, add) =>
+        onChange(add ? [...value, id] : value.filter(x => x !== id))
+      }
+      onEntityClick={onNavigateReino}
     />
   );
 }
