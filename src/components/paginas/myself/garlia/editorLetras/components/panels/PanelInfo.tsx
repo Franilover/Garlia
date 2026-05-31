@@ -3,7 +3,8 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { 
   Loader2, CheckCircle2, Mic2, Music,
-  PenLine, Globe, Beaker, FileText, ChevronDown 
+  PenLine, Globe, Beaker, FileText, ChevronDown,
+  Heart, Sparkles, Clock, Tag, Eye, EyeOff
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/api/client/supabase";
@@ -24,6 +25,40 @@ const ESTADO_STYLES: Record<string, { active: string; dot: string }> = {
   "TERMINADA":  { active: "bg-emerald-500/10 text-emerald-400 border-emerald-400/30", dot: "bg-emerald-400" },
 };
 
+// Emociones disponibles con colores
+const EMOCIONES = [
+  { label: "Alegría",     color: "bg-yellow-400/15 text-yellow-400 border-yellow-400/25 hover:bg-yellow-400/25"  },
+  { label: "Melancolía",  color: "bg-blue-400/15 text-blue-400 border-blue-400/25 hover:bg-blue-400/25"          },
+  { label: "Nostalgia",   color: "bg-violet-400/15 text-violet-400 border-violet-400/25 hover:bg-violet-400/25"  },
+  { label: "Amor",        color: "bg-rose-400/15 text-rose-400 border-rose-400/25 hover:bg-rose-400/25"          },
+  { label: "Angustia",    color: "bg-red-400/15 text-red-400 border-red-400/25 hover:bg-red-400/25"              },
+  { label: "Esperanza",   color: "bg-emerald-400/15 text-emerald-400 border-emerald-400/25 hover:bg-emerald-400/25" },
+  { label: "Soledad",     color: "bg-slate-400/15 text-slate-400 border-slate-400/25 hover:bg-slate-400/25"      },
+  { label: "Euforia",     color: "bg-orange-400/15 text-orange-400 border-orange-400/25 hover:bg-orange-400/25"  },
+];
+
+// Formatea segundos → mm:ss
+function formatDuracion(segundos: number): string {
+  if (!segundos || segundos <= 0) return "";
+  const m = Math.floor(segundos / 60);
+  const s = segundos % 60;
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+// Parsea "mm:ss" o número de segundos en texto → segundos
+function parseDuracion(input: string): number | null {
+  const trimmed = input.trim();
+  if (!trimmed) return null;
+  if (trimmed.includes(":")) {
+    const [mStr, sStr] = trimmed.split(":");
+    const m = parseInt(mStr, 10);
+    const s = parseInt(sStr ?? "0", 10);
+    if (!isNaN(m) && !isNaN(s)) return m * 60 + s;
+  }
+  const n = parseInt(trimmed, 10);
+  return isNaN(n) ? null : n;
+}
+
 export const PanelInfo = ({
   cancionId,
   cancion,
@@ -34,16 +69,25 @@ export const PanelInfo = ({
   onCancionUpdate: (updates: any) => void;
 }) => {
   const [localData, setLocalData] = useState({
-    titulo:      cancion.titulo      || "",
-    cantante:    cancion.cantante    || "",
-    compositor:  cancion.compositor  || "",
-    idioma:      cancion.idioma      || "",
-    info_cancion: cancion.info_cancion || "",
-    estado:      (cancion.estado as Cancion["estado"]) || "BORRADOR",
+    titulo:           cancion.titulo           || "",
+    cantante:         cancion.cantante         || "",
+    compositor:       cancion.compositor       || "",
+    idioma:           cancion.idioma           || "",
+    info_cancion:     cancion.info_cancion     || "",
+    estado:           (cancion.estado as Cancion["estado"]) || "BORRADOR",
+    emocion:          cancion.emocion          || "",
+    tema:             cancion.tema             || "",
+    duracion_segundos: cancion.duracion_segundos ?? null as number | null,
+    visible:          cancion.visible          ?? false,
   });
 
+  // Input visual de duración (mm:ss)
+  const [duracionInput, setDuracionInput] = useState(
+    cancion.duracion_segundos ? formatDuracion(cancion.duracion_segundos) : ""
+  );
+
   const [suggestions, setSuggestions] = useState<{ [key: string]: string[] }>({});
-  const [activeField, setActiveField] = useState<string | null>(null);
+  const [activeField, setActiveField]  = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved,  setSaved]  = useState(false);
   const [dirty,  setDirty]  = useState(false);
@@ -51,7 +95,7 @@ export const PanelInfo = ({
 
   useEffect(() => {
     const fetchSuggestions = async () => {
-      const { data } = await supabase.from("canciones").select("cantante, compositor, idioma");
+      const { data } = await supabase.from("canciones").select("cantante, compositor, idioma, tema");
       if (data) {
         const unique = (field: string) =>
           Array.from(new Set(data.map((item: any) => item[field]).filter(Boolean))) as string[];
@@ -59,6 +103,7 @@ export const PanelInfo = ({
           cantante:   unique("cantante"),
           compositor: unique("compositor"),
           idioma:     unique("idioma"),
+          tema:       unique("tema"),
         });
       }
     };
@@ -72,12 +117,16 @@ export const PanelInfo = ({
       const { error } = await supabase
         .from("canciones")
         .update({
-          titulo:       data.titulo      || null,
-          cantante:     data.cantante    || null,
-          compositor:   data.compositor  || null,
-          idioma:       data.idioma      || null,
-          info_cancion: data.info_cancion || null,
-          estado:       data.estado,
+          titulo:            data.titulo           || null,
+          cantante:          data.cantante         || null,
+          compositor:        data.compositor       || null,
+          idioma:            data.idioma           || null,
+          info_cancion:      data.info_cancion     || null,
+          estado:            data.estado,
+          emocion:           data.emocion          || null,
+          tema:              data.tema             || null,
+          duracion_segundos: data.duracion_segundos ?? null,
+          visible:           data.visible,
         })
         .eq("id", cancionId);
 
@@ -101,7 +150,6 @@ export const PanelInfo = ({
     timer.current = setTimeout(() => doSave(newData), 1500);
   };
 
-  // Para cambios de estado guardamos inmediatamente (sin debounce)
   const handleEstadoChange = (nuevoEstado: Cancion["estado"]) => {
     const newData = { ...localData, estado: nuevoEstado };
     setLocalData(newData);
@@ -111,15 +159,48 @@ export const PanelInfo = ({
     doSave(newData);
   };
 
+  const handleEmocionChange = (emocion: string) => {
+    // Toggle: si ya está activa, la quita
+    const nueva = localData.emocion === emocion ? "" : emocion;
+    const newData = { ...localData, emocion: nueva };
+    setLocalData(newData);
+    setDirty(true);
+    setSaved(false);
+    clearTimeout(timer.current);
+    doSave(newData);
+  };
+
+  const handleDuracionBlur = () => {
+    const parsed = parseDuracion(duracionInput);
+    const formatted = parsed !== null ? formatDuracion(parsed) : "";
+    setDuracionInput(formatted);
+    const newData = { ...localData, duracion_segundos: parsed };
+    setLocalData(newData);
+    setDirty(true);
+    setSaved(false);
+    clearTimeout(timer.current);
+    doSave(newData);
+  };
+
   const getFilteredSuggestions = (field: string) => {
-    const val = (localData as any)[field].toLowerCase();
+    const val = (localData as any)[field]?.toLowerCase() ?? "";
     if (!val) return [];
     return (suggestions[field] || [])
       .filter(s => s.toLowerCase().includes(val) && s.toLowerCase() !== val)
       .slice(0, 5);
   };
 
+  const handleVisibleChange = (visible: boolean) => {
+    const newData = { ...localData, visible };
+    setLocalData(newData);
+    setDirty(true);
+    setSaved(false);
+    clearTimeout(timer.current);
+    doSave(newData);
+  };
+
   const estadoActual = ESTADO_STYLES[localData.estado] ?? ESTADO_STYLES["BORRADOR"];
+  const emocionActiva = EMOCIONES.find(e => e.label === localData.emocion);
 
   return (
     <motion.div 
@@ -153,7 +234,6 @@ export const PanelInfo = ({
           {/* Estado */}
           <div className="space-y-2">
             <label className="text-[9px] font-black text-primary/25 uppercase tracking-[0.2em] flex items-center gap-2">
-              {/* Dot de color dinámico */}
               <span className={`w-1.5 h-1.5 rounded-full inline-block ${estadoActual.dot}`} />
               Estado
             </label>
@@ -192,11 +272,12 @@ export const PanelInfo = ({
             />
           </div>
 
-          {/* Cantante / Compositor / Idioma con sugerencias */}
+          {/* Cantante / Compositor / Idioma / Tema con sugerencias */}
           {[
             { label: "Cantante",   key: "cantante",   icon: <Mic2 size={12}/>,    placeholder: "Hatsune Miku..." },
             { label: "Compositor", key: "compositor", icon: <PenLine size={12}/>, placeholder: "Deco*27..." },
             { label: "Idioma",     key: "idioma",     icon: <Globe size={12}/>,   placeholder: "Japonés..." },
+            { label: "Tema",       key: "tema",       icon: <Tag size={12}/>,     placeholder: "Amor, soledad, guerra…" },
           ].map((field) => {
             const filtered = getFilteredSuggestions(field.key);
             return (
@@ -236,23 +317,119 @@ export const PanelInfo = ({
               </div>
             );
           })}
-        </section>
 
-        {/* COLUMNA DERECHA — notas */}
-        <section className="space-y-4 flex flex-col h-full">
-          <div className="flex items-center gap-3 border-b border-primary/5 pb-4">
-            <div className="w-8 h-8 rounded-lg bg-primary/5 flex items-center justify-center text-primary/40">
-              <FileText size={16} />
-            </div>
-            <div>
-              <h3 className="text-[11px] font-black uppercase tracking-[0.25em] text-primary">Contexto y Notas</h3>
+          {/* Duración */}
+          <div className="group relative space-y-2">
+            <label className="text-[9px] font-black text-primary/25 uppercase tracking-[0.2em] flex items-center gap-2 group-focus-within:text-primary/50 transition-colors">
+              <Clock size={12} /> Duración
+            </label>
+            <div className="flex items-center gap-3">
+              <input
+                value={duracionInput}
+                onChange={e => setDuracionInput(e.target.value)}
+                onBlur={handleDuracionBlur}
+                onKeyDown={e => e.key === "Enter" && (e.currentTarget.blur())}
+                className="w-32 bg-transparent border-b border-primary/10 py-2 text-sm font-bold text-primary outline-none focus:border-primary/40 transition-all tabular-nums"
+                placeholder="3:45"
+              />
+              {localData.duracion_segundos && (
+                <span className="text-[9px] text-primary/25 font-bold uppercase tracking-widest">
+                  {localData.duracion_segundos}s
+                </span>
+              )}
             </div>
           </div>
-          <textarea
-            value={localData.info_cancion}
-            onChange={e => handleChange("info_cancion", e.target.value)}
-            className="flex-1 w-full bg-transparent border-l-2 border-primary/5 focus:border-primary/20 px-4 text-sm text-primary/80 outline-none transition-all resize-none min-h-[300px]"
-          />
+
+        </section>
+
+        {/* COLUMNA DERECHA */}
+        <section className="space-y-8 flex flex-col">
+
+          {/* Emoción */}
+          <div className="space-y-3">
+            <label className="text-[9px] font-black text-primary/25 uppercase tracking-[0.2em] flex items-center gap-2">
+              <Heart size={12} /> Emoción
+              {emocionActiva && (
+                <span className={`ml-auto text-[8px] font-black px-2 py-0.5 rounded-full border ${emocionActiva.color}`}>
+                  {emocionActiva.label}
+                </span>
+              )}
+            </label>
+            <div className="flex flex-wrap gap-1.5">
+              {EMOCIONES.map(e => {
+                const isActive = localData.emocion === e.label;
+                return (
+                  <button
+                    key={e.label}
+                    type="button"
+                    onClick={() => handleEmocionChange(e.label)}
+                    className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest border transition-all cursor-pointer ${
+                      isActive
+                        ? e.color
+                        : "border-primary/10 text-primary/25 hover:border-primary/25 hover:text-primary/50"
+                    }`}
+                  >
+                    {e.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Visible */}
+          <div className="space-y-2">
+            <label className="text-[9px] font-black text-primary/25 uppercase tracking-[0.2em] flex items-center gap-2">
+              {localData.visible ? <Eye size={12} /> : <EyeOff size={12} />}
+              Visibilidad
+            </label>
+            <button
+              type="button"
+              onClick={() => handleVisibleChange(!localData.visible)}
+              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-all cursor-pointer ${
+                localData.visible
+                  ? "bg-emerald-500/8 border-emerald-400/25 text-emerald-400"
+                  : "bg-primary/4 border-primary/10 text-primary/30 hover:border-primary/20 hover:text-primary/50"
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                {localData.visible
+                  ? <Eye size={13} />
+                  : <EyeOff size={13} />
+                }
+                <span className="text-[10px] font-black uppercase tracking-widest">
+                  {localData.visible ? "Pública" : "Oculta"}
+                </span>
+              </div>
+              {/* Toggle pill */}
+              <div className={`relative w-8 h-4 rounded-full transition-all ${localData.visible ? "bg-emerald-400/40" : "bg-primary/10"}`}>
+                <div className={`absolute top-0.5 w-3 h-3 rounded-full transition-all ${
+                  localData.visible
+                    ? "left-[18px] bg-emerald-400"
+                    : "left-0.5 bg-primary/25"
+                }`} />
+              </div>
+            </button>
+          </div>
+
+          {/* Notas / contexto */}
+          <div className="space-y-3 flex flex-col flex-1">
+            <div className="flex items-center gap-3 border-b border-primary/5 pb-3">
+              <div className="w-7 h-7 rounded-lg bg-primary/5 flex items-center justify-center text-primary/40">
+                <FileText size={14} />
+              </div>
+              <div>
+                <h3 className="text-[11px] font-black uppercase tracking-[0.25em] text-primary">Contexto y Notas</h3>
+                <p className="text-[9px] text-primary/25 font-medium mt-0.5">Inspiración, historia, referencias…</p>
+              </div>
+            </div>
+            <textarea
+              value={localData.info_cancion}
+              onChange={e => handleChange("info_cancion", e.target.value)}
+              placeholder="¿De qué trata la canción? ¿Qué la inspiró?…"
+              className="flex-1 w-full bg-transparent border-l-2 border-primary/5 focus:border-primary/20 px-4 py-1 text-sm text-primary/80 placeholder:text-primary/20 outline-none transition-all resize-none min-h-[180px]"
+            />
+          </div>
+
         </section>
 
       </div>
