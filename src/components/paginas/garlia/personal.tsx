@@ -63,7 +63,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
   const [cancionesPersonaje, setCancionesPersonaje] = useState<any[]>([]);
   const [cargandoCanciones, setCargandoCanciones] = useState(false);
   const [lugaresReino, setLugaresReino] = useState<typeof lugares>([]);
-  const [reinos, setReinos] = useState<{ id: string; nombre: string; mapa_url?: string | null; descripcion?: string | null }[]>([]);
+  const [reinos, setReinos] = useState<{ id: string; nombre: string; mapa_url?: string | null; logo_url?: string | null; descripcion?: string | null }[]>([]);
   const [lugares, setLugares] = useState<{ id: string; nombre: string; imagen_url?: string | null; descripcion?: string | null; reino_id?: string | null }[]>([]);
   const userIdRef = React.useRef<string | null>(null);
 
@@ -123,7 +123,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
             .eq("perfil_id", user.id),
           supabase
             .from("descubrimientos_reinos")
-            .select("fecha_descubrimiento, reino_data:reino_id(id, nombre, mapa_url, descripcion)")
+            .select("fecha_descubrimiento, reino_data:reino_id(id, nombre, mapa_url, logo_url, descripcion)")
             .eq("perfil_id", user.id),
           supabase
             .from("lugares_desbloqueados")
@@ -140,8 +140,8 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
         const reinosData = (reinosRes.data ?? []).map((r: any) => ({
           id:           r.reino_data?.id,
           nombre:       r.reino_data?.nombre,
-          
           mapa_url:     r.reino_data?.mapa_url,
+          logo_url:     r.reino_data?.logo_url,
           descripcion:  r.reino_data?.descripcion,
         })).filter(r => r.id);
         setReinos(reinosData);
@@ -235,7 +235,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
           .eq("perfil_id", user.id),
         supabase
           .from("descubrimientos_reinos")
-          .select("fecha_descubrimiento, reino_data:reino_id(id, nombre, mapa_url, descripcion)")
+          .select("fecha_descubrimiento, reino_data:reino_id(id, nombre, mapa_url, logo_url, descripcion)")
           .eq("perfil_id", user.id),
         supabase
           .from("lugares_desbloqueados")
@@ -247,8 +247,8 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
         const reinosData = reinosRes.data.map((r: any) => ({
           id:           r.reino_data?.id,
           nombre:       r.reino_data?.nombre,
-          
           mapa_url:     r.reino_data?.mapa_url,
+          logo_url:     r.reino_data?.logo_url,
           descripcion:  r.reino_data?.descripcion,
         })).filter((r: any) => r.id);
         setReinos(reinosData);
@@ -627,15 +627,25 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
               {/* Hero imagen */}
               <div className="w-full shrink-0 overflow-hidden relative"
                 style={{
-                  height: modalEntidad.data.imagen_url ? "220px" : "80px",
+                  height: (modalEntidad.data.imagen_url || modalEntidad.data.img_url) ? "220px" : "80px",
                   background: "color-mix(in srgb, var(--primary) 6%, var(--bg-main))",
                 }}>
+                {/* Mapa de fondo */}
                 {modalEntidad.data.imagen_url && (
                   <img src={modalEntidad.data.imagen_url} alt={modalEntidad.data.nombre}
-                    className="w-full h-full object-contain transition-transform duration-700 hover:scale-105" />
+                    className="w-full h-full object-cover"
+                    style={{ opacity: 0.35 }} />
+                )}
+                {/* Logo centrado encima */}
+                {modalEntidad.data.img_url && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <img src={modalEntidad.data.img_url} alt={`Logo ${modalEntidad.data.nombre}`}
+                      className="object-contain drop-shadow-lg transition-transform duration-700 hover:scale-105"
+                      style={{ maxHeight: "140px", maxWidth: "60%" }} />
+                  </div>
                 )}
                 <div className="absolute inset-0" style={{
-                  background: "linear-gradient(to top, var(--white-custom) 0%, color-mix(in srgb, var(--white-custom) 30%, transparent) 45%, transparent 100%)"
+                  background: "linear-gradient(to top, var(--white-custom) 0%, color-mix(in srgb, var(--white-custom) 20%, transparent) 50%, transparent 100%)"
                 }} />
                 <button
                   onClick={() => { setModalEntidad(null); setLugaresReino([]); }}
@@ -649,7 +659,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                   }}>
                   <X size={13} />
                 </button>
-                {modalEntidad.data.imagen_url && (
+                {(modalEntidad.data.imagen_url || modalEntidad.data.img_url) && (
                   <div className="absolute bottom-0 left-0 right-0 px-6 pb-4">
                     <h2 className="font-serif italic capitalize leading-tight"
                       style={{ fontSize: "1.75rem", color: "var(--primary)", lineHeight: 1.15 }}>
@@ -660,7 +670,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
               </div>
 
               <div className="overflow-y-auto flex-1 px-6 pb-6" style={{ paddingTop: "1.25rem" }}>
-                {!modalEntidad.data.imagen_url && (
+                {!modalEntidad.data.imagen_url && !modalEntidad.data.img_url && (
                   <h2 className="font-serif italic capitalize leading-tight mb-4"
                     style={{ fontSize: "1.75rem", color: "var(--primary)" }}>
                     {modalEntidad.data.nombre ?? "Reino"}
@@ -1670,6 +1680,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                                 entidad_id: r.id,
                                 nombre: r.nombre,
                                 imagen_url: r.mapa_url ?? undefined,
+                                img_url: r.logo_url ?? undefined,
                                 descripcion: r.descripcion ?? undefined,
                                 fecha_descubrimiento: "",
                               }});
