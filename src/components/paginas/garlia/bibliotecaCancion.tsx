@@ -158,7 +158,7 @@ const PersonajeBloque = ({
     <div className="w-full md:w-1/3 lg:w-1/4 shrink-0 flex flex-col items-center md:items-start text-center md:text-left md:sticky md:top-24">
       {imgUrl ? (
         <div 
-          className="w-48 h-48 md:w-full md:aspect-square mb-5 overflow-hidden bg-primary/5"
+          className="w-48 h-48 md:w-full mb-5 overflow-hidden bg-primary/5"
           style={{
             borderRadius: "2px",
             border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)",
@@ -169,16 +169,17 @@ const PersonajeBloque = ({
           <img
             src={imgUrl}
             alt={personaje}
-            className="w-full h-full object-cover"
+            className="w-full h-auto object-contain block"
           />
         </div>
       ) : (
         <div
-          className="w-48 h-48 md:w-full md:aspect-square mb-5 flex items-center justify-center bg-primary/5"
+          className="w-48 h-48 md:w-full mb-5 flex items-center justify-center bg-primary/5"
           style={{
             borderRadius: "2px",
             border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)",
             boxShadow: "4px 4px 0 color-mix(in srgb, var(--primary) 8%, transparent)",
+            aspectRatio: "1 / 1",
           }}
         >
           <User size={64} className="text-primary/20" />
