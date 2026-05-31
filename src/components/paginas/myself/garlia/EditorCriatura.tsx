@@ -14,7 +14,7 @@ import { useCriaturaVariantes, useGruposDeCriatura, usePersonajesDeEspecie, type
 import { SelectorImagen, SelectorTexto, SaveIndicator } from "./components/UIComponents";
 import { MarkdownEditor, WikiEntity } from "../../../forms/MarkdownEditor";
 import { useWikilink } from "./components/WikilinkContext";
-import { BloqueHechizos } from "./components/BloqueHechizos";
+import { SeccionHechizos } from "./components/SeccionHechizos"; 
 import { BloqueDones } from "./components/BloqueDones";
 
 // ─── Dexie helpers ────────────────────────────────────────────────────────────
@@ -1441,13 +1441,25 @@ export function EditorCriatura({
                   </div>
                 </div>
 
-                {/* Columna derecha: Catálogo Mágico */}
-                <div className="sm:shrink-0 sm:w-64 space-y-3">
-                  <div className="space-y-3">
-                    <BloqueHechizos personajeId={form.id} grupoIds={gruposActuales.map(g => g.id)} />
-                    <BloqueDones personajeId={form.id} grupoIds={gruposActuales.map(g => g.id)} />
-                  </div>
-                </div>
+          {/* Columna derecha: Catálogo Mágico */}
+          <div className="sm:shrink-0 sm:w-64">
+            <div className="rounded-xl overflow-hidden border"
+                style={{ 
+                  borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
+                  background: "color-mix(in srgb, var(--primary) 2%, transparent)"
+                }}>
+              <SeccionHechizos 
+                personajeId={form.id} 
+                grupoIds={gruposActuales.map(g => g.id)} 
+                // onHechizoClic={(id) => ...} // Opcional: añade tu función de navegación si la tienes
+              />
+              
+              {/* Divisor estético entre secciones si decides actualizar BloqueDones después */}
+              <div style={{ height: "1px", background: "color-mix(in srgb, var(--primary) 6%, transparent)" }} />
+
+              <BloqueDones personajeId={form.id} grupoIds={gruposActuales.map(g => g.id)} />
+            </div>
+          </div>
               </div>
 
               {/* ── Fila: Personajes · Reinos · Lugares ───────────────────────── */}
