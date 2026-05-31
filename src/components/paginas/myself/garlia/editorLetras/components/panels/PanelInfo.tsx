@@ -4,8 +4,9 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { 
   Loader2, CheckCircle2, Mic2, Music,
   PenLine, Globe, Beaker, FileText, ChevronDown,
-  Heart, Sparkles, Clock, Tag, Eye, EyeOff
+  Heart, Sparkles, Clock, Tag, Eye, EyeOff, Users
 } from "lucide-react";
+import { ComboSelector, type ComboItem } from "@/components/ui/ComboSelector";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/api/client/supabase";
 import { ESTADOS } from "../../constants";
@@ -79,6 +80,7 @@ export const PanelInfo = ({
     tema:             cancion.tema             || "",
     duracion_segundos: cancion.duracion_segundos ?? null as number | null,
     visible:          cancion.visible          ?? false,
+    personaje_id:     cancion.personaje_id     ?? null as string | null,
   });
 
   // Input visual de duración (mm:ss)
@@ -91,20 +93,31 @@ export const PanelInfo = ({
   const [saving, setSaving] = useState(false);
   const [saved,  setSaved]  = useState(false);
   const [dirty,  setDirty]  = useState(false);
+  const [personajes, setPersonajes] = useState<ComboItem[]>([]);
   const timer = useRef<any>(null);
 
   useEffect(() => {
     const fetchSuggestions = async () => {
-      const { data } = await supabase.from("canciones").select("cantante, compositor, idioma, tema");
-      if (data) {
+      const [{ data: cancData }, { data: persData }] = await Promise.all([
+        supabase.from("canciones").select("cantante, compositor, idioma, tema"),
+        supabase.from("personajes").select("id, nombre, img_url").order("nombre"),
+      ]);
+      if (cancData) {
         const unique = (field: string) =>
-          Array.from(new Set(data.map((item: any) => item[field]).filter(Boolean))) as string[];
+          Array.from(new Set(cancData.map((item: any) => item[field]).filter(Boolean))) as string[];
         setSuggestions({
           cantante:   unique("cantante"),
           compositor: unique("compositor"),
           idioma:     unique("idioma"),
           tema:       unique("tema"),
         });
+      }
+      if (persData) {
+        setPersonajes(persData.map((p: any) => ({
+          id:     p.id,
+          label:  p.nombre,
+          imgUrl: p.img_url ?? null,
+        })));
       }
     };
     fetchSuggestions();
@@ -127,6 +140,7 @@ export const PanelInfo = ({
           tema:              data.tema             || null,
           duracion_segundos: data.duracion_segundos ?? null,
           visible:           data.visible,
+          personaje_id:      data.personaje_id      ?? null,
         })
         .eq("id", cancionId);
 
@@ -188,6 +202,15 @@ export const PanelInfo = ({
     return (suggestions[field] || [])
       .filter(s => s.toLowerCase().includes(val) && s.toLowerCase() !== val)
       .slice(0, 5);
+  };
+
+  const handlePersonajeChange = (id: string | null) => {
+    const newData = { ...localData, personaje_id: id };
+    setLocalData(newData);
+    setDirty(true);
+    setSaved(false);
+    clearTimeout(timer.current);
+    doSave(newData);
   };
 
   const handleVisibleChange = (visible: boolean) => {
@@ -338,6 +361,22 @@ export const PanelInfo = ({
                 </span>
               )}
             </div>
+          </div>
+
+          {/* Personaje */}
+          <div className="space-y-2">
+            <label className="text-[9px] font-black text-primary/25 uppercase tracking-[0.2em] flex items-center gap-2">
+              <Users size={12} /> Personaje
+            </label>
+            <ComboSelector
+              mode="single"
+              items={personajes}
+              value={localData.personaje_id}
+              onChange={handlePersonajeChange}
+              placeholder="Sin personaje asignado…"
+              noneLabel="Sin personaje"
+              emptyText="No hay personajes"
+            />
           </div>
 
         </section>
