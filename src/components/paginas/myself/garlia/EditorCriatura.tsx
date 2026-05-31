@@ -721,11 +721,6 @@ function BloqueGrupoCategoria({
 
   return (
     <div className="space-y-1.5" ref={containerRef}>
-      {/* Label */}
-      <label className="text-[9px] font-black uppercase tracking-widest text-primary/40 flex items-center gap-1.5">
-        <Icon size={9} className="opacity-70" /> {label}
-      </label>
-
       {/* Filas de valores asignados */}
       {actual.length > 0 && (
         <div className="flex flex-col gap-1">
@@ -1392,7 +1387,7 @@ export function EditorCriatura({
               <div className="flex flex-col sm:flex-row gap-5">
                 {/* Columna izquierda: imagen */}
                 <div className="shrink-0 sm:w-96 w-full max-w-xs mx-auto sm:mx-0">
-                  <SelectorImagen label="Ilustración" value={form.imagen_url ?? ""}
+                  <SelectorImagen label="" value={form.imagen_url ?? ""}
                     onChange={url => setForm(f => ({ ...f, imagen_url: url }))} aspect="square"
                     placeholder={<Bug size={20} className="opacity-20" />} />
                 </div>
@@ -1472,9 +1467,6 @@ export function EditorCriatura({
               >
                 {/* Personajes de esta especie */}
                 <div className="flex-1 min-w-0 space-y-2">
-                  <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/30 flex items-center gap-1">
-                    <Users size={9} /> Personajes de esta especie
-                  </label>
                   {personajesDeEspecie.length === 0 ? (
                     <p className="text-[9px] text-primary/20 italic py-1">Sin personajes registrados</p>
                   ) : (
