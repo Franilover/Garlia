@@ -1650,26 +1650,27 @@ function PanelListas({
   }, [overlay]);
 
   // ── Helper: chip genérico ─────────────────────────────────────────────────
-  function Chip({ onClick, imgUrl, icon: Icon, nombre, accentBg, accentBorder, accentText }: {
+  function Chip({ onClick, imgUrl, icon: Icon, nombre, accentBg, accentBorder, accentText, fullWidth }: {
     onClick: () => void; imgUrl?: string | null; icon: React.ElementType;
-    nombre: string; accentBg?: string; accentBorder?: string; accentText?: string;
+    nombre: string; accentBg?: string; accentBorder?: string; accentText?: string; fullWidth?: boolean;
   }) {
     return (
       <button onClick={onClick} type="button"
-        className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02]"
+        className={`flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02]${fullWidth ? " w-full" : ""}`}
         style={{ background: accentBg ?? "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: accentBorder ?? "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
         <div className="w-6 h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center">
           {imgUrl ? <img src={imgUrl} alt={nombre} className="w-full h-full object-cover" /> : <Icon size={10} className="text-primary/25" />}
         </div>
-        <span className="text-[11px] font-bold truncate max-w-[90px]" style={{ color: accentText ?? "color-mix(in srgb, var(--primary) 70%, transparent)" }}>{nombre}</span>
+        <span className={`text-[11px] font-bold truncate${fullWidth ? "" : " max-w-[90px]"}`} style={{ color: accentText ?? "color-mix(in srgb, var(--primary) 70%, transparent)" }}>{nombre}</span>
       </button>
     );
   }
 
   // ── Helper: sección de entidades ─────────────────────────────────────────
-  function SeccionEntidades({ icon: Icon, label, count, loading, children }: {
-    icon: React.ElementType; label: string; count: number; loading: boolean; children: React.ReactNode;
+  function SeccionEntidades({ icon: Icon, label, count, loading, children, cols = 3 }: {
+    icon: React.ElementType; label: string; count: number; loading: boolean; children: React.ReactNode; cols?: 1 | 3;
   }) {
+    const gridClass = cols === 1 ? "flex flex-col gap-1.5" : "grid grid-cols-3 gap-1.5";
     return (
       <div className="pb-1">
         <div className="flex items-center gap-1.5 mb-2">
@@ -1682,7 +1683,7 @@ function PanelListas({
           ? <div className="flex justify-center py-3"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
           : count === 0
             ? <p className="text-[9px] text-primary/20 italic px-1 pb-2">Sin {label.toLowerCase()} aún</p>
-            : <div className="flex flex-wrap gap-1.5">{children}</div>
+            : <div className={gridClass}>{children}</div>
         }
       </div>
     );
@@ -1850,6 +1851,28 @@ function PanelListas({
       {!overlay && (
         <div ref={scrollRef} onScroll={handleScroll} className="flex-1 overflow-y-auto min-h-0">
 
+          {/* HISTORIA */}
+          {textos && onTextoChange && onSave && (
+            <div className="border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+              <div className="shrink-0 flex items-center gap-2 px-3 py-2 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, transparent)" }}>
+                <Clock size={11} className="text-primary/40 shrink-0" />
+                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/50">Historia</span>
+              </div>
+              <PanelHistoriaMundo texto={textos.historia} onChange={v => onTextoChange("historia", v)} onSave={() => onSave("historia")} />
+            </div>
+          )}
+
+          {/* CAPÍTULOS */}
+          <div ref={capitulosRef} style={{ minHeight: "60vh" }}>
+            <div className="shrink-0 flex items-center gap-2 px-3 py-2 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, transparent)" }}>
+              <BookOpen size={11} className="text-primary/40 shrink-0" />
+              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/50">Capítulos</span>
+            </div>
+            <div className="flex flex-col min-h-0" style={{ minHeight: "58vh" }}>
+              <EstudioCapitulos />
+            </div>
+          </div>
+
           {/* GEO & MAGIA */}
           {textos && onTextoChange && onSave && (
             <div className="flex flex-col sm:flex-row border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
@@ -1934,13 +1957,6 @@ function PanelListas({
             </SeccionEntidades>
             <div className={div} style={divStyle} />
 
-            <SeccionEntidades icon={Music} label="Canciones" count={canciones.length} loading={loadingCanciones}>
-              {canciones.map(c => (
-                <Chip key={c.id} onClick={() => selectCancion(c as unknown as Cancion)} icon={Music} nombre={c.titulo} />
-              ))}
-            </SeccionEntidades>
-            <div className={div} style={divStyle} />
-
             <SeccionEntidades icon={Layers} label="Grupos" count={grupos.length} loading={!loadedGrupos}>
               {grupos.map(g => {
                 const cfg = GRUPO_TIPO_CONFIG[g.tipo as keyof typeof GRUPO_TIPO_CONFIG];
@@ -1965,28 +1981,13 @@ function PanelListas({
                 );
               })}
             </SeccionEntidades>
-          </div>
+            <div className={div} style={divStyle} />
 
-          {/* HISTORIA */}
-          {textos && onTextoChange && onSave && (
-            <div className="border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-              <div className="shrink-0 flex items-center gap-2 px-3 py-2 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, transparent)" }}>
-                <Clock size={11} className="text-primary/40 shrink-0" />
-                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/50">Historia</span>
-              </div>
-              <PanelHistoriaMundo texto={textos.historia} onChange={v => onTextoChange("historia", v)} onSave={() => onSave("historia")} />
-            </div>
-          )}
-
-          {/* CAPÍTULOS */}
-          <div ref={capitulosRef} style={{ minHeight: "60vh" }}>
-            <div className="shrink-0 flex items-center gap-2 px-3 py-2 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, transparent)" }}>
-              <BookOpen size={11} className="text-primary/40 shrink-0" />
-              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/50">Capítulos</span>
-            </div>
-            <div className="flex flex-col min-h-0" style={{ minHeight: "58vh" }}>
-              <EstudioCapitulos />
-            </div>
+            <SeccionEntidades icon={Music} label="Canciones" count={canciones.length} loading={loadingCanciones} cols={1}>
+              {canciones.map(c => (
+                <Chip key={c.id} onClick={() => selectCancion(c as unknown as Cancion)} icon={Music} nombre={c.titulo} fullWidth />
+              ))}
+            </SeccionEntidades>
           </div>
 
         </div>
