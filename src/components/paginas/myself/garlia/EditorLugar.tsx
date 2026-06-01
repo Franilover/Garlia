@@ -5,7 +5,7 @@ import {
   MapPin, Save, Trash2, Users, Bug, Package,
   Loader2, Plus, X, Mountain, ScrollText,
 } from "lucide-react";
-import { SeccionEntidad } from "@/component/ui/SeccionEntidad";
+import { SeccionEntidad } from "@/components/ui/SeccionEntidad";
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
 import { useConfirm } from "@/components/ui/ConfirmModal";
