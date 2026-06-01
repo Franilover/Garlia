@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Bug, Plus, Check, X, Trash2, Save, ChevronDown,
   Brain, Wand2, Package, Wrench, Leaf, Layers, Users,
-  MapPin, Globe, ExternalLink, Pencil, Search,
+  MapPin, Globe, ExternalLink, Pencil, Search, UserCircle2,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
@@ -16,6 +16,7 @@ import { MarkdownEditor, WikiEntity } from "../../../forms/MarkdownEditor";
 import { useWikilink } from "./components/WikilinkContext";
 import { SeccionHechizos } from "./components/SeccionHechizos"; 
 import { BloqueDones } from "./components/BloqueDones";
+import { SeccionEntidad } from "@/components/ui/SeccionEntidad";
 
 // ─── Dexie helpers ────────────────────────────────────────────────────────────
 async function dexiePut(tabla: string, row: any): Promise<void> {
@@ -1166,6 +1167,79 @@ export function EditorCriatura({
   } = useGruposDeCriatura(form.id);
   const { personajes: personajesDeEspecie } = usePersonajesDeEspecie(form.nombre);
 
+  // ── Datos para la barra lateral ────────────────────────────────────────────
+  const [allPersonajes, setAllPersonajes] = useState<{ id: string; nombre: string; img_url?: string | null }[]>([]);
+  const [allReinos,     setAllReinos]     = useState<{ id: string; nombre: string }[]>([]);
+
+  const {
+    rows: reinoRows,
+    loading: loadingReinos,
+    add: addReinoSidebar,
+    remove: removeReinoSidebar,
+  } = useCriaturaReinos(form.id);
+
+  const {
+    items: naturalesItems,
+    allItems: allNaturalesItems,
+    loading: loadingNaturales,
+    add: addNaturalSidebar,
+    remove: removeNaturalSidebar,
+  } = useNaturalItems(form.id);
+
+  const {
+    items: craftedItems,
+    allItems: allCraftedItems,
+    loading: loadingCrafted,
+    add: addCraftedSidebar,
+    remove: removeCraftedSidebar,
+  } = useCraftedItems(form.id);
+
+  const [savingReinos,    setSavingReinos]    = useState(false);
+  const [savingNaturales, setSavingNaturales] = useState(false);
+  const [savingCrafted,   setSavingCrafted]   = useState(false);
+
+  useEffect(() => {
+    supabase.from("personajes").select("id, nombre, img_url").order("nombre")
+      .then(({ data }) => setAllPersonajes(data ?? []));
+    supabase.from("reinos").select("id, nombre").order("nombre")
+      .then(({ data }) => setAllReinos(data ?? []));
+  }, []);
+
+  const handleToggleReino = async (id: string, add: boolean) => {
+    setSavingReinos(true);
+    const reino = allReinos.find(r => r.id === id);
+    if (add && reino) await addReinoSidebar(reino);
+    else {
+      const row = reinoRows.find(r => r.reinoId === id);
+      if (row) await removeReinoSidebar(row.rowId);
+    }
+    setSavingReinos(false);
+  };
+
+  const handleToggleNatural = async (id: string, add: boolean) => {
+    setSavingNaturales(true);
+    if (add) {
+      const item = allNaturalesItems.find(i => i.id === id);
+      if (item) await addNaturalSidebar(item);
+    } else {
+      const nat = naturalesItems.find(i => i.itemId === id);
+      if (nat) await removeNaturalSidebar(nat.dropId);
+    }
+    setSavingNaturales(false);
+  };
+
+  const handleToggleCrafted = async (id: string, add: boolean) => {
+    setSavingCrafted(true);
+    if (add) {
+      const item = allCraftedItems.find(i => i.id === id);
+      if (item) await addCraftedSidebar(item);
+    } else {
+      const crafted = craftedItems.find(i => i.itemId === id);
+      if (crafted) await removeCraftedSidebar(crafted.crafterId);
+    }
+    setSavingCrafted(false);
+  };
+
   useEffect(() => { setForm(item); setStatus("idle"); }, [item.id]);
 
   const field = (k: keyof Criatura) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
@@ -1201,6 +1275,7 @@ export function EditorCriatura({
     <div className="flex-1 flex min-h-0 overflow-hidden relative">
       <ConfirmModal />
 
+      {/* ── CONTENIDO PRINCIPAL ──────────────────────────────────────────────── */}
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
 
         {/* ── Fixed header ─────────────────────────────────────────────────── */}
@@ -1315,76 +1390,84 @@ export function EditorCriatura({
           </div>
               </div>
 
-              {/* ── Fila: Personajes · Reinos · Lugares ───────────────────────── */}
-              <div
-                className="flex flex-col sm:flex-row gap-5 rounded-2xl border p-4"
-                style={{
-                  borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
-                  background: "color-mix(in srgb, var(--primary) 2%, transparent)",
-                }}
-              >
-                {/* Personajes de esta especie */}
-                <div className="flex-1 min-w-0 space-y-2">
-                  {personajesDeEspecie.length === 0 ? (
-                    <p className="text-[9px] text-primary/20 italic py-1">Sin personajes registrados</p>
-                  ) : (
-                    <div className="flex flex-wrap gap-2">
-                      {personajesDeEspecie.map(p => (
-                        <button
-                          key={p.id}
-                          type="button"
-                          onClick={() => onSelectPersonaje?.(p.id)}
-                          className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02] cursor-pointer"
-                          style={{
-                            background: "color-mix(in srgb, var(--primary) 4%, transparent)",
-                            borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
-                          }}
-                        >
-                          <div className="w-6 h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center">
-                            {p.img_url
-                              ? <img src={p.img_url} alt={p.nombre} className="w-full h-full object-cover" />
-                              : <Users size={10} className="text-primary/20" />}
-                          </div>
-                          <span className="text-[11px] font-bold text-primary/70">{p.nombre}</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Divisor vertical */}
-                <div
-                  className="hidden sm:block w-px shrink-0 self-stretch"
-                  style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
-                />
-
-                {/* Hábitat: reinos + lugares (ahora más grandes, sm:w-80) */}
-                <div className="sm:w-80 shrink-0">
-                  <BloqueHabitat criaturaId={form.id} onNavigateLugar={onNavigateLugar} onNavigateReino={onNavigateReino} />
-                </div>
-              </div>
-
-              {/* Naturales + Creaciones */}
-              <div className="flex flex-col sm:flex-row gap-4">
-                {/* Naturales: drops de criatura */}
-                <div className="flex-1 space-y-2">
-                  <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/30 flex items-center gap-1">
-                    <Leaf size={9} /> Naturales
-                  </label>
-                  <BloqueItemsNaturales criaturaId={form.id} onSelectItem={onSelectItem} />
-                </div>
-                {/* Creaciones: ítems craftedos */}
-                <div className="flex-1 space-y-2">
-                  <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/30 flex items-center gap-1">
-                    <Wrench size={9} /> Creaciones
-                  </label>
-                  <BloqueItemsCraftedos criaturaId={form.id} onSelectItem={onSelectItem} />
-                </div>
-              </div>
+              {/* Naturales + Creaciones — movidos a la barra lateral */}
           </div>
 
         </div>
       </div>
+
+      {/* ── BARRA LATERAL ────────────────────────────────────────────────────── */}
+      <aside
+        className="shrink-0 w-52 flex flex-col border-l overflow-y-auto overflow-x-hidden"
+        style={{
+          borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)",
+          background: "color-mix(in srgb, var(--primary) 1%, transparent)",
+          scrollbarWidth: "none",
+        }}
+      >
+        {/* Personajes de esta especie (solo lectura, click para navegar) */}
+        <SeccionEntidad
+          label="Personajes"
+          icon={<Users size={9} />}
+          fallbackIcon={<UserCircle2 size={14} strokeWidth={1} />}
+          emptyLabel="Sin personajes"
+          allEntities={personajesDeEspecie.map(p => ({ id: p.id, nombre: p.nombre, imagen_url: p.img_url }))}
+          selectedIds={personajesDeEspecie.map(p => p.id)}
+          loading={false}
+          saving={false}
+          onToggle={() => {}}
+          onEntityClick={id => onSelectPersonaje?.(id)}
+        />
+
+        <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
+
+        {/* Reinos */}
+        <SeccionEntidad
+          label="Reinos"
+          icon={<Globe size={9} />}
+          fallbackIcon={<Globe size={14} strokeWidth={1} />}
+          emptyLabel="Sin reinos"
+          allEntities={allReinos.map(r => ({ id: r.id, nombre: r.nombre }))}
+          selectedIds={reinoRows.map(r => r.reinoId)}
+          loading={loadingReinos}
+          saving={savingReinos}
+          onToggle={handleToggleReino}
+          onEntityClick={id => onNavigateReino?.(id)}
+        />
+
+        <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
+
+        {/* Ítems Naturales */}
+        <SeccionEntidad
+          label="Naturales"
+          icon={<Leaf size={9} />}
+          fallbackIcon={<Package size={14} strokeWidth={1} />}
+          emptyLabel="Sin drops"
+          allEntities={allNaturalesItems.map(i => ({ id: i.id, nombre: i.nombre, imagen_url: i.imagen_url }))}
+          selectedIds={naturalesItems.map(i => i.itemId)}
+          loading={loadingNaturales}
+          saving={savingNaturales}
+          onToggle={handleToggleNatural}
+          onEntityClick={id => onSelectItem?.(id)}
+        />
+
+        <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
+
+        {/* Ítems Creaciones */}
+        <SeccionEntidad
+          label="Creaciones"
+          icon={<Wrench size={9} />}
+          fallbackIcon={<Package size={14} strokeWidth={1} />}
+          emptyLabel="Sin creaciones"
+          allEntities={allCraftedItems.map(i => ({ id: i.id, nombre: i.nombre, imagen_url: i.imagen_url }))}
+          selectedIds={craftedItems.map(i => i.itemId)}
+          loading={loadingCrafted}
+          saving={savingCrafted}
+          onToggle={handleToggleCrafted}
+          onEntityClick={id => onSelectItem?.(id)}
+        />
+      </aside>
+
     </div>
   );
 }
