@@ -1469,6 +1469,7 @@ export function EditorCriatura({
             saving={savingPersonajes}
             onToggle={handleTogglePersonaje}
             onEntityClick={id => onSelectPersonaje?.(id)}
+            columns={2}
           />
 
           <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />

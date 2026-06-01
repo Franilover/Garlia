@@ -40,6 +40,8 @@ type SeccionEntidadProps = {
   saving: boolean;
   onToggle: (id: string, add: boolean) => void;
   onEntityClick?: (id: string) => void;
+  /** Mostrar entidades seleccionadas en 2 columnas cuando hay muchas */
+  columns?: 2;
 };
 
 export const SeccionEntidad = ({
@@ -53,6 +55,7 @@ export const SeccionEntidad = ({
   saving,
   onToggle,
   onEntityClick,
+  columns,
 }: SeccionEntidadProps) => {
   const [open,   setOpen]   = useState(false);
   const [query,  setQuery]  = useState("");
@@ -363,7 +366,54 @@ export const SeccionEntidad = ({
             {emptyLabel}
           </p>
         </div>
+      ) : columns === 2 ? (
+        /* ── Grid 2 columnas ── */
+        <div className="grid grid-cols-2 gap-1 p-2">
+          {selected.map(e => (
+            <div
+              key={e.id}
+              onClick={() => onEntityClick?.(e.id)}
+              className="group relative flex flex-col items-center gap-1 p-1.5 rounded-lg transition-all hover:bg-primary/5"
+              style={{ cursor: onEntityClick ? "pointer" : "default" }}
+            >
+              {e.imagen_url ? (
+                <img
+                  src={e.imagen_url}
+                  alt={e.nombre}
+                  className="w-8 h-8 rounded-lg shrink-0 object-cover"
+                  style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
+                />
+              ) : (
+                <div
+                  className="w-8 h-8 rounded-lg shrink-0 flex items-center justify-center text-[9px] font-black uppercase"
+                  style={{
+                    background: "color-mix(in srgb, var(--primary) 12%, transparent)",
+                    color: "color-mix(in srgb, var(--primary) 60%, transparent)",
+                  }}
+                >
+                  {e.nombre.charAt(0)}
+                </div>
+              )}
+              <span
+                className="w-full text-center text-[8px] font-black uppercase tracking-wide truncate leading-tight"
+                style={{ color: "color-mix(in srgb, var(--primary) 65%, transparent)" }}
+              >
+                {e.nombre}
+              </span>
+              <button
+                type="button"
+                onClick={ev => { ev.stopPropagation(); onToggle(e.id, false); }}
+                title="Quitar"
+                className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-red-500/10 hover:bg-red-500/20"
+                style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
+              >
+                <X size={8} />
+              </button>
+            </div>
+          ))}
+        </div>
       ) : (
+        /* ── Lista simple (default) ── */
         selected.map(e => (
           <div
             key={e.id}
