@@ -314,7 +314,7 @@ function SelectorMiembros({
           <p className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">
             Miembros ({miembros.length})
           </p>
-          <div className="grid grid-cols-2 gap-1">
+          <div className="grid grid-cols-6 gap-1">
             {miembros.map(e => {
               const img = getImg(e);
               const sub = getSubtitle(e);
@@ -624,7 +624,7 @@ export function EditorGrupo({
         <div className="flex flex-col sm:flex-row gap-4 h-full">
 
           {/* Columna izquierda: subtipo + descripción */}
-          <div className="flex flex-col gap-3 sm:w-48 sm:shrink-0">
+          <div className="flex flex-col gap-3 sm:w-72 sm:shrink-0">
             <div className="space-y-1.5">
               <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">Tipo</label>
               <SubtipoInput
