@@ -1670,7 +1670,7 @@ function PanelListas({
   function SeccionEntidades({ icon: Icon, label, count, loading, children, cols = 3 }: {
     icon: React.ElementType; label: string; count: number; loading: boolean; children: React.ReactNode; cols?: 1 | 3;
   }) {
-    const gridClass = cols === 1 ? "flex flex-col gap-1.5" : "grid grid-cols-3 gap-1.5";
+    const gridClass = cols === 1 ? "grid grid-cols-3 gap-1.5" : "grid grid-cols-5 gap-1.5";
     return (
       <div className="pb-1">
         <div className="flex items-center gap-1.5 mb-2">
@@ -1985,7 +1985,7 @@ function PanelListas({
 
             <SeccionEntidades icon={Music} label="Canciones" count={canciones.length} loading={loadingCanciones} cols={1}>
               {canciones.map(c => (
-                <Chip key={c.id} onClick={() => selectCancion(c as unknown as Cancion)} icon={Music} nombre={c.titulo} fullWidth />
+                <Chip key={c.id} onClick={() => selectCancion(c as unknown as Cancion)} icon={Music} nombre={c.titulo} />
               ))}
             </SeccionEntidades>
           </div>
