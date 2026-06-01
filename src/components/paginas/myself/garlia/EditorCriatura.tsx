@@ -1658,7 +1658,7 @@ export function EditorCriatura({
               </div>
 
               {/* ── Fila 2: Selectores de grupo ──────────────────────────────── */}
-              <div className="grid grid-cols-5 gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 <BloqueGrupoCategoria
                   label="Hábitat"
                   subtipo="Hábitat"
