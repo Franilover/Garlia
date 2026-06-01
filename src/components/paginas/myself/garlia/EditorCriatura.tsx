@@ -1658,7 +1658,7 @@ export function EditorCriatura({
               </div>
 
               {/* ── Fila 2: Selectores de grupo ──────────────────────────────── */}
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-5 gap-2">
                 <BloqueGrupoCategoria
                   label="Hábitat"
                   subtipo="Hábitat"
@@ -1683,6 +1683,26 @@ export function EditorCriatura({
                   label="Alma"
                   subtipo="Alma"
                   icon={Wand2}
+                  gruposActuales={gruposActuales as GrupoMinExt[]}
+                  todosGrupos={todosGrupos as GrupoMinExt[]}
+                  onAdd={addToGrupo}
+                  onRemove={removeFromGrupo}
+                  onSelectGrupo={onSelectGrupo}
+                />
+                <BloqueGrupoCategoria
+                  label="Usar Mana"
+                  subtipo="Usar Mana"
+                  icon={Sparkles}
+                  gruposActuales={gruposActuales as GrupoMinExt[]}
+                  todosGrupos={todosGrupos as GrupoMinExt[]}
+                  onAdd={addToGrupo}
+                  onRemove={removeFromGrupo}
+                  onSelectGrupo={onSelectGrupo}
+                />
+                <BloqueGrupoCategoria
+                  label="Produce Mana"
+                  subtipo="Produce Mana"
+                  icon={Star}
                   gruposActuales={gruposActuales as GrupoMinExt[]}
                   todosGrupos={todosGrupos as GrupoMinExt[]}
                   onAdd={addToGrupo}
