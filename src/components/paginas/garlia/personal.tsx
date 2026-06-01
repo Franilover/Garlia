@@ -1484,6 +1484,8 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                 padding: "16px",
                 position: "relative",
                 zIndex: 1,
+                minHeight: "240px",
+                width: "100%",
               }}>
                 <AnimatePresence mode="wait">
                   <MotionDiv key={tab}
@@ -1574,7 +1576,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                             </div>
                           </button>
                         ))}
-                        {inventario.length === 0 && misItemsDesc.length === 0 && <div className="col-span-3"><EmptyTab label="Sin items registrados aún" /></div>}
+                        {inventario.length === 0 && misItemsDesc.length === 0 && <div className="col-span-full"><EmptyTab label="Sin items registrados aún" /></div>}
                       </>
                     )}
 
@@ -1619,7 +1621,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                             </div>
                           </button>
                         ))
-                        : <div className="col-span-3"><EmptyTab label="Sin registros en el bestiario" /></div>
+                        : <div className="col-span-full"><EmptyTab label="Sin registros en el bestiario" /></div>
                     )}
 
                     {tab === "personajes" && (
@@ -1665,7 +1667,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                             </div>
                           </button>
                         ))
-                        : <div className="col-span-3"><EmptyTab label="Sin registros en la agenda" /></div>
+                        : <div className="col-span-full"><EmptyTab label="Sin registros en la agenda" /></div>
                     )}
 
                     {tab === "reinos" && (
@@ -1720,7 +1722,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                             </div>
                           </button>
                         ))
-                        : <div className="col-span-3"><EmptyTab label="Ningún reino descubierto aún" /></div>
+                        : <div className="col-span-full"><EmptyTab label="Ningún reino descubierto aún" /></div>
                     )}
 
                     {/* Lugares sin reino — aparecen como tarjetas independientes en la tab Mapa */}
