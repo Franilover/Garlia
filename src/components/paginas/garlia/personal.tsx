@@ -1411,10 +1411,10 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
           </div>
 
           {/* ── MAIN CONTENT: Collection grid + desktop sidebar ── */}
-          <div className="flex gap-6 flex-1 min-w-0 items-start">
+          <div className="flex flex-col md:flex-row gap-6 w-full min-w-0 items-start">
 
             {/* Grid area */}
-            <div className="flex-1 min-w-0 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
+            <div className="w-full md:flex-1 md:min-w-0 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
 
               {/* ── TABS Mobile ── */}
               <div className="flex md:hidden w-full"
