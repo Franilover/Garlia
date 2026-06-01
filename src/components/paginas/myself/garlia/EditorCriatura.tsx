@@ -1639,57 +1639,56 @@ export function EditorCriatura({
 
           <div className="p-4 space-y-4">
 
-              <div className="flex flex-col sm:flex-row gap-5">
-                {/* Columna izquierda: imagen */}
-                <div className="shrink-0 sm:w-96 w-full max-w-xs mx-auto sm:mx-0">
+              {/* ── Fila 1: Imagen + Descripción ─────────────────────────────── */}
+              <div className="flex gap-5">
+                {/* Imagen */}
+                <div className="shrink-0 w-52">
                   <SelectorImagen label="" value={form.imagen_url ?? ""}
                     onChange={url => setForm(f => ({ ...f, imagen_url: url }))} aspect="square"
                     placeholder={<Bug size={20} className="opacity-20" />} />
                 </div>
 
-                {/* Columna central: grupos + descripción */}
-                <div className="flex-1 min-w-0 space-y-4">
-                  {/* Tres bloques de categoría: Hábitat · Inteligencia · Alma */}
-                  <div className="grid grid-cols-3 gap-2">
-                    <BloqueGrupoCategoria
-                      label="Hábitat"
-                      subtipo="Hábitat"
-                      icon={Globe}
-                      gruposActuales={gruposActuales as GrupoMinExt[]}
-                      todosGrupos={todosGrupos as GrupoMinExt[]}
-                      onAdd={addToGrupo}
-                      onRemove={removeFromGrupo}
-                      onSelectGrupo={onSelectGrupo}
-                    />
-                    <BloqueGrupoCategoria
-                      label="Inteligencia"
-                      subtipo="Inteligencia"
-                      icon={Brain}
-                      gruposActuales={gruposActuales as GrupoMinExt[]}
-                      todosGrupos={todosGrupos as GrupoMinExt[]}
-                      onAdd={addToGrupo}
-                      onRemove={removeFromGrupo}
-                      onSelectGrupo={onSelectGrupo}
-                    />
-                    <BloqueGrupoCategoria
-                      label="Alma"
-                      subtipo="Alma"
-                      icon={Wand2}
-                      gruposActuales={gruposActuales as GrupoMinExt[]}
-                      todosGrupos={todosGrupos as GrupoMinExt[]}
-                      onAdd={addToGrupo}
-                      onRemove={removeFromGrupo}
-                      onSelectGrupo={onSelectGrupo}
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Descripción</label>
-                    <MarkdownEditor value={form.descripcion ?? ""} onChange={v => setForm(f => ({ ...f, descripcion: v }))}
-                      placeholder="Aspecto físico general…" rows={5} toolbar defaultMode="edit" onSnippetAction={onSnippetAction}
-                      entities={entities}
-                      />
-                  </div>
+                {/* Descripción */}
+                <div className="flex-1 min-w-0 flex flex-col gap-1.5">
+                  <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Descripción</label>
+                  <MarkdownEditor value={form.descripcion ?? ""} onChange={v => setForm(f => ({ ...f, descripcion: v }))}
+                    placeholder="Aspecto físico general…" rows={7} toolbar defaultMode="edit" onSnippetAction={onSnippetAction}
+                    entities={entities} />
                 </div>
+              </div>
+
+              {/* ── Fila 2: Selectores de grupo ──────────────────────────────── */}
+              <div className="grid grid-cols-3 gap-2">
+                <BloqueGrupoCategoria
+                  label="Hábitat"
+                  subtipo="Hábitat"
+                  icon={Globe}
+                  gruposActuales={gruposActuales as GrupoMinExt[]}
+                  todosGrupos={todosGrupos as GrupoMinExt[]}
+                  onAdd={addToGrupo}
+                  onRemove={removeFromGrupo}
+                  onSelectGrupo={onSelectGrupo}
+                />
+                <BloqueGrupoCategoria
+                  label="Inteligencia"
+                  subtipo="Inteligencia"
+                  icon={Brain}
+                  gruposActuales={gruposActuales as GrupoMinExt[]}
+                  todosGrupos={todosGrupos as GrupoMinExt[]}
+                  onAdd={addToGrupo}
+                  onRemove={removeFromGrupo}
+                  onSelectGrupo={onSelectGrupo}
+                />
+                <BloqueGrupoCategoria
+                  label="Alma"
+                  subtipo="Alma"
+                  icon={Wand2}
+                  gruposActuales={gruposActuales as GrupoMinExt[]}
+                  todosGrupos={todosGrupos as GrupoMinExt[]}
+                  onAdd={addToGrupo}
+                  onRemove={removeFromGrupo}
+                  onSelectGrupo={onSelectGrupo}
+                />
               </div>
 
               {/* Hechizos + Dones — en la barra lateral */}
