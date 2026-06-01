@@ -1748,7 +1748,7 @@ function PanelListas({
   function SeccionEntidades({ icon: Icon, label, count, loading, children, cols = 3 }: {
     icon: React.ElementType; label: string; count: number; loading: boolean; children: React.ReactNode; cols?: 1 | 3;
   }) {
-    const gridClass = cols === 1 ? "grid grid-cols-5 gap-1.5" : "grid grid-cols-5 gap-1.5";
+    const gridClass = cols === 1 ? "grid grid-cols-6 gap-1.5" : "grid grid-cols-5 gap-1.5";
     return (
       <div className="pb-1">
         <div className="flex items-center gap-1.5 mb-2">
