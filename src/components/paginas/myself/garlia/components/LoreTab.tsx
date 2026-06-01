@@ -1001,8 +1001,8 @@ export function LoreTab({
 }) {
   const { onSnippetAction } = useWikilink();
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [activeTab, setActiveTab] = useState<SectionId>(
-    typeof activeTabProp !== "undefined" ? activeTabProp : "historia"
+  const [activeTab, setActiveTab] = useState<"cultura" | "economia" | "politica">(
+    (activeTabProp && activeTabProp !== "historia" && activeTabProp !== "mapa") ? activeTabProp : "cultura"
   );
   const {
     criaturas, allCriaturas, loading: loadingCriaturas,
@@ -1060,11 +1060,9 @@ export function LoreTab({
   );
 
   const TABS = [
-    { id: "historia",  label: "Historia"  },
     { id: "cultura",   label: "Cultura"   },
     { id: "economia",  label: "Economía"  },
     { id: "politica",  label: "Política"  },
-    { id: "mapa",      label: "Mapa"      },
   ] as const;
 
   return (
@@ -1073,44 +1071,33 @@ export function LoreTab({
       {/* ── COLUMNA 1 — Tabs + Editor central ───────────────────────────────── */}
       <div className="flex-1 min-w-0 flex flex-col min-h-0">
 
-        {/* Barra de tabs */}
-        <div
-          className="shrink-0 flex items-center gap-0.5 px-3 border-b overflow-x-auto"
-          style={{
-            borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
-            background: "color-mix(in srgb, var(--primary) 2%, transparent)",
-            scrollbarWidth: "none",
-          }}
-        >
-          {TABS.map(tab => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setActiveTab(tab.id)}
-              className="shrink-0 px-3 py-2 text-[9px] font-black uppercase tracking-widest transition-all border-b-2"
-              style={activeTab === tab.id ? {
-                borderColor: "var(--primary)",
-                color: "var(--primary)",
-              } : {
-                borderColor: "transparent",
-                color: "color-mix(in srgb, var(--primary) 35%, transparent)",
-              }}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Editor */}
+        {/* Área de contenido — scroll completo */}
         <main
           ref={scrollRef}
           className="flex-1 min-h-0 overflow-y-auto"
           style={{ scrollbarWidth: "none" }}
         >
-          <div className="p-3">
+          <div className="p-3 flex flex-col gap-4">
 
-          {/* TAB: MAPA */}
-          {activeTab === "mapa" && (
+            {/* HISTORIA — siempre visible */}
+            <div
+              className="rounded-xl overflow-hidden"
+              style={{
+                border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+                minHeight: 200,
+              }}
+            >
+              <TimelineEditor
+                key="historia-timeline"
+                value={(form as any).historia ?? ""}
+                onChange={(v) => setForm((f) => ({ ...f, historia: v }))}
+                reinos={reinos}
+                filtroReinoId={filtroReinoId}
+                capsTimeline={capsTimeline}
+              />
+            </div>
+
+            {/* MAPA — siempre visible */}
             <MapaPanel
               mapaUrl={mapaUrl}
               onMapaChange={onMapaChange}
@@ -1130,72 +1117,79 @@ export function LoreTab({
               setForm={setForm}
               onSnippetAction={onSnippetAction}
             />
-          )}
 
-          {/* TAB: HISTORIA */}
-          {activeTab === "historia" && (
+            {/* BARRA DE TABS */}
             <div
-              className="rounded-xl overflow-hidden"
+              className="flex items-center gap-0.5 border-b overflow-x-auto"
               style={{
-                border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
-                minHeight: 200,
+                borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
+                background: "color-mix(in srgb, var(--primary) 2%, transparent)",
+                scrollbarWidth: "none",
+                marginLeft: "-0.75rem",
+                marginRight: "-0.75rem",
+                paddingLeft: "0.75rem",
               }}
             >
-              <TimelineEditor
-                key="historia-timeline"
-                value={(form as any).historia ?? ""}
-                onChange={(v) => setForm((f) => ({ ...f, historia: v }))}
-                reinos={reinos}
-                filtroReinoId={filtroReinoId}
-                capsTimeline={capsTimeline}
-              />
+              {TABS.map(tab => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveTab(tab.id)}
+                  className="shrink-0 px-3 py-2 text-[9px] font-black uppercase tracking-widest transition-all border-b-2"
+                  style={activeTab === tab.id ? {
+                    borderColor: "var(--primary)",
+                    color: "var(--primary)",
+                  } : {
+                    borderColor: "transparent",
+                    color: "color-mix(in srgb, var(--primary) 35%, transparent)",
+                  }}
+                >
+                  {tab.label}
+                </button>
+              ))}
             </div>
-          )}
 
-          {/* TAB: CULTURA */}
-          {activeTab === "cultura" && (
-            <MarkdownEditor
-              key="cultura"
-              value={(form as any).cultura ?? ""}
-              onChange={(v) => setForm((f) => ({ ...f, cultura: v }))}
-              placeholder="Tradiciones, religión, idioma, costumbres, arte…"
-              rows={12}
-              toolbar
-              defaultMode="edit"
-              onSnippetAction={onSnippetAction}
-              entities={entities}
-            />
-          )}
+            {/* CULTURA / ECONOMÍA / POLÍTICA — tab activo */}
+            {activeTab === "cultura" && (
+              <MarkdownEditor
+                key="cultura"
+                value={(form as any).cultura ?? ""}
+                onChange={(v) => setForm((f) => ({ ...f, cultura: v }))}
+                placeholder="Tradiciones, religión, idioma, costumbres, arte…"
+                rows={12}
+                toolbar
+                defaultMode="edit"
+                onSnippetAction={onSnippetAction}
+                entities={entities}
+              />
+            )}
+            {activeTab === "politica" && (
+              <MarkdownEditor
+                key="politica"
+                value={(form as any).politica ?? ""}
+                onChange={(v) => setForm((f) => ({ ...f, politica: v }))}
+                placeholder="Sistema de gobierno, facciones, líderes, leyes…"
+                rows={12}
+                toolbar
+                defaultMode="edit"
+                onSnippetAction={onSnippetAction}
+                entities={entities}
+              />
+            )}
+            {activeTab === "economia" && (
+              <MarkdownEditor
+                key="economia"
+                value={(form as any).economia ?? ""}
+                onChange={(v) => setForm((f) => ({ ...f, economia: v }))}
+                placeholder="Recursos, comercio, moneda, riqueza…"
+                rows={12}
+                toolbar
+                defaultMode="edit"
+                onSnippetAction={onSnippetAction}
+                entities={entities}
+              />
+            )}
 
-          {/* TAB: POLÍTICA */}
-          {activeTab === "politica" && (
-            <MarkdownEditor
-              key="politica"
-              value={(form as any).politica ?? ""}
-              onChange={(v) => setForm((f) => ({ ...f, politica: v }))}
-              placeholder="Sistema de gobierno, facciones, líderes, leyes…"
-              rows={12}
-              toolbar
-              defaultMode="edit"
-              onSnippetAction={onSnippetAction}
-              entities={entities}
-            />
-          )}
-
-          {/* TAB: ECONOMÍA */}
-          {activeTab === "economia" && (
-            <MarkdownEditor
-              key="economia"
-              value={(form as any).economia ?? ""}
-              onChange={(v) => setForm((f) => ({ ...f, economia: v }))}
-              placeholder="Recursos, comercio, moneda, riqueza…"
-              rows={12}
-              toolbar
-              defaultMode="edit"
-              onSnippetAction={onSnippetAction}
-              entities={entities}
-            />
-          )}
           </div>
         </main>
 
