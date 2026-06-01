@@ -970,6 +970,7 @@ export function LoreTab({
   onMapaChange,
   onDetallesArrayChange,
   MapaConPuntosComponent,
+  activeTab: activeTabProp,
 }: {
   form: Reino;
   setForm: React.Dispatch<React.SetStateAction<Reino>>;
@@ -996,9 +997,13 @@ export function LoreTab({
   onMapaChange?: (url: string) => void;
   onDetallesArrayChange?: (d: Lugar[]) => void;
   MapaConPuntosComponent?: React.ComponentType<any>;
+  activeTab?: SectionId;
 }) {
   const { onSnippetAction } = useWikilink();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [activeTab, setActiveTab] = useState<SectionId>(
+    typeof activeTabProp !== "undefined" ? activeTabProp : "historia"
+  );
   const {
     criaturas, allCriaturas, loading: loadingCriaturas,
     add: addCriatura, remove: removeCriatura,
@@ -1054,20 +1059,58 @@ export function LoreTab({
     </header>
   );
 
+  const TABS = [
+    { id: "historia",  label: "Historia"  },
+    { id: "cultura",   label: "Cultura"   },
+    { id: "economia",  label: "Economía"  },
+    { id: "politica",  label: "Política"  },
+    { id: "mapa",      label: "Mapa"      },
+  ] as const;
+
   return (
     <div className="flex h-full min-h-0 overflow-hidden">
 
-      {/* ── COLUMNA 1 — Editor central (infinity scroll) ────────────────────── */}
-      <main
-        ref={scrollRef}
-        className="flex-1 min-w-0 overflow-y-auto"
-        style={{ scrollbarWidth: "none" }}
-      >
-        <div className="p-3 space-y-6">
+      {/* ── COLUMNA 1 — Tabs + Editor central ───────────────────────────────── */}
+      <div className="flex-1 min-w-0 flex flex-col min-h-0">
 
-          {/* SECCIÓN: MAPA */}
-          <section>
-            <SectionHeader id="mapa" label="Mapa & Puntos" Icon={Map} />
+        {/* Barra de tabs */}
+        <div
+          className="shrink-0 flex items-center gap-0.5 px-3 border-b overflow-x-auto"
+          style={{
+            borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
+            background: "color-mix(in srgb, var(--primary) 2%, transparent)",
+            scrollbarWidth: "none",
+          }}
+        >
+          {TABS.map(tab => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
+              className="shrink-0 px-3 py-2 text-[9px] font-black uppercase tracking-widest transition-all border-b-2"
+              style={activeTab === tab.id ? {
+                borderColor: "var(--primary)",
+                color: "var(--primary)",
+              } : {
+                borderColor: "transparent",
+                color: "color-mix(in srgb, var(--primary) 35%, transparent)",
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Editor */}
+        <main
+          ref={scrollRef}
+          className="flex-1 min-h-0 overflow-y-auto"
+          style={{ scrollbarWidth: "none" }}
+        >
+          <div className="p-3">
+
+          {/* TAB: MAPA */}
+          {activeTab === "mapa" && (
             <MapaPanel
               mapaUrl={mapaUrl}
               onMapaChange={onMapaChange}
@@ -1087,11 +1130,10 @@ export function LoreTab({
               setForm={setForm}
               onSnippetAction={onSnippetAction}
             />
-          </section>
+          )}
 
-          {/* SECCIÓN: HISTORIA */}
-          <section>
-            <SectionHeader id="historia" label="Historia" Icon={Globe} />
+          {/* TAB: HISTORIA */}
+          {activeTab === "historia" && (
             <div
               className="rounded-xl overflow-hidden"
               style={{
@@ -1108,11 +1150,10 @@ export function LoreTab({
                 capsTimeline={capsTimeline}
               />
             </div>
-          </section>
+          )}
 
-          {/* SECCIÓN: CULTURA */}
-          <section>
-            <SectionHeader id="cultura" label="Cultura" Icon={Landmark} />
+          {/* TAB: CULTURA */}
+          {activeTab === "cultura" && (
             <MarkdownEditor
               key="cultura"
               value={(form as any).cultura ?? ""}
@@ -1124,11 +1165,10 @@ export function LoreTab({
               onSnippetAction={onSnippetAction}
               entities={entities}
             />
-          </section>
+          )}
 
-          {/* SECCIÓN: POLÍTICA */}
-          <section>
-            <SectionHeader id="politica" label="Política" Icon={Users} />
+          {/* TAB: POLÍTICA */}
+          {activeTab === "politica" && (
             <MarkdownEditor
               key="politica"
               value={(form as any).politica ?? ""}
@@ -1140,11 +1180,10 @@ export function LoreTab({
               onSnippetAction={onSnippetAction}
               entities={entities}
             />
-          </section>
+          )}
 
-          {/* SECCIÓN: ECONOMÍA */}
-          <section>
-            <SectionHeader id="economia" label="Economía" Icon={Coins} />
+          {/* TAB: ECONOMÍA */}
+          {activeTab === "economia" && (
             <MarkdownEditor
               key="economia"
               value={(form as any).economia ?? ""}
@@ -1156,12 +1195,11 @@ export function LoreTab({
               onSnippetAction={onSnippetAction}
               entities={entities}
             />
-          </section>
+          )}
+          </div>
+        </main>
 
-          {/* Espaciado final para que la última sección sea jumpeable */}
-          <div className="h-24" />
-        </div>
-      </main>
+      </div>{/* fin columna tabs+editor */}
 
       {/* ── COLUMNA 3 — Utilidades (220px) ──────────────────────────────────── */}
       <aside
