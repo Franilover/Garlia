@@ -9,7 +9,8 @@ import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { type SaveStatus } from "./components/types";
-import { SelectorImagen, SelectorTexto, SaveIndicator } from "./components/UIComponents";
+import { SelectorImagen, SaveIndicator } from "./components/UIComponents";
+import { ComboSelector, type ComboItem } from "@/components/ui/ComboSelector";
 import { MarkdownEditor, WikiEntity } from "../../../forms/MarkdownEditor";
 import { useWikilink } from "./components/WikilinkContext";
 
@@ -527,23 +528,26 @@ export function FormularioLugar({
 
               {/* Tipo + Reino en fila */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <SelectorTexto
+                <ComboSelector
+                  mode="single"
                   label="Tipo"
-                  value={form.tipo ?? ""}
-                  onChange={v => setForm(f => ({ ...f, tipo: v }))}
-                  opciones={TIPOS_LUGAR}
                   placeholder="Ciudad, ruinas, bosque…"
+                  items={TIPOS_LUGAR.map(t => ({ id: t, label: t }))}
+                  value={form.tipo ?? null}
+                  onChange={v => setForm(f => ({ ...f, tipo: v }))}
+                  allowNone
+                  noneLabel="Sin tipo"
                 />
-                <SelectorTexto
+                <ComboSelector
+                  mode="single"
                   label="Reino"
-                  value={reinoActual?.nombre ?? ""}
-                  onChange={nombre => {
-                    const r = reinos.find(x => x.nombre === nombre);
-                    setForm(f => ({ ...f, reino_id: r?.id ?? null }));
-                  }}
-                  opciones={reinos.map(r => r.nombre)}
                   placeholder="Sin reino asignado…"
-                  onNavigate={onNavigateReino ? () => { if (reinoActual) onNavigateReino(reinoActual.id); } : undefined}
+                  items={reinos.map(r => ({ id: r.id, label: r.nombre }))}
+                  value={form.reino_id ?? null}
+                  onChange={id => setForm(f => ({ ...f, reino_id: id }))}
+                  allowNone
+                  noneLabel="Sin reino"
+                  onNavigate={onNavigateReino && reinoActual ? () => onNavigateReino(reinoActual.id) : undefined}
                 />
               </div>
 
