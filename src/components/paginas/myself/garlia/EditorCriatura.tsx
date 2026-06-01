@@ -1444,14 +1444,14 @@ export function EditorCriatura({
         </div>
       </div>
 
-      {/* ── BARRA LATERAL DOBLE ──────────────────────────────────────────────── */}
+      {/* ── BARRA LATERAL TRIPLE ─────────────────────────────────────────────── */}
       <aside
         className="shrink-0 flex border-l overflow-hidden"
         style={{ borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)" }}
       >
-        {/* Columna 1: Personajes · Naturales · Creaciones */}
+        {/* Columna 1: Personajes */}
         <div
-          className="w-48 flex flex-col border-r overflow-y-auto overflow-x-hidden"
+          className="w-44 flex flex-col border-r overflow-y-auto overflow-x-hidden"
           style={{
             borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)",
             background: "color-mix(in srgb, var(--primary) 1%, transparent)",
@@ -1471,42 +1471,13 @@ export function EditorCriatura({
             onEntityClick={id => onSelectPersonaje?.(id)}
             columns={2}
           />
-
-          <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
-
-          <SeccionEntidad
-            label="Naturales"
-            icon={<Leaf size={9} />}
-            fallbackIcon={<Package size={14} strokeWidth={1} />}
-            emptyLabel="Sin drops"
-            allEntities={allNaturalesItems.map(i => ({ id: i.id, nombre: i.nombre, imagen_url: i.imagen_url }))}
-            selectedIds={naturalesItems.map(i => i.itemId)}
-            loading={loadingNaturales}
-            saving={savingNaturales}
-            onToggle={handleToggleNatural}
-            onEntityClick={id => onSelectItem?.(id)}
-          />
-
-          <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
-
-          <SeccionEntidad
-            label="Creaciones"
-            icon={<Wrench size={9} />}
-            fallbackIcon={<Package size={14} strokeWidth={1} />}
-            emptyLabel="Sin creaciones"
-            allEntities={allCraftedItems.map(i => ({ id: i.id, nombre: i.nombre, imagen_url: i.imagen_url }))}
-            selectedIds={craftedItems.map(i => i.itemId)}
-            loading={loadingCrafted}
-            saving={savingCrafted}
-            onToggle={handleToggleCrafted}
-            onEntityClick={id => onSelectItem?.(id)}
-          />
         </div>
 
         {/* Columna 2: Reinos · Lugares */}
         <div
-          className="w-48 flex flex-col overflow-y-auto overflow-x-hidden"
+          className="w-44 flex flex-col border-r overflow-y-auto overflow-x-hidden"
           style={{
+            borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)",
             background: "color-mix(in srgb, var(--primary) 0.5%, transparent)",
             scrollbarWidth: "none",
           }}
@@ -1537,6 +1508,43 @@ export function EditorCriatura({
             saving={savingLugares}
             onToggle={handleToggleLugar}
             onEntityClick={id => onNavigateLugar?.(id)}
+          />
+        </div>
+
+        {/* Columna 3: Naturales · Creaciones */}
+        <div
+          className="w-44 flex flex-col overflow-y-auto overflow-x-hidden"
+          style={{
+            background: "color-mix(in srgb, var(--primary) 1%, transparent)",
+            scrollbarWidth: "none",
+          }}
+        >
+          <SeccionEntidad
+            label="Naturales"
+            icon={<Leaf size={9} />}
+            fallbackIcon={<Package size={14} strokeWidth={1} />}
+            emptyLabel="Sin drops"
+            allEntities={allNaturalesItems.map(i => ({ id: i.id, nombre: i.nombre, imagen_url: i.imagen_url }))}
+            selectedIds={naturalesItems.map(i => i.itemId)}
+            loading={loadingNaturales}
+            saving={savingNaturales}
+            onToggle={handleToggleNatural}
+            onEntityClick={id => onSelectItem?.(id)}
+          />
+
+          <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
+
+          <SeccionEntidad
+            label="Creaciones"
+            icon={<Wrench size={9} />}
+            fallbackIcon={<Package size={14} strokeWidth={1} />}
+            emptyLabel="Sin creaciones"
+            allEntities={allCraftedItems.map(i => ({ id: i.id, nombre: i.nombre, imagen_url: i.imagen_url }))}
+            selectedIds={craftedItems.map(i => i.itemId)}
+            loading={loadingCrafted}
+            saving={savingCrafted}
+            onToggle={handleToggleCrafted}
+            onEntityClick={id => onSelectItem?.(id)}
           />
         </div>
       </aside>
