@@ -15,6 +15,7 @@ import { GlobalSearchBar, ModalAcontecimiento, ModalNuevoGrupo, type AllItems, t
 import { EditorMundo }     from "./EditorMundo";
 import { EditorHechizos }  from "./EditorHechizos";
 import { EditorGrupoStandalone } from "./EditorGrupo";
+import { EditorPlanta, type Planta } from "./EditorPlanta";
 import { WikilinkProvider } from "@/components/paginas/myself/garlia/components/WikilinkContext";
 
 
@@ -74,14 +75,14 @@ async function dexieDeleteOne(tabla: string, id: string): Promise<void> {
 function useAllEntidades() {
   const [allItems, setAllItems] = useState<AllItems>({
     personajes: [], criaturas: [], items: [], reinos: [],
-    hechizos: [], dones: [], runas: [], notas: [], grupos: [],
+    hechizos: [], dones: [], runas: [], notas: [], grupos: [], plantas: [],
   });
   const [loadingAll, setLoadingAll] = useState(true);
   const [isOffline,  setIsOffline]  = useState(false);
 
   const load = useCallback(async () => {
     // 1. Leer de Dexie primero para respuesta inmediata
-    const [localP, localC, localI, localR, localH, localD, localRu, , localG] = await Promise.all([
+    const [localP, localC, localI, localR, localH, localD, localRu, , localG, localPl] = await Promise.all([
       dexieReadAll<Personaje>("personajes"),
       dexieReadAll<Criatura>("criaturas"),
       dexieReadAll<Item>("items"),
@@ -91,6 +92,7 @@ function useAllEntidades() {
       dexieReadAll<Runa>("runas"),
       dexieReadAll<any>("notas"),
       dexieReadAll<any>("grupos_mundo"),
+      dexieReadAll<any>("plantas"),
     ]);
 
     const hasLocal =
@@ -109,6 +111,7 @@ function useAllEntidades() {
         runas:      localRu,
         notas:      [],
         grupos:     localG,
+        plantas:    localPl,
       }));
       setLoadingAll(false); // mostrar datos locales de inmediato, sin bloquear UI
     }
@@ -126,7 +129,7 @@ function useAllEntidades() {
 
     // 3. Fetch remoto y sincronizar Dexie
     try {
-      const [p, c, i, r, h, d, ru, n, g] = await Promise.all([
+      const [p, c, i, r, h, d, ru, n, g, pl] = await Promise.all([
         supabase.from("personajes").select("*").order("nombre"),
         supabase.from("criaturas") .select("*").order("nombre"),
         supabase.from("items")     .select("*").order("nombre"),
@@ -136,6 +139,7 @@ function useAllEntidades() {
         supabase.from("runas")     .select("id, nombre, explicacion").order("nombre"),
         supabase.from("notas") .select("*"),
         supabase.from("grupos_mundo").select("id, nombre, tipo, miembro_ids").order("nombre"),
+        supabase.from("plantas").select("*").order("nombre"),
       ]);
       const remote = {
         personajes: (p.data ?? []) as Personaje[],
@@ -147,6 +151,7 @@ function useAllEntidades() {
         runas:      (ru.data ?? []) as Runa[],
         notas:      (n.data ?? []) as Nota[],
         grupos:     (g.data ?? []).map((x: any) => ({ ...x, miembro_ids: x.miembro_ids ?? [] })),
+        plantas:    (pl.data ?? []),
       };
       setAllItems(remote);
 
@@ -159,6 +164,7 @@ function useAllEntidades() {
         dexieWriteAll("hechizos",   remote.hechizos),
         dexieWriteAll("dones",      remote.dones),
         dexieWriteAll("runas",      remote.runas),
+        dexieWriteAll("plantas",    remote.plantas),
       ]);
     } catch {
       setIsOffline(true);
@@ -413,6 +419,22 @@ export default function EditorEntidades() {
       setMundoSection("geografia");
       return;
     }
+    if (key === "planta") {
+      // Crear planta placeholder y abrir editor
+      supabase
+        .from("plantas")
+        .insert([{ nombre: "Nueva planta" }])
+        .select()
+        .single()
+        .then(({ data, error }) => {
+          if (error || !data) return;
+          setAllItems(prev => ({ ...prev, plantas: [data, ...prev.plantas] }));
+          void dexieWriteOne("plantas", data);
+          setTab("plantas" as any);
+          setSelectedId(data.id);
+        });
+      return;
+    }
     if ((key === "hechizos" || key === "dones" || key === "runas") && item) {
       setAllItems(prev => ({
         ...prev,
@@ -442,9 +464,16 @@ export default function EditorEntidades() {
     }));
   }, [setAllItems]);
 
+  const handleSelectPlanta = useCallback((planta: any) => {
+    setTab("plantas" as any);
+    setSelectedId(planta.id);
+    setRequestedGrupoId(null);
+  }, []);
+
   const isMundo = tab === "mundo";
   const isMagicTab = tab === "hechizos" || tab === "dones" || tab === "runas";
   const isGruposTab = tab === "grupos";
+  const isPlantasTab = (tab as string) === "plantas";
 
   return (
     <>
@@ -476,6 +505,8 @@ export default function EditorEntidades() {
               setTimeout(() => window.dispatchEvent(new Event("estudio-notas-action")), 0);
             } else if (key === "grupos") {
               setShowNuevoGrupo(true);
+            } else if (key === "planta") {
+              handleAddMagic("planta");
             } else if (key === "libro") {
               localStorage.setItem("estudio-caps-action", "nuevo-libro");
               setTab("mundo");
@@ -546,6 +577,7 @@ export default function EditorEntidades() {
             setSelectedId(grupo.id);
             setRequestedGrupoId(grupo.id);
           }}
+          onSelectPlanta={handleSelectPlanta}
           onNavigateToCapitulo={(capId, libroId) => {
             localStorage.setItem("estudio-caps-last-cap",   capId);
             localStorage.setItem("estudio-caps-last-libro", libroId);
@@ -628,7 +660,39 @@ export default function EditorEntidades() {
               initialSelectedId={selectedId ?? undefined}
               onSelectedIdChange={(id) => setSelectedId(id)}
             />
-          ) : (
+          ) : isPlantasTab ? (() => {
+            const planta = (allItems.plantas ?? []).find((p: any) => p.id === selectedId);
+            if (!planta) return (
+              <div className="flex-1 flex flex-col items-center justify-center gap-3 text-primary/15 select-none">
+                <Globe size={48} strokeWidth={1} />
+                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/25">Seleccioná una planta</p>
+              </div>
+            );
+            return (
+              <EditorPlanta
+                key={planta.id}
+                planta={planta as Planta}
+                onSaved={(updated) => {
+                  setAllItems(prev => ({ ...prev, plantas: prev.plantas.map(p => p.id === updated.id ? updated : p) }));
+                }}
+                onDeleted={(id) => {
+                  setAllItems(prev => ({ ...prev, plantas: prev.plantas.filter(p => p.id !== id) }));
+                  setSelectedId(null);
+                  void dexieDeleteOne("plantas", id);
+                }}
+                entities={allEntityNames}
+                onNavigateLugar={(id) => {
+                  setTab("mundo");
+                  setMundoSection("geografia");
+                  setOpenItem({ tabla: "lugares", id, key: ++openItemKeyRef.current });
+                }}
+                onNavigateReino={(id) => {
+                  const reino = allItems.reinos?.find((r: any) => r.id === id);
+                  if (reino) handleSelect(reino, "reinos");
+                }}
+              />
+            );
+          })() : (
             <div className="flex-1 flex flex-col items-center justify-center gap-3 text-primary/15 select-none">
               <Globe size={48} strokeWidth={1} />
               <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/25">Worldbuilding</p>
