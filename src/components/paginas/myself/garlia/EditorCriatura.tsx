@@ -1165,7 +1165,30 @@ export function EditorCriatura({
     addToGrupo,
     removeFromGrupo,
   } = useGruposDeCriatura(form.id);
-  const { personajes: personajesDeEspecie } = usePersonajesDeEspecie(form.nombre);
+  // ── Personajes: hook local con toggle ─────────────────────────────────────
+  const [personajesDeEspecie, setPersonajesDeEspecie] = useState<{ id: string; nombre: string; img_url?: string | null }[]>([]);
+  const [loadingPersonajes,   setLoadingPersonajes]   = useState(true);
+  const [savingPersonajes,    setSavingPersonajes]     = useState(false);
+
+  useEffect(() => {
+    setLoadingPersonajes(true);
+    supabase.from("personajes").select("id, nombre, img_url")
+      .eq("especie", form.nombre).order("nombre")
+      .then(({ data }) => { setPersonajesDeEspecie(data ?? []); setLoadingPersonajes(false); });
+  }, [form.nombre]);
+
+  const handleTogglePersonaje = async (id: string, add: boolean) => {
+    setSavingPersonajes(true);
+    if (add) {
+      await supabase.from("personajes").update({ especie: form.nombre }).eq("id", id);
+      const p = allPersonajes.find(p => p.id === id);
+      if (p) setPersonajesDeEspecie(prev => [...prev, p]);
+    } else {
+      await supabase.from("personajes").update({ especie: "Desconocido" }).eq("id", id);
+      setPersonajesDeEspecie(prev => prev.filter(p => p.id !== id));
+    }
+    setSavingPersonajes(false);
+  };
 
   // ── Datos para la barra lateral ────────────────────────────────────────────
   const [allPersonajes, setAllPersonajes] = useState<{ id: string; nombre: string; img_url?: string | null }[]>([]);
@@ -1177,6 +1200,13 @@ export function EditorCriatura({
     add: addReinoSidebar,
     remove: removeReinoSidebar,
   } = useCriaturaReinos(form.id);
+
+  const {
+    rows: lugarRows,
+    loading: loadingLugares,
+    add: addLugarSidebar,
+    remove: removeLugarSidebar,
+  } = useCriaturaLugares(form.id);
 
   const {
     items: naturalesItems,
@@ -1195,14 +1225,19 @@ export function EditorCriatura({
   } = useCraftedItems(form.id);
 
   const [savingReinos,    setSavingReinos]    = useState(false);
+  const [savingLugares,   setSavingLugares]   = useState(false);
   const [savingNaturales, setSavingNaturales] = useState(false);
   const [savingCrafted,   setSavingCrafted]   = useState(false);
+
+  const [allLugares, setAllLugares] = useState<LugarMin2[]>([]);
 
   useEffect(() => {
     supabase.from("personajes").select("id, nombre, img_url").order("nombre")
       .then(({ data }) => setAllPersonajes(data ?? []));
     supabase.from("reinos").select("id, nombre").order("nombre")
       .then(({ data }) => setAllReinos(data ?? []));
+    supabase.from("lugares").select("id, nombre, reino_id").order("nombre")
+      .then(({ data }) => setAllLugares((data ?? []).map((l: any) => ({ ...l, reino_id: l.reino_id ?? null }))));
   }, []);
 
   const handleToggleReino = async (id: string, add: boolean) => {
@@ -1214,6 +1249,18 @@ export function EditorCriatura({
       if (row) await removeReinoSidebar(row.rowId);
     }
     setSavingReinos(false);
+  };
+
+  const handleToggleLugar = async (id: string, add: boolean) => {
+    setSavingLugares(true);
+    if (add) {
+      const lugar = allLugares.find(l => l.id === id);
+      if (lugar) await addLugarSidebar(lugar);
+    } else {
+      const row = lugarRows.find(r => r.lugarId === id);
+      if (row) await removeLugarSidebar(row.rowId);
+    }
+    setSavingLugares(false);
   };
 
   const handleToggleNatural = async (id: string, add: boolean) => {
@@ -1405,17 +1452,17 @@ export function EditorCriatura({
           scrollbarWidth: "none",
         }}
       >
-        {/* Personajes de esta especie (solo lectura, click para navegar) */}
+        {/* Personajes de esta especie */}
         <SeccionEntidad
           label="Personajes"
           icon={<Users size={9} />}
           fallbackIcon={<UserCircle2 size={14} strokeWidth={1} />}
           emptyLabel="Sin personajes"
-          allEntities={personajesDeEspecie.map(p => ({ id: p.id, nombre: p.nombre, imagen_url: p.img_url }))}
+          allEntities={allPersonajes.map(p => ({ id: p.id, nombre: p.nombre, imagen_url: p.img_url }))}
           selectedIds={personajesDeEspecie.map(p => p.id)}
-          loading={false}
-          saving={false}
-          onToggle={() => {}}
+          loading={loadingPersonajes}
+          saving={savingPersonajes}
+          onToggle={handleTogglePersonaje}
           onEntityClick={id => onSelectPersonaje?.(id)}
         />
 
@@ -1433,6 +1480,22 @@ export function EditorCriatura({
           saving={savingReinos}
           onToggle={handleToggleReino}
           onEntityClick={id => onNavigateReino?.(id)}
+        />
+
+        <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
+
+        {/* Lugares */}
+        <SeccionEntidad
+          label="Lugares"
+          icon={<MapPin size={9} />}
+          fallbackIcon={<MapPin size={14} strokeWidth={1} />}
+          emptyLabel="Sin lugares"
+          allEntities={allLugares.map(l => ({ id: l.id, nombre: l.nombre }))}
+          selectedIds={lugarRows.map(r => r.lugarId)}
+          loading={loadingLugares}
+          saving={savingLugares}
+          onToggle={handleToggleLugar}
+          onEntityClick={id => onNavigateLugar?.(id)}
         />
 
         <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
