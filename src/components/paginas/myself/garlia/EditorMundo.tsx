@@ -981,6 +981,8 @@ function PanelHistoriaMundo({
   const handleMundoChange = (evts: TimelineEvent[]) => {
     setMundoEvents(evts);
     onChange(encodeTimeline(evts));
+    if (debounceHistRef.current) clearTimeout(debounceHistRef.current);
+    debounceHistRef.current = setTimeout(() => { void handleSave(); }, 1500);
   };
 
   const updateReinoEvent = useCallback((reinoId: string, id: string, patch: Partial<TimelineEvent>) => {
@@ -1012,12 +1014,26 @@ function PanelHistoriaMundo({
   const [savingReinos, setSavingReinos] = useState<Set<string>>(new Set());
   const [selectedEventKey, setSelectedEventKey] = useState<string | null>(null); // "evtId" o "reinoId:evtId"
   const { onSnippetAction } = useWikilink();
+  const debounceHistRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     setSaveStatus("saving");
     try { await onSave(); setSaveStatus("saved"); setTimeout(() => setSaveStatus("idle"), 2000); }
     catch { setSaveStatus("error"); }
-  };
+  }, [onSave]);
+
+  // Ctrl+S
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+        e.preventDefault();
+        if (debounceHistRef.current) { clearTimeout(debounceHistRef.current); debounceHistRef.current = null; }
+        void handleSave();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [handleSave]);
 
   const add = () => {
     const e = newEvent();
@@ -1159,13 +1175,13 @@ function PanelHistoriaMundo({
             }
           </button>
           <button onClick={async () => {
-            handleSave();
             for (const reinoId of Object.keys(reinoEvents)) {
               await handleSaveReinoEvent(reinoId);
             }
           }} disabled={saveStatus === "saving"}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-sm shadow-primary/20 disabled:opacity-50">
-            <Save size={9} /> Guardar todo
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all disabled:opacity-50"
+            style={{ borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)", color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
+            <Save size={9} /> Guardar reinos
           </button>
         </div>
       </div>
@@ -1670,7 +1686,7 @@ function PanelListas({
   function SeccionEntidades({ icon: Icon, label, count, loading, children, cols = 3 }: {
     icon: React.ElementType; label: string; count: number; loading: boolean; children: React.ReactNode; cols?: 1 | 3;
   }) {
-    const gridClass = cols === 1 ? "grid grid-cols-5 gap-1.5" : "grid grid-cols-6 gap-1.5";
+    const gridClass = cols === 1 ? "grid grid-cols-3 gap-1.5" : "grid grid-cols-5 gap-1.5";
     return (
       <div className="pb-1">
         <div className="flex items-center gap-1.5 mb-2">
@@ -2011,34 +2027,53 @@ function PanelListas({
 
 // ─── Panel de texto genérico (reemplaza PanelMagia y el texto de los demás) ──
 function PanelTexto({
-  texto, onChange, onSave, placeholder, saveLabel, SaveIcon,
+  texto, onChange, onSave, placeholder, SaveIcon,
 }: {
   texto: string;
   onChange: (v: string) => void;
   onSave: () => Promise<void>;
   placeholder: string;
-  saveLabel: string;
+  saveLabel?: string;
   SaveIcon: React.ElementType;
 }) {
   const [status, setStatus] = useState<SaveStatus>("idle");
   const { onSnippetAction } = useWikilink();
-  const handle = async () => {
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const doSave = useCallback(async () => {
     setStatus("saving");
     try { await onSave(); setStatus("saved"); setTimeout(() => setStatus("idle"), 2000); }
     catch { setStatus("error"); }
+  }, [onSave]);
+
+  // Autosave: 1.5s tras dejar de escribir
+  const handleChange = (v: string) => {
+    onChange(v);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => { void doSave(); }, 1500);
   };
+
+  // Ctrl+S
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+        e.preventDefault();
+        if (debounceRef.current) { clearTimeout(debounceRef.current); debounceRef.current = null; }
+        void doSave();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [doSave]);
+
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
       <div className="flex-1 min-h-0 overflow-y-auto p-3 sm:p-5">
-        <MarkdownEditor value={texto} onChange={onChange} placeholder={placeholder} rows={22} toolbar defaultMode="edit" onSnippetAction={onSnippetAction} />
+        <MarkdownEditor value={texto} onChange={handleChange} placeholder={placeholder} rows={22} toolbar defaultMode="edit" onSnippetAction={onSnippetAction} />
       </div>
       <div className="shrink-0 flex items-center justify-end gap-2 px-3 py-1.5 border-t"
         style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
         <SaveIndicator status={status} />
-        <button onClick={handle} disabled={status === "saving"}
-          className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-sm shadow-primary/20 disabled:opacity-50">
-          <SaveIcon size={10} /> Guardar
-        </button>
       </div>
     </div>
   );
