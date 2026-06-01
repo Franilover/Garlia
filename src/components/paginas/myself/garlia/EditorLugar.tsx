@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   MapPin, Save, Trash2, Users, Bug, Package,
-  Loader2, Plus, X, Mountain, ScrollText,
+  Mountain, ScrollText,
 } from "lucide-react";
+import { SeccionEntidad } from "./components/SeccionEntidad";
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
 import { useConfirm } from "@/components/ui/ConfirmModal";
@@ -607,89 +608,50 @@ export function FormularioLugar({
 
             {/* Personajes */}
             <div className="flex-1 min-w-0 rounded-xl overflow-hidden border border-primary/10">
-              <div className="flex items-center gap-2 px-3 py-2 border-b border-primary/[0.06]"
-                style={{ background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}>
-                <Users size={10} className="text-primary/40" />
-                <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">Personajes</span>
-                {personajes.length > 0 && (
-                  <span className="ml-auto text-[9px] font-black tabular-nums text-primary/25">{personajes.length}</span>
-                )}
-              </div>
-              <div className="p-3">
-                <BloqueEntidades
-                  Icon={Users}
-                  items={personajes}
-                  loading={loadingP}
-                  onSelect={onSelectPersonaje}
-                  emptyText="Sin personajes en este lugar"
-                  allItems={todosPersonajes}
-                  onAdd={handleAddPersonaje}
-                  addingId={addingP}
-                  onRemove={handleRemovePersonaje}
-                  removingId={removingP}
-                  renderThumb={p => (p as any).img_url
-                    ? <img src={(p as any).img_url} alt={p.nombre} className="w-full h-full object-cover" />
-                    : <Users size={10} className="text-primary/20" />}
-                />
-              </div>
+              <SeccionEntidad
+                label="Personajes"
+                icon={<Users size={10} />}
+                fallbackIcon={<Users size={10} />}
+                emptyLabel="Sin personajes en este lugar"
+                allEntities={todosPersonajes.map(p => ({ id: p.id, nombre: p.nombre, imagen_url: p.img_url ?? null }))}
+                selectedIds={personajes.map(p => p.id)}
+                loading={loadingP}
+                saving={!!addingP}
+                onToggle={(id, add) => add ? handleAddPersonaje(todosPersonajes.find(p => p.id === id)!) : handleRemovePersonaje(id)}
+                onEntityClick={onSelectPersonaje}
+              />
             </div>
 
             {/* Criaturas */}
             <div className="flex-1 min-w-0 rounded-xl overflow-hidden border border-primary/10">
-              <div className="flex items-center gap-2 px-3 py-2 border-b border-primary/[0.06]"
-                style={{ background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}>
-                <Bug size={10} className="text-primary/40" />
-                <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">Criaturas</span>
-                {criaturas.length > 0 && (
-                  <span className="ml-auto text-[9px] font-black tabular-nums text-primary/25">{criaturas.length}</span>
-                )}
-              </div>
-              <div className="p-3">
-                <BloqueEntidades
-                  Icon={Bug}
-                  items={criaturas}
-                  loading={loadingC}
-                  onSelect={onSelectCriatura}
-                  emptyText="Sin criaturas en este lugar"
-                  allItems={todasCriaturas}
-                  onAdd={handleAddCriatura}
-                  addingId={addingC}
-                  onRemove={handleRemoveCriatura}
-                  removingId={removingC}
-                  renderThumb={c => (c as any).imagen_url
-                    ? <img src={(c as any).imagen_url} alt={c.nombre} className="w-full h-full object-cover" />
-                    : <Bug size={10} className="text-primary/20" />}
-                />
-              </div>
+              <SeccionEntidad
+                label="Criaturas"
+                icon={<Bug size={10} />}
+                fallbackIcon={<Bug size={10} />}
+                emptyLabel="Sin criaturas en este lugar"
+                allEntities={todasCriaturas}
+                selectedIds={criaturas.map(c => c.id)}
+                loading={loadingC}
+                saving={!!addingC}
+                onToggle={(id, add) => add ? handleAddCriatura(todasCriaturas.find(c => c.id === id)!) : handleRemoveCriatura(id)}
+                onEntityClick={onSelectCriatura}
+              />
             </div>
 
             {/* Ítems */}
             <div className="flex-1 min-w-0 rounded-xl overflow-hidden border border-primary/10">
-              <div className="flex items-center gap-2 px-3 py-2 border-b border-primary/[0.06]"
-                style={{ background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}>
-                <Package size={10} className="text-primary/40" />
-                <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">Ítems</span>
-                {items.length > 0 && (
-                  <span className="ml-auto text-[9px] font-black tabular-nums text-primary/25">{items.length}</span>
-                )}
-              </div>
-              <div className="p-3">
-                <BloqueEntidades
-                  Icon={Package}
-                  items={items}
-                  loading={loadingI}
-                  onSelect={onSelectItem}
-                  emptyText="Sin ítems en este lugar"
-                  allItems={todosItems}
-                  onAdd={handleAddItem}
-                  addingId={addingI}
-                  onRemove={handleRemoveItem}
-                  removingId={removingI}
-                  renderThumb={i => (i as any).imagen_url
-                    ? <img src={(i as any).imagen_url} alt={i.nombre} className="w-full h-full object-cover" />
-                    : <Package size={10} className="text-primary/20" />}
-                />
-              </div>
+              <SeccionEntidad
+                label="Ítems"
+                icon={<Package size={10} />}
+                fallbackIcon={<Package size={10} />}
+                emptyLabel="Sin ítems en este lugar"
+                allEntities={todosItems}
+                selectedIds={items.map(i => i.id)}
+                loading={loadingI}
+                saving={!!addingI}
+                onToggle={(id, add) => add ? handleAddItem(todosItems.find(i => i.id === id)!) : handleRemoveItem(id)}
+                onEntityClick={onSelectItem}
+              />
             </div>
 
           </div>
