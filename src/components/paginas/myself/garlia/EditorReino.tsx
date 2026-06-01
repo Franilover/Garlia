@@ -350,6 +350,7 @@ export function EditorReino({ item, onSaved, onDeleted, entities = [], onSelectP
   const [status, setStatus] = useState<SaveStatus>("idle");
   const [addingPoint, setAddingPoint] = useState(false);
   const [newPointName, setNewPointName] = useState("");
+  const [activeTab, setActiveTab] = useState<"historia" | "cultura" | "economia" | "politica" | "mapa">("historia");
   const { lugares: detalles, setLugares: setDetalles } = useLugaresDelReino(item.id);
   const { confirm, ConfirmModal } = useConfirm();
   const { onSnippetAction } = useWikilink();
@@ -463,6 +464,29 @@ export function EditorReino({ item, onSaved, onDeleted, entities = [], onSelectP
           </div>
         </div>
 
+        {/* Tabs de navegación */}
+        <div
+          className="shrink-0 flex items-center gap-0.5 px-3 sm:px-4 border-b overflow-x-auto scrollbar-none"
+          style={{
+            borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
+            background:  "color-mix(in srgb, var(--primary) 2%, transparent)",
+          }}
+        >
+          {(["historia", "cultura", "economia", "politica", "mapa"] as const).map(tab => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`shrink-0 px-3 py-2 text-[9px] font-black uppercase tracking-widest transition-all border-b-2 ${
+                activeTab === tab
+                  ? "border-primary text-primary"
+                  : "border-transparent text-primary/35 hover:text-primary/60"
+              }`}
+            >
+              {tab === "economia" ? "Economía" : tab === "politica" ? "Política" : tab.charAt(0).toUpperCase() + tab.slice(1)}
+            </button>
+          ))}
+        </div>
+
         {/* Lore — ocupa todo el espacio restante */}
         <div className="flex-1 min-h-0 overflow-hidden" style={{ minHeight: "0" }}>
           <LoreTab
@@ -487,6 +511,7 @@ export function EditorReino({ item, onSaved, onDeleted, entities = [], onSelectP
             onMapaChange={url => setForm(f => ({ ...f, mapa_url: url }))}
             onDetallesArrayChange={handleDetallesMapChange}
             MapaConPuntosComponent={MapaConPuntos}
+            activeTab={activeTab}
           />
         </div>
 
