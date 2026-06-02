@@ -174,9 +174,10 @@ export function CapituloHeader({ orden, titulo }: { orden: number; titulo?: stri
    Las líneas "se dibujan" desde el centro hacia afuera
    cuando el elemento entra en viewport
    ───────────────────────────────────────────── */
-export function FinCapituloSeparador({ cap, onVisible }: {
+export function FinCapituloSeparador({ cap, onVisible, ocultar = false }: {
   cap: CapituloScrollItem;
   onVisible: () => void;
+  ocultar?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const firedRef = useRef(false);
@@ -240,7 +241,7 @@ export function FinCapituloSeparador({ cap, onVisible }: {
   }, [cap.id]); // se recrea si cambia el cap (modo extra)
 
   return (
-    <div ref={ref} className="mt-20 mb-4 flex flex-col items-center gap-3" style={{ minHeight: "20px" }}>
+    <div ref={ref} className="mt-20 mb-4 flex flex-col items-center gap-3" style={{ minHeight: "20px", visibility: ocultar ? "hidden" : undefined, height: ocultar ? 0 : undefined, marginTop: ocultar ? 0 : undefined, overflow: ocultar ? "hidden" : undefined }}>
       <div className="flex items-center gap-4 w-full max-w-xs">
         <motion.div
           className="flex-1 h-px"

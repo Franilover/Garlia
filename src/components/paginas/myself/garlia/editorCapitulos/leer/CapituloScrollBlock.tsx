@@ -132,10 +132,11 @@ export function ToastPortal() {
 /* ─────────────────────────────────────────────
    Componente de capítulo
    ───────────────────────────────────────────── */
-export function CapituloScrollBlock({ cap, onNavigate, esExtra = false }: {
+export function CapituloScrollBlock({ cap, onNavigate, esExtra = false, haySegSiguiente = false }: {
   cap: CapituloScrollItem;
   onNavigate: (capId: string) => void;
   esExtra?: boolean;
+  haySegSiguiente?: boolean;
 }) {
   const words = (cap.contenido ?? "").trim()
     ? (cap.contenido ?? "").trim().split(/\s+/).length
@@ -215,7 +216,7 @@ export function CapituloScrollBlock({ cap, onNavigate, esExtra = false }: {
           />
         </div>
 
-        <FinCapituloSeparador cap={cap} onVisible={handleFinCapitulo} />
+        <FinCapituloSeparador cap={cap} onVisible={handleFinCapitulo} ocultar={true} />
       </article>
     </div>
   );
