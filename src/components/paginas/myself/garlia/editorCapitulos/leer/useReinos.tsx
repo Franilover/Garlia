@@ -75,7 +75,7 @@ export function ReinosDesbloqueadosToast({
   reinosIds: string[];
   onClose: () => void;
 }) {
-  const [reinos, setReinos] = useState<{ id: string; nombre: string; imagen_reino?: string | null }[]>([]);
+  const [reinos, setReinos] = useState<{ id: string; nombre: string; mapa_url?: string | null }[]>([]);
 
   const onCloseRef = useRef(onClose);
   useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
@@ -124,8 +124,8 @@ export function ReinosDesbloqueadosToast({
           {reinos.map((r) => (
             <div key={r.id} className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-[var(--radius-btn)] overflow-hidden border border-primary/10 shrink-0 bg-primary/5">
-                {r.imagen_reino
-                  ? <img src={r.imagen_reino} alt={r.nombre} className="w-full h-full object-cover" />
+                {r.mapa_url
+                  ? <img src={r.mapa_url} alt={r.nombre} className="w-full h-full object-cover" />
                   : <div className="w-full h-full flex items-center justify-center text-primary/20 text-xs font-black">{r.nombre[0]}</div>
                 }
               </div>
