@@ -154,12 +154,11 @@ interface FormNuevaCategoriaProps {
 
 const FormNuevaCategoria = ({ onGuardar, onCancelar, guardando, orden }: FormNuevaCategoriaProps) => {
   const [nombre, setNombre] = useState("");
-  const icon  = "Music";
-  const color = 0;
+  const [icon, setIcon]     = useState("Music");
 
   const handleGuardar = () => {
     if (!nombre.trim()) return;
-    onGuardar({ nombre: nombre.trim(), icon, color, orden });
+    onGuardar({ nombre: nombre.trim(), icon, color: 0, orden });
   };
 
   return (
@@ -182,6 +181,28 @@ const FormNuevaCategoria = ({ onGuardar, onCancelar, guardando, orden }: FormNue
         />
       </div>
 
+      {/* Selector de icono */}
+      <div className="mb-4">
+        <p className="text-[9px] font-black uppercase tracking-widest text-primary/30 mb-2">Icono</p>
+        <div className="flex flex-wrap gap-1.5">
+          {CAT_ICONS.map(({ name, component: Icon, label }) => (
+            <button
+              key={name}
+              type="button"
+              title={label}
+              onClick={() => setIcon(name)}
+              className={cn(
+                "w-9 h-9 rounded-[var(--radius-btn)] flex items-center justify-center transition-all border-[length:var(--border-width)]",
+                icon === name
+                  ? "bg-primary text-btn-text border-primary"
+                  : "bg-primary/5 text-primary/50 border-transparent hover:bg-primary/10 hover:text-primary/70"
+              )}
+            >
+              <Icon size={16} />
+            </button>
+          ))}
+        </div>
+      </div>
 
       <div className="flex gap-2">
         <button
