@@ -38,7 +38,7 @@ export function EditorNota({
   onDeleted,
 }: {
   nota: Nota;
-  onSaved: (n: Nota) => void;
+  onSaved: (n: Nota) => void | Promise<void>;
   onDeleted: (id: string) => void;
 }) {
   const [form, setForm] = useState<Nota>(nota);
@@ -139,13 +139,14 @@ export function EditorNota({
                   if (e.key === "Enter") { e.preventDefault(); addTag(); }
                   if (e.key === "Escape") { setShowTagInput(false); setEtiquetaInput(""); }
                 }}
-                onBlur={() => { addTag(); setShowTagInput(false); }}
+                onBlur={e => { if (e.relatedTarget instanceof HTMLButtonElement && e.relatedTarget.dataset.addtag) return; addTag(); setShowTagInput(false); }}
                 placeholder="Nueva etiqueta…"
                 className="w-24 bg-primary/5 border border-primary/15 rounded-lg px-2 py-0.5 text-[9px] font-medium outline-none focus:border-primary/30 text-primary placeholder:text-primary/25"
                 autoFocus
               />
               <button
                 type="button"
+                data-addtag="true"
                 onMouseDown={e => { e.preventDefault(); addTag(); }}
                 className="w-4 h-4 rounded flex items-center justify-center text-primary/30 hover:text-primary transition-colors"
               >

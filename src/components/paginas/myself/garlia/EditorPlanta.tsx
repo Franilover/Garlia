@@ -294,10 +294,7 @@ export function EditorPlanta({
                 </div>
 
                 {/* Lugares */}
-                <div className="flex-1 min-w-0 space-y-2">
-                  <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35 flex items-center gap-1.5">
-                    <MapPin size={9} /> Lugar donde encontrarla
-                  </label>
+                <div className="flex-1 min-w-0">
                   <PanelLugares plantaId={form.id} onNavigateLugar={onNavigateLugar} />
                 </div>
 

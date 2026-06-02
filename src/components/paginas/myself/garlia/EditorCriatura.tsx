@@ -167,7 +167,7 @@ function useCraftedItems(criaturaId: string) {
       setItems(prev => prev.map(i => i.crafterId === tempId ? { ...i, crafterId: data.id } : i));
       try { if (db) await db.item_crafteres.put({ id: data.id, criatura_id: criaturaId, item_id: item.id }); } catch {}
       await supabase.from("items").update({ origen: "Artificial", sub_origen: null }).eq("id", item.id);
-      new BroadcastChannel("item_origen_sync").postMessage({ itemId: item.id, origen: "Artificial", sub_origen: null });
+      { const _ch = new BroadcastChannel("item_origen_sync"); _ch.postMessage({ itemId: item.id, origen: "Artificial", sub_origen: null }); _ch.close(); }
     } else {
       // Revertir optimista si falló
       setItems(prev => prev.filter(i => i.crafterId !== tempId));
@@ -282,7 +282,7 @@ function useNaturalItems(criaturaId: string, varianteId?: string | null) {
       setItems(prev => prev.map(i => i.dropId === tempId ? { ...i, dropId: data.id } : i));
       try { if (db) await db.criatura_drops.put({ id: data.id, criatura_id: criaturaId, item_id: item.id, variante_id: varianteId ?? null }); } catch {}
       await supabase.from("items").update({ origen: "Natural", sub_origen: "Criatura" }).eq("id", item.id);
-      new BroadcastChannel("item_origen_sync").postMessage({ itemId: item.id, origen: "Natural", sub_origen: "Criatura" });
+      { const _ch = new BroadcastChannel("item_origen_sync"); _ch.postMessage({ itemId: item.id, origen: "Natural", sub_origen: "Criatura" }); _ch.close(); }
     } else {
       setItems(prev => prev.filter(i => i.dropId !== tempId));
     }
@@ -1008,14 +1008,24 @@ function BloqueHabitat({
                   >
                     <button
                       type="button"
-                      onClick={() => onNavigateReino?.(r.reinoId)}
+                      onClick={() => setReinoFiltro(f => f === r.reinoId ? null : r.reinoId)}
                       className="leading-none flex items-center gap-1 hover:underline transition-opacity"
-                      style={{ cursor: onNavigateReino ? "pointer" : "default", opacity: onNavigateReino ? 1 : 0.75 }}
-                      title="Abrir reino"
+                      style={{ cursor: "pointer", opacity: reinoFiltro === r.reinoId ? 1 : 0.75 }}
+                      title={reinoFiltro === r.reinoId ? "Quitar filtro de lugares" : "Filtrar lugares por este reino"}
                     >
                       {r.reinoNombre}
-                      {onNavigateReino && <ExternalLink size={7} className="opacity-40" />}
+                      {reinoFiltro === r.reinoId && <X size={7} className="opacity-60" />}
                     </button>
+                    {onNavigateReino && (
+                      <button
+                        type="button"
+                        onClick={() => onNavigateReino(r.reinoId)}
+                        className="w-3.5 h-3.5 rounded flex items-center justify-center text-primary/30 hover:text-primary/70 transition-colors"
+                        title="Abrir reino"
+                      >
+                        <ExternalLink size={7} />
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={() => removeReino(r.rowId)}
@@ -1281,6 +1291,7 @@ function useDonCriatura(criaturaId: string) {
 }
 
 // ─── Componente lista mágica (hechizos o dones) ───────────────────────────────
+// Dos wrappers finos para evitar instanciar ambos hooks en cada montaje.
 function BloqueMagico({
   label, icon: Icon, criaturaId, gruposActuales,
   usarHook,
@@ -1291,9 +1302,33 @@ function BloqueMagico({
   gruposActuales: string[];
   usarHook: "hechizos" | "dones";
 }) {
-  const hechizos = useHechizoCriatura(criaturaId);
-  const dones    = useDonCriatura(criaturaId);
-  const { catalogo, ids, loading, add, remove } = usarHook === "hechizos" ? hechizos : dones;
+  if (usarHook === "hechizos") {
+    return <BloqueMagicoHechizos label={label} icon={Icon} criaturaId={criaturaId} gruposActuales={gruposActuales} />;
+  }
+  return <BloqueMagicoDones label={label} icon={Icon} criaturaId={criaturaId} gruposActuales={gruposActuales} />;
+}
+
+function BloqueMagicoHechizos({ label, icon: Icon, criaturaId, gruposActuales }: {
+  label: string; icon: React.ElementType; criaturaId: string; gruposActuales: string[];
+}) {
+  const { catalogo, ids, loading, add, remove } = useHechizoCriatura(criaturaId);
+  return <BloqueMagicoUI label={label} icon={Icon} catalogo={catalogo} ids={ids} loading={loading} add={add} remove={remove} gruposActuales={gruposActuales} />;
+}
+
+function BloqueMagicoDones({ label, icon: Icon, criaturaId, gruposActuales }: {
+  label: string; icon: React.ElementType; criaturaId: string; gruposActuales: string[];
+}) {
+  const { catalogo, ids, loading, add, remove } = useDonCriatura(criaturaId);
+  return <BloqueMagicoUI label={label} icon={Icon} catalogo={catalogo} ids={ids} loading={loading} add={add} remove={remove} gruposActuales={gruposActuales} />;
+}
+
+function BloqueMagicoUI({
+  label, icon: Icon, catalogo, ids, loading, add, remove, gruposActuales,
+}: {
+  label: string; icon: React.ElementType;
+  catalogo: (HechizoCat | DonCat)[]; ids: string[]; loading: boolean;
+  add: (id: string) => void; remove: (id: string) => void; gruposActuales: string[];
+}) {
 
   const [search, setSearch] = useState("");
   const [open,   setOpen]   = useState(false);
@@ -1450,9 +1485,9 @@ export function EditorCriatura({
   useEffect(() => {
     setLoadingPersonajes(true);
     supabase.from("personajes").select("id, nombre, img_url")
-      .eq("especie", form.nombre).order("nombre")
+      .eq("especie", item.nombre).order("nombre")
       .then(({ data }) => { setPersonajesDeEspecie(data ?? []); setLoadingPersonajes(false); });
-  }, [form.nombre]);
+  }, [item.nombre]);
 
   const handleTogglePersonaje = async (id: string, add: boolean) => {
     setSavingPersonajes(true);
@@ -1461,7 +1496,7 @@ export function EditorCriatura({
       const p = allPersonajes.find(p => p.id === id);
       if (p) setPersonajesDeEspecie(prev => [...prev, p]);
     } else {
-      await supabase.from("personajes").update({ especie: "Desconocido" }).eq("id", id);
+      await supabase.from("personajes").update({ especie: null }).eq("id", id);
       setPersonajesDeEspecie(prev => prev.filter(p => p.id !== id));
     }
     setSavingPersonajes(false);
