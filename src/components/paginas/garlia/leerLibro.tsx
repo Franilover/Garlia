@@ -25,7 +25,7 @@ interface NarradorInfo {
 interface ReinoInfo {
   id: string;
   nombre: string;
-  imagen_reino?: string | null;
+  mapa_url?: string | null;
 }
 
 interface Segmento {
@@ -64,7 +64,7 @@ function segLabel(seg: Segmento): string {
 }
 
 function segImgUrl(seg: Segmento): string | null | undefined {
-  return seg.reino?.imagen_reino ?? seg.narrador?.img_url ?? null;
+  return seg.reino?.mapa_url ?? seg.narrador?.img_url ?? null;
 }
 
 /* ─────────────────────────────────────────────
@@ -964,7 +964,7 @@ export default function Lector() {
       if (todosReinosIds.length > 0) {
         const { data: reinosData } = await supabase
           .from("reinos")
-          .select("id, nombre, imagen_reino")
+          .select("id, nombre, mapa_url")
           .in("id", todosReinosIds);
         if (reinosData) {
           const reinosMap = Object.fromEntries(reinosData.map((r: any) => [r.id, r]));
