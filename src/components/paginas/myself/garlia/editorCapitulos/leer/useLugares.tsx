@@ -5,6 +5,11 @@ import { MotionDiv } from "@/components/ui/Motion";
 import { supabase } from "@/lib/api/client/supabase";
 
 /* ─────────────────────────────────────────────
+   Guard global: persiste aunque el componente se desmonte/remonte.
+   ───────────────────────────────────────────── */
+const _lugaresDisparados = new Set<string>();
+
+/* ─────────────────────────────────────────────
    Hook: desbloquear lugares al terminar un capítulo
 
    FIXES aplicados (idénticos a usePersonajes / useReinos):
@@ -17,31 +22,41 @@ export function useDesbloquearLugares(capId: string, lugaresIds: string[] | unde
   const [desbloqueados,      setDesbloqueados]      = useState<string[]>([]);
   const [mostrarCelebration, setMostrarCelebration] = useState(false);
 
-  const disparadoRef = useRef<Set<string>>(new Set());
+  const disparandoRef = useRef(false);
   const idsKey = (lugaresIds ?? []).join(",");
 
   const disparar = useCallback(async () => {
-    if (disparadoRef.current.has(capId)) return [];
+    if (_lugaresDisparados.has(capId)) return [];
     if (!lugaresIds?.length) return [];
+    if (disparandoRef.current) return [];
 
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user) return [];
 
-    disparadoRef.current.add(capId);
+    _lugaresDisparados.add(capId);
+    disparandoRef.current = true;
 
-    const userId = session.user.id;
-    const rows = lugaresIds.map(lugarId => ({ user_id: userId, lugar_id: lugarId }));
-    const { data } = await supabase
-      .from("lugares_desbloqueados")
-      .insert(rows)
-      .select("lugar_id");
+    try {
+      const userId = session.user.id;
+      const rows = lugaresIds.map(lugarId => ({ user_id: userId, lugar_id: lugarId }));
+      const { data } = await supabase
+        .from("lugares_desbloqueados")
+        .insert(rows)
+        .select("lugar_id");
 
-    const nuevos = (data ?? []).map((r: any) => r.lugar_id);
-    if (nuevos.length > 0) {
-      setDesbloqueados(nuevos);
-      setMostrarCelebration(true);
+      const nuevos = (data ?? []).map((r: any) => r.lugar_id);
+      if (nuevos.length > 0) {
+        setDesbloqueados(nuevos);
+        setMostrarCelebration(true);
+      }
+      return nuevos;
+    } catch (err) {
+      _lugaresDisparados.delete(capId);
+      console.error("[useDesbloquearLugares]", err);
+      return [];
+    } finally {
+      disparandoRef.current = false;
     }
-    return nuevos;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [capId, idsKey]);
 

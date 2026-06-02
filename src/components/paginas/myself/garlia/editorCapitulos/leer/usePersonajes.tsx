@@ -5,6 +5,12 @@ import { MotionDiv } from "@/components/ui/Motion";
 import { supabase } from "@/lib/api/client/supabase";
 
 /* ─────────────────────────────────────────────
+   Guard global: persiste aunque el componente se desmonte/remonte.
+   Evita doble disparo en StrictMode, remounts y scroll rápido.
+   ───────────────────────────────────────────── */
+const _personajesDisparados = new Set<string>();
+
+/* ─────────────────────────────────────────────
    Hook: desbloquear personajes al terminar un capítulo
 
    FIXES:
@@ -19,43 +25,48 @@ export function useDesbloquearPersonajes(capId: string, personajesIds: string[] 
   const [desbloqueados,      setDesbloqueados]      = useState<string[]>([]);
   const [mostrarCelebration, setMostrarCelebration] = useState(false);
 
-  // Usamos el capId como clave para que el guard sea por capítulo, no por instancia
-  const disparadoRef = useRef<Set<string>>(new Set());
-
-  // Serializar los ids para comparación estable dentro del callback
+  // Ref local como segunda barrera (race condition dentro de la misma instancia)
+  const disparandoRef = useRef(false);
   const idsKey = (personajesIds ?? []).join(",");
 
   const disparar = useCallback(async () => {
-    // Guard: no disparar dos veces para el mismo capítulo
-    if (disparadoRef.current.has(capId)) return [];
+    // Guard global: sobrevive desmounts/remounts y StrictMode
+    if (_personajesDisparados.has(capId)) return [];
     if (!personajesIds?.length) return [];
+    // Guard local: bloquea si ya hay un await en vuelo en esta instancia
+    if (disparandoRef.current) return [];
 
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user) return [];
 
-    // Marcar ANTES del await para evitar race condition de doble disparo
-    disparadoRef.current.add(capId);
+    // Marcar en AMBOS guards antes del INSERT
+    _personajesDisparados.add(capId);
+    disparandoRef.current = true;
 
-    const perfilId = session.user.id;
+    try {
+      const perfilId = session.user.id;
+      const rows = personajesIds.map(personajeId => ({ perfil_id: perfilId, personaje_id: personajeId }));
+      const { data } = await supabase
+        .from("descubrimientos_personajes")
+        .insert(rows)
+        .select("personaje_id");
 
-    // Bug 5 fix: un solo INSERT con todos los personajes del capítulo
-    const rows = personajesIds.map(personajeId => ({ perfil_id: perfilId, personaje_id: personajeId }));
-    const { data, error } = await supabase
-      .from("descubrimientos_personajes")
-      .insert(rows)
-      .select("personaje_id");
-
-    // Los que ya existían generan error 23505; data solo contiene los nuevos
-    const nuevos = (data ?? []).map((r: any) => r.personaje_id);
-    if (nuevos.length > 0) {
-      setDesbloqueados(nuevos);
-      setMostrarCelebration(true);
+      const nuevos = (data ?? []).map((r: any) => r.personaje_id);
+      if (nuevos.length > 0) {
+        setDesbloqueados(nuevos);
+        setMostrarCelebration(true);
+      }
+      return nuevos;
+    } catch (err) {
+      // Si falla, quitar del guard global para que se pueda reintentar
+      _personajesDisparados.delete(capId);
+      console.error("[useDesbloquearPersonajes]", err);
+      return [];
+    } finally {
+      disparandoRef.current = false;
     }
-    // Retornar los IDs directamente para que el caller pueda encolarlos
-    // sin depender del estado React (que actualiza asíncronamente)
-    return nuevos;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [capId, idsKey]); // depende de capId (estable) + idsKey (string serializado, estable)
+  }, [capId, idsKey]);
 
   const cerrar = useCallback(() => setMostrarCelebration(false), []);
 

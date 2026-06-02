@@ -155,11 +155,16 @@ export function CapituloScrollBlock({ cap, onNavigate, esExtra = false }: {
   // disparar() retorna los IDs nuevos directamente (no depende del estado React,
   // que actualiza asíncronamente y no estaría disponible aquí).
   const handleFinCapitulo = useCallback(async () => {
-    const [nuevosPersonajes, nuevosReinos, nuevosLugares] = await Promise.all([
+    // allSettled garantiza que si uno falla, los otros igual se procesan
+    const results = await Promise.allSettled([
       dispararPersonajes(),
       dispararReinos(),
       dispararLugares(),
     ]);
+    const [rPersonajes, rReinos, rLugares] = results;
+    const nuevosPersonajes = rPersonajes.status === "fulfilled" ? rPersonajes.value : [];
+    const nuevosReinos     = rReinos.status     === "fulfilled" ? rReinos.value     : [];
+    const nuevosLugares    = rLugares.status    === "fulfilled" ? rLugares.value    : [];
     if (nuevosPersonajes?.length) encolarToast({ tipo: "personajes", ids: nuevosPersonajes });
     if (nuevosReinos?.length)     encolarToast({ tipo: "reinos",     ids: nuevosReinos });
     if (nuevosLugares?.length)    encolarToast({ tipo: "lugares",    ids: nuevosLugares });

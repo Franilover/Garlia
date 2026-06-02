@@ -183,17 +183,28 @@ export function FinCapituloSeparador({ cap, onVisible }: {
   const onVisibleRef = useRef(onVisible);
   const [visible, setVisible] = useState(false);
 
-  // Bug 4 fix: mantener ref actualizada SINCRÓNICAMENTE en el body del render,
-  // no en un useEffect, para que el observer siempre llame a la versión más reciente.
+  // Mantener ref actualizada sincrónicamente para que el observer llame siempre
+  // a la versión más reciente sin recrear el observer.
   onVisibleRef.current = onVisible;
+
+  // Reset si cambia el capítulo (el mismo componente puede reutilizarse en modo extra)
+  const capIdRef = useRef(cap.id);
+  if (capIdRef.current !== cap.id) {
+    capIdRef.current = cap.id;
+    firedRef.current = false;
+    // No resetear `visible` aquí — está en render, se maneja en el efecto de abajo
+  }
+
+  useEffect(() => {
+    // Resetear animación si el cap cambió (modo extra)
+    setVisible(false);
+    firedRef.current = false;
+  }, [cap.id]);
 
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
 
-    // Bug 7 fix: usar el scroll container real del lector como root.
-    // Si el observer usa window (root: null) en un scroll container custom,
-    // el elemento puede estar "en pantalla" del browser pero fuera del viewport visible.
     const scrollContainer = document.getElementById("lector-scroll-container");
 
     const observer = new IntersectionObserver(
@@ -209,22 +220,35 @@ export function FinCapituloSeparador({ cap, onVisible }: {
       {
         root: scrollContainer ?? null,
         threshold: 0.1,
-        // Pequeño margen negativo para asegurar que el separador está
-        // realmente visible antes de disparar (no solo solapando el borde)
         rootMargin: "0px 0px -20px 0px",
       }
     );
     observer.observe(el);
     return () => observer.disconnect();
-  }, []); // sin dependencias: el observer se monta una sola vez
+  }, [cap.id]); // se recrea si cambia el cap (modo extra)
 
   return (
-    // minHeight para que el IntersectionObserver tenga superficie real que medir
     <div ref={ref} className="mt-20 mb-4 flex flex-col items-center gap-3" style={{ minHeight: "20px" }}>
       <div className="flex items-center gap-4 w-full max-w-xs">
         <motion.div
           className="flex-1 h-px"
-          style={{ background: "linear-gradient(to left, color-mix(in srgb, var(--primary) 20%, transparent), transparent)" }}
+          style={{ background: "linear-gradient(to right, transparent, color-mix(in srgb, var(--primary) 20%, transparent))" }}
+          initial={{ scaleX: 0, originX: 0 }}
+          animate={visible ? { scaleX: 1 } : { scaleX: 0 }}
+          transition={{ duration: 0.7, ease: "easeOut", delay: 0.1 }}
+        />
+        <motion.span
+          className="font-serif text-sm select-none"
+          style={{ color: "color-mix(in srgb, var(--accent) 70%, transparent)" }}
+          initial={{ opacity: 0, scale: 0.7 }}
+          animate={visible ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.7 }}
+          transition={{ duration: 0.5, ease: "easeOut", delay: 0.35 }}
+        >
+          ❧
+        </motion.span>
+        <motion.div
+          className="flex-1 h-px"
+          style={{ background: "linear-gradient(to left, transparent, color-mix(in srgb, var(--primary) 20%, transparent))" }}
           initial={{ scaleX: 0, originX: 1 }}
           animate={visible ? { scaleX: 1 } : { scaleX: 0 }}
           transition={{ duration: 0.7, ease: "easeOut", delay: 0.1 }}

@@ -5,6 +5,11 @@ import { MotionDiv } from "@/components/ui/Motion";
 import { supabase } from "@/lib/api/client/supabase";
 
 /* ─────────────────────────────────────────────
+   Guard global: persiste aunque el componente se desmonte/remonte.
+   ───────────────────────────────────────────── */
+const _reinosDisparados = new Set<string>();
+
+/* ─────────────────────────────────────────────
    Hook: desbloquear reinos al terminar un capítulo
 
    FIXES aplicados (idénticos a usePersonajes):
@@ -17,31 +22,41 @@ export function useDesbloquearReinos(capId: string, reinosIds: string[] | undefi
   const [desbloqueados,      setDesbloqueados]      = useState<string[]>([]);
   const [mostrarCelebration, setMostrarCelebration] = useState(false);
 
-  const disparadoRef = useRef<Set<string>>(new Set());
+  const disparandoRef = useRef(false);
   const idsKey = (reinosIds ?? []).join(",");
 
   const disparar = useCallback(async () => {
-    if (disparadoRef.current.has(capId)) return [];
+    if (_reinosDisparados.has(capId)) return [];
     if (!reinosIds?.length) return [];
+    if (disparandoRef.current) return [];
 
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user) return [];
 
-    disparadoRef.current.add(capId);
+    _reinosDisparados.add(capId);
+    disparandoRef.current = true;
 
-    const perfilId = session.user.id;
-    const rows = reinosIds.map(reinoId => ({ perfil_id: perfilId, reino_id: reinoId }));
-    const { data } = await supabase
-      .from("descubrimientos_reinos")
-      .insert(rows)
-      .select("reino_id");
+    try {
+      const perfilId = session.user.id;
+      const rows = reinosIds.map(reinoId => ({ perfil_id: perfilId, reino_id: reinoId }));
+      const { data } = await supabase
+        .from("descubrimientos_reinos")
+        .insert(rows)
+        .select("reino_id");
 
-    const nuevos = (data ?? []).map((r: any) => r.reino_id);
-    if (nuevos.length > 0) {
-      setDesbloqueados(nuevos);
-      setMostrarCelebration(true);
+      const nuevos = (data ?? []).map((r: any) => r.reino_id);
+      if (nuevos.length > 0) {
+        setDesbloqueados(nuevos);
+        setMostrarCelebration(true);
+      }
+      return nuevos;
+    } catch (err) {
+      _reinosDisparados.delete(capId);
+      console.error("[useDesbloquearReinos]", err);
+      return [];
+    } finally {
+      disparandoRef.current = false;
     }
-    return nuevos;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [capId, idsKey]);
 
