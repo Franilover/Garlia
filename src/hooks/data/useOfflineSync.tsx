@@ -55,9 +55,14 @@ function notifySyncDone() {
 
 // ─── Verificación real de conectividad ───────────────────────────────────────
 export async function isReallyOnline(): Promise<boolean> {
-  return navigator.onLine;
+  if (!navigator.onLine) return false;
+  try {
+    await fetch("/favicon.ico", { method: "HEAD", cache: "no-store", signal: AbortSignal.timeout(3000) });
+    return true;
+  } catch {
+    return false;
+  }
 }
-
 function cleanPayload(payload: any, exclude: string[] = []): any {
   const clean = { ...payload };
   for (const field of exclude) delete clean[field];

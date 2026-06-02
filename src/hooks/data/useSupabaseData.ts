@@ -47,7 +47,7 @@ const DEXIE_TABLES = new Set([
   "tareas", "eventos", "recetas", "ingredientes",
   "ropa", "ropa_outfits", "diario_fotos", "dibujos",
   "compras", "notas", "ensayos", "rutinas", "ejercicios_rutina",
-  "reino_detalles",
+  "reino_detalles", "notas_lore", 
 ]);
 
 const OFFLINE_WRITABLE = new Set([
@@ -55,7 +55,7 @@ const OFFLINE_WRITABLE = new Set([
   "tareas", "eventos", "rutinas", "ejercicios_rutina",
   "recetas", "ingredientes", "compras",
   "ropa", "ropa_outfits", "diario_fotos", "dibujos",
-  "personajes", "criaturas", "criatura_variantes", "items", "reinos", "relaciones",
+  "personajes", "criaturas", "criatura_variantes", "items", "reinos", "relaciones", "notas_lore",
 ]);
 
 // Tablas con ID numérico autogenerado por la DB — no se pueden crear offline
