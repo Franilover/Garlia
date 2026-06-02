@@ -141,7 +141,7 @@ export function CapituloScrollBlock({ cap, onNavigate, esExtra = false }: {
     ? (cap.contenido ?? "").trim().split(/\s+/).length
     : 0;
 
-  // Cada capítulo desbloquea únicamente sus propias entidades al completarse.
+  // Cada capítulo desbloquea sus propias entidades al completarse.
   const personajesIdsEfectivos = cap.personajes_ids;
   const reinosIdsEfectivos     = cap.reinos_ids as string[] | undefined;
   const lugaresIdsEfectivos    = (cap as any).lugares_ids;
