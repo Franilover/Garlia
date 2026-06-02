@@ -6,7 +6,7 @@ import {
   Plus, Check, X, ChevronDown, Loader2,
   Guitar, Palette, BookOpen, PenLine, Brain, Dumbbell, Gamepad2,
   Theater, Camera, Music, ChefHat, Leaf, Puzzle, Target, Pencil,
-  Clapperboard, Mic, PersonStanding, Mountain, Violin,
+  Clapperboard, Mic, PersonStanding, Mountain, Music2,
   type LucideIcon,
 } from "lucide-react";
 
@@ -56,7 +56,7 @@ const HOBBY_ICONS: { name: string; component: LucideIcon; label: string }[] = [
   { name: "Mic",            component: Mic,            label: "Canto"        },
   { name: "PersonStanding", component: PersonStanding, label: "Yoga"         },
   { name: "Mountain",       component: Mountain,       label: "Senderismo"   },
-  { name: "Violin",         component: Violin,         label: "Violín"       },
+  { name: "Music2",         component: Music2,         label: "Violín"       },
 ];
 
 // Mapa rápido nombre → componente
