@@ -205,26 +205,38 @@ export function FinCapituloSeparador({ cap, onVisible }: {
     const el = ref.current;
     if (!el) return;
 
-    const scrollContainer = document.getElementById("lector-scroll-container");
+    let observer: IntersectionObserver | null = null;
 
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setVisible(true);
-          if (!firedRef.current) {
-            firedRef.current = true;
-            onVisibleRef.current();
+    const montar = () => {
+      const scrollContainer = document.getElementById("lector-scroll-container");
+      observer = new IntersectionObserver(
+        ([entry]) => {
+          if (entry.isIntersecting) {
+            setVisible(true);
+            if (!firedRef.current) {
+              firedRef.current = true;
+              onVisibleRef.current();
+            }
           }
+        },
+        {
+          root: scrollContainer ?? null,
+          threshold: 0.1,
+          rootMargin: "0px 0px -20px 0px",
         }
-      },
-      {
-        root: scrollContainer ?? null,
-        threshold: 0.1,
-        rootMargin: "0px 0px -20px 0px",
-      }
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
+      );
+      observer.observe(el);
+    };
+
+    // Si el container aún no está en el DOM, esperar un tick antes de montar
+    if (document.getElementById("lector-scroll-container")) {
+      montar();
+    } else {
+      const t = setTimeout(montar, 100);
+      return () => { clearTimeout(t); observer?.disconnect(); };
+    }
+
+    return () => observer?.disconnect();
   }, [cap.id]); // se recrea si cambia el cap (modo extra)
 
   return (
