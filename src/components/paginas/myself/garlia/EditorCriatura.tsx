@@ -167,6 +167,7 @@ function useCraftedItems(criaturaId: string) {
       setItems(prev => prev.map(i => i.crafterId === tempId ? { ...i, crafterId: data.id } : i));
       try { if (db) await db.item_crafteres.put({ id: data.id, criatura_id: criaturaId, item_id: item.id }); } catch {}
       await supabase.from("items").update({ origen: "Artificial", sub_origen: null }).eq("id", item.id);
+      new BroadcastChannel("item_origen_sync").postMessage({ itemId: item.id, origen: "Artificial", sub_origen: null });
     } else {
       // Revertir optimista si falló
       setItems(prev => prev.filter(i => i.crafterId !== tempId));
@@ -281,6 +282,7 @@ function useNaturalItems(criaturaId: string, varianteId?: string | null) {
       setItems(prev => prev.map(i => i.dropId === tempId ? { ...i, dropId: data.id } : i));
       try { if (db) await db.criatura_drops.put({ id: data.id, criatura_id: criaturaId, item_id: item.id, variante_id: varianteId ?? null }); } catch {}
       await supabase.from("items").update({ origen: "Natural", sub_origen: "Criatura" }).eq("id", item.id);
+      new BroadcastChannel("item_origen_sync").postMessage({ itemId: item.id, origen: "Natural", sub_origen: "Criatura" });
     } else {
       setItems(prev => prev.filter(i => i.dropId !== tempId));
     }

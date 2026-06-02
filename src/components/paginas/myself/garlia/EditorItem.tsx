@@ -288,6 +288,17 @@ export function EditorItem({
 
   useEffect(() => { setForm(item); setStatus("idle"); }, [item.id]);
 
+  // Sincronización reactiva: si EditorCriatura cambia el origen de este ítem, reflejarlo aquí
+  useEffect(() => {
+    const ch = new BroadcastChannel("item_origen_sync");
+    ch.onmessage = (e: MessageEvent) => {
+      if (e.data?.itemId === form.id) {
+        setForm(f => ({ ...f, origen: e.data.origen, sub_origen: e.data.sub_origen }));
+      }
+    };
+    return () => ch.close();
+  }, [form.id]);
+
   const field = (k: keyof Item) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm(f => ({ ...f, [k]: e.target.value }));
 
