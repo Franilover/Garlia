@@ -169,8 +169,8 @@ interface FormNuevoHobbyProps {
 
 const FormNuevoHobby = ({ onGuardar, onCancelar, guardando, orden }: FormNuevoHobbyProps) => {
   const [nombre, setNombre] = useState("");
-  const [icon, setIcon]     = useState("Guitar");
-  const [color, setColor]   = useState(0);
+  const icon  = "Guitar";
+  const color = 0;
   const [freqDia, setFreqDia] = useState(1);
   const [freqSem, setFreqSem] = useState(3);
   const [nota, setNota]     = useState("");
@@ -201,49 +201,6 @@ const FormNuevoHobby = ({ onGuardar, onCancelar, guardando, orden }: FormNuevoHo
         />
       </div>
 
-      {/* Selector de icono */}
-      <div className="mb-3">
-        <p className="text-[9px] font-black uppercase tracking-widest text-primary/30 mb-2">Icono</p>
-        <div className="grid grid-cols-10 gap-1.5">
-          {HOBBY_ICONS.map(({ name, component: Icon, label }) => (
-            <button
-              key={name}
-              onClick={() => setIcon(name)}
-              title={label}
-              className={cn(
-                "w-full aspect-square rounded-[var(--radius-btn)] border-[length:var(--border-width)] flex items-center justify-center transition-all",
-                icon === name
-                  ? "bg-primary/10 border-primary/25 text-primary"
-                  : "bg-primary/3 border-primary/8 text-primary/35 hover:bg-primary/8 hover:text-primary/70"
-              )}
-            >
-              <Icon size={15} />
-            </button>
-          ))}
-        </div>
-        {/* Label del icono seleccionado */}
-        <p className="text-[9px] font-bold text-primary/35 mt-1.5">
-          {HOBBY_ICONS.find(i => i.name === icon)?.label ?? icon}
-        </p>
-      </div>
-
-      {/* Color */}
-      <div className="mb-4">
-        <p className="text-[9px] font-black uppercase tracking-widest text-primary/30 mb-2">Color</p>
-        <div className="flex gap-2">
-          {COLORS.map((c, i) => (
-            <button
-              key={i}
-              onClick={() => setColor(i)}
-              style={{ background: c.bar }}
-              className={cn(
-                "w-7 h-7 rounded-full border-2 transition-all",
-                color === i ? "border-primary scale-110" : "border-transparent"
-              )}
-            />
-          ))}
-        </div>
-      </div>
 
       {/* Frecuencia */}
       <div className="grid grid-cols-2 gap-3 mb-4">
@@ -510,7 +467,7 @@ export const PaginaHobbys = () => {
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div className="max-w-2xl mx-auto space-y-4">
+    <div className="w-full px-4 md:px-6 space-y-4">
 
       {/* Stats */}
       {hobbys.length > 0 && (
@@ -567,7 +524,7 @@ export const PaginaHobbys = () => {
           <p className="text-xs text-primary/25 font-bold mt-1">Añade uno para empezar a trackear</p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
           <AnimatePresence mode="popLayout">
             {hobbys.map(h => (
               <motion.div

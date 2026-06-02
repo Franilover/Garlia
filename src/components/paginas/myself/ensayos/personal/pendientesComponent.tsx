@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import {
-  Plus, Check, X, Link, Music, BookOpen, Youtube, Headphones,
+  Plus, Check, X, Music, BookOpen, Youtube, Headphones,
   Film, Gamepad2, Tv, Rss, ExternalLink, Loader2, ChevronDown,
   type LucideIcon,
 } from "lucide-react";
@@ -163,8 +163,8 @@ interface FormNuevaCategoriaProps {
 
 const FormNuevaCategoria = ({ onGuardar, onCancelar, guardando, orden }: FormNuevaCategoriaProps) => {
   const [nombre, setNombre] = useState("");
-  const [icon, setIcon]     = useState("Music");
-  const [color, setColor]   = useState(0);
+  const icon  = "Music";
+  const color = 0;
 
   const handleGuardar = () => {
     if (!nombre.trim()) return;
@@ -191,45 +191,6 @@ const FormNuevaCategoria = ({ onGuardar, onCancelar, guardando, orden }: FormNue
         />
       </div>
 
-      {/* Selector de icono */}
-      <div className="mb-3">
-        <p className="text-[9px] font-black uppercase tracking-widest text-primary/30 mb-2">Icono</p>
-        <div className="flex flex-wrap gap-1.5">
-          {CAT_ICONS.map(({ name, component: Icon, label }) => (
-            <button
-              key={name}
-              onClick={() => setIcon(name)}
-              title={label}
-              className={cn(
-                "p-2 rounded-[var(--radius-btn)] border-[length:var(--border-width)] transition-all",
-                icon === name
-                  ? "bg-primary text-btn-text border-primary"
-                  : "bg-primary/5 text-primary/50 border-transparent hover:bg-primary/10"
-              )}
-            >
-              <Icon size={16} />
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Selector de color */}
-      <div className="mb-4">
-        <p className="text-[9px] font-black uppercase tracking-widest text-primary/30 mb-2">Color</p>
-        <div className="flex gap-2">
-          {COLORS.map((c, i) => (
-            <button
-              key={i}
-              onClick={() => setColor(i)}
-              style={{ backgroundColor: c.bar }}
-              className={cn(
-                "w-6 h-6 rounded-full transition-all",
-                color === i ? "ring-2 ring-offset-2 ring-primary/40 scale-110" : "opacity-60 hover:opacity-100"
-              )}
-            />
-          ))}
-        </div>
-      </div>
 
       <div className="flex gap-2">
         <button
@@ -657,7 +618,7 @@ export const PaginaPendientes = () => {
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div className="max-w-2xl mx-auto space-y-4">
+    <div className="w-full px-4 md:px-6 space-y-4">
 
       {/* Stats */}
       {items.length > 0 && (
@@ -716,7 +677,7 @@ export const PaginaPendientes = () => {
           <p className="text-xs text-primary/25 font-bold mt-1">Crea una categoría para empezar</p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 items-start">
           <AnimatePresence mode="popLayout">
             {categorias.map(cat => (
               <motion.div
