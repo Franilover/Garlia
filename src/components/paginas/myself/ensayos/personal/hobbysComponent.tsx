@@ -69,15 +69,6 @@ function HobbyIcon({ name, size = 20 }: { name: string; size?: number }) {
   return <Icon size={size} />;
 }
 
-const COLORS = [
-  { bg: "#E1F5EE", txt: "#0F6E56", bar: "#1D9E75" },
-  { bg: "#E6F1FB", txt: "#185FA5", bar: "#378ADD" },
-  { bg: "#EEEDFE", txt: "#3C3489", bar: "#7F77DD" },
-  { bg: "#FAECE7", txt: "#993C1D", bar: "#D85A30" },
-  { bg: "#FAEEDA", txt: "#854F0B", bar: "#BA7517" },
-  { bg: "#FBEAF0", txt: "#993556", bar: "#D4537E" },
-];
-
 // ─── Utils ────────────────────────────────────────────────────────────────────
 
 function getSemanaKey(): string {
@@ -255,7 +246,6 @@ interface CardHobbyProps {
 
 const CardHobby = ({ hobby, registro, onToggleDia, onEliminar }: CardHobbyProps) => {
   const [expandido, setExpandido] = useState(false);
-  const c = COLORS[hobby.color] ?? COLORS[0];
   const dias = registro?.dias ?? Array(7).fill(false);
   const hechos = dias.filter(Boolean).length;
   const pct = Math.min(100, Math.round((hechos / hobby.freq_sem) * 100));
@@ -267,11 +257,8 @@ const CardHobby = ({ hobby, registro, onToggleDia, onEliminar }: CardHobbyProps)
       {/* Header */}
       <div className="p-4 cursor-pointer select-none" onClick={() => setExpandido(v => !v)}>
         <div className="flex items-center gap-3">
-          {/* Icono con acento de color */}
-          <div
-            className="w-11 h-11 rounded-[var(--radius-btn)] flex items-center justify-center shrink-0"
-            style={{ background: c.bg, color: c.txt }}
-          >
+          {/* Icono */}
+          <div className="w-11 h-11 rounded-[var(--radius-btn)] flex items-center justify-center shrink-0 bg-primary/8 text-primary/60">
             <HobbyIcon name={hobby.icon} size={20} />
           </div>
 
@@ -280,10 +267,7 @@ const CardHobby = ({ hobby, registro, onToggleDia, onEliminar }: CardHobbyProps)
             <div className="flex items-center gap-2">
               <span className="text-sm font-black text-primary tracking-tight truncate">{hobby.nombre}</span>
               {completado && (
-                <span
-                  className="text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full shrink-0"
-                  style={{ background: "#E1F5EE", color: "#0F6E56" }}
-                >
+                <span className="text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full shrink-0 bg-primary/10 text-primary/70">
                   ✓ Semana
                 </span>
               )}
@@ -295,18 +279,15 @@ const CardHobby = ({ hobby, registro, onToggleDia, onEliminar }: CardHobbyProps)
             {/* Barra de progreso */}
             <div className="mt-2 h-1 bg-primary/8 rounded-full overflow-hidden">
               <div
-                className="h-full rounded-full transition-all duration-500"
-                style={{ width: `${pct}%`, background: completado ? "#1D9E75" : c.bar }}
+                className="h-full rounded-full transition-all duration-500 bg-primary/40"
+                style={{ width: `${pct}%` }}
               />
             </div>
           </div>
 
           {/* Contador + chevron */}
           <div className="flex items-center gap-2 shrink-0">
-            <span
-              className="text-[10px] font-black px-2.5 py-1 rounded-[var(--radius-btn)]"
-              style={{ background: completado ? "#E1F5EE" : c.bg, color: completado ? "#0F6E56" : c.txt }}
-            >
+            <span className="text-[10px] font-black px-2.5 py-1 rounded-[var(--radius-btn)] bg-primary/8 text-primary/60">
               {hechos}/{hobby.freq_sem}
             </span>
             <motion.div animate={{ rotate: expandido ? 180 : 0 }} transition={{ duration: 0.2 }}>
