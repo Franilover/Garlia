@@ -84,7 +84,7 @@ export function ReinosDesbloqueadosToast({
     if (!reinosIds.length) return;
     supabase
       .from("reinos")
-      .select("id, nombre, imagen_reino")
+      .select("id, nombre, mapa_url")
       .in("id", reinosIds)
       .then(({ data }) => { if (data) setReinos(data); });
   }, [reinosIds.join(",")]); // eslint-disable-line
