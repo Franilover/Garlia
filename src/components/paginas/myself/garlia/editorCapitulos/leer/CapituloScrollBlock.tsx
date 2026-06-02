@@ -215,7 +215,7 @@ export function CapituloScrollBlock({ cap, onNavigate, esExtra = false }: {
           />
         </div>
 
-        {!esExtra && <FinCapituloSeparador cap={cap} onVisible={handleFinCapitulo} />}
+        <FinCapituloSeparador cap={cap} onVisible={handleFinCapitulo} />
       </article>
     </div>
   );
