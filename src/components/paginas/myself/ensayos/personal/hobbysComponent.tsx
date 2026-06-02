@@ -2,14 +2,20 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { Plus, Check, X, ChevronDown, Loader2 } from "lucide-react";
+import {
+  Plus, Check, X, ChevronDown, Loader2,
+  Guitar, Palette, BookOpen, PenLine, Brain, Dumbbell, Gamepad2,
+  Theater, Camera, Music, ChefHat, Leaf, Puzzle, Target, Pencil,
+  Clapperboard, Mic, PersonStanding, Mountain, Violin,
+  type LucideIcon,
+} from "lucide-react";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
 interface Hobby {
   id: string;
   nombre: string;
-  emoji: string;
+  icon: string;   // nombre del icono Lucide, ej: "Guitar"
   color: number;
   freq_dia: number;
   freq_sem: number;
@@ -28,7 +34,41 @@ interface Registro {
 
 const DIAS = ["L", "M", "X", "J", "V", "S", "D"];
 const DIAS_FULL = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
-const EMOJIS = ["🎸", "🎨", "📚", "✍️", "🧘", "🏃", "🎮", "🎭", "📸", "🎵", "🍳", "🌱", "🧩", "🎯", "✏️", "🎬", "🎤", "💃", "🧗", "🎻"];
+
+// Catálogo de iconos disponibles para hobbys
+const HOBBY_ICONS: { name: string; component: LucideIcon; label: string }[] = [
+  { name: "Guitar",         component: Guitar,         label: "Guitarra"     },
+  { name: "Palette",        component: Palette,        label: "Arte"         },
+  { name: "BookOpen",       component: BookOpen,       label: "Lectura"      },
+  { name: "PenLine",        component: PenLine,        label: "Escritura"    },
+  { name: "Brain",          component: Brain,          label: "Meditación"   },
+  { name: "Dumbbell",       component: Dumbbell,       label: "Ejercicio"    },
+  { name: "Gamepad2",       component: Gamepad2,       label: "Videojuegos"  },
+  { name: "Theater",        component: Theater,        label: "Teatro"       },
+  { name: "Camera",         component: Camera,         label: "Fotografía"   },
+  { name: "Music",          component: Music,          label: "Música"       },
+  { name: "ChefHat",        component: ChefHat,        label: "Cocina"       },
+  { name: "Leaf",           component: Leaf,           label: "Jardinería"   },
+  { name: "Puzzle",         component: Puzzle,         label: "Puzzles"      },
+  { name: "Target",         component: Target,         label: "Deporte"      },
+  { name: "Pencil",         component: Pencil,         label: "Dibujo"       },
+  { name: "Clapperboard",   component: Clapperboard,   label: "Cine"         },
+  { name: "Mic",            component: Mic,            label: "Canto"        },
+  { name: "PersonStanding", component: PersonStanding, label: "Yoga"         },
+  { name: "Mountain",       component: Mountain,       label: "Senderismo"   },
+  { name: "Violin",         component: Violin,         label: "Violín"       },
+];
+
+// Mapa rápido nombre → componente
+const ICON_MAP: Record<string, LucideIcon> = Object.fromEntries(
+  HOBBY_ICONS.map(({ name, component }) => [name, component])
+);
+
+function HobbyIcon({ name, size = 20 }: { name: string; size?: number }) {
+  const Icon = ICON_MAP[name] ?? Guitar;
+  return <Icon size={size} />;
+}
+
 const COLORS = [
   { bg: "#E1F5EE", txt: "#0F6E56", bar: "#1D9E75" },
   { bg: "#E6F1FB", txt: "#185FA5", bar: "#378ADD" },
@@ -50,7 +90,7 @@ function getSemanaKey(): string {
 }
 
 function getTodayIdx(): number {
-  return (new Date().getDay() + 6) % 7; // lunes = 0
+  return (new Date().getDay() + 6) % 7;
 }
 
 // ─── Queries Supabase ─────────────────────────────────────────────────────────
@@ -129,15 +169,15 @@ interface FormNuevoHobbyProps {
 
 const FormNuevoHobby = ({ onGuardar, onCancelar, guardando, orden }: FormNuevoHobbyProps) => {
   const [nombre, setNombre] = useState("");
-  const [emoji, setEmoji] = useState("🎸");
-  const [color, setColor] = useState(0);
+  const [icon, setIcon]     = useState("Guitar");
+  const [color, setColor]   = useState(0);
   const [freqDia, setFreqDia] = useState(1);
   const [freqSem, setFreqSem] = useState(3);
-  const [nota, setNota] = useState("");
+  const [nota, setNota]     = useState("");
 
   const handleGuardar = () => {
     if (!nombre.trim()) return;
-    onGuardar({ nombre: nombre.trim(), emoji, color, freq_dia: freqDia, freq_sem: freqSem, nota: nota.trim(), orden });
+    onGuardar({ nombre: nombre.trim(), icon, color, freq_dia: freqDia, freq_sem: freqSem, nota: nota.trim(), orden });
   };
 
   return (
@@ -151,26 +191,40 @@ const FormNuevoHobby = ({ onGuardar, onCancelar, guardando, orden }: FormNuevoHo
 
       {/* Nombre */}
       <div className="mb-3">
-        <input value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Nombre del hobby..." className={inputCls} onKeyDown={e => e.key === "Enter" && handleGuardar()} autoFocus />
+        <input
+          value={nombre}
+          onChange={e => setNombre(e.target.value)}
+          placeholder="Nombre del hobby..."
+          className={inputCls}
+          onKeyDown={e => e.key === "Enter" && handleGuardar()}
+          autoFocus
+        />
       </div>
 
-      {/* Emoji */}
+      {/* Selector de icono */}
       <div className="mb-3">
-        <p className="text-[9px] font-black uppercase tracking-widest text-primary/30 mb-2">Emoji</p>
-        <div className="flex flex-wrap gap-1.5">
-          {EMOJIS.map(e => (
+        <p className="text-[9px] font-black uppercase tracking-widest text-primary/30 mb-2">Icono</p>
+        <div className="grid grid-cols-10 gap-1.5">
+          {HOBBY_ICONS.map(({ name, component: Icon, label }) => (
             <button
-              key={e}
-              onClick={() => setEmoji(e)}
+              key={name}
+              onClick={() => setIcon(name)}
+              title={label}
               className={cn(
-                "w-9 h-9 rounded-[var(--radius-btn)] border-[length:var(--border-width)] text-lg flex items-center justify-center transition-all",
-                emoji === e
-                  ? "bg-primary/10 border-primary/25"
-                  : "bg-primary/3 border-primary/8 hover:bg-primary/8"
+                "w-full aspect-square rounded-[var(--radius-btn)] border-[length:var(--border-width)] flex items-center justify-center transition-all",
+                icon === name
+                  ? "bg-primary/10 border-primary/25 text-primary"
+                  : "bg-primary/3 border-primary/8 text-primary/35 hover:bg-primary/8 hover:text-primary/70"
               )}
-            >{e}</button>
+            >
+              <Icon size={15} />
+            </button>
           ))}
         </div>
+        {/* Label del icono seleccionado */}
+        <p className="text-[9px] font-bold text-primary/35 mt-1.5">
+          {HOBBY_ICONS.find(i => i.name === icon)?.label ?? icon}
+        </p>
       </div>
 
       {/* Color */}
@@ -214,7 +268,10 @@ const FormNuevoHobby = ({ onGuardar, onCancelar, guardando, orden }: FormNuevoHo
 
       {/* Acciones */}
       <div className="flex gap-2">
-        <button onClick={onCancelar} className="flex-1 py-2.5 rounded-[var(--radius-btn)] border-[length:var(--border-width)] border-primary/15 text-sm font-black text-primary/60 hover:bg-primary/4 transition-all">
+        <button
+          onClick={onCancelar}
+          className="flex-1 py-2.5 rounded-[var(--radius-btn)] border-[length:var(--border-width)] border-primary/15 text-sm font-black text-primary/60 hover:bg-primary/4 transition-all"
+        >
           Cancelar
         </button>
         <button
@@ -253,12 +310,12 @@ const CardHobby = ({ hobby, registro, onToggleDia, onEliminar }: CardHobbyProps)
       {/* Header */}
       <div className="p-4 cursor-pointer select-none" onClick={() => setExpandido(v => !v)}>
         <div className="flex items-center gap-3">
-          {/* Emoji + acento de color */}
+          {/* Icono con acento de color */}
           <div
-            className="w-11 h-11 rounded-[var(--radius-btn)] flex items-center justify-center text-xl shrink-0"
-            style={{ background: c.bg }}
+            className="w-11 h-11 rounded-[var(--radius-btn)] flex items-center justify-center shrink-0"
+            style={{ background: c.bg, color: c.txt }}
           >
-            {hobby.emoji}
+            <HobbyIcon name={hobby.icon} size={20} />
           </div>
 
           {/* Info */}
@@ -266,7 +323,10 @@ const CardHobby = ({ hobby, registro, onToggleDia, onEliminar }: CardHobbyProps)
             <div className="flex items-center gap-2">
               <span className="text-sm font-black text-primary tracking-tight truncate">{hobby.nombre}</span>
               {completado && (
-                <span className="text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full" style={{ background: "#E1F5EE", color: "#0F6E56" }}>
+                <span
+                  className="text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full shrink-0"
+                  style={{ background: "#E1F5EE", color: "#0F6E56" }}
+                >
                   ✓ Semana
                 </span>
               )}
@@ -353,14 +413,14 @@ const CardHobby = ({ hobby, registro, onToggleDia, onEliminar }: CardHobbyProps)
 // ─── Componente principal ─────────────────────────────────────────────────────
 
 export const PaginaHobbys = () => {
-  const [hobbys, setHobbys] = useState<Hobby[]>([]);
+  const [hobbys, setHobbys]     = useState<Hobby[]>([]);
   const [registros, setRegistros] = useState<Registro[]>([]);
   const [cargando, setCargando] = useState(true);
-  const [creando, setCreando] = useState(false);
+  const [creando, setCreando]   = useState(false);
   const [guardando, setGuardando] = useState(false);
 
   const semana = useMemo(() => getSemanaKey(), []);
-  const today = getTodayIdx();
+  const today  = getTodayIdx();
 
   // ── Carga inicial ──────────────────────────────────────────────────────────
   const cargar = useCallback(async () => {
@@ -408,7 +468,6 @@ export const PaginaHobbys = () => {
 
   // ── Toggle día ────────────────────────────────────────────────────────────
   const handleToggleDia = async (hobbyId: string, diaIdx: number) => {
-    // Actualización optimista
     setRegistros(prev => {
       const existing = prev.find(r => r.hobby_id === hobbyId && r.semana === semana);
       if (existing) {
@@ -423,7 +482,6 @@ export const PaginaHobbys = () => {
       return [...prev, { id: "tmp", hobby_id: hobbyId, semana, dias: diasNuevos }];
     });
 
-    // Persistir en Supabase
     try {
       const current = registros.find(r => r.hobby_id === hobbyId && r.semana === semana);
       const diasActuales = current?.dias ?? Array(7).fill(false);
@@ -454,13 +512,13 @@ export const PaginaHobbys = () => {
   return (
     <div className="max-w-2xl mx-auto space-y-4">
 
-      {/* Stats + semana */}
+      {/* Stats */}
       {hobbys.length > 0 && (
         <div className="grid grid-cols-3 gap-3">
           {[
-            { label: "Hobbys", value: hobbys.length },
-            { label: "Hoy", value: `${stats.totalHoy}/${hobbys.length}` },
-            { label: "Semana", value: `${stats.pctSem}%` },
+            { label: "Hobbys",  value: hobbys.length },
+            { label: "Hoy",     value: `${stats.totalHoy}/${hobbys.length}` },
+            { label: "Semana",  value: `${stats.pctSem}%` },
           ].map(s => (
             <div key={s.label} className="bg-white-custom border-[length:var(--border-width)] border-primary/8 rounded-[var(--radius-card)] p-4 text-center">
               <span className="text-2xl font-black text-primary tracking-tight block">{s.value}</span>
@@ -470,7 +528,7 @@ export const PaginaHobbys = () => {
         </div>
       )}
 
-      {/* Header con semana y botón */}
+      {/* Header */}
       <div className="flex items-center justify-between">
         <span className="text-[10px] font-black uppercase tracking-widest text-primary/35">{semana}</span>
         <button
@@ -502,7 +560,9 @@ export const PaginaHobbys = () => {
         </div>
       ) : hobbys.length === 0 && !creando ? (
         <div className="text-center py-14">
-          <span className="text-3xl block mb-3">🌱</span>
+          <div className="flex justify-center mb-3 text-primary/20">
+            <Music size={32} />
+          </div>
           <p className="text-sm font-black text-primary/40 uppercase tracking-widest">Aún no tienes hobbys</p>
           <p className="text-xs text-primary/25 font-bold mt-1">Añade uno para empezar a trackear</p>
         </div>
