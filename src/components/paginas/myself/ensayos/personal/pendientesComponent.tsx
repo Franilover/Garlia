@@ -51,15 +51,6 @@ function CatIcon({ name, size = 16 }: { name: string; size?: number }) {
   return <Icon size={size} />;
 }
 
-const COLORS = [
-  { bg: "#E1F5EE", txt: "#0F6E56", bar: "#1D9E75", badge: "#d0f0e3" },
-  { bg: "#E6F1FB", txt: "#185FA5", bar: "#378ADD", badge: "#d4e9f9" },
-  { bg: "#EEEDFE", txt: "#3C3489", bar: "#7F77DD", badge: "#e0dffe" },
-  { bg: "#FAECE7", txt: "#993C1D", bar: "#D85A30", badge: "#f8ddd5" },
-  { bg: "#FAEEDA", txt: "#854F0B", bar: "#BA7517", badge: "#f5e4c2" },
-  { bg: "#FBEAF0", txt: "#993556", bar: "#D4537E", badge: "#f8d8e6" },
-];
-
 // ─── Queries Supabase ─────────────────────────────────────────────────────────
 
 async function getSupabase() {
@@ -297,12 +288,11 @@ const FormNuevoItem = ({ categoriaId, orden, onGuardar, onCancelar }: FormNuevoI
 
 interface CardItemProps {
   item: Item;
-  color: (typeof COLORS)[number];
   onToggle: (id: string, hecho: boolean) => void;
   onEliminar: (id: string) => void;
 }
 
-const CardItem = ({ item, color, onToggle, onEliminar }: CardItemProps) => {
+const CardItem = ({ item, onToggle, onEliminar }: CardItemProps) => {
   const urlType = detectUrlType(item.url ?? "");
 
   return (
@@ -312,43 +302,37 @@ const CardItem = ({ item, color, onToggle, onEliminar }: CardItemProps) => {
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 6, scale: 0.97 }}
       className={cn(
-        "flex items-start gap-3 py-2.5 px-3 rounded-[var(--radius-btn)] group transition-all",
-        item.hecho ? "opacity-50" : ""
+        "flex items-start gap-3 py-2 px-2 rounded-[var(--radius-btn)] group transition-all",
+        item.hecho ? "opacity-40" : "hover:bg-primary/4"
       )}
-      style={{ backgroundColor: item.hecho ? "transparent" : color.badge }}
     >
       {/* Checkbox */}
       <button
         onClick={() => onToggle(item.id, !item.hecho)}
-        style={item.hecho ? { borderColor: color.bar } : { backgroundColor: color.bar, borderColor: color.bar }}
         className={cn(
           "mt-0.5 w-4 h-4 rounded-[4px] border-[length:var(--border-width)] flex-shrink-0 flex items-center justify-center transition-all",
-          item.hecho ? "bg-transparent" : ""
+          item.hecho
+            ? "bg-primary/20 border-primary/20"
+            : "bg-transparent border-primary/25 hover:border-primary/50"
         )}
       >
-        {item.hecho && <Check size={10} style={{ color: color.bar }} />}
+        {item.hecho && <Check size={10} className="text-primary/60" />}
       </button>
 
       {/* Contenido */}
       <div className="flex-1 min-w-0">
-        <p
-          className={cn("text-[13px] font-bold leading-snug break-words", item.hecho ? "line-through" : "")}
-          style={{ color: color.txt }}
-        >
+        <p className={cn("text-[13px] font-bold leading-snug break-words text-primary/80", item.hecho ? "line-through" : "")}>
           {item.titulo}
         </p>
         {item.nota && (
-          <p className="text-[11px] font-medium mt-0.5 opacity-70 break-words" style={{ color: color.txt }}>
-            {item.nota}
-          </p>
+          <p className="text-[11px] font-medium mt-0.5 text-primary/40 break-words">{item.nota}</p>
         )}
         {item.url && (
           <a
             href={cleanUrl(item.url)}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-1 inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest hover:underline transition-all"
-            style={{ color: color.bar }}
+            className="mt-1 inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-primary/40 hover:text-primary/70 transition-all"
           >
             {urlType === "youtube" && <Youtube size={10} />}
             {urlType === "ytmusic" && <Music size={10} />}
@@ -361,7 +345,7 @@ const CardItem = ({ item, color, onToggle, onEliminar }: CardItemProps) => {
       {/* Eliminar */}
       <button
         onClick={() => onEliminar(item.id)}
-        className="opacity-0 group-hover:opacity-100 mt-0.5 flex-shrink-0 text-primary/25 hover:text-accent transition-all"
+        className="opacity-0 group-hover:opacity-100 mt-0.5 flex-shrink-0 text-primary/25 hover:text-primary/60 transition-all"
       >
         <X size={12} />
       </button>
@@ -385,7 +369,6 @@ const CardCategoria = ({
 }: CardCategoriaProps) => {
   const [anadiendo, setAnadiendo] = useState(false);
   const [mostrarHechos, setMostrarHechos] = useState(false);
-  const color = COLORS[cat.color] ?? COLORS[0];
 
   const pendientes = items.filter(i => !i.hecho);
   const hechos     = items.filter(i => i.hecho);
@@ -396,42 +379,29 @@ const CardCategoria = ({
   };
 
   return (
-    <div
-      className="rounded-[var(--radius-card)] border-[length:var(--border-width)] overflow-hidden"
-      style={{ backgroundColor: color.bg, borderColor: `${color.bar}30` }}
-    >
+    <div className="rounded-[var(--radius-card)] border-[length:var(--border-width)] border-primary/10 bg-white-custom overflow-hidden">
       {/* Header de categoría */}
       <div className="px-4 pt-4 pb-3 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div
-            className="w-7 h-7 rounded-[var(--radius-btn)] flex items-center justify-center"
-            style={{ backgroundColor: color.bar }}
-          >
+          <div className="w-7 h-7 rounded-[var(--radius-btn)] flex items-center justify-center bg-primary/8 text-primary/50">
             <CatIcon name={cat.icon} size={14} />
           </div>
           <div>
-            <p className="text-[13px] font-black" style={{ color: color.txt }}>{cat.nombre}</p>
-            <p className="text-[9px] font-black uppercase tracking-widest opacity-50" style={{ color: color.txt }}>
+            <p className="text-[13px] font-black text-primary">{cat.nombre}</p>
+            <p className="text-[9px] font-black uppercase tracking-widest text-primary/35">
               {pendientes.length} pendiente{pendientes.length !== 1 ? "s" : ""}
               {hechos.length > 0 && ` · ${hechos.length} hecho${hechos.length !== 1 ? "s" : ""}`}
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setAnadiendo(v => !v)}
-            className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-[var(--radius-btn)] transition-all"
-            style={
-              anadiendo
-                ? { backgroundColor: `${color.bar}25`, color: color.txt }
-                : { backgroundColor: `${color.bar}15`, color: color.txt }
-            }
-          >
-            {anadiendo ? <X size={10} /> : <Plus size={10} />}
-            {anadiendo ? "Cancelar" : "Añadir"}
-          </button>
-        </div>
+        <button
+          onClick={() => setAnadiendo(v => !v)}
+          className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-[var(--radius-btn)] transition-all bg-primary/6 text-primary/50 hover:bg-primary/10 hover:text-primary/70"
+        >
+          {anadiendo ? <X size={10} /> : <Plus size={10} />}
+          {anadiendo ? "Cancelar" : "Añadir"}
+        </button>
       </div>
 
       {/* Formulario nuevo ítem */}
@@ -451,10 +421,7 @@ const CardCategoria = ({
       {/* Items pendientes */}
       <div className="px-3 pb-2 space-y-0.5">
         {pendientes.length === 0 && !anadiendo && (
-          <p
-            className="text-[11px] font-bold text-center py-3 opacity-40"
-            style={{ color: color.txt }}
-          >
+          <p className="text-[11px] font-bold text-center py-3 text-primary/25">
             Nada pendiente · añade algo
           </p>
         )}
@@ -463,7 +430,6 @@ const CardCategoria = ({
             <CardItem
               key={item.id}
               item={item}
-              color={color}
               onToggle={onToggleItem}
               onEliminar={onEliminarItem}
             />
@@ -473,11 +439,10 @@ const CardCategoria = ({
 
       {/* Items hechos (colapsables) */}
       {hechos.length > 0 && (
-        <div className="border-t px-4 py-2" style={{ borderColor: `${color.bar}20` }}>
+        <div className="border-t border-primary/6 px-4 py-2">
           <button
             onClick={() => setMostrarHechos(v => !v)}
-            className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest opacity-40 hover:opacity-70 transition-opacity w-full"
-            style={{ color: color.txt }}
+            className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-primary/30 hover:text-primary/50 transition-all w-full"
           >
             <motion.div animate={{ rotate: mostrarHechos ? 180 : 0 }} transition={{ duration: 0.2 }}>
               <ChevronDown size={10} />
@@ -497,7 +462,6 @@ const CardCategoria = ({
                   <CardItem
                     key={item.id}
                     item={item}
-                    color={color}
                     onToggle={onToggleItem}
                     onEliminar={onEliminarItem}
                   />
@@ -512,8 +476,7 @@ const CardCategoria = ({
       <div className="px-4 pb-3">
         <button
           onClick={() => onEliminarCat(cat.id)}
-          className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest opacity-20 hover:opacity-50 transition-opacity mt-1"
-          style={{ color: color.txt }}
+          className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-primary/20 hover:text-primary/45 transition-all mt-1"
         >
           <X size={9} /> Eliminar categoría
         </button>
