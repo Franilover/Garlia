@@ -1,0 +1,533 @@
+"use client";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { cn } from "@/lib/utils";
+import { Plus, Check, X, ChevronDown, Loader2 } from "lucide-react";
+
+// ─── Tipos ────────────────────────────────────────────────────────────────────
+
+interface Hobby {
+  id: string;
+  nombre: string;
+  emoji: string;
+  color: number;
+  freq_dia: number;
+  freq_sem: number;
+  nota?: string;
+  orden: number;
+}
+
+interface Registro {
+  id: string;
+  hobby_id: string;
+  semana: string;
+  dias: boolean[];
+}
+
+// ─── Constantes ───────────────────────────────────────────────────────────────
+
+const DIAS = ["L", "M", "X", "J", "V", "S", "D"];
+const DIAS_FULL = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
+const EMOJIS = ["🎸", "🎨", "📚", "✍️", "🧘", "🏃", "🎮", "🎭", "📸", "🎵", "🍳", "🌱", "🧩", "🎯", "✏️", "🎬", "🎤", "💃", "🧗", "🎻"];
+const COLORS = [
+  { bg: "#E1F5EE", txt: "#0F6E56", bar: "#1D9E75" },
+  { bg: "#E6F1FB", txt: "#185FA5", bar: "#378ADD" },
+  { bg: "#EEEDFE", txt: "#3C3489", bar: "#7F77DD" },
+  { bg: "#FAECE7", txt: "#993C1D", bar: "#D85A30" },
+  { bg: "#FAEEDA", txt: "#854F0B", bar: "#BA7517" },
+  { bg: "#FBEAF0", txt: "#993556", bar: "#D4537E" },
+];
+
+// ─── Utils ────────────────────────────────────────────────────────────────────
+
+function getSemanaKey(): string {
+  const now = new Date();
+  const startOfYear = new Date(now.getFullYear(), 0, 1);
+  const week = Math.ceil(
+    ((now.getTime() - startOfYear.getTime()) / 86400000 + startOfYear.getDay() + 1) / 7
+  );
+  return `${now.getFullYear()}-W${String(week).padStart(2, "0")}`;
+}
+
+function getTodayIdx(): number {
+  return (new Date().getDay() + 6) % 7; // lunes = 0
+}
+
+// ─── Queries Supabase ─────────────────────────────────────────────────────────
+
+async function getSupabase() {
+  const { supabase } = await import("@/lib/api/client/supabase");
+  return supabase;
+}
+
+const hobbysQueries = {
+  async getAll(): Promise<Hobby[]> {
+    const sb = await getSupabase();
+    const { data, error } = await sb
+      .from("hobbys")
+      .select("*")
+      .order("orden", { ascending: true });
+    if (error) throw error;
+    return data ?? [];
+  },
+
+  async add(hobby: Omit<Hobby, "id">): Promise<Hobby> {
+    const sb = await getSupabase();
+    const { data: { user } } = await sb.auth.getUser();
+    const { data, error } = await sb
+      .from("hobbys")
+      .insert({ ...hobby, user_id: user?.id })
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  async delete(id: string): Promise<void> {
+    const sb = await getSupabase();
+    const { error } = await sb.from("hobbys").delete().eq("id", id);
+    if (error) throw error;
+  },
+};
+
+const registrosQueries = {
+  async getBySemana(semana: string): Promise<Registro[]> {
+    const sb = await getSupabase();
+    const { data, error } = await sb
+      .from("hobbys_registros")
+      .select("*")
+      .eq("semana", semana);
+    if (error) throw error;
+    return data ?? [];
+  },
+
+  async upsert(hobbyId: string, semana: string, dias: boolean[]): Promise<void> {
+    const sb = await getSupabase();
+    const { data: { user } } = await sb.auth.getUser();
+    const { error } = await sb.from("hobbys_registros").upsert(
+      { hobby_id: hobbyId, semana, dias, user_id: user?.id },
+      { onConflict: "hobby_id,semana" }
+    );
+    if (error) throw error;
+  },
+};
+
+// ─── Subcomponentes ───────────────────────────────────────────────────────────
+
+const inputCls =
+  "w-full bg-primary/5 border-[length:var(--border-width)] border-transparent focus:border-primary/15 focus:bg-white-custom rounded-[var(--radius-btn)] py-2.5 px-4 text-sm font-bold text-primary outline-none placeholder:text-primary/25 transition-all";
+
+const selectCls =
+  "w-full bg-primary/5 border-[length:var(--border-width)] border-transparent focus:border-primary/15 rounded-[var(--radius-btn)] py-2.5 px-4 text-sm font-bold text-primary outline-none appearance-none cursor-pointer";
+
+interface FormNuevoHobbyProps {
+  onGuardar: (hobby: Omit<Hobby, "id">) => Promise<void>;
+  onCancelar: () => void;
+  guardando: boolean;
+  orden: number;
+}
+
+const FormNuevoHobby = ({ onGuardar, onCancelar, guardando, orden }: FormNuevoHobbyProps) => {
+  const [nombre, setNombre] = useState("");
+  const [emoji, setEmoji] = useState("🎸");
+  const [color, setColor] = useState(0);
+  const [freqDia, setFreqDia] = useState(1);
+  const [freqSem, setFreqSem] = useState(3);
+  const [nota, setNota] = useState("");
+
+  const handleGuardar = () => {
+    if (!nombre.trim()) return;
+    onGuardar({ nombre: nombre.trim(), emoji, color, freq_dia: freqDia, freq_sem: freqSem, nota: nota.trim(), orden });
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      className="bg-white-custom border-[length:var(--border-width)] border-primary/10 rounded-[var(--radius-card)] p-5 shadow-lg shadow-primary/5 mb-4"
+    >
+      <p className="text-[9px] font-black uppercase tracking-widest text-primary/40 mb-4">Nuevo hobby</p>
+
+      {/* Nombre */}
+      <div className="mb-3">
+        <input value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Nombre del hobby..." className={inputCls} onKeyDown={e => e.key === "Enter" && handleGuardar()} autoFocus />
+      </div>
+
+      {/* Emoji */}
+      <div className="mb-3">
+        <p className="text-[9px] font-black uppercase tracking-widest text-primary/30 mb-2">Emoji</p>
+        <div className="flex flex-wrap gap-1.5">
+          {EMOJIS.map(e => (
+            <button
+              key={e}
+              onClick={() => setEmoji(e)}
+              className={cn(
+                "w-9 h-9 rounded-[var(--radius-btn)] border-[length:var(--border-width)] text-lg flex items-center justify-center transition-all",
+                emoji === e
+                  ? "bg-primary/10 border-primary/25"
+                  : "bg-primary/3 border-primary/8 hover:bg-primary/8"
+              )}
+            >{e}</button>
+          ))}
+        </div>
+      </div>
+
+      {/* Color */}
+      <div className="mb-4">
+        <p className="text-[9px] font-black uppercase tracking-widest text-primary/30 mb-2">Color</p>
+        <div className="flex gap-2">
+          {COLORS.map((c, i) => (
+            <button
+              key={i}
+              onClick={() => setColor(i)}
+              style={{ background: c.bar }}
+              className={cn(
+                "w-7 h-7 rounded-full border-2 transition-all",
+                color === i ? "border-primary scale-110" : "border-transparent"
+              )}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Frecuencia */}
+      <div className="grid grid-cols-2 gap-3 mb-4">
+        <div>
+          <p className="text-[9px] font-black uppercase tracking-widest text-primary/30 mb-1.5">Veces al día</p>
+          <select value={freqDia} onChange={e => setFreqDia(parseInt(e.target.value))} className={selectCls}>
+            {[1, 2, 3, 4].map(n => <option key={n} value={n}>{n}x al día</option>)}
+          </select>
+        </div>
+        <div>
+          <p className="text-[9px] font-black uppercase tracking-widest text-primary/30 mb-1.5">Días por semana</p>
+          <select value={freqSem} onChange={e => setFreqSem(parseInt(e.target.value))} className={selectCls}>
+            {[1, 2, 3, 4, 5, 6, 7].map(n => <option key={n} value={n}>{n} días / sem</option>)}
+          </select>
+        </div>
+      </div>
+
+      {/* Nota */}
+      <div className="mb-5">
+        <input value={nota} onChange={e => setNota(e.target.value)} placeholder="Nota opcional (ej: 20 min mínimo)..." className={inputCls} />
+      </div>
+
+      {/* Acciones */}
+      <div className="flex gap-2">
+        <button onClick={onCancelar} className="flex-1 py-2.5 rounded-[var(--radius-btn)] border-[length:var(--border-width)] border-primary/15 text-sm font-black text-primary/60 hover:bg-primary/4 transition-all">
+          Cancelar
+        </button>
+        <button
+          onClick={handleGuardar}
+          disabled={!nombre.trim() || guardando}
+          className="flex-1 py-2.5 rounded-[var(--radius-btn)] bg-primary text-btn-text text-sm font-black hover:opacity-90 disabled:opacity-40 transition-all flex items-center justify-center gap-2"
+        >
+          {guardando ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+          Guardar hobby
+        </button>
+      </div>
+    </motion.div>
+  );
+};
+
+// ─── Card de Hobby ─────────────────────────────────────────────────────────────
+
+interface CardHobbyProps {
+  hobby: Hobby;
+  registro: Registro | undefined;
+  onToggleDia: (hobbyId: string, diaIdx: number) => void;
+  onEliminar: (id: string) => void;
+}
+
+const CardHobby = ({ hobby, registro, onToggleDia, onEliminar }: CardHobbyProps) => {
+  const [expandido, setExpandido] = useState(false);
+  const c = COLORS[hobby.color] ?? COLORS[0];
+  const dias = registro?.dias ?? Array(7).fill(false);
+  const hechos = dias.filter(Boolean).length;
+  const pct = Math.min(100, Math.round((hechos / hobby.freq_sem) * 100));
+  const completado = hechos >= hobby.freq_sem;
+  const today = getTodayIdx();
+
+  return (
+    <div className="bg-white-custom border-[length:var(--border-width)] border-primary/10 rounded-[var(--radius-card)] overflow-hidden">
+      {/* Header */}
+      <div className="p-4 cursor-pointer select-none" onClick={() => setExpandido(v => !v)}>
+        <div className="flex items-center gap-3">
+          {/* Emoji + acento de color */}
+          <div
+            className="w-11 h-11 rounded-[var(--radius-btn)] flex items-center justify-center text-xl shrink-0"
+            style={{ background: c.bg }}
+          >
+            {hobby.emoji}
+          </div>
+
+          {/* Info */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-black text-primary tracking-tight truncate">{hobby.nombre}</span>
+              {completado && (
+                <span className="text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full" style={{ background: "#E1F5EE", color: "#0F6E56" }}>
+                  ✓ Semana
+                </span>
+              )}
+            </div>
+            <span className="text-[10px] font-bold text-primary/40">
+              {hobby.freq_dia}x/día · {hobby.freq_sem}d por semana{hobby.nota ? ` · ${hobby.nota}` : ""}
+            </span>
+
+            {/* Barra de progreso */}
+            <div className="mt-2 h-1 bg-primary/8 rounded-full overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all duration-500"
+                style={{ width: `${pct}%`, background: completado ? "#1D9E75" : c.bar }}
+              />
+            </div>
+          </div>
+
+          {/* Contador + chevron */}
+          <div className="flex items-center gap-2 shrink-0">
+            <span
+              className="text-[10px] font-black px-2.5 py-1 rounded-[var(--radius-btn)]"
+              style={{ background: completado ? "#E1F5EE" : c.bg, color: completado ? "#0F6E56" : c.txt }}
+            >
+              {hechos}/{hobby.freq_sem}
+            </span>
+            <motion.div animate={{ rotate: expandido ? 180 : 0 }} transition={{ duration: 0.2 }}>
+              <ChevronDown size={15} className="text-primary/30" />
+            </motion.div>
+          </div>
+        </div>
+      </div>
+
+      {/* Días (se expanden) */}
+      <AnimatePresence>
+        {expandido && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <div className="px-4 pb-4 border-t border-primary/5 pt-3">
+              <p className="text-[8px] font-black uppercase tracking-widest text-primary/25 mb-2">Esta semana</p>
+              <div className="flex gap-1.5">
+                {DIAS.map((d, i) => {
+                  const done = dias[i];
+                  const isToday = i === today;
+                  return (
+                    <button
+                      key={d}
+                      onClick={() => onToggleDia(hobby.id, i)}
+                      title={`${done ? "Desmarcar" : "Marcar"} — ${DIAS_FULL[i]}`}
+                      className={cn(
+                        "flex-1 py-2 rounded-[var(--radius-btn)] border-[length:var(--border-width)] text-[9px] font-black uppercase tracking-widest transition-all",
+                        done
+                          ? "bg-primary text-btn-text border-primary"
+                          : isToday
+                          ? "bg-primary/8 text-primary border-primary/25"
+                          : "bg-primary/3 text-primary/35 border-primary/8 hover:bg-primary/8"
+                      )}
+                    >
+                      {done ? <Check size={10} className="mx-auto" /> : d}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Eliminar */}
+              <button
+                onClick={() => onEliminar(hobby.id)}
+                className="mt-3 flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-primary/25 hover:text-accent transition-colors"
+              >
+                <X size={10} /> Eliminar hobby
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+// ─── Componente principal ─────────────────────────────────────────────────────
+
+export const PaginaHobbys = () => {
+  const [hobbys, setHobbys] = useState<Hobby[]>([]);
+  const [registros, setRegistros] = useState<Registro[]>([]);
+  const [cargando, setCargando] = useState(true);
+  const [creando, setCreando] = useState(false);
+  const [guardando, setGuardando] = useState(false);
+
+  const semana = useMemo(() => getSemanaKey(), []);
+  const today = getTodayIdx();
+
+  // ── Carga inicial ──────────────────────────────────────────────────────────
+  const cargar = useCallback(async () => {
+    setCargando(true);
+    try {
+      const [h, r] = await Promise.all([
+        hobbysQueries.getAll(),
+        registrosQueries.getBySemana(semana),
+      ]);
+      setHobbys(h);
+      setRegistros(r);
+    } catch (err) {
+      console.error("[PaginaHobbys] cargar:", err);
+    } finally {
+      setCargando(false);
+    }
+  }, [semana]);
+
+  useEffect(() => { cargar(); }, [cargar]);
+
+  // ── Añadir hobby ──────────────────────────────────────────────────────────
+  const handleGuardar = async (datos: Omit<Hobby, "id">) => {
+    setGuardando(true);
+    try {
+      const nuevo = await hobbysQueries.add(datos);
+      setHobbys(prev => [...prev, nuevo]);
+      setCreando(false);
+    } catch (err) {
+      console.error("[PaginaHobbys] guardar:", err);
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  // ── Eliminar hobby ────────────────────────────────────────────────────────
+  const handleEliminar = async (id: string) => {
+    setHobbys(prev => prev.filter(h => h.id !== id));
+    try {
+      await hobbysQueries.delete(id);
+    } catch (err) {
+      console.error("[PaginaHobbys] eliminar:", err);
+      cargar();
+    }
+  };
+
+  // ── Toggle día ────────────────────────────────────────────────────────────
+  const handleToggleDia = async (hobbyId: string, diaIdx: number) => {
+    // Actualización optimista
+    setRegistros(prev => {
+      const existing = prev.find(r => r.hobby_id === hobbyId && r.semana === semana);
+      if (existing) {
+        return prev.map(r =>
+          r.hobby_id === hobbyId && r.semana === semana
+            ? { ...r, dias: r.dias.map((v, i) => (i === diaIdx ? !v : v)) }
+            : r
+        );
+      }
+      const diasNuevos = Array(7).fill(false) as boolean[];
+      diasNuevos[diaIdx] = true;
+      return [...prev, { id: "tmp", hobby_id: hobbyId, semana, dias: diasNuevos }];
+    });
+
+    // Persistir en Supabase
+    try {
+      const current = registros.find(r => r.hobby_id === hobbyId && r.semana === semana);
+      const diasActuales = current?.dias ?? Array(7).fill(false);
+      const nuevosDias = diasActuales.map((v, i) => (i === diaIdx ? !v : v));
+      await registrosQueries.upsert(hobbyId, semana, nuevosDias);
+    } catch (err) {
+      console.error("[PaginaHobbys] toggle día:", err);
+      cargar();
+    }
+  };
+
+  // ── Stats ─────────────────────────────────────────────────────────────────
+  const stats = useMemo(() => {
+    const totalHoy = hobbys.reduce((acc, h) => {
+      const reg = registros.find(r => r.hobby_id === h.id && r.semana === semana);
+      return acc + (reg?.dias[today] ? 1 : 0);
+    }, 0);
+    const totalHechosSem = hobbys.reduce((acc, h) => {
+      const reg = registros.find(r => r.hobby_id === h.id && r.semana === semana);
+      return acc + (reg?.dias.filter(Boolean).length ?? 0);
+    }, 0);
+    const totalObjSem = hobbys.reduce((acc, h) => acc + h.freq_sem, 0);
+    const pctSem = totalObjSem > 0 ? Math.round((totalHechosSem / totalObjSem) * 100) : 0;
+    return { totalHoy, pctSem };
+  }, [hobbys, registros, semana, today]);
+
+  // ── Render ────────────────────────────────────────────────────────────────
+  return (
+    <div className="max-w-2xl mx-auto space-y-4">
+
+      {/* Stats + semana */}
+      {hobbys.length > 0 && (
+        <div className="grid grid-cols-3 gap-3">
+          {[
+            { label: "Hobbys", value: hobbys.length },
+            { label: "Hoy", value: `${stats.totalHoy}/${hobbys.length}` },
+            { label: "Semana", value: `${stats.pctSem}%` },
+          ].map(s => (
+            <div key={s.label} className="bg-white-custom border-[length:var(--border-width)] border-primary/8 rounded-[var(--radius-card)] p-4 text-center">
+              <span className="text-2xl font-black text-primary tracking-tight block">{s.value}</span>
+              <span className="text-[9px] font-black uppercase tracking-widest text-primary/35 block mt-0.5">{s.label}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Header con semana y botón */}
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] font-black uppercase tracking-widest text-primary/35">{semana}</span>
+        <button
+          onClick={() => setCreando(v => !v)}
+          className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-widest bg-primary text-btn-text px-4 py-2 rounded-[var(--radius-btn)] hover:opacity-90 transition-opacity"
+        >
+          {creando ? <X size={12} /> : <Plus size={12} />}
+          {creando ? "Cancelar" : "Añadir hobby"}
+        </button>
+      </div>
+
+      {/* Formulario */}
+      <AnimatePresence>
+        {creando && (
+          <FormNuevoHobby
+            onGuardar={handleGuardar}
+            onCancelar={() => setCreando(false)}
+            guardando={guardando}
+            orden={hobbys.length}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Lista */}
+      {cargando ? (
+        <div className="flex items-center justify-center py-12 gap-2 text-primary/40">
+          <Loader2 size={16} className="animate-spin" />
+          <span className="text-sm font-bold">Cargando hobbys…</span>
+        </div>
+      ) : hobbys.length === 0 && !creando ? (
+        <div className="text-center py-14">
+          <span className="text-3xl block mb-3">🌱</span>
+          <p className="text-sm font-black text-primary/40 uppercase tracking-widest">Aún no tienes hobbys</p>
+          <p className="text-xs text-primary/25 font-bold mt-1">Añade uno para empezar a trackear</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <AnimatePresence mode="popLayout">
+            {hobbys.map(h => (
+              <motion.div
+                key={h.id}
+                layout
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.97 }}
+              >
+                <CardHobby
+                  hobby={h}
+                  registro={registros.find(r => r.hobby_id === h.id && r.semana === semana)}
+                  onToggleDia={handleToggleDia}
+                  onEliminar={handleEliminar}
+                />
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </div>
+      )}
+    </div>
+  );
+};

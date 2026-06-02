@@ -1,7 +1,7 @@
 "use client";
 import React, { useMemo, useState } from "react";
 import { MotionDiv } from "@/components/ui/Motion";
-import { Star, FileText, ArrowRight, Hash, Clock, CheckSquare, Plus, Check, X, ShoppingCart, Dumbbell, Package, UtensilsCrossed, ChevronLeft, Search, Shirt } from "lucide-react";
+import { Star, FileText, ArrowRight, Hash, Clock, CheckSquare, Plus, Check, X, ShoppingCart, Dumbbell, Package, UtensilsCrossed, ChevronLeft, Search, Shirt, Heart } from "lucide-react";
 
 import { AnimatePresence } from "framer-motion";
 import { RelojDigital } from "@/components/paginas/myself/ensayos/personal/tareas/relojDigital";
@@ -13,6 +13,7 @@ import { PaginaEjercicios } from "@/components/paginas/myself/ensayos/personal/e
 import { IngredientesPage } from "@/components/paginas/myself/ensayos/personal/ingredientes";
 import RecetasPage from "@/components/paginas/myself/ensayos/personal/recetas";
 import ArmarioPage from "@/components/paginas/myself/ensayos/personal/ropa";
+import { PaginaHobbys } from "@/components/paginas/myself/ensayos/personal/hobbysComponent";
 
 interface HomeDashboardProps {
   ensayos: any[];
@@ -41,7 +42,7 @@ export function HomeDashboard({
   const [nuevaTarea, setNuevaTarea] = useState("");
   const [modoCalendario, setModoCalendario] = useState<ModoCalendario>("mes");
   const [panelAbierto, setPanelAbierto] = useState<"reloj" | "tareas" | null>(null);
-  const [vistaPersonal, setVistaPersonal] = useState<"compras" | "ejercicios" | "ingredientes" | "recetas" | "ropa" | null>(null);
+  const [vistaPersonal, setVistaPersonal] = useState<"compras" | "ejercicios" | "ingredientes" | "recetas" | "ropa" | "hobbys" | null>(null);
   const [busqueda, setBusqueda] = useState("");
 
   const favoritos = useMemo(
@@ -621,13 +622,14 @@ export function HomeDashboard({
             />
             <div className="hd-personal-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, flex: 1, alignContent: "start" }}>
               {([
-                { id: "compras", label: "Compras", icon: <ShoppingCart size={16} /> },
-                { id: "ejercicios", label: "Ejercicios", icon: <Dumbbell size={16} /> },
+                { id: "compras",      label: "Compras",      icon: <ShoppingCart size={16} /> },
+                { id: "ejercicios",   label: "Ejercicios",   icon: <Dumbbell size={16} /> },
                 { id: "ingredientes", label: "Ingredientes", icon: <Package size={16} /> },
-                { id: "recetas", label: "Recetas", icon: <UtensilsCrossed size={16} /> },
-                { id: "ropa", label: "Ropa", icon: <Shirt size={16} /> },
+                { id: "recetas",      label: "Recetas",      icon: <UtensilsCrossed size={16} /> },
+                { id: "ropa",         label: "Ropa",         icon: <Shirt size={16} /> },
+                { id: "hobbys",       label: "Hobbys",       icon: <Heart size={16} /> },
               ] as const).map(({ id, label, icon }) => (
-                <MotionDiv key={id} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} style={{ gridColumn: id === "ropa" ? "1 / -1" : undefined }}>
+                <MotionDiv key={id} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
                   <button
                     className="hd-personal-btn"
                     onClick={() => setVistaPersonal(id)}
@@ -811,11 +813,12 @@ export function HomeDashboard({
 
             {/* ── Contenido del componente ── */}
             <div className="flex-1 overflow-auto pb-14 md:pb-0">
-              {vistaPersonal === "compras" && <ComprasPage />}
-              {vistaPersonal === "ejercicios" && <PaginaEjercicios />}
+              {vistaPersonal === "compras"      && <ComprasPage />}
+              {vistaPersonal === "ejercicios"   && <PaginaEjercicios />}
               {vistaPersonal === "ingredientes" && <IngredientesPage />}
-              {vistaPersonal === "recetas" && <RecetasPage />}
-              {vistaPersonal === "ropa" && <ArmarioPage />}
+              {vistaPersonal === "recetas"      && <RecetasPage />}
+              {vistaPersonal === "ropa"         && <ArmarioPage />}
+              {vistaPersonal === "hobbys"       && <PaginaHobbys />}
             </div>
           </MotionDiv>
         )}
