@@ -10,7 +10,7 @@ import { motion, AnimatePresence } from "framer-motion";
 
 import { CapituloLista, CapituloScrollItem } from "../myself/garlia/editorCapitulos/snippets/type";
 import { toSlug, esUUID } from "@/lib/utils/slugify";
-import { CapituloScrollBlock } from "@/components/paginas/myself/garlia/editorCapitulos/leer/CapituloScrollBlock";
+import { CapituloScrollBlock, ToastPortal } from "@/components/paginas/myself/garlia/editorCapitulos/leer/CapituloScrollBlock";
 import { LectorSkeleton, ReadingProgressBar, Vignette, CapituloHeader, FinCapituloSeparador, IndexPanel, ChapterSelector } from "../myself/garlia/editorCapitulos/leer/LectorUI";
 
 /* ─────────────────────────────────────────────
@@ -1323,6 +1323,9 @@ export default function Lector() {
           </footer>
         )}
       </div>
+
+      {/* Toast portal — UNA sola instancia fuera del map de capítulos */}
+      <ToastPortal />
     </div>
   );
 }
