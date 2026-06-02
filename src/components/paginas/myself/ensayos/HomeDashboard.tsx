@@ -1,7 +1,7 @@
 "use client";
 import React, { useMemo, useState } from "react";
 import { MotionDiv } from "@/components/ui/Motion";
-import { Star, FileText, ArrowRight, Hash, Clock, CheckSquare, Plus, Check, X, ShoppingCart, Dumbbell, Package, UtensilsCrossed, ChevronLeft, Search, Shirt, Heart } from "lucide-react";
+import { Star, FileText, ArrowRight, Hash, Clock, CheckSquare, Plus, Check, X, ShoppingCart, Dumbbell, Package, UtensilsCrossed, ChevronLeft, Search, Shirt, Heart, BookOpen } from "lucide-react";
 
 import { AnimatePresence } from "framer-motion";
 import { RelojDigital } from "@/components/paginas/myself/ensayos/personal/tareas/relojDigital";
@@ -14,6 +14,7 @@ import { IngredientesPage } from "@/components/paginas/myself/ensayos/personal/i
 import RecetasPage from "@/components/paginas/myself/ensayos/personal/recetas";
 import ArmarioPage from "@/components/paginas/myself/ensayos/personal/ropa";
 import { PaginaHobbys } from "@/components/paginas/myself/ensayos/personal/hobbysComponent";
+import { PaginaPendientes } from "@/components/paginas/myself/ensayos/personal/pendientesComponent";
 
 interface HomeDashboardProps {
   ensayos: any[];
@@ -42,7 +43,7 @@ export function HomeDashboard({
   const [nuevaTarea, setNuevaTarea] = useState("");
   const [modoCalendario, setModoCalendario] = useState<ModoCalendario>("mes");
   const [panelAbierto, setPanelAbierto] = useState<"reloj" | "tareas" | null>(null);
-  const [vistaPersonal, setVistaPersonal] = useState<"compras" | "ejercicios" | "ingredientes" | "recetas" | "ropa" | "hobbys" | null>(null);
+  const [vistaPersonal, setVistaPersonal] = useState<"compras" | "ejercicios" | "ingredientes" | "recetas" | "ropa" | "hobbys" | "pendientes" | null>(null);
   const [busqueda, setBusqueda] = useState("");
 
   const favoritos = useMemo(
@@ -628,6 +629,7 @@ export function HomeDashboard({
                 { id: "recetas",      label: "Recetas",      icon: <UtensilsCrossed size={16} /> },
                 { id: "ropa",         label: "Ropa",         icon: <Shirt size={16} /> },
                 { id: "hobbys",       label: "Hobbys",       icon: <Heart size={16} /> },
+                { id: "pendientes",   label: "Pendientes",   icon: <BookOpen size={16} /> },
               ] as const).map(({ id, label, icon }) => (
                 <MotionDiv key={id} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
                   <button
@@ -819,6 +821,7 @@ export function HomeDashboard({
               {vistaPersonal === "recetas"      && <RecetasPage />}
               {vistaPersonal === "ropa"         && <ArmarioPage />}
               {vistaPersonal === "hobbys"       && <PaginaHobbys />}
+              {vistaPersonal === "pendientes"   && <PaginaPendientes />}
             </div>
           </MotionDiv>
         )}
