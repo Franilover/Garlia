@@ -315,11 +315,11 @@ function SegmentoTransicion({
                       {!imgSig && <Avatar label={labelSig} img={imgSig} />}
                       <div>
                         <p className="text-primary font-black text-sm uppercase tracking-tight leading-tight">
-                          {siguiente.reino?.nombre ?? siguiente.narrador?.nombre}
+                          {siguiente.capitulos[0]?.titulo_capitulo ?? siguiente.reino?.nombre ?? siguiente.narrador?.nombre}
                         </p>
-                        {tieneReinoYNarrador && (
+                        {(labelSig) && (
                           <p className="text-primary/40 font-bold text-[9px] uppercase tracking-widest italic mt-0.5">
-                            {siguiente.narrador!.nombre}
+                            {labelSig}
                           </p>
                         )}
                         <p className="text-primary/25 font-bold text-[9px] uppercase tracking-wider mt-1">
@@ -349,7 +349,9 @@ function SegmentoTransicion({
                     }}
                   >
                     <span className="font-black text-[11px] uppercase tracking-widest text-primary group-hover:text-[var(--btn-text)] transition-colors">
-                      Continuar → {labelSig}
+                      {siguiente.capitulos[0]?.titulo_capitulo
+                        ? `→ ${siguiente.capitulos[0].titulo_capitulo}`
+                        : `Continuar → ${labelSig}`}
                     </span>
                     <div className="flex items-center gap-1.5">
                       {imgSig && (
@@ -1286,12 +1288,13 @@ export default function Lector() {
 
         {/* Capítulos */}
         {!loading && (() => {
-          return capsARenderizar.map((cap) => (
+          return capsARenderizar.map((cap, i) => (
             <CapituloScrollBlock
               key={cap.id}
               cap={cap}
               onNavigate={handleNavigate}
               esExtra={esExtra}
+              haySegSiguiente={!!segSiguiente && i === capsARenderizar.length - 1}
             />
           ));
         })()}
