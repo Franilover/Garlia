@@ -139,6 +139,104 @@ function PanelCrafterSources({ itemId, onSelectCriatura }: { itemId: string; onS
   );
 }
 
+// ─── Hook: qué plantas producen este ítem (item_plantas) ──────────────────────
+
+type PlantaSource = {
+  rowId:      string;
+  plantaId:   string;
+  plantaName: string;
+  plantaImg?: string | null;
+};
+
+function usePlantaSources(itemId: string) {
+  const [plantas, setPlantas] = useState<PlantaSource[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const { data } = await supabase
+      .from("item_plantas")
+      .select(`id, planta_id, plantas!planta_id(nombre, imagen_url)`)
+      .eq("item_id", itemId);
+
+    setPlantas(
+      (data ?? []).map((r: any) => ({
+        rowId:      r.id,
+        plantaId:   r.planta_id,
+        plantaName: (Array.isArray(r.plantas) ? r.plantas[0]?.nombre     : r.plantas?.nombre)     ?? "—",
+        plantaImg:  (Array.isArray(r.plantas) ? r.plantas[0]?.imagen_url : r.plantas?.imagen_url) ?? null,
+      }))
+    );
+    setLoading(false);
+  }, [itemId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const add = async (planta: { id: string; nombre: string; imagen_url?: string | null }) => {
+    if (plantas.some(p => p.plantaId === planta.id)) return;
+    const { data, error } = await supabase
+      .from("item_plantas")
+      .insert([{ item_id: itemId, planta_id: planta.id }])
+      .select().single();
+    if (!error && data) {
+      setPlantas(prev => [...prev, {
+        rowId: data.id, plantaId: planta.id,
+        plantaName: planta.nombre, plantaImg: planta.imagen_url ?? null,
+      }]);
+      // Marcar el ítem como Natural/Planta automáticamente
+      await supabase.from("items").update({ origen: "Natural", sub_origen: "Planta" }).eq("id", itemId);
+      new BroadcastChannel("item_origen_sync").postMessage({ itemId, origen: "Natural", sub_origen: "Planta" });
+    }
+  };
+
+  const remove = async (rowId: string) => {
+    await supabase.from("item_plantas").delete().eq("id", rowId);
+    setPlantas(prev => prev.filter(p => p.rowId !== rowId));
+  };
+
+  return { plantas, loading, add, remove };
+}
+
+// ─── Panel selector de plantas fuente (usa SeccionEntidad) ───────────────────
+
+function PanelPlantaSources({ itemId, onSelectPlanta }: { itemId: string; onSelectPlanta?: (plantaId: string) => void }) {
+  const { plantas, loading, add, remove } = usePlantaSources(itemId);
+  const [allPlantas, setAllPlantas] = useState<{ id: string; nombre: string; imagen_url?: string | null }[]>([]);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    supabase.from("plantas").select("id, nombre, imagen_url").order("nombre")
+      .then(({ data }) => setAllPlantas(data ?? []));
+  }, []);
+
+  const handleToggle = async (id: string, addIt: boolean) => {
+    setSaving(true);
+    if (addIt) {
+      const planta = allPlantas.find(p => p.id === id);
+      if (planta) await add(planta);
+    } else {
+      const row = plantas.find(p => p.plantaId === id);
+      if (row) await remove(row.rowId);
+    }
+    setSaving(false);
+  };
+
+  return (
+    <SeccionEntidad
+      label="Plantas"
+      icon={<Leaf size={9} />}
+      fallbackIcon={<Leaf size={9} />}
+      emptyLabel="Ninguna planta asignada"
+      allEntities={allPlantas.map(p => ({ id: p.id, nombre: p.nombre, imagen_url: p.imagen_url }))}
+      selectedIds={plantas.map(p => p.plantaId)}
+      loading={loading}
+      saving={saving}
+      onToggle={handleToggle}
+      onEntityClick={onSelectPlanta}
+    />
+  );
+}
+
 // ─── Panel selector de reinos (usa SeccionEntidad + reino_ids en form) ──────
 type ReinoMin = { id: string; nombre: string };
 
@@ -265,10 +363,11 @@ function PanelLugares({ itemId, onNavigateLugar }: { itemId: string; onNavigateL
 // ─── EditorItem ───────────────────────────────────────────────────────────────
 
 export function EditorItem({
-  item, onSaved, onDeleted, entities = [], onSelectCriatura, onNavigateLugar, onNavigateReino,
+  item, onSaved, onDeleted, entities = [], onSelectCriatura, onSelectPlanta, onNavigateLugar, onNavigateReino,
 }: {
   item: Item; onSaved: (i: Item) => void; onDeleted: (id: string) => void; entities?: WikiEntity[];
   onSelectCriatura?: (criaturaId: string) => void;
+  onSelectPlanta?: (plantaId: string) => void;
   onNavigateLugar?: (id: string) => void;
   onNavigateReino?: (id: string) => void;
 }) {
@@ -287,17 +386,6 @@ export function EditorItem({
   const categoriaItems = categoriasRaw.map(c => ({ id: c, label: c }));
 
   useEffect(() => { setForm(item); setStatus("idle"); }, [item.id]);
-
-  // Sincronización reactiva: si EditorCriatura cambia el origen de este ítem, reflejarlo aquí
-  useEffect(() => {
-    const ch = new BroadcastChannel("item_origen_sync");
-    ch.onmessage = (e: MessageEvent) => {
-      if (e.data?.itemId === form.id) {
-        setForm(f => ({ ...f, origen: e.data.origen, sub_origen: e.data.sub_origen }));
-      }
-    };
-    return () => ch.close();
-  }, [form.id]);
 
   const field = (k: keyof Item) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm(f => ({ ...f, [k]: e.target.value }));
@@ -431,7 +519,7 @@ export function EditorItem({
                     {form.origen === "Natural" && (
                       <div>
                         <div className="flex"
-                          style={{ borderBottom: form.sub_origen === "Criatura" ? "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" : undefined }}>
+                          style={{ borderBottom: (form.sub_origen === "Criatura" || form.sub_origen === "Planta") ? "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" : undefined }}>
                           {(["Planta", "Criatura"] as const).map((sub, i) => {
                             const isSelected = form.sub_origen === sub;
                             const Icon = sub === "Planta" ? Leaf : Bug;
@@ -450,6 +538,11 @@ export function EditorItem({
                             );
                           })}
                         </div>
+                        {form.sub_origen === "Planta" && (
+                          <div className="p-2">
+                            <PanelPlantaSources itemId={form.id} onSelectPlanta={onSelectPlanta} />
+                          </div>
+                        )}
                         {form.sub_origen === "Criatura" && (
                           <div className="p-2">
                             <PanelCrafterSources itemId={form.id} onSelectCriatura={onSelectCriatura} />
