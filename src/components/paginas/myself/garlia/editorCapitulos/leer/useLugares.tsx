@@ -6,40 +6,44 @@ import { supabase } from "@/lib/api/client/supabase";
 
 /* ─────────────────────────────────────────────
    Hook: desbloquear lugares al terminar un capítulo
-   Usa cap.lugares_ids (string[]) — análogo a useReinos.
-   Se dispara una sola vez por capítulo (ref guard).
+
+   FIXES aplicados (idénticos a usePersonajes / useReinos):
+   - Bug 5: INSERT batch en lugar de bucle secuencial
+   - Bug 1: useCallback depende de capId + idsKey (strings estables)
+   - Bug 2: disparadoRef es un Set keyed por capId
+   - Bug 6: onClose en toast usa ref interna, timer se crea una sola vez
    ───────────────────────────────────────────── */
 export function useDesbloquearLugares(capId: string, lugaresIds: string[] | undefined) {
   const [desbloqueados,      setDesbloqueados]      = useState<string[]>([]);
   const [mostrarCelebration, setMostrarCelebration] = useState(false);
-  const disparadoRef = useRef(false);
+
+  const disparadoRef = useRef<Set<string>>(new Set());
+  const idsKey = (lugaresIds ?? []).join(",");
 
   const disparar = useCallback(async () => {
-    if (disparadoRef.current) return;
-    if (!lugaresIds?.length) return;
+    if (disparadoRef.current.has(capId)) return [];
+    if (!lugaresIds?.length) return [];
 
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user) return;
+    if (!session?.user) return [];
 
-    disparadoRef.current = true;
+    disparadoRef.current.add(capId);
+
     const userId = session.user.id;
-    const nuevos: string[] = [];
+    const rows = lugaresIds.map(lugarId => ({ user_id: userId, lugar_id: lugarId }));
+    const { data } = await supabase
+      .from("lugares_desbloqueados")
+      .insert(rows)
+      .select("lugar_id");
 
-    for (const lugarId of lugaresIds) {
-      const { error } = await supabase
-        .from("lugares_desbloqueados")
-        .insert({ user_id: userId, lugar_id: lugarId })
-        .select()
-        .single();
-      // error.code "23505" = unique violation → ya estaba desbloqueado, no celebrar
-      if (!error) nuevos.push(lugarId);
-    }
-
+    const nuevos = (data ?? []).map((r: any) => r.lugar_id);
     if (nuevos.length > 0) {
       setDesbloqueados(nuevos);
       setMostrarCelebration(true);
     }
-  }, [lugaresIds]);
+    return nuevos;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [capId, idsKey]);
 
   const cerrar = useCallback(() => setMostrarCelebration(false), []);
 
@@ -48,7 +52,6 @@ export function useDesbloquearLugares(capId: string, lugaresIds: string[] | unde
 
 /* ─────────────────────────────────────────────
    Toast de lugares desbloqueados
-   Se auto-cierra a los 6 segundos
    ───────────────────────────────────────────── */
 export function LugaresDesbloqueadosToast({
   lugaresIds,
@@ -59,6 +62,9 @@ export function LugaresDesbloqueadosToast({
 }) {
   const [lugares, setLugares] = useState<{ id: string; nombre: string; imagen_url?: string | null }[]>([]);
 
+  const onCloseRef = useRef(onClose);
+  useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
+
   useEffect(() => {
     if (!lugaresIds.length) return;
     supabase
@@ -66,12 +72,12 @@ export function LugaresDesbloqueadosToast({
       .select("id, nombre, imagen_url")
       .in("id", lugaresIds)
       .then(({ data }) => { if (data) setLugares(data); });
-  }, [lugaresIds]);
+  }, [lugaresIds.join(",")]); // eslint-disable-line
 
   useEffect(() => {
-    const t = setTimeout(onClose, 6000);
+    const t = setTimeout(() => onCloseRef.current(), 6000);
     return () => clearTimeout(t);
-  }, [onClose]);
+  }, []);
 
   if (!lugares.length) return null;
 

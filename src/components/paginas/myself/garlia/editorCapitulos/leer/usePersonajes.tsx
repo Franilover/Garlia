@@ -6,38 +6,56 @@ import { supabase } from "@/lib/api/client/supabase";
 
 /* ─────────────────────────────────────────────
    Hook: desbloquear personajes al terminar un capítulo
-   Se llama una sola vez por capítulo (ref guard)
+
+   FIXES:
+   - Bug 5: un solo INSERT batch en lugar de N inserts secuenciales.
+     Esto evita pérdida parcial si el usuario navega en medio del bucle.
+   - Bug 2 / Bug 1: disparadoRef se guarda en un Map keyed por capId
+     para que si el mismo hook (mismo componente) recibe un capId distinto
+     pueda disparar de nuevo. useCallback depende de capId (string estable),
+     no del array (nueva referencia en cada render).
    ───────────────────────────────────────────── */
 export function useDesbloquearPersonajes(capId: string, personajesIds: string[] | undefined) {
-  const [desbloqueados, setDesbloqueados] = useState<string[]>([]);
+  const [desbloqueados,      setDesbloqueados]      = useState<string[]>([]);
   const [mostrarCelebration, setMostrarCelebration] = useState(false);
-  const disparadoRef = useRef(false);
+
+  // Usamos el capId como clave para que el guard sea por capítulo, no por instancia
+  const disparadoRef = useRef<Set<string>>(new Set());
+
+  // Serializar los ids para comparación estable dentro del callback
+  const idsKey = (personajesIds ?? []).join(",");
 
   const disparar = useCallback(async () => {
-    if (disparadoRef.current) return;
-    if (!personajesIds?.length) return;
+    // Guard: no disparar dos veces para el mismo capítulo
+    if (disparadoRef.current.has(capId)) return [];
+    if (!personajesIds?.length) return [];
 
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user) return;
+    if (!session?.user) return [];
 
-    disparadoRef.current = true;
+    // Marcar ANTES del await para evitar race condition de doble disparo
+    disparadoRef.current.add(capId);
+
     const perfilId = session.user.id;
-    const nuevos: string[] = [];
 
-    for (const personajeId of personajesIds) {
-      const { error } = await supabase
-        .from("descubrimientos_personajes")
-        .insert({ perfil_id: perfilId, personaje_id: personajeId })
-        .select()
-        .single();
-      if (!error) nuevos.push(personajeId);
-    }
+    // Bug 5 fix: un solo INSERT con todos los personajes del capítulo
+    const rows = personajesIds.map(personajeId => ({ perfil_id: perfilId, personaje_id: personajeId }));
+    const { data, error } = await supabase
+      .from("descubrimientos_personajes")
+      .insert(rows)
+      .select("personaje_id");
 
+    // Los que ya existían generan error 23505; data solo contiene los nuevos
+    const nuevos = (data ?? []).map((r: any) => r.personaje_id);
     if (nuevos.length > 0) {
       setDesbloqueados(nuevos);
       setMostrarCelebration(true);
     }
-  }, [personajesIds]);
+    // Retornar los IDs directamente para que el caller pueda encolarlos
+    // sin depender del estado React (que actualiza asíncronamente)
+    return nuevos;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [capId, idsKey]); // depende de capId (estable) + idsKey (string serializado, estable)
 
   const cerrar = useCallback(() => setMostrarCelebration(false), []);
 
@@ -46,13 +64,20 @@ export function useDesbloquearPersonajes(capId: string, personajesIds: string[] 
 
 /* ─────────────────────────────────────────────
    Toast de personajes desbloqueados
-   Se auto-cierra a los 6 segundos
+
+   FIXES:
+   - Bug 6: onClose se envuelve en ref interna para que el setTimeout
+     no se recree si el padre pasa una nueva referencia de onClose.
    ───────────────────────────────────────────── */
 export function PersonajesDesbloqueadosToast({ personajesIds, onClose }: {
   personajesIds: string[];
   onClose: () => void;
 }) {
   const [personajes, setPersonajes] = useState<{ id: string; nombre: string; img_url?: string }[]>([]);
+
+  // Bug 6 fix: ref estable para evitar recrear el timer
+  const onCloseRef = useRef(onClose);
+  useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
 
   useEffect(() => {
     if (!personajesIds.length) return;
@@ -61,12 +86,12 @@ export function PersonajesDesbloqueadosToast({ personajesIds, onClose }: {
       .select("id, nombre, img_url")
       .in("id", personajesIds)
       .then(({ data }) => { if (data) setPersonajes(data); });
-  }, [personajesIds]);
+  }, [personajesIds.join(",")]); // eslint-disable-line
 
   useEffect(() => {
-    const t = setTimeout(onClose, 6000);
+    const t = setTimeout(() => onCloseRef.current(), 6000);
     return () => clearTimeout(t);
-  }, [onClose]);
+  }, []); // sin dependencias: el timer se crea una sola vez
 
   if (!personajes.length) return null;
 

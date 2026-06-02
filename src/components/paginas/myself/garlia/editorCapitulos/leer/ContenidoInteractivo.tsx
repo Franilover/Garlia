@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Segment, SectionMap, parseContenido, parseSections } from "../snippets/type";
 import {
   CitaVisual, ImgInline, FloatWord, SoundInline,
-  DropWord, ChoiceButton, UseWord,
+  DropWord, ChoiceButton, UseWord, UseWordPortal,
 } from "./SegmentRenderers";
 import { renderMarkdown } from "@/components/forms/MarkdownEditor";
 
@@ -261,6 +261,10 @@ export function ContenidoInteractivo({
         fontFeatureSettings: '"kern" 1, "liga" 1, "onum" 1',
       }}
     >
+      {/* Bug 6 fix: UseWordPortal montado UNA vez — evita N ToastContainer/ConfirmModal
+          cuando hay múltiples segmentos "use" en el mismo capítulo */}
+      <UseWordPortal />
+
       {/* Contenido raíz — siempre visible */}
       <RenderSegmentos
         segs={sectionMap[""]}

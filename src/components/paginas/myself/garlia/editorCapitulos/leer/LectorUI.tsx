@@ -183,23 +183,36 @@ export function FinCapituloSeparador({ cap, onVisible }: {
   const onVisibleRef = useRef(onVisible);
   const [visible, setVisible] = useState(false);
 
-  // Mantener la ref actualizada sin re-crear el observer en cada render
-  useEffect(() => { onVisibleRef.current = onVisible; }, [onVisible]);
+  // Bug 4 fix: mantener ref actualizada SINCRÓNICAMENTE en el body del render,
+  // no en un useEffect, para que el observer siempre llame a la versión más reciente.
+  onVisibleRef.current = onVisible;
 
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
+
+    // Bug 7 fix: usar el scroll container real del lector como root.
+    // Si el observer usa window (root: null) en un scroll container custom,
+    // el elemento puede estar "en pantalla" del browser pero fuera del viewport visible.
+    const scrollContainer = document.getElementById("lector-scroll-container");
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
           setVisible(true);
           if (!firedRef.current) {
             firedRef.current = true;
-            onVisibleRef.current(); // usa ref para evitar closure stale
+            onVisibleRef.current();
           }
         }
       },
-      { threshold: 0.1 } // bajado de 0.5: el h-px nunca alcanzaba el 50%
+      {
+        root: scrollContainer ?? null,
+        threshold: 0.1,
+        // Pequeño margen negativo para asegurar que el separador está
+        // realmente visible antes de disparar (no solo solapando el borde)
+        rootMargin: "0px 0px -20px 0px",
+      }
     );
     observer.observe(el);
     return () => observer.disconnect();

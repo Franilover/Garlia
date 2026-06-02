@@ -6,40 +6,44 @@ import { supabase } from "@/lib/api/client/supabase";
 
 /* ─────────────────────────────────────────────
    Hook: desbloquear reinos al terminar un capítulo
-   Usa cap.reinos_ids (string[]) — análogo a usePersonajes.
-   Se dispara una sola vez por capítulo (ref guard).
+
+   FIXES aplicados (idénticos a usePersonajes):
+   - Bug 5: INSERT batch en lugar de bucle secuencial
+   - Bug 1: useCallback depende de capId + idsKey (strings estables)
+   - Bug 2: disparadoRef es un Set keyed por capId
+   - Bug 6: onClose en toast usa ref interna, timer se crea una sola vez
    ───────────────────────────────────────────── */
 export function useDesbloquearReinos(capId: string, reinosIds: string[] | undefined) {
   const [desbloqueados,      setDesbloqueados]      = useState<string[]>([]);
   const [mostrarCelebration, setMostrarCelebration] = useState(false);
-  const disparadoRef = useRef(false);
+
+  const disparadoRef = useRef<Set<string>>(new Set());
+  const idsKey = (reinosIds ?? []).join(",");
 
   const disparar = useCallback(async () => {
-    if (disparadoRef.current) return;
-    if (!reinosIds?.length) return;
+    if (disparadoRef.current.has(capId)) return [];
+    if (!reinosIds?.length) return [];
 
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user) return;
+    if (!session?.user) return [];
 
-    disparadoRef.current = true;
+    disparadoRef.current.add(capId);
+
     const perfilId = session.user.id;
-    const nuevos: string[] = [];
+    const rows = reinosIds.map(reinoId => ({ perfil_id: perfilId, reino_id: reinoId }));
+    const { data } = await supabase
+      .from("descubrimientos_reinos")
+      .insert(rows)
+      .select("reino_id");
 
-    for (const reinoId of reinosIds) {
-      const { error } = await supabase
-        .from("descubrimientos_reinos")
-        .insert({ perfil_id: perfilId, reino_id: reinoId })
-        .select()
-        .single();
-      // error.code "23505" = unique violation → ya estaba desbloqueado, no celebrar
-      if (!error) nuevos.push(reinoId);
-    }
-
+    const nuevos = (data ?? []).map((r: any) => r.reino_id);
     if (nuevos.length > 0) {
       setDesbloqueados(nuevos);
       setMostrarCelebration(true);
     }
-  }, [reinosIds]);
+    return nuevos;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [capId, idsKey]);
 
   const cerrar = useCallback(() => setMostrarCelebration(false), []);
 
@@ -48,7 +52,6 @@ export function useDesbloquearReinos(capId: string, reinosIds: string[] | undefi
 
 /* ─────────────────────────────────────────────
    Toast de reinos desbloqueados
-   Se auto-cierra a los 6 segundos
    ───────────────────────────────────────────── */
 export function ReinosDesbloqueadosToast({
   reinosIds,
@@ -59,6 +62,9 @@ export function ReinosDesbloqueadosToast({
 }) {
   const [reinos, setReinos] = useState<{ id: string; nombre: string; imagen_reino?: string | null }[]>([]);
 
+  const onCloseRef = useRef(onClose);
+  useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
+
   useEffect(() => {
     if (!reinosIds.length) return;
     supabase
@@ -66,12 +72,12 @@ export function ReinosDesbloqueadosToast({
       .select("id, nombre, imagen_reino")
       .in("id", reinosIds)
       .then(({ data }) => { if (data) setReinos(data); });
-  }, [reinosIds]);
+  }, [reinosIds.join(",")]); // eslint-disable-line
 
   useEffect(() => {
-    const t = setTimeout(onClose, 6000);
+    const t = setTimeout(() => onCloseRef.current(), 6000);
     return () => clearTimeout(t);
-  }, [onClose]);
+  }, []);
 
   if (!reinos.length) return null;
 

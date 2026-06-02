@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import { AlignLeft, Clock } from "lucide-react";
 import { AnimatePresence } from "framer-motion";
 import { CapituloScrollItem } from "../snippets/type";
@@ -12,8 +12,6 @@ import { useDesbloquearLugares, LugaresDesbloqueadosToast } from "./useLugares";
 
 /**
  * Estilos de fuente fluida para el lector.
- * Usamos container queries para que el tamaño de fuente responda al ancho
- * real del contenedor (que varía con el panel lateral y el zoom del navegador).
  */
 const FLUID_FONT_STYLES = `
   .lector-article-wrap {
@@ -48,52 +46,124 @@ const FLUID_FONT_STYLES = `
   }
 `;
 
-export function CapituloScrollBlock({ cap, onNavigate, esExtra = false, acumPersonajesIds, acumReinosIds, acumLugaresIds }: {
+/* ─────────────────────────────────────────────
+   Bug 3 fix: Cola global de toasts
+   Evita que múltiples toasts se sobrepongan en pantalla
+   cuando dos capítulos terminan casi al mismo tiempo
+   (scroll rápido, prefetch, etc.).
+
+   La cola muestra UN toast a la vez y avanza al siguiente
+   cuando el actual se cierra (manualmente o por timeout).
+   ───────────────────────────────────────────── */
+type ToastEntry =
+  | { tipo: "personajes"; ids: string[] }
+  | { tipo: "reinos";     ids: string[] }
+  | { tipo: "lugares";    ids: string[] };
+
+// Estado global fuera del árbol de React — no causa re-renders innecesarios
+const toastQueue: ToastEntry[] = [];
+const toastListeners = new Set<() => void>();
+
+function notifyListeners() {
+  toastListeners.forEach(fn => fn());
+}
+
+/** Encola un toast. Se muestra cuando termina el toast actual. */
+export function encolarToast(entry: ToastEntry) {
+  toastQueue.push(entry);
+  notifyListeners();
+}
+
+/** Hook para el componente que renderiza la cola */
+function useToastQueue() {
+  const [, forceUpdate] = useState(0);
+
+  useEffect(() => {
+    const update = () => forceUpdate(n => n + 1);
+    toastListeners.add(update);
+    return () => { toastListeners.delete(update); };
+  }, []);
+
+  const current = toastQueue[0] ?? null;
+
+  const avanzar = useCallback(() => {
+    toastQueue.shift();
+    notifyListeners();
+  }, []);
+
+  return { current, avanzar };
+}
+
+/**
+ * ToastPortal — se monta UNA SOLA VEZ en el árbol (en leerLibro.tsx).
+ * Renderiza el primer toast de la cola; al cerrarse avanza al siguiente.
+ * Exportado para que leerLibro.tsx lo incluya fuera del map de capítulos.
+ */
+export function ToastPortal() {
+  const { current, avanzar } = useToastQueue();
+
+  return (
+    <AnimatePresence mode="wait">
+      {current?.tipo === "personajes" && (
+        <PersonajesDesbloqueadosToast
+          key={`personajes-${current.ids.join(",")}`}
+          personajesIds={current.ids}
+          onClose={avanzar}
+        />
+      )}
+      {current?.tipo === "reinos" && (
+        <ReinosDesbloqueadosToast
+          key={`reinos-${current.ids.join(",")}`}
+          reinosIds={current.ids}
+          onClose={avanzar}
+        />
+      )}
+      {current?.tipo === "lugares" && (
+        <LugaresDesbloqueadosToast
+          key={`lugares-${current.ids.join(",")}`}
+          lugaresIds={current.ids}
+          onClose={avanzar}
+        />
+      )}
+    </AnimatePresence>
+  );
+}
+
+/* ─────────────────────────────────────────────
+   Componente de capítulo
+   ───────────────────────────────────────────── */
+export function CapituloScrollBlock({ cap, onNavigate, esExtra = false }: {
   cap: CapituloScrollItem;
   onNavigate: (capId: string) => void;
   esExtra?: boolean;
-  /** IDs acumulados de TODO el segmento — solo se pasan al último cap del segmento
-   *  para que su FinCapituloSeparador desbloquee de golpe todos los personajes/reinos/lugares. */
-  acumPersonajesIds?: string[];
-  acumReinosIds?: string[];
-  acumLugaresIds?: string[];
 }) {
   const words = (cap.contenido ?? "").trim()
     ? (cap.contenido ?? "").trim().split(/\s+/).length
     : 0;
 
-  // Si se pasaron ids acumulados (último cap del segmento), usarlos; si no, los propios del cap.
-  const personajesIdsEfectivos = acumPersonajesIds ?? cap.personajes_ids;
-  const reinosIdsEfectivos     = acumReinosIds     ?? (cap.reinos_ids as string[] | undefined);
-  const lugaresIdsEfectivos    = acumLugaresIds    ?? (cap as any).lugares_ids;
+  // Cada capítulo desbloquea únicamente sus propias entidades al completarse.
+  const personajesIdsEfectivos = cap.personajes_ids;
+  const reinosIdsEfectivos     = cap.reinos_ids as string[] | undefined;
+  const lugaresIdsEfectivos    = (cap as any).lugares_ids;
 
-  const {
-    disparar: dispararPersonajes,
-    mostrarCelebration: mostrarPersonajes,
-    desbloqueados: personajesDesbloqueados,
-    cerrar: cerrarPersonajes,
-  } = useDesbloquearPersonajes(cap.id, personajesIdsEfectivos);
+  const { disparar: dispararPersonajes } = useDesbloquearPersonajes(cap.id, personajesIdsEfectivos);
+  const { disparar: dispararReinos }     = useDesbloquearReinos(cap.id, reinosIdsEfectivos);
+  const { disparar: dispararLugares }    = useDesbloquearLugares(cap.id, lugaresIdsEfectivos);
 
-  const {
-    disparar: dispararReinos,
-    mostrarCelebration: mostrarReinos,
-    desbloqueados: reinosDesbloqueados,
-    cerrar: cerrarReinos,
-  } = useDesbloquearReinos(cap.id, reinosIdsEfectivos);
-
-  const {
-    disparar: dispararLugares,
-    mostrarCelebration: mostrarLugares,
-    desbloqueados: lugaresDesbloqueados,
-    cerrar: cerrarLugares,
-  } = useDesbloquearLugares(cap.id, lugaresIdsEfectivos);
-
-  // Dispara los tres hooks al llegar al final del capítulo
-  const handleFinCapitulo = () => {
-    dispararPersonajes();
-    dispararReinos();
-    dispararLugares();
-  };
+  // Bug 3 fix: en vez de mostrar toasts directamente, los encola.
+  // El ToastPortal (montado una sola vez en leerLibro) los muestra de uno en uno.
+  // disparar() retorna los IDs nuevos directamente (no depende del estado React,
+  // que actualiza asíncronamente y no estaría disponible aquí).
+  const handleFinCapitulo = useCallback(async () => {
+    const [nuevosPersonajes, nuevosReinos, nuevosLugares] = await Promise.all([
+      dispararPersonajes(),
+      dispararReinos(),
+      dispararLugares(),
+    ]);
+    if (nuevosPersonajes?.length) encolarToast({ tipo: "personajes", ids: nuevosPersonajes });
+    if (nuevosReinos?.length)     encolarToast({ tipo: "reinos",     ids: nuevosReinos });
+    if (nuevosLugares?.length)    encolarToast({ tipo: "lugares",    ids: nuevosLugares });
+  }, [dispararPersonajes, dispararReinos, dispararLugares]);
 
   return (
     <div id={`cap-${cap.id}`} className="lector-article-wrap scroll-mt-20">
@@ -141,33 +211,6 @@ export function CapituloScrollBlock({ cap, onNavigate, esExtra = false, acumPers
         </div>
 
         {!esExtra && <FinCapituloSeparador cap={cap} onVisible={handleFinCapitulo} />}
-
-        <AnimatePresence>
-          {mostrarPersonajes && (
-            <PersonajesDesbloqueadosToast
-              personajesIds={personajesDesbloqueados}
-              onClose={cerrarPersonajes}
-            />
-          )}
-        </AnimatePresence>
-
-        <AnimatePresence>
-          {mostrarReinos && (
-            <ReinosDesbloqueadosToast
-              reinosIds={reinosDesbloqueados}
-              onClose={cerrarReinos}
-            />
-          )}
-        </AnimatePresence>
-
-        <AnimatePresence>
-          {mostrarLugares && (
-            <LugaresDesbloqueadosToast
-              lugaresIds={lugaresDesbloqueados}
-              onClose={cerrarLugares}
-            />
-          )}
-        </AnimatePresence>
       </article>
     </div>
   );

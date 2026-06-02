@@ -111,6 +111,15 @@ export function SoundInline({ url, volume }: { url: string; volume: number }) {
   const [playing, setPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  useEffect(() => {
+    // Bug 5 fix: al cambiar la URL, pausar y resetear el audio anterior
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+      setPlaying(false);
+    }
+  }, [url]);
+
   useEffect(() => { return () => { audioRef.current?.pause(); }; }, []);
 
   const toggle = () => {
@@ -210,7 +219,8 @@ export function FloatWord({ word, url, caption }: { word: string; url: string; c
               className="fixed z-[56] pointer-events-auto"
               style={{
                 left: Math.min(Math.max(pos.x - 160, 12), (typeof window !== "undefined" ? window.innerWidth : 800) - 332),
-                top: Math.max(pos.y - 280 - window.scrollY, 12),
+                // Bug 4 fix: guard SSR para window.scrollY
+                top: Math.max(pos.y - 280 - (typeof window !== "undefined" ? window.scrollY : 0), 12),
                 width: 320,
               }}
             >
@@ -257,9 +267,14 @@ interface DropWordProps {
 export function DropWord({ word, tipo, entidadId, entidadNombre }: DropWordProps) {
   const [state, setState] = useState<DropState>("idle");
   const [open, setOpen]   = useState(false);
+  // Bug 1 fix: guard para evitar doble inserción por doble click o re-render
+  const insertandoRef = useRef(false);
 
   const handleClick = async () => {
     if (state === "success" || state === "already") return;
+    // Bug 1 fix: bloquear si ya hay una inserción en curso
+    if (insertandoRef.current) return;
+    insertandoRef.current = true;
     setOpen(true);
     setState("loading");
 
@@ -267,12 +282,15 @@ export function DropWord({ word, tipo, entidadId, entidadNombre }: DropWordProps
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { setState("no_auth"); return; }
 
-      const tablaMap = {
+      const tablaMap: Record<string, { tabla: string; col: string }> = {
         item:      { tabla: "descubrimientos_items",      col: "item_id"      },
         criatura:  { tabla: "descubrimientos_criaturas",  col: "criatura_id"  },
         personaje: { tabla: "descubrimientos_personajes", col: "personaje_id" },
       };
-      const { tabla, col } = tablaMap[tipo];
+      // Bug 2 fix: tipo no mapeado ya no explota — falla graciosamente
+      const mapping = tablaMap[tipo];
+      if (!mapping) { console.error("[DropWord] tipo desconocido:", tipo); setState("error"); return; }
+      const { tabla, col } = mapping;
 
       const { data: existing, error: checkError } = await supabase
         .from(tabla).select("id").eq("perfil_id", user.id).eq(col, entidadId).maybeSingle();
@@ -287,8 +305,19 @@ export function DropWord({ word, tipo, entidadId, entidadNombre }: DropWordProps
     } catch (err) {
       console.error("[DropWord Error]", err);
       setState("error");
+    } finally {
+      // Bug 1 fix: liberar el guard siempre, incluso en error
+      insertandoRef.current = false;
     }
   };
+
+  // Bug 3 fix: cerrar automáticamente el modal cuando el estado es terminal
+  useEffect(() => {
+    if (state === "success" || state === "already") {
+      const t = setTimeout(() => setOpen(false), 2200);
+      return () => clearTimeout(t);
+    }
+  }, [state]);
 
   const IconMap = { item: Package, criatura: Sword, personaje: User } as const;
   const Icon = IconMap[tipo] ?? Sparkles;
@@ -421,6 +450,39 @@ export function ChoiceButton({ label, onSelect }: { label: string; onSelect: () 
 // UseWord
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * Bug 6 fix: ToastContainer y ConfirmModal se mueven fuera de UseWord.
+ * Si hay varios UseWord en el capítulo se montaban N veces en el DOM
+ * causando colisiones de z-index y toasts duplicados.
+ * UseWordPortal se monta UNA sola vez en ContenidoInteractivo (o en el padre
+ * que corresponda), igual que ToastPortal en leerLibro.tsx.
+ */
+
+type UseWordSharedContext = {
+  toast:   ReturnType<typeof useToast>["toast"];
+  confirm: ReturnType<typeof useConfirm>["confirm"];
+};
+
+// Ref global para que UseWord pueda llamar a toast/confirm sin montar su propio portal
+let _useWordCtx: UseWordSharedContext | null = null;
+
+export function UseWordPortal() {
+  const { toasts, toast, dismiss } = useToast();
+  const { confirm, ConfirmModal }  = useConfirm();
+
+  useEffect(() => {
+    _useWordCtx = { toast, confirm };
+    return () => { _useWordCtx = null; };
+  }, [toast, confirm]);
+
+  return (
+    <>
+      <ToastContainer toasts={toasts} onDismiss={dismiss} />
+      <ConfirmModal />
+    </>
+  );
+}
+
 export function UseWord({ word, itemId, targetSuccess, targetFail, onNavigate }: {
   word:          string;
   itemId:        string;
@@ -428,10 +490,9 @@ export function UseWord({ word, itemId, targetSuccess, targetFail, onNavigate }:
   targetFail?:   string;
   onNavigate:    (capId: string) => void;
 }) {
-  const { toasts, toast, dismiss } = useToast();
-  const { confirm, ConfirmModal }  = useConfirm();
-
   const handleUse = async () => {
+    if (!_useWordCtx) return;
+    const { confirm, toast } = _useWordCtx;
     const ok = await confirm({
       title: "Usar objeto",
       message: `¿Quieres usar "${word}"?`,
@@ -449,15 +510,11 @@ export function UseWord({ word, itemId, targetSuccess, targetFail, onNavigate }:
   };
 
   return (
-    <>
-      <button
-        onClick={handleUse}
-        className="relative inline font-serif cursor-pointer group text-amber-600 hover:text-amber-700 font-bold transition-colors"
-      >
-        <span style={{ borderBottom: "2px dotted currentColor" }}>{word}</span>
-      </button>
-      <ToastContainer toasts={toasts} onDismiss={dismiss} />
-      <ConfirmModal />
-    </>
+    <button
+      onClick={handleUse}
+      className="relative inline font-serif cursor-pointer group text-amber-600 hover:text-amber-700 font-bold transition-colors"
+    >
+      <span style={{ borderBottom: "2px dotted currentColor" }}>{word}</span>
+    </button>
   );
 }
