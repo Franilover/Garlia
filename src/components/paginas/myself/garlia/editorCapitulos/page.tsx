@@ -24,6 +24,9 @@ import { makeSnippetOverlay } from "./snippets/SnippetOverlay";
 import { SnippetCommandPalette } from "./snippets/SnippetCommandPalette";
 import { MarkdownEditor, renderMarkdown, renderMathInElement, PROSE_STYLES } from "@/components/forms/MarkdownEditor";
 import type { CommandItem as MdCommandItem, SnippetAction } from "@/components/forms/MarkdownEditor";
+import { enqueueOperation } from "@/hooks/data/useOfflineSync";
+import { dexieCapWrite, dexieCapGet } from "./types";
+
 
 import {
   Libro, Capitulo, SaveStatus, TABLA_CAPS, VISIBILIDAD_CONFIG,
@@ -185,26 +188,36 @@ const PanelEditor = ({
     clearTimeout(timer.current);
     if (!isMountedRef.current) return;
     setSaveStatus("saving");
-    draft.save(val);
+     try {
+    const current = await dexieCapGet(capId);
+    await dexieCapWrite([{ ...(current ?? { id: capId }), contenido: val, status: "pending" }]);
+    await enqueueOperation("capitulos", "update", capId, { id: capId, contenido: val });
+  } catch (dexieErr) {
+    console.warn("[doSave] No se pudo persistir en Dexie:", dexieErr);
+  }
+ 
+  try {
+    await capUpdateContenido(capId, val);
+    if (!isMountedRef.current) return;
+    setCap(prev => prev ? { ...prev, contenido: val, status: "synced" } : prev);
     try {
-      await capUpdateContenido(capId, val);
-      if (!isMountedRef.current) return;
-      setCap(prev => prev ? { ...prev, contenido: val } : prev);
-      draft.clear();
-      const stillOnline = await isReallyOnline();
-      setSaveStatus(stillOnline ? "saved" : "pending");
-      if (stillOnline) setTimeout(() => {
-        if (isMountedRef.current) setSaveStatus("idle");
-      }, 2500);
-    } catch {
-      if (!isMountedRef.current) return;
-      setSaveStatus("pending");
-      setTimeout(() => {
-        if (isMountedRef.current) setSaveStatus(s => s === "pending" ? "idle" : s);
-      }, 5000);
-    }
-  }, [capId, setCap, draft]);
-
+      await dexieCapWrite([{ id: capId, contenido: val, status: "synced" }]);
+    } catch {}
+    draft.clear();
+    const stillOnline = await isReallyOnline();
+    setSaveStatus(stillOnline ? "saved" : "pending");
+    if (stillOnline) setTimeout(() => {
+      if (isMountedRef.current) setSaveStatus("idle");
+    }, 2500);
+  } catch {
+    if (!isMountedRef.current) return;
+    setSaveStatus("pending");
+    setTimeout(() => {
+      if (isMountedRef.current) setSaveStatus(s => s === "pending" ? "idle" : s);
+    }, 5000);
+  }
+}, [capId, setCap, draft]);
+ 
   const onChange = useCallback((val: string) => {
     setContenido(val);
     draft.save(val);
@@ -982,11 +995,14 @@ export function EditorCapitulosPanel() {
     setSidebarOpen(false);
   };
 
-  const handleCapCreada = (cap: Capitulo) => {
-    setCapitulos(prev => [...prev, cap]);
-    setSelectedCapId(cap.id);
-    setCapRefreshKey(k => k + 1);
-  };
+  const handleCapCreada = async (cap: Capitulo) => {
+      try {
+      await dexieCapWrite([{ ...cap, status: "synced" }]);
+      } catch {}
+      setCapitulos(prev => [...prev, cap]);
+      setSelectedCapId(cap.id);
+      setCapRefreshKey(k => k + 1);
+    };
 
   const handleCapEditada = (cap: Capitulo) => {
     setCapitulos(prev => prev.map(c => c.id === cap.id ? cap : c));
@@ -1011,13 +1027,18 @@ export function EditorCapitulosPanel() {
   };
 
   const handleCapEliminada = async (id: string, libroId: string) => {
+      try {
+    await capDelete(id);
     try {
-      await capDelete(id);
-      setCapitulos(prev => prev.filter(c => c.id !== id));
-      if (selectedCapId === id) setSelectedCapId(null);
-      setCapRefreshKey(k => k + 1);
+      const { db } = await import("@/lib/api/client/db");
+      await (db as any).capitulos?.delete(id);
     } catch {}
-  };
+    setCapitulos(prev => prev.filter(c => c.id !== id));
+    if (selectedCapId === id) setSelectedCapId(null);
+    setCapRefreshKey(k => k + 1);
+  } catch {}
+};
+
 
   const handleLibroEliminado = async (libroId: string) => {
     try {
