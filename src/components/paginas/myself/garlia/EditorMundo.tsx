@@ -2017,20 +2017,12 @@ function PanelListas({
           {/* HISTORIA */}
           {textos && onTextoChange && onSave && (
             <div className="border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-              <div className="shrink-0 flex items-center gap-2 px-3 py-2 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, transparent)" }}>
-                <Clock size={11} className="text-primary/40 shrink-0" />
-                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/50">{sl.historia}</span>
-              </div>
               <PanelHistoriaMundo texto={textos.historia} onChange={v => onTextoChange("historia", v)} onSave={() => onSave("historia")} />
             </div>
           )}
 
           {/* CAPÍTULOS */}
           <div ref={capitulosRef} style={{ minHeight: "60vh" }}>
-            <div className="shrink-0 flex items-center gap-2 px-3 py-2 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, transparent)" }}>
-              <BookOpen size={11} className="text-primary/40 shrink-0" />
-              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/50">{sl.capitulos}</span>
-            </div>
             <div className="flex flex-col min-h-0" style={{ minHeight: "58vh" }}>
               <EstudioCapitulos />
             </div>
@@ -2056,10 +2048,6 @@ function PanelListas({
 
           {/* ENTIDADES */}
           <div className="px-3 pb-3 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-            <div className="flex items-center gap-2 pt-3 pb-2">
-              <Globe size={11} className="text-primary/40 shrink-0" />
-              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/50">{sl.entidades}</span>
-            </div>
 
             <SeccionEntidades icon={Map} label={el.reinos} count={reinos.length} loading={loadingReinos}>
               {reinos.map(r => <Chip key={r.id} onClick={() => selectReino(r)} imgUrl={r.mapa_url} icon={Map} nombre={r.nombre} />)}
