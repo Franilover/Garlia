@@ -1523,9 +1523,10 @@ export function GlobalSearchBar({
           {onBack ? (
             <button
               onClick={onBack}
-              className="shrink-0 flex items-center justify-center w-5 h-5 rounded-md text-primary/40 hover:text-primary transition-colors"
+              className="shrink-0 flex items-center gap-1 px-1.5 h-5 rounded-md text-primary/40 hover:text-primary transition-colors"
             >
               <ChevronLeft size={14} />
+              <span className="text-[10px] font-bold">Volver</span>
             </button>
           ) : !focused && activeMundoLabel ? (
             (() => {
