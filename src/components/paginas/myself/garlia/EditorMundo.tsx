@@ -1373,6 +1373,49 @@ function PanelHistoriaMundo({
   );
 }
 
+// ─── Tipos de labels externalizados ──────────────────────────────────────────
+export type SectionLabels = {
+  historia?: string;
+  capitulos?: string;
+  entidades?: string;
+};
+
+export type EntityLabels = {
+  reinos?: string;
+  criaturas?: string;
+  personajes?: string;
+  objetos?: string;
+  lugares?: string;
+  hechizos?: string;
+  dones?: string;
+  runas?: string;
+  notas?: string;
+  grupos?: string;
+  canciones?: string;
+  plantas?: string;
+};
+
+const DEFAULT_SECTION_LABELS: Required<SectionLabels> = {
+  historia: "Historia",
+  capitulos: "Capítulos",
+  entidades: "Entidades",
+};
+
+const DEFAULT_ENTITY_LABELS: Required<EntityLabels> = {
+  reinos: "Reinos",
+  criaturas: "Criaturas",
+  personajes: "Personajes",
+  objetos: "Objetos",
+  lugares: "Lugares",
+  hechizos: "Hechizos",
+  dones: "Dones",
+  runas: "Runas",
+  notas: "Notas",
+  grupos: "Grupos",
+  canciones: "Canciones",
+  plantas: "Plantas",
+};
+
 // ─── EditorMundo unificado ────────────────────────────────────────────────────
 export function EditorMundo({
   textos,
@@ -1382,6 +1425,8 @@ export function EditorMundo({
   openItem,
   onOverlayChange,
   onItemCreated,
+  sectionLabels,
+  entityLabels,
 }: {
   textos: Record<MundoSectionKey, string>;
   onTextoChange: (section: MundoSectionKey, value: string) => void;
@@ -1390,6 +1435,8 @@ export function EditorMundo({
   openItem?: { tabla: string; id: string; key?: number } | null;
   onOverlayChange?: (hasOverlay: boolean, clearFn: () => void) => void;
   onItemCreated?: { tabla: string; item: any } | null;
+  sectionLabels?: SectionLabels;
+  entityLabels?: EntityLabels;
 }) {
   return (
     <div className="flex-1 flex min-h-0 overflow-hidden">
@@ -1401,6 +1448,8 @@ export function EditorMundo({
         onSave={onSave}
         onOverlayChange={onOverlayChange}
         onItemCreated={onItemCreated}
+        sectionLabels={sectionLabels}
+        entityLabels={entityLabels}
       />
     </div>
   );
@@ -1456,6 +1505,8 @@ const LS_SCROLL_KEY = "garlia-scroll-pos";
 function PanelListas({
   initialItemId, openItem,
   textos, onTextoChange, onSave, onOverlayChange, onItemCreated,
+  sectionLabels: sectionLabelsProp,
+  entityLabels: entityLabelsProp,
 }: {
   initialItemId?: string;
   openItem?: { tabla: string; id: string; key?: number } | null;
@@ -1464,7 +1515,13 @@ function PanelListas({
   onSave?: (section: MundoSectionKey) => Promise<void>;
   onOverlayChange?: (hasOverlay: boolean, clearFn: () => void) => void;
   onItemCreated?: { tabla: string; item: any } | null;
+  sectionLabels?: SectionLabels;
+  entityLabels?: EntityLabels;
 }) {
+  // ── Labels resueltos (prop > default) ────────────────────────────────────
+  const sl = { ...DEFAULT_SECTION_LABELS, ...sectionLabelsProp };
+  const el = { ...DEFAULT_ENTITY_LABELS,  ...entityLabelsProp  };
+
   // ── Datos — todos cargan al montar ───────────────────────────────────────
   const { reinos,    setReinos,    loading: loadingReinos    } = useReinos();
   const { criaturas, setCriaturas, loading: loadingCriaturas } = useCriaturas();
@@ -1962,7 +2019,7 @@ function PanelListas({
             <div className="border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
               <div className="shrink-0 flex items-center gap-2 px-3 py-2 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, transparent)" }}>
                 <Clock size={11} className="text-primary/40 shrink-0" />
-                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/50">Historia</span>
+                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/50">{sl.historia}</span>
               </div>
               <PanelHistoriaMundo texto={textos.historia} onChange={v => onTextoChange("historia", v)} onSave={() => onSave("historia")} />
             </div>
@@ -1972,7 +2029,7 @@ function PanelListas({
           <div ref={capitulosRef} style={{ minHeight: "60vh" }}>
             <div className="shrink-0 flex items-center gap-2 px-3 py-2 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, transparent)" }}>
               <BookOpen size={11} className="text-primary/40 shrink-0" />
-              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/50">Capítulos</span>
+              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/50">{sl.capitulos}</span>
             </div>
             <div className="flex flex-col min-h-0" style={{ minHeight: "58vh" }}>
               <EstudioCapitulos />
@@ -2001,30 +2058,30 @@ function PanelListas({
           <div className="px-3 pb-3 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
             <div className="flex items-center gap-2 pt-3 pb-2">
               <Globe size={11} className="text-primary/40 shrink-0" />
-              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/50">Entidades</span>
+              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/50">{sl.entidades}</span>
             </div>
 
-            <SeccionEntidades icon={Map} label="Reinos" count={reinos.length} loading={loadingReinos}>
+            <SeccionEntidades icon={Map} label={el.reinos} count={reinos.length} loading={loadingReinos}>
               {reinos.map(r => <Chip key={r.id} onClick={() => selectReino(r)} imgUrl={r.mapa_url} icon={Map} nombre={r.nombre} />)}
             </SeccionEntidades>
             <div className={div} style={divStyle} />
 
-            <SeccionEntidades icon={Bug} label="Criaturas" count={criaturas.length} loading={loadingCriaturas}>
+            <SeccionEntidades icon={Bug} label={el.criaturas} count={criaturas.length} loading={loadingCriaturas}>
               {criaturas.map(c => <Chip key={c.id} onClick={() => selectCriatura(c)} imgUrl={c.imagen_url} icon={Bug} nombre={c.nombre} />)}
             </SeccionEntidades>
             <div className={div} style={divStyle} />
 
-            <SeccionEntidades icon={Users} label="Personajes" count={personajes.length} loading={loadingPersonajes}>
+            <SeccionEntidades icon={Users} label={el.personajes} count={personajes.length} loading={loadingPersonajes}>
               {personajes.map(p => <Chip key={p.id} onClick={() => selectPersonaje(p)} imgUrl={p.img_url} icon={UserCircle2} nombre={p.nombre} />)}
             </SeccionEntidades>
             <div className={div} style={divStyle} />
 
-            <SeccionEntidades icon={Package} label="Objetos" count={objetos.length} loading={loadingObjetos}>
+            <SeccionEntidades icon={Package} label={el.objetos} count={objetos.length} loading={loadingObjetos}>
               {objetos.map(o => <Chip key={o.id} onClick={() => selectObjeto(o)} imgUrl={o.imagen_url} icon={Package} nombre={o.nombre} />)}
             </SeccionEntidades>
             <div className={div} style={divStyle} />
 
-            <SeccionEntidades icon={MapPin} label="Lugares" count={lugares.length} loading={loadingLugares}>
+            <SeccionEntidades icon={MapPin} label={el.lugares} count={lugares.length} loading={loadingLugares}>
               {lugares.map(l => (
                 <Chip key={l.id} onClick={async () => {
                   try { const { data } = await supabase.from("lugares").select("*").eq("id", l.id).single(); if (data) { selectLugar(data as Lugar); return; } } catch {}
@@ -2034,24 +2091,24 @@ function PanelListas({
             </SeccionEntidades>
             <div className={div} style={divStyle} />
 
-            <SeccionEntidades icon={Sparkles} label="Hechizos" count={hechizos.length} loading={loadingHechizos}>
+            <SeccionEntidades icon={Sparkles} label={el.hechizos} count={hechizos.length} loading={loadingHechizos}>
               {hechizos.map(h => <Chip key={h.id} onClick={() => selectHechizo(h)} icon={Sparkles} nombre={h.nombre}
                 accentBg="color-mix(in srgb, var(--accent) 5%, transparent)" accentBorder="color-mix(in srgb, var(--accent) 15%, transparent)" accentText="color-mix(in srgb, var(--accent) 80%, var(--primary))" />)}
             </SeccionEntidades>
             <div className={div} style={divStyle} />
 
-            <SeccionEntidades icon={Star} label="Dones" count={dones.length} loading={loadingDones}>
+            <SeccionEntidades icon={Star} label={el.dones} count={dones.length} loading={loadingDones}>
               {dones.map(d => <Chip key={d.id} onClick={() => selectDon(d)} icon={Star} nombre={d.nombre}
                 accentBg="color-mix(in srgb, var(--accent) 4%, transparent)" accentBorder="color-mix(in srgb, var(--accent) 13%, transparent)" accentText="color-mix(in srgb, var(--accent) 75%, var(--primary))" />)}
             </SeccionEntidades>
             <div className={div} style={divStyle} />
 
-            <SeccionEntidades icon={ScrollText} label="Runas" count={runas.length} loading={loadingRunas}>
+            <SeccionEntidades icon={ScrollText} label={el.runas} count={runas.length} loading={loadingRunas}>
               {runas.map(r => <Chip key={r.id} onClick={() => selectRuna(r)} imgUrl={r.imagen_url} icon={ScrollText} nombre={r.nombre} />)}
             </SeccionEntidades>
             <div className={div} style={divStyle} />
 
-            <SeccionEntidades icon={FileText} label="Notas" count={notas.length} loading={loadingNotas}>
+            <SeccionEntidades icon={FileText} label={el.notas} count={notas.length} loading={loadingNotas}>
               {notas.map(n => (
                 <button key={n.id} onClick={() => setSelectedNota(n)} type="button"
                   className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02]"
@@ -2063,7 +2120,7 @@ function PanelListas({
             </SeccionEntidades>
             <div className={div} style={divStyle} />
 
-            <SeccionEntidades icon={Layers} label="Grupos" count={grupos.length} loading={!loadedGrupos}>
+            <SeccionEntidades icon={Layers} label={el.grupos} count={grupos.length} loading={!loadedGrupos}>
               {grupos.map(g => {
                 const cfg = GRUPO_TIPO_CONFIG[g.tipo as keyof typeof GRUPO_TIPO_CONFIG];
                 return (
@@ -2089,14 +2146,14 @@ function PanelListas({
             </SeccionEntidades>
             <div className={div} style={divStyle} />
 
-            <SeccionEntidades icon={Music} label="Canciones" count={canciones.length} loading={loadingCanciones} cols={1}>
+            <SeccionEntidades icon={Music} label={el.canciones} count={canciones.length} loading={loadingCanciones} cols={1}>
               {canciones.map(c => (
                 <Chip key={c.id} onClick={() => selectCancion(c as unknown as Cancion)} icon={Music} nombre={c.titulo} />
               ))}
             </SeccionEntidades>
             <div className={div} style={divStyle} />
 
-            <SeccionEntidades icon={Leaf} label="Plantas" count={plantas.length} loading={loadingPlantas}>
+            <SeccionEntidades icon={Leaf} label={el.plantas} count={plantas.length} loading={loadingPlantas}>
               {plantas.map(p => (
                 <Chip key={p.id}
                   onClick={() => selectPlanta(p)}

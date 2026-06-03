@@ -12,7 +12,7 @@ import {
 } from "./components/types";
 import { useMundoSecciones } from "./components/hooks";
 import { GlobalSearchBar, ModalAcontecimiento, ModalNuevoGrupo, type AllItems, type MagicAddKey } from "./components/SidebarComponents";
-import { EditorMundo }     from "./EditorMundo";
+import { EditorMundo, type SectionLabels, type EntityLabels } from "./EditorMundo";
 import { EditorHechizos }  from "./EditorHechizos";
 import { EditorGrupoStandalone } from "./EditorGrupo";
 import { EditorPlanta, type Planta } from "./EditorPlanta";
@@ -244,7 +244,13 @@ const MUNDO_TABLAS: Partial<Record<Exclude<TabKey, "mundo">, string>> = {
 };
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
-export default function EditorEntidades() {
+export default function EditorEntidades({
+  sectionLabels,
+  entityLabels,
+}: {
+  sectionLabels?: SectionLabels;
+  entityLabels?: EntityLabels;
+} = {}) {
   const session = useRef(readSession());
 
   const [tab,          setTab]          = useState<TabKey>(session.current.tab);
@@ -628,6 +634,8 @@ export default function EditorEntidades() {
                 setHasOverlay(active);
                 overlayCloseFnRef.current = clearFn;
               }}
+              sectionLabels={sectionLabels}
+              entityLabels={entityLabels}
             />
           ) : isGruposTab ? (
             <EditorGrupoStandalone
