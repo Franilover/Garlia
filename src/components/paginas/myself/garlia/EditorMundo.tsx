@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
+import { enqueueOperation, isReallyOnline, onSyncDone } from "@/hooks/data/useOfflineSync";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { MUNDO_SECTIONS, type MundoSectionKey, type SaveStatus, type Reino, type Personaje, type Nota } from "./components/types";
 import { SaveIndicator, SelectorImagen } from "./components/UIComponents";
@@ -849,32 +850,33 @@ type CapTimeline = {
 function useReinosConHistoria() {
   const [reinos, setReinos] = useState<Reino[]>([]);
   const [loading, setLoading] = useState(true);
-  const loadedRef = useRef(false); // evita re-inicializar desde Dexie si ya tenemos datos remotos
+  const isMounted = useRef(true);
 
   const cargar = useCallback(async (force = false) => {
+    if (!isMounted.current) return;
     if (!force) setLoading(true);
 
-    // 1. Dexie primero — solo si aún no tenemos datos remotos
-    if (!loadedRef.current) {
-      try {
-        const local: any[] = db ? await (db as any).reinos?.toArray() ?? [] : [];
-        const filtered = local.filter((r: any) => !r.deleted);
-        if (filtered.length) {
-          setReinos(filtered as Reino[]);
-          setLoading(false);
-        }
-      } catch {}
-    }
+    // 1. Dexie primero — respuesta inmediata aunque estemos offline
+    try {
+      const local: any[] = db ? await (db as any).reinos?.toArray() ?? [] : [];
+      const filtered = local.filter((r: any) => !r.deleted);
+      if (filtered.length && isMounted.current) {
+        setReinos(filtered as Reino[]);
+        setLoading(false);
+      }
+    } catch {}
 
-    // 2. Supabase — siempre, trae historia completa
-    if (!navigator.onLine) { setLoading(false); return; }
+    // 2. Supabase — solo si hay conexión real
+    const online = await isReallyOnline();
+    if (!online || !isMounted.current) { setLoading(false); return; }
+
     try {
       const { data } = await supabase
         .from("reinos")
         .select("*") // necesitamos historia completa
         .order("nombre");
+      if (!isMounted.current) return;
       if (data?.length) {
-        loadedRef.current = true;
         setReinos(data as Reino[]);
         // Persistir en Dexie con historia incluida
         try {
@@ -882,10 +884,27 @@ function useReinosConHistoria() {
         } catch {}
       }
     } catch {}
-    setLoading(false);
+
+    if (isMounted.current) setLoading(false);
   }, []);
 
-  useEffect(() => { cargar(); }, [cargar]);
+  useEffect(() => {
+    isMounted.current = true;
+    cargar();
+
+    // Recargar al recuperar conexión
+    const handleOnline = () => { cargar(true); };
+    window.addEventListener("online", handleOnline);
+
+    // Recargar cuando el sync offline termina de subir cambios
+    const unsubSync = onSyncDone(() => { if (isMounted.current) cargar(true); });
+
+    return () => {
+      isMounted.current = false;
+      window.removeEventListener("online", handleOnline);
+      unsubSync();
+    };
+  }, [cargar]);
 
   return { reinos, setReinos, loading, recargar: () => cargar(true) };
 }
@@ -927,18 +946,54 @@ function PanelHistoriaMundo({
   const [capsReinosIds, setCapsReinosIds] = useState<Record<string, string[]>>({});
 
   useEffect(() => {
-    // Query 1: capítulos con orden_linea_tiempo → se muestran en la pista
-    supabase
-      .from("capitulos")
-      .select("id, libro_id, titulo_capitulo, orden_linea_tiempo, reinos_ids")
-      .not("orden_linea_tiempo", "is", null)
-      .then(async ({ data }) => {
-        if (!data?.length) return;
+    let cancelled = false;
+
+    const cargarCaps = async () => {
+      // 1. Leer de Dexie primero para mostrar datos offline inmediatamente
+      try {
+        if (db) {
+          const localCaps: any[] = await (db as any).capitulos?.toArray() ?? [];
+          const localLibros: any[] = await (db as any).libros?.toArray() ?? [];
+          const libroMapLocal: Record<string, string> = {};
+          localLibros.forEach((l: any) => { libroMapLocal[l.id] = l.titulo ?? ""; });
+
+          const conOrden = localCaps.filter((c: any) => c.orden_linea_tiempo != null);
+          if (conOrden.length && !cancelled) {
+            setCapsTimeline(conOrden.map((c: any) => ({
+              id: c.id,
+              libro_id: c.libro_id,
+              titulo_capitulo: c.titulo_capitulo,
+              orden_linea_tiempo: c.orden_linea_tiempo,
+              libroTitulo: libroMapLocal[c.libro_id] ?? "",
+              reinos_ids: c.reinos_ids ?? [],
+            })));
+          }
+
+          const mapLocal: Record<string, string[]> = {};
+          localCaps.forEach((c: any) => { if (c.reinos_ids?.length) mapLocal[c.id] = c.reinos_ids; });
+          if (Object.keys(mapLocal).length && !cancelled) setCapsReinosIds(mapLocal);
+        }
+      } catch {}
+
+      // 2. Fetch remoto si hay conexión
+      const online = await isReallyOnline();
+      if (!online || cancelled) return;
+
+      // Query 1: capítulos con orden_linea_tiempo → se muestran en la pista
+      try {
+        const { data } = await supabase
+          .from("capitulos")
+          .select("id, libro_id, titulo_capitulo, orden_linea_tiempo, reinos_ids")
+          .not("orden_linea_tiempo", "is", null);
+        if (!data?.length || cancelled) return;
+
         const libroIds = [...new Set(data.map((c: any) => c.libro_id))];
         const { data: libros } = await supabase
           .from("libros")
           .select("id, titulo")
           .in("id", libroIds);
+        if (cancelled) return;
+
         const libroMap: Record<string, string> = {};
         (libros ?? []).forEach((l: any) => { libroMap[l.id] = l.titulo; });
         setCapsTimeline(
@@ -951,22 +1006,33 @@ function PanelHistoriaMundo({
             reinos_ids: c.reinos_ids ?? [],
           }))
         );
-      });
+      } catch {}
 
-    // Query 2: todos los capítulos con reinos_ids → alimenta los botones de filtro
-    // (aunque no tengan número en la línea de tiempo)
-    supabase
-      .from("capitulos")
-      .select("id, reinos_ids")
-      .not("reinos_ids", "is", null)
-      .then(({ data }) => {
-        if (!data?.length) return;
+      // Query 2: todos los capítulos con reinos_ids → alimenta los botones de filtro
+      try {
+        const { data } = await supabase
+          .from("capitulos")
+          .select("id, reinos_ids")
+          .not("reinos_ids", "is", null);
+        if (!data?.length || cancelled) return;
         const map: Record<string, string[]> = {};
         for (const c of data as any[]) {
           if (c.reinos_ids?.length) map[c.id] = c.reinos_ids;
         }
         setCapsReinosIds(map);
-      });
+      } catch {}
+    };
+
+    cargarCaps();
+
+    // Recargar al volver online
+    const handleOnline = () => { cargarCaps(); };
+    window.addEventListener("online", handleOnline);
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener("online", handleOnline);
+    };
   }, []);
 
   // ── reinoEvents: se inicializa UNA SOLA VEZ por reino, no se re-inicializa ──
@@ -1012,12 +1078,29 @@ function PanelHistoriaMundo({
 
   const saveReinoHistory = useCallback(async (reinoId: string, evts: TimelineEvent[]) => {
     const encoded = encodeTimeline(evts);
-    const { error } = await supabase.from("reinos").update({ historia: encoded }).eq("id", reinoId);
-    if (!error) {
-      setReinos(prev => prev.map(r => r.id === reinoId ? { ...r, historia: encoded } as Reino : r));
-      void dexiePut("reinos", { id: reinoId, historia: encoded });
+
+    // Siempre persistir en Dexie de inmediato
+    try {
+      if (db) {
+        const existing = await (db as any).reinos?.get(reinoId);
+        await (db as any).reinos?.put({ ...(existing ?? {}), id: reinoId, historia: encoded });
+      }
+    } catch {}
+
+    // Actualizar estado local optimistamente
+    setReinos(prev => prev.map(r => r.id === reinoId ? { ...r, historia: encoded } as Reino : r));
+
+    const online = await isReallyOnline();
+    if (!online) {
+      // Encolar para sync cuando vuelva internet
+      try {
+        await enqueueOperation("reinos", "update", reinoId, { id: reinoId, historia: encoded });
+      } catch {}
+      return null;
     }
-    return error;
+
+    const { error } = await supabase.from("reinos").update({ historia: encoded }).eq("id", reinoId);
+    return error ?? null;
   }, [setReinos]);
 
   const [filterReino, setFilterReino] = useState<string | null>(null);
