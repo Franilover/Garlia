@@ -12,8 +12,8 @@ export function usePersonajes() {
   const [loading,    setLoading]    = useState(true);
 
   useEffect(() => {
-    
     (async () => {
+      // 1️⃣ Dexie first — show cached data immediately
       try {
         const table = (db as any)["personajes"];
         if (table) {
@@ -22,8 +22,10 @@ export function usePersonajes() {
         }
       } catch {}
 
-      
+      // 2️⃣ Bail out if offline
       if (!navigator.onLine) { setLoading(false); return; }
+
+      // 3️⃣ Refresh from Supabase and update cache
       try {
         const { data } = await supabase
           .from("personajes")
@@ -31,7 +33,6 @@ export function usePersonajes() {
           .order("nombre", { ascending: true });
         if (data) {
           setPersonajes(data as Personaje[]);
-          
           try {
             const table = (db as any)["personajes"];
             if (table) await table.bulkPut(data);

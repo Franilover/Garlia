@@ -10,6 +10,7 @@ import { SaveIndicator } from "@/components/templates/EstudioTemplates";
 import SimpleImagePicker from "@/components/paginas/myself/garlia/editorCapitulos/snippets//forms/SimpleImagePicker";
 import { usePersonajes } from "@/hooks/useEditorShared";
 import { supabase } from "@/lib/api/client/supabase";
+import { db } from "@/lib/api/client/db";
 import {
   Libro, Capitulo,
   VISIBILIDAD_CONFIG,
@@ -982,10 +983,32 @@ function useCriaturas() {
   const [criaturas, setCriaturas] = useState<{ id: string; nombre: string; imagen_url?: string }[]>([]);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
-    supabase.from("criaturas").select("id, nombre, imagen_url").order("nombre").then(({ data }) => {
-      setCriaturas((data ?? []) as any[]);
+    (async () => {
+      // 1️⃣ Dexie first
+      try {
+        const table = (db as any)["criaturas"];
+        if (table) {
+          const local = await table.orderBy("nombre").toArray();
+          if (local.length > 0) { setCriaturas(local); setLoading(false); }
+        }
+      } catch {}
+
+      // 2️⃣ Bail if offline
+      if (!navigator.onLine) { setLoading(false); return; }
+
+      // 3️⃣ Refresh from Supabase and update cache
+      try {
+        const { data } = await supabase.from("criaturas").select("id, nombre, imagen_url").order("nombre");
+        if (data) {
+          setCriaturas(data as any[]);
+          try {
+            const table = (db as any)["criaturas"];
+            if (table) await table.bulkPut(data);
+          } catch {}
+        }
+      } catch {}
       setLoading(false);
-    });
+    })();
   }, []);
   return { criaturas, loading };
 }
@@ -994,10 +1017,32 @@ function useItems() {
   const [items, setItems] = useState<{ id: string; nombre: string; imagen_url?: string; categoria?: string }[]>([]);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
-    supabase.from("items").select("id, nombre, imagen_url, categoria").order("nombre").then(({ data }) => {
-      setItems((data ?? []) as any[]);
+    (async () => {
+      // 1️⃣ Dexie first
+      try {
+        const table = (db as any)["items"];
+        if (table) {
+          const local = await table.orderBy("nombre").toArray();
+          if (local.length > 0) { setItems(local); setLoading(false); }
+        }
+      } catch {}
+
+      // 2️⃣ Bail if offline
+      if (!navigator.onLine) { setLoading(false); return; }
+
+      // 3️⃣ Refresh from Supabase and update cache
+      try {
+        const { data } = await supabase.from("items").select("id, nombre, imagen_url, categoria").order("nombre");
+        if (data) {
+          setItems(data as any[]);
+          try {
+            const table = (db as any)["items"];
+            if (table) await table.bulkPut(data);
+          } catch {}
+        }
+      } catch {}
       setLoading(false);
-    });
+    })();
   }, []);
   return { items, loading };
 }
@@ -1006,10 +1051,32 @@ function useLugares() {
   const [lugares, setLugares] = useState<{ id: string; nombre: string; imagen_url?: string | null }[]>([]);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
-    supabase.from("lugares").select("id, nombre, imagen_url").order("nombre").then(({ data }) => {
-      setLugares((data ?? []) as any[]);
+    (async () => {
+      // 1️⃣ Dexie first
+      try {
+        const table = (db as any)["lugares"];
+        if (table) {
+          const local = await table.orderBy("nombre").toArray();
+          if (local.length > 0) { setLugares(local); setLoading(false); }
+        }
+      } catch {}
+
+      // 2️⃣ Bail if offline
+      if (!navigator.onLine) { setLoading(false); return; }
+
+      // 3️⃣ Refresh from Supabase and update cache
+      try {
+        const { data } = await supabase.from("lugares").select("id, nombre, imagen_url").order("nombre");
+        if (data) {
+          setLugares(data as any[]);
+          try {
+            const table = (db as any)["lugares"];
+            if (table) await table.bulkPut(data);
+          } catch {}
+        }
+      } catch {}
       setLoading(false);
-    });
+    })();
   }, []);
   return { lugares, loading };
 }
