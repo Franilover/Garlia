@@ -416,8 +416,17 @@ const FormNuevoItem = ({ categoriaId, orden, onGuardar, onCancelar }: FormNuevoI
         </div>
         <input
           value={url}
-          onChange={e => setUrl(e.target.value)}
-          placeholder="URL (opcional) · arrastra un enlace de YouTube…"
+          onChange={async e => {
+            const val = e.target.value;
+            setUrl(val);
+            if (isYoutubeUrl(val) && !titulo.trim()) {
+              setFetchingTitle(true);
+              const fetched = await fetchYoutubeTitle(val);
+              setFetchingTitle(false);
+              if (fetched) setTitulo(fetched);
+            }
+          }}
+          placeholder="URL (opcional) · arrastra o pega un enlace de YouTube…"
           className={inputCls}
         />
         <input
