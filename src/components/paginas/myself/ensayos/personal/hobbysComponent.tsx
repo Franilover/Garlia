@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import {
-  Plus, Check, X, ChevronDown, Loader2,
+  Plus, Check, X, ChevronDown, Loader2, Pencil as PencilIcon,
   Guitar, Palette, BookOpen, PenLine, Brain, Dumbbell, Gamepad2,
   Theater, Camera, Music, ChefHat, Leaf, Puzzle, Target, Pencil,
   Clapperboard, Mic, PersonStanding, Mountain, Music2,
@@ -108,6 +108,18 @@ const hobbysQueries = {
     const { data, error } = await sb
       .from("hobbys")
       .insert({ ...hobby, user_id: user?.id })
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  async update(id: string, datos: Partial<Omit<Hobby, "id">>): Promise<Hobby> {
+    const sb = await getSupabase();
+    const { data, error } = await sb
+      .from("hobbys")
+      .update(datos)
+      .eq("id", id)
       .select()
       .single();
     if (error) throw error;
@@ -256,6 +268,101 @@ const FormNuevoHobby = ({ onGuardar, onCancelar, guardando, orden }: FormNuevoHo
   );
 };
 
+// ─── Form Editar Hobby ────────────────────────────────────────────────────────
+
+interface FormEditarHobbyProps {
+  hobby: Hobby;
+  onGuardar: (datos: Partial<Omit<Hobby, "id">>) => Promise<void>;
+  onCancelar: () => void;
+  guardando: boolean;
+}
+
+const FormEditarHobby = ({ hobby, onGuardar, onCancelar, guardando }: FormEditarHobbyProps) => {
+  const [nombre, setNombre]   = useState(hobby.nombre);
+  const [icon, setIcon]       = useState(hobby.icon);
+  const [freqDia, setFreqDia] = useState(hobby.freq_dia);
+  const [freqSem, setFreqSem] = useState(hobby.freq_sem);
+  const [nota, setNota]       = useState(hobby.nota ?? "");
+
+  const handleGuardar = () => {
+    if (!nombre.trim()) return;
+    onGuardar({ nombre: nombre.trim(), icon, freq_dia: freqDia, freq_sem: freqSem, nota: nota.trim() });
+  };
+
+  return (
+    <div className="px-4 pb-4 border-t border-primary/5 pt-3 space-y-3">
+      <p className="text-[9px] font-black uppercase tracking-widest text-primary/40">Editar hobby</p>
+
+      <input
+        value={nombre}
+        onChange={e => setNombre(e.target.value)}
+        placeholder="Nombre del hobby..."
+        className={inputCls}
+        onKeyDown={e => e.key === "Enter" && handleGuardar()}
+        autoFocus
+      />
+
+      {/* Selector de icono */}
+      <div>
+        <p className="text-[9px] font-black uppercase tracking-widest text-primary/30 mb-2">Icono</p>
+        <div className="flex flex-wrap gap-1.5">
+          {HOBBY_ICONS.map(({ name, component: Icon, label }) => (
+            <button
+              key={name}
+              type="button"
+              title={label}
+              onClick={() => setIcon(name)}
+              className={cn(
+                "w-9 h-9 rounded-[var(--radius-btn)] flex items-center justify-center transition-all border-[length:var(--border-width)]",
+                icon === name
+                  ? "bg-primary text-btn-text border-primary"
+                  : "bg-primary/5 text-primary/50 border-transparent hover:bg-primary/10 hover:text-primary/70"
+              )}
+            >
+              <Icon size={16} />
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Frecuencia */}
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <p className="text-[9px] font-black uppercase tracking-widest text-primary/30 mb-1.5">Veces al día</p>
+          <select value={freqDia} onChange={e => setFreqDia(parseInt(e.target.value))} className={selectCls}>
+            {[1, 2, 3, 4].map(n => <option key={n} value={n}>{n}x al día</option>)}
+          </select>
+        </div>
+        <div>
+          <p className="text-[9px] font-black uppercase tracking-widest text-primary/30 mb-1.5">Días por semana</p>
+          <select value={freqSem} onChange={e => setFreqSem(parseInt(e.target.value))} className={selectCls}>
+            {[1, 2, 3, 4, 5, 6, 7].map(n => <option key={n} value={n}>{n} días / sem</option>)}
+          </select>
+        </div>
+      </div>
+
+      <input value={nota} onChange={e => setNota(e.target.value)} placeholder="Nota opcional..." className={inputCls} />
+
+      <div className="flex gap-2">
+        <button
+          onClick={onCancelar}
+          className="flex-1 py-2 rounded-[var(--radius-btn)] border-[length:var(--border-width)] border-primary/15 text-sm font-black text-primary/60 hover:bg-primary/4 transition-all"
+        >
+          Cancelar
+        </button>
+        <button
+          onClick={handleGuardar}
+          disabled={!nombre.trim() || guardando}
+          className="flex-1 py-2 rounded-[var(--radius-btn)] bg-primary text-btn-text text-sm font-black hover:opacity-90 disabled:opacity-40 transition-all flex items-center justify-center gap-2"
+        >
+          {guardando ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+          Guardar
+        </button>
+      </div>
+    </div>
+  );
+};
+
 // ─── Card de Hobby ─────────────────────────────────────────────────────────────
 
 interface CardHobbyProps {
@@ -263,15 +370,29 @@ interface CardHobbyProps {
   registro: Registro | undefined;
   onToggleDia: (hobbyId: string, diaIdx: number) => void;
   onEliminar: (id: string) => void;
+  onEditar: (id: string, datos: Partial<Omit<Hobby, "id">>) => Promise<void>;
 }
 
-const CardHobby = ({ hobby, registro, onToggleDia, onEliminar }: CardHobbyProps) => {
+const CardHobby = ({ hobby, registro, onToggleDia, onEliminar, onEditar }: CardHobbyProps) => {
   const [expandido, setExpandido] = useState(false);
+  const [editando, setEditando]   = useState(false);
+  const [guardando, setGuardando] = useState(false);
   const dias = registro?.dias ?? Array(7).fill(false);
   const hechos = dias.filter(Boolean).length;
   const pct = Math.min(100, Math.round((hechos / hobby.freq_sem) * 100));
   const completado = hechos >= hobby.freq_sem;
   const today = getTodayIdx();
+
+  const handleEditar = async (datos: Partial<Omit<Hobby, "id">>) => {
+    setGuardando(true);
+    try {
+      await onEditar(hobby.id, datos);
+      setEditando(false);
+      setExpandido(false);
+    } finally {
+      setGuardando(false);
+    }
+  };
 
   return (
     <div className="bg-white-custom border-[length:var(--border-width)] border-primary/10 rounded-[var(--radius-card)] overflow-hidden">
@@ -318,7 +439,7 @@ const CardHobby = ({ hobby, registro, onToggleDia, onEliminar }: CardHobbyProps)
         </div>
       </div>
 
-      {/* Días (se expanden) */}
+      {/* Días / Edición (se expanden) */}
       <AnimatePresence>
         {expandido && (
           <motion.div
@@ -328,40 +449,57 @@ const CardHobby = ({ hobby, registro, onToggleDia, onEliminar }: CardHobbyProps)
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <div className="px-4 pb-4 border-t border-primary/5 pt-3">
-              <p className="text-[8px] font-black uppercase tracking-widest text-primary/25 mb-2">Esta semana</p>
-              <div className="flex gap-1.5">
-                {DIAS.map((d, i) => {
-                  const done = dias[i];
-                  const isToday = i === today;
-                  return (
-                    <button
-                      key={d}
-                      onClick={() => onToggleDia(hobby.id, i)}
-                      title={`${done ? "Desmarcar" : "Marcar"} — ${DIAS_FULL[i]}`}
-                      className={cn(
-                        "flex-1 py-2 rounded-[var(--radius-btn)] border-[length:var(--border-width)] text-[9px] font-black uppercase tracking-widest transition-all",
-                        done
-                          ? "bg-primary text-btn-text border-primary"
-                          : isToday
-                          ? "bg-primary/8 text-primary border-primary/25"
-                          : "bg-primary/3 text-primary/35 border-primary/8 hover:bg-primary/8"
-                      )}
-                    >
-                      {done ? <Check size={10} className="mx-auto" /> : d}
-                    </button>
-                  );
-                })}
-              </div>
+            {editando ? (
+              <FormEditarHobby
+                hobby={hobby}
+                onGuardar={handleEditar}
+                onCancelar={() => setEditando(false)}
+                guardando={guardando}
+              />
+            ) : (
+              <div className="px-4 pb-4 border-t border-primary/5 pt-3">
+                <p className="text-[8px] font-black uppercase tracking-widest text-primary/25 mb-2">Esta semana</p>
+                <div className="flex gap-1.5">
+                  {DIAS.map((d, i) => {
+                    const done = dias[i];
+                    const isToday = i === today;
+                    return (
+                      <button
+                        key={d}
+                        onClick={() => onToggleDia(hobby.id, i)}
+                        title={`${done ? "Desmarcar" : "Marcar"} — ${DIAS_FULL[i]}`}
+                        className={cn(
+                          "flex-1 py-2 rounded-[var(--radius-btn)] border-[length:var(--border-width)] text-[9px] font-black uppercase tracking-widest transition-all",
+                          done
+                            ? "bg-primary text-btn-text border-primary"
+                            : isToday
+                            ? "bg-primary/8 text-primary border-primary/25"
+                            : "bg-primary/3 text-primary/35 border-primary/8 hover:bg-primary/8"
+                        )}
+                      >
+                        {done ? <Check size={10} className="mx-auto" /> : d}
+                      </button>
+                    );
+                  })}
+                </div>
 
-              {/* Eliminar */}
-              <button
-                onClick={() => onEliminar(hobby.id)}
-                className="mt-3 flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-primary/25 hover:text-accent transition-colors"
-              >
-                <X size={10} /> Eliminar hobby
-              </button>
-            </div>
+                {/* Acciones */}
+                <div className="flex items-center gap-3 mt-3">
+                  <button
+                    onClick={() => setEditando(true)}
+                    className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-primary/35 hover:text-primary/70 transition-colors"
+                  >
+                    <PencilIcon size={10} /> Editar
+                  </button>
+                  <button
+                    onClick={() => onEliminar(hobby.id)}
+                    className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-primary/25 hover:text-accent transition-colors"
+                  >
+                    <X size={10} /> Eliminar
+                  </button>
+                </div>
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
@@ -411,6 +549,17 @@ export const PaginaHobbys = () => {
       console.error("[PaginaHobbys] guardar:", err);
     } finally {
       setGuardando(false);
+    }
+  };
+
+  // ── Editar hobby ──────────────────────────────────────────────────────────
+  const handleEditar = async (id: string, datos: Partial<Omit<Hobby, "id">>) => {
+    try {
+      const updated = await hobbysQueries.update(id, datos);
+      setHobbys(prev => prev.map(h => h.id === id ? updated : h));
+    } catch (err) {
+      console.error("[PaginaHobbys] editar:", err);
+      cargar();
     }
   };
 
@@ -541,6 +690,7 @@ export const PaginaHobbys = () => {
                   registro={registros.find(r => r.hobby_id === h.id && r.semana === semana)}
                   onToggleDia={handleToggleDia}
                   onEliminar={handleEliminar}
+                  onEditar={handleEditar}
                 />
               </motion.div>
             ))}

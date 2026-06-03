@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import {
   Plus, Check, X, Music, BookOpen, Youtube, Headphones,
-  Film, Gamepad2, Tv, Rss, ExternalLink, Loader2, ChevronDown,
+  Film, Gamepad2, Tv, Rss, ExternalLink, Loader2, ChevronDown, Pencil as PencilIcon,
   type LucideIcon,
 } from "lucide-react";
 
@@ -75,6 +75,18 @@ const categoriasQueries = {
     const { data, error } = await sb
       .from("pendientes_categorias")
       .insert({ ...cat, user_id: user?.id })
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  async update(id: string, datos: Partial<Omit<Categoria, "id">>): Promise<Categoria> {
+    const sb = await getSupabase();
+    const { data, error } = await sb
+      .from("pendientes_categorias")
+      .update(datos)
+      .eq("id", id)
       .select()
       .single();
     if (error) throw error;
@@ -221,6 +233,80 @@ const FormNuevaCategoria = ({ onGuardar, onCancelar, guardando, orden }: FormNue
         </button>
       </div>
     </motion.div>
+  );
+};
+
+// ─── Formulario: editar categoría ────────────────────────────────────────────
+
+interface FormEditarCategoriaProps {
+  cat: Categoria;
+  onGuardar: (datos: Partial<Omit<Categoria, "id">>) => Promise<void>;
+  onCancelar: () => void;
+  guardando: boolean;
+}
+
+const FormEditarCategoria = ({ cat, onGuardar, onCancelar, guardando }: FormEditarCategoriaProps) => {
+  const [nombre, setNombre] = useState(cat.nombre);
+  const [icon, setIcon]     = useState(cat.icon);
+
+  const handleGuardar = () => {
+    if (!nombre.trim()) return;
+    onGuardar({ nombre: nombre.trim(), icon });
+  };
+
+  return (
+    <div className="px-4 pb-4 border-t border-primary/5 pt-3 space-y-3">
+      <p className="text-[9px] font-black uppercase tracking-widest text-primary/40">Editar categoría</p>
+
+      <input
+        value={nombre}
+        onChange={e => setNombre(e.target.value)}
+        placeholder="Nombre de la categoría..."
+        className={inputCls}
+        onKeyDown={e => e.key === "Enter" && handleGuardar()}
+        autoFocus
+      />
+
+      {/* Selector de icono */}
+      <div>
+        <p className="text-[9px] font-black uppercase tracking-widest text-primary/30 mb-2">Icono</p>
+        <div className="flex flex-wrap gap-1.5">
+          {CAT_ICONS.map(({ name, component: Icon, label }) => (
+            <button
+              key={name}
+              type="button"
+              title={label}
+              onClick={() => setIcon(name)}
+              className={cn(
+                "w-9 h-9 rounded-[var(--radius-btn)] flex items-center justify-center transition-all border-[length:var(--border-width)]",
+                icon === name
+                  ? "bg-primary text-btn-text border-primary"
+                  : "bg-primary/5 text-primary/50 border-transparent hover:bg-primary/10 hover:text-primary/70"
+              )}
+            >
+              <Icon size={16} />
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex gap-2">
+        <button
+          onClick={onCancelar}
+          className="flex-1 py-2 rounded-[var(--radius-btn)] border-[length:var(--border-width)] border-primary/15 text-sm font-black text-primary/60 hover:bg-primary/4 transition-all"
+        >
+          Cancelar
+        </button>
+        <button
+          onClick={handleGuardar}
+          disabled={!nombre.trim() || guardando}
+          className="flex-1 py-2 rounded-[var(--radius-btn)] bg-primary text-btn-text text-sm font-black hover:opacity-90 disabled:opacity-40 transition-all flex items-center justify-center gap-2"
+        >
+          {guardando ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+          Guardar
+        </button>
+      </div>
+    </div>
   );
 };
 
@@ -383,12 +469,15 @@ interface CardCategoriaProps {
   onToggleItem: (id: string, hecho: boolean) => void;
   onEliminarItem: (id: string) => void;
   onEliminarCat: (id: string) => void;
+  onEditarCat: (id: string, datos: Partial<Omit<Categoria, "id">>) => Promise<void>;
 }
 
 const CardCategoria = ({
-  cat, items, onAddItem, onToggleItem, onEliminarItem, onEliminarCat
+  cat, items, onAddItem, onToggleItem, onEliminarItem, onEliminarCat, onEditarCat
 }: CardCategoriaProps) => {
-  const [anadiendo, setAnadiendo] = useState(false);
+  const [anadiendo, setAnadiendo]       = useState(false);
+  const [editando, setEditando]         = useState(false);
+  const [guardandoEdit, setGuardandoEdit] = useState(false);
   const [mostrarHechos, setMostrarHechos] = useState(false);
 
   const pendientes = items.filter(i => !i.hecho);
@@ -399,109 +488,139 @@ const CardCategoria = ({
     setAnadiendo(false);
   };
 
+  const handleEditar = async (datos: Partial<Omit<Categoria, "id">>) => {
+    setGuardandoEdit(true);
+    try {
+      await onEditarCat(cat.id, datos);
+      setEditando(false);
+    } finally {
+      setGuardandoEdit(false);
+    }
+  };
+
   return (
     <div className="rounded-[var(--radius-card)] border-[length:var(--border-width)] border-primary/10 bg-white-custom overflow-hidden">
       {/* Header de categoría */}
-      <div className="px-4 pt-4 pb-3 flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-[var(--radius-btn)] flex items-center justify-center bg-primary/8 text-primary/50">
-            <CatIcon name={cat.icon} size={14} />
-          </div>
-          <div>
-            <p className="text-[13px] font-black text-primary">{cat.nombre}</p>
-            <p className="text-[9px] font-black uppercase tracking-widest text-primary/35">
-              {pendientes.length} pendiente{pendientes.length !== 1 ? "s" : ""}
-              {hechos.length > 0 && ` · ${hechos.length} hecho${hechos.length !== 1 ? "s" : ""}`}
-            </p>
-          </div>
-        </div>
+      {editando ? (
+        <FormEditarCategoria
+          cat={cat}
+          onGuardar={handleEditar}
+          onCancelar={() => setEditando(false)}
+          guardando={guardandoEdit}
+        />
+      ) : (
+        <>
+          <div className="px-4 pt-4 pb-3 flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-[var(--radius-btn)] flex items-center justify-center bg-primary/8 text-primary/50">
+                <CatIcon name={cat.icon} size={14} />
+              </div>
+              <div>
+                <p className="text-[13px] font-black text-primary">{cat.nombre}</p>
+                <p className="text-[9px] font-black uppercase tracking-widest text-primary/35">
+                  {pendientes.length} pendiente{pendientes.length !== 1 ? "s" : ""}
+                  {hechos.length > 0 && ` · ${hechos.length} hecho${hechos.length !== 1 ? "s" : ""}`}
+                </p>
+              </div>
+            </div>
 
-        <button
-          onClick={() => setAnadiendo(v => !v)}
-          className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-[var(--radius-btn)] transition-all bg-primary/6 text-primary/50 hover:bg-primary/10 hover:text-primary/70"
-        >
-          {anadiendo ? <X size={10} /> : <Plus size={10} />}
-          {anadiendo ? "Cancelar" : "Añadir"}
-        </button>
-      </div>
-
-      {/* Formulario nuevo ítem */}
-      <AnimatePresence>
-        {anadiendo && (
-          <div className="px-4">
-            <FormNuevoItem
-              categoriaId={cat.id}
-              orden={items.length}
-              onGuardar={handleAddItem}
-              onCancelar={() => setAnadiendo(false)}
-            />
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* Items pendientes */}
-      <div className="px-3 pb-2 space-y-0.5">
-        {pendientes.length === 0 && !anadiendo && (
-          <p className="text-[11px] font-bold text-center py-3 text-primary/25">
-            Nada pendiente · añade algo
-          </p>
-        )}
-        <AnimatePresence mode="popLayout">
-          {pendientes.map(item => (
-            <CardItem
-              key={item.id}
-              item={item}
-              onToggle={onToggleItem}
-              onEliminar={onEliminarItem}
-            />
-          ))}
-        </AnimatePresence>
-      </div>
-
-      {/* Items hechos (colapsables) */}
-      {hechos.length > 0 && (
-        <div className="border-t border-primary/6 px-4 py-2">
-          <button
-            onClick={() => setMostrarHechos(v => !v)}
-            className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-primary/30 hover:text-primary/50 transition-all w-full"
-          >
-            <motion.div animate={{ rotate: mostrarHechos ? 180 : 0 }} transition={{ duration: 0.2 }}>
-              <ChevronDown size={10} />
-            </motion.div>
-            {mostrarHechos ? "Ocultar" : "Ver"} {hechos.length} completado{hechos.length !== 1 ? "s" : ""}
-          </button>
-
-          <AnimatePresence>
-            {mostrarHechos && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                className="overflow-hidden mt-1 space-y-0.5"
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => setEditando(true)}
+                className="w-7 h-7 flex items-center justify-center rounded-[var(--radius-btn)] text-primary/35 hover:bg-primary/8 hover:text-primary/70 transition-all"
+                title="Editar categoría"
               >
-                {hechos.map(item => (
-                  <CardItem
-                    key={item.id}
-                    item={item}
-                    onToggle={onToggleItem}
-                    onEliminar={onEliminarItem}
-                  />
-                ))}
-              </motion.div>
+                <PencilIcon size={12} />
+              </button>
+              <button
+                onClick={() => setAnadiendo(v => !v)}
+                className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-[var(--radius-btn)] transition-all bg-primary/6 text-primary/50 hover:bg-primary/10 hover:text-primary/70"
+              >
+                {anadiendo ? <X size={10} /> : <Plus size={10} />}
+                {anadiendo ? "Cancelar" : "Añadir"}
+              </button>
+            </div>
+          </div>
+
+          {/* Formulario nuevo ítem */}
+          <AnimatePresence>
+            {anadiendo && (
+              <div className="px-4">
+                <FormNuevoItem
+                  categoriaId={cat.id}
+                  orden={items.length}
+                  onGuardar={handleAddItem}
+                  onCancelar={() => setAnadiendo(false)}
+                />
+              </div>
             )}
           </AnimatePresence>
-        </div>
-      )}
 
-      {/* Eliminar categoría */}
-      <div className="px-4 pb-3">
-        <button
-          onClick={() => onEliminarCat(cat.id)}
-          className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-primary/20 hover:text-primary/45 transition-all mt-1"
-        >
-          <X size={9} /> Eliminar categoría
-        </button>
-      </div>
+          {/* Items pendientes */}
+          <div className="px-3 pb-2 space-y-0.5">
+            {pendientes.length === 0 && !anadiendo && (
+              <p className="text-[11px] font-bold text-center py-3 text-primary/25">
+                Nada pendiente · añade algo
+              </p>
+            )}
+            <AnimatePresence mode="popLayout">
+              {pendientes.map(item => (
+                <CardItem
+                  key={item.id}
+                  item={item}
+                  onToggle={onToggleItem}
+                  onEliminar={onEliminarItem}
+                />
+              ))}
+            </AnimatePresence>
+          </div>
+
+          {/* Items hechos (colapsables) */}
+          {hechos.length > 0 && (
+            <div className="border-t border-primary/6 px-4 py-2">
+              <button
+                onClick={() => setMostrarHechos(v => !v)}
+                className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-primary/30 hover:text-primary/50 transition-all w-full"
+              >
+                <motion.div animate={{ rotate: mostrarHechos ? 180 : 0 }} transition={{ duration: 0.2 }}>
+                  <ChevronDown size={10} />
+                </motion.div>
+                {mostrarHechos ? "Ocultar" : "Ver"} {hechos.length} completado{hechos.length !== 1 ? "s" : ""}
+              </button>
+
+              <AnimatePresence>
+                {mostrarHechos && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="overflow-hidden mt-1 space-y-0.5"
+                  >
+                    {hechos.map(item => (
+                      <CardItem
+                        key={item.id}
+                        item={item}
+                        onToggle={onToggleItem}
+                        onEliminar={onEliminarItem}
+                      />
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          )}
+
+          {/* Eliminar categoría */}
+          <div className="px-4 pb-3">
+            <button
+              onClick={() => onEliminarCat(cat.id)}
+              className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-primary/20 hover:text-primary/45 transition-all mt-1"
+            >
+              <X size={9} /> Eliminar categoría
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 };
@@ -545,6 +664,17 @@ export const PaginaPendientes = () => {
       console.error("[PaginaPendientes] guardar cat:", err);
     } finally {
       setGuardandoCat(false);
+    }
+  };
+
+  // ── Editar categoría ──────────────────────────────────────────────────────
+  const handleEditarCat = async (id: string, datos: Partial<Omit<Categoria, "id">>) => {
+    try {
+      const updated = await categoriasQueries.update(id, datos);
+      setCategorias(prev => prev.map(c => c.id === id ? updated : c));
+    } catch (err) {
+      console.error("[PaginaPendientes] editar cat:", err);
+      cargar();
     }
   };
 
@@ -678,6 +808,7 @@ export const PaginaPendientes = () => {
                   onToggleItem={handleToggleItem}
                   onEliminarItem={handleEliminarItem}
                   onEliminarCat={handleEliminarCat}
+                  onEditarCat={handleEditarCat}
                 />
               </motion.div>
             ))}
