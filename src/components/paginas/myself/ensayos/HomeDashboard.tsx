@@ -621,7 +621,7 @@ export function HomeDashboard({
               icon={<Star size={9} style={{ color: "color-mix(in srgb, var(--foreground) 25%, transparent)" }} />}
               label="Personal"
             />
-            <div className="hd-personal-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, flex: 1, alignContent: "start" }}>
+            <div className="hd-personal-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, flex: 1, alignContent: "start" }}>
               {([
                 { id: "compras",      label: "Compras",      icon: <ShoppingCart size={16} /> },
                 { id: "ejercicios",   label: "Ejercicios",   icon: <Dumbbell size={16} /> },
