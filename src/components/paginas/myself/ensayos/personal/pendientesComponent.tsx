@@ -150,6 +150,21 @@ function cleanUrl(url: string): string {
   return url;
 }
 
+function isYoutubeUrl(url: string): boolean {
+  return url.includes("youtube.com/") || url.includes("youtu.be/") || url.includes("music.youtube.com/");
+}
+
+async function fetchYoutubeTitle(url: string): Promise<string | null> {
+  try {
+    const res = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.title ?? null;
+  } catch {
+    return null;
+  }
+}
+
 // ─── Estilos compartidos ──────────────────────────────────────────────────────
 
 const inputCls =
@@ -323,7 +338,9 @@ const FormNuevoItem = ({ categoriaId, orden, onGuardar, onCancelar }: FormNuevoI
   const [titulo, setTitulo] = useState("");
   const [url, setUrl]       = useState("");
   const [nota, setNota]     = useState("");
-  const [guardando, setGuardando] = useState(false);
+  const [guardando, setGuardando]     = useState(false);
+  const [fetchingTitle, setFetchingTitle] = useState(false);
+  const [dragOver, setDragOver]       = useState(false);
 
   const handleGuardar = async () => {
     if (!titulo.trim()) return;
@@ -342,6 +359,23 @@ const FormNuevoItem = ({ categoriaId, orden, onGuardar, onCancelar }: FormNuevoI
     }
   };
 
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    const dropped = e.dataTransfer.getData("text/plain") || e.dataTransfer.getData("text/uri-list") || "";
+    const trimmed = dropped.trim();
+    if (!trimmed) return;
+    if (isYoutubeUrl(trimmed)) {
+      setUrl(trimmed);
+      setFetchingTitle(true);
+      const fetched = await fetchYoutubeTitle(trimmed);
+      setFetchingTitle(false);
+      if (fetched) setTitulo(fetched);
+    } else {
+      setUrl(trimmed);
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, height: 0 }}
@@ -349,19 +383,41 @@ const FormNuevoItem = ({ categoriaId, orden, onGuardar, onCancelar }: FormNuevoI
       exit={{ opacity: 0, height: 0 }}
       className="overflow-hidden"
     >
-      <div className="pt-2 pb-1 space-y-2">
-        <input
-          value={titulo}
-          onChange={e => setTitulo(e.target.value)}
-          placeholder="Título o descripción..."
-          className={inputCls}
-          onKeyDown={e => e.key === "Enter" && handleGuardar()}
-          autoFocus
-        />
+      <div
+        className={cn(
+          "pt-2 pb-1 space-y-2 rounded-[var(--radius-btn)] transition-all",
+          dragOver && "ring-2 ring-primary/30 bg-primary/4"
+        )}
+        onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={handleDrop}
+      >
+        {dragOver && (
+          <div className="flex items-center justify-center gap-2 py-2 text-[10px] font-black uppercase tracking-widest text-primary/50">
+            <Youtube size={12} /> Suelta para detectar título
+          </div>
+        )}
+        <div className="relative">
+          <input
+            value={titulo}
+            onChange={e => setTitulo(e.target.value)}
+            placeholder={fetchingTitle ? "" : "Título o descripción..."}
+            className={inputCls}
+            onKeyDown={e => e.key === "Enter" && handleGuardar()}
+            autoFocus
+            disabled={fetchingTitle}
+          />
+          {fetchingTitle && (
+            <div className="absolute inset-0 flex items-center gap-2 px-4 pointer-events-none">
+              <Loader2 size={12} className="animate-spin text-primary/40" />
+              <span className="text-sm font-bold text-primary/40">Obteniendo título…</span>
+            </div>
+          )}
+        </div>
         <input
           value={url}
           onChange={e => setUrl(e.target.value)}
-          placeholder="URL (opcional)..."
+          placeholder="URL (opcional) · arrastra un enlace de YouTube…"
           className={inputCls}
         />
         <input
@@ -373,7 +429,7 @@ const FormNuevoItem = ({ categoriaId, orden, onGuardar, onCancelar }: FormNuevoI
         <div className="flex gap-2 pt-0.5">
           <button
             onClick={handleGuardar}
-            disabled={!titulo.trim() || guardando}
+            disabled={!titulo.trim() || guardando || fetchingTitle}
             className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text px-3 py-1.5 rounded-[var(--radius-btn)] hover:opacity-90 disabled:opacity-40 transition-all"
           >
             {guardando ? <Loader2 size={10} className="animate-spin" /> : <Check size={10} />}
@@ -791,7 +847,7 @@ export const PaginaPendientes = () => {
           <p className="text-xs text-primary/25 font-bold mt-1">Crea una categoría para empezar</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 items-start">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-start">
           <AnimatePresence mode="popLayout">
             {categorias.map(cat => (
               <motion.div
