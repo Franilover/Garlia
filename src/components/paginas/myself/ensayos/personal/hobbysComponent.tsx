@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import {
-  Plus, Check, X, ChevronDown, Loader2, Pencil as PencilIcon,
+  Plus, Check, X, Loader2, Pencil as PencilIcon,
   Guitar, Palette, BookOpen, PenLine, Brain, Dumbbell, Gamepad2,
   Theater, Camera, Music, ChefHat, Leaf, Puzzle, Target, Pencil,
   Clapperboard, Mic, PersonStanding, Mountain, Music2,
@@ -374,7 +374,6 @@ interface CardHobbyProps {
 }
 
 const CardHobby = ({ hobby, registro, onToggleDia, onEliminar, onEditar }: CardHobbyProps) => {
-  const [expandido, setExpandido] = useState(false);
   const [editando, setEditando]   = useState(false);
   const [guardando, setGuardando] = useState(false);
   const dias = registro?.dias ?? Array(7).fill(false);
@@ -388,7 +387,6 @@ const CardHobby = ({ hobby, registro, onToggleDia, onEliminar, onEditar }: CardH
     try {
       await onEditar(hobby.id, datos);
       setEditando(false);
-      setExpandido(false);
     } finally {
       setGuardando(false);
     }
@@ -397,7 +395,7 @@ const CardHobby = ({ hobby, registro, onToggleDia, onEliminar, onEditar }: CardH
   return (
     <div className="bg-white-custom border-[length:var(--border-width)] border-primary/10 rounded-[var(--radius-card)] overflow-hidden">
       {/* Header */}
-      <div className="p-4 cursor-pointer select-none" onClick={() => setExpandido(v => !v)}>
+      <div className="p-4 select-none">
         <div className="flex items-center gap-3">
           {/* Icono */}
           <div className="w-11 h-11 rounded-[var(--radius-btn)] flex items-center justify-center shrink-0 bg-primary/8 text-primary/60">
@@ -427,82 +425,69 @@ const CardHobby = ({ hobby, registro, onToggleDia, onEliminar, onEditar }: CardH
             </div>
           </div>
 
-          {/* Contador + chevron */}
+          {/* Contador */}
           <div className="flex items-center gap-2 shrink-0">
             <span className="text-[10px] font-black px-2.5 py-1 rounded-[var(--radius-btn)] bg-primary/8 text-primary/60">
               {hechos}/{hobby.freq_sem}
             </span>
-            <motion.div animate={{ rotate: expandido ? 180 : 0 }} transition={{ duration: 0.2 }}>
-              <ChevronDown size={15} className="text-primary/30" />
-            </motion.div>
           </div>
         </div>
       </div>
 
-      {/* Días / Edición (se expanden) */}
-      <AnimatePresence>
-        {expandido && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="overflow-hidden"
-          >
-            {editando ? (
-              <FormEditarHobby
-                hobby={hobby}
-                onGuardar={handleEditar}
-                onCancelar={() => setEditando(false)}
-                guardando={guardando}
-              />
-            ) : (
-              <div className="px-4 pb-4 border-t border-primary/5 pt-3">
-                <p className="text-[8px] font-black uppercase tracking-widest text-primary/25 mb-2">Esta semana</p>
-                <div className="flex gap-1.5">
-                  {DIAS.map((d, i) => {
-                    const done = dias[i];
-                    const isToday = i === today;
-                    return (
-                      <button
-                        key={d}
-                        onClick={() => onToggleDia(hobby.id, i)}
-                        title={`${done ? "Desmarcar" : "Marcar"} — ${DIAS_FULL[i]}`}
-                        className={cn(
-                          "flex-1 py-2 rounded-[var(--radius-btn)] border-[length:var(--border-width)] text-[9px] font-black uppercase tracking-widest transition-all",
-                          done
-                            ? "bg-primary text-btn-text border-primary"
-                            : isToday
-                            ? "bg-primary/8 text-primary border-primary/25"
-                            : "bg-primary/3 text-primary/35 border-primary/8 hover:bg-primary/8"
-                        )}
-                      >
-                        {done ? <Check size={10} className="mx-auto" /> : d}
-                      </button>
-                    );
-                  })}
-                </div>
+      {/* Días / Edición */}
+      <div className="overflow-hidden">
+        {editando ? (
+          <FormEditarHobby
+            hobby={hobby}
+            onGuardar={handleEditar}
+            onCancelar={() => setEditando(false)}
+            guardando={guardando}
+          />
+        ) : (
+          <div className="px-4 pb-4 border-t border-primary/5 pt-3">
+            <p className="text-[8px] font-black uppercase tracking-widest text-primary/25 mb-2">Esta semana</p>
+            <div className="flex gap-1.5">
+              {DIAS.map((d, i) => {
+                const done = dias[i];
+                const isToday = i === today;
+                return (
+                  <button
+                    key={d}
+                    onClick={() => onToggleDia(hobby.id, i)}
+                    title={`${done ? "Desmarcar" : "Marcar"} — ${DIAS_FULL[i]}`}
+                    className={cn(
+                      "flex-1 py-2 rounded-[var(--radius-btn)] border-[length:var(--border-width)] text-[9px] font-black uppercase tracking-widest transition-all",
+                      done
+                        ? "bg-primary text-btn-text border-primary"
+                        : isToday
+                        ? "bg-primary/8 text-primary border-primary/25"
+                        : "bg-primary/3 text-primary/35 border-primary/8 hover:bg-primary/8"
+                    )}
+                  >
+                    {done ? <Check size={10} className="mx-auto" /> : d}
+                  </button>
+                );
+              })}
+            </div>
 
-                {/* Acciones */}
-                <div className="flex items-center gap-3 mt-3">
-                  <button
-                    onClick={() => setEditando(true)}
-                    className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-primary/35 hover:text-primary/70 transition-colors"
-                  >
-                    <PencilIcon size={10} /> Editar
-                  </button>
-                  <button
-                    onClick={() => onEliminar(hobby.id)}
-                    className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-primary/25 hover:text-accent transition-colors"
-                  >
-                    <X size={10} /> Eliminar
-                  </button>
-                </div>
-              </div>
-            )}
-          </motion.div>
+            {/* Acciones */}
+            <div className="flex items-center gap-3 mt-3">
+              <button
+                onClick={() => setEditando(true)}
+                className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-primary/35 hover:text-primary/70 transition-colors"
+              >
+                <PencilIcon size={10} /> Editar
+              </button>
+              <button
+                onClick={() => onEliminar(hobby.id)}
+                className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-primary/25 hover:text-accent transition-colors"
+              >
+                <X size={10} /> Eliminar
+              </button>
+            </div>
+          </div>
         )}
-      </AnimatePresence>
+      </div>
     </div>
   );
 };
@@ -675,7 +660,7 @@ export const PaginaHobbys = () => {
           <p className="text-xs text-primary/25 font-bold mt-1">Añade uno para empezar a trackear</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <AnimatePresence mode="popLayout">
             {hobbys.map(h => (
               <motion.div
