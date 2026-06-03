@@ -24,9 +24,6 @@ import { makeSnippetOverlay } from "./snippets/SnippetOverlay";
 import { SnippetCommandPalette } from "./snippets/SnippetCommandPalette";
 import { MarkdownEditor, renderMarkdown, renderMathInElement, PROSE_STYLES } from "@/components/forms/MarkdownEditor";
 import type { CommandItem as MdCommandItem, SnippetAction } from "@/components/forms/MarkdownEditor";
-import { enqueueOperation } from "@/hooks/data/useOfflineSync";
-import { dexieCapWrite, dexieCapGet } from "./types";
-
 
 import {
   Libro, Capitulo, SaveStatus, TABLA_CAPS, VISIBILIDAD_CONFIG,
@@ -184,40 +181,43 @@ const PanelEditor = ({
     container.scrollTo({ top: Math.max(0, targetScroll), behavior: "smooth" });
   }, []);
 
+  // FIX 1: optimistic update del estado React con objeto completo antes del
+  // fetch. capUpdateContenido (types.ts) maneja internamente Dexie + enqueue,
+  // por lo que no se construyen objetos Capitulo parciales aquí.
   const doSave = useCallback(async (val: string) => {
     clearTimeout(timer.current);
     if (!isMountedRef.current) return;
     setSaveStatus("saving");
-     try {
-    const current = await dexieCapGet(capId);
-    await dexieCapWrite([{ ...(current ?? { id: capId }), contenido: val, status: "pending" }]);
-    await enqueueOperation("capitulos", "update", capId, { id: capId, contenido: val });
-  } catch (dexieErr) {
-    console.warn("[doSave] No se pudo persistir en Dexie:", dexieErr);
-  }
- 
-  try {
-    await capUpdateContenido(capId, val);
-    if (!isMountedRef.current) return;
-    setCap(prev => prev ? { ...prev, contenido: val, status: "synced" } : prev);
+    draft.save(val);
+
+    // Optimistic update con objeto completo del estado (sin ir a Dexie)
+    setCap(prev => prev ? { ...prev, contenido: val, status: "pending" } : prev);
+
     try {
-      await dexieCapWrite([{ id: capId, contenido: val, status: "synced" }]);
-    } catch {}
-    draft.clear();
-    const stillOnline = await isReallyOnline();
-    setSaveStatus(stillOnline ? "saved" : "pending");
-    if (stillOnline) setTimeout(() => {
-      if (isMountedRef.current) setSaveStatus("idle");
-    }, 2500);
-  } catch {
-    if (!isMountedRef.current) return;
-    setSaveStatus("pending");
-    setTimeout(() => {
-      if (isMountedRef.current) setSaveStatus(s => s === "pending" ? "idle" : s);
-    }, 5000);
-  }
-}, [capId, setCap, draft]);
- 
+      // capUpdateContenido se encarga de:
+      //   - isReallyOnline()
+      //   - dexieCapWrite con objeto completo (lee existing de Dexie)
+      //   - enqueueOperation si está offline o falla
+      //   - marcar "synced" si el servidor confirma
+      await capUpdateContenido(capId, val);
+      if (!isMountedRef.current) return;
+      setCap(prev => prev ? { ...prev, contenido: val, status: "synced" } : prev);
+      draft.clear();
+      const stillOnline = await isReallyOnline();
+      setSaveStatus(stillOnline ? "saved" : "pending");
+      if (stillOnline) setTimeout(() => {
+        if (isMountedRef.current) setSaveStatus("idle");
+      }, 2500);
+    } catch {
+      if (!isMountedRef.current) return;
+      // capUpdateContenido ya dejó el pending en Dexie + encolado para sync
+      setSaveStatus("pending");
+      setTimeout(() => {
+        if (isMountedRef.current) setSaveStatus(s => s === "pending" ? "idle" : s);
+      }, 5000);
+    }
+  }, [capId, setCap, draft]);
+
   const onChange = useCallback((val: string) => {
     setContenido(val);
     draft.save(val);
@@ -995,14 +995,13 @@ export function EditorCapitulosPanel() {
     setSidebarOpen(false);
   };
 
-  const handleCapCreada = async (cap: Capitulo) => {
-      try {
-      await dexieCapWrite([{ ...cap, status: "synced" }]);
-      } catch {}
-      setCapitulos(prev => [...prev, cap]);
-      setSelectedCapId(cap.id);
-      setCapRefreshKey(k => k + 1);
-    };
+  // FIX 5: capCreate (types.ts) ya persistió el cap en Dexie con status
+  // "synced" o "pending". Aquí solo actualizamos el estado React.
+  const handleCapCreada = (cap: Capitulo) => {
+    setCapitulos(prev => [...prev, cap]);
+    setSelectedCapId(cap.id);
+    setCapRefreshKey(k => k + 1);
+  };
 
   const handleCapEditada = (cap: Capitulo) => {
     setCapitulos(prev => prev.map(c => c.id === cap.id ? cap : c));
@@ -1026,19 +1025,16 @@ export function EditorCapitulosPanel() {
     setShowNuevoLibro(false);
   };
 
+  // FIX 5: capDelete (types.ts) ya eliminó de Dexie (o marcó deleted: true
+  // si offline + encoló para sync). Aquí solo actualizamos el estado React.
   const handleCapEliminada = async (id: string, libroId: string) => {
-      try {
-    await capDelete(id);
     try {
-      const { db } = await import("@/lib/api/client/db");
-      await (db as any).capitulos?.delete(id);
+      await capDelete(id);
+      setCapitulos(prev => prev.filter(c => c.id !== id));
+      if (selectedCapId === id) setSelectedCapId(null);
+      setCapRefreshKey(k => k + 1);
     } catch {}
-    setCapitulos(prev => prev.filter(c => c.id !== id));
-    if (selectedCapId === id) setSelectedCapId(null);
-    setCapRefreshKey(k => k + 1);
-  } catch {}
-};
-
+  };
 
   const handleLibroEliminado = async (libroId: string) => {
     try {
