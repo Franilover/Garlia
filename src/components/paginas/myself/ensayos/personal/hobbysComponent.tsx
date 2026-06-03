@@ -159,16 +159,15 @@ interface FormNuevoHobbyProps {
 }
 
 const FormNuevoHobby = ({ onGuardar, onCancelar, guardando, orden }: FormNuevoHobbyProps) => {
-  const [nombre, setNombre] = useState("");
-  const icon  = "Guitar";
-  const color = 0;
+  const [nombre, setNombre]   = useState("");
+  const [icon, setIcon]       = useState("Guitar");
   const [freqDia, setFreqDia] = useState(1);
   const [freqSem, setFreqSem] = useState(3);
-  const [nota, setNota]     = useState("");
+  const [nota, setNota]       = useState("");
 
   const handleGuardar = () => {
     if (!nombre.trim()) return;
-    onGuardar({ nombre: nombre.trim(), icon, color, freq_dia: freqDia, freq_sem: freqSem, nota: nota.trim(), orden });
+    onGuardar({ nombre: nombre.trim(), icon, color: 0, freq_dia: freqDia, freq_sem: freqSem, nota: nota.trim(), orden });
   };
 
   return (
@@ -192,6 +191,28 @@ const FormNuevoHobby = ({ onGuardar, onCancelar, guardando, orden }: FormNuevoHo
         />
       </div>
 
+      {/* Selector de icono */}
+      <div className="mb-4">
+        <p className="text-[9px] font-black uppercase tracking-widest text-primary/30 mb-2">Icono</p>
+        <div className="flex flex-wrap gap-1.5">
+          {HOBBY_ICONS.map(({ name, component: Icon, label }) => (
+            <button
+              key={name}
+              type="button"
+              title={label}
+              onClick={() => setIcon(name)}
+              className={cn(
+                "w-9 h-9 rounded-[var(--radius-btn)] flex items-center justify-center transition-all border-[length:var(--border-width)]",
+                icon === name
+                  ? "bg-primary text-btn-text border-primary"
+                  : "bg-primary/5 text-primary/50 border-transparent hover:bg-primary/10 hover:text-primary/70"
+              )}
+            >
+              <Icon size={16} />
+            </button>
+          ))}
+        </div>
+      </div>
 
       {/* Frecuencia */}
       <div className="grid grid-cols-2 gap-3 mb-4">
