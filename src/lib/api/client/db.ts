@@ -322,6 +322,19 @@ export interface ItemCraftereLocal {
   item_id: string;
 }
 
+// ─── Perfil de usuario cacheado localmente ───────────────────────────────────
+export interface PerfilLocal {
+  id: string;           // uuid del usuario (auth.users)
+  email?: string | null;
+  username?: string | null;
+  rol?: string | null;  // 'admin' | 'user' | 'visitante' — NUNCA se escribe desde el cliente
+  status?: string | null;
+  avatar_url?: string | null;
+  descripcion?: string | null;
+  titulo?: string | null;
+  cached_at: number;    // timestamp para saber cuándo se guardó
+}
+
 class AgendaFraniDB extends Dexie {
 
   personajes!: Table<Personaje, string>;
@@ -374,6 +387,9 @@ class AgendaFraniDB extends Dexie {
   item_crafteres!: Table<ItemCraftereLocal, string>;
   galeria!: Table<GaleriaItem, number>;
 
+  // Perfil cacheado offline
+  perfiles!: Table<PerfilLocal, string>;
+
 
   constructor() {
     super("AgendaFranilover");
@@ -421,35 +437,31 @@ class AgendaFraniDB extends Dexie {
       dibujos:            "++id, categoria",
       notas:              "id, status, updated_at",
       rutinas:            "id, status",
-      ejercicios_rutina:  "id, rutina_id, status",
-      offline_queue:      "++id, table, operation, recordId, timestamp",
     });
 
     this.version(3).stores({
-      personajes:           "id, nombre, visible",
-      criaturas:            "id, nombre, habitat, alma, pensamiento",
-      criatura_variantes:   "id, criatura_id, tipo",
-      items:                "id, nombre, categoria",
-      libros:               "id, created_at",
-      capitulos:            "id, libro_id, orden, fecha_publicacion",
-      canciones:            "id, titulo, personaje, visible, created_at",
-      secciones_cancion:    "id, cancion_id, orden",
-      reinos:               "id, nombre, orden",
-      relaciones:           "id, personaje_id",
-      tareas:               "id, username, completada, created_at, status",
-      eventos:              "id, username, fecha, tipo, status",
-      recetas:              "id, autor_id, categoria, created_at",
-      ingredientes:         "id, user_id",
-      ropa:                 "id, user_id, created_at",
-      ropa_outfits:         "id, user_id, created_at",
-      diario_fotos:         "++id, categoria, created_at",
-      dibujos:              "++id, categoria",
-      notas:                "id, status, updated_at",
-      rutinas:              "id, status",
-      ejercicios_rutina:    "id, rutina_id, status",
-      offline_queue:        "++id, table, operation, recordId, timestamp",
-      compras:              "id",
-      reproductor_handles:  "key",
+      personajes:         "id, nombre, visible",
+      criaturas:          "id, nombre, habitat, alma, pensamiento",
+      criatura_variantes: "id, criatura_id, tipo",
+      items:              "id, nombre, categoria",
+      libros:             "id, created_at",
+      capitulos:          "id, libro_id, orden, fecha_publicacion",
+      canciones:          "id, titulo, personaje, visible, created_at",
+      secciones_cancion:  "id, cancion_id, orden",
+      reinos:             "id, nombre, orden",
+      relaciones:         "id, personaje_id",
+      tareas:             "id, username, completada, created_at, status",
+      eventos:            "id, username, fecha, tipo, status",
+      recetas:            "id, autor_id, categoria, created_at",
+      ingredientes:       "id, user_id",
+      ropa:               "id, user_id, created_at",
+      ropa_outfits:       "id, user_id, created_at",
+      diario_fotos:       "++id, categoria, created_at",
+      dibujos:            "++id, categoria",
+      notas:              "id, status, updated_at",
+      rutinas:            "id, status",
+      ejercicios_rutina:  "id, rutina_id, status",
+      offline_queue:      "++id, table, operation, recordId, timestamp",
     });
 
     this.version(4).stores({
@@ -867,6 +879,49 @@ class AgendaFraniDB extends Dexie {
       galeria:              "++id, orden, creado_en",
       runas:                "id, nombre",
       lugares:              "id, nombre, tipo, reino_id",
+    });
+
+    // ─── v16: perfil de usuario cacheado offline ──────────────────────────────
+    this.version(16).stores({
+      personajes:           "id, nombre, visible",
+      criaturas:            "id, nombre, habitat, alma, pensamiento",
+      criatura_variantes:   "id, criatura_id, tipo",
+      items:                "id, nombre, categoria",
+      libros:               "id, created_at",
+      capitulos:            "id, libro_id, orden, fecha_publicacion, orden_linea_tiempo",
+      canciones:            "id, titulo, personaje, visible, created_at",
+      secciones_cancion:    "id, cancion_id, orden",
+      reinos:               "id, nombre, orden",
+      relaciones:           "id, personaje_id, personaje_rel_id, tipo",
+      tareas:               "id, username, completada, created_at, status",
+      eventos:              "id, username, fecha, tipo, status",
+      recetas:              "id, autor_id, categoria, created_at",
+      ingredientes:         "id, user_id",
+      ropa:                 "id, user_id, created_at",
+      ropa_outfits:         "id, user_id, created_at",
+      diario_fotos:         "++id, categoria, created_at",
+      dibujos:              "++id, categoria",
+      notas:                "id, status, updated_at",
+      ensayos:              "id, status, updated_at",
+      rutinas:              "id, status",
+      ejercicios_rutina:    "id, rutina_id, status",
+      offline_queue:        "++id, table, operation, recordId, timestamp",
+      compras:              "id",
+      reproductor_handles:  "key",
+      session_cache:        "key, updated_at",
+      reino_detalles:       "id, reino_id",
+      hechizos:             "id, nombre",
+      dones:                "id, nombre",
+      notas_lore:           "id, updated_at",
+      grupos_mundo:         "id, tipo, created_at",
+      personaje_hechizos:   "id, personaje_id, hechizo_id",
+      personaje_dones:      "id, personaje_id, don_id",
+      criatura_drops:       "id, criatura_id, variante_id",
+      item_crafteres:       "id, criatura_id",
+      galeria:              "++id, orden, creado_en",
+      runas:                "id, nombre",
+      lugares:              "id, nombre, tipo, reino_id",
+      perfiles:             "id",                            
     });
   }
 }

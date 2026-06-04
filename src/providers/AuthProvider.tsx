@@ -6,6 +6,10 @@ import {
   setPerfilCached,
   clearPerfilCached,
 } from "@/lib/api/client/perfilCache";
+import { db } from "@/lib/db";
+
+// ─── Tiempo máximo antes de refrescar desde Supabase (5 minutos) ─────────────
+const PERFIL_CACHE_TTL_MS = 5 * 60 * 1000;
 
 const AuthContext = createContext({});
 
@@ -22,15 +26,47 @@ export const AuthProvider = ({ children }) => {
     return () => { mountedRef.current = false; };
   }, []);
 
+  // ── Guardar perfil en Dexie ───────────────────────────────────────────────
+  const guardarPerfilDexie = async (perfilData: any) => {
+    try {
+      await db.perfiles.put({ ...perfilData, cached_at: Date.now() });
+    } catch (err) {
+      console.warn("No se pudo guardar perfil en Dexie:", err);
+    }
+  };
+
+  // ── Leer perfil desde Dexie ───────────────────────────────────────────────
+  const leerPerfilDexie = async (userId: string) => {
+    try {
+      return await db.perfiles.get(userId) ?? null;
+    } catch {
+      return null;
+    }
+  };
+
   const fetchPerfil = async (userId: string, userEmail: string) => {
     try {
-      // Caché local primero
-      const cached = await getPerfilCached();
-      if (cached?.perfil && mountedRef.current) {
-        setPerfil(cached.perfil);
+      // 1️⃣ Dexie primero — mostrar inmediatamente aunque no haya red
+      const dexiePerfil = await leerPerfilDexie(userId);
+      if (dexiePerfil && mountedRef.current) {
+        setPerfil(dexiePerfil);
         setLoading(false);
+
+        // Si el caché es reciente, no hacer fetch a Supabase todavía
+        const edad = Date.now() - (dexiePerfil.cached_at ?? 0);
+        if (edad < PERFIL_CACHE_TTL_MS) return;
       }
 
+      // 2️⃣ Caché legacy (perfilCache) como fallback adicional
+      if (!dexiePerfil) {
+        const cached = await getPerfilCached();
+        if (cached?.perfil && mountedRef.current) {
+          setPerfil(cached.perfil);
+          setLoading(false);
+        }
+      }
+
+      // 3️⃣ Fetch real a Supabase — sobreescribe el caché local con datos frescos
       const { data, error } = await supabase
         .from("perfiles")
         .select("*")
@@ -40,9 +76,10 @@ export const AuthProvider = ({ children }) => {
       if (!mountedRef.current) return;
 
       if (data) {
-        // Perfil encontrado — usarlo tal cual, sin tocar el rol
+        // ✅ Perfil encontrado — guardar en Dexie y actualizar estado
         setPerfil(data);
         setPerfilCached(data);
+        await guardarPerfilDexie(data);
       } else if (error?.code === "PGRST116") {
         // PGRST116 = "no rows found" — el perfil realmente no existe, crearlo
         const nombreAuto = userEmail ? userEmail.split("@")[0] : "Usuario";
@@ -55,15 +92,17 @@ export const AuthProvider = ({ children }) => {
         };
         const { error: insertError } = await supabase
           .from("perfiles")
-          .insert(nuevoPerfil); // ✅ insert en vez de upsert — nunca pisa datos existentes
+          .insert(nuevoPerfil); // insert, nunca upsert — no pisa datos existentes
 
         if (!insertError && mountedRef.current) {
-          setPerfil({ ...nuevoPerfil, rol: "user" });
-          setPerfilCached({ ...nuevoPerfil, rol: "user" });
+          const perfilConRol = { ...nuevoPerfil, rol: "user" };
+          setPerfil(perfilConRol);
+          setPerfilCached(perfilConRol);
+          await guardarPerfilDexie(perfilConRol);
         }
       }
-      // Cualquier otro error (red, permisos, etc.) no hace nada —
-      // evita pisar el perfil existente por un fallo temporal
+      // Cualquier otro error (red, permisos) no hace nada —
+      // se mantiene lo que ya estaba en Dexie
     } catch (err) {
       if (mountedRef.current) console.error("Error al cargar perfil:", err);
     } finally {
