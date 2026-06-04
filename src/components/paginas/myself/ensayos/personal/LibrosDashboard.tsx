@@ -234,7 +234,7 @@ export function LibrosDashboard({ ensayos, onNavigate, onTagClick }: LibrosDashb
           COLUMNA IZQUIERDA — grid principal
       ══════════════════════════════════════════ */}
       <div style={{ flex: 1, overflowY: "auto", minWidth: 0 }}>
-        <div style={{ padding: "16px 16px 40px" }}>
+        <div style={{ padding: "16px 8px 40px" }}>
 
           {/* ── Header ── */}
           <div style={{ marginBottom: 14 }}>
@@ -443,7 +443,7 @@ export function LibrosDashboard({ ensayos, onNavigate, onTagClick }: LibrosDashb
           {/* ── Grid ── */}
           <div style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+            gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
             gap: 1,
             background: divColor,
             borderRadius: 8,
