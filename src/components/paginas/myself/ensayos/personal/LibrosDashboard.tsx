@@ -1,8 +1,7 @@
 "use client";
 import React, { useMemo, useState } from "react";
 import { MotionDiv } from "@/components/ui/Motion";
-import { AnimatePresence } from "framer-motion";
-import { BookOpen, Search, X, ArrowRight, BookMarked, Tag, Clock, Hash } from "lucide-react";
+import { BookOpen, Search, X, ArrowRight, BookMarked, BookCheck, BookDashed, Library } from "lucide-react";
 
 interface LibrosDashboardProps {
   ensayos: any[];
@@ -12,6 +11,130 @@ interface LibrosDashboardProps {
 
 type OrdenLibros = "reciente" | "titulo" | "palabras";
 
+// ─── Mini libro row para el panel lateral ────────────────────────────────────
+function LibroRow({
+  libro,
+  onNavigate,
+  serif,
+  mono,
+  formatRelative,
+}: {
+  libro: any;
+  onNavigate: (t: string) => void;
+  serif: React.CSSProperties;
+  mono: React.CSSProperties;
+  formatRelative: (d: string) => string;
+}) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <button
+      onClick={() => onNavigate(libro.titulo)}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      className="w-full text-left"
+      style={{
+        display: "flex", alignItems: "center", gap: 8,
+        padding: "7px 10px",
+        background: hovered ? "color-mix(in srgb, var(--foreground) 4%, transparent)" : "transparent",
+        border: "none", borderRadius: 5, cursor: "pointer",
+        transition: "background 0.08s",
+      }}
+    >
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p style={{
+          ...serif, fontSize: 11,
+          color: "color-mix(in srgb, var(--foreground) 72%, transparent)",
+          margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+        }}>
+          {libro.titulo || "Sin título"}
+        </p>
+        <span style={{ ...mono, fontSize: 8, color: "color-mix(in srgb, var(--foreground) 18%, transparent)" }}>
+          {formatRelative(libro.updated_at)}
+        </span>
+      </div>
+      <ArrowRight size={9} style={{ color: "color-mix(in srgb, var(--foreground) 18%, transparent)", flexShrink: 0, opacity: hovered ? 1 : 0, transition: "opacity 0.1s" }} />
+    </button>
+  );
+}
+
+// ─── Sección del panel lateral con scroll propio ──────────────────────────────
+function PanelSeccion({
+  label,
+  icon,
+  libros,
+  onNavigate,
+  serif,
+  mono,
+  formatRelative,
+  emptyText,
+  accentColor,
+}: {
+  label: string;
+  icon: React.ReactNode;
+  libros: any[];
+  onNavigate: (t: string) => void;
+  serif: React.CSSProperties;
+  mono: React.CSSProperties;
+  formatRelative: (d: string) => string;
+  emptyText: string;
+  accentColor: string;
+}) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}>
+      {/* Header de sección */}
+      <div style={{
+        display: "flex", alignItems: "center", gap: 6,
+        padding: "10px 10px 6px",
+        flexShrink: 0,
+      }}>
+        <span style={{ color: accentColor, display: "flex", alignItems: "center" }}>{icon}</span>
+        <span style={{
+          ...mono, fontSize: 8, textTransform: "uppercase", letterSpacing: "0.13em",
+          color: "color-mix(in srgb, var(--foreground) 30%, transparent)",
+        }}>
+          {label}
+        </span>
+        {libros.length > 0 && (
+          <span style={{
+            ...mono, fontSize: 7,
+            padding: "1px 5px", borderRadius: 99,
+            background: "color-mix(in srgb, var(--foreground) 6%, transparent)",
+            color: "color-mix(in srgb, var(--foreground) 30%, transparent)",
+            marginLeft: "auto",
+          }}>
+            {libros.length}
+          </span>
+        )}
+      </div>
+
+      {/* Lista con scroll */}
+      <div style={{ flex: 1, overflowY: "auto", padding: "0 2px 4px", minHeight: 0 }}>
+        {libros.length === 0 ? (
+          <p style={{
+            ...mono, fontSize: 9, padding: "6px 10px",
+            color: "color-mix(in srgb, var(--foreground) 14%, transparent)",
+            fontStyle: "normal",
+          }}>
+            {emptyText}
+          </p>
+        ) : (
+          libros.map(l => (
+            <LibroRow
+              key={l.id}
+              libro={l}
+              onNavigate={onNavigate}
+              serif={serif}
+              mono={mono}
+              formatRelative={formatRelative}
+            />
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Componente principal ─────────────────────────────────────────────────────
 export function LibrosDashboard({ ensayos, onNavigate, onTagClick }: LibrosDashboardProps) {
   const mono: React.CSSProperties = { fontFamily: "var(--font-mono)" };
   const serif: React.CSSProperties = { fontFamily: "var(--font-serif)", fontStyle: "italic" };
@@ -21,18 +144,37 @@ export function LibrosDashboard({ ensayos, onNavigate, onTagClick }: LibrosDashb
   const [tagFiltro, setTagFiltro] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
 
-  // Only notes tagged "libro"
+  // Todos los libros
   const libros = useMemo(
     () => ensayos.filter(e => e.tags?.includes("libro")),
     [ensayos]
   );
 
-  // All co-tags across libros (excluding "libro" itself)
+  // Agrupados por estado — se usan tags: "leyendo", "leido", "pendiente"
+  // Una nota puede tener sólo uno de los tres. Si no tiene ninguno, no aparece en el panel.
+  const leyendo = useMemo(
+    () => libros.filter(e => e.tags?.includes("leyendo"))
+               .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()),
+    [libros]
+  );
+  const leidos = useMemo(
+    () => libros.filter(e => e.tags?.includes("leido"))
+               .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()),
+    [libros]
+  );
+  const pendientes = useMemo(
+    () => libros.filter(e => e.tags?.includes("pendiente") && !e.tags?.includes("leyendo") && !e.tags?.includes("leido"))
+               .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()),
+    [libros]
+  );
+
+  // Co-tags para filtros (excluye estado-tags y "libro")
+  const estadoTags = new Set(["libro", "leyendo", "leido", "pendiente"]);
   const coTags = useMemo(() => {
     const freq: Record<string, number> = {};
     libros.forEach(e =>
       e.tags?.forEach((t: string) => {
-        if (t !== "libro") freq[t] = (freq[t] || 0) + 1;
+        if (!estadoTags.has(t)) freq[t] = (freq[t] || 0) + 1;
       })
     );
     return Object.entries(freq).sort((a, b) => b[1] - a[1]).slice(0, 12);
@@ -57,7 +199,7 @@ export function LibrosDashboard({ ensayos, onNavigate, onTagClick }: LibrosDashb
   const wordCount = (e: any) =>
     e.contenido?.split(/\s+/).filter(Boolean).length || 0;
 
-  // Filter + sort
+  // Grid filtrado
   const filtrados = useMemo(() => {
     let result = libros;
     if (tagFiltro) result = result.filter(e => e.tags?.includes(tagFiltro));
@@ -66,336 +208,403 @@ export function LibrosDashboard({ ensayos, onNavigate, onTagClick }: LibrosDashb
       result = result.filter(e => e.titulo?.toLowerCase().includes(q) || e.contenido?.toLowerCase().includes(q));
     }
     if (orden === "reciente") return [...result].sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
-    if (orden === "titulo") return [...result].sort((a, b) => (a.titulo || "").localeCompare(b.titulo || "", "es"));
+    if (orden === "titulo")   return [...result].sort((a, b) => (a.titulo || "").localeCompare(b.titulo || "", "es"));
     if (orden === "palabras") return [...result].sort((a, b) => wordCount(b) - wordCount(a));
     return result;
   }, [libros, busqueda, orden, tagFiltro]);
 
   const divColor = "color-mix(in srgb, var(--foreground) 5%, transparent)";
+  const borderColor = "color-mix(in srgb, var(--foreground) 7%, transparent)";
 
   return (
     <MotionDiv
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.22 }}
-      className="h-full overflow-y-auto"
-      style={{ background: "var(--bg-main)" }}
+      // Layout raíz: flex row — izquierda scrollable, derecha fija
+      style={{
+        display: "flex",
+        height: "100%",
+        overflow: "hidden",
+        background: "var(--bg-main)",
+      }}
     >
-      <div style={{ maxWidth: 960, margin: "0 auto", padding: "32px 28px 64px" }}>
 
-        {/* ── Header ── */}
-        <div style={{ marginBottom: 24 }}>
-          {/* Icon + title */}
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-            <div style={{
-              width: 32, height: 32, borderRadius: 8,
-              background: "color-mix(in srgb, var(--foreground) 5%, transparent)",
-              border: "1px solid color-mix(in srgb, var(--foreground) 10%, transparent)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              color: "color-mix(in srgb, var(--foreground) 40%, transparent)",
-            }}>
-              <BookOpen size={15} />
-            </div>
-            <div>
+      {/* ══════════════════════════════════════════
+          COLUMNA IZQUIERDA — grid principal
+      ══════════════════════════════════════════ */}
+      <div style={{ flex: 1, overflowY: "auto", minWidth: 0 }}>
+        <div style={{ maxWidth: 820, margin: "0 auto", padding: "32px 28px 64px" }}>
+
+          {/* ── Header ── */}
+          <div style={{ marginBottom: 24 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+              <div style={{
+                width: 32, height: 32, borderRadius: 8,
+                background: "color-mix(in srgb, var(--foreground) 5%, transparent)",
+                border: "1px solid color-mix(in srgb, var(--foreground) 10%, transparent)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                color: "color-mix(in srgb, var(--foreground) 40%, transparent)",
+              }}>
+                <BookOpen size={15} />
+              </div>
               <h1 style={{ ...serif, fontSize: 22, color: "color-mix(in srgb, var(--foreground) 80%, transparent)", margin: 0, lineHeight: 1 }}>
                 biblioteca
               </h1>
             </div>
+            <p style={{ ...mono, fontSize: 9, color: "color-mix(in srgb, var(--foreground) 20%, transparent)", textTransform: "uppercase", letterSpacing: "0.13em", margin: 0 }}>
+              {libros.length} libros · {totalPalabras.toLocaleString("es-ES")} palabras
+              {tagFiltro && ` · #${tagFiltro}`}
+              {busqueda && ` · "${busqueda}"`}
+            </p>
           </div>
 
-          {/* Stats strip */}
-          <p style={{ ...mono, fontSize: 9, color: "color-mix(in srgb, var(--foreground) 20%, transparent)", textTransform: "uppercase", letterSpacing: "0.13em", margin: 0 }}>
-            {libros.length} libros · {totalPalabras.toLocaleString("es-ES")} palabras
-            {tagFiltro && ` · #${tagFiltro}`}
-            {busqueda && ` · "${busqueda}"`}
-          </p>
-        </div>
-
-        {/* ── Controls row ── */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
-          {/* Search */}
-          <div style={{
-            flex: 1, minWidth: 160, display: "flex", alignItems: "center", gap: 7,
-            background: "color-mix(in srgb, var(--foreground) 4%, transparent)",
-            border: "1px solid color-mix(in srgb, var(--foreground) 8%, transparent)",
-            borderRadius: 7, padding: "6px 10px",
-          }}>
-            <Search size={10} style={{ color: "color-mix(in srgb, var(--foreground) 25%, transparent)", flexShrink: 0 }} />
-            <input
-              type="text"
-              value={busqueda}
-              onChange={e => setBusqueda(e.target.value)}
-              placeholder="buscar libro..."
-              style={{
-                flex: 1, border: "none", background: "transparent", outline: "none",
-                ...mono, fontSize: 10,
-                color: "color-mix(in srgb, var(--foreground) 70%, transparent)",
-              }}
-            />
-            {busqueda && (
-              <button onClick={() => setBusqueda("")} style={{ border: "none", background: "transparent", cursor: "pointer", display: "flex", padding: 0, color: "color-mix(in srgb, var(--foreground) 25%, transparent)" }}>
-                <X size={9} />
-              </button>
-            )}
-          </div>
-
-          {/* Sort toggle */}
-          <div style={{ display: "flex", gap: 2 }}>
-            {(["reciente", "titulo", "palabras"] as OrdenLibros[]).map(o => (
-              <button
-                key={o}
-                onClick={() => setOrden(o)}
+          {/* ── Controls ── */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
+            <div style={{
+              flex: 1, minWidth: 160, display: "flex", alignItems: "center", gap: 7,
+              background: "color-mix(in srgb, var(--foreground) 4%, transparent)",
+              border: "1px solid color-mix(in srgb, var(--foreground) 8%, transparent)",
+              borderRadius: 7, padding: "6px 10px",
+            }}>
+              <Search size={10} style={{ color: "color-mix(in srgb, var(--foreground) 25%, transparent)", flexShrink: 0 }} />
+              <input
+                type="text"
+                value={busqueda}
+                onChange={e => setBusqueda(e.target.value)}
+                placeholder="buscar libro..."
                 style={{
-                  ...mono, fontSize: 8, padding: "5px 9px", borderRadius: 5, border: "none",
-                  cursor: "pointer", textTransform: "uppercase", letterSpacing: "0.1em",
-                  transition: "all 0.1s",
-                  background: orden === o
-                    ? "color-mix(in srgb, var(--foreground) 10%, transparent)"
-                    : "transparent",
-                  color: orden === o
-                    ? "color-mix(in srgb, var(--foreground) 70%, transparent)"
-                    : "color-mix(in srgb, var(--foreground) 28%, transparent)",
+                  flex: 1, border: "none", background: "transparent", outline: "none",
+                  ...mono, fontSize: 10,
+                  color: "color-mix(in srgb, var(--foreground) 70%, transparent)",
                 }}
-              >
-                {o}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* ── Co-tags filter ── */}
-        {coTags.length > 0 && (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 20 }}>
-            <button
-              onClick={() => setTagFiltro(null)}
-              style={{
-                ...mono, fontSize: 9, padding: "2px 8px", borderRadius: 4, cursor: "pointer",
-                border: "1px solid",
-                borderColor: !tagFiltro ? "color-mix(in srgb, var(--foreground) 35%, transparent)" : "color-mix(in srgb, var(--foreground) 10%, transparent)",
-                background: !tagFiltro ? "color-mix(in srgb, var(--foreground) 8%, transparent)" : "transparent",
-                color: !tagFiltro ? "color-mix(in srgb, var(--foreground) 80%, transparent)" : "color-mix(in srgb, var(--foreground) 30%, transparent)",
-                transition: "all 0.1s",
-              }}
-            >
-              todos
-            </button>
-            {coTags.map(([tag, count]) => {
-              const isActive = tagFiltro === tag;
-              return (
+              />
+              {busqueda && (
+                <button onClick={() => setBusqueda("")} style={{ border: "none", background: "transparent", cursor: "pointer", display: "flex", padding: 0, color: "color-mix(in srgb, var(--foreground) 25%, transparent)" }}>
+                  <X size={9} />
+                </button>
+              )}
+            </div>
+            <div style={{ display: "flex", gap: 2 }}>
+              {(["reciente", "titulo", "palabras"] as OrdenLibros[]).map(o => (
                 <button
-                  key={tag}
-                  onClick={() => setTagFiltro(isActive ? null : tag)}
+                  key={o}
+                  onClick={() => setOrden(o)}
                   style={{
-                    ...mono, fontSize: 9, padding: "2px 8px", borderRadius: 4, cursor: "pointer",
-                    border: "1px solid",
-                    borderColor: isActive ? "color-mix(in srgb, var(--foreground) 30%, transparent)" : "color-mix(in srgb, var(--foreground) 8%, transparent)",
-                    background: isActive ? "color-mix(in srgb, var(--foreground) 7%, transparent)" : "transparent",
-                    color: isActive ? "color-mix(in srgb, var(--foreground) 75%, transparent)" : "color-mix(in srgb, var(--foreground) 30%, transparent)",
+                    ...mono, fontSize: 8, padding: "5px 9px", borderRadius: 5, border: "none",
+                    cursor: "pointer", textTransform: "uppercase", letterSpacing: "0.1em",
                     transition: "all 0.1s",
-                    display: "flex", alignItems: "center", gap: 4,
+                    background: orden === o ? "color-mix(in srgb, var(--foreground) 10%, transparent)" : "transparent",
+                    color: orden === o ? "color-mix(in srgb, var(--foreground) 70%, transparent)" : "color-mix(in srgb, var(--foreground) 28%, transparent)",
                   }}
                 >
-                  #{tag}
-                  <span style={{ fontSize: 7, color: "color-mix(in srgb, var(--foreground) 18%, transparent)" }}>{count}</span>
+                  {o}
                 </button>
+              ))}
+            </div>
+          </div>
+
+          {/* ── Co-tags filter ── */}
+          {coTags.length > 0 && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 20 }}>
+              <button
+                onClick={() => setTagFiltro(null)}
+                style={{
+                  ...mono, fontSize: 9, padding: "2px 8px", borderRadius: 4, cursor: "pointer",
+                  border: "1px solid",
+                  borderColor: !tagFiltro ? "color-mix(in srgb, var(--foreground) 35%, transparent)" : "color-mix(in srgb, var(--foreground) 10%, transparent)",
+                  background: !tagFiltro ? "color-mix(in srgb, var(--foreground) 8%, transparent)" : "transparent",
+                  color: !tagFiltro ? "color-mix(in srgb, var(--foreground) 80%, transparent)" : "color-mix(in srgb, var(--foreground) 30%, transparent)",
+                  transition: "all 0.1s",
+                }}
+              >
+                todos
+              </button>
+              {coTags.map(([tag, count]) => {
+                const isActive = tagFiltro === tag;
+                return (
+                  <button
+                    key={tag}
+                    onClick={() => setTagFiltro(isActive ? null : tag)}
+                    style={{
+                      ...mono, fontSize: 9, padding: "2px 8px", borderRadius: 4, cursor: "pointer",
+                      border: "1px solid",
+                      borderColor: isActive ? "color-mix(in srgb, var(--foreground) 30%, transparent)" : "color-mix(in srgb, var(--foreground) 8%, transparent)",
+                      background: isActive ? "color-mix(in srgb, var(--foreground) 7%, transparent)" : "transparent",
+                      color: isActive ? "color-mix(in srgb, var(--foreground) 75%, transparent)" : "color-mix(in srgb, var(--foreground) 30%, transparent)",
+                      transition: "all 0.1s",
+                      display: "flex", alignItems: "center", gap: 4,
+                    }}
+                  >
+                    #{tag}
+                    <span style={{ fontSize: 7, color: "color-mix(in srgb, var(--foreground) 18%, transparent)" }}>{count}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* ── Empty state ── */}
+          {filtrados.length === 0 && (
+            <MotionDiv
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              style={{ textAlign: "center", padding: "64px 0" }}
+            >
+              <BookMarked size={28} style={{ color: "color-mix(in srgb, var(--foreground) 10%, transparent)", margin: "0 auto 14px" }} />
+              <p style={{ ...serif, fontSize: 15, color: "color-mix(in srgb, var(--foreground) 25%, transparent)", marginBottom: 6 }}>
+                {libros.length === 0 ? "ningún libro aún" : "sin resultados"}
+              </p>
+              <p style={{ ...mono, fontSize: 9, color: "color-mix(in srgb, var(--foreground) 12%, transparent)" }}>
+                {libros.length === 0
+                  ? "agrega la etiqueta #libro a una nota para verla aquí"
+                  : "prueba con otro término o limpia los filtros"}
+              </p>
+            </MotionDiv>
+          )}
+
+          {/* ── Carta destacada ── */}
+          {filtrados.length > 0 && orden === "reciente" && !busqueda && !tagFiltro && (
+            <MotionDiv
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.18 }}
+              style={{ marginBottom: 8 }}
+            >
+              <button
+                onClick={() => onNavigate(filtrados[0].titulo)}
+                className="w-full text-left group"
+                style={{
+                  display: "block", width: "100%",
+                  padding: "20px 22px",
+                  background: "var(--bg-main)",
+                  border: "1px solid color-mix(in srgb, var(--foreground) 9%, transparent)",
+                  borderRadius: 10, cursor: "pointer",
+                  transition: "all 0.12s",
+                }}
+                onMouseEnter={e => {
+                  (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--foreground) 3%, transparent)";
+                  (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--foreground) 18%, transparent)";
+                }}
+                onMouseLeave={e => {
+                  (e.currentTarget as HTMLElement).style.background = "var(--bg-main)";
+                  (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--foreground) 9%, transparent)";
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+                      <span style={{ ...mono, fontSize: 8, color: "color-mix(in srgb, var(--foreground) 22%, transparent)", textTransform: "uppercase", letterSpacing: "0.13em" }}>
+                        reciente
+                      </span>
+                      <div style={{ flex: 1, height: 1, background: "color-mix(in srgb, var(--foreground) 6%, transparent)" }} />
+                    </div>
+                    <h2 style={{ ...serif, fontSize: 19, color: "color-mix(in srgb, var(--foreground) 78%, transparent)", margin: "0 0 8px", lineHeight: 1.25 }}>
+                      {filtrados[0].titulo || "Sin título"}
+                    </h2>
+                    {filtrados[0].contenido && (
+                      <p style={{
+                        ...mono, fontSize: 10,
+                        color: "color-mix(in srgb, var(--foreground) 30%, transparent)",
+                        margin: "0 0 12px",
+                        overflow: "hidden",
+                        display: "-webkit-box",
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: "vertical" as any,
+                        lineHeight: 1.6,
+                      }}>
+                        {filtrados[0].contenido.replace(/#{1,6}\s/g, "").replace(/\*\*/g, "").slice(0, 200)}
+                      </p>
+                    )}
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                      {filtrados[0].tags?.filter((t: string) => !estadoTags.has(t)).slice(0, 4).map((t: string) => (
+                        <span key={t} style={{
+                          ...mono, fontSize: 8,
+                          padding: "2px 6px", borderRadius: 3,
+                          background: "color-mix(in srgb, var(--foreground) 5%, transparent)",
+                          border: "1px solid color-mix(in srgb, var(--foreground) 8%, transparent)",
+                          color: "color-mix(in srgb, var(--foreground) 28%, transparent)",
+                        }}>#{t}</span>
+                      ))}
+                      <span style={{ ...mono, fontSize: 8, color: "color-mix(in srgb, var(--foreground) 18%, transparent)" }}>
+                        {formatRelative(filtrados[0].updated_at)} · {wordCount(filtrados[0]).toLocaleString("es-ES")}p
+                      </span>
+                    </div>
+                  </div>
+                  <ArrowRight
+                    size={14}
+                    style={{ color: "color-mix(in srgb, var(--foreground) 18%, transparent)", flexShrink: 0, marginTop: 4 }}
+                  />
+                </div>
+              </button>
+            </MotionDiv>
+          )}
+
+          {/* ── Grid ── */}
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+            gap: 1,
+            background: divColor,
+            borderRadius: 8,
+            overflow: "hidden",
+          }}>
+            {(filtrados.length > 0 && orden === "reciente" && !busqueda && !tagFiltro
+              ? filtrados.slice(1)
+              : filtrados
+            ).map((libro, i) => {
+              const wc = wordCount(libro);
+              const tags = libro.tags?.filter((t: string) => !estadoTags.has(t)) ?? [];
+              return (
+                <MotionDiv
+                  key={libro.id}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: Math.min(i * 0.02, 0.3) }}
+                >
+                  <button
+                    onClick={() => onNavigate(libro.titulo)}
+                    onMouseEnter={() => setHoveredId(libro.id)}
+                    onMouseLeave={() => setHoveredId(null)}
+                    className="w-full text-left"
+                    style={{
+                      display: "flex", flexDirection: "column",
+                      padding: "14px 15px",
+                      background: hoveredId === libro.id
+                        ? "color-mix(in srgb, var(--foreground) 4%, transparent)"
+                        : "var(--bg-main)",
+                      border: "none", cursor: "pointer",
+                      transition: "background 0.08s",
+                      height: "100%",
+                    }}
+                  >
+                    <p style={{
+                      ...serif, fontSize: 13,
+                      color: "color-mix(in srgb, var(--foreground) 72%, transparent)",
+                      margin: "0 0 6px",
+                      overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                    }}>
+                      {libro.titulo || "Sin título"}
+                    </p>
+                    {libro.contenido && (
+                      <p style={{
+                        ...mono, fontSize: 9,
+                        color: "color-mix(in srgb, var(--foreground) 22%, transparent)",
+                        margin: "0 0 10px", lineHeight: 1.55, flex: 1,
+                        overflow: "hidden",
+                        display: "-webkit-box",
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: "vertical" as any,
+                      }}>
+                        {libro.contenido.replace(/#{1,6}\s/g, "").replace(/\*\*/g, "").slice(0, 120)}
+                      </p>
+                    )}
+                    <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap", marginTop: "auto" }}>
+                      {tags.slice(0, 2).map((t: string) => (
+                        <span key={t} style={{ ...mono, fontSize: 7, color: "color-mix(in srgb, var(--foreground) 22%, transparent)" }}>#{t}</span>
+                      ))}
+                      <span style={{ marginLeft: "auto", ...mono, fontSize: 7, color: "color-mix(in srgb, var(--foreground) 16%, transparent)" }}>
+                        {formatRelative(libro.updated_at)}
+                        {wc > 0 && ` · ${wc.toLocaleString("es-ES")}p`}
+                      </span>
+                    </div>
+                  </button>
+                </MotionDiv>
               );
             })}
           </div>
-        )}
 
-        {/* ── Empty state ── */}
-        {filtrados.length === 0 && (
-          <MotionDiv
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            style={{ textAlign: "center", padding: "64px 0" }}
-          >
-            <BookMarked size={28} style={{ color: "color-mix(in srgb, var(--foreground) 10%, transparent)", margin: "0 auto 14px" }} />
-            <p style={{ ...serif, fontSize: 15, color: "color-mix(in srgb, var(--foreground) 25%, transparent)", marginBottom: 6 }}>
-              {libros.length === 0 ? "ningún libro aún" : "sin resultados"}
-            </p>
-            <p style={{ ...mono, fontSize: 9, color: "color-mix(in srgb, var(--foreground) 12%, transparent)" }}>
-              {libros.length === 0
-                ? "agrega la etiqueta #libro a una nota para verla aquí"
-                : "prueba con otro término o limpia los filtros"}
-            </p>
-          </MotionDiv>
-        )}
+          {filtrados.length === 1 && orden === "reciente" && !busqueda && !tagFiltro && (
+            <div style={{ paddingTop: 16, textAlign: "center" }}>
+              <p style={{ ...mono, fontSize: 9, color: "color-mix(in srgb, var(--foreground) 12%, transparent)" }}>
+                solo un libro por ahora — agrega #libro a más notas para verlas aquí
+              </p>
+            </div>
+          )}
 
-        {/* ── Featured: last edited libro (large card) ── */}
-        {filtrados.length > 0 && orden === "reciente" && !busqueda && !tagFiltro && (
-          <MotionDiv
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.18 }}
-            style={{ marginBottom: 8 }}
-          >
-            <button
-              onClick={() => onNavigate(filtrados[0].titulo)}
-              className="w-full text-left group"
-              style={{
-                display: "block", width: "100%",
-                padding: "20px 22px",
-                background: "var(--bg-main)",
-                border: "1px solid color-mix(in srgb, var(--foreground) 9%, transparent)",
-                borderRadius: 10, cursor: "pointer",
-                transition: "all 0.12s",
-              }}
-              onMouseEnter={e => {
-                (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--foreground) 3%, transparent)";
-                (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--foreground) 18%, transparent)";
-              }}
-              onMouseLeave={e => {
-                (e.currentTarget as HTMLElement).style.background = "var(--bg-main)";
-                (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--foreground) 9%, transparent)";
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
-                    <span style={{ ...mono, fontSize: 8, color: "color-mix(in srgb, var(--foreground) 22%, transparent)", textTransform: "uppercase", letterSpacing: "0.13em" }}>
-                      reciente
-                    </span>
-                    <div style={{ flex: 1, height: 1, background: "color-mix(in srgb, var(--foreground) 6%, transparent)" }} />
-                  </div>
-                  <h2 style={{ ...serif, fontSize: 19, color: "color-mix(in srgb, var(--foreground) 78%, transparent)", margin: "0 0 8px", lineHeight: 1.25 }}>
-                    {filtrados[0].titulo || "Sin título"}
-                  </h2>
-                  {filtrados[0].contenido && (
-                    <p style={{
-                      ...mono, fontSize: 10,
-                      color: "color-mix(in srgb, var(--foreground) 30%, transparent)",
-                      margin: "0 0 12px",
-                      overflow: "hidden",
-                      display: "-webkit-box",
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: "vertical" as any,
-                      lineHeight: 1.6,
-                    }}>
-                      {filtrados[0].contenido.replace(/#{1,6}\s/g, "").replace(/\*\*/g, "").slice(0, 200)}
-                    </p>
-                  )}
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                    {filtrados[0].tags?.filter((t: string) => t !== "libro").slice(0, 4).map((t: string) => (
-                      <span key={t} style={{
-                        ...mono, fontSize: 8,
-                        padding: "2px 6px", borderRadius: 3,
-                        background: "color-mix(in srgb, var(--foreground) 5%, transparent)",
-                        border: "1px solid color-mix(in srgb, var(--foreground) 8%, transparent)",
-                        color: "color-mix(in srgb, var(--foreground) 28%, transparent)",
-                      }}>#{t}</span>
-                    ))}
-                    <span style={{ ...mono, fontSize: 8, color: "color-mix(in srgb, var(--foreground) 18%, transparent)" }}>
-                      {formatRelative(filtrados[0].updated_at)} · {wordCount(filtrados[0]).toLocaleString("es-ES")}p
-                    </span>
-                  </div>
-                </div>
-                <ArrowRight
-                  size={14}
-                  style={{
-                    color: "color-mix(in srgb, var(--foreground) 18%, transparent)",
-                    flexShrink: 0, marginTop: 4,
-                    transition: "transform 0.15s, color 0.15s",
-                  }}
-                  className="group-hover:translate-x-0.5"
-                />
-              </div>
-            </button>
-          </MotionDiv>
-        )}
+        </div>
+      </div>
 
-        {/* ── Grid of books ── */}
+      {/* ══════════════════════════════════════════
+          COLUMNA DERECHA — panel de estados
+          Ocupa alto completo, sus 3 secciones
+          tienen scroll independiente con flex.
+      ══════════════════════════════════════════ */}
+      <div style={{
+        width: 220,
+        flexShrink: 0,
+        borderLeft: `1px solid ${borderColor}`,
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
+        overflow: "hidden",
+        background: "color-mix(in srgb, var(--foreground) 1.5%, transparent)",
+      }}>
+
+        {/* Título del panel */}
         <div style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
-          gap: 1,
-          background: divColor,
-          borderRadius: 8,
-          overflow: "hidden",
+          padding: "14px 10px 8px",
+          borderBottom: `1px solid ${borderColor}`,
+          flexShrink: 0,
         }}>
-          {(filtrados.length > 0 && orden === "reciente" && !busqueda && !tagFiltro
-            ? filtrados.slice(1)
-            : filtrados
-          ).map((libro, i) => {
-            const wc = wordCount(libro);
-            const tags = libro.tags?.filter((t: string) => t !== "libro") ?? [];
-            return (
-              <MotionDiv
-                key={libro.id}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: Math.min(i * 0.02, 0.3) }}
-              >
-                <button
-                  onClick={() => onNavigate(libro.titulo)}
-                  onMouseEnter={() => setHoveredId(libro.id)}
-                  onMouseLeave={() => setHoveredId(null)}
-                  className="w-full text-left group"
-                  style={{
-                    display: "flex", flexDirection: "column",
-                    padding: "14px 15px",
-                    background: hoveredId === libro.id
-                      ? "color-mix(in srgb, var(--foreground) 4%, transparent)"
-                      : "var(--bg-main)",
-                    border: "none", cursor: "pointer",
-                    transition: "background 0.08s",
-                    height: "100%",
-                  }}
-                >
-                  {/* Title */}
-                  <p style={{
-                    ...serif, fontSize: 13,
-                    color: "color-mix(in srgb, var(--foreground) 72%, transparent)",
-                    margin: "0 0 6px",
-                    overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                  }}>
-                    {libro.titulo || "Sin título"}
-                  </p>
-
-                  {/* Excerpt */}
-                  {libro.contenido && (
-                    <p style={{
-                      ...mono, fontSize: 9,
-                      color: "color-mix(in srgb, var(--foreground) 22%, transparent)",
-                      margin: "0 0 10px", lineHeight: 1.55, flex: 1,
-                      overflow: "hidden",
-                      display: "-webkit-box",
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: "vertical" as any,
-                    }}>
-                      {libro.contenido.replace(/#{1,6}\s/g, "").replace(/\*\*/g, "").slice(0, 120)}
-                    </p>
-                  )}
-
-                  {/* Footer: tags + meta */}
-                  <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap", marginTop: "auto" }}>
-                    {tags.slice(0, 2).map((t: string) => (
-                      <span key={t} style={{
-                        ...mono, fontSize: 7,
-                        color: "color-mix(in srgb, var(--foreground) 22%, transparent)",
-                      }}>#{t}</span>
-                    ))}
-                    <span style={{ marginLeft: "auto", ...mono, fontSize: 7, color: "color-mix(in srgb, var(--foreground) 16%, transparent)" }}>
-                      {formatRelative(libro.updated_at)}
-                      {wc > 0 && ` · ${wc.toLocaleString("es-ES")}p`}
-                    </span>
-                  </div>
-                </button>
-              </MotionDiv>
-            );
-          })}
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <Library size={10} style={{ color: "color-mix(in srgb, var(--foreground) 22%, transparent)" }} />
+            <span style={{ ...mono, fontSize: 8, color: "color-mix(in srgb, var(--foreground) 22%, transparent)", textTransform: "uppercase", letterSpacing: "0.13em" }}>
+              estado de lectura
+            </span>
+          </div>
+          <p style={{ ...mono, fontSize: 7, color: "color-mix(in srgb, var(--foreground) 14%, transparent)", margin: "4px 0 0" }}>
+            tags: #leyendo · #leido · #pendiente
+          </p>
         </div>
 
-        {/* Empty grid message when featured-only exists */}
-        {filtrados.length === 1 && orden === "reciente" && !busqueda && !tagFiltro && (
-          <div style={{ paddingTop: 16, textAlign: "center" }}>
-            <p style={{ ...mono, fontSize: 9, color: "color-mix(in srgb, var(--foreground) 12%, transparent)" }}>
-              solo un libro por ahora — agrega #libro a más notas para verlas aquí
-            </p>
-          </div>
-        )}
+        {/* ─ Leyendo ahora ─ */}
+        <PanelSeccion
+          label="leyendo ahora"
+          icon={<BookOpen size={9} />}
+          libros={leyendo}
+          onNavigate={onNavigate}
+          serif={serif}
+          mono={mono}
+          formatRelative={formatRelative}
+          emptyText="ninguno en curso"
+          accentColor="color-mix(in srgb, var(--accent) 60%, transparent)"
+        />
+
+        {/* Divisor */}
+        <div style={{ height: 1, background: borderColor, flexShrink: 0 }} />
+
+        {/* ─ Leídos ─ */}
+        <PanelSeccion
+          label="leídos"
+          icon={<BookCheck size={9} />}
+          libros={leidos}
+          onNavigate={onNavigate}
+          serif={serif}
+          mono={mono}
+          formatRelative={formatRelative}
+          emptyText="aún nada terminado"
+          accentColor="color-mix(in srgb, var(--foreground) 35%, transparent)"
+        />
+
+        {/* Divisor */}
+        <div style={{ height: 1, background: borderColor, flexShrink: 0 }} />
+
+        {/* ─ Pendientes ─ */}
+        <PanelSeccion
+          label="pendientes"
+          icon={<BookDashed size={9} />}
+          libros={pendientes}
+          onNavigate={onNavigate}
+          serif={serif}
+          mono={mono}
+          formatRelative={formatRelative}
+          emptyText="lista limpia"
+          accentColor="color-mix(in srgb, var(--foreground) 22%, transparent)"
+        />
 
       </div>
+
     </MotionDiv>
   );
 }
