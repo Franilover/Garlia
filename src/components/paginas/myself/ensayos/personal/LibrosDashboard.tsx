@@ -1,21 +1,141 @@
 "use client";
 import React, { useMemo, useState } from "react";
 import { MotionDiv } from "@/components/ui/Motion";
-import { SeccionEntidad } from "@/components/ui/SeccionEntidad"; // ajusta la ruta si es distinta
 import { BookOpen, Search, X, ArrowRight, BookMarked, BookCheck, BookDashed, Library } from "lucide-react";
 
 interface LibrosDashboardProps {
   ensayos: any[];
   onNavigate: (titulo: string) => void;
   onTagClick?: (tag: string) => void;
-  onToggleEstado?: (libroId: string, estado: "leyendo" | "leido" | "pendiente", add: boolean) => void; // opcional: HomeDashboard lo pasa desde page.tsx
-  onCrearLibro?: () => void;
 }
 
 type OrdenLibros = "reciente" | "titulo" | "palabras";
 
+// ─── Mini libro row para el panel lateral ────────────────────────────────────
+function LibroRow({
+  libro,
+  onNavigate,
+  serif,
+  mono,
+  formatRelative,
+}: {
+  libro: any;
+  onNavigate: (t: string) => void;
+  serif: React.CSSProperties;
+  mono: React.CSSProperties;
+  formatRelative: (d: string) => string;
+}) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <button
+      onClick={() => onNavigate(libro.titulo)}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      className="w-full text-left"
+      style={{
+        display: "flex", alignItems: "center", gap: 8,
+        padding: "7px 10px",
+        background: hovered ? "color-mix(in srgb, var(--foreground) 4%, transparent)" : "transparent",
+        border: "none", borderRadius: 5, cursor: "pointer",
+        transition: "background 0.08s",
+      }}
+    >
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p style={{
+          ...serif, fontSize: 11,
+          color: "color-mix(in srgb, var(--foreground) 72%, transparent)",
+          margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+        }}>
+          {libro.titulo || "Sin título"}
+        </p>
+        <span style={{ ...mono, fontSize: 8, color: "color-mix(in srgb, var(--foreground) 18%, transparent)" }}>
+          {formatRelative(libro.updated_at)}
+        </span>
+      </div>
+      <ArrowRight size={9} style={{ color: "color-mix(in srgb, var(--foreground) 18%, transparent)", flexShrink: 0, opacity: hovered ? 1 : 0, transition: "opacity 0.1s" }} />
+    </button>
+  );
+}
+
+// ─── Sección del panel lateral con scroll propio ──────────────────────────────
+function PanelSeccion({
+  label,
+  icon,
+  libros,
+  onNavigate,
+  serif,
+  mono,
+  formatRelative,
+  emptyText,
+  accentColor,
+}: {
+  label: string;
+  icon: React.ReactNode;
+  libros: any[];
+  onNavigate: (t: string) => void;
+  serif: React.CSSProperties;
+  mono: React.CSSProperties;
+  formatRelative: (d: string) => string;
+  emptyText: string;
+  accentColor: string;
+}) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}>
+      {/* Header de sección */}
+      <div style={{
+        display: "flex", alignItems: "center", gap: 6,
+        padding: "10px 10px 6px",
+        flexShrink: 0,
+      }}>
+        <span style={{ color: accentColor, display: "flex", alignItems: "center" }}>{icon}</span>
+        <span style={{
+          ...mono, fontSize: 8, textTransform: "uppercase", letterSpacing: "0.13em",
+          color: "color-mix(in srgb, var(--foreground) 30%, transparent)",
+        }}>
+          {label}
+        </span>
+        {libros.length > 0 && (
+          <span style={{
+            ...mono, fontSize: 7,
+            padding: "1px 5px", borderRadius: 99,
+            background: "color-mix(in srgb, var(--foreground) 6%, transparent)",
+            color: "color-mix(in srgb, var(--foreground) 30%, transparent)",
+            marginLeft: "auto",
+          }}>
+            {libros.length}
+          </span>
+        )}
+      </div>
+
+      {/* Lista con scroll */}
+      <div style={{ flex: 1, overflowY: "auto", padding: "0 2px 4px", minHeight: 0 }}>
+        {libros.length === 0 ? (
+          <p style={{
+            ...mono, fontSize: 9, padding: "6px 10px",
+            color: "color-mix(in srgb, var(--foreground) 14%, transparent)",
+            fontStyle: "normal",
+          }}>
+            {emptyText}
+          </p>
+        ) : (
+          libros.map(l => (
+            <LibroRow
+              key={l.id}
+              libro={l}
+              onNavigate={onNavigate}
+              serif={serif}
+              mono={mono}
+              formatRelative={formatRelative}
+            />
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Componente principal ─────────────────────────────────────────────────────
-export function LibrosDashboard({ ensayos, onNavigate, onTagClick, onToggleEstado, onCrearLibro }: LibrosDashboardProps) {
+export function LibrosDashboard({ ensayos, onNavigate, onTagClick }: LibrosDashboardProps) {
   const mono: React.CSSProperties = { fontFamily: "var(--font-mono)" };
   const serif: React.CSSProperties = { fontFamily: "var(--font-serif)", fontStyle: "italic" };
 
@@ -30,29 +150,21 @@ export function LibrosDashboard({ ensayos, onNavigate, onTagClick, onToggleEstad
     [ensayos]
   );
 
-  // IDs agrupados por estado
-  const leyendoIds = useMemo(
-    () => libros.filter(e => e.tags?.includes("leyendo")).map(e => e.id),
+  // Agrupados por estado — se usan tags: "leyendo", "leido", "pendiente"
+  // Una nota puede tener sólo uno de los tres. Si no tiene ninguno, no aparece en el panel.
+  const leyendo = useMemo(
+    () => libros.filter(e => e.tags?.includes("leyendo"))
+               .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()),
     [libros]
   );
-  const leidosIds = useMemo(
-    () => libros.filter(e => e.tags?.includes("leido")).map(e => e.id),
+  const leidos = useMemo(
+    () => libros.filter(e => e.tags?.includes("leido"))
+               .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()),
     [libros]
   );
-  const pendientesIds = useMemo(
-    () => libros
-      .filter(e => e.tags?.includes("pendiente") && !e.tags?.includes("leyendo") && !e.tags?.includes("leido"))
-      .map(e => e.id),
-    [libros]
-  );
-
-  // Shape que SeccionEntidad espera: { id, nombre, imagen_url? }
-  const librosComoEntidades = useMemo(
-    () => libros.map(l => ({
-      id: l.id,
-      nombre: l.titulo || "Sin título",
-      // imagen_url: l.cover_url ?? null,  // descomenta si tienes portadas
-    })),
+  const pendientes = useMemo(
+    () => libros.filter(e => e.tags?.includes("pendiente") && !e.tags?.includes("leyendo") && !e.tags?.includes("leido"))
+               .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()),
     [libros]
   );
 
@@ -109,6 +221,7 @@ export function LibrosDashboard({ ensayos, onNavigate, onTagClick, onToggleEstad
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.22 }}
+      // Layout raíz: flex row — izquierda scrollable, derecha fija
       style={{
         display: "flex",
         height: "100%",
@@ -121,10 +234,10 @@ export function LibrosDashboard({ ensayos, onNavigate, onTagClick, onToggleEstad
           COLUMNA IZQUIERDA — grid principal
       ══════════════════════════════════════════ */}
       <div style={{ flex: 1, overflowY: "auto", minWidth: 0 }}>
-        <div style={{ maxWidth: 820, margin: "0 auto", padding: "32px 28px 64px" }}>
+        <div style={{ padding: "16px 16px 40px" }}>
 
           {/* ── Header ── */}
-          <div style={{ marginBottom: 24 }}>
+          <div style={{ marginBottom: 14 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
               <div style={{
                 width: 32, height: 32, borderRadius: 8,
@@ -136,7 +249,7 @@ export function LibrosDashboard({ ensayos, onNavigate, onTagClick, onToggleEstad
                 <BookOpen size={15} />
               </div>
               <h1 style={{ ...serif, fontSize: 22, color: "color-mix(in srgb, var(--foreground) 80%, transparent)", margin: 0, lineHeight: 1 }}>
-                Biblioteca
+                biblioteca
               </h1>
             </div>
             <p style={{ ...mono, fontSize: 9, color: "color-mix(in srgb, var(--foreground) 20%, transparent)", textTransform: "uppercase", letterSpacing: "0.13em", margin: 0 }}>
@@ -286,30 +399,9 @@ export function LibrosDashboard({ ensayos, onNavigate, onTagClick, onToggleEstad
                       </span>
                       <div style={{ flex: 1, height: 1, background: "color-mix(in srgb, var(--foreground) 6%, transparent)" }} />
                     </div>
-                    <h2 style={{ ...serif, fontSize: 19, color: "color-mix(in srgb, var(--foreground) 78%, transparent)", margin: "0 0 4px", lineHeight: 1.25 }}>
+                    <h2 style={{ ...serif, fontSize: 19, color: "color-mix(in srgb, var(--foreground) 78%, transparent)", margin: "0 0 8px", lineHeight: 1.25 }}>
                       {filtrados[0].titulo || "Sin título"}
                     </h2>
-                    {filtrados[0].autor && (
-                      <p style={{ ...mono, fontSize: 9, color: "color-mix(in srgb, var(--foreground) 30%, transparent)", margin: "0 0 8px" }}>
-                        {filtrados[0].autor}
-                      </p>
-                    )}
-                    {/* Progress bar destacada */}
-                    {filtrados[0].paginas_total && filtrados[0].pagina_actual != null && (
-                      <div style={{ marginBottom: 10 }}>
-                        <div style={{ height: 2, borderRadius: 99, background: "color-mix(in srgb, var(--foreground) 6%, transparent)", overflow: "hidden" }}>
-                          <div style={{
-                            height: "100%",
-                            width: `${Math.min(100, Math.round((filtrados[0].pagina_actual / filtrados[0].paginas_total) * 100))}%`,
-                            background: "color-mix(in srgb, var(--accent) 60%, transparent)",
-                            borderRadius: 99,
-                          }} />
-                        </div>
-                        <span style={{ ...mono, fontSize: 8, color: "color-mix(in srgb, var(--accent) 50%, transparent)", marginTop: 3, display: "block" }}>
-                          p. {filtrados[0].pagina_actual} / {filtrados[0].paginas_total} · {Math.min(100, Math.round((filtrados[0].pagina_actual / filtrados[0].paginas_total) * 100))}% leído
-                        </span>
-                      </div>
-                    )}
                     {filtrados[0].contenido && (
                       <p style={{
                         ...mono, fontSize: 10,
@@ -351,35 +443,12 @@ export function LibrosDashboard({ ensayos, onNavigate, onTagClick, onToggleEstad
           {/* ── Grid ── */}
           <div style={{
             display: "grid",
-            gridTemplateColumns: "repeat(4, 1fr)",
+            gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
             gap: 1,
             background: divColor,
             borderRadius: 8,
             overflow: "hidden",
           }}>
-
-            {/* ── Bloque crear libro ── */}
-            {onCrearLibro && (
-              <button
-                onClick={onCrearLibro}
-                onMouseEnter={e => (e.currentTarget.style.background = "color-mix(in srgb, var(--foreground) 4%, transparent)")}
-                onMouseLeave={e => (e.currentTarget.style.background = "var(--bg-main)")}
-                className="w-full text-left"
-                style={{
-                  display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-                  padding: "14px 15px", gap: 8,
-                  background: "var(--bg-main)",
-                  border: "none", cursor: "pointer",
-                  transition: "background 0.08s",
-                  minHeight: 100,
-                }}
-              >
-                <BookMarked size={18} style={{ color: "color-mix(in srgb, var(--foreground) 18%, transparent)" }} />
-                <span style={{ ...mono, fontSize: 9, textTransform: "uppercase", letterSpacing: "0.13em", color: "color-mix(in srgb, var(--foreground) 28%, transparent)" }}>
-                  + nuevo libro
-                </span>
-              </button>
-            )}
             {(filtrados.length > 0 && orden === "reciente" && !busqueda && !tagFiltro
               ? filtrados.slice(1)
               : filtrados
@@ -412,21 +481,11 @@ export function LibrosDashboard({ ensayos, onNavigate, onTagClick, onToggleEstad
                     <p style={{
                       ...serif, fontSize: 13,
                       color: "color-mix(in srgb, var(--foreground) 72%, transparent)",
-                      margin: "0 0 4px",
+                      margin: "0 0 6px",
                       overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                     }}>
                       {libro.titulo || "Sin título"}
                     </p>
-                    {libro.autor && (
-                      <p style={{
-                        ...mono, fontSize: 8,
-                        color: "color-mix(in srgb, var(--foreground) 30%, transparent)",
-                        margin: "0 0 5px",
-                        overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                      }}>
-                        {libro.autor}
-                      </p>
-                    )}
                     {libro.contenido && (
                       <p style={{
                         ...mono, fontSize: 9,
@@ -439,22 +498,6 @@ export function LibrosDashboard({ ensayos, onNavigate, onTagClick, onToggleEstad
                       }}>
                         {libro.contenido.replace(/#{1,6}\s/g, "").replace(/\*\*/g, "").slice(0, 120)}
                       </p>
-                    )}
-                    {/* Progress bar */}
-                    {libro.paginas_total && libro.pagina_actual != null && (
-                      <div style={{ marginBottom: 8 }}>
-                        <div style={{ height: 2, borderRadius: 99, background: "color-mix(in srgb, var(--foreground) 6%, transparent)", overflow: "hidden" }}>
-                          <div style={{
-                            height: "100%",
-                            width: `${Math.min(100, Math.round((libro.pagina_actual / libro.paginas_total) * 100))}%`,
-                            background: "color-mix(in srgb, var(--accent) 55%, transparent)",
-                            borderRadius: 99,
-                          }} />
-                        </div>
-                        <span style={{ ...mono, fontSize: 7, color: "color-mix(in srgb, var(--accent) 45%, transparent)", marginTop: 2, display: "block" }}>
-                          p. {libro.pagina_actual} / {libro.paginas_total}
-                        </span>
-                      </div>
                     )}
                     <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap", marginTop: "auto" }}>
                       {tags.slice(0, 2).map((t: string) => (
@@ -484,8 +527,8 @@ export function LibrosDashboard({ ensayos, onNavigate, onTagClick, onToggleEstad
 
       {/* ══════════════════════════════════════════
           COLUMNA DERECHA — panel de estados
-          Usa SeccionEntidad reutilizado con los
-          libros mapeados a { id, nombre }.
+          Ocupa alto completo, sus 3 secciones
+          tienen scroll independiente con flex.
       ══════════════════════════════════════════ */}
       <div style={{
         width: 220,
@@ -510,64 +553,55 @@ export function LibrosDashboard({ ensayos, onNavigate, onTagClick, onToggleEstad
               estado de lectura
             </span>
           </div>
+          <p style={{ ...mono, fontSize: 7, color: "color-mix(in srgb, var(--foreground) 14%, transparent)", margin: "4px 0 0" }}>
+            tags: #leyendo · #leido · #pendiente
+          </p>
         </div>
 
-        {/* Las tres secciones reutilizando SeccionEntidad */}
-        <div style={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
+        {/* ─ Leyendo ahora ─ */}
+        <PanelSeccion
+          label="leyendo ahora"
+          icon={<BookOpen size={9} />}
+          libros={leyendo}
+          onNavigate={onNavigate}
+          serif={serif}
+          mono={mono}
+          formatRelative={formatRelative}
+          emptyText="ninguno en curso"
+          accentColor="color-mix(in srgb, var(--accent) 60%, transparent)"
+        />
 
-          <SeccionEntidad
-            label="Leyendo ahora"
-            icon={<BookOpen size={9} />}
-            fallbackIcon={<BookOpen size={12} />}
-            emptyLabel="ninguno en curso"
-            allEntities={librosComoEntidades}
-            selectedIds={leyendoIds}
-            loading={false}
-            saving={false}
-            onToggle={(id, add) => onToggleEstado(id, "leyendo", add)}
-            onEntityClick={id => {
-              const libro = libros.find(l => l.id === id);
-              if (libro) onNavigate(libro.titulo);
-            }}
-          />
+        {/* Divisor */}
+        <div style={{ height: 1, background: borderColor, flexShrink: 0 }} />
 
-          <div style={{ height: 1, background: borderColor }} />
+        {/* ─ Leídos ─ */}
+        <PanelSeccion
+          label="leídos"
+          icon={<BookCheck size={9} />}
+          libros={leidos}
+          onNavigate={onNavigate}
+          serif={serif}
+          mono={mono}
+          formatRelative={formatRelative}
+          emptyText="aún nada terminado"
+          accentColor="color-mix(in srgb, var(--foreground) 35%, transparent)"
+        />
 
-          <SeccionEntidad
-            label="Leídos"
-            icon={<BookCheck size={9} />}
-            fallbackIcon={<BookCheck size={12} />}
-            emptyLabel="aún nada terminado"
-            allEntities={librosComoEntidades}
-            selectedIds={leidosIds}
-            loading={false}
-            saving={false}
-            onToggle={(id, add) => onToggleEstado(id, "leido", add)}
-            onEntityClick={id => {
-              const libro = libros.find(l => l.id === id);
-              if (libro) onNavigate(libro.titulo);
-            }}
-          />
+        {/* Divisor */}
+        <div style={{ height: 1, background: borderColor, flexShrink: 0 }} />
 
-          <div style={{ height: 1, background: borderColor }} />
-
-          <SeccionEntidad
-            label="Pendientes"
-            icon={<BookDashed size={9} />}
-            fallbackIcon={<BookDashed size={12} />}
-            emptyLabel="lista limpia"
-            allEntities={librosComoEntidades}
-            selectedIds={pendientesIds}
-            loading={false}
-            saving={false}
-            onToggle={(id, add) => onToggleEstado(id, "pendiente", add)}
-            onEntityClick={id => {
-              const libro = libros.find(l => l.id === id);
-              if (libro) onNavigate(libro.titulo);
-            }}
-          />
-
-        </div>
+        {/* ─ Pendientes ─ */}
+        <PanelSeccion
+          label="pendientes"
+          icon={<BookDashed size={9} />}
+          libros={pendientes}
+          onNavigate={onNavigate}
+          serif={serif}
+          mono={mono}
+          formatRelative={formatRelative}
+          emptyText="lista limpia"
+          accentColor="color-mix(in srgb, var(--foreground) 22%, transparent)"
+        />
 
       </div>
 
