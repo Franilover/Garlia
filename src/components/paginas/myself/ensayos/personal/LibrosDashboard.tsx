@@ -3,8 +3,9 @@ import React, { useMemo, useState } from "react";
 import { MotionDiv } from "@/components/ui/Motion";
 import {
   BookOpen, Search, X, ArrowRight, BookMarked,
-  BookCheck, BookDashed, Library, ChevronDown,
+  BookCheck, BookDashed, Library,
 } from "lucide-react";
+import { SeccionEntidad } from "@/components/ui/SeccionEntidad";
 
 interface LibrosDashboardProps {
   ensayos: any[];
@@ -75,98 +76,7 @@ function LibroRow({
   );
 }
 
-// ─── Sección del panel lateral — versión escritorio (scroll propio) ──────────
-function PanelSeccion({
-  label,
-  icon,
-  libros,
-  onNavigate,
-  serif,
-  mono,
-  formatRelative,
-  emptyText,
-  accentColor,
-  mobile = false,
-}: {
-  label: string;
-  icon: React.ReactNode;
-  libros: any[];
-  onNavigate: (t: string) => void;
-  serif: React.CSSProperties;
-  mono: React.CSSProperties;
-  formatRelative: (d: string) => string;
-  emptyText: string;
-  accentColor: string;
-  mobile?: boolean;
-}) {
-  const [open, setOpen] = useState(false);
 
-  if (mobile) {
-    // En móvil: acordeón colapsable
-    return (
-      <div style={{ borderBottom: "1px solid color-mix(in srgb, var(--foreground) 7%, transparent)" }}>
-        <button
-          onClick={() => setOpen(o => !o)}
-          style={{
-            display: "flex", alignItems: "center", gap: 6,
-            width: "100%", padding: "10px 14px",
-            background: "transparent", border: "none", cursor: "pointer",
-          }}
-        >
-          <span style={{ color: accentColor, display: "flex", alignItems: "center" }}>{icon}</span>
-          <span style={{ ...mono, fontSize: 8, textTransform: "uppercase" as const, letterSpacing: "0.13em", color: "color-mix(in srgb, var(--foreground) 30%, transparent)", flex: 1, textAlign: "left" as const }}>
-            {label}
-          </span>
-          {libros.length > 0 && (
-            <span style={{ ...mono, fontSize: 7, padding: "1px 5px", borderRadius: 99, background: "color-mix(in srgb, var(--foreground) 6%, transparent)", color: "color-mix(in srgb, var(--foreground) 30%, transparent)" }}>
-              {libros.length}
-            </span>
-          )}
-          <ChevronDown size={10} style={{ color: "color-mix(in srgb, var(--foreground) 25%, transparent)", transform: open ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.15s", marginLeft: 4 }} />
-        </button>
-        {open && (
-          <div style={{ paddingBottom: 6 }}>
-            {libros.length === 0 ? (
-              <p style={{ ...mono, fontSize: 9, padding: "4px 14px 8px", color: "color-mix(in srgb, var(--foreground) 14%, transparent)" }}>{emptyText}</p>
-            ) : (
-              libros.map(l => (
-                <LibroRow key={l.id} libro={l} onNavigate={onNavigate} serif={serif} mono={mono} formatRelative={formatRelative} />
-              ))
-            )}
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  // Escritorio: comportamiento original con scroll propio
-  return (
-    <div style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 10px 6px", flexShrink: 0 }}>
-        <span style={{ color: accentColor, display: "flex", alignItems: "center" }}>{icon}</span>
-        <span style={{ ...mono, fontSize: 8, textTransform: "uppercase" as const, letterSpacing: "0.13em", color: "color-mix(in srgb, var(--foreground) 30%, transparent)" }}>
-          {label}
-        </span>
-        {libros.length > 0 && (
-          <span style={{ ...mono, fontSize: 7, padding: "1px 5px", borderRadius: 99, background: "color-mix(in srgb, var(--foreground) 6%, transparent)", color: "color-mix(in srgb, var(--foreground) 30%, transparent)", marginLeft: "auto" }}>
-            {libros.length}
-          </span>
-        )}
-      </div>
-      <div style={{ flex: 1, overflowY: "auto", padding: "0 2px 4px", minHeight: 0 }}>
-        {libros.length === 0 ? (
-          <p style={{ ...mono, fontSize: 9, padding: "6px 10px", color: "color-mix(in srgb, var(--foreground) 14%, transparent)", fontStyle: "normal" }}>
-            {emptyText}
-          </p>
-        ) : (
-          libros.map(l => (
-            <LibroRow key={l.id} libro={l} onNavigate={onNavigate} serif={serif} mono={mono} formatRelative={formatRelative} />
-          ))
-        )}
-      </div>
-    </div>
-  );
-}
 
 // ─── Componente principal ─────────────────────────────────────────────────────
 export function LibrosDashboard({ ensayos, onNavigate, onTagClick, onToggleEstado, onCrearLibro }: LibrosDashboardProps) {
@@ -245,46 +155,61 @@ export function LibrosDashboard({ ensayos, onNavigate, onTagClick, onToggleEstad
   const divColor = "color-mix(in srgb, var(--foreground) 5%, transparent)";
   const borderColor = "color-mix(in srgb, var(--foreground) 7%, transparent)";
 
-  // ─── Panel de estados (compartido móvil/desktop) ──────────────────────────
+  // ─── Panel de estados con SeccionEntidad ─────────────────────────────────
+  // Convertimos los libros a EntidadBase para SeccionEntidad
+  const librosComoEntidades = useMemo(
+    () => libros.map(l => ({ id: l.id, nombre: l.titulo || "Sin título", imagen_url: l.imagen_url ?? null })),
+    [libros]
+  );
+
   const panelEstados = (
     <>
-      <PanelSeccion
-        label="leyendo ahora"
+      <SeccionEntidad
+        label="Leyendo ahora"
         icon={<BookOpen size={9} />}
-        libros={leyendo}
-        onNavigate={onNavigate}
-        serif={serif}
-        mono={mono}
-        formatRelative={formatRelative}
-        emptyText="ninguno en curso"
-        accentColor="color-mix(in srgb, var(--accent) 60%, transparent)"
-        mobile={isMobile}
+        fallbackIcon={<BookOpen size={12} />}
+        emptyLabel="ninguno en curso"
+        allEntities={librosComoEntidades}
+        selectedIds={leyendo.map(l => l.id)}
+        loading={false}
+        saving={false}
+        onToggle={(id, add) => onToggleEstado?.(id, "leyendo", add)}
+        onEntityClick={onNavigate ? (id) => {
+          const libro = libros.find(l => l.id === id);
+          if (libro) onNavigate(libro.titulo);
+        } : undefined}
       />
-      {!isMobile && <div style={{ height: 1, background: borderColor, flexShrink: 0 }} />}
-      <PanelSeccion
-        label="leídos"
+      <div style={{ height: 1, background: borderColor, flexShrink: 0 }} />
+      <SeccionEntidad
+        label="Leídos"
         icon={<BookCheck size={9} />}
-        libros={leidos}
-        onNavigate={onNavigate}
-        serif={serif}
-        mono={mono}
-        formatRelative={formatRelative}
-        emptyText="aún nada terminado"
-        accentColor="color-mix(in srgb, var(--foreground) 35%, transparent)"
-        mobile={isMobile}
+        fallbackIcon={<BookCheck size={12} />}
+        emptyLabel="aún nada terminado"
+        allEntities={librosComoEntidades}
+        selectedIds={leidos.map(l => l.id)}
+        loading={false}
+        saving={false}
+        onToggle={(id, add) => onToggleEstado?.(id, "leido", add)}
+        onEntityClick={onNavigate ? (id) => {
+          const libro = libros.find(l => l.id === id);
+          if (libro) onNavigate(libro.titulo);
+        } : undefined}
       />
-      {!isMobile && <div style={{ height: 1, background: borderColor, flexShrink: 0 }} />}
-      <PanelSeccion
-        label="pendientes"
+      <div style={{ height: 1, background: borderColor, flexShrink: 0 }} />
+      <SeccionEntidad
+        label="Pendientes"
         icon={<BookDashed size={9} />}
-        libros={pendientes}
-        onNavigate={onNavigate}
-        serif={serif}
-        mono={mono}
-        formatRelative={formatRelative}
-        emptyText="lista limpia"
-        accentColor="color-mix(in srgb, var(--foreground) 22%, transparent)"
-        mobile={isMobile}
+        fallbackIcon={<BookDashed size={12} />}
+        emptyLabel="lista limpia"
+        allEntities={librosComoEntidades}
+        selectedIds={pendientes.map(l => l.id)}
+        loading={false}
+        saving={false}
+        onToggle={(id, add) => onToggleEstado?.(id, "pendiente", add)}
+        onEntityClick={onNavigate ? (id) => {
+          const libro = libros.find(l => l.id === id);
+          if (libro) onNavigate(libro.titulo);
+        } : undefined}
       />
     </>
   );
