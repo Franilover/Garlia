@@ -931,6 +931,25 @@ export default function Ensayos() {
                       : tagsActuales.filter((t: string) => t !== estado);
                     scheduleSave(libroId, { tags: nuevosTags });
                   }}
+                  onCrearLibro={async () => {
+                    const now = new Date().toISOString();
+                    const payload = {
+                      titulo:     "Nuevo libro",
+                      user_id:    user?.id,
+                      contenido:  "",
+                      tags:       ["libro"],
+                      updated_at: now,
+                    };
+                    const { data, error } = await addRow(payload);
+                    if (!error && data) {
+                      setEnsayos((prev: any[]) => {
+                        if (prev.find((e: any) => e.id === data.id)) return prev;
+                        return [data, ...prev];
+                      });
+                      setEnsayoActivo(data.id);
+                      setEditMode(true);
+                    }
+                  }}
                 />
               ) : (
                 <HomeDashboard 
@@ -955,6 +974,25 @@ export default function Ensayos() {
                       ? [...new Set([...tagsActuales, estado])]
                       : tagsActuales.filter((t: string) => t !== estado);
                     scheduleSave(libroId, { tags: nuevosTags });
+                  }}
+                  onCrearLibro={async () => {
+                    const now = new Date().toISOString();
+                    const payload = {
+                      titulo:     "Nuevo libro",
+                      user_id:    user?.id,
+                      contenido:  "",
+                      tags:       ["libro"],
+                      updated_at: now,
+                    };
+                    const { data, error } = await addRow(payload);
+                    if (!error && data) {
+                      setEnsayos((prev: any[]) => {
+                        if (prev.find((e: any) => e.id === data.id)) return prev;
+                        return [data, ...prev];
+                      });
+                      setEnsayoActivo(data.id);
+                      setEditMode(true);
+                    }
                   }}
                 />
               )}

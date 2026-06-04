@@ -9,12 +9,13 @@ interface LibrosDashboardProps {
   onNavigate: (titulo: string) => void;
   onTagClick?: (tag: string) => void;
   onToggleEstado?: (libroId: string, estado: "leyendo" | "leido" | "pendiente", add: boolean) => void; // opcional: HomeDashboard lo pasa desde page.tsx
+  onCrearLibro?: () => void;
 }
 
 type OrdenLibros = "reciente" | "titulo" | "palabras";
 
 // ─── Componente principal ─────────────────────────────────────────────────────
-export function LibrosDashboard({ ensayos, onNavigate, onTagClick, onToggleEstado }: LibrosDashboardProps) {
+export function LibrosDashboard({ ensayos, onNavigate, onTagClick, onToggleEstado, onCrearLibro }: LibrosDashboardProps) {
   const mono: React.CSSProperties = { fontFamily: "var(--font-mono)" };
   const serif: React.CSSProperties = { fontFamily: "var(--font-serif)", fontStyle: "italic" };
 
@@ -135,7 +136,7 @@ export function LibrosDashboard({ ensayos, onNavigate, onTagClick, onToggleEstad
                 <BookOpen size={15} />
               </div>
               <h1 style={{ ...serif, fontSize: 22, color: "color-mix(in srgb, var(--foreground) 80%, transparent)", margin: 0, lineHeight: 1 }}>
-                biblioteca
+                Biblioteca
               </h1>
             </div>
             <p style={{ ...mono, fontSize: 9, color: "color-mix(in srgb, var(--foreground) 20%, transparent)", textTransform: "uppercase", letterSpacing: "0.13em", margin: 0 }}>
@@ -350,12 +351,35 @@ export function LibrosDashboard({ ensayos, onNavigate, onTagClick, onToggleEstad
           {/* ── Grid ── */}
           <div style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+            gridTemplateColumns: "repeat(4, 1fr)",
             gap: 1,
             background: divColor,
             borderRadius: 8,
             overflow: "hidden",
           }}>
+
+            {/* ── Bloque crear libro ── */}
+            {onCrearLibro && (
+              <button
+                onClick={onCrearLibro}
+                onMouseEnter={e => (e.currentTarget.style.background = "color-mix(in srgb, var(--foreground) 4%, transparent)")}
+                onMouseLeave={e => (e.currentTarget.style.background = "var(--bg-main)")}
+                className="w-full text-left"
+                style={{
+                  display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+                  padding: "14px 15px", gap: 8,
+                  background: "var(--bg-main)",
+                  border: "none", cursor: "pointer",
+                  transition: "background 0.08s",
+                  minHeight: 100,
+                }}
+              >
+                <BookMarked size={18} style={{ color: "color-mix(in srgb, var(--foreground) 18%, transparent)" }} />
+                <span style={{ ...mono, fontSize: 9, textTransform: "uppercase", letterSpacing: "0.13em", color: "color-mix(in srgb, var(--foreground) 28%, transparent)" }}>
+                  + nuevo libro
+                </span>
+              </button>
+            )}
             {(filtrados.length > 0 && orden === "reciente" && !busqueda && !tagFiltro
               ? filtrados.slice(1)
               : filtrados

@@ -31,13 +31,14 @@ interface HomeDashboardProps {
   isAddingEvento?: boolean;
   onAddEvento?: (fechaISO: string, titulo: string, tipo: string) => Promise<void>;
   onToggleEstado?: (libroId: string, estado: "leyendo" | "leido" | "pendiente", add: boolean) => void;
+  onCrearLibro?: () => void;
 }
 
 export function HomeDashboard({
   ensayos, todosLosTags, onNavigate, onTagClick,
   tareas = [], onToggleTarea, onAddTarea,
   eventos = [], capitulosRaw = [], horario = [],
-  isAddingEvento = false, onAddEvento, onToggleEstado,
+  isAddingEvento = false, onAddEvento, onToggleEstado, onCrearLibro,
 }: HomeDashboardProps) {
   const mono: React.CSSProperties = { fontFamily: "var(--font-mono)" };
   const serif: React.CSSProperties = { fontFamily: "var(--font-serif)", fontStyle: "italic" };
@@ -833,6 +834,7 @@ export function HomeDashboard({
                   onNavigate={(titulo) => { onNavigate(titulo); setVistaPersonal(null); }}
                   onTagClick={onTagClick}
                   onToggleEstado={onToggleEstado}
+                  onCrearLibro={onCrearLibro}
                 />
               )}
             </div>
