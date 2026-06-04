@@ -4,7 +4,7 @@ import React, { useRef, useState, useEffect, useCallback, useMemo } from "react"
 import { Save, List } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { CitePopup } from "./citePopup";
-import { LibroPanel } from "./LibroPanel"; 
+import { LibroPanel } from "./LibroPanel";
 import { MarkdownEditor, WikiEntity } from "@/components/forms/MarkdownEditor";
 import { ZoteroSource } from "@/components/paginas/myself/ensayos/page";
 
@@ -183,6 +183,70 @@ export function Editor({
     return allTags.filter(t => t.includes(q)).slice(0, 6);
   }, [allTags, newTagInput]);
 
+  // ── Input de título reutilizable ─────────────────────────────────────────
+  const tituloInput = (
+    <input
+      type="text"
+      value={localTitulo}
+      onFocus={() => { tituloOriginalRef.current = localTitulo; }}
+      onBlur={e => {
+        const finalVal = e.target.value.trim();
+        if (tituloOriginalRef.current !== null && tituloOriginalRef.current !== finalVal) {
+          onUpdateField(ensayo.id, "titulo:rename", finalVal, tituloOriginalRef.current);
+        }
+        tituloOriginalRef.current = null;
+      }}
+      onChange={e => {
+        setLocalTitulo(e.target.value);
+        onUpdateField(ensayo.id, "titulo", e.target.value);
+      }}
+      className="w-full bg-transparent outline-none border-none"
+      style={{
+        fontSize: "clamp(18px, 3vw, 26px)",
+        fontFamily: "var(--font-serif)",
+        fontStyle: "italic",
+        color: "color-mix(in srgb, var(--foreground) 85%, transparent)",
+        letterSpacing: "-0.02em",
+        lineHeight: 1.2,
+      }}
+      placeholder="título..."
+    />
+  );
+
+  // ── Bloque del editor markdown reutilizable ───────────────────────────────
+  const markdownBlock = (
+    <div className="flex-1 overflow-y-auto relative pb-8" style={{ paddingLeft: isLibro ? 20 : 32, paddingRight: isLibro ? 20 : 32 }}>
+      <MarkdownEditor
+        value={localContenido}
+        onChange={handleContenidoChange}
+        placeholder="empieza a escribir... (usa @ para citar · [[ para enlazar notas)"
+        rows={28}
+        toolbar
+        defaultMode={editMode ? "edit" : "preview"}
+        entities={entities}
+        onSnippetAction={(action) => {
+          if (action.type === "wikilink") {
+            onNavigateToPage(action.target);
+          }
+        }}
+      />
+      <AnimatePresence>
+        {citePopup && sources.length > 0 && (
+          <div style={{ position: "fixed", top: citePopup.position.top + 25, left: citePopup.position.left, zIndex: 9999 }}>
+            <CitePopup
+              sources={sources}
+              query={citePopup.query}
+              position={{ top: 0, left: 0 }}
+              onSelect={insertCite}
+              onClose={() => setCitePopup(null)}
+              activeIndex={citeActiveIdx}
+            />
+          </div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+
   return (
     <div className="relative h-full flex flex-col" ref={containerRef}>
       <MotionDiv
@@ -193,120 +257,122 @@ export function Editor({
         transition={{ duration: 0.2 }}
         className="flex flex-col flex-1 min-h-0"
       >
-        {/* ── Title input ── */}
-        <div className="shrink-0 px-8 pt-5 pb-2" style={{ background: "transparent" }}>
-          <input
-            type="text"
-            value={localTitulo}
-            onFocus={() => { tituloOriginalRef.current = localTitulo; }}
-            onBlur={e => {
-              const finalVal = e.target.value.trim();
-              if (tituloOriginalRef.current !== null && tituloOriginalRef.current !== finalVal) {
-                onUpdateField(ensayo.id, "titulo:rename", finalVal, tituloOriginalRef.current);
-              }
-              tituloOriginalRef.current = null;
-            }}
-            onChange={e => {
-              setLocalTitulo(e.target.value);
-              onUpdateField(ensayo.id, "titulo", e.target.value);
-            }}
-            className="w-full bg-transparent outline-none border-none"
-            style={{
-              fontSize: "clamp(18px, 3vw, 26px)",
-              fontFamily: "var(--font-serif)",
-              fontStyle: "italic",
-              color: "color-mix(in srgb, var(--foreground) 85%, transparent)",
-              letterSpacing: "-0.02em",
-              lineHeight: 1.2,
-            }}
-            placeholder="título..."
-          />
 
-          {/* ── Meta row ── */}
-          <div
-            className="flex items-center mt-1.5"
-            style={{ borderBottom: "1px solid color-mix(in srgb, var(--foreground) 6%, transparent)", paddingBottom: 8 }}
-          >
-            {/* Stats — left */}
-            <div className="flex items-center gap-3 flex-1 min-w-0">
-              <span style={{ fontSize: 9, color: "color-mix(in srgb, var(--foreground) 20%, transparent)", ...monoStyle }}>
-                {wordCount} palabras · ~{readTime}min
-              </span>
-            </div>
+        {/* ══════════════════════════════════════════════════════
+            MODO LIBRO — dos columnas: ficha izquierda / editor derecha
+        ══════════════════════════════════════════════════════ */}
+        {isLibro ? (
+          <div style={{ display: "flex", flex: 1, minHeight: 0, overflow: "hidden" }}>
 
-            {/* Stats + GrafoEnsayos + save — right */}
-            <div className="flex items-center gap-4 shrink-0">
-              <span style={{ fontSize: 9, color: "color-mix(in srgb, var(--foreground) 20%, transparent)", ...monoStyle }}>
-                {wordCount} palabras
-              </span>
-              <span style={{ fontSize: 9, color: "color-mix(in srgb, var(--foreground) 10%, transparent)", ...monoStyle }}>·</span>
-              <span style={{ fontSize: 9, color: "color-mix(in srgb, var(--foreground) 20%, transparent)", ...monoStyle }}>
-                ~{readTime}min lectura
-              </span>
-              {sources.length > 0 && (
-                <>
-                  <span style={{ fontSize: 9, color: "color-mix(in srgb, var(--foreground) 10%, transparent)", ...monoStyle }}>·</span>
-                  <span
-                    style={{ fontSize: 9, color: "color-mix(in srgb, var(--accent) 60%, transparent)", ...monoStyle }}
-                    title="Escribe @ para citar · [[ para enlazar"
-                  >
-                    @ {sources.length} fuentes
+            {/* ── Columna izquierda: datos del libro ── */}
+            <div style={{
+              width: 300,
+              flexShrink: 0,
+              borderRight: "1px solid color-mix(in srgb, var(--foreground) 7%, transparent)",
+              display: "flex",
+              flexDirection: "column",
+              overflowY: "auto",
+              background: "color-mix(in srgb, var(--foreground) 1%, var(--bg-main))",
+            }}>
+              {/* Título dentro de la columna izquierda */}
+              <div style={{ padding: "20px 20px 12px", borderBottom: "1px solid color-mix(in srgb, var(--foreground) 6%, transparent)" }}>
+                {tituloInput}
+                {/* Save timestamp */}
+                <div className="flex items-center gap-1.5 mt-2">
+                  <Save size={9} style={{ color: "color-mix(in srgb, var(--foreground) 15%, transparent)" }} />
+                  <span style={{ fontSize: 9, color: "color-mix(in srgb, var(--foreground) 15%, transparent)", ...monoStyle }}>
+                    {new Date(ensayo.updated_at).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}
                   </span>
-                </>
-              )}
-
-              {/* TOC button now lives in the top navbar */}
-
-              <div className="flex items-center gap-1.5">
-                <Save size={9} style={{ color: "color-mix(in srgb, var(--foreground) 15%, transparent)" }} />
-                <span style={{ fontSize: 9, color: "color-mix(in srgb, var(--foreground) 15%, transparent)", ...monoStyle }}>
-                  {new Date(ensayo.updated_at).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}
-                </span>
+                </div>
               </div>
-            </div>
-          </div>
-        </div>
 
-        {/* ── Editor content ── */}
-        <div className="flex-1 overflow-y-auto relative px-8 pb-8">
-          <MarkdownEditor
-            value={localContenido}
-            onChange={handleContenidoChange}
-            placeholder="empieza a escribir... (usa @ para citar · [[ para enlazar notas)"
-            rows={28}
-            toolbar
-            defaultMode={editMode ? "edit" : "preview"}
-            entities={entities}
-            onSnippetAction={(action) => {
-              if (action.type === "wikilink") {
-                onNavigateToPage(action.target);
-              }
-            }}
-          />
-
-          <AnimatePresence>
-            {citePopup && sources.length > 0 && (
-              <div style={{ position: "fixed", top: citePopup.position.top + 25, left: citePopup.position.left, zIndex: 9999 }}>
-                <CitePopup
-                  sources={sources}
-                  query={citePopup.query}
-                  position={{ top: 0, left: 0 }}
-                  onSelect={insertCite}
-                  onClose={() => setCitePopup(null)}
-                  activeIndex={citeActiveIdx}
+              {/* Panel de metadatos del libro */}
+              <div style={{ flex: 1 }}>
+                <LibroPanel
+                  ensayo={ensayo}
+                  ensayos={ensayos}
+                  onUpdateField={onUpdateField}
                 />
               </div>
-            )}
-          </AnimatePresence>
-        </div>
-        {/* ── Info bar: condicional según si es libro ── */}
-        {isLibro ? (
-          <LibroPanel
-            ensayo={ensayo}
-            ensayos={ensayos}
-            onUpdateField={onUpdateField}
-          />
+            </div>
+
+            {/* ── Columna derecha: editor markdown ── */}
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, overflow: "hidden" }}>
+              {/* Mini meta bar arriba del editor */}
+              <div
+                className="shrink-0 flex items-center gap-3 px-5"
+                style={{
+                  height: 36,
+                  borderBottom: "1px solid color-mix(in srgb, var(--foreground) 6%, transparent)",
+                }}
+              >
+                <span style={{ fontSize: 9, color: "color-mix(in srgb, var(--foreground) 18%, transparent)", ...monoStyle }}>
+                  {wordCount} palabras · ~{readTime}min
+                </span>
+                {sources.length > 0 && (
+                  <>
+                    <span style={{ fontSize: 9, color: "color-mix(in srgb, var(--foreground) 10%, transparent)", ...monoStyle }}>·</span>
+                    <span style={{ fontSize: 9, color: "color-mix(in srgb, var(--accent) 55%, transparent)", ...monoStyle }}>
+                      @ {sources.length} fuentes
+                    </span>
+                  </>
+                )}
+              </div>
+              {markdownBlock}
+            </div>
+          </div>
+
         ) : (
+          /* ══════════════════════════════════════════════════════
+              MODO NORMAL — layout original una columna
+          ══════════════════════════════════════════════════════ */
+          <>
+            {/* ── Title input ── */}
+            <div className="shrink-0 px-8 pt-5 pb-2" style={{ background: "transparent" }}>
+              {tituloInput}
+              {/* ── Meta row ── */}
+              <div
+                className="flex items-center mt-1.5"
+                style={{ borderBottom: "1px solid color-mix(in srgb, var(--foreground) 6%, transparent)", paddingBottom: 8 }}
+              >
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <span style={{ fontSize: 9, color: "color-mix(in srgb, var(--foreground) 20%, transparent)", ...monoStyle }}>
+                    {wordCount} palabras · ~{readTime}min
+                  </span>
+                </div>
+                <div className="flex items-center gap-4 shrink-0">
+                  <span style={{ fontSize: 9, color: "color-mix(in srgb, var(--foreground) 20%, transparent)", ...monoStyle }}>
+                    {wordCount} palabras
+                  </span>
+                  <span style={{ fontSize: 9, color: "color-mix(in srgb, var(--foreground) 10%, transparent)", ...monoStyle }}>·</span>
+                  <span style={{ fontSize: 9, color: "color-mix(in srgb, var(--foreground) 20%, transparent)", ...monoStyle }}>
+                    ~{readTime}min lectura
+                  </span>
+                  {sources.length > 0 && (
+                    <>
+                      <span style={{ fontSize: 9, color: "color-mix(in srgb, var(--foreground) 10%, transparent)", ...monoStyle }}>·</span>
+                      <span style={{ fontSize: 9, color: "color-mix(in srgb, var(--accent) 60%, transparent)", ...monoStyle }} title="Escribe @ para citar · [[ para enlazar">
+                        @ {sources.length} fuentes
+                      </span>
+                    </>
+                  )}
+                  <div className="flex items-center gap-1.5">
+                    <Save size={9} style={{ color: "color-mix(in srgb, var(--foreground) 15%, transparent)" }} />
+                    <span style={{ fontSize: 9, color: "color-mix(in srgb, var(--foreground) 15%, transparent)", ...monoStyle }}>
+                      {new Date(ensayo.updated_at).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* ── Editor content ── */}
+            {markdownBlock}
+          </>
+        )}
+
+        {/* ── Info bar normal (solo en modo NO libro) ── */}
+        {!isLibro && (
         <div
           className="shrink-0"
           style={{
@@ -610,7 +676,7 @@ export function Editor({
         )}
       </MotionDiv>
 
-      {/* ── TOC panel lateral ── */}
+      {/* ── TOC panel lateral — solo en modo normal ── */}
       <AnimatePresence>
         {tocOpen && tocEntries.length > 0 && (
           <motion.div

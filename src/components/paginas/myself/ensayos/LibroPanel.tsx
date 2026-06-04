@@ -1,7 +1,6 @@
 "use client";
 import React, { useState, useMemo } from "react";
 import { BookOpen, BookCheck, BookDashed, User, Tag, Hash, FileDigit, Bookmark } from "lucide-react";
-import { MotionDiv } from "@/components/ui/Motion";
 import { AnimatePresence, motion } from "framer-motion";
 
 // ── Tipos ──────────────────────────────────────────────────────────────────────
@@ -514,10 +513,22 @@ export function LibroPanel({ ensayo, ensayos, onUpdateField }: LibroPanelProps) 
   const tags: string[] = ensayo.tags ?? [];
   const estado = getEstado(tags);
 
-  // Campos del libro — guardados en el objeto ensayo directamente
-  const autor: string = ensayo.autor ?? "";
-  const paginasTotal: number | null = ensayo.paginas_total ?? null;
-  const paginaActual: number | null = ensayo.pagina_actual ?? null;
+  // ── Estado local (igual que localTitulo/localContenido en Editor) ──────────
+  // Estos campos se actualizan instantáneamente en la UI; onUpdateField los
+  // persiste en background con debounce. Sin estado local el input queda
+  // congelado hasta que Supabase confirma (~1.5s).
+  const [localAutor,        setLocalAutor]        = useState<string>(ensayo.autor ?? "");
+  const [localPaginasTotal, setLocalPaginasTotal] = useState<number | null>(ensayo.paginas_total ?? null);
+  const [localPaginaActual, setLocalPaginaActual] = useState<number | null>(ensayo.pagina_actual ?? null);
+
+  // Sincronizar cuando cambia de nota (ensayo.id)
+  const prevIdRef = React.useRef<string>(ensayo.id);
+  if (prevIdRef.current !== ensayo.id) {
+    prevIdRef.current      = ensayo.id;
+    setLocalAutor(ensayo.autor ?? "");
+    setLocalPaginasTotal(ensayo.paginas_total ?? null);
+    setLocalPaginaActual(ensayo.pagina_actual ?? null);
+  }
 
   // Todos los autores conocidos (para autocomplete)
   const allAutores = useMemo(() => {
@@ -539,21 +550,23 @@ export function LibroPanel({ ensayo, ensayos, onUpdateField }: LibroPanelProps) 
   // ── Handlers ──────────────────────────────────────────────────────────────
 
   const handleEstado = (nuevo: EstadoLectura) => {
-    // Quita los tres estados y añade el nuevo si no es null
     const sinEstado = tags.filter(t => !ESTADO_TAGS.includes(t as any));
     const next = nuevo ? [...sinEstado, nuevo] : sinEstado;
     onUpdateField(ensayo.id, "tags", next);
   };
 
   const handleAutor = (v: string) => {
+    setLocalAutor(v);
     onUpdateField(ensayo.id, "autor", v);
   };
 
   const handlePaginasTotal = (v: number | null) => {
+    setLocalPaginasTotal(v);
     onUpdateField(ensayo.id, "paginas_total", v);
   };
 
   const handlePaginaActual = (v: number | null) => {
+    setLocalPaginaActual(v);
     onUpdateField(ensayo.id, "pagina_actual", v);
   };
 
@@ -565,28 +578,20 @@ export function LibroPanel({ ensayo, ensayos, onUpdateField }: LibroPanelProps) 
     onUpdateField(ensayo.id, "tags", tags.filter(x => x !== t));
   };
 
-  // ── Progress % ──
-  const progreso = paginasTotal && paginasTotal > 0 && paginaActual != null
-    ? Math.min(100, Math.round((paginaActual / paginasTotal) * 100))
+  // ── Progress % — usa estado local para respuesta inmediata ──
+  const progreso = localPaginasTotal && localPaginasTotal > 0 && localPaginaActual != null
+    ? Math.min(100, Math.round((localPaginaActual / localPaginasTotal) * 100))
     : null;
 
   const estadoActual = estado ? ESTADO_CONFIG[estado] : null;
 
   return (
-    <MotionDiv
-      initial={{ opacity: 0, y: 6 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.18 }}
-      style={{
-        borderTop: "1px solid color-mix(in srgb, var(--foreground) 7%, transparent)",
-        background: "color-mix(in srgb, var(--foreground) 1.5%, var(--bg-main))",
-        padding: "14px 32px 16px",
-        display: "flex",
-        flexDirection: "column",
-        gap: 14,
-      }}
-    >
+    <div style={{
+      padding: "16px 20px 20px",
+      display: "flex",
+      flexDirection: "column",
+      gap: 16,
+    }}>
       {/* ── Header fila ── */}
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         {/* Icono libro */}
@@ -668,7 +673,7 @@ export function LibroPanel({ ensayo, ensayos, onUpdateField }: LibroPanelProps) 
         {/* Autor */}
         <div style={{ flex: 1, minWidth: 180 }}>
           <InlineTextInput
-            value={autor}
+            value={localAutor}
             onChange={handleAutor}
             placeholder="autor..."
             icon={<User size={9} />}
@@ -683,16 +688,16 @@ export function LibroPanel({ ensayo, ensayos, onUpdateField }: LibroPanelProps) 
       <div style={{ display: "flex", gap: 12 }}>
         <PaginasInput
           label="páginas totales"
-          value={paginasTotal}
+          value={localPaginasTotal}
           onChange={handlePaginasTotal}
           icon={<FileDigit size={9} />}
           mono={mono}
         />
         <PaginasInput
           label="página actual"
-          value={paginaActual}
+          value={localPaginaActual}
           onChange={handlePaginaActual}
-          max={paginasTotal}
+          max={localPaginasTotal}
           icon={<Hash size={9} />}
           mono={mono}
           accent="var(--accent)"
@@ -707,7 +712,7 @@ export function LibroPanel({ ensayo, ensayos, onUpdateField }: LibroPanelProps) 
         onRemoveTag={handleRemoveTag}
         mono={mono}
       />
-    </MotionDiv>
+    </div>
   );
 }
 
