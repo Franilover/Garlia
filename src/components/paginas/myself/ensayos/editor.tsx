@@ -34,6 +34,7 @@ interface EditorProps {
   onToggleEditMode: () => void;
   onUpdateField: (id: string, field: string, value: any, extra?: any) => void;
   onNavigateToPage: (name: string) => void;
+  onOpenLibrosDashboard?: () => void;
   entities?: WikiEntity[];
   tocOpen?: boolean;
   onTocToggle?: () => void;
@@ -50,6 +51,7 @@ export function Editor({
   onToggleEditMode,
   onUpdateField,
   onNavigateToPage,
+  onOpenLibrosDashboard,
   entities = [] as WikiEntity[],
   tocOpen: tocOpenProp,
   onTocToggle,
@@ -292,6 +294,7 @@ export function Editor({
                   ensayo={ensayo}
                   ensayos={ensayos}
                   onUpdateField={onUpdateField}
+                  onOpenLibrosDashboard={onOpenLibrosDashboard}
                 />
               </div>
             </div>

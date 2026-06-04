@@ -16,6 +16,7 @@ import { EmptyState } from "@/components/paginas/myself/ensayos/emptyState";
 import NewNoteModal from "@/components/paginas/myself/ensayos/newNoteModal";
 import { GrafoEnsayos } from "@/components/paginas/myself/ensayos/GrafoEnsayos";
 import { HomeDashboard } from "@/components/paginas/myself/ensayos/HomeDashboard";
+import { LibrosDashboard } from "@/components/paginas/myself/ensayos/LibrosDashboard";
 
 export interface ZoteroSource {
   title: string;
@@ -95,9 +96,20 @@ export default function Ensayos() {
     setTagActivo(null);
     setTocOpen(false);
     setTocEntries([]);
+    setVistaActiva("home");
+    localStorage.setItem(LS_HOME, "1");
+  };
+
+  const irALibros = () => {
+    setEnsayoActivoId(null);
+    setTagActivo(null);
+    setTocOpen(false);
+    setTocEntries([]);
+    setVistaActiva("libros");
     localStorage.setItem(LS_HOME, "1");
   };
   const [editMode,          setEditMode]          = useState(true);
+  const [vistaActiva,       setVistaActiva]       = useState<"home" | "libros">("home");
   const [tocOpen,           setTocOpen]           = useState(false);
   const [tocEntries,        setTocEntries]        = useState<{ level: number; text: string; id: string }[]>([]);
   const [searchPanelOpen,   setSearchPanelOpen]   = useState(false);
@@ -898,13 +910,20 @@ export default function Ensayos() {
                   onToggleEditMode={() => setEditMode(p => !p)}
                   onUpdateField={actualizarLocal}
                   onNavigateToPage={(name) => navigateToPage(name, false)}
+                  onOpenLibrosDashboard={irALibros}
                   entities={allWikilinkNames}
                   tocOpen={tocOpen}
                   onTocToggle={() => setTocOpen(p => !p)}
                   onTocEntriesChange={setTocEntries}
                 />
+              ) : vistaActiva === "libros" ? (
+                <LibrosDashboard
+                  key="libros"
+                  ensayos={ensayos}
+                  onNavigate={(titulo) => navigateToPage(titulo, false)}
+                  onTagClick={handleTagClick}
+                />
               ) : (
-                /* AQUÍ: Si no hay ensayo activo, mostramos el Dashboard en vez de EmptyState */
                 <HomeDashboard 
                   key="home"
                   ensayos={ensayos} 

@@ -10,6 +10,7 @@ interface LibroPanelProps {
   ensayo: any;
   ensayos: any[];
   onUpdateField: (id: string, field: string, value: any) => void;
+  onOpenLibrosDashboard?: () => void;
 }
 
 // ── Constantes ─────────────────────────────────────────────────────────────────
@@ -338,12 +339,14 @@ function TagSelector({
   onAddTag,
   onRemoveTag,
   mono,
+  onOpenLibrosDashboard,
 }: {
   tags: string[];
   allTags: string[];
   onAddTag: (t: string) => void;
   onRemoveTag: (t: string) => void;
   mono: React.CSSProperties;
+  onOpenLibrosDashboard?: () => void;
 }) {
   const [input, setInput] = useState("");
   const [focused, setFocused] = useState(false);
@@ -379,18 +382,33 @@ function TagSelector({
       </div>
 
       <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 4 }}>
-        {/* libro chip — fijo, no eliminable */}
-        <span style={{
-          ...mono, fontSize: 9,
-          padding: "2px 7px",
-          borderRadius: 3,
-          background: "color-mix(in srgb, var(--foreground) 6%, transparent)",
-          border: "1px solid color-mix(in srgb, var(--foreground) 10%, transparent)",
-          color: "color-mix(in srgb, var(--foreground) 35%, transparent)",
-          cursor: "default",
-        }}>
-          #libro
-        </span>
+        {/* libro chip — fijo, clickeable → abre LibrosDashboard */}
+        <button
+          onClick={onOpenLibrosDashboard}
+          style={{
+            ...mono, fontSize: 9,
+            padding: "2px 7px",
+            borderRadius: 3,
+            background: "color-mix(in srgb, var(--foreground) 6%, transparent)",
+            border: "1px solid color-mix(in srgb, var(--foreground) 10%, transparent)",
+            color: "color-mix(in srgb, var(--foreground) 45%, transparent)",
+            cursor: onOpenLibrosDashboard ? "pointer" : "default",
+            transition: "all 0.1s",
+          }}
+          onMouseEnter={e => {
+            if (!onOpenLibrosDashboard) return;
+            (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--accent) 10%, transparent)";
+            (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--accent) 28%, transparent)";
+            (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--accent) 80%, transparent)";
+          }}
+          onMouseLeave={e => {
+            (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--foreground) 6%, transparent)";
+            (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--foreground) 10%, transparent)";
+            (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--foreground) 45%, transparent)";
+          }}
+        >
+          #libro ↗
+        </button>
 
         {coTags.map(t => (
           <span
@@ -507,7 +525,7 @@ function TagSelector({
 }
 
 // ── Componente principal ───────────────────────────────────────────────────────
-export function LibroPanel({ ensayo, ensayos, onUpdateField }: LibroPanelProps) {
+export function LibroPanel({ ensayo, ensayos, onUpdateField, onOpenLibrosDashboard }: LibroPanelProps) {
   const mono: React.CSSProperties = { fontFamily: "var(--font-mono)" };
 
   const tags: string[] = ensayo.tags ?? [];
@@ -711,6 +729,7 @@ export function LibroPanel({ ensayo, ensayos, onUpdateField }: LibroPanelProps) 
         onAddTag={handleAddTag}
         onRemoveTag={handleRemoveTag}
         mono={mono}
+        onOpenLibrosDashboard={onOpenLibrosDashboard}
       />
     </div>
   );
