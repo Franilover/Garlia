@@ -922,6 +922,15 @@ export default function Ensayos() {
                   ensayos={ensayos}
                   onNavigate={(titulo) => navigateToPage(titulo, false)}
                   onTagClick={handleTagClick}
+                  onToggleEstado={(libroId, estado, add) => {
+                    const libro = ensayos.find((e: any) => e.id === libroId);
+                    if (!libro) return;
+                    const tagsActuales: string[] = libro.tags ?? [];
+                    const nuevosTags = add
+                      ? [...new Set([...tagsActuales, estado])]
+                      : tagsActuales.filter((t: string) => t !== estado);
+                    scheduleSave(libroId, { tags: nuevosTags });
+                  }}
                 />
               ) : (
                 <HomeDashboard 
@@ -938,6 +947,15 @@ export default function Ensayos() {
                   horario={horarioRaw ?? []}
                   isAddingEvento={isAddingEvento}
                   onAddEvento={handleAddEvento}
+                  onToggleEstado={(libroId, estado, add) => {
+                    const libro = ensayos.find((e: any) => e.id === libroId);
+                    if (!libro) return;
+                    const tagsActuales: string[] = libro.tags ?? [];
+                    const nuevosTags = add
+                      ? [...new Set([...tagsActuales, estado])]
+                      : tagsActuales.filter((t: string) => t !== estado);
+                    scheduleSave(libroId, { tags: nuevosTags });
+                  }}
                 />
               )}
             </AnimatePresence>

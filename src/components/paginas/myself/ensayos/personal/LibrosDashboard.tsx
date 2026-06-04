@@ -1,14 +1,14 @@
 "use client";
 import React, { useMemo, useState } from "react";
 import { MotionDiv } from "@/components/ui/Motion";
-import { SeccionEntidad } from "@/components/ui/SeccionEntidad"; // ajusta la ruta si es distinta
+import { SeccionEntidad } from "@/components/SeccionEntidad"; // ajusta la ruta si es distinta
 import { BookOpen, Search, X, ArrowRight, BookMarked, BookCheck, BookDashed, Library } from "lucide-react";
 
 interface LibrosDashboardProps {
   ensayos: any[];
   onNavigate: (titulo: string) => void;
   onTagClick?: (tag: string) => void;
-  onToggleEstado: (libroId: string, estado: "leyendo" | "leido" | "pendiente", add: boolean) => void;
+  onToggleEstado?: (libroId: string, estado: "leyendo" | "leido" | "pendiente", add: boolean) => void; // opcional: HomeDashboard lo pasa desde page.tsx
 }
 
 type OrdenLibros = "reciente" | "titulo" | "palabras";
