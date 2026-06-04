@@ -6,7 +6,7 @@ import {
   setPerfilCached,
   clearPerfilCached,
 } from "@/lib/api/client/perfilCache";
-import { db } from "@/lib/db";
+import { db } from "@/lib/api/client/db";
 
 // ─── Tiempo máximo antes de refrescar desde Supabase (5 minutos) ─────────────
 const PERFIL_CACHE_TTL_MS = 5 * 60 * 1000;
