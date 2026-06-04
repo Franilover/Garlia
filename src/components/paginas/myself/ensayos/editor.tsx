@@ -4,6 +4,7 @@ import React, { useRef, useState, useEffect, useCallback, useMemo } from "react"
 import { Save, List } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { CitePopup } from "./citePopup";
+import { LibroPanel } from "./LibroPanel";
 import { MarkdownEditor, WikiEntity } from "@/components/forms/MarkdownEditor";
 import { ZoteroSource } from "@/components/paginas/myself/ensayos/page";
 
@@ -150,6 +151,9 @@ export function Editor({
 
   const monoStyle: React.CSSProperties = { fontFamily: "var(--font-mono)" };
 
+  // ── ¿Es un libro? ─────────────────────────────────────────────────────────
+  const isLibro = (ensayo.tags ?? []).includes("libro");
+
   // ── Backlinks: notas que mencionan esta página por [[título]] o por tag ──────
   const backlinks = useMemo(() => {
     const titulo = ensayo.titulo?.trim().toLowerCase();
@@ -295,7 +299,14 @@ export function Editor({
             )}
           </AnimatePresence>
         </div>
-        {/* ── Info bar: dos columnas ── */}
+        {/* ── Info bar: condicional según si es libro ── */}
+        {isLibro ? (
+          <LibroPanel
+            ensayo={ensayo}
+            ensayos={ensayos}
+            onUpdateField={onUpdateField}
+          />
+        ) : (
         <div
           className="shrink-0"
           style={{
@@ -596,6 +607,7 @@ export function Editor({
             </div>
           </div>
         </div>
+        )}
       </MotionDiv>
 
       {/* ── TOC panel lateral ── */}

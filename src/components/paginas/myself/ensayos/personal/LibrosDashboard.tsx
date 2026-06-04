@@ -48,9 +48,35 @@ function LibroRow({
         }}>
           {libro.titulo || "Sin título"}
         </p>
-        <span style={{ ...mono, fontSize: 8, color: "color-mix(in srgb, var(--foreground) 18%, transparent)" }}>
-          {formatRelative(libro.updated_at)}
-        </span>
+        <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 2 }}>
+          {libro.autor && (
+            <span style={{ ...mono, fontSize: 8, color: "color-mix(in srgb, var(--foreground) 25%, transparent)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 90 }}>
+              {libro.autor}
+            </span>
+          )}
+          {libro.paginas_total && libro.pagina_actual != null && (
+            <span style={{ ...mono, fontSize: 7, color: "color-mix(in srgb, var(--accent) 50%, transparent)", marginLeft: "auto", flexShrink: 0 }}>
+              {Math.min(100, Math.round((libro.pagina_actual / libro.paginas_total) * 100))}%
+            </span>
+          )}
+          {!libro.autor && (
+            <span style={{ ...mono, fontSize: 8, color: "color-mix(in srgb, var(--foreground) 18%, transparent)" }}>
+              {formatRelative(libro.updated_at)}
+            </span>
+          )}
+        </div>
+        {/* Mini progress bar */}
+        {libro.paginas_total && libro.pagina_actual != null && (
+          <div style={{ height: 1.5, borderRadius: 99, background: "color-mix(in srgb, var(--foreground) 6%, transparent)", marginTop: 3, overflow: "hidden" }}>
+            <div style={{
+              height: "100%",
+              width: `${Math.min(100, Math.round((libro.pagina_actual / libro.paginas_total) * 100))}%`,
+              background: "color-mix(in srgb, var(--accent) 55%, transparent)",
+              borderRadius: 99,
+              transition: "width 0.3s ease",
+            }} />
+          </div>
+        )}
       </div>
       <ArrowRight size={9} style={{ color: "color-mix(in srgb, var(--foreground) 18%, transparent)", flexShrink: 0, opacity: hovered ? 1 : 0, transition: "opacity 0.1s" }} />
     </button>
@@ -399,9 +425,30 @@ export function LibrosDashboard({ ensayos, onNavigate, onTagClick }: LibrosDashb
                       </span>
                       <div style={{ flex: 1, height: 1, background: "color-mix(in srgb, var(--foreground) 6%, transparent)" }} />
                     </div>
-                    <h2 style={{ ...serif, fontSize: 19, color: "color-mix(in srgb, var(--foreground) 78%, transparent)", margin: "0 0 8px", lineHeight: 1.25 }}>
+                    <h2 style={{ ...serif, fontSize: 19, color: "color-mix(in srgb, var(--foreground) 78%, transparent)", margin: "0 0 4px", lineHeight: 1.25 }}>
                       {filtrados[0].titulo || "Sin título"}
                     </h2>
+                    {filtrados[0].autor && (
+                      <p style={{ ...mono, fontSize: 9, color: "color-mix(in srgb, var(--foreground) 30%, transparent)", margin: "0 0 8px" }}>
+                        {filtrados[0].autor}
+                      </p>
+                    )}
+                    {/* Progress bar destacada */}
+                    {filtrados[0].paginas_total && filtrados[0].pagina_actual != null && (
+                      <div style={{ marginBottom: 10 }}>
+                        <div style={{ height: 2, borderRadius: 99, background: "color-mix(in srgb, var(--foreground) 6%, transparent)", overflow: "hidden" }}>
+                          <div style={{
+                            height: "100%",
+                            width: `${Math.min(100, Math.round((filtrados[0].pagina_actual / filtrados[0].paginas_total) * 100))}%`,
+                            background: "color-mix(in srgb, var(--accent) 60%, transparent)",
+                            borderRadius: 99,
+                          }} />
+                        </div>
+                        <span style={{ ...mono, fontSize: 8, color: "color-mix(in srgb, var(--accent) 50%, transparent)", marginTop: 3, display: "block" }}>
+                          p. {filtrados[0].pagina_actual} / {filtrados[0].paginas_total} · {Math.min(100, Math.round((filtrados[0].pagina_actual / filtrados[0].paginas_total) * 100))}% leído
+                        </span>
+                      </div>
+                    )}
                     {filtrados[0].contenido && (
                       <p style={{
                         ...mono, fontSize: 10,
@@ -481,11 +528,21 @@ export function LibrosDashboard({ ensayos, onNavigate, onTagClick }: LibrosDashb
                     <p style={{
                       ...serif, fontSize: 13,
                       color: "color-mix(in srgb, var(--foreground) 72%, transparent)",
-                      margin: "0 0 6px",
+                      margin: "0 0 4px",
                       overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                     }}>
                       {libro.titulo || "Sin título"}
                     </p>
+                    {libro.autor && (
+                      <p style={{
+                        ...mono, fontSize: 8,
+                        color: "color-mix(in srgb, var(--foreground) 30%, transparent)",
+                        margin: "0 0 5px",
+                        overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                      }}>
+                        {libro.autor}
+                      </p>
+                    )}
                     {libro.contenido && (
                       <p style={{
                         ...mono, fontSize: 9,
@@ -498,6 +555,22 @@ export function LibrosDashboard({ ensayos, onNavigate, onTagClick }: LibrosDashb
                       }}>
                         {libro.contenido.replace(/#{1,6}\s/g, "").replace(/\*\*/g, "").slice(0, 120)}
                       </p>
+                    )}
+                    {/* Progress bar */}
+                    {libro.paginas_total && libro.pagina_actual != null && (
+                      <div style={{ marginBottom: 8 }}>
+                        <div style={{ height: 2, borderRadius: 99, background: "color-mix(in srgb, var(--foreground) 6%, transparent)", overflow: "hidden" }}>
+                          <div style={{
+                            height: "100%",
+                            width: `${Math.min(100, Math.round((libro.pagina_actual / libro.paginas_total) * 100))}%`,
+                            background: "color-mix(in srgb, var(--accent) 55%, transparent)",
+                            borderRadius: 99,
+                          }} />
+                        </div>
+                        <span style={{ ...mono, fontSize: 7, color: "color-mix(in srgb, var(--accent) 45%, transparent)", marginTop: 2, display: "block" }}>
+                          p. {libro.pagina_actual} / {libro.paginas_total}
+                        </span>
+                      </div>
                     )}
                     <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap", marginTop: "auto" }}>
                       {tags.slice(0, 2).map((t: string) => (
