@@ -16,7 +16,7 @@ import { EmptyState } from "@/components/paginas/myself/ensayos/emptyState";
 import NewNoteModal from "@/components/paginas/myself/ensayos/newNoteModal";
 import { GrafoEnsayos } from "@/components/paginas/myself/ensayos/GrafoEnsayos";
 import { HomeDashboard } from "@/components/paginas/myself/ensayos/HomeDashboard";
-import { LibrosDashboard } from "@/components/paginas/myself/ensayos/LibrosDashboard";
+import { LibrosDashboard } from "@/components/paginas/myself/ensayos/personal/LibrosDashboard";
 
 export interface ZoteroSource {
   title: string;
