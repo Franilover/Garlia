@@ -479,11 +479,11 @@ function FormularioMagico({ item, modo, grupos, loadingGrupos, onSaved, onDelete
         <div className="flex items-center justify-end gap-2">
           <SaveIndicator status={status} />
           <button onClick={del}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all">
-            <Trash2 size={10} />
+            className="flex items-center gap-1 px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all">
+            <Trash2 size={11} />
           </button>
           <button onClick={save} disabled={status === "saving"}
-            className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50">
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50">
             <Save size={11} /> Guardar
           </button>
         </div>
@@ -567,11 +567,11 @@ function FormularioRuna({ item, onSaved, onDeleted }: {
         <div className="shrink-0 flex items-center gap-2">
           <SaveIndicator status={status} />
           <button onClick={del}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all">
-            <Trash2 size={10} />
+            className="flex items-center gap-1 px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all">
+            <Trash2 size={11} />
           </button>
           <button onClick={save} disabled={status === "saving"}
-            className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50">
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50">
             <Save size={11} /> Guardar
           </button>
         </div>
@@ -1874,12 +1874,12 @@ function PanelListas({
   }) {
     return (
       <button onClick={onClick} type="button"
-        className={`flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02]${fullWidth ? " w-full" : ""}`}
+        className={`flex items-center gap-2 pl-1.5 pr-3 py-1.5 rounded-xl border transition-all hover:scale-[1.02] active:scale-[0.98]${fullWidth ? " w-full" : ""}`}
         style={{ background: accentBg ?? "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: accentBorder ?? "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
-        <div className="w-6 h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center">
-          {imgUrl ? <img src={imgUrl} alt={nombre} className="w-full h-full object-cover" /> : <Icon size={10} className="text-primary/25" />}
+        <div className="w-7 h-7 sm:w-6 sm:h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center">
+          {imgUrl ? <img src={imgUrl} alt={nombre} className="w-full h-full object-cover" /> : <Icon size={11} className="text-primary/25" />}
         </div>
-        <span className={`text-[11px] font-bold truncate${fullWidth ? "" : " max-w-[90px]"}`} style={{ color: accentText ?? "color-mix(in srgb, var(--primary) 70%, transparent)" }}>{nombre}</span>
+        <span className={`text-[11px] font-bold truncate${fullWidth ? "" : " max-w-[120px] sm:max-w-[90px]"}`} style={{ color: accentText ?? "color-mix(in srgb, var(--primary) 70%, transparent)" }}>{nombre}</span>
       </button>
     );
   }
@@ -1888,7 +1888,7 @@ function PanelListas({
   function SeccionEntidades({ icon: Icon, label, count, loading, children, cols = 3 }: {
     icon: React.ElementType; label: string; count: number; loading: boolean; children: React.ReactNode; cols?: 1 | 3;
   }) {
-    const gridClass = cols === 1 ? "grid grid-cols-6 gap-1.5" : "grid grid-cols-5 gap-1.5";
+    const gridClass = cols === 1 ? "grid grid-cols-2 sm:grid-cols-6 gap-1.5" : "grid grid-cols-2 sm:grid-cols-5 gap-1.5";
     return (
       <div className="pb-1">
         <div className="flex items-center gap-1.5 mb-2">
@@ -2115,13 +2115,13 @@ function PanelListas({
           {textos && onTextoChange && onSave && (
             <div className="flex flex-col sm:flex-row border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
               {/* Geografía */}
-              <div className="flex flex-col sm:flex-1 border-b sm:border-b-0 sm:border-r" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", minHeight: "42vh" }}>
+              <div className="flex flex-col sm:flex-1 border-b sm:border-b-0 sm:border-r" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", minHeight: "30vh" }}>
                 <div className="flex-1 flex flex-col min-h-0">
                   <PanelTexto texto={textos.geografia} onChange={v => onTextoChange("geografia", v)} onSave={() => onSave("geografia")} placeholder="Continentes, mares, climas, fronteras del mundo…" saveLabel="Guardar" SaveIcon={Mountain} />
                 </div>
               </div>
               {/* Magia */}
-              <div className="flex flex-col sm:flex-1" style={{ minHeight: "42vh" }}>
+              <div className="flex flex-col sm:flex-1" style={{ minHeight: "30vh" }}>
                 <div className="flex-1 flex flex-col min-h-0">
                   <PanelTexto texto={textos.magia} onChange={v => onTextoChange("magia", v)} onSave={() => onSave("magia")} placeholder="Sistema de magia, reglas, fuentes de poder, limitaciones…" saveLabel="Guardar" SaveIcon={Sparkles} />
                 </div>
@@ -2130,7 +2130,7 @@ function PanelListas({
           )}
 
           {/* ENTIDADES */}
-          <div className="px-3 pb-3 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+          <div className="px-3 sm:px-3 pb-4 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
 
             <SeccionEntidades icon={Map} label={el.reinos} count={reinos.length} loading={loadingReinos}>
               {reinos.map(r => <Chip key={r.id} onClick={() => selectReino(r)} imgUrl={r.mapa_url} icon={Map} nombre={r.nombre} />)}
@@ -2182,10 +2182,10 @@ function PanelListas({
             <SeccionEntidades icon={FileText} label={el.notas} count={notas.length} loading={loadingNotas}>
               {notas.map(n => (
                 <button key={n.id} onClick={() => setSelectedNota(n)} type="button"
-                  className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02]"
+                  className="flex items-center gap-2 pl-1.5 pr-3 py-1.5 rounded-xl border transition-all hover:scale-[1.02] active:scale-[0.98]"
                   style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
-                  <div className="w-6 h-6 rounded-lg border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center"><FileText size={10} className="text-primary/25" /></div>
-                  <span className="text-[11px] font-bold text-primary/70 truncate max-w-[90px]">{n.titulo || <span className="italic text-primary/30">Sin título</span>}</span>
+                  <div className="w-7 h-7 sm:w-6 sm:h-6 rounded-lg border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center"><FileText size={10} className="text-primary/25" /></div>
+                  <span className="text-[11px] font-bold text-primary/70 truncate max-w-[120px] sm:max-w-[90px]">{n.titulo || <span className="italic text-primary/30">Sin título</span>}</span>
                 </button>
               ))}
             </SeccionEntidades>
@@ -2202,13 +2202,13 @@ function PanelListas({
                       const { data } = await supabase.from("grupos_mundo").select("*").eq("id", g.id).single();
                       if (data) selectGrupo({ ...data, miembro_ids: data.miembro_ids ?? [] } as Grupo);
                     }}
-                    className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02]"
+                    className="flex items-center gap-2 pl-1.5 pr-3 py-1.5 rounded-xl border transition-all hover:scale-[1.02] active:scale-[0.98]"
                     style={{ background: `color-mix(in srgb, ${cfg?.color ?? "var(--primary)"} 4%, transparent)`, borderColor: `color-mix(in srgb, ${cfg?.color ?? "var(--primary)"} 12%, transparent)` }}>
                     <div className="w-6 h-6 rounded-lg border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center">
                       {cfg ? <cfg.Icon size={10} className="text-primary/25" /> : <Layers size={10} className="text-primary/25" />}
                     </div>
                     <div className="flex flex-col min-w-0">
-                      <span className="text-[11px] font-bold text-primary/70 truncate max-w-[90px]">{g.nombre}</span>
+                      <span className="text-[11px] font-bold text-primary/70 truncate max-w-[120px] sm:max-w-[90px]">{g.nombre}</span>
                       <span className="text-[8px] text-primary/30">{g.miembro_ids.length} miembros</span>
                     </div>
                   </button>
