@@ -1,7 +1,7 @@
 "use client";
 import React, { useMemo, useState } from "react";
 import { MotionDiv } from "@/components/ui/Motion";
-import { Star, FileText, ArrowRight, Hash, Clock, CheckSquare, Plus, Check, X, ShoppingCart, Dumbbell, Package, UtensilsCrossed, ChevronLeft, Search, Shirt, Heart, BookOpen } from "lucide-react";
+import { Star, FileText, ArrowRight, Hash, Clock, CheckSquare, Plus, Check, X, ShoppingCart, Dumbbell, Package, UtensilsCrossed, ChevronLeft, Search, Shirt, Heart, BookOpen, Library } from "lucide-react";
 
 import { AnimatePresence } from "framer-motion";
 import { RelojDigital } from "@/components/paginas/myself/ensayos/personal/tareas/relojDigital";
@@ -15,6 +15,7 @@ import RecetasPage from "@/components/paginas/myself/ensayos/personal/recetas";
 import ArmarioPage from "@/components/paginas/myself/ensayos/personal/ropa";
 import { PaginaHobbys } from "@/components/paginas/myself/ensayos/personal/hobbysComponent";
 import { PaginaPendientes } from "@/components/paginas/myself/ensayos/personal/pendientesComponent";
+import { LibrosDashboard } from "@/components/paginas/myself/ensayos/personal/librosDashboard";
 
 interface HomeDashboardProps {
   ensayos: any[];
@@ -43,7 +44,7 @@ export function HomeDashboard({
   const [nuevaTarea, setNuevaTarea] = useState("");
   const [modoCalendario, setModoCalendario] = useState<ModoCalendario>("mes");
   const [panelAbierto, setPanelAbierto] = useState<"reloj" | "tareas" | null>(null);
-  const [vistaPersonal, setVistaPersonal] = useState<"compras" | "ejercicios" | "ingredientes" | "recetas" | "ropa" | "hobbys" | "pendientes" | null>(null);
+  const [vistaPersonal, setVistaPersonal] = useState<"compras" | "ejercicios" | "ingredientes" | "recetas" | "ropa" | "hobbys" | "pendientes" | "libros" | null>(null);
   const [busqueda, setBusqueda] = useState("");
 
   const favoritos = useMemo(
@@ -630,6 +631,7 @@ export function HomeDashboard({
                 { id: "ropa",         label: "Ropa",         icon: <Shirt size={16} /> },
                 { id: "hobbys",       label: "Hobbys",       icon: <Heart size={16} /> },
                 { id: "pendientes",   label: "Pendientes",   icon: <BookOpen size={16} /> },
+                { id: "libros",       label: "Biblioteca",   icon: <Library size={16} /> },
               ] as const).map(({ id, label, icon }) => (
                 <MotionDiv key={id} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
                   <button
@@ -782,7 +784,8 @@ export function HomeDashboard({
                 Menú
               </button>
 
-              {/* Buscador de ensayos */}
+              {/* Buscador de ensayos — oculto en biblioteca (tiene buscador propio) */}
+              {vistaPersonal !== "libros" && (
               <div style={{
                 flex: 1, display: "flex", alignItems: "center", gap: 8,
                 background: "color-mix(in srgb, var(--foreground) 4%, transparent)",
@@ -811,6 +814,7 @@ export function HomeDashboard({
                   </button>
                 )}
               </div>
+              )}
             </div>
 
             {/* ── Contenido del componente ── */}
@@ -822,6 +826,13 @@ export function HomeDashboard({
               {vistaPersonal === "ropa"         && <ArmarioPage />}
               {vistaPersonal === "hobbys"       && <PaginaHobbys />}
               {vistaPersonal === "pendientes"   && <PaginaPendientes />}
+              {vistaPersonal === "libros"       && (
+                <LibrosDashboard
+                  ensayos={ensayos}
+                  onNavigate={(titulo) => { onNavigate(titulo); setVistaPersonal(null); }}
+                  onTagClick={onTagClick}
+                />
+              )}
             </div>
           </MotionDiv>
         )}
