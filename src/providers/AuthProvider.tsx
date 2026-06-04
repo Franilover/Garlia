@@ -31,7 +31,7 @@ export const AuthProvider = ({ children }) => {
         setLoading(false);
       }
 
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("perfiles")
         .select("*")
         .eq("id", userId)
@@ -40,26 +40,30 @@ export const AuthProvider = ({ children }) => {
       if (!mountedRef.current) return;
 
       if (data) {
+        // Perfil encontrado — usarlo tal cual, sin tocar el rol
         setPerfil(data);
         setPerfilCached(data);
-      } else {
+      } else if (error?.code === "PGRST116") {
+        // PGRST116 = "no rows found" — el perfil realmente no existe, crearlo
         const nombreAuto = userEmail ? userEmail.split("@")[0] : "Usuario";
         const nuevoPerfil = {
           id: userId,
           email: userEmail,
           username: nombreAuto,
-          rol: "user",
+          // ✅ Sin rol — el trigger handle_new_user ya lo asigna como 'user'
           status: "Explorador Novato",
         };
         const { error: insertError } = await supabase
           .from("perfiles")
-          .upsert(nuevoPerfil);
+          .insert(nuevoPerfil); // ✅ insert en vez de upsert — nunca pisa datos existentes
 
         if (!insertError && mountedRef.current) {
-          setPerfil(nuevoPerfil);
-          setPerfilCached(nuevoPerfil);
+          setPerfil({ ...nuevoPerfil, rol: "user" });
+          setPerfilCached({ ...nuevoPerfil, rol: "user" });
         }
       }
+      // Cualquier otro error (red, permisos, etc.) no hace nada —
+      // evita pisar el perfil existente por un fallo temporal
     } catch (err) {
       if (mountedRef.current) console.error("Error al cargar perfil:", err);
     } finally {
