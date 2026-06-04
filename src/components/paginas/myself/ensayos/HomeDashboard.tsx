@@ -15,7 +15,7 @@ import RecetasPage from "@/components/paginas/myself/ensayos/personal/recetas";
 import ArmarioPage from "@/components/paginas/myself/ensayos/personal/ropa";
 import { PaginaHobbys } from "@/components/paginas/myself/ensayos/personal/hobbysComponent";
 import { PaginaPendientes } from "@/components/paginas/myself/ensayos/personal/pendientesComponent";
-import { LibrosDashboard } from "@/components/paginas/myself/ensayos/personal/librosDashboard";
+import { LibrosDashboard } from "@/components/paginas/myself/ensayos/personal/LibrosDashboard";
 
 interface HomeDashboardProps {
   ensayos: any[];
