@@ -1,7 +1,7 @@
 "use client";
 import React, { useMemo, useState } from "react";
 import { MotionDiv } from "@/components/ui/Motion";
-import { SeccionEntidad } from "@/components/SeccionEntidad"; // ajusta la ruta si es distinta
+import { SeccionEntidad } from "@/components/ui/SeccionEntidad"; // ajusta la ruta si es distinta
 import { BookOpen, Search, X, ArrowRight, BookMarked, BookCheck, BookDashed, Library } from "lucide-react";
 
 interface LibrosDashboardProps {
