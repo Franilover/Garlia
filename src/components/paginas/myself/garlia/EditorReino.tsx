@@ -488,45 +488,11 @@ export function EditorReino({ item, onSaved, onDeleted, entities = [], onSelectP
             onMapaChange={url => setForm(f => ({ ...f, mapa_url: url }))}
             onDetallesArrayChange={handleDetallesMapChange}
             MapaConPuntosComponent={MapaConPuntos}
+            mobileAsideOpen={mobileAsideOpen}
+            setMobileAsideOpen={setMobileAsideOpen}
           />
         </div>
-
       </div>
-
-      {/* ── BARRA LATERAL — mobile drawer ──────────────────────────────────── */}
-      {mobileAsideOpen && (
-        <div className="sm:hidden fixed inset-0 z-50 flex justify-end">
-          <div
-            className="absolute inset-0"
-            style={{ background: "color-mix(in srgb, var(--primary) 20%, transparent)" }}
-            onClick={() => setMobileAsideOpen(false)}
-          />
-          <div
-            className="relative flex flex-col h-full overflow-y-auto shadow-2xl"
-            style={{
-              width: "240px",
-              background: "var(--white-custom, var(--bg-main))",
-              borderLeft: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-              scrollbarWidth: "none",
-            }}
-          >
-            {/* Header */}
-            <div
-              className="shrink-0 flex items-center justify-between px-3 py-2.5 border-b"
-              style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
-            >
-              <span className="text-[8px] font-black uppercase tracking-[0.2em] flex items-center gap-1.5" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>
-                <SlidersHorizontal size={9} /> Entidades
-              </span>
-              <button onClick={() => setMobileAsideOpen(false)} className="p-1 rounded-lg text-primary/30 hover:text-primary hover:bg-primary/8 transition-all">
-                <X size={14} />
-              </button>
-            </div>
-            {/* Contenido del aside — agregar SeccionEntidad u otros bloques según necesidades del reino */}
-          </div>
-        </div>
-      )}
-
     </div>
   );
 }

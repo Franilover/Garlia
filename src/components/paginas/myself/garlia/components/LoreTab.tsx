@@ -971,6 +971,8 @@ export function LoreTab({
   onDetallesArrayChange,
   MapaConPuntosComponent,
   activeTab: activeTabProp,
+  mobileAsideOpen: mobileAsideOpenProp,
+  setMobileAsideOpen: setMobileAsideOpenProp,
 }: {
   form: Reino;
   setForm: React.Dispatch<React.SetStateAction<Reino>>;
@@ -998,6 +1000,8 @@ export function LoreTab({
   onDetallesArrayChange?: (d: Lugar[]) => void;
   MapaConPuntosComponent?: React.ComponentType<any>;
   activeTab?: SectionId;
+  mobileAsideOpen?: boolean;
+  setMobileAsideOpen?: (v: boolean) => void;
 }) {
   const { onSnippetAction } = useWikilink();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -1022,7 +1026,9 @@ export function LoreTab({
   const [savingCriaturas,  setSavingCriaturas]  = useState(false);
   const [savingPersonajes, setSavingPersonajes]  = useState(false);
   const [savingItems,      setSavingItems]       = useState(false);
-  const [mobileAsideOpen,  setMobileAsideOpen]  = useState(false);
+  const [_mobileAsideOpen, _setMobileAsideOpen]  = useState(false);
+  const mobileAsideOpen    = mobileAsideOpenProp    ?? _mobileAsideOpen;
+  const setMobileAsideOpen = setMobileAsideOpenProp ?? _setMobileAsideOpen;
 
   const handleToggleCriatura = async (id: string, add: boolean) => {
     setSavingCriaturas(true);
@@ -1148,16 +1154,6 @@ export function LoreTab({
                   {tab.label}
                 </button>
               ))}
-              {/* Botón entidades — solo mobile */}
-              <button
-                type="button"
-                onClick={() => setMobileAsideOpen(true)}
-                className="sm:hidden ml-auto shrink-0 flex items-center gap-1 px-3 py-2 text-[9px] font-black uppercase tracking-widest transition-all border-b-2"
-                style={{ borderColor: "transparent", color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
-              >
-                <SlidersHorizontal size={10} />
-                Entidades
-              </button>
             </div>
 
             {/* CULTURA / ECONOMÍA / POLÍTICA — tab activo */}
