@@ -619,6 +619,22 @@ export function EditorHechizos({
 
   const selected = items.find(i => i.id === selectedId) ?? null;
 
+  // Si hay un selectedId pero el item no está en la lista local aún (todavía cargando
+  // o nunca estuvo), lo buscamos directamente en Supabase.
+  useEffect(() => {
+    if (!selectedId) return;
+    if (items.find(i => i.id === selectedId)) return; // ya está
+    const tabla = CONFIG[modo].tabla;
+    const selectFields = modo === "runas"
+      ? "id, nombre, explicacion, imagen_url"
+      : "id, nombre, explicacion, grupo_ids, imagen_url";
+    supabase.from(tabla).select(selectFields).eq("id", selectedId).single()
+      .then(({ data }) => {
+        if (data) setItems(prev => prev.some(i => i.id === data.id) ? prev.map(i => i.id === data.id ? data : i) : [data, ...prev]);
+      });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedId, items.length]);
+
   const handleCreate = async () => {
     setCreating(true);
     try {
@@ -661,6 +677,10 @@ export function EditorHechizos({
               onItemDeleted?.(id);
             }}
           />
+        ) : loading && selectedId ? (
+          <div className="flex-1 flex items-center justify-center">
+            <Loader2 size={20} className="animate-spin text-primary/20" />
+          </div>
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center gap-3 select-none">
             <cfg.Icon size={40} strokeWidth={1} style={{ color: cfg.color, opacity: 0.2 }} />
