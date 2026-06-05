@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import {
   Maximize2, UserCircle2, BookOpen, Loader2,
   ChevronDown, X, Save, Trash2,
-  Sparkles, Users, Camera,
+  Sparkles, Users, Camera, SlidersHorizontal,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
@@ -516,6 +516,7 @@ export function FormularioPersonaje({
     reinoSeleccionadoId ? l.reino_id === reinoSeleccionadoId : !l.reino_id
   );
   const { onSnippetAction } = useWikilink();
+  const [mobileAsideOpen, setMobileAsideOpen] = useState(false);
 
   const field = (k: keyof Personaje) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm(f => ({ ...f, [k]: e.target.value }));
@@ -557,6 +558,13 @@ export function FormularioPersonaje({
             className="flex items-center gap-1 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50"
           >
             <Save size={10} /> Guardar
+          </button>
+          <button
+            onClick={() => setMobileAsideOpen(true)}
+            className="sm:hidden flex items-center justify-center p-2 rounded-lg text-primary/30 hover:text-primary hover:bg-primary/8 transition-all border border-primary/10"
+            title="Entidades"
+          >
+            <SlidersHorizontal size={13} />
           </button>
         </div>
       </div>
@@ -828,37 +836,126 @@ export function FormularioPersonaje({
                     </div>
                   )}
 
-                  {/* Grupos del personaje */}
-                  <BloqueGruposPersonaje personajeId={form.id} onOpenGrupo={onOpenGrupo} />
+                  {/* Grupos del personaje — solo mobile (en desktop va al aside) */}
+                  <div className="sm:hidden">
+                    <BloqueGruposPersonaje personajeId={form.id} onOpenGrupo={onOpenGrupo} />
+                  </div>
 
-                  {/* Relaciones */}
-                  <BloqueRelaciones personajeId={form.id} onSelectPersonaje={onSelectPersonaje} />
+                  {/* Relaciones — solo mobile (en desktop va al aside) */}
+                  <div className="sm:hidden">
+                    <BloqueRelaciones personajeId={form.id} onSelectPersonaje={onSelectPersonaje} />
+                  </div>
 
-                  {/* Capítulos en los que aparece + Hechizos en fila */}
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <div
-                      className="flex-1 min-w-0 rounded-xl overflow-hidden border border-primary/10"
-                    >
+                  {/* Caps + Hechizos — solo mobile (en desktop van al aside) */}
+                  <div className="sm:hidden flex flex-col gap-3">
+                    <div className="rounded-xl overflow-hidden border border-primary/10">
                       <div className="flex items-center gap-2 px-3 py-2 border-b border-primary/[0.06] bg-primary/[0.03]">
                         <BookOpen size={10} className="text-primary/40" />
                         <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">Capítulos en los que aparece</span>
                       </div>
                       <BloqueCapsAparece personajeId={form.id} />
                     </div>
-                    <div className="w-full sm:w-56 sm:shrink-0">
-                      <SeccionHechizos personajeId={form.id} grupoIds={grupoIds} />
-                    </div>
+                    <SeccionHechizos personajeId={form.id} grupoIds={grupoIds} />
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
+      {/* ── BARRA LATERAL — desktop ──────────────────────────────────────────── */}
+      <aside
+        className="hidden sm:flex shrink-0 flex-col border-l overflow-y-auto overflow-x-hidden"
+        style={{
+          width: "176px",
+          borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)",
+          background: "color-mix(in srgb, var(--primary) 0.5%, transparent)",
+          scrollbarWidth: "none",
+        }}
+      >
+        {/* Grupos */}
+        <div className="p-2">
+          <BloqueGruposPersonaje personajeId={form.id} onOpenGrupo={onOpenGrupo} />
+        </div>
+
+        <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
+
+        {/* Relaciones */}
+        <div className="p-2">
+          <BloqueRelaciones personajeId={form.id} onSelectPersonaje={onSelectPersonaje} />
+        </div>
+
+        <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
+
+        {/* Capítulos */}
+        <div className="rounded-none overflow-hidden">
+          <div className="flex items-center gap-2 px-3 py-2 border-b border-primary/[0.06] bg-primary/[0.03]">
+            <BookOpen size={10} className="text-primary/40" />
+            <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">Capítulos</span>
+          </div>
+          <BloqueCapsAparece personajeId={form.id} />
+        </div>
+
+        <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
+
+        {/* Hechizos */}
+        <SeccionHechizos personajeId={form.id} grupoIds={grupoIds} />
+      </aside>
+
       </div>
+
+      {mobileAsideOpen && (
+        <div className="sm:hidden fixed inset-0 z-50 flex justify-end">
+          <div
+            className="absolute inset-0"
+            style={{ background: "color-mix(in srgb, var(--primary) 20%, transparent)" }}
+            onClick={() => setMobileAsideOpen(false)}
+          />
+          <div
+            className="relative flex flex-col h-full overflow-y-auto shadow-2xl"
+            style={{
+              width: "240px",
+              background: "var(--white-custom, var(--bg-main))",
+              borderLeft: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+              scrollbarWidth: "none",
+            }}
+          >
+            {/* Header del drawer */}
+            <div
+              className="shrink-0 flex items-center justify-between px-3 py-2.5 border-b"
+              style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
+            >
+              <span className="text-[8px] font-black uppercase tracking-[0.2em] flex items-center gap-1.5" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>
+                <SlidersHorizontal size={9} /> Entidades
+              </span>
+              <button onClick={() => setMobileAsideOpen(false)} className="p-1 rounded-lg text-primary/30 hover:text-primary hover:bg-primary/8 transition-all">
+                <X size={14} />
+              </button>
+            </div>
+
+            <div className="p-2">
+              <BloqueGruposPersonaje personajeId={form.id} onOpenGrupo={onOpenGrupo} />
+            </div>
+            <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
+            <div className="p-2">
+              <BloqueRelaciones personajeId={form.id} onSelectPersonaje={onSelectPersonaje} />
+            </div>
+            <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
+            <div>
+              <div className="flex items-center gap-2 px-3 py-2 border-b border-primary/[0.06] bg-primary/[0.03]">
+                <BookOpen size={10} className="text-primary/40" />
+                <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">Capítulos</span>
+              </div>
+              <BloqueCapsAparece personajeId={form.id} />
+            </div>
+            <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
+            <SeccionHechizos personajeId={form.id} grupoIds={grupoIds} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
-
+ 
 // ─── EditorPersonaje ──────────────────────────────────────────────────────────
 export function EditorPersonaje({
   item, onSaved, onDeleted, entities = [], onNavigate, onSelectPersonaje, onOpenGrupo, onNavigateLugar,
@@ -905,7 +1002,7 @@ export function EditorPersonaje({
     onDeleted(form.id);
   };
 
-  return (
+return (
     <>
       <ConfirmModal />
       <FormularioPersonaje form={form} setForm={setForm} status={status} onSave={save} onDelete={del} entities={entities} onNavigate={onNavigate} onSelectPersonaje={onSelectPersonaje} onOpenGrupo={onOpenGrupo} onNavigateLugar={onNavigateLugar} />
