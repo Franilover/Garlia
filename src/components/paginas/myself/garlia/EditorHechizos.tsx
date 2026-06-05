@@ -619,11 +619,14 @@ export function EditorHechizos({
 
   const selected = items.find(i => i.id === selectedId) ?? null;
 
-  // Si hay un selectedId pero el item no está en la lista local aún (todavía cargando
-  // o nunca estuvo), lo buscamos directamente en Supabase.
+  // Si hay un selectedId pero el item no está en la lista local aún, lo buscamos
+  // directamente en Supabase. Usamos un ref para no repetir el fetch.
+  const fetchedRef = useRef<string | null>(null);
   useEffect(() => {
     if (!selectedId) return;
-    if (items.find(i => i.id === selectedId)) return; // ya está
+    if (items.find(i => i.id === selectedId)) return; // ya está en lista
+    if (fetchedRef.current === selectedId) return;     // ya lo pedimos
+    fetchedRef.current = selectedId;
     const tabla = CONFIG[modo].tabla;
     const selectFields = modo === "runas"
       ? "id, nombre, explicacion, imagen_url"
@@ -636,7 +639,7 @@ export function EditorHechizos({
         }
       });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedId, items.length]);
+  }, [selectedId]);
 
   const handleCreate = async () => {
     setCreating(true);
