@@ -274,27 +274,27 @@ function PanelReinos({
   );
 }
 
-// ─── Hook: lugares donde se encuentra el ítem (item_lugares) ─────────────────
+// ─── Hook: ciudades donde se encuentra el ítem (item_ciudades) ─────────────────
 
-type LugarMin = { id: string; nombre: string };
-type ItemLugarRow = { rowId: string; lugarId: string; lugarNombre: string };
+type CiudadMin = { id: string; nombre: string };
+type ItemCiudadRow = { rowId: string; ciudadId: string; ciudadNombre: string };
 
-function useLugaresItem(itemId: string) {
-  const [rows, setRows] = useState<ItemLugarRow[]>([]);
+function useCiudadesItem(itemId: string) {
+  const [rows, setRows] = useState<ItemCiudadRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
     const { data } = await supabase
-      .from("item_lugares")
-      .select("id, lugar_id, lugares!lugar_id(nombre)")
+      .from("item_ciudades")
+      .select("id, ciudad_id, ciudades!ciudad_id(nombre)")
       .eq("item_id", itemId);
 
     setRows(
       (data ?? []).map((r: any) => ({
         rowId:      r.id,
-        lugarId:    r.lugar_id,
-        lugarNombre: (Array.isArray(r.lugares) ? r.lugares[0]?.nombre : r.lugares?.nombre) ?? "—",
+        ciudadId:    r.ciudad_id,
+        ciudadNombre: (Array.isArray(r.ciudades) ? r.ciudades[0]?.nombre : r.ciudades?.nombre) ?? "—",
       }))
     );
     setLoading(false);
@@ -302,44 +302,44 @@ function useLugaresItem(itemId: string) {
 
   useEffect(() => { load(); }, [load]);
 
-  const add = async (l: LugarMin) => {
-    if (rows.some(r => r.lugarId === l.id)) return;
+  const add = async (l: CiudadMin) => {
+    if (rows.some(r => r.ciudadId === l.id)) return;
     const { data, error } = await supabase
-      .from("item_lugares")
-      .insert([{ item_id: itemId, lugar_id: l.id }])
+      .from("item_ciudades")
+      .insert([{ item_id: itemId, ciudad_id: l.id }])
       .select().single();
     if (!error && data) {
-      setRows(prev => [...prev, { rowId: data.id, lugarId: l.id, lugarNombre: l.nombre }]);
+      setRows(prev => [...prev, { rowId: data.id, ciudadId: l.id, ciudadNombre: l.nombre }]);
     }
   };
 
   const remove = async (rowId: string) => {
-    await supabase.from("item_lugares").delete().eq("id", rowId);
+    await supabase.from("item_ciudades").delete().eq("id", rowId);
     setRows(prev => prev.filter(r => r.rowId !== rowId));
   };
 
   return { rows, loading, add, remove };
 }
 
-// ─── Panel selector de lugares (usa SeccionEntidad) ──────────────────────────
+// ─── Panel selector de ciudades (usa SeccionEntidad) ──────────────────────────
 
-function PanelLugares({ itemId, onNavigateLugar }: { itemId: string; onNavigateLugar?: (id: string) => void }) {
-  const { rows, loading, add, remove } = useLugaresItem(itemId);
-  const [allLugares, setAllLugares] = useState<LugarMin[]>([]);
+function PanelCiudades({ itemId, onNavigateCiudad }: { itemId: string; onNavigateCiudad?: (id: string) => void }) {
+  const { rows, loading, add, remove } = useCiudadesItem(itemId);
+  const [allCiudades, setAllCiudades] = useState<CiudadMin[]>([]);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    supabase.from("lugares").select("id, nombre").order("nombre")
-      .then(({ data }) => setAllLugares(data ?? []));
+    supabase.from("ciudades").select("id, nombre").order("nombre")
+      .then(({ data }) => setAllCiudades(data ?? []));
   }, []);
 
   const handleToggle = async (id: string, addIt: boolean) => {
     setSaving(true);
     if (addIt) {
-      const lugar = allLugares.find(l => l.id === id);
-      if (lugar) await add(lugar);
+      const ciudad = allCiudades.find(l => l.id === id);
+      if (ciudad) await add(ciudad);
     } else {
-      const row = rows.find(r => r.lugarId === id);
+      const row = rows.find(r => r.ciudadId === id);
       if (row) await remove(row.rowId);
     }
     setSaving(false);
@@ -347,16 +347,16 @@ function PanelLugares({ itemId, onNavigateLugar }: { itemId: string; onNavigateL
 
   return (
     <SeccionEntidad
-      label="Lugar donde encontrarlo"
+      label="Ciudad donde encontrarlo"
       icon={<MapPin size={9} />}
       fallbackIcon={<MapPin size={9} />}
-      emptyLabel="Ningún lugar asignado"
-      allEntities={allLugares}
-      selectedIds={rows.map(r => r.lugarId)}
+      emptyLabel="Ninguna ciudad asignada"
+      allEntities={allCiudades}
+      selectedIds={rows.map(r => r.ciudadId)}
       loading={loading}
       saving={saving}
       onToggle={handleToggle}
-      onEntityClick={onNavigateLugar}
+      onEntityClick={onNavigateCiudad}
     />
   );
 }
@@ -391,12 +391,12 @@ function PickerImagenItemBtn({ value, onChange }: { value: string; onChange: (ur
 // ─── EditorItem ───────────────────────────────────────────────────────────────
 
 export function EditorItem({
-  item, onSaved, onDeleted, entities = [], onSelectCriatura, onSelectPlanta, onNavigateLugar, onNavigateReino,
+  item, onSaved, onDeleted, entities = [], onSelectCriatura, onSelectPlanta, onNavigateCiudad, onNavigateReino,
 }: {
   item: Item; onSaved: (i: Item) => void; onDeleted: (id: string) => void; entities?: WikiEntity[];
   onSelectCriatura?: (criaturaId: string) => void;
   onSelectPlanta?: (plantaId: string) => void;
-  onNavigateLugar?: (id: string) => void;
+  onNavigateCiudad?: (id: string) => void;
   onNavigateReino?: (id: string) => void;
 }) {
   const [form,     setForm]     = useState<Item>(item);
@@ -522,7 +522,7 @@ export function EditorItem({
                   noneLabel="Sin categoría"
                 />
 
-                {/* Origen + Lugares en dos columnas */}
+                {/* Origen + Ciudades en dos columnas */}
                 <div className="flex flex-col sm:flex-row gap-4">
 
                   {/* Columna Origen */}
@@ -612,12 +612,12 @@ export function EditorItem({
                     />
                   </div>
 
-                  {/* Columna Lugares */}
+                  {/* Columna Ciudades */}
                   <div className="flex-1 min-w-0 space-y-2">
                     <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35 flex items-center gap-1.5">
-                      <MapPin size={9} /> Lugar donde encontrarlo
+                      <MapPin size={9} /> Ciudad donde encontrarlo
                     </label>
-                    <PanelLugares itemId={form.id} onNavigateLugar={onNavigateLugar} />
+                    <PanelCiudades itemId={form.id} onNavigateCiudad={onNavigateCiudad} />
                   </div>
 
                 </div>
