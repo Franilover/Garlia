@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from "react";
 import {
   ChevronDown, ChevronRight, UserCircle2, Loader2, Trash2,
   X, Check, Clock, Hash, AlignLeft, Calendar, BookMarked, Pencil,
-  MoreHorizontal, Globe, Lock, Timer, Mic2, MapPin, Cat, Sword, Plus
+  MoreHorizontal, Globe, Lock, Timer, Mic2, MapPin, Cat, Sword, Plus, SlidersHorizontal
 } from "lucide-react";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { SaveIndicator } from "@/components/templates/EstudioTemplates";
@@ -1091,6 +1091,8 @@ export const PanelPersonajesCapitulo = ({
   onCriaturasChange,
   items_ids = [],
   onItemsChange,
+  mobileOpen = false,
+  onMobileClose,
 }: {
   capId: string;
   value: string[];
@@ -1099,6 +1101,8 @@ export const PanelPersonajesCapitulo = ({
   onCriaturasChange?: (ids: string[]) => void;
   items_ids?: string[];
   onItemsChange?: (ids: string[]) => void;
+  mobileOpen?: boolean;
+  onMobileClose?: () => void;
 }) => {
   const { personajes, loading: loadingP } = usePersonajes();
   const { criaturas, loading: loadingC }  = useCriaturas();
@@ -1222,15 +1226,9 @@ export const PanelPersonajesCapitulo = ({
     window.dispatchEvent(new CustomEvent("garlia-open-entity", { detail: { tabla, id } }));
   };
 
-  return (
-    <div
-      className="hidden lg:flex flex-col shrink-0 border-l overflow-y-auto"
-      style={{
-        width: "180px",
-        borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
-        background: "color-mix(in srgb, var(--primary) 2%, transparent)",
-      }}
-    >
+  // Contenido compartido entre desktop y drawer mobile
+  const innerContent = (
+    <>
       {/* ── Posición en línea de tiempo ─────────────────────────────────── */}
       <div
         className="shrink-0 px-3 py-2.5 border-b"
@@ -1448,7 +1446,62 @@ export const PanelPersonajesCapitulo = ({
         onToggle={handleToggleItem}
         onEntityClick={(id) => dispatchOpen("items", id)} 
       />
-    </div>
+    </>
+  );
+
+  return (
+    <>
+      {/* Desktop: panel fijo lateral */}
+      <div
+        className="hidden lg:flex flex-col shrink-0 border-l overflow-y-auto"
+        style={{
+          width: "180px",
+          borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
+          background: "color-mix(in srgb, var(--primary) 2%, transparent)",
+        }}
+      >
+        {innerContent}
+      </div>
+
+      {/* Mobile: drawer desde la derecha */}
+      {mobileOpen && (
+        <div className="lg:hidden fixed inset-0 z-50 flex justify-end">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0"
+            style={{ background: "color-mix(in srgb, var(--primary) 20%, transparent)" }}
+            onClick={onMobileClose}
+          />
+          {/* Panel */}
+          <div
+            className="relative flex flex-col h-full overflow-y-auto shadow-2xl"
+            style={{
+              width: "220px",
+              background: "var(--white-custom, var(--bg-main))",
+              borderLeft: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+            }}
+          >
+            {/* Header del drawer */}
+            <div
+              className="shrink-0 flex items-center justify-between px-3 py-2.5 border-b"
+              style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
+            >
+              <span className="text-[8px] font-black uppercase tracking-[0.2em] text-primary/40 flex items-center gap-1.5">
+                <SlidersHorizontal size={9} />
+                Metadatos
+              </span>
+              <button
+                onClick={onMobileClose}
+                className="p-1 rounded-lg text-primary/30 hover:text-primary hover:bg-primary/8 transition-all"
+              >
+                <X size={14} />
+              </button>
+            </div>
+            {innerContent}
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 

@@ -8,7 +8,7 @@ import {
   ChevronRight, Loader2, Plus, Save,
   Trash2, X, Check, Eye,
   Minimize2, Clock, Hash,
-  Calendar, BookMarked, Pencil, Lock, Timer,
+  Calendar, BookMarked, Pencil, Lock, Timer, SlidersHorizontal,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/api/client/supabase";
@@ -96,6 +96,7 @@ const PanelEditor = ({
     return matches.map(m => ({ id: m[1].trim(), label: (m[2] ?? m[1]).trim() }));
   }, [contenido]);
   const [palette, setPalette] = useState<{ anchorRect: { top: number; left: number }; initialRaw?: string } | null>(null);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const timer          = useRef<any>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollRef      = useRef<HTMLDivElement>(null);
@@ -601,7 +602,26 @@ const PanelEditor = ({
             onCriaturasChange={setCriaturasIds}
             items_ids={itemsIds}
             onItemsChange={setItemsIds}
+            mobileOpen={mobileSidebarOpen}
+            onMobileClose={() => setMobileSidebarOpen(false)}
           />
+        )}
+
+        {/* Botón flotante mobile para abrir metadatos */}
+        {!focusMode && (
+          <button
+            onClick={() => setMobileSidebarOpen(true)}
+            className="lg:hidden fixed bottom-20 right-4 z-40 flex items-center justify-center w-10 h-10 rounded-full shadow-lg border transition-all active:scale-95"
+            style={{
+              background: "var(--white-custom, var(--bg-main))",
+              borderColor: "color-mix(in srgb, var(--primary) 18%, transparent)",
+              color: "color-mix(in srgb, var(--primary) 55%, transparent)",
+              boxShadow: "0 4px 16px color-mix(in srgb, var(--primary) 12%, transparent)",
+            }}
+            title="Metadatos del capítulo"
+          >
+            <SlidersHorizontal size={15} />
+          </button>
         )}
       </div>
 
@@ -1067,7 +1087,7 @@ export function EditorCapitulosPanel() {
               style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
             >
               {/* Mobile: grid 2 columnas */}
-              <div className="sm:hidden w-full p-2">
+              <div className="sm:hidden overflow-y-auto p-2" style={{ height: selectedCapId ? "380px" : "420px" }}>
                 <div className="grid grid-cols-2 gap-2">
                   {loadingLibros ? (
                     <div className="col-span-2 flex items-center justify-center py-8 text-primary/25">
