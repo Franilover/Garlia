@@ -479,6 +479,13 @@ const PanelEditor = ({
               <button onClick={handleDelete} className="p-2 rounded-lg hover:bg-red-500/10 text-primary/20 hover:text-red-400 transition-all" title="Eliminar capítulo">
                 <Trash2 size={13}/>
               </button>
+              <button
+                onClick={() => setMobileSidebarOpen(true)}
+                className="lg:hidden p-2 rounded-lg hover:bg-primary/8 text-primary/30 hover:text-primary transition-all"
+                title="Metadatos"
+              >
+                <SlidersHorizontal size={13}/>
+              </button>
             </div>
           </div>
 
@@ -605,23 +612,6 @@ const PanelEditor = ({
             mobileOpen={mobileSidebarOpen}
             onMobileClose={() => setMobileSidebarOpen(false)}
           />
-        )}
-
-        {/* Botón flotante mobile para abrir metadatos */}
-        {!focusMode && (
-          <button
-            onClick={() => setMobileSidebarOpen(true)}
-            className="lg:hidden fixed bottom-20 right-4 z-40 flex items-center justify-center w-10 h-10 rounded-full shadow-lg border transition-all active:scale-95"
-            style={{
-              background: "var(--white-custom, var(--bg-main))",
-              borderColor: "color-mix(in srgb, var(--primary) 18%, transparent)",
-              color: "color-mix(in srgb, var(--primary) 55%, transparent)",
-              boxShadow: "0 4px 16px color-mix(in srgb, var(--primary) 12%, transparent)",
-            }}
-            title="Metadatos del capítulo"
-          >
-            <SlidersHorizontal size={15} />
-          </button>
         )}
       </div>
 
