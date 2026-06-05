@@ -2,16 +2,15 @@
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
-  Sparkles, Star, Globe, Plus, Trash2, Save, Loader2, Search, X, Bug,
+  Sparkles, Star, Globe, Plus, Trash2, Save, Loader2, X, Bug,
   ChevronDown, Mountain, ScrollText, Map, FileText, Users, UserCircle2, Package,
-  Crown, Clock, Filter, Layers, Check, BookOpen, Music, MapPin, Leaf,
+  Crown, Clock, Filter, Layers, BookOpen, Music, MapPin, Leaf,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
 import { enqueueOperation, isReallyOnline, onSyncDone } from "@/hooks/data/useOfflineSync";
-import { useConfirm } from "@/components/ui/ConfirmModal";
 import { MUNDO_SECTIONS, type MundoSectionKey, type SaveStatus, type Reino, type Personaje, type Nota } from "./components/types";
-import { SaveIndicator, SelectorImagen } from "./components/UIComponents";
+import { SaveIndicator } from "./components/UIComponents";
 import { MarkdownEditor } from "../../../forms/MarkdownEditor";
 import { useWikilink } from "./components/WikilinkContext";
 import { EditorReino } from "./EditorReino";
@@ -63,25 +62,13 @@ async function dexieWriteAll(tabla: string, rows: any[]): Promise<void> {
 
 
 
-// ─── Types locales ────────────────────────────────────────────────────────────
-type EntidadMagica = {
-  id: string;
-  nombre: string;
-  explicacion?: string;
-  grupo_ids?: string[];
-};
-
-// EntidadMagica sin campos de criatura (para runas)
-type Runa = {
-  id: string;
-  nombre: string;
-  explicacion?: string;
-  imagen_url?: string | null;
-};
-
-// Usados por useCriaturas y useCriaturaVariantes (para items del mundo)
-type CriaturaMin = { id: string; nombre: string; imagen_url?: string; habitat?: string };
-type VarianteMin = { id: string; tipo: string };
+// ─── Tipos locales de entidades mínimas ──────────────────────────────────────
+type CriaturaMin     = { id: string; nombre: string; imagen_url?: string; habitat?: string };
+type VarianteMin     = { id: string; tipo: string };
+type ObjetoMin       = { id: string; nombre: string; imagen_url?: string; categoria?: string };
+type LugarMin        = { id: string; nombre: string; imagen_url?: string; tipo?: string; reino_id?: string };
+type EntidadMagicaMin = { id: string; nombre: string };
+type RunaMin         = { id: string; nombre: string; imagen_url?: string | null };
 
 // ─── Hook genérico de carga: local (Dexie) → remoto (Supabase) ───────────────
 // Reemplaza useReinos, useCriaturas, useObjetos, useLugares, usePersonajesList,
@@ -165,21 +152,6 @@ function usePersonajesList() {
   return { personajes: items, setPersonajes: setItems, loading };
 }
 
-function useEntidadesMagicas(tabla: string) {
-  const { items, setItems, loading } = useEntityList<EntidadMagica>(
-    tabla,
-    () => supabase.from(tabla).select("id, nombre, explicacion, grupo_ids").order("nombre"),
-  );
-  return { items, setItems, loading };
-}
-
-function useRunas() {
-  const { items, setItems, loading } = useEntityList<Runa>(
-    "runas",
-    () => supabase.from("runas").select("id, nombre, explicacion, imagen_url").order("nombre"),
-  );
-  return { items, setItems, loading };
-}
 
 type PlantaMin = { id: string; nombre: string; imagen_url?: string | null; categoria?: string | null };
 
@@ -190,33 +162,6 @@ function usePlantas() {
   );
   return { plantas: items, setPlantas: setItems, loading };
 }
-
-// ─── Configuración por subtab mágico ─────────────────────────────────────────
-// Los colores usan variables CSS del tema activo en lugar de valores hardcodeados.
-// --accent      → color de acento del tema
-// --primary     → color primario del tema
-// color-mix     → variaciones derivadas del accent/primary
-const MAGIC_CONFIG = {
-  hechizos: {
-    tabla: "hechizos", label: "Hechizos", labelSing: "Hechizo",
-    Icon: Sparkles, color: "var(--accent)", emoji: "✨",
-    placeholder: "Qué hace este hechizo, cómo se lanza, sus efectos…",
-  },
-  dones: {
-    tabla: "dones", label: "Dones", labelSing: "Don",
-    Icon: Star, color: "color-mix(in srgb, var(--accent) 70%, var(--primary))", emoji: "⭐",
-    placeholder: "Qué otorga este don, su origen, sus limitaciones…",
-  },
-  runas: {
-    tabla: "runas", label: "Runas", labelSing: "Runa",
-    Icon: ScrollText, color: "var(--primary)", emoji: "ᚱ",
-    placeholder: "Qué significa esta runa, cómo se activa, su poder…",
-  },
-} as const;
-
-// ─── Tipos locales de entidades mínimas ──────────────────────────────────────
-type ObjetoMin = { id: string; nombre: string; imagen_url?: string; categoria?: string };
-type LugarMin  = { id: string; nombre: string; imagen_url?: string; tipo?: string; reino_id?: string };
 
 function useCriaturaVariantes(criaturaId: string | null) {
   const [variantes, setVariantes] = useState<VarianteMin[]>([]);
@@ -249,7 +194,6 @@ function useCriaturaVariantes(criaturaId: string | null) {
 }
 
 // ─── Hook: grupos del mundo (filtrable por tipo) ──────────────────────────────
-type GrupoMin  = { id: string; nombre: string; miembro_ids: string[] };
 type GrupoTodo = { id: string; nombre: string; tipo: string; miembro_ids: string[] };
 
 function useGruposMundo(filtroTipo?: string) {
@@ -287,337 +231,17 @@ function useGruposMundo(filtroTipo?: string) {
   return { grupos, loading };
 }
 
-function useGruposCriaturas() {
-  const { grupos, loading } = useGruposMundo("criaturas");
-  return { grupos: grupos as GrupoMin[], loading };
-}
 
 function useGruposTodos() {
   const { grupos, loading } = useGruposMundo();
   return { grupos: grupos as GrupoTodo[], loading };
 }
 
-function FilaGrupo({ grupo, color, onQuitar }: { grupo: GrupoMin; color: string; onQuitar: () => void }) {
-  return (
-    <div className="rounded-xl border overflow-hidden"
-      style={{ borderColor: `color-mix(in srgb, ${color} 20%, transparent)`, background: `color-mix(in srgb, ${color} 4%, transparent)` }}>
-      <div className="flex items-center gap-2.5 px-3 py-2">
-        <div className="shrink-0 w-7 h-7 rounded-lg border border-primary/10 bg-primary/5 flex items-center justify-center">
-          <Layers size={11} className="text-primary/30" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <span className="text-[11px] font-bold text-primary/85 truncate block">{grupo.nombre}</span>
-          <span className="text-[9px] text-primary/30">{grupo.miembro_ids.length} criaturas</span>
-        </div>
-        <button onClick={onQuitar}
-          className="w-6 h-6 rounded-lg flex items-center justify-center text-primary/20 hover:text-red-400 hover:bg-red-400/10 transition-all">
-          <X size={10} />
-        </button>
-      </div>
-    </div>
-  );
-}
 
-function SelectorAgregarGrupo({ grupos, loadingGrupos, asignados, onAgregar, color }: {
-  grupos: GrupoMin[]; loadingGrupos: boolean; asignados: string[];
-  onAgregar: (g: GrupoMin) => void; color: string;
-}) {
-  const [open, setOpen] = useState(false);
-  const [search, setSearch] = useState("");
-  const ref = useRef<HTMLDivElement>(null);
-  const disponibles = useMemo(
-    () => grupos.filter(g => !asignados.includes(g.id) && g.nombre.toLowerCase().includes(search.toLowerCase())),
-    [grupos, asignados, search]
-  );
-  useEffect(() => {
-    if (!open) return;
-    const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) { setOpen(false); setSearch(""); } };
-    document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
-  }, [open]);
-  return (
-    <div className="relative" ref={ref}>
-      <button type="button" onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl border border-dashed text-[9px] font-black uppercase tracking-widest transition-all"
-        style={{ borderColor: `color-mix(in srgb, ${color} 22%, transparent)`, color: `color-mix(in srgb, ${color} 55%, transparent)` }}
-        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = `color-mix(in srgb, ${color} 6%, transparent)`; (e.currentTarget as HTMLElement).style.color = color; }}
-        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; (e.currentTarget as HTMLElement).style.color = `color-mix(in srgb, ${color} 55%, transparent)`; }}>
-        <Plus size={9} /> Agregar grupo de criaturas
-      </button>
-      {open && (
-        <>
-          <div className="fixed inset-0 z-40" onClick={() => { setOpen(false); setSearch(""); }} />
-          <div className="absolute z-50 top-full left-0 right-0 mt-1.5 rounded-xl border overflow-hidden shadow-xl"
-            style={{ background: "var(--bg-main)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
-            <div className="p-2 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-              <div className="relative">
-                <Search size={9} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-primary/25" />
-                <input autoFocus value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar grupo…"
-                  className="w-full bg-primary/5 border border-primary/10 rounded-lg pl-7 pr-2 py-1.5 text-[10px] outline-none focus:border-primary/25 text-primary placeholder:text-primary/25" />
-              </div>
-            </div>
-            <div className="max-h-52 overflow-y-auto p-1">
-              {loadingGrupos ? (
-                <div className="flex justify-center py-6"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
-              ) : disponibles.length === 0 ? (
-                <p className="text-[9px] text-primary/25 text-center py-4 italic">
-                  {grupos.length === asignados.length ? "Todos los grupos ya están asignados" : "Sin resultados"}
-                </p>
-              ) : disponibles.map(g => (
-                <button key={g.id} onMouseDown={() => { onAgregar(g); setSearch(""); }}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left hover:bg-primary/6 transition-colors">
-                  <div className="shrink-0 w-6 h-6 rounded-lg border border-primary/10 bg-primary/5 flex items-center justify-center">
-                    <Layers size={10} className="text-primary/25" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <span className="text-[11px] font-medium text-primary/80 truncate block">{g.nombre}</span>
-                    <span className="text-[9px] text-primary/30">{g.miembro_ids.length} criaturas</span>
-                  </div>
-                  <Check size={9} className="text-primary/15" />
-                </button>
-              ))}
-            </div>
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
 
-function PanelGruposAsignados({ grupoIds, onGrupoIdsChange, grupos, loadingGrupos, color }: {
-  grupoIds: string[]; onGrupoIdsChange: (ids: string[]) => void;
-  grupos: GrupoMin[]; loadingGrupos: boolean; color: string;
-}) {
-  const asignados = useMemo(() => grupos.filter(g => grupoIds.includes(g.id)), [grupos, grupoIds]);
-  return (
-    <div className="space-y-2">
-      <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35 flex items-center gap-1.5">
-        <Layers size={9} /> Grupos de criaturas que pueden usarlo
-      </label>
-      {loadingGrupos ? (
-        <div className="flex items-center gap-2 py-2">
-          <Loader2 size={11} className="animate-spin text-primary/20" />
-          <span className="text-[10px] text-primary/25 italic">Cargando grupos…</span>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {asignados.length === 0 && (
-            <p className="text-[9px] text-primary/20 italic px-1">Sin grupos asignados — universal</p>
-          )}
-          {asignados.map(g => (
-            <FilaGrupo key={g.id} grupo={g} color={color}
-              onQuitar={() => onGrupoIdsChange(grupoIds.filter(id => id !== g.id))} />
-          ))}
-          <SelectorAgregarGrupo grupos={grupos} loadingGrupos={loadingGrupos} asignados={grupoIds}
-            onAgregar={g => { if (!grupoIds.includes(g.id)) onGrupoIdsChange([...grupoIds, g.id]); }}
-            color={color} />
-        </div>
-      )}
-    </div>
-  );
-}
 
-// ─── Formulario de edición de hechizo/don ────────────────────────────────────
-function FormularioMagico({ item, modo, grupos, loadingGrupos, onSaved, onDeleted }: {
-  item: EntidadMagica;
-  modo: "hechizos" | "dones" | "runas";
-  grupos: GrupoMin[];
-  loadingGrupos: boolean;
-  onSaved: (i: EntidadMagica) => void;
-  onDeleted: (id: string) => void;
-}) {
-  const [form, setForm] = useState<EntidadMagica>(item);
-  const [status, setStatus] = useState<SaveStatus>("idle");
-  const { confirm, ConfirmModal } = useConfirm();
-  const { onSnippetAction } = useWikilink();
-  const cfg = MAGIC_CONFIG[modo];
 
-  useEffect(() => { setForm(item); setStatus("idle"); }, [item.id]);
 
-  const save = async () => {
-    setStatus("saving");
-    try {
-      const { error } = await supabase.from(cfg.tabla).update({
-        nombre: form.nombre,
-        explicacion: form.explicacion || null,
-        grupo_ids: form.grupo_ids ?? [],
-      }).eq("id", form.id);
-      if (error) throw error;
-      setStatus("saved");
-      onSaved(form);
-      void dexiePut(cfg.tabla, form);
-      setTimeout(() => setStatus("idle"), 2000);
-    } catch { setStatus("error"); }
-  };
-
-  const del = async () => {
-    const ok = await confirm({ message: `¿Eliminar "${form.nombre}"?`, danger: true });
-    if (!ok) return;
-    await supabase.from(cfg.tabla).delete().eq("id", form.id);
-    void dexieDel(cfg.tabla, form.id);
-    onDeleted(form.id);
-  };
-
-  return (
-    <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-      <ConfirmModal />
-
-      {/* Header */}
-      <div className="shrink-0 flex flex-col gap-2 px-4 py-3 border-b"
-        style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}>
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="shrink-0 w-8 h-8 sm:w-9 sm:h-9 rounded-xl overflow-hidden flex items-center justify-center border"
-            style={{ background: `color-mix(in srgb, ${cfg.color} 12%, transparent)`, borderColor: `color-mix(in srgb, ${cfg.color} 25%, transparent)` }}>
-            <cfg.Icon size={15} style={{ color: cfg.color }} />
-          </div>
-          <input
-            value={form.nombre ?? ""}
-            onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))}
-            placeholder={`Nombre del ${cfg.labelSing.toLowerCase()}…`}
-            className="flex-1 min-w-0 bg-transparent text-sm font-black text-primary outline-none placeholder:text-primary/25"
-          />
-        </div>
-        <div className="flex items-center justify-end gap-2">
-          <SaveIndicator status={status} />
-          <button onClick={del}
-            className="flex items-center gap-1 px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all">
-            <Trash2 size={11} />
-          </button>
-          <button onClick={save} disabled={status === "saving"}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50">
-            <Save size={11} /> Guardar
-          </button>
-        </div>
-      </div>
-
-      {/* Body */}
-      <div className="flex-1 overflow-y-auto min-h-0 p-4 space-y-5">
-        <PanelGruposAsignados
-          grupoIds={form.grupo_ids ?? []}
-          onGrupoIdsChange={ids => setForm(f => ({ ...f, grupo_ids: ids }))}
-          grupos={grupos}
-          loadingGrupos={loadingGrupos}
-          color={cfg.color}
-        />
-        <div className="space-y-1.5">
-          <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">Explicación</label>
-          <MarkdownEditor
-            value={form.explicacion ?? ""}
-            onChange={v => setForm(f => ({ ...f, explicacion: v }))}
-            rows={14}
-            placeholder={cfg.placeholder}
-            toolbar
-            defaultMode="edit"
-            onSnippetAction={onSnippetAction}
-          />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Formulario de edición de runa (sin criatura) ────────────────────────────
-function FormularioRuna({ item, onSaved, onDeleted }: {
-  item: Runa;
-  onSaved: (i: Runa) => void;
-  onDeleted: (id: string) => void;
-}) {
-  const [form, setForm] = useState<Runa>(item);
-  const [status, setStatus] = useState<SaveStatus>("idle");
-  const { onSnippetAction } = useWikilink();
-  const { confirm, ConfirmModal } = useConfirm();
-  const cfg = MAGIC_CONFIG.runas;
-
-  useEffect(() => { setForm(item); setStatus("idle"); }, [item.id]);
-
-  const save = async () => {
-    setStatus("saving");
-    try {
-      const { error } = await supabase.from("runas").update({
-        nombre: form.nombre,
-        explicacion: form.explicacion || null,
-        imagen_url: form.imagen_url || null,
-      }).eq("id", form.id);
-      if (error) throw error;
-      setStatus("saved");
-      onSaved(form);
-      setTimeout(() => setStatus("idle"), 2000);
-    } catch { setStatus("error"); }
-  };
-
-  const del = async () => {
-    const ok = await confirm({ message: `¿Eliminar "${form.nombre}"?`, danger: true });
-    if (!ok) return;
-    await supabase.from("runas").delete().eq("id", form.id);
-    void dexieDel("runas", form.id);
-    onDeleted(form.id);
-  };
-
-  return (
-    <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-      <ConfirmModal />
-      {/* Header */}
-      <div className="shrink-0 flex items-center gap-3 px-4 py-3 border-b"
-        style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}>
-        <input
-          value={form.nombre ?? ""}
-          onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))}
-          placeholder="Nombre de la runa…"
-          className="flex-1 min-w-0 bg-transparent text-sm font-black text-primary outline-none placeholder:text-primary/25"
-        />
-        <div className="shrink-0 flex items-center gap-2">
-          <SaveIndicator status={status} />
-          <button onClick={del}
-            className="flex items-center gap-1 px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all">
-            <Trash2 size={11} />
-          </button>
-          <button onClick={save} disabled={status === "saving"}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50">
-            <Save size={11} /> Guardar
-          </button>
-        </div>
-      </div>
-      {/* Body — dos columnas: imagen grande + contenido */}
-      <div className="flex-1 overflow-y-auto min-h-0">
-        <div className="flex flex-col sm:flex-row gap-0 h-full">
-          {/* Columna izquierda: imagen grande */}
-          <div className="shrink-0 sm:w-48 p-4 sm:border-r flex flex-col gap-3"
-            style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-            <div className="w-full sm:w-full mx-auto" style={{ maxWidth: "10rem" }}>
-              <SelectorImagen
-                label="Imagen"
-                value={form.imagen_url ?? ""}
-                onChange={url => setForm(f => ({ ...f, imagen_url: url }))}
-                aspect="square"
-                placeholder={<cfg.Icon size={28} style={{ color: cfg.color, opacity: 0.4 }} />}
-              />
-            </div>
-            {/* Nombre de la runa como subtítulo bajo la imagen */}
-            <p className="text-[9px] font-black uppercase tracking-[0.25em] text-center truncate"
-              style={{ color: `color-mix(in srgb, ${cfg.color} 50%, transparent)` }}>
-              {form.nombre || "Runa sin nombre"}
-            </p>
-          </div>
-          {/* Columna derecha: explicación */}
-          <div className="flex-1 min-w-0 p-4 space-y-3">
-            <div className="space-y-1.5">
-              <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">Explicación</label>
-              <MarkdownEditor
-                value={form.explicacion ?? ""}
-                onChange={v => setForm(f => ({ ...f, explicacion: v }))}
-                rows={16}
-                placeholder={cfg.placeholder}
-                toolbar
-                defaultMode="edit"
-                onSnippetAction={onSnippetAction}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 
 // ─── Panel de lista + editor para hechizos o dones ───────────────────────────
@@ -1612,11 +1236,20 @@ function PanelListas({
   const { objetos,   setObjetos,   loading: loadingObjetos   } = useObjetos();
   const { lugares,   setLugares,   loading: loadingLugares   } = useLugares();
   const { personajes, setPersonajes, loading: loadingPersonajes } = usePersonajesList();
-  const { items: hechizos, setItems: setHechizos, loading: loadingHechizos } = useEntidadesMagicas("hechizos");
-  const { items: dones,    setItems: setDones,    loading: loadingDones    } = useEntidadesMagicas("dones");
-  const { items: runas,    setItems: setRunas,    loading: loadingRunas    } = useRunas();
+  const { items: hechizos, setItems: setHechizos, loading: loadingHechizos } = useEntityList<EntidadMagicaMin>(
+    "hechizos",
+    () => supabase.from("hechizos").select("id, nombre").order("nombre"),
+  );
+  const { items: dones,    setItems: setDones,    loading: loadingDones    } = useEntityList<EntidadMagicaMin>(
+    "dones",
+    () => supabase.from("dones").select("id, nombre").order("nombre"),
+  );
+  const { items: runas,    setItems: setRunas,    loading: loadingRunas    } = useEntityList<RunaMin>(
+    "runas",
+    () => supabase.from("runas").select("id, nombre, imagen_url").order("nombre"),
+  );
   const { plantas, setPlantas, loading: loadingPlantas } = usePlantas();
-  const { grupos: gruposMagicos, loading: loadingGruposMagicos } = useGruposCriaturas();
+
   const { grupos, loaded: loadedGrupos, actualizarGrupo, eliminarGrupo } = useGrupos();
   const { notas, loading: loadingNotas, crear: crearNota, actualizar: actualizarNota, eliminar: eliminarNota } = useNotas();
   const { canciones, loading: loadingCanciones } = useCanciones();
@@ -1627,9 +1260,9 @@ function PanelListas({
   const [selectedObjeto,    setSelectedObjeto]    = useState<{ id: string; nombre: string; imagen_url?: string; categoria?: string } | null>(null);
   const [selectedLugar,     setSelectedLugar]     = useState<Lugar | null>(null);
   const [selectedPersonaje, setSelectedPersonaje] = useState<Personaje | null>(null);
-  const [selectedHechizo,   setSelectedHechizo]   = useState<EntidadMagica | null>(null);
-  const [selectedDon,       setSelectedDon]       = useState<EntidadMagica | null>(null);
-  const [selectedRuna,      setSelectedRuna]      = useState<Runa | null>(null);
+  const [selectedHechizo,   setSelectedHechizo]   = useState<EntidadMagicaMin | null>(null);
+  const [selectedDon,       setSelectedDon]       = useState<EntidadMagicaMin | null>(null);
+  const [selectedRuna,      setSelectedRuna]      = useState<RunaMin | null>(null);
   const [selectedNota,      setSelectedNota]      = useState<Nota | null>(null);
   const [selectedGrupo,     setSelectedGrupo]     = useState<Grupo | null>(null);
   const [selectedCancion,   setSelectedCancion]   = useState<Cancion | null>(null);
@@ -1670,9 +1303,9 @@ function PanelListas({
   const selectObjeto    = useCallback((o: any | null)           => { setSelectedObjeto(o);    o ? persistOpenItem("items",      o.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
   const selectLugar     = useCallback((l: Lugar | null)         => { setSelectedLugar(l);     l ? persistOpenItem("lugares",    l.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
   const selectPersonaje = useCallback((p: Personaje | null)     => { setSelectedPersonaje(p); p ? persistOpenItem("personajes", p.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
-  const selectHechizo   = useCallback((h: EntidadMagica | null) => { setSelectedHechizo(h);   h ? persistOpenItem("hechizos",   h.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
-  const selectDon       = useCallback((d: EntidadMagica | null) => { setSelectedDon(d);       d ? persistOpenItem("dones",      d.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
-  const selectRuna      = useCallback((r: Runa | null)          => { setSelectedRuna(r);      r ? persistOpenItem("runas",      r.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
+  const selectHechizo   = useCallback((h: EntidadMagicaMin | null) => { setSelectedHechizo(h);   h ? persistOpenItem("hechizos",   h.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
+  const selectDon       = useCallback((d: EntidadMagicaMin | null) => { setSelectedDon(d);       d ? persistOpenItem("dones",      d.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
+  const selectRuna      = useCallback((r: RunaMin | null)          => { setSelectedRuna(r);      r ? persistOpenItem("runas",      r.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
   const selectGrupo     = useCallback((g: Grupo | null)         => { setSelectedGrupo(g);     g ? persistOpenItem("grupos_mundo", g.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
   const selectCancion   = useCallback((c: Cancion | null)       => { setSelectedCancion(c);   c ? persistOpenItem("canciones",   c.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
   const selectPlanta    = useCallback((p: PlantaMin | null)     => { setSelectedPlanta(p);    p ? persistOpenItem("plantas",     p.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
@@ -2052,6 +1685,8 @@ function PanelListas({
                 modo="hechizos"
                 initialSelectedId={selectedHechizo.id}
                 onSelectedIdChange={id => { if (!id) setSelectedHechizo(null); }}
+                onItemSaved={updated => setHechizos(p => p.map(h => h.id === updated.id ? { id: updated.id, nombre: updated.nombre } : h))}
+                onItemDeleted={id => { setHechizos(p => p.filter(h => h.id !== id)); setSelectedHechizo(null); }}
               />
             )}
             {overlay === "don" && selectedDon && (
@@ -2059,6 +1694,8 @@ function PanelListas({
                 modo="dones"
                 initialSelectedId={selectedDon.id}
                 onSelectedIdChange={id => { if (!id) setSelectedDon(null); }}
+                onItemSaved={updated => setDones(p => p.map(d => d.id === updated.id ? { id: updated.id, nombre: updated.nombre } : d))}
+                onItemDeleted={id => { setDones(p => p.filter(d => d.id !== id)); setSelectedDon(null); }}
               />
             )}
             {overlay === "runa" && selectedRuna && (
@@ -2066,6 +1703,8 @@ function PanelListas({
                 modo="runas"
                 initialSelectedId={selectedRuna.id}
                 onSelectedIdChange={id => { if (!id) setSelectedRuna(null); }}
+                onItemSaved={updated => setRunas(p => p.map(r => r.id === updated.id ? { id: updated.id, nombre: updated.nombre, imagen_url: (updated as any).imagen_url } : r))}
+                onItemDeleted={id => { setRunas(p => p.filter(r => r.id !== id)); setSelectedRuna(null); }}
               />
             )}
             {overlay === "nota" && selectedNota && (

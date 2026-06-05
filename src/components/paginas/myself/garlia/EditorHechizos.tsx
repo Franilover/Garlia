@@ -594,10 +594,14 @@ export function EditorHechizos({
   modo,
   initialSelectedId,
   onSelectedIdChange,
+  onItemSaved,
+  onItemDeleted,
 }: {
   modo: Modo;
   initialSelectedId?: string;
   onSelectedIdChange?: (id: string | null) => void;
+  onItemSaved?: (item: EntidadMagica) => void;
+  onItemDeleted?: (id: string) => void;
 }) {
   const cfg = CONFIG[modo];
   const { items, setItems, loading } = useEntidadesMagicas(modo);
@@ -646,8 +650,16 @@ export function EditorHechizos({
             modo={modo}
             grupos={grupos}
             loadingGrupos={loadingGrupos}
-            onSaved={updated => setItems(prev => prev.map(i => i.id === updated.id ? updated : i))}
-            onDeleted={id => { setItems(prev => prev.filter(i => i.id !== id)); setSelectedId(null); onSelectedIdChange?.(null); }}
+            onSaved={updated => {
+              setItems(prev => prev.map(i => i.id === updated.id ? updated : i));
+              onItemSaved?.(updated);
+            }}
+            onDeleted={id => {
+              setItems(prev => prev.filter(i => i.id !== id));
+              setSelectedId(null);
+              onSelectedIdChange?.(null);
+              onItemDeleted?.(id);
+            }}
           />
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center gap-3 select-none">
