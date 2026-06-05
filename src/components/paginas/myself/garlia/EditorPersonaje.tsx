@@ -55,58 +55,84 @@ async function dexieWriteAll(tabla: string, rows: any[]): Promise<void> {
 // ─── Bloque capítulos en los que aparece ─────────────────────────────────────
 type CapAparece = { id: string; orden: number; titulo_capitulo: string; libro_titulo?: string | null; libro_id?: string | null };
 
+// Cache en memoria para no re-escanear Dexie si ya cargamos este personaje
+const _capsCache = new Map<string, CapAparece[]>();
+
+function mapCap(c: any, libroMap: Record<string, string>): CapAparece {
+  return {
+    id: c.id,
+    orden: c.orden ?? 0,
+    titulo_capitulo: c.titulo_capitulo ?? "Sin título",
+    libro_titulo: libroMap[c.libro_id] ?? null,
+    libro_id: c.libro_id ?? null,
+  };
+}
+
 function useCapitulosConPersonaje(personajeId: string): { caps: CapAparece[]; loading: boolean } {
-  const [caps, setCaps] = useState<CapAparece[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cached = _capsCache.get(personajeId);
+  const [caps, setCaps] = useState<CapAparece[]>(cached ?? []);
+  // Solo mostramos spinner si no hay nada en caché
+  const [loading, setLoading] = useState(!cached);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  useEffect(() => {
+    let cancelled = false;
 
-    // 1. Dexie primero
-    try {
-      if (db) {
-        const local: any[] = await (db as any).capitulos?.toArray() ?? [];
-        const filtered = local.filter((c: any) => (c.personajes_ids ?? []).includes(personajeId));
-        if (filtered.length > 0) {
-          const libroIds = [...new Set(filtered.map((c: any) => c.libro_id).filter(Boolean))];
-          const librosLocal: any[] = await (db as any).libros?.toArray() ?? [];
-          const libroMap = Object.fromEntries(librosLocal.map((l: any) => [l.id, l.titulo]));
-          setCaps(filtered
-            .sort((a: any, b: any) => (a.orden ?? 0) - (b.orden ?? 0))
-            .map((c: any) => ({
-              id: c.id,
-              orden: c.orden ?? 0,
-              titulo_capitulo: c.titulo_capitulo ?? "Sin título",
-              libro_titulo: libroMap[c.libro_id] ?? null,
-              libro_id: c.libro_id ?? null,
-            })));
-          setLoading(false);
-          if (!navigator.onLine) return;
-        }
+    const run = async () => {
+      // ── 1. Dexie (stale-while-revalidate) ────────────────────────────────
+      // Solo escaneamos si no teníamos caché (evita trabajo repetido al
+      // cambiar de personaje rápidamente)
+      if (!_capsCache.has(personajeId)) {
+        try {
+          if (db) {
+            // toArray una sola vez y filtra en memoria — no hay índice en
+            // personajes_ids[], así que es inevitable, pero lo hacemos sin
+            // bloquear la UI gracias al estado inicial vacío + loading
+            const [allCaps, allLibros]: [any[], any[]] = await Promise.all([
+              (db as any).capitulos?.toArray() ?? [],
+              (db as any).libros?.toArray()    ?? [],
+            ]);
+            if (cancelled) return;
+            const libroMap = Object.fromEntries((allLibros as any[]).map((l: any) => [l.id, l.titulo]));
+            const filtered = (allCaps as any[])
+              .filter((c: any) => (c.personajes_ids ?? []).includes(personajeId))
+              .sort((a: any, b: any) => (a.orden ?? 0) - (b.orden ?? 0))
+              .map((c: any) => mapCap(c, libroMap));
+            if (filtered.length > 0) {
+              _capsCache.set(personajeId, filtered);
+              setCaps(filtered);
+            }
+            setLoading(false);
+            if (!navigator.onLine) return;
+          }
+        } catch { setLoading(false); }
       }
-    } catch {}
 
-    if (!navigator.onLine) { setLoading(false); return; }
+      if (!navigator.onLine) { setLoading(false); return; }
 
-    // 2. Supabase
-    try {
-      const { data } = await supabase
-        .from("capitulos")
-        .select("id, orden, titulo_capitulo, libro_id, libros!libro_id(titulo)")
-        .contains("personajes_ids", [personajeId])
-        .order("orden");
-      setCaps((data ?? []).map((c: any) => ({
-        id: c.id,
-        orden: c.orden ?? 0,
-        titulo_capitulo: c.titulo_capitulo ?? "Sin título",
-        libro_titulo: (Array.isArray(c.libros) ? c.libros[0]?.titulo : c.libros?.titulo) ?? null,
-        libro_id: c.libro_id ?? null,
-      })));
-    } catch {}
-    setLoading(false);
+      // ── 2. Supabase en background (actualiza sin spinner) ─────────────────
+      try {
+        const { data } = await supabase
+          .from("capitulos")
+          .select("id, orden, titulo_capitulo, libro_id, libros!libro_id(titulo)")
+          .contains("personajes_ids", [personajeId])
+          .order("orden");
+        if (cancelled) return;
+        const fresh = (data ?? []).map((c: any) => ({
+          id: c.id,
+          orden: c.orden ?? 0,
+          titulo_capitulo: c.titulo_capitulo ?? "Sin título",
+          libro_titulo: (Array.isArray(c.libros) ? c.libros[0]?.titulo : c.libros?.titulo) ?? null,
+          libro_id: c.libro_id ?? null,
+        }));
+        _capsCache.set(personajeId, fresh);
+        setCaps(fresh);
+      } catch {}
+      setLoading(false);
+    };
+
+    run();
+    return () => { cancelled = true; };
   }, [personajeId]);
-
-  useEffect(() => { load(); }, [load]);
 
   return { caps, loading };
 }
