@@ -2116,24 +2116,6 @@ function PanelListas({
             </div>
           </div>
 
-          {/* GEO & MAGIA */}
-          {textos && onTextoChange && onSave && (
-            <div className="flex flex-col sm:flex-row border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-              {/* Geografía */}
-              <div className="flex flex-col sm:flex-1 border-b sm:border-b-0 sm:border-r" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", minHeight: "30vh" }}>
-                <div className="flex-1 flex flex-col min-h-0">
-                  <PanelTexto texto={textos.geografia} onChange={v => onTextoChange("geografia", v)} onSave={() => onSave("geografia")} placeholder="Continentes, mares, climas, fronteras del mundo…" saveLabel="Guardar" SaveIcon={Mountain} />
-                </div>
-              </div>
-              {/* Magia */}
-              <div className="flex flex-col sm:flex-1" style={{ minHeight: "30vh" }}>
-                <div className="flex-1 flex flex-col min-h-0">
-                  <PanelTexto texto={textos.magia} onChange={v => onTextoChange("magia", v)} onSave={() => onSave("magia")} placeholder="Sistema de magia, reglas, fuentes de poder, limitaciones…" saveLabel="Guardar" SaveIcon={Sparkles} />
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* ENTIDADES */}
           <div className="px-3 sm:px-3 pb-4 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
 
