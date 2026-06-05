@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import {
   Maximize2, UserCircle2, BookOpen, Loader2,
   ChevronDown, X, Save, Trash2,
-  Sparkles, Users, Camera, SlidersHorizontal,
+  Sparkles, Users, Camera, SlidersHorizontal, Music2,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
@@ -149,6 +149,118 @@ function BloqueCapsAparece({ personajeId }: { personajeId: string }) {
             )}
           </div>
         </button>
+      ))}
+    </div>
+  );
+}
+
+// ─── Bloque canciones del personaje ──────────────────────────────────────────
+type CancionMin = { id: string; titulo: string; cantante: string | null; portada_url: string | null };
+
+function useCancionesPersonaje(
+  personajeId: string,
+  nombrePersonaje: string,
+): { canciones: CancionMin[]; loading: boolean } {
+  const [canciones, setCanciones] = useState<CancionMin[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+
+    // 1. Dexie primero
+    try {
+      if (db) {
+        const todas: any[] = await (db as any).canciones?.toArray() ?? [];
+        const nombre = nombrePersonaje?.trim().toLowerCase() ?? "";
+        const filtered = todas.filter((c: any) =>
+          c.personaje_id === personajeId ||
+          c.id === personajeId ||
+          (nombre && c.titulo?.toLowerCase().includes(nombre))
+        );
+        if (filtered.length > 0) {
+          setCanciones(filtered.map((c: any) => ({
+            id: c.id,
+            titulo: c.titulo ?? "Sin título",
+            cantante: c.cantante ?? null,
+            portada_url: c.portada_url ?? null,
+          })));
+          setLoading(false);
+          if (!navigator.onLine) return;
+        }
+      }
+    } catch {}
+
+    if (!navigator.onLine) { setLoading(false); return; }
+
+    // 2. Supabase: por personaje_id, por id o por título con nombre del personaje
+    try {
+      const nombre = nombrePersonaje?.trim() ?? "";
+      let query = supabase
+        .from("canciones")
+        .select("id, titulo, cantante, portada_url");
+
+      if (nombre) {
+        query = query.or(
+          `personaje_id.eq.${personajeId},id.eq.${personajeId},titulo.ilike.%${nombre}%`
+        );
+      } else {
+        query = query.or(`personaje_id.eq.${personajeId},id.eq.${personajeId}`);
+      }
+
+      const { data } = await query.order("titulo");
+      setCanciones((data ?? []).map((c: any) => ({
+        id: c.id,
+        titulo: c.titulo ?? "Sin título",
+        cantante: c.cantante ?? null,
+        portada_url: c.portada_url ?? null,
+      })));
+    } catch {}
+    setLoading(false);
+  }, [personajeId, nombrePersonaje]);
+
+  useEffect(() => { load(); }, [load]);
+
+  return { canciones, loading };
+}
+
+function BloqueCanciones({ personajeId, nombrePersonaje }: { personajeId: string; nombrePersonaje: string }) {
+  const { canciones, loading } = useCancionesPersonaje(personajeId, nombrePersonaje);
+
+  if (loading) return (
+    <div className="flex justify-center py-4">
+      <Loader2 size={16} className="animate-spin text-primary/20" />
+    </div>
+  );
+  if (!canciones.length) return (
+    <p className="text-[10px] font-bold text-primary/25 uppercase tracking-widest text-center py-4 italic">
+      Sin canciones
+    </p>
+  );
+  return (
+    <div className="space-y-1">
+      {canciones.map(c => (
+        <div
+          key={c.id}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-primary/5 transition-colors text-left group"
+        >
+          {c.portada_url ? (
+            <div className="shrink-0 w-6 h-6 rounded-lg overflow-hidden border border-primary/15">
+              <img src={c.portada_url} alt={c.titulo} className="w-full h-full object-cover" />
+            </div>
+          ) : (
+            <div className="shrink-0 w-6 h-6 rounded-lg flex items-center justify-center bg-accent/10 text-accent">
+              <Music2 size={10} />
+            </div>
+          )}
+          <div className="flex-1 min-w-0">
+            <p className="text-[11px] font-bold text-primary truncate uppercase italic group-hover:text-primary/80 transition-colors">
+              {c.titulo}
+            </p>
+            {c.cantante && (
+              <p className="text-[9px] text-primary/35 truncate">{c.cantante}</p>
+            )}
+          </div>
+        </div>
       ))}
     </div>
   );
@@ -878,6 +990,17 @@ export function FormularioPersonaje({
 
         {/* Hechizos */}
         <SeccionHechizos personajeId={form.id} grupoIds={grupoIds} />
+
+        <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
+
+        {/* Canciones */}
+        <div className="rounded-none overflow-hidden">
+          <div className="flex items-center gap-2 px-3 py-2 border-b border-primary/[0.06] bg-primary/[0.03]">
+            <Music2 size={10} className="text-primary/40" />
+            <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">Canciones</span>
+          </div>
+          <BloqueCanciones personajeId={form.id} nombrePersonaje={form.nombre ?? ""} />
+        </div>
       </aside>
 
       </div>
@@ -928,6 +1051,14 @@ export function FormularioPersonaje({
             </div>
             <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
             <SeccionHechizos personajeId={form.id} grupoIds={grupoIds} />
+            <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
+            <div>
+              <div className="flex items-center gap-2 px-3 py-2 border-b border-primary/[0.06] bg-primary/[0.03]">
+                <Music2 size={10} className="text-primary/40" />
+                <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">Canciones</span>
+              </div>
+              <BloqueCanciones personajeId={form.id} nombrePersonaje={form.nombre ?? ""} />
+            </div>
           </div>
         </div>
       )}
