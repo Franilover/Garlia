@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import { Globe, Mountain, Landmark, Users, Coins, Plus, Trash2, ChevronUp, ChevronDown, ChevronRight, UserCircle2, Loader2, MapPin, Map, Check, X, Eye, EyeOff, Bug, BookOpen, Package } from "lucide-react";
+import { Globe, Mountain, Landmark, Users, Coins, Plus, Trash2, ChevronUp, ChevronDown, ChevronRight, UserCircle2, Loader2, MapPin, Map, Check, X, Eye, EyeOff, Bug, BookOpen, Package, SlidersHorizontal } from "lucide-react";
 import { INPUT_CLS, type SaveStatus } from "./types";
 import { SeccionEntidad } from "@/components/ui/SeccionEntidad";
 import { MarkdownEditor, WikiEntity } from "../../../../forms/MarkdownEditor";
@@ -1022,6 +1022,7 @@ export function LoreTab({
   const [savingCriaturas,  setSavingCriaturas]  = useState(false);
   const [savingPersonajes, setSavingPersonajes]  = useState(false);
   const [savingItems,      setSavingItems]       = useState(false);
+  const [mobileAsideOpen,  setMobileAsideOpen]  = useState(false);
 
   const handleToggleCriatura = async (id: string, add: boolean) => {
     setSavingCriaturas(true);
@@ -1147,6 +1148,16 @@ export function LoreTab({
                   {tab.label}
                 </button>
               ))}
+              {/* Botón entidades — solo mobile */}
+              <button
+                type="button"
+                onClick={() => setMobileAsideOpen(true)}
+                className="sm:hidden ml-auto shrink-0 flex items-center gap-1 px-3 py-2 text-[9px] font-black uppercase tracking-widest transition-all border-b-2"
+                style={{ borderColor: "transparent", color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
+              >
+                <SlidersHorizontal size={10} />
+                Entidades
+              </button>
             </div>
 
             {/* CULTURA / ECONOMÍA / POLÍTICA — tab activo */}
@@ -1195,58 +1206,61 @@ export function LoreTab({
 
       </div>{/* fin columna tabs+editor */}
 
-      {/* ── COLUMNA 3 — Utilidades (220px) ──────────────────────────────────── */}
+      {/* ── COLUMNA 3 — Utilidades (desktop fijo / mobile drawer) ──────────── */}
+
+      {/* Desktop: panel lateral fijo */}
       <aside
-        className="shrink-0 w-52 flex flex-col border-l overflow-y-auto overflow-x-hidden"
+        className="hidden sm:flex shrink-0 w-52 flex-col border-l overflow-y-auto overflow-x-hidden"
         style={{
           borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)",
           background: "color-mix(in srgb, var(--primary) 1%, transparent)",
           scrollbarWidth: "none",
         }}
       >
-        <SeccionEntidad
-          label="Personajes"
-          icon={<Users size={9} />}
-          fallbackIcon={<UserCircle2 size={14} strokeWidth={1} />}
-          emptyLabel="Sin personajes"
-          allEntities={allPersonajes.map(p => ({ id: p.id, nombre: p.nombre, imagen_url: p.img_url }))}
-          selectedIds={personajesEditables.map(p => p.id)}
-          loading={loadingPersonajesEditables}
-          saving={savingPersonajes}
-          onToggle={handleTogglePersonaje}
-          onEntityClick={id => { const p = personajesEditables.find(x => x.id === id); if (p) onSelectPersonaje?.(p as any); }}
-        />
-
+        <SeccionEntidad label="Personajes" icon={<Users size={9} />} fallbackIcon={<UserCircle2 size={14} strokeWidth={1} />} emptyLabel="Sin personajes" allEntities={allPersonajes.map(p => ({ id: p.id, nombre: p.nombre, imagen_url: p.img_url }))} selectedIds={personajesEditables.map(p => p.id)} loading={loadingPersonajesEditables} saving={savingPersonajes} onToggle={handleTogglePersonaje} onEntityClick={id => { const p = personajesEditables.find(x => x.id === id); if (p) onSelectPersonaje?.(p as any); }} />
         <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
-
-        <SeccionEntidad
-          label="Criaturas"
-          icon={<Bug size={9} />}
-          fallbackIcon={<Bug size={14} strokeWidth={1} />}
-          emptyLabel="Sin criaturas"
-          allEntities={allCriaturas.map(c => ({ id: c.id, nombre: c.nombre, imagen_url: c.imagen_url }))}
-          selectedIds={criaturas.map(c => c.id)}
-          loading={loadingCriaturas}
-          saving={savingCriaturas}
-          onToggle={handleToggleCriatura}
-          onEntityClick={id => onSelectCriatura?.(id)}
-        />
-
+        <SeccionEntidad label="Criaturas" icon={<Bug size={9} />} fallbackIcon={<Bug size={14} strokeWidth={1} />} emptyLabel="Sin criaturas" allEntities={allCriaturas.map(c => ({ id: c.id, nombre: c.nombre, imagen_url: c.imagen_url }))} selectedIds={criaturas.map(c => c.id)} loading={loadingCriaturas} saving={savingCriaturas} onToggle={handleToggleCriatura} onEntityClick={id => onSelectCriatura?.(id)} />
         <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
-
-        <SeccionEntidad
-          label="Items"
-          icon={<Package size={9} />}
-          fallbackIcon={<Package size={14} strokeWidth={1} />}
-          emptyLabel="Sin items"
-          allEntities={allItems.map(i => ({ id: i.id, nombre: i.nombre, imagen_url: i.imagen_url }))}
-          selectedIds={items.map(i => i.id)}
-          loading={loadingItems}
-          saving={savingItems}
-          onToggle={handleToggleItem}
-          onEntityClick={id => onSelectItem?.(id)}
-        />
+        <SeccionEntidad label="Items" icon={<Package size={9} />} fallbackIcon={<Package size={14} strokeWidth={1} />} emptyLabel="Sin items" allEntities={allItems.map(i => ({ id: i.id, nombre: i.nombre, imagen_url: i.imagen_url }))} selectedIds={items.map(i => i.id)} loading={loadingItems} saving={savingItems} onToggle={handleToggleItem} onEntityClick={id => onSelectItem?.(id)} />
       </aside>
+
+      {/* Mobile: drawer desde la derecha */}
+      {mobileAsideOpen && (
+        <div className="sm:hidden fixed inset-0 z-50 flex justify-end">
+          <div
+            className="absolute inset-0"
+            style={{ background: "color-mix(in srgb, var(--primary) 20%, transparent)" }}
+            onClick={() => setMobileAsideOpen(false)}
+          />
+          <div
+            className="relative flex flex-col h-full overflow-y-auto shadow-2xl"
+            style={{
+              width: "220px",
+              background: "var(--white-custom, var(--bg-main))",
+              borderLeft: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+              scrollbarWidth: "none",
+            }}
+          >
+            {/* Header del drawer */}
+            <div
+              className="shrink-0 flex items-center justify-between px-3 py-2.5 border-b"
+              style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
+            >
+              <span className="text-[8px] font-black uppercase tracking-[0.2em] flex items-center gap-1.5" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>
+                <SlidersHorizontal size={9} /> Entidades
+              </span>
+              <button onClick={() => setMobileAsideOpen(false)} className="p-1 rounded-lg text-primary/30 hover:text-primary hover:bg-primary/8 transition-all">
+                <X size={14} />
+              </button>
+            </div>
+            <SeccionEntidad label="Personajes" icon={<Users size={9} />} fallbackIcon={<UserCircle2 size={14} strokeWidth={1} />} emptyLabel="Sin personajes" allEntities={allPersonajes.map(p => ({ id: p.id, nombre: p.nombre, imagen_url: p.img_url }))} selectedIds={personajesEditables.map(p => p.id)} loading={loadingPersonajesEditables} saving={savingPersonajes} onToggle={handleTogglePersonaje} onEntityClick={id => { const p = personajesEditables.find(x => x.id === id); if (p) onSelectPersonaje?.(p as any); }} />
+            <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
+            <SeccionEntidad label="Criaturas" icon={<Bug size={9} />} fallbackIcon={<Bug size={14} strokeWidth={1} />} emptyLabel="Sin criaturas" allEntities={allCriaturas.map(c => ({ id: c.id, nombre: c.nombre, imagen_url: c.imagen_url }))} selectedIds={criaturas.map(c => c.id)} loading={loadingCriaturas} saving={savingCriaturas} onToggle={handleToggleCriatura} onEntityClick={id => onSelectCriatura?.(id)} />
+            <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
+            <SeccionEntidad label="Items" icon={<Package size={9} />} fallbackIcon={<Package size={14} strokeWidth={1} />} emptyLabel="Sin items" allEntities={allItems.map(i => ({ id: i.id, nombre: i.nombre, imagen_url: i.imagen_url }))} selectedIds={items.map(i => i.id)} loading={loadingItems} saving={savingItems} onToggle={handleToggleItem} onEntityClick={id => onSelectItem?.(id)} />
+          </div>
+        </div>
+      )}
 
     </div>
   );
