@@ -630,7 +630,10 @@ export function EditorHechizos({
       : "id, nombre, explicacion, grupo_ids, imagen_url";
     supabase.from(tabla).select(selectFields).eq("id", selectedId).single()
       .then(({ data }) => {
-        if (data) setItems(prev => prev.some(i => i.id === data.id) ? prev.map(i => i.id === data.id ? data : i) : [data, ...prev]);
+        if (data) {
+          const item = data as unknown as EntidadMagica;
+          setItems(prev => prev.some(i => i.id === item.id) ? prev.map(i => i.id === item.id ? item : i) : [item, ...prev]);
+        }
       });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedId, items.length]);
