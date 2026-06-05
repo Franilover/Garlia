@@ -5,7 +5,7 @@ import { SeccionEntidad } from "@/components/ui/SeccionEntidad";
 import { MarkdownEditor, WikiEntity } from "../../../../forms/MarkdownEditor";
 import { useWikilink } from "./WikilinkContext";
 import { type Reino } from "./types";
-import { type Lugar } from "@/components/paginas/myself/garlia/EditorLugar";
+import { type Ciudad } from "@/components/paginas/myself/garlia/EditorCiudad";
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
 import { useConfirm } from "@/components/ui/ConfirmModal";
@@ -492,8 +492,8 @@ async function dexieDel(tabla: string, id: string): Promise<void> {
 
 // ─── DetalleEditor ─────────────────────────────────────────────────────────────
 function DetalleEditor({ detalle, onSaved, onDeleted, onOpenEditor, entities = [] }: {
-  detalle: Lugar;
-  onSaved: (d: Lugar) => void;
+  detalle: Ciudad;
+  onSaved: (d: Ciudad) => void;
   onDeleted: (id: string) => void;
   onOpenEditor?: (id: string) => void;
   entities?: WikiEntity[];
@@ -512,16 +512,16 @@ function DetalleEditor({ detalle, onSaved, onDeleted, onOpenEditor, entities = [
     }
   }, [detalle.coord_x, detalle.coord_y]);
 
-  const saveDetalle = async (data: Lugar) => {
+  const saveDetalle = async (data: Ciudad) => {
     setStatus("saving");
     try {
-      const { error } = await supabase.from("lugares").update({
+      const { error } = await supabase.from("ciudades").update({
         nombre: data.nombre, descripcion: data.descripcion,
         coord_x: data.coord_x, coord_y: data.coord_y, oculto: data.oculto ?? false,
       }).eq("id", data.id);
       if (error) throw error;
       setStatus("saved"); onSaved(data);
-      void dexiePut("lugares", data);
+      void dexiePut("ciudades", data);
       setTimeout(() => setStatus("idle"), 2000);
     } catch { setStatus("error"); }
   };
@@ -556,12 +556,12 @@ function DetalleEditor({ detalle, onSaved, onDeleted, onOpenEditor, entities = [
         <div className="px-3 pb-3 pt-0 border-t space-y-3" style={{ borderColor: "color-mix(in srgb, var(--primary) 6%, transparent)" }}>
           <div className="mt-3">
             <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">Nombre</label>
-            <input value={form.nombre} onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))} className={INPUT_CLS + " mt-1"} placeholder="Nombre del lugar" />
+            <input value={form.nombre} onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))} className={INPUT_CLS + " mt-1"} placeholder="Nombre de la ciudad" />
           </div>
           <div>
             <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35 block mb-1">Descripción</label>
             <MarkdownEditor value={form.descripcion ?? ""} onChange={v => setForm(f => ({ ...f, descripcion: v }))}
-              rows={4} placeholder="Describe este lugar…" toolbar defaultMode="edit"
+              rows={4} placeholder="Describe esta ciudad…" toolbar defaultMode="edit"
               onSnippetAction={onSnippetAction}
               entities={entities}
             />
@@ -572,8 +572,8 @@ function DetalleEditor({ detalle, onSaved, onDeleted, onOpenEditor, entities = [
                 e.stopPropagation();
                 const ok = await confirm({ message: `¿Eliminar punto "${form.nombre}"?`, danger: true });
                 if (!ok) return;
-                await supabase.from("lugares").delete().eq("id", form.id);
-                void dexieDel("lugares", form.id);
+                await supabase.from("ciudades").delete().eq("id", form.id);
+                void dexieDel("ciudades", form.id);
                 onDeleted(form.id);
               }} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest text-red-400/60 hover:text-red-400 hover:bg-red-500/10 transition-all border border-transparent hover:border-red-500/20">
                 <Trash2 size={10} /> Eliminar
@@ -612,11 +612,11 @@ function MapaPanel({
 }: {
   mapaUrl: string;
   onMapaChange?: (url: string) => void;
-  onDetallesArrayChange?: (d: Lugar[]) => void;
+  onDetallesArrayChange?: (d: Ciudad[]) => void;
   MapaConPuntosComponent?: React.ComponentType<any>;
-  detalles: Lugar[];
+  detalles: Ciudad[];
   entities: WikiEntity[];
-  onDetalleUpdate?: (d: Lugar) => void;
+  onDetalleUpdate?: (d: Ciudad) => void;
   onDetalleDelete?: (id: string) => void;
   onOpenDetalleEditor?: (id: string) => void;
   addingPoint?: boolean;
@@ -984,20 +984,20 @@ export function LoreTab({
   onSelectItem?: (id: string) => void;
   reinos?: { id: string; nombre: string }[];
   filtroReinoId?: string | null;
-  detalles?: Lugar[];
-  onDetallesChange?: (updated: Lugar) => void;
+  detalles?: Ciudad[];
+  onDetallesChange?: (updated: Ciudad) => void;
   onDeleteDetalle?: (id: string) => void;
   onAddPoint?: () => void;
   addingPoint?: boolean;
   setAddingPoint?: (v: boolean) => void;
   newPointName?: string;
   setNewPointName?: (v: string) => void;
-  onDetalleUpdate?: (d: Lugar) => void;
+  onDetalleUpdate?: (d: Ciudad) => void;
   onDetalleDelete?: (id: string) => void;
   onOpenDetalleEditor?: (id: string) => void;
   mapaUrl?: string;
   onMapaChange?: (url: string) => void;
-  onDetallesArrayChange?: (d: Lugar[]) => void;
+  onDetallesArrayChange?: (d: Ciudad[]) => void;
   MapaConPuntosComponent?: React.ComponentType<any>;
   activeTab?: SectionId;
   mobileAsideOpen?: boolean;

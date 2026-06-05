@@ -471,18 +471,18 @@ function useCriaturaVariantesPorNombre(nombreEspecie: string | null | undefined)
 }
 
 
-// ─── Hook: nombres de lugares (para el selector) ─────────────────────────────
-type LugarMin = { id: string; nombre: string; reino_id: string | null };
+// ─── Hook: nombres de ciudades (para el selector) ─────────────────────────────
+type CiudadMin = { id: string; nombre: string; reino_id: string | null };
 
-function useLugares(): LugarMin[] {
-  const [lugares, setLugares] = useState<LugarMin[]>([]);
+function useCiudades(): CiudadMin[] {
+  const [ciudades, setCiudades] = useState<CiudadMin[]>([]);
   useEffect(() => {
     const run = async () => {
       try {
         if (db) {
-          const local: any[] = await (db as any).lugares?.toArray() ?? [];
+          const local: any[] = await (db as any).ciudades?.toArray() ?? [];
           if (local.length) {
-            setLugares(
+            setCiudades(
               local
                 .filter((l: any) => !l.deleted)
                 .map((l: any) => ({ id: l.id, nombre: l.nombre, reino_id: l.reino_id ?? null }))
@@ -493,15 +493,15 @@ function useLugares(): LugarMin[] {
         }
       } catch {}
       if (!navigator.onLine) return;
-      const { data } = await supabase.from("lugares").select("id, nombre, reino_id").order("nombre");
-      if (data) setLugares(data.map((l: any) => ({ id: l.id, nombre: l.nombre, reino_id: l.reino_id ?? null })));
+      const { data } = await supabase.from("ciudades").select("id, nombre, reino_id").order("nombre");
+      if (data) setCiudades(data.map((l: any) => ({ id: l.id, nombre: l.nombre, reino_id: l.reino_id ?? null })));
     };
     run();
   }, []);
-  return lugares;
+  return ciudades;
 }
 
-// ─── Hook: reinos con id (para filtrar lugares) ───────────────────────────────
+// ─── Hook: reinos con id (para filtrar ciudades) ───────────────────────────────
 type ReinoMin = { id: string; nombre: string };
 
 function useReinosMin(): ReinoMin[] {
@@ -715,7 +715,7 @@ function SeccionHechizos({ personajeId, grupoIds }: { personajeId: string; grupo
 
 // ─── FormularioPersonaje ──────────────────────────────────────────────────────
 export function FormularioPersonaje({
-  form, setForm, status, onSave, onDelete, compacto = false, entities = [], onNavigate, onSelectPersonaje, onOpenGrupo, onNavigateLugar, onSelectCancion,
+  form, setForm, status, onSave, onDelete, compacto = false, entities = [], onNavigate, onSelectPersonaje, onOpenGrupo, onNavigateCiudad, onSelectCancion,
 }: {
   form: Personaje;
   setForm: React.Dispatch<React.SetStateAction<Personaje>>;
@@ -727,21 +727,21 @@ export function FormularioPersonaje({
   onNavigate?: (tab: "criaturas" | "reinos", nombre: string) => void;
   onSelectPersonaje?: (id: string) => void;
   onOpenGrupo?: (id: string) => void;
-  onNavigateLugar?: (id: string) => void;
+  onNavigateCiudad?: (id: string) => void;
   onSelectCancion?: (id: string) => void;
 }) {
   const especies   = useNombresDeTabla("criaturas");
   const reinos     = useNombresDeTabla("reinos");
-  const lugares    = useLugares();
+  const ciudades    = useCiudades();
   const reinosMin  = useReinosMin();
   const variantes  = useCriaturaVariantesPorNombre(form.especie);
   const grupoIds   = useGruposDeCriaturaPorNombre(form.especie);
 
-  // Filtrar lugares según el reino seleccionado:
-  // - Con reino → solo los lugares que pertenecen a ese reino
-  // - Sin reino → solo los lugares sin reino asignado
+  // Filtrar ciudades según el reino seleccionado:
+  // - Con reino → solo las ciudades que pertenecen a ese reino
+  // - Sin reino → solo las ciudades sin reino asignado
   const reinoSeleccionadoId = reinosMin.find(r => r.nombre === form.reino)?.id ?? null;
-  const lugaresFiltrados = lugares.filter(l =>
+  const ciudadesFiltradas = ciudades.filter(l =>
     reinoSeleccionadoId ? l.reino_id === reinoSeleccionadoId : !l.reino_id
   );
   const { onSnippetAction } = useWikilink();
@@ -870,7 +870,7 @@ export function FormularioPersonaje({
 
                 {/* Columna derecha: selectores + descripción + resto */}
                 <div className="flex-1 min-w-0 space-y-3">
-                  {/* Mobile: grid 2×2 (Especie/Reino · Lugar/Don) */}
+                  {/* Mobile: grid 2×2 (Especie/Reino · Ciudad/Don) */}
                   <div className="sm:hidden grid grid-cols-2 gap-2">
                     <div className="space-y-1">
                       <ComboSelector
@@ -907,9 +907,9 @@ export function FormularioPersonaje({
                       onChange={v => {
                         const nuevoReinoId = reinosMin.find(r => r.nombre === v)?.id ?? null;
                         setForm(f => {
-                          const lugarActual = lugares.find(l => l.id === (f as any).lugar_id);
-                          const lugarSigueValido = lugarActual && (nuevoReinoId ? lugarActual.reino_id === nuevoReinoId : !lugarActual.reino_id);
-                          return { ...f, reino: v ?? "", ...(!lugarSigueValido ? { lugar_id: null } : {}) };
+                          const ciudadActual = ciudades.find(l => l.id === (f as any).ciudad_id);
+                          const ciudadSigueValido = ciudadActual && (nuevoReinoId ? ciudadActual.reino_id === nuevoReinoId : !ciudadActual.reino_id);
+                          return { ...f, reino: v ?? "", ...(!ciudadSigueValido ? { ciudad_id: null } : {}) };
                         });
                       }}
                       label="Reino"
@@ -922,13 +922,13 @@ export function FormularioPersonaje({
                       return (
                         <ComboSelector
                           mode="single"
-                          items={lugaresFiltrados.map(l => ({ id: l.id, label: l.nombre }))}
-                          value={(form as any).lugar_id ?? null}
-                          onChange={id => setForm(f => ({ ...f, lugar_id: id } as any))}
-                          label="Lugar"
+                          items={ciudadesFiltradas.map(l => ({ id: l.id, label: l.nombre }))}
+                          value={(form as any).ciudad_id ?? null}
+                          onChange={id => setForm(f => ({ ...f, ciudad_id: id } as any))}
+                          label="Ciudad"
                           placeholder="Aldea, ciudad…"
                           allowNone
-                          noneLabel="Sin lugar"
+                          noneLabel="Sin ciudad"
                         />
                       );
                     })()}
@@ -982,10 +982,10 @@ export function FormularioPersonaje({
                         onChange={v => {
                           const nuevoReinoId = reinosMin.find(r => r.nombre === v)?.id ?? null;
                           setForm(f => {
-                            const lugarActual = lugares.find(l => l.id === (f as any).lugar_id);
-                            const lugarSigueValido = lugarActual &&
-                              (nuevoReinoId ? lugarActual.reino_id === nuevoReinoId : !lugarActual.reino_id);
-                            return { ...f, reino: v ?? "", ...(!lugarSigueValido ? { lugar_id: null } : {}) };
+                            const ciudadActual = ciudades.find(l => l.id === (f as any).ciudad_id);
+                            const ciudadSigueValido = ciudadActual &&
+                              (nuevoReinoId ? ciudadActual.reino_id === nuevoReinoId : !ciudadActual.reino_id);
+                            return { ...f, reino: v ?? "", ...(!ciudadSigueValido ? { ciudad_id: null } : {}) };
                           });
                         }}
                         label="Reino"
@@ -995,17 +995,17 @@ export function FormularioPersonaje({
                         onNavigate={onNavigate ? (nombre) => onNavigate("reinos", nombre) : undefined}
                       />
                       {(() => {
-                        const lugarActual = lugaresFiltrados.find(l => l.id === (form as any).lugar_id);
+                        const ciudadActual = ciudadesFiltradas.find(l => l.id === (form as any).ciudad_id);
                         return (
                           <ComboSelector
                             mode="single"
-                            items={lugaresFiltrados.map(l => ({ id: l.id, label: l.nombre }))}
-                            value={(form as any).lugar_id ?? null}
-                            onChange={id => setForm(f => ({ ...f, lugar_id: id } as any))}
-                            label="Lugar"
+                            items={ciudadesFiltradas.map(l => ({ id: l.id, label: l.nombre }))}
+                            value={(form as any).ciudad_id ?? null}
+                            onChange={id => setForm(f => ({ ...f, ciudad_id: id } as any))}
+                            label="Ciudad"
                             placeholder="Aldea, ciudad…"
                             allowNone
-                            noneLabel="Sin lugar"
+                            noneLabel="Sin ciudad"
                           />
                         );
                       })()}
@@ -1156,13 +1156,13 @@ export function FormularioPersonaje({
  
 // ─── EditorPersonaje ──────────────────────────────────────────────────────────
 export function EditorPersonaje({
-  item, onSaved, onDeleted, entities = [], onNavigate, onSelectPersonaje, onOpenGrupo, onNavigateLugar, onSelectCancion,
+  item, onSaved, onDeleted, entities = [], onNavigate, onSelectPersonaje, onOpenGrupo, onNavigateCiudad, onSelectCancion,
 }: {
   item: Personaje; onSaved: (p: Personaje) => void; onDeleted: (id: string) => void; entities?: WikiEntity[];
   onNavigate?: (tab: "criaturas" | "reinos", nombre: string) => void;
   onSelectPersonaje?: (id: string) => void;
   onOpenGrupo?: (id: string) => void;
-  onNavigateLugar?: (id: string) => void;
+  onNavigateCiudad?: (id: string) => void;
   onSelectCancion?: (id: string) => void;
 }) {
   const [form,   setForm]   = useState<Personaje>(item);
@@ -1183,7 +1183,7 @@ export function EditorPersonaje({
         especie:         form.especie,
         caracteristicas: form.caracteristicas || null,
         variante_id:     (form as any).variante_id    || null,
-        lugar_id:        (form as any).lugar_id        || null,
+        ciudad_id:        (form as any).ciudad_id        || null,
       }).eq("id", form.id);
       if (error) throw error;
       setStatus("saved");
@@ -1204,7 +1204,7 @@ export function EditorPersonaje({
 return (
     <>
       <ConfirmModal />
-      <FormularioPersonaje form={form} setForm={setForm} status={status} onSave={save} onDelete={del} entities={entities} onNavigate={onNavigate} onSelectPersonaje={onSelectPersonaje} onOpenGrupo={onOpenGrupo} onNavigateLugar={onNavigateLugar} onSelectCancion={onSelectCancion} />
+      <FormularioPersonaje form={form} setForm={setForm} status={status} onSave={save} onDelete={del} entities={entities} onNavigate={onNavigate} onSelectPersonaje={onSelectPersonaje} onOpenGrupo={onOpenGrupo} onNavigateCiudad={onNavigateCiudad} onSelectCancion={onSelectCancion} />
     </>
   );
 }

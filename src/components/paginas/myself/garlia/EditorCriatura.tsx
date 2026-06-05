@@ -879,7 +879,7 @@ function BloqueGruposCriatura({
 
 // ─── Tipos mínimos ────────────────────────────────────────────────────────────
 type ReinoMin  = { id: string; nombre: string };
-type LugarMin2 = { id: string; nombre: string; reino_id: string | null };
+type CiudadMin2 = { id: string; nombre: string; reino_id: string | null };
 
 // ─── Hook: reinos de la criatura (criatura_reinos) ────────────────────────────
 function useCriaturaReinos(criaturaId: string) {
@@ -920,24 +920,24 @@ function useCriaturaReinos(criaturaId: string) {
   return { rows, loading, add, remove };
 }
 
-// ─── Hook: lugares de la criatura (criatura_lugares) ─────────────────────────
-function useCriaturaLugares(criaturaId: string) {
-  type Row = { rowId: string; lugarId: string; lugarNombre: string; reinoId: string | null };
+// ─── Hook: ciudades de la criatura (criatura_ciudades) ─────────────────────────
+function useCriaturaCiudades(criaturaId: string) {
+  type Row = { rowId: string; ciudadId: string; ciudadNombre: string; reinoId: string | null };
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
     const { data } = await supabase
-      .from("criatura_lugares")
-      .select("id, lugar_id, lugares!lugar_id(nombre, reino_id)")
+      .from("criatura_ciudades")
+      .select("id, ciudad_id, ciudades!ciudad_id(nombre, reino_id)")
       .eq("criatura_id", criaturaId);
     setRows((data ?? []).map((r: any) => {
-      const l = Array.isArray(r.lugares) ? r.lugares[0] : r.lugares;
+      const l = Array.isArray(r.ciudades) ? r.ciudades[0] : r.ciudades;
       return {
         rowId:      r.id,
-        lugarId:    r.lugar_id,
-        lugarNombre: l?.nombre   ?? "—",
+        ciudadId:    r.ciudad_id,
+        ciudadNombre: l?.nombre   ?? "—",
         reinoId:    l?.reino_id  ?? null,
       };
     }));
@@ -946,17 +946,17 @@ function useCriaturaLugares(criaturaId: string) {
 
   useEffect(() => { load(); }, [load]);
 
-  const add = async (lugar: LugarMin2) => {
-    if (rows.some(r => r.lugarId === lugar.id)) return;
+  const add = async (ciudad: CiudadMin2) => {
+    if (rows.some(r => r.ciudadId === ciudad.id)) return;
     const { data, error } = await supabase
-      .from("criatura_lugares")
-      .insert([{ criatura_id: criaturaId, lugar_id: lugar.id }])
+      .from("criatura_ciudades")
+      .insert([{ criatura_id: criaturaId, ciudad_id: ciudad.id }])
       .select().single();
-    if (!error && data) setRows(prev => [...prev, { rowId: data.id, lugarId: lugar.id, lugarNombre: lugar.nombre, reinoId: lugar.reino_id }]);
+    if (!error && data) setRows(prev => [...prev, { rowId: data.id, ciudadId: ciudad.id, ciudadNombre: ciudad.nombre, reinoId: ciudad.reino_id }]);
   };
 
   const remove = async (rowId: string) => {
-    await supabase.from("criatura_lugares").delete().eq("id", rowId);
+    await supabase.from("criatura_ciudades").delete().eq("id", rowId);
     setRows(prev => prev.filter(r => r.rowId !== rowId));
   };
 
@@ -966,18 +966,18 @@ function useCriaturaLugares(criaturaId: string) {
 // ─── BloqueHabitat ────────────────────────────────────────────────────────────
 function BloqueHabitat({
   criaturaId,
-  onNavigateLugar,
+  onNavigateCiudad,
   onNavigateReino,
 }: {
   criaturaId: string;
-  onNavigateLugar?: (id: string) => void;
+  onNavigateCiudad?: (id: string) => void;
   onNavigateReino?: (id: string) => void;
 }) {
   const { rows: reinoRows, loading: loadingR, add: addReino, remove: removeReino } = useCriaturaReinos(criaturaId);
-  const { rows: lugarRows, loading: loadingL, add: addLugar, remove: removeLugar } = useCriaturaLugares(criaturaId);
+  const { rows: ciudadRows, loading: loadingC, add: addCiudad, remove: removeCiudad } = useCriaturaCiudades(criaturaId);
 
   const [allReinos,  setAllReinos]  = useState<ReinoMin[]>([]);
-  const [allLugares, setAllLugares] = useState<LugarMin2[]>([]);
+  const [allCiudades, setAllCiudades] = useState<CiudadMin2[]>([]);
   const [reinoFiltro, setReinoFiltro] = useState<string | null>(null); // reino_id activo
   const [openR, setOpenR] = useState(false);
   const [openL, setOpenL] = useState(false);
@@ -987,17 +987,17 @@ function BloqueHabitat({
   useEffect(() => {
     supabase.from("reinos").select("id, nombre").order("nombre")
       .then(({ data }) => setAllReinos(data ?? []));
-    supabase.from("lugares").select("id, nombre, reino_id").order("nombre")
-      .then(({ data }) => setAllLugares((data ?? []).map((l: any) => ({ ...l, reino_id: l.reino_id ?? null }))));
+    supabase.from("ciudades").select("id, nombre, reino_id").order("nombre")
+      .then(({ data }) => setAllCiudades((data ?? []).map((l: any) => ({ ...l, reino_id: l.reino_id ?? null }))));
   }, []);
 
-  // Lugares filtrados por reino activo (o sin reino si no hay activo)
-  const lugaresFiltrados = allLugares.filter(l =>
+  // Ciudades filtradas por reino activo (o sin reino si no hay activo)
+  const ciudadesFiltradas = allCiudades.filter(l =>
     reinoFiltro ? l.reino_id === reinoFiltro : true
   );
 
-  // Lugares ya asignados visibles según filtro actual
-  const lugaresAsignados = lugarRows.filter(r =>
+  // Ciudades ya asignadas visibles según filtro actual
+  const ciudadesAsignadas = ciudadRows.filter(r =>
     reinoFiltro ? r.reinoId === reinoFiltro : true
   );
 
@@ -1006,9 +1006,9 @@ function BloqueHabitat({
     !reinoRows.some(rr => rr.reinoId === r.id)
   );
 
-  const lugaresDisponibles = lugaresFiltrados.filter(l =>
+  const ciudadesDisponibles = ciudadesFiltradas.filter(l =>
     l.nombre.toLowerCase().includes(searchL.toLowerCase()) &&
-    !lugarRows.some(lr => lr.lugarId === l.id)
+    !ciudadRows.some(lr => lr.ciudadId === l.id)
   );
 
   return (
@@ -1039,7 +1039,7 @@ function BloqueHabitat({
                       onClick={() => setReinoFiltro(f => f === r.reinoId ? null : r.reinoId)}
                       className="leading-none flex items-center gap-1 hover:underline transition-opacity"
                       style={{ cursor: "pointer", opacity: reinoFiltro === r.reinoId ? 1 : 0.75 }}
-                      title={reinoFiltro === r.reinoId ? "Quitar filtro de lugares" : "Filtrar lugares por este reino"}
+                      title={reinoFiltro === r.reinoId ? "Quitar filtro de ciudades" : "Filtrar ciudades por este reino"}
                     >
                       {r.reinoNombre}
                       {reinoFiltro === r.reinoId && <X size={7} className="opacity-60" />}
@@ -1101,11 +1101,11 @@ function BloqueHabitat({
         )}
       </div>
 
-      {/* ── Lugares ── */}
+      {/* ── Ciudades ── */}
       <div className="space-y-1.5">
         <label className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/25 flex items-center gap-1.5">
           <MapPin size={9} />
-          Lugares
+          Ciudades
           {reinoFiltro && (
             <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-md"
               style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)", color: "color-mix(in srgb, var(--primary) 60%, transparent)" }}>
@@ -1114,28 +1114,28 @@ function BloqueHabitat({
           )}
         </label>
 
-        {loadingL ? (
+        {loadingC ? (
           <p className="text-[9px] text-primary/20 italic">Cargando…</p>
         ) : (
           <>
-            {lugaresAsignados.length === 0 && (
+            {ciudadesAsignadas.length === 0 && (
               <p className="text-[9px] text-primary/20 italic py-1">
-                {reinoFiltro ? "Sin lugares en este reino" : "Sin lugares asignados"}
+                {reinoFiltro ? "Sin ciudades en este reino" : "Sin ciudades asignadas"}
               </p>
             )}
-            {lugaresAsignados.length > 0 && (
+            {ciudadesAsignadas.length > 0 && (
               <div className="space-y-1">
-                {lugaresAsignados.map(r => (
+                {ciudadesAsignadas.map(r => (
                   <div key={r.rowId} className="relative group flex items-center gap-2 px-2.5 py-1.5 rounded-xl transition-colors"
                     style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-                    <button onClick={() => onNavigateLugar?.(r.lugarId)}
-                      className="flex items-center gap-2 flex-1 min-w-0 text-left cursor-pointer hover:text-primary transition-colors group/lugar">
-                      <MapPin size={9} className="shrink-0 text-primary/30 group-hover/lugar:text-primary/60 transition-colors" />
-                      <span className="text-[10px] font-bold text-primary/65 truncate group-hover/lugar:text-primary transition-colors underline-offset-2 group-hover/lugar:underline">
-                        {r.lugarNombre}
+                    <button onClick={() => onNavigateCiudad?.(r.ciudadId)}
+                      className="flex items-center gap-2 flex-1 min-w-0 text-left cursor-pointer hover:text-primary transition-colors group/ciudad">
+                      <MapPin size={9} className="shrink-0 text-primary/30 group-hover/ciudad:text-primary/60 transition-colors" />
+                      <span className="text-[10px] font-bold text-primary/65 truncate group-hover/ciudad:text-primary transition-colors underline-offset-2 group-hover/ciudad:underline">
+                        {r.ciudadNombre}
                       </span>
                     </button>
-                    <button onClick={() => removeLugar(r.rowId)}
+                    <button onClick={() => removeCiudad(r.rowId)}
                       className="shrink-0 opacity-0 group-hover:opacity-100 transition-all p-0.5 rounded text-red-400/50 hover:text-red-400 cursor-pointer">
                       <X size={9} />
                     </button>
@@ -1148,7 +1148,7 @@ function BloqueHabitat({
               <button type="button" onClick={() => setOpenL(o => !o)}
                 className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-dashed text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer"
                 style={{ borderColor: "color-mix(in srgb, var(--primary) 18%, transparent)", color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
-                <Plus size={8} /> Añadir lugar
+                <Plus size={8} /> Añadir ciudad
               </button>
               {openL && (
                 <>
@@ -1157,15 +1157,15 @@ function BloqueHabitat({
                     style={{ background: "var(--bg-main)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
                     <div className="p-1.5 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
                       <input autoFocus value={searchL} onChange={e => setSearchL(e.target.value)}
-                        placeholder="Buscar lugar…"
+                        placeholder="Buscar ciudad…"
                         className="w-full bg-transparent text-[10px] text-primary outline-none placeholder:text-primary/30 px-1.5 py-0.5" />
                     </div>
                     <div className="max-h-40 overflow-y-auto p-1">
-                      {lugaresDisponibles.length === 0
+                      {ciudadesDisponibles.length === 0
                         ? <p className="text-[9px] text-primary/25 italic text-center py-3">Sin resultados</p>
-                        : lugaresDisponibles.map(l => (
+                        : ciudadesDisponibles.map(l => (
                           <button key={l.id} type="button"
-                            onMouseDown={() => { addLugar(l); setOpenL(false); setSearchL(""); }}
+                            onMouseDown={() => { addCiudad(l); setOpenL(false); setSearchL(""); }}
                             className="w-full text-left px-2.5 py-1.5 rounded-lg text-[11px] font-medium text-primary/75 hover:bg-primary/6 hover:text-primary transition-colors truncate cursor-pointer">
                             {l.nombre}
                           </button>
@@ -1484,13 +1484,13 @@ function BloqueMagicoUI({
 
 // ─── EditorCriatura ───────────────────────────────────────────────────────────
 export function EditorCriatura({
-  item, onSaved, onDeleted, entities = [], onSelectItem, onSelectPersonaje, onSelectGrupo, onNavigateLugar, onNavigateReino,
+  item, onSaved, onDeleted, entities = [], onSelectItem, onSelectPersonaje, onSelectGrupo, onNavigateCiudad, onNavigateReino,
 }: {
   item: Criatura; onSaved: (c: Criatura) => void; onDeleted: (id: string) => void; entities?: WikiEntity[];
   onSelectItem?: (itemId: string) => void;
   onSelectPersonaje?: (personajeId: string) => void;
   onSelectGrupo?: (grupoId: string) => void;
-  onNavigateLugar?: (id: string) => void;
+  onNavigateCiudad?: (id: string) => void;
   onNavigateReino?: (id: string) => void;
 }) {
   const [form,   setForm]   = useState<Criatura>(item);
@@ -1542,11 +1542,11 @@ export function EditorCriatura({
   } = useCriaturaReinos(form.id);
 
   const {
-    rows: lugarRows,
-    loading: loadingLugares,
-    add: addLugarSidebar,
-    remove: removeLugarSidebar,
-  } = useCriaturaLugares(form.id);
+    rows: ciudadRows,
+    loading: loadingCiudades,
+    add: addCiudadSidebar,
+    remove: removeCiudadSidebar,
+  } = useCriaturaCiudades(form.id);
 
   const {
     items: naturalesItems,
@@ -1565,20 +1565,20 @@ export function EditorCriatura({
   } = useCraftedItems(form.id);
 
   const [savingReinos,    setSavingReinos]    = useState(false);
-  const [savingLugares,   setSavingLugares]   = useState(false);
+  const [savingCiudades,   setSavingCiudades]   = useState(false);
   const [savingNaturales, setSavingNaturales] = useState(false);
   const [savingCrafted,   setSavingCrafted]   = useState(false);
   const [mobileAsideOpen, setMobileAsideOpen] = useState(false);
 
-  const [allLugares, setAllLugares] = useState<LugarMin2[]>([]);
+  const [allCiudades, setAllCiudades] = useState<CiudadMin2[]>([]);
 
   useEffect(() => {
     supabase.from("personajes").select("id, nombre, img_url").order("nombre")
       .then(({ data }) => setAllPersonajes(data ?? []));
     supabase.from("reinos").select("id, nombre").order("nombre")
       .then(({ data }) => setAllReinos(data ?? []));
-    supabase.from("lugares").select("id, nombre, reino_id").order("nombre")
-      .then(({ data }) => setAllLugares((data ?? []).map((l: any) => ({ ...l, reino_id: l.reino_id ?? null }))));
+    supabase.from("ciudades").select("id, nombre, reino_id").order("nombre")
+      .then(({ data }) => setAllCiudades((data ?? []).map((l: any) => ({ ...l, reino_id: l.reino_id ?? null }))));
   }, []);
 
   const handleToggleReino = async (id: string, add: boolean) => {
@@ -1592,16 +1592,16 @@ export function EditorCriatura({
     setSavingReinos(false);
   };
 
-  const handleToggleLugar = async (id: string, add: boolean) => {
-    setSavingLugares(true);
+  const handleToggleCiudad = async (id: string, add: boolean) => {
+    setSavingCiudades(true);
     if (add) {
-      const lugar = allLugares.find(l => l.id === id);
-      if (lugar) await addLugarSidebar(lugar);
+      const ciudad = allCiudades.find(l => l.id === id);
+      if (ciudad) await addCiudadSidebar(ciudad);
     } else {
-      const row = lugarRows.find(r => r.lugarId === id);
-      if (row) await removeLugarSidebar(row.rowId);
+      const row = ciudadRows.find(r => r.ciudadId === id);
+      if (row) await removeCiudadSidebar(row.rowId);
     }
-    setSavingLugares(false);
+    setSavingCiudades(false);
   };
 
   const handleToggleNatural = async (id: string, add: boolean) => {
@@ -1838,7 +1838,7 @@ export function EditorCriatura({
           />
         </div>
 
-        {/* Columna 2: Reinos · Lugares */}
+        {/* Columna 2: Reinos · Ciudades */}
         <div
           className="w-44 flex flex-col border-r overflow-y-auto overflow-x-hidden"
           style={{
@@ -1863,16 +1863,16 @@ export function EditorCriatura({
           <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
 
           <SeccionEntidad
-            label="Lugares"
+            label="Ciudades"
             icon={<MapPin size={9} />}
             fallbackIcon={<MapPin size={14} strokeWidth={1} />}
-            emptyLabel="Sin lugares"
-            allEntities={allLugares.map(l => ({ id: l.id, nombre: l.nombre }))}
-            selectedIds={lugarRows.map(r => r.lugarId)}
-            loading={loadingLugares}
-            saving={savingLugares}
-            onToggle={handleToggleLugar}
-            onEntityClick={id => onNavigateLugar?.(id)}
+            emptyLabel="Sin ciudades"
+            allEntities={allCiudades.map(l => ({ id: l.id, nombre: l.nombre }))}
+            selectedIds={ciudadRows.map(r => r.ciudadId)}
+            loading={loadingCiudades}
+            saving={savingCiudades}
+            onToggle={handleToggleCiudad}
+            onEntityClick={id => onNavigateCiudad?.(id)}
           />
         </div>
 
@@ -1976,7 +1976,7 @@ export function EditorCriatura({
             <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
             <SeccionEntidad label="Reinos" icon={<Globe size={9} />} fallbackIcon={<Globe size={14} strokeWidth={1} />} emptyLabel="Sin reinos" allEntities={allReinos.map(r => ({ id: r.id, nombre: r.nombre }))} selectedIds={reinoRows.map(r => r.reinoId)} loading={loadingReinos} saving={savingReinos} onToggle={handleToggleReino} onEntityClick={id => onNavigateReino?.(id)} />
             <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
-            <SeccionEntidad label="Lugares" icon={<MapPin size={9} />} fallbackIcon={<MapPin size={14} strokeWidth={1} />} emptyLabel="Sin lugares" allEntities={allLugares.map(l => ({ id: l.id, nombre: l.nombre }))} selectedIds={lugarRows.map(r => r.lugarId)} loading={loadingLugares} saving={savingLugares} onToggle={handleToggleLugar} onEntityClick={id => onNavigateLugar?.(id)} />
+            <SeccionEntidad label="Ciudades" icon={<MapPin size={9} />} fallbackIcon={<MapPin size={14} strokeWidth={1} />} emptyLabel="Sin ciudades" allEntities={allCiudades.map(l => ({ id: l.id, nombre: l.nombre }))} selectedIds={ciudadRows.map(r => r.ciudadId)} loading={loadingCiudades} saving={savingCiudades} onToggle={handleToggleCiudad} onEntityClick={id => onNavigateCiudad?.(id)} />
             <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
             <SeccionEntidad label="Naturales" icon={<Leaf size={9} />} fallbackIcon={<Package size={14} strokeWidth={1} />} emptyLabel="Sin drops" allEntities={allNaturalesItems.map(i => ({ id: i.id, nombre: i.nombre, imagen_url: i.imagen_url }))} selectedIds={naturalesItems.map(i => i.itemId)} loading={loadingNaturales} saving={savingNaturales} onToggle={handleToggleNatural} onEntityClick={id => onSelectItem?.(id)} />
             <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />

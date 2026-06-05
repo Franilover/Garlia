@@ -24,7 +24,7 @@ async function dexieDel(tabla: string, id: string): Promise<void> {
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-export type Lugar = {
+export type Ciudad = {
   id: string;
   nombre: string;
   tipo?: string | null;
@@ -63,8 +63,8 @@ function useReinos() {
   return reinos;
 }
 
-// ─── Hook: personajes vinculados al lugar ─────────────────────────────────────
-function usePersonajesDelLugar(lugarId: string) {
+// ─── Hook: personajes vinculados a la ciudad ─────────────────────────────────────
+function usePersonajesDelCiudad(ciudadId: string) {
   const [personajes, setPersonajes] = useState<PersonajeMin[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -73,7 +73,7 @@ function usePersonajesDelLugar(lugarId: string) {
     try {
       if (db) {
         const all: any[] = await (db as any).personajes?.toArray() ?? [];
-        const local = all.filter((p: any) => p.lugar_id === lugarId && !p.deleted);
+        const local = all.filter((p: any) => p.ciudad_id === ciudadId && !p.deleted);
         if (local.length) { setPersonajes(local); setLoading(false); if (!navigator.onLine) return; }
       }
     } catch {}
@@ -81,18 +81,18 @@ function usePersonajesDelLugar(lugarId: string) {
     const { data } = await supabase
       .from("personajes")
       .select("id, nombre, img_url")
-      .eq("lugar_id", lugarId)
+      .eq("ciudad_id", ciudadId)
       .order("nombre");
     setPersonajes(data ?? []);
     setLoading(false);
-  }, [lugarId]);
+  }, [ciudadId]);
 
   useEffect(() => { load(); }, [load]);
   return { personajes, loading, reload: load };
 }
 
-// ─── Hook: criaturas del lugar ────────────────────────────────────────────────
-function useCriaturasDeLugar(lugarId: string) {
+// ─── Hook: criaturas de la ciudad ────────────────────────────────────────────────
+function useCriaturasDeCiudad(ciudadId: string) {
   const [criaturas, setCriaturas] = useState<CriaturaMin[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -101,7 +101,7 @@ function useCriaturasDeLugar(lugarId: string) {
     try {
       if (db) {
         const all: any[] = await (db as any).criaturas?.toArray() ?? [];
-        const local = all.filter((c: any) => c.lugar_id === lugarId && !c.deleted);
+        const local = all.filter((c: any) => c.ciudad_id === ciudadId && !c.deleted);
         if (local.length) { setCriaturas(local); setLoading(false); if (!navigator.onLine) return; }
       }
     } catch {}
@@ -109,18 +109,18 @@ function useCriaturasDeLugar(lugarId: string) {
     const { data } = await supabase
       .from("criaturas")
       .select("id, nombre, imagen_url")
-      .eq("lugar_id", lugarId)
+      .eq("ciudad_id", ciudadId)
       .order("nombre");
     setCriaturas(data ?? []);
     setLoading(false);
-  }, [lugarId]);
+  }, [ciudadId]);
 
   useEffect(() => { load(); }, [load]);
   return { criaturas, loading, reload: load };
 }
 
-// ─── Hook: ítems del lugar ────────────────────────────────────────────────────
-function useItemsDelLugar(lugarId: string) {
+// ─── Hook: ítems de la ciudad ────────────────────────────────────────────────────
+function useItemsDelCiudad(ciudadId: string) {
   const [items, setItems] = useState<ItemMin[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -129,7 +129,7 @@ function useItemsDelLugar(lugarId: string) {
     try {
       if (db) {
         const all: any[] = await (db as any).items?.toArray() ?? [];
-        const local = all.filter((i: any) => i.lugar_id === lugarId && !i.deleted);
+        const local = all.filter((i: any) => i.ciudad_id === ciudadId && !i.deleted);
         if (local.length) { setItems(local); setLoading(false); if (!navigator.onLine) return; }
       }
     } catch {}
@@ -137,11 +137,11 @@ function useItemsDelLugar(lugarId: string) {
     const { data } = await supabase
       .from("items")
       .select("id, nombre, imagen_url")
-      .eq("lugar_id", lugarId)
+      .eq("ciudad_id", ciudadId)
       .order("nombre");
     setItems(data ?? []);
     setLoading(false);
-  }, [lugarId]);
+  }, [ciudadId]);
 
   useEffect(() => { load(); }, [load]);
   return { items, loading, reload: load };
@@ -207,8 +207,8 @@ function useTodosItems() {
   return todos;
 }
 
-// ─── Tipos de lugar predefinidos ──────────────────────────────────────────────
-const TIPOS_LUGAR = [
+// ─── Tipos de ciudad predefinidos ──────────────────────────────────────────────
+const TIPOS_CIUDAD = [
   "Ciudad", "Aldea", "Fortaleza", "Castillo", "Torre", "Ruinas",
   "Bosque", "Montaña", "Caverna", "Isla", "Desierto", "Pantano",
   "Templo", "Mazmorra", "Puerto", "Mercado", "Taberna", "Biblioteca",
@@ -365,7 +365,7 @@ function BloqueEntidades<T extends { id: string; nombre: string }>({
                 disabled={removingId === item.id}
                 onClick={() => onRemove(item.id)}
                 className="flex items-center justify-center w-5 h-full pr-1 opacity-0 group-hover:opacity-100 transition-opacity text-primary/30 hover:text-red-400 disabled:cursor-not-allowed"
-                title="Quitar del lugar"
+                title="Quitar de la ciudad"
               >
                 {removingId === item.id
                   ? <Loader2 size={9} className="animate-spin" />
@@ -379,13 +379,13 @@ function BloqueEntidades<T extends { id: string; nombre: string }>({
   );
 }
 
-// ─── FormularioLugar ──────────────────────────────────────────────────────────
-export function FormularioLugar({
+// ─── FormularioCiudad ──────────────────────────────────────────────────────────
+export function FormularioCiudad({
   form, setForm, status, onSave, onDelete, entities = [],
   onSelectPersonaje, onSelectCriatura, onSelectItem, onNavigateReino,
 }: {
-  form: Lugar;
-  setForm: React.Dispatch<React.SetStateAction<Lugar>>;
+  form: Ciudad;
+  setForm: React.Dispatch<React.SetStateAction<Ciudad>>;
   status: SaveStatus;
   onSave: () => void;
   onDelete: () => void;
@@ -396,9 +396,9 @@ export function FormularioLugar({
   onNavigateReino?:   (id: string) => void;
 }) {
   const reinos = useReinos();
-  const { personajes, loading: loadingP, reload: reloadP } = usePersonajesDelLugar(form.id);
-  const { criaturas,  loading: loadingC, reload: reloadC } = useCriaturasDeLugar(form.id);
-  const { items,      loading: loadingI, reload: reloadI } = useItemsDelLugar(form.id);
+  const { personajes, loading: loadingP, reload: reloadP } = usePersonajesDelCiudad(form.id);
+  const { criaturas,  loading: loadingC, reload: reloadC } = useCriaturasDeCiudad(form.id);
+  const { items,      loading: loadingI, reload: reloadI } = useItemsDelCiudad(form.id);
   const todosPersonajes = useTodosPersonajes();
   const todasCriaturas  = useTodasCriaturas();
   const todosItems      = useTodosItems();
@@ -415,48 +415,48 @@ export function FormularioLugar({
 
   const handleAddPersonaje = async (p: PersonajeMin) => {
     setAddingP(p.id);
-    await supabase.from("personajes").update({ lugar_id: form.id }).eq("id", p.id);
-    if (db) try { await (db as any).personajes?.update(p.id, { lugar_id: form.id }); } catch {}
+    await supabase.from("personajes").update({ ciudad_id: form.id }).eq("id", p.id);
+    if (db) try { await (db as any).personajes?.update(p.id, { ciudad_id: form.id }); } catch {}
     await reloadP();
     setAddingP(null);
   };
 
   const handleAddCriatura = async (c: CriaturaMin) => {
     setAddingC(c.id);
-    await supabase.from("criaturas").update({ lugar_id: form.id }).eq("id", c.id);
-    if (db) try { await (db as any).criaturas?.update(c.id, { lugar_id: form.id }); } catch {}
+    await supabase.from("criaturas").update({ ciudad_id: form.id }).eq("id", c.id);
+    if (db) try { await (db as any).criaturas?.update(c.id, { ciudad_id: form.id }); } catch {}
     await reloadC();
     setAddingC(null);
   };
 
   const handleAddItem = async (i: ItemMin) => {
     setAddingI(i.id);
-    await supabase.from("items").update({ lugar_id: form.id }).eq("id", i.id);
-    if (db) try { await (db as any).items?.update(i.id, { lugar_id: form.id }); } catch {}
+    await supabase.from("items").update({ ciudad_id: form.id }).eq("id", i.id);
+    if (db) try { await (db as any).items?.update(i.id, { ciudad_id: form.id }); } catch {}
     await reloadI();
     setAddingI(null);
   };
 
   const handleRemovePersonaje = async (id: string) => {
     setRemovingP(id);
-    await supabase.from("personajes").update({ lugar_id: null }).eq("id", id);
-    if (db) try { await (db as any).personajes?.update(id, { lugar_id: null }); } catch {}
+    await supabase.from("personajes").update({ ciudad_id: null }).eq("id", id);
+    if (db) try { await (db as any).personajes?.update(id, { ciudad_id: null }); } catch {}
     await reloadP();
     setRemovingP(null);
   };
 
   const handleRemoveCriatura = async (id: string) => {
     setRemovingC(id);
-    await supabase.from("criaturas").update({ lugar_id: null }).eq("id", id);
-    if (db) try { await (db as any).criaturas?.update(id, { lugar_id: null }); } catch {}
+    await supabase.from("criaturas").update({ ciudad_id: null }).eq("id", id);
+    if (db) try { await (db as any).criaturas?.update(id, { ciudad_id: null }); } catch {}
     await reloadC();
     setRemovingC(null);
   };
 
   const handleRemoveItem = async (id: string) => {
     setRemovingI(id);
-    await supabase.from("items").update({ lugar_id: null }).eq("id", id);
-    if (db) try { await (db as any).items?.update(id, { lugar_id: null }); } catch {}
+    await supabase.from("items").update({ ciudad_id: null }).eq("id", id);
+    if (db) try { await (db as any).items?.update(id, { ciudad_id: null }); } catch {}
     await reloadI();
     setRemovingI(null);
   };
@@ -483,7 +483,7 @@ export function FormularioLugar({
         <input
           value={form.nombre ?? ""}
           onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))}
-          placeholder="Nombre del lugar"
+          placeholder="Nombre de la ciudad"
           className="flex-1 min-w-0 bg-transparent text-sm font-black text-primary outline-none placeholder:text-primary/25"
         />
 
@@ -533,7 +533,7 @@ export function FormularioLugar({
                   mode="single"
                   label="Tipo"
                   placeholder="Ciudad, ruinas, bosque…"
-                  items={TIPOS_LUGAR.map(t => ({ id: t, label: t }))}
+                  items={TIPOS_CIUDAD.map(t => ({ id: t, label: t }))}
                   value={form.tipo ?? null}
                   onChange={v => setForm(f => ({ ...f, tipo: v }))}
                   allowNone
@@ -612,7 +612,7 @@ export function FormularioLugar({
                 label="Personajes"
                 icon={<Users size={10} />}
                 fallbackIcon={<Users size={10} />}
-                emptyLabel="Sin personajes en este lugar"
+                emptyLabel="Sin personajes en esta ciudad"
                 allEntities={todosPersonajes.map(p => ({ id: p.id, nombre: p.nombre, imagen_url: p.img_url ?? null }))}
                 selectedIds={personajes.map(p => p.id)}
                 loading={loadingP}
@@ -628,7 +628,7 @@ export function FormularioLugar({
                 label="Criaturas"
                 icon={<Bug size={10} />}
                 fallbackIcon={<Bug size={10} />}
-                emptyLabel="Sin criaturas en este lugar"
+                emptyLabel="Sin criaturas en esta ciudad"
                 allEntities={todasCriaturas}
                 selectedIds={criaturas.map(c => c.id)}
                 loading={loadingC}
@@ -644,7 +644,7 @@ export function FormularioLugar({
                 label="Ítems"
                 icon={<Package size={10} />}
                 fallbackIcon={<Package size={10} />}
-                emptyLabel="Sin ítems en este lugar"
+                emptyLabel="Sin ítems en esta ciudad"
                 allEntities={todosItems}
                 selectedIds={items.map(i => i.id)}
                 loading={loadingI}
@@ -662,13 +662,13 @@ export function FormularioLugar({
   );
 }
 
-// ─── EditorLugar ──────────────────────────────────────────────────────────────
-export function EditorLugar({
+// ─── EditorCiudad ──────────────────────────────────────────────────────────────
+export function EditorCiudad({
   item, onSaved, onDeleted, entities = [],
   onSelectPersonaje, onSelectCriatura, onSelectItem, onNavigateReino,
 }: {
-  item: Lugar;
-  onSaved:   (l: Lugar) => void;
+  item: Ciudad;
+  onSaved:   (l: Ciudad) => void;
   onDeleted: (id: string) => void;
   entities?: WikiEntity[];
   onSelectPersonaje?: (id: string) => void;
@@ -676,7 +676,7 @@ export function EditorLugar({
   onSelectItem?:      (id: string) => void;
   onNavigateReino?:   (id: string) => void;
 }) {
-  const [form,   setForm]   = useState<Lugar>(item);
+  const [form,   setForm]   = useState<Ciudad>(item);
   const [status, setStatus] = useState<SaveStatus>("idle");
   const { confirm, ConfirmModal } = useConfirm();
 
@@ -685,7 +685,7 @@ export function EditorLugar({
   const save = async () => {
     setStatus("saving");
     try {
-      const { error } = await supabase.from("lugares").update({
+      const { error } = await supabase.from("ciudades").update({
         nombre:      form.nombre,
         tipo:        form.tipo        || null,
         descripcion: form.descripcion || null,
@@ -697,7 +697,7 @@ export function EditorLugar({
       if (error) throw error;
       setStatus("saved");
       onSaved(form);
-      void dexiePut("lugares", form);
+      void dexiePut("ciudades", form);
       setTimeout(() => setStatus("idle"), 2000);
     } catch { setStatus("error"); }
   };
@@ -705,15 +705,15 @@ export function EditorLugar({
   const del = async () => {
     const ok = await confirm({ message: `¿Eliminar "${form.nombre}"?`, danger: true });
     if (!ok) return;
-    await supabase.from("lugares").delete().eq("id", form.id);
-    void dexieDel("lugares", form.id);
+    await supabase.from("ciudades").delete().eq("id", form.id);
+    void dexieDel("ciudades", form.id);
     onDeleted(form.id);
   };
 
   return (
     <>
       <ConfirmModal />
-      <FormularioLugar
+      <FormularioCiudad
         form={form}
         setForm={setForm}
         status={status}

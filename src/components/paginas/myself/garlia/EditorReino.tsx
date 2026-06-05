@@ -10,7 +10,7 @@ import { db } from "@/lib/api/client/db";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { type Reino, type SaveStatus, INPUT_CLS } from "@/components/paginas/myself/garlia/components/types";
 import { usePersonajesDelReino } from "@/components/paginas/myself/garlia/components/hooks";
-import { type Lugar } from "@/components/paginas/myself/garlia/EditorLugar";
+import { type Ciudad } from "@/components/paginas/myself/garlia/EditorCiudad";
 import { SaveIndicator } from "@/components/paginas/myself/garlia/components/UIComponents";
 import { MarkdownEditor, WikiEntity } from "../../../forms/MarkdownEditor";
 import { useWikilink } from "./components/WikilinkContext";
@@ -44,9 +44,9 @@ async function dexieWriteAll(tabla: string, rows: any[]): Promise<void> {
   } catch {}
 }
 
-// ─── Hook: lugares del reino ──────────────────────────────────────────────────
-function useLugaresDelReino(reinoId: string) {
-  const [lugares, setLugares] = useState<Lugar[]>([]);
+// ─── Hook: ciudades del reino ──────────────────────────────────────────────────
+function useCiudadesDelReino(reinoId: string) {
+  const [ciudades, setCiudades] = useState<Ciudad[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -54,35 +54,35 @@ function useLugaresDelReino(reinoId: string) {
       // Dexie primero
       try {
         if (db) {
-          const local: any[] = await (db as any).lugares?.toArray() ?? [];
+          const local: any[] = await (db as any).ciudades?.toArray() ?? [];
           const filtrados = local.filter((l: any) => l.reino_id === reinoId && !l.deleted);
-          if (filtrados.length && !cancelled) setLugares(filtrados);
+          if (filtrados.length && !cancelled) setCiudades(filtrados);
         }
       } catch {}
       if (!navigator.onLine) return;
       const { data } = await supabase
-        .from("lugares")
+        .from("ciudades")
         .select("id, nombre, descripcion, coord_x, coord_y, imagen_url, tipo, historia, secretos, reino_id")
         .eq("reino_id", reinoId)
         .order("nombre");
       if (!cancelled && data) {
-        setLugares(data as Lugar[]);
-        if (db) (db as any).lugares?.bulkPut(data).catch(() => {});
+        setCiudades(data as Ciudad[]);
+        if (db) (db as any).ciudades?.bulkPut(data).catch(() => {});
       }
     };
     run();
     return () => { cancelled = true; };
   }, [reinoId]);
 
-  return { lugares, setLugares };
+  return { ciudades, setCiudades };
 }
 
 
 function MapaConPuntos({ mapaUrl, onMapaChange, detalles, onDetallesChange }: {
   mapaUrl: string;
   onMapaChange: (url: string) => void;
-  detalles: Lugar[];
-  onDetallesChange: (d: Lugar[]) => void;
+  detalles: Ciudad[];
+  onDetallesChange: (d: Ciudad[]) => void;
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -220,7 +220,7 @@ function ImagePickerModal({ onSelect, onClose }: { onSelect: (url: string) => vo
 
 // ─── DetalleEditor ─────────────────────────────────────────────────────────────
 function DetalleEditor({ detalle, onSaved, onDeleted, onOpenEditor, entities = [] }: {
-  detalle: Lugar; onSaved: (d: Lugar) => void; onDeleted: (id: string) => void;
+  detalle: Ciudad; onSaved: (d: Ciudad) => void; onDeleted: (id: string) => void;
   onOpenEditor?: (id: string) => void;
   entities?: WikiEntity[];
 }) {
@@ -238,16 +238,16 @@ function DetalleEditor({ detalle, onSaved, onDeleted, onOpenEditor, entities = [
     }
   }, [detalle.coord_x, detalle.coord_y]);
 
-  const saveDetalle = async (data: Lugar) => {
+  const saveDetalle = async (data: Ciudad) => {
     setStatus("saving");
     try {
-      const { error } = await supabase.from("lugares").update({
+      const { error } = await supabase.from("ciudades").update({
         nombre: data.nombre, descripcion: data.descripcion,
         coord_x: data.coord_x, coord_y: data.coord_y,
       }).eq("id", data.id);
       if (error) throw error;
       setStatus("saved"); onSaved(data);
-      void dexiePut("lugares", data);
+      void dexiePut("ciudades", data);
       setTimeout(() => setStatus("idle"), 2000);
     } catch { setStatus("error"); }
   };
@@ -260,14 +260,14 @@ function DetalleEditor({ detalle, onSaved, onDeleted, onOpenEditor, entities = [
   const handleDelete = async () => {
     const ok = await confirm({ message: `¿Eliminar "${form.nombre}"?`, danger: true });
     if (!ok) return;
-    await supabase.from("lugares").delete().eq("id", form.id);
-    void dexieDel("lugares", form.id);
+    await supabase.from("ciudades").delete().eq("id", form.id);
+    void dexieDel("ciudades", form.id);
     onDeleted(form.id);
   };
 
   return (
     <div
-      className="rounded-lg overflow-hidden transition-all group/lugar"
+      className="rounded-lg overflow-hidden transition-all group/ciudad"
       style={{ border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, transparent)" }}
     >
       <ConfirmModal />
@@ -285,11 +285,11 @@ function DetalleEditor({ detalle, onSaved, onDeleted, onOpenEditor, entities = [
           onBlur={() => { if (!form.descripcion?.trim()) handleSave(); }}
           onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleSave(); nameRef.current?.blur(); } }}
           className="flex-1 min-w-0 bg-transparent text-[11px] font-black uppercase tracking-widest text-primary outline-none placeholder:text-primary/25 truncate"
-          placeholder="Nombre del lugar"
+          placeholder="Nombre de la ciudad"
         />
 
         {/* Acciones — visibles al hacer hover o al editar */}
-        <div className={`flex items-center gap-1 transition-opacity ${editing ? "opacity-100" : "opacity-0 group-hover/lugar:opacity-100"}`}>
+        <div className={`flex items-center gap-1 transition-opacity ${editing ? "opacity-100" : "opacity-0 group-hover/ciudad:opacity-100"}`}>
           <SaveIndicator status={status} />
           {editing && (
             <button
@@ -339,10 +339,10 @@ function DetalleEditor({ detalle, onSaved, onDeleted, onOpenEditor, entities = [
 }
 
 // ─── EditorReino ───────────────────────────────────────────────────────────────
-export function EditorReino({ item, onSaved, onDeleted, entities = [], onSelectPersonaje, onSelectLugar, onSelectCriatura, onSelectItem }: {
+export function EditorReino({ item, onSaved, onDeleted, entities = [], onSelectPersonaje, onSelectCiudad, onSelectCriatura, onSelectItem }: {
   item: Reino; onSaved: (r: Reino) => void; onDeleted: (id: string) => void; entities?: WikiEntity[];
   onSelectPersonaje?: (personaje: any) => void;
-  onSelectLugar?: (id: string) => void;
+  onSelectCiudad?: (id: string) => void;
   onSelectCriatura?: (id: string) => void;
   onSelectItem?: (id: string) => void;
 }) {
@@ -351,7 +351,7 @@ export function EditorReino({ item, onSaved, onDeleted, entities = [], onSelectP
   const [addingPoint, setAddingPoint] = useState(false);
   const [mobileAsideOpen, setMobileAsideOpen] = useState(false);
   const [newPointName, setNewPointName] = useState("");
-  const { lugares: detalles, setLugares: setDetalles } = useLugaresDelReino(item.id);
+  const { ciudades: detalles, setCiudades: setDetalles } = useCiudadesDelReino(item.id);
   const { confirm, ConfirmModal } = useConfirm();
   const { onSnippetAction } = useWikilink();
   const { personajes, setPersonajes, loading: loadingPersonajes } = usePersonajesDelReino(form.nombre);
@@ -383,15 +383,15 @@ export function EditorReino({ item, onSaved, onDeleted, entities = [], onSelectP
 
   const handleAddPoint = async () => {
     if (!newPointName.trim()) return;
-    const { data, error } = await supabase.from("lugares")
+    const { data, error } = await supabase.from("ciudades")
       .insert([{ reino_id: form.id, nombre: newPointName.trim(), coord_x: 50, coord_y: 50 }]).select().single();
-    if (!error && data) { setDetalles(prev => [...prev, data as Lugar]); void dexiePut("lugares", data); setAddingPoint(false); setNewPointName(""); }
+    if (!error && data) { setDetalles(prev => [...prev, data as Ciudad]); void dexiePut("ciudades", data); setAddingPoint(false); setNewPointName(""); }
   };
 
-  const handleDetallesMapChange = async (updated: Lugar[]) => {
+  const handleDetallesMapChange = async (updated: Ciudad[]) => {
     setDetalles(updated);
     await Promise.all(updated.map(d =>
-      supabase.from("lugares").update({ coord_x: d.coord_x, coord_y: d.coord_y }).eq("id", d.id)
+      supabase.from("ciudades").update({ coord_x: d.coord_x, coord_y: d.coord_y }).eq("id", d.id)
     ));
   };
 
@@ -483,7 +483,7 @@ export function EditorReino({ item, onSaved, onDeleted, entities = [], onSelectP
             setNewPointName={setNewPointName}
             onDetalleUpdate={d => setDetalles(prev => prev.map(x => x.id === d.id ? d : x))}
             onDetalleDelete={id => setDetalles(prev => prev.filter(x => x.id !== id))}
-            onOpenDetalleEditor={onSelectLugar}
+            onOpenDetalleEditor={onSelectCiudad}
             mapaUrl={form.mapa_url ?? ""}
             onMapaChange={url => setForm(f => ({ ...f, mapa_url: url }))}
             onDetallesArrayChange={handleDetallesMapChange}

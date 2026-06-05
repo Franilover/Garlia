@@ -34,26 +34,26 @@ async function dexieDel(tabla: string, id: string): Promise<void> {
 }
 
 
-// ─── Hook: lugares donde se encuentra la planta (planta_lugares) ──────────────
-type LugarMin = { id: string; nombre: string };
-type PlantaLugarRow = { rowId: string; lugarId: string; lugarNombre: string };
+// ─── Hook: ciudades donde se encuentra la planta (planta_ciudades) ──────────────
+type CiudadMin = { id: string; nombre: string };
+type PlantaCiudadRow = { rowId: string; ciudadId: string; ciudadNombre: string };
 
-function useLugaresPlanta(plantaId: string) {
-  const [rows, setRows] = useState<PlantaLugarRow[]>([]);
+function useCiudadesPlanta(plantaId: string) {
+  const [rows, setRows] = useState<PlantaCiudadRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
     const { data } = await supabase
-      .from("planta_lugares")
-      .select("id, lugar_id, lugares!lugar_id(nombre)")
+      .from("planta_ciudades")
+      .select("id, ciudad_id, ciudades!ciudad_id(nombre)")
       .eq("planta_id", plantaId);
 
     setRows(
       (data ?? []).map((r: any) => ({
         rowId:       r.id,
-        lugarId:     r.lugar_id,
-        lugarNombre: (Array.isArray(r.lugares) ? r.lugares[0]?.nombre : r.lugares?.nombre) ?? "—",
+        ciudadId:     r.ciudad_id,
+        ciudadNombre: (Array.isArray(r.ciudades) ? r.ciudades[0]?.nombre : r.ciudades?.nombre) ?? "—",
       }))
     );
     setLoading(false);
@@ -61,43 +61,43 @@ function useLugaresPlanta(plantaId: string) {
 
   useEffect(() => { load(); }, [load]);
 
-  const add = async (l: LugarMin) => {
-    if (rows.some(r => r.lugarId === l.id)) return;
+  const add = async (l: CiudadMin) => {
+    if (rows.some(r => r.ciudadId === l.id)) return;
     const { data, error } = await supabase
-      .from("planta_lugares")
-      .insert([{ planta_id: plantaId, lugar_id: l.id }])
+      .from("planta_ciudades")
+      .insert([{ planta_id: plantaId, ciudad_id: l.id }])
       .select().single();
     if (!error && data) {
-      setRows(prev => [...prev, { rowId: data.id, lugarId: l.id, lugarNombre: l.nombre }]);
+      setRows(prev => [...prev, { rowId: data.id, ciudadId: l.id, ciudadNombre: l.nombre }]);
     }
   };
 
   const remove = async (rowId: string) => {
-    await supabase.from("planta_lugares").delete().eq("id", rowId);
+    await supabase.from("planta_ciudades").delete().eq("id", rowId);
     setRows(prev => prev.filter(r => r.rowId !== rowId));
   };
 
   return { rows, loading, add, remove };
 }
 
-// ─── Panel selector de lugares ────────────────────────────────────────────────
-function PanelLugares({ plantaId, onNavigateLugar }: { plantaId: string; onNavigateLugar?: (id: string) => void }) {
-  const { rows, loading, add, remove } = useLugaresPlanta(plantaId);
-  const [allLugares, setAllLugares] = useState<LugarMin[]>([]);
+// ─── Panel selector de ciudades ────────────────────────────────────────────────
+function PanelCiudades({ plantaId, onNavigateCiudad }: { plantaId: string; onNavigateCiudad?: (id: string) => void }) {
+  const { rows, loading, add, remove } = useCiudadesPlanta(plantaId);
+  const [allCiudades, setAllCiudades] = useState<CiudadMin[]>([]);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    supabase.from("lugares").select("id, nombre").order("nombre")
-      .then(({ data }) => setAllLugares(data ?? []));
+    supabase.from("ciudades").select("id, nombre").order("nombre")
+      .then(({ data }) => setAllCiudades(data ?? []));
   }, []);
 
   const handleToggle = async (id: string, addIt: boolean) => {
     setSaving(true);
     if (addIt) {
-      const lugar = allLugares.find(l => l.id === id);
-      if (lugar) await add(lugar);
+      const ciudad = allCiudades.find(l => l.id === id);
+      if (ciudad) await add(ciudad);
     } else {
-      const row = rows.find(r => r.lugarId === id);
+      const row = rows.find(r => r.ciudadId === id);
       if (row) await remove(row.rowId);
     }
     setSaving(false);
@@ -105,16 +105,16 @@ function PanelLugares({ plantaId, onNavigateLugar }: { plantaId: string; onNavig
 
   return (
     <SeccionEntidad
-      label="Lugar donde encontrarla"
+      label="Ciudad donde encontrarla"
       icon={<MapPin size={9} />}
       fallbackIcon={<MapPin size={9} />}
-      emptyLabel="Ningún lugar asignado"
-      allEntities={allLugares}
-      selectedIds={rows.map(r => r.lugarId)}
+      emptyLabel="Ninguna ciudad asignada"
+      allEntities={allCiudades}
+      selectedIds={rows.map(r => r.ciudadId)}
       loading={loading}
       saving={saving}
       onToggle={handleToggle}
-      onEntityClick={onNavigateLugar}
+      onEntityClick={onNavigateCiudad}
     />
   );
 }
@@ -186,13 +186,13 @@ function PickerImagenPlantaBtn({ value, onChange }: { value: string; onChange: (
 // ─── EditorPlanta ─────────────────────────────────────────────────────────────
 
 export function EditorPlanta({
-  planta, onSaved, onDeleted, entities = [], onNavigateLugar, onNavigateReino,
+  planta, onSaved, onDeleted, entities = [], onNavigateCiudad, onNavigateReino,
 }: {
   planta: Planta;
   onSaved: (p: Planta) => void;
   onDeleted: (id: string) => void;
   entities?: WikiEntity[];
-  onNavigateLugar?: (id: string) => void;
+  onNavigateCiudad?: (id: string) => void;
   onNavigateReino?: (id: string) => void;
 }) {
   const [form,   setForm]   = useState<Planta>(planta);
@@ -311,7 +311,7 @@ export function EditorPlanta({
               </div>
             </div>
 
-            {/* Columna derecha: categoría + reinos + lugares + descripción */}
+            {/* Columna derecha: categoría + reinos + ciudades + descripción */}
             <div className="flex-1 min-w-0 space-y-4">
 
               <ComboSelector
@@ -325,7 +325,7 @@ export function EditorPlanta({
                 noneLabel="Sin categoría"
               />
 
-              {/* Reinos + Lugares en dos columnas */}
+              {/* Reinos + Ciudades en dos columnas */}
               <div className="flex flex-col sm:flex-row gap-4">
 
                 {/* Reinos */}
@@ -337,9 +337,9 @@ export function EditorPlanta({
                   />
                 </div>
 
-                {/* Lugares */}
+                {/* Ciudades */}
                 <div className="flex-1 min-w-0">
-                  <PanelLugares plantaId={form.id} onNavigateLugar={onNavigateLugar} />
+                  <PanelCiudades plantaId={form.id} onNavigateCiudad={onNavigateCiudad} />
                 </div>
 
               </div>

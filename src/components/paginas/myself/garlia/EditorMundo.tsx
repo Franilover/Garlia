@@ -17,7 +17,7 @@ import { EditorReino } from "./EditorReino";
 import { EditorPersonaje } from "./EditorPersonaje";
 import { EditorCriatura } from "./EditorCriatura";
 import { EditorItem } from "./EditorItem";
-import { EditorLugar, type Lugar } from "./EditorLugar";
+import { EditorCiudad, type Ciudad } from "./EditorCiudad";
 import { EditorPlanta, type Planta } from "./EditorPlanta";
 import { EditorHechizos } from "./EditorHechizos";
 import { type WikiEntity } from "../../../forms/MarkdownEditor";
@@ -66,12 +66,12 @@ async function dexieWriteAll(tabla: string, rows: any[]): Promise<void> {
 type CriaturaMin     = { id: string; nombre: string; imagen_url?: string; habitat?: string };
 type VarianteMin     = { id: string; tipo: string };
 type ObjetoMin       = { id: string; nombre: string; imagen_url?: string; categoria?: string };
-type LugarMin        = { id: string; nombre: string; imagen_url?: string; tipo?: string; reino_id?: string };
+type CiudadMin        = { id: string; nombre: string; imagen_url?: string; tipo?: string; reino_id?: string };
 type EntidadMagicaMin = { id: string; nombre: string };
 type RunaMin         = { id: string; nombre: string; imagen_url?: string | null };
 
 // ─── Hook genérico de carga: local (Dexie) → remoto (Supabase) ───────────────
-// Reemplaza useReinos, useCriaturas, useObjetos, useLugares, usePersonajesList,
+// Reemplaza useReinos, useCriaturas, useObjetos, useCiudades, usePersonajesList,
 // useEntidadesMagicas y useRunas, que eran idénticos salvo la tabla y el select.
 function useEntityList<T>(
   tablaLocal: string,
@@ -136,12 +136,12 @@ function useObjetos() {
   return { objetos: items, setObjetos: setItems, loading };
 }
 
-function useLugares() {
-  const { items, setItems, loading } = useEntityList<LugarMin>(
-    "lugares",
-    () => supabase.from("lugares").select("id, nombre, imagen_url, tipo, reino_id").order("nombre"),
+function useCiudades() {
+  const { items, setItems, loading } = useEntityList<CiudadMin>(
+    "ciudades",
+    () => supabase.from("ciudades").select("id, nombre, imagen_url, tipo, reino_id").order("nombre"),
   );
-  return { lugares: items, setLugares: setItems, loading };
+  return { ciudades: items, setCiudades: setItems, loading };
 }
 
 function usePersonajesList() {
@@ -1093,7 +1093,7 @@ export type EntityLabels = {
   criaturas?: string;
   personajes?: string;
   objetos?: string;
-  lugares?: string;
+  ciudades?: string;
   hechizos?: string;
   dones?: string;
   runas?: string;
@@ -1114,7 +1114,7 @@ const DEFAULT_ENTITY_LABELS: Required<EntityLabels> = {
   criaturas: "Criaturas",
   personajes: "Personajes",
   objetos: "Objetos",
-  lugares: "Lugares",
+  ciudades: "Ciudades",
   hechizos: "Hechizos",
   dones: "Dones",
   runas: "Runas",
@@ -1165,16 +1165,16 @@ export function EditorMundo({
 
 // ─── PlantaOverlay: carga la planta completa y renderiza EditorPlanta ──────────
 function PlantaOverlay({
-  plantaMin, allEntityNames, reinos, lugares,
-  onUpdated, onDeleted, onSelectLugar, onSelectReino,
+  plantaMin, allEntityNames, reinos, ciudades,
+  onUpdated, onDeleted, onSelectCiudad, onSelectReino,
 }: {
   plantaMin: PlantaMin;
   allEntityNames: WikiEntity[];
   reinos: Reino[];
-  lugares: LugarMin[];
+  ciudades: CiudadMin[];
   onUpdated: (p: any) => void;
   onDeleted: (id: string) => void;
-  onSelectLugar: (id: string) => void;
+  onSelectCiudad: (id: string) => void;
   onSelectReino: (id: string) => void;
 }) {
   const [planta, setPlanta] = useState<Planta | null>(null);
@@ -1199,7 +1199,7 @@ function PlantaOverlay({
       entities={allEntityNames}
       onSaved={(updated) => { setPlanta(updated); onUpdated(updated); }}
       onDeleted={onDeleted}
-      onNavigateLugar={onSelectLugar}
+      onNavigateCiudad={onSelectCiudad}
       onNavigateReino={onSelectReino}
     />
   );
@@ -1234,7 +1234,7 @@ function PanelListas({
   const { reinos,    setReinos,    loading: loadingReinos    } = useReinos();
   const { criaturas, setCriaturas, loading: loadingCriaturas } = useCriaturas();
   const { objetos,   setObjetos,   loading: loadingObjetos   } = useObjetos();
-  const { lugares,   setLugares,   loading: loadingLugares   } = useLugares();
+  const { ciudades,   setCiudades,   loading: loadingCiudades   } = useCiudades();
   const { personajes, setPersonajes, loading: loadingPersonajes } = usePersonajesList();
   const { items: hechizos, setItems: setHechizos, loading: loadingHechizos } = useEntityList<EntidadMagicaMin>(
     "hechizos",
@@ -1258,7 +1258,7 @@ function PanelListas({
   const [selectedReino,     setSelectedReino]     = useState<Reino | null>(null);
   const [selectedCriatura,  setSelectedCriatura]  = useState<{ id: string; nombre: string; imagen_url?: string; habitat?: string } | null>(null);
   const [selectedObjeto,    setSelectedObjeto]    = useState<{ id: string; nombre: string; imagen_url?: string; categoria?: string } | null>(null);
-  const [selectedLugar,     setSelectedLugar]     = useState<Lugar | null>(null);
+  const [selectedCiudad,     setSelectedCiudad]     = useState<Ciudad | null>(null);
   const [selectedPersonaje, setSelectedPersonaje] = useState<Personaje | null>(null);
   const [selectedHechizo,   setSelectedHechizo]   = useState<EntidadMagicaMin | null>(null);
   const [selectedDon,       setSelectedDon]       = useState<EntidadMagicaMin | null>(null);
@@ -1301,7 +1301,7 @@ function PanelListas({
   const selectReino     = useCallback((r: Reino | null)         => { setSelectedReino(r);     r ? persistOpenItem("reinos",     r.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
   const selectCriatura  = useCallback((c: any | null)           => { setSelectedCriatura(c);  c ? persistOpenItem("criaturas",  c.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
   const selectObjeto    = useCallback((o: any | null)           => { setSelectedObjeto(o);    o ? persistOpenItem("items",      o.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
-  const selectLugar     = useCallback((l: Lugar | null)         => { setSelectedLugar(l);     l ? persistOpenItem("lugares",    l.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
+  const selectCiudad     = useCallback((l: Ciudad | null)         => { setSelectedCiudad(l);     l ? persistOpenItem("ciudades",    l.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
   const selectPersonaje = useCallback((p: Personaje | null)     => { setSelectedPersonaje(p); p ? persistOpenItem("personajes", p.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
   const selectHechizo   = useCallback((h: EntidadMagicaMin | null) => { setSelectedHechizo(h);   h ? persistOpenItem("hechizos",   h.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
   const selectDon       = useCallback((d: EntidadMagicaMin | null) => { setSelectedDon(d);       d ? persistOpenItem("dones",      d.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
@@ -1311,11 +1311,11 @@ function PanelListas({
   const selectPlanta    = useCallback((p: PlantaMin | null)     => { setSelectedPlanta(p);    p ? persistOpenItem("plantas",     p.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
 
   // ── Overlay activo ────────────────────────────────────────────────────────
-  const overlay: "reino" | "criatura" | "objeto" | "personaje" | "hechizo" | "don" | "runa" | "nota" | "lugar" | "grupo" | "cancion" | "planta" | null =
+  const overlay: "reino" | "criatura" | "objeto" | "personaje" | "hechizo" | "don" | "runa" | "nota" | "ciudad" | "grupo" | "cancion" | "planta" | null =
     selectedReino     ? "reino"     :
     selectedCriatura  ? "criatura"  :
     selectedObjeto    ? "objeto"    :
-    selectedLugar     ? "lugar"     :
+    selectedCiudad     ? "ciudad"     :
     selectedPersonaje ? "personaje" :
     selectedHechizo   ? "hechizo"   :
     selectedDon       ? "don"       :
@@ -1329,7 +1329,7 @@ function PanelListas({
     setSelectedReino(null); setSelectedCriatura(null);
     setSelectedObjeto(null); setSelectedPersonaje(null);
     setSelectedHechizo(null); setSelectedDon(null); setSelectedRuna(null);
-    setSelectedNota(null); setSelectedLugar(null); setSelectedGrupo(null);
+    setSelectedNota(null); setSelectedCiudad(null); setSelectedGrupo(null);
     setSelectedCancion(null); setSelectedPlanta(null);
     clearPersistedItem();
   }, [clearPersistedItem]);
@@ -1344,12 +1344,12 @@ function PanelListas({
     ...criaturas .map(e => ({ name: e.nombre, type: "criatura"  })),
     ...objetos   .map(e => ({ name: e.nombre, type: "ítem"      })),
     ...reinos    .map(e => ({ name: e.nombre, type: "reino"     })),
-    ...lugares   .map(e => ({ name: e.nombre, type: "lugar"     })),
+    ...ciudades   .map(e => ({ name: e.nombre, type: "ciudad"     })),
     ...hechizos  .map(e => ({ name: e.nombre, type: "hechizo"   })),
     ...dones     .map(e => ({ name: e.nombre, type: "don"       })),
     ...runas     .map(e => ({ name: e.nombre, type: "runa"      })),
     ...plantas   .map(e => ({ name: e.nombre, type: "planta"    })),
-  ], [personajes, criaturas, objetos, reinos, lugares, hechizos, dones, runas, plantas]);
+  ], [personajes, criaturas, objetos, reinos, ciudades, hechizos, dones, runas, plantas]);
 
   // ── Restaurar item al montar ───────────────────────────────────────────────
   // Estrategia: Dexie primero (instantáneo) → Supabase si no hay datos locales
@@ -1388,7 +1388,7 @@ function PanelListas({
         else if (tabla === "hechizos")     setSelectedHechizo(data);
         else if (tabla === "dones")        setSelectedDon(data);
         else if (tabla === "runas")        setSelectedRuna(data);
-        else if (tabla === "lugares")      setSelectedLugar(data as Lugar);
+        else if (tabla === "ciudades")      setSelectedCiudad(data as Ciudad);
         else if (tabla === "grupos_mundo") setSelectedGrupo({ ...data, miembro_ids: data.miembro_ids ?? [] } as Grupo);
         else if (tabla === "canciones")    setSelectedCancion(data as Cancion);
         else if (tabla === "plantas")      setSelectedPlanta(data as PlantaMin);
@@ -1409,7 +1409,7 @@ function PanelListas({
     else if (tabla === "criaturas")  found = criaturas.find(x => x.id === id);
     else if (tabla === "items")      found = objetos.find(x => x.id === id);
     else if (tabla === "reinos")     found = reinos.find(x => x.id === id);
-    else if (tabla === "lugares")    found = lugares.find(x => x.id === id);
+    else if (tabla === "ciudades")    found = ciudades.find(x => x.id === id);
     else if (tabla === "hechizos")   found = hechizos.find(x => x.id === id);
     else if (tabla === "dones")      found = dones.find(x => x.id === id);
     else if (tabla === "runas")      found = runas.find(x => x.id === id);
@@ -1423,7 +1423,7 @@ function PanelListas({
     else if (tabla === "criaturas")  setSelectedCriatura(found);
     else if (tabla === "items")      setSelectedObjeto(found);
     else if (tabla === "reinos")     setSelectedReino(found);
-    else if (tabla === "lugares")    setSelectedLugar(found);
+    else if (tabla === "ciudades")    setSelectedCiudad(found);
     else if (tabla === "hechizos")   setSelectedHechizo(found);
     else if (tabla === "dones")      setSelectedDon(found);
     else if (tabla === "runas")      setSelectedRuna(found);
@@ -1432,7 +1432,7 @@ function PanelListas({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openItem,
       personajes.length, criaturas.length, objetos.length, reinos.length,
-      lugares.length, hechizos.length, dones.length, runas.length, canciones.length, plantas.length]); // <--- AÑADIDA DEPENDENCIA
+      ciudades.length, hechizos.length, dones.length, runas.length, canciones.length, plantas.length]); // <--- AÑADIDA DEPENDENCIA
 
 // ── onItemCreated ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -1442,7 +1442,7 @@ function PanelListas({
     else if (tabla === "criaturas")  setCriaturas(p  => p.some(x => x.id === item.id) ? p : [item, ...p]);
     else if (tabla === "items")      setObjetos(p    => p.some(x => x.id === item.id) ? p : [item, ...p]);
     else if (tabla === "reinos")     setReinos(p     => p.some(x => x.id === item.id) ? p : [item, ...p]);
-    else if (tabla === "lugares")    setLugares(p    => p.some(x => x.id === item.id) ? p : [item, ...p]);
+    else if (tabla === "ciudades")    setCiudades(p    => p.some(x => x.id === item.id) ? p : [item, ...p]);
     else if (tabla === "hechizos")   setHechizos(p   => p.some(x => x.id === item.id) ? p : [item, ...p]);
     else if (tabla === "dones")      setDones(p      => p.some(x => x.id === item.id) ? p : [item, ...p]);
     else if (tabla === "runas")      setRunas(p      => p.some(x => x.id === item.id) ? p : [item, ...p]);
@@ -1451,7 +1451,7 @@ function PanelListas({
     else if (tabla === "criaturas")  setSelectedCriatura(item);
     else if (tabla === "items")      setSelectedObjeto(item);
     else if (tabla === "reinos")     setSelectedReino(item);
-    else if (tabla === "lugares")    setSelectedLugar(item);
+    else if (tabla === "ciudades")    setSelectedCiudad(item);
     else if (tabla === "hechizos")   setSelectedHechizo(item);
     else if (tabla === "dones")      setSelectedDon(item);
     else if (tabla === "runas")      setSelectedRuna(item);
@@ -1459,18 +1459,18 @@ function PanelListas({
     else if (tabla === "plantas")    { setPlantas(p => p.some(x => x.id === item.id) ? p : [item, ...p]); setSelectedPlanta(item); }
   }, [onItemCreated]);
 
-  // ── nuevo-lugar / nueva-nota actions ─────────────────────────────────────
+  // ── nuevo-ciudad / nueva-nota actions ─────────────────────────────────────
   useEffect(() => {
     const check = () => {
       const action = localStorage.getItem("estudio-listas-action");
-      if (action !== "nuevo-lugar") return;
+      if (action !== "nuevo-ciudad") return;
       localStorage.removeItem("estudio-listas-action");
       (async () => {
         try {
-          const { data, error } = await supabase.from("lugares").insert([{ nombre: "Nuevo lugar" }]).select("*").single();
+          const { data, error } = await supabase.from("ciudades").insert([{ nombre: "Nuevo ciudad" }]).select("*").single();
           if (error || !data) return;
-          setLugares(prev => [data as LugarMin, ...prev]);
-          setSelectedLugar(data as Lugar);
+          setCiudades(prev => [data as CiudadMin, ...prev]);
+          setSelectedCiudad(data as Ciudad);
         } catch {}
       })();
     };
@@ -1580,12 +1580,12 @@ function PanelListas({
                   if (!found) return;
                   clearAllOverlays(); setSelectedPersonaje(found);
                 }}
-                onSelectLugar={async (id: string) => {
-                  const local = lugares.find(x => x.id === id);
+                onSelectCiudad={async (id: string) => {
+                  const local = ciudades.find(x => x.id === id);
                   clearAllOverlays();
-                  if (local) { setSelectedLugar(local as Lugar); return; }
-                  const { data } = await supabase.from("lugares").select("*").eq("id", id).single();
-                  if (data) setSelectedLugar(data as Lugar);
+                  if (local) { setSelectedCiudad(local as Ciudad); return; }
+                  const { data } = await supabase.from("ciudades").select("*").eq("id", id).single();
+                  if (data) setSelectedCiudad(data as Ciudad);
                 }}
                 onSelectCriatura={id => { const c = criaturas.find(x => x.id === id); if (!c) return; clearAllOverlays(); setSelectedCriatura(c); }}
                 onSelectItem={id => { const o = objetos.find(x => x.id === id); if (!o) return; clearAllOverlays(); setSelectedObjeto(o); }}
@@ -1605,12 +1605,12 @@ function PanelListas({
                   const { data } = await supabase.from("grupos_mundo").select("*").eq("id", id).single();
                   if (data) selectGrupo({ ...data, miembro_ids: data.miembro_ids ?? [] } as Grupo);
                 }}
-                onNavigateLugar={async (id) => {
-                  const local = lugares.find(x => x.id === id);
+                onNavigateCiudad={async (id) => {
+                  const local = ciudades.find(x => x.id === id);
                   clearAllOverlays();
-                  if (local) { selectLugar(local); return; }
-                  const { data } = await supabase.from("lugares").select("*").eq("id", id).single();
-                  if (data) selectLugar(data as Lugar);
+                  if (local) { selectCiudad(local); return; }
+                  const { data } = await supabase.from("ciudades").select("*").eq("id", id).single();
+                  if (data) selectCiudad(data as Ciudad);
                 }}
                 onNavigateReino={async (id) => {
                   const local = reinos.find(x => x.id === id);
@@ -1627,12 +1627,12 @@ function PanelListas({
                 onSaved={u => { setObjetos(p => p.map(o => o.id === u.id ? { ...o, ...u } : o)); setSelectedObjeto({ ...selectedObjeto, ...u }); }}
                 onDeleted={id => { setObjetos(p => p.filter(o => o.id !== id)); setSelectedObjeto(null); }}
                 onSelectCriatura={id => { const c = criaturas.find(x => x.id === id); if (!c) return; clearAllOverlays(); setSelectedCriatura(c); }}
-                onNavigateLugar={async (id) => {
-                  const local = lugares.find(x => x.id === id);
+                onNavigateCiudad={async (id) => {
+                  const local = ciudades.find(x => x.id === id);
                   clearAllOverlays();
-                  if (local) { selectLugar(local); return; }
-                  const { data } = await supabase.from("lugares").select("*").eq("id", id).single();
-                  if (data) selectLugar(data as Lugar);
+                  if (local) { selectCiudad(local); return; }
+                  const { data } = await supabase.from("ciudades").select("*").eq("id", id).single();
+                  if (data) selectCiudad(data as Ciudad);
                 }}
                 onNavigateReino={async (id) => {
                   const local = reinos.find(x => x.id === id);
@@ -1643,11 +1643,11 @@ function PanelListas({
                 }}
               />
             )}
-            {overlay === "lugar" && selectedLugar && (
-              <EditorLugar key={selectedLugar.id} item={selectedLugar as Lugar}
+            {overlay === "ciudad" && selectedCiudad && (
+              <EditorCiudad key={selectedCiudad.id} item={selectedCiudad as Ciudad}
                 entities={allEntityNames}
-                onSaved={u => { setLugares(p => p.map(l => l.id === u.id ? { ...l, ...u } : l)); setSelectedLugar({ ...selectedLugar, ...u }); }}
-                onDeleted={id => { setLugares(p => p.filter(l => l.id !== id)); setSelectedLugar(null); }}
+                onSaved={u => { setCiudades(p => p.map(l => l.id === u.id ? { ...l, ...u } : l)); setSelectedCiudad({ ...selectedCiudad, ...u }); }}
+                onDeleted={id => { setCiudades(p => p.filter(l => l.id !== id)); setSelectedCiudad(null); }}
                 onSelectPersonaje={id => { const p = personajes.find(x => x.id === id); if (!p) return; clearAllOverlays(); setSelectedPersonaje(p); }}
                 onSelectCriatura={id => { const c = criaturas.find(x => x.id === id); if (!c) return; clearAllOverlays(); setSelectedCriatura(c); }}
                 onSelectItem={id => { const o = objetos.find(x => x.id === id); if (!o) return; clearAllOverlays(); setSelectedObjeto(o); }}
@@ -1739,15 +1739,15 @@ function PanelListas({
                   plantaMin={selectedPlanta}
                   allEntityNames={allEntityNames}
                   reinos={reinos}
-                  lugares={lugares}
+                  ciudades={ciudades}
                   onUpdated={(updated) => { setPlantas(p => p.map(x => x.id === updated.id ? { ...x, ...updated } : x)); setSelectedPlanta({ ...selectedPlanta, ...updated }); }}
                   onDeleted={(id) => { setPlantas(p => p.filter(x => x.id !== id)); setSelectedPlanta(null); }}
-                  onSelectLugar={async (id) => {
-                    const local = lugares.find(x => x.id === id);
+                  onSelectCiudad={async (id) => {
+                    const local = ciudades.find(x => x.id === id);
                     clearAllOverlays();
-                    if (local) { setSelectedLugar(local as Lugar); return; }
-                    const { data } = await supabase.from("lugares").select("*").eq("id", id).single();
-                    if (data) setSelectedLugar(data as Lugar);
+                    if (local) { setSelectedCiudad(local as Ciudad); return; }
+                    const { data } = await supabase.from("ciudades").select("*").eq("id", id).single();
+                    if (data) setSelectedCiudad(data as Ciudad);
                   }}
                   onSelectReino={async (id) => {
                     const local = reinos.find(x => x.id === id);
@@ -1794,11 +1794,11 @@ function PanelListas({
             </SeccionEntidades>
             <div className={div} style={divStyle} />
 
-            <SeccionEntidades icon={MapPin} label={el.lugares} count={lugares.length} loading={loadingLugares}>
-              {lugares.map(l => (
+            <SeccionEntidades icon={MapPin} label={el.ciudades} count={ciudades.length} loading={loadingCiudades}>
+              {ciudades.map(l => (
                 <Chip key={l.id} onClick={async () => {
-                  try { const { data } = await supabase.from("lugares").select("*").eq("id", l.id).single(); if (data) { selectLugar(data as Lugar); return; } } catch {}
-                  selectLugar(l as Lugar);
+                  try { const { data } = await supabase.from("ciudades").select("*").eq("id", l.id).single(); if (data) { selectCiudad(data as Ciudad); return; } } catch {}
+                  selectCiudad(l as Ciudad);
                 }} imgUrl={l.imagen_url} icon={MapPin} nombre={l.nombre} />
               ))}
             </SeccionEntidades>

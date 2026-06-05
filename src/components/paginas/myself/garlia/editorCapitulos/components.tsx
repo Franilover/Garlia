@@ -1047,17 +1047,17 @@ function useItems() {
   return { items, loading };
 }
 
-function useLugares() {
-  const [lugares, setLugares] = useState<{ id: string; nombre: string; imagen_url?: string | null }[]>([]);
+function useCiudades() {
+  const [ciudades, setCiudades] = useState<{ id: string; nombre: string; imagen_url?: string | null }[]>([]);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     (async () => {
       // 1️⃣ Dexie first
       try {
-        const table = (db as any)["lugares"];
+        const table = (db as any)["ciudades"];
         if (table) {
           const local = await table.orderBy("nombre").toArray();
-          if (local.length > 0) { setLugares(local); setLoading(false); }
+          if (local.length > 0) { setCiudades(local); setLoading(false); }
         }
       } catch {}
 
@@ -1066,11 +1066,11 @@ function useLugares() {
 
       // 3️⃣ Refresh from Supabase and update cache
       try {
-        const { data } = await supabase.from("lugares").select("id, nombre, imagen_url").order("nombre");
+        const { data } = await supabase.from("ciudades").select("id, nombre, imagen_url").order("nombre");
         if (data) {
-          setLugares(data as any[]);
+          setCiudades(data as any[]);
           try {
-            const table = (db as any)["lugares"];
+            const table = (db as any)["ciudades"];
             if (table) await table.bulkPut(data);
           } catch {}
         }
@@ -1078,7 +1078,7 @@ function useLugares() {
       setLoading(false);
     })();
   }, []);
-  return { lugares, loading };
+  return { ciudades, loading };
 }
 
 // ─── PanelPersonajesCapitulo (Personajes + Criaturas + Items en vertical) ─────
@@ -1123,10 +1123,10 @@ export const PanelPersonajesCapitulo = ({
   const [savingReino, setSavingReino] = useState(false);
   const reinoRef = useRef<HTMLDivElement>(null);
 
-  // ── Lugares del capítulo ──────────────────────────────────────────────────
-  const { lugares, loading: loadingLugares } = useLugares();
-  const [lugaresIds,  setLugaresIds]  = useState<string[]>([]);
-  const [savingLugar, setSavingLugar] = useState(false);
+  // ── Ciudades del capítulo ──────────────────────────────────────────────────
+  const { ciudades, loading: loadingCiudades } = useCiudades();
+  const [ciudadesIds,  setCiudadesIds]  = useState<string[]>([]);
+  const [savingCiudad, setSavingCiudad] = useState(false);
 
   // ── Visibilidad del capítulo ──────────────────────────────────────────────
   const [visibilidad,   setVisibilidad]   = useState<"publico" | "programado" | "oculto">("oculto");
@@ -1138,13 +1138,13 @@ export const PanelPersonajesCapitulo = ({
     if (!capId) return;
     supabase
       .from("capitulos")
-      .select("orden_linea_tiempo, reinos_ids, visibilidad, fecha_publicacion, lugares_ids")
+      .select("orden_linea_tiempo, reinos_ids, visibilidad, fecha_publicacion, ciudades_ids")
       .eq("id", capId)
       .single()
       .then(({ data }) => {
         setOrdenLinea(data?.orden_linea_tiempo != null ? String(data.orden_linea_tiempo) : "");
         setReinosIds(data?.reinos_ids ?? []);
-        setLugaresIds(data?.lugares_ids ?? []);
+        setCiudadesIds(data?.ciudades_ids ?? []);
         setVisibilidad(data?.visibilidad ?? "oculto");
         setFechaProg(data?.fecha_publicacion ? data.fecha_publicacion.slice(0, 10) : "");
       });
@@ -1158,12 +1158,12 @@ export const PanelPersonajesCapitulo = ({
     setSavingReino(false);
   };
 
-  const handleToggleLugar = async (id: string, add: boolean) => {
-    const next = add ? [...lugaresIds, id] : lugaresIds.filter(x => x !== id);
-    setLugaresIds(next);
-    setSavingLugar(true);
-    try { await capUpdateMeta(capId, { lugares_ids: next } as any); } catch {}
-    setSavingLugar(false);
+  const handleToggleCiudad = async (id: string, add: boolean) => {
+    const next = add ? [...ciudadesIds, id] : ciudadesIds.filter(x => x !== id);
+    setCiudadesIds(next);
+    setSavingCiudad(true);
+    try { await capUpdateMeta(capId, { ciudades_ids: next } as any); } catch {}
+    setSavingCiudad(false);
   };
 
   const handleSaveVisibilidad = async (v: "publico" | "programado" | "oculto") => {
@@ -1299,23 +1299,23 @@ export const PanelPersonajesCapitulo = ({
         />
       </div>
 
-      {/* ── Lugares ──────────────────────────────────────────────────────── */}
+      {/* ── Ciudades ──────────────────────────────────────────────────────── */}
       <div
         className="shrink-0 border-b"
         style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
       >
         <SeccionEntidad
-          label="Lugares"
+          label="Ciudades"
           icon={<MapPin size={9} />}
           fallbackIcon={<MapPin size={10} />}
-          emptyLabel="Sin lugares"
+          emptyLabel="Sin ciudades"
           capId={capId}
-          allEntities={lugares.map(l => ({ id: l.id, nombre: l.nombre, imagen_url: l.imagen_url ?? undefined }))}
-          selectedIds={lugaresIds}
-          loading={loadingLugares}
-          saving={savingLugar}
-          onToggle={handleToggleLugar}
-          onEntityClick={(id) => dispatchOpen("lugares", id)}
+          allEntities={ciudades.map(l => ({ id: l.id, nombre: l.nombre, imagen_url: l.imagen_url ?? undefined }))}
+          selectedIds={ciudadesIds}
+          loading={loadingCiudades}
+          saving={savingCiudad}
+          onToggle={handleToggleCiudad}
+          onEntityClick={(id) => dispatchOpen("ciudades", id)}
         />
       </div>
 
