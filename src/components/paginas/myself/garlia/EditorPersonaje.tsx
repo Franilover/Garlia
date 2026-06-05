@@ -694,9 +694,7 @@ export function FormularioPersonaje({
       </div>
 
       {/* ── Tab content ─────────────────────────────────────────────────────── */}
-      <div className="flex-1 min-h-0 overflow-hidden flex">
-
-        <div className="flex-1 overflow-y-auto min-h-0">
+      <div className="flex-1 min-h-0 overflow-y-auto">
 
           {/* IDENTIDAD */}
           <div className="p-3">
@@ -960,62 +958,35 @@ export function FormularioPersonaje({
                     </div>
                   )}
 
+                  {/* ── Bloques laterales — solo desktop, inline ───────────────── */}
+                  <div className="hidden sm:block mt-4 space-y-3">
+                    <BloqueGruposPersonaje personajeId={form.id} onOpenGrupo={onOpenGrupo} />
+
+                    <BloqueRelaciones personajeId={form.id} onSelectPersonaje={onSelectPersonaje} />
+
+                    <div className="rounded-xl overflow-hidden border border-primary/10">
+                      <div className="flex items-center gap-2 px-3 py-2 border-b border-primary/[0.06] bg-primary/[0.03]">
+                        <BookOpen size={10} className="text-primary/40" />
+                        <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">Capítulos</span>
+                      </div>
+                      <BloqueCapsAparece personajeId={form.id} />
+                    </div>
+
+                    <SeccionHechizos personajeId={form.id} grupoIds={grupoIds} />
+
+                    <div className="rounded-xl overflow-hidden border border-primary/10">
+                      <div className="flex items-center gap-2 px-3 py-2 border-b border-primary/[0.06] bg-primary/[0.03]">
+                        <Music2 size={10} className="text-primary/40" />
+                        <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">Canciones</span>
+                      </div>
+                      <BloqueCanciones personajeId={form.id} nombrePersonaje={form.nombre ?? ""} onSelect={onSelectCancion} />
+                    </div>
+                  </div>
+
                 </div>
               </div>
             </div>
           </div>
-
-      {/* ── BARRA LATERAL — desktop ──────────────────────────────────────────── */}
-      <aside
-        className="hidden sm:flex shrink-0 flex-col border-l overflow-y-auto overflow-x-hidden"
-        style={{
-          width: "176px",
-          borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)",
-          background: "color-mix(in srgb, var(--primary) 0.5%, transparent)",
-          scrollbarWidth: "none",
-        }}
-      >
-        {/* Grupos */}
-        <div className="p-2">
-          <BloqueGruposPersonaje personajeId={form.id} onOpenGrupo={onOpenGrupo} />
-        </div>
-
-        <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
-
-        {/* Relaciones */}
-        <div className="p-2">
-          <BloqueRelaciones personajeId={form.id} onSelectPersonaje={onSelectPersonaje} />
-        </div>
-
-        <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
-
-        {/* Capítulos */}
-        <div className="rounded-none overflow-hidden">
-          <div className="flex items-center gap-2 px-3 py-2 border-b border-primary/[0.06] bg-primary/[0.03]">
-            <BookOpen size={10} className="text-primary/40" />
-            <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">Capítulos</span>
-          </div>
-          <BloqueCapsAparece personajeId={form.id} />
-        </div>
-
-        <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
-
-        {/* Hechizos */}
-        <SeccionHechizos personajeId={form.id} grupoIds={grupoIds} />
-
-        <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
-
-        {/* Canciones */}
-        <div className="rounded-none overflow-hidden">
-          <div className="flex items-center gap-2 px-3 py-2 border-b border-primary/[0.06] bg-primary/[0.03]">
-            <Music2 size={10} className="text-primary/40" />
-            <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">Canciones</span>
-          </div>
-          <BloqueCanciones personajeId={form.id} nombrePersonaje={form.nombre ?? ""} onSelect={onSelectCancion} />
-        </div>
-      </aside>
-
-      </div>
 
       {mobileAsideOpen && (
         <div className="sm:hidden fixed inset-0 z-50 flex justify-end">
