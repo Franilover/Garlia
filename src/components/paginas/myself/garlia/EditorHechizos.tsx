@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
-  Sparkles, Star, Plus, Trash2, Save, Loader2, Search, X, Layers, Check, ScrollText,
+  Sparkles, Star, Plus, Trash2, Save, Loader2, Search, X, Layers, Check, ScrollText, Camera,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
@@ -11,6 +11,39 @@ import { type SaveStatus } from "./components/types";
 import { SaveIndicator, SelectorImagen } from "./components/UIComponents";
 import { MarkdownEditor } from "../../../forms/MarkdownEditor";
 import { useWikilink } from "./components/WikilinkContext";
+import SimpleImagePicker from "@/components/paginas/myself/garlia/editorCapitulos/snippets//forms/SimpleImagePicker";
+
+// ─── Botón mobile para cambiar imagen de una runa ────────────────────────────
+function PickerImagenRunaBtn({ value, onChange, color, Icon }: {
+  value: string;
+  onChange: (url: string) => void;
+  color: string;
+  Icon: React.ElementType;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      {open && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setOpen(false)}>
+          <div className="bg-white-custom rounded-2xl shadow-2xl border border-primary/15 w-full max-w-lg p-5" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-2"><Camera size={11} /> Imagen de la runa</h3>
+              <button onClick={() => setOpen(false)} className="text-primary/30 hover:text-primary transition-colors"><X size={16} /></button>
+            </div>
+            <SimpleImagePicker onSelect={url => { onChange(url); setOpen(false); }} onClose={() => setOpen(false)} />
+          </div>
+        </div>
+      )}
+      <button
+        onClick={() => setOpen(true)}
+        className="flex items-center justify-center w-8 h-8 rounded-full bg-bg-main/80 backdrop-blur-sm border border-primary/20 text-primary/50 hover:text-primary hover:bg-bg-main transition-all shadow-md"
+        title="Cambiar imagen"
+      >
+        <Camera size={13} />
+      </button>
+    </>
+  );
+}
 
 // ─── Dexie helpers ────────────────────────────────────────────────────────────
 async function dexiePut(tabla: string, row: any): Promise<void> {
@@ -88,10 +121,9 @@ function useEntidadesMagicas(modo: Modo) {
   const [loading, setLoading] = useState(true);
   const load = useCallback(async () => {
     const tabla = CONFIG[modo].tabla;
-    // Runas no tienen grupo_ids en la DB
     const selectFields = modo === "runas"
       ? "id, nombre, explicacion, imagen_url"
-      : "id, nombre, explicacion, grupo_ids";
+      : "id, nombre, explicacion, grupo_ids, imagen_url";
     const local = await dexieReadAll<EntidadMagica>(tabla);
     if (local.length) { setItems(local); setLoading(false); }
     if (!navigator.onLine) { if (!local.length) setLoading(false); return; }
@@ -376,7 +408,8 @@ function FormularioMagico({ item, modo, grupos, loadingGrupos, onSaved, onDelete
         explicacion: form.explicacion || null,
       };
       if (modo !== "runas") {
-        updatePayload.grupo_ids = form.grupo_ids ?? [];
+        updatePayload.grupo_ids  = form.grupo_ids ?? [];
+        updatePayload.imagen_url = (form as any).imagen_url || null;
       } else {
         updatePayload.imagen_url = (form as any).imagen_url || null;
       }
@@ -441,7 +474,23 @@ function FormularioMagico({ item, modo, grupos, loadingGrupos, onSaved, onDelete
             {/* Columna izquierda: imagen */}
             <div className="shrink-0 sm:w-48 p-4 sm:border-r flex flex-col gap-3"
               style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-              <div className="w-full sm:w-full mx-auto" style={{ maxWidth: "10rem" }}>
+              {/* Mobile: imagen grande con botón flotante */}
+              <div className="sm:hidden relative w-full rounded-xl overflow-hidden border border-primary/10 bg-primary/3" style={{ aspectRatio: "1 / 1" }}>
+                {(form as any).imagen_url
+                  ? <img src={(form as any).imagen_url} alt={form.nombre} className="w-full h-full object-cover" />
+                  : <div className="w-full h-full flex items-center justify-center"><cfg.Icon size={48} style={{ color: cfg.color, opacity: 0.15 }} /></div>
+                }
+                <div className="absolute top-2 right-2 z-10">
+                  <PickerImagenRunaBtn
+                    value={(form as any).imagen_url ?? ""}
+                    onChange={url => setForm(f => ({ ...f, imagen_url: url } as any))}
+                    color={cfg.color}
+                    Icon={cfg.Icon}
+                  />
+                </div>
+              </div>
+              {/* Desktop: selector normal */}
+              <div className="hidden sm:block w-full mx-auto" style={{ maxWidth: "10rem" }}>
                 <SelectorImagen
                   label="Imagen"
                   value={(form as any).imagen_url ?? ""}
@@ -473,28 +522,66 @@ function FormularioMagico({ item, modo, grupos, loadingGrupos, onSaved, onDelete
           </div>
         </div>
       ) : (
-        /* Hechizos / Dones: layout original con grupos */
-        <div className="flex-1 overflow-y-auto min-h-0 p-4 space-y-5">
-          <PanelGruposAsignados
-            entidadId={form.id}
-            modo={modo}
-            grupoIds={form.grupo_ids ?? []}
-            onGrupoIdsChange={ids => setForm(f => ({ ...f, grupo_ids: ids }))}
-            grupos={grupos}
-            loadingGrupos={loadingGrupos}
-            color={cfg.color}
-          />
-          <div className="space-y-1.5">
-            <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">Explicación</label>
-            <MarkdownEditor
-              value={form.explicacion ?? ""}
-              onChange={v => setForm(f => ({ ...f, explicacion: v }))}
-              rows={14}
-              placeholder={cfg.placeholder}
-              toolbar
-              defaultMode="edit"
-              onSnippetAction={onSnippetAction}
-            />
+        /* Hechizos / Dones: layout dos columnas — imagen izquierda, grupos+explicación derecha */
+        <div className="flex-1 overflow-y-auto min-h-0">
+          <div className="flex flex-col sm:flex-row gap-0 h-full">
+            {/* Columna izquierda: imagen */}
+            <div className="shrink-0 sm:w-48 p-4 sm:border-r flex flex-col gap-3"
+              style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+              {/* Mobile: imagen grande con botón flotante */}
+              <div className="sm:hidden relative w-full rounded-xl overflow-hidden border border-primary/10 bg-primary/3" style={{ aspectRatio: "1 / 1" }}>
+                {(form as any).imagen_url
+                  ? <img src={(form as any).imagen_url} alt={form.nombre} className="w-full h-full object-cover" />
+                  : <div className="w-full h-full flex items-center justify-center"><cfg.Icon size={48} style={{ color: cfg.color, opacity: 0.15 }} /></div>
+                }
+                <div className="absolute top-2 right-2 z-10">
+                  <PickerImagenRunaBtn
+                    value={(form as any).imagen_url ?? ""}
+                    onChange={url => setForm(f => ({ ...f, imagen_url: url } as any))}
+                    color={cfg.color}
+                    Icon={cfg.Icon}
+                  />
+                </div>
+              </div>
+              {/* Desktop: selector normal */}
+              <div className="hidden sm:block w-full mx-auto" style={{ maxWidth: "10rem" }}>
+                <SelectorImagen
+                  label="Imagen"
+                  value={(form as any).imagen_url ?? ""}
+                  onChange={url => setForm(f => ({ ...f, imagen_url: url } as any))}
+                  aspect="square"
+                  placeholder={<cfg.Icon size={28} style={{ color: cfg.color, opacity: 0.4 }} />}
+                />
+              </div>
+              <p className="text-[9px] font-black uppercase tracking-[0.25em] text-center truncate"
+                style={{ color: `color-mix(in srgb, ${cfg.color} 50%, transparent)` }}>
+                {form.nombre || `${cfg.labelSing} sin nombre`}
+              </p>
+            </div>
+            {/* Columna derecha: grupos + explicación */}
+            <div className="flex-1 min-w-0 p-4 space-y-4">
+              <PanelGruposAsignados
+                entidadId={form.id}
+                modo={modo}
+                grupoIds={form.grupo_ids ?? []}
+                onGrupoIdsChange={ids => setForm(f => ({ ...f, grupo_ids: ids }))}
+                grupos={grupos}
+                loadingGrupos={loadingGrupos}
+                color={cfg.color}
+              />
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">Explicación</label>
+                <MarkdownEditor
+                  value={form.explicacion ?? ""}
+                  onChange={v => setForm(f => ({ ...f, explicacion: v }))}
+                  rows={14}
+                  placeholder={cfg.placeholder}
+                  toolbar
+                  defaultMode="edit"
+                  onSnippetAction={onSnippetAction}
+                />
+              </div>
+            </div>
           </div>
         </div>
       )}
