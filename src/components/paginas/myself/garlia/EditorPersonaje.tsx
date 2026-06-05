@@ -484,7 +484,6 @@ function SeccionHechizos({ personajeId, grupoIds }: { personajeId: string; grupo
     </div>
   );
 }
-
 // ─── FormularioPersonaje ──────────────────────────────────────────────────────
 export function FormularioPersonaje({
   form, setForm, status, onSave, onDelete, compacto = false, entities = [], onNavigate, onSelectPersonaje, onOpenGrupo, onNavigateLugar,
@@ -508,9 +507,6 @@ export function FormularioPersonaje({
   const variantes  = useCriaturaVariantesPorNombre(form.especie);
   const grupoIds   = useGruposDeCriaturaPorNombre(form.especie);
 
-  // Filtrar lugares según el reino seleccionado:
-  // - Con reino → solo los lugares que pertenecen a ese reino
-  // - Sin reino → solo los lugares sin reino asignado
   const reinoSeleccionadoId = reinosMin.find(r => r.nombre === form.reino)?.id ?? null;
   const lugaresFiltrados = lugares.filter(l =>
     reinoSeleccionadoId ? l.reino_id === reinoSeleccionadoId : !l.reino_id
@@ -525,9 +521,7 @@ export function FormularioPersonaje({
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
 
       {/* ── Fixed header ───────────────────────────────────────────────────── */}
-      <div
-        className="shrink-0 flex items-center gap-2 px-3 py-2 border-b border-primary/10 bg-primary/[0.03]"
-      >
+      <div className="shrink-0 flex items-center gap-2 px-3 py-2 border-b border-primary/10 bg-primary/[0.03]">
         <div className="shrink-0 w-8 h-8 rounded-lg overflow-hidden border border-primary/15 bg-primary/5 flex items-center justify-center">
           {form.img_url
             ? <img src={form.img_url} alt={form.nombre} className="w-full h-full object-cover" />
@@ -571,81 +565,138 @@ export function FormularioPersonaje({
 
       {/* ── Tab content ─────────────────────────────────────────────────────── */}
       <div className="flex-1 min-h-0 overflow-hidden flex">
-
         <div className="flex-1 overflow-y-auto min-h-0">
-
-          {/* IDENTIDAD */}
           <div className="p-3">
-              <div className="flex flex-col sm:flex-row gap-4">
-                {/* Columna izquierda: imagen cara + cuerpo apilados */}
-                <div className="shrink-0 w-full sm:w-52 flex sm:flex-col gap-3 sm:gap-2">
-
-                  {/* Mobile: imagen grande con botón flotante */}
-                  <div className="sm:hidden relative w-full rounded-xl overflow-hidden border border-primary/10 bg-primary/3" style={{ aspectRatio: "1 / 1" }}>
-                    {form.img_url
-                      ? <img src={form.img_url} alt={form.nombre} className="w-full h-full object-cover" />
-                      : <div className="w-full h-full flex items-center justify-center"><UserCircle2 size={48} className="text-primary/15" /></div>
-                    }
-                    <div className="absolute top-2 right-2 z-10">
-                      <PickerCaraBtn
-                        value={form.img_url ?? ""}
-                        onChange={url => setForm(f => ({ ...f, img_url: url }))}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Desktop: selector normal con label */}
-                  <div className="hidden sm:block w-full">
-                    <SelectorImagen
-                      label="Cara"
+            <div className="flex flex-col sm:flex-row gap-4">
+              
+              {/* Columna izquierda: imágenes */}
+              <div className="shrink-0 w-full sm:w-52 flex sm:flex-col gap-3 sm:gap-2">
+                <div className="sm:hidden relative w-full rounded-xl overflow-hidden border border-primary/10 bg-primary/3" style={{ aspectRatio: "1 / 1" }}>
+                  {form.img_url
+                    ? <img src={form.img_url} alt={form.nombre} className="w-full h-full object-cover" />
+                    : <div className="w-full h-full flex items-center justify-center"><UserCircle2 size={48} className="text-primary/15" /></div>
+                  }
+                  <div className="absolute top-2 right-2 z-10">
+                    <PickerCaraBtn
                       value={form.img_url ?? ""}
                       onChange={url => setForm(f => ({ ...f, img_url: url }))}
-                      aspect="square"
-                      placeholder={<UserCircle2 size={20} className="opacity-25" />}
                     />
                   </div>
-
-                  {!compacto && (
-                    <div
-                      className="hidden sm:block rounded-xl overflow-hidden border border-primary/10"
-                    >
-                      <div className="px-2 py-1 border-b border-primary/10 bg-primary/[0.02]">
-                        <span className="text-[8px] font-black uppercase tracking-[0.3em] text-primary/25">Cuerpo</span>
-                      </div>
-                      <div className="relative w-full group bg-primary/2" style={{ aspectRatio: "1 / 2" }}>
-                        {form.img_cuerpo_url ? (
-                          <img
-                            src={form.img_cuerpo_url}
-                            alt="Cuerpo completo"
-                            className="absolute inset-0 w-full h-full object-contain"
-                            style={{ objectPosition: "top center" }}
-                          />
-                        ) : (
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <Maximize2 size={20} className="opacity-15" />
-                          </div>
-                        )}
-                        <label className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer bg-bg-main/70 backdrop-blur-sm">
-                          <Maximize2 size={14} className="text-primary/50" />
-                          <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">Cambiar</span>
-                          <SelectorImagen
-                            label=""
-                            value={form.img_cuerpo_url ?? ""}
-                            onChange={url => setForm(f => ({ ...f, img_cuerpo_url: url }))}
-                            aspect="full"
-                            placeholder={null}
-                          />
-                        </label>
-                      </div>
-                    </div>
-                  )}
                 </div>
 
-                {/* Columna derecha: selectores + descripción + resto */}
-                <div className="flex-1 min-w-0 space-y-3">
-                  {/* Mobile: grid 2×2 (Especie/Reino · Lugar/Don) */}
-                  <div className="sm:hidden grid grid-cols-2 gap-2">
-                    <div className="space-y-1">
+                <div className="hidden sm:block w-full">
+                  <SelectorImagen
+                    label="Cara"
+                    value={form.img_url ?? ""}
+                    onChange={url => setForm(f => ({ ...f, img_url: url }))}
+                    aspect="square"
+                    placeholder={<UserCircle2 size={20} className="opacity-25" />}
+                  />
+                </div>
+
+                {!compacto && (
+                  <div className="hidden sm:block rounded-xl overflow-hidden border border-primary/10">
+                    <div className="px-2 py-1 border-b border-primary/10 bg-primary/[0.02]">
+                      <span className="text-[8px] font-black uppercase tracking-[0.3em] text-primary/25">Cuerpo</span>
+                    </div>
+                    <div className="relative w-full group bg-primary/2" style={{ aspectRatio: "1 / 2" }}>
+                      {form.img_cuerpo_url ? (
+                        <img
+                          src={form.img_cuerpo_url}
+                          alt="Cuerpo completo"
+                          className="absolute inset-0 w-full h-full object-contain"
+                          style={{ objectPosition: "top center" }}
+                        />
+                      ) : (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <Maximize2 size={20} className="opacity-15" />
+                        </div>
+                      )}
+                      <label className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer bg-bg-main/70 backdrop-blur-sm">
+                        <Maximize2 size={14} className="text-primary/50" />
+                        <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">Cambiar</span>
+                        <SelectorImagen
+                          label=""
+                          value={form.img_cuerpo_url ?? ""}
+                          onChange={url => setForm(f => ({ ...f, img_cuerpo_url: url }))}
+                          aspect="full"
+                          placeholder={null}
+                        />
+                      </label>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Columna derecha: selectores + descripción */}
+              <div className="flex-1 min-w-0 space-y-3">
+                {/* Mobile selectores */}
+                <div className="sm:hidden grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <ComboSelector
+                      mode="single"
+                      items={especies.map(e => ({ id: e, label: e }))}
+                      value={form.especie ?? null}
+                      onChange={v => setForm(f => ({ ...f, especie: v ?? "", variante_id: null }))}
+                      label="Especie"
+                      placeholder="Humano, elfo…"
+                      allowNone
+                      noneLabel="Sin especie"
+                      onNavigate={onNavigate ? (nombre) => onNavigate("criaturas", nombre) : undefined}
+                    />
+                    {variantes.length > 0 && (
+                      <div className="flex flex-wrap items-center gap-1 pt-0.5">
+                        <span className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/25 mr-0.5">Variante</span>
+                        <button type="button" onClick={() => setForm(f => ({ ...f, variante_id: null }))}
+                          className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border transition-all ${!form.variante_id ? "bg-primary/10 border-primary/25 text-primary" : "border-primary/10 text-primary/25"}`}>
+                          Todas
+                        </button>
+                        {variantes.map(v => (
+                          <button key={v.id} type="button" onClick={() => setForm(f => ({ ...f, variante_id: v.id }))}
+                            className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border transition-all ${form.variante_id === v.id ? "bg-primary/10 border-primary/25 text-primary" : "border-primary/10 text-primary/25"}`}>
+                            {v.tipo}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <ComboSelector
+                    mode="single"
+                    items={reinos.map(r => ({ id: r, label: r }))}
+                    value={form.reino ?? null}
+                    onChange={v => {
+                      const nuevoReinoId = reinosMin.find(r => r.nombre === v)?.id ?? null;
+                      setForm(f => {
+                        const lugarActual = lugares.find(l => l.id === (f as any).lugar_id);
+                        const lugarSigueValido = lugarActual && (nuevoReinoId ? lugarActual.reino_id === nuevoReinoId : !lugarActual.reino_id);
+                        return { ...f, reino: v ?? "", ...(!lugarSigueValido ? { lugar_id: null } : {}) };
+                      });
+                    }}
+                    label="Reino"
+                    placeholder="Reino, nación…"
+                    allowNone
+                    noneLabel="Sin reino"
+                    onNavigate={onNavigate ? (nombre) => onNavigate("reinos", nombre) : undefined}
+                  />
+                  <ComboSelector
+                    mode="single"
+                    items={lugaresFiltrados.map(l => ({ id: l.id, label: l.nombre }))}
+                    value={(form as any).lugar_id ?? null}
+                    onChange={id => setForm(f => ({ ...f, lugar_id: id } as any))}
+                    label="Lugar"
+                    placeholder="Aldea, ciudad…"
+                    allowNone
+                    noneLabel="Sin lugar"
+                  />
+                  <div className="space-y-1.5">
+                    <BloqueDones personajeId={form.id} grupoIds={grupoIds} />
+                  </div>
+                </div>
+
+                {/* Desktop selectores */}
+                <div className="hidden sm:flex flex-col sm:flex-row gap-2 items-start">
+                  <div className="flex-1 min-w-0 grid grid-cols-3 gap-2">
+                    <div className="space-y-1 col-span-1">
                       <ComboSelector
                         mode="single"
                         items={especies.map(e => ({ id: e, label: e }))}
@@ -691,218 +742,104 @@ export function FormularioPersonaje({
                       noneLabel="Sin reino"
                       onNavigate={onNavigate ? (nombre) => onNavigate("reinos", nombre) : undefined}
                     />
-                    {(() => {
-                      return (
-                        <ComboSelector
-                          mode="single"
-                          items={lugaresFiltrados.map(l => ({ id: l.id, label: l.nombre }))}
-                          value={(form as any).lugar_id ?? null}
-                          onChange={id => setForm(f => ({ ...f, lugar_id: id } as any))}
-                          label="Lugar"
-                          placeholder="Aldea, ciudad…"
-                          allowNone
-                          noneLabel="Sin lugar"
-                        />
-                      );
-                    })()}
-                    <div className="space-y-1.5">
-                      <BloqueDones personajeId={form.id} grupoIds={grupoIds} />
-                    </div>
+                    <ComboSelector
+                      mode="single"
+                      items={lugaresFiltrados.map(l => ({ id: l.id, label: l.nombre }))}
+                      value={(form as any).lugar_id ?? null}
+                      onChange={id => setForm(f => ({ ...f, lugar_id: id } as any))}
+                      label="Lugar"
+                      placeholder="Aldea, ciudad…"
+                      allowNone
+                      noneLabel="Sin lugar"
+                    />
                   </div>
-
-                  {/* Desktop: layout original (fila de 3 + Don al lado) */}
-                  <div className="hidden sm:flex flex-col sm:flex-row gap-2 items-start">
-                    <div className="flex-1 min-w-0 grid grid-cols-3 gap-2">
-                      <div className="space-y-1 col-span-1">
-                        <ComboSelector
-                          mode="single"
-                          items={especies.map(e => ({ id: e, label: e }))}
-                          value={form.especie ?? null}
-                          onChange={v => setForm(f => ({ ...f, especie: v ?? "", variante_id: null }))}
-                          label="Especie"
-                          placeholder="Humano, elfo…"
-                          allowNone
-                          noneLabel="Sin especie"
-                          onNavigate={onNavigate ? (nombre) => onNavigate("criaturas", nombre) : undefined}
-                        />
-                        {variantes.length > 0 && (
-                          <div className="flex flex-wrap items-center gap-1 pt-0.5">
-                            <span className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/25 mr-0.5">Variante</span>
-                            <button
-                              type="button"
-                              onClick={() => setForm(f => ({ ...f, variante_id: null }))}
-                              className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border transition-all ${!form.variante_id ? "bg-primary/10 border-primary/25 text-primary" : "border-primary/10 text-primary/25"}`}
-                            >
-                              Todas
-                            </button>
-                            {variantes.map(v => (
-                              <button
-                                key={v.id}
-                                type="button"
-                                onClick={() => setForm(f => ({ ...f, variante_id: v.id }))}
-                                className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border transition-all ${form.variante_id === v.id ? "bg-primary/10 border-primary/25 text-primary" : "border-primary/10 text-primary/25"}`}
-                              >
-                                {v.tipo}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                      <ComboSelector
-                        mode="single"
-                        items={reinos.map(r => ({ id: r, label: r }))}
-                        value={form.reino ?? null}
-                        onChange={v => {
-                          const nuevoReinoId = reinosMin.find(r => r.nombre === v)?.id ?? null;
-                          setForm(f => {
-                            const lugarActual = lugares.find(l => l.id === (f as any).lugar_id);
-                            const lugarSigueValido = lugarActual &&
-                              (nuevoReinoId ? lugarActual.reino_id === nuevoReinoId : !lugarActual.reino_id);
-                            return { ...f, reino: v ?? "", ...(!lugarSigueValido ? { lugar_id: null } : {}) };
-                          });
-                        }}
-                        label="Reino"
-                        placeholder="Reino, nación…"
-                        allowNone
-                        noneLabel="Sin reino"
-                        onNavigate={onNavigate ? (nombre) => onNavigate("reinos", nombre) : undefined}
-                      />
-                      {(() => {
-                        const lugarActual = lugaresFiltrados.find(l => l.id === (form as any).lugar_id);
-                        return (
-                          <ComboSelector
-                            mode="single"
-                            items={lugaresFiltrados.map(l => ({ id: l.id, label: l.nombre }))}
-                            value={(form as any).lugar_id ?? null}
-                            onChange={id => setForm(f => ({ ...f, lugar_id: id } as any))}
-                            label="Lugar"
-                            placeholder="Aldea, ciudad…"
-                            allowNone
-                            noneLabel="Sin lugar"
-                          />
-                        );
-                      })()}
-                    </div>
-
-                    {/* Don — mismo estilo que Especie / Reino */}
-                    <div className="w-full sm:w-44 sm:shrink-0 space-y-1.5">
-                      <BloqueDones personajeId={form.id} grupoIds={grupoIds} />
-                    </div>
+                  <div className="w-full sm:w-44 sm:shrink-0 space-y-1.5">
+                    <BloqueDones personajeId={form.id} grupoIds={grupoIds} />
                   </div>
+                </div>
 
-                  {/* Descripción + Características en fila */}
-                  {!compacto ? (
-                    <div className="flex flex-col sm:flex-row gap-3">
-                      <div className="flex-1 min-w-0 space-y-1">
-                        <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Sobre el personaje</label>
-                        <MarkdownEditor
-                          value={form.sobre ?? ""}
-                          onChange={v => setForm(f => ({ ...f, sobre: v }))}
-                          placeholder="Biografía, personalidad…"
-                          rows={8}
-                          toolbar
-                          defaultMode="edit"
-                        onSnippetAction={onSnippetAction}
-                        entities={entities}
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0 space-y-1">
-                        <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Características</label>
-                        <MarkdownEditor
-                          value={form.caracteristicas ?? ""}
-                          onChange={v => setForm(f => ({ ...f, caracteristicas: v }))}
-                          placeholder="Rasgos físicos, personalidad, habilidades…"
-                          rows={8}
-                          toolbar
-                          defaultMode="edit"
-                        onSnippetAction={onSnippetAction}
-                        entities={entities}
-                        />
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-1">
+                {/* Editores de Texto */}
+                {!compacto ? (
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <div className="flex-1 min-w-0 space-y-1">
                       <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Sobre el personaje</label>
                       <MarkdownEditor
                         value={form.sobre ?? ""}
                         onChange={v => setForm(f => ({ ...f, sobre: v }))}
                         placeholder="Biografía, personalidad…"
-                        rows={5}
+                        rows={8}
                         toolbar
                         defaultMode="edit"
-                      onSnippetAction={onSnippetAction}
-                      entities={entities}
+                        onSnippetAction={onSnippetAction}
+                        entities={entities}
                       />
                     </div>
-                  )}
-
-                  {/* Grupos del personaje — solo mobile (en desktop va al aside) */}
-                  <div className="sm:hidden">
-                    <BloqueGruposPersonaje personajeId={form.id} onOpenGrupo={onOpenGrupo} />
-                  </div>
-
-                  {/* Relaciones — solo mobile (en desktop va al aside) */}
-                  <div className="sm:hidden">
-                    <BloqueRelaciones personajeId={form.id} onSelectPersonaje={onSelectPersonaje} />
-                  </div>
-
-                  {/* Caps + Hechizos — solo mobile (en desktop van al aside) */}
-                  <div className="sm:hidden flex flex-col gap-3">
-                    <div className="rounded-xl overflow-hidden border border-primary/10">
-                      <div className="flex items-center gap-2 px-3 py-2 border-b border-primary/[0.06] bg-primary/[0.03]">
-                        <BookOpen size={10} className="text-primary/40" />
-                        <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">Capítulos en los que aparece</span>
-                      </div>
-                      <BloqueCapsAparece personajeId={form.id} />
+                    <div className="flex-1 min-w-0 space-y-1">
+                      <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Características</label>
+                      <MarkdownEditor
+                        value={form.caracteristicas ?? ""}
+                        onChange={v => setForm(f => ({ ...f, caracteristicas: v }))}
+                        placeholder="Rasgos físicos, personalidad, habilidades…"
+                        rows={8}
+                        toolbar
+                        defaultMode="edit"
+                        onSnippetAction={onSnippetAction}
+                        entities={entities}
+                      />
                     </div>
-                    <SeccionHechizos personajeId={form.id} grupoIds={grupoIds} />
                   </div>
-                </div>
+                ) : (
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Sobre el personaje</label>
+                    <MarkdownEditor
+                      value={form.sobre ?? ""}
+                      onChange={v => setForm(f => ({ ...f, sobre: v }))}
+                      placeholder="Biografía, personalidad…"
+                      rows={5}
+                      toolbar
+                      defaultMode="edit"
+                      onSnippetAction={onSnippetAction}
+                      entities={entities}
+                    />
+                  </div>
+                )}
               </div>
+
             </div>
           </div>
-
-      {/* ── BARRA LATERAL — desktop ──────────────────────────────────────────── */}
-      <aside
-        className="hidden sm:flex shrink-0 flex-col border-l overflow-y-auto overflow-x-hidden"
-        style={{
-          width: "176px",
-          borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)",
-          background: "color-mix(in srgb, var(--primary) 0.5%, transparent)",
-          scrollbarWidth: "none",
-        }}
-      >
-        {/* Grupos */}
-        <div className="p-2">
-          <BloqueGruposPersonaje personajeId={form.id} onOpenGrupo={onOpenGrupo} />
         </div>
 
-        <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
-
-        {/* Relaciones */}
-        <div className="p-2">
-          <BloqueRelaciones personajeId={form.id} onSelectPersonaje={onSelectPersonaje} />
-        </div>
-
-        <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
-
-        {/* Capítulos */}
-        <div className="rounded-none overflow-hidden">
-          <div className="flex items-center gap-2 px-3 py-2 border-b border-primary/[0.06] bg-primary/[0.03]">
-            <BookOpen size={10} className="text-primary/40" />
-            <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">Capítulos</span>
+        {/* ── BARRA LATERAL — desktop ──────────────────────────────────────────── */}
+        <aside
+          className="hidden sm:flex shrink-0 flex-col border-l overflow-y-auto overflow-x-hidden"
+          style={{
+            width: "176px",
+            borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)",
+            background: "color-mix(in srgb, var(--primary) 0.5%, transparent)",
+            scrollbarWidth: "none",
+          }}
+        >
+          <div className="p-2">
+            <BloqueGruposPersonaje personajeId={form.id} onOpenGrupo={onOpenGrupo} />
           </div>
-          <BloqueCapsAparece personajeId={form.id} />
-        </div>
-
-        <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
-
-        {/* Hechizos */}
-        <SeccionHechizos personajeId={form.id} grupoIds={grupoIds} />
-      </aside>
-
+          <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
+          <div className="p-2">
+            <BloqueRelaciones personajeId={form.id} onSelectPersonaje={onSelectPersonaje} />
+          </div>
+          <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
+          <div className="rounded-none overflow-hidden">
+            <div className="flex items-center gap-2 px-3 py-2 border-b border-primary/[0.06] bg-primary/[0.03]">
+              <BookOpen size={10} className="text-primary/40" />
+              <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">Capítulos</span>
+            </div>
+            <BloqueCapsAparece personajeId={form.id} />
+          </div>
+          <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
+          <SeccionHechizos personajeId={form.id} grupoIds={grupoIds} />
+        </aside>
       </div>
 
+      {/* ── BARRA LATERAL (Drawer) — mobile ───────────────────────────────────── */}
       {mobileAsideOpen && (
         <div className="sm:hidden fixed inset-0 z-50 flex justify-end">
           <div
@@ -919,11 +856,7 @@ export function FormularioPersonaje({
               scrollbarWidth: "none",
             }}
           >
-            {/* Header del drawer */}
-            <div
-              className="shrink-0 flex items-center justify-between px-3 py-2.5 border-b"
-              style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
-            >
+            <div className="shrink-0 flex items-center justify-between px-3 py-2.5 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)" }}>
               <span className="text-[8px] font-black uppercase tracking-[0.2em] flex items-center gap-1.5" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>
                 <SlidersHorizontal size={9} /> Entidades
               </span>
@@ -955,7 +888,6 @@ export function FormularioPersonaje({
     </div>
   );
 }
- 
 // ─── EditorPersonaje ──────────────────────────────────────────────────────────
 export function EditorPersonaje({
   item, onSaved, onDeleted, entities = [], onNavigate, onSelectPersonaje, onOpenGrupo, onNavigateLugar,
