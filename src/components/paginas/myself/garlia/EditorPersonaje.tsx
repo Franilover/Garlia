@@ -16,8 +16,8 @@ import { ComboSelector } from "@/components/ui/ComboSelector";
 import { MarkdownEditor, WikiEntity } from "../../../forms/MarkdownEditor";
 import { useWikilink } from "./components/WikilinkContext";
 import SimpleImagePicker from "@/components/paginas/myself/garlia/editorCapitulos/snippets//forms/SimpleImagePicker";
-import { BloqueHechizos } from "./components/BloqueHechizos";
 import { BloqueDones } from "./components/BloqueDones";
+import { SeccionEntidad } from "@/components/ui/SeccionEntidad";
 import { BloqueRelaciones } from "./components/BloqueRelaciones";
 
 // ─── Dexie helpers ────────────────────────────────────────────────────────────
@@ -591,19 +591,98 @@ function BloqueGruposPersonaje({
   );
 }
 
-// ─── Sección Hechizos inline ──────────────────────────────────────────────────
+// ─── Hook: hechizos disponibles (por grupoIds) + seleccionados del personaje ──
+type HechizMin = { id: string; nombre: string; imagen_url?: string | null };
+
+function useHechizosPersonaje(personajeId: string, grupoIds: string[]) {
+  const [disponibles, setDisponibles] = useState<HechizMin[]>([]);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [loading, setLoading]         = useState(true);
+  const [saving,  setSaving]          = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      // 1. Hechizos disponibles (filtrados por grupoIds si los hay)
+      let hechizosData: HechizMin[] = [];
+      try {
+        if (db) {
+          const todos: any[] = await (db as any).hechizos?.toArray() ?? [];
+          hechizosData = todos.filter((h: any) => {
+            if (!grupoIds.length) return true;
+            return (h.grupo_ids ?? []).some((gid: string) => grupoIds.includes(gid));
+          }).map((h: any) => ({ id: h.id, nombre: h.nombre, imagen_url: null }));
+        }
+      } catch {}
+
+      if (!hechizosData.length && navigator.onLine) {
+        let query = supabase.from("hechizos").select("id, nombre").order("nombre");
+        if (grupoIds.length) {
+          query = (query as any).overlaps("grupo_ids", grupoIds);
+        }
+        const { data } = await query;
+        hechizosData = (data ?? []).map((h: any) => ({ id: h.id, nombre: h.nombre, imagen_url: null }));
+      }
+      setDisponibles(hechizosData);
+
+      // 2. Hechizos seleccionados del personaje
+      let selIds: string[] = [];
+      try {
+        if (db) {
+          const local: any[] = await (db as any).personaje_hechizos?.where("personaje_id").equals(personajeId).toArray() ?? [];
+          selIds = local.map((r: any) => r.hechizo_id);
+        }
+      } catch {}
+
+      if (!selIds.length && navigator.onLine) {
+        const { data } = await supabase
+          .from("personaje_hechizos")
+          .select("hechizo_id")
+          .eq("personaje_id", personajeId);
+        selIds = (data ?? []).map((r: any) => r.hechizo_id);
+      }
+      setSelectedIds(selIds);
+    } catch {}
+    setLoading(false);
+  }, [personajeId, grupoIds.join(",")]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const toggle = useCallback(async (hechizId: string, add: boolean) => {
+    setSelectedIds(prev => add ? [...prev, hechizId] : prev.filter(id => id !== hechizId));
+    setSaving(true);
+    try {
+      if (add) {
+        await supabase.from("personaje_hechizos").insert({ personaje_id: personajeId, hechizo_id: hechizId });
+        try { if (db) await (db as any).personaje_hechizos?.put({ id: `${personajeId}_${hechizId}`, personaje_id: personajeId, hechizo_id: hechizId }); } catch {}
+      } else {
+        await supabase.from("personaje_hechizos").delete().eq("personaje_id", personajeId).eq("hechizo_id", hechizId);
+        try { if (db) await (db as any).personaje_hechizos?.delete(`${personajeId}_${hechizId}`); } catch {}
+      }
+    } catch {
+      setSelectedIds(prev => add ? prev.filter(id => id !== hechizId) : [...prev, hechizId]);
+    }
+    setSaving(false);
+  }, [personajeId]);
+
+  return { disponibles, selectedIds, loading, saving, toggle };
+}
+
 function SeccionHechizos({ personajeId, grupoIds }: { personajeId: string; grupoIds: string[] }) {
+  const { disponibles, selectedIds, loading, saving, toggle } = useHechizosPersonaje(personajeId, grupoIds);
   return (
-    <div
-      className="rounded-xl overflow-hidden border border-primary/10"
-    >
-      <div
-        className="flex items-center gap-2 px-3 py-2 border-b border-primary/[0.06] bg-primary/[0.03]"
-      >
-        <Sparkles size={10} className="text-primary/40" />
-        <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">Hechizos</span>
-      </div>
-      <BloqueHechizos personajeId={personajeId} grupoIds={grupoIds} />
+    <div className="rounded-xl overflow-hidden border border-primary/10">
+      <SeccionEntidad
+        label="Hechizos"
+        icon={<Sparkles size={10} />}
+        fallbackIcon={<Sparkles size={10} />}
+        emptyLabel="Sin hechizos"
+        allEntities={disponibles}
+        selectedIds={selectedIds}
+        loading={loading}
+        saving={saving}
+        onToggle={toggle}
+      />
     </div>
   );
 }
