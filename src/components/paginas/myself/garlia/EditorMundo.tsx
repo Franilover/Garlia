@@ -2226,15 +2226,7 @@ function PanelListas({
 
             <SeccionEntidades icon={Leaf} label={el.plantas} count={plantas.length} loading={loadingPlantas}>
               {plantas.map(p => (
-                <Chip key={p.id}
-                  onClick={() => selectPlanta(p)}
-                  imgUrl={p.imagen_url}
-                  icon={Leaf}
-                  nombre={p.nombre}
-                  accentBg="color-mix(in srgb, #4ade80 4%, transparent)"
-                  accentBorder="color-mix(in srgb, #4ade80 14%, transparent)"
-                  accentText="color-mix(in srgb, #4ade80 65%, var(--primary))"
-                />
+                <Chip key={p.id} onClick={() => selectPlanta(p)} imgUrl={p.imagen_url} icon={Leaf} nombre={p.nombre} />
               ))}
             </SeccionEntidades>
           </div>
