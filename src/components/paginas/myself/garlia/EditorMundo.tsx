@@ -1853,20 +1853,18 @@ function PanelListas({
   }, []);
 
   // ── Navegar a la sección Capítulos desde el sidebar ──────────────────────
-  // El sidebar ya lanza "estudio-caps-action" con el capítulo seleccionado en
-  // localStorage. Aquí sólo necesitamos hacer scroll hasta la sección y dejar
-  // que EstudioCapitulos se encargue del detalle interno.
   useEffect(() => {
-    const scrollToCapitulos = () => {
-      if (overlay) return; // si hay overlay abierto, primero cerrar
-      // Pequeño delay para que el DOM esté visible antes de scrollear
+    const goToCapitulos = () => {
+      // Si hay un overlay abierto (ej: EditorPersonaje), cerrarlo primero
+      clearAllOverlays();
+      // Pequeño delay para que el DOM se actualice antes de scrollear
       setTimeout(() => {
         capitulosRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
       }, 80);
     };
-    window.addEventListener("estudio-caps-action", scrollToCapitulos);
-    return () => window.removeEventListener("estudio-caps-action", scrollToCapitulos);
-  }, [overlay]);
+    window.addEventListener("estudio-caps-action", goToCapitulos);
+    return () => window.removeEventListener("estudio-caps-action", goToCapitulos);
+  }, [clearAllOverlays]);
 
   // ── Helper: chip genérico ─────────────────────────────────────────────────
   function Chip({ onClick, imgUrl, icon: Icon, nombre, accentBg, accentBorder, accentText, fullWidth }: {
