@@ -132,7 +132,7 @@ function useEntidadesMagicas(modo: Modo) {
       .from(tabla)
       .select(selectFields)
       .order("nombre");
-    const result = (data ?? []) as EntidadMagica[];
+    const result = (data ?? []) as unknown as EntidadMagica[];
     setItems(result); setLoading(false);
     await dexieWriteAll(tabla, result);
   }, [modo]);

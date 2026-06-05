@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build && next-sitemap",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",   
+    "gen:types": "supabase gen types typescript --project-id ftdxthnizdosaaavjhah --schema public > src/types/database.types.ts"
   },
   "dependencies": {
     "@emotion/is-prop-valid": "^1.4.0",
