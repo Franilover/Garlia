@@ -1719,25 +1719,46 @@ function PanelListas({
   ], [personajes, criaturas, objetos, reinos, lugares, hechizos, dones, runas, plantas]);
 
   // ── Restaurar item al montar ───────────────────────────────────────────────
+  // Estrategia: Dexie primero (instantáneo) → Supabase si no hay datos locales
   useEffect(() => {
     void (async () => {
       try {
         const raw = localStorage.getItem(LS_ITEM_KEY);
         if (!raw) return;
         const { tabla, id } = JSON.parse(raw) as { tabla: string; id: string };
-        const { data } = await supabase.from(tabla === "items" ? "items" : tabla).select("*").eq("id", id).single();
+
+        // 1. Intentar desde Dexie primero (sin latencia de red)
+        let data: any = null;
+        try {
+          if (db) {
+            const tablaLocal = tabla === "grupos_mundo" ? "grupos_mundo" : tabla;
+            data = await (db as any)[tablaLocal]?.get(id) ?? null;
+            if (data?.deleted) data = null;
+          }
+        } catch {}
+
+        // 2. Si no está en Dexie, buscar en Supabase
+        if (!data && navigator.onLine) {
+          const { data: remote } = await supabase
+            .from(tabla === "items" ? "items" : tabla)
+            .select("*")
+            .eq("id", id)
+            .single();
+          data = remote ?? null;
+        }
+
         if (!data) return;
-        if      (tabla === "personajes") setSelectedPersonaje(data);
-        else if (tabla === "criaturas")  setSelectedCriatura(data);
-        else if (tabla === "items")      setSelectedObjeto(data);
-        else if (tabla === "reinos")     setSelectedReino(data);
-        else if (tabla === "hechizos")   setSelectedHechizo(data);
-        else if (tabla === "dones")      setSelectedDon(data);
-        else if (tabla === "runas")      setSelectedRuna(data);
-        else if (tabla === "lugares")    setSelectedLugar(data as Lugar);
-        else if (tabla === "grupos_mundo") setSelectedGrupo(data as Grupo);
-        else if (tabla === "canciones")  setSelectedCancion(data as Cancion); // <--- AÑADIDO
-        else if (tabla === "plantas")    setSelectedPlanta(data as PlantaMin);
+        if      (tabla === "personajes")   setSelectedPersonaje(data);
+        else if (tabla === "criaturas")    setSelectedCriatura(data);
+        else if (tabla === "items")        setSelectedObjeto(data);
+        else if (tabla === "reinos")       setSelectedReino(data);
+        else if (tabla === "hechizos")     setSelectedHechizo(data);
+        else if (tabla === "dones")        setSelectedDon(data);
+        else if (tabla === "runas")        setSelectedRuna(data);
+        else if (tabla === "lugares")      setSelectedLugar(data as Lugar);
+        else if (tabla === "grupos_mundo") setSelectedGrupo({ ...data, miembro_ids: data.miembro_ids ?? [] } as Grupo);
+        else if (tabla === "canciones")    setSelectedCancion(data as Cancion);
+        else if (tabla === "plantas")      setSelectedPlanta(data as PlantaMin);
       } catch {}
     })();
   }, []);
