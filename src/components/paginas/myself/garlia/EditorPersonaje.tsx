@@ -835,6 +835,7 @@ export function FormularioPersonaje({
                       />
                     </div>
                   )}
+
                 </div>
               </div>
             </div>
