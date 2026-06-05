@@ -941,7 +941,7 @@ function historiaHasContent(raw: string | undefined): boolean {
 
 // ─── NAV config ───────────────────────────────────────────────────────────────
 
-type SectionId = "mapa" | "historia" | "cultura" | "politica" | "economia";
+type SectionId = "mapa" | "historia" | "cultura" | "politica" | "economia" | "puntos" | "geografia";
 
 // ─── Componente principal — Doble columna con infinity scroll ────────────────
 
@@ -1005,8 +1005,10 @@ export function LoreTab({
 }) {
   const { onSnippetAction } = useWikilink();
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [activeTab, setActiveTab] = useState<"cultura" | "economia" | "politica">(
-    (activeTabProp && activeTabProp !== "historia" && activeTabProp !== "mapa") ? activeTabProp : "cultura"
+  const [activeTab, setActiveTab] = useState<"mapa" | "cultura" | "economia" | "politica">(
+    (activeTabProp === "mapa") ? "mapa"
+    : (activeTabProp && activeTabProp !== "historia") ? activeTabProp as any
+    : "cultura"
   );
   const {
     criaturas, allCriaturas, loading: loadingCriaturas,
@@ -1067,6 +1069,7 @@ export function LoreTab({
   );
 
   const TABS = [
+    { id: "mapa",      label: "Mapa"      },
     { id: "cultura",   label: "Cultura"   },
     { id: "economia",  label: "Economía"  },
     { id: "politica",  label: "Política"  },
@@ -1104,45 +1107,23 @@ export function LoreTab({
               />
             </div>
 
-            {/* MAPA — siempre visible */}
-            <MapaPanel
-              mapaUrl={mapaUrl}
-              onMapaChange={onMapaChange}
-              onDetallesArrayChange={onDetallesArrayChange}
-              MapaConPuntosComponent={MapaConPuntosComponent}
-              detalles={detalles}
-              entities={entities}
-              onDetalleUpdate={onDetalleUpdate}
-              onDetalleDelete={onDetalleDelete}
-              onOpenDetalleEditor={onOpenDetalleEditor}
-              addingPoint={addingPoint}
-              setAddingPoint={setAddingPoint}
-              newPointName={newPointName}
-              setNewPointName={setNewPointName}
-              onAddPoint={onAddPoint}
-              form={form}
-              setForm={setForm}
-              onSnippetAction={onSnippetAction}
-            />
-
             {/* BARRA DE TABS */}
             <div
-              className="flex items-center gap-0.5 border-b overflow-x-auto"
+              className="flex items-stretch border-b"
               style={{
                 borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
                 background: "color-mix(in srgb, var(--primary) 2%, transparent)",
-                scrollbarWidth: "none",
                 marginLeft: "-0.75rem",
                 marginRight: "-0.75rem",
-                paddingLeft: "0.75rem",
+                paddingLeft: "0",
               }}
             >
               {TABS.map(tab => (
                 <button
                   key={tab.id}
                   type="button"
-                  onClick={() => setActiveTab(tab.id)}
-                  className="shrink-0 px-3 py-2 text-[9px] font-black uppercase tracking-widest transition-all border-b-2"
+                  onClick={() => setActiveTab(tab.id as any)}
+                  className="flex-1 px-2 py-2 text-[9px] font-black uppercase tracking-widest transition-all border-b-2"
                   style={activeTab === tab.id ? {
                     borderColor: "var(--primary)",
                     color: "var(--primary)",
@@ -1155,6 +1136,29 @@ export function LoreTab({
                 </button>
               ))}
             </div>
+
+            {/* MAPA — tab activo */}
+            {activeTab === "mapa" && (
+              <MapaPanel
+                mapaUrl={mapaUrl}
+                onMapaChange={onMapaChange}
+                onDetallesArrayChange={onDetallesArrayChange}
+                MapaConPuntosComponent={MapaConPuntosComponent}
+                detalles={detalles}
+                entities={entities}
+                onDetalleUpdate={onDetalleUpdate}
+                onDetalleDelete={onDetalleDelete}
+                onOpenDetalleEditor={onOpenDetalleEditor}
+                addingPoint={addingPoint}
+                setAddingPoint={setAddingPoint}
+                newPointName={newPointName}
+                setNewPointName={setNewPointName}
+                onAddPoint={onAddPoint}
+                form={form}
+                setForm={setForm}
+                onSnippetAction={onSnippetAction}
+              />
+            )}
 
             {/* CULTURA / ECONOMÍA / POLÍTICA — tab activo */}
             {activeTab === "cultura" && (
