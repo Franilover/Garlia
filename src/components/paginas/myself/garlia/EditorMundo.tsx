@@ -1,20 +1,37 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
-  Map, MapPin, Plus, Check, X, Trash2, Save,
-  Loader2, Image as ImageIcon, SlidersHorizontal,
+  Sparkles, Star, Globe, Plus, Trash2, Save, Loader2, Search, X, Bug,
+  ChevronDown, Mountain, ScrollText, Map, FileText, Users, UserCircle2, Package,
+  Crown, Clock, Filter, Layers, Check, BookOpen, Music, MapPin, Leaf,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
+import { enqueueOperation, isReallyOnline, onSyncDone } from "@/hooks/data/useOfflineSync";
 import { useConfirm } from "@/components/ui/ConfirmModal";
-import { type Reino, type SaveStatus, INPUT_CLS } from "@/components/paginas/myself/garlia/components/types";
-import { usePersonajesDelReino } from "@/components/paginas/myself/garlia/components/hooks";
-import { type Lugar } from "@/components/paginas/myself/garlia/EditorLugar";
-import { SaveIndicator } from "@/components/paginas/myself/garlia/components/UIComponents";
-import { MarkdownEditor, WikiEntity } from "../../../forms/MarkdownEditor";
+import { MUNDO_SECTIONS, type MundoSectionKey, type SaveStatus, type Reino, type Personaje, type Nota } from "./components/types";
+import { SaveIndicator, SelectorImagen } from "./components/UIComponents";
+import { MarkdownEditor } from "../../../forms/MarkdownEditor";
 import { useWikilink } from "./components/WikilinkContext";
-import { LoreTab } from "@/components/paginas/myself/garlia/components/LoreTab";
+import { EditorReino } from "./EditorReino";
+import { EditorPersonaje } from "./EditorPersonaje";
+import { EditorCriatura } from "./EditorCriatura";
+import { EditorItem } from "./EditorItem";
+import { EditorLugar, type Lugar } from "./EditorLugar";
+import { EditorPlanta, type Planta } from "./EditorPlanta";
+import { EditorHechizos } from "./EditorHechizos";
+import { type WikiEntity } from "../../../forms/MarkdownEditor";
+import { type TimelineEvent } from "./components/LoreTab";
+import { useNotas } from "./components/useNotas";
+import { EditorNota, ListaNotas } from "./EditorNota";
+import { EditorGrupo, useGrupos, type Grupo, GRUPO_TIPO_CONFIG } from "./EditorGrupo";
+import EstudioCapitulos from "@/components/paginas/myself/garlia/editorCapitulos/page";
+import { useCanciones } from "@/components/paginas/myself/garlia/editorLetras/hooks/useCanciones";
+import { PanelEditor } from "@/components/paginas/myself/garlia/editorLetras/components/editor/PanelEditor";
+import { ModalNuevaCancion } from "@/components/paginas/myself/garlia/editorLetras/components/modals/ModalNuevaCancion";
+import type { Cancion } from "@/components/paginas/myself/garlia/editorLetras/types";
+
 
 // ─── Dexie helpers ────────────────────────────────────────────────────────────
 async function dexiePut(tabla: string, row: any): Promise<void> {
@@ -44,489 +61,2250 @@ async function dexieWriteAll(tabla: string, rows: any[]): Promise<void> {
   } catch {}
 }
 
-// ─── Hook: lugares del reino ──────────────────────────────────────────────────
-function useLugaresDelReino(reinoId: string) {
-  const [lugares, setLugares] = useState<Lugar[]>([]);
+
+
+// ─── Types locales ────────────────────────────────────────────────────────────
+type EntidadMagica = {
+  id: string;
+  nombre: string;
+  explicacion?: string;
+  grupo_ids?: string[];
+};
+
+// EntidadMagica sin campos de criatura (para runas)
+type Runa = {
+  id: string;
+  nombre: string;
+  explicacion?: string;
+  imagen_url?: string | null;
+};
+
+// Usados por useCriaturas y useCriaturaVariantes (para items del mundo)
+type CriaturaMin = { id: string; nombre: string; imagen_url?: string; habitat?: string };
+type VarianteMin = { id: string; tipo: string };
+
+// ─── Hook genérico de carga: local (Dexie) → remoto (Supabase) ───────────────
+// Reemplaza useReinos, useCriaturas, useObjetos, useLugares, usePersonajesList,
+// useEntidadesMagicas y useRunas, que eran idénticos salvo la tabla y el select.
+function useEntityList<T>(
+  tablaLocal: string,
+  buildQuery: () => any,
+  mapResult: (row: any) => T = (r) => r as T,
+) {
+  const [items, setItems] = useState<T[]>([]);
+  const [loading, setLoading] = useState(true);
+  const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
-    let cancelled = false;
+    abortRef.current?.abort();
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
     const run = async () => {
-      // Dexie primero
       try {
-        if (db) {
-          const local: any[] = await (db as any).lugares?.toArray() ?? [];
-          const filtrados = local.filter((l: any) => l.reino_id === reinoId && !l.deleted);
-          if (filtrados.length && !cancelled) setLugares(filtrados);
-        }
-      } catch {}
-      if (!navigator.onLine) return;
-      const { data } = await supabase
-        .from("lugares")
-        .select("id, nombre, descripcion, coord_x, coord_y, imagen_url, tipo, historia, secretos, reino_id")
-        .eq("reino_id", reinoId)
-        .order("nombre");
-      if (!cancelled && data) {
-        setLugares(data as Lugar[]);
-        if (db) (db as any).lugares?.bulkPut(data).catch(() => {});
+        const local = await dexieReadAll<T>(tablaLocal);
+        if (ctrl.signal.aborted) return;
+        if (local.length) { setItems(local); setLoading(false); }
+        if (!navigator.onLine) { if (!local.length) setLoading(false); return; }
+        const { data } = await buildQuery().abortSignal(ctrl.signal);
+        if (ctrl.signal.aborted) return;
+        const result = (data ?? []).map(mapResult) as T[];
+        setItems(result); setLoading(false);
+        await dexieWriteAll(tablaLocal, result);
+      } catch (e: any) {
+        if (ctrl.signal.aborted || e?.name === "AbortError") return;
+        setLoading(false);
       }
     };
     run();
-    return () => { cancelled = true; };
-  }, [reinoId]);
+    return () => { ctrl.abort(); };
+  // buildQuery and mapResult are defined inline at call site — stable refs not needed
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tablaLocal]);
 
-  return { lugares, setLugares };
+  return { items, setItems, loading };
 }
 
-
-function MapaConPuntos({ mapaUrl, onMapaChange, detalles, onDetallesChange }: {
-  mapaUrl: string;
-  onMapaChange: (url: string) => void;
-  detalles: Lugar[];
-  onDetallesChange: (d: Lugar[]) => void;
-}) {
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [pickerOpen, setPickerOpen] = useState(false);
-
-  const handleMapClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!selectedId) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = parseFloat(((e.clientX - rect.left) / rect.width * 100).toFixed(2));
-    const y = parseFloat(((e.clientY - rect.top) / rect.height * 100).toFixed(2));
-    onDetallesChange(detalles.map(d => d.id === selectedId ? { ...d, coord_x: x, coord_y: y } : d));
-    setSelectedId(null);
-  };
-
-  return (
-    <>
-      <div
-        className={`relative w-full overflow-hidden rounded-xl border select-none group ${
-          selectedId
-            ? "cursor-crosshair border-primary/40"
-            : "cursor-default border-primary/10"
-        }`}
-        style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)" }}
-        onClick={handleMapClick}
-      >
-        {mapaUrl ? (
-          <img
-            src={mapaUrl}
-            alt="Mapa"
-            className="w-full h-auto object-contain pointer-events-none block"
-            draggable={false}
-          />
-        ) : (
-          <div className="flex flex-col items-center justify-center gap-2 py-12 text-primary/20">
-            <Map size={24} strokeWidth={1} />
-            <span className="text-[9px] font-black uppercase tracking-widest">Sin imagen de mapa</span>
-            <button
-              onClick={e => { e.stopPropagation(); setPickerOpen(true); }}
-              className="mt-1 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-primary/20 text-primary/40 hover:text-primary hover:border-primary/40 transition-all"
-            >
-              <ImageIcon size={10} /> Elegir imagen
-            </button>
-          </div>
-        )}
-
-        {/* Puntos sobre el mapa */}
-        {mapaUrl && detalles.map(d => {
-          const isSelected = selectedId === d.id;
-          return (
-            <div
-              key={d.id}
-              className="absolute z-10 flex flex-col items-center pointer-events-none"
-              style={{ top: `${d.coord_y ?? 50}%`, left: `${d.coord_x ?? 50}%`, transform: "translate(-50%, -100%)" }}
-            >
-              <div className={`mb-1 text-[8px] font-black uppercase px-1.5 py-0.5 rounded-md whitespace-nowrap shadow-md transition-all ${
-                isSelected ? "bg-primary text-btn-text scale-110" : "bg-black/60 text-white/90 backdrop-blur-sm"
-              }`}>{d.nombre}</div>
-              <button
-                onClick={e => { e.stopPropagation(); setSelectedId(prev => prev === d.id ? null : d.id); }}
-                className={`pointer-events-auto w-3 h-3 rounded-full border-2 border-white shadow-md transition-all ${
-                  isSelected ? "bg-yellow-400 scale-125 ring-2 ring-yellow-400/50" : "bg-primary hover:scale-110"
-                }`}
-              />
-              <div className={`w-px h-2 ${isSelected ? "bg-yellow-400" : "bg-white/60"}`} />
-            </div>
-          );
-        })}
-
-        {/* Hint overlay */}
-        {selectedId && (
-          <div className="absolute inset-0 bg-primary/5 pointer-events-none flex items-end justify-center pb-3 px-3">
-            <div
-              className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-white pointer-events-auto max-w-full"
-              style={{ background: "color-mix(in srgb, var(--foreground) 70%, transparent)", backdropFilter: "blur(8px)" }}
-            >
-              <MapPin size={10} className="shrink-0" />
-              <span className="truncate">Tocá para mover el punto</span>
-              <button onClick={e => { e.stopPropagation(); setSelectedId(null); }} className="shrink-0 ml-1 opacity-60 hover:opacity-100 transition-opacity">
-                <X size={10} />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Botón cambiar imagen — siempre visible en mobile, hover en desktop */}
-        {mapaUrl && (
-          <button
-            onClick={e => { e.stopPropagation(); setPickerOpen(true); }}
-            className="absolute top-2 right-2 z-20 flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all sm:opacity-0 sm:group-hover:opacity-100"
-            style={{
-              background: "color-mix(in srgb, var(--foreground) 65%, transparent)",
-              color: "white",
-              backdropFilter: "blur(8px)",
-            }}
-          >
-            <ImageIcon size={10} /> Cambiar
-          </button>
-        )}
-      </div>
-
-      {pickerOpen && <ImagePickerModal onSelect={url => { onMapaChange(url); setPickerOpen(false); }} onClose={() => setPickerOpen(false)} />}
-    </>
+// Wrappers tipados que conservan los nombres originales usados en PanelListas
+function useReinos() {
+  const { items, setItems, loading } = useEntityList<Reino>(
+    "reinos",
+    () => supabase.from("reinos").select("*").order("nombre"),
   );
+  return { reinos: items, setReinos: setItems, loading };
 }
 
-// ─── Mini modal de imagen ─────────────────────────────────────────────────────
-function ImagePickerModal({ onSelect, onClose }: { onSelect: (url: string) => void; onClose: () => void }) {
-  const [SimpleImagePicker, setComponent] = useState<React.ComponentType<any> | null>(null);
-  useEffect(() => {
-    import("@/components/paginas/myself/garlia/editorCapitulos/snippets//forms/SimpleImagePicker").then(m => setComponent(() => m.default));
-  }, []);
+function useCriaturas() {
+  const { items, setItems, loading } = useEntityList<CriaturaMin>(
+    "criaturas",
+    () => supabase.from("criaturas").select("id, nombre, imagen_url, habitat").order("nombre"),
+  );
+  return { criaturas: items, setCriaturas: setItems, loading };
+}
 
-  return (
-    <div
-      className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4"
-      onClick={onClose}
-    >
-      <div
-        className="bg-white-custom rounded-t-2xl sm:rounded-2xl shadow-2xl border border-primary/15 w-full sm:max-w-lg p-5 max-h-[90dvh] overflow-y-auto"
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-2">
-            <ImageIcon size={11} /> Imagen del mapa
-          </h3>
-          <button onClick={onClose} className="text-primary/30 hover:text-primary transition-colors"><X size={16} /></button>
-        </div>
-        {SimpleImagePicker
-          ? <SimpleImagePicker onSelect={onSelect} onClose={onClose} />
-          : <div className="flex items-center justify-center py-12"><Loader2 size={16} className="animate-spin text-primary/20" /></div>
+function useObjetos() {
+  const { items, setItems, loading } = useEntityList<ObjetoMin>(
+    "items",
+    () => supabase.from("items").select("id, nombre, imagen_url, categoria").order("nombre"),
+  );
+  return { objetos: items, setObjetos: setItems, loading };
+}
+
+function useLugares() {
+  const { items, setItems, loading } = useEntityList<LugarMin>(
+    "lugares",
+    () => supabase.from("lugares").select("id, nombre, imagen_url, tipo, reino_id").order("nombre"),
+  );
+  return { lugares: items, setLugares: setItems, loading };
+}
+
+function usePersonajesList() {
+  const { items, setItems, loading } = useEntityList<Personaje>(
+    "personajes",
+    () => supabase.from("personajes").select("*").order("nombre"),
+  );
+  return { personajes: items, setPersonajes: setItems, loading };
+}
+
+function useEntidadesMagicas(tabla: string) {
+  const { items, setItems, loading } = useEntityList<EntidadMagica>(
+    tabla,
+    () => supabase.from(tabla).select("id, nombre, explicacion, grupo_ids").order("nombre"),
+  );
+  return { items, setItems, loading };
+}
+
+function useRunas() {
+  const { items, setItems, loading } = useEntityList<Runa>(
+    "runas",
+    () => supabase.from("runas").select("id, nombre, explicacion, imagen_url").order("nombre"),
+  );
+  return { items, setItems, loading };
+}
+
+type PlantaMin = { id: string; nombre: string; imagen_url?: string | null; categoria?: string | null };
+
+function usePlantas() {
+  const { items, setItems, loading } = useEntityList<PlantaMin>(
+    "plantas",
+    () => supabase.from("plantas").select("id, nombre, imagen_url, categoria").order("nombre"),
+  );
+  return { plantas: items, setPlantas: setItems, loading };
+}
+
+// ─── Configuración por subtab mágico ─────────────────────────────────────────
+// Los colores usan variables CSS del tema activo en lugar de valores hardcodeados.
+// --accent      → color de acento del tema
+// --primary     → color primario del tema
+// color-mix     → variaciones derivadas del accent/primary
+const MAGIC_CONFIG = {
+  hechizos: {
+    tabla: "hechizos", label: "Hechizos", labelSing: "Hechizo",
+    Icon: Sparkles, color: "var(--accent)", emoji: "✨",
+    placeholder: "Qué hace este hechizo, cómo se lanza, sus efectos…",
+  },
+  dones: {
+    tabla: "dones", label: "Dones", labelSing: "Don",
+    Icon: Star, color: "color-mix(in srgb, var(--accent) 70%, var(--primary))", emoji: "⭐",
+    placeholder: "Qué otorga este don, su origen, sus limitaciones…",
+  },
+  runas: {
+    tabla: "runas", label: "Runas", labelSing: "Runa",
+    Icon: ScrollText, color: "var(--primary)", emoji: "ᚱ",
+    placeholder: "Qué significa esta runa, cómo se activa, su poder…",
+  },
+} as const;
+
+// ─── Tipos locales de entidades mínimas ──────────────────────────────────────
+type ObjetoMin = { id: string; nombre: string; imagen_url?: string; categoria?: string };
+type LugarMin  = { id: string; nombre: string; imagen_url?: string; tipo?: string; reino_id?: string };
+
+function useCriaturaVariantes(criaturaId: string | null) {
+  const [variantes, setVariantes] = useState<VarianteMin[]>([]);
+  const [loading, setLoading] = useState(false);
+  const abortRef = useRef<AbortController | null>(null);
+  useEffect(() => {
+    if (!criaturaId) { setVariantes([]); return; }
+    abortRef.current?.abort();
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
+    const run = async () => {
+      setLoading(true);
+      try {
+        if (db) {
+          const local: any[] = await (db as any).criatura_variantes?.where("criatura_id").equals(criaturaId).toArray() ?? [];
+          if (ctrl.signal.aborted) return;
+          if (local.length) { setVariantes(local); setLoading(false); if (!navigator.onLine) return; }
         }
+        if (!navigator.onLine) { setLoading(false); return; }
+        const { data } = await (supabase.from("criatura_variantes").select("id, tipo").eq("criatura_id", criaturaId).order("tipo") as any).abortSignal(ctrl.signal);
+        if (ctrl.signal.aborted) return;
+        const result = (data ?? []) as VarianteMin[];
+        setVariantes(result); setLoading(false);
+        try { if (db && result.length) await (db as any).criatura_variantes?.bulkPut(result); } catch {}
+      } catch (e: any) { if (ctrl.signal.aborted || e?.name === "AbortError") return; setLoading(false); }
+    };
+    run(); return () => { ctrl.abort(); };
+  }, [criaturaId]);
+  return { variantes, loading };
+}
+
+// ─── Hook: grupos del mundo (filtrable por tipo) ──────────────────────────────
+type GrupoMin  = { id: string; nombre: string; miembro_ids: string[] };
+type GrupoTodo = { id: string; nombre: string; tipo: string; miembro_ids: string[] };
+
+function useGruposMundo(filtroTipo?: string) {
+  const [grupos, setGrupos] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const abortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    abortRef.current?.abort();
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
+    const run = async () => {
+      try {
+        if (db && (db as any).grupos_mundo) {
+          const all = await (db as any).grupos_mundo.toArray() as any[];
+          if (ctrl.signal.aborted) return;
+          const local = all
+            .filter((g: any) => !g.deleted && (!filtroTipo || g.tipo === filtroTipo))
+            .map((g: any) => ({ id: g.id, nombre: g.nombre, tipo: g.tipo ?? "", miembro_ids: g.miembro_ids ?? [] }));
+          if (local.length) { setGrupos(local); setLoading(false); }
+        }
+        if (!navigator.onLine) { setLoading(false); return; }
+        let query = supabase.from("grupos_mundo").select("id, nombre, tipo, miembro_ids").order("nombre");
+        if (filtroTipo) query = (query as any).eq("tipo", filtroTipo);
+        const { data } = await (query as any).abortSignal(ctrl.signal);
+        if (ctrl.signal.aborted) return;
+        const result = (data ?? []).map((r: any) => ({ id: r.id, nombre: r.nombre, tipo: r.tipo ?? "", miembro_ids: r.miembro_ids ?? [] }));
+        setGrupos(result); setLoading(false);
+      } catch (e: any) { if (ctrl.signal.aborted || e?.name === "AbortError") return; setLoading(false); }
+    };
+    run();
+    return () => { ctrl.abort(); };
+  }, [filtroTipo]);
+
+  return { grupos, loading };
+}
+
+function useGruposCriaturas() {
+  const { grupos, loading } = useGruposMundo("criaturas");
+  return { grupos: grupos as GrupoMin[], loading };
+}
+
+function useGruposTodos() {
+  const { grupos, loading } = useGruposMundo();
+  return { grupos: grupos as GrupoTodo[], loading };
+}
+
+function FilaGrupo({ grupo, color, onQuitar }: { grupo: GrupoMin; color: string; onQuitar: () => void }) {
+  return (
+    <div className="rounded-xl border overflow-hidden"
+      style={{ borderColor: `color-mix(in srgb, ${color} 20%, transparent)`, background: `color-mix(in srgb, ${color} 4%, transparent)` }}>
+      <div className="flex items-center gap-2.5 px-3 py-2">
+        <div className="shrink-0 w-7 h-7 rounded-lg border border-primary/10 bg-primary/5 flex items-center justify-center">
+          <Layers size={11} className="text-primary/30" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <span className="text-[11px] font-bold text-primary/85 truncate block">{grupo.nombre}</span>
+          <span className="text-[9px] text-primary/30">{grupo.miembro_ids.length} criaturas</span>
+        </div>
+        <button onClick={onQuitar}
+          className="w-6 h-6 rounded-lg flex items-center justify-center text-primary/20 hover:text-red-400 hover:bg-red-400/10 transition-all">
+          <X size={10} />
+        </button>
       </div>
     </div>
   );
 }
 
-// ─── DetalleEditor ─────────────────────────────────────────────────────────────
-function DetalleEditor({ detalle, onSaved, onDeleted, onOpenEditor, entities = [] }: {
-  detalle: Lugar; onSaved: (d: Lugar) => void; onDeleted: (id: string) => void;
-  onOpenEditor?: (id: string) => void;
-  entities?: WikiEntity[];
+function SelectorAgregarGrupo({ grupos, loadingGrupos, asignados, onAgregar, color }: {
+  grupos: GrupoMin[]; loadingGrupos: boolean; asignados: string[];
+  onAgregar: (g: GrupoMin) => void; color: string;
 }) {
-  const [form, setForm] = useState(detalle);
-  const [editing, setEditing] = useState(false);
-  const [status, setStatus] = useState<SaveStatus>("idle");
-  const { confirm, ConfirmModal } = useConfirm();
-  const nameRef = useRef<HTMLInputElement>(null);
-
-  const prevCoords = useRef({ x: detalle.coord_x, y: detalle.coord_y });
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const ref = useRef<HTMLDivElement>(null);
+  const disponibles = useMemo(
+    () => grupos.filter(g => !asignados.includes(g.id) && g.nombre.toLowerCase().includes(search.toLowerCase())),
+    [grupos, asignados, search]
+  );
   useEffect(() => {
-    if (detalle.coord_x !== prevCoords.current.x || detalle.coord_y !== prevCoords.current.y) {
-      prevCoords.current = { x: detalle.coord_x, y: detalle.coord_y };
-      setForm(f => ({ ...f, coord_x: detalle.coord_x, coord_y: detalle.coord_y }));
-    }
-  }, [detalle.coord_x, detalle.coord_y]);
-
-  const saveDetalle = async (data: Lugar) => {
-    setStatus("saving");
-    try {
-      const { error } = await supabase.from("lugares").update({
-        nombre: data.nombre, descripcion: data.descripcion,
-        coord_x: data.coord_x, coord_y: data.coord_y,
-      }).eq("id", data.id);
-      if (error) throw error;
-      setStatus("saved"); onSaved(data);
-      void dexiePut("lugares", data);
-      setTimeout(() => setStatus("idle"), 2000);
-    } catch { setStatus("error"); }
-  };
-
-  const handleSave = () => {
-    saveDetalle(form);
-    setEditing(false);
-  };
-
-  const handleDelete = async () => {
-    const ok = await confirm({ message: `¿Eliminar "${form.nombre}"?`, danger: true });
-    if (!ok) return;
-    await supabase.from("lugares").delete().eq("id", form.id);
-    void dexieDel("lugares", form.id);
-    onDeleted(form.id);
-  };
-
+    if (!open) return;
+    const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) { setOpen(false); setSearch(""); } };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, [open]);
   return (
-    <div
-      className="rounded-lg overflow-hidden transition-all group/lugar"
-      style={{ border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, transparent)" }}
-    >
-      <ConfirmModal />
+    <div className="relative" ref={ref}>
+      <button type="button" onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl border border-dashed text-[9px] font-black uppercase tracking-widest transition-all"
+        style={{ borderColor: `color-mix(in srgb, ${color} 22%, transparent)`, color: `color-mix(in srgb, ${color} 55%, transparent)` }}
+        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = `color-mix(in srgb, ${color} 6%, transparent)`; (e.currentTarget as HTMLElement).style.color = color; }}
+        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; (e.currentTarget as HTMLElement).style.color = `color-mix(in srgb, ${color} 55%, transparent)`; }}>
+        <Plus size={9} /> Agregar grupo de criaturas
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => { setOpen(false); setSearch(""); }} />
+          <div className="absolute z-50 top-full left-0 right-0 mt-1.5 rounded-xl border overflow-hidden shadow-xl"
+            style={{ background: "var(--bg-main)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
+            <div className="p-2 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+              <div className="relative">
+                <Search size={9} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-primary/25" />
+                <input autoFocus value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar grupo…"
+                  className="w-full bg-primary/5 border border-primary/10 rounded-lg pl-7 pr-2 py-1.5 text-[10px] outline-none focus:border-primary/25 text-primary placeholder:text-primary/25" />
+              </div>
+            </div>
+            <div className="max-h-52 overflow-y-auto p-1">
+              {loadingGrupos ? (
+                <div className="flex justify-center py-6"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
+              ) : disponibles.length === 0 ? (
+                <p className="text-[9px] text-primary/25 text-center py-4 italic">
+                  {grupos.length === asignados.length ? "Todos los grupos ya están asignados" : "Sin resultados"}
+                </p>
+              ) : disponibles.map(g => (
+                <button key={g.id} onMouseDown={() => { onAgregar(g); setSearch(""); }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left hover:bg-primary/6 transition-colors">
+                  <div className="shrink-0 w-6 h-6 rounded-lg border border-primary/10 bg-primary/5 flex items-center justify-center">
+                    <Layers size={10} className="text-primary/25" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <span className="text-[11px] font-medium text-primary/80 truncate block">{g.nombre}</span>
+                    <span className="text-[9px] text-primary/30">{g.miembro_ids.length} criaturas</span>
+                  </div>
+                  <Check size={9} className="text-primary/15" />
+                </button>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 
-      {/* Fila compacta siempre visible */}
-      <div className="flex items-center gap-1.5 px-2.5 py-2 min-h-[36px]">
-        <MapPin size={10} className="shrink-0 text-primary/30" />
-
-        {/* Nombre inline-editable */}
-        <input
-          ref={nameRef}
-          value={form.nombre}
-          onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))}
-          onFocus={() => setEditing(true)}
-          onBlur={() => { if (!form.descripcion?.trim()) handleSave(); }}
-          onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleSave(); nameRef.current?.blur(); } }}
-          className="flex-1 min-w-0 bg-transparent text-[11px] font-black uppercase tracking-widest text-primary outline-none placeholder:text-primary/25 truncate"
-          placeholder="Nombre del lugar"
-        />
-
-        {/* Acciones — visibles al hacer hover o al editar */}
-        <div className={`flex items-center gap-1 transition-opacity ${editing ? "opacity-100" : "opacity-0 group-hover/lugar:opacity-100"}`}>
-          <SaveIndicator status={status} />
-          {editing && (
-            <button
-              onClick={handleSave}
-              className="flex items-center justify-center w-6 h-6 rounded-md bg-primary text-btn-text hover:bg-primary/90 transition-all"
-              title="Guardar"
-            >
-              <Check size={10} />
-            </button>
-          )}
-          {onOpenEditor && (
-            <button
-              onClick={() => onOpenEditor(form.id)}
-              className="flex items-center justify-center w-6 h-6 rounded-md text-primary/30 hover:text-primary hover:bg-primary/8 transition-all"
-              title="Ver ficha completa"
-            >
-              <MapPin size={10} />
-            </button>
-          )}
-          <button
-            onClick={handleDelete}
-            className="flex items-center justify-center w-6 h-6 rounded-md text-red-400/40 hover:text-red-400 hover:bg-red-500/8 transition-all"
-            title="Eliminar"
-          >
-            <Trash2 size={10} />
-          </button>
+function PanelGruposAsignados({ grupoIds, onGrupoIdsChange, grupos, loadingGrupos, color }: {
+  grupoIds: string[]; onGrupoIdsChange: (ids: string[]) => void;
+  grupos: GrupoMin[]; loadingGrupos: boolean; color: string;
+}) {
+  const asignados = useMemo(() => grupos.filter(g => grupoIds.includes(g.id)), [grupos, grupoIds]);
+  return (
+    <div className="space-y-2">
+      <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35 flex items-center gap-1.5">
+        <Layers size={9} /> Grupos de criaturas que pueden usarlo
+      </label>
+      {loadingGrupos ? (
+        <div className="flex items-center gap-2 py-2">
+          <Loader2 size={11} className="animate-spin text-primary/20" />
+          <span className="text-[10px] text-primary/25 italic">Cargando grupos…</span>
         </div>
-      </div>
-
-      {/* Descripción — solo visible al editar */}
-      {editing && (
-        <div
-          className="px-2.5 pb-2.5 border-t"
-          style={{ borderColor: "color-mix(in srgb, var(--primary) 6%, transparent)" }}
-        >
-          <textarea
-            value={form.descripcion ?? ""}
-            onChange={e => setForm(f => ({ ...f, descripcion: e.target.value }))}
-            rows={3}
-            placeholder="Descripción breve…"
-            className="mt-2 w-full bg-transparent text-[11px] text-primary/80 placeholder:text-primary/25 outline-none resize-none leading-relaxed"
-          />
+      ) : (
+        <div className="space-y-2">
+          {asignados.length === 0 && (
+            <p className="text-[9px] text-primary/20 italic px-1">Sin grupos asignados — universal</p>
+          )}
+          {asignados.map(g => (
+            <FilaGrupo key={g.id} grupo={g} color={color}
+              onQuitar={() => onGrupoIdsChange(grupoIds.filter(id => id !== g.id))} />
+          ))}
+          <SelectorAgregarGrupo grupos={grupos} loadingGrupos={loadingGrupos} asignados={grupoIds}
+            onAgregar={g => { if (!grupoIds.includes(g.id)) onGrupoIdsChange([...grupoIds, g.id]); }}
+            color={color} />
         </div>
       )}
     </div>
   );
 }
 
-// ─── EditorReino ───────────────────────────────────────────────────────────────
-export function EditorReino({ item, onSaved, onDeleted, entities = [], onSelectPersonaje, onSelectLugar, onSelectCriatura, onSelectItem }: {
-  item: Reino; onSaved: (r: Reino) => void; onDeleted: (id: string) => void; entities?: WikiEntity[];
-  onSelectPersonaje?: (personaje: any) => void;
-  onSelectLugar?: (id: string) => void;
-  onSelectCriatura?: (id: string) => void;
-  onSelectItem?: (id: string) => void;
+// ─── Formulario de edición de hechizo/don ────────────────────────────────────
+function FormularioMagico({ item, modo, grupos, loadingGrupos, onSaved, onDeleted }: {
+  item: EntidadMagica;
+  modo: "hechizos" | "dones" | "runas";
+  grupos: GrupoMin[];
+  loadingGrupos: boolean;
+  onSaved: (i: EntidadMagica) => void;
+  onDeleted: (id: string) => void;
 }) {
-  const [form,   setForm]   = useState<Reino>(item);
+  const [form, setForm] = useState<EntidadMagica>(item);
   const [status, setStatus] = useState<SaveStatus>("idle");
-  const [addingPoint, setAddingPoint] = useState(false);
-  const [mobileAsideOpen, setMobileAsideOpen] = useState(false);
-  const [newPointName, setNewPointName] = useState("");
-  const { lugares: detalles, setLugares: setDetalles } = useLugaresDelReino(item.id);
   const { confirm, ConfirmModal } = useConfirm();
   const { onSnippetAction } = useWikilink();
-  const { personajes, setPersonajes, loading: loadingPersonajes } = usePersonajesDelReino(form.nombre);
+  const cfg = MAGIC_CONFIG[modo];
 
   useEffect(() => { setForm(item); setStatus("idle"); }, [item.id]);
 
   const save = async () => {
     setStatus("saving");
     try {
-      const { error } = await supabase.from("reinos").update({
-        nombre: form.nombre, historia: form.historia, politica: form.politica,
-        economia: form.economia, geografia: form.geografia, cultura: form.cultura,
-        mapa_url: form.mapa_url, coord_x: form.coord_x, coord_y: form.coord_y,
+      const { error } = await supabase.from(cfg.tabla).update({
+        nombre: form.nombre,
+        explicacion: form.explicacion || null,
+        grupo_ids: form.grupo_ids ?? [],
       }).eq("id", form.id);
       if (error) throw error;
-      setStatus("saved"); onSaved(form);
-      void dexiePut("reinos", form);
+      setStatus("saved");
+      onSaved(form);
+      void dexiePut(cfg.tabla, form);
       setTimeout(() => setStatus("idle"), 2000);
     } catch { setStatus("error"); }
   };
 
   const del = async () => {
-    const ok = await confirm({ message: `¿Eliminar el reino "${form.nombre}"?`, danger: true });
+    const ok = await confirm({ message: `¿Eliminar "${form.nombre}"?`, danger: true });
     if (!ok) return;
-    await supabase.from("reinos").delete().eq("id", form.id);
-    void dexieDel("reinos", form.id);
+    await supabase.from(cfg.tabla).delete().eq("id", form.id);
+    void dexieDel(cfg.tabla, form.id);
     onDeleted(form.id);
   };
 
-  const handleAddPoint = async () => {
-    if (!newPointName.trim()) return;
-    const { data, error } = await supabase.from("lugares")
-      .insert([{ reino_id: form.id, nombre: newPointName.trim(), coord_x: 50, coord_y: 50 }]).select().single();
-    if (!error && data) { setDetalles(prev => [...prev, data as Lugar]); void dexiePut("lugares", data); setAddingPoint(false); setNewPointName(""); }
+  return (
+    <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+      <ConfirmModal />
+
+      {/* Header */}
+      <div className="shrink-0 flex flex-col gap-2 px-4 py-3 border-b"
+        style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}>
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="shrink-0 w-8 h-8 sm:w-9 sm:h-9 rounded-xl overflow-hidden flex items-center justify-center border"
+            style={{ background: `color-mix(in srgb, ${cfg.color} 12%, transparent)`, borderColor: `color-mix(in srgb, ${cfg.color} 25%, transparent)` }}>
+            <cfg.Icon size={15} style={{ color: cfg.color }} />
+          </div>
+          <input
+            value={form.nombre ?? ""}
+            onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))}
+            placeholder={`Nombre del ${cfg.labelSing.toLowerCase()}…`}
+            className="flex-1 min-w-0 bg-transparent text-sm font-black text-primary outline-none placeholder:text-primary/25"
+          />
+        </div>
+        <div className="flex items-center justify-end gap-2">
+          <SaveIndicator status={status} />
+          <button onClick={del}
+            className="flex items-center gap-1 px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all">
+            <Trash2 size={11} />
+          </button>
+          <button onClick={save} disabled={status === "saving"}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50">
+            <Save size={11} /> Guardar
+          </button>
+        </div>
+      </div>
+
+      {/* Body */}
+      <div className="flex-1 overflow-y-auto min-h-0 p-4 space-y-5">
+        <PanelGruposAsignados
+          grupoIds={form.grupo_ids ?? []}
+          onGrupoIdsChange={ids => setForm(f => ({ ...f, grupo_ids: ids }))}
+          grupos={grupos}
+          loadingGrupos={loadingGrupos}
+          color={cfg.color}
+        />
+        <div className="space-y-1.5">
+          <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">Explicación</label>
+          <MarkdownEditor
+            value={form.explicacion ?? ""}
+            onChange={v => setForm(f => ({ ...f, explicacion: v }))}
+            rows={14}
+            placeholder={cfg.placeholder}
+            toolbar
+            defaultMode="edit"
+            onSnippetAction={onSnippetAction}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Formulario de edición de runa (sin criatura) ────────────────────────────
+function FormularioRuna({ item, onSaved, onDeleted }: {
+  item: Runa;
+  onSaved: (i: Runa) => void;
+  onDeleted: (id: string) => void;
+}) {
+  const [form, setForm] = useState<Runa>(item);
+  const [status, setStatus] = useState<SaveStatus>("idle");
+  const { onSnippetAction } = useWikilink();
+  const { confirm, ConfirmModal } = useConfirm();
+  const cfg = MAGIC_CONFIG.runas;
+
+  useEffect(() => { setForm(item); setStatus("idle"); }, [item.id]);
+
+  const save = async () => {
+    setStatus("saving");
+    try {
+      const { error } = await supabase.from("runas").update({
+        nombre: form.nombre,
+        explicacion: form.explicacion || null,
+        imagen_url: form.imagen_url || null,
+      }).eq("id", form.id);
+      if (error) throw error;
+      setStatus("saved");
+      onSaved(form);
+      setTimeout(() => setStatus("idle"), 2000);
+    } catch { setStatus("error"); }
   };
 
-  const handleDetallesMapChange = async (updated: Lugar[]) => {
-    setDetalles(updated);
-    await Promise.all(updated.map(d =>
-      supabase.from("lugares").update({ coord_x: d.coord_x, coord_y: d.coord_y }).eq("id", d.id)
-    ));
+  const del = async () => {
+    const ok = await confirm({ message: `¿Eliminar "${form.nombre}"?`, danger: true });
+    if (!ok) return;
+    await supabase.from("runas").delete().eq("id", form.id);
+    void dexieDel("runas", form.id);
+    onDeleted(form.id);
   };
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 overflow-hidden relative">
+    <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
       <ConfirmModal />
-
-      <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-
-        {/* Header — dos filas en mobile, una fila en desktop */}
-        <div
-          className="shrink-0 border-b"
-          style={{
-            borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
-            background:  "color-mix(in srgb, var(--primary) 2%, transparent)",
-          }}
-        >
-          {/* Fila 1: thumbnail + nombre + guardar (siempre visible) */}
-          <div className="flex items-center gap-2.5 px-3 pt-2.5 pb-1.5 sm:px-4 sm:py-2.5">
-            {/* Thumbnail del mapa */}
-            <div
-              className="shrink-0 w-8 h-8 rounded-lg overflow-hidden border flex items-center justify-center"
-              style={{
-                borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)",
-                background:  "color-mix(in srgb, var(--primary) 6%, transparent)",
-              }}
-            >
-              {form.mapa_url
-                ? <img src={form.mapa_url} alt={form.nombre} className="w-full h-full object-cover" />
-                : <Map size={14} className="text-primary/25" />}
+      {/* Header */}
+      <div className="shrink-0 flex items-center gap-3 px-4 py-3 border-b"
+        style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}>
+        <input
+          value={form.nombre ?? ""}
+          onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))}
+          placeholder="Nombre de la runa…"
+          className="flex-1 min-w-0 bg-transparent text-sm font-black text-primary outline-none placeholder:text-primary/25"
+        />
+        <div className="shrink-0 flex items-center gap-2">
+          <SaveIndicator status={status} />
+          <button onClick={del}
+            className="flex items-center gap-1 px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all">
+            <Trash2 size={11} />
+          </button>
+          <button onClick={save} disabled={status === "saving"}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50">
+            <Save size={11} /> Guardar
+          </button>
+        </div>
+      </div>
+      {/* Body — dos columnas: imagen grande + contenido */}
+      <div className="flex-1 overflow-y-auto min-h-0">
+        <div className="flex flex-col sm:flex-row gap-0 h-full">
+          {/* Columna izquierda: imagen grande */}
+          <div className="shrink-0 sm:w-48 p-4 sm:border-r flex flex-col gap-3"
+            style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+            <div className="w-full sm:w-full mx-auto" style={{ maxWidth: "10rem" }}>
+              <SelectorImagen
+                label="Imagen"
+                value={form.imagen_url ?? ""}
+                onChange={url => setForm(f => ({ ...f, imagen_url: url }))}
+                aspect="square"
+                placeholder={<cfg.Icon size={28} style={{ color: cfg.color, opacity: 0.4 }} />}
+              />
             </div>
-
-            {/* Nombre editable */}
-            <input
-              value={form.nombre ?? ""}
-              onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))}
-              placeholder="Nombre del reino"
-              className="flex-1 min-w-0 bg-transparent text-sm font-black text-primary outline-none placeholder:text-primary/25"
-            />
-
-            <SaveIndicator status={status} />
-
-            {/* Eliminar — solo ícono en mobile, con texto en desktop */}
-            <button
-              onClick={del}
-              className="flex items-center justify-center gap-1 px-2 sm:px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all"
-            >
-              <Trash2 size={10} />
-              <span className="hidden sm:inline">Eliminar</span>
-            </button>
-
-            {/* Guardar — siempre visible */}
-            <button
-              onClick={save}
-              disabled={status === "saving"}
-              className="flex items-center gap-1.5 px-3 sm:px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50"
-            >
-              <Save size={11} />
-              <span className="hidden sm:inline">Guardar</span>
-            </button>
-
-            {/* Barra lateral — solo mobile */}
-            <button
-              onClick={() => setMobileAsideOpen(true)}
-              className="sm:hidden flex items-center justify-center p-2 rounded-xl text-primary/30 hover:text-primary hover:bg-primary/8 transition-all border border-primary/10"
-              title="Entidades"
-            >
-              <SlidersHorizontal size={13} />
-            </button>
+            {/* Nombre de la runa como subtítulo bajo la imagen */}
+            <p className="text-[9px] font-black uppercase tracking-[0.25em] text-center truncate"
+              style={{ color: `color-mix(in srgb, ${cfg.color} 50%, transparent)` }}>
+              {form.nombre || "Runa sin nombre"}
+            </p>
+          </div>
+          {/* Columna derecha: explicación */}
+          <div className="flex-1 min-w-0 p-4 space-y-3">
+            <div className="space-y-1.5">
+              <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">Explicación</label>
+              <MarkdownEditor
+                value={form.explicacion ?? ""}
+                onChange={v => setForm(f => ({ ...f, explicacion: v }))}
+                rows={16}
+                placeholder={cfg.placeholder}
+                toolbar
+                defaultMode="edit"
+                onSnippetAction={onSnippetAction}
+              />
+            </div>
           </div>
         </div>
-
-        {/* Lore — ocupa todo el espacio restante */}
-        <div className="flex-1 min-h-0 overflow-hidden" style={{ minHeight: "0" }}>
-          <LoreTab
-            form={form}
-            setForm={setForm}
-            entities={entities}
-            personajes={personajes}
-            loadingPersonajes={loadingPersonajes}
-            onSelectPersonaje={onSelectPersonaje}
-            onSelectCriatura={onSelectCriatura}
-            onSelectItem={onSelectItem}
-            detalles={detalles}
-            onAddPoint={handleAddPoint}
-            addingPoint={addingPoint}
-            setAddingPoint={setAddingPoint}
-            newPointName={newPointName}
-            setNewPointName={setNewPointName}
-            onDetalleUpdate={d => setDetalles(prev => prev.map(x => x.id === d.id ? d : x))}
-            onDetalleDelete={id => setDetalles(prev => prev.filter(x => x.id !== id))}
-            onOpenDetalleEditor={onSelectLugar}
-            mapaUrl={form.mapa_url ?? ""}
-            onMapaChange={url => setForm(f => ({ ...f, mapa_url: url }))}
-            onDetallesArrayChange={handleDetallesMapChange}
-            MapaConPuntosComponent={MapaConPuntos}
-          />
-        </div>
-
       </div>
+    </div>
+  );
+}
 
-      {/* ── BARRA LATERAL — mobile drawer ──────────────────────────────────── */}
-      {mobileAsideOpen && (
-        <div className="sm:hidden fixed inset-0 z-50 flex justify-end">
-          <div
-            className="absolute inset-0"
-            style={{ background: "color-mix(in srgb, var(--primary) 20%, transparent)" }}
-            onClick={() => setMobileAsideOpen(false)}
-          />
-          <div
-            className="relative flex flex-col h-full overflow-y-auto shadow-2xl"
-            style={{
-              width: "240px",
-              background: "var(--white-custom, var(--bg-main))",
-              borderLeft: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-              scrollbarWidth: "none",
-            }}
-          >
-            {/* Header */}
-            <div
-              className="shrink-0 flex items-center justify-between px-3 py-2.5 border-b"
-              style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
+
+// ─── Panel de lista + editor para hechizos o dones ───────────────────────────
+
+type MundoTimelineEvent = TimelineEvent & {
+  source: "mundo" | "reino" | "capitulo";
+  reinoNombre?: string;
+  reinoId?: string;
+  yearNum: number; // para ordenar (valor numérico)
+  capData?: CapTimeline; // solo para source === "capitulo"
+};
+
+/** Extrae el valor numérico de un año para ordenamiento.
+ *  Soporta negativos: -100 < -10 < -1 < 1 < 2 < 10 < 100 …
+ *  Texto puro sin números queda al final (Infinity).
+ */
+function parseYear(year: string): number {
+  if (!year?.trim()) return Infinity;
+  const normalized = year.replace(/(\d)[.,](\d{3})/g, "$1$2");
+  const match = normalized.match(/(-?\d+)/);
+  if (!match) return Infinity;
+  return parseInt(match[1], 10);
+}
+
+function decodeTimeline(raw: string | undefined): TimelineEvent[] {
+  if (!raw?.trim()) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed as TimelineEvent[];
+  } catch {}
+  return [];
+}
+
+function encodeTimeline(events: TimelineEvent[]): string {
+  return JSON.stringify(events);
+}
+
+function newEvent(): TimelineEvent {
+  return { id: crypto.randomUUID(), year: "", title: "", description: "" };
+}
+
+// ── Tarjeta de capítulo en la línea de tiempo (solo lectura, con link) ─────────
+function CapituloEventoRow({
+  cap,
+  reinoNombre,
+  onNavigate,
+}: {
+  cap: CapTimeline;
+  reinoNombre?: string;
+  onNavigate: () => void;
+}) {
+  return (
+    <div className="group/card" style={{ width: 188 }}>
+      <div
+        className="mx-1.5 rounded-xl transition-all"
+        style={{
+          border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+          background: "color-mix(in srgb, var(--primary) 2%, transparent)",
+        }}
+      >
+        <div className="flex flex-col gap-1 p-2">
+          {/* Año */}
+          <div className="flex items-center gap-1">
+            <span
+              className="text-[9px] font-black tracking-widest px-1.5 py-0.5 rounded-md"
+              style={{
+                background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+                color: "var(--primary)",
+              }}
             >
-              <span className="text-[8px] font-black uppercase tracking-[0.2em] flex items-center gap-1.5" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>
-                <SlidersHorizontal size={9} /> Entidades
+              {cap.orden_linea_tiempo}
+            </span>
+            {cap.libroTitulo && (
+              <span
+                className="text-[7px] font-black uppercase tracking-widest truncate"
+                style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
+              >
+                {cap.libroTitulo}
               </span>
-              <button onClick={() => setMobileAsideOpen(false)} className="p-1 rounded-lg text-primary/30 hover:text-primary hover:bg-primary/8 transition-all">
-                <X size={14} />
+            )}
+          </div>
+
+          {/* Título del capítulo como botón navegable */}
+          <button
+            type="button"
+            onClick={onNavigate}
+            className="flex items-center gap-1 px-1.5 py-1 rounded-lg border w-full text-left transition-all"
+            style={{
+              background: "color-mix(in srgb, var(--primary) 4%, transparent)",
+              borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
+            }}
+            onMouseEnter={e => {
+              const el = e.currentTarget as HTMLElement;
+              el.style.background = "color-mix(in srgb, var(--primary) 9%, transparent)";
+              el.style.borderColor = "color-mix(in srgb, var(--primary) 22%, transparent)";
+            }}
+            onMouseLeave={e => {
+              const el = e.currentTarget as HTMLElement;
+              el.style.background = "color-mix(in srgb, var(--primary) 4%, transparent)";
+              el.style.borderColor = "color-mix(in srgb, var(--primary) 10%, transparent)";
+            }}
+            title={`Abrir: ${cap.titulo_capitulo}`}
+          >
+            <BookOpen size={8} style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)", flexShrink: 0 }} />
+            <span
+              className="text-[8px] font-bold truncate"
+              style={{ color: "color-mix(in srgb, var(--primary) 65%, transparent)" }}
+            >
+              {cap.titulo_capitulo}
+            </span>
+          </button>
+
+          {/* Badge del reino */}
+          {reinoNombre && (
+            <span
+              className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest truncate self-start"
+              style={{
+                background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+                color: "color-mix(in srgb, var(--primary) 50%, transparent)",
+                border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+                maxWidth: "100%",
+              }}
+            >
+              <Crown size={6} /> {reinoNombre}
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Tarjeta horizontal de evento (mundo O reino) — solo visualización ────────
+function MundoEventoRow({
+  evt,
+  source = "mundo",
+  isSelected,
+  onSelect,
+  onRemove,
+  reinos = [],
+}: {
+  evt: TimelineEvent;
+  source?: "mundo" | "reino";
+  isSelected: boolean;
+  onSelect: () => void;
+  onRemove: () => void;
+  reinos?: Reino[];
+}) {
+  const hasYear  = !!evt.year?.trim();
+  const hasTitle = !!evt.title?.trim();
+  const reinoId  = (evt as any).reinoId as string | null | undefined;
+  const reinoNombre = reinoId ? reinos.find(r => r.id === reinoId)?.nombre : null;
+
+  return (
+    <div className="group/card" style={{ width: 188 }}>
+      <div
+        className="mx-1.5 rounded-xl transition-all"
+        style={{
+          border: `1px solid ${isSelected
+            ? "color-mix(in srgb, var(--primary) 30%, transparent)"
+            : source === "reino"
+              ? "color-mix(in srgb, var(--primary) 8%, transparent)"
+              : "color-mix(in srgb, var(--primary) 12%, transparent)"}`,
+          background: isSelected
+            ? "color-mix(in srgb, var(--primary) 6%, transparent)"
+            : source === "reino"
+              ? "color-mix(in srgb, var(--primary) 1.5%, transparent)"
+              : "color-mix(in srgb, var(--primary) 2.5%, transparent)",
+        }}
+      >
+        <div className="flex flex-col gap-1 p-2">
+          {/* Año (solo lectura — editable en panel inferior) */}
+          <div className="text-[10px] font-black tracking-widest text-center px-1 py-1 rounded-lg border"
+            style={{
+              color: hasYear ? "var(--primary)" : "color-mix(in srgb, var(--primary) 25%, transparent)",
+              borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
+              background: hasYear ? "color-mix(in srgb, var(--primary) 6%, transparent)" : "transparent",
+            }}>
+            {hasYear ? evt.year : <span className="italic opacity-40">Año…</span>}
+          </div>
+          {/* Título */}
+          <div className="px-1 text-[10px] font-bold truncate"
+            style={{ color: hasTitle ? "var(--primary)" : "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
+            {hasTitle ? evt.title : <span className="italic opacity-50">Sin título…</span>}
+          </div>
+          {/* Acciones */}
+          <div className="flex items-center justify-between mt-0.5">
+            {reinoNombre && (
+              <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest truncate"
+                style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)", color: "color-mix(in srgb, var(--primary) 50%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)", maxWidth: "80px" }}>
+                <Crown size={6} /> {reinoNombre}
+              </span>
+            )}
+            <div className="flex items-center gap-1 ml-auto opacity-0 group-hover/card:opacity-100 transition-opacity">
+              <button type="button" onClick={e => { e.stopPropagation(); onRemove(); }}
+                className="p-1.5 rounded-lg border transition-all"
+                style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)", background: "transparent" }}
+                onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.color = "#f87171"; el.style.borderColor = "rgba(248,113,113,0.35)"; el.style.background = "rgba(248,113,113,0.06)"; }}
+                onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.color = "color-mix(in srgb, var(--primary) 25%, transparent)"; el.style.borderColor = "color-mix(in srgb, var(--primary) 10%, transparent)"; el.style.background = "transparent"; }}>
+                <Trash2 size={11} />
+              </button>
+              <button type="button" onClick={onSelect}
+                className="flex items-center gap-1 px-2 py-1.5 rounded-lg border text-[8px] font-black uppercase tracking-widest transition-all"
+                style={isSelected ? {
+                  color: "var(--primary)", borderColor: "color-mix(in srgb, var(--primary) 30%, transparent)", background: "color-mix(in srgb, var(--primary) 8%, transparent)"
+                } : {
+                  color: "color-mix(in srgb, var(--primary) 35%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)", background: "transparent"
+                }}>
+                <ChevronDown size={11} style={{ transform: isSelected ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s ease" }} />
+                <span>{isSelected ? "Cerrar" : "Editar"}</span>
               </button>
             </div>
-            {/* Contenido del aside — agregar SeccionEntidad u otros bloques según necesidades del reino */}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Tipo para capítulos con posición en línea de tiempo ─────────────────────
+type CapTimeline = {
+  id: string;
+  libro_id: string;
+  titulo_capitulo: string;
+  orden_linea_tiempo: number;
+  libroTitulo?: string;
+  reinos_ids?: string[];
+};
+
+// ── Carga reinos con historia completa (query dedicada, no el hook genérico) ──
+function useReinosConHistoria() {
+  const [reinos, setReinos] = useState<Reino[]>([]);
+  const [loading, setLoading] = useState(true);
+  const isMounted = useRef(true);
+
+  const cargar = useCallback(async (force = false) => {
+    if (!isMounted.current) return;
+    if (!force) setLoading(true);
+
+    // 1. Dexie primero — respuesta inmediata aunque estemos offline
+    try {
+      const local: any[] = db ? await (db as any).reinos?.toArray() ?? [] : [];
+      const filtered = local.filter((r: any) => !r.deleted);
+      if (filtered.length && isMounted.current) {
+        setReinos(filtered as Reino[]);
+        setLoading(false);
+      }
+    } catch {}
+
+    // 2. Supabase — solo si hay conexión real
+    const online = await isReallyOnline();
+    if (!online || !isMounted.current) { setLoading(false); return; }
+
+    try {
+      const { data } = await supabase
+        .from("reinos")
+        .select("*") // necesitamos historia completa
+        .order("nombre");
+      if (!isMounted.current) return;
+      if (data?.length) {
+        setReinos(data as Reino[]);
+        // Persistir en Dexie con historia incluida
+        try {
+          if (db) await (db as any).reinos?.bulkPut(data);
+        } catch {}
+      }
+    } catch {}
+
+    if (isMounted.current) setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    isMounted.current = true;
+    cargar();
+
+    // Recargar al recuperar conexión
+    const handleOnline = () => { cargar(true); };
+    window.addEventListener("online", handleOnline);
+
+    // Recargar cuando el sync offline termina de subir cambios
+    const unsubSync = onSyncDone(() => { if (isMounted.current) cargar(true); });
+
+    return () => {
+      isMounted.current = false;
+      window.removeEventListener("online", handleOnline);
+      unsubSync();
+    };
+  }, [cargar]);
+
+  return { reinos, setReinos, loading, recargar: () => cargar(true) };
+}
+
+// ── Panel principal — vista y edición unificadas, ambas pistas editables ──────
+function PanelHistoriaMundo({
+  texto,
+  onChange,
+  onSave,
+}: {
+  texto: string;
+  onChange: (v: string) => void;
+  onSave: () => Promise<void>;
+}) {
+  // mundoEvents: se inicializa con texto y se actualiza cuando texto cambia,
+  // pero solo si el texto externo es más rico que lo que ya tenemos (evita pisar ediciones)
+  const mundoInitRef   = useRef(false);
+  const [mundoEvents, setMundoEvents] = useState<TimelineEvent[]>([]);
+
+  useEffect(() => {
+    const decoded = decodeTimeline(texto);
+    if (!mundoInitRef.current && decoded.length > 0) {
+      // Primera carga real con datos
+      mundoInitRef.current = true;
+      setMundoEvents(decoded);
+    } else if (!mundoInitRef.current && texto !== undefined) {
+      // texto llegó pero está vacío — igual marcamos para no volver a pisar
+      mundoInitRef.current = true;
+      setMundoEvents(decoded);
+    }
+  }, [texto]);
+
+  const { reinos, setReinos, loading: loadingReinos, recargar } = useReinosConHistoria();
+
+  // ── Capítulos con posición en línea de tiempo ─────────────────────────────
+  const [capsTimeline, setCapsTimeline] = useState<CapTimeline[]>([]);
+  // Mapa de todos los capítulos con reinos_ids (para los botones de filtro,
+  // independientemente de si tienen orden_linea_tiempo)
+  const [capsReinosIds, setCapsReinosIds] = useState<Record<string, string[]>>({});
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const cargarCaps = async () => {
+      // 1. Leer de Dexie primero para mostrar datos offline inmediatamente
+      try {
+        if (db) {
+          const localCaps: any[] = await (db as any).capitulos?.toArray() ?? [];
+          const localLibros: any[] = await (db as any).libros?.toArray() ?? [];
+          const libroMapLocal: Record<string, string> = {};
+          localLibros.forEach((l: any) => { libroMapLocal[l.id] = l.titulo ?? ""; });
+
+          const conOrden = localCaps.filter((c: any) => c.orden_linea_tiempo != null);
+          if (conOrden.length && !cancelled) {
+            setCapsTimeline(conOrden.map((c: any) => ({
+              id: c.id,
+              libro_id: c.libro_id,
+              titulo_capitulo: c.titulo_capitulo,
+              orden_linea_tiempo: c.orden_linea_tiempo,
+              libroTitulo: libroMapLocal[c.libro_id] ?? "",
+              reinos_ids: c.reinos_ids ?? [],
+            })));
+          }
+
+          const mapLocal: Record<string, string[]> = {};
+          localCaps.forEach((c: any) => { if (c.reinos_ids?.length) mapLocal[c.id] = c.reinos_ids; });
+          if (Object.keys(mapLocal).length && !cancelled) setCapsReinosIds(mapLocal);
+        }
+      } catch {}
+
+      // 2. Fetch remoto si hay conexión
+      const online = await isReallyOnline();
+      if (!online || cancelled) return;
+
+      // Query 1: capítulos con orden_linea_tiempo → se muestran en la pista
+      try {
+        const { data } = await supabase
+          .from("capitulos")
+          .select("id, libro_id, titulo_capitulo, orden_linea_tiempo, reinos_ids")
+          .not("orden_linea_tiempo", "is", null);
+        if (!data?.length || cancelled) return;
+
+        const libroIds = [...new Set(data.map((c: any) => c.libro_id))];
+        const { data: libros } = await supabase
+          .from("libros")
+          .select("id, titulo")
+          .in("id", libroIds);
+        if (cancelled) return;
+
+        const libroMap: Record<string, string> = {};
+        (libros ?? []).forEach((l: any) => { libroMap[l.id] = l.titulo; });
+        setCapsTimeline(
+          (data as any[]).map(c => ({
+            id: c.id,
+            libro_id: c.libro_id,
+            titulo_capitulo: c.titulo_capitulo,
+            orden_linea_tiempo: c.orden_linea_tiempo,
+            libroTitulo: libroMap[c.libro_id] ?? "",
+            reinos_ids: c.reinos_ids ?? [],
+          }))
+        );
+      } catch {}
+
+      // Query 2: todos los capítulos con reinos_ids → alimenta los botones de filtro
+      try {
+        const { data } = await supabase
+          .from("capitulos")
+          .select("id, reinos_ids")
+          .not("reinos_ids", "is", null);
+        if (!data?.length || cancelled) return;
+        const map: Record<string, string[]> = {};
+        for (const c of data as any[]) {
+          if (c.reinos_ids?.length) map[c.id] = c.reinos_ids;
+        }
+        setCapsReinosIds(map);
+      } catch {}
+    };
+
+    cargarCaps();
+
+    // Recargar al volver online
+    const handleOnline = () => { cargarCaps(); };
+    window.addEventListener("online", handleOnline);
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener("online", handleOnline);
+    };
+  }, []);
+
+  // ── reinoEvents: se inicializa UNA SOLA VEZ por reino, no se re-inicializa ──
+  const reinoInitedRef = useRef<Set<string>>(new Set());
+  const [reinoEvents, setReinoEvents] = useState<Record<string, TimelineEvent[]>>({});
+
+  useEffect(() => {
+    // Solo inicializa los reinos que aún no fueron agregados
+    const nuevos: Record<string, TimelineEvent[]> = {};
+    let hayNuevos = false;
+    for (const r of reinos) {
+      if (!reinoInitedRef.current.has(r.id)) {
+        reinoInitedRef.current.add(r.id);
+        nuevos[r.id] = decodeTimeline((r as any).historia);
+        hayNuevos = true;
+      }
+    }
+    if (hayNuevos) {
+      setReinoEvents(prev => ({ ...prev, ...nuevos }));
+    }
+  }, [reinos]);
+
+  const handleMundoChange = (evts: TimelineEvent[]) => {
+    setMundoEvents(evts);
+    onChange(encodeTimeline(evts));
+    if (debounceHistRef.current) clearTimeout(debounceHistRef.current);
+    debounceHistRef.current = setTimeout(() => { void handleSave(); }, 1500);
+  };
+
+  const updateReinoEvent = useCallback((reinoId: string, id: string, patch: Partial<TimelineEvent>) => {
+    setReinoEvents(prev => {
+      const evts = (prev[reinoId] ?? []).map(e => e.id === id ? { ...e, ...patch } : e);
+      return { ...prev, [reinoId]: evts };
+    });
+  }, []);
+
+  const removeReinoEvent = useCallback((reinoId: string, id: string) => {
+    setReinoEvents(prev => {
+      const evts = (prev[reinoId] ?? []).filter(e => e.id !== id);
+      return { ...prev, [reinoId]: evts };
+    });
+  }, []);
+
+  const saveReinoHistory = useCallback(async (reinoId: string, evts: TimelineEvent[]) => {
+    const encoded = encodeTimeline(evts);
+
+    // Siempre persistir en Dexie de inmediato
+    try {
+      if (db) {
+        const existing = await (db as any).reinos?.get(reinoId);
+        await (db as any).reinos?.put({ ...(existing ?? {}), id: reinoId, historia: encoded });
+      }
+    } catch {}
+
+    // Actualizar estado local optimistamente
+    setReinos(prev => prev.map(r => r.id === reinoId ? { ...r, historia: encoded } as Reino : r));
+
+    const online = await isReallyOnline();
+    if (!online) {
+      // Encolar para sync cuando vuelva internet
+      try {
+        await enqueueOperation("reinos", "update", reinoId, { id: reinoId, historia: encoded });
+      } catch {}
+      return null;
+    }
+
+    const { error } = await supabase.from("reinos").update({ historia: encoded }).eq("id", reinoId);
+    return error ?? null;
+  }, [setReinos]);
+
+  const [filterReino, setFilterReino] = useState<string | null>(null);
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
+  const [savingReinos, setSavingReinos] = useState<Set<string>>(new Set());
+  const [selectedEventKey, setSelectedEventKey] = useState<string | null>(null); // "evtId" o "reinoId:evtId"
+  const { onSnippetAction } = useWikilink();
+  const debounceHistRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleSave = useCallback(async () => {
+    setSaveStatus("saving");
+    try { await onSave(); setSaveStatus("saved"); setTimeout(() => setSaveStatus("idle"), 2000); }
+    catch { setSaveStatus("error"); }
+  }, [onSave]);
+
+  // Ctrl+S
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+        e.preventDefault();
+        if (debounceHistRef.current) { clearTimeout(debounceHistRef.current); debounceHistRef.current = null; }
+        void handleSave();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [handleSave]);
+
+  const add = () => {
+    const e = newEvent();
+    handleMundoChange([...mundoEvents, e]);
+    setSelectedEventKey(e.id);
+  };
+  const update = (id: string, patch: Partial<TimelineEvent>) =>
+    handleMundoChange(mundoEvents.map(e => e.id === id ? { ...e, ...patch } : e));
+  const remove = (id: string) => {
+    handleMundoChange(mundoEvents.filter(e => e.id !== id));
+    if (selectedEventKey === id) setSelectedEventKey(null);
+  };
+
+  const handleSaveReinoEvent = useCallback(async (reinoId: string) => {
+    const evts = reinoEvents[reinoId] ?? [];
+    setSavingReinos(prev => new Set(prev).add(reinoId));
+    await saveReinoHistory(reinoId, evts);
+    setSavingReinos(prev => { const s = new Set(prev); s.delete(reinoId); return s; });
+  }, [reinoEvents, saveReinoHistory]);
+
+  const allEvents = useMemo<MundoTimelineEvent[]>(() => {
+    const list: MundoTimelineEvent[] = [];
+    for (const e of mundoEvents) {
+      const reinoId = (e as any).reinoId as string | null | undefined;
+      if (filterReino && reinoId !== filterReino) continue;
+      list.push({ ...e, source: "mundo", yearNum: parseYear(e.year) });
+    }
+    for (const reino of reinos) {
+      if (filterReino && reino.id !== filterReino) continue;
+      const evts = reinoEvents[reino.id] ?? decodeTimeline((reino as any).historia);
+      for (const e of evts) {
+        if (!e.year?.trim() && !e.title?.trim()) continue;
+        list.push({ ...e, source: "reino", reinoNombre: reino.nombre, reinoId: reino.id, yearNum: parseYear(e.year) });
+      }
+    }
+    // Capítulos — cada uno como tarjeta propia, ordenada por año, sin agrupar
+    for (const cap of capsTimeline) {
+      list.push({
+        id: `cap:${cap.id}`,
+        year: String(cap.orden_linea_tiempo),
+        title: cap.titulo_capitulo,
+        description: "",
+        source: "capitulo",
+        yearNum: cap.orden_linea_tiempo,
+        capData: cap,
+      });
+    }
+    // Sort estable: por año; en empate, mundo → reino → capítulo
+    return list.sort((a, b) => {
+      const diff = a.yearNum - b.yearNum;
+      if (diff !== 0) return diff;
+      const order = { mundo: 0, reino: 1, capitulo: 2 };
+      return (order[a.source] ?? 1) - (order[b.source] ?? 1);
+    });
+  }, [mundoEvents, reinos, reinoEvents, filterReino, capsTimeline]);
+
+  const reinosConEventos = useMemo(
+    () => reinos.filter(r => {
+      const evts = reinoEvents[r.id] ?? decodeTimeline((r as any).historia);
+      const tieneEventos = evts.some(e => e.year?.trim() || e.title?.trim());
+      // Usar capsReinosIds (todos los caps con reinos) para los botones de filtro,
+      // no solo los que tienen orden_linea_tiempo
+      const tieneCaps = Object.values(capsReinosIds).some(ids => ids.includes(r.id));
+      return tieneEventos || tieneCaps;
+    }),
+    [reinos, reinoEvents, capsReinosIds]
+  );
+
+  // Resolver el evento seleccionado actual
+  const selectedEvt = useMemo(() => {
+    if (!selectedEventKey) return null;
+    return allEvents.find(e => {
+      const key = e.source === "mundo" ? e.id : e.source === "capitulo" ? e.id : `${e.reinoId}:${e.id}`;
+      return key === selectedEventKey;
+    }) ?? null;
+  }, [selectedEventKey, allEvents]);
+
+  const handleUpdateSelected = (patch: Partial<TimelineEvent>) => {
+    if (!selectedEvt) return;
+    if (selectedEvt.source === "mundo") update(selectedEvt.id, patch);
+    else if (selectedEvt.reinoId) updateReinoEvent(selectedEvt.reinoId, selectedEvt.id, patch);
+  };
+
+  return (
+    <div className="flex flex-col">
+
+      {/* ── Cabecera ──────────────────────────────────────────────────────── */}
+      <div className="shrink-0 flex items-center gap-2 px-3 py-2 border-b flex-wrap"
+        style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+
+        {/* Filtro por reino */}
+        {reinosConEventos.length > 0 && (
+          <div className="flex items-center gap-1 flex-wrap">
+            <Filter size={8} style={{ color: "color-mix(in srgb, var(--primary) 28%, transparent)" }} />
+            <button onClick={() => setFilterReino(null)}
+              className="px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border transition-all"
+              style={filterReino === null ? {
+                background: "color-mix(in srgb, var(--primary) 10%, transparent)",
+                borderColor: "color-mix(in srgb, var(--primary) 22%, transparent)",
+                color: "var(--primary)",
+              } : { borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)", color: "color-mix(in srgb, var(--primary) 28%, transparent)" }}>
+              Todos
+            </button>
+            {reinosConEventos.map(r => (
+              <button key={r.id} onClick={() => setFilterReino(prev => prev === r.id ? null : r.id)}
+                className="px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border transition-all"
+                style={filterReino === r.id ? {
+                  background: "color-mix(in srgb, var(--primary) 10%, transparent)",
+                  borderColor: "color-mix(in srgb, var(--primary) 22%, transparent)",
+                  color: "var(--primary)",
+                } : { borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)", color: "color-mix(in srgb, var(--primary) 28%, transparent)" }}>
+                {r.nombre}
+              </button>
+            ))}
+          </div>
+        )}
+
+        <div className="ml-auto flex items-center gap-2">
+          <SaveIndicator status={saveStatus} />
+          <button
+            type="button"
+            onClick={() => {
+              mundoInitRef.current = false;
+              reinoInitedRef.current = new Set();
+              recargar();
+            }}
+            title="Recargar línea de tiempo"
+            className="flex items-center gap-1 px-2 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-widest border transition-all"
+            style={{
+              borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
+              color: "color-mix(in srgb, var(--primary) 35%, transparent)",
+            }}
+            onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.color = "var(--primary)"; el.style.borderColor = "color-mix(in srgb, var(--primary) 28%, transparent)"; }}
+            onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.color = "color-mix(in srgb, var(--primary) 35%, transparent)"; el.style.borderColor = "color-mix(in srgb, var(--primary) 12%, transparent)"; }}
+          >
+            {loadingReinos
+              ? <Loader2 size={9} className="animate-spin" />
+              : <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+            }
+          </button>
+          <button onClick={async () => {
+            for (const reinoId of Object.keys(reinoEvents)) {
+              await handleSaveReinoEvent(reinoId);
+            }
+          }} disabled={saveStatus === "saving"}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all disabled:opacity-50"
+            style={{ borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)", color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
+            <Save size={9} /> Guardar reinos
+          </button>
+        </div>
+      </div>
+
+      {/* ── Pista única: acontecimientos + capítulos en un solo scroll ──────── */}
+      <div className="px-3 py-3">
+        {loadingReinos ? (
+          <div className="flex justify-center py-4">
+            <Loader2 size={14} className="animate-spin text-primary/20" />
+          </div>
+        ) : (
+          <div className="overflow-x-auto pb-1"
+            style={{ scrollbarWidth: "thin", scrollbarColor: "color-mix(in srgb, var(--primary) 15%, transparent) transparent" }}>
+            <div className="flex items-start" style={{ minWidth: "max-content", paddingLeft: 8, paddingRight: 8 }}>
+
+              {allEvents.map((evt, idx) => {
+                const isMundo = evt.source === "mundo";
+                const isCapitulo = evt.source === "capitulo";
+                const totalLen = allEvents.length;
+                const key = isCapitulo ? evt.id : isMundo ? evt.id : `${evt.reinoId}:${evt.id}`;
+                return (
+                  <div key={key} className="flex flex-col shrink-0" style={{ width: 190 }}>
+                    {/* Nodo en la línea */}
+                    <div className="flex items-center" style={{ height: 26 }}>
+                      <div className="flex-1 h-px" style={{ background: idx === 0 ? "transparent" : "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
+                      <div className="shrink-0 rounded-full transition-all"
+                        style={isMundo ? {
+                          width: 10, height: 10,
+                          background: "var(--primary)",
+                          boxShadow: "0 0 0 3px color-mix(in srgb, var(--primary) 15%, transparent)",
+                        } : isCapitulo ? {
+                          width: 8, height: 8,
+                          background: "color-mix(in srgb, var(--accent) 70%, var(--primary))",
+                          boxShadow: "0 0 0 2px color-mix(in srgb, var(--accent) 15%, transparent)",
+                        } : {
+                          width: 7, height: 7,
+                          background: "color-mix(in srgb, var(--primary) 40%, transparent)",
+                          boxShadow: "0 0 0 2px color-mix(in srgb, var(--primary) 10%, transparent)",
+                        }} />
+                      <div className="flex-1 h-px" style={{ background: idx === totalLen - 1 ? "transparent" : "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
+                    </div>
+                    {/* Tarjeta */}
+                    {isCapitulo && evt.capData ? (
+                      <CapituloEventoRow
+                        cap={evt.capData}
+                        onNavigate={() => {
+                          localStorage.setItem("estudio-caps-last-cap", evt.capData!.id);
+                          localStorage.setItem("estudio-caps-last-libro", evt.capData!.libro_id);
+                          window.dispatchEvent(new Event("estudio-caps-action"));
+                        }}
+                      />
+                    ) : (
+                      <MundoEventoRow
+                        evt={evt}
+                        source={isMundo ? "mundo" : "reino"}
+                        reinos={reinos}
+                        isSelected={selectedEventKey === key}
+                        onSelect={() => setSelectedEventKey(prev => prev === key ? null : key)}
+                        onRemove={() => {
+                          if (isMundo) remove(evt.id);
+                          else if (evt.reinoId) {
+                            removeReinoEvent(evt.reinoId, evt.id);
+                            void handleSaveReinoEvent(evt.reinoId);
+                          }
+                          if (selectedEventKey === key) setSelectedEventKey(null);
+                        }}
+                      />
+                    )}
+                  </div>
+                );
+              })}
+
+              {/* Botón "+" al final */}
+              {!filterReino && (
+                <div className="flex flex-col shrink-0 items-center" style={{ width: 80 }}>
+                  <div className="flex items-center w-full" style={{ height: 26 }}>
+                    <div className="flex-1 h-px" style={{ background: allEvents.length > 0 ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent" }} />
+                    <button type="button" onClick={add}
+                      className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center border-2 border-dashed transition-all"
+                      style={{ borderColor: "color-mix(in srgb, var(--primary) 20%, transparent)", color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
+                      onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = "color-mix(in srgb, var(--primary) 45%, transparent)"; el.style.color = "var(--primary)"; el.style.background = "color-mix(in srgb, var(--primary) 6%, transparent)"; }}
+                      onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = "color-mix(in srgb, var(--primary) 20%, transparent)"; el.style.color = "color-mix(in srgb, var(--primary) 35%, transparent)"; el.style.background = "transparent"; }}>
+                      <Plus size={11} />
+                    </button>
+                    <div className="flex-1 h-px" style={{ background: "transparent" }} />
+                  </div>
+                  <span className="text-[7px] font-black uppercase tracking-widest mt-1 text-center"
+                    style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>
+                    Nuevo
+                  </span>
+                </div>
+              )}
+
+              {/* Estado vacío */}
+              {allEvents.length === 0 && filterReino && (
+                <p className="text-[9px] text-primary/20 italic px-4 py-2 self-center">Sin eventos para este reino.</p>
+              )}
+              {allEvents.length === 0 && !filterReino && (
+                <p className="text-[9px] text-primary/20 italic px-2 py-2 self-center">Usá el "+" para añadir el primer evento.</p>
+              )}
+
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── Fila 2: Panel de edición — ancho completo ─────────────────────── */}
+      {selectedEvt && (
+        <div className="border-t px-4 py-4 space-y-3"
+          style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, transparent)" }}>
+
+          {/* Header del panel con campos de edición inline */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <input
+              className="bg-transparent outline-none text-[10px] font-black tracking-widest text-center placeholder:text-primary/20 px-2 py-1 rounded-lg border w-28 shrink-0"
+              value={selectedEvt.year}
+              onChange={e => handleUpdateSelected({ year: e.target.value })}
+              placeholder="Año"
+              style={{
+                color: selectedEvt.year?.trim() ? "var(--primary)" : "color-mix(in srgb, var(--primary) 30%, transparent)",
+                borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
+                background: selectedEvt.year?.trim() ? "color-mix(in srgb, var(--primary) 5%, transparent)" : "transparent",
+              }}
+            />
+            <input
+              className="flex-1 min-w-0 bg-transparent outline-none text-sm font-black placeholder:text-primary/25"
+              value={selectedEvt.title}
+              onChange={e => handleUpdateSelected({ title: e.target.value })}
+              placeholder="Nombre del evento…"
+              style={{ color: "var(--primary)" }}
+            />
+            {selectedEvt.source === "mundo" && reinos.length > 0 && (
+              <div className="relative shrink-0">
+                <select
+                  value={(selectedEvt as any).reinoId ?? ""}
+                  onChange={e => handleUpdateSelected({ reinoId: e.target.value || null } as any)}
+                  className="appearance-none text-[10px] font-bold rounded-lg px-2.5 py-1.5 outline-none border cursor-pointer pr-7"
+                  style={{
+                    background: "color-mix(in srgb, var(--primary) 4%, transparent)",
+                    borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)",
+                    color: (selectedEvt as any).reinoId ? "var(--primary)" : "color-mix(in srgb, var(--primary) 40%, transparent)",
+                  }}>
+                  <option value="">— Mundo (sin reino) —</option>
+                  {reinos.map(r => <option key={r.id} value={r.id}>{r.nombre}</option>)}
+                </select>
+                <Crown size={10} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2"
+                  style={{ color: (selectedEvt as any).reinoId ? "var(--primary)" : "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
+              </div>
+            )}
+            {selectedEvt.source === "reino" && (
+              <span className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest shrink-0"
+                style={{ background: "color-mix(in srgb, var(--primary) 5%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)", color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}>
+                <Crown size={9} /> {(selectedEvt as any).reinoNombre}
+              </span>
+            )}
+            <button type="button" onClick={() => setSelectedEventKey(null)}
+              className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-[8px] font-black uppercase tracking-widest transition-all"
+              style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}
+              onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.color = "var(--primary)"; el.style.borderColor = "color-mix(in srgb, var(--primary) 28%, transparent)"; }}
+              onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.color = "color-mix(in srgb, var(--primary) 40%, transparent)"; el.style.borderColor = "color-mix(in srgb, var(--primary) 12%, transparent)"; }}>
+              <X size={11} /> Cerrar
+            </button>
+          </div>
+
+          {/* Editor de descripción — ancho completo */}
+          <MarkdownEditor
+            value={selectedEvt.description}
+            onChange={v => handleUpdateSelected({ description: v })}
+            placeholder="Descripción del evento…"
+            rows={10}
+            toolbar
+            defaultMode="edit"
+            onSnippetAction={onSnippetAction}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Tipos de labels externalizados ──────────────────────────────────────────
+export type SectionLabels = {
+  historia?: string;
+  capitulos?: string;
+  entidades?: string;
+};
+
+export type EntityLabels = {
+  reinos?: string;
+  criaturas?: string;
+  personajes?: string;
+  objetos?: string;
+  lugares?: string;
+  hechizos?: string;
+  dones?: string;
+  runas?: string;
+  notas?: string;
+  grupos?: string;
+  canciones?: string;
+  plantas?: string;
+};
+
+const DEFAULT_SECTION_LABELS: Required<SectionLabels> = {
+  historia: "Historia",
+  capitulos: "Capítulos",
+  entidades: "Entidades",
+};
+
+const DEFAULT_ENTITY_LABELS: Required<EntityLabels> = {
+  reinos: "Reinos",
+  criaturas: "Criaturas",
+  personajes: "Personajes",
+  objetos: "Objetos",
+  lugares: "Lugares",
+  hechizos: "Hechizos",
+  dones: "Dones",
+  runas: "Runas",
+  notas: "Notas",
+  grupos: "Grupos",
+  canciones: "Canciones",
+  plantas: "Plantas",
+};
+
+// ─── EditorMundo unificado ────────────────────────────────────────────────────
+export function EditorMundo({
+  textos,
+  onTextoChange,
+  onSave,
+  initialItemId,
+  openItem,
+  onOverlayChange,
+  onItemCreated,
+  sectionLabels,
+  entityLabels,
+}: {
+  textos: Record<MundoSectionKey, string>;
+  onTextoChange: (section: MundoSectionKey, value: string) => void;
+  onSave: (section: MundoSectionKey) => Promise<void>;
+  initialItemId?: string;
+  openItem?: { tabla: string; id: string; key?: number } | null;
+  onOverlayChange?: (hasOverlay: boolean, clearFn: () => void) => void;
+  onItemCreated?: { tabla: string; item: any } | null;
+  sectionLabels?: SectionLabels;
+  entityLabels?: EntityLabels;
+}) {
+  return (
+    <div className="flex-1 flex min-h-0 overflow-hidden">
+      <PanelListas
+        initialItemId={initialItemId}
+        openItem={openItem}
+        textos={textos}
+        onTextoChange={onTextoChange}
+        onSave={onSave}
+        onOverlayChange={onOverlayChange}
+        onItemCreated={onItemCreated}
+        sectionLabels={sectionLabels}
+        entityLabels={entityLabels}
+      />
+    </div>
+  );
+}
+
+// ─── PlantaOverlay: carga la planta completa y renderiza EditorPlanta ──────────
+function PlantaOverlay({
+  plantaMin, allEntityNames, reinos, lugares,
+  onUpdated, onDeleted, onSelectLugar, onSelectReino,
+}: {
+  plantaMin: PlantaMin;
+  allEntityNames: WikiEntity[];
+  reinos: Reino[];
+  lugares: LugarMin[];
+  onUpdated: (p: any) => void;
+  onDeleted: (id: string) => void;
+  onSelectLugar: (id: string) => void;
+  onSelectReino: (id: string) => void;
+}) {
+  const [planta, setPlanta] = useState<Planta | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    supabase.from("plantas").select("*").eq("id", plantaMin.id).single()
+      .then(({ data }) => { if (data) setPlanta(data as Planta); setLoading(false); });
+  }, [plantaMin.id]);
+
+  if (loading || !planta) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <Loader2 size={20} className="animate-spin text-primary/20" />
+      </div>
+    );
+  }
+
+  return (
+    <EditorPlanta
+      planta={planta}
+      entities={allEntityNames}
+      onSaved={(updated) => { setPlanta(updated); onUpdated(updated); }}
+      onDeleted={onDeleted}
+      onNavigateLugar={onSelectLugar}
+      onNavigateReino={onSelectReino}
+    />
+  );
+}
+
+// ─── Constante de localStorage ────────────────────────────────────────────────
+const LS_ITEM_KEY = "garlia-panel-item";
+const LS_SCROLL_KEY = "garlia-scroll-pos";
+
+// ─── PanelListas: scroll vertical único ───────────────────────────────────────
+function PanelListas({
+  initialItemId, openItem,
+  textos, onTextoChange, onSave, onOverlayChange, onItemCreated,
+  sectionLabels: sectionLabelsProp,
+  entityLabels: entityLabelsProp,
+}: {
+  initialItemId?: string;
+  openItem?: { tabla: string; id: string; key?: number } | null;
+  textos?: Record<MundoSectionKey, string>;
+  onTextoChange?: (section: MundoSectionKey, value: string) => void;
+  onSave?: (section: MundoSectionKey) => Promise<void>;
+  onOverlayChange?: (hasOverlay: boolean, clearFn: () => void) => void;
+  onItemCreated?: { tabla: string; item: any } | null;
+  sectionLabels?: SectionLabels;
+  entityLabels?: EntityLabels;
+}) {
+  // ── Labels resueltos (prop > default) ────────────────────────────────────
+  const sl = { ...DEFAULT_SECTION_LABELS, ...sectionLabelsProp };
+  const el = { ...DEFAULT_ENTITY_LABELS,  ...entityLabelsProp  };
+
+  // ── Datos — todos cargan al montar ───────────────────────────────────────
+  const { reinos,    setReinos,    loading: loadingReinos    } = useReinos();
+  const { criaturas, setCriaturas, loading: loadingCriaturas } = useCriaturas();
+  const { objetos,   setObjetos,   loading: loadingObjetos   } = useObjetos();
+  const { lugares,   setLugares,   loading: loadingLugares   } = useLugares();
+  const { personajes, setPersonajes, loading: loadingPersonajes } = usePersonajesList();
+  const { items: hechizos, setItems: setHechizos, loading: loadingHechizos } = useEntidadesMagicas("hechizos");
+  const { items: dones,    setItems: setDones,    loading: loadingDones    } = useEntidadesMagicas("dones");
+  const { items: runas,    setItems: setRunas,    loading: loadingRunas    } = useRunas();
+  const { plantas, setPlantas, loading: loadingPlantas } = usePlantas();
+  const { grupos: gruposMagicos, loading: loadingGruposMagicos } = useGruposCriaturas();
+  const { grupos, loaded: loadedGrupos, actualizarGrupo, eliminarGrupo } = useGrupos();
+  const { notas, loading: loadingNotas, crear: crearNota, actualizar: actualizarNota, eliminar: eliminarNota } = useNotas();
+  const { canciones, loading: loadingCanciones } = useCanciones();
+
+  // ── Estado de selección (overlay) ────────────────────────────────────────
+  const [selectedReino,     setSelectedReino]     = useState<Reino | null>(null);
+  const [selectedCriatura,  setSelectedCriatura]  = useState<{ id: string; nombre: string; imagen_url?: string; habitat?: string } | null>(null);
+  const [selectedObjeto,    setSelectedObjeto]    = useState<{ id: string; nombre: string; imagen_url?: string; categoria?: string } | null>(null);
+  const [selectedLugar,     setSelectedLugar]     = useState<Lugar | null>(null);
+  const [selectedPersonaje, setSelectedPersonaje] = useState<Personaje | null>(null);
+  const [selectedHechizo,   setSelectedHechizo]   = useState<EntidadMagica | null>(null);
+  const [selectedDon,       setSelectedDon]       = useState<EntidadMagica | null>(null);
+  const [selectedRuna,      setSelectedRuna]      = useState<Runa | null>(null);
+  const [selectedNota,      setSelectedNota]      = useState<Nota | null>(null);
+  const [selectedGrupo,     setSelectedGrupo]     = useState<Grupo | null>(null);
+  const [selectedCancion,   setSelectedCancion]   = useState<Cancion | null>(null);
+  const [selectedPlanta,    setSelectedPlanta]    = useState<PlantaMin | null>(null);
+  const [showModalCancion,  setShowModalCancion]  = useState(false);
+
+  // ── Scroll position ───────────────────────────────────────────────────────
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const scrollSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const capitulosRef = useRef<HTMLDivElement>(null);
+
+  // Restaurar posición de scroll al montar
+  useEffect(() => {
+    const saved = (() => { try { return parseFloat(localStorage.getItem(LS_SCROLL_KEY) ?? ""); } catch { return NaN; } })();
+    if (!isNaN(saved) && scrollRef.current) {
+      scrollRef.current.scrollTop = saved;
+    }
+  }, []);
+
+  const handleScroll = useCallback(() => {
+    if (scrollSaveTimer.current) clearTimeout(scrollSaveTimer.current);
+    scrollSaveTimer.current = setTimeout(() => {
+      try { localStorage.setItem(LS_SCROLL_KEY, String(scrollRef.current?.scrollTop ?? 0)); } catch {}
+    }, 200);
+  }, []);
+
+  // ── Persistencia del item abierto ─────────────────────────────────────────
+  const persistOpenItem = useCallback((tabla: string, id: string) => {
+    try { localStorage.setItem(LS_ITEM_KEY, JSON.stringify({ tabla, id })); } catch {}
+  }, []);
+  const clearPersistedItem = useCallback(() => {
+    try { localStorage.removeItem(LS_ITEM_KEY); } catch {}
+  }, []);
+
+  // ── Wrappers que persisten el item ────────────────────────────────────────
+  const selectReino     = useCallback((r: Reino | null)         => { setSelectedReino(r);     r ? persistOpenItem("reinos",     r.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
+  const selectCriatura  = useCallback((c: any | null)           => { setSelectedCriatura(c);  c ? persistOpenItem("criaturas",  c.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
+  const selectObjeto    = useCallback((o: any | null)           => { setSelectedObjeto(o);    o ? persistOpenItem("items",      o.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
+  const selectLugar     = useCallback((l: Lugar | null)         => { setSelectedLugar(l);     l ? persistOpenItem("lugares",    l.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
+  const selectPersonaje = useCallback((p: Personaje | null)     => { setSelectedPersonaje(p); p ? persistOpenItem("personajes", p.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
+  const selectHechizo   = useCallback((h: EntidadMagica | null) => { setSelectedHechizo(h);   h ? persistOpenItem("hechizos",   h.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
+  const selectDon       = useCallback((d: EntidadMagica | null) => { setSelectedDon(d);       d ? persistOpenItem("dones",      d.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
+  const selectRuna      = useCallback((r: Runa | null)          => { setSelectedRuna(r);      r ? persistOpenItem("runas",      r.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
+  const selectGrupo     = useCallback((g: Grupo | null)         => { setSelectedGrupo(g);     g ? persistOpenItem("grupos_mundo", g.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
+  const selectCancion   = useCallback((c: Cancion | null)       => { setSelectedCancion(c);   c ? persistOpenItem("canciones",   c.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
+  const selectPlanta    = useCallback((p: PlantaMin | null)     => { setSelectedPlanta(p);    p ? persistOpenItem("plantas",     p.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
+
+  // ── Overlay activo ────────────────────────────────────────────────────────
+  const overlay: "reino" | "criatura" | "objeto" | "personaje" | "hechizo" | "don" | "runa" | "nota" | "lugar" | "grupo" | "cancion" | "planta" | null =
+    selectedReino     ? "reino"     :
+    selectedCriatura  ? "criatura"  :
+    selectedObjeto    ? "objeto"    :
+    selectedLugar     ? "lugar"     :
+    selectedPersonaje ? "personaje" :
+    selectedHechizo   ? "hechizo"   :
+    selectedDon       ? "don"       :
+    selectedRuna      ? "runa"      :
+    selectedNota      ? "nota"      :
+    selectedGrupo     ? "grupo"     :
+    selectedCancion   ? "cancion"   :
+    selectedPlanta    ? "planta"    : null;
+
+  const clearAllOverlays = useCallback(() => {
+    setSelectedReino(null); setSelectedCriatura(null);
+    setSelectedObjeto(null); setSelectedPersonaje(null);
+    setSelectedHechizo(null); setSelectedDon(null); setSelectedRuna(null);
+    setSelectedNota(null); setSelectedLugar(null); setSelectedGrupo(null);
+    setSelectedCancion(null); setSelectedPlanta(null);
+    clearPersistedItem();
+  }, [clearPersistedItem]);
+
+  useEffect(() => {
+    onOverlayChange?.(!!overlay, clearAllOverlays);
+  }, [!!overlay, clearAllOverlays, onOverlayChange]);
+
+  // ── WikiEntity list ────────────────────────────────────────────────────────
+  const allEntityNames = useMemo((): WikiEntity[] => [
+    ...personajes.map(e => ({ name: e.nombre, type: "personaje" })),
+    ...criaturas .map(e => ({ name: e.nombre, type: "criatura"  })),
+    ...objetos   .map(e => ({ name: e.nombre, type: "ítem"      })),
+    ...reinos    .map(e => ({ name: e.nombre, type: "reino"     })),
+    ...lugares   .map(e => ({ name: e.nombre, type: "lugar"     })),
+    ...hechizos  .map(e => ({ name: e.nombre, type: "hechizo"   })),
+    ...dones     .map(e => ({ name: e.nombre, type: "don"       })),
+    ...runas     .map(e => ({ name: e.nombre, type: "runa"      })),
+    ...plantas   .map(e => ({ name: e.nombre, type: "planta"    })),
+  ], [personajes, criaturas, objetos, reinos, lugares, hechizos, dones, runas, plantas]);
+
+  // ── Restaurar item al montar ───────────────────────────────────────────────
+  useEffect(() => {
+    void (async () => {
+      try {
+        const raw = localStorage.getItem(LS_ITEM_KEY);
+        if (!raw) return;
+        const { tabla, id } = JSON.parse(raw) as { tabla: string; id: string };
+        const { data } = await supabase.from(tabla === "items" ? "items" : tabla).select("*").eq("id", id).single();
+        if (!data) return;
+        if      (tabla === "personajes") setSelectedPersonaje(data);
+        else if (tabla === "criaturas")  setSelectedCriatura(data);
+        else if (tabla === "items")      setSelectedObjeto(data);
+        else if (tabla === "reinos")     setSelectedReino(data);
+        else if (tabla === "hechizos")   setSelectedHechizo(data);
+        else if (tabla === "dones")      setSelectedDon(data);
+        else if (tabla === "runas")      setSelectedRuna(data);
+        else if (tabla === "lugares")    setSelectedLugar(data as Lugar);
+        else if (tabla === "grupos_mundo") setSelectedGrupo(data as Grupo);
+        else if (tabla === "canciones")  setSelectedCancion(data as Cancion); // <--- AÑADIDO
+        else if (tabla === "plantas")    setSelectedPlanta(data as PlantaMin);
+      } catch {}
+    })();
+  }, []);
+
+
+  // ── Abrir item desde buscador global (openItem prop) ─────────────────────
+  const lastOpenItemRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!openItem) return;
+    const refKey = `${openItem.tabla}:${openItem.id}:${openItem.key || 0}`;
+    const { tabla, id } = openItem;
+    let found: any = null;
+    
+    if      (tabla === "personajes") found = personajes.find(x => x.id === id);
+    else if (tabla === "criaturas")  found = criaturas.find(x => x.id === id);
+    else if (tabla === "items")      found = objetos.find(x => x.id === id);
+    else if (tabla === "reinos")     found = reinos.find(x => x.id === id);
+    else if (tabla === "lugares")    found = lugares.find(x => x.id === id);
+    else if (tabla === "hechizos")   found = hechizos.find(x => x.id === id);
+    else if (tabla === "dones")      found = dones.find(x => x.id === id);
+    else if (tabla === "runas")      found = runas.find(x => x.id === id);
+    else if (tabla === "canciones")  found = canciones.find(x => x.id === id); // <--- AÑADIDO
+    else if (tabla === "plantas")    found = plantas.find(x => x.id === id);
+
+    if (!found || lastOpenItemRef.current === refKey) return;
+    lastOpenItemRef.current = refKey;
+    
+    if      (tabla === "personajes") setSelectedPersonaje(found);
+    else if (tabla === "criaturas")  setSelectedCriatura(found);
+    else if (tabla === "items")      setSelectedObjeto(found);
+    else if (tabla === "reinos")     setSelectedReino(found);
+    else if (tabla === "lugares")    setSelectedLugar(found);
+    else if (tabla === "hechizos")   setSelectedHechizo(found);
+    else if (tabla === "dones")      setSelectedDon(found);
+    else if (tabla === "runas")      setSelectedRuna(found);
+    else if (tabla === "canciones")  setSelectedCancion(found); // <--- AÑADIDO
+    else if (tabla === "plantas")    setSelectedPlanta(found);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openItem,
+      personajes.length, criaturas.length, objetos.length, reinos.length,
+      lugares.length, hechizos.length, dones.length, runas.length, canciones.length, plantas.length]); // <--- AÑADIDA DEPENDENCIA
+
+// ── onItemCreated ─────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!onItemCreated) return;
+    const { tabla, item } = onItemCreated;
+    if      (tabla === "personajes") setPersonajes(p => p.some(x => x.id === item.id) ? p : [item, ...p]);
+    else if (tabla === "criaturas")  setCriaturas(p  => p.some(x => x.id === item.id) ? p : [item, ...p]);
+    else if (tabla === "items")      setObjetos(p    => p.some(x => x.id === item.id) ? p : [item, ...p]);
+    else if (tabla === "reinos")     setReinos(p     => p.some(x => x.id === item.id) ? p : [item, ...p]);
+    else if (tabla === "lugares")    setLugares(p    => p.some(x => x.id === item.id) ? p : [item, ...p]);
+    else if (tabla === "hechizos")   setHechizos(p   => p.some(x => x.id === item.id) ? p : [item, ...p]);
+    else if (tabla === "dones")      setDones(p      => p.some(x => x.id === item.id) ? p : [item, ...p]);
+    else if (tabla === "runas")      setRunas(p      => p.some(x => x.id === item.id) ? p : [item, ...p]);
+
+    if      (tabla === "personajes") setSelectedPersonaje(item);
+    else if (tabla === "criaturas")  setSelectedCriatura(item);
+    else if (tabla === "items")      setSelectedObjeto(item);
+    else if (tabla === "reinos")     setSelectedReino(item);
+    else if (tabla === "lugares")    setSelectedLugar(item);
+    else if (tabla === "hechizos")   setSelectedHechizo(item);
+    else if (tabla === "dones")      setSelectedDon(item);
+    else if (tabla === "runas")      setSelectedRuna(item);
+    else if (tabla === "canciones")  setSelectedCancion(item); // <--- AÑADIDO
+    else if (tabla === "plantas")    { setPlantas(p => p.some(x => x.id === item.id) ? p : [item, ...p]); setSelectedPlanta(item); }
+  }, [onItemCreated]);
+
+  // ── nuevo-lugar / nueva-nota actions ─────────────────────────────────────
+  useEffect(() => {
+    const check = () => {
+      const action = localStorage.getItem("estudio-listas-action");
+      if (action !== "nuevo-lugar") return;
+      localStorage.removeItem("estudio-listas-action");
+      (async () => {
+        try {
+          const { data, error } = await supabase.from("lugares").insert([{ nombre: "Nuevo lugar" }]).select("*").single();
+          if (error || !data) return;
+          setLugares(prev => [data as LugarMin, ...prev]);
+          setSelectedLugar(data as Lugar);
+        } catch {}
+      })();
+    };
+    check();
+    window.addEventListener("estudio-listas-action", check);
+    return () => window.removeEventListener("estudio-listas-action", check);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const check = () => {
+      const action = localStorage.getItem("estudio-notas-action");
+      if (action !== "nueva-nota") return;
+      localStorage.removeItem("estudio-notas-action");
+      crearNota("Nueva nota").then(nueva => { if (nueva) setSelectedNota(nueva); });
+    };
+    check();
+    window.addEventListener("estudio-notas-action", check);
+    return () => window.removeEventListener("estudio-notas-action", check);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const check = () => {
+      const action = localStorage.getItem("estudio-letras-action");
+      if (action !== "nueva-cancion") return;
+      localStorage.removeItem("estudio-letras-action");
+      setShowModalCancion(true);
+    };
+    check();
+    window.addEventListener("estudio-letras-action", check);
+    return () => window.removeEventListener("estudio-letras-action", check);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ── Navegar a la sección Capítulos desde el sidebar ──────────────────────
+  // El sidebar ya lanza "estudio-caps-action" con el capítulo seleccionado en
+  // localStorage. Aquí sólo necesitamos hacer scroll hasta la sección y dejar
+  // que EstudioCapitulos se encargue del detalle interno.
+  useEffect(() => {
+    const scrollToCapitulos = () => {
+      if (overlay) return; // si hay overlay abierto, primero cerrar
+      // Pequeño delay para que el DOM esté visible antes de scrollear
+      setTimeout(() => {
+        capitulosRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 80);
+    };
+    window.addEventListener("estudio-caps-action", scrollToCapitulos);
+    return () => window.removeEventListener("estudio-caps-action", scrollToCapitulos);
+  }, [overlay]);
+
+  // ── Helper: chip genérico ─────────────────────────────────────────────────
+  function Chip({ onClick, imgUrl, icon: Icon, nombre, accentBg, accentBorder, accentText, fullWidth }: {
+    onClick: () => void; imgUrl?: string | null; icon: React.ElementType;
+    nombre: string; accentBg?: string; accentBorder?: string; accentText?: string; fullWidth?: boolean;
+  }) {
+    return (
+      <button onClick={onClick} type="button"
+        className={`flex items-center gap-2 pl-1.5 pr-3 py-1.5 rounded-xl border transition-all hover:scale-[1.02] active:scale-[0.98]${fullWidth ? " w-full" : ""}`}
+        style={{ background: accentBg ?? "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: accentBorder ?? "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
+        <div className="w-7 h-7 sm:w-6 sm:h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center">
+          {imgUrl ? <img src={imgUrl} alt={nombre} className="w-full h-full object-cover" /> : <Icon size={11} className="text-primary/25" />}
+        </div>
+        <span className={`text-[11px] font-bold truncate${fullWidth ? "" : " max-w-[120px] sm:max-w-[90px]"}`} style={{ color: accentText ?? "color-mix(in srgb, var(--primary) 70%, transparent)" }}>{nombre}</span>
+      </button>
+    );
+  }
+
+  // ── Helper: sección de entidades ─────────────────────────────────────────
+  function SeccionEntidades({ icon: Icon, label, count, loading, children, cols = 3 }: {
+    icon: React.ElementType; label: string; count: number; loading: boolean; children: React.ReactNode; cols?: 1 | 3;
+  }) {
+    const gridClass = cols === 1 ? "grid grid-cols-2 sm:grid-cols-6 gap-1.5" : "grid grid-cols-2 sm:grid-cols-5 gap-1.5";
+    return (
+      <div className="pb-1">
+        <div className="flex items-center gap-1.5 mb-2">
+          <Icon size={10} className="text-primary/30 shrink-0" />
+          <span className="text-[8px] font-black uppercase tracking-[0.25em]" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
+            {label} · {count}
+          </span>
+        </div>
+        {loading
+          ? <div className="flex justify-center py-3"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
+          : count === 0
+            ? <p className="text-[9px] text-primary/20 italic px-1 pb-2">Sin {label.toLowerCase()} aún</p>
+            : <div className={gridClass}>{children}</div>
+        }
+      </div>
+    );
+  }
+
+  const div = "border-t my-2" as const;
+  const divStyle = { borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" };
+
+  return (
+    <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+
+      {/* ── Editor overlay ──────────────────────────────────────────────── */}
+      {overlay && (
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden" style={{ background: "var(--bg-main)" }}>
+          <div className="flex-1 flex min-h-0 overflow-hidden">
+            {overlay === "reino" && selectedReino && (
+              <EditorReino key={selectedReino.id} item={selectedReino}
+                entities={allEntityNames}
+                onSaved={u => { setReinos(p => p.map(r => r.id === u.id ? u : r)); setSelectedReino(u); }}
+                onDeleted={id => { setReinos(p => p.filter(r => r.id !== id)); setSelectedReino(null); }}
+                onSelectPersonaje={p => {
+                  const found = personajes.find(x => x.id === p?.id || x.nombre === p?.nombre);
+                  if (!found) return;
+                  clearAllOverlays(); setSelectedPersonaje(found);
+                }}
+                onSelectLugar={async (id: string) => {
+                  const local = lugares.find(x => x.id === id);
+                  clearAllOverlays();
+                  if (local) { setSelectedLugar(local as Lugar); return; }
+                  const { data } = await supabase.from("lugares").select("*").eq("id", id).single();
+                  if (data) setSelectedLugar(data as Lugar);
+                }}
+                onSelectCriatura={id => { const c = criaturas.find(x => x.id === id); if (!c) return; clearAllOverlays(); setSelectedCriatura(c); }}
+                onSelectItem={id => { const o = objetos.find(x => x.id === id); if (!o) return; clearAllOverlays(); setSelectedObjeto(o); }}
+              />
+            )}
+            {overlay === "criatura" && selectedCriatura && (
+              <EditorCriatura key={selectedCriatura.id} item={selectedCriatura as any}
+                entities={allEntityNames}
+                onSaved={u => { setCriaturas(p => p.map(c => c.id === u.id ? { ...c, ...u } : c)); setSelectedCriatura({ ...selectedCriatura, ...u }); }}
+                onDeleted={id => { setCriaturas(p => p.filter(c => c.id !== id)); setSelectedCriatura(null); }}
+                onSelectItem={id => { const o = objetos.find(x => x.id === id); if (!o) return; clearAllOverlays(); setSelectedObjeto(o); }}
+                onSelectPersonaje={id => { const p = personajes.find(x => x.id === id); if (!p) return; clearAllOverlays(); setSelectedPersonaje(p); }}
+                onSelectGrupo={async (id) => {
+                  const local = grupos.find(x => x.id === id);
+                  clearAllOverlays();
+                  if (local) { selectGrupo(local); return; }
+                  const { data } = await supabase.from("grupos_mundo").select("*").eq("id", id).single();
+                  if (data) selectGrupo({ ...data, miembro_ids: data.miembro_ids ?? [] } as Grupo);
+                }}
+                onNavigateLugar={async (id) => {
+                  const local = lugares.find(x => x.id === id);
+                  clearAllOverlays();
+                  if (local) { selectLugar(local); return; }
+                  const { data } = await supabase.from("lugares").select("*").eq("id", id).single();
+                  if (data) selectLugar(data as Lugar);
+                }}
+                onNavigateReino={async (id) => {
+                  const local = reinos.find(x => x.id === id);
+                  clearAllOverlays();
+                  if (local) { selectReino(local); return; }
+                  const { data } = await supabase.from("reinos").select("*").eq("id", id).single();
+                  if (data) selectReino(data as Reino);
+                }}
+              />
+            )}
+            {overlay === "objeto" && selectedObjeto && (
+              <EditorItem key={selectedObjeto.id} item={selectedObjeto as any}
+                entities={allEntityNames}
+                onSaved={u => { setObjetos(p => p.map(o => o.id === u.id ? { ...o, ...u } : o)); setSelectedObjeto({ ...selectedObjeto, ...u }); }}
+                onDeleted={id => { setObjetos(p => p.filter(o => o.id !== id)); setSelectedObjeto(null); }}
+                onSelectCriatura={id => { const c = criaturas.find(x => x.id === id); if (!c) return; clearAllOverlays(); setSelectedCriatura(c); }}
+                onNavigateLugar={async (id) => {
+                  const local = lugares.find(x => x.id === id);
+                  clearAllOverlays();
+                  if (local) { selectLugar(local); return; }
+                  const { data } = await supabase.from("lugares").select("*").eq("id", id).single();
+                  if (data) selectLugar(data as Lugar);
+                }}
+                onNavigateReino={async (id) => {
+                  const local = reinos.find(x => x.id === id);
+                  clearAllOverlays();
+                  if (local) { selectReino(local); return; }
+                  const { data } = await supabase.from("reinos").select("*").eq("id", id).single();
+                  if (data) selectReino(data as Reino);
+                }}
+              />
+            )}
+            {overlay === "lugar" && selectedLugar && (
+              <EditorLugar key={selectedLugar.id} item={selectedLugar as Lugar}
+                entities={allEntityNames}
+                onSaved={u => { setLugares(p => p.map(l => l.id === u.id ? { ...l, ...u } : l)); setSelectedLugar({ ...selectedLugar, ...u }); }}
+                onDeleted={id => { setLugares(p => p.filter(l => l.id !== id)); setSelectedLugar(null); }}
+                onSelectPersonaje={id => { const p = personajes.find(x => x.id === id); if (!p) return; clearAllOverlays(); setSelectedPersonaje(p); }}
+                onSelectCriatura={id => { const c = criaturas.find(x => x.id === id); if (!c) return; clearAllOverlays(); setSelectedCriatura(c); }}
+                onSelectItem={id => { const o = objetos.find(x => x.id === id); if (!o) return; clearAllOverlays(); setSelectedObjeto(o); }}
+                onNavigateReino={id => { const r = reinos.find(x => x.id === id); if (!r) return; clearAllOverlays(); setSelectedReino(r); }}
+              />
+            )}
+            {overlay === "personaje" && selectedPersonaje && (
+              <EditorPersonaje key={selectedPersonaje.id} item={selectedPersonaje}
+                entities={allEntityNames}
+                onSaved={u => { setPersonajes(p => p.map(x => x.id === u.id ? u : x)); setSelectedPersonaje(u); }}
+                onDeleted={id => { setPersonajes(p => p.filter(x => x.id !== id)); setSelectedPersonaje(null); }}
+                onNavigate={(tab, nombre) => {
+                  if (tab === "criaturas") { const c = criaturas.find(x => x.nombre.toLowerCase() === nombre.toLowerCase()); if (!c) return; clearAllOverlays(); setSelectedCriatura(c); }
+                  else if (tab === "reinos") { const r = reinos.find(x => x.nombre.toLowerCase() === nombre.toLowerCase()); if (!r) return; clearAllOverlays(); setSelectedReino(r); }
+                }}
+                onSelectPersonaje={id => { const p = personajes.find(x => x.id === id); if (!p) return; clearAllOverlays(); setSelectedPersonaje(p); }}
+                onOpenGrupo={async (id) => {
+                  const local = grupos.find(x => x.id === id);
+                  clearAllOverlays();
+                  if (local) { selectGrupo(local); return; }
+                  const { data } = await supabase.from("grupos_mundo").select("*").eq("id", id).single();
+                  if (data) selectGrupo({ ...data, miembro_ids: data.miembro_ids ?? [] } as Grupo);
+                }}
+              />
+            )}
+            {overlay === "hechizo" && selectedHechizo && (
+              <EditorHechizos
+                modo="hechizos"
+                initialSelectedId={selectedHechizo.id}
+                onSelectedIdChange={id => { if (!id) setSelectedHechizo(null); }}
+              />
+            )}
+            {overlay === "don" && selectedDon && (
+              <EditorHechizos
+                modo="dones"
+                initialSelectedId={selectedDon.id}
+                onSelectedIdChange={id => { if (!id) setSelectedDon(null); }}
+              />
+            )}
+            {overlay === "runa" && selectedRuna && (
+              <EditorHechizos
+                modo="runas"
+                initialSelectedId={selectedRuna.id}
+                onSelectedIdChange={id => { if (!id) setSelectedRuna(null); }}
+              />
+            )}
+            {overlay === "nota" && selectedNota && (
+              <EditorNota key={selectedNota.id} nota={selectedNota}
+                onSaved={async (updated) => { await actualizarNota(updated); setSelectedNota(updated); }}
+                onDeleted={id => { eliminarNota(id); setSelectedNota(null); }}
+              />
+            )}
+            {overlay === "grupo" && selectedGrupo && (
+              <EditorGrupo key={selectedGrupo.id} grupo={selectedGrupo}
+                onSaved={async updated => { await actualizarGrupo(updated); setSelectedGrupo(updated); }}
+                onDeleted={async id => { await eliminarGrupo(id); setSelectedGrupo(null); }}
+                onClickMiembro={(id, tabla) => {
+                  if (tabla === "personajes") { const p = personajes.find(x => x.id === id); if (!p) return; clearAllOverlays(); setSelectedPersonaje(p); }
+                  else if (tabla === "criaturas") { const c = criaturas.find(x => x.id === id); if (!c) return; clearAllOverlays(); setSelectedCriatura(c); }
+                  else if (tabla === "items") { const o = objetos.find(x => x.id === id); if (!o) return; clearAllOverlays(); setSelectedObjeto(o); }
+                  else if (tabla === "reinos") { const r = reinos.find(x => x.id === id); if (!r) return; clearAllOverlays(); setSelectedReino(r); }
+                }}
+              />
+            )}
+            {overlay === "cancion" && selectedCancion && (
+              <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                {/* Editor de la canción */}
+                <PanelEditor key={selectedCancion.id} cancionId={selectedCancion.id} />
+              </div>
+            )}
+            {overlay === "planta" && selectedPlanta && (() => {
+              // Fetch full planta data to pass to EditorPlanta
+              return (
+                <PlantaOverlay
+                  key={selectedPlanta.id}
+                  plantaMin={selectedPlanta}
+                  allEntityNames={allEntityNames}
+                  reinos={reinos}
+                  lugares={lugares}
+                  onUpdated={(updated) => { setPlantas(p => p.map(x => x.id === updated.id ? { ...x, ...updated } : x)); setSelectedPlanta({ ...selectedPlanta, ...updated }); }}
+                  onDeleted={(id) => { setPlantas(p => p.filter(x => x.id !== id)); setSelectedPlanta(null); }}
+                  onSelectLugar={async (id) => {
+                    const local = lugares.find(x => x.id === id);
+                    clearAllOverlays();
+                    if (local) { setSelectedLugar(local as Lugar); return; }
+                    const { data } = await supabase.from("lugares").select("*").eq("id", id).single();
+                    if (data) setSelectedLugar(data as Lugar);
+                  }}
+                  onSelectReino={async (id) => {
+                    const local = reinos.find(x => x.id === id);
+                    clearAllOverlays();
+                    if (local) { setSelectedReino(local); return; }
+                    const { data } = await supabase.from("reinos").select("*").eq("id", id).single();
+                    if (data) setSelectedReino(data as Reino);
+                  }}
+                />
+              );
+            })()}
           </div>
         </div>
       )}
 
+      {/* ── Scroll vertical ─────────────────────────────────────────────── */}
+      {!overlay && (
+        <div ref={scrollRef} onScroll={handleScroll} className="flex-1 overflow-y-auto min-h-0">
+
+          {/* HISTORIA */}
+          {textos && onTextoChange && onSave && (
+            <div className="border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+              <PanelHistoriaMundo texto={textos.historia} onChange={v => onTextoChange("historia", v)} onSave={() => onSave("historia")} />
+            </div>
+          )}
+
+          {/* CAPÍTULOS */}
+          <div ref={capitulosRef} style={{ minHeight: "60vh" }}>
+            <div className="flex flex-col min-h-0" style={{ minHeight: "58vh" }}>
+              <EstudioCapitulos />
+            </div>
+          </div>
+
+          {/* GEO & MAGIA */}
+          {textos && onTextoChange && onSave && (
+            <div className="flex flex-col sm:flex-row border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+              {/* Geografía */}
+              <div className="flex flex-col sm:flex-1 border-b sm:border-b-0 sm:border-r" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", minHeight: "30vh" }}>
+                <div className="flex-1 flex flex-col min-h-0">
+                  <PanelTexto texto={textos.geografia} onChange={v => onTextoChange("geografia", v)} onSave={() => onSave("geografia")} placeholder="Continentes, mares, climas, fronteras del mundo…" saveLabel="Guardar" SaveIcon={Mountain} />
+                </div>
+              </div>
+              {/* Magia */}
+              <div className="flex flex-col sm:flex-1" style={{ minHeight: "30vh" }}>
+                <div className="flex-1 flex flex-col min-h-0">
+                  <PanelTexto texto={textos.magia} onChange={v => onTextoChange("magia", v)} onSave={() => onSave("magia")} placeholder="Sistema de magia, reglas, fuentes de poder, limitaciones…" saveLabel="Guardar" SaveIcon={Sparkles} />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ENTIDADES */}
+          <div className="px-3 sm:px-3 pb-4 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+
+            <SeccionEntidades icon={Map} label={el.reinos} count={reinos.length} loading={loadingReinos}>
+              {reinos.map(r => <Chip key={r.id} onClick={() => selectReino(r)} imgUrl={r.mapa_url} icon={Map} nombre={r.nombre} />)}
+            </SeccionEntidades>
+            <div className={div} style={divStyle} />
+
+            <SeccionEntidades icon={Bug} label={el.criaturas} count={criaturas.length} loading={loadingCriaturas}>
+              {criaturas.map(c => <Chip key={c.id} onClick={() => selectCriatura(c)} imgUrl={c.imagen_url} icon={Bug} nombre={c.nombre} />)}
+            </SeccionEntidades>
+            <div className={div} style={divStyle} />
+
+            <SeccionEntidades icon={Users} label={el.personajes} count={personajes.length} loading={loadingPersonajes}>
+              {personajes.map(p => <Chip key={p.id} onClick={() => selectPersonaje(p)} imgUrl={p.img_url} icon={UserCircle2} nombre={p.nombre} />)}
+            </SeccionEntidades>
+            <div className={div} style={divStyle} />
+
+            <SeccionEntidades icon={Package} label={el.objetos} count={objetos.length} loading={loadingObjetos}>
+              {objetos.map(o => <Chip key={o.id} onClick={() => selectObjeto(o)} imgUrl={o.imagen_url} icon={Package} nombre={o.nombre} />)}
+            </SeccionEntidades>
+            <div className={div} style={divStyle} />
+
+            <SeccionEntidades icon={MapPin} label={el.lugares} count={lugares.length} loading={loadingLugares}>
+              {lugares.map(l => (
+                <Chip key={l.id} onClick={async () => {
+                  try { const { data } = await supabase.from("lugares").select("*").eq("id", l.id).single(); if (data) { selectLugar(data as Lugar); return; } } catch {}
+                  selectLugar(l as Lugar);
+                }} imgUrl={l.imagen_url} icon={MapPin} nombre={l.nombre} />
+              ))}
+            </SeccionEntidades>
+            <div className={div} style={divStyle} />
+
+            <SeccionEntidades icon={Sparkles} label={el.hechizos} count={hechizos.length} loading={loadingHechizos}>
+              {hechizos.map(h => <Chip key={h.id} onClick={() => selectHechizo(h)} icon={Sparkles} nombre={h.nombre}
+                accentBg="color-mix(in srgb, var(--accent) 5%, transparent)" accentBorder="color-mix(in srgb, var(--accent) 15%, transparent)" accentText="color-mix(in srgb, var(--accent) 80%, var(--primary))" />)}
+            </SeccionEntidades>
+            <div className={div} style={divStyle} />
+
+            <SeccionEntidades icon={Star} label={el.dones} count={dones.length} loading={loadingDones}>
+              {dones.map(d => <Chip key={d.id} onClick={() => selectDon(d)} icon={Star} nombre={d.nombre}
+                accentBg="color-mix(in srgb, var(--accent) 4%, transparent)" accentBorder="color-mix(in srgb, var(--accent) 13%, transparent)" accentText="color-mix(in srgb, var(--accent) 75%, var(--primary))" />)}
+            </SeccionEntidades>
+            <div className={div} style={divStyle} />
+
+            <SeccionEntidades icon={ScrollText} label={el.runas} count={runas.length} loading={loadingRunas}>
+              {runas.map(r => <Chip key={r.id} onClick={() => selectRuna(r)} imgUrl={r.imagen_url} icon={ScrollText} nombre={r.nombre} />)}
+            </SeccionEntidades>
+            <div className={div} style={divStyle} />
+
+            <SeccionEntidades icon={FileText} label={el.notas} count={notas.length} loading={loadingNotas}>
+              {notas.map(n => (
+                <button key={n.id} onClick={() => setSelectedNota(n)} type="button"
+                  className="flex items-center gap-2 pl-1.5 pr-3 py-1.5 rounded-xl border transition-all hover:scale-[1.02] active:scale-[0.98]"
+                  style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
+                  <div className="w-7 h-7 sm:w-6 sm:h-6 rounded-lg border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center"><FileText size={10} className="text-primary/25" /></div>
+                  <span className="text-[11px] font-bold text-primary/70 truncate max-w-[120px] sm:max-w-[90px]">{n.titulo || <span className="italic text-primary/30">Sin título</span>}</span>
+                </button>
+              ))}
+            </SeccionEntidades>
+            <div className={div} style={divStyle} />
+
+            <SeccionEntidades icon={Layers} label={el.grupos} count={grupos.length} loading={!loadedGrupos}>
+              {grupos.map(g => {
+                const cfg = GRUPO_TIPO_CONFIG[g.tipo as keyof typeof GRUPO_TIPO_CONFIG];
+                return (
+                  <button key={g.id} type="button"
+                    onClick={async () => {
+                      const full = grupos.find(x => x.id === g.id);
+                      if (full) { selectGrupo(full); return; }
+                      const { data } = await supabase.from("grupos_mundo").select("*").eq("id", g.id).single();
+                      if (data) selectGrupo({ ...data, miembro_ids: data.miembro_ids ?? [] } as Grupo);
+                    }}
+                    className="flex items-center gap-2 pl-1.5 pr-3 py-1.5 rounded-xl border transition-all hover:scale-[1.02] active:scale-[0.98]"
+                    style={{ background: `color-mix(in srgb, ${cfg?.color ?? "var(--primary)"} 4%, transparent)`, borderColor: `color-mix(in srgb, ${cfg?.color ?? "var(--primary)"} 12%, transparent)` }}>
+                    <div className="w-6 h-6 rounded-lg border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center">
+                      {cfg ? <cfg.Icon size={10} className="text-primary/25" /> : <Layers size={10} className="text-primary/25" />}
+                    </div>
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-[11px] font-bold text-primary/70 truncate max-w-[120px] sm:max-w-[90px]">{g.nombre}</span>
+                      <span className="text-[8px] text-primary/30">{g.miembro_ids.length} miembros</span>
+                    </div>
+                  </button>
+                );
+              })}
+            </SeccionEntidades>
+            <div className={div} style={divStyle} />
+
+            <SeccionEntidades icon={Music} label={el.canciones} count={canciones.length} loading={loadingCanciones} cols={1}>
+              {canciones.map(c => (
+                <Chip key={c.id} onClick={() => selectCancion(c as unknown as Cancion)} icon={Music} nombre={c.titulo} />
+              ))}
+            </SeccionEntidades>
+            <div className={div} style={divStyle} />
+
+            <SeccionEntidades icon={Leaf} label={el.plantas} count={plantas.length} loading={loadingPlantas}>
+              {plantas.map(p => (
+                <Chip key={p.id} onClick={() => selectPlanta(p)} imgUrl={p.imagen_url} icon={Leaf} nombre={p.nombre} />
+              ))}
+            </SeccionEntidades>
+          </div>
+
+        </div>
+      )}
+
+      {/* Modal nueva canción */}
+      {showModalCancion && (
+        <ModalNuevaCancion
+          onCreated={(c: Cancion) => {
+            setShowModalCancion(false);
+            selectCancion(c as unknown as Cancion);
+          }}
+          onClose={() => setShowModalCancion(false)}
+        />
+      )}
+
+    </div>
+  );
+}
+
+
+// ─── Panel de texto genérico (reemplaza PanelMagia y el texto de los demás) ──
+function PanelTexto({
+  texto, onChange, onSave, placeholder, SaveIcon,
+}: {
+  texto: string;
+  onChange: (v: string) => void;
+  onSave: () => Promise<void>;
+  placeholder: string;
+  saveLabel?: string;
+  SaveIcon: React.ElementType;
+}) {
+  const [status, setStatus] = useState<SaveStatus>("idle");
+  const { onSnippetAction } = useWikilink();
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const doSave = useCallback(async () => {
+    setStatus("saving");
+    try { await onSave(); setStatus("saved"); setTimeout(() => setStatus("idle"), 2000); }
+    catch { setStatus("error"); }
+  }, [onSave]);
+
+  // Autosave: 1.5s tras dejar de escribir
+  const handleChange = (v: string) => {
+    onChange(v);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => { void doSave(); }, 1500);
+  };
+
+  // Ctrl+S
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+        e.preventDefault();
+        if (debounceRef.current) { clearTimeout(debounceRef.current); debounceRef.current = null; }
+        void doSave();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [doSave]);
+
+  return (
+    <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+      <div className="flex-1 min-h-0 overflow-y-auto p-3 sm:p-5">
+        <MarkdownEditor value={texto} onChange={handleChange} placeholder={placeholder} rows={22} toolbar defaultMode="edit" onSnippetAction={onSnippetAction} />
+      </div>
+      <div className="shrink-0 flex items-center justify-end gap-2 px-3 py-1.5 border-t"
+        style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+        <SaveIndicator status={status} />
+      </div>
     </div>
   );
 }

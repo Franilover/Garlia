@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
   Map, MapPin, Plus, Check, X, Trash2, Save,
-  Loader2, Image as ImageIcon,
+  Loader2, Image as ImageIcon, SlidersHorizontal,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
@@ -349,6 +349,7 @@ export function EditorReino({ item, onSaved, onDeleted, entities = [], onSelectP
   const [form,   setForm]   = useState<Reino>(item);
   const [status, setStatus] = useState<SaveStatus>("idle");
   const [addingPoint, setAddingPoint] = useState(false);
+  const [mobileAsideOpen, setMobileAsideOpen] = useState(false);
   const [newPointName, setNewPointName] = useState("");
   const { lugares: detalles, setLugares: setDetalles } = useLugaresDelReino(item.id);
   const { confirm, ConfirmModal } = useConfirm();
@@ -433,12 +434,13 @@ export function EditorReino({ item, onSaved, onDeleted, entities = [], onSelectP
 
             <SaveIndicator status={status} />
 
-            {/* Eliminar — solo desktop */}
+            {/* Eliminar — solo ícono en mobile, con texto en desktop */}
             <button
               onClick={del}
-              className="hidden sm:flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all"
+              className="flex items-center justify-center gap-1 px-2 sm:px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all"
             >
               <Trash2 size={10} />
+              <span className="hidden sm:inline">Eliminar</span>
             </button>
 
             {/* Guardar — siempre visible */}
@@ -450,15 +452,14 @@ export function EditorReino({ item, onSaved, onDeleted, entities = [], onSelectP
               <Save size={11} />
               <span className="hidden sm:inline">Guardar</span>
             </button>
-          </div>
 
-          {/* Fila 2 — solo mobile: eliminar */}
-          <div className="flex sm:hidden items-center justify-end gap-2 px-3 pb-2.5">
+            {/* Barra lateral — solo mobile */}
             <button
-              onClick={del}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all"
+              onClick={() => setMobileAsideOpen(true)}
+              className="sm:hidden flex items-center justify-center p-2 rounded-xl text-primary/30 hover:text-primary hover:bg-primary/8 transition-all border border-primary/10"
+              title="Entidades"
             >
-              <Trash2 size={10} /> Eliminar
+              <SlidersHorizontal size={13} />
             </button>
           </div>
         </div>
@@ -491,6 +492,41 @@ export function EditorReino({ item, onSaved, onDeleted, entities = [], onSelectP
         </div>
 
       </div>
+
+      {/* ── BARRA LATERAL — mobile drawer ──────────────────────────────────── */}
+      {mobileAsideOpen && (
+        <div className="sm:hidden fixed inset-0 z-50 flex justify-end">
+          <div
+            className="absolute inset-0"
+            style={{ background: "color-mix(in srgb, var(--primary) 20%, transparent)" }}
+            onClick={() => setMobileAsideOpen(false)}
+          />
+          <div
+            className="relative flex flex-col h-full overflow-y-auto shadow-2xl"
+            style={{
+              width: "240px",
+              background: "var(--white-custom, var(--bg-main))",
+              borderLeft: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+              scrollbarWidth: "none",
+            }}
+          >
+            {/* Header */}
+            <div
+              className="shrink-0 flex items-center justify-between px-3 py-2.5 border-b"
+              style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
+            >
+              <span className="text-[8px] font-black uppercase tracking-[0.2em] flex items-center gap-1.5" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>
+                <SlidersHorizontal size={9} /> Entidades
+              </span>
+              <button onClick={() => setMobileAsideOpen(false)} className="p-1 rounded-lg text-primary/30 hover:text-primary hover:bg-primary/8 transition-all">
+                <X size={14} />
+              </button>
+            </div>
+            {/* Contenido del aside — agregar SeccionEntidad u otros bloques según necesidades del reino */}
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
