@@ -603,7 +603,6 @@ export function EditorHechizos({
   const { items, setItems, loading } = useEntidadesMagicas(modo);
   const { grupos, loading: loadingGrupos } = useGruposCriaturas();
   const [selectedId, setSelectedId] = useState<string | null>(initialSelectedId ?? null);
-  const [search,     setSearch]     = useState("");
   const [creating,   setCreating]   = useState(false);
 
   // Sincronizar cuando llega un id desde afuera (buscador global)
@@ -615,10 +614,6 @@ export function EditorHechizos({
   }, [initialSelectedId]);
 
   const selected = items.find(i => i.id === selectedId) ?? null;
-
-  const filtered = items.filter(i =>
-    i.nombre.toLowerCase().includes(search.toLowerCase())
-  );
 
   const handleCreate = async () => {
     setCreating(true);
@@ -642,62 +637,6 @@ export function EditorHechizos({
 
   return (
     <div className="flex-1 flex min-h-0 overflow-hidden">
-
-      {/* ── Lista lateral ─────────────────────────────────────────────── */}
-      <div className="w-56 shrink-0 flex flex-col border-r min-h-0"
-        style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-
-        <div className="shrink-0 flex items-center gap-2 px-3 py-2.5 border-b"
-          style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-          <cfg.Icon size={12} style={{ color: cfg.color }} />
-          <span className="flex-1 text-[10px] font-black uppercase tracking-widest text-primary/50">{cfg.label}</span>
-          <button onClick={handleCreate} disabled={creating}
-            className="w-6 h-6 rounded-lg flex items-center justify-center transition-all border border-primary/10 text-primary/30 hover:text-primary hover:border-primary/30 hover:bg-primary/8">
-            {creating ? <Loader2 size={10} className="animate-spin" /> : <Plus size={10} />}
-          </button>
-        </div>
-
-        <div className="shrink-0 px-2 pt-2">
-          <div className="relative">
-            <Search size={10} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-primary/25" />
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar…"
-              className="w-full bg-primary/4 border border-primary/10 rounded-lg pl-7 pr-6 py-1.5 text-[10px] font-medium outline-none focus:border-primary/25 text-primary placeholder:text-primary/25" />
-            {search && (
-              <button onClick={() => setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-primary/30 hover:text-primary">
-                <X size={9} />
-              </button>
-            )}
-          </div>
-        </div>
-
-        <div className="flex-1 overflow-y-auto min-h-0 p-2 space-y-0.5">
-          {loading ? (
-            <div className="flex justify-center py-8"><Loader2 size={16} className="animate-spin text-primary/20" /></div>
-          ) : filtered.length === 0 ? (
-            <p className="text-[9px] font-bold text-primary/20 uppercase tracking-widest text-center py-8 italic">
-              {search ? "Sin resultados" : `Sin ${cfg.label.toLowerCase()} aún`}
-            </p>
-          ) : filtered.map(item => (
-            <button
-              key={item.id}
-              onClick={() => {
-                setSelectedId(item.id);
-                onSelectedIdChange?.(item.id);
-              }}
-              className={`w-full text-left px-3 py-2.5 rounded-xl transition-all border ${
-                selectedId === item.id
-                  ? "border-primary/20 bg-primary/10"
-                  : "border-transparent hover:bg-primary/6 hover:border-primary/10"
-              }`}
-            >
-              <p className={`text-[11px] font-bold truncate ${selectedId === item.id ? "text-primary" : "text-primary/70"}`}>
-                {item.nombre}
-              </p>
-            </button>
-          ))}
-        </div>
-      </div>
-
       {/* ── Editor principal ──────────────────────────────────────────── */}
       <div className="flex-1 flex min-h-0 overflow-hidden">
         {selected ? (

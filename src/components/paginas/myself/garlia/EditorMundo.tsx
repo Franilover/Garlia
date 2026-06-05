@@ -20,6 +20,7 @@ import { EditorCriatura } from "./EditorCriatura";
 import { EditorItem } from "./EditorItem";
 import { EditorLugar, type Lugar } from "./EditorLugar";
 import { EditorPlanta, type Planta } from "./EditorPlanta";
+import { EditorHechizos } from "./EditorHechizos";
 import { type WikiEntity } from "../../../forms/MarkdownEditor";
 import { type TimelineEvent } from "./components/LoreTab";
 import { useNotas } from "./components/useNotas";
@@ -2021,21 +2022,25 @@ function PanelListas({
               />
             )}
             {overlay === "hechizo" && selectedHechizo && (
-              <FormularioMagico key={selectedHechizo.id} item={selectedHechizo} modo="hechizos"
-                grupos={gruposMagicos} loadingGrupos={loadingGruposMagicos}
-                onSaved={u => { setHechizos(p => p.map(h => h.id === u.id ? u : h)); setSelectedHechizo(u); }}
-                onDeleted={id => { setHechizos(p => p.filter(h => h.id !== id)); setSelectedHechizo(null); }} />
+              <EditorHechizos
+                modo="hechizos"
+                initialSelectedId={selectedHechizo.id}
+                onSelectedIdChange={id => { if (!id) setSelectedHechizo(null); }}
+              />
             )}
             {overlay === "don" && selectedDon && (
-              <FormularioMagico key={selectedDon.id} item={selectedDon} modo="dones"
-                grupos={gruposMagicos} loadingGrupos={loadingGruposMagicos}
-                onSaved={u => { setDones(p => p.map(d => d.id === u.id ? u : d)); setSelectedDon(u); }}
-                onDeleted={id => { setDones(p => p.filter(d => d.id !== id)); setSelectedDon(null); }} />
+              <EditorHechizos
+                modo="dones"
+                initialSelectedId={selectedDon.id}
+                onSelectedIdChange={id => { if (!id) setSelectedDon(null); }}
+              />
             )}
             {overlay === "runa" && selectedRuna && (
-              <FormularioRuna key={selectedRuna.id} item={selectedRuna}
-                onSaved={u => { setRunas(p => p.map(r => r.id === u.id ? u : r)); setSelectedRuna(u); }}
-                onDeleted={id => { setRunas(p => p.filter(r => r.id !== id)); setSelectedRuna(null); }} />
+              <EditorHechizos
+                modo="runas"
+                initialSelectedId={selectedRuna.id}
+                onSelectedIdChange={id => { if (!id) setSelectedRuna(null); }}
+              />
             )}
             {overlay === "nota" && selectedNota && (
               <EditorNota key={selectedNota.id} nota={selectedNota}
