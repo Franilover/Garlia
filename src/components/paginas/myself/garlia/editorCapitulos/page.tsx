@@ -1067,7 +1067,7 @@ export function EditorCapitulosPanel() {
               style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
             >
               {/* Mobile: grid 2 columnas */}
-              <div className="sm:hidden overflow-y-auto p-2" style={{ height: selectedCapId ? "380px" : "420px" }}>
+              <div className="sm:hidden w-full p-2">
                 <div className="grid grid-cols-2 gap-2">
                   {loadingLibros ? (
                     <div className="col-span-2 flex items-center justify-center py-8 text-primary/25">
