@@ -5,7 +5,7 @@ import {
   Bug, Plus, Check, X, Trash2, Save, ChevronDown,
   Brain, Wand2, Package, Wrench, Leaf, Layers, Users,
   MapPin, Globe, ExternalLink, Pencil, Search, UserCircle2,
-  Sparkles, Star, Loader2, SlidersHorizontal,
+  Sparkles, Star, Loader2, SlidersHorizontal, Camera,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
@@ -17,6 +17,7 @@ import { MarkdownEditor, WikiEntity } from "../../../forms/MarkdownEditor";
 import { useWikilink } from "./components/WikilinkContext";
 import { loreReadRelaciones, loreSyncRelaciones } from "@/lib/api/client/loreDb";
 import { SeccionEntidad } from "@/components/ui/SeccionEntidad";
+import SimpleImagePicker from "@/components/paginas/myself/garlia/editorCapitulos/snippets//forms/SimpleImagePicker";
 
 // ─── Dexie helpers ────────────────────────────────────────────────────────────
 async function dexiePut(tabla: string, row: any): Promise<void> {
@@ -44,6 +45,33 @@ async function dexieWriteAll(tabla: string, rows: any[]): Promise<void> {
     const toDelete = local.map((r: any) => r.id).filter((id: string) => !remoteIds.has(id));
     if (toDelete.length > 0) await t.bulkDelete(toDelete);
   } catch {}
+}
+
+// ─── Botón mobile para cambiar imagen de la criatura ─────────────────────────
+function PickerImagenCriaturaBtn({ value, onChange }: { value: string; onChange: (url: string) => void }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      {open && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setOpen(false)}>
+          <div className="bg-white-custom rounded-2xl shadow-2xl border border-primary/15 w-full max-w-lg p-5" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-2"><Camera size={11} /> Imagen de la criatura</h3>
+              <button onClick={() => setOpen(false)} className="text-primary/30 hover:text-primary transition-colors"><X size={16} /></button>
+            </div>
+            <SimpleImagePicker onSelect={url => { onChange(url); setOpen(false); }} onClose={() => setOpen(false)} />
+          </div>
+        </div>
+      )}
+      <button
+        onClick={() => setOpen(true)}
+        className="flex items-center justify-center w-8 h-8 rounded-full bg-bg-main/80 backdrop-blur-sm border border-primary/20 text-primary/50 hover:text-primary hover:bg-bg-main transition-all shadow-md"
+        title="Cambiar imagen"
+      >
+        <Camera size={13} />
+      </button>
+    </>
+  );
 }
 
 // ─── Singleton: catálogo de ítems ─────────────────────────────────────────────
@@ -1685,12 +1713,30 @@ export function EditorCriatura({
           <div className="p-4 space-y-4">
 
               {/* ── Fila 1: Imagen + Descripción ─────────────────────────────── */}
-              <div className="flex gap-5">
+              {/* Mobile: columna única — imagen grande arriba, markdown abajo   */}
+              {/* Desktop: dos columnas en fila                                  */}
+              <div className="flex flex-col sm:flex-row gap-5">
                 {/* Imagen */}
-                <div className="shrink-0 w-52">
-                  <SelectorImagen label="" value={form.imagen_url ?? ""}
-                    onChange={url => setForm(f => ({ ...f, imagen_url: url }))} aspect="square"
-                    placeholder={<Bug size={20} className="opacity-20" />} />
+                <div className="shrink-0 w-full sm:w-52">
+                  {/* Mobile: imagen grande con botón flotante */}
+                  <div className="sm:hidden relative w-full rounded-xl overflow-hidden border border-primary/10 bg-primary/3" style={{ aspectRatio: "1 / 1" }}>
+                    {form.imagen_url
+                      ? <img src={form.imagen_url} alt={form.nombre} className="w-full h-full object-cover" />
+                      : <div className="w-full h-full flex items-center justify-center"><Bug size={48} className="text-primary/15" /></div>
+                    }
+                    <div className="absolute top-2 right-2 z-10">
+                      <PickerImagenCriaturaBtn
+                        value={form.imagen_url ?? ""}
+                        onChange={url => setForm(f => ({ ...f, imagen_url: url }))}
+                      />
+                    </div>
+                  </div>
+                  {/* Desktop: selector normal */}
+                  <div className="hidden sm:block w-full">
+                    <SelectorImagen label="" value={form.imagen_url ?? ""}
+                      onChange={url => setForm(f => ({ ...f, imagen_url: url }))} aspect="square"
+                      placeholder={<Bug size={20} className="opacity-20" />} />
+                  </div>
                 </div>
 
                 {/* Descripción */}

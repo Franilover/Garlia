@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { Leaf, Save, Trash2, Loader2, MapPin, Globe } from "lucide-react";
+import { Leaf, Save, Trash2, Loader2, MapPin, Globe, Camera, X } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
 import { useConfirm } from "@/components/ui/ConfirmModal";
@@ -11,6 +11,7 @@ import { SeccionEntidad } from "@/components/ui/SeccionEntidad";
 import { ComboSelector } from "@/components/ui/ComboSelector";
 import { MarkdownEditor, WikiEntity } from "../../../forms/MarkdownEditor";
 import { useWikilink } from "./components/WikilinkContext";
+import SimpleImagePicker from "@/components/paginas/myself/garlia/editorCapitulos/snippets//forms/SimpleImagePicker";
 
 
 // ─── Tipo local ───────────────────────────────────────────────────────────────
@@ -155,6 +156,33 @@ function PanelReinos({
 }
 
 
+// ─── Botón mobile para cambiar imagen de la planta ───────────────────────────
+function PickerImagenPlantaBtn({ value, onChange }: { value: string; onChange: (url: string) => void }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      {open && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setOpen(false)}>
+          <div className="bg-white-custom rounded-2xl shadow-2xl border border-primary/15 w-full max-w-lg p-5" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-2"><Camera size={11} /> Imagen de la planta</h3>
+              <button onClick={() => setOpen(false)} className="text-primary/30 hover:text-primary transition-colors"><X size={16} /></button>
+            </div>
+            <SimpleImagePicker onSelect={url => { onChange(url); setOpen(false); }} onClose={() => setOpen(false)} />
+          </div>
+        </div>
+      )}
+      <button
+        onClick={() => setOpen(true)}
+        className="flex items-center justify-center w-8 h-8 rounded-full bg-bg-main/80 backdrop-blur-sm border border-primary/20 text-primary/50 hover:text-primary hover:bg-bg-main transition-all shadow-md"
+        title="Cambiar imagen"
+      >
+        <Camera size={13} />
+      </button>
+    </>
+  );
+}
+
 // ─── EditorPlanta ─────────────────────────────────────────────────────────────
 
 export function EditorPlanta({
@@ -258,13 +286,29 @@ export function EditorPlanta({
 
             {/* Columna izquierda: imagen */}
             <div className="w-full sm:w-96 sm:shrink-0">
-              <SelectorImagen
-                label="Imagen"
-                value={form.imagen_url ?? ""}
-                onChange={url => setForm(f => ({ ...f, imagen_url: url }))}
-                aspect="square"
-                placeholder={<Leaf size={20} className="opacity-20" />}
-              />
+              {/* Mobile: imagen con botón flotante */}
+              <div className="sm:hidden relative w-full rounded-xl overflow-hidden border border-primary/10 bg-primary/3" style={{ aspectRatio: "1 / 1" }}>
+                {form.imagen_url
+                  ? <img src={form.imagen_url} alt={form.nombre} className="w-full h-full object-cover" />
+                  : <div className="w-full h-full flex items-center justify-center"><Leaf size={48} className="text-primary/15" /></div>
+                }
+                <div className="absolute top-2 right-2 z-10">
+                  <PickerImagenPlantaBtn
+                    value={form.imagen_url ?? ""}
+                    onChange={url => setForm(f => ({ ...f, imagen_url: url }))}
+                  />
+                </div>
+              </div>
+              {/* Desktop: selector normal */}
+              <div className="hidden sm:block w-full">
+                <SelectorImagen
+                  label="Imagen"
+                  value={form.imagen_url ?? ""}
+                  onChange={url => setForm(f => ({ ...f, imagen_url: url }))}
+                  aspect="square"
+                  placeholder={<Leaf size={20} className="opacity-20" />}
+                />
+              </div>
             </div>
 
             {/* Columna derecha: categoría + reinos + lugares + descripción */}
