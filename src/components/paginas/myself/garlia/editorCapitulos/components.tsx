@@ -490,7 +490,7 @@ export const LibroCard = ({
       </div>
       <ConfirmModal />
 
-      <div className="flex-1 overflow-y-auto max-h-28 px-1 pt-1 pb-0.5 space-y-0.5">
+      <div className="px-1 pt-1 pb-0.5 space-y-0.5">
         {loading ? (
           <div className="flex justify-center py-3"><Loader2 size={11} className="animate-spin text-primary/20" /></div>
         ) : capitulos.length === 0 ? (
