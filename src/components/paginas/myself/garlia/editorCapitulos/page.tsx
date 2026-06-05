@@ -992,6 +992,16 @@ export function EditorCapitulosPanel() {
       localStorage.removeItem("estudio-caps-action");
       if (action === "nuevo-libro") setTimeout(() => setShowNuevoLibro(true), 120);
       if (action === "nuevo-cap")   setTimeout(() => setShowNuevoCap(true), 120);
+
+      // Abrir un capítulo concreto desde un link externo (ej: EditorPersonaje)
+      const capId   = localStorage.getItem("estudio-caps-last-cap");
+      const libroId = localStorage.getItem("estudio-caps-last-libro");
+      if (capId && libroId) {
+        setSelectedLibroId(libroId);
+        setSelectedCapId(capId);
+        setFocusMode(false);
+        setSidebarOpen(false);
+      }
     };
     check();
     window.addEventListener("estudio-caps-action", check);
