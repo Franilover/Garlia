@@ -2019,6 +2019,13 @@ function PanelListas({
                   const { data } = await supabase.from("grupos_mundo").select("*").eq("id", id).single();
                   if (data) selectGrupo({ ...data, miembro_ids: data.miembro_ids ?? [] } as Grupo);
                 }}
+                onSelectCancion={async (id) => {
+                  const local = canciones.find(x => x.id === id);
+                  clearAllOverlays();
+                  if (local) { selectCancion(local as unknown as Cancion); return; }
+                  const { data } = await supabase.from("canciones").select("*").eq("id", id).single();
+                  if (data) selectCancion(data as unknown as Cancion);
+                }}
               />
             )}
             {overlay === "hechizo" && selectedHechizo && (

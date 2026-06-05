@@ -223,7 +223,15 @@ function useCancionesPersonaje(
   return { canciones, loading };
 }
 
-function BloqueCanciones({ personajeId, nombrePersonaje }: { personajeId: string; nombrePersonaje: string }) {
+function BloqueCanciones({
+  personajeId,
+  nombrePersonaje,
+  onSelect,
+}: {
+  personajeId: string;
+  nombrePersonaje: string;
+  onSelect?: (id: string) => void;
+}) {
   const { canciones, loading } = useCancionesPersonaje(personajeId, nombrePersonaje);
 
   if (loading) return (
@@ -239,9 +247,12 @@ function BloqueCanciones({ personajeId, nombrePersonaje }: { personajeId: string
   return (
     <div className="space-y-1">
       {canciones.map(c => (
-        <div
+        <button
           key={c.id}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-primary/5 transition-colors text-left group"
+          type="button"
+          onClick={() => onSelect?.(c.id)}
+          disabled={!onSelect}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-primary/5 active:bg-primary/10 transition-colors text-left group disabled:cursor-default cursor-pointer"
         >
           {c.portada_url ? (
             <div className="shrink-0 w-6 h-6 rounded-lg overflow-hidden border border-primary/15">
@@ -260,7 +271,7 @@ function BloqueCanciones({ personajeId, nombrePersonaje }: { personajeId: string
               <p className="text-[9px] text-primary/35 truncate">{c.cantante}</p>
             )}
           </div>
-        </div>
+        </button>
       ))}
     </div>
   );
@@ -599,7 +610,7 @@ function SeccionHechizos({ personajeId, grupoIds }: { personajeId: string; grupo
 
 // ─── FormularioPersonaje ──────────────────────────────────────────────────────
 export function FormularioPersonaje({
-  form, setForm, status, onSave, onDelete, compacto = false, entities = [], onNavigate, onSelectPersonaje, onOpenGrupo, onNavigateLugar,
+  form, setForm, status, onSave, onDelete, compacto = false, entities = [], onNavigate, onSelectPersonaje, onOpenGrupo, onNavigateLugar, onSelectCancion,
 }: {
   form: Personaje;
   setForm: React.Dispatch<React.SetStateAction<Personaje>>;
@@ -612,6 +623,7 @@ export function FormularioPersonaje({
   onSelectPersonaje?: (id: string) => void;
   onOpenGrupo?: (id: string) => void;
   onNavigateLugar?: (id: string) => void;
+  onSelectCancion?: (id: string) => void;
 }) {
   const especies   = useNombresDeTabla("criaturas");
   const reinos     = useNombresDeTabla("reinos");
@@ -999,7 +1011,7 @@ export function FormularioPersonaje({
             <Music2 size={10} className="text-primary/40" />
             <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">Canciones</span>
           </div>
-          <BloqueCanciones personajeId={form.id} nombrePersonaje={form.nombre ?? ""} />
+          <BloqueCanciones personajeId={form.id} nombrePersonaje={form.nombre ?? ""} onSelect={onSelectCancion} />
         </div>
       </aside>
 
@@ -1057,7 +1069,7 @@ export function FormularioPersonaje({
                 <Music2 size={10} className="text-primary/40" />
                 <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">Canciones</span>
               </div>
-              <BloqueCanciones personajeId={form.id} nombrePersonaje={form.nombre ?? ""} />
+              <BloqueCanciones personajeId={form.id} nombrePersonaje={form.nombre ?? ""} onSelect={onSelectCancion} />
             </div>
           </div>
         </div>
@@ -1068,13 +1080,14 @@ export function FormularioPersonaje({
  
 // ─── EditorPersonaje ──────────────────────────────────────────────────────────
 export function EditorPersonaje({
-  item, onSaved, onDeleted, entities = [], onNavigate, onSelectPersonaje, onOpenGrupo, onNavigateLugar,
+  item, onSaved, onDeleted, entities = [], onNavigate, onSelectPersonaje, onOpenGrupo, onNavigateLugar, onSelectCancion,
 }: {
   item: Personaje; onSaved: (p: Personaje) => void; onDeleted: (id: string) => void; entities?: WikiEntity[];
   onNavigate?: (tab: "criaturas" | "reinos", nombre: string) => void;
   onSelectPersonaje?: (id: string) => void;
   onOpenGrupo?: (id: string) => void;
   onNavigateLugar?: (id: string) => void;
+  onSelectCancion?: (id: string) => void;
 }) {
   const [form,   setForm]   = useState<Personaje>(item);
   const [status, setStatus] = useState<SaveStatus>("idle");
@@ -1115,7 +1128,7 @@ export function EditorPersonaje({
 return (
     <>
       <ConfirmModal />
-      <FormularioPersonaje form={form} setForm={setForm} status={status} onSave={save} onDelete={del} entities={entities} onNavigate={onNavigate} onSelectPersonaje={onSelectPersonaje} onOpenGrupo={onOpenGrupo} onNavigateLugar={onNavigateLugar} />
+      <FormularioPersonaje form={form} setForm={setForm} status={status} onSave={save} onDelete={del} entities={entities} onNavigate={onNavigate} onSelectPersonaje={onSelectPersonaje} onOpenGrupo={onOpenGrupo} onNavigateLugar={onNavigateLugar} onSelectCancion={onSelectCancion} />
     </>
   );
 }
