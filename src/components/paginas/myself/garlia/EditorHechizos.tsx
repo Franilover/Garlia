@@ -8,7 +8,7 @@ import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { type SaveStatus } from "./components/types";
-import { SaveIndicator, SelectorImagen } from "./components/UIComponents";
+import { SaveIndicator } from "./components/UIComponents";
 import { MarkdownEditor } from "../../../forms/MarkdownEditor";
 import { useWikilink } from "./components/WikilinkContext";
 import SimpleImagePicker from "@/components/paginas/myself/garlia/editorCapitulos/snippets//forms/SimpleImagePicker";
@@ -472,13 +472,13 @@ function FormularioMagico({ item, modo, grupos, loadingGrupos, onSaved, onDelete
         <div className="flex-1 overflow-y-auto min-h-0">
           <div className="flex flex-col sm:flex-row gap-0 h-full">
             {/* Columna izquierda: imagen */}
-            <div className="shrink-0 sm:w-48 p-4 sm:border-r flex flex-col gap-3"
+            <div className="shrink-0 sm:w-64 p-4 sm:border-r flex flex-col gap-3"
               style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-              {/* Mobile: imagen grande con botón flotante */}
+              {/* Mobile: imagen con botón flotante */}
               <div className="sm:hidden relative w-full rounded-xl overflow-hidden border border-primary/10 bg-primary/3" style={{ aspectRatio: "1 / 1" }}>
                 {(form as any).imagen_url
                   ? <img src={(form as any).imagen_url} alt={form.nombre} className="w-full h-full object-cover" />
-                  : <div className="w-full h-full flex items-center justify-center"><cfg.Icon size={48} style={{ color: cfg.color, opacity: 0.15 }} /></div>
+                  : <div className="w-full h-full flex items-center justify-center"><cfg.Icon size={64} style={{ color: cfg.color, opacity: 0.15 }} /></div>
                 }
                 <div className="absolute top-2 right-2 z-10">
                   <PickerImagenRunaBtn
@@ -489,15 +489,20 @@ function FormularioMagico({ item, modo, grupos, loadingGrupos, onSaved, onDelete
                   />
                 </div>
               </div>
-              {/* Desktop: selector normal */}
-              <div className="hidden sm:block w-full mx-auto" style={{ maxWidth: "10rem" }}>
-                <SelectorImagen
-                  label="Imagen"
-                  value={(form as any).imagen_url ?? ""}
-                  onChange={url => setForm(f => ({ ...f, imagen_url: url } as any))}
-                  aspect="square"
-                  placeholder={<cfg.Icon size={28} style={{ color: cfg.color, opacity: 0.4 }} />}
-                />
+              {/* Desktop: imagen grande con overlay de cambio */}
+              <div className="hidden sm:block relative w-full rounded-xl overflow-hidden border border-primary/10 bg-primary/3" style={{ aspectRatio: "1 / 1" }}>
+                {(form as any).imagen_url
+                  ? <img src={(form as any).imagen_url} alt={form.nombre} className="w-full h-full object-cover" />
+                  : <div className="w-full h-full flex items-center justify-center"><cfg.Icon size={64} style={{ color: cfg.color, opacity: 0.15 }} /></div>
+                }
+                <div className="absolute top-2 right-2 z-10">
+                  <PickerImagenRunaBtn
+                    value={(form as any).imagen_url ?? ""}
+                    onChange={url => setForm(f => ({ ...f, imagen_url: url } as any))}
+                    color={cfg.color}
+                    Icon={cfg.Icon}
+                  />
+                </div>
               </div>
               <p className="text-[9px] font-black uppercase tracking-[0.25em] text-center truncate"
                 style={{ color: `color-mix(in srgb, ${cfg.color} 50%, transparent)` }}>
@@ -522,17 +527,17 @@ function FormularioMagico({ item, modo, grupos, loadingGrupos, onSaved, onDelete
           </div>
         </div>
       ) : (
-        /* Hechizos / Dones: layout dos columnas — imagen izquierda, grupos+explicación derecha */
+        /* Hechizos / Dones: layout dos columnas — imagen izquierda grande, grupos+explicación derecha */
         <div className="flex-1 overflow-y-auto min-h-0">
           <div className="flex flex-col sm:flex-row gap-0 h-full">
-            {/* Columna izquierda: imagen */}
-            <div className="shrink-0 sm:w-48 p-4 sm:border-r flex flex-col gap-3"
+            {/* Columna izquierda: imagen grande */}
+            <div className="shrink-0 sm:w-64 p-4 sm:border-r flex flex-col gap-3"
               style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-              {/* Mobile: imagen grande con botón flotante */}
+              {/* Mobile: imagen con botón flotante */}
               <div className="sm:hidden relative w-full rounded-xl overflow-hidden border border-primary/10 bg-primary/3" style={{ aspectRatio: "1 / 1" }}>
                 {(form as any).imagen_url
                   ? <img src={(form as any).imagen_url} alt={form.nombre} className="w-full h-full object-cover" />
-                  : <div className="w-full h-full flex items-center justify-center"><cfg.Icon size={48} style={{ color: cfg.color, opacity: 0.15 }} /></div>
+                  : <div className="w-full h-full flex items-center justify-center"><cfg.Icon size={64} style={{ color: cfg.color, opacity: 0.15 }} /></div>
                 }
                 <div className="absolute top-2 right-2 z-10">
                   <PickerImagenRunaBtn
@@ -543,15 +548,20 @@ function FormularioMagico({ item, modo, grupos, loadingGrupos, onSaved, onDelete
                   />
                 </div>
               </div>
-              {/* Desktop: selector normal */}
-              <div className="hidden sm:block w-full mx-auto" style={{ maxWidth: "10rem" }}>
-                <SelectorImagen
-                  label="Imagen"
-                  value={(form as any).imagen_url ?? ""}
-                  onChange={url => setForm(f => ({ ...f, imagen_url: url } as any))}
-                  aspect="square"
-                  placeholder={<cfg.Icon size={28} style={{ color: cfg.color, opacity: 0.4 }} />}
-                />
+              {/* Desktop: imagen grande con overlay de cambio */}
+              <div className="hidden sm:block relative w-full rounded-xl overflow-hidden border border-primary/10 bg-primary/3" style={{ aspectRatio: "1 / 1" }}>
+                {(form as any).imagen_url
+                  ? <img src={(form as any).imagen_url} alt={form.nombre} className="w-full h-full object-cover" />
+                  : <div className="w-full h-full flex items-center justify-center"><cfg.Icon size={64} style={{ color: cfg.color, opacity: 0.15 }} /></div>
+                }
+                <div className="absolute top-2 right-2 z-10">
+                  <PickerImagenRunaBtn
+                    value={(form as any).imagen_url ?? ""}
+                    onChange={url => setForm(f => ({ ...f, imagen_url: url } as any))}
+                    color={cfg.color}
+                    Icon={cfg.Icon}
+                  />
+                </div>
               </div>
               <p className="text-[9px] font-black uppercase tracking-[0.25em] text-center truncate"
                 style={{ color: `color-mix(in srgb, ${cfg.color} 50%, transparent)` }}>

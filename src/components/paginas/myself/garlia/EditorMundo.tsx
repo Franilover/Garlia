@@ -1784,23 +1784,13 @@ function PanelListas({
           {/* ENTIDADES */}
           <div className="px-3 sm:px-3 pb-4 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
 
-            <SeccionEntidades icon={Map} label={el.reinos} count={reinos.length} loading={loadingReinos}>
-              {reinos.map(r => <Chip key={r.id} onClick={() => selectReino(r)} imgUrl={r.mapa_url} icon={Map} nombre={r.nombre} />)}
-            </SeccionEntidades>
-            <div className={div} style={divStyle} />
-
-            <SeccionEntidades icon={Bug} label={el.criaturas} count={criaturas.length} loading={loadingCriaturas}>
-              {criaturas.map(c => <Chip key={c.id} onClick={() => selectCriatura(c)} imgUrl={c.imagen_url} icon={Bug} nombre={c.nombre} />)}
-            </SeccionEntidades>
-            <div className={div} style={divStyle} />
-
             <SeccionEntidades icon={Users} label={el.personajes} count={personajes.length} loading={loadingPersonajes}>
               {personajes.map(p => <Chip key={p.id} onClick={() => selectPersonaje(p)} imgUrl={p.img_url} icon={UserCircle2} nombre={p.nombre} />)}
             </SeccionEntidades>
             <div className={div} style={divStyle} />
 
-            <SeccionEntidades icon={Package} label={el.objetos} count={objetos.length} loading={loadingObjetos}>
-              {objetos.map(o => <Chip key={o.id} onClick={() => selectObjeto(o)} imgUrl={o.imagen_url} icon={Package} nombre={o.nombre} />)}
+            <SeccionEntidades icon={Map} label={el.reinos} count={reinos.length} loading={loadingReinos}>
+              {reinos.map(r => <Chip key={r.id} onClick={() => selectReino(r)} imgUrl={r.mapa_url} icon={Map} nombre={r.nombre} />)}
             </SeccionEntidades>
             <div className={div} style={divStyle} />
 
@@ -1811,6 +1801,23 @@ function PanelListas({
                   selectLugar(l as Lugar);
                 }} imgUrl={l.imagen_url} icon={MapPin} nombre={l.nombre} />
               ))}
+            </SeccionEntidades>
+            <div className={div} style={divStyle} />
+
+            <SeccionEntidades icon={Bug} label={el.criaturas} count={criaturas.length} loading={loadingCriaturas}>
+              {criaturas.map(c => <Chip key={c.id} onClick={() => selectCriatura(c)} imgUrl={c.imagen_url} icon={Bug} nombre={c.nombre} />)}
+            </SeccionEntidades>
+            <div className={div} style={divStyle} />
+
+            <SeccionEntidades icon={Leaf} label={el.plantas} count={plantas.length} loading={loadingPlantas}>
+              {plantas.map(p => (
+                <Chip key={p.id} onClick={() => selectPlanta(p)} imgUrl={p.imagen_url} icon={Leaf} nombre={p.nombre} />
+              ))}
+            </SeccionEntidades>
+            <div className={div} style={divStyle} />
+
+            <SeccionEntidades icon={Package} label={el.objetos} count={objetos.length} loading={loadingObjetos}>
+              {objetos.map(o => <Chip key={o.id} onClick={() => selectObjeto(o)} imgUrl={o.imagen_url} icon={Package} nombre={o.nombre} />)}
             </SeccionEntidades>
             <div className={div} style={divStyle} />
 
@@ -1872,13 +1879,6 @@ function PanelListas({
             <SeccionEntidades icon={Music} label={el.canciones} count={canciones.length} loading={loadingCanciones} cols={1}>
               {canciones.map(c => (
                 <Chip key={c.id} onClick={() => selectCancion(c as unknown as Cancion)} icon={Music} nombre={c.titulo} />
-              ))}
-            </SeccionEntidades>
-            <div className={div} style={divStyle} />
-
-            <SeccionEntidades icon={Leaf} label={el.plantas} count={plantas.length} loading={loadingPlantas}>
-              {plantas.map(p => (
-                <Chip key={p.id} onClick={() => selectPlanta(p)} imgUrl={p.imagen_url} icon={Leaf} nombre={p.nombre} />
               ))}
             </SeccionEntidades>
           </div>
