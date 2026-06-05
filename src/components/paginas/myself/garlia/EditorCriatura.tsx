@@ -5,7 +5,7 @@ import {
   Bug, Plus, Check, X, Trash2, Save, ChevronDown,
   Brain, Wand2, Package, Wrench, Leaf, Layers, Users,
   MapPin, Globe, ExternalLink, Pencil, Search, UserCircle2,
-  Sparkles, Star, Loader2,
+  Sparkles, Star, Loader2, SlidersHorizontal,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
@@ -1540,6 +1540,7 @@ export function EditorCriatura({
   const [savingLugares,   setSavingLugares]   = useState(false);
   const [savingNaturales, setSavingNaturales] = useState(false);
   const [savingCrafted,   setSavingCrafted]   = useState(false);
+  const [mobileAsideOpen, setMobileAsideOpen] = useState(false);
 
   const [allLugares, setAllLugares] = useState<LugarMin2[]>([]);
 
@@ -1668,6 +1669,13 @@ export function EditorCriatura({
               className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed">
               <Save size={11} /> Guardar
             </button>
+            <button
+              onClick={() => setMobileAsideOpen(true)}
+              className="sm:hidden flex items-center justify-center p-2 rounded-xl text-primary/30 hover:text-primary hover:bg-primary/8 transition-all border border-primary/10"
+              title="Entidades"
+            >
+              <SlidersHorizontal size={13} />
+            </button>
           </div>
         </div>
 
@@ -1755,9 +1763,9 @@ export function EditorCriatura({
         </div>
       </div>
 
-      {/* ── BARRA LATERAL TRIPLE ─────────────────────────────────────────────── */}
+      {/* ── BARRA LATERAL TRIPLE — desktop ───────────────────────────────────── */}
       <aside
-        className="shrink-0 flex border-l overflow-hidden"
+        className="hidden sm:flex shrink-0 border-l overflow-hidden"
         style={{ borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)" }}
       >
         {/* Columna 1: Personajes */}
@@ -1887,6 +1895,53 @@ export function EditorCriatura({
           />
         </div>
       </aside>
+
+      {/* ── BARRA LATERAL TRIPLE — mobile drawer ─────────────────────────────── */}
+      {mobileAsideOpen && (
+        <div className="sm:hidden fixed inset-0 z-50 flex justify-end">
+          <div
+            className="absolute inset-0"
+            style={{ background: "color-mix(in srgb, var(--primary) 20%, transparent)" }}
+            onClick={() => setMobileAsideOpen(false)}
+          />
+          <div
+            className="relative flex flex-col h-full overflow-y-auto shadow-2xl"
+            style={{
+              width: "240px",
+              background: "var(--white-custom, var(--bg-main))",
+              borderLeft: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+              scrollbarWidth: "none",
+            }}
+          >
+            {/* Header */}
+            <div
+              className="shrink-0 flex items-center justify-between px-3 py-2.5 border-b"
+              style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
+            >
+              <span className="text-[8px] font-black uppercase tracking-[0.2em] flex items-center gap-1.5" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>
+                <SlidersHorizontal size={9} /> Entidades
+              </span>
+              <button onClick={() => setMobileAsideOpen(false)} className="p-1 rounded-lg text-primary/30 hover:text-primary hover:bg-primary/8 transition-all">
+                <X size={14} />
+              </button>
+            </div>
+
+            <SeccionEntidad label="Personajes" icon={<Users size={9} />} fallbackIcon={<UserCircle2 size={14} strokeWidth={1} />} emptyLabel="Sin personajes" allEntities={allPersonajes.map(p => ({ id: p.id, nombre: p.nombre, imagen_url: p.img_url }))} selectedIds={personajesDeEspecie.map(p => p.id)} loading={loadingPersonajes} saving={savingPersonajes} onToggle={handleTogglePersonaje} onEntityClick={id => onSelectPersonaje?.(id)} columns={2} />
+            <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
+            <SeccionEntidad label="Reinos" icon={<Globe size={9} />} fallbackIcon={<Globe size={14} strokeWidth={1} />} emptyLabel="Sin reinos" allEntities={allReinos.map(r => ({ id: r.id, nombre: r.nombre }))} selectedIds={reinoRows.map(r => r.reinoId)} loading={loadingReinos} saving={savingReinos} onToggle={handleToggleReino} onEntityClick={id => onNavigateReino?.(id)} />
+            <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
+            <SeccionEntidad label="Lugares" icon={<MapPin size={9} />} fallbackIcon={<MapPin size={14} strokeWidth={1} />} emptyLabel="Sin lugares" allEntities={allLugares.map(l => ({ id: l.id, nombre: l.nombre }))} selectedIds={lugarRows.map(r => r.lugarId)} loading={loadingLugares} saving={savingLugares} onToggle={handleToggleLugar} onEntityClick={id => onNavigateLugar?.(id)} />
+            <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
+            <SeccionEntidad label="Naturales" icon={<Leaf size={9} />} fallbackIcon={<Package size={14} strokeWidth={1} />} emptyLabel="Sin drops" allEntities={allNaturalesItems.map(i => ({ id: i.id, nombre: i.nombre, imagen_url: i.imagen_url }))} selectedIds={naturalesItems.map(i => i.itemId)} loading={loadingNaturales} saving={savingNaturales} onToggle={handleToggleNatural} onEntityClick={id => onSelectItem?.(id)} />
+            <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
+            <SeccionEntidad label="Creaciones" icon={<Wrench size={9} />} fallbackIcon={<Package size={14} strokeWidth={1} />} emptyLabel="Sin creaciones" allEntities={allCraftedItems.map(i => ({ id: i.id, nombre: i.nombre, imagen_url: i.imagen_url }))} selectedIds={craftedItems.map(i => i.itemId)} loading={loadingCrafted} saving={savingCrafted} onToggle={handleToggleCrafted} onEntityClick={id => onSelectItem?.(id)} />
+            <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
+            <BloqueMagico label="Hechizos" icon={Sparkles} criaturaId={form.id} gruposActuales={gruposActuales.map(g => g.id)} usarHook="hechizos" />
+            <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
+            <BloqueMagico label="Dones" icon={Star} criaturaId={form.id} gruposActuales={gruposActuales.map(g => g.id)} usarHook="dones" />
+          </div>
+        </div>
+      )}
 
     </div>
   );
