@@ -435,6 +435,21 @@ export default function EditorEntidades() {
         });
       return;
     }
+    if (key === "lugar") {
+      supabase
+        .from("lugares")
+        .insert([{ nombre: "Nuevo lugar" }])
+        .select()
+        .single()
+        .then(({ data, error }) => {
+          if (error || !data) return;
+          setTab("mundo");
+          setMundoSection("geografia");
+          setOpenItem({ tabla: "lugares", id: data.id, key: ++openItemKeyRef.current });
+          setOnItemCreated({ tabla: "lugares", item: data });
+        });
+      return;
+    }
     if ((key === "hechizos" || key === "dones" || key === "runas") && item) {
       setAllItems(prev => ({
         ...prev,
@@ -507,6 +522,8 @@ export default function EditorEntidades() {
               setShowNuevoGrupo(true);
             } else if (key === "planta") {
               handleAddMagic("planta");
+            } else if (key === "lugar") {
+              handleAddMagic("lugar");
             } else if (key === "libro") {
               localStorage.setItem("estudio-caps-action", "nuevo-libro");
               setTab("mundo");

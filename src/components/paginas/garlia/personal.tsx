@@ -63,8 +63,10 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
   const [cancionesPersonaje, setCancionesPersonaje] = useState<any[]>([]);
   const [cargandoCanciones, setCargandoCanciones] = useState(false);
   const [ciudadesReino, setCiudadesReino] = useState<typeof ciudades>([]);
+  const [lugaresReino, setLugaresReino] = useState<typeof lugares>([]);
   const [reinos, setReinos] = useState<{ id: string; nombre: string; mapa_url?: string | null; logo_url?: string | null; descripcion?: string | null }[]>([]);
   const [ciudades, setCiudades] = useState<{ id: string; nombre: string; imagen_url?: string | null; descripcion?: string | null; reino_id?: string | null }[]>([]);
+  const [lugares, setLugares] = useState<{ id: string; nombre: string; imagen_url?: string | null; descripcion?: string | null; reino_id?: string | null }[]>([]);
   const userIdRef = React.useRef<string | null>(null);
 
   useEffect(() => {
@@ -108,7 +110,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
           if (invData)  setInventario(invData as unknown as ItemInventario[]);
         }
 
-        const [itemsRes, criaturasRes, personajesRes, reinosRes, ciudadesRes] = await Promise.all([
+        const [itemsRes, criaturasRes, personajesRes, reinosRes, ciudadesRes, lugaresRes] = await Promise.all([
           supabase
             .from("descubrimientos_items")
             .select("fecha_descubrimiento, items:item_id(id, nombre, categoria, imagen_url, descripcion)")
@@ -129,6 +131,9 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
             .from("ciudades_desbloqueadas")
             .select("ciudades:ciudad_id(id, nombre, imagen_url, descripcion, reino_id)")
             .eq("user_id", user.id),
+          supabase
+            .from("lugares")
+            .select("id, nombre, imagen_url, descripcion, reino_id"),
         ]);
 
         if (itemsRes.error)      console.warn("[Personal] descubrimientos_items error:", itemsRes.error.message);
@@ -136,6 +141,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
         if (personajesRes.error) console.warn("[Personal] descubrimientos_personajes error:", personajesRes.error.message);
         if (reinosRes.error)     console.warn("[Personal] descubrimientos_reinos error:", reinosRes.error.message);
         if (ciudadesRes.error)    console.warn("[Personal] ciudades_desbloqueadas error:", ciudadesRes.error.message);
+        if (lugaresRes.error)    console.warn("[Personal] lugares error:", lugaresRes.error.message);
 
         const reinosData = (reinosRes.data ?? []).map((r: any) => ({
           id:           r.reino_data?.id,
@@ -154,6 +160,15 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
           reino_id:    r.ciudades?.reino_id ?? null,
         })).filter(l => l.id);
         setCiudades(ciudadesData);
+
+        const lugaresData = (lugaresRes.data ?? []).map((r: any) => ({
+          id:          r.id,
+          nombre:      r.nombre,
+          imagen_url:  r.imagen_url ?? null,
+          descripcion: r.descripcion ?? null,
+          reino_id:    r.reino_id ?? null,
+        })).filter(l => l.id);
+        setLugares(lugaresData);
 
         const planos: Descubrimiento[] = [
           ...(itemsRes.data ?? []).map((r: any) => ({
@@ -362,13 +377,11 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
     }
   };
 
-  const ciudadesHuerfanas = ciudades.filter(l => !l.reino_id);
-
   const tabs = [
     { id: "personajes", label: "Agenda",     icon: User,    count: misPersonajes.length },
     { id: "criaturas",  label: "Bestiario",  icon: Cat,     count: misCriaturas.length },
     { id: "items",      label: "Inventario", icon: Sword,   count: inventario.length + misItemsDesc.length },
-    { id: "reinos",     label: "Mapa",       icon: MapPin,  count: reinos.length + ciudadesHuerfanas.length },
+    { id: "reinos",     label: "Mapa",       icon: MapPin,  count: reinos.length + lugares.filter(l => !l.reino_id).length },
   ] as const;
 
   if (cargando) return (
@@ -603,7 +616,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
           <>
             <MotionDiv
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => { setModalEntidad(null); setCiudadesReino([]); }}
+              onClick={() => { setModalEntidad(null); setCiudadesReino([]); setLugaresReino([]); }}
               className="fixed inset-0 z-40 backdrop-blur-sm"
               style={{ background: "rgba(0,0,0,0.45)" }}
             />
@@ -648,7 +661,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                   background: "linear-gradient(to top, var(--white-custom) 0%, color-mix(in srgb, var(--white-custom) 20%, transparent) 50%, transparent 100%)"
                 }} />
                 <button
-                  onClick={() => { setModalEntidad(null); setCiudadesReino([]); }}
+                  onClick={() => { setModalEntidad(null); setCiudadesReino([]); setLugaresReino([]); }}
                   className="absolute top-3 right-3 z-10 w-8 h-8 flex items-center justify-center transition-all hover:scale-110"
                   style={{
                     color: "var(--primary)",
@@ -683,87 +696,85 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                   </p>
                 )}
 
-                {/* Sección de ciudades */}
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
-                  <div className="flex items-center gap-1.5">
-                    <MapPin size={10} style={{ color: "color-mix(in srgb, var(--primary) 28%, transparent)" }} />
-                    <span className="font-serif italic text-[9px] font-black uppercase tracking-widest"
-                      style={{ color: "color-mix(in srgb, var(--primary) 28%, transparent)" }}>
-                      Ciudades
-                    </span>
-                  </div>
-                  <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
-                </div>
+                {/* Sección de ciudades y lugares del reino — oculta si no hay ninguno */}
+                {(ciudadesReino.length > 0 || lugaresReino.length > 0) && (
+                  <>
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
+                      <div className="flex items-center gap-1.5">
+                        <MapPin size={10} style={{ color: "color-mix(in srgb, var(--primary) 28%, transparent)" }} />
+                        <span className="font-serif italic text-[9px] font-black uppercase tracking-widest"
+                          style={{ color: "color-mix(in srgb, var(--primary) 28%, transparent)" }}>
+                          Lugares
+                        </span>
+                      </div>
+                      <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
+                    </div>
 
-                {ciudadesReino.length === 0 ? (
-                  <p className="font-serif italic text-[10px] py-4 text-center"
-                    style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }}>
-                    "Ningún ciudad descubierto en este reino…"
-                  </p>
-                ) : (
-                  <div className="flex flex-col gap-2">
-                    {ciudadesReino.map((ciudad, i) => (
-                      <button
-                        key={ciudad.id ?? i}
-                        onClick={() => {
-                          setModalEntidad(null);
-                          setCiudadesReino([]);
-                          setTimeout(() => setModalEntidad({ tipo: "ciudad", data: {
-                            tipo: "item",
-                            entidad_id: ciudad.id,
-                            nombre: ciudad.nombre,
-                            imagen_url: ciudad.imagen_url ?? undefined,
-                            descripcion: ciudad.descripcion ?? undefined,
-                            fecha_descubrimiento: "",
-                          }}), 120);
-                        }}
-                        className="group flex items-center gap-3 px-3 py-3 transition-all text-left w-full"
-                        style={{
-                          background: "color-mix(in srgb, var(--primary) 3%, var(--white-custom))",
-                          border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
-                          borderRadius: "var(--radius-btn)",
-                        }}
-                        onMouseEnter={e => {
-                          (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 22%, transparent)";
-                          (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 6%, var(--white-custom))";
-                        }}
-                        onMouseLeave={e => {
-                          (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 8%, transparent)";
-                          (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 3%, var(--white-custom))";
-                        }}>
-                        {ciudad.imagen_url ? (
-                          <div className="w-11 h-11 shrink-0 overflow-hidden"
-                            style={{ borderRadius: "var(--radius-btn)", background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-                            <img src={ciudad.imagen_url} alt={ciudad.nombre}
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                          </div>
-                        ) : (
-                          <div className="w-11 h-11 shrink-0 flex items-center justify-center"
-                            style={{
-                              borderRadius: "var(--radius-btn)",
-                              background: "color-mix(in srgb, var(--primary) 6%, transparent)",
-                            }}>
-                            <MapPin size={14} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
-                          </div>
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <span className="font-serif italic text-[12px] truncate block group-hover:underline"
-                            style={{ color: "var(--primary)" }}>
-                            {ciudad.nombre}
-                          </span>
-                          {ciudad.descripcion && (
-                            <span className="text-[9px] font-black uppercase tracking-wider truncate block mt-0.5"
-                              style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
-                              {ciudad.descripcion.slice(0, 60)}{ciudad.descripcion.length > 60 ? "…" : ""}
-                            </span>
+                    <div className="flex flex-col gap-2">
+                      {[...ciudadesReino, ...lugaresReino].map((lugar, i) => (
+                        <button
+                          key={lugar.id ?? i}
+                          onClick={() => {
+                            setModalEntidad(null);
+                            setCiudadesReino([]);
+                            setLugaresReino([]);
+                            setTimeout(() => setModalEntidad({ tipo: "ciudad", data: {
+                              tipo: "item",
+                              entidad_id: lugar.id,
+                              nombre: lugar.nombre,
+                              imagen_url: lugar.imagen_url ?? undefined,
+                              descripcion: lugar.descripcion ?? undefined,
+                              fecha_descubrimiento: "",
+                            }}), 120);
+                          }}
+                          className="group flex items-center gap-3 px-3 py-3 transition-all text-left w-full"
+                          style={{
+                            background: "color-mix(in srgb, var(--primary) 3%, var(--white-custom))",
+                            border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+                            borderRadius: "var(--radius-btn)",
+                          }}
+                          onMouseEnter={e => {
+                            (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 22%, transparent)";
+                            (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 6%, var(--white-custom))";
+                          }}
+                          onMouseLeave={e => {
+                            (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 8%, transparent)";
+                            (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 3%, var(--white-custom))";
+                          }}>
+                          {lugar.imagen_url ? (
+                            <div className="w-11 h-11 shrink-0 overflow-hidden"
+                              style={{ borderRadius: "var(--radius-btn)", background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+                              <img src={lugar.imagen_url} alt={lugar.nombre}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                            </div>
+                          ) : (
+                            <div className="w-11 h-11 shrink-0 flex items-center justify-center"
+                              style={{
+                                borderRadius: "var(--radius-btn)",
+                                background: "color-mix(in srgb, var(--primary) 6%, transparent)",
+                              }}>
+                              <MapPin size={14} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
+                            </div>
                           )}
-                        </div>
-                        <ChevronRight size={13} style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)", flexShrink: 0 }}
-                          className="group-hover:translate-x-0.5 transition-transform" />
-                      </button>
-                    ))}
-                  </div>
+                          <div className="flex-1 min-w-0">
+                            <span className="font-serif italic text-[12px] truncate block group-hover:underline"
+                              style={{ color: "var(--primary)" }}>
+                              {lugar.nombre}
+                            </span>
+                            {lugar.descripcion && (
+                              <span className="text-[9px] font-black uppercase tracking-wider truncate block mt-0.5"
+                                style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
+                                {lugar.descripcion.slice(0, 60)}{lugar.descripcion.length > 60 ? "…" : ""}
+                              </span>
+                            )}
+                          </div>
+                          <ChevronRight size={13} style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)", flexShrink: 0 }}
+                            className="group-hover:translate-x-0.5 transition-transform" />
+                        </button>
+                      ))}
+                    </div>
+                  </>
                 )}
               </div>
             </MotionDiv>
@@ -1677,6 +1688,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                             key={i}
                             onClick={() => {
                               setCiudadesReino(ciudades.filter(l => l.reino_id === r.id));
+                              setLugaresReino(lugares.filter(l => l.reino_id === r.id));
                               setModalEntidad({ tipo: "reino", data: {
                                 tipo: "item",
                                 entidad_id: r.id,
@@ -1725,10 +1737,10 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                         : <div className="col-span-full"><EmptyTab label="Ningún reino descubierto aún" /></div>
                     )}
 
-                    {/* Ciudades sin reino — aparecen como tarjetas independientes en la tab Mapa */}
-                    {tab === "reinos" && ciudadesHuerfanas.map((l, i) => (
+                    {/* Lugares — aparecen como tarjetas independientes al lado de los reinos */}
+                    {tab === "reinos" && lugares.filter(l => !l.reino_id).map((l, i) => (
                       <button
-                        key={`ciudad-huerfano-${i}`}
+                        key={`lugar-${i}`}
                         onClick={() => setModalEntidad({ tipo: "ciudad", data: {
                           tipo: "item",
                           entidad_id: l.id,

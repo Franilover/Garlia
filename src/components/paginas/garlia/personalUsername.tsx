@@ -49,6 +49,8 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
   const [cancionesPersonaje, setCancionesPersonaje] = useState<any[]>([]);
   const [cargandoCanciones, setCargandoCanciones]   = useState(false);
   const [reinos, setReinos]                         = useState<{ id: string; nombre: string; imagen_reino?: string | null; mapa_url?: string | null; descripcion?: string | null }[]>([]);
+  const [ciudades, setCiudades]                     = useState<{ id: string; nombre: string; imagen_url?: string | null; descripcion?: string | null; reino_id?: string | null }[]>([]);
+  const [lugares, setLugares]                       = useState<{ id: string; nombre: string; imagen_url?: string | null; descripcion?: string | null; reino_id?: string | null }[]>([]);
 
   useEffect(() => {
     if (!username) return;
@@ -72,7 +74,7 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
         .eq("perfil_id", uid);
       if (invData) setInventario(invData as unknown as ItemInventario[]);
 
-      const [itemsRes, criaturasRes, personajesRes, reinosRes] = await Promise.all([
+      const [itemsRes, criaturasRes, personajesRes, reinosRes, ciudadesRes, lugaresRes] = await Promise.all([
         supabase.from("descubrimientos_items")
           .select("fecha_descubrimiento, items:item_id(id, nombre, categoria, imagen_url, descripcion)")
           .eq("perfil_id", uid),
@@ -85,6 +87,11 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
         supabase.from("descubrimientos_reinos")
           .select("fecha_descubrimiento, reinos:reino_id(id, nombre, imagen_reino, mapa_url, descripcion)")
           .eq("perfil_id", uid),
+        supabase.from("ciudades_desbloqueadas")
+          .select("ciudades:ciudad_id(id, nombre, imagen_url, descripcion, reino_id)")
+          .eq("user_id", uid),
+        supabase.from("lugares")
+          .select("id, nombre, imagen_url, descripcion, reino_id"),
       ]);
 
       const reinosData = (reinosRes.data ?? []).map((r: any) => ({
@@ -95,6 +102,24 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
         descripcion:  r.reinos?.descripcion,
       })).filter((r: any) => r.id);
       setReinos(reinosData);
+
+      const ciudadesData = (ciudadesRes.data ?? []).map((r: any) => ({
+        id:          r.ciudades?.id,
+        nombre:      r.ciudades?.nombre,
+        imagen_url:  r.ciudades?.imagen_url,
+        descripcion: r.ciudades?.descripcion,
+        reino_id:    r.ciudades?.reino_id ?? null,
+      })).filter((l: any) => l.id);
+      setCiudades(ciudadesData);
+
+      const lugaresData = (lugaresRes.data ?? []).map((r: any) => ({
+        id:          r.id,
+        nombre:      r.nombre,
+        imagen_url:  r.imagen_url ?? null,
+        descripcion: r.descripcion ?? null,
+        reino_id:    r.reino_id ?? null,
+      })).filter((l: any) => l.id);
+      setLugares(lugaresData);
 
       setDescubrimientos([
         ...(itemsRes.data ?? []).map((r: any) => ({
@@ -712,6 +737,44 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                         ))
                       : <EmptyTab label="Ningún reino descubierto aún" />
                   )}
+
+                  {/* Lugares — aparecen como tarjetas independientes al lado de los reinos */}
+                  {tab === "reinos" && lugares.filter(l => !l.reino_id).map((l, i) => (
+                    <button
+                      key={`lugar-${i}`}
+                      onClick={() => setModalD({ tipo: "ciudad", data: {
+                        tipo: "item",
+                        entidad_id: l.id,
+                        nombre: l.nombre,
+                        imagen_url: l.imagen_url ?? undefined,
+                        descripcion: l.descripcion ?? undefined,
+                        fecha_descubrimiento: "",
+                      }})}
+                      className="group relative overflow-hidden text-left transition-all duration-150"
+                      style={{
+                        background: "color-mix(in srgb, var(--primary) 3%, var(--white-custom))",
+                        border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
+                        borderRadius: "4px",
+                        aspectRatio: "1",
+                        display: "flex",
+                        flexDirection: "column",
+                      }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 35%, transparent)"; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 14%, transparent)"; }}>
+                      <div className="flex-1 relative overflow-hidden flex items-center justify-center">
+                        {l.imagen_url
+                          ? <img src={l.imagen_url} alt={l.nombre}
+                              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" />
+                          : <MapPin size={22} style={{ color: "color-mix(in srgb, var(--primary) 14%, transparent)" }} />}
+                      </div>
+                      <div className="px-1.5 py-1" style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 4%, transparent)" }}>
+                        <p className="font-serif italic text-[9px] leading-tight capitalize truncate text-center"
+                          style={{ color: "var(--primary)" }}>
+                          {l.nombre}
+                        </p>
+                      </div>
+                    </button>
+                  ))}
 
                 </MotionDiv>
               </AnimatePresence>

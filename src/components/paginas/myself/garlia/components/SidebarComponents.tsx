@@ -4,7 +4,7 @@ import React, { useState, useMemo, useEffect, useRef, useCallback } from "react"
 import {
   Loader2, Eye, EyeOff, Plus, Search, X, SlidersHorizontal, Sparkles,
   Wand2, ScrollText, FileText, Zap, Clock, Globe, Check, Layers,
-  Users, Bug, Package, Star, Feather, Swords, Gem, Map, BookOpen, Music,
+  Users, Bug, Package, Star, Feather, Swords, Gem, Map, BookOpen, Music, Mountain,
   ChevronLeft,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
@@ -242,7 +242,7 @@ function MundoSectionCard({
 // ─── AddCommandMenu ───────────────────────────────────────────────────────────
 // Floating menu triggered when user types "add" and presses Enter
 
-export type MagicAddKey = "hechizos" | "dones" | "runas" | "notas" | "acontecimiento" | "grupos" | "ciudad" | "libro" | "capitulo" | "cancion" | "planta";
+export type MagicAddKey = "hechizos" | "dones" | "runas" | "notas" | "acontecimiento" | "grupos" | "ciudad" | "lugar" | "libro" | "capitulo" | "cancion" | "planta";
 
 // Colores individuales por tipo — todos con la misma lógica color-mix
 const ADD_ITEM_COLOR: Record<string, string> = {
@@ -260,6 +260,7 @@ const ADD_ITEM_COLOR: Record<string, string> = {
   capitulo:        "var(--primary)",
   cancion:         "var(--primary)",
   ciudad:           "var(--primary)",
+  lugar:           "var(--primary)",
   planta:          "color-mix(in srgb, #4ade80 70%, var(--primary))",
 };
 
@@ -299,6 +300,7 @@ function AddCommandMenu({
     { kind: "magic", key: "acontecimiento", label: "Acontecimiento", Icon: Clock    },
     { kind: "magic", key: "grupos",         label: "Grupo",          Icon: Layers   },
     { kind: "magic", key: "ciudad",          label: "Ciudad",          Icon: Map      },
+    { kind: "magic", key: "lugar",           label: "Lugar",           Icon: Mountain },
     { kind: "magic", key: "planta",         label: "Planta",         Icon: Star     },
   ];
 
