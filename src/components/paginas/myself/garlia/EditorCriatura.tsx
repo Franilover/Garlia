@@ -1577,6 +1577,17 @@ export function EditorCriatura({
       .then(({ data }) => setAllCiudades((data ?? []).map((l: any) => ({ ...l, reino_id: l.reino_id ?? null }))));
   }, []);
 
+  // ── Ciudades sin reino → van en el bloque superior junto a Reinos ────────────
+  const ciudadesSinReino = allCiudades.filter(l => l.reino_id === null);
+
+  // ── Ciudades con reino → filtradas a los reinos seleccionados ────────────────
+  // Si no hay ningún reino seleccionado, muestra todas las que tienen reino.
+  const reinosSeleccionadosIds = reinoRows.map(r => r.reinoId);
+  const ciudadesConReino = allCiudades.filter(l =>
+    l.reino_id !== null &&
+    (reinosSeleccionadosIds.length === 0 || reinosSeleccionadosIds.includes(l.reino_id))
+  );
+
   const handleToggleReino = async (id: string, add: boolean) => {
     setSavingReinos(true);
     const reino = allReinos.find(r => r.id === id);
@@ -1834,7 +1845,7 @@ export function EditorCriatura({
           />
         </div>
 
-        {/* Columna 2: Reinos · Ciudades */}
+        {/* Columna 2: Reinos · Lugares libres · Ciudades */}
         <div
           className="w-44 flex flex-col border-r overflow-y-auto overflow-x-hidden"
           style={{
@@ -1859,11 +1870,26 @@ export function EditorCriatura({
           <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
 
           <SeccionEntidad
-            label="Ciudades"
+            label="Lugares libres"
             icon={<MapPin size={9} />}
             fallbackIcon={<MapPin size={14} strokeWidth={1} />}
-            emptyLabel="Sin ciudades"
-            allEntities={allCiudades.map(l => ({ id: l.id, nombre: l.nombre }))}
+            emptyLabel="Sin lugares libres"
+            allEntities={ciudadesSinReino.map(l => ({ id: l.id, nombre: l.nombre }))}
+            selectedIds={ciudadRows.map(r => r.ciudadId)}
+            loading={loadingCiudades}
+            saving={savingCiudades}
+            onToggle={handleToggleCiudad}
+            onEntityClick={id => onNavigateCiudad?.(id)}
+          />
+
+          <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
+
+          <SeccionEntidad
+            label={reinosSeleccionadosIds.length > 0 ? `Ciudades (${reinosSeleccionadosIds.length})` : "Ciudades"}
+            icon={<MapPin size={9} />}
+            fallbackIcon={<MapPin size={14} strokeWidth={1} />}
+            emptyLabel={reinosSeleccionadosIds.length > 0 ? "Sin ciudades en estos reinos" : "Sin ciudades"}
+            allEntities={ciudadesConReino.map(l => ({ id: l.id, nombre: l.nombre }))}
             selectedIds={ciudadRows.map(r => r.ciudadId)}
             loading={loadingCiudades}
             saving={savingCiudades}
@@ -1972,7 +1998,9 @@ export function EditorCriatura({
             <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
             <SeccionEntidad label="Reinos" icon={<Globe size={9} />} fallbackIcon={<Globe size={14} strokeWidth={1} />} emptyLabel="Sin reinos" allEntities={allReinos.map(r => ({ id: r.id, nombre: r.nombre }))} selectedIds={reinoRows.map(r => r.reinoId)} loading={loadingReinos} saving={savingReinos} onToggle={handleToggleReino} onEntityClick={id => onNavigateReino?.(id)} />
             <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
-            <SeccionEntidad label="Ciudades" icon={<MapPin size={9} />} fallbackIcon={<MapPin size={14} strokeWidth={1} />} emptyLabel="Sin ciudades" allEntities={allCiudades.map(l => ({ id: l.id, nombre: l.nombre }))} selectedIds={ciudadRows.map(r => r.ciudadId)} loading={loadingCiudades} saving={savingCiudades} onToggle={handleToggleCiudad} onEntityClick={id => onNavigateCiudad?.(id)} />
+            <SeccionEntidad label="Lugares libres" icon={<MapPin size={9} />} fallbackIcon={<MapPin size={14} strokeWidth={1} />} emptyLabel="Sin lugares libres" allEntities={ciudadesSinReino.map(l => ({ id: l.id, nombre: l.nombre }))} selectedIds={ciudadRows.map(r => r.ciudadId)} loading={loadingCiudades} saving={savingCiudades} onToggle={handleToggleCiudad} onEntityClick={id => onNavigateCiudad?.(id)} />
+            <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
+            <SeccionEntidad label={reinosSeleccionadosIds.length > 0 ? `Ciudades (${reinosSeleccionadosIds.length})` : "Ciudades"} icon={<MapPin size={9} />} fallbackIcon={<MapPin size={14} strokeWidth={1} />} emptyLabel={reinosSeleccionadosIds.length > 0 ? "Sin ciudades en estos reinos" : "Sin ciudades"} allEntities={ciudadesConReino.map(l => ({ id: l.id, nombre: l.nombre }))} selectedIds={ciudadRows.map(r => r.ciudadId)} loading={loadingCiudades} saving={savingCiudades} onToggle={handleToggleCiudad} onEntityClick={id => onNavigateCiudad?.(id)} />
             <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
             <SeccionEntidad label="Naturales" icon={<Leaf size={9} />} fallbackIcon={<Package size={14} strokeWidth={1} />} emptyLabel="Sin drops" allEntities={allNaturalesItems.map(i => ({ id: i.id, nombre: i.nombre, imagen_url: i.imagen_url }))} selectedIds={naturalesItems.map(i => i.itemId)} loading={loadingNaturales} saving={savingNaturales} onToggle={handleToggleNatural} onEntityClick={id => onSelectItem?.(id)} />
             <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
