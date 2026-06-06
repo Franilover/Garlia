@@ -1048,7 +1048,7 @@ function useItems() {
 }
 
 function useCiudades() {
-  const [ciudades, setCiudades] = useState<{ id: string; nombre: string; imagen_url?: string | null }[]>([]);
+  const [ciudades, setCiudades] = useState<{ id: string; nombre: string; imagen_url?: string | null; reino_id?: string | null }[]>([]);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     (async () => {
@@ -1066,7 +1066,7 @@ function useCiudades() {
 
       // 3️⃣ Refresh from Supabase and update cache
       try {
-        const { data } = await supabase.from("ciudades").select("id, nombre, imagen_url").order("nombre");
+        const { data } = await supabase.from("ciudades").select("id, nombre, imagen_url, reino_id").order("nombre");
         if (data) {
           setCiudades(data as any[]);
           try {
@@ -1165,6 +1165,14 @@ export const PanelPersonajesCapitulo = ({
     try { await capUpdateMeta(capId, { ciudades_ids: next } as any); } catch {}
     setSavingCiudad(false);
   };
+
+  // ── Ciudades sin reino → bloque superior junto a Reinos ──────────────────
+  const ciudadesSinReino = ciudades.filter(l => !l.reino_id);
+  // ── Ciudades con reino → filtradas a los reinos seleccionados ────────────
+  const ciudadesConReino = ciudades.filter(l =>
+    l.reino_id &&
+    (reinosIds.length === 0 || reinosIds.includes(l.reino_id))
+  );
 
   const handleSaveVisibilidad = async (v: "publico" | "programado" | "oculto") => {
     if (v === visibilidad || savingVis) return;
@@ -1286,8 +1294,8 @@ export const PanelPersonajesCapitulo = ({
       >
         <SeccionEntidad
           label="Reinos"
-          icon={<MapPin size={9} />}
-          fallbackIcon={<MapPin size={10} />}
+          icon={<Globe size={9} />}
+          fallbackIcon={<Globe size={10} />}
           emptyLabel="Sin reinos"
           capId={capId}
           allEntities={reinos.map(r => ({ id: r.id, nombre: r.nombre, imagen_url: (r as any).imagen_reino ?? undefined }))}
@@ -1299,18 +1307,38 @@ export const PanelPersonajesCapitulo = ({
         />
       </div>
 
-      {/* ── Ciudades ──────────────────────────────────────────────────────── */}
+      {/* ── Lugares libres (sin reino) ───────────────────────────────────── */}
       <div
         className="shrink-0 border-b"
         style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
       >
         <SeccionEntidad
-          label="Ciudades"
+          label="Lugares libres"
           icon={<MapPin size={9} />}
           fallbackIcon={<MapPin size={10} />}
-          emptyLabel="Sin ciudades"
+          emptyLabel="Sin lugares libres"
           capId={capId}
-          allEntities={ciudades.map(l => ({ id: l.id, nombre: l.nombre, imagen_url: l.imagen_url ?? undefined }))}
+          allEntities={ciudadesSinReino.map(l => ({ id: l.id, nombre: l.nombre, imagen_url: l.imagen_url ?? undefined }))}
+          selectedIds={ciudadesIds}
+          loading={loadingCiudades}
+          saving={savingCiudad}
+          onToggle={handleToggleCiudad}
+          onEntityClick={(id) => dispatchOpen("ciudades", id)}
+        />
+      </div>
+
+      {/* ── Ciudades (con reino, filtradas por reinos seleccionados) ─────── */}
+      <div
+        className="shrink-0 border-b"
+        style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
+      >
+        <SeccionEntidad
+          label={reinosIds.length > 0 ? `Ciudades (${reinosIds.length})` : "Ciudades"}
+          icon={<MapPin size={9} />}
+          fallbackIcon={<MapPin size={10} />}
+          emptyLabel={reinosIds.length > 0 ? "Sin ciudades en estos reinos" : "Sin ciudades"}
+          capId={capId}
+          allEntities={ciudadesConReino.map(l => ({ id: l.id, nombre: l.nombre, imagen_url: l.imagen_url ?? undefined }))}
           selectedIds={ciudadesIds}
           loading={loadingCiudades}
           saving={savingCiudad}
