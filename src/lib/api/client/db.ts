@@ -375,7 +375,7 @@ class AgendaFraniDB extends Dexie {
   hechizos!: Table<Hechizo, string>;
   dones!: Table<Don, string>;
   runas!: Table<Runa, string>;
-  lugares!: Table<Lugar, string>;
+  ciudades!: Table<Lugar, string>;
   grupos_mundo!: Table<GrupoMundo, string>;
 
   // Nuevas tablas para relaciones lore
@@ -796,7 +796,7 @@ class AgendaFraniDB extends Dexie {
       galeria:              "++id, orden, creado_en",           // ← nueva
     });
 
-    // ─── v14: runas y lugares (antes faltaban en el schema local) ────────────
+    // ─── v14: runas y ciudades (antes faltaban en el schema local) ────────────
     this.version(14).stores({
       personajes:           "id, nombre, visible",
       criaturas:            "id, nombre, habitat, alma, pensamiento",
@@ -835,7 +835,7 @@ class AgendaFraniDB extends Dexie {
       item_crafteres:       "id, criatura_id",
       galeria:              "++id, orden, creado_en",
       runas:                "id, nombre",                // ← nueva
-      lugares:              "id, nombre, tipo, reino_id", // ← nueva
+      ciudades:              "id, nombre, tipo, reino_id", // ← nueva
     });
 
     // ─── v15: capitulos con orden_linea_tiempo; reinos sin cambio de schema ──
@@ -878,7 +878,7 @@ class AgendaFraniDB extends Dexie {
       item_crafteres:       "id, criatura_id",
       galeria:              "++id, orden, creado_en",
       runas:                "id, nombre",
-      lugares:              "id, nombre, tipo, reino_id",
+      ciudades:              "id, nombre, tipo, reino_id",
     });
 
     // ─── v16: perfil de usuario cacheado offline ──────────────────────────────
@@ -920,7 +920,7 @@ class AgendaFraniDB extends Dexie {
       item_crafteres:       "id, criatura_id",
       galeria:              "++id, orden, creado_en",
       runas:                "id, nombre",
-      lugares:              "id, nombre, tipo, reino_id",
+      ciudades:              "id, nombre, tipo, reino_id",
       perfiles:             "id",                            
     });
   }
