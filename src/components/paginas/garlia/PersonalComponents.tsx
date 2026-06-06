@@ -34,7 +34,7 @@ export interface ItemInventario {
 
 export type EntidadModal =
   | { tipo: "item_inv"; data: ItemInventario }
-  | { tipo: "item" | "criatura" | "personaje" | "reino" | "lugar"; data: Descubrimiento };
+  | { tipo: "item" | "criatura" | "personaje" | "reino" | "ciudad"; data: Descubrimiento };
 
 export function ModalDetalle({ entidad, onClose, canciones, cargandoCanciones }: {
   entidad: EntidadModal;
@@ -46,12 +46,12 @@ export function ModalDetalle({ entidad, onClose, canciones, cargandoCanciones }:
   const isItem     = isItemInv || entidad.tipo === "item";
   const isCriatura = entidad.tipo === "criatura";
   const isReino    = entidad.tipo === "reino";
-  const isLugar    = entidad.tipo === "lugar";
+  const esCiudad    = entidad.tipo === "ciudad";
 
   const nombre = isItemInv
     ? (entidad.data as ItemInventario).items.nombre
     : (entidad.data as Descubrimiento).nombre
-      ?? (isCriatura ? "Criatura Desconocida" : isReino ? "Reino" : isLugar ? "Lugar" : entidad.tipo === "item" ? "Objeto" : "Personaje");
+      ?? (isCriatura ? "Criatura Desconocida" : isReino ? "Reino" : esCiudad ? "Ciudad" : entidad.tipo === "item" ? "Objeto" : "Personaje");
 
   const descripcion = isItemInv
     ? (entidad.data as ItemInventario).items.descripcion
@@ -76,7 +76,7 @@ export function ModalDetalle({ entidad, onClose, canciones, cargandoCanciones }:
     if (d.especie)   tags.push(d.especie!);
   }
 
-  const IconComp = isReino || isLugar ? MapPin : isItem ? Package : isCriatura ? Sword : User;
+  const IconComp = isReino || esCiudad ? MapPin : isItem ? Package : isCriatura ? Sword : User;
 
   return (
     <AnimatePresence>
@@ -133,7 +133,7 @@ export function ModalDetalle({ entidad, onClose, canciones, cargandoCanciones }:
               style={{ background: "var(--primary)", borderRadius: "2px" }}>
               <IconComp size={9} style={{ color: "var(--btn-text, white)" }} />
               <span className="text-[8px] font-black uppercase tracking-widest" style={{ color: "var(--btn-text, white)" }}>
-                {isReino ? "reino" : isLugar ? "lugar" : isItem ? "objeto" : isCriatura ? "criatura" : "personaje"}
+                {isReino ? "reino" : esCiudad ? "ciudad" : isItem ? "objeto" : isCriatura ? "criatura" : "personaje"}
               </span>
             </div>
           </div>
@@ -182,7 +182,7 @@ export function ModalDetalle({ entidad, onClose, canciones, cargandoCanciones }:
             </div>
 
             {/* Canciones del personaje — solo para personajes */}
-            {!isItem && !isCriatura && !isReino && !isLugar && (
+            {!isItem && !isCriatura && !isReino && !esCiudad && (
               <div className="pt-3" style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" }}>
                 <div className="flex items-center gap-3 mb-3">
                   <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />

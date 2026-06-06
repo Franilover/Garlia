@@ -76,7 +76,7 @@ function PanelContenido({
   handlePersonajeClick, modifiedDetalles, isSaving, handleSaveChanges,
   isUploadingImg, handleImageUpload, imgInputRef,
   librosReino, capitulosReino, loadingLibros,
-  personajesLugar, criaturasLugar, itemsLugar, loadingLugar,
+  personajesCiudad, criaturasCiudad, itemsCiudad, loadingCiudad,
 }: any) {
   const router = useRouter();
   if (editMode) {
@@ -203,16 +203,16 @@ function PanelContenido({
           </p>
         </div>
 
-        {/* ── Habitantes del lugar seleccionado ── */}
+        {/* ── Habitantes de la ciudad seleccionada ── */}
         {puntoSeleccionado && (
-          loadingLugar ? (
+          loadingCiudad ? (
             <div className="flex justify-center py-6" style={{ color: "color-mix(in srgb, var(--accent) 50%, transparent)" }}>
               <Hourglass size={14} />
             </div>
           ) : (
             <>
               {/* Personajes */}
-              {personajesLugar.length > 0 && (
+              {personajesCiudad.length > 0 && (
                 <div>
                   <div className="flex items-center gap-2 mb-3">
                     <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }} />
@@ -222,7 +222,7 @@ function PanelContenido({
                     <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }} />
                   </div>
                   <div className="grid grid-cols-2 gap-2">
-                    {personajesLugar.map((p: any) => {
+                    {personajesCiudad.map((p: any) => {
                       const desbloqueado = personajesDesbloqueados.has(p.id);
                       return (
                         <button
@@ -268,7 +268,7 @@ function PanelContenido({
               )}
 
               {/* Criaturas */}
-              {criaturasLugar.length > 0 && (
+              {criaturasCiudad.length > 0 && (
                 <div>
                   <div className="flex items-center gap-2 mb-3">
                     <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }} />
@@ -278,7 +278,7 @@ function PanelContenido({
                     <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }} />
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    {criaturasLugar.map((c: any) => (
+                    {criaturasCiudad.map((c: any) => (
                       <div key={c.id} className="flex items-center gap-2.5 px-3 py-2 border"
                         style={{
                           background: "color-mix(in srgb, var(--primary) 10%, transparent)",
@@ -305,7 +305,7 @@ function PanelContenido({
               )}
 
               {/* Items */}
-              {itemsLugar.length > 0 && (
+              {itemsCiudad.length > 0 && (
                 <div>
                   <div className="flex items-center gap-2 mb-3">
                     <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }} />
@@ -315,7 +315,7 @@ function PanelContenido({
                     <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }} />
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    {itemsLugar.map((item: any) => (
+                    {itemsCiudad.map((item: any) => (
                       <div key={item.id} className="flex items-center gap-2.5 px-3 py-2 border"
                         style={{
                           background: "color-mix(in srgb, var(--primary) 10%, transparent)",
@@ -342,7 +342,7 @@ function PanelContenido({
               )}
 
               {/* Vacío */}
-              {personajesLugar.length === 0 && criaturasLugar.length === 0 && itemsLugar.length === 0 && (
+              {personajesCiudad.length === 0 && criaturasCiudad.length === 0 && itemsCiudad.length === 0 && (
                 <p className="text-center text-[9px] font-black uppercase tracking-widest py-4"
                   style={{ color: "color-mix(in srgb, var(--accent) 25%, transparent)" }}>
                   Sin habitantes registrados
@@ -1408,7 +1408,7 @@ export default function MapaInteractivo() {
   const [personajesReino, setPersonajesReino] = useState<any[]>([]);
   const [personajesDesbloqueados, setPersonajesDesbloqueados] = useState<Set<string>>(new Set());
   const [reinosDesbloqueados, setReinosDesbloqueados] = useState<Set<string>>(new Set());
-  const [lugaresDesbloqueados, setLugaresDesbloqueados] = useState<Set<string>>(new Set());
+  const [ciudadesDesbloqueadas, setCiudadesDesbloqueadas] = useState<Set<string>>(new Set());
   const [modalEntidad, setModalEntidad] = useState<EntidadModal | null>(null);
   const [cancionesPersonaje, setCancionesPersonaje] = useState<any[]>([]);
   const [cargandoCanciones, setCargandoCanciones] = useState(false);
@@ -1416,11 +1416,11 @@ export default function MapaInteractivo() {
   const [librosReino, setLibrosReino] = useState<any[]>([]);
   const [capitulosReino, setCapitulosReino] = useState<any[]>([]);
   const [loadingLibros, setLoadingLibros] = useState(false);
-  // Habitantes del lugar seleccionado
-  const [personajesLugar, setPersonajesLugar] = useState<any[]>([]);
-  const [criaturasLugar, setCriaturasLugar] = useState<any[]>([]);
-  const [itemsLugar, setItemsLugar] = useState<any[]>([]);
-  const [loadingLugar, setLoadingLugar] = useState(false);
+  // Habitantes de la ciudad seleccionada
+  const [personajesCiudad, setPersonajesCiudad] = useState<any[]>([]);
+  const [criaturasCiudad, setCriaturasCiudad] = useState<any[]>([]);
+  const [itemsCiudad, setItemsCiudad] = useState<any[]>([]);
+  const [loadingCiudad, setLoadingCiudad] = useState(false);
 
   const imgInputRef = useRef<HTMLInputElement>(null);
   const currentReinoIdRef = useRef<string | null>(null);
@@ -1433,62 +1433,62 @@ export default function MapaInteractivo() {
     return () => window.removeEventListener("resize", check);
   }, []);
 
-  // Descubrimientos — personajes, reinos y lugares del perfil
+  // Descubrimientos — personajes, reinos y ciudades del perfil
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) return;
       Promise.all([
         supabase.from("descubrimientos_personajes").select("personaje_id").eq("perfil_id", user.id),
         supabase.from("descubrimientos_reinos").select("reino_id").eq("perfil_id", user.id),
-        supabase.from("lugares_desbloqueados").select("lugar_id").eq("user_id", user.id),
+        supabase.from("ciudades_desbloqueadas").select("ciudad_id").eq("user_id", user.id),
       ]).then(([pRes, rRes, lRes]) => {
         if (pRes.data) setPersonajesDesbloqueados(new Set(pRes.data.map((r: any) => r.personaje_id)));
         if (rRes.data) setReinosDesbloqueados(new Set(rRes.data.map((r: any) => r.reino_id)));
-        if (lRes.data) setLugaresDesbloqueados(new Set(lRes.data.map((r: any) => r.lugar_id)));
+        if (lRes.data) setCiudadesDesbloqueadas(new Set(lRes.data.map((r: any) => r.ciudad_id)));
       });
     });
   }, []);
 
-  // Cargar personajes, criaturas e items cuando se selecciona un lugar
+  // Cargar personajes, criaturas e items cuando se selecciona una ciudad
   useEffect(() => {
     if (!puntoSeleccionado) {
-      setPersonajesLugar([]);
-      setCriaturasLugar([]);
-      setItemsLugar([]);
+      setPersonajesCiudad([]);
+      setCriaturasCiudad([]);
+      setItemsCiudad([]);
       return;
     }
-    const lugarId = puntoSeleccionado.id;
-    const currentId = lugarId;
-    setLoadingLugar(true);
+    const ciudadId = puntoSeleccionado.id;
+    const currentId = ciudadId;
+    setLoadingCiudad(true);
 
     const run = async () => {
       // 1. Dexie cache
       if (db) {
         try {
           const [cachedP, cachedC, cachedI] = await Promise.all([
-            (db as any).personajes?.filter((p: any) => p.lugar_id === lugarId && !p.deleted).toArray().catch(() => []) ?? [],
-            (db as any).criaturas?.filter((c: any) => c.lugar_id === lugarId && !c.deleted).toArray().catch(() => []) ?? [],
-            (db as any).items?.filter((i: any) => i.lugar_id === lugarId && !i.deleted).toArray().catch(() => []) ?? [],
+            (db as any).personajes?.filter((p: any) => p.ciudad_id === ciudadId && !p.deleted).toArray().catch(() => []) ?? [],
+            (db as any).criaturas?.filter((c: any) => c.ciudad_id === ciudadId && !c.deleted).toArray().catch(() => []) ?? [],
+            (db as any).items?.filter((i: any) => i.ciudad_id === ciudadId && !i.deleted).toArray().catch(() => []) ?? [],
           ]);
-          if (currentId !== lugarId) return;
-          if (cachedP.length) setPersonajesLugar(cachedP);
-          if (cachedC.length) setCriaturasLugar(cachedC);
-          if (cachedI.length) setItemsLugar(cachedI);
-          if (!navigator.onLine) { setLoadingLugar(false); return; }
+          if (currentId !== ciudadId) return;
+          if (cachedP.length) setPersonajesCiudad(cachedP);
+          if (cachedC.length) setCriaturasCiudad(cachedC);
+          if (cachedI.length) setItemsCiudad(cachedI);
+          if (!navigator.onLine) { setLoadingCiudad(false); return; }
         } catch {}
       }
 
       // 2. Supabase
       const [pRes, cRes, iRes] = await Promise.all([
-        supabase.from("personajes").select("id, nombre, img_url, especie").eq("lugar_id", lugarId).order("nombre"),
-        supabase.from("criaturas").select("id, nombre, imagen_url").eq("lugar_id", lugarId).order("nombre"),
-        supabase.from("items").select("id, nombre, imagen_url").eq("lugar_id", lugarId).order("nombre"),
+        supabase.from("personajes").select("id, nombre, img_url, especie").eq("ciudad_id", ciudadId).order("nombre"),
+        supabase.from("criaturas").select("id, nombre, imagen_url").eq("ciudad_id", ciudadId).order("nombre"),
+        supabase.from("items").select("id, nombre, imagen_url").eq("ciudad_id", ciudadId).order("nombre"),
       ]);
-      if (currentId !== lugarId) return;
-      if (!pRes.error) setPersonajesLugar(pRes.data ?? []);
-      if (!cRes.error) setCriaturasLugar(cRes.data ?? []);
-      if (!iRes.error) setItemsLugar(iRes.data ?? []);
-      setLoadingLugar(false);
+      if (currentId !== ciudadId) return;
+      if (!pRes.error) setPersonajesCiudad(pRes.data ?? []);
+      if (!cRes.error) setCriaturasCiudad(cRes.data ?? []);
+      if (!iRes.error) setItemsCiudad(iRes.data ?? []);
+      setLoadingCiudad(false);
     };
     run();
   }, [puntoSeleccionado?.id]);
@@ -1521,7 +1521,7 @@ export default function MapaInteractivo() {
     if (db) {
       try {
         const [cachedDetalles, cachedPersonajes, cachedLibros, cachedCaps] = await Promise.all([
-          (db as any).lugares?.where("reino_id").equals(reino.id).toArray().catch(() => []) ?? [],
+          (db as any).ciudades.where("reino_id").equals(reino.id).toArray().catch(() => []) ?? [],
           db.personajes.filter((p: any) => p.reino === reino.nombre).toArray().catch(() => []),
           db.libros.filter((l: any) => l.reino_id === reino.id).toArray().catch(() => []),
           db.capitulos.filter((c: any) => Array.isArray(c.reinos_ids) && c.reinos_ids.includes(reino.id)).toArray().catch(() => []),
@@ -1553,7 +1553,7 @@ export default function MapaInteractivo() {
     // Aplicar resultados — siempre setear aunque sea array vacío, para no dejar datos stale
     if (!detallesRes.error) {
       setDetallesReino(detallesRes.data ?? []);
-      try { if (db && detallesRes.data?.length) await (db as any).lugares?.bulkPut(detallesRes.data); } catch {}
+      try { if (db && detallesRes.data?.length) await (db as any).ciudades.bulkPut(detallesRes.data); } catch {}
     }
 
     if (!personajesRes.error) {
@@ -1692,12 +1692,12 @@ export default function MapaInteractivo() {
   // Visible markers: admins ven todos los reinos; usuarios solo los que desbloquearon
   const visibleMarkers = vistaActual === "global"
     ? reinos.filter(r => isAdmin ? true : reinosDesbloqueados.has(r.id))
-    : detallesReino.filter(l => isAdmin ? true : lugaresDesbloqueados.has(l.id));
+    : detallesReino.filter(l => isAdmin ? true : ciudadesDesbloqueadas.has(l.id));
 
   // hiddenMarkers: para usuarios son los marcadores no desbloqueados (se muestran en niebla)
   const hiddenMarkers = vistaActual === "global"
     ? (isAdmin ? [] : reinos.filter(r => !reinosDesbloqueados.has(r.id)))
-    : (isAdmin ? [] : detallesReino.filter(l => !lugaresDesbloqueados.has(l.id)));
+    : (isAdmin ? [] : detallesReino.filter(l => !ciudadesDesbloqueadas.has(l.id)));
 
   const currentImage = vistaActual === "reino" && reinoSeleccionado?.mapa_url
     ? reinoSeleccionado.mapa_url
@@ -1710,7 +1710,7 @@ export default function MapaInteractivo() {
     handlePersonajeClick, modifiedDetalles, isSaving, handleSaveChanges,
     isUploadingImg, handleImageUpload, imgInputRef,
     librosReino, capitulosReino, loadingLibros,
-    personajesLugar, criaturasLugar, itemsLugar, loadingLugar,
+    personajesCiudad, criaturasCiudad, itemsCiudad, loadingCiudad,
   };
 
   // Solo bloquea la UI si no hay absolutamente ningún dato todavía (primera carga ever)

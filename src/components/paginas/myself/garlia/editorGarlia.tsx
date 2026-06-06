@@ -522,8 +522,8 @@ export default function EditorEntidades() {
               setTab("mundo");
               setMundoSection("geografia");
               setTimeout(() => window.dispatchEvent(new Event("estudio-letras-action")), 0);
-            } else if (key === "lugar") {
-              localStorage.setItem("estudio-listas-action", "nuevo-lugar");
+            } else if (key === "ciudad") {
+              localStorage.setItem("estudio-listas-action", "nueva-ciudad");
               setTab("mundo");
               setMundoSection("geografia");
               setTimeout(() => window.dispatchEvent(new Event("estudio-listas-action")), 0);

@@ -276,7 +276,7 @@ export interface Runa {
   [key: string]: any;
 }
 
-export interface Lugar {
+export interface Ciudad {
   id: string;
   nombre: string;
   tipo?: string | null;
@@ -375,7 +375,7 @@ class AgendaFraniDB extends Dexie {
   hechizos!: Table<Hechizo, string>;
   dones!: Table<Don, string>;
   runas!: Table<Runa, string>;
-  ciudades!: Table<Lugar, string>;
+  ciudades!: Table<Ciudad, string>;
   grupos_mundo!: Table<GrupoMundo, string>;
 
   // Nuevas tablas para relaciones lore

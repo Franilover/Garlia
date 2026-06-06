@@ -7,43 +7,43 @@ import { supabase } from "@/lib/api/client/supabase";
 /* ─────────────────────────────────────────────
    Guard global: persiste aunque el componente se desmonte/remonte.
    ───────────────────────────────────────────── */
-const _lugaresDisparados = new Set<string>();
+const _ciudadesDisparadas = new Set<string>();
 
-export function useDesbloquearLugares(capId: string, lugaresIds: string[] | undefined) {
+export function useDesbloquearCiudades(capId: string, ciudadesIds: string[] | undefined) {
   const [desbloqueados,      setDesbloqueados]      = useState<string[]>([]);
   const [mostrarCelebration, setMostrarCelebration] = useState(false);
 
   const disparandoRef = useRef(false);
-  const idsKey = (lugaresIds ?? []).join(",");
+  const idsKey = (ciudadesIds ?? []).join(",");
 
   const disparar = useCallback(async () => {
-    if (_lugaresDisparados.has(capId)) return [];
-    if (!lugaresIds?.length) return [];
+    if (_ciudadesDisparadas.has(capId)) return [];
+    if (!ciudadesIds?.length) return [];
     if (disparandoRef.current) return [];
 
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user) return [];
 
-    _lugaresDisparados.add(capId);
+    _ciudadesDisparadas.add(capId);
     disparandoRef.current = true;
 
     try {
       const userId = session.user.id;
-      const rows = lugaresIds.map(lugarId => ({ user_id: userId, lugar_id: lugarId }));
+      const rows = ciudadesIds.map(ciudadId => ({ user_id: userId, ciudad_id: ciudadId }));
       const { data } = await supabase
-        .from("lugares_desbloqueados")
+        .from("ciudades_desbloqueadas")
         .insert(rows)
-        .select("lugar_id");
+        .select("ciudad_id");
 
-      const nuevos = (data ?? []).map((r: any) => r.lugar_id);
+      const nuevos = (data ?? []).map((r: any) => r.ciudad_id);
       if (nuevos.length > 0) {
         setDesbloqueados(nuevos);
         setMostrarCelebration(true);
       }
       return nuevos;
     } catch (err) {
-      _lugaresDisparados.delete(capId);
-      console.error("[useDesbloquearLugares]", err);
+      _ciudadesDisparadas.delete(capId);
+      console.error("[useDesbloquearCiudades]", err);
       return [];
     } finally {
       disparandoRef.current = false;
@@ -57,35 +57,35 @@ export function useDesbloquearLugares(capId: string, lugaresIds: string[] | unde
 }
 
 /* ─────────────────────────────────────────────
-   Toast de lugares desbloqueados
+   Toast de ciudades desbloqueados
    ───────────────────────────────────────────── */
-export function LugaresDesbloqueadosToast({
-  lugaresIds,
+export function CiudadesDesbloqueadasToast({
+  ciudadesIds,
   onClose,
 }: {
-  lugaresIds: string[];
+  ciudadesIds: string[];
   onClose: () => void;
 }) {
-  const [lugares, setLugares] = useState<{ id: string; nombre: string; imagen_url?: string | null }[]>([]);
+  const [ciudades, setCiudades] = useState<{ id: string; nombre: string; imagen_url?: string | null }[]>([]);
 
   const onCloseRef = useRef(onClose);
   useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
 
   useEffect(() => {
-    if (!lugaresIds.length) return;
+    if (!ciudadesIds.length) return;
     supabase
       .from("ciudades")
       .select("id, nombre, imagen_url")
-      .in("id", lugaresIds)
-      .then(({ data }) => { if (data) setLugares(data); });
-  }, [lugaresIds.join(",")]); // eslint-disable-line
+      .in("id", ciudadesIds)
+      .then(({ data }) => { if (data) setCiudades(data); });
+  }, [ciudadesIds.join(",")]); // eslint-disable-line
 
   useEffect(() => {
     const t = setTimeout(() => onCloseRef.current(), 6000);
     return () => clearTimeout(t);
   }, []);
 
-  if (!lugares.length) return null;
+  if (!ciudades.length) return null;
 
   return (
     <MotionDiv
@@ -105,14 +105,14 @@ export function LugaresDesbloqueadosToast({
         >
           <span className="text-[10px] font-black uppercase tracking-[0.25em] text-primary italic flex items-center gap-2">
             <MapPin size={11} />
-            {lugares.length === 1 ? "Lugar descubierto" : `${lugares.length} lugares descubiertos`}
+            {ciudades.length === 1 ? "Ciudad descubierta" : `${ciudades.length} ciudades descubiertos`}
           </span>
           <button onClick={onClose} className="text-primary/30 hover:text-primary transition-colors">
             <X size={14} />
           </button>
         </div>
         <div className="p-4 flex flex-col gap-3">
-          {lugares.map((l) => (
+          {ciudades.map((l) => (
             <div key={l.id} className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-[var(--radius-btn)] overflow-hidden border border-primary/10 shrink-0 bg-primary/5">
                 {l.imagen_url
@@ -122,7 +122,7 @@ export function LugaresDesbloqueadosToast({
               </div>
               <div>
                 <p className="text-sm font-black uppercase italic text-primary tracking-tight">{l.nombre}</p>
-                <p className="text-[9px] font-bold uppercase tracking-widest text-primary/40">Añadido a tu mapa</p>
+                <p className="text-[9px] font-bold uppercase tracking-widest text-primary/40">Añadida a tu mapa</p>
               </div>
             </div>
           ))}

@@ -8,7 +8,7 @@ import { ContenidoInteractivo } from "./ContenidoInteractivo";
 import { LectorSkeleton, ReadingProgressBar, Vignette, CapituloHeader, FinCapituloSeparador, IndexPanel, ChapterSelector } from "./LectorUI";
 import { useDesbloquearPersonajes, PersonajesDesbloqueadosToast } from "./usePersonajes";
 import { useDesbloquearReinos, ReinosDesbloqueadosToast } from "./useReinos";
-import { useDesbloquearLugares, LugaresDesbloqueadosToast } from "./useLugares";
+import { useDesbloquearCiudades, CiudadesDesbloqueadasToast } from "./useCiudades";
 
 /**
  * Estilos de fuente fluida para el lector.
@@ -58,7 +58,7 @@ const FLUID_FONT_STYLES = `
 type ToastEntry =
   | { tipo: "personajes"; ids: string[] }
   | { tipo: "reinos";     ids: string[] }
-  | { tipo: "lugares";    ids: string[] };
+  | { tipo: "ciudades";   ids: string[] };
 
 // Estado global fuera del árbol de React — no causa re-renders innecesarios
 const toastQueue: ToastEntry[] = [];
@@ -118,10 +118,10 @@ export function ToastPortal() {
           onClose={avanzar}
         />
       )}
-      {current?.tipo === "lugares" && (
-        <LugaresDesbloqueadosToast
-          key={`lugares-${current.ids.join(",")}`}
-          lugaresIds={current.ids}
+      {current?.tipo === "ciudades" && (
+        <CiudadesDesbloqueadasToast
+          key={`ciudades-${current.ids.join(",")}`}
+          ciudadesIds={current.ids}
           onClose={avanzar}
         />
       )}
@@ -145,11 +145,11 @@ export function CapituloScrollBlock({ cap, onNavigate, esExtra = false, haySegSi
   // Cada capítulo desbloquea sus propias entidades al completarse.
   const personajesIdsEfectivos = cap.personajes_ids;
   const reinosIdsEfectivos     = cap.reinos_ids as string[] | undefined;
-  const lugaresIdsEfectivos    = (cap as any).lugares_ids;
+  const ciudadesIdsEfectivos    = (cap as any).ciudades_ids;
 
   const { disparar: dispararPersonajes } = useDesbloquearPersonajes(cap.id, personajesIdsEfectivos);
   const { disparar: dispararReinos }     = useDesbloquearReinos(cap.id, reinosIdsEfectivos);
-  const { disparar: dispararLugares }    = useDesbloquearLugares(cap.id, lugaresIdsEfectivos);
+  const { disparar: dispararCiudades }    = useDesbloquearCiudades(cap.id, ciudadesIdsEfectivos);
 
   // Bug 3 fix: en vez de mostrar toasts directamente, los encola.
   // El ToastPortal (montado una sola vez en leerLibro) los muestra de uno en uno.
@@ -160,16 +160,16 @@ export function CapituloScrollBlock({ cap, onNavigate, esExtra = false, haySegSi
     const results = await Promise.allSettled([
       dispararPersonajes(),
       dispararReinos(),
-      dispararLugares(),
+      dispararCiudades(),
     ]);
-    const [rPersonajes, rReinos, rLugares] = results;
+    const [rPersonajes, rReinos, rCiudades] = results;
     const nuevosPersonajes = rPersonajes.status === "fulfilled" ? rPersonajes.value : [];
     const nuevosReinos     = rReinos.status     === "fulfilled" ? rReinos.value     : [];
-    const nuevosLugares    = rLugares.status    === "fulfilled" ? rLugares.value    : [];
+    const nuevasCiudades    = rCiudades.status    === "fulfilled" ? rCiudades.value    : [];
     if (nuevosPersonajes?.length) encolarToast({ tipo: "personajes", ids: nuevosPersonajes });
     if (nuevosReinos?.length)     encolarToast({ tipo: "reinos",     ids: nuevosReinos });
-    if (nuevosLugares?.length)    encolarToast({ tipo: "lugares",    ids: nuevosLugares });
-  }, [dispararPersonajes, dispararReinos, dispararLugares]);
+    if (nuevasCiudades?.length)    encolarToast({ tipo: "ciudades",    ids: nuevasCiudades });
+  }, [dispararPersonajes, dispararReinos, dispararCiudades]);
 
   return (
     <div id={`cap-${cap.id}`} className="lector-article-wrap scroll-mt-20">

@@ -242,7 +242,7 @@ function MundoSectionCard({
 // ─── AddCommandMenu ───────────────────────────────────────────────────────────
 // Floating menu triggered when user types "add" and presses Enter
 
-export type MagicAddKey = "hechizos" | "dones" | "runas" | "notas" | "acontecimiento" | "grupos" | "lugar" | "libro" | "capitulo" | "cancion" | "planta";
+export type MagicAddKey = "hechizos" | "dones" | "runas" | "notas" | "acontecimiento" | "grupos" | "ciudad" | "libro" | "capitulo" | "cancion" | "planta";
 
 // Colores individuales por tipo — todos con la misma lógica color-mix
 const ADD_ITEM_COLOR: Record<string, string> = {
@@ -259,7 +259,7 @@ const ADD_ITEM_COLOR: Record<string, string> = {
   libro:           "var(--primary)",
   capitulo:        "var(--primary)",
   cancion:         "var(--primary)",
-  lugar:           "var(--primary)",
+  ciudad:           "var(--primary)",
   planta:          "color-mix(in srgb, #4ade80 70%, var(--primary))",
 };
 
@@ -298,7 +298,7 @@ function AddCommandMenu({
     { kind: "magic", key: "notas",          label: "Nota",           Icon: FileText },
     { kind: "magic", key: "acontecimiento", label: "Acontecimiento", Icon: Clock    },
     { kind: "magic", key: "grupos",         label: "Grupo",          Icon: Layers   },
-    { kind: "magic", key: "lugar",          label: "Lugar",          Icon: Map      },
+    { kind: "magic", key: "ciudad",          label: "Ciudad",          Icon: Map      },
     { kind: "magic", key: "planta",         label: "Planta",         Icon: Star     },
   ];
 

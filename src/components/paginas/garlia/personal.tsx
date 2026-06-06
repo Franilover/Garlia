@@ -62,9 +62,9 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
   const [otrosPerfiles, setOtrosPerfiles] = useState<PerfilResumen[]>([]);
   const [cancionesPersonaje, setCancionesPersonaje] = useState<any[]>([]);
   const [cargandoCanciones, setCargandoCanciones] = useState(false);
-  const [lugaresReino, setLugaresReino] = useState<typeof lugares>([]);
+  const [ciudadesReino, setCiudadesReino] = useState<typeof ciudades>([]);
   const [reinos, setReinos] = useState<{ id: string; nombre: string; mapa_url?: string | null; logo_url?: string | null; descripcion?: string | null }[]>([]);
-  const [lugares, setLugares] = useState<{ id: string; nombre: string; imagen_url?: string | null; descripcion?: string | null; reino_id?: string | null }[]>([]);
+  const [ciudades, setCiudades] = useState<{ id: string; nombre: string; imagen_url?: string | null; descripcion?: string | null; reino_id?: string | null }[]>([]);
   const userIdRef = React.useRef<string | null>(null);
 
   useEffect(() => {
@@ -108,7 +108,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
           if (invData)  setInventario(invData as unknown as ItemInventario[]);
         }
 
-        const [itemsRes, criaturasRes, personajesRes, reinosRes, lugaresRes] = await Promise.all([
+        const [itemsRes, criaturasRes, personajesRes, reinosRes, ciudadesRes] = await Promise.all([
           supabase
             .from("descubrimientos_items")
             .select("fecha_descubrimiento, items:item_id(id, nombre, categoria, imagen_url, descripcion)")
@@ -126,8 +126,8 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
             .select("fecha_descubrimiento, reino_data:reino_id(id, nombre, mapa_url, logo_url, descripcion)")
             .eq("perfil_id", user.id),
           supabase
-            .from("lugares_desbloqueados")
-            .select("lugares:lugar_id(id, nombre, imagen_url, descripcion, reino_id)")
+            .from("ciudades_desbloqueadas")
+            .select("ciudades:ciudad_id(id, nombre, imagen_url, descripcion, reino_id)")
             .eq("user_id", user.id),
         ]);
 
@@ -135,7 +135,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
         if (criaturasRes.error)  console.warn("[Personal] descubrimientos_criaturas error:", criaturasRes.error.message);
         if (personajesRes.error) console.warn("[Personal] descubrimientos_personajes error:", personajesRes.error.message);
         if (reinosRes.error)     console.warn("[Personal] descubrimientos_reinos error:", reinosRes.error.message);
-        if (lugaresRes.error)    console.warn("[Personal] lugares_desbloqueados error:", lugaresRes.error.message);
+        if (ciudadesRes.error)    console.warn("[Personal] ciudades_desbloqueadas error:", ciudadesRes.error.message);
 
         const reinosData = (reinosRes.data ?? []).map((r: any) => ({
           id:           r.reino_data?.id,
@@ -146,14 +146,14 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
         })).filter(r => r.id);
         setReinos(reinosData);
 
-        const lugaresData = (lugaresRes.data ?? []).map((r: any) => ({
-          id:          r.lugares?.id,
-          nombre:      r.lugares?.nombre,
-          imagen_url:  r.lugares?.imagen_url,
-          descripcion: r.lugares?.descripcion,
-          reino_id:    r.lugares?.reino_id ?? null,
+        const ciudadesData = (ciudadesRes.data ?? []).map((r: any) => ({
+          id:          r.ciudades?.id,
+          nombre:      r.ciudades?.nombre,
+          imagen_url:  r.ciudades?.imagen_url,
+          descripcion: r.ciudades?.descripcion,
+          reino_id:    r.ciudades?.reino_id ?? null,
         })).filter(l => l.id);
-        setLugares(lugaresData);
+        setCiudades(ciudadesData);
 
         const planos: Descubrimiento[] = [
           ...(itemsRes.data ?? []).map((r: any) => ({
@@ -221,14 +221,14 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
     cargarTodo();
   }, []);
 
-  // Refrescar reinos, lugares y descubrimientos cuando el usuario vuelve a esta pestaña
+  // Refrescar reinos, ciudades y descubrimientos cuando el usuario vuelve a esta pestaña
   // (por ejemplo, después de leer un capítulo que desbloqueó algo nuevo).
   useEffect(() => {
     const refrescarDescubrimientos = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const [personajesRes, reinosRes, lugaresRes] = await Promise.all([
+      const [personajesRes, reinosRes, ciudadesRes] = await Promise.all([
         supabase
           .from("descubrimientos_personajes")
           .select("fecha_descubrimiento, personajes:personaje_id(id, nombre, reino, especie, img_url, sobre)")
@@ -238,8 +238,8 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
           .select("fecha_descubrimiento, reino_data:reino_id(id, nombre, mapa_url, logo_url, descripcion)")
           .eq("perfil_id", user.id),
         supabase
-          .from("lugares_desbloqueados")
-          .select("lugares:lugar_id(id, nombre, imagen_url, descripcion, reino_id)")
+          .from("ciudades_desbloqueadas")
+          .select("ciudades:ciudad_id(id, nombre, imagen_url, descripcion, reino_id)")
           .eq("user_id", user.id),
       ]);
 
@@ -254,15 +254,15 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
         setReinos(reinosData);
       }
 
-      if (lugaresRes.data) {
-        const lugaresData = lugaresRes.data.map((r: any) => ({
-          id:          r.lugares?.id,
-          nombre:      r.lugares?.nombre,
-          imagen_url:  r.lugares?.imagen_url,
-          descripcion: r.lugares?.descripcion,
-          reino_id:    r.lugares?.reino_id ?? null,
+      if (ciudadesRes.data) {
+        const ciudadesData = ciudadesRes.data.map((r: any) => ({
+          id:          r.ciudades?.id,
+          nombre:      r.ciudades?.nombre,
+          imagen_url:  r.ciudades?.imagen_url,
+          descripcion: r.ciudades?.descripcion,
+          reino_id:    r.ciudades?.reino_id ?? null,
         })).filter((l: any) => l.id);
-        setLugares(lugaresData);
+        setCiudades(ciudadesData);
       }
 
       if (personajesRes.data) {
@@ -362,13 +362,13 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
     }
   };
 
-  const lugaresHuerfanos = lugares.filter(l => !l.reino_id);
+  const ciudadesHuerfanas = ciudades.filter(l => !l.reino_id);
 
   const tabs = [
     { id: "personajes", label: "Agenda",     icon: User,    count: misPersonajes.length },
     { id: "criaturas",  label: "Bestiario",  icon: Cat,     count: misCriaturas.length },
     { id: "items",      label: "Inventario", icon: Sword,   count: inventario.length + misItemsDesc.length },
-    { id: "reinos",     label: "Mapa",       icon: MapPin,  count: reinos.length + lugaresHuerfanos.length },
+    { id: "reinos",     label: "Mapa",       icon: MapPin,  count: reinos.length + ciudadesHuerfanas.length },
   ] as const;
 
   if (cargando) return (
@@ -597,13 +597,13 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
         )}
       </AnimatePresence>
 
-      {/* Modal custom para reinos con lugares */}
+      {/* Modal custom para reinos con ciudades */}
       <AnimatePresence>
         {modalEntidad && modalEntidad.tipo === "reino" && (
           <>
             <MotionDiv
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => { setModalEntidad(null); setLugaresReino([]); }}
+              onClick={() => { setModalEntidad(null); setCiudadesReino([]); }}
               className="fixed inset-0 z-40 backdrop-blur-sm"
               style={{ background: "rgba(0,0,0,0.45)" }}
             />
@@ -648,7 +648,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                   background: "linear-gradient(to top, var(--white-custom) 0%, color-mix(in srgb, var(--white-custom) 20%, transparent) 50%, transparent 100%)"
                 }} />
                 <button
-                  onClick={() => { setModalEntidad(null); setLugaresReino([]); }}
+                  onClick={() => { setModalEntidad(null); setCiudadesReino([]); }}
                   className="absolute top-3 right-3 z-10 w-8 h-8 flex items-center justify-center transition-all hover:scale-110"
                   style={{
                     color: "var(--primary)",
@@ -683,38 +683,38 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                   </p>
                 )}
 
-                {/* Sección de lugares */}
+                {/* Sección de ciudades */}
                 <div className="flex items-center gap-3 mb-4">
                   <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
                   <div className="flex items-center gap-1.5">
                     <MapPin size={10} style={{ color: "color-mix(in srgb, var(--primary) 28%, transparent)" }} />
                     <span className="font-serif italic text-[9px] font-black uppercase tracking-widest"
                       style={{ color: "color-mix(in srgb, var(--primary) 28%, transparent)" }}>
-                      Lugares
+                      Ciudades
                     </span>
                   </div>
                   <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
                 </div>
 
-                {lugaresReino.length === 0 ? (
+                {ciudadesReino.length === 0 ? (
                   <p className="font-serif italic text-[10px] py-4 text-center"
                     style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }}>
-                    "Ningún lugar descubierto en este reino…"
+                    "Ningún ciudad descubierto en este reino…"
                   </p>
                 ) : (
                   <div className="flex flex-col gap-2">
-                    {lugaresReino.map((lugar, i) => (
+                    {ciudadesReino.map((ciudad, i) => (
                       <button
-                        key={lugar.id ?? i}
+                        key={ciudad.id ?? i}
                         onClick={() => {
                           setModalEntidad(null);
-                          setLugaresReino([]);
-                          setTimeout(() => setModalEntidad({ tipo: "lugar", data: {
+                          setCiudadesReino([]);
+                          setTimeout(() => setModalEntidad({ tipo: "ciudad", data: {
                             tipo: "item",
-                            entidad_id: lugar.id,
-                            nombre: lugar.nombre,
-                            imagen_url: lugar.imagen_url ?? undefined,
-                            descripcion: lugar.descripcion ?? undefined,
+                            entidad_id: ciudad.id,
+                            nombre: ciudad.nombre,
+                            imagen_url: ciudad.imagen_url ?? undefined,
+                            descripcion: ciudad.descripcion ?? undefined,
                             fecha_descubrimiento: "",
                           }}), 120);
                         }}
@@ -732,10 +732,10 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                           (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 8%, transparent)";
                           (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 3%, var(--white-custom))";
                         }}>
-                        {lugar.imagen_url ? (
+                        {ciudad.imagen_url ? (
                           <div className="w-11 h-11 shrink-0 overflow-hidden"
                             style={{ borderRadius: "var(--radius-btn)", background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-                            <img src={lugar.imagen_url} alt={lugar.nombre}
+                            <img src={ciudad.imagen_url} alt={ciudad.nombre}
                               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                           </div>
                         ) : (
@@ -750,12 +750,12 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                         <div className="flex-1 min-w-0">
                           <span className="font-serif italic text-[12px] truncate block group-hover:underline"
                             style={{ color: "var(--primary)" }}>
-                            {lugar.nombre}
+                            {ciudad.nombre}
                           </span>
-                          {lugar.descripcion && (
+                          {ciudad.descripcion && (
                             <span className="text-[9px] font-black uppercase tracking-wider truncate block mt-0.5"
                               style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
-                              {lugar.descripcion.slice(0, 60)}{lugar.descripcion.length > 60 ? "…" : ""}
+                              {ciudad.descripcion.slice(0, 60)}{ciudad.descripcion.length > 60 ? "…" : ""}
                             </span>
                           )}
                         </div>
@@ -1187,7 +1187,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                     { icon: <User size={10} />,   label: "Amigos",   count: misPersonajes.length, max: 20 },
                     { icon: <Cat size={10} />,    label: "Criaturas", count: misCriaturas.length, max: 30 },
                     { icon: <Sword size={10} />,  label: "Objetos",   count: inventario.length + misItemsDesc.length, max: 50 },
-                    { icon: <MapPin size={10} />, label: "Lugares",   count: reinos.length + lugares.length, max: 30 },
+                    { icon: <MapPin size={10} />, label: "Ciudades",   count: reinos.length + ciudades.length, max: 30 },
                   ].map(({ icon, label, count, max }) => (
                     <div key={label}>
                       <div className="flex items-center justify-between mb-1.5">
@@ -1676,7 +1676,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                           <button
                             key={i}
                             onClick={() => {
-                              setLugaresReino(lugares.filter(l => l.reino_id === r.id));
+                              setCiudadesReino(ciudades.filter(l => l.reino_id === r.id));
                               setModalEntidad({ tipo: "reino", data: {
                                 tipo: "item",
                                 entidad_id: r.id,
@@ -1725,11 +1725,11 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                         : <div className="col-span-full"><EmptyTab label="Ningún reino descubierto aún" /></div>
                     )}
 
-                    {/* Lugares sin reino — aparecen como tarjetas independientes en la tab Mapa */}
-                    {tab === "reinos" && lugaresHuerfanos.map((l, i) => (
+                    {/* Ciudades sin reino — aparecen como tarjetas independientes en la tab Mapa */}
+                    {tab === "reinos" && ciudadesHuerfanas.map((l, i) => (
                       <button
-                        key={`lugar-huerfano-${i}`}
-                        onClick={() => setModalEntidad({ tipo: "lugar", data: {
+                        key={`ciudad-huerfano-${i}`}
+                        onClick={() => setModalEntidad({ tipo: "ciudad", data: {
                           tipo: "item",
                           entidad_id: l.id,
                           nombre: l.nombre,
