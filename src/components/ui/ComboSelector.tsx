@@ -26,6 +26,13 @@ export interface ComboItem {
   label: string;
   sublabel?: string;
   imgUrl?: string | null;
+  group?: string; // optional group key for sectioned display
+}
+
+export interface ComboGroup {
+  key: string;
+  label: string;
+  icon?: React.ReactNode;
 }
 
 type SingleProps = {
@@ -44,6 +51,7 @@ type MultiProps = {
 
 type ComboSelectorProps = {
   items: ComboItem[];
+  groups?: ComboGroup[]; // if provided, items with group= will be rendered under section headers
   label?: string;
   icon?: React.ReactNode;
   placeholder?: string;
@@ -56,7 +64,7 @@ type ComboSelectorProps = {
 
 export function ComboSelector(props: ComboSelectorProps) {
   const {
-    items, label, icon, placeholder, emptyText = "Sin resultados",
+    items, groups, label, icon, placeholder, emptyText = "Sin resultados",
     loading, hint, className = "", onNavigate,
   } = props;
 
@@ -363,7 +371,7 @@ export function ComboSelector(props: ComboSelectorProps) {
             )}
           </div>
 
-          {/* Lista de opciones */}
+          {/* Items — con o sin grupos */}
           <div className="max-h-48 overflow-y-auto" ref={listRef}>
             {/* Opción ninguno (solo single) */}
             {showNone && (
@@ -393,54 +401,129 @@ export function ComboSelector(props: ComboSelectorProps) {
               </button>
             )}
 
-            {/* Items */}
             {filtered.length === 0 ? (
               <p className="text-[10px] text-primary/30 px-4 py-3 font-bold uppercase">
                 {query ? `Sin resultados para "${query}"` : emptyText}
               </p>
-            ) : filtered.map((it, i) => {
-              const sel = isSelected(it.id);
-              const cursorIdx = showNone ? i + 1 : i;
-              const isCursor = cursor === cursorIdx;
-              return (
-                <button
-                  key={it.id}
-                  type="button"
-                  data-idx={cursorIdx}
-                  onClick={() => toggle(it.id)}
-                  onMouseEnter={() => setCursor(cursorIdx)}
-                  onMouseLeave={() => setCursor(-1)}
-                  className="w-full flex items-center justify-between px-4 py-2.5 text-[11px] font-bold uppercase transition-all"
-                  style={{
-                    color: sel
-                      ? "var(--primary)"
-                      : "color-mix(in srgb, var(--primary) 50%, transparent)",
-                    background: isCursor
-                      ? "color-mix(in srgb, var(--primary) 6%, transparent)"
-                      : "transparent",
-                  }}
-                >
-                  <span className="flex items-center gap-2 min-w-0">
-                    {it.imgUrl ? (
-                      <img
-                        src={it.imgUrl}
-                        alt=""
-                        className="w-5 h-5 rounded-full object-cover border border-primary/15 shrink-0"
-                      />
-                    ) : null}
-                    <span className="truncate">{it.label}</span>
-                    {it.sublabel && (
-                      <span className="text-[9px] normal-case font-medium opacity-50 truncate">
-                        {it.sublabel}
+            ) : groups && groups.length > 0 ? (
+              // ── Modo agrupado ──────────────────────────────────────────────
+              (() => {
+                // Build a flat ordered list: items without group first (ungrouped),
+                // then each group with its items
+                const ungrouped = filtered.filter(it => !it.group);
+                const grouped = groups.map(g => ({
+                  group: g,
+                  items: filtered.filter(it => it.group === g.key),
+                })).filter(g => g.items.length > 0);
+
+                // Build a flat index map for cursor tracking
+                const flatItems: ComboItem[] = [
+                  ...ungrouped,
+                  ...grouped.flatMap(g => g.items),
+                ];
+
+                const renderItem = (it: ComboItem) => {
+                  const globalIdx = flatItems.indexOf(it);
+                  const cursorIdx = showNone ? globalIdx + 1 : globalIdx;
+                  const sel = isSelected(it.id);
+                  const isCursor = cursor === cursorIdx;
+                  return (
+                    <button
+                      key={it.id}
+                      type="button"
+                      data-idx={cursorIdx}
+                      onClick={() => toggle(it.id)}
+                      onMouseEnter={() => setCursor(cursorIdx)}
+                      onMouseLeave={() => setCursor(-1)}
+                      className="w-full flex items-center justify-between px-4 py-2.5 text-[11px] font-bold uppercase transition-all"
+                      style={{
+                        color: sel ? "var(--primary)" : "color-mix(in srgb, var(--primary) 50%, transparent)",
+                        background: isCursor ? "color-mix(in srgb, var(--primary) 6%, transparent)" : "transparent",
+                      }}
+                    >
+                      <span className="flex items-center gap-2 min-w-0">
+                        {it.imgUrl ? <img src={it.imgUrl} alt="" className="w-5 h-5 rounded-full object-cover border border-primary/15 shrink-0" /> : null}
+                        <span className="truncate">{it.label}</span>
+                        {it.sublabel && <span className="text-[9px] normal-case font-medium opacity-50 truncate">{it.sublabel}</span>}
                       </span>
+                      {sel && <Check size={11} className="shrink-0" style={{ color: "var(--primary)" }} />}
+                    </button>
+                  );
+                };
+
+                return (
+                  <>
+                    {ungrouped.map(renderItem)}
+                    {grouped.map(({ group, items: gItems }) => (
+                      <React.Fragment key={group.key}>
+                        {/* Group header */}
+                        <div
+                          className="flex items-center gap-1.5 px-4 py-1.5 sticky top-0"
+                          style={{
+                            borderTop: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)",
+                            background: "color-mix(in srgb, var(--primary) 3%, var(--bg-main))",
+                          }}
+                        >
+                          {group.icon && <span style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>{group.icon}</span>}
+                          <span
+                            className="text-[8px] font-black uppercase tracking-[0.25em]"
+                            style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
+                          >
+                            {group.label}
+                          </span>
+                        </div>
+                        {gItems.map(renderItem)}
+                      </React.Fragment>
+                    ))}
+                  </>
+                );
+              })()
+            ) : (
+              // ── Modo plano (sin grupos) ────────────────────────────────────
+              filtered.map((it, i) => {
+                const sel = isSelected(it.id);
+                const cursorIdx = showNone ? i + 1 : i;
+                const isCursor = cursor === cursorIdx;
+                return (
+                  <button
+                    key={it.id}
+                    type="button"
+                    data-idx={cursorIdx}
+                    onClick={() => toggle(it.id)}
+                    onMouseEnter={() => setCursor(cursorIdx)}
+                    onMouseLeave={() => setCursor(-1)}
+                    className="w-full flex items-center justify-between px-4 py-2.5 text-[11px] font-bold uppercase transition-all"
+                    style={{
+                      color: sel
+                        ? "var(--primary)"
+                        : "color-mix(in srgb, var(--primary) 50%, transparent)",
+                      background: isCursor
+                        ? "color-mix(in srgb, var(--primary) 6%, transparent)"
+                        : "transparent",
+                    }}
+                  >
+                    <span className="flex items-center gap-2 min-w-0">
+                      {it.imgUrl ? (
+                        <img
+                          src={it.imgUrl}
+                          alt=""
+                          className="w-5 h-5 rounded-full object-cover border border-primary/15 shrink-0"
+                        />
+                      ) : null}
+                      <span className="truncate">{it.label}</span>
+                      {it.sublabel && (
+                        <span className="text-[9px] normal-case font-medium opacity-50 truncate">
+                          {it.sublabel}
+                        </span>
+                      )}
+                    </span>
+                    {sel && (
+                      <Check size={11} className="shrink-0" style={{ color: "var(--primary)" }} />
                     )}
-                  </span>
-                  {sel && (
-                    <Check size={11} className="shrink-0" style={{ color: "var(--primary)" }} />
-                  )}
-                </button>
-              );
-            })}
+                  </button>
+                );
+              })
+            )}
           </div>
 
           {/* Hint de teclado */}

@@ -501,6 +501,36 @@ function useCiudades(): CiudadMin[] {
   return ciudades;
 }
 
+// ─── Hook: lugares ────────────────────────────────────────────────────────────
+type LugarMin = { id: string; nombre: string; reino_id: string | null };
+
+function useLugares(): LugarMin[] {
+  const [lugares, setLugares] = useState<LugarMin[]>([]);
+  useEffect(() => {
+    const run = async () => {
+      try {
+        if (db) {
+          const local: any[] = await (db as any).lugares?.toArray() ?? [];
+          if (local.length) {
+            setLugares(
+              local
+                .filter((l: any) => !l.deleted)
+                .map((l: any) => ({ id: l.id, nombre: l.nombre, reino_id: l.reino_id ?? null }))
+                .sort((a, b) => a.nombre.localeCompare(b.nombre))
+            );
+            if (!navigator.onLine) return;
+          }
+        }
+      } catch {}
+      if (!navigator.onLine) return;
+      const { data } = await supabase.from("lugares").select("id, nombre, reino_id").order("nombre");
+      if (data) setLugares(data.map((l: any) => ({ id: l.id, nombre: l.nombre, reino_id: l.reino_id ?? null })));
+    };
+    run();
+  }, []);
+  return lugares;
+}
+
 // ─── Hook: reinos con id (para filtrar ciudades) ───────────────────────────────
 type ReinoMin = { id: string; nombre: string };
 
@@ -733,17 +763,92 @@ export function FormularioPersonaje({
   const especies   = useNombresDeTabla("criaturas");
   const reinos     = useNombresDeTabla("reinos");
   const ciudades    = useCiudades();
+  const lugares     = useLugares();
   const reinosMin  = useReinosMin();
   const variantes  = useCriaturaVariantesPorNombre(form.especie);
   const grupoIds   = useGruposDeCriaturaPorNombre(form.especie);
 
+  // ID del reino actualmente seleccionado
+  const reinoSeleccionadoId = reinosMin.find(r => r.nombre === form.reino)?.id ?? null;
+
+  // ── Combo 1: "Territorio" — reinos + lugares sin reino ───────────────────
+  // El valor guardado en form puede ser reino_id (string uuid) o nombre de reino (string legacy).
+  // Usamos form.reino_id para los lugares y form.reino para los reinos (texto).
+  // Para unificar en un solo ComboSelector necesitamos un campo que distinga tipo.
+  // Estrategia: prefijamos el id con "reino:" o "lugar:" para el value del combo,
+  // y el onChange desempaqueta el prefijo.
+  const itemsTerritorioSinReino: import("@/components/ui/ComboSelector").ComboItem[] = [
+    ...reinosMin.map(r => ({ id: `reino:${r.id}`, label: r.nombre })),
+    ...lugares.filter(l => !l.reino_id).map(l => ({ id: `lugar:${l.id}`, label: l.nombre, group: "lugares-libres" })),
+  ];
+  const gruposTerritorio: import("@/components/ui/ComboSelector").ComboGroup[] =
+    lugares.some(l => !l.reino_id)
+      ? [{ key: "lugares-libres", label: "Lugares independientes" }]
+      : [];
+
+  // Valor actual del combo territorio (prefijado)
+  const territorioValue: string | null = (() => {
+    if ((form as any).lugar_id) return `lugar:${(form as any).lugar_id}`;
+    if (form.reino) {
+      const r = reinosMin.find(x => x.nombre === form.reino);
+      if (r) return `reino:${r.id}`;
+    }
+    return null;
+  })();
+
+  const onTerritorioChange = (val: string | null) => {
+    if (!val) {
+      setForm(f => ({ ...f, reino: "", lugar_id: null, ciudad_id: null } as any));
+      return;
+    }
+    if (val.startsWith("reino:")) {
+      const reinoId = val.replace("reino:", "");
+      const r = reinosMin.find(x => x.id === reinoId);
+      setForm(f => ({ ...f, reino: r?.nombre ?? "", lugar_id: null, ciudad_id: null } as any));
+    } else {
+      const lugarId = val.replace("lugar:", "");
+      setForm(f => ({ ...f, reino: "", lugar_id: lugarId, ciudad_id: null } as any));
+    }
+  };
+
+  // ── Combo 2: "Ubicación" — ciudades del reino + lugares del reino ─────────
   // Filtrar ciudades según el reino seleccionado:
   // - Con reino → solo las ciudades que pertenecen a ese reino
   // - Sin reino → solo las ciudades sin reino asignado
-  const reinoSeleccionadoId = reinosMin.find(r => r.nombre === form.reino)?.id ?? null;
   const ciudadesFiltradas = ciudades.filter(l =>
     reinoSeleccionadoId ? l.reino_id === reinoSeleccionadoId : !l.reino_id
   );
+  const lugaresFiltrados = lugares.filter(l =>
+    reinoSeleccionadoId ? l.reino_id === reinoSeleccionadoId : false // sin reino ya están en el primer combo
+  );
+
+  const itemsUbicacion: import("@/components/ui/ComboSelector").ComboItem[] = [
+    ...ciudadesFiltradas.map(l => ({ id: `ciudad:${l.id}`, label: l.nombre })),
+    ...lugaresFiltrados.map(l => ({ id: `lugar:${l.id}`, label: l.nombre, group: "lugares-reino" })),
+  ];
+  const gruposUbicacion: import("@/components/ui/ComboSelector").ComboGroup[] =
+    lugaresFiltrados.length > 0
+      ? [{ key: "lugares-reino", label: "Lugares" }]
+      : [];
+
+  // Valor actual del combo ubicación (prefijado)
+  const ubicacionValue: string | null = (() => {
+    if ((form as any).lugar_id && reinoSeleccionadoId) return `lugar:${(form as any).lugar_id}`;
+    if ((form as any).ciudad_id) return `ciudad:${(form as any).ciudad_id}`;
+    return null;
+  })();
+
+  const onUbicacionChange = (val: string | null) => {
+    if (!val) {
+      setForm(f => ({ ...f, ciudad_id: null, lugar_id: null } as any));
+      return;
+    }
+    if (val.startsWith("ciudad:")) {
+      setForm(f => ({ ...f, ciudad_id: val.replace("ciudad:", ""), lugar_id: null } as any));
+    } else {
+      setForm(f => ({ ...f, lugar_id: val.replace("lugar:", ""), ciudad_id: null } as any));
+    }
+  };
   const { onSnippetAction } = useWikilink();
   const [mobileAsideOpen, setMobileAsideOpen] = useState(false);
 
@@ -902,33 +1007,27 @@ export function FormularioPersonaje({
                     </div>
                     <ComboSelector
                       mode="single"
-                      items={reinos.map(r => ({ id: r, label: r }))}
-                      value={form.reino ?? null}
-                      onChange={v => {
-                        const nuevoReinoId = reinosMin.find(r => r.nombre === v)?.id ?? null;
-                        setForm(f => {
-                          const ciudadActual = ciudades.find(l => l.id === (f as any).ciudad_id);
-                          const ciudadSigueValido = ciudadActual && (nuevoReinoId ? ciudadActual.reino_id === nuevoReinoId : !ciudadActual.reino_id);
-                          return { ...f, reino: v ?? "", ...(!ciudadSigueValido ? { ciudad_id: null } : {}) };
-                        });
-                      }}
-                      label="Reino"
-                      placeholder="Reino, nación…"
+                      items={itemsTerritorioSinReino}
+                      groups={gruposTerritorio}
+                      value={territorioValue}
+                      onChange={onTerritorioChange}
+                      label="Territorio"
+                      placeholder="Reino o lugar…"
                       allowNone
-                      noneLabel="Sin reino"
-                      onNavigate={onNavigate ? (nombre) => onNavigate("reinos", nombre) : undefined}
+                      noneLabel="Sin territorio"
                     />
                     {(() => {
                       return (
                         <ComboSelector
                           mode="single"
-                          items={ciudadesFiltradas.map(l => ({ id: l.id, label: l.nombre }))}
-                          value={(form as any).ciudad_id ?? null}
-                          onChange={id => setForm(f => ({ ...f, ciudad_id: id } as any))}
-                          label="Ciudad"
-                          placeholder="Aldea, ciudad…"
+                          items={itemsUbicacion}
+                          groups={gruposUbicacion}
+                          value={ubicacionValue}
+                          onChange={onUbicacionChange}
+                          label="Ubicación"
+                          placeholder="Ciudad o lugar…"
                           allowNone
-                          noneLabel="Sin ciudad"
+                          noneLabel="Sin ubicación"
                         />
                       );
                     })()}
@@ -977,35 +1076,27 @@ export function FormularioPersonaje({
                       </div>
                       <ComboSelector
                         mode="single"
-                        items={reinos.map(r => ({ id: r, label: r }))}
-                        value={form.reino ?? null}
-                        onChange={v => {
-                          const nuevoReinoId = reinosMin.find(r => r.nombre === v)?.id ?? null;
-                          setForm(f => {
-                            const ciudadActual = ciudades.find(l => l.id === (f as any).ciudad_id);
-                            const ciudadSigueValido = ciudadActual &&
-                              (nuevoReinoId ? ciudadActual.reino_id === nuevoReinoId : !ciudadActual.reino_id);
-                            return { ...f, reino: v ?? "", ...(!ciudadSigueValido ? { ciudad_id: null } : {}) };
-                          });
-                        }}
-                        label="Reino"
-                        placeholder="Reino, nación…"
+                        items={itemsTerritorioSinReino}
+                        groups={gruposTerritorio}
+                        value={territorioValue}
+                        onChange={onTerritorioChange}
+                        label="Territorio"
+                        placeholder="Reino o lugar…"
                         allowNone
-                        noneLabel="Sin reino"
-                        onNavigate={onNavigate ? (nombre) => onNavigate("reinos", nombre) : undefined}
+                        noneLabel="Sin territorio"
                       />
                       {(() => {
-                        const ciudadActual = ciudadesFiltradas.find(l => l.id === (form as any).ciudad_id);
                         return (
                           <ComboSelector
                             mode="single"
-                            items={ciudadesFiltradas.map(l => ({ id: l.id, label: l.nombre }))}
-                            value={(form as any).ciudad_id ?? null}
-                            onChange={id => setForm(f => ({ ...f, ciudad_id: id } as any))}
-                            label="Ciudad"
-                            placeholder="Aldea, ciudad…"
+                            items={itemsUbicacion}
+                            groups={gruposUbicacion}
+                            value={ubicacionValue}
+                            onChange={onUbicacionChange}
+                            label="Ubicación"
+                            placeholder="Ciudad o lugar…"
                             allowNone
-                            noneLabel="Sin ciudad"
+                            noneLabel="Sin ubicación"
                           />
                         );
                       })()}
@@ -1184,6 +1275,7 @@ export function EditorPersonaje({
         caracteristicas: form.caracteristicas || null,
         variante_id:     (form as any).variante_id    || null,
         ciudad_id:        (form as any).ciudad_id        || null,
+        lugar_id:         (form as any).lugar_id         || null,
       }).eq("id", form.id);
       if (error) throw error;
       setStatus("saved");
