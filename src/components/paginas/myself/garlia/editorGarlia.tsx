@@ -681,10 +681,10 @@ export default function EditorEntidades() {
                   void dexieDeleteOne("plantas", id);
                 }}
                 entities={allEntityNames}
-                onNavigateLugar={(id) => {
+                onNavigateCiudad={(id) => {
                   setTab("mundo");
                   setMundoSection("geografia");
-                  setOpenItem({ tabla: "lugares", id, key: ++openItemKeyRef.current });
+                  setOpenItem({ tabla: "ciudades", id, key: ++openItemKeyRef.current });
                 }}
                 onNavigateReino={(id) => {
                   const reino = allItems.reinos?.find((r: any) => r.id === id);
