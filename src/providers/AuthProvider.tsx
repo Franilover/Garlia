@@ -123,11 +123,6 @@ export const AuthProvider = ({ children }) => {
         setLoading(false);
       }
     });
-
-    // ── Suscripción SIN async ─────────────────────────────────────────────
-    // onAuthStateChange NO soporta callbacks async — hacer await aquí causa
-    // el AbortError que cerraba la sesión. En su lugar disparamos fetchPerfil
-    // sin await y dejamos que maneje su propio estado interno.
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {

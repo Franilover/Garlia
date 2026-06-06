@@ -1537,7 +1537,7 @@ export default function MapaInteractivo() {
 
     // ── 2. Fetch Supabase — siempre pisa el caché con datos frescos ──────
     const [detallesRes, personajesRes, librosRes, capitulosRes] = await Promise.all([
-      supabase.from("lugares").select("*").eq("reino_id", reino.id),
+      supabase.from("ciudades").select("*").eq("reino_id", reino.id),
       supabase.from("personajes").select("id, nombre, img_url, especie, reino, sobre").eq("reino", reino.nombre),
       supabase.from("libros").select("id, titulo, portada_url, estado").eq("reino_id", reino.id).eq("visibilidad", "publico"),
       supabase.from("capitulos")
@@ -1652,7 +1652,7 @@ export default function MapaInteractivo() {
       if (vistaActual === "reino" && modifiedDetalles.size > 0) {
         const toSave = detallesReino.filter(p => modifiedDetalles.has(p.id));
         await Promise.all(toSave.map(p =>
-          supabase.from("lugares").update({
+          supabase.from("ciudades").update({
             nombre: p.nombre, descripcion: p.descripcion,
             coord_x: p.coord_x, coord_y: p.coord_y,
           }).eq("id", p.id)

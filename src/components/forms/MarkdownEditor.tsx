@@ -889,10 +889,6 @@ function MarkdownPreviewWithSnippets({
             <div key={i} dangerouslySetInnerHTML={{ __html: renderMarkdown(block.text) }} />
           );
         }
-
-        // Línea mixta: parseContenido la divide en segmentos (text + snippets).
-        // Renderizamos cada segmento manualmente para que los "text" pasen por
-        // renderMarkdown (bold, italic, etc.) en lugar de quedar como texto plano.
         const segs = parseContenido(block.text);
 
         return (

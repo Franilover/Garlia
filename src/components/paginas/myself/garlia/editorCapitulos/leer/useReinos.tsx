@@ -9,15 +9,6 @@ import { supabase } from "@/lib/api/client/supabase";
    ───────────────────────────────────────────── */
 const _reinosDisparados = new Set<string>();
 
-/* ─────────────────────────────────────────────
-   Hook: desbloquear reinos al terminar un capítulo
-
-   FIXES aplicados (idénticos a usePersonajes):
-   - Bug 5: INSERT batch en lugar de bucle secuencial
-   - Bug 1: useCallback depende de capId + idsKey (strings estables)
-   - Bug 2: disparadoRef es un Set keyed por capId
-   - Bug 6: onClose en toast usa ref interna, timer se crea una sola vez
-   ───────────────────────────────────────────── */
 export function useDesbloquearReinos(capId: string, reinosIds: string[] | undefined) {
   const [desbloqueados,      setDesbloqueados]      = useState<string[]>([]);
   const [mostrarCelebration, setMostrarCelebration] = useState(false);

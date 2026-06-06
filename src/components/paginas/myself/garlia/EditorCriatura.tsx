@@ -568,10 +568,6 @@ function CampoLore({
 // ─── Tipo extendido localmente (GrupoMin + subtipo) ──────────────────────────
 type GrupoMinExt = GrupoMin & { subtipo?: string | null };
 
-// ─── BloqueGrupoCategoria — bloque filtrado por subtipo ───────────────────────
-// Reemplaza BloqueGruposCriatura mostrando un bloque por categoría (Hábitat,
-// Inteligencia, Alma) en lugar de todos los grupos juntos. El estilo imita los
-// chips de especie / reino de EditorPersonaje.
 
 function BloqueGrupoCategoria({
   label,

@@ -51,8 +51,6 @@ type ComboSelectorProps = {
   loading?: boolean;
   hint?: string;
   className?: string;
-  /** Si se provee, el trigger (cuando hay valor seleccionado) navega en lugar de abrir el editor.
-   *  Un ícono de lápiz aparece a la derecha para abrir el selector y editar. */
   onNavigate?: (value: string) => void;
 } & (SingleProps | MultiProps);
 

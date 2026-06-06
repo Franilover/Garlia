@@ -335,10 +335,6 @@ export function ModalImagen({ onInsert, onClose, initialRaw, mode = "overlay" }:
     </Wrap>
   );
 }
-
-// ─── Dispatcher principal ─────────────────────────────────────────────────────
-// Úsalo en RichBlockEditor y useSnippetEditHandler en lugar de duplicar el switch
-
 export function SnippetModalDispatcher({
   kind, onInsert, onClose, initialRaw, listaCapitulos, listaSecciones, mode = "overlay",
 }: SnippetModalProps & { kind: ModalKind | null }) {

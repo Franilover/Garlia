@@ -9,15 +9,6 @@ import { supabase } from "@/lib/api/client/supabase";
    ───────────────────────────────────────────── */
 const _lugaresDisparados = new Set<string>();
 
-/* ─────────────────────────────────────────────
-   Hook: desbloquear lugares al terminar un capítulo
-
-   FIXES aplicados (idénticos a usePersonajes / useReinos):
-   - Bug 5: INSERT batch en lugar de bucle secuencial
-   - Bug 1: useCallback depende de capId + idsKey (strings estables)
-   - Bug 2: disparadoRef es un Set keyed por capId
-   - Bug 6: onClose en toast usa ref interna, timer se crea una sola vez
-   ───────────────────────────────────────────── */
 export function useDesbloquearLugares(capId: string, lugaresIds: string[] | undefined) {
   const [desbloqueados,      setDesbloqueados]      = useState<string[]>([]);
   const [mostrarCelebration, setMostrarCelebration] = useState(false);
@@ -83,7 +74,7 @@ export function LugaresDesbloqueadosToast({
   useEffect(() => {
     if (!lugaresIds.length) return;
     supabase
-      .from("lugares")
+      .from("ciudades")
       .select("id, nombre, imagen_url")
       .in("id", lugaresIds)
       .then(({ data }) => { if (data) setLugares(data); });

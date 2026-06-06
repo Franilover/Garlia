@@ -10,17 +10,6 @@ import { supabase } from "@/lib/api/client/supabase";
    ───────────────────────────────────────────── */
 const _personajesDisparados = new Set<string>();
 
-/* ─────────────────────────────────────────────
-   Hook: desbloquear personajes al terminar un capítulo
-
-   FIXES:
-   - Bug 5: un solo INSERT batch en lugar de N inserts secuenciales.
-     Esto evita pérdida parcial si el usuario navega en medio del bucle.
-   - Bug 2 / Bug 1: disparadoRef se guarda en un Map keyed por capId
-     para que si el mismo hook (mismo componente) recibe un capId distinto
-     pueda disparar de nuevo. useCallback depende de capId (string estable),
-     no del array (nueva referencia en cada render).
-   ───────────────────────────────────────────── */
 export function useDesbloquearPersonajes(capId: string, personajesIds: string[] | undefined) {
   const [desbloqueados,      setDesbloqueados]      = useState<string[]>([]);
   const [mostrarCelebration, setMostrarCelebration] = useState(false);
