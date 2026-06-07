@@ -1568,8 +1568,8 @@ function PanelListas({
   }
 
   // ── Helper: sección de entidades ─────────────────────────────────────────
-  function SeccionEntidades({ icon: Icon, label, count, loading, children, cols = 3 }: {
-    icon: React.ElementType; label: string; count: number; loading: boolean; children: React.ReactNode; cols?: 1 | 3;
+  function SeccionEntidades({ icon: Icon, label, count, loading, children, cols = 3, minColWidth = "60px" }: {
+    icon: React.ElementType; label: string; count: number; loading: boolean; children: React.ReactNode; cols?: 1 | 3; minColWidth?: string;
   }) {
     return (
       <div className="pb-1">
@@ -1583,7 +1583,7 @@ function PanelListas({
           ? <div className="flex justify-center py-3"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
           : count === 0
             ? <p className="text-[9px] text-primary/20 italic px-1 pb-2">Sin {label.toLowerCase()} aún</p>
-            : <div className="grid gap-1.5" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(60px, 1fr))" }}>{children}</div>
+            : <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${minColWidth}, 1fr))` }}>{children}</div>
         }
       </div>
     );
@@ -1936,7 +1936,7 @@ function PanelListas({
             <div className={div} style={divStyle} />
 
             {/* ── Fila 4 desktop: Canciones (ancho completo) ── */}
-            <SeccionEntidades icon={Music} label={el.canciones} count={canciones.length} loading={loadingCanciones} cols={1}>
+            <SeccionEntidades icon={Music} label={el.canciones} count={canciones.length} loading={loadingCanciones} cols={1} minColWidth="160px">
               {canciones.map(c => (
                 <Chip key={c.id} onClick={() => selectCancion(c as unknown as Cancion)} icon={Music} nombre={c.titulo} noMaxW />
               ))}
