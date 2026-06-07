@@ -1,14 +1,13 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { Package, Save, Trash2, Bug, Loader2, Leaf, Wrench, X, MapPin, Globe, Camera } from "lucide-react";
+import { Package, Save, Trash2, Bug, Loader2, Leaf, Wrench, X, MapPin, Globe, Camera, ChevronDown, Pencil, Search } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { type Item, type SaveStatus } from "./components/types";
 import { SelectorImagen, SaveIndicator } from "./components/UIComponents";
 import { SeccionEntidad } from "@/components/ui/SeccionEntidad";
-import { ComboSelector } from "@/components/ui/ComboSelector";
 import { MarkdownEditor, WikiEntity } from "../../../forms/MarkdownEditor";
 import { useWikilink } from "./components/WikilinkContext";
 import SimpleImagePicker from "@/components/paginas/myself/garlia/editorCapitulos/snippets//forms/SimpleImagePicker";
@@ -475,10 +474,226 @@ function PickerImagenItemBtn({ value, onChange }: { value: string; onChange: (ur
   );
 }
 
+// ─── SelectorCategoriaGrupo ───────────────────────────────────────────────────
+// Reemplaza al ComboSelector de "Categoría" en EditorItem.
+// Carga grupos_mundo de tipo "items" con subtipo === "Tipo".
+// - Click en el nombre del grupo seleccionado  → navega al grupo (onSelectGrupo)
+// - Click en el lápiz                          → abre dropdown para cambiar
+// - El valor guardado en form.categoria        → nombre del grupo (compatibilidad BD)
+
+type GrupoTipoMin = { id: string; nombre: string };
+
+function useTiposDeGrupoItems() {
+  const [grupos, setGrupos] = useState<GrupoTipoMin[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    supabase
+      .from("grupos_mundo")
+      .select("id, nombre")
+      .eq("tipo", "items")
+      .eq("subtipo", "Tipo")
+      .order("nombre")
+      .then(({ data }) => {
+        setGrupos((data ?? []).map((r: any) => ({ id: r.id, nombre: r.nombre })));
+        setLoading(false);
+      });
+  }, []);
+
+  return { grupos, loading };
+}
+
+function SelectorCategoriaGrupo({
+  value,
+  onChange,
+  onSelectGrupo,
+}: {
+  value: string | null;
+  onChange: (nombre: string | null) => void;
+  onSelectGrupo?: (grupoId: string) => void;
+}) {
+  const { grupos, loading } = useTiposDeGrupoItems();
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const containerRef = React.useRef<HTMLDivElement>(null);
+
+  const grupoActual = grupos.find(g => g.nombre === value) ?? null;
+
+  const disponibles = grupos.filter(
+    g => g.nombre !== value && g.nombre.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const border = "1px solid color-mix(in srgb, var(--primary) 15%, transparent)";
+  const borderFocus = "1px solid color-mix(in srgb, var(--primary) 35%, transparent)";
+
+  useEffect(() => {
+    if (!open) return;
+    const h = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+        setSearch("");
+      }
+    };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, [open]);
+
+  return (
+    <div className="space-y-1" ref={containerRef}>
+      {/* Label */}
+      <div className="flex items-center gap-1.5">
+        <Package size={9} style={{ color: "color-mix(in srgb, var(--primary) 38%, transparent)" }} />
+        <span
+          className="text-[8px] font-black uppercase tracking-[0.25em]"
+          style={{ color: "color-mix(in srgb, var(--primary) 38%, transparent)" }}
+        >
+          Categoría
+        </span>
+      </div>
+
+      {loading ? (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-[var(--radius-btn)]"
+          style={{ background: "color-mix(in srgb, var(--primary) 5%, transparent)", border }}>
+          <Loader2 size={10} className="animate-spin text-primary/30" />
+          <span className="text-[10px] text-primary/30">Cargando…</span>
+        </div>
+      ) : grupoActual ? (
+        /* ── Valor asignado: nombre clickeable + lápiz ─────────────────────── */
+        <div
+          className="w-full flex items-center rounded-[var(--radius-btn)] overflow-hidden transition-all"
+          style={{ background: "color-mix(in srgb, var(--primary) 5%, transparent)", border }}
+        >
+          {/* Click en nombre → navegar al grupo */}
+          <button
+            type="button"
+            onClick={() => onSelectGrupo?.(grupoActual.id)}
+            className="flex-1 flex items-center gap-2 px-3 py-2 text-[11px] font-black uppercase truncate transition-all hover:bg-primary/5 min-w-0"
+            style={{ color: "var(--primary)" }}
+            title="Ir al grupo"
+          >
+            <span className="truncate">{grupoActual.nombre}</span>
+          </button>
+          {/* Lápiz → abrir dropdown */}
+          <button
+            type="button"
+            onClick={() => { setOpen(o => !o); setSearch(""); }}
+            className="shrink-0 flex items-center justify-center px-2.5 py-2 transition-all hover:bg-primary/10"
+            style={{
+              borderLeft: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+              color: "color-mix(in srgb, var(--primary) 35%, transparent)",
+            }}
+            title="Cambiar categoría"
+          >
+            <Pencil size={10} />
+          </button>
+        </div>
+      ) : (
+        /* ── Sin valor: trigger vacío ───────────────────────────────────────── */
+        <button
+          type="button"
+          onClick={() => setOpen(o => !o)}
+          className="w-full flex items-center justify-between px-3 py-2 rounded-[var(--radius-btn)] text-[11px] font-bold transition-all"
+          style={{
+            background: "color-mix(in srgb, var(--primary) 5%, transparent)",
+            border: open ? borderFocus : border,
+            color: "color-mix(in srgb, var(--primary) 40%, transparent)",
+          }}
+        >
+          <span className="font-black uppercase text-[10px] tracking-wide">Sin categoría</span>
+          <ChevronDown
+            size={12}
+            className={`shrink-0 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+            style={{ opacity: 0.5 }}
+          />
+        </button>
+      )}
+
+      {/* Dropdown */}
+      {open && (
+        <div
+          className="rounded-[var(--radius-btn)] overflow-hidden"
+          style={{
+            border,
+            background: "var(--bg-main)",
+            boxShadow: "0 8px 24px color-mix(in srgb, var(--primary) 10%, transparent)",
+          }}
+        >
+          {/* Buscador */}
+          <div
+            className="flex items-center gap-2 px-3 py-2"
+            style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
+          >
+            <Search size={11} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)", flexShrink: 0 }} />
+            <input
+              autoFocus
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              onKeyDown={e => e.key === "Escape" && (setOpen(false), setSearch(""))}
+              placeholder="Buscar categoría…"
+              className="flex-1 bg-transparent outline-none text-[11px] font-bold uppercase tracking-wide placeholder:normal-case placeholder:font-medium placeholder:tracking-normal"
+              style={{ color: "var(--primary)", caretColor: "var(--primary)" }}
+            />
+            {search && (
+              <button type="button" onClick={() => setSearch("")} className="opacity-30 hover:opacity-70 transition-opacity">
+                <X size={10} style={{ color: "var(--primary)" }} />
+              </button>
+            )}
+          </div>
+
+          {/* Lista */}
+          <div className="max-h-48 overflow-y-auto">
+            {/* Opción "quitar" si hay valor */}
+            {grupoActual && (
+              <button
+                type="button"
+                onMouseDown={() => { onChange(null); setOpen(false); setSearch(""); }}
+                className="w-full flex items-center gap-2 px-4 py-2.5 text-[11px] font-bold uppercase transition-all hover:bg-primary/5"
+                style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}
+              >
+                <span className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center">
+                  <X size={9} className="opacity-50" />
+                </span>
+                Sin categoría
+              </button>
+            )}
+
+            {grupos.length === 0 ? (
+              <p className="text-[10px] text-primary/30 px-4 py-3 font-bold uppercase">
+                No hay grupos de tipo «Tipo» creados
+              </p>
+            ) : disponibles.length === 0 && !grupoActual ? (
+              <p className="text-[10px] text-primary/30 px-4 py-3 font-bold uppercase">
+                {search ? `Sin resultados para "${search}"` : "Todas las categorías ya asignadas"}
+              </p>
+            ) : disponibles.length === 0 && grupoActual ? (
+              <p className="text-[10px] text-primary/30 px-4 py-3 font-bold uppercase">
+                {search ? `Sin resultados para "${search}"` : "No hay otras categorías"}
+              </p>
+            ) : (
+              disponibles.map(g => (
+                <button
+                  key={g.id}
+                  type="button"
+                  onMouseDown={() => { onChange(g.nombre); setOpen(false); setSearch(""); }}
+                  className="w-full flex items-center justify-between px-4 py-2.5 text-[11px] font-bold uppercase transition-all hover:bg-primary/6"
+                  style={{ color: "color-mix(in srgb, var(--primary) 50%, transparent)" }}
+                >
+                  <span className="truncate">{g.nombre}</span>
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── EditorItem ───────────────────────────────────────────────────────────────
 
 export function EditorItem({
-  item, onSaved, onDeleted, entities = [], onSelectCriatura, onSelectPlanta, onNavigateCiudad, onNavigateReino, onNavigateLugar,
+  item, onSaved, onDeleted, entities = [], onSelectCriatura, onSelectPlanta, onNavigateCiudad, onNavigateReino, onNavigateLugar, onSelectGrupo,
 }: {
   item: Item; onSaved: (i: Item) => void; onDeleted: (id: string) => void; entities?: WikiEntity[];
   onSelectCriatura?: (criaturaId: string) => void;
@@ -486,20 +701,12 @@ export function EditorItem({
   onNavigateCiudad?: (id: string) => void;
   onNavigateReino?: (id: string) => void;
   onNavigateLugar?: (id: string) => void;
+  onSelectGrupo?: (grupoId: string) => void;
 }) {
   const [form,     setForm]     = useState<Item>(item);
   const [status,   setStatus]   = useState<SaveStatus>("idle");
   const { confirm, ConfirmModal } = useConfirm();
-
   const { onSnippetAction } = useWikilink();
-  const [categoriasRaw, setCategoriasRaw] = useState<string[]>([]);
-  useEffect(() => {
-    supabase.from("items").select("categoria").then(({ data }) => {
-      const unique = [...new Set((data ?? []).map((r: any) => r.categoria).filter(Boolean))] as string[];
-      setCategoriasRaw(unique);
-    });
-  }, []);
-  const categoriaItems = categoriasRaw.map(c => ({ id: c, label: c }));
 
   useEffect(() => { setForm(item); setStatus("idle"); }, [item.id]);
 
@@ -599,15 +806,10 @@ export function EditorItem({
 
               {/* Columna derecha: categoría + origen + descripción */}
               <div className="flex-1 min-w-0 space-y-4">
-                <ComboSelector
-                  mode="single"
-                  label="Categoría"
-                  icon={<Package size={9} />}
-                  items={categoriaItems}
+                <SelectorCategoriaGrupo
                   value={form.categoria ?? null}
-                  onChange={v => setForm(f => ({ ...f, categoria: v ?? "" }))}
-                  placeholder="Arma, reliquia, objeto…"
-                  noneLabel="Sin categoría"
+                  onChange={nombre => setForm(f => ({ ...f, categoria: nombre ?? "" }))}
+                  onSelectGrupo={onSelectGrupo}
                 />
 
                 {/* Origen + Ciudades en dos columnas */}

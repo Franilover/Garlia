@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { Leaf, Save, Trash2, Loader2, MapPin, Globe, Camera, X, ChevronDown, Pencil, Search } from "lucide-react";
+import { Gem, Save, Trash2, Loader2, MapPin, Globe, Camera, X, ChevronDown, Pencil, Search } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
 import { useConfirm } from "@/components/ui/ConfirmModal";
@@ -14,13 +14,13 @@ import SimpleImagePicker from "@/components/paginas/myself/garlia/editorCapitulo
 
 
 // ─── Tipo local ───────────────────────────────────────────────────────────────
-export type Planta = {
-  id:          string;
-  nombre:      string;
-  imagen_url?: string | null;
-  categoria?:  string | null;
+export type Mineral = {
+  id:           string;
+  nombre:       string;
+  imagen_url?:  string | null;
+  categoria?:   string | null;
   descripcion?: string | null;
-  reino_ids?:  string[];
+  reino_ids?:   string[];
 };
 
 
@@ -33,38 +33,38 @@ async function dexieDel(tabla: string, id: string): Promise<void> {
 }
 
 
-// ─── Hook: ciudades donde se encuentra la planta (planta_ciudades) ──────────────
+// ─── Hook: ciudades donde se encuentra el mineral (mineral_ciudades) ──────────
 type CiudadMin = { id: string; nombre: string };
-type PlantaCiudadRow = { rowId: string; ciudadId: string; ciudadNombre: string };
+type MineralCiudadRow = { rowId: string; ciudadId: string; ciudadNombre: string };
 
-function useCiudadesPlanta(plantaId: string) {
-  const [rows, setRows] = useState<PlantaCiudadRow[]>([]);
+function useCiudadesMineral(mineralId: string) {
+  const [rows, setRows] = useState<MineralCiudadRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
     const { data } = await supabase
-      .from("planta_ciudades")
+      .from("mineral_ciudades")
       .select("id, ciudad_id, ciudades!ciudad_id(nombre)")
-      .eq("planta_id", plantaId);
+      .eq("mineral_id", mineralId);
 
     setRows(
       (data ?? []).map((r: any) => ({
-        rowId:       r.id,
+        rowId:        r.id,
         ciudadId:     r.ciudad_id,
         ciudadNombre: (Array.isArray(r.ciudades) ? r.ciudades[0]?.nombre : r.ciudades?.nombre) ?? "—",
       }))
     );
     setLoading(false);
-  }, [plantaId]);
+  }, [mineralId]);
 
   useEffect(() => { load(); }, [load]);
 
   const add = async (l: CiudadMin) => {
     if (rows.some(r => r.ciudadId === l.id)) return;
     const { data, error } = await supabase
-      .from("planta_ciudades")
-      .insert([{ planta_id: plantaId, ciudad_id: l.id }])
+      .from("mineral_ciudades")
+      .insert([{ mineral_id: mineralId, ciudad_id: l.id }])
       .select().single();
     if (!error && data) {
       setRows(prev => [...prev, { rowId: data.id, ciudadId: l.id, ciudadNombre: l.nombre }]);
@@ -72,7 +72,7 @@ function useCiudadesPlanta(plantaId: string) {
   };
 
   const remove = async (rowId: string) => {
-    await supabase.from("planta_ciudades").delete().eq("id", rowId);
+    await supabase.from("mineral_ciudades").delete().eq("id", rowId);
     setRows(prev => prev.filter(r => r.rowId !== rowId));
   };
 
@@ -84,36 +84,36 @@ function useCiudadesPlanta(plantaId: string) {
 type ReinoMin = { id: string; nombre: string };
 type LugarMin = { id: string; nombre: string; reino_id?: string | null };
 
-// ─── Hook: lugares de la planta (planta_lugares) ──────────────────────────────
-type PlantaLugarRow = { rowId: string; lugarId: string };
+// ─── Hook: lugares del mineral (mineral_lugares) ──────────────────────────────
+type MineralLugarRow = { rowId: string; lugarId: string };
 
-function useLugaresPlanta(plantaId: string) {
-  const [rows, setRows] = useState<PlantaLugarRow[]>([]);
+function useLugaresMineral(mineralId: string) {
+  const [rows, setRows] = useState<MineralLugarRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
     const { data } = await supabase
-      .from("planta_lugares")
+      .from("mineral_lugares")
       .select("id, lugar_id")
-      .eq("planta_id", plantaId);
+      .eq("mineral_id", mineralId);
     setRows((data ?? []).map((r: any) => ({ rowId: r.id, lugarId: r.lugar_id })));
     setLoading(false);
-  }, [plantaId]);
+  }, [mineralId]);
 
   useEffect(() => { load(); }, [load]);
 
   const add = async (lugarId: string) => {
     if (rows.some(r => r.lugarId === lugarId)) return;
     const { data, error } = await supabase
-      .from("planta_lugares")
-      .insert([{ planta_id: plantaId, lugar_id: lugarId }])
+      .from("mineral_lugares")
+      .insert([{ mineral_id: mineralId, lugar_id: lugarId }])
       .select().single();
     if (!error && data) setRows(prev => [...prev, { rowId: data.id, lugarId }]);
   };
 
   const remove = async (rowId: string) => {
-    await supabase.from("planta_lugares").delete().eq("id", rowId);
+    await supabase.from("mineral_lugares").delete().eq("id", rowId);
     setRows(prev => prev.filter(r => r.rowId !== rowId));
   };
 
@@ -122,18 +122,18 @@ function useLugaresPlanta(plantaId: string) {
 
 // ─── Panel Territorio: reinos + lugares sin reino ─────────────────────────────
 function PanelTerritorio({
-  value, onChange, plantaId, onNavigateReino, onNavigateLugar,
+  value, onChange, mineralId, onNavigateReino, onNavigateLugar,
 }: {
   value: string[];
   onChange: (ids: string[]) => void;
-  plantaId: string;
+  mineralId: string;
   onNavigateReino?: (id: string) => void;
   onNavigateLugar?: (id: string) => void;
 }) {
   const [allReinos, setAllReinos] = useState<ReinoMin[]>([]);
   const [allLugares, setAllLugares] = useState<LugarMin[]>([]);
   const [loadingReinos, setLoadingReinos] = useState(true);
-  const { rows: lugarRows, loading: loadingLugares, add: addLugar, remove: removeLugar } = useLugaresPlanta(plantaId);
+  const { rows: lugarRows, loading: loadingLugares, add: addLugar, remove: removeLugar } = useLugaresMineral(mineralId);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -181,15 +181,15 @@ function PanelTerritorio({
 
 // ─── Panel Ciudades: ciudades + lugares con reino ─────────────────────────────
 function PanelCiudadesConLugares({
-  reinosSeleccionados, plantaId, onNavigateCiudad, onNavigateLugar,
+  reinosSeleccionados, mineralId, onNavigateCiudad, onNavigateLugar,
 }: {
   reinosSeleccionados: string[];
-  plantaId: string;
+  mineralId: string;
   onNavigateCiudad?: (id: string) => void;
   onNavigateLugar?: (id: string) => void;
 }) {
-  const { rows: ciudadRows, loading: loadingCiudades, add: addCiudad, remove: removeCiudad } = useCiudadesPlanta(plantaId);
-  const { rows: lugarRows, loading: loadingLugares, add: addLugar, remove: removeLugar } = useLugaresPlanta(plantaId);
+  const { rows: ciudadRows, loading: loadingCiudades, add: addCiudad, remove: removeCiudad } = useCiudadesMineral(mineralId);
+  const { rows: lugarRows, loading: loadingLugares, add: addLugar, remove: removeLugar } = useLugaresMineral(mineralId);
   const [allCiudades, setAllCiudades] = useState<CiudadMin[]>([]);
   const [allLugares, setAllLugares] = useState<LugarMin[]>([]);
   const [saving, setSaving] = useState(false);
@@ -202,7 +202,7 @@ function PanelCiudadesConLugares({
   }, []);
 
   const ciudadesConReino = allCiudades.filter(c =>
-    (c as any).reino_id && (reinosSeleccionados.length === 0 || reinosSeleccionados.includes((c as any).reino_id))
+    c.reino_id && (reinosSeleccionados.length === 0 || reinosSeleccionados.includes(c.reino_id))
   );
   const lugaresConReino = allLugares.filter(l =>
     l.reino_id && (reinosSeleccionados.length === 0 || reinosSeleccionados.includes(l.reino_id!))
@@ -243,9 +243,8 @@ function PanelCiudadesConLugares({
   );
 }
 
-
-// ─── Botón mobile para cambiar imagen de la planta ───────────────────────────
-function PickerImagenPlantaBtn({ value, onChange }: { value: string; onChange: (url: string) => void }) {
+// ─── Botón mobile para cambiar imagen del mineral ─────────────────────────────
+function PickerImagenMineralBtn({ value, onChange }: { value: string; onChange: (url: string) => void }) {
   const [open, setOpen] = useState(false);
   return (
     <>
@@ -253,7 +252,7 @@ function PickerImagenPlantaBtn({ value, onChange }: { value: string; onChange: (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setOpen(false)}>
           <div className="bg-white-custom rounded-2xl shadow-2xl border border-primary/15 w-full max-w-lg p-5" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-2"><Camera size={11} /> Imagen de la planta</h3>
+              <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-2"><Camera size={11} /> Imagen del mineral</h3>
               <button onClick={() => setOpen(false)} className="text-primary/30 hover:text-primary transition-colors"><X size={16} /></button>
             </div>
             <SimpleImagePicker onSelect={url => { onChange(url); setOpen(false); }} onClose={() => setOpen(false)} />
@@ -272,14 +271,14 @@ function PickerImagenPlantaBtn({ value, onChange }: { value: string; onChange: (
 }
 
 // ─── SelectorCategoriaGrupo ───────────────────────────────────────────────────
-// Carga grupos_mundo de tipo "plantas" con subtipo === "Tipo".
+// Carga grupos_mundo de tipo "minerales" con subtipo === "Tipo".
 // - Click en el nombre del grupo seleccionado  → navega al grupo (onSelectGrupo)
 // - Click en el lápiz                          → abre dropdown para cambiar
 // - El valor guardado en form.categoria        → nombre del grupo
 
 type GrupoTipoMin = { id: string; nombre: string };
 
-function useTiposDeGrupoPlantas() {
+function useTiposDeGrupoMinerales() {
   const [grupos, setGrupos] = useState<GrupoTipoMin[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -287,7 +286,7 @@ function useTiposDeGrupoPlantas() {
     supabase
       .from("grupos_mundo")
       .select("id, nombre")
-      .eq("tipo", "plantas")
+      .eq("tipo", "minerales")
       .eq("subtipo", "Tipo")
       .order("nombre")
       .then(({ data }) => {
@@ -308,7 +307,7 @@ function SelectorCategoriaGrupo({
   onChange: (nombre: string | null) => void;
   onSelectGrupo?: (grupoId: string) => void;
 }) {
-  const { grupos, loading } = useTiposDeGrupoPlantas();
+  const { grupos, loading } = useTiposDeGrupoMinerales();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const containerRef = React.useRef<HTMLDivElement>(null);
@@ -338,7 +337,7 @@ function SelectorCategoriaGrupo({
     <div className="space-y-1" ref={containerRef}>
       {/* Label */}
       <div className="flex items-center gap-1.5">
-        <Leaf size={9} style={{ color: "color-mix(in srgb, var(--primary) 38%, transparent)" }} />
+        <Gem size={9} style={{ color: "color-mix(in srgb, var(--primary) 38%, transparent)" }} />
         <span
           className="text-[8px] font-black uppercase tracking-[0.25em]"
           style={{ color: "color-mix(in srgb, var(--primary) 38%, transparent)" }}
@@ -486,13 +485,13 @@ function SelectorCategoriaGrupo({
   );
 }
 
-// ─── EditorPlanta ─────────────────────────────────────────────────────────────
+// ─── EditorMineral ────────────────────────────────────────────────────────────
 
-export function EditorPlanta({
-  planta, onSaved, onDeleted, entities = [], onNavigateCiudad, onNavigateReino, onNavigateLugar, onSelectGrupo,
+export function EditorMineral({
+  mineral, onSaved, onDeleted, entities = [], onNavigateCiudad, onNavigateReino, onNavigateLugar, onSelectGrupo,
 }: {
-  planta: Planta;
-  onSaved: (p: Planta) => void;
+  mineral: Mineral;
+  onSaved: (m: Mineral) => void;
   onDeleted: (id: string) => void;
   entities?: WikiEntity[];
   onNavigateCiudad?: (id: string) => void;
@@ -500,20 +499,20 @@ export function EditorPlanta({
   onNavigateLugar?: (id: string) => void;
   onSelectGrupo?: (grupoId: string) => void;
 }) {
-  const [form,   setForm]   = useState<Planta>(planta);
+  const [form,   setForm]   = useState<Mineral>(mineral);
   const [status, setStatus] = useState<SaveStatus>("idle");
   const { confirm, ConfirmModal } = useConfirm();
   const { onSnippetAction } = useWikilink();
 
-  useEffect(() => { setForm(planta); setStatus("idle"); }, [planta.id]);
+  useEffect(() => { setForm(mineral); setStatus("idle"); }, [mineral.id]);
 
-  const field = (k: keyof Planta) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+  const field = (k: keyof Mineral) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm(f => ({ ...f, [k]: e.target.value }));
 
   const save = async () => {
     setStatus("saving");
     try {
-      const { error } = await supabase.from("plantas").update({
+      const { error } = await supabase.from("minerales").update({
         nombre:      form.nombre,
         imagen_url:  form.imagen_url || null,
         descripcion: form.descripcion,
@@ -523,7 +522,7 @@ export function EditorPlanta({
       if (error) throw error;
       setStatus("saved");
       onSaved(form);
-      void dexiePut("plantas", form);
+      void dexiePut("minerales", form);
       setTimeout(() => setStatus("idle"), 2000);
     } catch { setStatus("error"); }
   };
@@ -531,8 +530,8 @@ export function EditorPlanta({
   const del = async () => {
     const ok = await confirm({ message: `¿Eliminar "${form.nombre}"?`, danger: true });
     if (!ok) return;
-    await supabase.from("plantas").delete().eq("id", form.id);
-    void dexieDel("plantas", form.id);
+    await supabase.from("minerales").delete().eq("id", form.id);
+    void dexieDel("minerales", form.id);
     onDeleted(form.id);
   };
 
@@ -551,13 +550,13 @@ export function EditorPlanta({
         <div className="shrink-0 w-9 h-9 rounded-xl overflow-hidden border border-primary/15 bg-primary/5 flex items-center justify-center">
           {form.imagen_url
             ? <img src={form.imagen_url} alt={form.nombre} className="w-full h-full object-cover" />
-            : <Leaf size={16} className="text-primary/25" />}
+            : <Gem size={16} className="text-primary/25" />}
         </div>
 
         <input
           value={form.nombre ?? ""}
           onChange={field("nombre")}
-          placeholder="Nombre de la planta"
+          placeholder="Nombre del mineral"
           className="flex-1 min-w-0 bg-transparent text-sm font-black text-primary outline-none placeholder:text-primary/25"
         />
 
@@ -585,10 +584,10 @@ export function EditorPlanta({
               <div className="sm:hidden relative w-full rounded-xl overflow-hidden border border-primary/10 bg-primary/3" style={{ aspectRatio: "1 / 1" }}>
                 {form.imagen_url
                   ? <img src={form.imagen_url} alt={form.nombre} className="w-full h-full object-cover" />
-                  : <div className="w-full h-full flex items-center justify-center"><Leaf size={48} className="text-primary/15" /></div>
+                  : <div className="w-full h-full flex items-center justify-center"><Gem size={48} className="text-primary/15" /></div>
                 }
                 <div className="absolute top-2 right-2 z-10">
-                  <PickerImagenPlantaBtn
+                  <PickerImagenMineralBtn
                     value={form.imagen_url ?? ""}
                     onChange={url => setForm(f => ({ ...f, imagen_url: url }))}
                   />
@@ -601,7 +600,7 @@ export function EditorPlanta({
                   value={form.imagen_url ?? ""}
                   onChange={url => setForm(f => ({ ...f, imagen_url: url }))}
                   aspect="square"
-                  placeholder={<Leaf size={20} className="opacity-20" />}
+                  placeholder={<Gem size={20} className="opacity-20" />}
                 />
               </div>
             </div>
@@ -615,31 +614,31 @@ export function EditorPlanta({
                 onSelectGrupo={onSelectGrupo}
               />
 
-                {/* Reinos + Ciudades en dos columnas */}
-                <div className="flex flex-col sm:flex-row gap-4">
+              {/* Reinos + Ciudades en dos columnas */}
+              <div className="flex flex-col sm:flex-row gap-4">
 
-                  {/* Territorio */}
-                  <div className="flex-1 min-w-0">
-                    <PanelTerritorio
-                      value={form.reino_ids ?? []}
-                      onChange={ids => setForm(f => ({ ...f, reino_ids: ids }))}
-                      plantaId={form.id}
-                      onNavigateReino={onNavigateReino}
-                      onNavigateLugar={onNavigateLugar}
-                    />
-                  </div>
-
-                  {/* Ciudades */}
-                  <div className="flex-1 min-w-0">
-                    <PanelCiudadesConLugares
-                      reinosSeleccionados={form.reino_ids ?? []}
-                      plantaId={form.id}
-                      onNavigateCiudad={onNavigateCiudad}
-                      onNavigateLugar={onNavigateLugar}
-                    />
-                  </div>
-
+                {/* Territorio */}
+                <div className="flex-1 min-w-0">
+                  <PanelTerritorio
+                    value={form.reino_ids ?? []}
+                    onChange={ids => setForm(f => ({ ...f, reino_ids: ids }))}
+                    mineralId={form.id}
+                    onNavigateReino={onNavigateReino}
+                    onNavigateLugar={onNavigateLugar}
+                  />
                 </div>
+
+                {/* Ciudades */}
+                <div className="flex-1 min-w-0">
+                  <PanelCiudadesConLugares
+                    reinosSeleccionados={form.reino_ids ?? []}
+                    mineralId={form.id}
+                    onNavigateCiudad={onNavigateCiudad}
+                    onNavigateLugar={onNavigateLugar}
+                  />
+                </div>
+
+              </div>
 
               {/* Descripción */}
               <div className="space-y-1.5">
@@ -648,7 +647,7 @@ export function EditorPlanta({
                   value={form.descripcion ?? ""}
                   onChange={v => setForm(f => ({ ...f, descripcion: v }))}
                   rows={10}
-                  placeholder="Qué es, propiedades, usos, su historia…"
+                  placeholder="Qué es, propiedades, usos, dónde se encuentra…"
                   toolbar
                   defaultMode="edit"
                   onSnippetAction={onSnippetAction}
