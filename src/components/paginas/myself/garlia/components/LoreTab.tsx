@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import { Globe, Mountain, Landmark, Users, Coins, Plus, Trash2, ChevronUp, ChevronDown, ChevronRight, UserCircle2, Loader2, MapPin, Map, Check, X, Eye, EyeOff, Bug, BookOpen, Package, SlidersHorizontal } from "lucide-react";
+import { Globe, Mountain, Landmark, Users, Coins, Plus, Trash2, ChevronUp, ChevronDown, ChevronRight, UserCircle2, Loader2, MapPin, Map, Check, X, Eye, EyeOff, Bug, BookOpen, Package, SlidersHorizontal, Leaf, Gem } from "lucide-react";
 import { INPUT_CLS, type SaveStatus } from "./types";
 import { SeccionEntidad } from "@/components/ui/SeccionEntidad";
 import { MarkdownEditor, WikiEntity } from "../../../../forms/MarkdownEditor";
@@ -996,6 +996,114 @@ function useItemsDelReino(reinoId: string) {
   return { items, allItems, loading, add, remove };
 }
 
+// ─── Hook: plantas del reino (plantas.reino_ids contiene el reinoId) ──────────
+type PlantaMin = { id: string; nombre: string; imagen_url?: string | null };
+
+function usePlantasDelReino(reinoId: string) {
+  const [plantas,    setPlantas]    = useState<PlantaMin[]>([]);
+  const [allPlantas, setAllPlantas] = useState<PlantaMin[]>([]);
+  const [loading,    setLoading]    = useState(true);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const [{ data: linked }, { data: all }] = await Promise.all([
+      supabase
+        .from("plantas")
+        .select("id, nombre, imagen_url")
+        .contains("reino_ids", [reinoId])
+        .order("nombre"),
+      supabase.from("plantas").select("id, nombre, imagen_url").order("nombre"),
+    ]);
+    if (linked) setPlantas(linked);
+    if (all)    setAllPlantas(all);
+    setLoading(false);
+  }, [reinoId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const add = async (plantaId: string) => {
+    const { data: current } = await supabase
+      .from("plantas").select("reino_ids").eq("id", plantaId).single();
+    const prev = (current?.reino_ids ?? []) as string[];
+    if (prev.includes(reinoId)) return;
+    const { error } = await supabase
+      .from("plantas")
+      .update({ reino_ids: [...prev, reinoId] })
+      .eq("id", plantaId);
+    if (!error) {
+      const found = allPlantas.find(p => p.id === plantaId);
+      if (found) setPlantas(p => [...p, found]);
+    }
+  };
+
+  const remove = async (plantaId: string) => {
+    const { data: current } = await supabase
+      .from("plantas").select("reino_ids").eq("id", plantaId).single();
+    const prev = (current?.reino_ids ?? []) as string[];
+    const { error } = await supabase
+      .from("plantas")
+      .update({ reino_ids: prev.filter(id => id !== reinoId) })
+      .eq("id", plantaId);
+    if (!error) setPlantas(p => p.filter(pl => pl.id !== plantaId));
+  };
+
+  return { plantas, allPlantas, loading, add, remove };
+}
+
+// ─── Hook: minerales del reino (minerales.reino_ids contiene el reinoId) ──────
+type MineralMin = { id: string; nombre: string; imagen_url?: string | null };
+
+function useMineralesDelReino(reinoId: string) {
+  const [minerales,    setMinerales]    = useState<MineralMin[]>([]);
+  const [allMinerales, setAllMinerales] = useState<MineralMin[]>([]);
+  const [loading,      setLoading]      = useState(true);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const [{ data: linked }, { data: all }] = await Promise.all([
+      supabase
+        .from("minerales")
+        .select("id, nombre, imagen_url")
+        .contains("reino_ids", [reinoId])
+        .order("nombre"),
+      supabase.from("minerales").select("id, nombre, imagen_url").order("nombre"),
+    ]);
+    if (linked) setMinerales(linked);
+    if (all)    setAllMinerales(all);
+    setLoading(false);
+  }, [reinoId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const add = async (mineralId: string) => {
+    const { data: current } = await supabase
+      .from("minerales").select("reino_ids").eq("id", mineralId).single();
+    const prev = (current?.reino_ids ?? []) as string[];
+    if (prev.includes(reinoId)) return;
+    const { error } = await supabase
+      .from("minerales")
+      .update({ reino_ids: [...prev, reinoId] })
+      .eq("id", mineralId);
+    if (!error) {
+      const found = allMinerales.find(m => m.id === mineralId);
+      if (found) setMinerales(m => [...m, found]);
+    }
+  };
+
+  const remove = async (mineralId: string) => {
+    const { data: current } = await supabase
+      .from("minerales").select("reino_ids").eq("id", mineralId).single();
+    const prev = (current?.reino_ids ?? []) as string[];
+    const { error } = await supabase
+      .from("minerales")
+      .update({ reino_ids: prev.filter(id => id !== mineralId) })
+      .eq("id", mineralId);
+    if (!error) setMinerales(m => m.filter(min => min.id !== mineralId));
+  };
+
+  return { minerales, allMinerales, loading, add, remove };
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function historiaHasContent(raw: string | undefined): boolean {
@@ -1019,6 +1127,8 @@ export function LoreTab({
   onSelectPersonaje,
   onSelectCriatura,
   onSelectItem,
+  onSelectPlanta,
+  onSelectMineral,
   reinos = [],
   filtroReinoId,
   detalles = [],
@@ -1047,6 +1157,8 @@ export function LoreTab({
   onSelectPersonaje?: (personaje: Personaje) => void;
   onSelectCriatura?: (id: string) => void;
   onSelectItem?: (id: string) => void;
+  onSelectPlanta?: (id: string) => void;
+  onSelectMineral?: (id: string) => void;
   reinos?: { id: string; nombre: string }[];
   filtroReinoId?: string | null;
   detalles?: Ciudad[];
@@ -1087,12 +1199,22 @@ export function LoreTab({
     items, allItems, loading: loadingItems,
     add: addItem, remove: removeItem,
   } = useItemsDelReino(form.id);
+  const {
+    plantas, allPlantas, loading: loadingPlantas,
+    add: addPlanta, remove: removePlanta,
+  } = usePlantasDelReino(form.id);
+  const {
+    minerales, allMinerales, loading: loadingMinerales,
+    add: addMineral, remove: removeMineral,
+  } = useMineralesDelReino(form.id);
   const capsTimeline = useCapitulosDelReino(form.id);
 
   // Estado saving por sección
   const [savingCriaturas,  setSavingCriaturas]  = useState(false);
   const [savingPersonajes, setSavingPersonajes]  = useState(false);
   const [savingItems,      setSavingItems]       = useState(false);
+  const [savingPlantas,    setSavingPlantas]     = useState(false);
+  const [savingMinerales,  setSavingMinerales]   = useState(false);
   const [_mobileAsideOpen, _setMobileAsideOpen]  = useState(false);
   const mobileAsideOpen    = mobileAsideOpenProp    ?? _mobileAsideOpen;
   const setMobileAsideOpen = setMobileAsideOpenProp ?? _setMobileAsideOpen;
@@ -1111,6 +1233,16 @@ export function LoreTab({
     setSavingItems(true);
     if (add) await addItem(id); else await removeItem(id);
     setSavingItems(false);
+  };
+  const handleTogglePlanta = async (id: string, add: boolean) => {
+    setSavingPlantas(true);
+    if (add) await addPlanta(id); else await removePlanta(id);
+    setSavingPlantas(false);
+  };
+  const handleToggleMineral = async (id: string, add: boolean) => {
+    setSavingMinerales(true);
+    if (add) await addMineral(id); else await removeMineral(id);
+    setSavingMinerales(false);
   };
 
   // ── Etiqueta de sección ───────────────────────────────────────────────────
@@ -1288,6 +1420,10 @@ export function LoreTab({
         <SeccionEntidad label="Criaturas" icon={<Bug size={9} />} fallbackIcon={<Bug size={14} strokeWidth={1} />} emptyLabel="Sin criaturas" allEntities={allCriaturas.map(c => ({ id: c.id, nombre: c.nombre, imagen_url: c.imagen_url }))} selectedIds={criaturas.map(c => c.id)} loading={loadingCriaturas} saving={savingCriaturas} onToggle={handleToggleCriatura} onEntityClick={id => onSelectCriatura?.(id)} />
         <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
         <SeccionEntidad label="Items" icon={<Package size={9} />} fallbackIcon={<Package size={14} strokeWidth={1} />} emptyLabel="Sin items" allEntities={allItems.map(i => ({ id: i.id, nombre: i.nombre, imagen_url: i.imagen_url }))} selectedIds={items.map(i => i.id)} loading={loadingItems} saving={savingItems} onToggle={handleToggleItem} onEntityClick={id => onSelectItem?.(id)} />
+        <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
+        <SeccionEntidad label="Plantas" icon={<Leaf size={9} />} fallbackIcon={<Leaf size={14} strokeWidth={1} />} emptyLabel="Sin plantas" allEntities={allPlantas.map(p => ({ id: p.id, nombre: p.nombre, imagen_url: p.imagen_url }))} selectedIds={plantas.map(p => p.id)} loading={loadingPlantas} saving={savingPlantas} onToggle={handleTogglePlanta} onEntityClick={id => onSelectPlanta?.(id)} />
+        <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
+        <SeccionEntidad label="Minerales" icon={<Gem size={9} />} fallbackIcon={<Gem size={14} strokeWidth={1} />} emptyLabel="Sin minerales" allEntities={allMinerales.map(m => ({ id: m.id, nombre: m.nombre, imagen_url: m.imagen_url }))} selectedIds={minerales.map(m => m.id)} loading={loadingMinerales} saving={savingMinerales} onToggle={handleToggleMineral} onEntityClick={id => onSelectMineral?.(id)} />
       </aside>
 
       {/* Mobile: drawer desde la derecha */}
@@ -1324,6 +1460,10 @@ export function LoreTab({
             <SeccionEntidad label="Criaturas" icon={<Bug size={9} />} fallbackIcon={<Bug size={14} strokeWidth={1} />} emptyLabel="Sin criaturas" allEntities={allCriaturas.map(c => ({ id: c.id, nombre: c.nombre, imagen_url: c.imagen_url }))} selectedIds={criaturas.map(c => c.id)} loading={loadingCriaturas} saving={savingCriaturas} onToggle={handleToggleCriatura} onEntityClick={id => onSelectCriatura?.(id)} />
             <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
             <SeccionEntidad label="Items" icon={<Package size={9} />} fallbackIcon={<Package size={14} strokeWidth={1} />} emptyLabel="Sin items" allEntities={allItems.map(i => ({ id: i.id, nombre: i.nombre, imagen_url: i.imagen_url }))} selectedIds={items.map(i => i.id)} loading={loadingItems} saving={savingItems} onToggle={handleToggleItem} onEntityClick={id => onSelectItem?.(id)} />
+            <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
+            <SeccionEntidad label="Plantas" icon={<Leaf size={9} />} fallbackIcon={<Leaf size={14} strokeWidth={1} />} emptyLabel="Sin plantas" allEntities={allPlantas.map(p => ({ id: p.id, nombre: p.nombre, imagen_url: p.imagen_url }))} selectedIds={plantas.map(p => p.id)} loading={loadingPlantas} saving={savingPlantas} onToggle={handleTogglePlanta} onEntityClick={id => onSelectPlanta?.(id)} />
+            <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
+            <SeccionEntidad label="Minerales" icon={<Gem size={9} />} fallbackIcon={<Gem size={14} strokeWidth={1} />} emptyLabel="Sin minerales" allEntities={allMinerales.map(m => ({ id: m.id, nombre: m.nombre, imagen_url: m.imagen_url }))} selectedIds={minerales.map(m => m.id)} loading={loadingMinerales} saving={savingMinerales} onToggle={handleToggleMineral} onEntityClick={id => onSelectMineral?.(id)} />
           </div>
         </div>
       )}
