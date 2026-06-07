@@ -1113,7 +1113,9 @@ function useLugares() {
     })();
   }, []);
   return { lugares, loading };
-} (Personajes + Criaturas + Items en vertical) ─────
+}
+
+// ─── PanelPersonajesCapitulo (Personajes + Criaturas + Items en vertical) ─────
 
 export const PanelPersonajesCapitulo = ({
   capId,
@@ -1133,8 +1135,6 @@ export const PanelPersonajesCapitulo = ({
   onCriaturasChange?: (ids: string[]) => void;
   items_ids?: string[];
   onItemsChange?: (ids: string[]) => void;
-  lugares_ids?: string[];
-  onLugaresChange?: (ids: string[]) => void;
   mobileOpen?: boolean;
   onMobileClose?: () => void;
 }) => {
@@ -1209,7 +1209,6 @@ export const PanelPersonajesCapitulo = ({
   const handleToggleLugar = async (id: string, add: boolean) => {
     const next = add ? [...lugaresIds, id] : lugaresIds.filter(x => x !== id);
     setLugaresIds(next);
-    onLugaresChange?.(next);
     setSavingL(true);
     try { await capUpdateMeta(capId, { lugares_ids: next } as any); } catch {}
     setSavingL(false);
