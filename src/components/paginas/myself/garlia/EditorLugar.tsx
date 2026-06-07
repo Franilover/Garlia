@@ -11,6 +11,7 @@ import { useConfirm } from "@/components/ui/ConfirmModal";
 import { type SaveStatus } from "./components/types";
 import { SelectorImagen, SaveIndicator } from "./components/UIComponents";
 import { ComboSelector } from "@/components/ui/ComboSelector";
+import { SeccionEntidad } from "@/components/ui/SeccionEntidad";
 import { MarkdownEditor, WikiEntity } from "../../../forms/MarkdownEditor";
 import { useWikilink } from "./components/WikilinkContext";
 
@@ -499,59 +500,39 @@ export function FormularioLugar({
 
           {/* Plantas + Minerales en fila */}
           <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1 min-w-0 rounded-xl border border-primary/10 overflow-hidden">
-              <div
-                className="flex items-center gap-1.5 px-3 py-2 border-b"
-                style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}
-              >
-                <Leaf size={9} className="text-primary/40" />
-                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/40">Plantas</span>
-              </div>
-              <div className="p-3">
-                <BloqueEntidades<PlantaMin>
-                  Icon={Leaf}
-                  items={plantas}
-                  loading={loadingPlantas}
-                  onSelect={onSelectPlanta}
-                  renderThumb={p => p.imagen_url
-                    ? <img src={p.imagen_url} alt={p.nombre} className="w-full h-full object-cover" />
-                    : <Leaf size={9} className="text-primary/25" />}
-                  emptyText="Sin plantas en este lugar"
-                  allItems={todasPlantas}
-                  onAdd={onAddPlanta}
-                  addingId={addingPlanta}
-                  onRemove={onRemovePlanta}
-                  removingId={removingPlanta}
-                />
-              </div>
+
+            {/* Plantas */}
+            <div className="flex-1 min-w-0 rounded-xl overflow-hidden border border-primary/10">
+              <SeccionEntidad
+                label="Plantas"
+                icon={<Leaf size={10} />}
+                fallbackIcon={<Leaf size={10} />}
+                emptyLabel="Sin plantas en este lugar"
+                allEntities={todasPlantas}
+                selectedIds={plantas.map(p => p.id)}
+                loading={loadingPlantas}
+                saving={!!addingPlanta}
+                onToggle={(id, add) => add ? onAddPlanta(todasPlantas.find(p => p.id === id)!) : onRemovePlanta(id)}
+                onEntityClick={onSelectPlanta}
+              />
             </div>
 
-            <div className="flex-1 min-w-0 rounded-xl border border-primary/10 overflow-hidden">
-              <div
-                className="flex items-center gap-1.5 px-3 py-2 border-b"
-                style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}
-              >
-                <Gem size={9} className="text-primary/40" />
-                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/40">Minerales</span>
-              </div>
-              <div className="p-3">
-                <BloqueEntidades<MineralMin>
-                  Icon={Gem}
-                  items={minerales}
-                  loading={loadingMinerales}
-                  onSelect={onSelectMineral}
-                  renderThumb={m => m.imagen_url
-                    ? <img src={m.imagen_url} alt={m.nombre} className="w-full h-full object-cover" />
-                    : <Gem size={9} className="text-primary/25" />}
-                  emptyText="Sin minerales en este lugar"
-                  allItems={todosMinerales}
-                  onAdd={onAddMineral}
-                  addingId={addingMineral}
-                  onRemove={onRemoveMineral}
-                  removingId={removingMineral}
-                />
-              </div>
+            {/* Minerales */}
+            <div className="flex-1 min-w-0 rounded-xl overflow-hidden border border-primary/10">
+              <SeccionEntidad
+                label="Minerales"
+                icon={<Gem size={10} />}
+                fallbackIcon={<Gem size={10} />}
+                emptyLabel="Sin minerales en este lugar"
+                allEntities={todosMinerales}
+                selectedIds={minerales.map(m => m.id)}
+                loading={loadingMinerales}
+                saving={!!addingMineral}
+                onToggle={(id, add) => add ? onAddMineral(todosMinerales.find(m => m.id === id)!) : onRemoveMineral(id)}
+                onEntityClick={onSelectMineral}
+              />
             </div>
+
           </div>
 
         </div>
