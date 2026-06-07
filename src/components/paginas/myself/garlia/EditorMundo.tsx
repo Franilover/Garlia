@@ -1544,9 +1544,9 @@ function PanelListas({
   }, [clearAllOverlays]);
 
   // ── Helper: chip genérico ─────────────────────────────────────────────────
-  function Chip({ onClick, imgUrl, icon: Icon, nombre, accentBg, accentBorder, accentText, fullWidth }: {
+  function Chip({ onClick, imgUrl, icon: Icon, nombre, accentBg, accentBorder, accentText, fullWidth, noMaxW }: {
     onClick: () => void; imgUrl?: string | null; icon: React.ElementType;
-    nombre: string; accentBg?: string; accentBorder?: string; accentText?: string; fullWidth?: boolean;
+    nombre: string; accentBg?: string; accentBorder?: string; accentText?: string; fullWidth?: boolean; noMaxW?: boolean;
   }) {
     const hasImg = !!imgUrl;
     if (hasImg) {
@@ -1562,7 +1562,7 @@ function PanelListas({
       <button onClick={onClick} type="button"
         className={`flex items-center rounded-xl border transition-all hover:scale-[1.02] active:scale-[0.98]${fullWidth ? " w-full" : ""} px-3 py-1.5`}
         style={{ background: accentBg ?? "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: accentBorder ?? "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
-        <span className={`text-[11px] font-bold truncate${fullWidth ? "" : " max-w-[120px] sm:max-w-[90px]"}`} style={{ color: accentText ?? "color-mix(in srgb, var(--primary) 70%, transparent)" }}>{nombre}</span>
+        <span className={`text-[11px] font-bold truncate${(fullWidth || noMaxW) ? "" : " max-w-[120px] sm:max-w-[90px]"}`} style={{ color: accentText ?? "color-mix(in srgb, var(--primary) 70%, transparent)" }}>{nombre}</span>
       </button>
     );
   }
@@ -1945,7 +1945,7 @@ function PanelListas({
             {/* ── Fila 4 desktop: Canciones (ancho completo) ── */}
             <SeccionEntidades icon={Music} label={el.canciones} count={canciones.length} loading={loadingCanciones} cols={1}>
               {canciones.map(c => (
-                <Chip key={c.id} onClick={() => selectCancion(c as unknown as Cancion)} icon={Music} nombre={c.titulo} />
+                <Chip key={c.id} onClick={() => selectCancion(c as unknown as Cancion)} icon={Music} nombre={c.titulo} noMaxW />
               ))}
             </SeccionEntidades>
 
