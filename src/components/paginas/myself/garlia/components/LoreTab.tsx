@@ -660,11 +660,11 @@ function MapaPanel({
       </div>
 
       {/* ── Columna derecha — selector + contenido ── */}
-      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+      <div className="flex-[1.4] flex flex-col overflow-hidden min-w-0" style={{ borderLeft: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
 
-        {/* Selector de sub-tab */}
+        {/* Selector de sub-tab — ocupa todo el ancho */}
         <div
-          className="shrink-0 flex items-center gap-1 px-2 py-1.5 border-b"
+          className="shrink-0 flex border-b"
           style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, transparent)" }}
         >
           {SIDE_TABS.map(({ key, label, Icon }) => {
@@ -674,14 +674,14 @@ function MapaPanel({
               <button
                 key={key}
                 onClick={() => setSideTab(key)}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all"
+                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[8px] font-black uppercase tracking-widest transition-all border-b-2"
                 style={isActive ? {
-                  background: "color-mix(in srgb, var(--primary) 12%, transparent)",
+                  borderColor: "var(--primary)",
                   color: "var(--primary)",
-                  border: "1px solid color-mix(in srgb, var(--primary) 22%, transparent)",
+                  background: "color-mix(in srgb, var(--primary) 5%, transparent)",
                 } : {
+                  borderColor: "transparent",
                   color: "color-mix(in srgb, var(--primary) 35%, transparent)",
-                  border: "1px solid transparent",
                 }}
               >
                 <Icon size={9} />
