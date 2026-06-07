@@ -1081,7 +1081,39 @@ function useCiudades() {
   return { ciudades, loading };
 }
 
-// ─── PanelPersonajesCapitulo (Personajes + Criaturas + Items en vertical) ─────
+function useLugares() {
+  const [lugares, setLugares] = useState<{ id: string; nombre: string; imagen_url?: string | null; reino_id?: string | null }[]>([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    (async () => {
+      // 1️⃣ Dexie first
+      try {
+        const table = (db as any)["lugares"];
+        if (table) {
+          const local = await table.orderBy("nombre").toArray();
+          if (local.length > 0) { setLugares(local); setLoading(false); }
+        }
+      } catch {}
+
+      // 2️⃣ Bail if offline
+      if (!navigator.onLine) { setLoading(false); return; }
+
+      // 3️⃣ Refresh from Supabase and update cache
+      try {
+        const { data } = await supabase.from("lugares").select("id, nombre, imagen_url, reino_id").order("nombre");
+        if (data) {
+          setLugares(data as any[]);
+          try {
+            const table = (db as any)["lugares"];
+            if (table) await table.bulkPut(data);
+          } catch {}
+        }
+      } catch {}
+      setLoading(false);
+    })();
+  }, []);
+  return { lugares, loading };
+} (Personajes + Criaturas + Items en vertical) ─────
 
 export const PanelPersonajesCapitulo = ({
   capId,
@@ -1101,16 +1133,20 @@ export const PanelPersonajesCapitulo = ({
   onCriaturasChange?: (ids: string[]) => void;
   items_ids?: string[];
   onItemsChange?: (ids: string[]) => void;
+  lugares_ids?: string[];
+  onLugaresChange?: (ids: string[]) => void;
   mobileOpen?: boolean;
   onMobileClose?: () => void;
 }) => {
   const { personajes, loading: loadingP } = usePersonajes();
   const { criaturas, loading: loadingC }  = useCriaturas();
   const { items,     loading: loadingI }  = useItems();
+  const { lugares,   loading: loadingL }  = useLugares();
 
   const [savingP, setSavingP] = useState(false);
   const [savingC, setSavingC] = useState(false);
   const [savingI, setSavingI] = useState(false);
+  const [savingL, setSavingL] = useState(false);
 
   // ── Posición en línea de tiempo ───────────────────────────────────────────
   const [ordenLinea,     setOrdenLinea]     = useState<string>("");
@@ -1123,7 +1159,10 @@ export const PanelPersonajesCapitulo = ({
   const [savingReino, setSavingReino] = useState(false);
   const reinoRef = useRef<HTMLDivElement>(null);
 
-  // ── Ciudades del capítulo ──────────────────────────────────────────────────
+  // ── Lugares del capítulo ──────────────────────────────────────────────────
+  const [lugaresIds,  setLugaresIds]  = useState<string[]>([]);
+
+  // ── Ciudades del capítulo ─────────────────────────────────────────────────
   const { ciudades, loading: loadingCiudades } = useCiudades();
   const [ciudadesIds,  setCiudadesIds]  = useState<string[]>([]);
   const [savingCiudad, setSavingCiudad] = useState(false);
@@ -1138,13 +1177,14 @@ export const PanelPersonajesCapitulo = ({
     if (!capId) return;
     supabase
       .from("capitulos")
-      .select("orden_linea_tiempo, reinos_ids, visibilidad, fecha_publicacion, ciudades_ids")
+      .select("orden_linea_tiempo, reinos_ids, visibilidad, fecha_publicacion, ciudades_ids, lugares_ids")
       .eq("id", capId)
       .single()
       .then(({ data }) => {
         setOrdenLinea(data?.orden_linea_tiempo != null ? String(data.orden_linea_tiempo) : "");
         setReinosIds(data?.reinos_ids ?? []);
         setCiudadesIds(data?.ciudades_ids ?? []);
+        setLugaresIds(data?.lugares_ids ?? []);
         setVisibilidad(data?.visibilidad ?? "oculto");
         setFechaProg(data?.fecha_publicacion ? data.fecha_publicacion.slice(0, 10) : "");
       });
@@ -1166,10 +1206,19 @@ export const PanelPersonajesCapitulo = ({
     setSavingCiudad(false);
   };
 
-  // ── Ciudades sin reino → bloque superior junto a Reinos ──────────────────
-  const ciudadesSinReino = ciudades.filter(l => !l.reino_id);
-  // ── Ciudades con reino → filtradas a los reinos seleccionados ────────────
-  const ciudadesConReino = ciudades.filter(l =>
+  const handleToggleLugar = async (id: string, add: boolean) => {
+    const next = add ? [...lugaresIds, id] : lugaresIds.filter(x => x !== id);
+    setLugaresIds(next);
+    onLugaresChange?.(next);
+    setSavingL(true);
+    try { await capUpdateMeta(capId, { lugares_ids: next } as any); } catch {}
+    setSavingL(false);
+  };
+
+  // ── Lugares sin reino → junto a Reinos ───────────────────────────────────
+  const lugaresSinReino = lugares.filter(l => !l.reino_id);
+  // ── Lugares con reino → filtrados por reinos seleccionados ───────────────
+  const lugaresConReino = lugares.filter(l =>
     l.reino_id &&
     (reinosIds.length === 0 || reinosIds.includes(l.reino_id))
   );
@@ -1286,64 +1335,62 @@ export const PanelPersonajesCapitulo = ({
         </p>
       </div>
 
-      {/* ── Reinos ──────────────────────────────────────────────────────── */}
+      {/* ── Reinos + Lugares sin reino ──────────────────────────────────── */}
       <div
         ref={reinoRef}
         className="shrink-0 border-b"
         style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
       >
         <SeccionEntidad
-          label="Reinos"
+          label="Reinos y lugares"
           icon={<Globe size={9} />}
           fallbackIcon={<Globe size={10} />}
-          emptyLabel="Sin reinos"
+          emptyLabel="Sin reinos ni lugares libres"
           capId={capId}
-          allEntities={reinos.map(r => ({ id: r.id, nombre: r.nombre, imagen_url: (r as any).imagen_reino ?? undefined }))}
-          selectedIds={reinosIds}
-          loading={loadingReinos}
-          saving={savingReino}
-          onToggle={handleToggleReino}
-          onEntityClick={(id) => dispatchOpen("reinos", id)}
+          allEntities={[
+            ...reinos.map(r => ({ id: r.id, nombre: r.nombre, imagen_url: (r as any).imagen_reino ?? undefined, _tipo: "reino" as const })),
+            ...lugaresSinReino.map(l => ({ id: l.id, nombre: l.nombre, imagen_url: l.imagen_url ?? undefined, _tipo: "lugar" as const })),
+          ]}
+          selectedIds={[...reinosIds, ...lugaresIds]}
+          loading={loadingReinos || loadingL}
+          saving={savingReino || savingL}
+          onToggle={(id, add) => {
+            if (reinos.some(r => r.id === id)) handleToggleReino(id, add);
+            else handleToggleLugar(id, add);
+          }}
+          onEntityClick={(id) => {
+            if (reinos.some(r => r.id === id)) dispatchOpen("reinos", id);
+            else dispatchOpen("lugares", id);
+          }}
         />
       </div>
 
-      {/* ── Lugares libres (sin reino) ───────────────────────────────────── */}
+      {/* ── Ciudades + Lugares con reino (filtrados por reinos seleccionados) */}
       <div
         className="shrink-0 border-b"
         style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
       >
         <SeccionEntidad
-          label="Lugares libres"
+          label={reinosIds.length > 0 ? `Ciudades y lugares (${reinosIds.length})` : "Ciudades y lugares"}
           icon={<MapPin size={9} />}
           fallbackIcon={<MapPin size={10} />}
-          emptyLabel="Sin lugares libres"
+          emptyLabel={reinosIds.length > 0 ? "Sin ciudades ni lugares en estos reinos" : "Sin ciudades ni lugares con reino"}
           capId={capId}
-          allEntities={ciudadesSinReino.map(l => ({ id: l.id, nombre: l.nombre, imagen_url: l.imagen_url ?? undefined }))}
-          selectedIds={ciudadesIds}
-          loading={loadingCiudades}
-          saving={savingCiudad}
-          onToggle={handleToggleCiudad}
-          onEntityClick={(id) => dispatchOpen("ciudades", id)}
-        />
-      </div>
-
-      {/* ── Ciudades (con reino, filtradas por reinos seleccionados) ─────── */}
-      <div
-        className="shrink-0 border-b"
-        style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
-      >
-        <SeccionEntidad
-          label={reinosIds.length > 0 ? `Ciudades (${reinosIds.length})` : "Ciudades"}
-          icon={<MapPin size={9} />}
-          fallbackIcon={<MapPin size={10} />}
-          emptyLabel={reinosIds.length > 0 ? "Sin ciudades en estos reinos" : "Sin ciudades"}
-          capId={capId}
-          allEntities={ciudadesConReino.map(l => ({ id: l.id, nombre: l.nombre, imagen_url: l.imagen_url ?? undefined }))}
-          selectedIds={ciudadesIds}
-          loading={loadingCiudades}
-          saving={savingCiudad}
-          onToggle={handleToggleCiudad}
-          onEntityClick={(id) => dispatchOpen("ciudades", id)}
+          allEntities={[
+            ...ciudades.filter(c => !reinosIds.length || reinosIds.includes(c.reino_id!)).map(c => ({ id: c.id, nombre: c.nombre, imagen_url: c.imagen_url ?? undefined })),
+            ...lugaresConReino.map(l => ({ id: l.id, nombre: l.nombre, imagen_url: l.imagen_url ?? undefined })),
+          ]}
+          selectedIds={[...ciudadesIds, ...lugaresIds]}
+          loading={loadingCiudades || loadingL}
+          saving={savingCiudad || savingL}
+          onToggle={(id, add) => {
+            if (ciudades.some(c => c.id === id)) handleToggleCiudad(id, add);
+            else handleToggleLugar(id, add);
+          }}
+          onEntityClick={(id) => {
+            if (ciudades.some(c => c.id === id)) dispatchOpen("ciudades", id);
+            else dispatchOpen("lugares", id);
+          }}
         />
       </div>
 
