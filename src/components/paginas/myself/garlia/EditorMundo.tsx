@@ -27,6 +27,7 @@ import { useNotas } from "./components/useNotas";
 import { EditorNota, ListaNotas } from "./EditorNota";
 import { EditorGrupo, useGrupos, type Grupo, GRUPO_TIPO_CONFIG } from "./EditorGrupo";
 import EstudioCapitulos from "@/components/paginas/myself/garlia/editorCapitulos/page";
+import AdminDescubrimientos from "@/components/paginas/myself/garlia/editorRelaciones";
 import { useCanciones } from "@/components/paginas/myself/garlia/editorLetras/hooks/useCanciones";
 import { PanelEditor } from "@/components/paginas/myself/garlia/editorLetras/components/editor/PanelEditor";
 import { ModalNuevaCancion } from "@/components/paginas/myself/garlia/editorLetras/components/modals/ModalNuevaCancion";
@@ -1808,6 +1809,13 @@ function PanelListas({
           <div ref={capitulosRef} style={{ minHeight: "60vh" }}>
             <div className="flex flex-col min-h-0" style={{ minHeight: "58vh" }}>
               <EstudioCapitulos />
+            </div>
+          </div>
+
+          {/* RELACIONES */}
+          <div style={{ minHeight: "60vh" }}>
+            <div className="flex flex-col min-h-0" style={{ minHeight: "58vh" }}>
+              <AdminDescubrimientos />
             </div>
           </div>
 
