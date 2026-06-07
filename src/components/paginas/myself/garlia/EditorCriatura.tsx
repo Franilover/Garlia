@@ -959,6 +959,44 @@ function useCriaturaCiudades(criaturaId: string) {
   return { rows, loading, add, remove };
 }
 
+// ─── Hook: lugares de la criatura (criatura_lugares) ─────────────────────────
+function useCriaturaLugares(criaturaId: string) {
+  type Row = { rowId: string; lugarId: string; lugarNombre: string; reinoId: string | null };
+  const [rows, setRows] = useState<Row[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const { data } = await supabase
+      .from("criatura_lugares")
+      .select("id, lugar_id, lugares!lugar_id(nombre, reino_id)")
+      .eq("criatura_id", criaturaId);
+    setRows((data ?? []).map((r: any) => {
+      const l = Array.isArray(r.lugares) ? r.lugares[0] : r.lugares;
+      return { rowId: r.id, lugarId: r.lugar_id, lugarNombre: l?.nombre ?? "—", reinoId: l?.reino_id ?? null };
+    }));
+    setLoading(false);
+  }, [criaturaId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const add = async (lugar: CiudadMin2) => {
+    if (rows.some(r => r.lugarId === lugar.id)) return;
+    const { data, error } = await supabase
+      .from("criatura_lugares")
+      .insert([{ criatura_id: criaturaId, lugar_id: lugar.id }])
+      .select().single();
+    if (!error && data) setRows(prev => [...prev, { rowId: data.id, lugarId: lugar.id, lugarNombre: lugar.nombre, reinoId: lugar.reino_id }]);
+  };
+
+  const remove = async (rowId: string) => {
+    await supabase.from("criatura_lugares").delete().eq("id", rowId);
+    setRows(prev => prev.filter(r => r.rowId !== rowId));
+  };
+
+  return { rows, loading, add, remove };
+}
+
 // ─── BloqueHabitat ────────────────────────────────────────────────────────────
 function BloqueHabitat({
   criaturaId,
@@ -1545,6 +1583,13 @@ export function EditorCriatura({
   } = useCriaturaCiudades(form.id);
 
   const {
+    rows: lugarRows,
+    loading: loadingLugares,
+    add: addLugarSidebar,
+    remove: removeLugarSidebar,
+  } = useCriaturaLugares(form.id);
+
+  const {
     items: naturalesItems,
     allItems: allNaturalesItems,
     loading: loadingNaturales,
@@ -1562,11 +1607,13 @@ export function EditorCriatura({
 
   const [savingReinos,    setSavingReinos]    = useState(false);
   const [savingCiudades,   setSavingCiudades]   = useState(false);
+  const [savingLugares,    setSavingLugares]    = useState(false);
   const [savingNaturales, setSavingNaturales] = useState(false);
   const [savingCrafted,   setSavingCrafted]   = useState(false);
   const [mobileAsideOpen, setMobileAsideOpen] = useState(false);
 
   const [allCiudades, setAllCiudades] = useState<CiudadMin2[]>([]);
+  const [allLugares,  setAllLugares]  = useState<CiudadMin2[]>([]);
 
   useEffect(() => {
     supabase.from("personajes").select("id, nombre, img_url").order("nombre")
@@ -1575,15 +1622,23 @@ export function EditorCriatura({
       .then(({ data }) => setAllReinos(data ?? []));
     supabase.from("ciudades").select("id, nombre, reino_id").order("nombre")
       .then(({ data }) => setAllCiudades((data ?? []).map((l: any) => ({ ...l, reino_id: l.reino_id ?? null }))));
+    supabase.from("lugares").select("id, nombre, reino_id").order("nombre")
+      .then(({ data }) => setAllLugares((data ?? []).map((l: any) => ({ ...l, reino_id: l.reino_id ?? null }))));
   }, []);
 
   // ── Ciudades sin reino → van en el bloque superior junto a Reinos ────────────
   const ciudadesSinReino = allCiudades.filter(l => l.reino_id === null);
+  // ── Lugares sin reino → también van en el bloque superior ────────────────────
+  const lugaresSinReino = allLugares.filter(l => l.reino_id === null);
 
   // ── Ciudades con reino → filtradas a los reinos seleccionados ────────────────
-  // Si no hay ningún reino seleccionado, muestra todas las que tienen reino.
   const reinosSeleccionadosIds = reinoRows.map(r => r.reinoId);
   const ciudadesConReino = allCiudades.filter(l =>
+    l.reino_id !== null &&
+    (reinosSeleccionadosIds.length === 0 || reinosSeleccionadosIds.includes(l.reino_id))
+  );
+  // ── Lugares con reino → filtrados igual que ciudades ─────────────────────────
+  const lugaresConReino = allLugares.filter(l =>
     l.reino_id !== null &&
     (reinosSeleccionadosIds.length === 0 || reinosSeleccionadosIds.includes(l.reino_id))
   );
@@ -1609,6 +1664,18 @@ export function EditorCriatura({
       if (row) await removeCiudadSidebar(row.rowId);
     }
     setSavingCiudades(false);
+  };
+
+  const handleToggleLugar = async (id: string, add: boolean) => {
+    setSavingLugares(true);
+    if (add) {
+      const lugar = allLugares.find(l => l.id === id);
+      if (lugar) await addLugarSidebar(lugar);
+    } else {
+      const row = lugarRows.find(r => r.lugarId === id);
+      if (row) await removeLugarSidebar(row.rowId);
+    }
+    setSavingLugares(false);
   };
 
   const handleToggleNatural = async (id: string, add: boolean) => {
@@ -1855,31 +1922,31 @@ export function EditorCriatura({
           }}
         >
           <SeccionEntidad
-            label="Reinos"
+            label="Territorio"
             icon={<Globe size={9} />}
             fallbackIcon={<Globe size={14} strokeWidth={1} />}
-            emptyLabel="Sin reinos"
-            allEntities={allReinos.map(r => ({ id: r.id, nombre: r.nombre }))}
-            selectedIds={reinoRows.map(r => r.reinoId)}
-            loading={loadingReinos}
-            saving={savingReinos}
-            onToggle={handleToggleReino}
-            onEntityClick={id => onNavigateReino?.(id)}
-          />
-
-          <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
-
-          <SeccionEntidad
-            label="Lugares libres"
-            icon={<MapPin size={9} />}
-            fallbackIcon={<MapPin size={14} strokeWidth={1} />}
-            emptyLabel="Sin lugares libres"
-            allEntities={ciudadesSinReino.map(l => ({ id: l.id, nombre: l.nombre }))}
-            selectedIds={ciudadRows.map(r => r.ciudadId)}
-            loading={loadingCiudades}
-            saving={savingCiudades}
-            onToggle={handleToggleCiudad}
-            onEntityClick={id => onNavigateCiudad?.(id)}
+            emptyLabel="Sin territorio"
+            allEntities={[
+              ...allReinos.map(r => ({ id: r.id, nombre: r.nombre })),
+              ...[...ciudadesSinReino, ...lugaresSinReino].map(l => ({ id: l.id, nombre: l.nombre, group: "lugares-libres" })),
+            ]}
+            groups={(ciudadesSinReino.length > 0 || lugaresSinReino.length > 0) ? [{ key: "lugares-libres", label: "Lugares libres", icon: <MapPin size={7} /> }] : []}
+            selectedIds={[
+              ...reinoRows.map(r => r.reinoId),
+              ...ciudadRows.filter(r => ciudadesSinReino.some(l => l.id === r.ciudadId)).map(r => r.ciudadId),
+              ...lugarRows.filter(r => lugaresSinReino.some(l => l.id === r.lugarId)).map(r => r.lugarId),
+            ]}
+            loading={loadingReinos || loadingCiudades || loadingLugares}
+            saving={savingReinos || savingCiudades || savingLugares}
+            onToggle={(id, add) => {
+              if (allReinos.some(r => r.id === id)) handleToggleReino(id, add);
+              else if (allCiudades.some(l => l.id === id)) handleToggleCiudad(id, add);
+              else handleToggleLugar(id, add);
+            }}
+            onEntityClick={id => {
+              if (allReinos.some(r => r.id === id)) onNavigateReino?.(id);
+              else onNavigateCiudad?.(id);
+            }}
           />
 
           <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
@@ -1888,12 +1955,19 @@ export function EditorCriatura({
             label={reinosSeleccionadosIds.length > 0 ? `Ciudades (${reinosSeleccionadosIds.length})` : "Ciudades"}
             icon={<MapPin size={9} />}
             fallbackIcon={<MapPin size={14} strokeWidth={1} />}
-            emptyLabel={reinosSeleccionadosIds.length > 0 ? "Sin ciudades en estos reinos" : "Sin ciudades"}
-            allEntities={ciudadesConReino.map(l => ({ id: l.id, nombre: l.nombre }))}
-            selectedIds={ciudadRows.map(r => r.ciudadId)}
-            loading={loadingCiudades}
-            saving={savingCiudades}
-            onToggle={handleToggleCiudad}
+            emptyLabel={reinosSeleccionadosIds.length > 0 ? "Sin ciudades en estos reinos" : "Sin ciudades / lugares"}
+            allEntities={[
+              ...ciudadesConReino.map(l => ({ id: l.id, nombre: l.nombre })),
+              ...lugaresConReino.map(l => ({ id: l.id, nombre: l.nombre, group: "lugares-reino" })),
+            ]}
+            groups={lugaresConReino.length > 0 ? [{ key: "lugares-reino", label: "Lugares", icon: <MapPin size={7} /> }] : []}
+            selectedIds={[...ciudadRows.map(r => r.ciudadId), ...lugarRows.map(r => r.lugarId)]}
+            loading={loadingCiudades || loadingLugares}
+            saving={savingCiudades || savingLugares}
+            onToggle={(id, add) => {
+              if (allCiudades.some(l => l.id === id)) handleToggleCiudad(id, add);
+              else handleToggleLugar(id, add);
+            }}
             onEntityClick={id => onNavigateCiudad?.(id)}
           />
         </div>
@@ -1996,11 +2070,22 @@ export function EditorCriatura({
 
             <SeccionEntidad label="Personajes" icon={<Users size={9} />} fallbackIcon={<UserCircle2 size={14} strokeWidth={1} />} emptyLabel="Sin personajes" allEntities={allPersonajes.map(p => ({ id: p.id, nombre: p.nombre, imagen_url: p.img_url }))} selectedIds={personajesDeEspecie.map(p => p.id)} loading={loadingPersonajes} saving={savingPersonajes} onToggle={handleTogglePersonaje} onEntityClick={id => onSelectPersonaje?.(id)} columns={2} />
             <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
-            <SeccionEntidad label="Reinos" icon={<Globe size={9} />} fallbackIcon={<Globe size={14} strokeWidth={1} />} emptyLabel="Sin reinos" allEntities={allReinos.map(r => ({ id: r.id, nombre: r.nombre }))} selectedIds={reinoRows.map(r => r.reinoId)} loading={loadingReinos} saving={savingReinos} onToggle={handleToggleReino} onEntityClick={id => onNavigateReino?.(id)} />
+            <SeccionEntidad label="Reinos" icon={<Globe size={9} />} fallbackIcon={<Globe size={14} strokeWidth={1} />} emptyLabel="Sin territorio"
+              allEntities={[...allReinos.map(r => ({ id: r.id, nombre: r.nombre })), ...[...ciudadesSinReino, ...lugaresSinReino].map(l => ({ id: l.id, nombre: l.nombre, group: "lugares-libres" }))]}
+              groups={(ciudadesSinReino.length > 0 || lugaresSinReino.length > 0) ? [{ key: "lugares-libres", label: "Lugares libres", icon: <MapPin size={7} /> }] : []}
+              selectedIds={[...reinoRows.map(r => r.reinoId), ...ciudadRows.filter(r => ciudadesSinReino.some(l => l.id === r.ciudadId)).map(r => r.ciudadId), ...lugarRows.filter(r => lugaresSinReino.some(l => l.id === r.lugarId)).map(r => r.lugarId)]}
+              loading={loadingReinos || loadingCiudades || loadingLugares} saving={savingReinos || savingCiudades || savingLugares}
+              onToggle={(id, add) => { if (allReinos.some(r => r.id === id)) handleToggleReino(id, add); else if (allCiudades.some(l => l.id === id)) handleToggleCiudad(id, add); else handleToggleLugar(id, add); }}
+              onEntityClick={id => { if (allReinos.some(r => r.id === id)) onNavigateReino?.(id); else onNavigateCiudad?.(id); }}
+            />
             <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
-            <SeccionEntidad label="Lugares libres" icon={<MapPin size={9} />} fallbackIcon={<MapPin size={14} strokeWidth={1} />} emptyLabel="Sin lugares libres" allEntities={ciudadesSinReino.map(l => ({ id: l.id, nombre: l.nombre }))} selectedIds={ciudadRows.map(r => r.ciudadId)} loading={loadingCiudades} saving={savingCiudades} onToggle={handleToggleCiudad} onEntityClick={id => onNavigateCiudad?.(id)} />
-            <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
-            <SeccionEntidad label={reinosSeleccionadosIds.length > 0 ? `Ciudades (${reinosSeleccionadosIds.length})` : "Ciudades"} icon={<MapPin size={9} />} fallbackIcon={<MapPin size={14} strokeWidth={1} />} emptyLabel={reinosSeleccionadosIds.length > 0 ? "Sin ciudades en estos reinos" : "Sin ciudades"} allEntities={ciudadesConReino.map(l => ({ id: l.id, nombre: l.nombre }))} selectedIds={ciudadRows.map(r => r.ciudadId)} loading={loadingCiudades} saving={savingCiudades} onToggle={handleToggleCiudad} onEntityClick={id => onNavigateCiudad?.(id)} />
+            <SeccionEntidad label={reinosSeleccionadosIds.length > 0 ? `Ciudades (${reinosSeleccionadosIds.length})` : "Ciudades"} icon={<MapPin size={9} />} fallbackIcon={<MapPin size={14} strokeWidth={1} />} emptyLabel={reinosSeleccionadosIds.length > 0 ? "Sin ciudades en estos reinos" : "Sin ciudades / lugares"}
+              allEntities={[...ciudadesConReino.map(l => ({ id: l.id, nombre: l.nombre })), ...lugaresConReino.map(l => ({ id: l.id, nombre: l.nombre, group: "lugares-reino" }))]}
+              groups={lugaresConReino.length > 0 ? [{ key: "lugares-reino", label: "Lugares", icon: <MapPin size={7} /> }] : []}
+              selectedIds={[...ciudadRows.map(r => r.ciudadId), ...lugarRows.map(r => r.lugarId)]}
+              loading={loadingCiudades || loadingLugares} saving={savingCiudades || savingLugares}
+              onToggle={(id, add) => { if (allCiudades.some(l => l.id === id)) handleToggleCiudad(id, add); else handleToggleLugar(id, add); }}
+              onEntityClick={id => onNavigateCiudad?.(id)} />
             <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
             <SeccionEntidad label="Naturales" icon={<Leaf size={9} />} fallbackIcon={<Package size={14} strokeWidth={1} />} emptyLabel="Sin drops" allEntities={allNaturalesItems.map(i => ({ id: i.id, nombre: i.nombre, imagen_url: i.imagen_url }))} selectedIds={naturalesItems.map(i => i.itemId)} loading={loadingNaturales} saving={savingNaturales} onToggle={handleToggleNatural} onEntityClick={id => onSelectItem?.(id)} />
             <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
