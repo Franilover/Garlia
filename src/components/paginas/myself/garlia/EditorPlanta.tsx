@@ -80,77 +80,166 @@ function useCiudadesPlanta(plantaId: string) {
   return { rows, loading, add, remove };
 }
 
-// ─── Panel selector de ciudades ────────────────────────────────────────────────
-function PanelCiudades({ plantaId, onNavigateCiudad }: { plantaId: string; onNavigateCiudad?: (id: string) => void }) {
-  const { rows, loading, add, remove } = useCiudadesPlanta(plantaId);
-  const [allCiudades, setAllCiudades] = useState<CiudadMin[]>([]);
+
+// ─── Tipos comunes ────────────────────────────────────────────────────────────
+type ReinoMin = { id: string; nombre: string };
+type LugarMin = { id: string; nombre: string; reino_id?: string | null };
+
+// ─── Hook: lugares de la planta (planta_lugares) ──────────────────────────────
+type PlantaLugarRow = { rowId: string; lugarId: string };
+
+function useLugaresPlanta(plantaId: string) {
+  const [rows, setRows] = useState<PlantaLugarRow[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const { data } = await supabase
+      .from("planta_lugares")
+      .select("id, lugar_id")
+      .eq("planta_id", plantaId);
+    setRows((data ?? []).map((r: any) => ({ rowId: r.id, lugarId: r.lugar_id })));
+    setLoading(false);
+  }, [plantaId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const add = async (lugarId: string) => {
+    if (rows.some(r => r.lugarId === lugarId)) return;
+    const { data, error } = await supabase
+      .from("planta_lugares")
+      .insert([{ planta_id: plantaId, lugar_id: lugarId }])
+      .select().single();
+    if (!error && data) setRows(prev => [...prev, { rowId: data.id, lugarId }]);
+  };
+
+  const remove = async (rowId: string) => {
+    await supabase.from("planta_lugares").delete().eq("id", rowId);
+    setRows(prev => prev.filter(r => r.rowId !== rowId));
+  };
+
+  return { rows, loading, add, remove };
+}
+
+// ─── Panel Territorio: reinos + lugares sin reino ─────────────────────────────
+function PanelTerritorio({
+  value, onChange, plantaId, onNavigateReino, onNavigateLugar,
+}: {
+  value: string[];
+  onChange: (ids: string[]) => void;
+  plantaId: string;
+  onNavigateReino?: (id: string) => void;
+  onNavigateLugar?: (id: string) => void;
+}) {
+  const [allReinos, setAllReinos] = useState<ReinoMin[]>([]);
+  const [allLugares, setAllLugares] = useState<LugarMin[]>([]);
+  const [loadingReinos, setLoadingReinos] = useState(true);
+  const { rows: lugarRows, loading: loadingLugares, add: addLugar, remove: removeLugar } = useLugaresPlanta(plantaId);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    supabase.from("ciudades").select("id, nombre").order("nombre")
-      .then(({ data }) => setAllCiudades(data ?? []));
+    supabase.from("reinos").select("id, nombre").order("nombre")
+      .then(({ data }) => { setAllReinos(data ?? []); setLoadingReinos(false); });
+    supabase.from("lugares").select("id, nombre, reino_id").order("nombre")
+      .then(({ data }) => setAllLugares(data ?? []));
   }, []);
 
-  const handleToggle = async (id: string, addIt: boolean) => {
+  const lugaresSinReino = allLugares.filter(l => !l.reino_id);
+
+  const handleToggle = async (id: string, add: boolean) => {
     setSaving(true);
-    if (addIt) {
-      const ciudad = allCiudades.find(l => l.id === id);
-      if (ciudad) await add(ciudad);
+    if (allReinos.some(r => r.id === id)) {
+      onChange(add ? [...value, id] : value.filter(x => x !== id));
     } else {
-      const row = rows.find(r => r.ciudadId === id);
-      if (row) await remove(row.rowId);
+      if (add) await addLugar(id);
+      else { const row = lugarRows.find(r => r.lugarId === id); if (row) await removeLugar(row.rowId); }
     }
     setSaving(false);
   };
 
   return (
     <SeccionEntidad
-      label="Ciudad donde encontrarla"
-      icon={<MapPin size={9} />}
-      fallbackIcon={<MapPin size={9} />}
-      emptyLabel="Ninguna ciudad asignada"
-      allEntities={allCiudades}
-      selectedIds={rows.map(r => r.ciudadId)}
-      loading={loading}
+      label="Territorio"
+      icon={<Globe size={9} />}
+      fallbackIcon={<Globe size={9} />}
+      emptyLabel="Sin territorio asignado"
+      allEntities={[
+        ...allReinos.map(r => ({ id: r.id, nombre: r.nombre })),
+        ...lugaresSinReino.map(l => ({ id: l.id, nombre: l.nombre, group: "lugares-libres" })),
+      ]}
+      groups={lugaresSinReino.length > 0 ? [{ key: "lugares-libres", label: "Lugares libres", icon: <MapPin size={7} /> }] : []}
+      selectedIds={[...value, ...lugarRows.map(r => r.lugarId)]}
+      loading={loadingReinos || loadingLugares}
       saving={saving}
       onToggle={handleToggle}
-      onEntityClick={onNavigateCiudad}
+      onEntityClick={id => {
+        if (allReinos.some(r => r.id === id)) onNavigateReino?.(id);
+        else onNavigateLugar?.(id);
+      }}
     />
   );
 }
 
-// ─── Panel selector de reinos ─────────────────────────────────────────────────
-type ReinoMin = { id: string; nombre: string };
-
-function PanelReinos({
-  value, onChange, onNavigateReino,
+// ─── Panel Ciudades: ciudades + lugares con reino ─────────────────────────────
+function PanelCiudadesConLugares({
+  reinosSeleccionados, plantaId, onNavigateCiudad, onNavigateLugar,
 }: {
-  value: string[];
-  onChange: (ids: string[]) => void;
-  onNavigateReino?: (id: string) => void;
+  reinosSeleccionados: string[];
+  plantaId: string;
+  onNavigateCiudad?: (id: string) => void;
+  onNavigateLugar?: (id: string) => void;
 }) {
-  const [allReinos, setAllReinos] = useState<ReinoMin[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { rows: ciudadRows, loading: loadingCiudades, add: addCiudad, remove: removeCiudad } = useCiudadesPlanta(plantaId);
+  const { rows: lugarRows, loading: loadingLugares, add: addLugar, remove: removeLugar } = useLugaresPlanta(plantaId);
+  const [allCiudades, setAllCiudades] = useState<CiudadMin[]>([]);
+  const [allLugares, setAllLugares] = useState<LugarMin[]>([]);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    supabase.from("reinos").select("id, nombre").order("nombre")
-      .then(({ data }) => { setAllReinos(data ?? []); setLoading(false); });
+    supabase.from("ciudades").select("id, nombre, reino_id").order("nombre")
+      .then(({ data }) => setAllCiudades(data ?? []));
+    supabase.from("lugares").select("id, nombre, reino_id").order("nombre")
+      .then(({ data }) => setAllLugares(data ?? []));
   }, []);
+
+  const ciudadesConReino = allCiudades.filter(c =>
+    (c as any).reino_id && (reinosSeleccionados.length === 0 || reinosSeleccionados.includes((c as any).reino_id))
+  );
+  const lugaresConReino = allLugares.filter(l =>
+    l.reino_id && (reinosSeleccionados.length === 0 || reinosSeleccionados.includes(l.reino_id!))
+  );
+
+  const handleToggle = async (id: string, add: boolean) => {
+    setSaving(true);
+    if (allCiudades.some(c => c.id === id)) {
+      if (add) { const c = allCiudades.find(x => x.id === id); if (c) await addCiudad(c); }
+      else { const row = ciudadRows.find(r => r.ciudadId === id); if (row) await removeCiudad(row.rowId); }
+    } else {
+      if (add) await addLugar(id);
+      else { const row = lugarRows.find(r => r.lugarId === id); if (row) await removeLugar(row.rowId); }
+    }
+    setSaving(false);
+  };
 
   return (
     <SeccionEntidad
-      label="Reinos donde encontrarla"
-      icon={<Globe size={9} />}
-      fallbackIcon={<Globe size={9} />}
-      emptyLabel="Ningún reino asignado"
-      allEntities={allReinos}
-      selectedIds={value}
-      loading={loading}
-      saving={false}
-      onToggle={(id, add) =>
-        onChange(add ? [...value, id] : value.filter(x => x !== id))
-      }
-      onEntityClick={onNavigateReino}
+      label={reinosSeleccionados.length > 0 ? `Ciudades (${reinosSeleccionados.length})` : "Ciudades"}
+      icon={<MapPin size={9} />}
+      fallbackIcon={<MapPin size={9} />}
+      emptyLabel={reinosSeleccionados.length > 0 ? "Sin ciudades en estos reinos" : "Sin ciudades / lugares"}
+      allEntities={[
+        ...ciudadesConReino.map(c => ({ id: c.id, nombre: c.nombre })),
+        ...lugaresConReino.map(l => ({ id: l.id, nombre: l.nombre, group: "lugares-reino" })),
+      ]}
+      groups={lugaresConReino.length > 0 ? [{ key: "lugares-reino", label: "Lugares", icon: <MapPin size={7} /> }] : []}
+      selectedIds={[...ciudadRows.map(r => r.ciudadId), ...lugarRows.map(r => r.lugarId)]}
+      loading={loadingCiudades || loadingLugares}
+      saving={saving}
+      onToggle={handleToggle}
+      onEntityClick={id => {
+        if (allCiudades.some(c => c.id === id)) onNavigateCiudad?.(id);
+        else onNavigateLugar?.(id);
+      }}
     />
   );
 }
@@ -186,7 +275,7 @@ function PickerImagenPlantaBtn({ value, onChange }: { value: string; onChange: (
 // ─── EditorPlanta ─────────────────────────────────────────────────────────────
 
 export function EditorPlanta({
-  planta, onSaved, onDeleted, entities = [], onNavigateCiudad, onNavigateReino,
+  planta, onSaved, onDeleted, entities = [], onNavigateCiudad, onNavigateReino, onNavigateLugar,
 }: {
   planta: Planta;
   onSaved: (p: Planta) => void;
@@ -194,6 +283,7 @@ export function EditorPlanta({
   entities?: WikiEntity[];
   onNavigateCiudad?: (id: string) => void;
   onNavigateReino?: (id: string) => void;
+  onNavigateLugar?: (id: string) => void;
 }) {
   const [form,   setForm]   = useState<Planta>(planta);
   const [status, setStatus] = useState<SaveStatus>("idle");
@@ -325,24 +415,31 @@ export function EditorPlanta({
                 noneLabel="Sin categoría"
               />
 
-              {/* Reinos + Ciudades en dos columnas */}
-              <div className="flex flex-col sm:flex-row gap-4">
+                {/* Reinos + Ciudades en dos columnas */}
+                <div className="flex flex-col sm:flex-row gap-4">
 
-                {/* Reinos */}
-                <div className="flex-1 min-w-0">
-                  <PanelReinos
-                    value={form.reino_ids ?? []}
-                    onChange={ids => setForm(f => ({ ...f, reino_ids: ids }))}
-                    onNavigateReino={onNavigateReino}
-                  />
+                  {/* Territorio */}
+                  <div className="flex-1 min-w-0">
+                    <PanelTerritorio
+                      value={form.reino_ids ?? []}
+                      onChange={ids => setForm(f => ({ ...f, reino_ids: ids }))}
+                      plantaId={form.id}
+                      onNavigateReino={onNavigateReino}
+                      onNavigateLugar={onNavigateLugar}
+                    />
+                  </div>
+
+                  {/* Ciudades */}
+                  <div className="flex-1 min-w-0">
+                    <PanelCiudadesConLugares
+                      reinosSeleccionados={form.reino_ids ?? []}
+                      plantaId={form.id}
+                      onNavigateCiudad={onNavigateCiudad}
+                      onNavigateLugar={onNavigateLugar}
+                    />
+                  </div>
+
                 </div>
-
-                {/* Ciudades */}
-                <div className="flex-1 min-w-0">
-                  <PanelCiudades plantaId={form.id} onNavigateCiudad={onNavigateCiudad} />
-                </div>
-
-              </div>
 
               {/* Descripción */}
               <div className="space-y-1.5">
