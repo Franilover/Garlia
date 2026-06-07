@@ -915,7 +915,7 @@ export default function Lector() {
       //    si es slug cargamos directo por libro_id (sin roundtrip extra)
       type CapRaw = {
         id: string; orden: number; titulo_capitulo: string; contenido: string;
-        fecha_publicacion: string; personajes_ids: string[]; reinos_ids: string[] | null; ciudades_ids: string[] | null;
+        fecha_publicacion: string; personajes_ids: string[]; reinos_ids: string[] | null; ciudades_ids: string[] | null; lugares_ids: string[] | null;
         libros: { titulo: string } | { titulo: string }[] | null;
         narrador: NarradorInfo | NarradorInfo[] | null;
       };
@@ -927,7 +927,7 @@ export default function Lector() {
         // UUID de capítulo: cargar todos los caps del libro directamente
         const { data: contenidos, error: capsError } = await supabase
           .from("capitulos")
-          .select(`id, orden, titulo_capitulo, contenido, fecha_publicacion, personajes_ids, reinos_ids, ciudades_ids,
+          .select(`id, orden, titulo_capitulo, contenido, fecha_publicacion, personajes_ids, reinos_ids, ciudades_ids, lugares_ids,
             libros(titulo), narrador:personajes!narrador_id(id, nombre, img_url)`)
           .eq("libro_id", libroId)
           .or(`visibilidad.eq.publico,and(visibilidad.eq.programado,fecha_publicacion.lte.${hoy.split("T")[0]})`)
@@ -939,7 +939,7 @@ export default function Lector() {
         // Slug de segmento: una sola query por libro_id
         const { data: contenidos } = await supabase
           .from("capitulos")
-          .select(`id, orden, titulo_capitulo, contenido, fecha_publicacion, personajes_ids, reinos_ids, ciudades_ids,
+          .select(`id, orden, titulo_capitulo, contenido, fecha_publicacion, personajes_ids, reinos_ids, ciudades_ids, lugares_ids,
             libros(titulo), narrador:personajes!narrador_id(id, nombre, img_url)`)
           .eq("libro_id", libroId)
           .or(`visibilidad.eq.publico,and(visibilidad.eq.programado,fecha_publicacion.lte.${hoy.split("T")[0]})`)
@@ -953,6 +953,7 @@ export default function Lector() {
         contenido: c.contenido, fecha_publicacion: c.fecha_publicacion,
         personajes_ids: c.personajes_ids, reinos_ids: c.reinos_ids ?? [],
         ciudades_ids: c.ciudades_ids ?? [],
+        lugares_ids: c.lugares_ids ?? [],
         libro_id: libroId,
         libros: normOne(c.libros) ?? undefined,
         _narrador: normOne(c.narrador),
