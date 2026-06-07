@@ -1549,15 +1549,19 @@ function PanelListas({
     nombre: string; accentBg?: string; accentBorder?: string; accentText?: string; fullWidth?: boolean;
   }) {
     const hasImg = !!imgUrl;
+    if (hasImg) {
+      return (
+        <button onClick={onClick} type="button" title={nombre}
+          className={`relative rounded-xl border overflow-hidden transition-all hover:scale-[1.02] active:scale-[0.98]${fullWidth ? " w-full" : ""}`}
+          style={{ background: accentBg ?? "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: accentBorder ?? "color-mix(in srgb, var(--primary) 12%, transparent)", aspectRatio: "1/1", width: "100%" }}>
+          <img src={imgUrl} alt={nombre} className="w-full h-full object-cover" />
+        </button>
+      );
+    }
     return (
       <button onClick={onClick} type="button"
-        className={`flex items-center gap-2 rounded-xl border transition-all hover:scale-[1.02] active:scale-[0.98]${fullWidth ? " w-full" : ""}${hasImg ? " pl-1.5 pr-3 py-1.5" : " px-3 py-1.5"}`}
+        className={`flex items-center rounded-xl border transition-all hover:scale-[1.02] active:scale-[0.98]${fullWidth ? " w-full" : ""} px-3 py-1.5`}
         style={{ background: accentBg ?? "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: accentBorder ?? "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
-        {hasImg && (
-          <div className="w-7 h-7 sm:w-6 sm:h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center">
-            <img src={imgUrl} alt={nombre} className="w-full h-full object-cover" />
-          </div>
-        )}
         <span className={`text-[11px] font-bold truncate${fullWidth ? "" : " max-w-[120px] sm:max-w-[90px]"}`} style={{ color: accentText ?? "color-mix(in srgb, var(--primary) 70%, transparent)" }}>{nombre}</span>
       </button>
     );
@@ -1567,7 +1571,6 @@ function PanelListas({
   function SeccionEntidades({ icon: Icon, label, count, loading, children, cols = 3 }: {
     icon: React.ElementType; label: string; count: number; loading: boolean; children: React.ReactNode; cols?: 1 | 3;
   }) {
-    const gridClass = cols === 1 ? "grid grid-cols-2 sm:grid-cols-3 gap-1.5" : "grid grid-cols-2 sm:grid-cols-3 gap-1.5";
     return (
       <div className="pb-1">
         <div className="flex items-center gap-1.5 mb-2">
@@ -1580,7 +1583,7 @@ function PanelListas({
           ? <div className="flex justify-center py-3"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
           : count === 0
             ? <p className="text-[9px] text-primary/20 italic px-1 pb-2">Sin {label.toLowerCase()} aún</p>
-            : <div className={gridClass}>{children}</div>
+            : <div className="grid gap-1.5" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(60px, 1fr))" }}>{children}</div>
         }
       </div>
     );
