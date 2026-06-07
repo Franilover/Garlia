@@ -1836,23 +1836,37 @@ function PanelListas({
               <div className={`${div} sm:hidden`} style={divStyle} />
 
               <SeccionEntidades icon={Layers} label={el.grupos} count={grupos.length} loading={!loadedGrupos}>
-                {grupos.map(g => {
-                  const cfg = GRUPO_TIPO_CONFIG[g.tipo as keyof typeof GRUPO_TIPO_CONFIG];
-                  return (
-                    <button key={g.id} type="button"
-                      onClick={async () => {
-                        const full = grupos.find(x => x.id === g.id);
-                        if (full) { selectGrupo(full); return; }
-                        const { data } = await supabase.from("grupos_mundo").select("*").eq("id", g.id).single();
-                        if (data) selectGrupo({ ...data, miembro_ids: data.miembro_ids ?? [] } as Grupo);
-                      }}
-                      className="flex flex-col px-3 py-1.5 rounded-xl border transition-all hover:scale-[1.02] active:scale-[0.98]"
-                      style={{ background: `color-mix(in srgb, ${cfg?.color ?? "var(--primary)"} 4%, transparent)`, borderColor: `color-mix(in srgb, ${cfg?.color ?? "var(--primary)"} 12%, transparent)` }}>
-                      <span className="text-[11px] font-bold text-primary/70 truncate">{g.nombre}</span>
-                      {g.tipo && <span className="text-[8px] text-primary/30 truncate capitalize">{g.tipo}</span>}
-                    </button>
-                  );
-                })}
+                {(() => {
+                  const porTipo = grupos.reduce((acc, g) => {
+                    const t = g.tipo || "otro";
+                    if (!acc[t]) acc[t] = [];
+                    acc[t].push(g);
+                    return acc;
+                  }, {} as Record<string, typeof grupos>);
+                  return Object.entries(porTipo).map(([tipo, lista]) => (
+                    <div key={tipo} className="col-span-full flex flex-col gap-1">
+                      <span className="text-[7px] font-black uppercase tracking-[0.2em] px-1" style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>{tipo}</span>
+                      <div className="grid gap-1.5" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(60px, 1fr))" }}>
+                        {lista.map(g => {
+                          const cfg = GRUPO_TIPO_CONFIG[g.tipo as keyof typeof GRUPO_TIPO_CONFIG];
+                          return (
+                            <button key={g.id} type="button"
+                              onClick={async () => {
+                                const full = grupos.find(x => x.id === g.id);
+                                if (full) { selectGrupo(full); return; }
+                                const { data } = await supabase.from("grupos_mundo").select("*").eq("id", g.id).single();
+                                if (data) selectGrupo({ ...data, miembro_ids: data.miembro_ids ?? [] } as Grupo);
+                              }}
+                              className="flex items-center px-3 py-1.5 rounded-xl border transition-all hover:scale-[1.02] active:scale-[0.98]"
+                              style={{ background: `color-mix(in srgb, ${cfg?.color ?? "var(--primary)"} 4%, transparent)`, borderColor: `color-mix(in srgb, ${cfg?.color ?? "var(--primary)"} 12%, transparent)` }}>
+                              <span className="text-[11px] font-bold text-primary/70 truncate">{g.nombre}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ));
+                })()}
               </SeccionEntidades>
               <div className={`${div} sm:hidden`} style={divStyle} />
 
