@@ -263,7 +263,7 @@ export function ComboSelector(props: ComboSelectorProps) {
 
       {/* Trigger */}
       {onNavigate && props.mode === "single" && selectedItems.length > 0 ? (
-        /* Modo navegación: click principal navega, lápiz abre el editor */
+        /* Modo navegación: click principal navega, lápiz abre el dropdown */
         <div
           className="w-full flex items-center rounded-[var(--radius-btn)] overflow-hidden transition-all"
           style={{
@@ -294,7 +294,7 @@ export function ComboSelector(props: ComboSelectorProps) {
               borderLeft: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
               color: "color-mix(in srgb, var(--primary) 35%, transparent)",
             }}
-            title="Editar"
+            title="Cambiar"
           >
             <Pencil size={11} />
           </button>
