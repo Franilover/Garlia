@@ -1548,13 +1548,16 @@ function PanelListas({
     onClick: () => void; imgUrl?: string | null; icon: React.ElementType;
     nombre: string; accentBg?: string; accentBorder?: string; accentText?: string; fullWidth?: boolean;
   }) {
+    const hasImg = !!imgUrl;
     return (
       <button onClick={onClick} type="button"
-        className={`flex items-center gap-2 pl-1.5 pr-3 py-1.5 rounded-xl border transition-all hover:scale-[1.02] active:scale-[0.98]${fullWidth ? " w-full" : ""}`}
+        className={`flex items-center gap-2 rounded-xl border transition-all hover:scale-[1.02] active:scale-[0.98]${fullWidth ? " w-full" : ""}${hasImg ? " pl-1.5 pr-3 py-1.5" : " px-3 py-1.5"}`}
         style={{ background: accentBg ?? "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: accentBorder ?? "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
-        <div className="w-7 h-7 sm:w-6 sm:h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center">
-          {imgUrl ? <img src={imgUrl} alt={nombre} className="w-full h-full object-cover" /> : <Icon size={11} className="text-primary/25" />}
-        </div>
+        {hasImg && (
+          <div className="w-7 h-7 sm:w-6 sm:h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center">
+            <img src={imgUrl} alt={nombre} className="w-full h-full object-cover" />
+          </div>
+        )}
         <span className={`text-[11px] font-bold truncate${fullWidth ? "" : " max-w-[120px] sm:max-w-[90px]"}`} style={{ color: accentText ?? "color-mix(in srgb, var(--primary) 70%, transparent)" }}>{nombre}</span>
       </button>
     );
@@ -1825,7 +1828,7 @@ function PanelListas({
             {/* ── Fila 1 desktop: Personajes · Grupos · Notas ── */}
             <div className="sm:grid sm:grid-cols-3 sm:gap-x-4">
               <SeccionEntidades icon={Users} label={el.personajes} count={personajes.length} loading={loadingPersonajes}>
-                {personajes.map(p => <Chip key={p.id} onClick={() => selectPersonaje(p)} imgUrl={p.img_url} icon={UserCircle2} nombre={p.nombre} />)}
+                {[...personajes].sort((a,b)=>(!!b.img_url ? 1:0)-(!!a.img_url ? 1:0)||a.nombre.localeCompare(b.nombre)).map(p => <Chip key={p.id} onClick={() => selectPersonaje(p)} imgUrl={p.img_url} icon={UserCircle2} nombre={p.nombre} />)}
               </SeccionEntidades>
               <div className={`${div} sm:hidden`} style={divStyle} />
 
@@ -1871,19 +1874,19 @@ function PanelListas({
             {/* ── Fila 2 desktop: Criaturas · Plantas · Items ── */}
             <div className="sm:grid sm:grid-cols-3 sm:gap-x-4">
               <SeccionEntidades icon={Bug} label={el.criaturas} count={criaturas.length} loading={loadingCriaturas}>
-                {criaturas.map(c => <Chip key={c.id} onClick={() => selectCriatura(c)} imgUrl={c.imagen_url} icon={Bug} nombre={c.nombre} />)}
+                {[...criaturas].sort((a,b)=>(!!b.imagen_url ? 1:0)-(!!a.imagen_url ? 1:0)||a.nombre.localeCompare(b.nombre)).map(c => <Chip key={c.id} onClick={() => selectCriatura(c)} imgUrl={c.imagen_url} icon={Bug} nombre={c.nombre} />)}
               </SeccionEntidades>
               <div className={`${div} sm:hidden`} style={divStyle} />
 
               <SeccionEntidades icon={Leaf} label={el.plantas} count={plantas.length} loading={loadingPlantas}>
-                {plantas.map(p => (
+                {[...plantas].sort((a,b)=>(!!b.imagen_url ? 1:0)-(!!a.imagen_url ? 1:0)||a.nombre.localeCompare(b.nombre)).map(p => (
                   <Chip key={p.id} onClick={() => selectPlanta(p)} imgUrl={p.imagen_url} icon={Leaf} nombre={p.nombre} />
                 ))}
               </SeccionEntidades>
               <div className={`${div} sm:hidden`} style={divStyle} />
 
               <SeccionEntidades icon={Package} label={el.objetos} count={objetos.length} loading={loadingObjetos}>
-                {objetos.map(o => <Chip key={o.id} onClick={() => selectObjeto(o)} imgUrl={o.imagen_url} icon={Package} nombre={o.nombre} />)}
+                {[...objetos].sort((a,b)=>(!!b.imagen_url ? 1:0)-(!!a.imagen_url ? 1:0)||a.nombre.localeCompare(b.nombre)).map(o => <Chip key={o.id} onClick={() => selectObjeto(o)} imgUrl={o.imagen_url} icon={Package} nombre={o.nombre} />)}
               </SeccionEntidades>
             </div>
             <div className={div} style={divStyle} />
@@ -1891,12 +1894,12 @@ function PanelListas({
             {/* ── Extra desktop: Reinos · Ciudades · Lugares ── */}
             <div className="sm:grid sm:grid-cols-3 sm:gap-x-4">
               <SeccionEntidades icon={Map} label={el.reinos} count={reinos.length} loading={loadingReinos}>
-                {reinos.map(r => <Chip key={r.id} onClick={() => selectReino(r)} imgUrl={r.mapa_url} icon={Map} nombre={r.nombre} />)}
+                {[...reinos].sort((a,b)=>(!!b.mapa_url ? 1:0)-(!!a.mapa_url ? 1:0)||a.nombre.localeCompare(b.nombre)).map(r => <Chip key={r.id} onClick={() => selectReino(r)} imgUrl={r.mapa_url} icon={Map} nombre={r.nombre} />)}
               </SeccionEntidades>
               <div className={`${div} sm:hidden`} style={divStyle} />
 
               <SeccionEntidades icon={MapPin} label={el.ciudades} count={ciudades.length} loading={loadingCiudades}>
-                {ciudades.map(l => (
+                {[...ciudades].sort((a,b)=>(!!b.imagen_url ? 1:0)-(!!a.imagen_url ? 1:0)||a.nombre.localeCompare(b.nombre)).map(l => (
                   <Chip key={l.id} onClick={async () => {
                     try { const { data } = await supabase.from("ciudades").select("*").eq("id", l.id).single(); if (data) { selectCiudad(data as Ciudad); return; } } catch {}
                     selectCiudad(l as Ciudad);
@@ -1906,7 +1909,7 @@ function PanelListas({
               <div className={`${div} sm:hidden`} style={divStyle} />
 
               <SeccionEntidades icon={Mountain} label={el.lugares} count={lugares.length} loading={loadingLugares}>
-                {lugares.map(l => (
+                {[...lugares].sort((a,b)=>(!!b.imagen_url ? 1:0)-(!!a.imagen_url ? 1:0)||a.nombre.localeCompare(b.nombre)).map(l => (
                   <Chip key={l.id} onClick={async () => {
                     try { const { data } = await supabase.from("lugares").select("*").eq("id", l.id).single(); if (data) { selectLugar(data as Lugar); return; } } catch {}
                     selectLugar(l as Lugar);
@@ -1931,7 +1934,7 @@ function PanelListas({
               <div className={`${div} sm:hidden`} style={divStyle} />
 
               <SeccionEntidades icon={ScrollText} label={el.runas} count={runas.length} loading={loadingRunas}>
-                {runas.map(r => <Chip key={r.id} onClick={() => selectRuna(r)} imgUrl={r.imagen_url} icon={ScrollText} nombre={r.nombre} />)}
+                {[...runas].sort((a,b)=>(!!b.imagen_url ? 1:0)-(!!a.imagen_url ? 1:0)||a.nombre.localeCompare(b.nombre)).map(r => <Chip key={r.id} onClick={() => selectRuna(r)} imgUrl={r.imagen_url} icon={ScrollText} nombre={r.nombre} />)}
               </SeccionEntidades>
             </div>
             <div className={div} style={divStyle} />
