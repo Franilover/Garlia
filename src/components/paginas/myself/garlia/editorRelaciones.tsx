@@ -79,7 +79,7 @@ const TAB_CONFIG: Record<TabId, {
     label: "Ciudades", icon: <MapPin size={12} />,
     tabla: "ciudades_desbloqueadas", fk: "ciudad_id",
     entidadTabla: "ciudades", entidadSelect: "nombre", entidadImagen: "imagen_url",
-    perfilCol: "user_id", fechaCol: "desbloqueado_en", joinAlias: "ciudades",
+    perfilCol: "user_id", fechaCol: "desbloqueado_en", joinAlias: "ciudad_data",
   },
 };
 
