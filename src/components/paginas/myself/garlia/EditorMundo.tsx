@@ -1822,113 +1822,127 @@ function PanelListas({
           {/* ENTIDADES */}
           <div className="px-3 sm:px-3 pb-4 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
 
-            <SeccionEntidades icon={Users} label={el.personajes} count={personajes.length} loading={loadingPersonajes}>
-              {personajes.map(p => <Chip key={p.id} onClick={() => selectPersonaje(p)} imgUrl={p.img_url} icon={UserCircle2} nombre={p.nombre} />)}
-            </SeccionEntidades>
-            <div className={div} style={divStyle} />
+            {/* ── Fila 1 desktop: Personajes · Grupos · Notas ── */}
+            <div className="sm:grid sm:grid-cols-3 sm:gap-x-4">
+              <SeccionEntidades icon={Users} label={el.personajes} count={personajes.length} loading={loadingPersonajes}>
+                {personajes.map(p => <Chip key={p.id} onClick={() => selectPersonaje(p)} imgUrl={p.img_url} icon={UserCircle2} nombre={p.nombre} />)}
+              </SeccionEntidades>
+              <div className={`${div} sm:hidden`} style={divStyle} />
 
-            <SeccionEntidades icon={Map} label={el.reinos} count={reinos.length} loading={loadingReinos}>
-              {reinos.map(r => <Chip key={r.id} onClick={() => selectReino(r)} imgUrl={r.mapa_url} icon={Map} nombre={r.nombre} />)}
-            </SeccionEntidades>
-            <div className={div} style={divStyle} />
+              <SeccionEntidades icon={Layers} label={el.grupos} count={grupos.length} loading={!loadedGrupos}>
+                {grupos.map(g => {
+                  const cfg = GRUPO_TIPO_CONFIG[g.tipo as keyof typeof GRUPO_TIPO_CONFIG];
+                  return (
+                    <button key={g.id} type="button"
+                      onClick={async () => {
+                        const full = grupos.find(x => x.id === g.id);
+                        if (full) { selectGrupo(full); return; }
+                        const { data } = await supabase.from("grupos_mundo").select("*").eq("id", g.id).single();
+                        if (data) selectGrupo({ ...data, miembro_ids: data.miembro_ids ?? [] } as Grupo);
+                      }}
+                      className="flex items-center gap-2 pl-1.5 pr-3 py-1.5 rounded-xl border transition-all hover:scale-[1.02] active:scale-[0.98]"
+                      style={{ background: `color-mix(in srgb, ${cfg?.color ?? "var(--primary)"} 4%, transparent)`, borderColor: `color-mix(in srgb, ${cfg?.color ?? "var(--primary)"} 12%, transparent)` }}>
+                      <div className="w-6 h-6 rounded-lg border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center">
+                        {cfg ? <cfg.Icon size={10} className="text-primary/25" /> : <Layers size={10} className="text-primary/25" />}
+                      </div>
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-[11px] font-bold text-primary/70 truncate max-w-[120px] sm:max-w-[90px]">{g.nombre}</span>
+                        <span className="text-[8px] text-primary/30">{g.miembro_ids.length} miembros</span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </SeccionEntidades>
+              <div className={`${div} sm:hidden`} style={divStyle} />
 
-            <SeccionEntidades icon={MapPin} label={el.ciudades} count={ciudades.length} loading={loadingCiudades}>
-              {ciudades.map(l => (
-                <Chip key={l.id} onClick={async () => {
-                  try { const { data } = await supabase.from("ciudades").select("*").eq("id", l.id).single(); if (data) { selectCiudad(data as Ciudad); return; } } catch {}
-                  selectCiudad(l as Ciudad);
-                }} imgUrl={l.imagen_url} icon={MapPin} nombre={l.nombre} />
-              ))}
-            </SeccionEntidades>
-            <div className={div} style={divStyle} />
-
-            <SeccionEntidades icon={Mountain} label={el.lugares} count={lugares.length} loading={loadingLugares}>
-              {lugares.map(l => (
-                <Chip key={l.id} onClick={async () => {
-                  try { const { data } = await supabase.from("lugares").select("*").eq("id", l.id).single(); if (data) { selectLugar(data as Lugar); return; } } catch {}
-                  selectLugar(l as Lugar);
-                }} imgUrl={l.imagen_url} icon={Mountain} nombre={l.nombre} />
-              ))}
-            </SeccionEntidades>
-            <div className={div} style={divStyle} />
-
-            <SeccionEntidades icon={Bug} label={el.criaturas} count={criaturas.length} loading={loadingCriaturas}>
-              {criaturas.map(c => <Chip key={c.id} onClick={() => selectCriatura(c)} imgUrl={c.imagen_url} icon={Bug} nombre={c.nombre} />)}
-            </SeccionEntidades>
-            <div className={div} style={divStyle} />
-
-            <SeccionEntidades icon={Leaf} label={el.plantas} count={plantas.length} loading={loadingPlantas}>
-              {plantas.map(p => (
-                <Chip key={p.id} onClick={() => selectPlanta(p)} imgUrl={p.imagen_url} icon={Leaf} nombre={p.nombre} />
-              ))}
-            </SeccionEntidades>
-            <div className={div} style={divStyle} />
-
-            <SeccionEntidades icon={Package} label={el.objetos} count={objetos.length} loading={loadingObjetos}>
-              {objetos.map(o => <Chip key={o.id} onClick={() => selectObjeto(o)} imgUrl={o.imagen_url} icon={Package} nombre={o.nombre} />)}
-            </SeccionEntidades>
-            <div className={div} style={divStyle} />
-
-            <SeccionEntidades icon={Sparkles} label={el.hechizos} count={hechizos.length} loading={loadingHechizos}>
-              {hechizos.map(h => <Chip key={h.id} onClick={() => selectHechizo(h)} icon={Sparkles} nombre={h.nombre}
-                accentBg="color-mix(in srgb, var(--accent) 5%, transparent)" accentBorder="color-mix(in srgb, var(--accent) 15%, transparent)" accentText="color-mix(in srgb, var(--accent) 80%, var(--primary))" />)}
-            </SeccionEntidades>
-            <div className={div} style={divStyle} />
-
-            <SeccionEntidades icon={Star} label={el.dones} count={dones.length} loading={loadingDones}>
-              {dones.map(d => <Chip key={d.id} onClick={() => selectDon(d)} icon={Star} nombre={d.nombre}
-                accentBg="color-mix(in srgb, var(--accent) 4%, transparent)" accentBorder="color-mix(in srgb, var(--accent) 13%, transparent)" accentText="color-mix(in srgb, var(--accent) 75%, var(--primary))" />)}
-            </SeccionEntidades>
-            <div className={div} style={divStyle} />
-
-            <SeccionEntidades icon={ScrollText} label={el.runas} count={runas.length} loading={loadingRunas}>
-              {runas.map(r => <Chip key={r.id} onClick={() => selectRuna(r)} imgUrl={r.imagen_url} icon={ScrollText} nombre={r.nombre} />)}
-            </SeccionEntidades>
-            <div className={div} style={divStyle} />
-
-            <SeccionEntidades icon={FileText} label={el.notas} count={notas.length} loading={loadingNotas}>
-              {notas.map(n => (
-                <button key={n.id} onClick={() => setSelectedNota(n)} type="button"
-                  className="flex items-center gap-2 pl-1.5 pr-3 py-1.5 rounded-xl border transition-all hover:scale-[1.02] active:scale-[0.98]"
-                  style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
-                  <div className="w-7 h-7 sm:w-6 sm:h-6 rounded-lg border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center"><FileText size={10} className="text-primary/25" /></div>
-                  <span className="text-[11px] font-bold text-primary/70 truncate max-w-[120px] sm:max-w-[90px]">{n.titulo || <span className="italic text-primary/30">Sin título</span>}</span>
-                </button>
-              ))}
-            </SeccionEntidades>
-            <div className={div} style={divStyle} />
-
-            <SeccionEntidades icon={Layers} label={el.grupos} count={grupos.length} loading={!loadedGrupos}>
-              {grupos.map(g => {
-                const cfg = GRUPO_TIPO_CONFIG[g.tipo as keyof typeof GRUPO_TIPO_CONFIG];
-                return (
-                  <button key={g.id} type="button"
-                    onClick={async () => {
-                      const full = grupos.find(x => x.id === g.id);
-                      if (full) { selectGrupo(full); return; }
-                      const { data } = await supabase.from("grupos_mundo").select("*").eq("id", g.id).single();
-                      if (data) selectGrupo({ ...data, miembro_ids: data.miembro_ids ?? [] } as Grupo);
-                    }}
+              <SeccionEntidades icon={FileText} label={el.notas} count={notas.length} loading={loadingNotas}>
+                {notas.map(n => (
+                  <button key={n.id} onClick={() => setSelectedNota(n)} type="button"
                     className="flex items-center gap-2 pl-1.5 pr-3 py-1.5 rounded-xl border transition-all hover:scale-[1.02] active:scale-[0.98]"
-                    style={{ background: `color-mix(in srgb, ${cfg?.color ?? "var(--primary)"} 4%, transparent)`, borderColor: `color-mix(in srgb, ${cfg?.color ?? "var(--primary)"} 12%, transparent)` }}>
-                    <div className="w-6 h-6 rounded-lg border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center">
-                      {cfg ? <cfg.Icon size={10} className="text-primary/25" /> : <Layers size={10} className="text-primary/25" />}
-                    </div>
-                    <div className="flex flex-col min-w-0">
-                      <span className="text-[11px] font-bold text-primary/70 truncate max-w-[120px] sm:max-w-[90px]">{g.nombre}</span>
-                      <span className="text-[8px] text-primary/30">{g.miembro_ids.length} miembros</span>
-                    </div>
+                    style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
+                    <div className="w-7 h-7 sm:w-6 sm:h-6 rounded-lg border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center"><FileText size={10} className="text-primary/25" /></div>
+                    <span className="text-[11px] font-bold text-primary/70 truncate max-w-[120px] sm:max-w-[90px]">{n.titulo || <span className="italic text-primary/30">Sin título</span>}</span>
                   </button>
-                );
-              })}
-            </SeccionEntidades>
+                ))}
+              </SeccionEntidades>
+            </div>
             <div className={div} style={divStyle} />
 
+            {/* ── Fila 2 desktop: Criaturas · Plantas · Items ── */}
+            <div className="sm:grid sm:grid-cols-3 sm:gap-x-4">
+              <SeccionEntidades icon={Bug} label={el.criaturas} count={criaturas.length} loading={loadingCriaturas}>
+                {criaturas.map(c => <Chip key={c.id} onClick={() => selectCriatura(c)} imgUrl={c.imagen_url} icon={Bug} nombre={c.nombre} />)}
+              </SeccionEntidades>
+              <div className={`${div} sm:hidden`} style={divStyle} />
+
+              <SeccionEntidades icon={Leaf} label={el.plantas} count={plantas.length} loading={loadingPlantas}>
+                {plantas.map(p => (
+                  <Chip key={p.id} onClick={() => selectPlanta(p)} imgUrl={p.imagen_url} icon={Leaf} nombre={p.nombre} />
+                ))}
+              </SeccionEntidades>
+              <div className={`${div} sm:hidden`} style={divStyle} />
+
+              <SeccionEntidades icon={Package} label={el.objetos} count={objetos.length} loading={loadingObjetos}>
+                {objetos.map(o => <Chip key={o.id} onClick={() => selectObjeto(o)} imgUrl={o.imagen_url} icon={Package} nombre={o.nombre} />)}
+              </SeccionEntidades>
+            </div>
+            <div className={div} style={divStyle} />
+
+            {/* ── Extra desktop: Reinos · Ciudades · Lugares ── */}
+            <div className="sm:grid sm:grid-cols-3 sm:gap-x-4">
+              <SeccionEntidades icon={Map} label={el.reinos} count={reinos.length} loading={loadingReinos}>
+                {reinos.map(r => <Chip key={r.id} onClick={() => selectReino(r)} imgUrl={r.mapa_url} icon={Map} nombre={r.nombre} />)}
+              </SeccionEntidades>
+              <div className={`${div} sm:hidden`} style={divStyle} />
+
+              <SeccionEntidades icon={MapPin} label={el.ciudades} count={ciudades.length} loading={loadingCiudades}>
+                {ciudades.map(l => (
+                  <Chip key={l.id} onClick={async () => {
+                    try { const { data } = await supabase.from("ciudades").select("*").eq("id", l.id).single(); if (data) { selectCiudad(data as Ciudad); return; } } catch {}
+                    selectCiudad(l as Ciudad);
+                  }} imgUrl={l.imagen_url} icon={MapPin} nombre={l.nombre} />
+                ))}
+              </SeccionEntidades>
+              <div className={`${div} sm:hidden`} style={divStyle} />
+
+              <SeccionEntidades icon={Mountain} label={el.lugares} count={lugares.length} loading={loadingLugares}>
+                {lugares.map(l => (
+                  <Chip key={l.id} onClick={async () => {
+                    try { const { data } = await supabase.from("lugares").select("*").eq("id", l.id).single(); if (data) { selectLugar(data as Lugar); return; } } catch {}
+                    selectLugar(l as Lugar);
+                  }} imgUrl={l.imagen_url} icon={Mountain} nombre={l.nombre} />
+                ))}
+              </SeccionEntidades>
+            </div>
+            <div className={div} style={divStyle} />
+
+            {/* ── Fila 3 desktop: Hechizos · Dones · Runas ── */}
+            <div className="sm:grid sm:grid-cols-3 sm:gap-x-4">
+              <SeccionEntidades icon={Sparkles} label={el.hechizos} count={hechizos.length} loading={loadingHechizos}>
+                {hechizos.map(h => <Chip key={h.id} onClick={() => selectHechizo(h)} icon={Sparkles} nombre={h.nombre}
+                  accentBg="color-mix(in srgb, var(--accent) 5%, transparent)" accentBorder="color-mix(in srgb, var(--accent) 15%, transparent)" accentText="color-mix(in srgb, var(--accent) 80%, var(--primary))" />)}
+              </SeccionEntidades>
+              <div className={`${div} sm:hidden`} style={divStyle} />
+
+              <SeccionEntidades icon={Star} label={el.dones} count={dones.length} loading={loadingDones}>
+                {dones.map(d => <Chip key={d.id} onClick={() => selectDon(d)} icon={Star} nombre={d.nombre}
+                  accentBg="color-mix(in srgb, var(--accent) 4%, transparent)" accentBorder="color-mix(in srgb, var(--accent) 13%, transparent)" accentText="color-mix(in srgb, var(--accent) 75%, var(--primary))" />)}
+              </SeccionEntidades>
+              <div className={`${div} sm:hidden`} style={divStyle} />
+
+              <SeccionEntidades icon={ScrollText} label={el.runas} count={runas.length} loading={loadingRunas}>
+                {runas.map(r => <Chip key={r.id} onClick={() => selectRuna(r)} imgUrl={r.imagen_url} icon={ScrollText} nombre={r.nombre} />)}
+              </SeccionEntidades>
+            </div>
+            <div className={div} style={divStyle} />
+
+            {/* ── Fila 4 desktop: Canciones (ancho completo) ── */}
             <SeccionEntidades icon={Music} label={el.canciones} count={canciones.length} loading={loadingCanciones} cols={1}>
               {canciones.map(c => (
                 <Chip key={c.id} onClick={() => selectCancion(c as unknown as Cancion)} icon={Music} nombre={c.titulo} />
               ))}
             </SeccionEntidades>
+
           </div>
 
         </div>
