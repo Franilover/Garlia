@@ -48,9 +48,11 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
   const [modalPersonaje, setModalPersonaje]         = useState<Descubrimiento | null>(null);
   const [cancionesPersonaje, setCancionesPersonaje] = useState<any[]>([]);
   const [cargandoCanciones, setCargandoCanciones]   = useState(false);
-  const [reinos, setReinos]                         = useState<{ id: string; nombre: string; imagen_reino?: string | null; mapa_url?: string | null; descripcion?: string | null }[]>([]);
+  const [reinos, setReinos]                         = useState<{ id: string; nombre: string; mapa_url?: string | null; descripcion?: string | null }[]>([]);
   const [ciudades, setCiudades]                     = useState<{ id: string; nombre: string; imagen_url?: string | null; descripcion?: string | null; reino_id?: string | null }[]>([]);
   const [lugares, setLugares]                       = useState<{ id: string; nombre: string; imagen_url?: string | null; descripcion?: string | null; reino_id?: string | null }[]>([]);
+  const [ciudadesReino, setCiudadesReino]           = useState<typeof ciudades>([]);
+  const [lugaresReino, setLugaresReino]             = useState<typeof lugares>([]);
 
   useEffect(() => {
     if (!username) return;
@@ -85,7 +87,7 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
           .select("fecha_descubrimiento, personajes:personaje_id(id, nombre, reino, especie, img_url, sobre)")
           .eq("perfil_id", uid),
         supabase.from("descubrimientos_reinos")
-          .select("fecha_descubrimiento, reinos:reino_id(id, nombre, imagen_reino, mapa_url, descripcion)")
+          .select("fecha_descubrimiento, reinos:reino_id(id, nombre, mapa_url, descripcion)")
           .eq("perfil_id", uid),
         supabase.from("ciudades_desbloqueadas")
           .select("ciudades:ciudad_id(id, nombre, imagen_url, descripcion, reino_id)")
@@ -95,11 +97,10 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
       ]);
 
       const reinosData = (reinosRes.data ?? []).map((r: any) => ({
-        id:           r.reinos?.id,
-        nombre:       r.reinos?.nombre,
-        imagen_reino: r.reinos?.imagen_reino,
-        mapa_url:     r.reinos?.mapa_url,
-        descripcion:  r.reinos?.descripcion,
+        id:          r.reinos?.id,
+        nombre:      r.reinos?.nombre,
+        mapa_url:    r.reinos?.mapa_url,
+        descripcion: r.reinos?.descripcion,
       })).filter((r: any) => r.id);
       setReinos(reinosData);
 
@@ -237,8 +238,179 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
 
   return (
     <>
-      {/* Modales */}
-      {modalD && <ModalDetalle entidad={modalD} onClose={() => setModalD(null)} />}
+      {/* Modales: items, criaturas, ciudades */}
+      {modalD && modalD.tipo !== "reino" && (
+        <ModalDetalle entidad={modalD} onClose={() => setModalD(null)} />
+      )}
+
+      {/* Modal custom para reinos con ciudades y lugares */}
+      <AnimatePresence>
+        {modalD && modalD.tipo === "reino" && (
+          <>
+            <MotionDiv
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => { setModalD(null); setCiudadesReino([]); setLugaresReino([]); }}
+              className="fixed inset-0 z-40 backdrop-blur-sm"
+              style={{ background: "rgba(0,0,0,0.45)" }}
+            />
+            <MotionDiv
+              initial={{ opacity: 0, scale: 0.94, y: 24 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.94, y: 24 }}
+              transition={{ type: "spring", stiffness: 340, damping: 30 }}
+              className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-50 md:inset-x-auto md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[30rem]"
+              style={{
+                background: "var(--white-custom)",
+                borderRadius: "var(--radius-card)",
+                border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+                boxShadow: "0 24px 64px color-mix(in srgb, var(--primary) 18%, transparent), 0 4px 16px color-mix(in srgb, var(--primary) 10%, transparent)",
+                maxHeight: "88dvh",
+                display: "flex",
+                flexDirection: "column",
+                overflow: "hidden",
+              }}
+            >
+              {/* Hero imagen */}
+              <div className="w-full shrink-0 overflow-hidden relative"
+                style={{
+                  height: (modalD.data.imagen_url || modalD.data.img_url) ? "220px" : "80px",
+                  background: "color-mix(in srgb, var(--primary) 6%, var(--bg-main))",
+                }}>
+                {/* Mapa de fondo */}
+                {modalD.data.imagen_url && (
+                  <img src={modalD.data.imagen_url} alt={modalD.data.nombre}
+                    className="w-full h-full object-cover"
+                    style={{ opacity: 0.35 }} />
+                )}
+                {/* Logo centrado encima */}
+                {modalD.data.img_url && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <img src={modalD.data.img_url} alt={`Logo ${modalD.data.nombre}`}
+                      className="object-contain drop-shadow-lg transition-transform duration-700 hover:scale-105"
+                      style={{ maxHeight: "140px", maxWidth: "60%" }} />
+                  </div>
+                )}
+                <div className="absolute inset-0" style={{
+                  background: "linear-gradient(to top, var(--white-custom) 0%, color-mix(in srgb, var(--white-custom) 20%, transparent) 50%, transparent 100%)"
+                }} />
+                <button
+                  onClick={() => { setModalD(null); setCiudadesReino([]); setLugaresReino([]); }}
+                  className="absolute top-3 right-3 z-10 w-8 h-8 flex items-center justify-center transition-all hover:scale-110"
+                  style={{
+                    color: "var(--primary)",
+                    background: "color-mix(in srgb, var(--white-custom) 85%, transparent)",
+                    borderRadius: "var(--radius-btn)",
+                    border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+                    backdropFilter: "blur(6px)",
+                  }}>
+                  <X size={13} />
+                </button>
+                {(modalD.data.imagen_url || modalD.data.img_url) && (
+                  <div className="absolute bottom-0 left-0 right-0 px-6 pb-4">
+                    <h2 className="font-serif italic capitalize leading-tight"
+                      style={{ fontSize: "1.75rem", color: "var(--primary)", lineHeight: 1.15 }}>
+                      {modalD.data.nombre ?? "Reino"}
+                    </h2>
+                  </div>
+                )}
+              </div>
+
+              <div className="overflow-y-auto flex-1 px-6 pb-6" style={{ paddingTop: "1.25rem" }}>
+                {!modalD.data.imagen_url && !modalD.data.img_url && (
+                  <h2 className="font-serif italic capitalize leading-tight mb-4"
+                    style={{ fontSize: "1.75rem", color: "var(--primary)" }}>
+                    {modalD.data.nombre ?? "Reino"}
+                  </h2>
+                )}
+                {modalD.data.descripcion && (
+                  <p className="font-serif italic leading-relaxed mb-5"
+                    style={{ fontSize: "0.88rem", color: "color-mix(in srgb, var(--foreground) 68%, transparent)", lineHeight: 1.7 }}>
+                    {modalD.data.descripcion}
+                  </p>
+                )}
+
+                {/* Sección de ciudades y lugares del reino */}
+                {(ciudadesReino.length > 0 || lugaresReino.length > 0) && (
+                  <>
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
+                      <div className="flex items-center gap-1.5">
+                        <MapPin size={10} style={{ color: "color-mix(in srgb, var(--primary) 28%, transparent)" }} />
+                        <span className="font-serif italic text-[9px] font-black uppercase tracking-widest"
+                          style={{ color: "color-mix(in srgb, var(--primary) 28%, transparent)" }}>
+                          Lugares
+                        </span>
+                      </div>
+                      <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      {[...ciudadesReino, ...lugaresReino].map((lugar, i) => (
+                        <button
+                          key={lugar.id ?? i}
+                          onClick={() => {
+                            setModalD(null);
+                            setCiudadesReino([]);
+                            setLugaresReino([]);
+                            setTimeout(() => setModalD({ tipo: "ciudad", data: {
+                              tipo: "item",
+                              entidad_id: lugar.id,
+                              nombre: lugar.nombre,
+                              imagen_url: lugar.imagen_url ?? undefined,
+                              descripcion: lugar.descripcion ?? undefined,
+                              fecha_descubrimiento: "",
+                            }}), 120);
+                          }}
+                          className="group flex items-center gap-3 px-3 py-3 transition-all text-left w-full"
+                          style={{
+                            background: "color-mix(in srgb, var(--primary) 3%, var(--white-custom))",
+                            border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+                            borderRadius: "var(--radius-btn)",
+                          }}
+                          onMouseEnter={e => {
+                            (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 22%, transparent)";
+                            (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 6%, var(--white-custom))";
+                          }}
+                          onMouseLeave={e => {
+                            (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 8%, transparent)";
+                            (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 3%, var(--white-custom))";
+                          }}>
+                          {lugar.imagen_url ? (
+                            <div className="w-11 h-11 shrink-0 overflow-hidden"
+                              style={{ borderRadius: "var(--radius-btn)", background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+                              <img src={lugar.imagen_url} alt={lugar.nombre}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                            </div>
+                          ) : (
+                            <div className="w-11 h-11 shrink-0 flex items-center justify-center"
+                              style={{ borderRadius: "var(--radius-btn)", background: "color-mix(in srgb, var(--primary) 6%, transparent)" }}>
+                              <MapPin size={14} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <span className="font-serif italic text-[12px] truncate block group-hover:underline"
+                              style={{ color: "var(--primary)" }}>
+                              {lugar.nombre}
+                            </span>
+                            {lugar.descripcion && (
+                              <span className="text-[9px] font-black uppercase tracking-wider truncate block mt-0.5"
+                                style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
+                                {lugar.descripcion.slice(0, 60)}{lugar.descripcion.length > 60 ? "…" : ""}
+                              </span>
+                            )}
+                          </div>
+                          <ChevronRight size={13} style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)", flexShrink: 0 }}
+                            className="group-hover:translate-x-0.5 transition-transform" />
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            </MotionDiv>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Modal personaje */}
       <AnimatePresence>
@@ -702,26 +874,40 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                     reinos.length > 0
                       ? reinos.map((r, i) => (
                           <button key={i}
-                            onClick={() => setModalD({ tipo: "reino", data: {
-                              tipo: "item",
-                              entidad_id: r.id,
-                              nombre: r.nombre,
-                              imagen_url: r.mapa_url ?? undefined,
-                              descripcion: r.descripcion ?? undefined,
-                              fecha_descubrimiento: "",
-                            }})}
+                            onClick={() => {
+                              setCiudadesReino(ciudades.filter(l => l.reino_id === r.id));
+                              setLugaresReino(lugares.filter(l => l.reino_id === r.id));
+                              setModalD({ tipo: "reino", data: {
+                                tipo: "item",
+                                entidad_id: r.id,
+                                nombre: r.nombre,
+                                imagen_url: r.mapa_url ?? undefined,
+                                descripcion: r.descripcion ?? undefined,
+                                fecha_descubrimiento: "",
+                              }});
+                            }}
                             className="group relative overflow-hidden text-left transition-all duration-150"
                             style={{
                               background: "color-mix(in srgb, var(--primary) 3%, var(--white-custom))",
                               border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
                               borderRadius: "4px",
-                              aspectRatio: "1",
+                              boxShadow: "inset 0 1px 0 color-mix(in srgb, var(--primary) 6%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--primary) 10%, transparent)",
+                              aspectRatio: "1 / 1",
                               display: "flex",
                               flexDirection: "column",
+                              minHeight: "80px",
                             }}
-                            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 35%, transparent)"; }}
-                            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 14%, transparent)"; }}>
-                            <div className="flex-1 relative overflow-hidden flex items-center justify-center">
+                            onMouseEnter={e => {
+                              (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 35%, transparent)";
+                              (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 7%, var(--white-custom))";
+                              (e.currentTarget as HTMLElement).style.boxShadow = "inset 0 1px 0 color-mix(in srgb, var(--primary) 12%, transparent), 0 0 0 1px color-mix(in srgb, var(--primary) 20%, transparent)";
+                            }}
+                            onMouseLeave={e => {
+                              (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 14%, transparent)";
+                              (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 3%, var(--white-custom))";
+                              (e.currentTarget as HTMLElement).style.boxShadow = "inset 0 1px 0 color-mix(in srgb, var(--primary) 6%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--primary) 10%, transparent)";
+                            }}>
+                            <div className="flex-1 relative overflow-hidden flex items-center justify-center p-2" style={{ minHeight: "64px", width: "100%" }}>
                               {r.mapa_url
                                 ? <img src={r.mapa_url} alt={r.nombre}
                                     className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-110" />
@@ -755,13 +941,23 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                         background: "color-mix(in srgb, var(--primary) 3%, var(--white-custom))",
                         border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
                         borderRadius: "4px",
-                        aspectRatio: "1",
+                        boxShadow: "inset 0 1px 0 color-mix(in srgb, var(--primary) 6%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--primary) 10%, transparent)",
+                        aspectRatio: "1 / 1",
                         display: "flex",
                         flexDirection: "column",
+                        minHeight: "80px",
                       }}
-                      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 35%, transparent)"; }}
-                      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 14%, transparent)"; }}>
-                      <div className="flex-1 relative overflow-hidden flex items-center justify-center">
+                      onMouseEnter={e => {
+                        (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 35%, transparent)";
+                        (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 7%, var(--white-custom))";
+                        (e.currentTarget as HTMLElement).style.boxShadow = "inset 0 1px 0 color-mix(in srgb, var(--primary) 12%, transparent), 0 0 0 1px color-mix(in srgb, var(--primary) 20%, transparent)";
+                      }}
+                      onMouseLeave={e => {
+                        (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 14%, transparent)";
+                        (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 3%, var(--white-custom))";
+                        (e.currentTarget as HTMLElement).style.boxShadow = "inset 0 1px 0 color-mix(in srgb, var(--primary) 6%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--primary) 10%, transparent)";
+                      }}>
+                      <div className="flex-1 relative overflow-hidden flex items-center justify-center p-2" style={{ minHeight: "64px", width: "100%" }}>
                         {l.imagen_url
                           ? <img src={l.imagen_url} alt={l.nombre}
                               className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" />
