@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import {
   Sparkles, Star, Globe, Plus, Trash2, Save, Loader2, X, Bug,
   ChevronDown, Mountain, ScrollText, Map, FileText, Users, UserCircle2, Package,
-  Crown, Clock, Filter, Layers, BookOpen, Music, MapPin, Leaf,
+  Crown, Clock, Filter, Layers, BookOpen, Music, MapPin, Leaf, Gem,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
@@ -21,6 +21,7 @@ import { EditorCiudad, type Ciudad } from "./EditorCiudad";
 import { EditorLugar, type Lugar } from "./EditorLugar";
 import { EditorPlanta, type Planta } from "./EditorPlanta";
 import { EditorHechizos } from "./EditorHechizos";
+import { EditorMineral, type Mineral } from "./EditorMineral";
 import { type WikiEntity } from "../../../forms/MarkdownEditor";
 import { type TimelineEvent } from "./components/LoreTab";
 import { useNotas } from "./components/useNotas";
@@ -173,6 +174,16 @@ function usePlantas() {
     () => supabase.from("plantas").select("id, nombre, imagen_url, categoria").order("nombre"),
   );
   return { plantas: items, setPlantas: setItems, loading };
+}
+
+type MineralMin = { id: string; nombre: string; imagen_url?: string | null; categoria?: string | null };
+
+function useMinerales() {
+  const { items, setItems, loading } = useEntityList<MineralMin>(
+    "minerales",
+    () => supabase.from("minerales").select("id, nombre, imagen_url, categoria").order("nombre"),
+  );
+  return { minerales: items, setMinerales: setItems, loading };
 }
 
 function useCriaturaVariantes(criaturaId: string | null) {
@@ -1219,6 +1230,48 @@ function PlantaOverlay({
   );
 }
 
+// ─── MineralOverlay: carga el mineral completo y renderiza EditorMineral ──────
+function MineralOverlay({
+  mineralMin, allEntityNames,
+  onUpdated, onDeleted, onNavigateCiudad, onNavigateReino, onNavigateLugar,
+}: {
+  mineralMin: { id: string; nombre: string; imagen_url?: string | null; categoria?: string | null };
+  allEntityNames: WikiEntity[];
+  onUpdated: (m: any) => void;
+  onDeleted: (id: string) => void;
+  onNavigateCiudad?: (id: string) => void;
+  onNavigateReino?: (id: string) => void;
+  onNavigateLugar?: (id: string) => void;
+}) {
+  const [mineral, setMineral] = useState<Mineral | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    supabase.from("minerales").select("*").eq("id", mineralMin.id).single()
+      .then(({ data }) => { if (data) setMineral(data as Mineral); setLoading(false); });
+  }, [mineralMin.id]);
+
+  if (loading || !mineral) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <Loader2 size={20} className="animate-spin text-primary/20" />
+      </div>
+    );
+  }
+
+  return (
+    <EditorMineral
+      mineral={mineral}
+      entities={allEntityNames}
+      onSaved={(updated) => { setMineral(updated); onUpdated(updated); }}
+      onDeleted={onDeleted}
+      onNavigateCiudad={onNavigateCiudad}
+      onNavigateReino={onNavigateReino}
+      onNavigateLugar={onNavigateLugar}
+    />
+  );
+}
+
 // ─── Constante de localStorage ────────────────────────────────────────────────
 const LS_ITEM_KEY = "garlia-panel-item";
 const LS_SCROLL_KEY = "garlia-scroll-pos";
@@ -1264,6 +1317,7 @@ function PanelListas({
     () => supabase.from("runas").select("id, nombre, imagen_url").order("nombre"),
   );
   const { plantas, setPlantas, loading: loadingPlantas } = usePlantas();
+  const { minerales, setMinerales, loading: loadingMinerales } = useMinerales();
 
   const { grupos, loaded: loadedGrupos, actualizarGrupo, eliminarGrupo } = useGrupos();
   const { notas, loading: loadingNotas, crear: crearNota, actualizar: actualizarNota, eliminar: eliminarNota } = useNotas();
@@ -1283,6 +1337,7 @@ function PanelListas({
   const [selectedGrupo,     setSelectedGrupo]     = useState<Grupo | null>(null);
   const [selectedCancion,   setSelectedCancion]   = useState<Cancion | null>(null);
   const [selectedPlanta,    setSelectedPlanta]    = useState<PlantaMin | null>(null);
+  const [selectedMineral,   setSelectedMineral]   = useState<MineralMin | null>(null);
   const [showModalCancion,  setShowModalCancion]  = useState(false);
 
   // ── Scroll position ───────────────────────────────────────────────────────
@@ -1325,10 +1380,11 @@ function PanelListas({
   const selectGrupo     = useCallback((g: Grupo | null)         => { setSelectedGrupo(g);     g ? persistOpenItem("grupos_mundo", g.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
   const selectCancion   = useCallback((c: Cancion | null)       => { setSelectedCancion(c);   c ? persistOpenItem("canciones",   c.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
   const selectPlanta    = useCallback((p: PlantaMin | null)     => { setSelectedPlanta(p);    p ? persistOpenItem("plantas",     p.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
+  const selectMineral   = useCallback((m: MineralMin | null)    => { setSelectedMineral(m);   m ? persistOpenItem("minerales",   m.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
   const selectLugar     = useCallback((l: Lugar | null)         => { setSelectedLugar(l);     l ? persistOpenItem("lugares",     l.id) : clearPersistedItem(); }, [persistOpenItem, clearPersistedItem]);
 
   // ── Overlay activo ────────────────────────────────────────────────────────
-  const overlay: "reino" | "criatura" | "objeto" | "personaje" | "hechizo" | "don" | "runa" | "nota" | "ciudad" | "grupo" | "cancion" | "planta" | "lugar" | null =
+  const overlay: "reino" | "criatura" | "objeto" | "personaje" | "hechizo" | "don" | "runa" | "nota" | "ciudad" | "grupo" | "cancion" | "planta" | "lugar" | "mineral" | null =
     selectedReino     ? "reino"     :
     selectedCriatura  ? "criatura"  :
     selectedObjeto    ? "objeto"    :
@@ -1341,6 +1397,7 @@ function PanelListas({
     selectedGrupo     ? "grupo"     :
     selectedCancion   ? "cancion"   :
     selectedPlanta    ? "planta"    :
+    selectedMineral   ? "mineral"   :
     selectedLugar     ? "lugar"     : null;
 
   const clearAllOverlays = useCallback(() => {
@@ -1349,6 +1406,7 @@ function PanelListas({
     setSelectedHechizo(null); setSelectedDon(null); setSelectedRuna(null);
     setSelectedNota(null); setSelectedCiudad(null); setSelectedGrupo(null);
     setSelectedCancion(null); setSelectedPlanta(null); setSelectedLugar(null);
+    setSelectedMineral(null);
     clearPersistedItem();
   }, [clearPersistedItem]);
 
@@ -1367,8 +1425,9 @@ function PanelListas({
     ...dones     .map(e => ({ name: e.nombre, type: "don"       })),
     ...runas     .map(e => ({ name: e.nombre, type: "runa"      })),
     ...plantas   .map(e => ({ name: e.nombre, type: "planta"    })),
+    ...minerales .map(e => ({ name: e.nombre, type: "mineral"   })),
     ...lugares   .map(e => ({ name: e.nombre, type: "lugar"     })),
-  ], [personajes, criaturas, objetos, reinos, ciudades, lugares, hechizos, dones, runas, plantas]);
+  ], [personajes, criaturas, objetos, reinos, ciudades, lugares, hechizos, dones, runas, plantas, minerales]);
 
   // ── Restaurar item al montar ───────────────────────────────────────────────
   // Estrategia: Dexie primero (instantáneo) → Supabase si no hay datos locales
@@ -1411,6 +1470,7 @@ function PanelListas({
         else if (tabla === "grupos_mundo") setSelectedGrupo({ ...data, miembro_ids: data.miembro_ids ?? [] } as Grupo);
         else if (tabla === "canciones")    setSelectedCancion(data as Cancion);
         else if (tabla === "plantas")      setSelectedPlanta(data as PlantaMin);
+        else if (tabla === "minerales")    setSelectedMineral(data as MineralMin);
         else if (tabla === "lugares")      setSelectedLugar(data as Lugar);
       } catch {}
     })();
@@ -1435,6 +1495,7 @@ function PanelListas({
     else if (tabla === "runas")      found = runas.find(x => x.id === id);
     else if (tabla === "canciones")  found = canciones.find(x => x.id === id); // <--- AÑADIDO
     else if (tabla === "plantas")    found = plantas.find(x => x.id === id);
+    else if (tabla === "minerales")  found = minerales.find(x => x.id === id);
     else if (tabla === "lugares")    found = lugares.find(x => x.id === id);
 
     if (!found || lastOpenItemRef.current === refKey) return;
@@ -1450,11 +1511,12 @@ function PanelListas({
     else if (tabla === "runas")      setSelectedRuna(found);
     else if (tabla === "canciones")  setSelectedCancion(found); // <--- AÑADIDO
     else if (tabla === "plantas")    setSelectedPlanta(found);
+    else if (tabla === "minerales")  setSelectedMineral(found);
     else if (tabla === "lugares")    setSelectedLugar(found);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openItem,
       personajes.length, criaturas.length, objetos.length, reinos.length,
-      ciudades.length, lugares.length, hechizos.length, dones.length, runas.length, canciones.length, plantas.length]);
+      ciudades.length, lugares.length, hechizos.length, dones.length, runas.length, canciones.length, plantas.length, minerales.length]);
 
 // ── onItemCreated ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -1479,6 +1541,7 @@ function PanelListas({
     else if (tabla === "runas")      setSelectedRuna(item);
     else if (tabla === "canciones")  setSelectedCancion(item); // <--- AÑADIDO
     else if (tabla === "plantas")    { setPlantas(p => p.some(x => x.id === item.id) ? p : [item, ...p]); setSelectedPlanta(item); }
+    else if (tabla === "minerales")  { setMinerales(p => p.some(x => x.id === item.id) ? p : [item, ...p]); setSelectedMineral(item); }
     else if (tabla === "lugares")    { setLugares(p => p.some(x => x.id === item.id) ? p : [item, ...p]); setSelectedLugar(item); }
   }, [onItemCreated]);
 
@@ -1788,6 +1851,38 @@ function PanelListas({
                 />
               );
             })()}
+            {overlay === "mineral" && selectedMineral && (() => {
+              return (
+                <MineralOverlay
+                  key={selectedMineral.id}
+                  mineralMin={selectedMineral}
+                  allEntityNames={allEntityNames}
+                  onUpdated={(updated) => { setMinerales(p => p.map(x => x.id === updated.id ? { ...x, ...updated } : x)); setSelectedMineral({ ...selectedMineral, ...updated }); }}
+                  onDeleted={(id) => { setMinerales(p => p.filter(x => x.id !== id)); setSelectedMineral(null); }}
+                  onNavigateCiudad={async (id) => {
+                    const local = ciudades.find(x => x.id === id);
+                    clearAllOverlays();
+                    if (local) { setSelectedCiudad(local as Ciudad); return; }
+                    const { data } = await supabase.from("ciudades").select("*").eq("id", id).single();
+                    if (data) setSelectedCiudad(data as Ciudad);
+                  }}
+                  onNavigateReino={async (id) => {
+                    const local = reinos.find(x => x.id === id);
+                    clearAllOverlays();
+                    if (local) { setSelectedReino(local); return; }
+                    const { data } = await supabase.from("reinos").select("*").eq("id", id).single();
+                    if (data) setSelectedReino(data as Reino);
+                  }}
+                  onNavigateLugar={async (id) => {
+                    const local = lugares.find(x => x.id === id);
+                    clearAllOverlays();
+                    if (local) { setSelectedLugar(local as Lugar); return; }
+                    const { data } = await supabase.from("lugares").select("*").eq("id", id).single();
+                    if (data) setSelectedLugar(data as Lugar);
+                  }}
+                />
+              );
+            })()}
             {overlay === "lugar" && selectedLugar && (
               <EditorLugar key={selectedLugar.id} item={selectedLugar}
                 entities={allEntityNames}
@@ -1882,21 +1977,66 @@ function PanelListas({
             </div>
             <div className={div} style={divStyle} />
 
-            {/* ── Fila 2 desktop: Criaturas · Plantas · Items ── */}
+            {/* ── Fila 2 desktop: Criaturas · Naturales (Plantas + Minerales) · Artificiales (Objetos) ── */}
             <div className="sm:grid sm:grid-cols-3 sm:gap-x-4">
               <SeccionEntidades icon={Bug} label={el.criaturas} count={criaturas.length} loading={loadingCriaturas}>
                 {[...criaturas].sort((a,b)=>(!!b.imagen_url ? 1:0)-(!!a.imagen_url ? 1:0)||a.nombre.localeCompare(b.nombre)).map(c => <Chip key={c.id} onClick={() => selectCriatura(c)} imgUrl={c.imagen_url} icon={Bug} nombre={c.nombre} />)}
               </SeccionEntidades>
               <div className={`${div} sm:hidden`} style={divStyle} />
 
-              <SeccionEntidades icon={Leaf} label={el.plantas} count={plantas.length} loading={loadingPlantas}>
-                {[...plantas].sort((a,b)=>(!!b.imagen_url ? 1:0)-(!!a.imagen_url ? 1:0)||a.nombre.localeCompare(b.nombre)).map(p => (
-                  <Chip key={p.id} onClick={() => selectPlanta(p)} imgUrl={p.imagen_url} icon={Leaf} nombre={p.nombre} />
-                ))}
-              </SeccionEntidades>
+              {/* Columna central: Naturales = Plantas + Minerales */}
+              <div className="pb-1">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <Leaf size={10} className="text-primary/30 shrink-0" />
+                  <span className="text-[8px] font-black uppercase tracking-[0.25em]" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
+                    Naturales · {plantas.length + minerales.length}
+                  </span>
+                </div>
+                {/* Sub-sección: Plantas */}
+                {(loadingPlantas || plantas.length > 0) && (
+                  <div className="mb-2">
+                    <div className="flex items-center gap-1 mb-1.5">
+                      <Leaf size={8} className="text-primary/20 shrink-0" />
+                      <span className="text-[7px] font-black uppercase tracking-[0.2em]" style={{ color: "color-mix(in srgb, var(--primary) 22%, transparent)" }}>
+                        {el.plantas}
+                      </span>
+                    </div>
+                    {loadingPlantas
+                      ? <div className="flex justify-center py-2"><Loader2 size={12} className="animate-spin text-primary/20" /></div>
+                      : <div className="grid gap-1.5" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(60px, 1fr))" }}>
+                          {[...plantas].sort((a,b)=>(!!b.imagen_url ? 1:0)-(!!a.imagen_url ? 1:0)||a.nombre.localeCompare(b.nombre)).map(p => (
+                            <Chip key={p.id} onClick={() => selectPlanta(p)} imgUrl={p.imagen_url} icon={Leaf} nombre={p.nombre} />
+                          ))}
+                        </div>
+                    }
+                  </div>
+                )}
+                {/* Sub-sección: Minerales */}
+                {(loadingMinerales || minerales.length > 0) && (
+                  <div>
+                    <div className="flex items-center gap-1 mb-1.5">
+                      <Gem size={8} className="text-primary/20 shrink-0" />
+                      <span className="text-[7px] font-black uppercase tracking-[0.2em]" style={{ color: "color-mix(in srgb, var(--primary) 22%, transparent)" }}>
+                        Minerales
+                      </span>
+                    </div>
+                    {loadingMinerales
+                      ? <div className="flex justify-center py-2"><Loader2 size={12} className="animate-spin text-primary/20" /></div>
+                      : <div className="grid gap-1.5" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(60px, 1fr))" }}>
+                          {[...minerales].sort((a,b)=>(!!b.imagen_url ? 1:0)-(!!a.imagen_url ? 1:0)||a.nombre.localeCompare(b.nombre)).map(m => (
+                            <Chip key={m.id} onClick={() => selectMineral(m)} imgUrl={m.imagen_url} icon={Gem} nombre={m.nombre} />
+                          ))}
+                        </div>
+                    }
+                  </div>
+                )}
+                {!loadingPlantas && !loadingMinerales && plantas.length === 0 && minerales.length === 0 && (
+                  <p className="text-[9px] text-primary/20 italic px-1 pb-2">Sin naturales aún</p>
+                )}
+              </div>
               <div className={`${div} sm:hidden`} style={divStyle} />
 
-              <SeccionEntidades icon={Package} label={el.objetos} count={objetos.length} loading={loadingObjetos}>
+              <SeccionEntidades icon={Package} label="Artificiales" count={objetos.length} loading={loadingObjetos}>
                 {[...objetos].sort((a,b)=>(!!b.imagen_url ? 1:0)-(!!a.imagen_url ? 1:0)||a.nombre.localeCompare(b.nombre)).map(o => <Chip key={o.id} onClick={() => selectObjeto(o)} imgUrl={o.imagen_url} icon={Package} nombre={o.nombre} />)}
               </SeccionEntidades>
             </div>
