@@ -50,6 +50,7 @@ const TAB_CONFIG: Record<TabId, {
   perfilCol: string;        // columna del perfil_id / user_id
   fechaCol: string;         // columna de fecha
   joinAlias: string;        // alias en la query de join
+  compositePk?: boolean;    // true si la PK es (perfilCol, fk) en vez de id
 }> = {
   personajes: {
     label: "Personajes", icon: <User size={12} />,
@@ -80,6 +81,7 @@ const TAB_CONFIG: Record<TabId, {
     tabla: "ciudades_desbloqueadas", fk: "ciudad_id",
     entidadTabla: "ciudades", entidadSelect: "nombre", entidadImagen: "imagen_url",
     perfilCol: "user_id", fechaCol: "desbloqueado_en", joinAlias: "ciudades",
+    compositePk: true,
   },
 };
 
@@ -130,10 +132,11 @@ export default function AdminDescubrimientos() {
     setCargando(true);
     const cfg = TAB_CONFIG[tab];
 
+    const idCol = cfg.compositePk ? "" : "id, ";
     const extraCol = cfg.entidadExtra ? `, ${cfg.entidadExtra}` : "";
     const { data, error } = await supabase
       .from(cfg.tabla)
-      .select(`id, ${cfg.fechaCol}, ${cfg.fk}, ${cfg.joinAlias}:${cfg.fk}(id, ${cfg.entidadSelect}, ${cfg.entidadImagen}${extraCol})`)
+      .select(`${idCol}${cfg.fechaCol}, ${cfg.fk}, ${cfg.joinAlias}:${cfg.fk}(id, ${cfg.entidadSelect}, ${cfg.entidadImagen}${extraCol})`)
       .eq(cfg.perfilCol, perfilSel.id)
       .order(cfg.fechaCol, { ascending: false });
 
@@ -141,7 +144,7 @@ export default function AdminDescubrimientos() {
       setDescubrimientos(data.map((r: any) => {
         const ent = r[cfg.joinAlias];
         return {
-          id:                    r.id,
+          id:                    cfg.compositePk ? r[cfg.fk] : r.id,
           fecha_descubrimiento:  r[cfg.fechaCol],
           entidad_id:            r[cfg.fk],
           nombre:                ent?.[cfg.entidadSelect] ?? "Sin nombre",
@@ -180,7 +183,10 @@ export default function AdminDescubrimientos() {
     if (!confirm(`¿Eliminar "${row.nombre}" de los descubrimientos?`)) return;
     setEliminando(row.id);
     const cfg = TAB_CONFIG[tab];
-    const { error } = await supabase.from(cfg.tabla).delete().eq("id", row.id);
+    const query = cfg.compositePk
+      ? supabase.from(cfg.tabla).delete().eq(cfg.perfilCol, perfilSel!.id).eq(cfg.fk, row.entidad_id)
+      : supabase.from(cfg.tabla).delete().eq("id", row.id);
+    const { error } = await query;
     if (error) {
       showToast("Error al eliminar", false);
     } else {
