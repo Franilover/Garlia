@@ -25,6 +25,13 @@ type EntidadBase = {
   id: string;
   nombre: string;
   imagen_url?: string | null;
+  group?: string;
+};
+
+type EntidadGroup = {
+  key: string;
+  label: string;
+  icon?: React.ReactNode;
 };
 
 type SeccionEntidadProps = {
@@ -35,6 +42,7 @@ type SeccionEntidadProps = {
   /** No se usa en la UI pero se mantiene por compatibilidad */
   capId?: string;
   allEntities: EntidadBase[];
+  groups?: EntidadGroup[];
   selectedIds: string[];
   loading: boolean;
   saving: boolean;
@@ -50,6 +58,7 @@ export const SeccionEntidad = ({
   fallbackIcon,
   emptyLabel,
   allEntities,
+  groups,
   selectedIds,
   loading,
   saving,
@@ -253,6 +262,62 @@ export const SeccionEntidad = ({
               <p className="text-[8px] font-black uppercase text-primary/25 px-3 py-2.5 text-center tracking-widest">
                 {query ? `Sin resultados` : emptyLabel}
               </p>
+            ) : groups && groups.length > 0 ? (
+              // ── Modo agrupado ──────────────────────────────────────────────
+              (() => {
+                const ungrouped = filtered.filter(e => !e.group);
+                const grouped = groups.map(g => ({
+                  group: g,
+                  items: filtered.filter(e => e.group === g.key),
+                })).filter(g => g.items.length > 0);
+                const flatItems = [...ungrouped, ...grouped.flatMap(g => g.items)];
+
+                const renderItem = (e: EntidadBase) => {
+                  const i = flatItems.indexOf(e);
+                  const sel = selectedIds.includes(e.id);
+                  const isCursor = cursor === i;
+                  return (
+                    <button
+                      key={e.id}
+                      type="button"
+                      data-idx={i}
+                      onClick={() => toggle(e.id)}
+                      onMouseEnter={() => setCursor(i)}
+                      onMouseLeave={() => setCursor(-1)}
+                      className="w-full flex items-center gap-2 px-2.5 py-1.5 text-left transition-all"
+                      style={{
+                        background: isCursor ? "color-mix(in srgb, var(--primary) 6%, transparent)" : "transparent",
+                        color: sel ? "var(--primary)" : "color-mix(in srgb, var(--primary) 50%, transparent)",
+                      }}
+                    >
+                      {e.imagen_url ? (
+                        <img src={e.imagen_url} alt={e.nombre} className="w-4 h-4 rounded-full shrink-0 object-cover border" style={{ borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)", background: "color-mix(in srgb, var(--primary) 6%, transparent)" }} />
+                      ) : (
+                        <div className="w-4 h-4 rounded-full shrink-0 flex items-center justify-center text-[6px] font-black uppercase" style={{ background: sel ? "color-mix(in srgb, var(--primary) 15%, transparent)" : "color-mix(in srgb, var(--primary) 8%, transparent)", color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}>
+                          {e.nombre.charAt(0)}
+                        </div>
+                      )}
+                      <span className="flex-1 min-w-0 text-[9px] font-black uppercase tracking-wide truncate">{e.nombre}</span>
+                      {sel && <Check size={9} className="shrink-0" style={{ color: "var(--primary)" }} />}
+                    </button>
+                  );
+                };
+
+                return (
+                  <>
+                    {ungrouped.map(renderItem)}
+                    {grouped.map(({ group, items: gItems }) => (
+                      <React.Fragment key={group.key}>
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 sticky top-0" style={{ borderTop: ungrouped.length > 0 ? "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" : undefined, background: "color-mix(in srgb, var(--primary) 3%, var(--bg-main))" }}>
+                          {group.icon && <span style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>{group.icon}</span>}
+                          <span className="text-[7px] font-black uppercase tracking-[0.2em]" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>{group.label}</span>
+                        </div>
+                        {gItems.map(renderItem)}
+                      </React.Fragment>
+                    ))}
+                  </>
+                );
+              })()
             ) : (
               filtered.map((e, i) => {
                 const sel       = selectedIds.includes(e.id);
@@ -412,6 +477,53 @@ export const SeccionEntidad = ({
             </div>
           ))}
         </div>
+      ) : groups && groups.length > 0 ? (
+        /* ── Lista agrupada ── */
+        (() => {
+          const ungroupedSel = selected.filter(e => !e.group);
+          const groupedSel = groups.map(g => ({
+            group: g,
+            items: selected.filter(e => e.group === g.key),
+          })).filter(g => g.items.length > 0);
+
+          const renderSelItem = (e: EntidadBase) => (
+            <div
+              key={e.id}
+              onClick={() => onEntityClick?.(e.id)}
+              className="group flex items-center gap-2 px-3 py-1.5 transition-all hover:bg-primary/5"
+              style={{ cursor: onEntityClick ? "pointer" : "default" }}
+            >
+              {e.imagen_url ? (
+                <img src={e.imagen_url} alt={e.nombre} className="w-5 h-5 rounded-full shrink-0 object-cover" style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
+              ) : (
+                <div className="w-5 h-5 rounded-full shrink-0 flex items-center justify-center text-[7px] font-black uppercase" style={{ background: "color-mix(in srgb, var(--primary) 12%, transparent)", color: "color-mix(in srgb, var(--primary) 60%, transparent)" }}>
+                  {e.nombre.charAt(0)}
+                </div>
+              )}
+              <span className="flex-1 min-w-0 text-[10px] font-black uppercase tracking-wide truncate" style={{ color: "color-mix(in srgb, var(--primary) 65%, transparent)" }}>
+                {e.nombre}
+              </span>
+              <button type="button" onClick={ev => { ev.stopPropagation(); onToggle(e.id, false); }} title="Quitar" className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity rounded p-0.5 hover:bg-red-500/10" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
+                <X size={9} />
+              </button>
+            </div>
+          );
+
+          return (
+            <>
+              {ungroupedSel.map(renderSelItem)}
+              {groupedSel.map(({ group, items: gItems }, gi) => (
+                <React.Fragment key={group.key}>
+                  <div className="flex items-center gap-1 px-3 py-0.5" style={{ borderTop: (ungroupedSel.length > 0 || gi > 0) ? "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" : undefined }}>
+                    {group.icon && <span style={{ color: "color-mix(in srgb, var(--primary) 28%, transparent)" }}>{group.icon}</span>}
+                    <span className="text-[7px] font-black uppercase tracking-[0.2em]" style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>{group.label}</span>
+                  </div>
+                  {gItems.map(renderSelItem)}
+                </React.Fragment>
+              ))}
+            </>
+          );
+        })()
       ) : (
         /* ── Lista simple (default) ── */
         selected.map(e => (
