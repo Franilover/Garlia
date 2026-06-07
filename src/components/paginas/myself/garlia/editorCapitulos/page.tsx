@@ -1142,8 +1142,8 @@ export function EditorCapitulosPanel() {
         </AnimatePresence>
 
         {/* ── Editor ── */}
-        <div className="flex-1 min-h-0 flex flex-col">
-          {selectedCapId && selectedLibroId ? (
+        {selectedCapId && selectedLibroId ? (
+          <div className="flex-1 min-h-0 flex flex-col">
             <PanelEditor
               key={selectedCapId}
               capId={selectedCapId}
@@ -1153,14 +1153,8 @@ export function EditorCapitulosPanel() {
               onToggleFocus={() => setFocusMode(m => !m)}
               onVolver={() => { setSelectedCapId(null); setSidebarOpen(false); }}
             />
-          ) : (
-            <div className="flex-1 flex items-center justify-center">
-              <p className="text-[9px] font-black uppercase tracking-widest text-primary/20">
-                Selecciona un capítulo
-              </p>
-            </div>
-          )}
-        </div>
+          </div>
+        ) : null}
       </div>
 
       {showNuevoLibro && <ModalNuevoLibro onCreated={handleLibroCreado} onClose={() => setShowNuevoLibro(false)} />}
