@@ -11,7 +11,7 @@ import {
 
 // ── Tipos ────────────────────────────────────────────────────────────────────
 
-type TabId = "personajes" | "criaturas" | "items" | "reinos" | "ciudades";
+type TabId = "personajes" | "criaturas" | "items" | "reinos" | "ciudades" | "lugares_sin_reino" | "lugares_con_reino";
 
 interface Perfil {
   id: string;
@@ -83,6 +83,22 @@ const TAB_CONFIG: Record<TabId, {
     perfilCol: "user_id", fechaCol: "desbloqueado_en", joinAlias: "ciudades",
     compositePk: true,
   },
+  lugares_sin_reino: {
+    label: "Lugares libres", icon: <MapPin size={12} />,
+    tabla: "lugares_desbloqueados", fk: "lugar_id",
+    entidadTabla: "lugares", entidadSelect: "nombre", entidadImagen: "imagen_url",
+    perfilCol: "user_id", fechaCol: "desbloqueado_en", joinAlias: "lugares",
+    compositePk: true,
+    filterExtra: { col: "reino_id", value: null },
+  } as any,
+  lugares_con_reino: {
+    label: "Lugares de ciudad", icon: <MapPin size={12} />,
+    tabla: "lugares_desbloqueados", fk: "lugar_id",
+    entidadTabla: "lugares", entidadSelect: "nombre", entidadImagen: "imagen_url",
+    perfilCol: "user_id", fechaCol: "desbloqueado_en", joinAlias: "lugares",
+    compositePk: true,
+    filterExtra: { col: "reino_id", notNull: true },
+  } as any,
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -134,14 +150,16 @@ export default function AdminDescubrimientos() {
 
     const idCol = cfg.compositePk ? "" : "id, ";
     const extraCol = cfg.entidadExtra ? `, ${cfg.entidadExtra}` : "";
-    const { data, error } = await supabase
+    let q = supabase
       .from(cfg.tabla)
-      .select(`${idCol}${cfg.fechaCol}, ${cfg.fk}, ${cfg.joinAlias}:${cfg.fk}(id, ${cfg.entidadSelect}, ${cfg.entidadImagen}${extraCol})`)
+      .select(`${idCol}${cfg.fechaCol}, ${cfg.fk}, ${cfg.joinAlias}:${cfg.fk}(id, ${cfg.entidadSelect}, ${cfg.entidadImagen}${extraCol}${(tab === "lugares_sin_reino" || tab === "lugares_con_reino") ? ", reino_id" : ""})`)
       .eq(cfg.perfilCol, perfilSel.id)
       .order(cfg.fechaCol, { ascending: false });
 
+    const { data, error } = await q;
+
     if (!error && data) {
-      setDescubrimientos(data.map((r: any) => {
+      let rows = data.map((r: any) => {
         const ent = r[cfg.joinAlias];
         return {
           id:                    cfg.compositePk ? r[cfg.fk] : r.id,
@@ -150,8 +168,15 @@ export default function AdminDescubrimientos() {
           nombre:                ent?.[cfg.entidadSelect] ?? "Sin nombre",
           imagen_url:            ent?.[cfg.entidadImagen] ?? null,
           extra:                 cfg.entidadExtra ? ent?.[cfg.entidadExtra] ?? null : null,
+          reino_id:              (tab === "lugares_sin_reino" || tab === "lugares_con_reino") ? ent?.reino_id ?? null : undefined,
         };
-      }));
+      });
+
+      // Filtrar por reino_id en cliente
+      if (tab === "lugares_sin_reino") rows = rows.filter((r: any) => !r.reino_id);
+      if (tab === "lugares_con_reino") rows = rows.filter((r: any) => !!r.reino_id);
+
+      setDescubrimientos(rows);
     }
     setCargando(false);
   }, [perfilSel, tab]);
@@ -164,17 +189,24 @@ export default function AdminDescubrimientos() {
     if (!showAdd) return;
     const cfg = TAB_CONFIG[tab];
     const extraCol = cfg.entidadExtra ? `, ${cfg.entidadExtra}` : "";
-    supabase.from(cfg.entidadTabla)
-      .select(`id, ${cfg.entidadSelect}, ${cfg.entidadImagen}${extraCol}`)
-      .order(cfg.entidadSelect)
-      .then(({ data }) => {
-        if (data) setEntidades(data.map((r: any) => ({
-          id:         r.id,
-          nombre:     r[cfg.entidadSelect] ?? "Sin nombre",
-          imagen_url: r[cfg.entidadImagen] ?? null,
-          extra:      cfg.entidadExtra ? r[cfg.entidadExtra] ?? null : null,
-        })));
-      });
+    const isLugares = tab === "lugares_sin_reino" || tab === "lugares_con_reino";
+    let q = supabase.from(cfg.entidadTabla)
+      .select(`id, ${cfg.entidadSelect}, ${cfg.entidadImagen}${extraCol}${isLugares ? ", reino_id" : ""}`)
+      .order(cfg.entidadSelect);
+
+    Promise.resolve(q).then(({ data }) => {
+      if (!data) return;
+      let entidadesData = data as any[];
+      // Filtrar en cliente por reino_id
+      if (tab === "lugares_sin_reino") entidadesData = entidadesData.filter(r => !r.reino_id);
+      if (tab === "lugares_con_reino") entidadesData = entidadesData.filter(r => !!r.reino_id);
+      setEntidades(entidadesData.map((r: any) => ({
+        id:         r.id,
+        nombre:     r[cfg.entidadSelect] ?? "Sin nombre",
+        imagen_url: r[cfg.entidadImagen] ?? null,
+        extra:      cfg.entidadExtra ? r[cfg.entidadExtra] ?? null : null,
+      })));
+    });
   }, [showAdd, tab]);
 
   // ── Eliminar ──────────────────────────────────────────────────────────────

@@ -132,8 +132,9 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
             .select("ciudades:ciudad_id(id, nombre, imagen_url, descripcion, reino_id)")
             .eq("user_id", user.id),
           supabase
-            .from("lugares")
-            .select("id, nombre, imagen_url, descripcion, reino_id"),
+            .from("lugares_desbloqueados")
+            .select("lugares:lugar_id(id, nombre, imagen_url, descripcion, reino_id)")
+            .eq("user_id", user.id),
         ]);
 
         if (itemsRes.error)      console.warn("[Personal] descubrimientos_items error:", itemsRes.error.message);
@@ -162,11 +163,11 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
         setCiudades(ciudadesData);
 
         const lugaresData = (lugaresRes.data ?? []).map((r: any) => ({
-          id:          r.id,
-          nombre:      r.nombre,
-          imagen_url:  r.imagen_url ?? null,
-          descripcion: r.descripcion ?? null,
-          reino_id:    r.reino_id ?? null,
+          id:          r.lugares?.id,
+          nombre:      r.lugares?.nombre,
+          imagen_url:  r.lugares?.imagen_url ?? null,
+          descripcion: r.lugares?.descripcion ?? null,
+          reino_id:    r.lugares?.reino_id ?? null,
         })).filter(l => l.id);
         setLugares(lugaresData);
 

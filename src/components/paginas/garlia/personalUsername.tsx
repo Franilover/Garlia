@@ -92,8 +92,9 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
         supabase.from("ciudades_desbloqueadas")
           .select("ciudad_data:ciudad_id(id, nombre, imagen_url, descripcion, reino_id)")
           .eq("user_id", uid),
-        supabase.from("lugares")
-          .select("id, nombre, imagen_url, descripcion, reino_id"),
+        supabase.from("lugares_desbloqueados")
+          .select("lugares:lugar_id(id, nombre, imagen_url, descripcion, reino_id)")
+          .eq("user_id", uid),
       ]);
 
       const reinosData = (reinosRes.data ?? []).map((r: any) => ({
@@ -114,11 +115,11 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
       setCiudades(ciudadesData);
 
       const lugaresData = (lugaresRes.data ?? []).map((r: any) => ({
-        id:          r.id,
-        nombre:      r.nombre,
-        imagen_url:  r.imagen_url ?? null,
-        descripcion: r.descripcion ?? null,
-        reino_id:    r.reino_id ?? null,
+        id:          r.lugares?.id,
+        nombre:      r.lugares?.nombre,
+        imagen_url:  r.lugares?.imagen_url ?? null,
+        descripcion: r.lugares?.descripcion ?? null,
+        reino_id:    r.lugares?.reino_id ?? null,
       })).filter((l: any) => l.id);
       setLugares(lugaresData);
 
