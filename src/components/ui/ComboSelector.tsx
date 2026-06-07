@@ -59,7 +59,7 @@ type ComboSelectorProps = {
   loading?: boolean;
   hint?: string;
   className?: string;
-  onNavigate?: (value: string) => void;
+  onNavigate?: (id: string, label: string) => void;
 } & (SingleProps | MultiProps);
 
 export function ComboSelector(props: ComboSelectorProps) {
@@ -273,7 +273,7 @@ export function ComboSelector(props: ComboSelectorProps) {
         >
           <button
             type="button"
-            onClick={() => onNavigate(selectedItems[0].label)}
+            onClick={() => onNavigate(selectedItems[0].id, selectedItems[0].label)}
             className="flex-1 flex items-center gap-2 px-4 py-2.5 text-[11px] font-bold transition-all min-w-0 hover:bg-primary/5"
             style={{ color: "var(--primary)" }}
           >

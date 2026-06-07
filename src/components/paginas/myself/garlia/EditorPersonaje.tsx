@@ -987,7 +987,7 @@ export function FormularioPersonaje({
                         placeholder="Humano, elfo…"
                         allowNone
                         noneLabel="Sin especie"
-                        onNavigate={onNavigate ? (nombre) => onNavigate("criaturas", nombre) : undefined}
+                        onNavigate={onNavigate ? (_id, nombre) => onNavigate("criaturas", nombre) : undefined}
                       />
                       {variantes.length > 0 && (
                         <div className="flex flex-wrap items-center gap-1 pt-0.5">
@@ -1015,6 +1015,12 @@ export function FormularioPersonaje({
                       placeholder="Reino o lugar…"
                       allowNone
                       noneLabel="Sin territorio"
+                      onNavigate={onNavigate ? (id) => {
+                        if (id.startsWith("reino:")) {
+                          const r = reinosMin.find(x => x.id === id.replace("reino:", ""));
+                          if (r) onNavigate("reinos", r.nombre);
+                        }
+                      } : undefined}
                     />
                     {(() => {
                       return (
@@ -1028,6 +1034,9 @@ export function FormularioPersonaje({
                           placeholder="Ciudad o lugar…"
                           allowNone
                           noneLabel="Sin ubicación"
+                          onNavigate={onNavigateCiudad ? (id) => {
+                            if (id.startsWith("ciudad:")) onNavigateCiudad(id.replace("ciudad:", ""));
+                          } : undefined}
                         />
                       );
                     })()}
@@ -1049,7 +1058,7 @@ export function FormularioPersonaje({
                           placeholder="Humano, elfo…"
                           allowNone
                           noneLabel="Sin especie"
-                          onNavigate={onNavigate ? (nombre) => onNavigate("criaturas", nombre) : undefined}
+                          onNavigate={onNavigate ? (_id, nombre) => onNavigate("criaturas", nombre) : undefined}
                         />
                         {variantes.length > 0 && (
                           <div className="flex flex-wrap items-center gap-1 pt-0.5">
@@ -1084,6 +1093,12 @@ export function FormularioPersonaje({
                         placeholder="Reino o lugar…"
                         allowNone
                         noneLabel="Sin territorio"
+                        onNavigate={onNavigate ? (id) => {
+                          if (id.startsWith("reino:")) {
+                            const r = reinosMin.find(x => x.id === id.replace("reino:", ""));
+                            if (r) onNavigate("reinos", r.nombre);
+                          }
+                        } : undefined}
                       />
                       {(() => {
                         return (
@@ -1097,6 +1112,9 @@ export function FormularioPersonaje({
                             placeholder="Ciudad o lugar…"
                             allowNone
                             noneLabel="Sin ubicación"
+                            onNavigate={onNavigateCiudad ? (id) => {
+                              if (id.startsWith("ciudad:")) onNavigateCiudad(id.replace("ciudad:", ""));
+                            } : undefined}
                           />
                         );
                       })()}
