@@ -288,28 +288,6 @@ export default function AdminDescubrimientos() {
 
   return (
     <div className="w-full max-w-4xl mx-auto px-4 py-6 space-y-6">
-
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="w-8 h-8 flex items-center justify-center shrink-0"
-          style={{
-            background: "color-mix(in srgb, var(--primary) 8%, transparent)",
-            border: "1px solid color-mix(in srgb, var(--primary) 16%, transparent)",
-            borderRadius: "var(--radius-btn)",
-          }}>
-          <ShieldCheck size={14} style={{ color: "var(--primary)" }} />
-        </div>
-        <div>
-          <h1 className="font-serif italic leading-tight" style={{ fontSize: "1.35rem", color: "var(--primary)" }}>
-            Descubrimientos
-          </h1>
-          <p className="text-[9px] font-black uppercase tracking-[0.25em]"
-            style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
-            Panel de administración
-          </p>
-        </div>
-      </div>
-
       {/* Selector de perfil */}
       <div style={{
         background: "var(--white-custom)",
