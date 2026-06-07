@@ -1846,15 +1846,9 @@ function PanelListas({
                         const { data } = await supabase.from("grupos_mundo").select("*").eq("id", g.id).single();
                         if (data) selectGrupo({ ...data, miembro_ids: data.miembro_ids ?? [] } as Grupo);
                       }}
-                      className="flex items-center gap-2 pl-1.5 pr-3 py-1.5 rounded-xl border transition-all hover:scale-[1.02] active:scale-[0.98]"
+                      className="flex flex-col px-3 py-1.5 rounded-xl border transition-all hover:scale-[1.02] active:scale-[0.98]"
                       style={{ background: `color-mix(in srgb, ${cfg?.color ?? "var(--primary)"} 4%, transparent)`, borderColor: `color-mix(in srgb, ${cfg?.color ?? "var(--primary)"} 12%, transparent)` }}>
-                      <div className="w-6 h-6 rounded-lg border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center">
-                        {cfg ? <cfg.Icon size={10} className="text-primary/25" /> : <Layers size={10} className="text-primary/25" />}
-                      </div>
-                      <div className="flex flex-col min-w-0">
-                        <span className="text-[11px] font-bold text-primary/70 truncate max-w-[120px] sm:max-w-[90px]">{g.nombre}</span>
-                        <span className="text-[8px] text-primary/30">{g.miembro_ids.length} miembros</span>
-                      </div>
+                      <span className="text-[11px] font-bold text-primary/70 truncate">{g.nombre}</span>
                     </button>
                   );
                 })}
@@ -1864,10 +1858,9 @@ function PanelListas({
               <SeccionEntidades icon={FileText} label={el.notas} count={notas.length} loading={loadingNotas}>
                 {notas.map(n => (
                   <button key={n.id} onClick={() => setSelectedNota(n)} type="button"
-                    className="flex items-center gap-2 pl-1.5 pr-3 py-1.5 rounded-xl border transition-all hover:scale-[1.02] active:scale-[0.98]"
+                    className="flex items-center px-3 py-1.5 rounded-xl border transition-all hover:scale-[1.02] active:scale-[0.98]"
                     style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
-                    <div className="w-7 h-7 sm:w-6 sm:h-6 rounded-lg border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center"><FileText size={10} className="text-primary/25" /></div>
-                    <span className="text-[11px] font-bold text-primary/70 truncate max-w-[120px] sm:max-w-[90px]">{n.titulo || <span className="italic text-primary/30">Sin título</span>}</span>
+                    <span className="text-[11px] font-bold text-primary/70 truncate">{n.titulo || <span className="italic text-primary/30">Sin título</span>}</span>
                   </button>
                 ))}
               </SeccionEntidades>
