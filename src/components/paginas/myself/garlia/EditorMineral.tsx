@@ -34,7 +34,7 @@ async function dexieDel(tabla: string, id: string): Promise<void> {
 
 
 // ─── Hook: ciudades donde se encuentra el mineral (mineral_ciudades) ──────────
-type CiudadMin = { id: string; nombre: string };
+type CiudadMin = { id: string; nombre: string; reino_id?: string | null };
 type MineralCiudadRow = { rowId: string; ciudadId: string; ciudadNombre: string };
 
 function useCiudadesMineral(mineralId: string) {
