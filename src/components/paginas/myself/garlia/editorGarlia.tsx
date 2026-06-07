@@ -76,6 +76,7 @@ function useAllEntidades() {
   const [allItems, setAllItems] = useState<AllItems>({
     personajes: [], criaturas: [], items: [], reinos: [],
     hechizos: [], dones: [], runas: [], notas: [], grupos: [], plantas: [],
+    minerales: [], 
   });
   const [loadingAll, setLoadingAll] = useState(true);
   const [isOffline,  setIsOffline]  = useState(false);
@@ -152,6 +153,7 @@ function useAllEntidades() {
         notas:      (n.data ?? []) as Nota[],
         grupos:     (g.data ?? []).map((x: any) => ({ ...x, miembro_ids: x.miembro_ids ?? [] })),
         plantas:    (pl.data ?? []),
+        minerales: [],
       };
       setAllItems(remote);
 

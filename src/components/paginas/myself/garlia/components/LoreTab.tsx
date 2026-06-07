@@ -941,167 +941,212 @@ function usePersonajesDelReinoEditable(reinoId: string, reinoNombre: string) {
   return { personajes, allPersonajes, loading, add, remove };
 }
 
-// ─── Hook: items del reino (items.reino_ids contiene el reinoId) ──────────────
-// add → UPDATE items SET reino_ids = array_append(reino_ids, reinoId)
-// remove → UPDATE items SET reino_ids = array_remove(reino_ids, reinoId)
+// ─── Hook: items del reino — solo lectura, agregados desde ciudades y lugares ──
 function useItemsDelReino(reinoId: string) {
-  const [items,    setItems]    = useState<ItemMin[]>([]);
-  const [allItems, setAllItems] = useState<ItemMin[]>([]);
+  const [items,   setItems]   = useState<ItemMin[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const [{ data: ciudadesData }, { data: lugaresData }] = await Promise.all([
+      supabase.from("ciudades").select("id").eq("reino_id", reinoId),
+      supabase.from("lugares").select("id").eq("reino_id", reinoId),
+    ]);
+    const ciudadIds = (ciudadesData ?? []).map((c: any) => c.id);
+    const lugarIds  = (lugaresData  ?? []).map((l: any) => l.id);
+
+    const queries: PromiseLike<any>[] = [];
+    if (ciudadIds.length)
+      queries.push(supabase.from("items").select("id, nombre, imagen_url").in("ciudad_id", ciudadIds));
+    if (lugarIds.length)
+      queries.push(supabase.from("items").select("id, nombre, imagen_url").in("lugar_id", lugarIds));
+
+    if (queries.length === 0) { setItems([]); setLoading(false); return; }
+
+    const results = await Promise.all(queries);
+    const seen = new Set<string>();
+    const merged: ItemMin[] = [];
+    for (const { data } of results) {
+      for (const item of (data ?? [])) {
+        if (!seen.has(item.id)) { seen.add(item.id); merged.push(item); }
+      }
+    }
+    merged.sort((a, b) => a.nombre.localeCompare(b.nombre));
+    setItems(merged);
+    setLoading(false);
+  }, [reinoId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  return { items, loading };
+}
+
+// ─── Hook: plantas del reino — solo lectura, agregadas desde ciudades y lugares
+type PlantaMin = { id: string; nombre: string; imagen_url?: string | null };
+
+function usePlantasDelReino(reinoId: string) {
+  const [plantas,  setPlantas]  = useState<PlantaMin[]>([]);
   const [loading,  setLoading]  = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [{ data: linked }, { data: all }] = await Promise.all([
-      supabase
-        .from("items")
-        .select("id, nombre, imagen_url")
-        .contains("reino_ids", [reinoId])
-        .order("nombre"),
-      supabase.from("items").select("id, nombre, imagen_url").order("nombre"),
+    const [{ data: ciudadesData }, { data: lugaresData }] = await Promise.all([
+      supabase.from("ciudades").select("id").eq("reino_id", reinoId),
+      supabase.from("lugares").select("id").eq("reino_id", reinoId),
     ]);
-    if (linked) setItems(linked);
-    if (all)    setAllItems(all);
+    const ciudadIds = (ciudadesData ?? []).map((c: any) => c.id);
+    const lugarIds  = (lugaresData  ?? []).map((l: any) => l.id);
+
+    const queries: PromiseLike<any>[] = [];
+    if (ciudadIds.length)
+      queries.push(supabase.from("plantas").select("id, nombre, imagen_url").in("ciudad_id", ciudadIds));
+    if (lugarIds.length)
+      queries.push(supabase.from("plantas").select("id, nombre, imagen_url").in("lugar_id", lugarIds));
+
+    if (queries.length === 0) { setPlantas([]); setLoading(false); return; }
+
+    const results = await Promise.all(queries);
+    const seen = new Set<string>();
+    const merged: PlantaMin[] = [];
+    for (const { data } of results) {
+      for (const item of (data ?? [])) {
+        if (!seen.has(item.id)) { seen.add(item.id); merged.push(item); }
+      }
+    }
+    merged.sort((a, b) => a.nombre.localeCompare(b.nombre));
+    setPlantas(merged);
     setLoading(false);
   }, [reinoId]);
 
   useEffect(() => { load(); }, [load]);
 
-  const add = async (itemId: string) => {
-    // Leemos primero para no pisar otros reinos ya asignados
-    const { data: current } = await supabase
-      .from("items").select("reino_ids").eq("id", itemId).single();
-    const prev = (current?.reino_ids ?? []) as string[];
-    if (prev.includes(reinoId)) return;
-    const { error } = await supabase
-      .from("items")
-      .update({ reino_ids: [...prev, reinoId] })
-      .eq("id", itemId);
-    if (!error) {
-      const found = allItems.find(i => i.id === itemId);
-      if (found) setItems(p => [...p, found]);
-    }
-  };
-
-  const remove = async (itemId: string) => {
-    const { data: current } = await supabase
-      .from("items").select("reino_ids").eq("id", itemId).single();
-    const prev = (current?.reino_ids ?? []) as string[];
-    const { error } = await supabase
-      .from("items")
-      .update({ reino_ids: prev.filter(id => id !== reinoId) })
-      .eq("id", itemId);
-    if (!error) setItems(p => p.filter(i => i.id !== itemId));
-  };
-
-  return { items, allItems, loading, add, remove };
+  return { plantas, loading };
 }
 
-// ─── Hook: plantas del reino (plantas.reino_ids contiene el reinoId) ──────────
-type PlantaMin = { id: string; nombre: string; imagen_url?: string | null };
-
-function usePlantasDelReino(reinoId: string) {
-  const [plantas,    setPlantas]    = useState<PlantaMin[]>([]);
-  const [allPlantas, setAllPlantas] = useState<PlantaMin[]>([]);
-  const [loading,    setLoading]    = useState(true);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    const [{ data: linked }, { data: all }] = await Promise.all([
-      supabase
-        .from("plantas")
-        .select("id, nombre, imagen_url")
-        .contains("reino_ids", [reinoId])
-        .order("nombre"),
-      supabase.from("plantas").select("id, nombre, imagen_url").order("nombre"),
-    ]);
-    if (linked) setPlantas(linked);
-    if (all)    setAllPlantas(all);
-    setLoading(false);
-  }, [reinoId]);
-
-  useEffect(() => { load(); }, [load]);
-
-  const add = async (plantaId: string) => {
-    const { data: current } = await supabase
-      .from("plantas").select("reino_ids").eq("id", plantaId).single();
-    const prev = (current?.reino_ids ?? []) as string[];
-    if (prev.includes(reinoId)) return;
-    const { error } = await supabase
-      .from("plantas")
-      .update({ reino_ids: [...prev, reinoId] })
-      .eq("id", plantaId);
-    if (!error) {
-      const found = allPlantas.find(p => p.id === plantaId);
-      if (found) setPlantas(p => [...p, found]);
-    }
-  };
-
-  const remove = async (plantaId: string) => {
-    const { data: current } = await supabase
-      .from("plantas").select("reino_ids").eq("id", plantaId).single();
-    const prev = (current?.reino_ids ?? []) as string[];
-    const { error } = await supabase
-      .from("plantas")
-      .update({ reino_ids: prev.filter(id => id !== reinoId) })
-      .eq("id", plantaId);
-    if (!error) setPlantas(p => p.filter(pl => pl.id !== plantaId));
-  };
-
-  return { plantas, allPlantas, loading, add, remove };
-}
-
-// ─── Hook: minerales del reino (minerales.reino_ids contiene el reinoId) ──────
+// ─── Hook: minerales del reino — solo lectura, agregados desde ciudades y lugares
 type MineralMin = { id: string; nombre: string; imagen_url?: string | null };
 
 function useMineralesDelReino(reinoId: string) {
-  const [minerales,    setMinerales]    = useState<MineralMin[]>([]);
-  const [allMinerales, setAllMinerales] = useState<MineralMin[]>([]);
-  const [loading,      setLoading]      = useState(true);
+  const [minerales, setMinerales] = useState<MineralMin[]>([]);
+  const [loading,   setLoading]   = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [{ data: linked }, { data: all }] = await Promise.all([
-      supabase
-        .from("minerales")
-        .select("id, nombre, imagen_url")
-        .contains("reino_ids", [reinoId])
-        .order("nombre"),
-      supabase.from("minerales").select("id, nombre, imagen_url").order("nombre"),
+    const [{ data: ciudadesData }, { data: lugaresData }] = await Promise.all([
+      supabase.from("ciudades").select("id").eq("reino_id", reinoId),
+      supabase.from("lugares").select("id").eq("reino_id", reinoId),
     ]);
-    if (linked) setMinerales(linked);
-    if (all)    setAllMinerales(all);
+    const ciudadIds = (ciudadesData ?? []).map((c: any) => c.id);
+    const lugarIds  = (lugaresData  ?? []).map((l: any) => l.id);
+
+    const queries: PromiseLike<any>[] = [];
+    if (ciudadIds.length)
+      queries.push(supabase.from("minerales").select("id, nombre, imagen_url").in("ciudad_id", ciudadIds));
+    if (lugarIds.length)
+      queries.push(supabase.from("minerales").select("id, nombre, imagen_url").in("lugar_id", lugarIds));
+
+    if (queries.length === 0) { setMinerales([]); setLoading(false); return; }
+
+    const results = await Promise.all(queries);
+    const seen = new Set<string>();
+    const merged: MineralMin[] = [];
+    for (const { data } of results) {
+      for (const item of (data ?? [])) {
+        if (!seen.has(item.id)) { seen.add(item.id); merged.push(item); }
+      }
+    }
+    merged.sort((a, b) => a.nombre.localeCompare(b.nombre));
+    setMinerales(merged);
     setLoading(false);
   }, [reinoId]);
 
   useEffect(() => { load(); }, [load]);
 
-  const add = async (mineralId: string) => {
-    const { data: current } = await supabase
-      .from("minerales").select("reino_ids").eq("id", mineralId).single();
-    const prev = (current?.reino_ids ?? []) as string[];
-    if (prev.includes(reinoId)) return;
-    const { error } = await supabase
-      .from("minerales")
-      .update({ reino_ids: [...prev, reinoId] })
-      .eq("id", mineralId);
-    if (!error) {
-      const found = allMinerales.find(m => m.id === mineralId);
-      if (found) setMinerales(m => [...m, found]);
-    }
-  };
+  return { minerales, loading };
+}
 
-  const remove = async (mineralId: string) => {
-    const { data: current } = await supabase
-      .from("minerales").select("reino_ids").eq("id", mineralId).single();
-    const prev = (current?.reino_ids ?? []) as string[];
-    const { error } = await supabase
-      .from("minerales")
-      .update({ reino_ids: prev.filter(id => id !== mineralId) })
-      .eq("id", mineralId);
-    if (!error) setMinerales(m => m.filter(min => min.id !== mineralId));
-  };
+// ─── SeccionReadOnly — panel de solo lectura para items/plantas/minerales ──────
+function SeccionReadOnly({
+  label, Icon, FallbackIcon, items, loading, emptyLabel, onEntityClick,
+}: {
+  label: string;
+  Icon: React.ElementType;
+  FallbackIcon: React.ElementType;
+  items: { id: string; nombre: string; imagen_url?: string | null }[];
+  loading: boolean;
+  emptyLabel: string;
+  onEntityClick?: (id: string) => void;
+}) {
+  return (
+    <div className="flex flex-col">
+      {/* Header */}
+      <div
+        className="flex items-center gap-1.5 px-3 py-2 shrink-0"
+        style={{ background: "color-mix(in srgb, var(--primary) 2%, transparent)" }}
+      >
+        <Icon size={9} style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }} />
+        <span
+          className="text-[8px] font-black uppercase tracking-[0.2em] flex-1"
+          style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+        >
+          {label}
+        </span>
+        {items.length > 0 && (
+          <span
+            className="text-[7px] font-black px-1.5 py-0.5 rounded-md"
+            style={{
+              background: "color-mix(in srgb, var(--primary) 10%, transparent)",
+              color: "color-mix(in srgb, var(--primary) 45%, transparent)",
+            }}
+          >
+            {items.length}
+          </span>
+        )}
+      </div>
 
-  return { minerales, allMinerales, loading, add, remove };
+      {/* Body */}
+      <div className="px-2 pb-2 flex flex-col gap-0.5">
+        {loading ? (
+          <div className="flex justify-center py-3">
+            <Loader2 size={12} className="animate-spin" style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }} />
+          </div>
+        ) : items.length === 0 ? (
+          <p
+            className="text-[9px] font-bold uppercase tracking-widest text-center py-3 italic"
+            style={{ color: "color-mix(in srgb, var(--primary) 22%, transparent)" }}
+          >
+            {emptyLabel}
+          </p>
+        ) : (
+          items.map(item => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => onEntityClick?.(item.id)}
+              disabled={!onEntityClick}
+              className="w-full flex items-center gap-2 px-1.5 py-1 rounded-lg transition-all text-left disabled:cursor-default"
+              style={{ color: "color-mix(in srgb, var(--primary) 65%, transparent)" }}
+              onMouseEnter={e => { if (onEntityClick) (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 6%, transparent)"; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
+            >
+              <div
+                className="w-6 h-6 rounded-lg overflow-hidden shrink-0 flex items-center justify-center border"
+                style={{
+                  background: "color-mix(in srgb, var(--primary) 5%, transparent)",
+                  borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
+                }}
+              >
+                {item.imagen_url
+                  ? <img src={item.imagen_url} alt={item.nombre} className="w-full h-full object-cover" />
+                  : <FallbackIcon size={11} style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }} />}
+              </div>
+              <span className="text-[10px] font-semibold truncate flex-1">{item.nombre}</span>
+            </button>
+          ))
+        )}
+      </div>
+    </div>
+  );
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -1195,26 +1240,14 @@ export function LoreTab({
     personajes: personajesEditables, allPersonajes, loading: loadingPersonajesEditables,
     add: addPersonaje, remove: removePersonaje,
   } = usePersonajesDelReinoEditable(form.id, form.nombre);
-  const {
-    items, allItems, loading: loadingItems,
-    add: addItem, remove: removeItem,
-  } = useItemsDelReino(form.id);
-  const {
-    plantas, allPlantas, loading: loadingPlantas,
-    add: addPlanta, remove: removePlanta,
-  } = usePlantasDelReino(form.id);
-  const {
-    minerales, allMinerales, loading: loadingMinerales,
-    add: addMineral, remove: removeMineral,
-  } = useMineralesDelReino(form.id);
+  const { items,    loading: loadingItems    } = useItemsDelReino(form.id);
+  const { plantas,  loading: loadingPlantas  } = usePlantasDelReino(form.id);
+  const { minerales, loading: loadingMinerales } = useMineralesDelReino(form.id);
   const capsTimeline = useCapitulosDelReino(form.id);
 
   // Estado saving por sección
   const [savingCriaturas,  setSavingCriaturas]  = useState(false);
   const [savingPersonajes, setSavingPersonajes]  = useState(false);
-  const [savingItems,      setSavingItems]       = useState(false);
-  const [savingPlantas,    setSavingPlantas]     = useState(false);
-  const [savingMinerales,  setSavingMinerales]   = useState(false);
   const [_mobileAsideOpen, _setMobileAsideOpen]  = useState(false);
   const mobileAsideOpen    = mobileAsideOpenProp    ?? _mobileAsideOpen;
   const setMobileAsideOpen = setMobileAsideOpenProp ?? _setMobileAsideOpen;
@@ -1229,21 +1262,7 @@ export function LoreTab({
     if (add) await addPersonaje(id); else await removePersonaje(id);
     setSavingPersonajes(false);
   };
-  const handleToggleItem = async (id: string, add: boolean) => {
-    setSavingItems(true);
-    if (add) await addItem(id); else await removeItem(id);
-    setSavingItems(false);
-  };
-  const handleTogglePlanta = async (id: string, add: boolean) => {
-    setSavingPlantas(true);
-    if (add) await addPlanta(id); else await removePlanta(id);
-    setSavingPlantas(false);
-  };
-  const handleToggleMineral = async (id: string, add: boolean) => {
-    setSavingMinerales(true);
-    if (add) await addMineral(id); else await removeMineral(id);
-    setSavingMinerales(false);
-  };
+
 
   // ── Etiqueta de sección ───────────────────────────────────────────────────
   const SectionHeader = ({ id, label, Icon }: { id: SectionId; label: string; Icon: React.ElementType }) => (
@@ -1419,11 +1438,12 @@ export function LoreTab({
         <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
         <SeccionEntidad label="Criaturas" icon={<Bug size={9} />} fallbackIcon={<Bug size={14} strokeWidth={1} />} emptyLabel="Sin criaturas" allEntities={allCriaturas.map(c => ({ id: c.id, nombre: c.nombre, imagen_url: c.imagen_url }))} selectedIds={criaturas.map(c => c.id)} loading={loadingCriaturas} saving={savingCriaturas} onToggle={handleToggleCriatura} onEntityClick={id => onSelectCriatura?.(id)} />
         <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
-        <SeccionEntidad label="Items" icon={<Package size={9} />} fallbackIcon={<Package size={14} strokeWidth={1} />} emptyLabel="Sin items" allEntities={allItems.map(i => ({ id: i.id, nombre: i.nombre, imagen_url: i.imagen_url }))} selectedIds={items.map(i => i.id)} loading={loadingItems} saving={savingItems} onToggle={handleToggleItem} onEntityClick={id => onSelectItem?.(id)} />
         <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
-        <SeccionEntidad label="Plantas" icon={<Leaf size={9} />} fallbackIcon={<Leaf size={14} strokeWidth={1} />} emptyLabel="Sin plantas" allEntities={allPlantas.map(p => ({ id: p.id, nombre: p.nombre, imagen_url: p.imagen_url }))} selectedIds={plantas.map(p => p.id)} loading={loadingPlantas} saving={savingPlantas} onToggle={handleTogglePlanta} onEntityClick={id => onSelectPlanta?.(id)} />
+        <SeccionReadOnly label="Ítems" Icon={Package} FallbackIcon={Package} items={items} loading={loadingItems} emptyLabel="Sin ítems en el reino" onEntityClick={onSelectItem} />
         <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
-        <SeccionEntidad label="Minerales" icon={<Gem size={9} />} fallbackIcon={<Gem size={14} strokeWidth={1} />} emptyLabel="Sin minerales" allEntities={allMinerales.map(m => ({ id: m.id, nombre: m.nombre, imagen_url: m.imagen_url }))} selectedIds={minerales.map(m => m.id)} loading={loadingMinerales} saving={savingMinerales} onToggle={handleToggleMineral} onEntityClick={id => onSelectMineral?.(id)} />
+        <SeccionReadOnly label="Plantas" Icon={Leaf} FallbackIcon={Leaf} items={plantas} loading={loadingPlantas} emptyLabel="Sin plantas en el reino" onEntityClick={onSelectPlanta} />
+        <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
+        <SeccionReadOnly label="Minerales" Icon={Gem} FallbackIcon={Gem} items={minerales} loading={loadingMinerales} emptyLabel="Sin minerales en el reino" onEntityClick={onSelectMineral} />
       </aside>
 
       {/* Mobile: drawer desde la derecha */}
@@ -1459,11 +1479,12 @@ export function LoreTab({
             <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
             <SeccionEntidad label="Criaturas" icon={<Bug size={9} />} fallbackIcon={<Bug size={14} strokeWidth={1} />} emptyLabel="Sin criaturas" allEntities={allCriaturas.map(c => ({ id: c.id, nombre: c.nombre, imagen_url: c.imagen_url }))} selectedIds={criaturas.map(c => c.id)} loading={loadingCriaturas} saving={savingCriaturas} onToggle={handleToggleCriatura} onEntityClick={id => onSelectCriatura?.(id)} />
             <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
-            <SeccionEntidad label="Items" icon={<Package size={9} />} fallbackIcon={<Package size={14} strokeWidth={1} />} emptyLabel="Sin items" allEntities={allItems.map(i => ({ id: i.id, nombre: i.nombre, imagen_url: i.imagen_url }))} selectedIds={items.map(i => i.id)} loading={loadingItems} saving={savingItems} onToggle={handleToggleItem} onEntityClick={id => onSelectItem?.(id)} />
             <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
-            <SeccionEntidad label="Plantas" icon={<Leaf size={9} />} fallbackIcon={<Leaf size={14} strokeWidth={1} />} emptyLabel="Sin plantas" allEntities={allPlantas.map(p => ({ id: p.id, nombre: p.nombre, imagen_url: p.imagen_url }))} selectedIds={plantas.map(p => p.id)} loading={loadingPlantas} saving={savingPlantas} onToggle={handleTogglePlanta} onEntityClick={id => onSelectPlanta?.(id)} />
+            <SeccionReadOnly label="Ítems" Icon={Package} FallbackIcon={Package} items={items} loading={loadingItems} emptyLabel="Sin ítems en el reino" onEntityClick={onSelectItem} />
             <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
-            <SeccionEntidad label="Minerales" icon={<Gem size={9} />} fallbackIcon={<Gem size={14} strokeWidth={1} />} emptyLabel="Sin minerales" allEntities={allMinerales.map(m => ({ id: m.id, nombre: m.nombre, imagen_url: m.imagen_url }))} selectedIds={minerales.map(m => m.id)} loading={loadingMinerales} saving={savingMinerales} onToggle={handleToggleMineral} onEntityClick={id => onSelectMineral?.(id)} />
+            <SeccionReadOnly label="Plantas" Icon={Leaf} FallbackIcon={Leaf} items={plantas} loading={loadingPlantas} emptyLabel="Sin plantas en el reino" onEntityClick={onSelectPlanta} />
+            <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
+            <SeccionReadOnly label="Minerales" Icon={Gem} FallbackIcon={Gem} items={minerales} loading={loadingMinerales} emptyLabel="Sin minerales en el reino" onEntityClick={onSelectMineral} />
           </div>
         </div>
       )}
