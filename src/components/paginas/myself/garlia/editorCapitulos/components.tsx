@@ -1341,15 +1341,16 @@ export const PanelPersonajesCapitulo = ({
         style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
       >
         <SeccionEntidad
-          label="Reinos y lugares"
+          label="Territorio"
           icon={<Globe size={9} />}
           fallbackIcon={<Globe size={10} />}
-          emptyLabel="Sin reinos ni lugares libres"
+          emptyLabel="Sin territorio"
           capId={capId}
           allEntities={[
-            ...reinos.map(r => ({ id: r.id, nombre: r.nombre, imagen_url: (r as any).imagen_reino ?? undefined, _tipo: "reino" as const })),
-            ...lugaresSinReino.map(l => ({ id: l.id, nombre: l.nombre, imagen_url: l.imagen_url ?? undefined, _tipo: "lugar" as const })),
+            ...reinos.map(r => ({ id: r.id, nombre: r.nombre, imagen_url: (r as any).imagen_reino ?? undefined })),
+            ...lugaresSinReino.map(l => ({ id: l.id, nombre: l.nombre, imagen_url: l.imagen_url ?? undefined, group: "lugares-libres" })),
           ]}
+          groups={lugaresSinReino.length > 0 ? [{ key: "lugares-libres", label: "Lugares libres", icon: <MapPin size={7} /> }] : []}
           selectedIds={[...reinosIds, ...lugaresIds]}
           loading={loadingReinos || loadingL}
           saving={savingReino || savingL}
@@ -1370,15 +1371,16 @@ export const PanelPersonajesCapitulo = ({
         style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
       >
         <SeccionEntidad
-          label={reinosIds.length > 0 ? `Ciudades y lugares (${reinosIds.length})` : "Ciudades y lugares"}
+          label={reinosIds.length > 0 ? `Ciudades (${reinosIds.length})` : "Ciudades"}
           icon={<MapPin size={9} />}
           fallbackIcon={<MapPin size={10} />}
-          emptyLabel={reinosIds.length > 0 ? "Sin ciudades ni lugares en estos reinos" : "Sin ciudades ni lugares con reino"}
+          emptyLabel={reinosIds.length > 0 ? "Sin ciudades en estos reinos" : "Sin ciudades / lugares"}
           capId={capId}
           allEntities={[
             ...ciudades.filter(c => !reinosIds.length || reinosIds.includes(c.reino_id!)).map(c => ({ id: c.id, nombre: c.nombre, imagen_url: c.imagen_url ?? undefined })),
-            ...lugaresConReino.map(l => ({ id: l.id, nombre: l.nombre, imagen_url: l.imagen_url ?? undefined })),
+            ...lugaresConReino.map(l => ({ id: l.id, nombre: l.nombre, imagen_url: l.imagen_url ?? undefined, group: "lugares-reino" })),
           ]}
+          groups={lugaresConReino.length > 0 ? [{ key: "lugares-reino", label: "Lugares", icon: <MapPin size={7} /> }] : []}
           selectedIds={[...ciudadesIds, ...lugaresIds]}
           loading={loadingCiudades || loadingL}
           saving={savingCiudad || savingL}
