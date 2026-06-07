@@ -1626,18 +1626,17 @@ export function EditorCriatura({
       .then(({ data }) => setAllLugares((data ?? []).map((l: any) => ({ ...l, reino_id: l.reino_id ?? null }))));
   }, []);
 
-  // ── Ciudades sin reino → van en el bloque superior junto a Reinos ────────────
-  const ciudadesSinReino = allCiudades.filter(l => l.reino_id === null);
-  // ── Lugares sin reino → también van en el bloque superior ────────────────────
+  // ── Lugares sin reino → van en Territorio junto a los reinos ────────────────
   const lugaresSinReino = allLugares.filter(l => l.reino_id === null);
 
   // ── Ciudades con reino → filtradas a los reinos seleccionados ────────────────
+  // Las ciudades sin reino no se muestran en ningún lado.
   const reinosSeleccionadosIds = reinoRows.map(r => r.reinoId);
   const ciudadesConReino = allCiudades.filter(l =>
     l.reino_id !== null &&
     (reinosSeleccionadosIds.length === 0 || reinosSeleccionadosIds.includes(l.reino_id))
   );
-  // ── Lugares con reino → filtrados igual que ciudades ─────────────────────────
+  // ── Lugares con reino → van en Ciudades junto a las ciudades ─────────────────
   const lugaresConReino = allLugares.filter(l =>
     l.reino_id !== null &&
     (reinosSeleccionadosIds.length === 0 || reinosSeleccionadosIds.includes(l.reino_id))
@@ -1928,19 +1927,17 @@ export function EditorCriatura({
             emptyLabel="Sin territorio"
             allEntities={[
               ...allReinos.map(r => ({ id: r.id, nombre: r.nombre })),
-              ...[...ciudadesSinReino, ...lugaresSinReino].map(l => ({ id: l.id, nombre: l.nombre, group: "lugares-libres" })),
+              ...lugaresSinReino.map(l => ({ id: l.id, nombre: l.nombre, group: "lugares-libres" })),
             ]}
-            groups={(ciudadesSinReino.length > 0 || lugaresSinReino.length > 0) ? [{ key: "lugares-libres", label: "Lugares libres", icon: <MapPin size={7} /> }] : []}
+            groups={lugaresSinReino.length > 0 ? [{ key: "lugares-libres", label: "Lugares libres", icon: <MapPin size={7} /> }] : []}
             selectedIds={[
               ...reinoRows.map(r => r.reinoId),
-              ...ciudadRows.filter(r => ciudadesSinReino.some(l => l.id === r.ciudadId)).map(r => r.ciudadId),
               ...lugarRows.filter(r => lugaresSinReino.some(l => l.id === r.lugarId)).map(r => r.lugarId),
             ]}
-            loading={loadingReinos || loadingCiudades || loadingLugares}
-            saving={savingReinos || savingCiudades || savingLugares}
+            loading={loadingReinos || loadingLugares}
+            saving={savingReinos || savingLugares}
             onToggle={(id, add) => {
               if (allReinos.some(r => r.id === id)) handleToggleReino(id, add);
-              else if (allCiudades.some(l => l.id === id)) handleToggleCiudad(id, add);
               else handleToggleLugar(id, add);
             }}
             onEntityClick={id => {
@@ -2071,11 +2068,11 @@ export function EditorCriatura({
             <SeccionEntidad label="Personajes" icon={<Users size={9} />} fallbackIcon={<UserCircle2 size={14} strokeWidth={1} />} emptyLabel="Sin personajes" allEntities={allPersonajes.map(p => ({ id: p.id, nombre: p.nombre, imagen_url: p.img_url }))} selectedIds={personajesDeEspecie.map(p => p.id)} loading={loadingPersonajes} saving={savingPersonajes} onToggle={handleTogglePersonaje} onEntityClick={id => onSelectPersonaje?.(id)} columns={2} />
             <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
             <SeccionEntidad label="Reinos" icon={<Globe size={9} />} fallbackIcon={<Globe size={14} strokeWidth={1} />} emptyLabel="Sin territorio"
-              allEntities={[...allReinos.map(r => ({ id: r.id, nombre: r.nombre })), ...[...ciudadesSinReino, ...lugaresSinReino].map(l => ({ id: l.id, nombre: l.nombre, group: "lugares-libres" }))]}
-              groups={(ciudadesSinReino.length > 0 || lugaresSinReino.length > 0) ? [{ key: "lugares-libres", label: "Lugares libres", icon: <MapPin size={7} /> }] : []}
-              selectedIds={[...reinoRows.map(r => r.reinoId), ...ciudadRows.filter(r => ciudadesSinReino.some(l => l.id === r.ciudadId)).map(r => r.ciudadId), ...lugarRows.filter(r => lugaresSinReino.some(l => l.id === r.lugarId)).map(r => r.lugarId)]}
-              loading={loadingReinos || loadingCiudades || loadingLugares} saving={savingReinos || savingCiudades || savingLugares}
-              onToggle={(id, add) => { if (allReinos.some(r => r.id === id)) handleToggleReino(id, add); else if (allCiudades.some(l => l.id === id)) handleToggleCiudad(id, add); else handleToggleLugar(id, add); }}
+              allEntities={[...allReinos.map(r => ({ id: r.id, nombre: r.nombre })), ...lugaresSinReino.map(l => ({ id: l.id, nombre: l.nombre, group: "lugares-libres" }))]}
+              groups={lugaresSinReino.length > 0 ? [{ key: "lugares-libres", label: "Lugares libres", icon: <MapPin size={7} /> }] : []}
+              selectedIds={[...reinoRows.map(r => r.reinoId), ...lugarRows.filter(r => lugaresSinReino.some(l => l.id === r.lugarId)).map(r => r.lugarId)]}
+              loading={loadingReinos || loadingLugares} saving={savingReinos || savingLugares}
+              onToggle={(id, add) => { if (allReinos.some(r => r.id === id)) handleToggleReino(id, add); else handleToggleLugar(id, add); }}
               onEntityClick={id => { if (allReinos.some(r => r.id === id)) onNavigateReino?.(id); else onNavigateCiudad?.(id); }}
             />
             <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
