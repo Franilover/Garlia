@@ -87,29 +87,29 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
           .select("fecha_descubrimiento, personajes:personaje_id(id, nombre, reino, especie, img_url, sobre)")
           .eq("perfil_id", uid),
         supabase.from("descubrimientos_reinos")
-          .select("fecha_descubrimiento, reinos:reino_id(id, nombre, mapa_url, descripcion)")
+          .select("fecha_descubrimiento, reino_data:reino_id(id, nombre, mapa_url, descripcion)")
           .eq("perfil_id", uid),
         supabase.from("ciudades_desbloqueadas")
-          .select("ciudades:ciudad_id(id, nombre, imagen_url, descripcion, reino_id)")
+          .select("ciudad_data:ciudad_id(id, nombre, imagen_url, descripcion, reino_id)")
           .eq("user_id", uid),
         supabase.from("lugares")
           .select("id, nombre, imagen_url, descripcion, reino_id"),
       ]);
 
       const reinosData = (reinosRes.data ?? []).map((r: any) => ({
-        id:          r.reinos?.id,
-        nombre:      r.reinos?.nombre,
-        mapa_url:    r.reinos?.mapa_url,
-        descripcion: r.reinos?.descripcion,
+        id:          r.reino_data?.id,
+        nombre:      r.reino_data?.nombre,
+        mapa_url:    r.reino_data?.mapa_url,
+        descripcion: r.reino_data?.descripcion,
       })).filter((r: any) => r.id);
       setReinos(reinosData);
 
       const ciudadesData = (ciudadesRes.data ?? []).map((r: any) => ({
-        id:          r.ciudades?.id,
-        nombre:      r.ciudades?.nombre,
-        imagen_url:  r.ciudades?.imagen_url,
-        descripcion: r.ciudades?.descripcion,
-        reino_id:    r.ciudades?.reino_id ?? null,
+        id:          r.ciudad_data?.id,
+        nombre:      r.ciudad_data?.nombre,
+        imagen_url:  r.ciudad_data?.imagen_url,
+        descripcion: r.ciudad_data?.descripcion,
+        reino_id:    r.ciudad_data?.reino_id ?? null,
       })).filter((l: any) => l.id);
       setCiudades(ciudadesData);
 

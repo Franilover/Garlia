@@ -74,7 +74,7 @@ const TAB_CONFIG: Record<TabId, {
     label: "Reinos", icon: <Crown size={12} />,
     tabla: "descubrimientos_reinos", fk: "reino_id",
     entidadTabla: "reinos", entidadSelect: "nombre", entidadImagen: "mapa_url",
-    perfilCol: "perfil_id", fechaCol: "fecha_descubrimiento", joinAlias: "reinos",
+    perfilCol: "perfil_id", fechaCol: "fecha_descubrimiento", joinAlias: "reino_data",
   },
   ciudades: {
     label: "Ciudades", icon: <MapPin size={12} />,
@@ -208,7 +208,7 @@ export default function AdminDescubrimientos() {
     };
     const { error } = await supabase.from(cfg.tabla).insert(payload);
     if (error) {
-      showToast(error.message.includes("duplicate") ? "Ya tiene ese descubrimiento" : "Error al guardar", false);
+      showToast(error.message.includes("duplicate") || error.code === "23505" ? "Ya tiene ese descubrimiento" : "Error al guardar", false);
     } else {
       showToast(`"${entidadSel.nombre}" agregado`, true);
       setShowAdd(false);
