@@ -608,7 +608,7 @@ function MapaPanel({
   mapaUrl, onMapaChange, onDetallesArrayChange, MapaConPuntosComponent,
   detalles, entities, onDetalleUpdate, onDetalleDelete, onOpenDetalleEditor,
   addingPoint, setAddingPoint, newPointName, setNewPointName, onAddPoint,
-  form, setForm, onSnippetAction,
+  form, setForm, onSnippetAction, reinoId,
 }: {
   mapaUrl: string;
   onMapaChange?: (url: string) => void;
@@ -627,8 +627,10 @@ function MapaPanel({
   form: Reino;
   setForm: React.Dispatch<React.SetStateAction<Reino>>;
   onSnippetAction: any;
+  reinoId: string;
 }) {
   const [sideTab, setSideTab] = useState<MapaSideTab>("puntos");
+  const { lugares, loading: loadingLugares } = useLugaresDelReino(reinoId);
 
   const SIDE_TABS: { key: MapaSideTab; label: string; Icon: React.ElementType }[] = [
     { key: "puntos", label: "Puntos", Icon: MapPin },
@@ -667,7 +669,7 @@ function MapaPanel({
         >
           {SIDE_TABS.map(({ key, label, Icon }) => {
             const isActive = sideTab === key;
-            const count = key === "puntos" ? detalles.length : 0;
+            const count = key === "puntos" ? detalles.length + lugares.length : 0;
             return (
               <button
                 key={key}
@@ -703,7 +705,7 @@ function MapaPanel({
         {/* Contenido del sub-tab */}
         {sideTab === "puntos" ? (
           <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
-            {detalles.length === 0 && !addingPoint && (
+            {detalles.length === 0 && lugares.length === 0 && !addingPoint && (
               <div className="flex flex-col items-center gap-2 py-8 text-primary/20">
                 <MapPin size={18} strokeWidth={1} />
                 <p className="text-[8px] font-black uppercase tracking-widest text-center">Sin puntos</p>
@@ -719,6 +721,47 @@ function MapaPanel({
                 onOpenEditor={onOpenDetalleEditor}
               />
             ))}
+
+            {/* ── Lugares del reino ──────────────────────────────────────── */}
+            {loadingLugares ? (
+              <div className="flex justify-center py-3">
+                <Loader2 size={12} className="animate-spin" style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }} />
+              </div>
+            ) : lugares.length > 0 && (
+              <>
+                {(detalles.length > 0) && (
+                  <div className="flex items-center gap-2 pt-1 pb-0.5">
+                    <MapPin size={8} style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }} />
+                    <span className="text-[7px] font-black uppercase tracking-[0.2em]" style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>
+                      Lugares
+                    </span>
+                    <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
+                  </div>
+                )}
+                {lugares.map(lugar => (
+                  <div
+                    key={lugar.id}
+                    className="rounded-xl overflow-hidden"
+                    style={{ border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 1.5%, transparent)" }}
+                  >
+                    <div className="flex items-center gap-2 px-3 py-2.5">
+                      <MapPin size={11} className="shrink-0 text-primary/30" />
+                      <span className="flex-1 text-[11px] font-black uppercase tracking-widest truncate text-primary/70">
+                        {lugar.nombre}
+                      </span>
+                      {onOpenDetalleEditor && (
+                        <button
+                          onClick={() => onOpenDetalleEditor(lugar.id)}
+                          className="shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all border border-primary/10 text-primary/35 hover:text-primary hover:border-primary/25 hover:bg-primary/5"
+                        >
+                          <MapPin size={9} /> Ver ficha
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </>
+            )}
             {addingPoint ? (
               <div className="flex flex-col gap-1.5 p-2 rounded-xl border border-primary/15" style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)" }}>
                 <input
@@ -771,6 +814,28 @@ function MapaPanel({
 type CriaturaMin  = { id: string; nombre: string; imagen_url?: string | null };
 type PersonajeMin = { id: string; nombre: string; img_url?: string | null };
 type ItemMin      = { id: string; nombre: string; imagen_url?: string | null };
+type LugarMin     = { id: string; nombre: string; descripcion?: string | null; imagen_url?: string | null };
+
+// ─── Hook: lugares del reino (lugares.reino_id = reinoId) ─────────────────────
+function useLugaresDelReino(reinoId: string) {
+  const [lugares, setLugares] = useState<LugarMin[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!reinoId) return;
+    supabase
+      .from("lugares")
+      .select("id, nombre, descripcion, imagen_url")
+      .eq("reino_id", reinoId)
+      .order("nombre")
+      .then(({ data }) => {
+        setLugares(data ?? []);
+        setLoading(false);
+      });
+  }, [reinoId]);
+
+  return { lugares, loading };
+}
 
 // ─── Hook: criaturas vinculadas al reino (criatura_reinos) ────────────────────
 // Soporta add (INSERT) y remove (DELETE) además de carga.
@@ -1157,6 +1222,7 @@ export function LoreTab({
                 form={form}
                 setForm={setForm}
                 onSnippetAction={onSnippetAction}
+                reinoId={form.id}
               />
             )}
 

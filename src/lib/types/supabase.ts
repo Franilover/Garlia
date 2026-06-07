@@ -1446,6 +1446,76 @@ export type Database = {
           },
         ]
       }
+      lugares: {
+        Row: {
+          created_at: string
+          descripcion: string | null
+          historia: string | null
+          id: string
+          imagen_url: string | null
+          nombre: string
+          reino_id: string | null
+          secretos: string | null
+          tipo: string | null
+        }
+        Insert: {
+          created_at?: string
+          descripcion?: string | null
+          historia?: string | null
+          id?: string
+          imagen_url?: string | null
+          nombre: string
+          reino_id?: string | null
+          secretos?: string | null
+          tipo?: string | null
+        }
+        Update: {
+          created_at?: string
+          descripcion?: string | null
+          historia?: string | null
+          id?: string
+          imagen_url?: string | null
+          nombre?: string
+          reino_id?: string | null
+          secretos?: string | null
+          tipo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lugares_reino_id_fkey"
+            columns: ["reino_id"]
+            isOneToOne: false
+            referencedRelation: "reinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lugares_desbloqueados: {
+        Row: {
+          desbloqueado_en: string
+          lugar_id: string
+          user_id: string
+        }
+        Insert: {
+          desbloqueado_en?: string
+          lugar_id: string
+          user_id: string
+        }
+        Update: {
+          desbloqueado_en?: string
+          lugar_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lugares_desbloqueados_lugar_id_fkey"
+            columns: ["lugar_id"]
+            isOneToOne: false
+            referencedRelation: "lugares"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mundo_secciones: {
         Row: {
           contenido: string | null
@@ -1691,6 +1761,7 @@ export type Database = {
           id: string
           img_cuerpo_url: string | null
           img_url: string | null
+          lugar_id: string | null
           nombre: string
           reino: string | null
           sobre: string | null
@@ -1704,6 +1775,7 @@ export type Database = {
           id?: string
           img_cuerpo_url?: string | null
           img_url?: string | null
+          lugar_id?: string | null
           nombre: string
           reino?: string | null
           sobre?: string | null
@@ -1717,6 +1789,7 @@ export type Database = {
           id?: string
           img_cuerpo_url?: string | null
           img_url?: string | null
+          lugar_id?: string | null
           nombre?: string
           reino?: string | null
           sobre?: string | null
@@ -1728,6 +1801,13 @@ export type Database = {
             columns: ["ciudad_id"]
             isOneToOne: false
             referencedRelation: "ciudades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "personajes_lugar_id_fkey"
+            columns: ["lugar_id"]
+            isOneToOne: false
+            referencedRelation: "lugares"
             referencedColumns: ["id"]
           },
           {
