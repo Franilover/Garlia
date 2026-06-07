@@ -1849,6 +1849,7 @@ function PanelListas({
                       className="flex flex-col px-3 py-1.5 rounded-xl border transition-all hover:scale-[1.02] active:scale-[0.98]"
                       style={{ background: `color-mix(in srgb, ${cfg?.color ?? "var(--primary)"} 4%, transparent)`, borderColor: `color-mix(in srgb, ${cfg?.color ?? "var(--primary)"} 12%, transparent)` }}>
                       <span className="text-[11px] font-bold text-primary/70 truncate">{g.nombre}</span>
+                      {g.tipo && <span className="text-[8px] text-primary/30 truncate capitalize">{g.tipo}</span>}
                     </button>
                   );
                 })}
