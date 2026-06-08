@@ -1944,11 +1944,11 @@ function PanelListas({
               <SeccionEntidades icon={Bug} label={el.criaturas} count={criaturas.length} loading={loadingCriaturas}>
                 {[...criaturas].sort((a,b)=>(!!b.imagen_url ? 1:0)-(!!a.imagen_url ? 1:0)||a.nombre.localeCompare(b.nombre)).map(c => <Chip key={c.id} onClick={() => selectCriatura(c)} imgUrl={c.imagen_url} icon={Bug} nombre={c.nombre} />)}
               </SeccionEntidades>
-              <div className={`${div} sm:hidden`} style={divStyle} />
+              <div className={`${div} sm:hidden`} style={divStyle} />                                    
 
               <SeccionEntidades icon={Package} label="Artificiales" count={objetos.length} loading={loadingObjetos}>
                 {[...objetos].sort((a,b)=>(!!b.imagen_url ? 1:0)-(!!a.imagen_url ? 1:0)||a.nombre.localeCompare(b.nombre)).map(o => <Chip key={o.id} onClick={() => selectObjeto(o)} imgUrl={o.imagen_url} icon={Package} nombre={o.nombre} />)}
-              </SeccionEntidades>
+              </SeccionEntidades> 
             </div>
             <div className={div} style={divStyle} />
 
