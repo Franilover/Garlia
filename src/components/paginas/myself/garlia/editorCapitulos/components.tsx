@@ -1081,40 +1081,6 @@ function useCiudades() {
   return { ciudades, loading };
 }
 
-function useLugares() {
-  const [lugares, setLugares] = useState<{ id: string; nombre: string; imagen_url?: string | null; reino_id?: string | null }[]>([]);
-  const [loading, setLoading] = useState(true);
-  useEffect(() => {
-    (async () => {
-      // 1️⃣ Dexie first
-      try {
-        const table = (db as any)["lugares"];
-        if (table) {
-          const local = await table.orderBy("nombre").toArray();
-          if (local.length > 0) { setLugares(local); setLoading(false); }
-        }
-      } catch {}
-
-      // 2️⃣ Bail if offline
-      if (!navigator.onLine) { setLoading(false); return; }
-
-      // 3️⃣ Refresh from Supabase and update cache
-      try {
-        const { data } = await supabase.from("lugares").select("id, nombre, imagen_url, reino_id").order("nombre");
-        if (data) {
-          setLugares(data as any[]);
-          try {
-            const table = (db as any)["lugares"];
-            if (table) await table.bulkPut(data);
-          } catch {}
-        }
-      } catch {}
-      setLoading(false);
-    })();
-  }, []);
-  return { lugares, loading };
-}
-
 // ─── PanelPersonajesCapitulo (Personajes + Criaturas + Items en vertical) ─────
 
 export const PanelPersonajesCapitulo = ({
@@ -1141,12 +1107,10 @@ export const PanelPersonajesCapitulo = ({
   const { personajes, loading: loadingP } = usePersonajes();
   const { criaturas, loading: loadingC }  = useCriaturas();
   const { items,     loading: loadingI }  = useItems();
-  const { lugares,   loading: loadingL }  = useLugares();
 
   const [savingP, setSavingP] = useState(false);
   const [savingC, setSavingC] = useState(false);
   const [savingI, setSavingI] = useState(false);
-  const [savingL, setSavingL] = useState(false);
 
   // ── Posición en línea de tiempo ───────────────────────────────────────────
   const [ordenLinea,     setOrdenLinea]     = useState<string>("");
@@ -1158,9 +1122,6 @@ export const PanelPersonajesCapitulo = ({
   const [reinosIds,   setReinosIds]   = useState<string[]>([]);
   const [savingReino, setSavingReino] = useState(false);
   const reinoRef = useRef<HTMLDivElement>(null);
-
-  // ── Lugares del capítulo ──────────────────────────────────────────────────
-  const [lugaresIds,  setLugaresIds]  = useState<string[]>([]);
 
   // ── Ciudades del capítulo ─────────────────────────────────────────────────
   const { ciudades, loading: loadingCiudades } = useCiudades();
@@ -1177,14 +1138,13 @@ export const PanelPersonajesCapitulo = ({
     if (!capId) return;
     supabase
       .from("capitulos")
-      .select("orden_linea_tiempo, reinos_ids, visibilidad, fecha_publicacion, ciudades_ids, lugares_ids")
+      .select("orden_linea_tiempo, reinos_ids, visibilidad, fecha_publicacion, ciudades_ids")
       .eq("id", capId)
       .single()
       .then(({ data }) => {
         setOrdenLinea(data?.orden_linea_tiempo != null ? String(data.orden_linea_tiempo) : "");
         setReinosIds(data?.reinos_ids ?? []);
         setCiudadesIds(data?.ciudades_ids ?? []);
-        setLugaresIds(data?.lugares_ids ?? []);
         setVisibilidad(data?.visibilidad ?? "oculto");
         setFechaProg(data?.fecha_publicacion ? data.fecha_publicacion.slice(0, 10) : "");
       });
@@ -1206,21 +1166,6 @@ export const PanelPersonajesCapitulo = ({
     setSavingCiudad(false);
   };
 
-  const handleToggleLugar = async (id: string, add: boolean) => {
-    const next = add ? [...lugaresIds, id] : lugaresIds.filter(x => x !== id);
-    setLugaresIds(next);
-    setSavingL(true);
-    try { await capUpdateMeta(capId, { lugares_ids: next } as any); } catch {}
-    setSavingL(false);
-  };
-
-  // ── Lugares sin reino → junto a Reinos ───────────────────────────────────
-  const lugaresSinReino = lugares.filter(l => !l.reino_id);
-  // ── Lugares con reino → filtrados por reinos seleccionados ───────────────
-  const lugaresConReino = lugares.filter(l =>
-    l.reino_id &&
-    (reinosIds.length === 0 || reinosIds.includes(l.reino_id))
-  );
 
   const handleSaveVisibilidad = async (v: "publico" | "programado" | "oculto") => {
     if (v === visibilidad || savingVis) return;
@@ -1346,22 +1291,12 @@ export const PanelPersonajesCapitulo = ({
           fallbackIcon={<Globe size={10} />}
           emptyLabel="Sin territorio"
           capId={capId}
-          allEntities={[
-            ...reinos.map(r => ({ id: r.id, nombre: r.nombre, imagen_url: (r as any).imagen_reino ?? undefined })),
-            ...lugaresSinReino.map(l => ({ id: l.id, nombre: l.nombre, imagen_url: l.imagen_url ?? undefined, group: "lugares-libres" })),
-          ]}
-          groups={lugaresSinReino.length > 0 ? [{ key: "lugares-libres", label: "Lugares libres", icon: <MapPin size={7} /> }] : []}
-          selectedIds={[...reinosIds, ...lugaresIds]}
-          loading={loadingReinos || loadingL}
-          saving={savingReino || savingL}
-          onToggle={(id, add) => {
-            if (reinos.some(r => r.id === id)) handleToggleReino(id, add);
-            else handleToggleLugar(id, add);
-          }}
-          onEntityClick={(id) => {
-            if (reinos.some(r => r.id === id)) dispatchOpen("reinos", id);
-            else dispatchOpen("lugares", id);
-          }}
+          allEntities={reinos.map(r => ({ id: r.id, nombre: r.nombre, imagen_url: (r as any).imagen_reino ?? undefined }))}
+          selectedIds={reinosIds}
+          loading={loadingReinos}
+          saving={savingReino}
+          onToggle={(id, add) => handleToggleReino(id, add)}
+          onEntityClick={(id) => dispatchOpen("reinos", id)}
         />
       </div>
 
@@ -1370,28 +1305,19 @@ export const PanelPersonajesCapitulo = ({
         className="shrink-0 border-b"
         style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
       >
+
         <SeccionEntidad
           label={reinosIds.length > 0 ? `Ciudades (${reinosIds.length})` : "Ciudades"}
           icon={<MapPin size={9} />}
           fallbackIcon={<MapPin size={10} />}
-          emptyLabel={reinosIds.length > 0 ? "Sin ciudades en estos reinos" : "Sin ciudades / lugares"}
+          emptyLabel={reinosIds.length > 0 ? "Sin ciudades en estos reinos" : "Sin ciudades"}
           capId={capId}
-          allEntities={[
-            ...ciudades.filter(c => !reinosIds.length || reinosIds.includes(c.reino_id!)).map(c => ({ id: c.id, nombre: c.nombre, imagen_url: c.imagen_url ?? undefined })),
-            ...lugaresConReino.map(l => ({ id: l.id, nombre: l.nombre, imagen_url: l.imagen_url ?? undefined, group: "lugares-reino" })),
-          ]}
-          groups={lugaresConReino.length > 0 ? [{ key: "lugares-reino", label: "Lugares", icon: <MapPin size={7} /> }] : []}
-          selectedIds={[...ciudadesIds, ...lugaresIds]}
-          loading={loadingCiudades || loadingL}
-          saving={savingCiudad || savingL}
-          onToggle={(id, add) => {
-            if (ciudades.some(c => c.id === id)) handleToggleCiudad(id, add);
-            else handleToggleLugar(id, add);
-          }}
-          onEntityClick={(id) => {
-            if (ciudades.some(c => c.id === id)) dispatchOpen("ciudades", id);
-            else dispatchOpen("lugares", id);
-          }}
+          allEntities={ciudades.filter(c => !reinosIds.length || reinosIds.includes(c.reino_id!)).map(c => ({ id: c.id, nombre: c.nombre, imagen_url: c.imagen_url ?? undefined }))}
+          selectedIds={ciudadesIds}
+          loading={loadingCiudades}
+          saving={savingCiudad}
+          onToggle={(id, add) => handleToggleCiudad(id, add)}
+          onEntityClick={(id) => dispatchOpen("ciudades", id)}
         />
       </div>
 
