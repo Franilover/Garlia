@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Globe, Mountain, Landmark, Users, Coins, Plus, Trash2, ChevronUp, ChevronDown, ChevronRight, UserCircle2, Loader2, MapPin, Map, Check, X, Eye, EyeOff, Bug, BookOpen, Package, SlidersHorizontal } from "lucide-react";
 import { INPUT_CLS, type SaveStatus } from "./types";
 import { SeccionEntidad } from "@/components/ui/SeccionEntidad";
-import { MarkdownEditor, WikiEntity } from "../../../../forms/MarkdownEditor";
+import { MarkdownEditor, WikiEntity } from "../../../../forms/Markdown/MarkdownEditor";
 import { useWikilink } from "./WikilinkContext";
 import { type Reino } from "./types";
 import { type Ciudad } from "@/components/paginas/myself/garlia/EditorCiudad";

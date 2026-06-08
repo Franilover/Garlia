@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { FileText, Save, Trash2, Loader2, Tag, X, Plus, Check } from "lucide-react";
 import { type Nota, SaveStatus } from "./components/types";
 import { SaveIndicator } from "./components/UIComponents";
-import { MarkdownEditor } from "../../../forms/MarkdownEditor";
+import { MarkdownEditor } from "../../../forms/Markdown/MarkdownEditor";
 import { useWikilink } from "./components/WikilinkContext";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 

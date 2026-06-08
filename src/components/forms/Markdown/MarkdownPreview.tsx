@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * MarkdownPreview
+ * MarkdownPreview.tsx
  * ──────────────────────────────────────────────────────────────────────────────
  * Componente de SOLO LECTURA. Renderiza markdown con los mismos estilos que
  * MarkdownEditor, pero sin ninguna lógica de snippets, secciones ni ensayos.
@@ -14,19 +14,11 @@
  *   placeholder — texto a mostrar cuando value está vacío
  *   className   — clase extra del contenedor
  *   style       — estilos inline del contenedor
- *
- * Uso en editors de entidades:
- *   import { MarkdownPreview } from "./MarkdownPreview";
- *   <MarkdownPreview value={texto} placeholder="Escribe algo…" />
+ *   minHeight   — altura mínima del contenedor
  */
 
 import React, { useRef, useEffect, useCallback } from "react";
-import { renderMarkdown, renderMathInElement, PROSE_STYLES } from "./MarkdownEditor";
-
-// ── WikilinkContext — importar del contexto existente ────────────────────────
-// Este import asume que WikilinkContext.tsx está en la misma carpeta.
-// Si onWikilink no está disponible (fuera del provider), los clicks simplemente
-// llaman e.preventDefault() sin navegar — sin crash.
+import { renderMarkdown, renderMathInElement, PROSE_STYLES } from "./markdownRenderer";
 import { useWikilink } from "@/components/paginas/myself/garlia/components/WikilinkContext";
 
 // ── Inyección de estilos (una sola vez por página) ────────────────────────────
@@ -39,7 +31,7 @@ function injectStyles() {
   document.head.appendChild(tag);
 }
 
-// ── Componente ────────────────────────────────────────────────────────────────
+// ── Props ─────────────────────────────────────────────────────────────────────
 export interface MarkdownPreviewProps {
   value: string;
   placeholder?: string;
@@ -48,6 +40,7 @@ export interface MarkdownPreviewProps {
   minHeight?: string;
 }
 
+// ── Componente ────────────────────────────────────────────────────────────────
 export function MarkdownPreview({
   value,
   placeholder = "Vista previa…",
@@ -58,7 +51,7 @@ export function MarkdownPreview({
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Intentar obtener el handler de navegación del contexto.
-  // Si estamos fuera del WikilinkProvider, useWikilink devuelve un noop.
+  // Si estamos fuera del WikilinkProvider, useWikilink lanza → noop.
   let onWikilink: ((target: string) => void) | undefined;
   try {
     // eslint-disable-next-line react-hooks/rules-of-hooks
@@ -68,27 +61,23 @@ export function MarkdownPreview({
     onWikilink = undefined;
   }
 
-  // Inyectar estilos PROSE_STYLES al montar
   useEffect(() => { injectStyles(); }, []);
 
-  // Renderizar KaTeX si hay fórmulas
   useEffect(() => {
     renderMathInElement(containerRef.current);
   }, [value]);
 
-  // Listener nativo con capture:true para interceptar clicks en wikilinks
-  // ANTES de que el browser navegue al href (javascript:void(0) ya lo evita,
-  // pero el capture también previene cualquier bubbling problemático).
-  const handleWikilinkClick = useCallback((e: MouseEvent) => {
-    const a = (e.target as HTMLElement).closest("a[data-wikilink]");
-    if (!a) return;
-    e.preventDefault();
-    e.stopPropagation();
-    const target = a.getAttribute("data-wikilink");
-    if (target && onWikilink) {
-      onWikilink(target);
-    }
-  }, [onWikilink]);
+  const handleWikilinkClick = useCallback(
+    (e: MouseEvent) => {
+      const a = (e.target as HTMLElement).closest("a[data-wikilink]");
+      if (!a) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const target = a.getAttribute("data-wikilink");
+      if (target && onWikilink) onWikilink(target);
+    },
+    [onWikilink],
+  );
 
   useEffect(() => {
     const el = containerRef.current;

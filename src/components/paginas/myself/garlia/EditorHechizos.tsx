@@ -9,7 +9,7 @@ import { db } from "@/lib/api/client/db";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { type SaveStatus } from "./components/types";
 import { SaveIndicator } from "./components/UIComponents";
-import { MarkdownEditor } from "../../../forms/MarkdownEditor";
+import { MarkdownEditor } from "../../../forms/Markdown/MarkdownEditor";
 import { useWikilink } from "./components/WikilinkContext";
 import SimpleImagePicker from "@/components/paginas/myself/garlia/editorCapitulos/snippets//forms/SimpleImagePicker";
 

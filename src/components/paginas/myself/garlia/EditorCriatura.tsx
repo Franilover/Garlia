@@ -13,7 +13,7 @@ import { useConfirm } from "@/components/ui/ConfirmModal";
 import { type Criatura, type SaveStatus } from "./components/types";
 import { useGruposDeCriatura, usePersonajesDeEspecie, type GrupoMin } from "./components/hooks";
 import { SelectorImagen, SaveIndicator } from "./components/UIComponents";
-import { MarkdownEditor, WikiEntity } from "../../../forms/MarkdownEditor";
+import { MarkdownEditor, WikiEntity } from "../../../forms/Markdown/MarkdownEditor";
 import { useWikilink } from "./components/WikilinkContext";
 import { loreReadRelaciones, loreSyncRelaciones } from "@/lib/api/client/loreDb";
 import { SeccionEntidad } from "@/components/ui/SeccionEntidad";

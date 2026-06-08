@@ -12,7 +12,7 @@ import { useConfirm } from "@/components/ui/ConfirmModal";
 import { type SaveStatus } from "./components/types";
 import { SelectorImagen, SaveIndicator } from "./components/UIComponents";
 import { ComboSelector, type ComboItem } from "@/components/ui/ComboSelector";
-import { MarkdownEditor, WikiEntity } from "../../../forms/MarkdownEditor";
+import { MarkdownEditor, WikiEntity } from "../../../forms/Markdown/MarkdownEditor";
 import { useWikilink } from "./components/WikilinkContext";
 
 // ─── Dexie helpers ────────────────────────────────────────────────────────────

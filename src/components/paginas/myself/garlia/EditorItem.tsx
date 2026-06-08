@@ -8,7 +8,7 @@ import { useConfirm } from "@/components/ui/ConfirmModal";
 import { type Item, type SaveStatus } from "./components/types";
 import { SelectorImagen, SaveIndicator } from "./components/UIComponents";
 import { SeccionEntidad } from "@/components/ui/SeccionEntidad";
-import { MarkdownEditor, WikiEntity } from "../../../forms/MarkdownEditor";
+import { MarkdownEditor, WikiEntity } from "../../../forms/Markdown/MarkdownEditor";
 import { useWikilink } from "./components/WikilinkContext";
 import SimpleImagePicker from "@/components/paginas/myself/garlia/editorCapitulos/snippets//forms/SimpleImagePicker";
 

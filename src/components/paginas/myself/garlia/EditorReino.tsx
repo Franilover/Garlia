@@ -12,7 +12,7 @@ import { type Reino, type SaveStatus, INPUT_CLS } from "@/components/paginas/mys
 import { usePersonajesDelReino } from "@/components/paginas/myself/garlia/components/hooks";
 import { type Ciudad } from "@/components/paginas/myself/garlia/EditorCiudad";
 import { SaveIndicator } from "@/components/paginas/myself/garlia/components/UIComponents";
-import { MarkdownEditor, WikiEntity } from "../../../forms/MarkdownEditor";
+import { MarkdownEditor, WikiEntity } from "../../../forms/Markdown/MarkdownEditor";
 import { useWikilink } from "./components/WikilinkContext";
 import { LoreTab } from "@/components/paginas/myself/garlia/components/LoreTab";
 
