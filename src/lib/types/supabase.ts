@@ -846,6 +846,7 @@ export type Database = {
           id: string
           pagina_actual: number | null
           paginas_total: number | null
+          palabras_nuevas: { palabra: string; definicion?: string }[] | null
           tags: string[] | null
           titulo: string
           updated_at: string
@@ -858,6 +859,7 @@ export type Database = {
           id?: string
           pagina_actual?: number | null
           paginas_total?: number | null
+          palabras_nuevas?: { palabra: string; definicion?: string }[] | null
           tags?: string[] | null
           titulo: string
           updated_at?: string
@@ -870,6 +872,7 @@ export type Database = {
           id?: string
           pagina_actual?: number | null
           paginas_total?: number | null
+          palabras_nuevas?: { palabra: string; definicion?: string }[] | null
           tags?: string[] | null
           titulo?: string
           updated_at?: string
