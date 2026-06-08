@@ -50,9 +50,7 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
   const [cargandoCanciones, setCargandoCanciones]   = useState(false);
   const [reinos, setReinos]                         = useState<{ id: string; nombre: string; mapa_url?: string | null; descripcion?: string | null }[]>([]);
   const [ciudades, setCiudades]                     = useState<{ id: string; nombre: string; imagen_url?: string | null; descripcion?: string | null; reino_id?: string | null }[]>([]);
-  const [lugares, setLugares]                       = useState<{ id: string; nombre: string; imagen_url?: string | null; descripcion?: string | null; reino_id?: string | null }[]>([]);
   const [ciudadesReino, setCiudadesReino]           = useState<typeof ciudades>([]);
-  const [lugaresReino, setLugaresReino]             = useState<typeof lugares>([]);
 
   useEffect(() => {
     if (!username) return;
@@ -76,7 +74,7 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
         .eq("perfil_id", uid);
       if (invData) setInventario(invData as unknown as ItemInventario[]);
 
-      const [itemsRes, criaturasRes, personajesRes, reinosRes, ciudadesRes, lugaresRes] = await Promise.all([
+      const [itemsRes, criaturasRes, personajesRes, reinosRes, ciudadesRes] = await Promise.all([
         supabase.from("descubrimientos_items")
           .select("fecha_descubrimiento, items:item_id(id, nombre, categoria, imagen_url, descripcion)")
           .eq("perfil_id", uid),
@@ -91,9 +89,6 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
           .eq("perfil_id", uid),
         supabase.from("ciudades_desbloqueadas")
           .select("ciudad_data:ciudad_id(id, nombre, imagen_url, descripcion, reino_id)")
-          .eq("user_id", uid),
-        supabase.from("lugares_desbloqueados")
-          .select("lugares:lugar_id(id, nombre, imagen_url, descripcion, reino_id)")
           .eq("user_id", uid),
       ]);
 
@@ -113,15 +108,6 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
         reino_id:    r.ciudad_data?.reino_id ?? null,
       })).filter((l: any) => l.id);
       setCiudades(ciudadesData);
-
-      const lugaresData = (lugaresRes.data ?? []).map((r: any) => ({
-        id:          r.lugares?.id,
-        nombre:      r.lugares?.nombre,
-        imagen_url:  r.lugares?.imagen_url ?? null,
-        descripcion: r.lugares?.descripcion ?? null,
-        reino_id:    r.lugares?.reino_id ?? null,
-      })).filter((l: any) => l.id);
-      setLugares(lugaresData);
 
       setDescubrimientos([
         ...(itemsRes.data ?? []).map((r: any) => ({
@@ -244,13 +230,13 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
         <ModalDetalle entidad={modalD} onClose={() => setModalD(null)} />
       )}
 
-      {/* Modal custom para reinos con ciudades y lugares */}
+      {/* Modal custom para reinos con ciudades */}
       <AnimatePresence>
         {modalD && modalD.tipo === "reino" && (
           <>
             <MotionDiv
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => { setModalD(null); setCiudadesReino([]); setLugaresReino([]); }}
+              onClick={() => { setModalD(null); setCiudadesReino([]); }}
               className="fixed inset-0 z-40 backdrop-blur-sm"
               style={{ background: "rgba(0,0,0,0.45)" }}
             />
@@ -295,7 +281,7 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                   background: "linear-gradient(to top, var(--white-custom) 0%, color-mix(in srgb, var(--white-custom) 20%, transparent) 50%, transparent 100%)"
                 }} />
                 <button
-                  onClick={() => { setModalD(null); setCiudadesReino([]); setLugaresReino([]); }}
+                  onClick={() => { setModalD(null); setCiudadesReino([]); }}
                   className="absolute top-3 right-3 z-10 w-8 h-8 flex items-center justify-center transition-all hover:scale-110"
                   style={{
                     color: "var(--primary)",
@@ -330,8 +316,8 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                   </p>
                 )}
 
-                {/* Sección de ciudades y lugares del reino */}
-                {(ciudadesReino.length > 0 || lugaresReino.length > 0) && (
+                {/* Sección de ciudades del reino */}
+                {ciudadesReino.length > 0 && (
                   <>
                     <div className="flex items-center gap-3 mb-4">
                       <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
@@ -339,20 +325,19 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                         <MapPin size={10} style={{ color: "color-mix(in srgb, var(--primary) 28%, transparent)" }} />
                         <span className="font-serif italic text-[9px] font-black uppercase tracking-widest"
                           style={{ color: "color-mix(in srgb, var(--primary) 28%, transparent)" }}>
-                          Lugares
+                          Ciudades
                         </span>
                       </div>
                       <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
                     </div>
 
                     <div className="flex flex-col gap-2">
-                      {[...ciudadesReino, ...lugaresReino].map((lugar, i) => (
+                      {ciudadesReino.map((lugar, i) => (
                         <button
                           key={lugar.id ?? i}
                           onClick={() => {
                             setModalD(null);
                             setCiudadesReino([]);
-                            setLugaresReino([]);
                             setTimeout(() => setModalD({ tipo: "ciudad", data: {
                               tipo: "item",
                               entidad_id: lugar.id,
@@ -877,7 +862,6 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                           <button key={i}
                             onClick={() => {
                               setCiudadesReino(ciudades.filter(l => l.reino_id === r.id));
-                              setLugaresReino(lugares.filter(l => l.reino_id === r.id));
                               setModalD({ tipo: "reino", data: {
                                 tipo: "item",
                                 entidad_id: r.id,
@@ -924,54 +908,6 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                         ))
                       : <EmptyTab label="Ningún reino descubierto aún" />
                   )}
-
-                  {/* Lugares — aparecen como tarjetas independientes al lado de los reinos */}
-                  {tab === "reinos" && lugares.filter(l => !l.reino_id).map((l, i) => (
-                    <button
-                      key={`lugar-${i}`}
-                      onClick={() => setModalD({ tipo: "ciudad", data: {
-                        tipo: "item",
-                        entidad_id: l.id,
-                        nombre: l.nombre,
-                        imagen_url: l.imagen_url ?? undefined,
-                        descripcion: l.descripcion ?? undefined,
-                        fecha_descubrimiento: "",
-                      }})}
-                      className="group relative overflow-hidden text-left transition-all duration-150"
-                      style={{
-                        background: "color-mix(in srgb, var(--primary) 3%, var(--white-custom))",
-                        border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
-                        borderRadius: "4px",
-                        boxShadow: "inset 0 1px 0 color-mix(in srgb, var(--primary) 6%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--primary) 10%, transparent)",
-                        aspectRatio: "1 / 1",
-                        display: "flex",
-                        flexDirection: "column",
-                        minHeight: "80px",
-                      }}
-                      onMouseEnter={e => {
-                        (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 35%, transparent)";
-                        (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 7%, var(--white-custom))";
-                        (e.currentTarget as HTMLElement).style.boxShadow = "inset 0 1px 0 color-mix(in srgb, var(--primary) 12%, transparent), 0 0 0 1px color-mix(in srgb, var(--primary) 20%, transparent)";
-                      }}
-                      onMouseLeave={e => {
-                        (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 14%, transparent)";
-                        (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 3%, var(--white-custom))";
-                        (e.currentTarget as HTMLElement).style.boxShadow = "inset 0 1px 0 color-mix(in srgb, var(--primary) 6%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--primary) 10%, transparent)";
-                      }}>
-                      <div className="flex-1 relative overflow-hidden flex items-center justify-center p-2" style={{ minHeight: "64px", width: "100%" }}>
-                        {l.imagen_url
-                          ? <img src={l.imagen_url} alt={l.nombre}
-                              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" />
-                          : <MapPin size={22} style={{ color: "color-mix(in srgb, var(--primary) 14%, transparent)" }} />}
-                      </div>
-                      <div className="px-1.5 py-1" style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 4%, transparent)" }}>
-                        <p className="font-serif italic text-[9px] leading-tight capitalize truncate text-center"
-                          style={{ color: "var(--primary)" }}>
-                          {l.nombre}
-                        </p>
-                      </div>
-                    </button>
-                  ))}
 
                 </MotionDiv>
               </AnimatePresence>

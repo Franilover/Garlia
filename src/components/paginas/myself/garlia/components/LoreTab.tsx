@@ -630,7 +630,6 @@ function MapaPanel({
   reinoId: string;
 }) {
   const [sideTab, setSideTab] = useState<MapaSideTab>("puntos");
-  const { lugares, loading: loadingLugares } = useLugaresDelReino(reinoId);
 
   const SIDE_TABS: { key: MapaSideTab; label: string; Icon: React.ElementType }[] = [
     { key: "puntos", label: "Puntos", Icon: MapPin },
@@ -669,7 +668,7 @@ function MapaPanel({
         >
           {SIDE_TABS.map(({ key, label, Icon }) => {
             const isActive = sideTab === key;
-            const count = key === "puntos" ? detalles.length + lugares.length : 0;
+            const count = key === "puntos" ? detalles.length : 0;
             return (
               <button
                 key={key}
@@ -705,7 +704,7 @@ function MapaPanel({
         {/* Contenido del sub-tab */}
         {sideTab === "puntos" ? (
           <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
-            {detalles.length === 0 && lugares.length === 0 && !addingPoint && (
+            {detalles.length === 0 && !addingPoint && (
               <div className="flex flex-col items-center gap-2 py-8 text-primary/20">
                 <MapPin size={18} strokeWidth={1} />
                 <p className="text-[8px] font-black uppercase tracking-widest text-center">Sin puntos</p>
@@ -722,46 +721,6 @@ function MapaPanel({
               />
             ))}
 
-            {/* ── Lugares del reino ──────────────────────────────────────── */}
-            {loadingLugares ? (
-              <div className="flex justify-center py-3">
-                <Loader2 size={12} className="animate-spin" style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }} />
-              </div>
-            ) : lugares.length > 0 && (
-              <>
-                {(detalles.length > 0) && (
-                  <div className="flex items-center gap-2 pt-1 pb-0.5">
-                    <MapPin size={8} style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }} />
-                    <span className="text-[7px] font-black uppercase tracking-[0.2em]" style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>
-                      Lugares
-                    </span>
-                    <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
-                  </div>
-                )}
-                {lugares.map(lugar => (
-                  <div
-                    key={lugar.id}
-                    className="rounded-xl overflow-hidden"
-                    style={{ border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 1.5%, transparent)" }}
-                  >
-                    <div className="flex items-center gap-2 px-3 py-2.5">
-                      <MapPin size={11} className="shrink-0 text-primary/30" />
-                      <span className="flex-1 text-[11px] font-black uppercase tracking-widest truncate text-primary/70">
-                        {lugar.nombre}
-                      </span>
-                      {onOpenDetalleEditor && (
-                        <button
-                          onClick={() => onOpenDetalleEditor(lugar.id)}
-                          className="shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all border border-primary/10 text-primary/35 hover:text-primary hover:border-primary/25 hover:bg-primary/5"
-                        >
-                          <MapPin size={9} /> Ver ficha
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </>
-            )}
             {addingPoint ? (
               <div className="flex flex-col gap-1.5 p-2 rounded-xl border border-primary/15" style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)" }}>
                 <input
@@ -814,29 +773,6 @@ function MapaPanel({
 type CriaturaMin  = { id: string; nombre: string; imagen_url?: string | null };
 type PersonajeMin = { id: string; nombre: string; img_url?: string | null };
 type ItemMin      = { id: string; nombre: string; imagen_url?: string | null };
-type LugarMin     = { id: string; nombre: string; descripcion?: string | null; imagen_url?: string | null };
-
-// ─── Hook: lugares del reino (lugares.reino_id = reinoId) ─────────────────────
-function useLugaresDelReino(reinoId: string) {
-  const [lugares, setLugares] = useState<LugarMin[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!reinoId) return;
-    supabase
-      .from("lugares")
-      .select("id, nombre, descripcion, imagen_url")
-      .eq("reino_id", reinoId)
-      .order("nombre")
-      .then(({ data }) => {
-        setLugares(data ?? []);
-        setLoading(false);
-      });
-  }, [reinoId]);
-
-  return { lugares, loading };
-}
-
 // ─── Hook: criaturas vinculadas al reino (criatura_reinos) ────────────────────
 // Soporta add (INSERT) y remove (DELETE) además de carga.
 function useCriaturasDelReino(reinoId: string) {
@@ -941,37 +877,20 @@ function usePersonajesDelReinoEditable(reinoId: string, reinoNombre: string) {
   return { personajes, allPersonajes, loading, add, remove };
 }
 
-// ─── Hook: items del reino — solo lectura, agregados desde ciudades y lugares ──
+// ─── Hook: items del reino — solo lectura, agregados desde ciudades ──
 function useItemsDelReino(reinoId: string) {
   const [items,   setItems]   = useState<ItemMin[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [{ data: ciudadesData }, { data: lugaresData }] = await Promise.all([
-      supabase.from("ciudades").select("id").eq("reino_id", reinoId),
-      supabase.from("lugares").select("id").eq("reino_id", reinoId),
-    ]);
+    const { data: ciudadesData } = await supabase.from("ciudades").select("id").eq("reino_id", reinoId);
     const ciudadIds = (ciudadesData ?? []).map((c: any) => c.id);
-    const lugarIds  = (lugaresData  ?? []).map((l: any) => l.id);
 
-    const queries: PromiseLike<any>[] = [];
-    if (ciudadIds.length)
-      queries.push(supabase.from("items").select("id, nombre, imagen_url").in("ciudad_id", ciudadIds));
-    if (lugarIds.length)
-      queries.push(supabase.from("items").select("id, nombre, imagen_url").in("lugar_id", lugarIds));
+    if (ciudadIds.length === 0) { setItems([]); setLoading(false); return; }
 
-    if (queries.length === 0) { setItems([]); setLoading(false); return; }
-
-    const results = await Promise.all(queries);
-    const seen = new Set<string>();
-    const merged: ItemMin[] = [];
-    for (const { data } of results) {
-      for (const item of (data ?? [])) {
-        if (!seen.has(item.id)) { seen.add(item.id); merged.push(item); }
-      }
-    }
-    merged.sort((a, b) => a.nombre.localeCompare(b.nombre));
+    const { data } = await supabase.from("items").select("id, nombre, imagen_url").in("ciudad_id", ciudadIds);
+    const merged = (data ?? []).sort((a: ItemMin, b: ItemMin) => a.nombre.localeCompare(b.nombre));
     setItems(merged);
     setLoading(false);
   }, [reinoId]);
@@ -981,7 +900,7 @@ function useItemsDelReino(reinoId: string) {
   return { items, loading };
 }
 
-// ─── Hook: plantas del reino — vía planta_ciudades + planta_lugares ──────────
+// ─── Hook: plantas del reino — vía planta_ciudades ──────────────────────────
 type PlantaMin = { id: string; nombre: string; imagen_url?: string | null };
 
 function usePlantasDelReino(reinoId: string) {
@@ -990,30 +909,18 @@ function usePlantasDelReino(reinoId: string) {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [{ data: ciudadesData }, { data: lugaresData }] = await Promise.all([
-      supabase.from("ciudades").select("id").eq("reino_id", reinoId),
-      supabase.from("lugares").select("id").eq("reino_id", reinoId),
-    ]);
+    const { data: ciudadesData } = await supabase.from("ciudades").select("id").eq("reino_id", reinoId);
     const ciudadIds = (ciudadesData ?? []).map((c: any) => c.id);
-    const lugarIds  = (lugaresData  ?? []).map((l: any) => l.id);
 
-    const queries: PromiseLike<any>[] = [];
-    if (ciudadIds.length)
-      queries.push(supabase.from("planta_ciudades").select("planta_id, plantas!planta_id(id, nombre, imagen_url)").in("ciudad_id", ciudadIds));
-    if (lugarIds.length)
-      queries.push(supabase.from("planta_lugares").select("planta_id, plantas!planta_id(id, nombre, imagen_url)").in("lugar_id", lugarIds));
+    if (ciudadIds.length === 0) { setPlantas([]); setLoading(false); return; }
 
-    if (queries.length === 0) { setPlantas([]); setLoading(false); return; }
-
-    const results = await Promise.all(queries);
+    const { data } = await supabase.from("planta_ciudades").select("planta_id, plantas!planta_id(id, nombre, imagen_url)").in("ciudad_id", ciudadIds);
     const seen = new Set<string>();
     const merged: PlantaMin[] = [];
-    for (const { data } of results) {
-      for (const row of (data ?? [])) {
-        const p = Array.isArray(row.plantas) ? row.plantas[0] : row.plantas;
-        const id = p?.id ?? row.planta_id;
-        if (!seen.has(id)) { seen.add(id); merged.push({ id, nombre: p?.nombre ?? "—", imagen_url: p?.imagen_url ?? null }); }
-      }
+    for (const row of (data ?? [])) {
+      const p = Array.isArray(row.plantas) ? row.plantas[0] : row.plantas;
+      const id = p?.id ?? row.planta_id;
+      if (!seen.has(id)) { seen.add(id); merged.push({ id, nombre: p?.nombre ?? "—", imagen_url: p?.imagen_url ?? null }); }
     }
     merged.sort((a, b) => a.nombre.localeCompare(b.nombre));
     setPlantas(merged);
@@ -1025,7 +932,7 @@ function usePlantasDelReino(reinoId: string) {
   return { plantas, loading };
 }
 
-// ─── Hook: minerales del reino — vía mineral_ciudades + mineral_lugares ─────
+// ─── Hook: minerales del reino — vía mineral_ciudades ───────────────────────
 type MineralMin = { id: string; nombre: string; imagen_url?: string | null };
 
 function useMineralesDelReino(reinoId: string) {
@@ -1034,30 +941,18 @@ function useMineralesDelReino(reinoId: string) {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [{ data: ciudadesData }, { data: lugaresData }] = await Promise.all([
-      supabase.from("ciudades").select("id").eq("reino_id", reinoId),
-      supabase.from("lugares").select("id").eq("reino_id", reinoId),
-    ]);
+    const { data: ciudadesData } = await supabase.from("ciudades").select("id").eq("reino_id", reinoId);
     const ciudadIds = (ciudadesData ?? []).map((c: any) => c.id);
-    const lugarIds  = (lugaresData  ?? []).map((l: any) => l.id);
 
-    const queries: PromiseLike<any>[] = [];
-    if (ciudadIds.length)
-      queries.push(supabase.from("mineral_ciudades").select("mineral_id, minerales!mineral_id(id, nombre, imagen_url)").in("ciudad_id", ciudadIds));
-    if (lugarIds.length)
-      queries.push(supabase.from("mineral_lugares").select("mineral_id, minerales!mineral_id(id, nombre, imagen_url)").in("lugar_id", lugarIds));
+    if (ciudadIds.length === 0) { setMinerales([]); setLoading(false); return; }
 
-    if (queries.length === 0) { setMinerales([]); setLoading(false); return; }
-
-    const results = await Promise.all(queries);
+    const { data } = await supabase.from("mineral_ciudades").select("mineral_id, minerales!mineral_id(id, nombre, imagen_url)").in("ciudad_id", ciudadIds);
     const seen = new Set<string>();
     const merged: MineralMin[] = [];
-    for (const { data } of results) {
-      for (const row of (data ?? [])) {
-        const m = Array.isArray(row.minerales) ? row.minerales[0] : row.minerales;
-        const id = m?.id ?? row.mineral_id;
-        if (!seen.has(id)) { seen.add(id); merged.push({ id, nombre: m?.nombre ?? "—", imagen_url: m?.imagen_url ?? null }); }
-      }
+    for (const row of (data ?? [])) {
+      const m = Array.isArray(row.minerales) ? row.minerales[0] : row.minerales;
+      const id = m?.id ?? row.mineral_id;
+      if (!seen.has(id)) { seen.add(id); merged.push({ id, nombre: m?.nombre ?? "—", imagen_url: m?.imagen_url ?? null }); }
     }
     merged.sort((a, b) => a.nombre.localeCompare(b.nombre));
     setMinerales(merged);

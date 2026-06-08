@@ -63,10 +63,8 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
   const [cancionesPersonaje, setCancionesPersonaje] = useState<any[]>([]);
   const [cargandoCanciones, setCargandoCanciones] = useState(false);
   const [ciudadesReino, setCiudadesReino] = useState<typeof ciudades>([]);
-  const [lugaresReino, setLugaresReino] = useState<typeof lugares>([]);
   const [reinos, setReinos] = useState<{ id: string; nombre: string; mapa_url?: string | null; logo_url?: string | null; descripcion?: string | null }[]>([]);
   const [ciudades, setCiudades] = useState<{ id: string; nombre: string; imagen_url?: string | null; descripcion?: string | null; reino_id?: string | null }[]>([]);
-  const [lugares, setLugares] = useState<{ id: string; nombre: string; imagen_url?: string | null; descripcion?: string | null; reino_id?: string | null }[]>([]);
   const userIdRef = React.useRef<string | null>(null);
 
   useEffect(() => {
@@ -110,7 +108,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
           if (invData)  setInventario(invData as unknown as ItemInventario[]);
         }
 
-        const [itemsRes, criaturasRes, personajesRes, reinosRes, ciudadesRes, lugaresRes] = await Promise.all([
+        const [itemsRes, criaturasRes, personajesRes, reinosRes, ciudadesRes] = await Promise.all([
           supabase
             .from("descubrimientos_items")
             .select("fecha_descubrimiento, items:item_id(id, nombre, categoria, imagen_url, descripcion)")
@@ -131,10 +129,6 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
             .from("ciudades_desbloqueadas")
             .select("ciudades:ciudad_id(id, nombre, imagen_url, descripcion, reino_id)")
             .eq("user_id", user.id),
-          supabase
-            .from("lugares_desbloqueados")
-            .select("lugares:lugar_id(id, nombre, imagen_url, descripcion, reino_id)")
-            .eq("user_id", user.id),
         ]);
 
         if (itemsRes.error)      console.warn("[Personal] descubrimientos_items error:", itemsRes.error.message);
@@ -142,7 +136,6 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
         if (personajesRes.error) console.warn("[Personal] descubrimientos_personajes error:", personajesRes.error.message);
         if (reinosRes.error)     console.warn("[Personal] descubrimientos_reinos error:", reinosRes.error.message);
         if (ciudadesRes.error)    console.warn("[Personal] ciudades_desbloqueadas error:", ciudadesRes.error.message);
-        if (lugaresRes.error)    console.warn("[Personal] lugares error:", lugaresRes.error.message);
 
         const reinosData = (reinosRes.data ?? []).map((r: any) => ({
           id:           r.reino_data?.id,
@@ -161,15 +154,6 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
           reino_id:    r.ciudades?.reino_id ?? null,
         })).filter(l => l.id);
         setCiudades(ciudadesData);
-
-        const lugaresData = (lugaresRes.data ?? []).map((r: any) => ({
-          id:          r.lugares?.id,
-          nombre:      r.lugares?.nombre,
-          imagen_url:  r.lugares?.imagen_url ?? null,
-          descripcion: r.lugares?.descripcion ?? null,
-          reino_id:    r.lugares?.reino_id ?? null,
-        })).filter(l => l.id);
-        setLugares(lugaresData);
 
         const planos: Descubrimiento[] = [
           ...(itemsRes.data ?? []).map((r: any) => ({
@@ -382,7 +366,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
     { id: "personajes", label: "Agenda",     icon: User,    count: misPersonajes.length },
     { id: "criaturas",  label: "Bestiario",  icon: Cat,     count: misCriaturas.length },
     { id: "items",      label: "Inventario", icon: Sword,   count: inventario.length + misItemsDesc.length },
-    { id: "reinos",     label: "Mapa",       icon: MapPin,  count: reinos.length + lugares.filter(l => !l.reino_id).length },
+    { id: "reinos",     label: "Mapa",       icon: MapPin,  count: reinos.length },
   ] as const;
 
   if (cargando) return (
@@ -617,7 +601,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
           <>
             <MotionDiv
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => { setModalEntidad(null); setCiudadesReino([]); setLugaresReino([]); }}
+              onClick={() => { setModalEntidad(null); setCiudadesReino([]); }}
               className="fixed inset-0 z-40 backdrop-blur-sm"
               style={{ background: "rgba(0,0,0,0.45)" }}
             />
@@ -662,7 +646,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                   background: "linear-gradient(to top, var(--white-custom) 0%, color-mix(in srgb, var(--white-custom) 20%, transparent) 50%, transparent 100%)"
                 }} />
                 <button
-                  onClick={() => { setModalEntidad(null); setCiudadesReino([]); setLugaresReino([]); }}
+                  onClick={() => { setModalEntidad(null); setCiudadesReino([]); }}
                   className="absolute top-3 right-3 z-10 w-8 h-8 flex items-center justify-center transition-all hover:scale-110"
                   style={{
                     color: "var(--primary)",
@@ -697,8 +681,8 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                   </p>
                 )}
 
-                {/* Sección de ciudades y lugares del reino — oculta si no hay ninguno */}
-                {(ciudadesReino.length > 0 || lugaresReino.length > 0) && (
+                {/* Sección de ciudades del reino — oculta si no hay ninguna */}
+                {ciudadesReino.length > 0 && (
                   <>
                     <div className="flex items-center gap-3 mb-4">
                       <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
@@ -706,20 +690,19 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                         <MapPin size={10} style={{ color: "color-mix(in srgb, var(--primary) 28%, transparent)" }} />
                         <span className="font-serif italic text-[9px] font-black uppercase tracking-widest"
                           style={{ color: "color-mix(in srgb, var(--primary) 28%, transparent)" }}>
-                          Lugares
+                          Ciudades
                         </span>
                       </div>
                       <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
                     </div>
 
                     <div className="flex flex-col gap-2">
-                      {[...ciudadesReino, ...lugaresReino].map((lugar, i) => (
+                      {ciudadesReino.map((lugar, i) => (
                         <button
                           key={lugar.id ?? i}
                           onClick={() => {
                             setModalEntidad(null);
                             setCiudadesReino([]);
-                            setLugaresReino([]);
                             setTimeout(() => setModalEntidad({ tipo: "ciudad", data: {
                               tipo: "item",
                               entidad_id: lugar.id,
@@ -1689,7 +1672,6 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                             key={i}
                             onClick={() => {
                               setCiudadesReino(ciudades.filter(l => l.reino_id === r.id));
-                              setLugaresReino(lugares.filter(l => l.reino_id === r.id));
                               setModalEntidad({ tipo: "reino", data: {
                                 tipo: "item",
                                 entidad_id: r.id,
@@ -1737,54 +1719,6 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                         ))
                         : <div className="col-span-full"><EmptyTab label="Ningún reino descubierto aún" /></div>
                     )}
-
-                    {/* Lugares — aparecen como tarjetas independientes al lado de los reinos */}
-                    {tab === "reinos" && lugares.filter(l => !l.reino_id).map((l, i) => (
-                      <button
-                        key={`lugar-${i}`}
-                        onClick={() => setModalEntidad({ tipo: "ciudad", data: {
-                          tipo: "item",
-                          entidad_id: l.id,
-                          nombre: l.nombre,
-                          imagen_url: l.imagen_url ?? undefined,
-                          descripcion: l.descripcion ?? undefined,
-                          fecha_descubrimiento: "",
-                        }})}
-                        className="group relative overflow-hidden text-left transition-all duration-150"
-                        style={{
-                          background: "color-mix(in srgb, var(--primary) 3%, var(--white-custom))",
-                          border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
-                          borderRadius: "4px",
-                          boxShadow: "inset 0 1px 0 color-mix(in srgb, var(--primary) 6%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--primary) 10%, transparent)",
-                          aspectRatio: "1 / 1",
-                          display: "flex",
-                          flexDirection: "column",
-                          minHeight: "80px",
-                        }}
-                        onMouseEnter={e => {
-                          (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 35%, transparent)";
-                          (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 7%, var(--white-custom))";
-                          (e.currentTarget as HTMLElement).style.boxShadow = "inset 0 1px 0 color-mix(in srgb, var(--primary) 12%, transparent), 0 0 0 1px color-mix(in srgb, var(--primary) 20%, transparent)";
-                        }}
-                        onMouseLeave={e => {
-                          (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 14%, transparent)";
-                          (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 3%, var(--white-custom))";
-                          (e.currentTarget as HTMLElement).style.boxShadow = "inset 0 1px 0 color-mix(in srgb, var(--primary) 6%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--primary) 10%, transparent)";
-                        }}>
-                        <div className="flex-1 relative overflow-hidden flex items-center justify-center p-2" style={{ minHeight: "64px", width: "100%" }}>
-                          {l.imagen_url
-                            ? <img src={l.imagen_url} alt={l.nombre}
-                                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" />
-                            : <MapPin size={22} style={{ color: "color-mix(in srgb, var(--primary) 14%, transparent)" }} />}
-                        </div>
-                        <div className="px-1.5 py-1" style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 4%, transparent)" }}>
-                          <p className="font-serif italic text-[9px] leading-tight capitalize truncate text-center"
-                            style={{ color: "var(--primary)" }}>
-                            {l.nombre}
-                          </p>
-                        </div>
-                      </button>
-                    ))}
 
                   </MotionDiv>
                 </AnimatePresence>

@@ -239,77 +239,27 @@ function PanelPlantaSources({ itemId, onSelectPlanta }: { itemId: string; onSele
 
 // ─── Tipos comunes ────────────────────────────────────────────────────────────
 type ReinoMin = { id: string; nombre: string };
-type LugarMin = { id: string; nombre: string; reino_id?: string | null };
 
-// ─── Hook: lugares del ítem (item_lugares) ────────────────────────────────────
-type ItemLugarRow = { rowId: string; lugarId: string };
-
-function useLugaresItem(itemId: string) {
-  const [rows, setRows] = useState<ItemLugarRow[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    const { data } = await supabase
-      .from("item_lugares")
-      .select("id, lugar_id")
-      .eq("item_id", itemId);
-    setRows((data ?? []).map((r: any) => ({ rowId: r.id, lugarId: r.lugar_id })));
-    setLoading(false);
-  }, [itemId]);
-
-  useEffect(() => { load(); }, [load]);
-
-  const add = async (lugarId: string) => {
-    if (rows.some(r => r.lugarId === lugarId)) return;
-    const { data, error } = await supabase
-      .from("item_lugares")
-      .insert([{ item_id: itemId, lugar_id: lugarId }])
-      .select().single();
-    if (!error && data) setRows(prev => [...prev, { rowId: data.id, lugarId }]);
-  };
-
-  const remove = async (rowId: string) => {
-    await supabase.from("item_lugares").delete().eq("id", rowId);
-    setRows(prev => prev.filter(r => r.rowId !== rowId));
-  };
-
-  return { rows, loading, add, remove };
-}
-
-// ─── Panel Territorio: reinos + lugares sin reino ─────────────────────────────
+// ─── Panel Territorio: solo reinos ───────────────────────────────────────────
 function PanelTerritorio({
-  value, onChange, itemId, onNavigateReino, onNavigateLugar,
+  value, onChange, onNavigateReino,
 }: {
   value: string[];
   onChange: (ids: string[]) => void;
-  itemId: string;
   onNavigateReino?: (id: string) => void;
-  onNavigateLugar?: (id: string) => void;
 }) {
   const [allReinos, setAllReinos] = useState<ReinoMin[]>([]);
-  const [allLugares, setAllLugares] = useState<LugarMin[]>([]);
   const [loadingReinos, setLoadingReinos] = useState(true);
-  const { rows: lugarRows, loading: loadingLugares, add: addLugar, remove: removeLugar } = useLugaresItem(itemId);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     supabase.from("reinos").select("id, nombre").order("nombre")
       .then(({ data }) => { setAllReinos(data ?? []); setLoadingReinos(false); });
-    supabase.from("lugares").select("id, nombre, reino_id").order("nombre")
-      .then(({ data }) => setAllLugares(data ?? []));
   }, []);
-
-  const lugaresSinReino = allLugares.filter(l => !l.reino_id);
-  const [saving, setSaving] = useState(false);
 
   const handleToggle = async (id: string, add: boolean) => {
     setSaving(true);
-    if (allReinos.some(r => r.id === id)) {
-      onChange(add ? [...value, id] : value.filter(x => x !== id));
-    } else {
-      if (add) await addLugar(id);
-      else { const row = lugarRows.find(r => r.lugarId === id); if (row) await removeLugar(row.rowId); }
-    }
+    onChange(add ? [...value, id] : value.filter(x => x !== id));
     setSaving(false);
   };
 
@@ -319,61 +269,42 @@ function PanelTerritorio({
       icon={<Globe size={9} />}
       fallbackIcon={<Globe size={9} />}
       emptyLabel="Sin territorio asignado"
-      allEntities={[
-        ...allReinos.map(r => ({ id: r.id, nombre: r.nombre })),
-        ...lugaresSinReino.map(l => ({ id: l.id, nombre: l.nombre, group: "lugares-libres" })),
-      ]}
-      groups={lugaresSinReino.length > 0 ? [{ key: "lugares-libres", label: "Lugares libres", icon: <MapPin size={7} /> }] : []}
-      selectedIds={[...value, ...lugarRows.map(r => r.lugarId)]}
-      loading={loadingReinos || loadingLugares}
+      allEntities={allReinos.map(r => ({ id: r.id, nombre: r.nombre }))}
+      groups={[]}
+      selectedIds={value}
+      loading={loadingReinos}
       saving={saving}
       onToggle={handleToggle}
-      onEntityClick={id => {
-        if (allReinos.some(r => r.id === id)) onNavigateReino?.(id);
-        else onNavigateLugar?.(id);
-      }}
+      onEntityClick={id => onNavigateReino?.(id)}
     />
   );
 }
 
-// ─── Panel Ciudades: ciudades + lugares con reino ─────────────────────────────
-function PanelCiudadesConLugares({
-  reinosSeleccionados, itemId, onNavigateCiudad, onNavigateLugar,
+// ─── Panel Ciudades ───────────────────────────────────────────────────────────
+function PanelCiudades({
+  reinosSeleccionados, itemId, onNavigateCiudad,
 }: {
   reinosSeleccionados: string[];
   itemId: string;
   onNavigateCiudad?: (id: string) => void;
-  onNavigateLugar?: (id: string) => void;
 }) {
   const { rows: ciudadRows, loading: loadingCiudades, add: addCiudad, remove: removeCiudad } = useCiudadesItem(itemId);
-  const { rows: lugarRows, loading: loadingLugares, add: addLugar, remove: removeLugar } = useLugaresItem(itemId);
   const [allCiudades, setAllCiudades] = useState<CiudadMin[]>([]);
-  const [allLugares, setAllLugares] = useState<LugarMin[]>([]);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     supabase.from("ciudades").select("id, nombre, reino_id").order("nombre")
       .then(({ data }) => setAllCiudades(data ?? []));
-    supabase.from("lugares").select("id, nombre, reino_id").order("nombre")
-      .then(({ data }) => setAllLugares(data ?? []));
   }, []);
 
   const ciudadesConReino = allCiudades.filter(c =>
     c.reino_id && (reinosSeleccionados.length === 0 || reinosSeleccionados.includes(c.reino_id))
   );
-  const lugaresConReino = allLugares.filter(l =>
-    l.reino_id && (reinosSeleccionados.length === 0 || reinosSeleccionados.includes(l.reino_id!))
-  );
 
   const handleToggle = async (id: string, add: boolean) => {
     setSaving(true);
-    if (allCiudades.some(c => c.id === id)) {
-      if (add) { const c = allCiudades.find(x => x.id === id); if (c) await addCiudad(c); }
-      else { const row = ciudadRows.find(r => r.ciudadId === id); if (row) await removeCiudad(row.rowId); }
-    } else {
-      if (add) await addLugar(id);
-      else { const row = lugarRows.find(r => r.lugarId === id); if (row) await removeLugar(row.rowId); }
-    }
+    if (add) { const c = allCiudades.find(x => x.id === id); if (c) await addCiudad(c); }
+    else { const row = ciudadRows.find(r => r.ciudadId === id); if (row) await removeCiudad(row.rowId); }
     setSaving(false);
   };
 
@@ -382,20 +313,14 @@ function PanelCiudadesConLugares({
       label={reinosSeleccionados.length > 0 ? `Ciudades (${reinosSeleccionados.length})` : "Ciudades"}
       icon={<MapPin size={9} />}
       fallbackIcon={<MapPin size={9} />}
-      emptyLabel={reinosSeleccionados.length > 0 ? "Sin ciudades en estos reinos" : "Sin ciudades / lugares"}
-      allEntities={[
-        ...ciudadesConReino.map(c => ({ id: c.id, nombre: c.nombre })),
-        ...lugaresConReino.map(l => ({ id: l.id, nombre: l.nombre, group: "lugares-reino" })),
-      ]}
-      groups={lugaresConReino.length > 0 ? [{ key: "lugares-reino", label: "Lugares", icon: <MapPin size={7} /> }] : []}
-      selectedIds={[...ciudadRows.map(r => r.ciudadId), ...lugarRows.map(r => r.lugarId)]}
-      loading={loadingCiudades || loadingLugares}
+      emptyLabel={reinosSeleccionados.length > 0 ? "Sin ciudades en estos reinos" : "Sin ciudades"}
+      allEntities={ciudadesConReino.map(c => ({ id: c.id, nombre: c.nombre }))}
+      groups={[]}
+      selectedIds={ciudadRows.map(r => r.ciudadId)}
+      loading={loadingCiudades}
       saving={saving}
       onToggle={handleToggle}
-      onEntityClick={id => {
-        if (allCiudades.some(c => c.id === id)) onNavigateCiudad?.(id);
-        else onNavigateLugar?.(id);
-      }}
+      onEntityClick={id => onNavigateCiudad?.(id)}
     />
   );
 }
@@ -693,14 +618,13 @@ function SelectorCategoriaGrupo({
 // ─── EditorItem ───────────────────────────────────────────────────────────────
 
 export function EditorItem({
-  item, onSaved, onDeleted, entities = [], onSelectCriatura, onSelectPlanta, onNavigateCiudad, onNavigateReino, onNavigateLugar, onSelectGrupo,
+  item, onSaved, onDeleted, entities = [], onSelectCriatura, onSelectPlanta, onNavigateCiudad, onNavigateReino, onSelectGrupo,
 }: {
   item: Item; onSaved: (i: Item) => void; onDeleted: (id: string) => void; entities?: WikiEntity[];
   onSelectCriatura?: (criaturaId: string) => void;
   onSelectPlanta?: (plantaId: string) => void;
   onNavigateCiudad?: (id: string) => void;
   onNavigateReino?: (id: string) => void;
-  onNavigateLugar?: (id: string) => void;
   onSelectGrupo?: (grupoId: string) => void;
 }) {
   const [form,     setForm]     = useState<Item>(item);
@@ -898,19 +822,16 @@ export function EditorItem({
                     <PanelTerritorio
                       value={form.reino_ids ?? []}
                       onChange={ids => setForm(f => ({ ...f, reino_ids: ids }))}
-                      itemId={form.id}
                       onNavigateReino={onNavigateReino}
-                      onNavigateLugar={onNavigateLugar}
                     />
                   </div>
 
                   {/* Columna Ciudades */}
                   <div className="flex-1 min-w-0">
-                    <PanelCiudadesConLugares
+                    <PanelCiudades
                       reinosSeleccionados={form.reino_ids ?? []}
                       itemId={form.id}
                       onNavigateCiudad={onNavigateCiudad}
-                      onNavigateLugar={onNavigateLugar}
                     />
                   </div>
 
