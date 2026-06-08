@@ -988,12 +988,8 @@ export function EditorCapitulosPanel() {
   useEffect(() => {
     const check = () => {
       const action = localStorage.getItem("estudio-caps-action");
-      if (!action) return;
-      localStorage.removeItem("estudio-caps-action");
-      if (action === "nuevo-libro") setTimeout(() => setShowNuevoLibro(true), 120);
-      if (action === "nuevo-cap")   setTimeout(() => setShowNuevoCap(true), 120);
-
-      // Abrir un capítulo concreto desde un link externo (ej: EditorPersonaje)
+      // Intentar abrir un capítulo concreto aunque no haya action string
+      // (puede venir de onNavigateToCapitulo en editorGarlia que solo guarda ids)
       const capId   = localStorage.getItem("estudio-caps-last-cap");
       const libroId = localStorage.getItem("estudio-caps-last-libro");
       if (capId && libroId) {
@@ -1002,6 +998,10 @@ export function EditorCapitulosPanel() {
         setFocusMode(false);
         setSidebarOpen(false);
       }
+      if (!action) return;
+      localStorage.removeItem("estudio-caps-action");
+      if (action === "nuevo-libro") setTimeout(() => setShowNuevoLibro(true), 120);
+      if (action === "nuevo-cap")   setTimeout(() => setShowNuevoCap(true), 120);
     };
     check();
     window.addEventListener("estudio-caps-action", check);

@@ -549,10 +549,14 @@ export default function EditorEntidades() {
           onNavigateToCapitulo={(capId, libroId) => {
             localStorage.setItem("estudio-caps-last-cap",   capId);
             localStorage.setItem("estudio-caps-last-libro", libroId);
-            window.dispatchEvent(new Event("estudio-caps-action"));
+            // 1. Cerrar cualquier overlay abierto para que EstudioCapitulos sea visible
+            if (overlayCloseFnRef.current) overlayCloseFnRef.current();
+            // 2. Asegurarse de estar en la pestaña mundo
             setTab("mundo");
             setMundoSection("geografia");
             setRequestedItemId(undefined);
+            // 3. Despachar después de que React procese el cierre del overlay
+            setTimeout(() => window.dispatchEvent(new Event("estudio-caps-action")), 0);
           }}
 
           onNavigateToCancion={(cancionId) => {
