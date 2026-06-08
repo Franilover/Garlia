@@ -22,8 +22,8 @@ import { BannerOffline, ModalBase, SaveIndicator, CampoInput, BotonSubmit } from
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { makeSnippetOverlay } from "./snippets/SnippetOverlay";
 import { SnippetCommandPalette } from "./snippets/SnippetCommandPalette";
-import { MarkdownEditor, renderMarkdown, renderMathInElement, PROSE_STYLES } from "@/components/forms/MarkdownEditor";
-import type { CommandItem as MdCommandItem, SnippetAction } from "@/components/forms/MarkdownEditor";
+import { MarkdownEditor, renderMarkdown, renderMathInElement, PROSE_STYLES } from "@/components/forms/Markdown/MarkdownEditor";
+import type { CommandItem as MdCommandItem, SnippetAction } from "@/components/forms/Markdown/MarkdownEditor";
 
 import {
   Libro, Capitulo, SaveStatus, TABLA_CAPS, VISIBILIDAD_CONFIG,

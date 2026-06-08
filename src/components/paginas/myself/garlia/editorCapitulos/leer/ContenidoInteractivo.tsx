@@ -6,7 +6,7 @@ import {
   CitaVisual, ImgInline, FloatWord, SoundInline,
   DropWord, ChoiceButton, UseWord, UseWordPortal,
 } from "./SegmentRenderers";
-import { renderMarkdown } from "@/components/forms/MarkdownEditor";
+import { renderMarkdown } from "@/components/forms/Markdown/MarkdownEditor";
 
 /* ─────────────────────────────────────────────
    Drop cap animado — la primera letra "aparece

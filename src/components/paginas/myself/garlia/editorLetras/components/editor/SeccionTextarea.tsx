@@ -5,7 +5,7 @@ import { Loader2, CheckCircle2, AlertCircle, WifiOff } from "lucide-react";
 import { DraftRestoreBanner, useDraftRestore } from "@/hooks/useEditorShared";
 import { dexieSecGet } from "../../lib/seccionesDb";
 import { IDIOMAS, IDLE_STATE } from "../../constants";
-import { MarkdownEditor } from "@/components/forms/MarkdownEditor";
+import { MarkdownEditor } from "@/components/forms/Markdown/MarkdownEditor";
 import type { Seccion, IdiomaKey, ColState } from "../../types";
 
 // ── Conteo ───────────────────────────────────────────────────────────────────

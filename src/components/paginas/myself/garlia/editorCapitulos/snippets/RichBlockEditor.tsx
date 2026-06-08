@@ -22,8 +22,8 @@ import { SnippetModalDispatcher } from "./SnippetModals";
 import { KIND_DEFS, KIND_FALLBACK, SNIPPET_TYPES } from "./snippetDefs";
 import type { SnippetKind, ModalKind } from "./snippetDefs";
 
-import { MarkdownEditor } from "@/components/forms/MarkdownEditor";
-import type { CommandItem as MdCommandItem, SnippetAction } from "@/components/forms/MarkdownEditor";
+import { MarkdownEditor } from "@/components/forms/Markdown/MarkdownEditor";
+import type { CommandItem as MdCommandItem, SnippetAction } from "@/components/forms/Markdown/MarkdownEditor";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TIPOS LOCALES
