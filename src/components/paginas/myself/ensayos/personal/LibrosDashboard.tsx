@@ -231,7 +231,7 @@ export function LibrosDashboard({ ensayos, onNavigate, onTagClick, onToggleEstad
             <BookOpen size={15} />
           </div>
           <h1 style={{ ...serif, fontSize: isMobile ? 18 : 22, color: "color-mix(in srgb, var(--foreground) 80%, transparent)", margin: 0, lineHeight: 1 }}>
-            biblioteca
+            Biblioteca
           </h1>
         </div>
         <p style={{ ...mono, fontSize: 9, color: "color-mix(in srgb, var(--foreground) 20%, transparent)", textTransform: "uppercase", letterSpacing: "0.13em", margin: 0 }}>
