@@ -1843,12 +1843,6 @@ function PanelListas({
             </div>
           </div>
 
-          {/* RELACIONES */}
-          <div style={{ minHeight: "60vh" }}>
-            <div className="flex flex-col min-h-0" style={{ minHeight: "58vh" }}>
-              <AdminDescubrimientos />
-            </div>
-          </div>
 
           {/* ENTIDADES */}
           <div className="px-3 sm:px-3 pb-4 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
@@ -1965,6 +1959,14 @@ function PanelListas({
               ))}
             </SeccionEntidades>
 
+
+          </div>
+
+                    {/* RELACIONES */}
+          <div style={{ minHeight: "60vh" }}>
+            <div className="flex flex-col min-h-0" style={{ minHeight: "58vh" }}>
+              <AdminDescubrimientos />
+            </div>
           </div>
 
         </div>
