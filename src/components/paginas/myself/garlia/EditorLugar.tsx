@@ -11,7 +11,6 @@ import { useConfirm } from "@/components/ui/ConfirmModal";
 import { type SaveStatus } from "./components/types";
 import { SelectorImagen, SaveIndicator } from "./components/UIComponents";
 import { ComboSelector } from "@/components/ui/ComboSelector";
-import { SeccionEntidad } from "@/components/ui/SeccionEntidad";
 import { MarkdownEditor, WikiEntity } from "../../../forms/MarkdownEditor";
 import { useWikilink } from "./components/WikilinkContext";
 
@@ -46,44 +45,42 @@ const TIPOS_LUGAR = [
   "Ruinas", "Templo", "Torre", "Santuario", "Paso", "Abismo",
 ];
 
-// ─── Hook: plantas vinculadas al lugar ───────────────────────────────────────
+// ─── Hook: plantas vinculadas al lugar (vía planta_lugares) ─────────────────
 function usePlantasDelLugar(lugarId: string) {
   const [plantas, setPlantas] = useState<PlantaMin[]>([]);
   const [loading, setLoading] = useState(true);
   const load = useCallback(async () => {
     setLoading(true);
-    try {
-      if (db) {
-        const all: any[] = await (db as any).plantas?.toArray() ?? [];
-        const local = all.filter((p: any) => p.lugar_id === lugarId && !p.deleted);
-        if (local.length) { setPlantas(local); setLoading(false); if (!navigator.onLine) return; }
-      }
-    } catch {}
     if (!navigator.onLine) { setLoading(false); return; }
-    const { data } = await supabase.from("plantas").select("id, nombre, imagen_url").eq("lugar_id", lugarId).order("nombre");
-    setPlantas(data ?? []);
+    const { data } = await supabase
+      .from("planta_lugares")
+      .select("planta_id, plantas!planta_id(id, nombre, imagen_url)")
+      .eq("lugar_id", lugarId);
+    setPlantas((data ?? []).map((r: any) => {
+      const p = Array.isArray(r.plantas) ? r.plantas[0] : r.plantas;
+      return { id: p?.id ?? r.planta_id, nombre: p?.nombre ?? "—", imagen_url: p?.imagen_url ?? null };
+    }));
     setLoading(false);
   }, [lugarId]);
   useEffect(() => { load(); }, [load]);
   return { plantas, loading, reload: load };
 }
 
-// ─── Hook: minerales vinculados al lugar ──────────────────────────────────────
+// ─── Hook: minerales vinculados al lugar (vía mineral_lugares) ───────────────
 function useMineralesDelLugar(lugarId: string) {
   const [minerales, setMinerales] = useState<MineralMin[]>([]);
   const [loading, setLoading] = useState(true);
   const load = useCallback(async () => {
     setLoading(true);
-    try {
-      if (db) {
-        const all: any[] = await (db as any).minerales?.toArray() ?? [];
-        const local = all.filter((m: any) => m.lugar_id === lugarId && !m.deleted);
-        if (local.length) { setMinerales(local); setLoading(false); if (!navigator.onLine) return; }
-      }
-    } catch {}
     if (!navigator.onLine) { setLoading(false); return; }
-    const { data } = await supabase.from("minerales").select("id, nombre, imagen_url").eq("lugar_id", lugarId).order("nombre");
-    setMinerales(data ?? []);
+    const { data } = await supabase
+      .from("mineral_lugares")
+      .select("mineral_id, minerales!mineral_id(id, nombre, imagen_url)")
+      .eq("lugar_id", lugarId);
+    setMinerales((data ?? []).map((r: any) => {
+      const m = Array.isArray(r.minerales) ? r.minerales[0] : r.minerales;
+      return { id: m?.id ?? r.mineral_id, nombre: m?.nombre ?? "—", imagen_url: m?.imagen_url ?? null };
+    }));
     setLoading(false);
   }, [lugarId]);
   useEffect(() => { load(); }, [load]);
@@ -500,39 +497,59 @@ export function FormularioLugar({
 
           {/* Plantas + Minerales en fila */}
           <div className="flex flex-col sm:flex-row gap-4">
-
-            {/* Plantas */}
-            <div className="flex-1 min-w-0 rounded-xl overflow-hidden border border-primary/10">
-              <SeccionEntidad
-                label="Plantas"
-                icon={<Leaf size={10} />}
-                fallbackIcon={<Leaf size={10} />}
-                emptyLabel="Sin plantas en este lugar"
-                allEntities={todasPlantas}
-                selectedIds={plantas.map(p => p.id)}
-                loading={loadingPlantas}
-                saving={!!addingPlanta}
-                onToggle={(id, add) => add ? onAddPlanta(todasPlantas.find(p => p.id === id)!) : onRemovePlanta(id)}
-                onEntityClick={onSelectPlanta}
-              />
+            <div className="flex-1 min-w-0 rounded-xl border border-primary/10 overflow-hidden">
+              <div
+                className="flex items-center gap-1.5 px-3 py-2 border-b"
+                style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}
+              >
+                <Leaf size={9} className="text-primary/40" />
+                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/40">Plantas</span>
+              </div>
+              <div className="p-3">
+                <BloqueEntidades<PlantaMin>
+                  Icon={Leaf}
+                  items={plantas}
+                  loading={loadingPlantas}
+                  onSelect={onSelectPlanta}
+                  renderThumb={p => p.imagen_url
+                    ? <img src={p.imagen_url} alt={p.nombre} className="w-full h-full object-cover" />
+                    : <Leaf size={9} className="text-primary/25" />}
+                  emptyText="Sin plantas en este lugar"
+                  allItems={todasPlantas}
+                  onAdd={onAddPlanta}
+                  addingId={addingPlanta}
+                  onRemove={onRemovePlanta}
+                  removingId={removingPlanta}
+                />
+              </div>
             </div>
 
-            {/* Minerales */}
-            <div className="flex-1 min-w-0 rounded-xl overflow-hidden border border-primary/10">
-              <SeccionEntidad
-                label="Minerales"
-                icon={<Gem size={10} />}
-                fallbackIcon={<Gem size={10} />}
-                emptyLabel="Sin minerales en este lugar"
-                allEntities={todosMinerales}
-                selectedIds={minerales.map(m => m.id)}
-                loading={loadingMinerales}
-                saving={!!addingMineral}
-                onToggle={(id, add) => add ? onAddMineral(todosMinerales.find(m => m.id === id)!) : onRemoveMineral(id)}
-                onEntityClick={onSelectMineral}
-              />
+            <div className="flex-1 min-w-0 rounded-xl border border-primary/10 overflow-hidden">
+              <div
+                className="flex items-center gap-1.5 px-3 py-2 border-b"
+                style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}
+              >
+                <Gem size={9} className="text-primary/40" />
+                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/40">Minerales</span>
+              </div>
+              <div className="p-3">
+                <BloqueEntidades<MineralMin>
+                  Icon={Gem}
+                  items={minerales}
+                  loading={loadingMinerales}
+                  onSelect={onSelectMineral}
+                  renderThumb={m => m.imagen_url
+                    ? <img src={m.imagen_url} alt={m.nombre} className="w-full h-full object-cover" />
+                    : <Gem size={9} className="text-primary/25" />}
+                  emptyText="Sin minerales en este lugar"
+                  allItems={todosMinerales}
+                  onAdd={onAddMineral}
+                  addingId={addingMineral}
+                  onRemove={onRemoveMineral}
+                  removingId={removingMineral}
+                />
+              </div>
             </div>
-
           </div>
 
         </div>
@@ -600,32 +617,28 @@ export function EditorLugar({
 
   const handleAddPlanta = async (p: PlantaMin) => {
     setAddingPlanta(p.id);
-    await supabase.from("plantas").update({ lugar_id: form.id }).eq("id", p.id);
-    if (db) try { await (db as any).plantas?.update(p.id, { lugar_id: form.id }); } catch {}
+    await supabase.from("planta_lugares").insert({ planta_id: p.id, lugar_id: form.id });
     await reloadPlantas();
     setAddingPlanta(null);
   };
 
   const handleRemovePlanta = async (id: string) => {
     setRemovingPlanta(id);
-    await supabase.from("plantas").update({ lugar_id: null }).eq("id", id);
-    if (db) try { await (db as any).plantas?.update(id, { lugar_id: null }); } catch {}
+    await supabase.from("planta_lugares").delete().eq("planta_id", id).eq("lugar_id", form.id);
     await reloadPlantas();
     setRemovingPlanta(null);
   };
 
   const handleAddMineral = async (m: MineralMin) => {
     setAddingMineral(m.id);
-    await supabase.from("minerales").update({ lugar_id: form.id }).eq("id", m.id);
-    if (db) try { await (db as any).minerales?.update(m.id, { lugar_id: form.id }); } catch {}
+    await supabase.from("mineral_lugares").insert({ mineral_id: m.id, lugar_id: form.id });
     await reloadMinerales();
     setAddingMineral(null);
   };
 
   const handleRemoveMineral = async (id: string) => {
     setRemovingMineral(id);
-    await supabase.from("minerales").update({ lugar_id: null }).eq("id", id);
-    if (db) try { await (db as any).minerales?.update(id, { lugar_id: null }); } catch {}
+    await supabase.from("mineral_lugares").delete().eq("mineral_id", id).eq("lugar_id", form.id);
     await reloadMinerales();
     setRemovingMineral(null);
   };
