@@ -287,12 +287,12 @@ const PanelEditor = ({
   }, []);
 
   const snippetCommands: MdCommandItem[] = useMemo(() => [
-    { id: "snip-drop",    label: "Drop (entidad)",    description: "Inserta personaje, criatura o ítem interactivo", keywords: ["drop","enti","personaj","criatur","item","add"], icon: "⚔️",  action: () => openPalette("[[drop|") },
-    { id: "snip-imagen",  label: "Imagen",            description: "Inserta imagen inline o flotante",               keywords: ["img","imagen","foto","imag","add"],             icon: "🖼️",  action: () => openPalette("[[imagen|") },
-    { id: "snip-choice",  label: "Choice (decisión)", description: "Botón de decisión",                              keywords: ["choi","choice","decis","boton","botón","add"],  icon: "🔀",  action: () => openPalette("[[choice|") },
-    { id: "snip-use",     label: "Use Ítem",          description: "Interacción con ítem del inventario",            keywords: ["use","item","ítem","inven","add"],               icon: "🖱️",  action: () => openPalette("[[use|") },
-    { id: "snip-section", label: "Sección",           description: "Marca de sección para choices",                  keywords: ["secc","section","ancora","add"],                icon: "📌",  action: () => openPalette("[[section|") },
-    { id: "snip-sound",   label: "Sonido",            description: "Inserta un efecto de sonido o música",           keywords: ["son","sound","music","audio","add"],            icon: "🎵",  action: () => openPalette("[[sound|") },
+    { id: "snip-drop",    label: "Drop (entidad)",    description: "Inserta personaje, criatura o ítem interactivo", keywords: ["drop","enti","personaj","criatur","item","add"], icon: "⚔️",  action: () => openPalette("[[drop||]]") },
+    { id: "snip-imagen",  label: "Imagen",            description: "Inserta imagen inline o flotante",               keywords: ["img","imagen","foto","imag","add"],             icon: "🖼️",  action: () => openPalette("[[imagen||]]") },
+    { id: "snip-choice",  label: "Choice (decisión)", description: "Botón de decisión",                              keywords: ["choi","choice","decis","boton","botón","add"],  icon: "🔀",  action: () => openPalette("[[choice||]]") },
+    { id: "snip-use",     label: "Use Ítem",          description: "Interacción con ítem del inventario",            keywords: ["use","item","ítem","inven","add"],               icon: "🖱️",  action: () => openPalette("[[use||]]") },
+    { id: "snip-section", label: "Sección",           description: "Marca de sección para choices",                  keywords: ["secc","section","ancora","add"],                icon: "📌",  action: () => openPalette("[[section||]]") },
+    { id: "snip-sound",   label: "Sonido",            description: "Inserta un efecto de sonido o música",           keywords: ["son","sound","music","audio","add"],            icon: "🎵",  action: () => openPalette("[[sound||]]") },
     { id: "snip-cita",    label: "Cita",              description: "[[cita|Texto — Fuente]]",                        keywords: ["cita","quote","add"],                           icon: "«»",  snippet: "[[cita|Texto de la cita — Fuente]]" },
     { id: "snip-parrafo", label: "Párrafo",           description: "Salto de párrafo doble",                         keywords: ["parr","párr","salto","add"],                    icon: "¶",   snippet: " " },
   ], [openPalette]);
