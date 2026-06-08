@@ -13,13 +13,38 @@
  *   TableEditorPanel  — editor visual de tablas flotante
  */
 
-import React from "react";
-import { ChevronDown, ChevronUp, Replace, X } from "lucide-react";
+import React, { useState, useMemo, useRef, useEffect } from "react";
+import { ChevronDown, ChevronUp, Replace, X, Search } from "lucide-react";
 import type { CommandItem, WikiEntity } from "./commandItems";
 
 // ── Shared token ─────────────────────────────────────────────────────────────
 const PRIMARY = "var(--color-primary, #7c6af7)";
 const mono = { fontFamily: "var(--font-mono)" } as const;
+
+// ── Category config ───────────────────────────────────────────────────────────
+type Category = "todo" | "snippet" | "imagen" | "personaje" | "dialogo" | "formato";
+
+const CATEGORIES: { id: Category; label: string; emoji: string; keywords: string[] }[] = [
+  { id: "todo",      label: "Todo",      emoji: "✦",  keywords: [] },
+  { id: "snippet",   label: "Snippet",   emoji: "⚡",  keywords: ["drop","choice","use","section","sound","cita","parrafo","párrafo","snip"] },
+  { id: "imagen",    label: "Imagen",    emoji: "🖼️", keywords: ["imagen","img","foto","imag"] },
+  { id: "personaje", label: "Personaje", emoji: "⚔️", keywords: ["personaj","criatur","item","ítem","enti","drop","use"] },
+  { id: "dialogo",   label: "Diálogo",   emoji: "💬", keywords: ["dial","guion","acot","comi","linea","línea","punt","endash"] },
+  { id: "formato",   label: "Formato",   emoji: "¶",  keywords: ["parr","párr","salto","cita","quote","tabla","head","bold","italic"] },
+];
+
+function inferCategory(item: CommandItem): Category {
+  const kws = item.keywords ?? [];
+  const id   = item.id ?? "";
+  const all  = [...kws, id].map(s => s.toLowerCase());
+
+  if (all.some(k => ["img","imagen","foto","imag"].includes(k)))                         return "imagen";
+  if (all.some(k => ["dial","guion","acot","comi","linea","línea","punt","endash"].some(d => k.includes(d)))) return "dialogo";
+  if (all.some(k => ["parr","párr","salto","cita","quote"].some(d => k.includes(d))))   return "formato";
+  if (all.some(k => ["personaj","criatur","enti"].some(d => k.includes(d))))            return "personaje";
+  if (id.startsWith("snip") || all.some(k => ["drop","choice","use","section","sound"].includes(k))) return "snippet";
+  return "formato";
+}
 
 // ────────────────────────────────────────────────────────────────────────────
 // CommandMenu
@@ -37,6 +62,37 @@ interface CommandMenuProps {
 export function CommandMenu({
   menuRef, pos, query, selectedIdx, items, onSelect, onHover,
 }: CommandMenuProps) {
+  const [localQuery, setLocalQuery]     = useState(query);
+  const [activeCategory, setCategory]  = useState<Category>("todo");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Sync externa query → local (cuando el usuario escribe en el textarea)
+  useEffect(() => { setLocalQuery(query); }, [query]);
+  // Focus automático al abrir
+  useEffect(() => { setTimeout(() => inputRef.current?.focus(), 30); }, []);
+
+  const filtered = useMemo(() => {
+    const q = localQuery.toLowerCase().trim();
+    return items.filter(item => {
+      // filtro de categoría
+      if (activeCategory !== "todo") {
+        const cat = inferCategory(item);
+        if (cat !== activeCategory) return false;
+      }
+      // filtro de texto
+      if (!q) return true;
+      const haystack = [item.label, item.description, ...(item.keywords ?? [])].join(" ").toLowerCase();
+      return haystack.includes(q);
+    });
+  }, [items, localQuery, activeCategory]);
+
+  // Conteo por categoría para los chips
+  const counts = useMemo(() => {
+    const map: Record<Category, number> = { todo: items.length, snippet: 0, imagen: 0, personaje: 0, dialogo: 0, formato: 0 };
+    items.forEach(item => { map[inferCategory(item)]++; });
+    return map;
+  }, [items]);
+
   return (
     <div
       ref={menuRef}
@@ -45,64 +101,68 @@ export function CommandMenu({
         top: pos.top,
         left: Math.max(8, pos.left),
         zIndex: 9999,
-        width: 256,
+        width: 300,
         background: "var(--bg-menu, #1a1730)",
-        border: `1px solid color-mix(in srgb, ${PRIMARY} 25%, transparent)`,
-        borderRadius: 8,
-        boxShadow: `0 8px 32px color-mix(in srgb, ${PRIMARY} 15%, black)`,
+        border: `1px solid color-mix(in srgb, ${PRIMARY} 22%, transparent)`,
+        borderRadius: 12,
+        boxShadow: `0 12px 40px color-mix(in srgb, ${PRIMARY} 18%, black)`,
         overflow: "hidden",
-        backdropFilter: "blur(8px)",
+        backdropFilter: "blur(12px)",
       }}
     >
-      {/* Header */}
+      {/* ── Buscador ── */}
       <div
         style={{
-          padding: "6px 10px 4px",
-          fontSize: 9,
-          ...mono,
-          color: `color-mix(in srgb, ${PRIMARY} 60%, transparent)`,
-          letterSpacing: "0.1em",
-          textTransform: "uppercase",
-          borderBottom: "1px solid color-mix(in srgb, var(--foreground) 6%, transparent)",
           display: "flex",
           alignItems: "center",
-          gap: 6,
+          gap: 8,
+          padding: "9px 12px",
+          borderBottom: `1px solid color-mix(in srgb, var(--foreground) 6%, transparent)`,
         }}
       >
-        <span style={{ opacity: 0.5 }}>add</span>
-        {query && (
-          <span
-            style={{
-              background: `color-mix(in srgb, ${PRIMARY} 15%, transparent)`,
-              color: PRIMARY,
-              padding: "0 5px",
-              borderRadius: 3,
-              fontWeight: 700,
-            }}
+        <Search size={13} style={{ color: `color-mix(in srgb, ${PRIMARY} 55%, transparent)`, flexShrink: 0 }} />
+        <input
+          ref={inputRef}
+          type="text"
+          value={localQuery}
+          onChange={e => setLocalQuery(e.target.value)}
+          placeholder="Buscar…"
+          style={{
+            flex: 1,
+            background: "transparent",
+            border: "none",
+            outline: "none",
+            fontSize: 13,
+            fontWeight: 500,
+            color: "color-mix(in srgb, var(--foreground) 85%, transparent)",
+            caretColor: PRIMARY,
+          }}
+        />
+        {localQuery && (
+          <button
+            type="button"
+            onClick={() => setLocalQuery("")}
+            style={{ background: "none", border: "none", cursor: "pointer", padding: 2, display: "flex", color: `color-mix(in srgb, var(--foreground) 30%, transparent)` }}
           >
-            {query}
-          </span>
+            <X size={11} />
+          </button>
         )}
-        <span style={{ marginLeft: "auto", opacity: 0.4 }}>↑↓ navegar · Tab insertar</span>
+        <span style={{ fontSize: 8, ...mono, color: `color-mix(in srgb, ${PRIMARY} 30%, transparent)`, flexShrink: 0 }}>
+          ↑↓ Tab
+        </span>
       </div>
 
-      {/* Items */}
-      <div style={{ maxHeight: 280, overflowY: "auto" }}>
-        {items.length === 0 ? (
-          <div
-            style={{
-              padding: "14px 12px",
-              fontSize: 11,
-              color: "color-mix(in srgb, var(--foreground) 30%, transparent)",
-              textAlign: "center",
-              ...mono,
-            }}
-          >
-            Sin resultados para "{query}"
+      {/* ── Items ── */}
+      <div style={{ maxHeight: 260, overflowY: "auto" }}>
+        {filtered.length === 0 ? (
+          <div style={{ padding: "18px 12px", fontSize: 11, color: `color-mix(in srgb, var(--foreground) 28%, transparent)`, textAlign: "center", ...mono }}>
+            Sin resultados{localQuery ? ` para "${localQuery}"` : ""}
           </div>
         ) : (
-          items.map((item, idx) => {
+          filtered.map((item, idx) => {
             const active = idx === selectedIdx;
+            const cat    = inferCategory(item);
+            const catCfg = CATEGORIES.find(c => c.id === cat)!;
             return (
               <button
                 key={item.id}
@@ -114,73 +174,138 @@ export function CommandMenu({
                   display: "flex",
                   alignItems: "center",
                   gap: 10,
-                  padding: "7px 12px",
-                  background: active
-                    ? `color-mix(in srgb, ${PRIMARY} 12%, transparent)`
-                    : "transparent",
+                  padding: "8px 12px",
+                  background: active ? `color-mix(in srgb, ${PRIMARY} 11%, transparent)` : "transparent",
                   border: "none",
+                  borderLeft: active ? `2px solid ${PRIMARY}` : "2px solid transparent",
                   cursor: "pointer",
                   textAlign: "left",
                   transition: "background 0.1s",
-                  borderLeft: active
-                    ? `2px solid ${PRIMARY}`
-                    : "2px solid transparent",
                 }}
               >
+                {/* Icono */}
                 <div
                   style={{
-                    width: 28,
-                    height: 28,
-                    borderRadius: 5,
+                    width: 32,
+                    height: 32,
+                    borderRadius: 8,
                     background: active
-                      ? `color-mix(in srgb, ${PRIMARY} 20%, transparent)`
-                      : "color-mix(in srgb, var(--foreground) 6%, transparent)",
+                      ? `color-mix(in srgb, ${PRIMARY} 18%, transparent)`
+                      : `color-mix(in srgb, var(--foreground) 5%, transparent)`,
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    fontSize: 11,
-                    fontWeight: 800,
-                    color: active
-                      ? PRIMARY
-                      : "color-mix(in srgb, var(--foreground) 45%, transparent)",
+                    fontSize: 15,
                     flexShrink: 0,
-                    ...mono,
-                    transition: "background 0.1s, color 0.1s",
+                    transition: "background 0.1s",
                   }}
                 >
                   {item.icon}
                 </div>
+
+                {/* Texto */}
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 600,
-                      color: active
-                        ? "color-mix(in srgb, var(--foreground) 90%, transparent)"
-                        : "color-mix(in srgb, var(--foreground) 60%, transparent)",
-                      marginBottom: 1,
-                      transition: "color 0.1s",
-                    }}
-                  >
+                  <div style={{
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: active
+                      ? "color-mix(in srgb, var(--foreground) 92%, transparent)"
+                      : "color-mix(in srgb, var(--foreground) 65%, transparent)",
+                    marginBottom: 2,
+                    transition: "color 0.1s",
+                  }}>
                     {item.label}
                   </div>
-                  <div
-                    style={{
-                      fontSize: 10,
-                      color: "color-mix(in srgb, var(--foreground) 30%, transparent)",
-                      ...mono,
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
+                  <div style={{
+                    fontSize: 10,
+                    color: `color-mix(in srgb, var(--foreground) 30%, transparent)`,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}>
                     {item.description}
                   </div>
                 </div>
+
+                {/* Tag de tipo */}
+                <span style={{
+                  flexShrink: 0,
+                  fontSize: 8,
+                  fontWeight: 900,
+                  ...mono,
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                  padding: "2px 6px",
+                  borderRadius: 20,
+                  background: `color-mix(in srgb, ${PRIMARY} 9%, transparent)`,
+                  color: `color-mix(in srgb, ${PRIMARY} 55%, transparent)`,
+                  border: `1px solid color-mix(in srgb, ${PRIMARY} 14%, transparent)`,
+                }}>
+                  {catCfg.emoji} {catCfg.label}
+                </span>
               </button>
             );
           })
         )}
+      </div>
+
+      {/* ── Chips de categoría ── */}
+      <div style={{
+        display: "flex",
+        gap: 4,
+        padding: "7px 10px",
+        borderTop: `1px solid color-mix(in srgb, var(--foreground) 6%, transparent)`,
+        overflowX: "auto",
+        scrollbarWidth: "none",
+      }}>
+        {CATEGORIES.filter(c => c.id === "todo" || counts[c.id] > 0).map(cat => {
+          const active = activeCategory === cat.id;
+          return (
+            <button
+              key={cat.id}
+              type="button"
+              onClick={() => setCategory(cat.id)}
+              style={{
+                flexShrink: 0,
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+                padding: "3px 8px",
+                borderRadius: 20,
+                border: active
+                  ? `1px solid color-mix(in srgb, ${PRIMARY} 45%, transparent)`
+                  : `1px solid color-mix(in srgb, var(--foreground) 10%, transparent)`,
+                background: active
+                  ? `color-mix(in srgb, ${PRIMARY} 14%, transparent)`
+                  : "transparent",
+                cursor: "pointer",
+                fontSize: 9,
+                fontWeight: 800,
+                ...mono,
+                letterSpacing: "0.06em",
+                textTransform: "uppercase",
+                color: active
+                  ? PRIMARY
+                  : `color-mix(in srgb, var(--foreground) 38%, transparent)`,
+                transition: "all 0.12s",
+              }}
+            >
+              <span style={{ fontSize: 10 }}>{cat.emoji}</span>
+              {cat.label}
+              {cat.id !== "todo" && (
+                <span style={{
+                  fontSize: 8,
+                  opacity: 0.6,
+                  background: active ? `color-mix(in srgb, ${PRIMARY} 20%, transparent)` : `color-mix(in srgb, var(--foreground) 8%, transparent)`,
+                  borderRadius: 10,
+                  padding: "0 4px",
+                }}>
+                  {counts[cat.id]}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
