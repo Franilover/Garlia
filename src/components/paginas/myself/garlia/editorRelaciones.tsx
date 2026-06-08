@@ -92,6 +92,26 @@ function fmt(fecha?: string | null) {
   return new Date(fecha).toLocaleDateString("es-CL", { day: "2-digit", month: "short", year: "numeric" });
 }
 
+// ── Helpers Dexie ─────────────────────────────────────────────────────────────
+
+async function dexieGetAll<T>(tabla: string): Promise<T[]> {
+  try {
+    const { db } = await import("@/lib/api/client/db");
+    if (!db) return [];
+    const t = (db as any)[tabla];
+    if (!t) return [];
+    return ((await t.toArray()) as any[]).filter((r: any) => !r.deleted) as T[];
+  } catch { return []; }
+}
+
+async function dexieGetOne<T>(tabla: string, id: string): Promise<T | null> {
+  try {
+    const { db } = await import("@/lib/api/client/db");
+    if (!db) return null;
+    return (await (db as any)[tabla]?.get(id)) ?? null;
+  } catch { return null; }
+}
+
 // ── Componente principal ──────────────────────────────────────────────────────
 
 export default function AdminDescubrimientos() {
@@ -112,17 +132,46 @@ export default function AdminDescubrimientos() {
   const [toast, setToast]               = useState<{ msg: string; ok: boolean } | null>(null);
 
   // ── Verificar admin ───────────────────────────────────────────────────────
-
+  // 1. Leer perfil cacheado en Dexie para respuesta inmediata (sin spinner)
+  // 2. Confirmar con el RPC is_admin (fuente de verdad)
   useEffect(() => {
-    supabase.rpc("is_admin").then(({ data }) => setEsAdmin(!!data));
+    const run = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const cached = await dexieGetOne<any>("perfiles", user.id);
+          if (cached?.rol === "admin") setEsAdmin(true);
+        }
+      } catch {}
+      // Siempre confirmar con el servidor
+      supabase.rpc("is_admin").then(({ data }) => setEsAdmin(!!data));
+    };
+    run();
   }, []);
 
   // ── Cargar perfiles ───────────────────────────────────────────────────────
-
+  // Dexie primero (respuesta inmediata) → Supabase (actualizar + persistir)
   useEffect(() => {
     if (!esAdmin) return;
-    supabase.from("perfiles").select("id, username, avatar_url, rol").order("username")
-      .then(({ data }) => { if (data) setPerfiles(data as Perfil[]); });
+    const run = async () => {
+      // 1. Cache local
+      const local = await dexieGetAll<Perfil>("perfiles");
+      if (local.length) setPerfiles(local);
+
+      // 2. Remoto
+      const { data } = await supabase
+        .from("perfiles")
+        .select("id, username, avatar_url, rol")
+        .order("username");
+      if (!data) return;
+      setPerfiles(data as Perfil[]);
+      // Persistir para la próxima vez
+      try {
+        const { db } = await import("@/lib/api/client/db");
+        if (db) await (db as any).perfiles?.bulkPut(data);
+      } catch {}
+    };
+    run();
   }, [esAdmin]);
 
   // ── Cargar descubrimientos del perfil seleccionado ────────────────────────
@@ -163,25 +212,34 @@ export default function AdminDescubrimientos() {
   useEffect(() => { cargarDesc(); }, [cargarDesc]);
 
   // ── Cargar entidades disponibles para agregar ─────────────────────────────
-
+  // Dexie primero para que el modal abra con datos de inmediato
   useEffect(() => {
     if (!showAdd) return;
     const cfg = TAB_CONFIG[tab];
-    const extraCol = cfg.entidadExtra ? `, ${cfg.entidadExtra}` : "";
-    let q = supabase.from(cfg.entidadTabla)
-      .select(`id, ${cfg.entidadSelect}, ${cfg.entidadImagen}${extraCol}`)
-      .order(cfg.entidadSelect);
 
-    Promise.resolve(q).then(({ data }) => {
-      if (!data) return;
-      let entidadesData = data as any[];
-      setEntidades(entidadesData.map((r: any) => ({
-        id:         r.id,
-        nombre:     r[cfg.entidadSelect] ?? "Sin nombre",
-        imagen_url: r[cfg.entidadImagen] ?? null,
-        extra:      cfg.entidadExtra ? r[cfg.entidadExtra] ?? null : null,
-      })));
+    const mapEntidad = (r: any): Entidad => ({
+      id:         r.id,
+      nombre:     r[cfg.entidadSelect] ?? "Sin nombre",
+      imagen_url: r[cfg.entidadImagen] ?? null,
+      extra:      cfg.entidadExtra ? r[cfg.entidadExtra] ?? null : null,
     });
+
+    const run = async () => {
+      // 1. Cache local — las tablas de entidades ya las sincronizan otros hooks
+      const local = await dexieGetAll<any>(cfg.entidadTabla);
+      if (local.length) setEntidades(local.map(mapEntidad));
+
+      // 2. Remoto (fuente de verdad)
+      const extraCol = cfg.entidadExtra ? `, ${cfg.entidadExtra}` : "";
+      const { data } = await supabase
+        .from(cfg.entidadTabla)
+        .select(`id, ${cfg.entidadSelect}, ${cfg.entidadImagen}${extraCol}`)
+        .order(cfg.entidadSelect);
+      if (!data) return;
+      setEntidades(data.map(mapEntidad));
+    };
+
+    run();
   }, [showAdd, tab]);
 
   // ── Eliminar ──────────────────────────────────────────────────────────────
