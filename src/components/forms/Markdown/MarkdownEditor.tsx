@@ -612,7 +612,7 @@ export function MarkdownEditor({
     }
     if (!best) return;
     const rect = tableEl.getBoundingClientRect();
-    setTableEditor({ open: true, anchorEl: { top: rect.top + window.scrollY, left: rect.left }, ...best });
+    setTableEditor({ open: true, anchorEl: { top: rect.top + window.scrollY, left: rect.left }, tableStart: best.start, tableEnd: best.end, rows: best.rows });
   }, [value]);
 
   const commitTableEdit = useCallback((newRows: string[][]) => {

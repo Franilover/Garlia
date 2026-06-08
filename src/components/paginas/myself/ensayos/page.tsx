@@ -938,7 +938,6 @@ export default function Ensayos() {
                     setTagActivo(tag);
                     setEnsayoActivo(null);
                   }}
-                  entities={allWikilinkNames}
                   tocOpen={tocOpen}
                   onTocToggle={() => setTocOpen(p => !p)}
                   onTocEntriesChange={setTocEntries}

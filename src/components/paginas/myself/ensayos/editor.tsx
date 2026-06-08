@@ -36,7 +36,6 @@ interface EditorProps {
   onNavigateToPage: (name: string) => void;
   onOpenLibrosDashboard?: () => void;
   onTagClick?: (t: string) => void;
-  entities?: WikiEntity[];
   tocOpen?: boolean;
   onTocToggle?: () => void;
   onTocEntriesChange?: (entries: { level: number; text: string; id: string }[]) => void;
@@ -54,7 +53,6 @@ export function Editor({
   onNavigateToPage,
   onOpenLibrosDashboard,
   onTagClick,
-  entities = [] as WikiEntity[],
   tocOpen: tocOpenProp,
   onTocToggle,
   onTocEntriesChange,
@@ -227,7 +225,6 @@ export function Editor({
         rows={28}
         toolbar
         defaultMode={editMode ? "edit" : "preview"}
-        entities={entities}
         isLibro={isLibro}
         onSnippetAction={(action) => {
           if (action.type === "wikilink") {
