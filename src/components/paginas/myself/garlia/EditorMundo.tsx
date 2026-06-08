@@ -1946,58 +1946,6 @@ function PanelListas({
               </SeccionEntidades>
               <div className={`${div} sm:hidden`} style={divStyle} />
 
-              {/* Columna central: Naturales = Plantas + Minerales */}
-              <div className="pb-1">
-                <div className="flex items-center gap-1.5 mb-2">
-                  <Leaf size={10} className="text-primary/30 shrink-0" />
-                  <span className="text-[8px] font-black uppercase tracking-[0.25em]" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
-                    Naturales · {plantas.length + minerales.length}
-                  </span>
-                </div>
-                {/* Sub-sección: Plantas */}
-                {(loadingPlantas || plantas.length > 0) && (
-                  <div className="mb-2">
-                    <div className="flex items-center gap-1 mb-1.5">
-                      <Leaf size={8} className="text-primary/20 shrink-0" />
-                      <span className="text-[7px] font-black uppercase tracking-[0.2em]" style={{ color: "color-mix(in srgb, var(--primary) 22%, transparent)" }}>
-                        {el.plantas}
-                      </span>
-                    </div>
-                    {loadingPlantas
-                      ? <div className="flex justify-center py-2"><Loader2 size={12} className="animate-spin text-primary/20" /></div>
-                      : <div className="grid gap-1.5" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(60px, 1fr))" }}>
-                          {[...plantas].sort((a,b)=>(!!b.imagen_url ? 1:0)-(!!a.imagen_url ? 1:0)||a.nombre.localeCompare(b.nombre)).map(p => (
-                            <Chip key={p.id} onClick={() => selectPlanta(p)} imgUrl={p.imagen_url} icon={Leaf} nombre={p.nombre} />
-                          ))}
-                        </div>
-                    }
-                  </div>
-                )}
-                {/* Sub-sección: Minerales */}
-                {(loadingMinerales || minerales.length > 0) && (
-                  <div>
-                    <div className="flex items-center gap-1 mb-1.5">
-                      <Gem size={8} className="text-primary/20 shrink-0" />
-                      <span className="text-[7px] font-black uppercase tracking-[0.2em]" style={{ color: "color-mix(in srgb, var(--primary) 22%, transparent)" }}>
-                        Minerales
-                      </span>
-                    </div>
-                    {loadingMinerales
-                      ? <div className="flex justify-center py-2"><Loader2 size={12} className="animate-spin text-primary/20" /></div>
-                      : <div className="grid gap-1.5" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(60px, 1fr))" }}>
-                          {[...minerales].sort((a,b)=>(!!b.imagen_url ? 1:0)-(!!a.imagen_url ? 1:0)||a.nombre.localeCompare(b.nombre)).map(m => (
-                            <Chip key={m.id} onClick={() => selectMineral(m)} imgUrl={m.imagen_url} icon={Gem} nombre={m.nombre} />
-                          ))}
-                        </div>
-                    }
-                  </div>
-                )}
-                {!loadingPlantas && !loadingMinerales && plantas.length === 0 && minerales.length === 0 && (
-                  <p className="text-[9px] text-primary/20 italic px-1 pb-2">Sin naturales aún</p>
-                )}
-              </div>
-              <div className={`${div} sm:hidden`} style={divStyle} />
-
               <SeccionEntidades icon={Package} label="Artificiales" count={objetos.length} loading={loadingObjetos}>
                 {[...objetos].sort((a,b)=>(!!b.imagen_url ? 1:0)-(!!a.imagen_url ? 1:0)||a.nombre.localeCompare(b.nombre)).map(o => <Chip key={o.id} onClick={() => selectObjeto(o)} imgUrl={o.imagen_url} icon={Package} nombre={o.nombre} />)}
               </SeccionEntidades>
