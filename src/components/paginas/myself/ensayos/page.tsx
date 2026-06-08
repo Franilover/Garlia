@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { Loader2, PenTool, Search, X, Plus, FileText, Trash2, List } from "lucide-react";
+import { Loader2, PenTool, Search, X, Plus, FileText, Trash2, List, BookOpen } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/providers/AuthProvider";
@@ -825,6 +825,7 @@ export default function Ensayos() {
                       ) : (
                         ensayosFiltrados.map(ens => {
                           const isActive = ens.id === ensayoActivoId;
+                          const esLibro = ens.tags?.includes("libro");
                           return (
                             <div
                               key={ens.id}
@@ -838,16 +839,38 @@ export default function Ensayos() {
                               onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--foreground) 3%, transparent)"; }}
                               onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = "transparent"; }}
                             >
-                              <FileText size={9} style={{ color: "color-mix(in srgb, var(--foreground) 18%, transparent)", flexShrink: 0 }} />
+                              {esLibro
+                                ? <BookOpen size={9} style={{ color: "color-mix(in srgb, var(--foreground) 35%, transparent)", flexShrink: 0 }} />
+                                : <FileText size={9} style={{ color: "color-mix(in srgb, var(--foreground) 18%, transparent)", flexShrink: 0 }} />
+                              }
                               <div className="flex-1 min-w-0">
                                 <p style={{ fontSize: 11, fontFamily: "var(--font-serif)", fontStyle: "italic", color: "color-mix(in srgb, var(--foreground) 70%, transparent)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                                   {ens.titulo || "Sin título"}
                                 </p>
                                 <p style={{ fontSize: 8, fontFamily: "var(--font-mono)", color: "color-mix(in srgb, var(--foreground) 18%, transparent)" }}>
                                   {new Date(ens.updated_at).toLocaleDateString("es-ES", { day: "2-digit", month: "short" })}
-                                  {ens.tags?.length > 0 && ` · ${ens.tags.slice(0, 2).map((t: string) => `#${t}`).join(" ")}`}
+                                  {ens.tags?.length > 0 && ` · ${ens.tags.filter((t: string) => t !== "libro").slice(0, 2).map((t: string) => `#${t}`).join(" ")}`}
                                 </p>
                               </div>
+                              {esLibro && (
+                                <span
+                                  style={{
+                                    fontSize: 8,
+                                    padding: "1px 5px",
+                                    borderRadius: 3,
+                                    border: "1px solid color-mix(in srgb, var(--foreground) 15%, transparent)",
+                                    background: "color-mix(in srgb, var(--foreground) 5%, transparent)",
+                                    color: "color-mix(in srgb, var(--foreground) 40%, transparent)",
+                                    fontFamily: "var(--font-mono)",
+                                    letterSpacing: "0.08em",
+                                    textTransform: "uppercase",
+                                    flexShrink: 0,
+                                    userSelect: "none",
+                                  }}
+                                >
+                                  libro
+                                </span>
+                              )}
                               <button
                                 className="opacity-0 group-hover:opacity-100"
                                 onClick={e => { e.stopPropagation(); eliminarEnsayo(ens.id); }}
