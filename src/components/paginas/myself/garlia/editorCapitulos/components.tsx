@@ -1279,7 +1279,7 @@ export const PanelPersonajesCapitulo = ({
         </p>
       </div>
 
-      {/* ── Reinos + Lugares sin reino ──────────────────────────────────── */}
+      {/* ── Reinos ──────────────────────────────────── */}
       <div
         ref={reinoRef}
         className="shrink-0 border-b"
@@ -1300,7 +1300,7 @@ export const PanelPersonajesCapitulo = ({
         />
       </div>
 
-      {/* ── Ciudades + Lugares con reino (filtrados por reinos seleccionados) */}
+      {/* ── Ciudades   */}
       <div
         className="shrink-0 border-b"
         style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
