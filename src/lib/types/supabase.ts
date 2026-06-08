@@ -1349,6 +1349,39 @@ export type Database = {
           },
         ]
       }
+      item_lugares: {
+        Row: {
+          id: string
+          item_id: string | null
+          lugar_id: string | null
+        }
+        Insert: {
+          id?: string
+          item_id?: string | null
+          lugar_id?: string | null
+        }
+        Update: {
+          id?: string
+          item_id?: string | null
+          lugar_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "item_lugares_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "item_lugares_lugar_id_fkey"
+            columns: ["lugar_id"]
+            isOneToOne: false
+            referencedRelation: "lugares"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       items: {
         Row: {
           categoria: string | null
@@ -1515,6 +1548,105 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      mineral_ciudades: {
+        Row: {
+          ciudad_id: string
+          id: string
+          mineral_id: string
+        }
+        Insert: {
+          ciudad_id: string
+          id?: string
+          mineral_id: string
+        }
+        Update: {
+          ciudad_id?: string
+          id?: string
+          mineral_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mineral_ciudades_ciudad_id_fkey"
+            columns: ["ciudad_id"]
+            isOneToOne: false
+            referencedRelation: "ciudades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mineral_ciudades_mineral_id_fkey"
+            columns: ["mineral_id"]
+            isOneToOne: false
+            referencedRelation: "minerales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mineral_lugares: {
+        Row: {
+          id: string
+          lugar_id: string
+          mineral_id: string
+        }
+        Insert: {
+          id?: string
+          lugar_id: string
+          mineral_id: string
+        }
+        Update: {
+          id?: string
+          lugar_id?: string
+          mineral_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mineral_lugares_lugar_id_fkey"
+            columns: ["lugar_id"]
+            isOneToOne: false
+            referencedRelation: "lugares"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mineral_lugares_mineral_id_fkey"
+            columns: ["mineral_id"]
+            isOneToOne: false
+            referencedRelation: "minerales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      minerales: {
+        Row: {
+          categoria: string | null
+          created_at: string
+          descripcion: string | null
+          id: string
+          imagen_url: string | null
+          nombre: string
+          reino_ids: string[]
+          updated_at: string
+        }
+        Insert: {
+          categoria?: string | null
+          created_at?: string
+          descripcion?: string | null
+          id?: string
+          imagen_url?: string | null
+          nombre?: string
+          reino_ids?: string[]
+          updated_at?: string
+        }
+        Update: {
+          categoria?: string | null
+          created_at?: string
+          descripcion?: string | null
+          id?: string
+          imagen_url?: string | null
+          nombre?: string
+          reino_ids?: string[]
+          updated_at?: string
+        }
+        Relationships: []
       }
       mundo_secciones: {
         Row: {
@@ -1863,6 +1995,39 @@ export type Database = {
           },
           {
             foreignKeyName: "planta_ciudades_planta_id_fkey"
+            columns: ["planta_id"]
+            isOneToOne: false
+            referencedRelation: "plantas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      planta_lugares: {
+        Row: {
+          id: string
+          lugar_id: string | null
+          planta_id: string | null
+        }
+        Insert: {
+          id?: string
+          lugar_id?: string | null
+          planta_id?: string | null
+        }
+        Update: {
+          id?: string
+          lugar_id?: string | null
+          planta_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "planta_lugares_lugar_id_fkey"
+            columns: ["lugar_id"]
+            isOneToOne: false
+            referencedRelation: "lugares"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "planta_lugares_planta_id_fkey"
             columns: ["planta_id"]
             isOneToOne: false
             referencedRelation: "plantas"

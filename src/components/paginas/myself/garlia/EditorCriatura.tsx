@@ -5,7 +5,7 @@ import {
   Bug, Plus, Check, X, Trash2, Save, ChevronDown,
   Brain, Wand2, Package, Wrench, Leaf, Layers, Users,
   MapPin, Globe, ExternalLink, Pencil, Search, UserCircle2,
-  Sparkles, Star, Loader2, SlidersHorizontal, Camera,
+  Sparkles, Star, Loader2, SlidersHorizontal, Camera, Gem,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
@@ -324,6 +324,132 @@ function useNaturalItems(criaturaId: string, varianteId?: string | null) {
   };
 
   return { items, allItems, loading, add, remove };
+}
+
+// ─── Hook: plantas que produce/dropea una criatura ────────────────────────────
+type PlantaMin2 = { id: string; nombre: string; imagen_url?: string | null };
+let _plantasData: PlantaMin2[] | null = null;
+async function fetchAllPlantas(): Promise<PlantaMin2[]> {
+  if (_plantasData) return _plantasData;
+  try {
+    if (db) {
+      const local = await (db as any).plantas?.orderBy("nombre").toArray() ?? [];
+      if (local.length > 0) {
+        _plantasData = local as PlantaMin2[];
+        if (navigator.onLine) {
+          supabase.from("plantas").select("id, nombre, imagen_url").order("nombre")
+            .then(({ data }) => { if (data?.length) _plantasData = data as PlantaMin2[]; });
+        }
+        return _plantasData;
+      }
+    }
+  } catch {}
+  if (!navigator.onLine) return [];
+  const { data } = await supabase.from("plantas").select("id, nombre, imagen_url").order("nombre");
+  _plantasData = (data ?? []) as PlantaMin2[];
+  return _plantasData;
+}
+
+function usePlantasCriatura(criaturaId: string) {
+  const [rows,    setRows]    = useState<{ rowId: string; plantaId: string }[]>([]);
+  const [allPlantas, setAllPlantas] = useState<PlantaMin2[]>(_plantasData ?? []);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const [catalog] = await Promise.all([fetchAllPlantas()]);
+    setAllPlantas(catalog);
+    if (!navigator.onLine) { setLoading(false); return; }
+    const { data } = await supabase
+      .from("criatura_plantas")
+      .select("id, planta_id")
+      .eq("criatura_id", criaturaId);
+    setRows((data ?? []).map((r: any) => ({ rowId: r.id, plantaId: r.planta_id })));
+    setLoading(false);
+  }, [criaturaId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const add = async (planta: PlantaMin2) => {
+    if (rows.some(r => r.plantaId === planta.id)) return;
+    const { data, error } = await supabase
+      .from("criatura_plantas")
+      .insert([{ criatura_id: criaturaId, planta_id: planta.id }])
+      .select().single();
+    if (!error && data) setRows(prev => [...prev, { rowId: data.id, plantaId: planta.id }]);
+  };
+
+  const remove = async (plantaId: string) => {
+    const row = rows.find(r => r.plantaId === plantaId);
+    if (!row) return;
+    setRows(prev => prev.filter(r => r.plantaId !== plantaId));
+    await supabase.from("criatura_plantas").delete().eq("id", row.rowId);
+  };
+
+  return { rows, allPlantas, loading, add, remove };
+}
+
+// ─── Hook: minerales que produce/dropea una criatura ──────────────────────────
+type MineralMin2 = { id: string; nombre: string; imagen_url?: string | null };
+let _mineralesData: MineralMin2[] | null = null;
+async function fetchAllMinerales(): Promise<MineralMin2[]> {
+  if (_mineralesData) return _mineralesData;
+  try {
+    if (db) {
+      const local = await (db as any).minerales?.orderBy("nombre").toArray() ?? [];
+      if (local.length > 0) {
+        _mineralesData = local as MineralMin2[];
+        if (navigator.onLine) {
+          supabase.from("minerales").select("id, nombre, imagen_url").order("nombre")
+            .then(({ data }) => { if (data?.length) _mineralesData = data as MineralMin2[]; });
+        }
+        return _mineralesData;
+      }
+    }
+  } catch {}
+  if (!navigator.onLine) return [];
+  const { data } = await supabase.from("minerales").select("id, nombre, imagen_url").order("nombre");
+  _mineralesData = (data ?? []) as MineralMin2[];
+  return _mineralesData;
+}
+
+function useMineralesCriatura(criaturaId: string) {
+  const [rows,       setRows]       = useState<{ rowId: string; mineralId: string }[]>([]);
+  const [allMinerales, setAllMinerales] = useState<MineralMin2[]>(_mineralesData ?? []);
+  const [loading,    setLoading]    = useState(true);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const [catalog] = await Promise.all([fetchAllMinerales()]);
+    setAllMinerales(catalog);
+    if (!navigator.onLine) { setLoading(false); return; }
+    const { data } = await supabase
+      .from("criatura_minerales")
+      .select("id, mineral_id")
+      .eq("criatura_id", criaturaId);
+    setRows((data ?? []).map((r: any) => ({ rowId: r.id, mineralId: r.mineral_id })));
+    setLoading(false);
+  }, [criaturaId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const add = async (mineral: MineralMin2) => {
+    if (rows.some(r => r.mineralId === mineral.id)) return;
+    const { data, error } = await supabase
+      .from("criatura_minerales")
+      .insert([{ criatura_id: criaturaId, mineral_id: mineral.id }])
+      .select().single();
+    if (!error && data) setRows(prev => [...prev, { rowId: data.id, mineralId: mineral.id }]);
+  };
+
+  const remove = async (mineralId: string) => {
+    const row = rows.find(r => r.mineralId === mineralId);
+    if (!row) return;
+    setRows(prev => prev.filter(r => r.mineralId !== mineralId));
+    await supabase.from("criatura_minerales").delete().eq("id", row.rowId);
+  };
+
+  return { rows, allMinerales, loading, add, remove };
 }
 
 // ─── Bloque de ítems naturales (drops base de la criatura) ────────────────────
@@ -1590,12 +1716,20 @@ export function EditorCriatura({
   } = useCriaturaLugares(form.id);
 
   const {
-    items: naturalesItems,
-    allItems: allNaturalesItems,
-    loading: loadingNaturales,
-    add: addNaturalSidebar,
-    remove: removeNaturalSidebar,
-  } = useNaturalItems(form.id);
+    rows: plantaRows,
+    allPlantas: allPlantasSidebar,
+    loading: loadingPlantas,
+    add: addPlantaSidebar,
+    remove: removePlantaSidebar,
+  } = usePlantasCriatura(form.id);
+
+  const {
+    rows: mineralRows,
+    allMinerales: allMineralesSidebar,
+    loading: loadingMinerales,
+    add: addMineralSidebar,
+    remove: removeMineralSidebar,
+  } = useMineralesCriatura(form.id);
 
   const {
     items: craftedItems,
@@ -1608,7 +1742,8 @@ export function EditorCriatura({
   const [savingReinos,    setSavingReinos]    = useState(false);
   const [savingCiudades,   setSavingCiudades]   = useState(false);
   const [savingLugares,    setSavingLugares]    = useState(false);
-  const [savingNaturales, setSavingNaturales] = useState(false);
+  const [savingPlantas,   setSavingPlantas]   = useState(false);
+  const [savingMinerales, setSavingMinerales] = useState(false);
   const [savingCrafted,   setSavingCrafted]   = useState(false);
   const [mobileAsideOpen, setMobileAsideOpen] = useState(false);
 
@@ -1677,16 +1812,26 @@ export function EditorCriatura({
     setSavingLugares(false);
   };
 
-  const handleToggleNatural = async (id: string, add: boolean) => {
-    setSavingNaturales(true);
+  const handleTogglePlanta = async (id: string, add: boolean) => {
+    setSavingPlantas(true);
     if (add) {
-      const item = allNaturalesItems.find(i => i.id === id);
-      if (item) await addNaturalSidebar(item);
+      const planta = allPlantasSidebar.find(p => p.id === id);
+      if (planta) await addPlantaSidebar(planta);
     } else {
-      const nat = naturalesItems.find(i => i.itemId === id);
-      if (nat) await removeNaturalSidebar(nat.dropId);
+      await removePlantaSidebar(id);
     }
-    setSavingNaturales(false);
+    setSavingPlantas(false);
+  };
+
+  const handleToggleMineral = async (id: string, add: boolean) => {
+    setSavingMinerales(true);
+    if (add) {
+      const mineral = allMineralesSidebar.find(m => m.id === id);
+      if (mineral) await addMineralSidebar(mineral);
+    } else {
+      await removeMineralSidebar(id);
+    }
+    setSavingMinerales(false);
   };
 
   const handleToggleCrafted = async (id: string, add: boolean) => {
@@ -1969,7 +2114,7 @@ export function EditorCriatura({
           />
         </div>
 
-        {/* Columna 3: Naturales · Creaciones */}
+        {/* Columna 3: Plantas · Minerales · Creaciones */}
         <div
           className="w-44 flex flex-col border-r overflow-y-auto overflow-x-hidden"
           style={{
@@ -1979,15 +2124,30 @@ export function EditorCriatura({
           }}
         >
           <SeccionEntidad
-            label="Naturales"
+            label="Plantas"
             icon={<Leaf size={9} />}
-            fallbackIcon={<Package size={14} strokeWidth={1} />}
-            emptyLabel="Sin drops"
-            allEntities={allNaturalesItems.map(i => ({ id: i.id, nombre: i.nombre, imagen_url: i.imagen_url }))}
-            selectedIds={naturalesItems.map(i => i.itemId)}
-            loading={loadingNaturales}
-            saving={savingNaturales}
-            onToggle={handleToggleNatural}
+            fallbackIcon={<Leaf size={14} strokeWidth={1} />}
+            emptyLabel="Sin plantas"
+            allEntities={allPlantasSidebar.map(p => ({ id: p.id, nombre: p.nombre, imagen_url: p.imagen_url }))}
+            selectedIds={plantaRows.map(r => r.plantaId)}
+            loading={loadingPlantas}
+            saving={savingPlantas}
+            onToggle={handleTogglePlanta}
+            onEntityClick={id => onSelectItem?.(id)}
+          />
+
+          <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
+
+          <SeccionEntidad
+            label="Minerales"
+            icon={<Gem size={9} />}
+            fallbackIcon={<Gem size={14} strokeWidth={1} />}
+            emptyLabel="Sin minerales"
+            allEntities={allMineralesSidebar.map(m => ({ id: m.id, nombre: m.nombre, imagen_url: m.imagen_url }))}
+            selectedIds={mineralRows.map(r => r.mineralId)}
+            loading={loadingMinerales}
+            saving={savingMinerales}
+            onToggle={handleToggleMineral}
             onEntityClick={id => onSelectItem?.(id)}
           />
 
@@ -2084,7 +2244,9 @@ export function EditorCriatura({
               onToggle={(id, add) => { if (allCiudades.some(l => l.id === id)) handleToggleCiudad(id, add); else handleToggleLugar(id, add); }}
               onEntityClick={id => onNavigateCiudad?.(id)} />
             <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
-            <SeccionEntidad label="Naturales" icon={<Leaf size={9} />} fallbackIcon={<Package size={14} strokeWidth={1} />} emptyLabel="Sin drops" allEntities={allNaturalesItems.map(i => ({ id: i.id, nombre: i.nombre, imagen_url: i.imagen_url }))} selectedIds={naturalesItems.map(i => i.itemId)} loading={loadingNaturales} saving={savingNaturales} onToggle={handleToggleNatural} onEntityClick={id => onSelectItem?.(id)} />
+            <SeccionEntidad label="Plantas" icon={<Leaf size={9} />} fallbackIcon={<Leaf size={14} strokeWidth={1} />} emptyLabel="Sin plantas" allEntities={allPlantasSidebar.map(p => ({ id: p.id, nombre: p.nombre, imagen_url: p.imagen_url }))} selectedIds={plantaRows.map(r => r.plantaId)} loading={loadingPlantas} saving={savingPlantas} onToggle={handleTogglePlanta} onEntityClick={id => onSelectItem?.(id)} />
+            <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
+            <SeccionEntidad label="Minerales" icon={<Gem size={9} />} fallbackIcon={<Gem size={14} strokeWidth={1} />} emptyLabel="Sin minerales" allEntities={allMineralesSidebar.map(m => ({ id: m.id, nombre: m.nombre, imagen_url: m.imagen_url }))} selectedIds={mineralRows.map(r => r.mineralId)} loading={loadingMinerales} saving={savingMinerales} onToggle={handleToggleMineral} onEntityClick={id => onSelectItem?.(id)} />
             <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
             <SeccionEntidad label="Creaciones" icon={<Wrench size={9} />} fallbackIcon={<Package size={14} strokeWidth={1} />} emptyLabel="Sin creaciones" allEntities={allCraftedItems.map(i => ({ id: i.id, nombre: i.nombre, imagen_url: i.imagen_url }))} selectedIds={craftedItems.map(i => i.itemId)} loading={loadingCrafted} saving={savingCrafted} onToggle={handleToggleCrafted} onEntityClick={id => onSelectItem?.(id)} />
             <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
