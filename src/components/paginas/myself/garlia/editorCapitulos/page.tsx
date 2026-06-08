@@ -121,6 +121,7 @@ const PanelEditor = ({
     enabled: !!capId && !loading,
   });
 
+  // Inicialización completa al abrir un capítulo distinto
   useEffect(() => {
     if (!cap) return;
     setContenido(cap.contenido || "");
@@ -132,7 +133,26 @@ const PanelEditor = ({
     setItemsIds((cap as any).items_ids ?? []);
     if (cap.status === "pending") setSaveStatus("pending");
     else setSaveStatus("idle");
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cap?.id]);
+
+  // Cuando el hook actualiza cap con datos remotos (Dexie → Supabase),
+  // el id no cambia pero el contenido puede llegar vacío en la primera pasada
+  // y luego lleno en la segunda. Actualizamos solo si:
+  //   1. El contenido local actual está vacío (carga inicial sin datos locales)
+  //   2. O el cap no tiene pending (no hay ediciones sin guardar)
+  useEffect(() => {
+    if (!cap) return;
+    const remoteContenido = cap.contenido || "";
+    setContenido(prev => {
+      if (prev === "") return remoteContenido;           // todavía vacío → aplicar
+      if (cap.status !== "pending") return remoteContenido; // sin cambios locales → aplicar
+      return prev;                                       // hay pending → no pisar
+    });
+    // Metadata siempre se puede actualizar sin riesgo
+    setTitulo(cap.titulo_capitulo || "");
+    setCapVisibilidad(cap.visibilidad ?? "oculto");
+  }, [cap]);
 
   useEffect(() => {
     if (!libroId) return;
