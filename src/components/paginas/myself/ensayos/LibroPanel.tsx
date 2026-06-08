@@ -11,6 +11,7 @@ interface LibroPanelProps {
   ensayos: any[];
   onUpdateField: (id: string, field: string, value: any) => void;
   onOpenLibrosDashboard?: () => void;
+  onTagClick?: (t: string) => void;
 }
 
 // ── Constantes ─────────────────────────────────────────────────────────────────
@@ -340,6 +341,7 @@ function TagSelector({
   onRemoveTag,
   mono,
   onOpenLibrosDashboard,
+  onTagClick,
 }: {
   tags: string[];
   allTags: string[];
@@ -347,6 +349,7 @@ function TagSelector({
   onRemoveTag: (t: string) => void;
   mono: React.CSSProperties;
   onOpenLibrosDashboard?: () => void;
+  onTagClick?: (t: string) => void;
 }) {
   const [input, setInput] = useState("");
   const [focused, setFocused] = useState(false);
@@ -416,20 +419,39 @@ function TagSelector({
             style={{
               display: "inline-flex",
               alignItems: "center",
-              gap: 3,
+              gap: 0,
               ...mono, fontSize: 9,
-              padding: "2px 4px 2px 7px",
               borderRadius: 3,
               background: "color-mix(in srgb, var(--accent) 10%, transparent)",
               border: "1px solid color-mix(in srgb, var(--accent) 22%, transparent)",
-              color: "color-mix(in srgb, var(--accent) 80%, transparent)",
+              overflow: "hidden",
             }}
           >
-            #{t}
+            <button
+              onClick={() => onTagClick?.(t)}
+              style={{
+                background: "none", border: "none", cursor: onTagClick ? "pointer" : "default",
+                padding: "2px 4px 2px 7px",
+                color: "color-mix(in srgb, var(--accent) 80%, transparent)",
+                ...mono, fontSize: 9,
+                transition: "color 0.1s, background 0.1s",
+              }}
+              onMouseEnter={e => {
+                if (!onTagClick) return;
+                (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--accent) 18%, transparent)";
+                (e.currentTarget as HTMLElement).style.color = "var(--accent)";
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLElement).style.background = "none";
+                (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--accent) 80%, transparent)";
+              }}
+            >
+              #{t}
+            </button>
             <button
               onClick={() => onRemoveTag(t)}
               style={{
-                background: "none", border: "none", cursor: "pointer", padding: "0 1px",
+                background: "none", border: "none", cursor: "pointer", padding: "2px 5px 2px 2px",
                 color: "color-mix(in srgb, var(--accent) 40%, transparent)",
                 fontSize: 10, lineHeight: 1,
                 display: "flex", alignItems: "center",
@@ -525,7 +547,7 @@ function TagSelector({
 }
 
 // ── Componente principal ───────────────────────────────────────────────────────
-export function LibroPanel({ ensayo, ensayos, onUpdateField, onOpenLibrosDashboard }: LibroPanelProps) {
+export function LibroPanel({ ensayo, ensayos, onUpdateField, onOpenLibrosDashboard, onTagClick }: LibroPanelProps) {
   const mono: React.CSSProperties = { fontFamily: "var(--font-mono)" };
 
   const tags: string[] = ensayo.tags ?? [];
@@ -730,6 +752,7 @@ export function LibroPanel({ ensayo, ensayos, onUpdateField, onOpenLibrosDashboa
         onRemoveTag={handleRemoveTag}
         mono={mono}
         onOpenLibrosDashboard={onOpenLibrosDashboard}
+        onTagClick={onTagClick}
       />
     </div>
   );

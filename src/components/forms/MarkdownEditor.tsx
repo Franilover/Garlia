@@ -22,7 +22,7 @@ const CALLOUT_MAP: Record<string, { cls: string; icon: string; label: string }> 
 };
 
 // ── Renderer ─────────────────────────────────────────────────────────────────
-export function renderMarkdown(raw: string): string {
+export function renderMarkdown(raw: string, isLibro = false): string {
   // ── helpers inline (aplicados a texto suelto, no a bloques HTML) ─────────
   const applyInline = (text: string): string => {
     text = text.replace(/!\[([^\]]*)\]\(([^)]*)\)/g, '<img src="$2" alt="$1" />');
@@ -40,6 +40,12 @@ export function renderMarkdown(raw: string): string {
     text = text.replace(/==(.+?)==/g,           '<mark class="md-mark">$1</mark>');
     text = text.replace(/\^([^\^\n]+?)\^/g,     "<sup>$1</sup>");
     text = text.replace(/(?<!~)~([^~\n]+?)~(?!~)/g, "<sub>$1</sub>");
+    // ── Página tag [Pagina: N] — solo activo en modo libro ───────────────────
+    if (isLibro) {
+      text = text.replace(/\[p[aá]gina:\s*(\d+)\]/gi, (_, n) =>
+        `<span class="libro-page-tag" data-page="${n}">p.&nbsp;${n}</span>`
+      );
+    }
     text = text.replace(/\$\$([^$]+?)\$\$/g, (_, expr) =>
       `<span class="math-block" data-expr="${expr.trim().replace(/"/g,'&quot;')}"></span>`);
     text = text.replace(/\$([^$\n]+?)\$/g, (_, expr) =>
@@ -439,6 +445,31 @@ export const PROSE_STYLES = `
   }
   .prose-mundo .link-list-block a:hover { 
     color: var(--color-primary, #7c6af7); text-decoration: underline;
+  }
+  /* ── Página tag (modo libro) ─────────────────────────────────────────────── */
+  .prose-mundo .libro-page-tag {
+    display: inline-flex;
+    align-items: center;
+    font-family: var(--font-mono, monospace);
+    font-size: 0.68em;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    padding: 1px 6px;
+    border-radius: 3px;
+    background: color-mix(in srgb, var(--foreground, #fff) 6%, transparent);
+    border: 1px solid color-mix(in srgb, var(--foreground, #fff) 14%, transparent);
+    color: color-mix(in srgb, var(--foreground, #fff) 40%, transparent);
+    vertical-align: middle;
+    margin-left: 0.3em;
+    user-select: none;
+    transition: background 0.12s, color 0.12s;
+    cursor: default;
+    white-space: nowrap;
+  }
+  .prose-mundo .libro-page-tag:hover {
+    background: color-mix(in srgb, var(--foreground, #fff) 10%, transparent);
+    color: color-mix(in srgb, var(--foreground, #fff) 65%, transparent);
+  }
 `;
 
 // ── Command menu items ────────────────────────────────────────────────────────
@@ -763,6 +794,7 @@ function MarkdownPreviewWithSnippets({
   pvRef,
   style,
   onTableClick,
+  isLibro = false,
 }: {
   value: string;
   placeholder?: string;
@@ -770,6 +802,7 @@ function MarkdownPreviewWithSnippets({
   pvRef: React.RefObject<HTMLDivElement>;
   style: React.CSSProperties;
   onTableClick?: (table: HTMLTableElement) => void;
+  isLibro?: boolean;
 }) {
   // Pre-calcular sectionMap para resolver si un target es sección local
   const sectionMap = React.useMemo(
@@ -886,7 +919,7 @@ function MarkdownPreviewWithSnippets({
       {blocks.map((block, i) => {
         if (block.kind === "md") {
           return (
-            <div key={i} dangerouslySetInnerHTML={{ __html: renderMarkdown(block.text) }} />
+            <div key={i} dangerouslySetInnerHTML={{ __html: renderMarkdown(block.text, isLibro) }} />
           );
         }
         const segs = parseContenido(block.text);
@@ -954,6 +987,8 @@ interface MarkdownEditorProps {
    * - En modo preview: se renderiza como `# título` encima del contenido markdown.
    */
   sectionTitle?: string;
+  /** Si true, activa el renderizado de tags [Pagina: N] en el preview */
+  isLibro?: boolean;
 }
 
 // ── Componente ────────────────────────────────────────────────────────────────
@@ -976,6 +1011,7 @@ export function MarkdownEditor({
   maxHeight,
   renderOverlay,
   sectionTitle,
+  isLibro = false,
 }: MarkdownEditorProps) {
   const [modeInternal, setModeInternal] = useState<ViewMode>(
     modeProp ?? defaultMode
@@ -1683,7 +1719,7 @@ export function MarkdownEditor({
     return () => document.removeEventListener("mousedown", handler);
   }, [cmdMenu.open]);
 
-  const html = renderMarkdown(value);
+  const html = renderMarkdown(value, isLibro);
 
   // Renderizar KaTeX cada vez que cambia el preview
   useEffect(() => {
@@ -2304,6 +2340,7 @@ export function MarkdownEditor({
               pvRef={pvRef}
               style={previewStyle}
               onTableClick={openTableEditor}
+              isLibro={isLibro}
             />
           )}
         </div>

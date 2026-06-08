@@ -934,6 +934,10 @@ export default function Ensayos() {
                   onUpdateField={actualizarLocal}
                   onNavigateToPage={(name) => navigateToPage(name, false)}
                   onOpenLibrosDashboard={irALibros}
+                  onTagClick={(tag) => {
+                    setTagActivo(tag);
+                    setEnsayoActivo(null);
+                  }}
                   entities={allWikilinkNames}
                   tocOpen={tocOpen}
                   onTocToggle={() => setTocOpen(p => !p)}
