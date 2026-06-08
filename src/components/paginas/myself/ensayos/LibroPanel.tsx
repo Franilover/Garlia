@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useMemo } from "react";
-import { BookOpen, BookCheck, BookDashed, User, Tag, Hash, FileDigit, Bookmark } from "lucide-react";
+import { BookOpen, BookCheck, BookDashed, User, Tag, Hash, FileDigit, Bookmark, BookMarked, Plus, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 
 // ── Tipos ──────────────────────────────────────────────────────────────────────
@@ -546,6 +546,246 @@ function TagSelector({
   );
 }
 
+// ── Sección: palabras nuevas ───────────────────────────────────────────────────
+interface PalabraEntry {
+  palabra: string;
+  definicion?: string;
+}
+
+function PalabrasNuevas({
+  palabras,
+  onUpdate,
+  mono,
+}: {
+  palabras: PalabraEntry[];
+  onUpdate: (list: PalabraEntry[]) => void;
+  mono: React.CSSProperties;
+}) {
+  const [inputPalabra, setInputPalabra] = useState("");
+  const [inputDef, setInputDef] = useState("");
+  const [focused, setFocused] = useState(false);
+  const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
+
+  const add = () => {
+    const p = inputPalabra.trim();
+    if (!p) return;
+    onUpdate([...palabras, { palabra: p, definicion: inputDef.trim() || undefined }]);
+    setInputPalabra("");
+    setInputDef("");
+  };
+
+  const remove = (idx: number) => {
+    onUpdate(palabras.filter((_, i) => i !== idx));
+    if (expandedIdx === idx) setExpandedIdx(null);
+  };
+
+  const updateDef = (idx: number, def: string) => {
+    const next = palabras.map((e, i) => i === idx ? { ...e, definicion: def || undefined } : e);
+    onUpdate(next);
+  };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      {/* Label */}
+      <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+        <BookMarked size={9} style={{ color: "color-mix(in srgb, var(--foreground) 25%, transparent)" }} />
+        <span style={{
+          ...mono, fontSize: 8,
+          textTransform: "uppercase",
+          letterSpacing: "0.12em",
+          color: "color-mix(in srgb, var(--foreground) 30%, transparent)",
+        }}>
+          palabras nuevas
+        </span>
+        {palabras.length > 0 && (
+          <span style={{
+            ...mono, fontSize: 7,
+            marginLeft: "auto",
+            padding: "1px 6px",
+            borderRadius: 99,
+            background: "color-mix(in srgb, var(--foreground) 6%, transparent)",
+            border: "1px solid color-mix(in srgb, var(--foreground) 10%, transparent)",
+            color: "color-mix(in srgb, var(--foreground) 35%, transparent)",
+          }}>
+            {palabras.length}
+          </span>
+        )}
+      </div>
+
+      {/* Lista */}
+      <AnimatePresence initial={false}>
+        {palabras.map((entry, idx) => (
+          <motion.div
+            key={idx}
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.15 }}
+            style={{ overflow: "hidden" }}
+          >
+            <div style={{
+              borderRadius: 5,
+              border: "1px solid color-mix(in srgb, var(--foreground) 8%, transparent)",
+              background: "color-mix(in srgb, var(--foreground) 2%, transparent)",
+              overflow: "hidden",
+              marginBottom: 4,
+            }}>
+              {/* Fila principal */}
+              <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 8px" }}>
+                <button
+                  onClick={() => setExpandedIdx(expandedIdx === idx ? null : idx)}
+                  style={{
+                    flex: 1,
+                    textAlign: "left",
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    padding: 0,
+                    ...mono, fontSize: 11,
+                    color: "color-mix(in srgb, var(--foreground) 75%, transparent)",
+                    letterSpacing: "-0.01em",
+                  }}
+                >
+                  {entry.palabra}
+                </button>
+                {entry.definicion && expandedIdx !== idx && (
+                  <span style={{
+                    ...mono, fontSize: 8,
+                    color: "color-mix(in srgb, var(--foreground) 28%, transparent)",
+                    maxWidth: 120,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}>
+                    {entry.definicion}
+                  </span>
+                )}
+                <button
+                  onClick={() => remove(idx)}
+                  title="eliminar"
+                  style={{
+                    background: "none", border: "none", cursor: "pointer", padding: "0 2px",
+                    color: "color-mix(in srgb, var(--foreground) 20%, transparent)",
+                    display: "flex", alignItems: "center",
+                    transition: "color 0.1s", flexShrink: 0,
+                  }}
+                  onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--foreground) 55%, transparent)"}
+                  onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--foreground) 20%, transparent)"}
+                >
+                  <X size={9} />
+                </button>
+              </div>
+
+              {/* Definición expandida */}
+              <AnimatePresence>
+                {expandedIdx === idx && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.15 }}
+                    style={{ overflow: "hidden" }}
+                  >
+                    <div style={{
+                      borderTop: "1px solid color-mix(in srgb, var(--foreground) 6%, transparent)",
+                      padding: "5px 8px",
+                    }}>
+                      <input
+                        type="text"
+                        value={entry.definicion ?? ""}
+                        placeholder="definición o nota..."
+                        onChange={e => updateDef(idx, e.target.value)}
+                        style={{
+                          width: "100%",
+                          background: "transparent",
+                          border: "none",
+                          outline: "none",
+                          ...mono, fontSize: 10,
+                          color: "color-mix(in srgb, var(--foreground) 55%, transparent)",
+                          letterSpacing: "0.01em",
+                        }}
+                      />
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </motion.div>
+        ))}
+      </AnimatePresence>
+
+      {/* Input nueva palabra */}
+      <div style={{
+        display: "flex", gap: 5, padding: "5px 8px", borderRadius: 5,
+        border: `1px dashed ${focused
+          ? "color-mix(in srgb, var(--foreground) 16%, transparent)"
+          : "color-mix(in srgb, var(--foreground) 9%, transparent)"}`,
+        background: focused ? "color-mix(in srgb, var(--foreground) 2%, transparent)" : "transparent",
+        transition: "all 0.1s",
+        alignItems: "center",
+      }}>
+        <input
+          type="text"
+          value={inputPalabra}
+          placeholder="nueva palabra..."
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          onChange={e => setInputPalabra(e.target.value)}
+          onKeyDown={e => {
+            if (e.key === "Enter") { e.preventDefault(); add(); }
+            if (e.key === "Escape") { setInputPalabra(""); setInputDef(""); }
+          }}
+          style={{
+            flex: 1, background: "transparent", border: "none", outline: "none",
+            ...mono, fontSize: 11,
+            color: "color-mix(in srgb, var(--foreground) 70%, transparent)",
+            letterSpacing: "-0.01em",
+          }}
+        />
+        {inputPalabra.trim() && (
+          <>
+            <span style={{ color: "color-mix(in srgb, var(--foreground) 10%, transparent)", fontSize: 10, userSelect: "none" }}>|</span>
+            <input
+              type="text"
+              value={inputDef}
+              placeholder="definición..."
+              onChange={e => setInputDef(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); add(); } }}
+              style={{
+                flex: 1.5, background: "transparent", border: "none", outline: "none",
+                ...mono, fontSize: 10,
+                color: "color-mix(in srgb, var(--foreground) 40%, transparent)",
+                letterSpacing: "0.01em",
+              }}
+            />
+            <button
+              onClick={add}
+              style={{
+                background: "color-mix(in srgb, var(--accent) 12%, transparent)",
+                border: "1px solid color-mix(in srgb, var(--accent) 25%, transparent)",
+                borderRadius: 4, cursor: "pointer", padding: "2px 4px",
+                display: "flex", alignItems: "center",
+                color: "color-mix(in srgb, var(--accent) 80%, transparent)",
+                transition: "all 0.1s", flexShrink: 0,
+              }}
+              onMouseEnter={e => {
+                (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--accent) 22%, transparent)";
+                (e.currentTarget as HTMLElement).style.color = "var(--accent)";
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--accent) 12%, transparent)";
+                (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--accent) 80%, transparent)";
+              }}
+            >
+              <Plus size={9} />
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Componente principal ───────────────────────────────────────────────────────
 export function LibroPanel({ ensayo, ensayos, onUpdateField, onOpenLibrosDashboard, onTagClick }: LibroPanelProps) {
   const mono: React.CSSProperties = { fontFamily: "var(--font-mono)" };
@@ -560,6 +800,7 @@ export function LibroPanel({ ensayo, ensayos, onUpdateField, onOpenLibrosDashboa
   const [localAutor,        setLocalAutor]        = useState<string>(ensayo.autor ?? "");
   const [localPaginasTotal, setLocalPaginasTotal] = useState<number | null>(ensayo.paginas_total ?? null);
   const [localPaginaActual, setLocalPaginaActual] = useState<number | null>(ensayo.pagina_actual ?? null);
+  const [localPalabras,     setLocalPalabras]     = useState<PalabraEntry[]>(ensayo.palabras_nuevas ?? []);
 
   // Sincronizar cuando cambia de nota (ensayo.id)
   const prevIdRef = React.useRef<string>(ensayo.id);
@@ -568,6 +809,7 @@ export function LibroPanel({ ensayo, ensayos, onUpdateField, onOpenLibrosDashboa
     setLocalAutor(ensayo.autor ?? "");
     setLocalPaginasTotal(ensayo.paginas_total ?? null);
     setLocalPaginaActual(ensayo.pagina_actual ?? null);
+    setLocalPalabras(ensayo.palabras_nuevas ?? []);
   }
 
   // Todos los autores conocidos (para autocomplete)
@@ -616,6 +858,11 @@ export function LibroPanel({ ensayo, ensayos, onUpdateField, onOpenLibrosDashboa
 
   const handleRemoveTag = (t: string) => {
     onUpdateField(ensayo.id, "tags", tags.filter(x => x !== t));
+  };
+
+  const handlePalabras = (list: PalabraEntry[]) => {
+    setLocalPalabras(list);
+    onUpdateField(ensayo.id, "palabras_nuevas", list);
   };
 
   // ── Progress % — usa estado local para respuesta inmediata ──
@@ -754,6 +1001,15 @@ export function LibroPanel({ ensayo, ensayos, onUpdateField, onOpenLibrosDashboa
         onOpenLibrosDashboard={onOpenLibrosDashboard}
         onTagClick={onTagClick}
       />
+
+      {/* ── Sección: Palabras nuevas ── */}
+      <div style={{ borderTop: "1px solid color-mix(in srgb, var(--foreground) 6%, transparent)", paddingTop: 14 }}>
+        <PalabrasNuevas
+          palabras={localPalabras}
+          onUpdate={handlePalabras}
+          mono={mono}
+        />
+      </div>
     </div>
   );
 }
