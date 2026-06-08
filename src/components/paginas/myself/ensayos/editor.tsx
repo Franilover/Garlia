@@ -1,7 +1,7 @@
 "use client";
 import { MotionDiv } from "@/components/ui/Motion";
 import React, { useRef, useState, useEffect, useCallback, useMemo } from "react";
-import { Save, List } from "lucide-react";
+import { Save, List, BookOpen, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { CitePopup } from "./citePopup";
 import { LibroPanel } from "./LibroPanel";
@@ -76,6 +76,16 @@ export function Editor({
   };
 
   const tocEntries = useMemo(() => extractTOC(localContenido), [localContenido]);
+
+  // ── Mobile detection ──────────────────────────────────────────────────────
+  const [isMobile, setIsMobile] = useState(false);
+  const [libroPanelOpen, setLibroPanelOpen] = useState(false);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
 
   useEffect(() => {
     onTocEntriesChange?.(tocEntries);
@@ -266,50 +276,72 @@ export function Editor({
         {isLibro ? (
           <div style={{ display: "flex", flex: 1, minHeight: 0, overflow: "hidden" }}>
 
-            {/* ── Columna izquierda: datos del libro ── */}
-            <div style={{
-              width: 300,
-              flexShrink: 0,
-              borderRight: "1px solid color-mix(in srgb, var(--foreground) 7%, transparent)",
-              display: "flex",
-              flexDirection: "column",
-              overflowY: "auto",
-              background: "color-mix(in srgb, var(--foreground) 1%, var(--bg-main))",
-            }}>
-              {/* Título dentro de la columna izquierda */}
-              <div style={{ padding: "20px 20px 12px", borderBottom: "1px solid color-mix(in srgb, var(--foreground) 6%, transparent)" }}>
-                {tituloInput}
-                {/* Save timestamp */}
-                <div className="flex items-center gap-1.5 mt-2">
-                  <Save size={9} style={{ color: "color-mix(in srgb, var(--foreground) 15%, transparent)" }} />
-                  <span style={{ fontSize: 9, color: "color-mix(in srgb, var(--foreground) 15%, transparent)", ...monoStyle }}>
-                    {new Date(ensayo.updated_at).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}
-                  </span>
+            {/* ══ DESKTOP: columna izquierda fija ══ */}
+            {!isMobile && (
+              <div style={{
+                width: 300,
+                flexShrink: 0,
+                borderRight: "1px solid color-mix(in srgb, var(--foreground) 7%, transparent)",
+                display: "flex",
+                flexDirection: "column",
+                overflowY: "auto",
+                background: "color-mix(in srgb, var(--foreground) 1%, var(--bg-main))",
+              }}>
+                <div style={{ padding: "20px 20px 12px", borderBottom: "1px solid color-mix(in srgb, var(--foreground) 6%, transparent)" }}>
+                  {tituloInput}
+                  <div className="flex items-center gap-1.5 mt-2">
+                    <Save size={9} style={{ color: "color-mix(in srgb, var(--foreground) 15%, transparent)" }} />
+                    <span style={{ fontSize: 9, color: "color-mix(in srgb, var(--foreground) 15%, transparent)", ...monoStyle }}>
+                      {new Date(ensayo.updated_at).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}
+                    </span>
+                  </div>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <LibroPanel
+                    ensayo={ensayo}
+                    ensayos={ensayos}
+                    onUpdateField={onUpdateField}
+                    onOpenLibrosDashboard={onOpenLibrosDashboard}
+                    onTagClick={onTagClick ?? onNavigateToPage}
+                  />
                 </div>
               </div>
+            )}
 
-              {/* Panel de metadatos del libro */}
-              <div style={{ flex: 1 }}>
-                <LibroPanel
-                  ensayo={ensayo}
-                  ensayos={ensayos}
-                  onUpdateField={onUpdateField}
-                  onOpenLibrosDashboard={onOpenLibrosDashboard}
-                  onTagClick={onTagClick ?? onNavigateToPage}
-                />
-              </div>
-            </div>
-
-            {/* ── Columna derecha: editor markdown ── */}
+            {/* ── Columna editor (ocupa todo en mobile) ── */}
             <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, overflow: "hidden" }}>
-              {/* Mini meta bar arriba del editor */}
+              {/* Mini meta bar */}
               <div
-                className="shrink-0 flex items-center gap-3 px-5"
+                className="shrink-0 flex items-center gap-3 px-4"
                 style={{
                   height: 36,
                   borderBottom: "1px solid color-mix(in srgb, var(--foreground) 6%, transparent)",
                 }}
               >
+                {/* Botón ficha — solo en mobile */}
+                {isMobile && (
+                  <button
+                    onClick={() => setLibroPanelOpen(true)}
+                    title="Ver ficha del libro"
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 5,
+                      padding: "3px 8px",
+                      borderRadius: 5,
+                      border: "1px solid color-mix(in srgb, var(--foreground) 10%, transparent)",
+                      background: "color-mix(in srgb, var(--foreground) 4%, transparent)",
+                      color: "color-mix(in srgb, var(--foreground) 45%, transparent)",
+                      cursor: "pointer",
+                      flexShrink: 0,
+                      ...monoStyle,
+                      fontSize: 9,
+                    }}
+                  >
+                    <BookOpen size={9} />
+                    ficha
+                  </button>
+                )}
                 <span style={{ fontSize: 9, color: "color-mix(in srgb, var(--foreground) 18%, transparent)", ...monoStyle }}>
                   {wordCount} palabras · ~{readTime}min
                 </span>
@@ -324,6 +356,98 @@ export function Editor({
               </div>
               {markdownBlock}
             </div>
+
+            {/* ══ MOBILE: drawer lateral desde la izquierda ══ */}
+            <AnimatePresence>
+              {isMobile && libroPanelOpen && (
+                <>
+                  {/* Overlay */}
+                  <motion.div
+                    key="libro-overlay"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    onClick={() => setLibroPanelOpen(false)}
+                    style={{
+                      position: "fixed",
+                      inset: 0,
+                      background: "color-mix(in srgb, var(--bg-main) 55%, transparent)",
+                      backdropFilter: "blur(2px)",
+                      zIndex: 40,
+                    }}
+                  />
+                  {/* Drawer */}
+                  <motion.div
+                    key="libro-drawer"
+                    initial={{ x: "-100%" }}
+                    animate={{ x: 0 }}
+                    exit={{ x: "-100%" }}
+                    transition={{ type: "spring", stiffness: 320, damping: 32 }}
+                    style={{
+                      position: "fixed",
+                      top: 0,
+                      left: 0,
+                      bottom: 0,
+                      width: "min(320px, 88vw)",
+                      background: "var(--bg-menu)",
+                      borderRight: "1px solid color-mix(in srgb, var(--foreground) 8%, transparent)",
+                      zIndex: 50,
+                      display: "flex",
+                      flexDirection: "column",
+                      overflowY: "auto",
+                      boxShadow: "6px 0 32px color-mix(in srgb, var(--bg-main) 40%, transparent)",
+                    }}
+                  >
+                    {/* Header del drawer */}
+                    <div style={{
+                      padding: "16px 16px 12px",
+                      borderBottom: "1px solid color-mix(in srgb, var(--foreground) 6%, transparent)",
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: 10,
+                    }}>
+                      <div style={{ flex: 1 }}>
+                        {tituloInput}
+                        <div className="flex items-center gap-1.5 mt-2">
+                          <Save size={9} style={{ color: "color-mix(in srgb, var(--foreground) 15%, transparent)" }} />
+                          <span style={{ fontSize: 9, color: "color-mix(in srgb, var(--foreground) 15%, transparent)", ...monoStyle }}>
+                            {new Date(ensayo.updated_at).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setLibroPanelOpen(false)}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          padding: 4,
+                          color: "color-mix(in srgb, var(--foreground) 30%, transparent)",
+                          display: "flex",
+                          alignItems: "center",
+                          flexShrink: 0,
+                          marginTop: 2,
+                        }}
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+
+                    {/* Contenido del panel */}
+                    <div style={{ flex: 1 }}>
+                      <LibroPanel
+                        ensayo={ensayo}
+                        ensayos={ensayos}
+                        onUpdateField={onUpdateField}
+                        onOpenLibrosDashboard={() => { setLibroPanelOpen(false); onOpenLibrosDashboard?.(); }}
+                        onTagClick={(t) => { setLibroPanelOpen(false); (onTagClick ?? onNavigateToPage)(t); }}
+                      />
+                    </div>
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
           </div>
 
         ) : (
