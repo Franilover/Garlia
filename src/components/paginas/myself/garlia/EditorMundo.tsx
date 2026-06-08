@@ -81,32 +81,61 @@ function useEntityList<T>(
   const [items, setItems] = useState<T[]>([]);
   const [loading, setLoading] = useState(true);
   const abortRef = useRef<AbortController | null>(null);
+  const isMounted = useRef(true);
+
+  const fetchRemote = useCallback(async (ctrl: AbortController) => {
+    try {
+      const { data } = await buildQuery().abortSignal(ctrl.signal);
+      if (ctrl.signal.aborted || !isMounted.current) return;
+      const result = (data ?? []).map(mapResult) as T[];
+      setItems(result);
+      setLoading(false);
+      await dexieWriteAll(tablaLocal, result);
+    } catch (e: any) {
+      if (ctrl.signal.aborted || e?.name === "AbortError") return;
+      if (isMounted.current) setLoading(false);
+    }
+  // tablaLocal is stable; buildQuery/mapResult are inline — intentional
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tablaLocal]);
 
   useEffect(() => {
+    isMounted.current = true;
     abortRef.current?.abort();
     const ctrl = new AbortController();
     abortRef.current = ctrl;
+
     const run = async () => {
       try {
         const local = await dexieReadAll<T>(tablaLocal);
-        if (ctrl.signal.aborted) return;
+        if (ctrl.signal.aborted || !isMounted.current) return;
         if (local.length) { setItems(local); setLoading(false); }
         if (!navigator.onLine) { if (!local.length) setLoading(false); return; }
-        const { data } = await buildQuery().abortSignal(ctrl.signal);
-        if (ctrl.signal.aborted) return;
-        const result = (data ?? []).map(mapResult) as T[];
-        setItems(result); setLoading(false);
-        await dexieWriteAll(tablaLocal, result);
+        await fetchRemote(ctrl);
       } catch (e: any) {
         if (ctrl.signal.aborted || e?.name === "AbortError") return;
-        setLoading(false);
+        if (isMounted.current) setLoading(false);
       }
     };
+
     run();
-    return () => { ctrl.abort(); };
-  // buildQuery and mapResult are defined inline at call site — stable refs not needed
+
+    // Recargar datos remotos al recuperar conexión
+    const handleOnline = () => {
+      if (!isMounted.current) return;
+      const freshCtrl = new AbortController();
+      abortRef.current = freshCtrl;
+      fetchRemote(freshCtrl);
+    };
+    window.addEventListener("online", handleOnline);
+
+    return () => {
+      isMounted.current = false;
+      ctrl.abort();
+      window.removeEventListener("online", handleOnline);
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tablaLocal]);
+  }, [tablaLocal, fetchRemote]);
 
   return { items, setItems, loading };
 }
@@ -158,29 +187,62 @@ function useCriaturaVariantes(criaturaId: string | null) {
   const [variantes, setVariantes] = useState<VarianteMin[]>([]);
   const [loading, setLoading] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
+  const isMounted = useRef(true);
+
+  const fetchRemote = useCallback(async (ctrl: AbortController, id: string) => {
+    try {
+      const { data } = await (supabase.from("criatura_variantes").select("id, tipo").eq("criatura_id", id).order("tipo") as any).abortSignal(ctrl.signal);
+      if (ctrl.signal.aborted || !isMounted.current) return;
+      const result = (data ?? []) as VarianteMin[];
+      setVariantes(result);
+      setLoading(false);
+      try { if (db && result.length) await (db as any).criatura_variantes?.bulkPut(result); } catch {}
+    } catch (e: any) {
+      if (ctrl.signal.aborted || e?.name === "AbortError") return;
+      if (isMounted.current) setLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
+    isMounted.current = true;
     if (!criaturaId) { setVariantes([]); return; }
     abortRef.current?.abort();
     const ctrl = new AbortController();
     abortRef.current = ctrl;
+
     const run = async () => {
       setLoading(true);
       try {
         if (db) {
           const local: any[] = await (db as any).criatura_variantes?.where("criatura_id").equals(criaturaId).toArray() ?? [];
-          if (ctrl.signal.aborted) return;
+          if (ctrl.signal.aborted || !isMounted.current) return;
           if (local.length) { setVariantes(local); setLoading(false); if (!navigator.onLine) return; }
         }
         if (!navigator.onLine) { setLoading(false); return; }
-        const { data } = await (supabase.from("criatura_variantes").select("id, tipo").eq("criatura_id", criaturaId).order("tipo") as any).abortSignal(ctrl.signal);
-        if (ctrl.signal.aborted) return;
-        const result = (data ?? []) as VarianteMin[];
-        setVariantes(result); setLoading(false);
-        try { if (db && result.length) await (db as any).criatura_variantes?.bulkPut(result); } catch {}
-      } catch (e: any) { if (ctrl.signal.aborted || e?.name === "AbortError") return; setLoading(false); }
+        await fetchRemote(ctrl, criaturaId);
+      } catch (e: any) {
+        if (ctrl.signal.aborted || e?.name === "AbortError") return;
+        if (isMounted.current) setLoading(false);
+      }
     };
-    run(); return () => { ctrl.abort(); };
-  }, [criaturaId]);
+
+    run();
+
+    const handleOnline = () => {
+      if (!isMounted.current) return;
+      const freshCtrl = new AbortController();
+      abortRef.current = freshCtrl;
+      fetchRemote(freshCtrl, criaturaId);
+    };
+    window.addEventListener("online", handleOnline);
+
+    return () => {
+      isMounted.current = false;
+      ctrl.abort();
+      window.removeEventListener("online", handleOnline);
+    };
+  }, [criaturaId, fetchRemote]);
+
   return { variantes, loading };
 }
 
@@ -191,33 +253,71 @@ function useGruposMundo(filtroTipo?: string) {
   const [grupos, setGrupos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const abortRef = useRef<AbortController | null>(null);
+  const isMounted = useRef(true);
+
+  const fetchRemote = useCallback(async (ctrl: AbortController) => {
+    try {
+      let query = supabase.from("grupos_mundo").select("id, nombre, tipo, miembro_ids, descripcion, created_at, updated_at").order("nombre");
+      if (filtroTipo) query = (query as any).eq("tipo", filtroTipo);
+      const { data } = await (query as any).abortSignal(ctrl.signal);
+      if (ctrl.signal.aborted || !isMounted.current) return;
+      const result = (data ?? []).map((r: any) => ({ id: r.id, nombre: r.nombre, tipo: r.tipo ?? "", miembro_ids: r.miembro_ids ?? [] }));
+      setGrupos(result);
+      setLoading(false);
+      // Persistir en Dexie para uso offline
+      try {
+        if (db && (db as any).grupos_mundo && data?.length) {
+          await (db as any).grupos_mundo.bulkPut(data);
+        }
+      } catch {}
+    } catch (e: any) {
+      if (ctrl.signal.aborted || e?.name === "AbortError") return;
+      if (isMounted.current) setLoading(false);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtroTipo]);
 
   useEffect(() => {
+    isMounted.current = true;
     abortRef.current?.abort();
     const ctrl = new AbortController();
     abortRef.current = ctrl;
+
     const run = async () => {
       try {
         if (db && (db as any).grupos_mundo) {
           const all = await (db as any).grupos_mundo.toArray() as any[];
-          if (ctrl.signal.aborted) return;
+          if (ctrl.signal.aborted || !isMounted.current) return;
           const local = all
             .filter((g: any) => !g.deleted && (!filtroTipo || g.tipo === filtroTipo))
             .map((g: any) => ({ id: g.id, nombre: g.nombre, tipo: g.tipo ?? "", miembro_ids: g.miembro_ids ?? [] }));
           if (local.length) { setGrupos(local); setLoading(false); }
         }
         if (!navigator.onLine) { setLoading(false); return; }
-        let query = supabase.from("grupos_mundo").select("id, nombre, tipo, miembro_ids").order("nombre");
-        if (filtroTipo) query = (query as any).eq("tipo", filtroTipo);
-        const { data } = await (query as any).abortSignal(ctrl.signal);
-        if (ctrl.signal.aborted) return;
-        const result = (data ?? []).map((r: any) => ({ id: r.id, nombre: r.nombre, tipo: r.tipo ?? "", miembro_ids: r.miembro_ids ?? [] }));
-        setGrupos(result); setLoading(false);
-      } catch (e: any) { if (ctrl.signal.aborted || e?.name === "AbortError") return; setLoading(false); }
+        await fetchRemote(ctrl);
+      } catch (e: any) {
+        if (ctrl.signal.aborted || e?.name === "AbortError") return;
+        if (isMounted.current) setLoading(false);
+      }
     };
+
     run();
-    return () => { ctrl.abort(); };
-  }, [filtroTipo]);
+
+    // Recargar al recuperar conexión
+    const handleOnline = () => {
+      if (!isMounted.current) return;
+      const freshCtrl = new AbortController();
+      abortRef.current = freshCtrl;
+      fetchRemote(freshCtrl);
+    };
+    window.addEventListener("online", handleOnline);
+
+    return () => {
+      isMounted.current = false;
+      ctrl.abort();
+      window.removeEventListener("online", handleOnline);
+    };
+  }, [filtroTipo, fetchRemote]);
 
   return { grupos, loading };
 }
@@ -565,11 +665,13 @@ function PanelHistoriaMundo({
     let cancelled = false;
 
     const cargarCaps = async () => {
-      // 1. Leer de Dexie primero para mostrar datos offline inmediatamente
+      // 1. Leer de Dexie primero — respuesta instantánea sin red
       try {
         if (db) {
-          const localCaps: any[] = await (db as any).capitulos?.toArray() ?? [];
-          const localLibros: any[] = await (db as any).libros?.toArray() ?? [];
+          const [localCaps, localLibros]: [any[], any[]] = await Promise.all([
+            (db as any).capitulos?.toArray() ?? [],
+            (db as any).libros?.toArray() ?? [],
+          ]);
           const libroMapLocal: Record<string, string> = {};
           localLibros.forEach((l: any) => { libroMapLocal[l.id] = l.titulo ?? ""; });
 
@@ -591,58 +693,84 @@ function PanelHistoriaMundo({
         }
       } catch {}
 
-      // 2. Fetch remoto si hay conexión
+      // 2. Fetch remoto en paralelo si hay conexión
       const online = await isReallyOnline();
       if (!online || cancelled) return;
 
-      // Query 1: capítulos con orden_linea_tiempo → se muestran en la pista
       try {
-        const { data } = await supabase
-          .from("capitulos")
-          .select("id, libro_id, titulo_capitulo, orden_linea_tiempo, reinos_ids")
-          .not("orden_linea_tiempo", "is", null);
-        if (!data?.length || cancelled) return;
-
-        const libroIds = [...new Set(data.map((c: any) => c.libro_id))];
-        const { data: libros } = await supabase
-          .from("libros")
-          .select("id, titulo")
-          .in("id", libroIds);
+        // Lanzar ambas queries al mismo tiempo en lugar de secuencialmente
+        const [capsRes, capsReinosRes] = await Promise.all([
+          supabase
+            .from("capitulos")
+            .select("id, libro_id, titulo_capitulo, orden_linea_tiempo, reinos_ids")
+            .not("orden_linea_tiempo", "is", null),
+          supabase
+            .from("capitulos")
+            .select("id, reinos_ids")
+            .not("reinos_ids", "is", null),
+        ]);
         if (cancelled) return;
 
-        const libroMap: Record<string, string> = {};
-        (libros ?? []).forEach((l: any) => { libroMap[l.id] = l.titulo; });
-        setCapsTimeline(
-          (data as any[]).map(c => ({
-            id: c.id,
-            libro_id: c.libro_id,
-            titulo_capitulo: c.titulo_capitulo,
-            orden_linea_tiempo: c.orden_linea_tiempo,
-            libroTitulo: libroMap[c.libro_id] ?? "",
-            reinos_ids: c.reinos_ids ?? [],
-          }))
-        );
-      } catch {}
-
-      // Query 2: todos los capítulos con reinos_ids → alimenta los botones de filtro
-      try {
-        const { data } = await supabase
-          .from("capitulos")
-          .select("id, reinos_ids")
-          .not("reinos_ids", "is", null);
-        if (!data?.length || cancelled) return;
-        const map: Record<string, string[]> = {};
-        for (const c of data as any[]) {
-          if (c.reinos_ids?.length) map[c.id] = c.reinos_ids;
+        // Actualizar mapa de reinos_ids para los filtros
+        const capsConReinos = capsReinosRes.data ?? [];
+        if (capsConReinos.length) {
+          const map: Record<string, string[]> = {};
+          for (const c of capsConReinos as any[]) {
+            if (c.reinos_ids?.length) map[c.id] = c.reinos_ids;
+          }
+          if (!cancelled) setCapsReinosIds(map);
         }
-        setCapsReinosIds(map);
+
+        // Actualizar pista de línea de tiempo
+        const capsData = capsRes.data ?? [];
+        if (capsData.length) {
+          // Resolver títulos de libros desde Dexie primero, solo pedir los que faltan
+          const libroIds = [...new Set((capsData as any[]).map((c: any) => c.libro_id).filter(Boolean))];
+          let libroMap: Record<string, string> = {};
+          try {
+            if (db && libroIds.length) {
+              const localLibros: any[] = await (db as any).libros?.toArray() ?? [];
+              localLibros.forEach((l: any) => { libroMap[l.id] = l.titulo ?? ""; });
+            }
+          } catch {}
+
+          const missingIds = libroIds.filter(id => !libroMap[id]);
+          if (missingIds.length) {
+            try {
+              const { data: libros } = await supabase
+                .from("libros")
+                .select("id, titulo")
+                .in("id", missingIds);
+              if (!cancelled) {
+                (libros ?? []).forEach((l: any) => { libroMap[l.id] = l.titulo ?? ""; });
+                // Persistir libros nuevos en Dexie
+                if (db && libros?.length) await (db as any).libros?.bulkPut(libros).catch(() => {});
+              }
+            } catch {}
+          }
+
+          if (!cancelled) {
+            setCapsTimeline((capsData as any[]).map(c => ({
+              id: c.id,
+              libro_id: c.libro_id,
+              titulo_capitulo: c.titulo_capitulo,
+              orden_linea_tiempo: c.orden_linea_tiempo,
+              libroTitulo: libroMap[c.libro_id] ?? "",
+              reinos_ids: c.reinos_ids ?? [],
+            })));
+            // Persistir capítulos en Dexie para la próxima carga offline
+            try {
+              if (db) await (db as any).capitulos?.bulkPut(capsData).catch(() => {});
+            } catch {}
+          }
+        }
       } catch {}
     };
 
     cargarCaps();
 
     // Recargar al volver online
-    const handleOnline = () => { cargarCaps(); };
+    const handleOnline = () => { if (!cancelled) cargarCaps(); };
     window.addEventListener("online", handleOnline);
 
     return () => {
@@ -1195,9 +1323,29 @@ function PanelListas({
     "runas",
     () => supabase.from("runas").select("id, nombre, imagen_url").order("nombre"),
   );
+  // Canciones: hook externo como fuente remota, Dexie como caché local
+  const { canciones: cancionesRemote, loading: loadingCancionesRemote } = useCanciones();
+  const [canciones, setCanciones] = useState<Cancion[]>([]);
+  const [loadingCanciones, setLoadingCanciones] = useState(true);
+  useEffect(() => {
+    // Cargar caché local primero (respuesta instantánea)
+    dexieReadAll<Cancion>("canciones").then(local => {
+      if (local.length) { setCanciones(local); setLoadingCanciones(false); }
+    }).catch(() => {});
+  }, []);
+  useEffect(() => {
+    // Cuando el hook remoto termine de cargar, actualizar estado y caché
+    if (loadingCancionesRemote) return;
+    if (cancionesRemote.length) {
+      setCanciones(cancionesRemote as unknown as Cancion[]);
+      setLoadingCanciones(false);
+      dexieWriteAll("canciones", cancionesRemote as unknown as any[]).catch(() => {});
+    } else {
+      setLoadingCanciones(false);
+    }
+  }, [cancionesRemote, loadingCancionesRemote]);
   const { grupos, loaded: loadedGrupos, actualizarGrupo, eliminarGrupo } = useGrupos();
   const { notas, loading: loadingNotas, crear: crearNota, actualizar: actualizarNota, eliminar: eliminarNota } = useNotas();
-  const { canciones, loading: loadingCanciones } = useCanciones();
 
   // ── Estado de selección (overlay) ────────────────────────────────────────
   const [selectedReino,     setSelectedReino]     = useState<Reino | null>(null);
@@ -1890,4 +2038,4 @@ function PanelTexto({
       </div>
     </div>
   );
-} 
+}
