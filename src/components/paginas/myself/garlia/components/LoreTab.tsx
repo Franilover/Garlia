@@ -981,7 +981,7 @@ function useItemsDelReino(reinoId: string) {
   return { items, loading };
 }
 
-// ─── Hook: plantas del reino — solo lectura, agregadas desde ciudades y lugares
+// ─── Hook: plantas del reino — vía planta_ciudades + planta_lugares ──────────
 type PlantaMin = { id: string; nombre: string; imagen_url?: string | null };
 
 function usePlantasDelReino(reinoId: string) {
@@ -999,9 +999,9 @@ function usePlantasDelReino(reinoId: string) {
 
     const queries: PromiseLike<any>[] = [];
     if (ciudadIds.length)
-      queries.push(supabase.from("plantas").select("id, nombre, imagen_url").in("ciudad_id", ciudadIds));
+      queries.push(supabase.from("planta_ciudades").select("planta_id, plantas!planta_id(id, nombre, imagen_url)").in("ciudad_id", ciudadIds));
     if (lugarIds.length)
-      queries.push(supabase.from("plantas").select("id, nombre, imagen_url").in("lugar_id", lugarIds));
+      queries.push(supabase.from("planta_lugares").select("planta_id, plantas!planta_id(id, nombre, imagen_url)").in("lugar_id", lugarIds));
 
     if (queries.length === 0) { setPlantas([]); setLoading(false); return; }
 
@@ -1009,8 +1009,10 @@ function usePlantasDelReino(reinoId: string) {
     const seen = new Set<string>();
     const merged: PlantaMin[] = [];
     for (const { data } of results) {
-      for (const item of (data ?? [])) {
-        if (!seen.has(item.id)) { seen.add(item.id); merged.push(item); }
+      for (const row of (data ?? [])) {
+        const p = Array.isArray(row.plantas) ? row.plantas[0] : row.plantas;
+        const id = p?.id ?? row.planta_id;
+        if (!seen.has(id)) { seen.add(id); merged.push({ id, nombre: p?.nombre ?? "—", imagen_url: p?.imagen_url ?? null }); }
       }
     }
     merged.sort((a, b) => a.nombre.localeCompare(b.nombre));
@@ -1023,7 +1025,7 @@ function usePlantasDelReino(reinoId: string) {
   return { plantas, loading };
 }
 
-// ─── Hook: minerales del reino — solo lectura, agregados desde ciudades y lugares
+// ─── Hook: minerales del reino — vía mineral_ciudades + mineral_lugares ─────
 type MineralMin = { id: string; nombre: string; imagen_url?: string | null };
 
 function useMineralesDelReino(reinoId: string) {
@@ -1041,9 +1043,9 @@ function useMineralesDelReino(reinoId: string) {
 
     const queries: PromiseLike<any>[] = [];
     if (ciudadIds.length)
-      queries.push(supabase.from("minerales").select("id, nombre, imagen_url").in("ciudad_id", ciudadIds));
+      queries.push(supabase.from("mineral_ciudades").select("mineral_id, minerales!mineral_id(id, nombre, imagen_url)").in("ciudad_id", ciudadIds));
     if (lugarIds.length)
-      queries.push(supabase.from("minerales").select("id, nombre, imagen_url").in("lugar_id", lugarIds));
+      queries.push(supabase.from("mineral_lugares").select("mineral_id, minerales!mineral_id(id, nombre, imagen_url)").in("lugar_id", lugarIds));
 
     if (queries.length === 0) { setMinerales([]); setLoading(false); return; }
 
@@ -1051,8 +1053,10 @@ function useMineralesDelReino(reinoId: string) {
     const seen = new Set<string>();
     const merged: MineralMin[] = [];
     for (const { data } of results) {
-      for (const item of (data ?? [])) {
-        if (!seen.has(item.id)) { seen.add(item.id); merged.push(item); }
+      for (const row of (data ?? [])) {
+        const m = Array.isArray(row.minerales) ? row.minerales[0] : row.minerales;
+        const id = m?.id ?? row.mineral_id;
+        if (!seen.has(id)) { seen.add(id); merged.push({ id, nombre: m?.nombre ?? "—", imagen_url: m?.imagen_url ?? null }); }
       }
     }
     merged.sort((a, b) => a.nombre.localeCompare(b.nombre));
