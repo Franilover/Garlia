@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { Package, Save, Trash2, Bug, Loader2, Leaf, Wrench, X, MapPin, Globe, Camera, ChevronDown, Pencil, Search } from "lucide-react";
+import { Package, Save, Trash2, Bug, Loader2, Wrench, X, MapPin, Globe, Camera, ChevronDown, Pencil, Search, Leaf } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
 import { useConfirm } from "@/components/ui/ConfirmModal";
@@ -135,104 +135,6 @@ function PanelCrafterSources({ itemId, onSelectCriatura }: { itemId: string; onS
       saving={saving}
       onToggle={handleToggle}
       onEntityClick={onSelectCriatura}
-    />
-  );
-}
-
-// ─── Hook: qué plantas producen este ítem (item_plantas) ──────────────────────
-
-type PlantaSource = {
-  rowId:      string;
-  plantaId:   string;
-  plantaName: string;
-  plantaImg?: string | null;
-};
-
-function usePlantaSources(itemId: string) {
-  const [plantas, setPlantas] = useState<PlantaSource[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    const { data } = await supabase
-      .from("item_plantas")
-      .select(`id, planta_id, plantas!planta_id(nombre, imagen_url)`)
-      .eq("item_id", itemId);
-
-    setPlantas(
-      (data ?? []).map((r: any) => ({
-        rowId:      r.id,
-        plantaId:   r.planta_id,
-        plantaName: (Array.isArray(r.plantas) ? r.plantas[0]?.nombre     : r.plantas?.nombre)     ?? "—",
-        plantaImg:  (Array.isArray(r.plantas) ? r.plantas[0]?.imagen_url : r.plantas?.imagen_url) ?? null,
-      }))
-    );
-    setLoading(false);
-  }, [itemId]);
-
-  useEffect(() => { load(); }, [load]);
-
-  const add = async (planta: { id: string; nombre: string; imagen_url?: string | null }) => {
-    if (plantas.some(p => p.plantaId === planta.id)) return;
-    const { data, error } = await supabase
-      .from("item_plantas")
-      .insert([{ item_id: itemId, planta_id: planta.id }])
-      .select().single();
-    if (!error && data) {
-      setPlantas(prev => [...prev, {
-        rowId: data.id, plantaId: planta.id,
-        plantaName: planta.nombre, plantaImg: planta.imagen_url ?? null,
-      }]);
-      // Marcar el ítem como Natural/Planta automáticamente
-      await supabase.from("items").update({ origen: "Natural", sub_origen: "Planta" }).eq("id", itemId);
-      new BroadcastChannel("item_origen_sync").postMessage({ itemId, origen: "Natural", sub_origen: "Planta" });
-    }
-  };
-
-  const remove = async (rowId: string) => {
-    await supabase.from("item_plantas").delete().eq("id", rowId);
-    setPlantas(prev => prev.filter(p => p.rowId !== rowId));
-  };
-
-  return { plantas, loading, add, remove };
-}
-
-// ─── Panel selector de plantas fuente (usa SeccionEntidad) ───────────────────
-
-function PanelPlantaSources({ itemId, onSelectPlanta }: { itemId: string; onSelectPlanta?: (plantaId: string) => void }) {
-  const { plantas, loading, add, remove } = usePlantaSources(itemId);
-  const [allPlantas, setAllPlantas] = useState<{ id: string; nombre: string; imagen_url?: string | null }[]>([]);
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    supabase.from("plantas").select("id, nombre, imagen_url").order("nombre")
-      .then(({ data }) => setAllPlantas(data ?? []));
-  }, []);
-
-  const handleToggle = async (id: string, addIt: boolean) => {
-    setSaving(true);
-    if (addIt) {
-      const planta = allPlantas.find(p => p.id === id);
-      if (planta) await add(planta);
-    } else {
-      const row = plantas.find(p => p.plantaId === id);
-      if (row) await remove(row.rowId);
-    }
-    setSaving(false);
-  };
-
-  return (
-    <SeccionEntidad
-      label="Plantas"
-      icon={<Leaf size={9} />}
-      fallbackIcon={<Leaf size={9} />}
-      emptyLabel="Ninguna planta asignada"
-      allEntities={allPlantas.map(p => ({ id: p.id, nombre: p.nombre, imagen_url: p.imagen_url }))}
-      selectedIds={plantas.map(p => p.plantaId)}
-      loading={loading}
-      saving={saving}
-      onToggle={handleToggle}
-      onEntityClick={onSelectPlanta}
     />
   );
 }
@@ -618,11 +520,10 @@ function SelectorCategoriaGrupo({
 // ─── EditorItem ───────────────────────────────────────────────────────────────
 
 export function EditorItem({
-  item, onSaved, onDeleted, entities = [], onSelectCriatura, onSelectPlanta, onNavigateCiudad, onNavigateReino, onSelectGrupo,
+  item, tabla = "items", onSaved, onDeleted, entities = [], onSelectCriatura, onNavigateCiudad, onNavigateReino, onSelectGrupo,
 }: {
-  item: Item; onSaved: (i: Item) => void; onDeleted: (id: string) => void; entities?: WikiEntity[];
+  item: Item; tabla?: string; onSaved: (i: Item) => void; onDeleted: (id: string) => void; entities?: WikiEntity[];
   onSelectCriatura?: (criaturaId: string) => void;
-  onSelectPlanta?: (plantaId: string) => void;
   onNavigateCiudad?: (id: string) => void;
   onNavigateReino?: (id: string) => void;
   onSelectGrupo?: (grupoId: string) => void;
@@ -640,17 +541,21 @@ export function EditorItem({
   const save = async () => {
     setStatus("saving");
     try {
-      const { error } = await supabase.from("items").update({
+      const payload: any = {
         nombre: form.nombre, imagen_url: form.imagen_url || null,
         descripcion: form.descripcion, categoria: form.categoria,
-        origen: form.origen,
-        sub_origen: form.origen === "Natural" ? (form.sub_origen ?? null) : null,
         reino_ids: form.reino_ids ?? [],
-      }).eq("id", form.id);
+      };
+      // origen/sub_origen solo existen en la tabla items
+      if (tabla === "items") {
+        payload.origen = form.origen;
+        payload.sub_origen = form.origen === "Natural" ? (form.sub_origen ?? null) : null;
+      }
+      const { error } = await supabase.from(tabla).update(payload).eq("id", form.id);
       if (error) throw error;
       setStatus("saved");
       onSaved(form);
-      void dexiePut("items", form);
+      void dexiePut(tabla, form);
       setTimeout(() => setStatus("idle"), 2000);
     } catch { setStatus("error"); }
   };
@@ -658,8 +563,8 @@ export function EditorItem({
   const del = async () => {
     const ok = await confirm({ message: `¿Eliminar "${form.nombre}"?`, danger: true });
     if (!ok) return;
-    await supabase.from("items").delete().eq("id", form.id);
-    void dexieDel("items", form.id);
+    await supabase.from(tabla).delete().eq("id", form.id);
+    void dexieDel(tabla, form.id);
     onDeleted(form.id);
   };
 
@@ -739,7 +644,8 @@ export function EditorItem({
                 {/* Origen + Ciudades en dos columnas */}
                 <div className="flex flex-col sm:flex-row gap-4">
 
-                  {/* Columna Origen */}
+                  {/* Columna Origen — solo para ítems */}
+                  {tabla === "items" && (
                   <div className="flex-1 min-w-0 rounded-xl overflow-hidden"
                     style={{ border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
 
@@ -777,30 +683,23 @@ export function EditorItem({
                     {form.origen === "Natural" && (
                       <div>
                         <div className="flex"
-                          style={{ borderBottom: (form.sub_origen === "Criatura" || form.sub_origen === "Planta") ? "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" : undefined }}>
-                          {(["Planta", "Criatura"] as const).map((sub, i) => {
+                          style={{ borderBottom: form.sub_origen === "Criatura" ? "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" : undefined }}>
+                          {(["Criatura"] as const).map((sub) => {
                             const isSelected = form.sub_origen === sub;
-                            const Icon = sub === "Planta" ? Leaf : Bug;
                             return (
                               <button key={sub} type="button"
                                 onClick={() => setForm(f => ({ ...f, sub_origen: isSelected ? null : sub }))}
                                 className="flex-1 flex items-center justify-center gap-1.5 py-2 text-[9px] font-black uppercase tracking-widest transition-all"
                                 style={{
-                                  borderRight: i === 0 ? "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" : undefined,
                                   background: isSelected ? "color-mix(in srgb, var(--primary) 7%, transparent)" : "color-mix(in srgb, var(--primary) 2%, transparent)",
                                   color: isSelected ? "var(--primary)" : "color-mix(in srgb, var(--primary) 25%, transparent)",
                                 }}
                               >
-                                <Icon size={9} /> {sub}
+                                <Bug size={9} /> {sub}
                               </button>
                             );
                           })}
                         </div>
-                        {form.sub_origen === "Planta" && (
-                          <div className="p-2">
-                            <PanelPlantaSources itemId={form.id} onSelectPlanta={onSelectPlanta} />
-                          </div>
-                        )}
                         {form.sub_origen === "Criatura" && (
                           <div className="p-2">
                             <PanelCrafterSources itemId={form.id} onSelectCriatura={onSelectCriatura} />
@@ -816,6 +715,7 @@ export function EditorItem({
                       </div>
                     )}
                   </div>
+                  )} {/* fin tabla === "items" */}
 
                   {/* Columna Territorio */}
                   <div className="flex-1 min-w-0">

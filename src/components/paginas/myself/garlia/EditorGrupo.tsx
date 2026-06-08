@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import {
   Users, Bug, Package, Sparkles, Star, ScrollText, Map,
   Plus, Trash2, Save, Search, X,
-  Loader2, Layers, UserCircle2, Swords, Wand2, Gem, Feather, Leaf,
+  Loader2, Layers, UserCircle2, Swords, Wand2, Gem, Feather,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
@@ -41,7 +41,7 @@ async function dexieWriteAll(tabla: string, rows: any[]): Promise<void> {
 }
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
-export type GrupoTipo = "personajes" | "criaturas" | "items" | "reinos" | "hechizos" | "dones" | "runas" | "plantas" | "minerales";
+export type GrupoTipo = "personajes" | "criaturas" | "items" | "reinos" | "hechizos" | "dones" | "runas";
 
 export type Grupo = {
   id: string;
@@ -123,20 +123,6 @@ export const GRUPO_TIPO_CONFIG: Record<GrupoTipo, {
     color: "var(--primary)", tabla: "runas",
     ejemplo: "Conjunto rúnico, tradición…",
     sugerenciasDefault: ["Conjunto rúnico", "Tradición", "Sistema", "Alfabeto", "Escuela rúnica", "Legado", "Ciclo"],
-  },
-  plantas: {
-    label: "Planta", labelPlural: "Plantas",
-    Icon: Leaf, IconAlt: Leaf,
-    color: "color-mix(in srgb, var(--primary) 60%, #4ade80)", tabla: "plantas",
-    ejemplo: "Tipo, familia, uso…",
-    sugerenciasDefault: ["Tipo", "Familia", "Medicinal", "Venenosa", "Comestible", "Ornamental", "Mágica", "Acuática", "Parásita"],
-  },
-  minerales: {
-    label: "Mineral", labelPlural: "Minerales",
-    Icon: Gem, IconAlt: Gem,
-    color: "color-mix(in srgb, var(--primary) 60%, #818cf8)", tabla: "minerales",
-    ejemplo: "Tipo, veta, uso…",
-    sugerenciasDefault: ["Tipo", "Gema", "Metal", "Cristal", "Piedra", "Mineral mágico", "Ore", "Aleación", "Fósil", "Raro"],
   },
 };
 
@@ -317,7 +303,7 @@ function SelectorMiembros({
   const getSubtitle = (e: EntidadMin) => {
     if (tipo === "personajes") return [e.especie, e.reino].filter(Boolean).join(" · ");
     if (tipo === "criaturas") return e.habitat;
-    if (tipo === "items" || tipo === "plantas" || tipo === "minerales") return e.categoria;
+    if (tipo === "items") return e.categoria;
     return undefined;
   };
 
@@ -892,4 +878,4 @@ function SelectorTipoGrupo({ onSelect, onCancel }: { onSelect: (tipo: GrupoTipo)
       </button>
     </div>
   );
-}
+} 

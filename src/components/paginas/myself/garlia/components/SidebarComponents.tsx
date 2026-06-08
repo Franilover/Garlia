@@ -5,7 +5,7 @@ import {
   Loader2, Eye, EyeOff, Plus, Search, X, SlidersHorizontal, Sparkles,
   Wand2, ScrollText, FileText, Zap, Clock, Globe, Check, Layers,
   Users, Bug, Package, Star, Feather, Swords, Gem, Map, BookOpen, Music,
-  ChevronLeft, Leaf,
+  ChevronLeft,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
@@ -69,8 +69,6 @@ export type AllItems = {
   runas:      any[];
   notas:      any[];
   grupos:     any[];
-  plantas:    any[];
-  minerales:  any[];
 };
 
 // Tipos para resultados de escritura
@@ -243,7 +241,7 @@ function MundoSectionCard({
 // ─── AddCommandMenu ───────────────────────────────────────────────────────────
 // Floating menu triggered when user types "add" and presses Enter
 
-export type MagicAddKey = "hechizos" | "dones" | "runas" | "notas" | "acontecimiento" | "grupos" | "ciudad" | "libro" | "capitulo" | "cancion" | "planta" | "mineral";
+export type MagicAddKey = "hechizos" | "dones" | "runas" | "notas" | "acontecimiento" | "grupos" | "ciudad" | "libro" | "capitulo" | "cancion";
 
 // Colores individuales por tipo — todos con la misma lógica color-mix
 const ADD_ITEM_COLOR: Record<string, string> = {
@@ -261,8 +259,6 @@ const ADD_ITEM_COLOR: Record<string, string> = {
   capitulo:        "var(--primary)",
   cancion:         "var(--primary)",
   ciudad:           "var(--primary)",
-  planta:          "color-mix(in srgb, #4ade80 70%, var(--primary))",
-  mineral:         "color-mix(in srgb, #a78bfa 70%, var(--primary))",
 };
 
 // Todas las entradas del menú en orden unificado
@@ -301,8 +297,6 @@ function AddCommandMenu({
     { kind: "magic", key: "acontecimiento", label: "Acontecimiento", Icon: Clock    },
     { kind: "magic", key: "grupos",         label: "Grupo",          Icon: Layers   },
     { kind: "magic", key: "ciudad",          label: "Ciudad",          Icon: Map      },
-    { kind: "magic", key: "planta",         label: "Planta",         Icon: Leaf     },
-    { kind: "magic", key: "mineral",        label: "Mineral",        Icon: Gem      },
   ];
 
   useEffect(() => {
@@ -1132,8 +1126,6 @@ export function GlobalSearchBar({
   onToggleOculto,
   onSelectNota,
   onSelectGrupo,
-  onSelectPlanta,
-  onSelectMineral,
   onNavigateToCapitulo,
   onNavigateToCancion,
   onBack,
@@ -1154,8 +1146,6 @@ export function GlobalSearchBar({
   onToggleOculto?: (id: string, oculto: boolean) => void;
   onSelectNota?: (nota: any) => void;
   onSelectGrupo?: (grupo: any) => void;
-  onSelectPlanta?: (planta: any) => void;
-  onSelectMineral?: (mineral: any) => void;
   onNavigateToCapitulo?: (capId: string, libroId: string) => void;
   onNavigateToCancion?: (cancionId: string) => void;
   onBack?: () => void;
@@ -1282,24 +1272,6 @@ export function GlobalSearchBar({
       .map(item => ({ item }));
   }, [allItems, query]);
 
-  const plantaResults = useMemo((): { item: any }[] => {
-    const q = normalize(query.trim());
-    if (!q || q.length < 1) return [];
-    return (allItems.plantas ?? [])
-      .filter((p: any) => normalize(p.nombre ?? "").includes(q) || normalize(p.categoria ?? "").includes(q))
-      .slice(0, 8)
-      .map(item => ({ item }));
-  }, [allItems, query]);
-
-  const mineralResults = useMemo((): { item: any }[] => {
-    const q = normalize(query.trim());
-    if (!q || q.length < 1) return [];
-    return (allItems.minerales ?? [])
-      .filter((m: any) => normalize(m.nombre ?? "").includes(q) || normalize(m.categoria ?? "").includes(q))
-      .slice(0, 8)
-      .map(item => ({ item }));
-  }, [allItems, query]);
-
   // Navegación a capítulo y canción — declaradas después de close (ver abajo)
   const tabNavResults = useMemo((): TabNavResult[] => {
     const q = normalize(query.trim());
@@ -1380,18 +1352,6 @@ export function GlobalSearchBar({
     inputRef.current?.blur();
   }, [onSelectGrupo, close]);
 
-  const handleSelectPlanta = useCallback((planta: any) => {
-    onSelectPlanta?.(planta);
-    close();
-    inputRef.current?.blur();
-  }, [onSelectPlanta, close]);
-
-  const handleSelectMineral = useCallback((mineral: any) => {
-    onSelectMineral?.(mineral);
-    close();
-    inputRef.current?.blur();
-  }, [onSelectMineral, close]);
-
   const handleMundoSection = useCallback((key: MundoSectionKey) => {
     onSelectMundoSection(key);
     close();
@@ -1439,32 +1399,10 @@ export function GlobalSearchBar({
           onAddMagic?.(key);
           onSelectMagic?.(key as "hechizos" | "dones" | "runas", data);
         });
-    } else if (key === "planta") {
-      supabase
-        .from("plantas")
-        .insert([{ nombre: "Nueva planta" }])
-        .select("id, nombre, imagen_url, categoria")
-        .single()
-        .then(({ data, error }) => {
-          if (error || !data) return;
-          onAddMagic?.(key);
-          onSelectPlanta?.(data);
-        });
-    } else if (key === "mineral") {
-      supabase
-        .from("minerales")
-        .insert([{ nombre: "Nuevo mineral" }])
-        .select("id, nombre, imagen_url, categoria")
-        .single()
-        .then(({ data, error }) => {
-          if (error || !data) return;
-          onAddMagic?.(key);
-          onSelectMineral?.(data);
-        });
     } else {
       onAddMagic?.(key);
     }
-  }, [onAddMagic, onSelectMagic, onSelectPlanta, onSelectMineral, close]);
+  }, [onAddMagic, onSelectMagic, close]);
 
   useEffect(() => {
     if (!open) return;
@@ -1541,7 +1479,7 @@ export function GlobalSearchBar({
       ?? selectedItem?.nombre
       ?? (loadingAll ? "Cargando…" : `${totalCount} entidades`);
 
-  const totalResults = globalResults.length + mundoResults.length + tabNavResults.length + mundoSubTabResults.length + mundoNavResults.length + magicResults.length + capituloResults.length + cancionResults.length + grupoResults.length + plantaResults.length + mineralResults.length;
+  const totalResults = globalResults.length + mundoResults.length + tabNavResults.length + mundoSubTabResults.length + mundoNavResults.length + magicResults.length + capituloResults.length + cancionResults.length + grupoResults.length;
 
   return (
     <div
@@ -1679,12 +1617,6 @@ export function GlobalSearchBar({
                   );
                   grupoResults.forEach(({ item }) =>
                     flat.push({ id: `grupo-${item.id}`, action: () => handleSelectGrupo(item) })
-                  );
-                  plantaResults.forEach(({ item }) =>
-                    flat.push({ id: `planta-${item.id}`, action: () => handleSelectPlanta(item) })
-                  );
-                  mineralResults.forEach(({ item }) =>
-                    flat.push({ id: `mineral-${item.id}`, action: () => handleSelectMineral(item) })
                   );
                 }
                 flatResultsRef.current = flat;
@@ -2033,74 +1965,6 @@ export function GlobalSearchBar({
                       </>
                     )}
 
-                    {/* Resultados de plantas */}
-                    {plantaResults.length > 0 && (
-                      <>
-                        <div className="px-2 pt-3 pb-1">
-                          <p className="text-[8px] font-black uppercase tracking-widest text-primary/25">Plantas</p>
-                        </div>
-                        <div className="space-y-0.5 mb-1">
-                          {plantaResults.map(({ item }) => (
-                            <button
-                              key={item.id}
-                              onMouseDown={() => handleSelectPlanta(item)}
-                              {...itemProps(`planta-${item.id}`)}
-                              className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-150 border ${itemProps(`planta-${item.id}`)["data-active"] ? "bg-primary/8 border-primary/15" : "border-transparent hover:bg-primary/6 hover:border-primary/10"}`}
-                            >
-                              <div className="shrink-0 w-7 h-7 rounded-lg border overflow-hidden flex items-center justify-center"
-                                style={{ background: "color-mix(in srgb, #4ade80 8%, transparent)", borderColor: "color-mix(in srgb, #4ade80 18%, transparent)" }}>
-                                {item.imagen_url
-                                  ? <img src={item.imagen_url} alt={item.nombre} className="w-full h-full object-cover" />
-                                  : <Leaf size={12} style={{ color: "color-mix(in srgb, #4ade80 60%, var(--primary))" }} />}
-                              </div>
-                              <div className="flex-1 min-w-0 text-left">
-                                <p className="text-[11px] font-bold text-primary/70 truncate">{item.nombre}</p>
-                                {item.categoria && <p className="text-[9px] text-primary/30 truncate">{item.categoria}</p>}
-                              </div>
-                              <span className="shrink-0 text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md"
-                                style={{ background: "color-mix(in srgb, #4ade80 10%, transparent)", color: "color-mix(in srgb, #4ade80 55%, var(--primary))" }}>
-                                Planta
-                              </span>
-                            </button>
-                          ))}
-                        </div>
-                      </>
-                    )}
-
-                    {/* Resultados de minerales */}
-                    {mineralResults.length > 0 && (
-                      <>
-                        <div className="px-2 pt-3 pb-1">
-                          <p className="text-[8px] font-black uppercase tracking-widest text-primary/25">Minerales</p>
-                        </div>
-                        <div className="space-y-0.5 mb-1">
-                          {mineralResults.map(({ item }) => (
-                            <button
-                              key={item.id}
-                              onMouseDown={() => handleSelectMineral(item)}
-                              {...itemProps(`mineral-${item.id}`)}
-                              className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-150 border ${itemProps(`mineral-${item.id}`)["data-active"] ? "bg-primary/8 border-primary/15" : "border-transparent hover:bg-primary/6 hover:border-primary/10"}`}
-                            >
-                              <div className="shrink-0 w-7 h-7 rounded-lg border overflow-hidden flex items-center justify-center"
-                                style={{ background: "color-mix(in srgb, #a78bfa 8%, transparent)", borderColor: "color-mix(in srgb, #a78bfa 18%, transparent)" }}>
-                                {item.imagen_url
-                                  ? <img src={item.imagen_url} alt={item.nombre} className="w-full h-full object-cover" />
-                                  : <Gem size={12} style={{ color: "color-mix(in srgb, #a78bfa 60%, var(--primary))" }} />}
-                              </div>
-                              <div className="flex-1 min-w-0 text-left">
-                                <p className="text-[11px] font-bold text-primary/70 truncate">{item.nombre}</p>
-                                {item.categoria && <p className="text-[9px] text-primary/30 truncate">{item.categoria}</p>}
-                              </div>
-                              <span className="shrink-0 text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md"
-                                style={{ background: "color-mix(in srgb, #a78bfa 10%, transparent)", color: "color-mix(in srgb, #a78bfa 55%, var(--primary))" }}>
-                                Mineral
-                              </span>
-                            </button>
-                          ))}
-                        </div>
-                      </>
-                    )}
-
                     {mundoResults.length > 0 && (
                       <>
                         <div className="px-2 pt-3 pb-1">
@@ -2129,7 +1993,7 @@ export function GlobalSearchBar({
                 <>
                   <div className="grid grid-cols-3 sm:grid-cols-6 gap-1">
                     {Object.entries(allItems)
-                      .filter(([tab]) => tab !== "plantas" && tab !== "minerales" && tab !== "grupos" && tab !== "notas")
+                      .filter(([tab]) => tab !== "grupos" && tab !== "notas")
                       .flatMap(([tab, items]) =>
                         items.map(item => ({ item, tab: tab as Exclude<TabKey, "mundo"> }))
                       )
@@ -2228,59 +2092,6 @@ export function GlobalSearchBar({
                       );
                     })}
                   </div>
-
-                  {/* Naturales — acceso rápido a plantas y minerales */}
-                  {((allItems.plantas?.length ?? 0) > 0 || (allItems.minerales?.length ?? 0) > 0) && (
-                    <>
-                      <div className="px-2 pt-3 pb-1">
-                        <p className="text-[8px] font-black uppercase tracking-widest text-primary/25">Naturales</p>
-                      </div>
-                      <div className="space-y-0.5">
-                        {(allItems.plantas ?? []).slice(0, 4).map((planta: any) => (
-                          <button
-                            key={planta.id}
-                            onMouseDown={() => { onSelectPlanta?.(planta); close(); inputRef.current?.blur(); }}
-                            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-150 border border-transparent hover:bg-primary/6 hover:border-primary/10"
-                          >
-                            <div className="shrink-0 w-7 h-7 rounded-lg border overflow-hidden flex items-center justify-center"
-                              style={{ background: "color-mix(in srgb, #4ade80 7%, transparent)", borderColor: "color-mix(in srgb, #4ade80 15%, transparent)" }}>
-                              {planta.imagen_url
-                                ? <img src={planta.imagen_url} alt={planta.nombre} className="w-full h-full object-cover" />
-                                : <Leaf size={12} style={{ color: "color-mix(in srgb, #4ade80 55%, var(--primary))" }} />}
-                            </div>
-                            <span className="flex-1 text-[11px] font-bold text-primary/70 truncate">{planta.nombre}</span>
-                            {planta.categoria && (
-                              <span className="shrink-0 text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md"
-                                style={{ background: "color-mix(in srgb, #4ade80 8%, transparent)", color: "color-mix(in srgb, #4ade80 55%, var(--primary))" }}>
-                                {planta.categoria}
-                              </span>
-                            )}
-                          </button>
-                        ))}
-                        {(allItems.minerales ?? []).slice(0, 4).map((mineral: any) => (
-                          <button
-                            key={mineral.id}
-                            onMouseDown={() => { onSelectMineral?.(mineral); close(); inputRef.current?.blur(); }}
-                            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-150 border border-transparent hover:bg-primary/6 hover:border-primary/10"
-                          >
-                            <div className="shrink-0 w-7 h-7 rounded-lg border overflow-hidden flex items-center justify-center"
-                              style={{ background: "color-mix(in srgb, #a78bfa 7%, transparent)", borderColor: "color-mix(in srgb, #a78bfa 15%, transparent)" }}>
-                              {mineral.imagen_url
-                                ? <img src={mineral.imagen_url} alt={mineral.nombre} className="w-full h-full object-cover" />
-                                : <Gem size={12} style={{ color: "color-mix(in srgb, #a78bfa 55%, var(--primary))" }} />}
-                            </div>
-                            <span className="flex-1 text-[11px] font-bold text-primary/70 truncate">{mineral.nombre}</span>
-                            {mineral.categoria && (
-                              <span className="shrink-0 text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md"
-                                style={{ background: "color-mix(in srgb, #a78bfa 8%, transparent)", color: "color-mix(in srgb, #a78bfa 55%, var(--primary))" }}>
-                                {mineral.categoria}
-                              </span>
-                            )}
-                          </button>
-                        ))}
-                      </div>
-                    </>
-                  )}
 
                   {/* Add hint at the bottom */}
                   <div className="mt-2 px-2 py-1.5 rounded-xl border border-dashed flex items-center gap-2"

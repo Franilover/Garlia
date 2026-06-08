@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import { Globe, Mountain, Landmark, Users, Coins, Plus, Trash2, ChevronUp, ChevronDown, ChevronRight, UserCircle2, Loader2, MapPin, Map, Check, X, Eye, EyeOff, Bug, BookOpen, Package, SlidersHorizontal, Leaf, Gem } from "lucide-react";
+import { Globe, Mountain, Landmark, Users, Coins, Plus, Trash2, ChevronUp, ChevronDown, ChevronRight, UserCircle2, Loader2, MapPin, Map, Check, X, Eye, EyeOff, Bug, BookOpen, Package, SlidersHorizontal } from "lucide-react";
 import { INPUT_CLS, type SaveStatus } from "./types";
 import { SeccionEntidad } from "@/components/ui/SeccionEntidad";
 import { MarkdownEditor, WikiEntity } from "../../../../forms/MarkdownEditor";
@@ -900,71 +900,7 @@ function useItemsDelReino(reinoId: string) {
   return { items, loading };
 }
 
-// ─── Hook: plantas del reino — vía planta_ciudades ──────────────────────────
-type PlantaMin = { id: string; nombre: string; imagen_url?: string | null };
-
-function usePlantasDelReino(reinoId: string) {
-  const [plantas,  setPlantas]  = useState<PlantaMin[]>([]);
-  const [loading,  setLoading]  = useState(true);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    const { data: ciudadesData } = await supabase.from("ciudades").select("id").eq("reino_id", reinoId);
-    const ciudadIds = (ciudadesData ?? []).map((c: any) => c.id);
-
-    if (ciudadIds.length === 0) { setPlantas([]); setLoading(false); return; }
-
-    const { data } = await supabase.from("planta_ciudades").select("planta_id, plantas!planta_id(id, nombre, imagen_url)").in("ciudad_id", ciudadIds);
-    const seen = new Set<string>();
-    const merged: PlantaMin[] = [];
-    for (const row of (data ?? [])) {
-      const p = Array.isArray(row.plantas) ? row.plantas[0] : row.plantas;
-      const id = p?.id ?? row.planta_id;
-      if (!seen.has(id)) { seen.add(id); merged.push({ id, nombre: p?.nombre ?? "—", imagen_url: p?.imagen_url ?? null }); }
-    }
-    merged.sort((a, b) => a.nombre.localeCompare(b.nombre));
-    setPlantas(merged);
-    setLoading(false);
-  }, [reinoId]);
-
-  useEffect(() => { load(); }, [load]);
-
-  return { plantas, loading };
-}
-
-// ─── Hook: minerales del reino — vía mineral_ciudades ───────────────────────
-type MineralMin = { id: string; nombre: string; imagen_url?: string | null };
-
-function useMineralesDelReino(reinoId: string) {
-  const [minerales, setMinerales] = useState<MineralMin[]>([]);
-  const [loading,   setLoading]   = useState(true);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    const { data: ciudadesData } = await supabase.from("ciudades").select("id").eq("reino_id", reinoId);
-    const ciudadIds = (ciudadesData ?? []).map((c: any) => c.id);
-
-    if (ciudadIds.length === 0) { setMinerales([]); setLoading(false); return; }
-
-    const { data } = await supabase.from("mineral_ciudades").select("mineral_id, minerales!mineral_id(id, nombre, imagen_url)").in("ciudad_id", ciudadIds);
-    const seen = new Set<string>();
-    const merged: MineralMin[] = [];
-    for (const row of (data ?? [])) {
-      const m = Array.isArray(row.minerales) ? row.minerales[0] : row.minerales;
-      const id = m?.id ?? row.mineral_id;
-      if (!seen.has(id)) { seen.add(id); merged.push({ id, nombre: m?.nombre ?? "—", imagen_url: m?.imagen_url ?? null }); }
-    }
-    merged.sort((a, b) => a.nombre.localeCompare(b.nombre));
-    setMinerales(merged);
-    setLoading(false);
-  }, [reinoId]);
-
-  useEffect(() => { load(); }, [load]);
-
-  return { minerales, loading };
-}
-
-// ─── SeccionReadOnly — panel de solo lectura para items/plantas/minerales ──────
+// ─── SeccionReadOnly — panel de solo lectura para items ──────────────────────
 function SeccionReadOnly({
   label, Icon, FallbackIcon, items, loading, emptyLabel, onEntityClick,
 }: {
@@ -1071,8 +1007,6 @@ export function LoreTab({
   onSelectPersonaje,
   onSelectCriatura,
   onSelectItem,
-  onSelectPlanta,
-  onSelectMineral,
   reinos = [],
   filtroReinoId,
   detalles = [],
@@ -1101,8 +1035,6 @@ export function LoreTab({
   onSelectPersonaje?: (personaje: Personaje) => void;
   onSelectCriatura?: (id: string) => void;
   onSelectItem?: (id: string) => void;
-  onSelectPlanta?: (id: string) => void;
-  onSelectMineral?: (id: string) => void;
   reinos?: { id: string; nombre: string }[];
   filtroReinoId?: string | null;
   detalles?: Ciudad[];
@@ -1140,8 +1072,6 @@ export function LoreTab({
     add: addPersonaje, remove: removePersonaje,
   } = usePersonajesDelReinoEditable(form.id, form.nombre);
   const { items,    loading: loadingItems    } = useItemsDelReino(form.id);
-  const { plantas,  loading: loadingPlantas  } = usePlantasDelReino(form.id);
-  const { minerales, loading: loadingMinerales } = useMineralesDelReino(form.id);
   const capsTimeline = useCapitulosDelReino(form.id);
 
   // Estado saving por sección
@@ -1339,10 +1269,6 @@ export function LoreTab({
         <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
         <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
         <SeccionReadOnly label="Ítems" Icon={Package} FallbackIcon={Package} items={items} loading={loadingItems} emptyLabel="Sin ítems en el reino" onEntityClick={onSelectItem} />
-        <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
-        <SeccionReadOnly label="Plantas" Icon={Leaf} FallbackIcon={Leaf} items={plantas} loading={loadingPlantas} emptyLabel="Sin plantas en el reino" onEntityClick={onSelectPlanta} />
-        <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
-        <SeccionReadOnly label="Minerales" Icon={Gem} FallbackIcon={Gem} items={minerales} loading={loadingMinerales} emptyLabel="Sin minerales en el reino" onEntityClick={onSelectMineral} />
       </aside>
 
       {/* Mobile: drawer desde la derecha */}
@@ -1380,10 +1306,6 @@ export function LoreTab({
             <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
             <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
             <SeccionReadOnly label="Ítems" Icon={Package} FallbackIcon={Package} items={items} loading={loadingItems} emptyLabel="Sin ítems en el reino" onEntityClick={onSelectItem} />
-            <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
-            <SeccionReadOnly label="Plantas" Icon={Leaf} FallbackIcon={Leaf} items={plantas} loading={loadingPlantas} emptyLabel="Sin plantas en el reino" onEntityClick={onSelectPlanta} />
-            <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
-            <SeccionReadOnly label="Minerales" Icon={Gem} FallbackIcon={Gem} items={minerales} loading={loadingMinerales} emptyLabel="Sin minerales en el reino" onEntityClick={onSelectMineral} />
           </div>
         </div>
       )}

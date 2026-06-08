@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   MapPin, Save, Trash2, Users, Bug, Package,
-  Loader2, Plus, X, Mountain, ScrollText, Leaf, Gem,
+  Loader2, Plus, X, Mountain, ScrollText,
 } from "lucide-react";
 import { SeccionEntidad } from "@/components/ui/SeccionEntidad";
 import { supabase } from "@/lib/api/client/supabase";
@@ -42,8 +42,6 @@ type ReinoMin     = { id: string; nombre: string };
 type PersonajeMin = { id: string; nombre: string; img_url?: string | null };
 type CriaturaMin  = { id: string; nombre: string; imagen_url?: string | null };
 type ItemMin      = { id: string; nombre: string; imagen_url?: string | null };
-type PlantaMin    = { id: string; nombre: string; imagen_url?: string | null };
-type MineralMin   = { id: string; nombre: string; imagen_url?: string | null };
 
 // ─── Hook: reinos ─────────────────────────────────────────────────────────────
 function useReinos() {
@@ -202,88 +200,6 @@ function useTodosItems() {
       } catch {}
       if (!navigator.onLine) return;
       const { data } = await supabase.from("items").select("id, nombre, imagen_url").order("nombre");
-      if (data) setTodos(data);
-    };
-    run();
-  }, []);
-  return todos;
-}
-
-// ─── Hook: plantas vinculadas a la ciudad (vía planta_ciudades) ──────────────
-function usePlantasDelCiudad(ciudadId: string) {
-  const [plantas, setPlantas] = useState<PlantaMin[]>([]);
-  const [loading, setLoading] = useState(true);
-  const load = useCallback(async () => {
-    setLoading(true);
-    if (!navigator.onLine) { setLoading(false); return; }
-    const { data } = await supabase
-      .from("planta_ciudades")
-      .select("planta_id, plantas!planta_id(id, nombre, imagen_url)")
-      .eq("ciudad_id", ciudadId);
-    setPlantas((data ?? []).map((r: any) => {
-      const p = Array.isArray(r.plantas) ? r.plantas[0] : r.plantas;
-      return { id: p?.id ?? r.planta_id, nombre: p?.nombre ?? "—", imagen_url: p?.imagen_url ?? null };
-    }));
-    setLoading(false);
-  }, [ciudadId]);
-  useEffect(() => { load(); }, [load]);
-  return { plantas, loading, reload: load };
-}
-
-// ─── Hook: minerales vinculados a la ciudad (vía mineral_ciudades) ───────────
-function useMineralesDelCiudad(ciudadId: string) {
-  const [minerales, setMinerales] = useState<MineralMin[]>([]);
-  const [loading, setLoading] = useState(true);
-  const load = useCallback(async () => {
-    setLoading(true);
-    if (!navigator.onLine) { setLoading(false); return; }
-    const { data } = await supabase
-      .from("mineral_ciudades")
-      .select("mineral_id, minerales!mineral_id(id, nombre, imagen_url)")
-      .eq("ciudad_id", ciudadId);
-    setMinerales((data ?? []).map((r: any) => {
-      const m = Array.isArray(r.minerales) ? r.minerales[0] : r.minerales;
-      return { id: m?.id ?? r.mineral_id, nombre: m?.nombre ?? "—", imagen_url: m?.imagen_url ?? null };
-    }));
-    setLoading(false);
-  }, [ciudadId]);
-  useEffect(() => { load(); }, [load]);
-  return { minerales, loading, reload: load };
-}
-
-// ─── Hook: todas las plantas (para búsqueda) ──────────────────────────────────
-function useTodasPlantas() {
-  const [todas, setTodas] = useState<PlantaMin[]>([]);
-  useEffect(() => {
-    const run = async () => {
-      try {
-        if (db) {
-          const local: any[] = await (db as any).plantas?.toArray() ?? [];
-          if (local.length) { setTodas(local.filter((p: any) => !p.deleted).sort((a: any, b: any) => a.nombre.localeCompare(b.nombre))); if (!navigator.onLine) return; }
-        }
-      } catch {}
-      if (!navigator.onLine) return;
-      const { data } = await supabase.from("plantas").select("id, nombre, imagen_url").order("nombre");
-      if (data) setTodas(data);
-    };
-    run();
-  }, []);
-  return todas;
-}
-
-// ─── Hook: todos los minerales (para búsqueda) ────────────────────────────────
-function useTodosMinerales() {
-  const [todos, setTodos] = useState<MineralMin[]>([]);
-  useEffect(() => {
-    const run = async () => {
-      try {
-        if (db) {
-          const local: any[] = await (db as any).minerales?.toArray() ?? [];
-          if (local.length) { setTodos(local.filter((m: any) => !m.deleted).sort((a: any, b: any) => a.nombre.localeCompare(b.nombre))); if (!navigator.onLine) return; }
-        }
-      } catch {}
-      if (!navigator.onLine) return;
-      const { data } = await supabase.from("minerales").select("id, nombre, imagen_url").order("nombre");
       if (data) setTodos(data);
     };
     run();
@@ -467,9 +383,6 @@ function BloqueEntidades<T extends { id: string; nombre: string }>({
 export function FormularioCiudad({
   form, setForm, status, onSave, onDelete, entities = [],
   onSelectPersonaje, onSelectCriatura, onSelectItem, onNavigateReino,
-  onSelectPlanta, onSelectMineral,
-  plantas, loadingPlantas, todasPlantas, addingPlanta, removingPlanta, onAddPlanta, onRemovePlanta,
-  minerales, loadingMinerales, todosMinerales, addingMineral, removingMineral, onAddMineral, onRemoveMineral,
 }: {
   form: Ciudad;
   setForm: React.Dispatch<React.SetStateAction<Ciudad>>;
@@ -481,22 +394,6 @@ export function FormularioCiudad({
   onSelectCriatura?:  (id: string) => void;
   onSelectItem?:      (id: string) => void;
   onNavigateReino?:   (id: string) => void;
-  onSelectPlanta?:    (id: string) => void;
-  onSelectMineral?:   (id: string) => void;
-  plantas: PlantaMin[];
-  loadingPlantas: boolean;
-  todasPlantas: PlantaMin[];
-  addingPlanta: string | null;
-  removingPlanta: string | null;
-  onAddPlanta: (p: PlantaMin) => void;
-  onRemovePlanta: (id: string) => void;
-  minerales: MineralMin[];
-  loadingMinerales: boolean;
-  todosMinerales: MineralMin[];
-  addingMineral: string | null;
-  removingMineral: string | null;
-  onAddMineral: (m: MineralMin) => void;
-  onRemoveMineral: (id: string) => void;
 }) {
   const reinos = useReinos();
   const { personajes, loading: loadingP, reload: reloadP } = usePersonajesDelCiudad(form.id);
@@ -759,63 +656,6 @@ export function FormularioCiudad({
 
           </div>
 
-          {/* Plantas + Minerales en fila */}
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1 min-w-0 rounded-xl border border-primary/10 overflow-hidden">
-              <div
-                className="flex items-center gap-1.5 px-3 py-2 border-b"
-                style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}
-              >
-                <Leaf size={9} className="text-primary/40" />
-                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/40">Plantas</span>
-              </div>
-              <div className="p-3">
-                <BloqueEntidades<PlantaMin>
-                  Icon={Leaf}
-                  items={plantas}
-                  loading={loadingPlantas}
-                  onSelect={onSelectPlanta}
-                  renderThumb={p => p.imagen_url
-                    ? <img src={p.imagen_url} alt={p.nombre} className="w-full h-full object-cover" />
-                    : <Leaf size={9} className="text-primary/25" />}
-                  emptyText="Sin plantas en esta ciudad"
-                  allItems={todasPlantas}
-                  onAdd={onAddPlanta}
-                  addingId={addingPlanta}
-                  onRemove={onRemovePlanta}
-                  removingId={removingPlanta}
-                />
-              </div>
-            </div>
-
-            <div className="flex-1 min-w-0 rounded-xl border border-primary/10 overflow-hidden">
-              <div
-                className="flex items-center gap-1.5 px-3 py-2 border-b"
-                style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}
-              >
-                <Gem size={9} className="text-primary/40" />
-                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/40">Minerales</span>
-              </div>
-              <div className="p-3">
-                <BloqueEntidades<MineralMin>
-                  Icon={Gem}
-                  items={minerales}
-                  loading={loadingMinerales}
-                  onSelect={onSelectMineral}
-                  renderThumb={m => m.imagen_url
-                    ? <img src={m.imagen_url} alt={m.nombre} className="w-full h-full object-cover" />
-                    : <Gem size={9} className="text-primary/25" />}
-                  emptyText="Sin minerales en esta ciudad"
-                  allItems={todosMinerales}
-                  onAdd={onAddMineral}
-                  addingId={addingMineral}
-                  onRemove={onRemoveMineral}
-                  removingId={removingMineral}
-                />
-              </div>
-            </div>
-          </div>
-
         </div>
       </div>
     </div>
@@ -826,7 +666,6 @@ export function FormularioCiudad({
 export function EditorCiudad({
   item, onSaved, onDeleted, entities = [],
   onSelectPersonaje, onSelectCriatura, onSelectItem, onNavigateReino,
-  onSelectPlanta, onSelectMineral,
 }: {
   item: Ciudad;
   onSaved:   (l: Ciudad) => void;
@@ -836,22 +675,10 @@ export function EditorCiudad({
   onSelectCriatura?:  (id: string) => void;
   onSelectItem?:      (id: string) => void;
   onNavigateReino?:   (id: string) => void;
-  onSelectPlanta?:    (id: string) => void;
-  onSelectMineral?:   (id: string) => void;
 }) {
   const [form,   setForm]   = useState<Ciudad>(item);
   const [status, setStatus] = useState<SaveStatus>("idle");
   const { confirm, ConfirmModal } = useConfirm();
-
-  const { plantas,   loading: loadingPlantas,   reload: reloadPlantas }   = usePlantasDelCiudad(item.id);
-  const { minerales, loading: loadingMinerales, reload: reloadMinerales } = useMineralesDelCiudad(item.id);
-  const todasPlantas   = useTodasPlantas();
-  const todosMinerales = useTodosMinerales();
-
-  const [addingPlanta,    setAddingPlanta]    = useState<string | null>(null);
-  const [addingMineral,   setAddingMineral]   = useState<string | null>(null);
-  const [removingPlanta,  setRemovingPlanta]  = useState<string | null>(null);
-  const [removingMineral, setRemovingMineral] = useState<string | null>(null);
 
   useEffect(() => { setForm(item); setStatus("idle"); }, [item.id]);
 
@@ -883,34 +710,6 @@ export function EditorCiudad({
     onDeleted(form.id);
   };
 
-  const handleAddPlanta = async (p: PlantaMin) => {
-    setAddingPlanta(p.id);
-    await supabase.from("planta_ciudades").insert({ planta_id: p.id, ciudad_id: form.id });
-    await reloadPlantas();
-    setAddingPlanta(null);
-  };
-
-  const handleRemovePlanta = async (id: string) => {
-    setRemovingPlanta(id);
-    await supabase.from("planta_ciudades").delete().eq("planta_id", id).eq("ciudad_id", form.id);
-    await reloadPlantas();
-    setRemovingPlanta(null);
-  };
-
-  const handleAddMineral = async (m: MineralMin) => {
-    setAddingMineral(m.id);
-    await supabase.from("mineral_ciudades").insert({ mineral_id: m.id, ciudad_id: form.id });
-    await reloadMinerales();
-    setAddingMineral(null);
-  };
-
-  const handleRemoveMineral = async (id: string) => {
-    setRemovingMineral(id);
-    await supabase.from("mineral_ciudades").delete().eq("mineral_id", id).eq("ciudad_id", form.id);
-    await reloadMinerales();
-    setRemovingMineral(null);
-  };
-
   return (
     <>
       <ConfirmModal />
@@ -925,22 +724,6 @@ export function EditorCiudad({
         onSelectCriatura={onSelectCriatura}
         onSelectItem={onSelectItem}
         onNavigateReino={onNavigateReino}
-        onSelectPlanta={onSelectPlanta}
-        onSelectMineral={onSelectMineral}
-        plantas={plantas}
-        loadingPlantas={loadingPlantas}
-        todasPlantas={todasPlantas}
-        addingPlanta={addingPlanta}
-        removingPlanta={removingPlanta}
-        onAddPlanta={handleAddPlanta}
-        onRemovePlanta={handleRemovePlanta}
-        minerales={minerales}
-        loadingMinerales={loadingMinerales}
-        todosMinerales={todosMinerales}
-        addingMineral={addingMineral}
-        removingMineral={removingMineral}
-        onAddMineral={handleAddMineral}
-        onRemoveMineral={handleRemoveMineral}
       />
     </>
   );
