@@ -521,9 +521,12 @@ interface CanvasMapProps {
   selectedMarkerId?: string | null;
   tipo: "global" | "reino";
   isFirstOpen?: boolean; // true only the very first time the map opens in a session
+  fondoColor?: string | null;      // color de fondo del mar (guardado en Supabase)
+  eyedropperActive?: boolean;      // cuando está activo, el siguiente click samplea el color
+  onEyedropperPick?: (color: string) => void; // devuelve el hex del pixel clickeado
 }
 
-function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, onMapClick, selectedMarkerId, tipo, onOpenPanel, isFirstOpen }: CanvasMapProps & { onOpenPanel?: () => void }) {
+function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, onMapClick, selectedMarkerId, tipo, onOpenPanel, isFirstOpen, fondoColor, eyedropperActive, onEyedropperPick }: CanvasMapProps & { onOpenPanel?: () => void }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [imgLoaded, setImgLoaded] = useState(false);
@@ -732,7 +735,7 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       const { primary, accent, bg, fg, parchBg, parchText, whiteCustom, isDark, labelBg, labelText } = cssColorsRef.current;
 
-      ctx.fillStyle = bg;
+      ctx.fillStyle = fondoColor || bg;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       const { x: cx, y: cy, scale } = camRef.current;
@@ -1116,15 +1119,16 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
       // ── Edge vignette — subtle fade at canvas borders ─────────────────
       // Rebuild only when canvas size or bg color changes
       const { bg: bgNow } = cssColorsRef.current;
+      const vigBg = fondoColor || bgNow;
       if (
         !vignetteCanvas ||
         vignetteW !== canvas.width ||
         vignetteH !== canvas.height ||
-        vignetteBg !== bgNow
+        vignetteBg !== vigBg
       ) {
         vignetteW = canvas.width;
         vignetteH = canvas.height;
-        vignetteBg = bgNow;
+        vignetteBg = vigBg;
         vignetteCanvas = new OffscreenCanvas(vignetteW, vignetteH);
         const vc = vignetteCanvas.getContext("2d")!;
         // Smaller fade zones — 18% of each dimension instead of 45%
@@ -1132,30 +1136,30 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
         const eS = vignetteW * 0.18;
 
         const topFog = vc.createLinearGradient(0, 0, 0, eT);
-        topFog.addColorStop(0,   `${bgNow}cc`);
-        topFog.addColorStop(0.4, `${bgNow}55`);
-        topFog.addColorStop(1,   `${bgNow}00`);
+        topFog.addColorStop(0,   `${vigBg}cc`);
+        topFog.addColorStop(0.4, `${vigBg}55`);
+        topFog.addColorStop(1,   `${vigBg}00`);
         vc.fillStyle = topFog;
         vc.fillRect(0, 0, vignetteW, eT);
 
         const botFog = vc.createLinearGradient(0, vignetteH - eT, 0, vignetteH);
-        botFog.addColorStop(0,   `${bgNow}00`);
-        botFog.addColorStop(0.6, `${bgNow}55`);
-        botFog.addColorStop(1,   `${bgNow}cc`);
+        botFog.addColorStop(0,   `${vigBg}00`);
+        botFog.addColorStop(0.6, `${vigBg}55`);
+        botFog.addColorStop(1,   `${vigBg}cc`);
         vc.fillStyle = botFog;
         vc.fillRect(0, vignetteH - eT, vignetteW, eT);
 
         const leftFog = vc.createLinearGradient(0, 0, eS, 0);
-        leftFog.addColorStop(0,   `${bgNow}cc`);
-        leftFog.addColorStop(0.4, `${bgNow}44`);
-        leftFog.addColorStop(1,   `${bgNow}00`);
+        leftFog.addColorStop(0,   `${vigBg}cc`);
+        leftFog.addColorStop(0.4, `${vigBg}44`);
+        leftFog.addColorStop(1,   `${vigBg}00`);
         vc.fillStyle = leftFog;
         vc.fillRect(0, 0, eS, vignetteH);
 
         const rightFog = vc.createLinearGradient(vignetteW - eS, 0, vignetteW, 0);
-        rightFog.addColorStop(0,   `${bgNow}00`);
-        rightFog.addColorStop(0.6, `${bgNow}44`);
-        rightFog.addColorStop(1,   `${bgNow}cc`);
+        rightFog.addColorStop(0,   `${vigBg}00`);
+        rightFog.addColorStop(0.6, `${vigBg}44`);
+        rightFog.addColorStop(1,   `${vigBg}cc`);
         vc.fillStyle = rightFog;
         vc.fillRect(vignetteW - eS, 0, eS, vignetteH);
       }
@@ -1165,7 +1169,7 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
     };
     animFrameRef.current = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(animFrameRef.current);
-  }, [imgLoaded, showCompass, markers, hiddenMarkers, editMode, selectedMarkerId, tipo]);
+  }, [imgLoaded, showCompass, markers, hiddenMarkers, editMode, selectedMarkerId, tipo, fondoColor]);
 
   // Invalidate fog cache when markers or edit mode changes
   useEffect(() => { fogCacheRef.current = null; }, [markers, editMode, tipo]);
@@ -1232,6 +1236,32 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
   };
   const handleMouseUp = (e: React.MouseEvent) => {
     if (!isDragging.current) {
+      // ── Eyedropper mode — sample pixel color from the map image ──────
+      if (eyedropperActive && onEyedropperPick) {
+        const canvas = canvasRef.current;
+        const img = imgRef.current;
+        if (canvas && img) {
+          const rect = canvas.getBoundingClientRect();
+          const px = e.clientX - rect.left;
+          const py = e.clientY - rect.top;
+          // Sample from the image at clicked position (account for camera transform)
+          const { x: cx, y: cy, scale } = camRef.current;
+          const imgX = Math.round((px - cx) / scale);
+          const imgY = Math.round((py - cy) / scale);
+          // Draw just the image to a tiny offscreen canvas to read pixel
+          const tmp = new OffscreenCanvas(img.width, img.height);
+          const tmpCtx = tmp.getContext("2d")!;
+          tmpCtx.drawImage(img, 0, 0);
+          const pixel = tmpCtx.getImageData(
+            Math.max(0, Math.min(imgX, img.width - 1)),
+            Math.max(0, Math.min(imgY, img.height - 1)),
+            1, 1
+          ).data;
+          const hex = "#" + [pixel[0], pixel[1], pixel[2]].map(v => v.toString(16).padStart(2, "0")).join("");
+          onEyedropperPick(hex);
+        }
+        return;
+      }
       if (editMode) {
         const hit = hitTest(e.clientX, e.clientY);
         if (hit) { onMarkerClick(hit); return; }
@@ -1332,7 +1362,7 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
     <div ref={containerRef} className="relative w-full h-full">
       <canvas
         ref={canvasRef}
-        className={`w-full h-full block ${editMode ? "cursor-crosshair" : "cursor-grab active:cursor-grabbing"}`}
+        className={`w-full h-full block ${eyedropperActive ? "cursor-crosshair" : editMode ? "cursor-crosshair" : "cursor-grab active:cursor-grabbing"}`}
         style={{ touchAction: "none" }}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
@@ -1444,6 +1474,28 @@ export default function MapaInteractivo() {
   const imgInputRef = useRef<HTMLInputElement>(null);
   const currentReinoIdRef = useRef<string | null>(null);
   const showToast = (message: string, type: ToastType) => setToast({ message, type });
+
+  // ── Fondo color (color del mar) ──────────────────────────────────────────────
+  const [fondoColor, setFondoColor] = useState<string | null>(null);
+  const [eyedropperActive, setEyedropperActive] = useState(false);
+  const fondoColorInputRef = useRef<HTMLInputElement>(null);
+
+  // Cargar color de fondo desde Supabase al montar
+  useEffect(() => {
+    supabase.from("config_mapa").select("value").eq("key", "fondo_color").single()
+      .then(({ data }) => { if (data?.value) setFondoColor(data.value); });
+  }, []);
+
+  const handleFondoColorChange = async (color: string) => {
+    setFondoColor(color);
+    setEyedropperActive(false);
+    try {
+      await supabase.from("config_mapa").upsert({ key: "fondo_color", value: color }, { onConflict: "key" });
+      showToast("Color del mar guardado", "success");
+    } catch {
+      showToast("Error al guardar el color", "error");
+    }
+  };
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
@@ -1734,11 +1786,11 @@ export default function MapaInteractivo() {
 
   // Solo bloquea la UI si no hay absolutamente ningún dato todavía (primera carga ever)
   if (loading && reinos.length === 0) return (
-    <div className="fixed inset-0 md:left-[68px]" style={{ background: "var(--bg-main)" }} />
+    <div className="fixed inset-0 md:left-[68px]" style={{ background: fondoColor || "var(--bg-main)" }} />
   );
 
   return (
-    <div className="fixed inset-0 flex overflow-hidden md:left-[68px]" style={{ background: "var(--bg-main)" }}>
+    <div className="fixed inset-0 flex overflow-hidden md:left-[68px]" style={{ background: fondoColor || "var(--bg-main)", transition: "background 0.5s ease" }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&display=swap');`}</style>
 
       {modalEntidad && (
@@ -1861,6 +1913,96 @@ export default function MapaInteractivo() {
           )}
         </AnimatePresence>
 
+        {/* ── FONDO COLOR PICKER (edit mode only) ── */}
+        {isAdmin && editMode && (
+          <div
+            className="absolute bottom-[calc(56px+0.75rem)] md:bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-3 py-2"
+            style={{
+              background: "color-mix(in srgb, var(--bg-menu) 94%, transparent)",
+              border: "1px solid color-mix(in srgb, var(--primary) 30%, transparent)",
+              borderRadius: "2px",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
+              backdropFilter: "blur(4px)",
+            }}
+          >
+            {/* Label */}
+            <span className="text-[9px] font-black uppercase tracking-widest whitespace-nowrap" style={{ color: "var(--accent)", letterSpacing: "0.15em" }}>
+              Color Mar
+            </span>
+
+            {/* Color swatch — opens native color picker */}
+            <div className="relative">
+              <button
+                onClick={() => fondoColorInputRef.current?.click()}
+                className="w-7 h-7 border-2 transition-all"
+                title="Elegir color manual"
+                style={{
+                  background: fondoColor || "var(--bg-main)",
+                  borderColor: "color-mix(in srgb, var(--accent) 50%, transparent)",
+                  borderRadius: "1px",
+                  boxShadow: "inset 0 0 0 1px rgba(0,0,0,0.2)",
+                }}
+              />
+              <input
+                ref={fondoColorInputRef}
+                type="color"
+                className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                value={fondoColor || "#5a8fa8"}
+                onChange={(e) => setFondoColor(e.target.value)}
+                onBlur={(e) => handleFondoColorChange(e.target.value)}
+              />
+            </div>
+
+            {/* Eyedropper button */}
+            <button
+              onClick={() => setEyedropperActive(v => !v)}
+              title="Cuentagotas — click en el mapa para samplear"
+              className="w-7 h-7 flex items-center justify-center border transition-all"
+              style={{
+                background: eyedropperActive
+                  ? "color-mix(in srgb, var(--accent) 30%, transparent)"
+                  : "color-mix(in srgb, var(--primary) 15%, transparent)",
+                borderColor: eyedropperActive
+                  ? "var(--accent)"
+                  : "color-mix(in srgb, var(--primary) 30%, transparent)",
+                color: eyedropperActive ? "var(--accent)" : "color-mix(in srgb, var(--foreground) 60%, transparent)",
+                borderRadius: "1px",
+              }}
+            >
+              {/* Eyedropper SVG icon */}
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="m2 22 1-1h3l9-9"/>
+                <path d="M3 21v-3l9-9"/>
+                <path d="m15 6 3.4-3.4a2.1 2.1 0 1 1 3 3L18 9l.4.4a2.1 2.1 0 1 1-3 3l-3.8-3.8-1.6 1.6"/>
+              </svg>
+            </button>
+
+            {/* Reset */}
+            {fondoColor && (
+              <button
+                onClick={() => handleFondoColorChange("")}
+                title="Resetear a color del tema"
+                className="w-7 h-7 flex items-center justify-center border transition-all"
+                style={{
+                  background: "color-mix(in srgb, var(--primary) 10%, transparent)",
+                  borderColor: "color-mix(in srgb, var(--primary) 25%, transparent)",
+                  color: "color-mix(in srgb, var(--foreground) 45%, transparent)",
+                  borderRadius: "1px",
+                }}
+              >
+                <X size={10} />
+              </button>
+            )}
+
+            {/* Eyedropper hint */}
+            {eyedropperActive && (
+              <span className="text-[9px] font-semibold uppercase animate-pulse whitespace-nowrap" style={{ color: "var(--accent)", letterSpacing: "0.1em" }}>
+                Clickeá el mapa
+              </span>
+            )}
+          </div>
+        )}
+
         <CanvasMap
           imageSrc={currentImage}
           markers={editMode ? [...visibleMarkers, ...hiddenMarkers] : visibleMarkers}
@@ -1878,6 +2020,9 @@ export default function MapaInteractivo() {
           selectedMarkerId={puntoSeleccionado?.id ?? reinoSeleccionado?.id ?? null}
           tipo={vistaActual}
           isFirstOpen={isFirstOpen}
+          fondoColor={fondoColor}
+          eyedropperActive={eyedropperActive}
+          onEyedropperPick={handleFondoColorChange}
           onOpenPanel={isMobile && (reinoSeleccionado || puntoSeleccionado) ? () => setPanelOpen(true) : undefined}
         />
       </div>
