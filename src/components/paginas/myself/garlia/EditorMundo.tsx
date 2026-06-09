@@ -356,7 +356,7 @@ type MundoTimelineEvent = TimelineEvent & {
   reinoId?: string;
   yearNum: number; // para ordenar (valor numérico)
   capData?: CapTimeline; // solo para source === "capitulo"
-  cancionData?: { id: string; titulo: string; cantante?: string | null; reinoNombre?: string | null }; // source === "cancion"
+  cancionData?: { id: string; titulo: string; cantante?: string | null; reinoNombre?: string | null; orden_linea_tiempo?: number }; // source === "cancion"
 };
 
 /** Extrae el valor numérico de un año para ordenamiento.
@@ -483,7 +483,7 @@ function CapituloEventoRow({
 function CancionMundoRow({
   cancion,
 }: {
-  cancion: { id: string; titulo: string; cantante?: string | null; reinoNombre?: string | null };
+  cancion: { id: string; titulo: string; cantante?: string | null; reinoNombre?: string | null; orden_linea_tiempo?: number };
 }) {
   const navigate = () => {
     window.dispatchEvent(new CustomEvent("garlia-open-entity", { detail: { tabla: "canciones", id: cancion.id } }));
@@ -493,66 +493,72 @@ function CancionMundoRow({
       <div
         className="mx-1.5 rounded-xl transition-all"
         style={{
-          border: "1px solid color-mix(in srgb, var(--accent) 18%, transparent)",
-          background: "color-mix(in srgb, var(--accent) 3%, transparent)",
+          border: "1px solid color-mix(in srgb, var(--accent) 14%, transparent)",
+          background: "color-mix(in srgb, var(--accent) 2%, transparent)",
         }}
       >
         <div className="flex flex-col gap-1 p-2">
-          {/* Badge tipo + reino */}
-          <div className="flex items-center justify-between gap-1">
+          {/* Número + reino inline — idéntico a CapituloEventoRow */}
+          <div className="flex items-center gap-1">
             <span
-              className="text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md flex items-center gap-1 shrink-0"
+              className="text-[9px] font-black tracking-widest px-1.5 py-0.5 rounded-md shrink-0"
               style={{
                 background: "color-mix(in srgb, var(--accent) 10%, transparent)",
                 color: "var(--accent)",
               }}
             >
-              <Music size={7} /> Canción
+              {cancion.orden_linea_tiempo}
             </span>
             {cancion.reinoNombre && (
               <span
                 className="text-[7px] font-black uppercase tracking-widest truncate"
-                style={{ color: "color-mix(in srgb, var(--accent) 40%, transparent)" }}
+                style={{ color: "color-mix(in srgb, var(--accent) 35%, transparent)" }}
               >
                 {cancion.reinoNombre}
               </span>
             )}
           </div>
-          {/* Título como botón navegable */}
+          {/* Título navegable */}
           <button
             type="button"
             onClick={navigate}
             className="flex items-center gap-1 px-1.5 py-1 rounded-lg border w-full text-left transition-all"
             style={{
               background: "color-mix(in srgb, var(--accent) 4%, transparent)",
-              borderColor: "color-mix(in srgb, var(--accent) 12%, transparent)",
+              borderColor: "color-mix(in srgb, var(--accent) 10%, transparent)",
             }}
             onMouseEnter={e => {
               const el = e.currentTarget as HTMLElement;
-              el.style.background = "color-mix(in srgb, var(--accent) 10%, transparent)";
-              el.style.borderColor = "color-mix(in srgb, var(--accent) 25%, transparent)";
+              el.style.background = "color-mix(in srgb, var(--accent) 9%, transparent)";
+              el.style.borderColor = "color-mix(in srgb, var(--accent) 22%, transparent)";
             }}
             onMouseLeave={e => {
               const el = e.currentTarget as HTMLElement;
               el.style.background = "color-mix(in srgb, var(--accent) 4%, transparent)";
-              el.style.borderColor = "color-mix(in srgb, var(--accent) 12%, transparent)";
+              el.style.borderColor = "color-mix(in srgb, var(--accent) 10%, transparent)";
             }}
             title={`Abrir: ${cancion.titulo}`}
           >
+            <Music size={8} style={{ color: "color-mix(in srgb, var(--accent) 40%, transparent)", flexShrink: 0 }} />
             <span
               className="text-[8px] font-bold truncate"
-              style={{ color: "color-mix(in srgb, var(--accent) 70%, var(--primary))" }}
+              style={{ color: "color-mix(in srgb, var(--accent) 65%, var(--primary))" }}
             >
               {cancion.titulo}
             </span>
           </button>
-          {/* Cantante */}
+          {/* Cantante — espeja el badge de reino de capítulos */}
           {cancion.cantante && (
             <span
-              className="text-[7px] font-black uppercase tracking-widest truncate px-0.5"
-              style={{ color: "color-mix(in srgb, var(--accent) 30%, transparent)" }}
+              className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest truncate self-start"
+              style={{
+                background: "color-mix(in srgb, var(--accent) 8%, transparent)",
+                color: "color-mix(in srgb, var(--accent) 50%, transparent)",
+                border: "1px solid color-mix(in srgb, var(--accent) 12%, transparent)",
+                maxWidth: "100%",
+              }}
             >
-              {cancion.cantante}
+              <Music size={6} /> {cancion.cantante}
             </span>
           )}
         </div>
@@ -1085,7 +1091,7 @@ function PanelHistoriaMundo({
         description: "",
         source: "cancion",
         yearNum: c.orden_linea_tiempo,
-        cancionData: { id: c.id, titulo: c.titulo, cantante: c.cantante, reinoNombre: c.reinoNombre ?? null },
+        cancionData: { id: c.id, titulo: c.titulo, cantante: c.cantante, reinoNombre: c.reinoNombre ?? null, orden_linea_tiempo: c.orden_linea_tiempo },
       });
     }
     // Sort estable: por año; en empate, mundo → reino → cancion → capítulo

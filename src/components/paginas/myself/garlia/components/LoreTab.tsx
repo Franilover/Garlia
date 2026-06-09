@@ -228,15 +228,15 @@ function CancionCard({ cancion }: { cancion: CancionTimeline }) {
       <div
         className="mx-1.5 rounded-xl transition-all"
         style={{
-          border: "1px solid color-mix(in srgb, var(--accent) 18%, transparent)",
-          background: "color-mix(in srgb, var(--accent) 3%, transparent)",
+          border: "1px solid color-mix(in srgb, var(--accent) 14%, transparent)",
+          background: "color-mix(in srgb, var(--accent) 2%, transparent)",
         }}
       >
         <div className="flex flex-col gap-1 p-2">
-          {/* Posición + reino */}
-          <div className="flex items-center gap-1 justify-between">
+          {/* Número + reino (mismo layout que capítulo) */}
+          <div className="flex items-center gap-1">
             <span
-              className="text-[9px] font-black tracking-widest px-1.5 py-0.5 rounded-md"
+              className="text-[9px] font-black tracking-widest px-1.5 py-0.5 rounded-md shrink-0"
               style={{
                 background: "color-mix(in srgb, var(--accent) 10%, transparent)",
                 color: "var(--accent)",
@@ -246,8 +246,8 @@ function CancionCard({ cancion }: { cancion: CancionTimeline }) {
             </span>
             {cancion.reinoNombre && (
               <span
-                className="text-[7px] font-black uppercase tracking-widest truncate max-w-[100px]"
-                style={{ color: "color-mix(in srgb, var(--accent) 40%, transparent)" }}
+                className="text-[7px] font-black uppercase tracking-widest truncate"
+                style={{ color: "color-mix(in srgb, var(--accent) 35%, transparent)" }}
               >
                 {cancion.reinoNombre}
               </span>
@@ -260,24 +260,24 @@ function CancionCard({ cancion }: { cancion: CancionTimeline }) {
             className="flex items-center gap-1 px-1.5 py-1 rounded-lg border w-full text-left transition-all"
             style={{
               background: "color-mix(in srgb, var(--accent) 4%, transparent)",
-              borderColor: "color-mix(in srgb, var(--accent) 12%, transparent)",
+              borderColor: "color-mix(in srgb, var(--accent) 10%, transparent)",
             }}
             onMouseEnter={e => {
               const el = e.currentTarget as HTMLElement;
-              el.style.background = "color-mix(in srgb, var(--accent) 10%, transparent)";
-              el.style.borderColor = "color-mix(in srgb, var(--accent) 25%, transparent)";
+              el.style.background = "color-mix(in srgb, var(--accent) 9%, transparent)";
+              el.style.borderColor = "color-mix(in srgb, var(--accent) 22%, transparent)";
             }}
             onMouseLeave={e => {
               const el = e.currentTarget as HTMLElement;
               el.style.background = "color-mix(in srgb, var(--accent) 4%, transparent)";
-              el.style.borderColor = "color-mix(in srgb, var(--accent) 12%, transparent)";
+              el.style.borderColor = "color-mix(in srgb, var(--accent) 10%, transparent)";
             }}
             title={`Abrir: ${cancion.titulo}`}
           >
-            <Music size={8} style={{ color: "color-mix(in srgb, var(--accent) 50%, transparent)", flexShrink: 0 }} />
+            <Music size={8} style={{ color: "color-mix(in srgb, var(--accent) 40%, transparent)", flexShrink: 0 }} />
             <span
               className="text-[8px] font-bold truncate"
-              style={{ color: "color-mix(in srgb, var(--accent) 70%, var(--primary))" }}
+              style={{ color: "color-mix(in srgb, var(--accent) 65%, var(--primary))" }}
             >
               {cancion.titulo}
             </span>
@@ -285,7 +285,7 @@ function CancionCard({ cancion }: { cancion: CancionTimeline }) {
           {/* Cantante */}
           {cancion.cantante && (
             <span
-              className="text-[7px] font-black uppercase tracking-widest truncate px-1"
+              className="text-[7px] font-black uppercase tracking-widest truncate px-0.5"
               style={{ color: "color-mix(in srgb, var(--accent) 30%, transparent)" }}
             >
               {cancion.cantante}
