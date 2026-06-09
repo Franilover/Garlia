@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import { Globe, Mountain, Landmark, Users, Coins, Plus, Trash2, ChevronUp, Crown, ChevronDown, ChevronRight, UserCircle2, Loader2, MapPin, Map, Check, X, Eye, EyeOff, Bug, BookOpen, Package, SlidersHorizontal, Music } from "lucide-react";
+import { Globe, Mountain, Landmark, Users, Coins, Plus, Trash2, ChevronUp, ChevronDown, ChevronRight, UserCircle2, Loader2, MapPin, Map, Check, X, Eye, EyeOff, Bug, BookOpen, Package, SlidersHorizontal, Music } from "lucide-react";
 import { INPUT_CLS, type SaveStatus } from "./types";
 import { SeccionEntidad } from "@/components/ui/SeccionEntidad";
 import { MarkdownEditor, WikiEntity } from "../../../../forms/Markdown/MarkdownEditor";
@@ -222,7 +222,27 @@ function useCancionesTimeline() {
 }
 
 // ─── Tarjeta de canción en la línea de tiempo (solo lectura) ─────────────────
-function CancionCard({ cancion }: { cancion: CancionTimeline }) {
+function CancionCard({
+  cancion,
+  onOrdenChange,
+}: {
+  cancion: CancionTimeline;
+  onOrdenChange?: (id: string, orden: number) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [val, setVal]         = useState(String(cancion.orden_linea_tiempo));
+  const [saving, setSaving]   = useState(false);
+
+  const commitOrden = async () => {
+    setEditing(false);
+    const num = parseInt(val, 10);
+    if (isNaN(num) || num === cancion.orden_linea_tiempo) { setVal(String(cancion.orden_linea_tiempo)); return; }
+    setSaving(true);
+    await supabase.from("canciones").update({ orden_linea_tiempo: num } as any).eq("id", cancion.id);
+    onOrdenChange?.(cancion.id, num);
+    setSaving(false);
+  };
+
   const navigate = () => {
     window.dispatchEvent(new CustomEvent("garlia-open-entity", { detail: { tabla: "canciones", id: cancion.id } }));
   };
@@ -237,17 +257,32 @@ function CancionCard({ cancion }: { cancion: CancionTimeline }) {
         }}
       >
         <div className="flex flex-col gap-1 p-2">
-          {/* Número + reino (mismo layout que capítulo) */}
+          {/* Número editable + reino */}
           <div className="flex items-center gap-1">
-            <span
-              className="text-[9px] font-black tracking-widest px-1.5 py-0.5 rounded-md shrink-0"
-              style={{
-                background: "color-mix(in srgb, var(--accent) 10%, transparent)",
-                color: "var(--accent)",
-              }}
-            >
-              {cancion.orden_linea_tiempo}
-            </span>
+            {editing ? (
+              <input
+                autoFocus
+                type="number"
+                value={val}
+                onChange={e => setVal(e.target.value)}
+                onBlur={commitOrden}
+                onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); if (e.key === "Escape") { setVal(String(cancion.orden_linea_tiempo)); setEditing(false); } }}
+                className="w-12 text-[9px] font-black tracking-widest px-1.5 py-0.5 rounded-md outline-none tabular-nums text-center"
+                style={{ background: "color-mix(in srgb, var(--accent) 12%, transparent)", color: "var(--accent)", border: "1px solid color-mix(in srgb, var(--accent) 30%, transparent)" }}
+              />
+            ) : (
+              <button
+                type="button"
+                title="Editar posición"
+                onClick={() => setEditing(true)}
+                className="text-[9px] font-black tracking-widest px-1.5 py-0.5 rounded-md shrink-0 transition-all"
+                style={{ background: "color-mix(in srgb, var(--accent) 10%, transparent)", color: "var(--accent)" }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--accent) 18%, transparent)"; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--accent) 10%, transparent)"; }}
+              >
+                {saving ? "…" : cancion.orden_linea_tiempo}
+              </button>
+            )}
             {cancion.reinoNombre && (
               <span
                 className="text-[7px] font-black uppercase tracking-widest truncate"
@@ -302,7 +337,29 @@ function CancionCard({ cancion }: { cancion: CancionTimeline }) {
 }
 
 // ─── Tarjeta de capítulo en la línea de tiempo (solo lectura) ────────────────
-function CapituloCard({ cap, reinos = [] }: { cap: CapTimeline; reinos?: { id: string; nombre: string }[] }) {
+function CapituloCard({
+  cap,
+  reinos = [],
+  onOrdenChange,
+}: {
+  cap: CapTimeline;
+  reinos?: { id: string; nombre: string }[];
+  onOrdenChange?: (id: string, orden: number) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [val, setVal]         = useState(String(cap.orden_linea_tiempo));
+  const [saving, setSaving]   = useState(false);
+
+  const commitOrden = async () => {
+    setEditing(false);
+    const num = parseInt(val, 10);
+    if (isNaN(num) || num === cap.orden_linea_tiempo) { setVal(String(cap.orden_linea_tiempo)); return; }
+    setSaving(true);
+    await supabase.from("capitulos").update({ orden_linea_tiempo: num }).eq("id", cap.id);
+    onOrdenChange?.(cap.id, num);
+    setSaving(false);
+  };
+
   const navigate = () => {
     localStorage.setItem("estudio-caps-last-cap",   cap.id);
     localStorage.setItem("estudio-caps-last-libro", cap.libro_id);
@@ -323,17 +380,32 @@ function CapituloCard({ cap, reinos = [] }: { cap: CapTimeline; reinos?: { id: s
         }}
       >
         <div className="flex flex-col gap-1 p-2">
-          {/* Número + libro */}
+          {/* Número editable + libro */}
           <div className="flex items-center gap-1">
-            <span
-              className="text-[9px] font-black tracking-widest px-1.5 py-0.5 rounded-md shrink-0"
-              style={{
-                background: "color-mix(in srgb, var(--primary) 8%, transparent)",
-                color: "var(--primary)",
-              }}
-            >
-              {cap.orden_linea_tiempo}
-            </span>
+            {editing ? (
+              <input
+                autoFocus
+                type="number"
+                value={val}
+                onChange={e => setVal(e.target.value)}
+                onBlur={commitOrden}
+                onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); if (e.key === "Escape") { setVal(String(cap.orden_linea_tiempo)); setEditing(false); } }}
+                className="w-12 text-[9px] font-black tracking-widest px-1.5 py-0.5 rounded-md outline-none tabular-nums text-center"
+                style={{ background: "color-mix(in srgb, var(--primary) 12%, transparent)", color: "var(--primary)", border: "1px solid color-mix(in srgb, var(--primary) 30%, transparent)" }}
+              />
+            ) : (
+              <button
+                type="button"
+                title="Editar posición"
+                onClick={() => setEditing(true)}
+                className="text-[9px] font-black tracking-widest px-1.5 py-0.5 rounded-md shrink-0 transition-all"
+                style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)", color: "var(--primary)" }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 16%, transparent)"; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 8%, transparent)"; }}
+              >
+                {saving ? "…" : cap.orden_linea_tiempo}
+              </button>
+            )}
             {cap.libroTitulo && (
               <span
                 className="text-[7px] font-black uppercase tracking-widest truncate"
@@ -497,6 +569,12 @@ function TimelineEditor({
 }) {
   const [events, setEvents] = useState<TimelineEvent[]>(() => decodeTimeline(value));
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  // Overrides locales de orden — actualizados optimistamente sin esperar re-fetch
+  const [ordenOverrides, setOrdenOverrides] = useState<Record<string, number>>({});
+
+  const handleOrdenChange = (id: string, orden: number) => {
+    setOrdenOverrides(prev => ({ ...prev, [id]: orden }));
+  };
   const { onSnippetAction } = useWikilink();
 
   const commit = (next: TimelineEvent[]) => {
@@ -528,8 +606,14 @@ function TimelineEditor({
 
   const allSlots: Slot[] = [
     ...visible.map(e => ({ kind: "event" as const, data: e })),
-    ...capsTimeline.map(c => ({ kind: "cap" as const, data: c })),
-    ...cancionesTimeline.map(c => ({ kind: "cancion" as const, data: c })),
+    ...capsTimeline.map(c => ({
+      kind: "cap" as const,
+      data: ordenOverrides[c.id] != null ? { ...c, orden_linea_tiempo: ordenOverrides[c.id] } : c,
+    })),
+    ...cancionesTimeline.map(c => ({
+      kind: "cancion" as const,
+      data: ordenOverrides[c.id] != null ? { ...c, orden_linea_tiempo: ordenOverrides[c.id] } : c,
+    })),
   ].sort((a, b) => {
     const ya = a.kind === "event" ? parseYear(a.data.year) : a.data.orden_linea_tiempo;
     const yb = b.kind === "event" ? parseYear(b.data.year) : b.data.orden_linea_tiempo;
@@ -603,9 +687,16 @@ function TimelineEditor({
                   <div className="flex-1 h-px" style={{ background: idx === allSlots.length - 1 ? "transparent" : "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
                 </div>
                 {slot.kind === "cap" ? (
-                  <CapituloCard cap={slot.data} reinos={reinos} />
+                  <CapituloCard
+                    cap={slot.data}
+                    reinos={reinos}
+                    onOrdenChange={handleOrdenChange}
+                  />
                 ) : slot.kind === "cancion" ? (
-                  <CancionCard cancion={slot.data} />
+                  <CancionCard
+                    cancion={slot.data}
+                    onOrdenChange={handleOrdenChange}
+                  />
                 ) : (
                   <TimelineCard
                     event={slot.data}

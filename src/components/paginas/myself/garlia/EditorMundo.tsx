@@ -393,11 +393,27 @@ function CapituloEventoRow({
   cap,
   reinos = [],
   onNavigate,
+  onOrdenChange,
 }: {
   cap: CapTimeline;
   reinos?: { id: string; nombre: string }[];
   onNavigate: () => void;
+  onOrdenChange?: (id: string, orden: number) => void;
 }) {
+  const [editing, setEditing] = useState(false);
+  const [val, setVal]         = useState(String(cap.orden_linea_tiempo));
+  const [saving, setSaving]   = useState(false);
+
+  const commitOrden = async () => {
+    setEditing(false);
+    const num = parseInt(val, 10);
+    if (isNaN(num) || num === cap.orden_linea_tiempo) { setVal(String(cap.orden_linea_tiempo)); return; }
+    setSaving(true);
+    await supabase.from("capitulos").update({ orden_linea_tiempo: num }).eq("id", cap.id);
+    onOrdenChange?.(cap.id, num);
+    setSaving(false);
+  };
+
   const reinosDelCap = (cap.reinos_ids ?? [])
     .map(id => reinos.find(r => r.id === id)?.nombre)
     .filter(Boolean) as string[];
@@ -412,17 +428,32 @@ function CapituloEventoRow({
         }}
       >
         <div className="flex flex-col gap-1 p-2">
-          {/* Número + libro */}
+          {/* Número editable + libro */}
           <div className="flex items-center gap-1">
-            <span
-              className="text-[9px] font-black tracking-widest px-1.5 py-0.5 rounded-md shrink-0"
-              style={{
-                background: "color-mix(in srgb, var(--primary) 8%, transparent)",
-                color: "var(--primary)",
-              }}
-            >
-              {cap.orden_linea_tiempo}
-            </span>
+            {editing ? (
+              <input
+                autoFocus
+                type="number"
+                value={val}
+                onChange={e => setVal(e.target.value)}
+                onBlur={commitOrden}
+                onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); if (e.key === "Escape") { setVal(String(cap.orden_linea_tiempo)); setEditing(false); } }}
+                className="w-12 text-[9px] font-black tracking-widest px-1.5 py-0.5 rounded-md outline-none tabular-nums text-center"
+                style={{ background: "color-mix(in srgb, var(--primary) 12%, transparent)", color: "var(--primary)", border: "1px solid color-mix(in srgb, var(--primary) 30%, transparent)" }}
+              />
+            ) : (
+              <button
+                type="button"
+                title="Editar posición"
+                onClick={() => setEditing(true)}
+                className="text-[9px] font-black tracking-widest px-1.5 py-0.5 rounded-md shrink-0 transition-all"
+                style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)", color: "var(--primary)" }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 16%, transparent)"; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 8%, transparent)"; }}
+              >
+                {saving ? "…" : cap.orden_linea_tiempo}
+              </button>
+            )}
             {cap.libroTitulo && (
               <span
                 className="text-[7px] font-black uppercase tracking-widest truncate"
@@ -490,9 +521,25 @@ function CapituloEventoRow({
 // ── Tarjeta horizontal de canción en la línea de tiempo — solo lectura ───────
 function CancionMundoRow({
   cancion,
+  onOrdenChange,
 }: {
   cancion: { id: string; titulo: string; cantante?: string | null; reinoNombre?: string | null; orden_linea_tiempo?: number };
+  onOrdenChange?: (id: string, orden: number) => void;
 }) {
+  const [editing, setEditing] = useState(false);
+  const [val, setVal]         = useState(String(cancion.orden_linea_tiempo ?? ""));
+  const [saving, setSaving]   = useState(false);
+
+  const commitOrden = async () => {
+    setEditing(false);
+    const num = parseInt(val, 10);
+    if (isNaN(num) || num === cancion.orden_linea_tiempo) { setVal(String(cancion.orden_linea_tiempo ?? "")); return; }
+    setSaving(true);
+    await supabase.from("canciones").update({ orden_linea_tiempo: num } as any).eq("id", cancion.id);
+    onOrdenChange?.(cancion.id, num);
+    setSaving(false);
+  };
+
   const navigate = () => {
     window.dispatchEvent(new CustomEvent("garlia-open-entity", { detail: { tabla: "canciones", id: cancion.id } }));
   };
@@ -506,17 +553,32 @@ function CancionMundoRow({
         }}
       >
         <div className="flex flex-col gap-1 p-2">
-          {/* Número + reino inline — idéntico a CapituloEventoRow */}
+          {/* Número editable + reino */}
           <div className="flex items-center gap-1">
-            <span
-              className="text-[9px] font-black tracking-widest px-1.5 py-0.5 rounded-md shrink-0"
-              style={{
-                background: "color-mix(in srgb, var(--accent) 10%, transparent)",
-                color: "var(--accent)",
-              }}
-            >
-              {cancion.orden_linea_tiempo}
-            </span>
+            {editing ? (
+              <input
+                autoFocus
+                type="number"
+                value={val}
+                onChange={e => setVal(e.target.value)}
+                onBlur={commitOrden}
+                onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); if (e.key === "Escape") { setVal(String(cancion.orden_linea_tiempo ?? "")); setEditing(false); } }}
+                className="w-12 text-[9px] font-black tracking-widest px-1.5 py-0.5 rounded-md outline-none tabular-nums text-center"
+                style={{ background: "color-mix(in srgb, var(--accent) 12%, transparent)", color: "var(--accent)", border: "1px solid color-mix(in srgb, var(--accent) 30%, transparent)" }}
+              />
+            ) : (
+              <button
+                type="button"
+                title="Editar posición"
+                onClick={() => setEditing(true)}
+                className="text-[9px] font-black tracking-widest px-1.5 py-0.5 rounded-md shrink-0 transition-all"
+                style={{ background: "color-mix(in srgb, var(--accent) 10%, transparent)", color: "var(--accent)" }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--accent) 18%, transparent)"; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--accent) 10%, transparent)"; }}
+              >
+                {saving ? "…" : cancion.orden_linea_tiempo}
+              </button>
+            )}
             {cancion.reinoNombre && (
               <span
                 className="text-[7px] font-black uppercase tracking-widest truncate"
@@ -1021,7 +1083,12 @@ function PanelHistoriaMundo({
   const [filterReino, setFilterReino] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [savingReinos, setSavingReinos] = useState<Set<string>>(new Set());
-  const [selectedEventKey, setSelectedEventKey] = useState<string | null>(null); // "evtId" o "reinoId:evtId"
+  const [selectedEventKey, setSelectedEventKey] = useState<string | null>(null);
+  const [ordenOverrides, setOrdenOverrides] = useState<Record<string, number>>({});
+
+  const handleOrdenChange = (id: string, orden: number) => {
+    setOrdenOverrides(prev => ({ ...prev, [id]: orden }));
+  }; // "evtId" o "reinoId:evtId"
   const { onSnippetAction } = useWikilink();
   const debounceHistRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -1080,26 +1147,28 @@ function PanelHistoriaMundo({
     }
     // Capítulos — cada uno como tarjeta propia, ordenada por año, sin agrupar
     for (const cap of capsTimeline) {
+      const orden = ordenOverrides[cap.id] ?? cap.orden_linea_tiempo;
       list.push({
         id: `cap:${cap.id}`,
-        year: String(cap.orden_linea_tiempo),
+        year: String(orden),
         title: cap.titulo_capitulo,
         description: "",
         source: "capitulo",
-        yearNum: cap.orden_linea_tiempo,
+        yearNum: orden,
         capData: cap,
       });
     }
     // Canciones — tarjeta de solo lectura con link
     for (const c of cancionesTimeline) {
+      const ordenC = ordenOverrides[c.id] ?? c.orden_linea_tiempo;
       list.push({
         id: `cancion:${c.id}`,
-        year: String(c.orden_linea_tiempo),
+        year: String(ordenC),
         title: c.titulo,
         description: "",
         source: "cancion",
-        yearNum: c.orden_linea_tiempo,
-        cancionData: { id: c.id, titulo: c.titulo, cantante: c.cantante, reinoNombre: c.reinoNombre ?? null, orden_linea_tiempo: c.orden_linea_tiempo },
+        yearNum: ordenC,
+        cancionData: { id: c.id, titulo: c.titulo, cantante: c.cantante, reinoNombre: c.reinoNombre ?? null, orden_linea_tiempo: ordenC },
       });
     }
     // Sort estable: por año; en empate, mundo → reino → cancion → capítulo
@@ -1109,7 +1178,7 @@ function PanelHistoriaMundo({
       const order = { mundo: 0, reino: 1, cancion: 2, capitulo: 3 };
       return (order[a.source] ?? 1) - (order[b.source] ?? 1);
     });
-  }, [mundoEvents, reinos, reinoEvents, filterReino, capsTimeline, cancionesTimeline]);
+  }, [mundoEvents, reinos, reinoEvents, filterReino, capsTimeline, cancionesTimeline, ordenOverrides]);
 
   const reinosConEventos = useMemo(
     () => reinos.filter(r => {
@@ -1251,11 +1320,12 @@ function PanelHistoriaMundo({
                     </div>
                     {/* Tarjeta */}
                     {isCancion && evt.cancionData ? (
-                      <CancionMundoRow cancion={evt.cancionData} />
+                      <CancionMundoRow cancion={evt.cancionData} onOrdenChange={handleOrdenChange} />
                     ) : isCapitulo && evt.capData ? (
                       <CapituloEventoRow
                         cap={evt.capData}
                         reinos={reinos}
+                        onOrdenChange={handleOrdenChange}
                         onNavigate={() => {
                           localStorage.setItem("estudio-caps-last-cap", evt.capData!.id);
                           localStorage.setItem("estudio-caps-last-libro", evt.capData!.libro_id);
