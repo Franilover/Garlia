@@ -847,6 +847,9 @@ export type Database = {
           pagina_actual: number | null
           paginas_total: number | null
           palabras_nuevas: { palabra: string; definicion?: string }[] | null
+          calificacion: number | null
+          citas: { texto: string; pagina?: number }[] | null
+          isbn: string | null
           tags: string[] | null
           titulo: string
           updated_at: string
@@ -860,6 +863,9 @@ export type Database = {
           pagina_actual?: number | null
           paginas_total?: number | null
           palabras_nuevas?: { palabra: string; definicion?: string }[] | null
+          calificacion?: number | null
+          citas?: { texto: string; pagina?: number }[] | null
+          isbn?: string | null
           tags?: string[] | null
           titulo: string
           updated_at?: string
@@ -873,6 +879,9 @@ export type Database = {
           pagina_actual?: number | null
           paginas_total?: number | null
           palabras_nuevas?: { palabra: string; definicion?: string }[] | null
+          calificacion?: number | null
+          citas?: { texto: string; pagina?: number }[] | null
+          isbn?: string | null
           tags?: string[] | null
           titulo?: string
           updated_at?: string
