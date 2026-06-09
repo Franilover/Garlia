@@ -70,6 +70,11 @@ type CiudadMin        = { id: string; nombre: string; imagen_url?: string; tipo?
 type EntidadMagicaMin = { id: string; nombre: string };
 type RunaMin         = { id: string; nombre: string; imagen_url?: string | null };
 
+// ─── Caché de timestamps de última sincronización remota ─────────────────────
+// Evita re-fetchear Supabase en cada mount cuando Dexie ya tiene datos frescos.
+const _entityLastFetch: Record<string, number> = {};
+const ENTITY_TTL_MS = 60_000; // 1 minuto
+
 // ─── Hook genérico de carga: local (Dexie) → remoto (Supabase) ───────────────
 // Reemplaza useReinos, useCriaturas, useObjetos, useCiudades, usePersonajesList,
 // useEntidadesMagicas y useRunas, que eran idénticos salvo la tabla y el select.
@@ -90,7 +95,9 @@ function useEntityList<T>(
       const result = (data ?? []).map(mapResult) as T[];
       setItems(result);
       setLoading(false);
-      await dexieWriteAll(tablaLocal, result);
+      _entityLastFetch[tablaLocal] = Date.now();
+      // Solo escribe en Dexie si hay datos para no borrar la caché con array vacío
+      if (result.length) await dexieWriteAll(tablaLocal, result);
     } catch (e: any) {
       if (ctrl.signal.aborted || e?.name === "AbortError") return;
       if (isMounted.current) setLoading(false);
@@ -111,6 +118,12 @@ function useEntityList<T>(
         if (ctrl.signal.aborted || !isMounted.current) return;
         if (local.length) { setItems(local); setLoading(false); }
         if (!navigator.onLine) { if (!local.length) setLoading(false); return; }
+
+        // Si tenemos datos locales y el fetch fue reciente, no volvemos a pedir
+        const lastFetch = _entityLastFetch[tablaLocal] ?? 0;
+        const isFresh = local.length > 0 && (Date.now() - lastFetch) < ENTITY_TTL_MS;
+        if (isFresh) return;
+
         await fetchRemote(ctrl);
       } catch (e: any) {
         if (ctrl.signal.aborted || e?.name === "AbortError") return;
@@ -120,7 +133,7 @@ function useEntityList<T>(
 
     run();
 
-    // Recargar datos remotos al recuperar conexión
+    // Al recuperar conexión siempre forzamos fetch remoto (ignora TTL)
     const handleOnline = () => {
       if (!isMounted.current) return;
       const freshCtrl = new AbortController();
@@ -177,7 +190,7 @@ function useCiudades() {
 function usePersonajesList() {
   const { items, setItems, loading } = useEntityList<Personaje>(
     "personajes",
-    () => supabase.from("personajes").select("*").order("nombre"),
+    () => supabase.from("personajes").select("id, nombre, img_url, especie, sobre, reino").order("nombre"),
   );
   return { personajes: items, setPersonajes: setItems, loading };
 }
@@ -563,6 +576,9 @@ type CapTimeline = {
 };
 
 // ── Carga reinos con historia completa (query dedicada, no el hook genérico) ──
+let _reinosLastFetch = 0;
+const REINOS_TTL_MS = 60_000; // 1 minuto
+
 function useReinosConHistoria() {
   const [reinos, setReinos] = useState<Reino[]>([]);
   const [loading, setLoading] = useState(true);
@@ -583,8 +599,10 @@ function useReinosConHistoria() {
     } catch {}
 
     // 2. Supabase — solo si hay conexión real
-    const online = await isReallyOnline();
-    if (!online || !isMounted.current) { setLoading(false); return; }
+    if (!navigator.onLine || !isMounted.current) { setLoading(false); return; }
+
+    // Si no es un force-reload y el fetch fue reciente, nos quedamos con Dexie
+    if (!force && (Date.now() - _reinosLastFetch) < REINOS_TTL_MS) { return; }
 
     try {
       const { data } = await supabase
@@ -594,6 +612,7 @@ function useReinosConHistoria() {
       if (!isMounted.current) return;
       if (data?.length) {
         setReinos(data as Reino[]);
+        _reinosLastFetch = Date.now();
         // Persistir en Dexie con historia incluida
         try {
           if (db) await (db as any).reinos?.bulkPut(data);
@@ -694,8 +713,7 @@ function PanelHistoriaMundo({
       } catch {}
 
       // 2. Fetch remoto en paralelo si hay conexión
-      const online = await isReallyOnline();
-      if (!online || cancelled) return;
+      if (!navigator.onLine || cancelled) return;
 
       try {
         // Lanzar ambas queries al mismo tiempo en lugar de secuencialmente
