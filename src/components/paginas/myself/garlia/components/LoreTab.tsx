@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import { Globe, Mountain, Landmark, Users, Coins, Plus, Trash2, ChevronUp, ChevronDown, ChevronRight, UserCircle2, Loader2, MapPin, Map, Check, X, Eye, EyeOff, Bug, BookOpen, Package, SlidersHorizontal, Music } from "lucide-react";
+import { Globe, Mountain, Landmark, Users, Coins, Plus, Trash2, ChevronUp, Crown, ChevronDown, ChevronRight, UserCircle2, Loader2, MapPin, Map, Check, X, Eye, EyeOff, Bug, BookOpen, Package, SlidersHorizontal, Music } from "lucide-react";
 import { INPUT_CLS, type SaveStatus } from "./types";
 import { SeccionEntidad } from "@/components/ui/SeccionEntidad";
 import { MarkdownEditor, WikiEntity } from "../../../../forms/Markdown/MarkdownEditor";
