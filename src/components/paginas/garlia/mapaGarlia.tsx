@@ -751,51 +751,43 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
         // ── Draw base map ──────────────────────────────────────────────────
         ctx.drawImage(img, 0, 0, iw, ih);
 
-        // Subtle aged overlay — lighter tint on light themes
-        ctx.fillStyle = isDark ? "rgba(80, 40, 10, 0.08)" : "rgba(80, 40, 10, 0.03)";
-        ctx.fillRect(0, 0, iw, ih);
-
         // ── FOG OF WAR — cached, rebuilt only when markers/bg changes ─────
         if (tipo === "global" && !editMode && hiddenMarkers.length > 0) {
           const cache = fogCacheRef.current;
           const FOG_W = Math.min(img.width, 1200);
           const FOG_H = Math.round(FOG_W * (img.height / img.width));
+          const fogBg = fondoColor || bg;
 
           const needsRebuild =
             !cache ||
             cache.iw !== FOG_W ||
             cache.ih !== FOG_H ||
-            cache.bg !== bg;
+            cache.bg !== fogBg;
 
           if (needsRebuild) {
             const maxDim = Math.max(FOG_W, FOG_H);
-            // Clear zone around the marker center (fully revealed)
             const clearRadius = maxDim * 0.05;
-            // Soft fade zone — where fog transitions to clear
             const fadeRadius  = maxDim * 0.12;
 
             // ── Layer 1: main opaque fog with reveal holes ────────────────
             const fogCanvas = new OffscreenCanvas(FOG_W, FOG_H);
             const fogCtx = fogCanvas.getContext("2d")!;
 
-            // Start fully opaque — parse bg hex to get an rgb version
-            // bg is a hex like "#1a1a2e"; use it with full opacity
-            fogCtx.fillStyle = bg;
+            fogCtx.fillStyle = fogBg;
             fogCtx.globalAlpha = 0.92;
             fogCtx.fillRect(0, 0, FOG_W, FOG_H);
             fogCtx.globalAlpha = 1;
 
-            // Punch holes around each visible marker with a smooth gradient
             fogCtx.globalCompositeOperation = "destination-out";
             for (const m of markers) {
               const mx = (m.coord_x / 100) * FOG_W;
               const my = (m.coord_y / 100) * FOG_H;
               const grad = fogCtx.createRadialGradient(mx, my, clearRadius * 0.2, mx, my, fadeRadius);
-              grad.addColorStop(0,    "rgba(0,0,0,1)");   // fully clear at center
-              grad.addColorStop(0.45, "rgba(0,0,0,0.98)"); // still very clear
-              grad.addColorStop(0.72, "rgba(0,0,0,0.7)");  // starting to fog
-              grad.addColorStop(0.88, "rgba(0,0,0,0.25)"); // mostly fogged
-              grad.addColorStop(1,    "rgba(0,0,0,0)");    // full fog
+              grad.addColorStop(0,    "rgba(0,0,0,1)");
+              grad.addColorStop(0.45, "rgba(0,0,0,0.98)");
+              grad.addColorStop(0.72, "rgba(0,0,0,0.7)");
+              grad.addColorStop(0.88, "rgba(0,0,0,0.25)");
+              grad.addColorStop(1,    "rgba(0,0,0,0)");
               fogCtx.fillStyle = grad;
               fogCtx.beginPath();
               fogCtx.arc(mx, my, fadeRadius, 0, Math.PI * 2);
@@ -804,11 +796,9 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
             fogCtx.globalCompositeOperation = "source-over";
 
             // ── Layer 2: semi-transparent overlay for depth ───────────────
-            // Adds a slight extra tint on top of the fogged zones so they
-            // feel heavier / more "sealed" without being pitch black.
             const deepCanvas = new OffscreenCanvas(FOG_W, FOG_H);
             const deepCtx = deepCanvas.getContext("2d")!;
-            deepCtx.fillStyle = bg;
+            deepCtx.fillStyle = fogBg;
             deepCtx.globalAlpha = 0.45;
             deepCtx.fillRect(0, 0, FOG_W, FOG_H);
             deepCtx.globalAlpha = 1;
@@ -816,7 +806,6 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
             for (const m of markers) {
               const mx = (m.coord_x / 100) * FOG_W;
               const my = (m.coord_y / 100) * FOG_H;
-              // Slightly larger clear radius so the deep layer fully reveals the center
               const grad2 = deepCtx.createRadialGradient(mx, my, clearRadius * 0.5, mx, my, fadeRadius * 0.7);
               grad2.addColorStop(0,   "rgba(0,0,0,1)");
               grad2.addColorStop(0.6, "rgba(0,0,0,0.85)");
@@ -828,15 +817,12 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
             }
             deepCtx.globalCompositeOperation = "source-over";
 
-            fogCacheRef.current = { canvas: fogCanvas, deep: deepCanvas, iw: FOG_W, ih: FOG_H, bg };
+            fogCacheRef.current = { canvas: fogCanvas, deep: deepCanvas, iw: FOG_W, ih: FOG_H, bg: fogBg };
           }
 
-          // Stamp cached fog layers
           const fc = fogCacheRef.current!;
           ctx.drawImage(fc.canvas, 0, 0, iw, ih);
           ctx.drawImage(fc.deep,   0, 0, iw, ih);
-
-
         }
 
         // No internal map vignette — edge fog handles blending instead
@@ -1171,8 +1157,8 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
     return () => cancelAnimationFrame(animFrameRef.current);
   }, [imgLoaded, showCompass, markers, hiddenMarkers, editMode, selectedMarkerId, tipo, fondoColor]);
 
-  // Invalidate fog cache when markers or edit mode changes
-  useEffect(() => { fogCacheRef.current = null; }, [markers, editMode, tipo]);
+  // Invalidate fog cache when markers, edit mode, or fondoColor changes
+  useEffect(() => { fogCacheRef.current = null; }, [markers, editMode, tipo, fondoColor]);
 
   const hitTest = useCallback((clientX: number, clientY: number): any | null => {
     const canvas = canvasRef.current;
@@ -1375,7 +1361,7 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
         <div
           className="absolute inset-0 pointer-events-none z-20"
           style={{
-            background: "var(--bg-main)",
+            background: fondoColor || "var(--bg-main)",
             animation: "mapFadeOut 0.6s ease-out forwards",
           }}
         />
