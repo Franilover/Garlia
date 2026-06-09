@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { 
   Loader2, CheckCircle2, Mic2, Music,
   PenLine, Globe, Beaker, FileText, ChevronDown,
-  Heart, Sparkles, Clock, Tag, Eye, EyeOff, Users
+  Heart, Sparkles, Clock, Tag, Eye, EyeOff, Users, Check
 } from "lucide-react";
 import { ComboSelector, type ComboItem } from "@/components/ui/ComboSelector";
 import { motion, AnimatePresence } from "framer-motion";
@@ -87,6 +87,12 @@ export const PanelInfo = ({
   const [duracionInput, setDuracionInput] = useState(
     cancion.duracion_segundos ? formatDuracion(cancion.duracion_segundos) : ""
   );
+
+  // ── Posición en línea de tiempo ──────────────────────────────────────────────
+  const [ordenLinea,  setOrdenLinea]  = useState<string>(
+    cancion.orden_linea_tiempo != null ? String(cancion.orden_linea_tiempo) : ""
+  );
+  const [savingOrden, setSavingOrden] = useState(false);
 
   const [suggestions, setSuggestions] = useState<{ [key: string]: string[] }>({});
   const [activeField, setActiveField]  = useState<string | null>(null);
@@ -222,6 +228,21 @@ export const PanelInfo = ({
     doSave(newData);
   };
 
+  const handleSaveOrden = async () => {
+    const val = ordenLinea.trim();
+    const num = val === "" ? null : parseInt(val, 10);
+    if (val !== "" && isNaN(num as number)) return;
+    setSavingOrden(true);
+    try {
+      await supabase
+        .from("canciones")
+        .update({ orden_linea_tiempo: num } as any)
+        .eq("id", cancionId);
+      onCancionUpdate({ orden_linea_tiempo: num });
+    } catch {}
+    setSavingOrden(false);
+  };
+
   const estadoActual = ESTADO_STYLES[localData.estado] ?? ESTADO_STYLES["BORRADOR"];
   const emocionActiva = EMOCIONES.find(e => e.label === localData.emocion);
 
@@ -340,6 +361,29 @@ export const PanelInfo = ({
               </div>
             );
           })}
+
+          {/* Línea de tiempo */}
+          <div className="group relative space-y-2">
+            <label className="text-[9px] font-black text-primary/25 uppercase tracking-[0.2em] flex items-center gap-2 group-focus-within:text-primary/50 transition-colors">
+              <Clock size={12} /> Línea de tiempo
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                value={ordenLinea}
+                onChange={e => setOrdenLinea(e.target.value)}
+                onBlur={handleSaveOrden}
+                onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); }}
+                placeholder="Nº de posición"
+                className="w-36 bg-transparent border-b border-primary/10 py-2 text-sm font-bold text-primary outline-none focus:border-primary/40 transition-all tabular-nums"
+              />
+              {savingOrden && <Loader2 size={10} className="animate-spin text-primary/20" />}
+              {!savingOrden && ordenLinea && <Check size={10} className="text-primary/30" />}
+            </div>
+            <p className="text-[8px] text-primary/20 leading-tight">
+              Posición numérica en la línea de tiempo del mundo
+            </p>
+          </div>
 
           {/* Duración */}
           <div className="group relative space-y-2">

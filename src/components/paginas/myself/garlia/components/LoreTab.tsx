@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import { Globe, Mountain, Landmark, Users, Coins, Plus, Trash2, ChevronUp, ChevronDown, ChevronRight, UserCircle2, Loader2, MapPin, Map, Check, X, Eye, EyeOff, Bug, BookOpen, Package, SlidersHorizontal } from "lucide-react";
+import { Globe, Mountain, Landmark, Users, Coins, Plus, Trash2, ChevronUp, ChevronDown, ChevronRight, UserCircle2, Loader2, MapPin, Map, Check, X, Eye, EyeOff, Bug, BookOpen, Package, SlidersHorizontal, Music } from "lucide-react";
 import { INPUT_CLS, type SaveStatus } from "./types";
 import { SeccionEntidad } from "@/components/ui/SeccionEntidad";
 import { MarkdownEditor, WikiEntity } from "../../../../forms/Markdown/MarkdownEditor";
@@ -74,6 +74,14 @@ type CapTimeline = {
   libroTitulo?: string;
 };
 
+// ─── Tipo para canciones en la línea de tiempo ───────────────────────────────
+type CancionTimeline = {
+  id: string;
+  titulo: string;
+  cantante?: string | null;
+  orden_linea_tiempo: number;
+};
+
 // ─── Hook: capítulos del reino con posición en línea de tiempo ───────────────
 function useCapitulosDelReino(reinoId: string) {
   const [caps, setCaps] = useState<CapTimeline[]>([]);
@@ -136,6 +144,136 @@ function useCapitulosDelReino(reinoId: string) {
   }, [reinoId]);
 
   return caps;
+}
+
+// ─── Hook: canciones con posición en línea de tiempo ─────────────────────────
+function useCancionesTimeline() {
+  const [canciones, setCanciones] = useState<CancionTimeline[]>([]);
+  const isMounted = useRef(true);
+
+  useEffect(() => {
+    isMounted.current = true;
+
+    const load = async () => {
+      // 1. Local Dexie primero
+      try {
+        if (db && (db as any).canciones) {
+          const local: any[] = await (db as any).canciones.toArray();
+          const conOrden = local.filter(c => c.orden_linea_tiempo != null && !c.deleted);
+          if (conOrden.length && isMounted.current) {
+            setCanciones(conOrden.map(c => ({
+              id: c.id,
+              titulo: c.titulo ?? "Sin título",
+              cantante: c.cantante ?? null,
+              orden_linea_tiempo: c.orden_linea_tiempo,
+            })));
+          }
+        }
+      } catch {}
+
+      if (!navigator.onLine) return;
+
+      // 2. Remoto
+      try {
+        const { data } = await supabase
+          .from("canciones")
+          .select("id, titulo, cantante, orden_linea_tiempo")
+          .not("orden_linea_tiempo", "is", null);
+        if (!data?.length || !isMounted.current) return;
+        const result: CancionTimeline[] = data.map((c: any) => ({
+          id: c.id,
+          titulo: c.titulo ?? "Sin título",
+          cantante: c.cantante ?? null,
+          orden_linea_tiempo: c.orden_linea_tiempo,
+        }));
+        if (isMounted.current) setCanciones(result);
+        if (db && (db as any).canciones) await (db as any).canciones.bulkPut(data);
+      } catch {}
+    };
+
+    void load();
+    return () => { isMounted.current = false; };
+  }, []);
+
+  return canciones;
+}
+
+// ─── Tarjeta de canción en la línea de tiempo (solo lectura) ─────────────────
+function CancionCard({ cancion }: { cancion: CancionTimeline }) {
+  const navigate = () => {
+    window.dispatchEvent(new CustomEvent("garlia-open-entity", { detail: { tabla: "canciones", id: cancion.id } }));
+  };
+
+  return (
+    <div className="group/card" style={{ width: 188 }}>
+      <div
+        className="mx-1.5 rounded-xl transition-all"
+        style={{
+          border: "1px solid color-mix(in srgb, var(--accent) 18%, transparent)",
+          background: "color-mix(in srgb, var(--accent) 3%, transparent)",
+        }}
+      >
+        <div className="flex flex-col gap-1 p-2">
+          {/* Posición + badge música */}
+          <div className="flex items-center gap-1">
+            <span
+              className="text-[9px] font-black tracking-widest px-1.5 py-0.5 rounded-md"
+              style={{
+                background: "color-mix(in srgb, var(--accent) 10%, transparent)",
+                color: "var(--accent)",
+              }}
+            >
+              {cancion.orden_linea_tiempo}
+            </span>
+            <span
+              className="text-[7px] font-black uppercase tracking-widest"
+              style={{ color: "color-mix(in srgb, var(--accent) 40%, transparent)" }}
+            >
+              🎵
+            </span>
+          </div>
+          {/* Título navegable */}
+          <button
+            type="button"
+            onClick={navigate}
+            className="flex items-center gap-1 px-1.5 py-1 rounded-lg border w-full text-left transition-all"
+            style={{
+              background: "color-mix(in srgb, var(--accent) 4%, transparent)",
+              borderColor: "color-mix(in srgb, var(--accent) 12%, transparent)",
+            }}
+            onMouseEnter={e => {
+              const el = e.currentTarget as HTMLElement;
+              el.style.background = "color-mix(in srgb, var(--accent) 10%, transparent)";
+              el.style.borderColor = "color-mix(in srgb, var(--accent) 25%, transparent)";
+            }}
+            onMouseLeave={e => {
+              const el = e.currentTarget as HTMLElement;
+              el.style.background = "color-mix(in srgb, var(--accent) 4%, transparent)";
+              el.style.borderColor = "color-mix(in srgb, var(--accent) 12%, transparent)";
+            }}
+            title={`Abrir: ${cancion.titulo}`}
+          >
+            <Music size={8} style={{ color: "color-mix(in srgb, var(--accent) 50%, transparent)", flexShrink: 0 }} />
+            <span
+              className="text-[8px] font-bold truncate"
+              style={{ color: "color-mix(in srgb, var(--accent) 70%, var(--primary))" }}
+            >
+              {cancion.titulo}
+            </span>
+          </button>
+          {/* Cantante */}
+          {cancion.cantante && (
+            <span
+              className="text-[7px] font-black uppercase tracking-widest truncate px-1"
+              style={{ color: "color-mix(in srgb, var(--accent) 35%, transparent)" }}
+            >
+              {cancion.cantante}
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // ─── Tarjeta de capítulo en la línea de tiempo (solo lectura) ────────────────
@@ -301,12 +439,14 @@ function TimelineEditor({
   reinos = [],
   filtroReinoId,
   capsTimeline = [],
+  cancionesTimeline = [],
 }: {
   value: string;
   onChange: (v: string) => void;
   reinos?: { id: string; nombre: string }[];
   filtroReinoId?: string | null;
   capsTimeline?: CapTimeline[];
+  cancionesTimeline?: CancionTimeline[];
 }) {
   const [events, setEvents] = useState<TimelineEvent[]>(() => decodeTimeline(value));
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -333,20 +473,23 @@ function TimelineEditor({
   const visible = filtroReinoId ? sorted.filter(e => e.reinoId) : sorted;
   const selectedEvent = selectedId ? events.find(e => e.id === selectedId) ?? null : null;
 
-  // Mezclar eventos editables + capítulos de solo lectura, ordenados por año
-  type SlotEvt  = { kind: "event"; data: TimelineEvent };
-  type SlotCap  = { kind: "cap";   data: CapTimeline };
-  type Slot = SlotEvt | SlotCap;
+  // Mezclar eventos editables + capítulos + canciones de solo lectura, ordenados
+  type SlotEvt     = { kind: "event";   data: TimelineEvent };
+  type SlotCap     = { kind: "cap";     data: CapTimeline };
+  type SlotCancion = { kind: "cancion"; data: CancionTimeline };
+  type Slot = SlotEvt | SlotCap | SlotCancion;
 
   const allSlots: Slot[] = [
     ...visible.map(e => ({ kind: "event" as const, data: e })),
     ...capsTimeline.map(c => ({ kind: "cap" as const, data: c })),
+    ...cancionesTimeline.map(c => ({ kind: "cancion" as const, data: c })),
   ].sort((a, b) => {
     const ya = a.kind === "event" ? parseYear(a.data.year) : a.data.orden_linea_tiempo;
     const yb = b.kind === "event" ? parseYear(b.data.year) : b.data.orden_linea_tiempo;
     if (ya !== yb) return ya - yb;
-    // empate: eventos antes que capítulos
-    return a.kind === "event" ? -1 : 1;
+    // empate: eventos primero, luego canciones, luego capítulos
+    const order = { event: 0, cancion: 1, cap: 2 };
+    return order[a.kind] - order[b.kind];
   });
 
   return (
@@ -366,7 +509,7 @@ function TimelineEditor({
         )}
 
         {/* Estado vacío */}
-        {events.length === 0 && capsTimeline.length === 0 && (
+        {events.length === 0 && capsTimeline.length === 0 && cancionesTimeline.length === 0 && (
           <div className="flex flex-col items-center gap-3 py-14 rounded-2xl border border-dashed text-center"
             style={{ borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)" }}>
             <Globe size={28} strokeWidth={1} style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }} />
@@ -382,7 +525,7 @@ function TimelineEditor({
           </div>
         )}
 
-        {(events.length > 0 || capsTimeline.length > 0) && (
+        {(events.length > 0 || capsTimeline.length > 0 || cancionesTimeline.length > 0) && (
           <div className="flex items-start" style={{ minWidth: "max-content", paddingLeft: 8, paddingRight: 8 }}>
             {allSlots.map((slot, idx) => (
               <div key={slot.kind === "event" ? slot.data.id : `cap:${slot.data.id}`} className="flex flex-col shrink-0" style={{ width: 190 }}>
@@ -396,6 +539,13 @@ function TimelineEditor({
                         background: "color-mix(in srgb, var(--primary) 55%, var(--accent))",
                         boxShadow: "0 0 0 2px color-mix(in srgb, var(--primary) 12%, transparent)",
                       }} />
+                  ) : slot.kind === "cancion" ? (
+                    <div className="shrink-0 rounded-full transition-all"
+                      style={{
+                        width: 8, height: 8,
+                        background: "var(--accent)",
+                        boxShadow: "0 0 0 2px color-mix(in srgb, var(--accent) 20%, transparent)",
+                      }} />
                   ) : (
                     <div className="shrink-0 w-2.5 h-2.5 rounded-full transition-all"
                       style={{
@@ -407,6 +557,8 @@ function TimelineEditor({
                 </div>
                 {slot.kind === "cap" ? (
                   <CapituloCard cap={slot.data} />
+                ) : slot.kind === "cancion" ? (
+                  <CancionCard cancion={slot.data} />
                 ) : (
                   <TimelineCard
                     event={slot.data}
@@ -1192,7 +1344,8 @@ export function LoreTab({
     add: addPersonaje, remove: removePersonaje,
   } = usePersonajesDelReinoEditable(form.id, form.nombre);
   const { items,    loading: loadingItems    } = useItemsDelReino(form.id);
-  const capsTimeline = useCapitulosDelReino(form.id);
+  const capsTimeline     = useCapitulosDelReino(form.id);
+  const cancionesTimeline = useCancionesTimeline();
 
   // Estado saving por sección
   const [savingCriaturas,  setSavingCriaturas]  = useState(false);
@@ -1269,6 +1422,7 @@ export function LoreTab({
                 reinos={reinos}
                 filtroReinoId={filtroReinoId}
                 capsTimeline={capsTimeline}
+                cancionesTimeline={cancionesTimeline}
               />
             </div>
 

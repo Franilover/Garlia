@@ -351,11 +351,12 @@ function useGruposTodos() {
 // ─── Panel de lista + editor para hechizos o dones ───────────────────────────
 
 type MundoTimelineEvent = TimelineEvent & {
-  source: "mundo" | "reino" | "capitulo";
+  source: "mundo" | "reino" | "capitulo" | "cancion";
   reinoNombre?: string;
   reinoId?: string;
   yearNum: number; // para ordenar (valor numérico)
   capData?: CapTimeline; // solo para source === "capitulo"
+  cancionData?: { id: string; titulo: string; cantante?: string | null }; // source === "cancion"
 };
 
 /** Extrae el valor numérico de un año para ordenamiento.
@@ -470,6 +471,80 @@ function CapituloEventoRow({
               }}
             >
               <Crown size={6} /> {reinoNombre}
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Tarjeta horizontal de canción en la línea de tiempo — solo lectura ───────
+function CancionMundoRow({
+  cancion,
+}: {
+  cancion: { id: string; titulo: string; cantante?: string | null };
+}) {
+  const navigate = () => {
+    window.dispatchEvent(new CustomEvent("garlia-open-entity", { detail: { tabla: "canciones", id: cancion.id } }));
+  };
+  return (
+    <div className="group/card" style={{ width: 188 }}>
+      <div
+        className="mx-1.5 rounded-xl transition-all"
+        style={{
+          border: "1px solid color-mix(in srgb, var(--accent) 18%, transparent)",
+          background: "color-mix(in srgb, var(--accent) 3%, transparent)",
+        }}
+      >
+        <div className="flex flex-col gap-1 p-2">
+          {/* Icono música */}
+          <div className="flex items-center gap-1">
+            <span
+              className="text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md flex items-center gap-1"
+              style={{
+                background: "color-mix(in srgb, var(--accent) 10%, transparent)",
+                color: "var(--accent)",
+              }}
+            >
+              <Music size={7} /> Canción
+            </span>
+          </div>
+          {/* Título como botón navegable */}
+          <button
+            type="button"
+            onClick={navigate}
+            className="flex items-center gap-1 px-1.5 py-1 rounded-lg border w-full text-left transition-all"
+            style={{
+              background: "color-mix(in srgb, var(--accent) 4%, transparent)",
+              borderColor: "color-mix(in srgb, var(--accent) 12%, transparent)",
+            }}
+            onMouseEnter={e => {
+              const el = e.currentTarget as HTMLElement;
+              el.style.background = "color-mix(in srgb, var(--accent) 10%, transparent)";
+              el.style.borderColor = "color-mix(in srgb, var(--accent) 25%, transparent)";
+            }}
+            onMouseLeave={e => {
+              const el = e.currentTarget as HTMLElement;
+              el.style.background = "color-mix(in srgb, var(--accent) 4%, transparent)";
+              el.style.borderColor = "color-mix(in srgb, var(--accent) 12%, transparent)";
+            }}
+            title={`Abrir: ${cancion.titulo}`}
+          >
+            <span
+              className="text-[8px] font-bold truncate"
+              style={{ color: "color-mix(in srgb, var(--accent) 70%, var(--primary))" }}
+            >
+              {cancion.titulo}
+            </span>
+          </button>
+          {/* Cantante */}
+          {cancion.cantante && (
+            <span
+              className="text-[7px] font-black uppercase tracking-widest truncate px-0.5"
+              style={{ color: "color-mix(in srgb, var(--accent) 35%, transparent)" }}
+            >
+              {cancion.cantante}
             </span>
           )}
         </div>
@@ -679,6 +754,46 @@ function PanelHistoriaMundo({
   // Mapa de todos los capítulos con reinos_ids (para los botones de filtro,
   // independientemente de si tienen orden_linea_tiempo)
   const [capsReinosIds, setCapsReinosIds] = useState<Record<string, string[]>>({});
+
+  // ── Canciones con posición en línea de tiempo ─────────────────────────────
+  const [cancionesTimeline, setCancionesTimeline] = useState<{ id: string; titulo: string; cantante?: string | null; orden_linea_tiempo: number }[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const cargarCanciones = async () => {
+      // 1. Dexie primero
+      try {
+        if (db && (db as any).canciones) {
+          const local: any[] = await (db as any).canciones.toArray();
+          const conOrden = local.filter(c => c.orden_linea_tiempo != null && !c.deleted);
+          if (conOrden.length && !cancelled) {
+            setCancionesTimeline(conOrden.map(c => ({
+              id: c.id, titulo: c.titulo ?? "Sin título",
+              cantante: c.cantante ?? null, orden_linea_tiempo: c.orden_linea_tiempo,
+            })));
+          }
+        }
+      } catch {}
+      if (!navigator.onLine || cancelled) return;
+      // 2. Remoto
+      try {
+        const { data } = await supabase
+          .from("canciones")
+          .select("id, titulo, cantante, orden_linea_tiempo")
+          .not("orden_linea_tiempo", "is", null);
+        if (!data?.length || cancelled) return;
+        setCancionesTimeline(data.map((c: any) => ({
+          id: c.id, titulo: c.titulo ?? "Sin título",
+          cantante: c.cantante ?? null, orden_linea_tiempo: c.orden_linea_tiempo,
+        })));
+        if (db && (db as any).canciones) await (db as any).canciones.bulkPut(data);
+      } catch {}
+    };
+    cargarCanciones();
+    const handleOnline = () => { if (!cancelled) cargarCanciones(); };
+    window.addEventListener("online", handleOnline);
+    return () => { cancelled = true; window.removeEventListener("online", handleOnline); };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -937,14 +1052,26 @@ function PanelHistoriaMundo({
         capData: cap,
       });
     }
-    // Sort estable: por año; en empate, mundo → reino → capítulo
+    // Canciones — tarjeta de solo lectura con link
+    for (const c of cancionesTimeline) {
+      list.push({
+        id: `cancion:${c.id}`,
+        year: String(c.orden_linea_tiempo),
+        title: c.titulo,
+        description: "",
+        source: "cancion",
+        yearNum: c.orden_linea_tiempo,
+        cancionData: { id: c.id, titulo: c.titulo, cantante: c.cantante },
+      });
+    }
+    // Sort estable: por año; en empate, mundo → reino → cancion → capítulo
     return list.sort((a, b) => {
       const diff = a.yearNum - b.yearNum;
       if (diff !== 0) return diff;
-      const order = { mundo: 0, reino: 1, capitulo: 2 };
+      const order = { mundo: 0, reino: 1, cancion: 2, capitulo: 3 };
       return (order[a.source] ?? 1) - (order[b.source] ?? 1);
     });
-  }, [mundoEvents, reinos, reinoEvents, filterReino, capsTimeline]);
+  }, [mundoEvents, reinos, reinoEvents, filterReino, capsTimeline, cancionesTimeline]);
 
   const reinosConEventos = useMemo(
     () => reinos.filter(r => {
@@ -1056,8 +1183,9 @@ function PanelHistoriaMundo({
               {allEvents.map((evt, idx) => {
                 const isMundo = evt.source === "mundo";
                 const isCapitulo = evt.source === "capitulo";
+                const isCancion = evt.source === "cancion";
                 const totalLen = allEvents.length;
-                const key = isCapitulo ? evt.id : isMundo ? evt.id : `${evt.reinoId}:${evt.id}`;
+                const key = isCapitulo || isCancion ? evt.id : isMundo ? evt.id : `${evt.reinoId}:${evt.id}`;
                 return (
                   <div key={key} className="flex flex-col shrink-0" style={{ width: 190 }}>
                     {/* Nodo en la línea */}
@@ -1072,6 +1200,10 @@ function PanelHistoriaMundo({
                           width: 8, height: 8,
                           background: "color-mix(in srgb, var(--accent) 70%, var(--primary))",
                           boxShadow: "0 0 0 2px color-mix(in srgb, var(--accent) 15%, transparent)",
+                        } : evt.source === "cancion" ? {
+                          width: 8, height: 8,
+                          background: "var(--accent)",
+                          boxShadow: "0 0 0 2px color-mix(in srgb, var(--accent) 20%, transparent)",
                         } : {
                           width: 7, height: 7,
                           background: "color-mix(in srgb, var(--primary) 40%, transparent)",
@@ -1080,7 +1212,9 @@ function PanelHistoriaMundo({
                       <div className="flex-1 h-px" style={{ background: idx === totalLen - 1 ? "transparent" : "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
                     </div>
                     {/* Tarjeta */}
-                    {isCapitulo && evt.capData ? (
+                    {isCancion && evt.cancionData ? (
+                      <CancionMundoRow cancion={evt.cancionData} />
+                    ) : isCapitulo && evt.capData ? (
                       <CapituloEventoRow
                         cap={evt.capData}
                         onNavigate={() => {
