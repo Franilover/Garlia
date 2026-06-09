@@ -869,15 +869,66 @@ export default function Lector() {
   const [showIndex,      setShowIndex]      = useState(false);
   const [esExtra,        setEsExtra]        = useState(false);
 
-  // ── Flujo único: resolver libro + cargar caps en paralelo cuando es posible ──
+  // ── Flujo único: resolver libro + cargar caps con estrategia Dexie-first ──
   useEffect(() => {
     if (!slugParam || !capIdParam) return;
     setLoading(true);
 
+    /* ── Helpers internos ───────────────────────────────────────────────────
+       aplicarCaps: recibe una lista ya normalizada de caps + reinos resueltos,
+       calcula los segmentos y aplica todo el estado de golpe.
+       Devuelve el capIdActivo resuelto para que quien lo llama sepa cuál quedó.
+    ─────────────────────────────────────────────────────────────────────── */
+    const aplicarCaps = (
+      capsValidas: any[],
+      libroId: string,
+      { canonicalizarURL = false }: { canonicalizarURL?: boolean } = {},
+    ): string => {
+      const listaCapitulosData = capsValidas.map((c: any) => ({
+        id: c.id, orden: c.orden,
+        titulo_capitulo: c.titulo_capitulo,
+        fecha_publicacion: c.fecha_publicacion,
+      }));
+      const segs = buildSegmentos(capsValidas as any);
+
+      let si = 0;
+      let capIdActivo = "";
+
+      if (esUUID(capIdParam)) {
+        si = segs.findIndex((s: Segmento) => s.capitulos.some((c: any) => c.id === capIdParam));
+        if (si === -1) si = 0;
+        capIdActivo = capIdParam;
+        // Fix parpadeo: reemplazar URL UUID→slug de forma síncrona AQUÍ,
+        // antes de que setLoading(false) cause el render visible.
+        // Solo lo hacemos cuando se nos pide (carga desde Supabase, no desde caché).
+        if (canonicalizarURL) {
+          const segSlug = slugSegmento(segs, si);
+          const nuevaURL = `/garlia/libros/${slugParam}/leer/${segSlug}`;
+          router.replace(nuevaURL, { scroll: false });
+          urlCanonica.current = null; // ya no hace falta el efecto posterior
+        }
+      } else {
+        si = resolverSegmentoDesdeSlug(segs, capIdParam);
+        capIdActivo = segs[si]?.capitulos[0]?.id ?? capsValidas[0]?.id ?? "";
+      }
+
+      const capActivo = capsValidas.find((c: any) => c.id === capIdActivo);
+      if (capActivo) setActiveCapTitle(`${capActivo.orden}. ${capActivo.titulo_capitulo}`);
+
+      setId(libroId);
+      setListaCapitulos(listaCapitulosData);
+      setCapitulos(capsValidas as unknown as CapituloScrollItem[]);
+      setSegmentos(segs);
+      setSegActivo(si);
+      setCapId(capIdActivo);
+
+      return capIdActivo;
+    };
+
     const run = async () => {
       const hoy = new Date().toISOString();
 
-      // 1. Resolver UUID del libro Y verificar categoría en paralelo
+      // ── 1. Resolver UUID del libro ────────────────────────────────────────
       let libroId: string;
       if (esUUID(slugParam)) {
         const { data } = await supabase
@@ -886,33 +937,56 @@ export default function Lector() {
         libroId = data.id;
         if (data.categoria?.toLowerCase() === "extra") setEsExtra(true);
       } else {
-        // Buscar por slug — Dexie primero (0 RTT), Supabase como fallback
         let encontrado: { id: string; titulo: string; categoria?: string } | null = null;
-
         try {
           if (db?.libros) {
             const dexieLibros = await db.libros.toArray() as any[];
             encontrado = dexieLibros.find((l: any) => toSlug(l.titulo ?? "") === slugParam) ?? null;
           }
         } catch {}
-
         if (!encontrado) {
           const { data: todos } = await supabase
             .from("libros").select("id, titulo, categoria");
           if (!todos) { setError("Libro no encontrado"); return; }
-          // Cachear en Dexie para la próxima
           try { await db?.libros?.bulkPut(todos as any[]); } catch {}
           encontrado = todos.find(l => toSlug(l.titulo) === slugParam) ?? null;
         }
-
         if (!encontrado) { setError("Libro no encontrado"); return; }
         libroId = encontrado.id;
         if (encontrado.categoria?.toLowerCase() === "extra") setEsExtra(true);
       }
-      setId(libroId);
 
-      // 2. Cargar caps — si capIdParam es UUID usamos getCapituloParaLectura,
-      //    si es slug cargamos directo por libro_id (sin roundtrip extra)
+      // ── 2. Dexie-first: renderizar al instante si hay caché ───────────────
+      //    Mientras tanto lanzamos la query a Supabase en paralelo.
+      //    Cuando Supabase responda, actualizamos silenciosamente (sin flicker).
+      let yaRenderizoDesdeCache = false;
+      try {
+        const table = await getDexieTable();
+        if (table) {
+          const cached: any[] = (await table
+            .where("libro_id").equals(libroId)
+            .toArray()) as any[];
+          const capsCached = cached.filter((c: any) => c.contenido && !c.deleted);
+          if (capsCached.length > 0) {
+            // Hidratar reinos desde Dexie también (sin RTT adicional)
+            try {
+              if (db?.reinos) {
+                const reinosAll = await db.reinos.toArray() as any[];
+                const reinosMap = Object.fromEntries(reinosAll.map((r: any) => [r.id, r]));
+                for (const cap of capsCached) {
+                  const ids: string[] = cap.reinos_ids ?? [];
+                  cap._reino = ids.length > 0 ? (reinosMap[ids[0]] ?? null) : null;
+                }
+              }
+            } catch {}
+            aplicarCaps(capsCached, libroId);
+            setLoading(false);
+            yaRenderizoDesdeCache = true;
+          }
+        }
+      } catch {}
+
+      // ── 3. Fetch desde Supabase (siempre — para tener datos frescos) ──────
       type CapRaw = {
         id: string; orden: number; titulo_capitulo: string; contenido: string;
         fecha_publicacion: string; personajes_ids: string[]; reinos_ids: string[] | null; ciudades_ids: string[] | null;
@@ -920,34 +994,21 @@ export default function Lector() {
         narrador: NarradorInfo | NarradorInfo[] | null;
       };
 
-      let rawList: CapRaw[] = [];
+      const { data: contenidos, error: capsError } = await supabase
+        .from("capitulos")
+        .select(`id, orden, titulo_capitulo, contenido, fecha_publicacion, personajes_ids, reinos_ids, ciudades_ids,
+          libros(titulo), narrador:personajes!narrador_id(id, nombre, img_url)`)
+        .eq("libro_id", libroId)
+        .or(`visibilidad.eq.publico,and(visibilidad.eq.programado,fecha_publicacion.lte.${hoy.split("T")[0]})`)
+        .not("titulo_capitulo", "like", "[Ruta]%")
+        .order("orden", { ascending: true });
 
-      
-      if (esUUID(capIdParam)) {
-        // UUID de capítulo: cargar todos los caps del libro directamente
-        const { data: contenidos, error: capsError } = await supabase
-          .from("capitulos")
-          .select(`id, orden, titulo_capitulo, contenido, fecha_publicacion, personajes_ids, reinos_ids, ciudades_ids, 
-            libros(titulo), narrador:personajes!narrador_id(id, nombre, img_url)`)
-          .eq("libro_id", libroId)
-          .or(`visibilidad.eq.publico,and(visibilidad.eq.programado,fecha_publicacion.lte.${hoy.split("T")[0]})`)
-          .not("titulo_capitulo", "like", "[Ruta]%")
-          .order("orden", { ascending: true });
-        if (capsError) { setError(capsError.message); return; }
-        rawList = (contenidos as unknown as CapRaw[]) ?? [];
-      } else {
-        // Slug de segmento: una sola query por libro_id
-        const { data: contenidos } = await supabase
-          .from("capitulos")
-          .select(`id, orden, titulo_capitulo, contenido, fecha_publicacion, personajes_ids, reinos_ids, ciudades_ids,
-            libros(titulo), narrador:personajes!narrador_id(id, nombre, img_url)`)
-          .eq("libro_id", libroId)
-          .or(`visibilidad.eq.publico,and(visibilidad.eq.programado,fecha_publicacion.lte.${hoy.split("T")[0]})`)
-          .not("titulo_capitulo", "like", "[Ruta]%")
-          .order("orden", { ascending: true });
-        rawList = (contenidos as unknown as CapRaw[]) ?? [];
+      if (capsError) {
+        if (!yaRenderizoDesdeCache) setError(capsError.message);
+        return;
       }
 
+      const rawList = (contenidos as unknown as CapRaw[]) ?? [];
       const capsValidas = rawList.map(c => ({
         id: c.id, orden: c.orden, titulo_capitulo: c.titulo_capitulo,
         contenido: c.contenido, fecha_publicacion: c.fecha_publicacion,
@@ -956,103 +1017,57 @@ export default function Lector() {
         libro_id: libroId,
         libros: normOne(c.libros) ?? undefined,
         _narrador: normOne(c.narrador),
-        _reino: null, // resuelto en segundo paso por reinos_ids
+        _reino: null,
       }));
 
-      cachearEnDexie(capsValidas);
-
-      // Resolver reinos desde reinos_ids[] — fetch en batch de los ids únicos
+      // Resolver reinos en batch
       const todosReinosIds = [...new Set(capsValidas.flatMap(c => (c as any).reinos_ids ?? []))];
       if (todosReinosIds.length > 0) {
         const { data: reinosData } = await supabase
-          .from("reinos")
-          .select("id, nombre, mapa_url")
-          .in("id", todosReinosIds);
+          .from("reinos").select("id, nombre, mapa_url").in("id", todosReinosIds);
         if (reinosData) {
+          // Cachear reinos en Dexie para la próxima visita
+          try { await db?.reinos?.bulkPut(reinosData as any[]); } catch {}
           const reinosMap = Object.fromEntries(reinosData.map((r: any) => [r.id, r]));
           for (const cap of capsValidas) {
             const ids = (cap as any).reinos_ids as string[] ?? [];
-            // Usar el primer reino del array como reino representativo del segmento
             (cap as any)._reino = ids.length > 0 ? (reinosMap[ids[0]] ?? null) : null;
           }
         }
       }
 
-      const listaCapitulosData = capsValidas.map(c => ({
-        id: c.id, orden: c.orden,
-        titulo_capitulo: c.titulo_capitulo,
-        fecha_publicacion: c.fecha_publicacion,
-      }));
+      // Cachear caps actualizados
+      cachearEnDexie(capsValidas);
 
-      const segs = buildSegmentos(capsValidas as any);
-
-      // 3. Resolver segmento y capítulo activo
-      let si = 0;
-      let capIdActivo = "";
-
-      if (esUUID(capIdParam)) {
-        si = segs.findIndex(s => s.capitulos.some(c => c.id === capIdParam));
-        if (si === -1) si = 0;
-        capIdActivo = capIdParam;
-        // Guardar URL canónica para reemplazar DESPUÉS de setLoading(false),
-        // así no se re-dispara el efecto principal y no hay doble carga.
-        const segSlug = slugSegmento(segs, si);
-        urlCanonica.current = `/garlia/libros/${slugParam}/leer/${segSlug}`;
-      } else {
-        si = resolverSegmentoDesdeSlug(segs, capIdParam);
-        capIdActivo = segs[si]?.capitulos[0]?.id ?? capsValidas[0]?.id ?? "";
-      }
-
-      const capActivo = capsValidas.find(c => c.id === capIdActivo);
-      if (capActivo) setActiveCapTitle(`${capActivo.orden}. ${capActivo.titulo_capitulo}`);
-
-      // Setear todo de golpe para evitar renders intermedios
-      setListaCapitulos(listaCapitulosData);
-      setCapitulos(capsValidas as unknown as CapituloScrollItem[]);
-      setSegmentos(segs);
-      setSegActivo(si);
-      setCapId(capIdActivo);
+      // Aplicar estado fresco. Si ya renderizamos desde caché, este update
+      // es silencioso (no hay loading=true, así que no hay skeleton flash).
+      // canonicalizarURL=true para corregir la URL cuando capIdParam era UUID.
+      aplicarCaps(capsValidas, libroId, { canonicalizarURL: esUUID(capIdParam) });
     };
 
     run()
       .catch(async (err) => {
         console.error("Error crítico en Lector:", err);
-        // Intentar desde caché Dexie
+        // Fallback de último recurso: Dexie sin filtro de libro_id
         try {
           const table = await getDexieTable();
           if (table) {
             const todos = (await table.toArray()) as any[];
             const cached = todos.filter((c: any) => !c.deleted && c.libro_id === id && c.contenido);
             if (cached.length > 0) {
-              const capsValidas = cached.map((c: any) => ({
-                id: c.id, orden: c.orden, titulo_capitulo: c.titulo_capitulo,
-                contenido: c.contenido, fecha_publicacion: c.fecha_publicacion,
-                personajes_ids: c.personajes_ids, libro_id: id,
-                libros: c.libros, _narrador: c._narrador, _reino: c._reino,
-              }));
-              const segs = buildSegmentos(capsValidas as any);
-              const lista = capsValidas.map(c => ({ id: c.id, orden: c.orden, titulo_capitulo: c.titulo_capitulo, fecha_publicacion: c.fecha_publicacion }));
-              const si = esUUID(capIdParam)
-                ? Math.max(0, segs.findIndex(s => s.capitulos.some(c => c.id === capIdParam)))
-                : resolverSegmentoDesdeSlug(segs, capIdParam);
-              const capIdActivo = esUUID(capIdParam) ? capIdParam : (segs[si]?.capitulos[0]?.id ?? "");
-              setListaCapitulos(lista);
-              setCapitulos(capsValidas as unknown as CapituloScrollItem[]);
-              setSegmentos(segs);
-              setSegActivo(si);
-              setCapId(capIdActivo);
+              aplicarCaps(cached, id);
               return;
             }
           }
-        } catch { }
+        } catch {}
         setError("Error al abrir el pergamino");
       })
       .finally(() => setLoading(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slugParam, capIdParam]);
 
-  // Canonicalizar URL (UUID → slug) DESPUÉS de que termine la carga.
-  // Hacerlo dentro de run() disparaba el efecto principal de nuevo → doble carga.
+  // urlCanonica ya no se usa para UUID→slug (lo hace aplicarCaps directamente).
+  // Se mantiene el efecto por compatibilidad, pero normalmente urlCanonica.current === null.
   useEffect(() => {
     if (!loading && urlCanonica.current) {
       router.replace(urlCanonica.current, { scroll: false });
