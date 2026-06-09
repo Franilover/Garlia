@@ -122,6 +122,7 @@ export default function AdminDescubrimientos() {
   const [descubrimientos, setDescubrimientos] = useState<DescRow[]>([]);
   const [cargando, setCargando]         = useState(false);
   const [eliminando, setEliminando]     = useState<string | null>(null);
+  const [eliminandoPerfil, setEliminandoPerfil] = useState<string | null>(null);
 
   // Modal agregar
   const [showAdd, setShowAdd]           = useState(false);
@@ -291,7 +292,23 @@ export default function AdminDescubrimientos() {
     setTimeout(() => setToast(null), 3000);
   };
 
-  // ── Guard admin ───────────────────────────────────────────────────────────
+  // ── Eliminar perfil ───────────────────────────────────────────────────────
+
+  const eliminarPerfil = async (p: Perfil) => {
+    if (!confirm(`¿Eliminar el usuario "${p.username}" y todos sus datos? Esta acción no se puede deshacer.`)) return;
+    setEliminandoPerfil(p.id);
+    const { error } = await supabase.from("perfiles").delete().eq("id", p.id);
+    if (error) {
+      showToast("Error al eliminar usuario", false);
+    } else {
+      setPerfiles(prev => prev.filter(x => x.id !== p.id));
+      if (perfilSel?.id === p.id) { setPerfilSel(null); setDescubrimientos([]); }
+      showToast(`Usuario "${p.username}" eliminado`, true);
+    }
+    setEliminandoPerfil(null);
+  };
+
+
 
   if (esAdmin === null) return (
     <div className="flex items-center justify-center min-h-60">
@@ -320,14 +337,19 @@ export default function AdminDescubrimientos() {
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="w-full max-w-4xl mx-auto px-4 py-6 space-y-6">
+    <div className="w-full px-4 py-6">
+      <div className="flex flex-col md:flex-row gap-6 w-full items-start">
       {/* Selector de perfil */}
       <div style={{
         background: "var(--white-custom)",
         border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
         borderRadius: "var(--radius-card)",
         overflow: "hidden",
-      }}>
+        flexShrink: 0,
+        width: "100%",
+      }}
+        className="md:w-64"
+      >
         <div className="px-4 py-3" style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
           <p className="text-[8px] font-black uppercase tracking-[0.25em]"
             style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
@@ -335,12 +357,12 @@ export default function AdminDescubrimientos() {
           </p>
         </div>
 
-        <div className="p-3 flex flex-wrap gap-2">
+        <div className="p-2 flex flex-col gap-1">
           {perfiles.map(p => (
+            <div key={p.id} className="group flex items-center gap-1">
             <button
-              key={p.id}
               onClick={() => { setPerfilSel(p); setDescubrimientos([]); }}
-              className="flex items-center gap-2 px-3 py-2 transition-all"
+              className="flex-1 flex items-center gap-2 px-3 py-2 transition-all text-left"
               style={{
                 borderRadius: "var(--radius-btn)",
                 border: "1px solid",
@@ -375,13 +397,30 @@ export default function AdminDescubrimientos() {
                 </span>
               )}
             </button>
+            {/* Botón eliminar usuario */}
+            <button
+              onClick={() => eliminarPerfil(p)}
+              disabled={eliminandoPerfil === p.id}
+              title="Eliminar usuario"
+              className="opacity-0 group-hover:opacity-100 transition-all w-7 h-7 flex items-center justify-center shrink-0"
+              style={{
+                borderRadius: "var(--radius-btn)",
+                border: "1px solid color-mix(in srgb, #ef4444 25%, transparent)",
+                background: "color-mix(in srgb, #ef4444 6%, transparent)",
+                color: "#ef4444",
+              }}>
+              {eliminandoPerfil === p.id
+                ? <Loader2 size={10} className="animate-spin" />
+                : <Trash2 size={10} />}
+            </button>
+            </div>
           ))}
         </div>
       </div>
 
       {/* Panel de descubrimientos */}
       {perfilSel && (
-        <div style={{
+        <div className="flex-1 min-w-0" style={{
           background: "var(--white-custom)",
           border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
           borderRadius: "var(--radius-card)",
@@ -522,6 +561,8 @@ export default function AdminDescubrimientos() {
           )}
         </div>
       )}
+
+      </div>{/* end two-column flex */}
 
       {/* ── Modal Agregar ─────────────────────────────────────────────────── */}
       <AnimatePresence>
