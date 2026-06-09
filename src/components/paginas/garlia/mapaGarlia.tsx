@@ -546,7 +546,7 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
   const pulseRef = useRef(0);
   const compassStartRef = useRef<number | null>(null); // timestamp when compass started spinning
   // Theme CSS vars read at draw time
-  const cssColorsRef = useRef({ primary: "#6b4423", accent: "#c08040", bg: "#f0e6d0", fg: "#2a1304", bgMenu: "#3d2010", parchBg: "#3d2010", parchText: "#2a1304", whiteCustom: "#fdf6ee" });
+  const cssColorsRef = useRef({ primary: "#6b4423", accent: "#c08040", bg: "#f0e6d0", fg: "#2a1304", bgMenu: "#3d2010", parchBg: "#3d2010", parchText: "#2a1304", whiteCustom: "#fdf6ee", isDark: false, labelBg: "#fdf6ee", labelText: "#2a1304" });
   // Fog cache — rebuilt only when markers/size change, not every frame
   const fogCacheRef = useRef<{ canvas: OffscreenCanvas; deep: OffscreenCanvas; iw: number; ih: number; bg: string } | null>(null);
 
@@ -554,15 +554,34 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
     const read = () => {
       const s = getComputedStyle(document.documentElement);
       const get = (v: string) => s.getPropertyValue(v).trim();
+      const bgMain = get("--bg-main") || "#f0e6d0";
+      const wc = get("--white-custom") || "#fdf6ee";
+      const fgColor = get("--foreground") || "#2a1304";
+      const bgMenuColor = get("--bg-menu") || "#3d2010";
+      // Detect dark theme by luminance of --bg-main
+      const hexToLuma = (hex: string) => {
+        const h = hex.replace("#", "");
+        if (h.length < 6) return 0.5;
+        const r = parseInt(h.slice(0,2),16)/255;
+        const g = parseInt(h.slice(2,4),16)/255;
+        const b = parseInt(h.slice(4,6),16)/255;
+        return 0.2126*r + 0.7152*g + 0.0722*b;
+      };
+      const dark = hexToLuma(bgMain) < 0.35;
+      // In light themes: label bg = white-custom (light), text = foreground (dark)
+      // In dark themes:  label bg = bg-menu (dark), text = foreground (light)
       cssColorsRef.current = {
         primary:     get("--primary")      || "#6b4423",
         accent:      get("--accent")       || "#c08040",
-        bg:          get("--bg-main")      || "#f0e6d0",
-        fg:          get("--foreground")   || "#2a1304",
-        bgMenu:      get("--bg-menu")      || "#3d2010",
-        parchBg:     get("--bg-menu")      || "#3d2010",
-        parchText:   get("--foreground")   || "#2a1304",
-        whiteCustom: get("--white-custom") || "#fdf6ee",
+        bg:          bgMain,
+        fg:          fgColor,
+        bgMenu:      bgMenuColor,
+        parchBg:     bgMenuColor,
+        parchText:   fgColor,
+        whiteCustom: wc,
+        isDark:      dark,
+        labelBg:     dark ? bgMenuColor : wc,
+        labelText:   fgColor,
       };
     };
     read();
@@ -711,7 +730,7 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
 
       pulseRef.current = t;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      const { primary, accent, bg, fg, parchBg, parchText, whiteCustom } = cssColorsRef.current;
+      const { primary, accent, bg, fg, parchBg, parchText, whiteCustom, isDark, labelBg, labelText } = cssColorsRef.current;
 
       ctx.fillStyle = bg;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -729,8 +748,8 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
         // ── Draw base map ──────────────────────────────────────────────────
         ctx.drawImage(img, 0, 0, iw, ih);
 
-        // Subtle aged overlay
-        ctx.fillStyle = "rgba(80, 40, 10, 0.06)";
+        // Subtle aged overlay — lighter tint on light themes
+        ctx.fillStyle = isDark ? "rgba(80, 40, 10, 0.08)" : "rgba(80, 40, 10, 0.03)";
         ctx.fillRect(0, 0, iw, ih);
 
         // ── FOG OF WAR — cached, rebuilt only when markers/bg changes ─────
@@ -898,8 +917,8 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
             ctx.beginPath();
             ctx.arc(0, -tailH * 0.4, haloR, 0, Math.PI * 2);
             ctx.strokeStyle = isSelected
-              ? `rgba(160,120,60,${0.18 * (1 - pulse)})`
-              : `rgba(100,75,40,${0.12 * (1 - pulse)})`;
+              ? `${accent}${Math.round(0.22 * (1 - pulse) * 255).toString(16).padStart(2,"0")}`
+              : `${primary}${Math.round(0.15 * (1 - pulse) * 255).toString(16).padStart(2,"0")}`;
             ctx.lineWidth = 0.7;
             ctx.stroke();
           }
@@ -927,10 +946,10 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
           const lh = fontSize + 6;
           const labelY = -(tailH * 0.4 + headR + lh + 5);
 
-          // Background from theme
+          // Background from theme — smart light/dark
           ctx.fillStyle = isSelected
-            ? `${parchBg}f0`
-            : `${parchBg}d8`;
+            ? `${labelBg}f0`
+            : `${labelBg}d8`;
           ctx.beginPath();
           ctx.rect(-lw / 2, labelY, lw, lh);
           ctx.fill();
@@ -942,8 +961,8 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
           ctx.lineWidth = 0.6;
           ctx.stroke();
 
-          // Text from foreground
-          ctx.fillStyle = isSelected ? fg : `${parchText}ee`;
+          // Text — always contrasting with labelBg
+          ctx.fillStyle = isSelected ? labelText : `${labelText}ee`;
           ctx.fillText(label, 0, labelY + lh - 4);
 
           ctx.restore();
@@ -991,7 +1010,7 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
 
       } else if (!img || !imgLoaded || showCompass) {
         // ── Antique compass rose — shown on first open for ≥5s, or while image loads ──
-        const { accent, primary } = cssColorsRef.current;
+        const { accent, primary, isDark: _isDark } = cssColorsRef.current;
         const cx2 = canvas.width  / 2;
         const cy2 = canvas.height / 2;
 
