@@ -391,13 +391,17 @@ function newEvent(): TimelineEvent {
 // ── Tarjeta de capítulo en la línea de tiempo (solo lectura, con link) ─────────
 function CapituloEventoRow({
   cap,
-  reinoNombre,
+  reinos = [],
   onNavigate,
 }: {
   cap: CapTimeline;
-  reinoNombre?: string;
+  reinos?: { id: string; nombre: string }[];
   onNavigate: () => void;
 }) {
+  const reinosDelCap = (cap.reinos_ids ?? [])
+    .map(id => reinos.find(r => r.id === id)?.nombre)
+    .filter(Boolean) as string[];
+
   return (
     <div className="group/card" style={{ width: 188 }}>
       <div
@@ -408,10 +412,10 @@ function CapituloEventoRow({
         }}
       >
         <div className="flex flex-col gap-1 p-2">
-          {/* Año */}
+          {/* Número + libro */}
           <div className="flex items-center gap-1">
             <span
-              className="text-[9px] font-black tracking-widest px-1.5 py-0.5 rounded-md"
+              className="text-[9px] font-black tracking-widest px-1.5 py-0.5 rounded-md shrink-0"
               style={{
                 background: "color-mix(in srgb, var(--primary) 8%, transparent)",
                 color: "var(--primary)",
@@ -459,19 +463,23 @@ function CapituloEventoRow({
             </span>
           </button>
 
-          {/* Badge del reino */}
-          {reinoNombre && (
-            <span
-              className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest truncate self-start"
-              style={{
-                background: "color-mix(in srgb, var(--primary) 8%, transparent)",
-                color: "color-mix(in srgb, var(--primary) 50%, transparent)",
-                border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-                maxWidth: "100%",
-              }}
-            >
-              <Crown size={6} /> {reinoNombre}
-            </span>
+          {/* Reinos del capítulo */}
+          {reinosDelCap.length > 0 && (
+            <div className="flex flex-wrap gap-1 pt-0.5">
+              {reinosDelCap.map(nombre => (
+                <span
+                  key={nombre}
+                  className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest"
+                  style={{
+                    background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+                    color: "color-mix(in srgb, var(--primary) 50%, transparent)",
+                    border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+                  }}
+                >
+                  <Crown size={6} /> {nombre}
+                </span>
+              ))}
+            </div>
           )}
         </div>
       </div>
@@ -1247,6 +1255,7 @@ function PanelHistoriaMundo({
                     ) : isCapitulo && evt.capData ? (
                       <CapituloEventoRow
                         cap={evt.capData}
+                        reinos={reinos}
                         onNavigate={() => {
                           localStorage.setItem("estudio-caps-last-cap", evt.capData!.id);
                           localStorage.setItem("estudio-caps-last-libro", evt.capData!.libro_id);

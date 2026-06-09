@@ -72,6 +72,8 @@ type CapTimeline = {
   titulo_capitulo: string;
   orden_linea_tiempo: number;
   libroTitulo?: string;
+  reinoNombre?: string | null;
+  reinos_ids?: string[];
 };
 
 // ─── Tipo para canciones en la línea de tiempo ───────────────────────────────
@@ -85,7 +87,7 @@ type CancionTimeline = {
 };
 
 // ─── Hook: capítulos del reino con posición en línea de tiempo ───────────────
-function useCapitulosDelReino(reinoId: string) {
+function useCapitulosDelReino(reinoId: string, reinoNombre?: string) {
   const [caps, setCaps] = useState<CapTimeline[]>([]);
   const isMounted = useRef(true);
 
@@ -105,6 +107,7 @@ function useCapitulosDelReino(reinoId: string) {
           titulo_capitulo: c.titulo_capitulo,
           orden_linea_tiempo: c.orden_linea_tiempo,
           libroTitulo: c.libroTitulo ?? "",
+          reinoNombre: reinoNombre ?? null,
         })));
       }
 
@@ -133,6 +136,7 @@ function useCapitulosDelReino(reinoId: string) {
           orden_linea_tiempo: c.orden_linea_tiempo,
           libroTitulo: libroMap[c.libro_id] ?? "",
           reinos_ids: c.reinos_ids,
+          reinoNombre: reinoNombre ?? null,
         }));
 
         if (isMounted.current) setCaps(result);
@@ -298,12 +302,16 @@ function CancionCard({ cancion }: { cancion: CancionTimeline }) {
 }
 
 // ─── Tarjeta de capítulo en la línea de tiempo (solo lectura) ────────────────
-function CapituloCard({ cap }: { cap: CapTimeline }) {
+function CapituloCard({ cap, reinos = [] }: { cap: CapTimeline; reinos?: { id: string; nombre: string }[] }) {
   const navigate = () => {
     localStorage.setItem("estudio-caps-last-cap",   cap.id);
     localStorage.setItem("estudio-caps-last-libro", cap.libro_id);
     window.dispatchEvent(new Event("estudio-caps-action"));
   };
+
+  const reinosDelCap = (cap.reinos_ids ?? [])
+    .map(id => reinos.find(r => r.id === id)?.nombre)
+    .filter(Boolean) as string[];
 
   return (
     <div className="group/card" style={{ width: 188 }}>
@@ -315,10 +323,10 @@ function CapituloCard({ cap }: { cap: CapTimeline }) {
         }}
       >
         <div className="flex flex-col gap-1 p-2">
-          {/* Año */}
+          {/* Número + libro */}
           <div className="flex items-center gap-1">
             <span
-              className="text-[9px] font-black tracking-widest px-1.5 py-0.5 rounded-md"
+              className="text-[9px] font-black tracking-widest px-1.5 py-0.5 rounded-md shrink-0"
               style={{
                 background: "color-mix(in srgb, var(--primary) 8%, transparent)",
                 color: "var(--primary)",
@@ -364,6 +372,24 @@ function CapituloCard({ cap }: { cap: CapTimeline }) {
               {cap.titulo_capitulo}
             </span>
           </button>
+          {/* Reinos del capítulo */}
+          {reinosDelCap.length > 0 && (
+            <div className="flex flex-wrap gap-1 pt-0.5">
+              {reinosDelCap.map(nombre => (
+                <span
+                  key={nombre}
+                  className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest"
+                  style={{
+                    background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+                    color: "color-mix(in srgb, var(--primary) 50%, transparent)",
+                    border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+                  }}
+                >
+                  <Crown size={6} /> {nombre}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -577,7 +603,7 @@ function TimelineEditor({
                   <div className="flex-1 h-px" style={{ background: idx === allSlots.length - 1 ? "transparent" : "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
                 </div>
                 {slot.kind === "cap" ? (
-                  <CapituloCard cap={slot.data} />
+                  <CapituloCard cap={slot.data} reinos={reinos} />
                 ) : slot.kind === "cancion" ? (
                   <CancionCard cancion={slot.data} />
                 ) : (
@@ -1365,7 +1391,7 @@ export function LoreTab({
     add: addPersonaje, remove: removePersonaje,
   } = usePersonajesDelReinoEditable(form.id, form.nombre);
   const { items,    loading: loadingItems    } = useItemsDelReino(form.id);
-  const capsTimeline     = useCapitulosDelReino(form.id);
+  const capsTimeline     = useCapitulosDelReino(form.id, form.nombre);
   const cancionesTimeline = useCancionesTimeline();
 
   // Estado saving por sección
