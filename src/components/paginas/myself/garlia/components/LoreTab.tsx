@@ -77,33 +77,64 @@ type CapTimeline = {
 // ─── Hook: capítulos del reino con posición en línea de tiempo ───────────────
 function useCapitulosDelReino(reinoId: string) {
   const [caps, setCaps] = useState<CapTimeline[]>([]);
+  const isMounted = useRef(true);
+
   useEffect(() => {
     if (!reinoId) return;
-    supabase
-      .from("capitulos")
-      .select("id, libro_id, titulo_capitulo, orden_linea_tiempo, reinos_ids")
-      .not("orden_linea_tiempo", "is", null)
-      .contains("reinos_ids", [reinoId])
-      .then(async ({ data }) => {
-        if (!data?.length) return;
+    isMounted.current = true;
+
+    const load = async () => {
+      // 1. Carga local primero
+      const local = await dexieReadAll<any>("capitulos", r =>
+        Array.isArray(r.reinos_ids) && r.reinos_ids.includes(reinoId) && r.orden_linea_tiempo != null
+      );
+      if (local.length && isMounted.current) {
+        setCaps(local.map((c: any) => ({
+          id: c.id,
+          libro_id: c.libro_id,
+          titulo_capitulo: c.titulo_capitulo,
+          orden_linea_tiempo: c.orden_linea_tiempo,
+          libroTitulo: c.libroTitulo ?? "",
+        })));
+      }
+
+      if (!navigator.onLine) return;
+
+      // 2. Remoto
+      try {
+        const { data } = await supabase
+          .from("capitulos")
+          .select("id, libro_id, titulo_capitulo, orden_linea_tiempo, reinos_ids")
+          .not("orden_linea_tiempo", "is", null)
+          .contains("reinos_ids", [reinoId]);
+
+        if (!data?.length || !isMounted.current) return;
+
         const libroIds = [...new Set(data.map((c: any) => c.libro_id))];
         const { data: libros } = await supabase
-          .from("libros")
-          .select("id, titulo")
-          .in("id", libroIds);
+          .from("libros").select("id, titulo").in("id", libroIds);
         const libroMap: Record<string, string> = {};
         (libros ?? []).forEach((l: any) => { libroMap[l.id] = l.titulo; });
-        setCaps(
-          (data as any[]).map(c => ({
-            id: c.id,
-            libro_id: c.libro_id,
-            titulo_capitulo: c.titulo_capitulo,
-            orden_linea_tiempo: c.orden_linea_tiempo,
-            libroTitulo: libroMap[c.libro_id] ?? "",
-          }))
-        );
-      });
+
+        const result: CapTimeline[] = (data as any[]).map(c => ({
+          id: c.id,
+          libro_id: c.libro_id,
+          titulo_capitulo: c.titulo_capitulo,
+          orden_linea_tiempo: c.orden_linea_tiempo,
+          libroTitulo: libroMap[c.libro_id] ?? "",
+          reinos_ids: c.reinos_ids,
+        }));
+
+        if (isMounted.current) setCaps(result);
+        // bulkPut aditivo: no borra capítulos de otros reinos
+        if (db && (db as any).capitulos) await (db as any).capitulos.bulkPut(result);
+      } catch {}
+    };
+
+    void load();
+    return () => { isMounted.current = false; };
   }, [reinoId]);
+
   return caps;
 }
 
@@ -489,6 +520,27 @@ async function dexiePut(tabla: string, row: any): Promise<void> {
 async function dexieDel(tabla: string, id: string): Promise<void> {
   try { if (db) await (db as any)[tabla]?.delete(id); } catch {}
 }
+async function dexieReadAll<T>(tabla: string, filter?: (r: any) => boolean): Promise<T[]> {
+  try {
+    if (!db) return [];
+    const t = (db as any)[tabla];
+    if (!t) return [];
+    const all: any[] = await t.toArray();
+    return all.filter(r => !r.deleted && (!filter || filter(r))) as T[];
+  } catch { return []; }
+}
+async function dexieWriteAll(tabla: string, rows: any[], keyField = "id"): Promise<void> {
+  try {
+    if (!db) return;
+    const t = (db as any)[tabla];
+    if (!t) return;
+    if (rows.length > 0) await t.bulkPut(rows);
+    const remoteIds = new Set(rows.map((r: any) => r[keyField]));
+    const local: any[] = await t.toArray();
+    const toDelete = local.map((r: any) => r[keyField]).filter((id: string) => !remoteIds.has(id));
+    if (toDelete.length > 0) await t.bulkDelete(toDelete);
+  } catch {}
+}
 
 // ─── DetalleEditor ─────────────────────────────────────────────────────────────
 function DetalleEditor({ detalle, onSaved, onDeleted, onOpenEditor, entities = [] }: {
@@ -783,6 +835,27 @@ function useCriaturasDelReino(reinoId: string) {
 
   const load = useCallback(async () => {
     setLoading(true);
+
+    // ── 1. Local Dexie ──────────────────────────────────────────────────────
+    const [localLinked, localAll] = await Promise.all([
+      dexieReadAll<any>("criatura_reinos", r => r.reino_id === reinoId),
+      dexieReadAll<CriaturaMin>("criaturas"),
+    ]);
+    if (localLinked.length) {
+      const allMap = Object.fromEntries(localAll.map(c => [c.id, c]));
+      const map: Record<string, string> = {};
+      setCriaturas(localLinked.map(r => {
+        map[r.criatura_id] = r.id;
+        return allMap[r.criatura_id] ?? { id: r.criatura_id, nombre: "—", imagen_url: null };
+      }));
+      setRowMap(map);
+      if (localAll.length) setAllCriaturas(localAll);
+      setLoading(false);
+    }
+
+    if (!navigator.onLine) { if (!localLinked.length) setLoading(false); return; }
+
+    // ── 2. Remoto Supabase ──────────────────────────────────────────────────
     const [{ data: linked }, { data: all }] = await Promise.all([
       supabase
         .from("criatura_reinos")
@@ -792,14 +865,21 @@ function useCriaturasDelReino(reinoId: string) {
     ]);
     if (linked) {
       const map: Record<string, string> = {};
-      setCriaturas(linked.map((r: any) => {
+      const result = linked.map((r: any) => {
         const c = Array.isArray(r.criaturas) ? r.criaturas[0] : r.criaturas;
         map[c?.id ?? r.criatura_id] = r.id;
         return { id: c?.id ?? r.criatura_id, nombre: c?.nombre ?? "—", imagen_url: c?.imagen_url ?? null };
-      }));
+      });
+      setCriaturas(result);
       setRowMap(map);
+      // Persistir filas planas (sin el join) para uso offline
+      const rows = linked.map((r: any) => ({ id: r.id, reino_id: reinoId, criatura_id: r.criatura_id }));
+      if (db && (db as any).criatura_reinos) await (db as any).criatura_reinos.bulkPut(rows);
     }
-    if (all) setAllCriaturas(all);
+    if (all) {
+      setAllCriaturas(all);
+      await dexieWriteAll("criaturas", all);
+    }
     setLoading(false);
   }, [reinoId]);
 
@@ -815,6 +895,7 @@ function useCriaturasDelReino(reinoId: string) {
       if (found) {
         setCriaturas(prev => [...prev, found]);
         setRowMap(prev => ({ ...prev, [criaturaId]: data.id }));
+        void dexiePut("criatura_reinos", { id: data.id, reino_id: reinoId, criatura_id: criaturaId });
       }
     }
   };
@@ -825,6 +906,7 @@ function useCriaturasDelReino(reinoId: string) {
     await supabase.from("criatura_reinos").delete().eq("id", rowId);
     setCriaturas(prev => prev.filter(c => c.id !== criaturaId));
     setRowMap(prev => { const next = { ...prev }; delete next[criaturaId]; return next; });
+    void dexieDel("criatura_reinos", rowId);
   };
 
   return { criaturas, allCriaturas, loading, add, remove };
@@ -840,16 +922,30 @@ function usePersonajesDelReinoEditable(reinoId: string, reinoNombre: string) {
 
   const load = useCallback(async () => {
     setLoading(true);
+
+    // ── 1. Local Dexie ──────────────────────────────────────────────────────
+    const [localLinked, localAll] = await Promise.all([
+      dexieReadAll<PersonajeMin>("personajes", r => r.reino === reinoNombre),
+      dexieReadAll<PersonajeMin>("personajes"),
+    ]);
+    if (localLinked.length) {
+      setPersonajes(localLinked);
+      if (localAll.length) setAllPersonajes(localAll);
+      setLoading(false);
+    }
+
+    if (!reinoNombre || !navigator.onLine) { if (!localLinked.length) setLoading(false); return; }
+
+    // ── 2. Remoto Supabase ──────────────────────────────────────────────────
     const [{ data: linked }, { data: all }] = await Promise.all([
-      supabase
-        .from("personajes")
-        .select("id, nombre, img_url")
-        .eq("reino", reinoNombre)
-        .order("nombre"),
+      supabase.from("personajes").select("id, nombre, img_url").eq("reino", reinoNombre).order("nombre"),
       supabase.from("personajes").select("id, nombre, img_url").order("nombre"),
     ]);
     if (linked) setPersonajes(linked);
-    if (all)    setAllPersonajes(all);
+    if (all) {
+      setAllPersonajes(all);
+      await dexieWriteAll("personajes", all);
+    }
     setLoading(false);
   }, [reinoNombre]);
 
@@ -862,7 +958,10 @@ function usePersonajesDelReinoEditable(reinoId: string, reinoNombre: string) {
       .eq("id", personajeId);
     if (!error) {
       const found = allPersonajes.find(p => p.id === personajeId);
-      if (found) setPersonajes(prev => [...prev, found]);
+      if (found) {
+        setPersonajes(prev => [...prev, found]);
+        void dexiePut("personajes", { ...found, reino: reinoNombre });
+      }
     }
   };
 
@@ -871,7 +970,11 @@ function usePersonajesDelReinoEditable(reinoId: string, reinoNombre: string) {
       .from("personajes")
       .update({ reino: null })
       .eq("id", personajeId);
-    if (!error) setPersonajes(prev => prev.filter(p => p.id !== personajeId));
+    if (!error) {
+      setPersonajes(prev => prev.filter(p => p.id !== personajeId));
+      const found = allPersonajes.find(p => p.id === personajeId);
+      if (found) void dexiePut("personajes", { ...found, reino: null });
+    }
   };
 
   return { personajes, allPersonajes, loading, add, remove };
@@ -884,6 +987,21 @@ function useItemsDelReino(reinoId: string) {
 
   const load = useCallback(async () => {
     setLoading(true);
+
+    // ── 1. Local Dexie ──────────────────────────────────────────────────────
+    const localCiudades = await dexieReadAll<{ id: string }>("ciudades", r => r.reino_id === reinoId);
+    if (localCiudades.length) {
+      const ciudadIds = new Set(localCiudades.map(c => c.id));
+      const localItems = await dexieReadAll<ItemMin>("items", r => ciudadIds.has(r.ciudad_id));
+      if (localItems.length) {
+        setItems(localItems.sort((a, b) => a.nombre.localeCompare(b.nombre)));
+        setLoading(false);
+      }
+    }
+
+    if (!navigator.onLine) { setLoading(false); return; }
+
+    // ── 2. Remoto Supabase ──────────────────────────────────────────────────
     const { data: ciudadesData } = await supabase.from("ciudades").select("id").eq("reino_id", reinoId);
     const ciudadIds = (ciudadesData ?? []).map((c: any) => c.id);
 
@@ -893,6 +1011,8 @@ function useItemsDelReino(reinoId: string) {
     const merged = (data ?? []).sort((a: ItemMin, b: ItemMin) => a.nombre.localeCompare(b.nombre));
     setItems(merged);
     setLoading(false);
+    // bulkPut aditivo: no borra items de otros reinos
+    if (data?.length && db && (db as any).items) await (db as any).items.bulkPut(data);
   }, [reinoId]);
 
   useEffect(() => { load(); }, [load]);
