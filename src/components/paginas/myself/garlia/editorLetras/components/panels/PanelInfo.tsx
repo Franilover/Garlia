@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { 
   Loader2, CheckCircle2, Mic2, Music,
   PenLine, Globe, Beaker, FileText, ChevronDown,
-  Heart, Sparkles, Clock, Tag, Eye, EyeOff, Users, Check
+  Heart, Sparkles, Clock, Tag, Eye, EyeOff, Users, Check, MapPin, Crown
 } from "lucide-react";
 import { ComboSelector, type ComboItem } from "@/components/ui/ComboSelector";
 import { motion, AnimatePresence } from "framer-motion";
@@ -83,6 +83,13 @@ export const PanelInfo = ({
     personaje_id:     cancion.personaje_id     ?? null as string | null,
   });
 
+  // ── Selector reino / ciudad ──────────────────────────────────────────────────
+  const [reinoId,   setReinoId]   = useState<string | null>(cancion.reino_id   ?? null);
+  const [ciudadId,  setCiudadId]  = useState<string | null>(cancion.ciudad_id  ?? null);
+  const [reinos,    setReinos]    = useState<ComboItem[]>([]);
+  const [ciudades,  setCiudades]  = useState<ComboItem[]>([]);      // todas
+  const [savingUbi, setSavingUbi] = useState(false);
+
   // Input visual de duración (mm:ss)
   const [duracionInput, setDuracionInput] = useState(
     cancion.duracion_segundos ? formatDuracion(cancion.duracion_segundos) : ""
@@ -104,9 +111,11 @@ export const PanelInfo = ({
 
   useEffect(() => {
     const fetchSuggestions = async () => {
-      const [{ data: cancData }, { data: persData }] = await Promise.all([
+      const [{ data: cancData }, { data: persData }, { data: reinosData }, { data: ciudadesData }] = await Promise.all([
         supabase.from("canciones").select("cantante, compositor, idioma, tema"),
         supabase.from("personajes").select("id, nombre, img_url").order("nombre"),
+        supabase.from("reinos").select("id, nombre").order("nombre"),
+        supabase.from("ciudades").select("id, nombre, reino_id").order("nombre"),
       ]);
       if (cancData) {
         const unique = (field: string) =>
@@ -125,6 +134,8 @@ export const PanelInfo = ({
           imgUrl: p.img_url ?? null,
         })));
       }
+      if (reinosData)  setReinos(reinosData.map((r: any) => ({ id: r.id, label: r.nombre })));
+      if (ciudadesData) setCiudades(ciudadesData.map((c: any) => ({ id: c.id, label: c.nombre, meta: c.reino_id })));
     };
     fetchSuggestions();
   }, []);
@@ -227,6 +238,45 @@ export const PanelInfo = ({
     clearTimeout(timer.current);
     doSave(newData);
   };
+
+  const handleUbicacionChange = async (nuevoReinoId: string | null, nuevaCiudadId: string | null) => {
+    setReinoId(nuevoReinoId);
+    setCiudadId(nuevaCiudadId);
+    setSavingUbi(true);
+    try {
+      await supabase
+        .from("canciones")
+        .update({ reino_id: nuevoReinoId, ciudad_id: nuevaCiudadId } as any)
+        .eq("id", cancionId);
+      onCancionUpdate({ reino_id: nuevoReinoId, ciudad_id: nuevaCiudadId });
+    } catch {}
+    setSavingUbi(false);
+  };
+
+  const handleReinoChange = (id: string | null) => {
+    // Al cambiar reino, limpiar ciudad si no pertenece al nuevo reino
+    const ciudadActualEsDeEsteReino = id
+      ? ciudades.some(c => c.id === ciudadId && (c as any).meta === id)
+      : false;
+    const nuevaCiudad = ciudadActualEsDeEsteReino ? ciudadId : null;
+    handleUbicacionChange(id, nuevaCiudad);
+  };
+
+  const handleCiudadChange = (id: string | null) => {
+    // Al seleccionar ciudad, auto-seleccionar su reino si no hay uno
+    if (id) {
+      const ciudad = ciudades.find(c => c.id === id);
+      const ciudadReinoId = (ciudad as any)?.meta ?? null;
+      handleUbicacionChange(ciudadReinoId ?? reinoId, id);
+    } else {
+      handleUbicacionChange(reinoId, null);
+    }
+  };
+
+  // Ciudades filtradas por reino seleccionado
+  const ciudadesFiltradas = reinoId
+    ? ciudades.filter(c => (c as any).meta === reinoId)
+    : ciudades;
 
   const handleSaveOrden = async () => {
     const val = ordenLinea.trim();
@@ -422,6 +472,41 @@ export const PanelInfo = ({
               emptyText="No hay personajes"
             />
           </div>
+
+          {/* Reino */}
+          <div className="space-y-2">
+            <label className="text-[9px] font-black text-primary/25 uppercase tracking-[0.2em] flex items-center gap-2">
+              <Crown size={12} /> Reino
+              {savingUbi && <Loader2 size={9} className="ml-auto animate-spin text-primary/20" />}
+            </label>
+            <ComboSelector
+              mode="single"
+              items={reinos}
+              value={reinoId}
+              onChange={handleReinoChange}
+              placeholder="Sin reino asignado…"
+              noneLabel="Sin reino"
+              emptyText="No hay reinos"
+            />
+          </div>
+
+          {/* Ciudad — solo visible si hay reino seleccionado */}
+          {reinoId && (
+            <div className="space-y-2">
+              <label className="text-[9px] font-black text-primary/25 uppercase tracking-[0.2em] flex items-center gap-2">
+                <MapPin size={12} /> Ciudad
+              </label>
+              <ComboSelector
+                mode="single"
+                items={ciudadesFiltradas}
+                value={ciudadId}
+                onChange={handleCiudadChange}
+                placeholder="Sin ciudad asignada…"
+                noneLabel="Sin ciudad"
+                emptyText="Este reino no tiene ciudades"
+              />
+            </div>
+          )}
 
         </section>
 

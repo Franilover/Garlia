@@ -356,7 +356,7 @@ type MundoTimelineEvent = TimelineEvent & {
   reinoId?: string;
   yearNum: number; // para ordenar (valor numérico)
   capData?: CapTimeline; // solo para source === "capitulo"
-  cancionData?: { id: string; titulo: string; cantante?: string | null }; // source === "cancion"
+  cancionData?: { id: string; titulo: string; cantante?: string | null; reinoNombre?: string | null }; // source === "cancion"
 };
 
 /** Extrae el valor numérico de un año para ordenamiento.
@@ -483,7 +483,7 @@ function CapituloEventoRow({
 function CancionMundoRow({
   cancion,
 }: {
-  cancion: { id: string; titulo: string; cantante?: string | null };
+  cancion: { id: string; titulo: string; cantante?: string | null; reinoNombre?: string | null };
 }) {
   const navigate = () => {
     window.dispatchEvent(new CustomEvent("garlia-open-entity", { detail: { tabla: "canciones", id: cancion.id } }));
@@ -498,10 +498,10 @@ function CancionMundoRow({
         }}
       >
         <div className="flex flex-col gap-1 p-2">
-          {/* Icono música */}
-          <div className="flex items-center gap-1">
+          {/* Badge tipo + reino */}
+          <div className="flex items-center justify-between gap-1">
             <span
-              className="text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md flex items-center gap-1"
+              className="text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md flex items-center gap-1 shrink-0"
               style={{
                 background: "color-mix(in srgb, var(--accent) 10%, transparent)",
                 color: "var(--accent)",
@@ -509,6 +509,14 @@ function CancionMundoRow({
             >
               <Music size={7} /> Canción
             </span>
+            {cancion.reinoNombre && (
+              <span
+                className="text-[7px] font-black uppercase tracking-widest truncate"
+                style={{ color: "color-mix(in srgb, var(--accent) 40%, transparent)" }}
+              >
+                {cancion.reinoNombre}
+              </span>
+            )}
           </div>
           {/* Título como botón navegable */}
           <button
@@ -542,7 +550,7 @@ function CancionMundoRow({
           {cancion.cantante && (
             <span
               className="text-[7px] font-black uppercase tracking-widest truncate px-0.5"
-              style={{ color: "color-mix(in srgb, var(--accent) 35%, transparent)" }}
+              style={{ color: "color-mix(in srgb, var(--accent) 30%, transparent)" }}
             >
               {cancion.cantante}
             </span>
@@ -756,7 +764,7 @@ function PanelHistoriaMundo({
   const [capsReinosIds, setCapsReinosIds] = useState<Record<string, string[]>>({});
 
   // ── Canciones con posición en línea de tiempo ─────────────────────────────
-  const [cancionesTimeline, setCancionesTimeline] = useState<{ id: string; titulo: string; cantante?: string | null; orden_linea_tiempo: number }[]>([]);
+  const [cancionesTimeline, setCancionesTimeline] = useState<{ id: string; titulo: string; cantante?: string | null; reinoNombre?: string | null; orden_linea_tiempo: number }[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -767,9 +775,19 @@ function PanelHistoriaMundo({
           const local: any[] = await (db as any).canciones.toArray();
           const conOrden = local.filter(c => c.orden_linea_tiempo != null && !c.deleted);
           if (conOrden.length && !cancelled) {
+            // Resolver reinoNombre desde Dexie
+            let reinoMap: Record<string, string> = {};
+            try {
+              if (db && (db as any).reinos) {
+                const rs: any[] = await (db as any).reinos.toArray();
+                rs.forEach((r: any) => { reinoMap[r.id] = r.nombre; });
+              }
+            } catch {}
             setCancionesTimeline(conOrden.map(c => ({
               id: c.id, titulo: c.titulo ?? "Sin título",
-              cantante: c.cantante ?? null, orden_linea_tiempo: c.orden_linea_tiempo,
+              cantante: c.cantante ?? null,
+              reinoNombre: c.reino_id ? (reinoMap[c.reino_id] ?? null) : null,
+              orden_linea_tiempo: c.orden_linea_tiempo,
             })));
           }
         }
@@ -779,14 +797,20 @@ function PanelHistoriaMundo({
       try {
         const { data } = await supabase
           .from("canciones")
-          .select("id, titulo, cantante, orden_linea_tiempo")
+          .select("id, titulo, cantante, orden_linea_tiempo, reino_id, reinos!reino_id(nombre)")
           .not("orden_linea_tiempo", "is", null);
         if (!data?.length || cancelled) return;
-        setCancionesTimeline(data.map((c: any) => ({
-          id: c.id, titulo: c.titulo ?? "Sin título",
-          cantante: c.cantante ?? null, orden_linea_tiempo: c.orden_linea_tiempo,
-        })));
-        if (db && (db as any).canciones) await (db as any).canciones.bulkPut(data);
+        setCancionesTimeline(data.map((c: any) => {
+          const reino = Array.isArray(c.reinos) ? c.reinos[0] : c.reinos;
+          return {
+            id: c.id, titulo: c.titulo ?? "Sin título",
+            cantante: c.cantante ?? null,
+            reinoNombre: reino?.nombre ?? null,
+            orden_linea_tiempo: c.orden_linea_tiempo,
+          };
+        }));
+        const flat = data.map((c: any) => ({ ...c, reinos: undefined }));
+        if (db && (db as any).canciones) await (db as any).canciones.bulkPut(flat);
       } catch {}
     };
     cargarCanciones();
@@ -1061,7 +1085,7 @@ function PanelHistoriaMundo({
         description: "",
         source: "cancion",
         yearNum: c.orden_linea_tiempo,
-        cancionData: { id: c.id, titulo: c.titulo, cantante: c.cantante },
+        cancionData: { id: c.id, titulo: c.titulo, cantante: c.cantante, reinoNombre: c.reinoNombre ?? null },
       });
     }
     // Sort estable: por año; en empate, mundo → reino → cancion → capítulo

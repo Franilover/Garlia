@@ -80,6 +80,8 @@ type CancionTimeline = {
   titulo: string;
   cantante?: string | null;
   orden_linea_tiempo: number;
+  reinoNombre?: string | null;
+  reino_id?: string | null;
 };
 
 // ─── Hook: capítulos del reino con posición en línea de tiempo ───────────────
@@ -161,11 +163,21 @@ function useCancionesTimeline() {
           const local: any[] = await (db as any).canciones.toArray();
           const conOrden = local.filter(c => c.orden_linea_tiempo != null && !c.deleted);
           if (conOrden.length && isMounted.current) {
+            // Intentar resolver reinoNombre desde Dexie
+            let reinoMap: Record<string, string> = {};
+            try {
+              if (db && (db as any).reinos) {
+                const rs: any[] = await (db as any).reinos.toArray();
+                rs.forEach((r: any) => { reinoMap[r.id] = r.nombre; });
+              }
+            } catch {}
             setCanciones(conOrden.map(c => ({
               id: c.id,
               titulo: c.titulo ?? "Sin título",
               cantante: c.cantante ?? null,
               orden_linea_tiempo: c.orden_linea_tiempo,
+              reinoNombre: c.reino_id ? (reinoMap[c.reino_id] ?? null) : null,
+              reino_id: c.reino_id ?? null,
             })));
           }
         }
@@ -177,17 +189,24 @@ function useCancionesTimeline() {
       try {
         const { data } = await supabase
           .from("canciones")
-          .select("id, titulo, cantante, orden_linea_tiempo")
+          .select("id, titulo, cantante, orden_linea_tiempo, reino_id, reinos!reino_id(nombre)")
           .not("orden_linea_tiempo", "is", null);
         if (!data?.length || !isMounted.current) return;
-        const result: CancionTimeline[] = data.map((c: any) => ({
-          id: c.id,
-          titulo: c.titulo ?? "Sin título",
-          cantante: c.cantante ?? null,
-          orden_linea_tiempo: c.orden_linea_tiempo,
-        }));
+        const result: CancionTimeline[] = data.map((c: any) => {
+          const reino = Array.isArray(c.reinos) ? c.reinos[0] : c.reinos;
+          return {
+            id: c.id,
+            titulo: c.titulo ?? "Sin título",
+            cantante: c.cantante ?? null,
+            orden_linea_tiempo: c.orden_linea_tiempo,
+            reinoNombre: reino?.nombre ?? null,
+            reino_id: c.reino_id ?? null,
+          };
+        });
         if (isMounted.current) setCanciones(result);
-        if (db && (db as any).canciones) await (db as any).canciones.bulkPut(data);
+        // Guardar sin el join para Dexie
+        const flat = data.map((c: any) => ({ ...c, reinos: undefined }));
+        if (db && (db as any).canciones) await (db as any).canciones.bulkPut(flat);
       } catch {}
     };
 
@@ -214,8 +233,8 @@ function CancionCard({ cancion }: { cancion: CancionTimeline }) {
         }}
       >
         <div className="flex flex-col gap-1 p-2">
-          {/* Posición + badge música */}
-          <div className="flex items-center gap-1">
+          {/* Posición + reino */}
+          <div className="flex items-center gap-1 justify-between">
             <span
               className="text-[9px] font-black tracking-widest px-1.5 py-0.5 rounded-md"
               style={{
@@ -225,12 +244,14 @@ function CancionCard({ cancion }: { cancion: CancionTimeline }) {
             >
               {cancion.orden_linea_tiempo}
             </span>
-            <span
-              className="text-[7px] font-black uppercase tracking-widest"
-              style={{ color: "color-mix(in srgb, var(--accent) 40%, transparent)" }}
-            >
-              🎵
-            </span>
+            {cancion.reinoNombre && (
+              <span
+                className="text-[7px] font-black uppercase tracking-widest truncate max-w-[100px]"
+                style={{ color: "color-mix(in srgb, var(--accent) 40%, transparent)" }}
+              >
+                {cancion.reinoNombre}
+              </span>
+            )}
           </div>
           {/* Título navegable */}
           <button
@@ -265,7 +286,7 @@ function CancionCard({ cancion }: { cancion: CancionTimeline }) {
           {cancion.cantante && (
             <span
               className="text-[7px] font-black uppercase tracking-widest truncate px-1"
-              style={{ color: "color-mix(in srgb, var(--accent) 35%, transparent)" }}
+              style={{ color: "color-mix(in srgb, var(--accent) 30%, transparent)" }}
             >
               {cancion.cantante}
             </span>
