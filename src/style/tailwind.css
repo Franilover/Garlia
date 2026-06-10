@@ -217,31 +217,34 @@
   --radius-input: 0px;
   --shadow-card: 2px 2px 0px 0px rgba(26,26,26,1);
   --border-width: 2px;
-  image-rendering: pixelated;
+  /* MOVIDO a clase utilitaria .pixel-render para no afectar imágenes de contenido */
 }
 
 [data-theme="pixel"].dark {
-  --primary: #7dbb8a;
-  --accent: #a8d5a2;
-  --bg-main: #0b100c;
-  --bg-menu: #0e1510;
-  --white-custom: #111a12;
-  --foreground: #c8e8c4;
-  --btn-text: #0b100c;
-  --menu-text: #c8e8c4;
-  --text-on-card: #c8e8c4;
-  --input-bg: #131d14;
-  --input-text: #c8e8c4;
+  /* Identidad coherente: se mantiene el naranja retro (#cc4a15) del light mode.
+     Solo se invierten los fondos a negro profundo. */
+  --primary: #e8e8e8;
+  --accent: #cc4a15;
+  --bg-main: #111111;
+  --bg-menu: #0a0a0a;
+  --white-custom: #1a1a1a;
+  --foreground: #e8e8e8;
+  --btn-text: #111111;
+  --menu-text: #e8e8e8;
+  --text-on-card: #e8e8e8;
+  --input-bg: #1f1f1f;
+  --input-text: #e8e8e8;
 }
 
 /* =========================================
    TEMA: SLATE (MONOCROMO)
    ========================================= */
 [data-theme="slate"] {
-  --primary: #1a1a1a;
-  --accent: #555555;
+  /* primary diferenciado de Pixel: carbón cálido con leve tinte azulado */
+  --primary: #2c3440;
+  --accent: #4a5568;
   --bg-main: #efefef;
-  --bg-menu: #1a1a1a;
+  --bg-menu: #2c3440;
   --white-custom: #ffffff;
   --foreground: #0a0a0a;
   --btn-text: #ffffff;
@@ -257,8 +260,8 @@
 }
 
 [data-theme="slate"].dark {
-  --primary: #d0d0d0;
-  --accent: #999999;
+  --primary: #cbd5e0;
+  --accent: #a0aec0;
   --bg-main: #111111;
   --bg-menu: #050505;
   --white-custom: #1e1e1e;
@@ -293,8 +296,9 @@
 }
 
 [data-theme="sepia"].dark {
-  --primary: #d4a060;
-  --accent: #e8c080;
+  /* accent subido a crema dorado para separarlo del primary café-dorado */
+  --primary: #c8905a;
+  --accent: #f0c878;
   --bg-main: #1a1008;
   --bg-menu: #100a04;
   --white-custom: #261808;
@@ -308,30 +312,28 @@
 
 /* =========================================
    FUENTES POR TEMA
+   La fuente se aplica al elemento raíz del tema y se hereda naturalmente.
+   Se eliminó el selector `*` con `!important` para no bloquear overrides
+   de componentes hijos que necesiten su propia fuente.
    ========================================= */
-[data-theme="default"],
-[data-theme="default"] * {
-  font-family: var(--font-montserrat), sans-serif !important;
+[data-theme="default"] {
+  font-family: var(--font-montserrat), sans-serif;
 }
 
-[data-theme="pixel"],
-[data-theme="pixel"] * {
-  font-family: var(--font-pixelify), sans-serif !important;
+[data-theme="pixel"] {
+  font-family: var(--font-pixelify), sans-serif;
 }
 
-[data-theme="slate"],
-[data-theme="slate"] * {
-  font-family: var(--font-lora), Georgia, serif !important;
+[data-theme="slate"] {
+  font-family: var(--font-lora), Georgia, serif;
 }
 
-[data-theme="sepia"],
-[data-theme="sepia"] * {
-  font-family: var(--font-lora), Georgia, serif !important;
+[data-theme="sepia"] {
+  font-family: var(--font-lora), Georgia, serif;
 }
 
-[data-theme] .lector-texto,
-[data-theme] .lector-texto * {
-  font-family: var(--font-literata), Georgia, "Times New Roman", serif !important;
+[data-theme] .lector-texto {
+  font-family: var(--font-literata), Georgia, "Times New Roman", serif;
 }
 
 /* CAMBIADO: Se eliminó el "animation: flicker" del body en el modo pixel para evitar parpadeos/brillos ópticos inestables */
@@ -345,9 +347,9 @@
     rgba(0, 0, 0, 0.18) 50%
   ), linear-gradient(
     90deg, 
-    rgba(0, 255, 80, 0.03), 
-    rgba(0, 255, 0, 0.015), 
-    rgba(0, 200, 50, 0.03)
+    rgba(255, 80, 0, 0.025), 
+    rgba(255, 60, 0, 0.012), 
+    rgba(220, 60, 0, 0.025)
   );
   z-index: 9998;
   background-size: 100% 4px, 3px 100%;
@@ -359,7 +361,7 @@
   display: block;
   position: fixed;
   top: 0; left: 0; width: 100%; height: 100px;
-  background: linear-gradient(0deg, transparent 0%, rgba(125, 187, 138, 0.05) 50%, transparent 100%);
+  background: linear-gradient(0deg, transparent 0%, rgba(204, 74, 21, 0.05) 50%, transparent 100%);
   opacity: 0.12;
   z-index: 9999;
   pointer-events: none;
@@ -378,6 +380,11 @@
 }
 
 @layer components {
+  /* PIXEL: image-rendering como clase utilitaria para íconos/UI, no imágenes de contenido */
+  [data-theme="pixel"] .pixel-render {
+    image-rendering: pixelated;
+  }
+
   /* TARJETAS */
   .card-main {
     background: var(--white-custom);
@@ -478,7 +485,7 @@
   }
 }
 
-/* Mapeo shadcn */
+/* Mapeo shadcn — usa los aliases de @theme para evitar referencias circulares */
 @layer base {
   :root {
     --background: var(--bg-main);
@@ -486,17 +493,17 @@
     --card-foreground: var(--text-on-card);
     --popover: var(--white-custom);
     --popover-foreground: var(--text-on-card);
-    --primary: var(--primary);
+    --primary: var(--color-primary);
     --primary-foreground: var(--btn-text);
-    --secondary: var(--accent);
+    --secondary: var(--color-accent);
     --secondary-foreground: var(--btn-text);
-    --muted: color-mix(in srgb, var(--bg-main) 80%, var(--primary));
+    --muted: color-mix(in srgb, var(--bg-main) 80%, var(--color-primary));
     --muted-foreground: color-mix(in srgb, var(--foreground) 60%, transparent);
-    --accent: var(--accent);
+    --accent: var(--color-accent);
     --accent-foreground: var(--btn-text);
-    --border: color-mix(in srgb, var(--primary) 20%, transparent);
+    --border: color-mix(in srgb, var(--color-primary) 20%, transparent);
     --input: var(--input-bg);
-    --ring: var(--accent);
+    --ring: var(--color-accent);
     --radius: var(--radius-btn);
   }
 }
