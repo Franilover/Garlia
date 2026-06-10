@@ -20,6 +20,7 @@ import { isReallyOnline } from "@/hooks/data/useOfflineSync";
 import EstudioLayout from "@/components/layout/EstudioLayout";
 import { BannerOffline, ModalBase, SaveIndicator, CampoInput, BotonSubmit } from "@/components/templates/EstudioTemplates";
 import { useConfirm } from "@/components/ui/ConfirmModal";
+import { ComboSelector, type ComboItem } from "@/components/ui/ComboSelector";
 import { makeSnippetOverlay } from "./snippets/SnippetOverlay";
 import { SnippetCommandPalette } from "./snippets/SnippetCommandPalette";
 import { MarkdownEditor, renderMarkdown, renderMathInElement, PROSE_STYLES } from "@/components/forms/Markdown/MarkdownEditor";
@@ -717,6 +718,35 @@ const ModalNuevoLibro = ({
   );
 };
 
+// ─── Hook: cargar grupos de tipo "libros" para el ComboSelector ───────────────
+function useGruposLibros() {
+  const [items, setItems] = useState<ComboItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    supabase
+      .from("grupos_mundo")
+      .select("id, nombre, subtipo")
+      .eq("tipo", "libros")
+      .order("nombre")
+      .then(({ data }) => {
+        if (cancelled) return;
+        setItems(
+          (data ?? []).map(g => ({
+            id: g.id,
+            label: g.nombre,
+            sublabel: g.subtipo ?? undefined,
+          }))
+        );
+        setLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, []);
+
+  return { items, loading };
+}
+
 const ModalEditarLibro = ({
   libro, onSaved, onClose,
 }: {
@@ -731,11 +761,12 @@ const ModalEditarLibro = ({
   const [visibilidad, setVisibilidad] = useState<"publico" | "programado" | "oculto">(libro.visibilidad ?? "oculto");
   const [fechaLibro,  setFechaLibro]  = useState(libro.fecha_publicacion ?? "");
   const [reinoId,     setReinoId]     = useState<string | null>(libro.reino_id ?? null);
-  const [categoria,   setCategoria]   = useState(libro.categoria ?? "");
+  const [grupoId,     setGrupoId]     = useState<string | null>(libro.categoria ?? null);
   const [saving,      setSaving]      = useState(false);
 
-  const ESTADOS    = ["BORRADOR", "EN PROCESO", "FINALIZADO", "PAUSADO"];
-  const CATEGORIAS = ["Libro", "Extra"];
+  const { items: gruposItems, loading: loadingGrupos } = useGruposLibros();
+
+  const ESTADOS = ["BORRADOR", "EN PROCESO", "FINALIZADO", "PAUSADO"];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -749,7 +780,7 @@ const ModalEditarLibro = ({
         estado,
         visibilidad,
         reino_id: reinoId,
-        categoria: categoria.trim() || null,
+        categoria: grupoId ?? null,
         fecha_publicacion: visibilidad === "programado" ? (fechaLibro || null) : null,
       };
       await libroUpdateMeta(libro.id, fields);
@@ -803,24 +834,22 @@ const ModalEditarLibro = ({
           label="Visibilidad del Libro"
         />
         <SelectorReino
-  value={reinoId ? [reinoId] : []}
-  onChange={(ids) => setReinoId(ids[0] ?? null)}
-/>
-        <div className="space-y-1.5">
-          <label className="text-[9px] font-black uppercase tracking-widest text-primary/40">Categoría</label>
-          <div className="flex gap-1.5 flex-wrap">
-            {CATEGORIAS.map(cat => (
-              <button key={cat} type="button" onClick={() => setCategoria(categoria === cat ? "" : cat)}
-                className={`px-3 py-1.5 rounded-[var(--radius-btn)] text-[9px] font-black uppercase tracking-wide border transition-all ${
-                  categoria === cat
-                    ? "bg-primary text-btn-text border-primary shadow-sm"
-                    : "border-primary/15 text-primary/40 hover:border-primary/30 hover:text-primary/70"
-                }`}>
-                {cat}
-              </button>
-            ))}
-          </div>
-        </div>
+          value={reinoId ? [reinoId] : []}
+          onChange={(ids) => setReinoId(ids[0] ?? null)}
+        />
+        <ComboSelector
+          mode="single"
+          label="Grupo"
+          icon={<BookMarked size={10} />}
+          items={gruposItems}
+          value={grupoId}
+          onChange={setGrupoId}
+          loading={loadingGrupos}
+          placeholder="Sin grupo…"
+          emptyText="Sin grupos de tipo «libros» aún"
+          noneLabel="Sin grupo"
+          hint="grupos creados en EditorGrupo con tipo «libros»"
+        />
         <div className="pt-2">
           <BotonSubmit
             loading={saving}

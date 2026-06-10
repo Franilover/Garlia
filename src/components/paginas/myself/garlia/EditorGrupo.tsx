@@ -41,7 +41,7 @@ async function dexieWriteAll(tabla: string, rows: any[]): Promise<void> {
 }
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
-export type GrupoTipo = "personajes" | "criaturas" | "items" | "reinos" | "hechizos" | "dones" | "runas";
+export type GrupoTipo = "personajes" | "criaturas" | "items" | "reinos" | "hechizos" | "dones" | "runas" | "libros";
 
 export type Grupo = {
   id: string;
@@ -123,6 +123,13 @@ export const GRUPO_TIPO_CONFIG: Record<GrupoTipo, {
     color: "var(--primary)", tabla: "runas",
     ejemplo: "Conjunto rúnico, tradición…",
     sugerenciasDefault: ["Conjunto rúnico", "Tradición", "Sistema", "Alfabeto", "Escuela rúnica", "Legado", "Ciclo"],
+  },
+  libros: {
+    label: "Libro", labelPlural: "Libros",
+    Icon: ScrollText, IconAlt: Feather,
+    color: "color-mix(in srgb, var(--primary) 60%, #a78bfa)", tabla: "libros",
+    ejemplo: "Novela, poemario, antología…",
+    sugerenciasDefault: ["Novela", "Poemario", "Antología", "Cuento", "Relato", "Saga", "Serie", "Extra", "Spin-off", "Precuela"],
   },
 };
 
@@ -878,4 +885,4 @@ function SelectorTipoGrupo({ onSelect, onCancel }: { onSelect: (tipo: GrupoTipo)
       </button>
     </div>
   );
-} 
+}

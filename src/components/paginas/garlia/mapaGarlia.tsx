@@ -1618,7 +1618,7 @@ export default function MapaInteractivo() {
       supabase.from("personajes").select("id, nombre, img_url, especie, reino, sobre").eq("reino", reino.nombre),
       supabase.from("libros").select("id, titulo, portada_url, estado").eq("reino_id", reino.id).eq("visibilidad", "publico"),
       supabase.from("capitulos")
-        .select("id, titulo_capitulo, orden, libro_id, libros(titulo)")
+        .select("id, titulo_capitulo, orden, libro_id, libros(titulo, tags)")
         .contains("reinos_ids", [reino.id])
         .eq("visibilidad", "publico")
         .order("orden", { ascending: true }),
@@ -1644,10 +1644,12 @@ export default function MapaInteractivo() {
     }
 
     if (!capitulosRes.error) {
-      const caps = (capitulosRes.data ?? []).map((c: any) => ({
-        ...c,
-        libro_titulo: c.libros?.titulo ?? null,
-      }));
+      const caps = (capitulosRes.data ?? [])
+        .filter((c: any) => Array.isArray(c.libros?.tags) && c.libros.tags.includes("extra"))
+        .map((c: any) => ({
+          ...c,
+          libro_titulo: c.libros?.titulo ?? null,
+        }));
       setCapitulosReino(caps);
       try { if (db && caps.length) await db.capitulos.bulkPut(caps); } catch {}
     }
