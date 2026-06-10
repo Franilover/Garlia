@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="200mm"
+   height="200mm"
+   viewBox="0 0 200 200"
+   version="1.1"
+   id="svg1"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs1">
+    <linearGradient
+       id="linearGradient6">
+      <stop
+         style="stop-color:#0b3e1b;stop-opacity:1;"
+         offset="0"
+         id="stop6" />
+      <stop
+         style="stop-color:#6aaf6a;stop-opacity:0.20012297;"
+         offset="1"
+         id="stop7" />
+    </linearGradient>
+    <linearGradient
+       id="linearGradient1">
+      <stop
+         style="stop-color:#07250d;stop-opacity:1;"
+         offset="0"
+         id="stop1" />
+      <stop
+         style="stop-color:#033703;stop-opacity:0;"
+         offset="1"
+         id="stop2" />
+    </linearGradient>
+    <rect
+       x="70.535347"
+       y="348.64615"
+       width="1093.6694"
+       height="900.83716"
+       id="rect1" />
+    <linearGradient
+       xlink:href="#linearGradient6"
+       id="linearGradient7"
+       x1="143.57314"
+       y1="587.96783"
+       x2="1209.401"
+       y2="629.93109"
+       gradientUnits="userSpaceOnUse" />
+    <radialGradient
+       xlink:href="#linearGradient1"
+       id="radialGradient1"
+       cx="344.85605"
+       cy="636.19409"
+       fx="344.85605"
+       fy="636.19409"
+       r="410.80292"
+       gradientTransform="matrix(2.224216,-0.00762722,0.00230134,0.32939355,-472.81191,426.13646)"
+       gradientUnits="userSpaceOnUse" />
+  </defs>
+  <g
+     id="layer1">
+    <rect
+       style="display:none;fill:#735b44;fill-opacity:1;fill-rule:nonzero;stroke:#8d0000;stroke-width:1.321;stroke-dasharray:none;stroke-opacity:1;paint-order:stroke fill markers"
+       id="rect5"
+       width="251.67683"
+       height="242.07898"
+       x="-22.394972"
+       y="-27.727108" />
+    <text
+       xml:space="preserve"
+       transform="matrix(0.18536387,0,0,0.26458333,-7.8200369,-66.12214)"
+       id="text1"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:160.141px;font-family:Granesta;-inkscape-font-specification:Granesta;text-align:center;writing-mode:lr-tb;direction:ltr;white-space:pre;shape-inside:url(#rect1);shape-padding:2.30802;display:inline;fill:url(#linearGradient7);stroke:url(#radialGradient1);stroke-width:2.80413;stroke-dasharray:none;paint-order:normal"
+       x="579.91534"
+       y="0"><tspan
+         x="576.49474"
+         y="491.07846"
+         id="tspan2">
+</tspan><tspan
+         x="219.33944"
+         y="691.25473"
+         id="tspan3">Greendom</tspan></text>
+  </g>
+</svg>
