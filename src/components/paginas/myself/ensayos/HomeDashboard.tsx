@@ -20,6 +20,7 @@ import { LibrosDashboard } from "@/components/paginas/myself/ensayos/personal/Li
 interface HomeDashboardProps {
   ensayos: any[];
   todosLosTags: string[];
+  tagActivo?: string | null;
   onNavigate: (titulo: string) => void;
   onTagClick: (tag: string) => void;
   tareas?: any[];
@@ -35,7 +36,7 @@ interface HomeDashboardProps {
 }
 
 export function HomeDashboard({
-  ensayos, todosLosTags, onNavigate, onTagClick,
+  ensayos, todosLosTags, tagActivo, onNavigate, onTagClick,
   tareas = [], onToggleTarea, onAddTarea,
   eventos = [], capitulosRaw = [], horario = [],
   isAddingEvento = false, onAddEvento, onToggleEstado, onCrearLibro,
@@ -67,6 +68,11 @@ export function HomeDashboard({
 
   const pendientes = useMemo(() => tareas.filter(t => !t.completada).slice(0, 10), [tareas]);
   const completadas = useMemo(() => tareas.filter(t => t.completada).slice(0, 4), [tareas]);
+
+  const notasFiltradas = useMemo(() =>
+    tagActivo ? ensayos.filter(e => e.tags?.includes(tagActivo)) : ensayos,
+    [ensayos, tagActivo]
+  );
 
   const handleAddTarea = () => {
     if (!nuevaTarea.trim() || !onAddTarea) return;
@@ -712,11 +718,33 @@ export function HomeDashboard({
             <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 16 }}>
               <FileText size={9} style={{ color: "color-mix(in srgb, var(--foreground) 25%, transparent)" }} />
               <span style={{ ...mono, fontSize: 8, color: "color-mix(in srgb, var(--foreground) 25%, transparent)", textTransform: "uppercase", letterSpacing: "0.14em" }}>
-                Todas las notas · {ensayos.length}
+                {tagActivo ? "Notas" : "Todas las notas"} · {notasFiltradas.length}
               </span>
+              {tagActivo && (
+                <span style={{
+                  display: "inline-flex", alignItems: "center", gap: 4,
+                  ...mono, fontSize: 8,
+                  padding: "1px 6px 1px 8px",
+                  borderRadius: 99,
+                  background: "color-mix(in srgb, var(--accent) 12%, transparent)",
+                  border: "1px solid color-mix(in srgb, var(--accent) 25%, transparent)",
+                  color: "color-mix(in srgb, var(--accent) 80%, transparent)",
+                }}>
+                  #{tagActivo}
+                  <button
+                    onClick={() => onTagClick(tagActivo)}
+                    title="Ver página del tag"
+                    style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "center", color: "inherit", opacity: 0.6 }}
+                    onMouseEnter={e => (e.currentTarget as HTMLElement).style.opacity = "1"}
+                    onMouseLeave={e => (e.currentTarget as HTMLElement).style.opacity = "0.6"}
+                  >
+                    <ArrowRight size={8} />
+                  </button>
+                </span>
+              )}
             </div>
             <div className="hd-notes-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 1, background: divColor, borderRadius: 6, overflow: "hidden" }}>
-              {ensayos.map((e, i) => (
+              {notasFiltradas.map((e, i) => (
                 <MotionDiv key={e.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: Math.min(i * 0.015, 0.4) }}>
                   <button
                     onClick={() => onNavigate(e.titulo)}
