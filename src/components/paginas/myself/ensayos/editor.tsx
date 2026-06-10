@@ -1,10 +1,11 @@
 "use client";
 import { MotionDiv } from "@/components/ui/Motion";
 import React, { useRef, useState, useEffect, useCallback, useMemo } from "react";
-import { Save, List, BookOpen, X } from "lucide-react";
+import { Save, List, BookOpen, X, PanelRight } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { CitePopup } from "./citePopup";
 import { LibroPanel } from "./LibroPanel";
+import { NotaPanel } from "./NotaPanel";
 import { MarkdownEditor, WikiEntity } from "@/components/forms/Markdown/MarkdownEditor";
 import { ZoteroSource } from "@/components/paginas/myself/ensayos/page";
 
@@ -80,6 +81,7 @@ export function Editor({
   // ── Mobile detection ──────────────────────────────────────────────────────
   const [isMobile, setIsMobile] = useState(false);
   const [libroPanelOpen, setLibroPanelOpen] = useState(false);
+  const [notaPanelOpen, setNotaPanelOpen] = useState(false);
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
     check();
@@ -452,361 +454,199 @@ export function Editor({
 
         ) : (
           /* ══════════════════════════════════════════════════════
-              MODO NORMAL — layout original una columna
+              MODO NORMAL — columna principal + barra lateral derecha
           ══════════════════════════════════════════════════════ */
-          <>
-            {/* ── Title input ── */}
-            <div className="shrink-0 px-8 pt-5 pb-2" style={{ background: "transparent" }}>
-              {tituloInput}
-              {/* ── Meta row ── */}
-              <div
-                className="flex items-center mt-1.5"
-                style={{ borderBottom: "1px solid color-mix(in srgb, var(--foreground) 6%, transparent)", paddingBottom: 8 }}
-              >
-                <div className="flex items-center gap-3 flex-1 min-w-0">
-                  <span style={{ fontSize: 9, color: "color-mix(in srgb, var(--foreground) 20%, transparent)", ...monoStyle }}>
-                    {wordCount} palabras · ~{readTime}min
-                  </span>
-                </div>
-                <div className="flex items-center gap-4 shrink-0">
-                  <span style={{ fontSize: 9, color: "color-mix(in srgb, var(--foreground) 20%, transparent)", ...monoStyle }}>
-                    {wordCount} palabras
-                  </span>
-                  <span style={{ fontSize: 9, color: "color-mix(in srgb, var(--foreground) 10%, transparent)", ...monoStyle }}>·</span>
-                  <span style={{ fontSize: 9, color: "color-mix(in srgb, var(--foreground) 20%, transparent)", ...monoStyle }}>
-                    ~{readTime}min lectura
-                  </span>
-                  {sources.length > 0 && (
-                    <>
-                      <span style={{ fontSize: 9, color: "color-mix(in srgb, var(--foreground) 10%, transparent)", ...monoStyle }}>·</span>
-                      <span style={{ fontSize: 9, color: "color-mix(in srgb, var(--accent) 60%, transparent)", ...monoStyle }} title="Escribe @ para citar · [[ para enlazar">
-                        @ {sources.length} fuentes
-                      </span>
-                    </>
-                  )}
-                  <div className="flex items-center gap-1.5">
-                    <Save size={9} style={{ color: "color-mix(in srgb, var(--foreground) 15%, transparent)" }} />
-                    <span style={{ fontSize: 9, color: "color-mix(in srgb, var(--foreground) 15%, transparent)", ...monoStyle }}>
-                      {new Date(ensayo.updated_at).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}
+          <div style={{ display: "flex", flex: 1, minHeight: 0, overflow: "hidden" }}>
+
+            {/* ── Columna principal ── */}
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, overflow: "hidden" }}>
+              {/* ── Title input ── */}
+              <div className="shrink-0 px-8 pt-5 pb-2" style={{ background: "transparent" }}>
+                {tituloInput}
+                {/* ── Meta row ── */}
+                <div
+                  className="flex items-center mt-1.5"
+                  style={{ borderBottom: "1px solid color-mix(in srgb, var(--foreground) 6%, transparent)", paddingBottom: 8 }}
+                >
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <span style={{ fontSize: 9, color: "color-mix(in srgb, var(--foreground) 20%, transparent)", ...monoStyle }}>
+                      {wordCount} palabras · ~{readTime}min
                     </span>
+                  </div>
+                  <div className="flex items-center gap-4 shrink-0">
+                    <span style={{ fontSize: 9, color: "color-mix(in srgb, var(--foreground) 20%, transparent)", ...monoStyle }}>
+                      {wordCount} palabras
+                    </span>
+                    <span style={{ fontSize: 9, color: "color-mix(in srgb, var(--foreground) 10%, transparent)", ...monoStyle }}>·</span>
+                    <span style={{ fontSize: 9, color: "color-mix(in srgb, var(--foreground) 20%, transparent)", ...monoStyle }}>
+                      ~{readTime}min lectura
+                    </span>
+                    {sources.length > 0 && (
+                      <>
+                        <span style={{ fontSize: 9, color: "color-mix(in srgb, var(--foreground) 10%, transparent)", ...monoStyle }}>·</span>
+                        <span style={{ fontSize: 9, color: "color-mix(in srgb, var(--accent) 60%, transparent)", ...monoStyle }} title="Escribe @ para citar · [[ para enlazar">
+                          @ {sources.length} fuentes
+                        </span>
+                      </>
+                    )}
+                    <div className="flex items-center gap-1.5">
+                      <Save size={9} style={{ color: "color-mix(in srgb, var(--foreground) 15%, transparent)" }} />
+                      <span style={{ fontSize: 9, color: "color-mix(in srgb, var(--foreground) 15%, transparent)", ...monoStyle }}>
+                        {new Date(ensayo.updated_at).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                    </div>
+                    {/* Botón panel lateral — solo en mobile */}
+                    {isMobile && (
+                      <button
+                        onClick={() => setNotaPanelOpen(true)}
+                        title="Índice, tags y menciones"
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 4,
+                          padding: "3px 8px",
+                          borderRadius: 5,
+                          border: "1px solid color-mix(in srgb, var(--foreground) 10%, transparent)",
+                          background: "color-mix(in srgb, var(--foreground) 4%, transparent)",
+                          color: "color-mix(in srgb, var(--foreground) 45%, transparent)",
+                          cursor: "pointer",
+                          ...monoStyle,
+                          fontSize: 9,
+                        }}
+                      >
+                        <PanelRight size={9} />
+                        panel
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
+
+              {/* ── Editor content ── */}
+              {markdownBlock}
             </div>
 
-            {/* ── Editor content ── */}
-            {markdownBlock}
-          </>
-        )}
+            {/* ══ DESKTOP: barra lateral derecha ══ */}
+            {!isMobile && (
+              <div style={{
+                width: 220,
+                flexShrink: 0,
+                borderLeft: "1px solid color-mix(in srgb, var(--foreground) 7%, transparent)",
+                display: "flex",
+                flexDirection: "column",
+                background: "color-mix(in srgb, var(--foreground) 1%, var(--bg-main))",
+              }}>
+                <NotaPanel
+                  ensayo={ensayo}
+                  ensayos={ensayos}
+                  tocEntries={tocEntries}
+                  onUpdateField={onUpdateField}
+                  onNavigateToPage={onNavigateToPage}
+                  onTagClick={onTagClick ?? onNavigateToPage}
+                />
+              </div>
+            )}
 
-        {/* ── Info bar normal (solo en modo NO libro) ── */}
-        {!isLibro && (
-        <div
-          className="shrink-0"
-          style={{
-            borderTop: "1px solid color-mix(in srgb, var(--foreground) 7%, transparent)",
-            background: "color-mix(in srgb, var(--primary) 5%, var(--bg-main))",
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-          }}
-        >
-          {/* ── Columna izquierda: Tags ── */}
-          <div
-            style={{
-              padding: "10px 16px 10px 32px",
-              borderRight: "1px solid color-mix(in srgb, var(--foreground) 6%, transparent)",
-              display: "flex",
-              flexDirection: "column",
-              gap: 6,
-            }}
-          >
-            <span style={{
-              fontSize: 8,
-              fontFamily: "var(--font-mono)",
-              letterSpacing: "0.12em",
-              textTransform: "uppercase",
-              color: "color-mix(in srgb, var(--foreground) 35%, transparent)",
-            }}>
-              etiquetas
-            </span>
-
-            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 5, minHeight: 24 }}>
-              {/* Tag chips — cada uno con X para eliminar */}
-              {(ensayo.tags ?? []).map((tag: string) => (
-                <span
-                  key={tag}
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 4,
-                    fontSize: 10,
-                    fontFamily: "var(--font-mono)",
-                    color: "color-mix(in srgb, var(--accent) 80%, transparent)",
-                    background: "color-mix(in srgb, var(--accent) 10%, transparent)",
-                    border: "1px solid color-mix(in srgb, var(--accent) 22%, transparent)",
-                    padding: "2px 4px 2px 8px",
-                    borderRadius: 3,
-                  }}
-                >
-                  <button
-                    onClick={() => onNavigateToPage(tag)}
-                    style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: "inherit", fontFamily: "inherit", fontSize: "inherit" }}
-                  >
-                    #{tag}
-                  </button>
-                  <button
-                    onClick={() => {
-                      const next = (ensayo.tags ?? []).filter((t: string) => t !== tag);
-                      onUpdateField(ensayo.id, "tags", next);
-                    }}
+            {/* ══ MOBILE: drawer lateral desde la derecha ══ */}
+            <AnimatePresence>
+              {isMobile && notaPanelOpen && (
+                <>
+                  {/* Overlay */}
+                  <motion.div
+                    key="nota-overlay"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    onClick={() => setNotaPanelOpen(false)}
                     style={{
-                      background: "none",
-                      border: "none",
-                      cursor: "pointer",
-                      padding: "0 1px",
-                      color: "color-mix(in srgb, var(--accent) 40%, transparent)",
-                      fontSize: 10,
-                      lineHeight: 1,
-                      display: "flex",
-                      alignItems: "center",
-                    }}
-                    onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--accent) 80%, transparent)"}
-                    onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--accent) 40%, transparent)"}
-                  >
-                    ×
-                  </button>
-                </span>
-              ))}
-
-              {/* Input nuevo tag inline con autocomplete */}
-              {addingTag ? (
-                <div style={{ position: "relative" }}>
-                  <input
-                    ref={newTagRef}
-                    type="text"
-                    value={newTagInput}
-                    autoFocus
-                    onChange={e => setNewTagInput(e.target.value)}
-                    onKeyDown={e => {
-                      if (e.key === "Enter" || e.key === ",") {
-                        e.preventDefault();
-                        const val = newTagInput.trim().toLowerCase();
-                        if (val && !(ensayo.tags ?? []).includes(val)) {
-                          onUpdateField(ensayo.id, "tags", [...(ensayo.tags ?? []), val]);
-                        }
-                        setNewTagInput("");
-                        setAddingTag(false);
-                      }
-                      if (e.key === "Escape") {
-                        setNewTagInput("");
-                        setAddingTag(false);
-                      }
-                    }}
-                    onBlur={() => {
-                      // small delay so clicks on suggestions register
-                      setTimeout(() => {
-                        const val = newTagInput.trim().toLowerCase();
-                        if (val && !(ensayo.tags ?? []).includes(val)) {
-                          onUpdateField(ensayo.id, "tags", [...(ensayo.tags ?? []), val]);
-                        }
-                        setNewTagInput("");
-                        setAddingTag(false);
-                      }, 150);
-                    }}
-                    placeholder="nueva etiqueta..."
-                    style={{
-                      fontSize: 10,
-                      fontFamily: "var(--font-mono)",
-                      padding: "2px 8px",
-                      borderRadius: 3,
-                      border: "1px dashed color-mix(in srgb, var(--accent) 40%, transparent)",
-                      background: "color-mix(in srgb, var(--accent) 6%, transparent)",
-                      color: "color-mix(in srgb, var(--foreground) 75%, transparent)",
-                      outline: "none",
-                      width: 130,
+                      position: "fixed",
+                      inset: 0,
+                      background: "color-mix(in srgb, var(--bg-main) 55%, transparent)",
+                      backdropFilter: "blur(2px)",
+                      zIndex: 40,
                     }}
                   />
-                  {/* Suggestions dropdown */}
-                  {tagSuggestions.length > 0 && (
-                    <div style={{
-                      position: "absolute",
-                      bottom: "calc(100% + 4px)",
-                      left: 0,
+                  {/* Drawer */}
+                  <motion.div
+                    key="nota-drawer"
+                    initial={{ x: "100%" }}
+                    animate={{ x: 0 }}
+                    exit={{ x: "100%" }}
+                    transition={{ type: "spring", stiffness: 320, damping: 32 }}
+                    style={{
+                      position: "fixed",
+                      top: 0,
+                      right: 0,
+                      bottom: 0,
+                      width: "min(280px, 88vw)",
                       background: "var(--bg-menu)",
-                      border: "1px solid color-mix(in srgb, var(--foreground) 10%, transparent)",
-                      borderRadius: 4,
-                      padding: "3px",
+                      borderLeft: "1px solid color-mix(in srgb, var(--foreground) 8%, transparent)",
+                      zIndex: 50,
                       display: "flex",
                       flexDirection: "column",
-                      gap: 1,
-                      zIndex: 50,
-                      minWidth: 130,
-                      boxShadow: "0 -4px 12px color-mix(in srgb, var(--foreground) 8%, transparent)",
-                    }}>
-                      {tagSuggestions.map(tag => (
-                        <button
-                          key={tag}
-                          onMouseDown={e => {
-                            e.preventDefault();
-                            if (!(ensayo.tags ?? []).includes(tag)) {
-                              onUpdateField(ensayo.id, "tags", [...(ensayo.tags ?? []), tag]);
-                            }
-                            setNewTagInput("");
-                            setAddingTag(false);
-                          }}
-                          style={{
-                            fontSize: 10,
-                            fontFamily: "var(--font-mono)",
-                            color: "color-mix(in srgb, var(--menu-text) 75%, transparent)",
-                            background: "transparent",
-                            border: "none",
-                            borderRadius: 3,
-                            padding: "3px 8px",
-                            cursor: "pointer",
-                            textAlign: "left",
-                            transition: "all 0.08s",
-                          }}
-                          onMouseEnter={e => {
-                            (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--accent) 12%, transparent)";
-                            (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--accent) 90%, transparent)";
-                          }}
-                          onMouseLeave={e => {
-                            (e.currentTarget as HTMLElement).style.background = "transparent";
-                            (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--menu-text) 75%, transparent)";
-                          }}
-                        >
-                          #{tag}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <button
-                  onClick={() => setAddingTag(true)}
-                  style={{
-                    fontSize: 9,
-                    fontFamily: "var(--font-mono)",
-                    color: "color-mix(in srgb, var(--foreground) 22%, transparent)",
-                    background: "none",
-                    border: "1px dashed color-mix(in srgb, var(--foreground) 10%, transparent)",
-                    borderRadius: 3,
-                    padding: "2px 7px",
-                    cursor: "pointer",
-                    transition: "all 0.1s",
-                  }}
-                  onMouseEnter={e => {
-                    (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--foreground) 45%, transparent)";
-                    (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--foreground) 22%, transparent)";
-                  }}
-                  onMouseLeave={e => {
-                    (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--foreground) 22%, transparent)";
-                    (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--foreground) 10%, transparent)";
-                  }}
-                >
-                  + tag
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* ── Columna derecha: Menciones ── */}
-          <div
-            style={{
-              padding: "10px 32px 10px 16px",
-              display: "flex",
-              flexDirection: "column",
-              gap: 6,
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <span style={{
-                fontSize: 8,
-                fontFamily: "var(--font-mono)",
-                letterSpacing: "0.12em",
-                textTransform: "uppercase",
-                color: "color-mix(in srgb, var(--foreground) 35%, transparent)",
-              }}>
-                menciones
-              </span>
-              <span style={{
-                fontSize: 8,
-                fontFamily: "var(--font-mono)",
-                color: backlinks.length > 0 ? "var(--accent)" : "color-mix(in srgb, var(--foreground) 20%, transparent)",
-                background: backlinks.length > 0 ? "color-mix(in srgb, var(--accent) 14%, transparent)" : "color-mix(in srgb, var(--foreground) 6%, transparent)",
-                padding: "0px 6px",
-                borderRadius: 10,
-              }}>
-                {backlinks.length}
-              </span>
-            </div>
-
-            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 5, minHeight: 24 }}>
-              {backlinks.length === 0 ? (
-                <span style={{
-                  fontSize: 10,
-                  fontFamily: "var(--font-mono)",
-                  color: "color-mix(in srgb, var(--foreground) 22%, transparent)",
-                  fontStyle: "italic",
-                }}>
-                  ninguna nota menciona esta página
-                </span>
-              ) : backlinks.map((b: any) => {
-                const titulo = ensayo.titulo?.trim().toLowerCase() ?? "";
-                const contenido = (b.contenido || "").toLowerCase();
-                const viaWikilink = contenido.includes(`[[${titulo}]]`);
-                const viaTag = b.tags?.some((t: string) => t.toLowerCase() === titulo);
-                return (
-                  <button
-                    key={b.id}
-                    onClick={() => onNavigateToPage(b.titulo)}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 5,
-                      background: "color-mix(in srgb, var(--primary) 7%, transparent)",
-                      border: "1px solid color-mix(in srgb, var(--primary) 18%, transparent)",
-                      borderRadius: 4,
-                      cursor: "pointer",
-                      padding: "2px 9px 2px 6px",
-                      transition: "all 0.1s",
-                    }}
-                    onMouseEnter={e => {
-                      (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--accent) 45%, transparent)";
-                      (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--accent) 9%, transparent)";
-                    }}
-                    onMouseLeave={e => {
-                      (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 18%, transparent)";
-                      (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 7%, transparent)";
+                      overflowY: "auto",
+                      boxShadow: "-6px 0 32px color-mix(in srgb, var(--bg-main) 40%, transparent)",
                     }}
                   >
-                    <span style={{
-                      fontSize: 8,
-                      fontFamily: "var(--font-mono)",
-                      color: "color-mix(in srgb, var(--accent) 65%, transparent)",
+                    {/* Header del drawer */}
+                    <div style={{
+                      padding: "14px 14px 10px",
+                      borderBottom: "1px solid color-mix(in srgb, var(--foreground) 6%, transparent)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      flexShrink: 0,
                     }}>
-                      {viaWikilink && viaTag ? "[[]]#" : viaWikilink ? "[[]]" : "#"}
-                    </span>
-                    <span style={{
-                      fontSize: 11,
-                      fontFamily: "var(--font-serif)",
-                      fontStyle: "italic",
-                      color: "color-mix(in srgb, var(--foreground) 78%, transparent)",
-                    }}>
-                      {b.titulo || "sin título"}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
+                      <span style={{
+                        fontSize: 8,
+                        fontFamily: "var(--font-mono)",
+                        letterSpacing: "0.14em",
+                        textTransform: "uppercase",
+                        color: "color-mix(in srgb, var(--foreground) 30%, transparent)",
+                      }}>
+                        panel
+                      </span>
+                      <button
+                        onClick={() => setNotaPanelOpen(false)}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          padding: 4,
+                          color: "color-mix(in srgb, var(--foreground) 30%, transparent)",
+                          display: "flex",
+                          alignItems: "center",
+                        }}
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+
+                    {/* Contenido del panel */}
+                    <div style={{ flex: 1 }}>
+                      <NotaPanel
+                        ensayo={ensayo}
+                        ensayos={ensayos}
+                        tocEntries={tocEntries}
+                        onUpdateField={onUpdateField}
+                        onNavigateToPage={(name) => { setNotaPanelOpen(false); onNavigateToPage(name); }}
+                        onTagClick={(t) => { setNotaPanelOpen(false); (onTagClick ?? onNavigateToPage)(t); }}
+                      />
+                    </div>
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
           </div>
-        </div>
         )}
+
+
       </MotionDiv>
 
-      {/* ── TOC panel lateral — solo en modo normal ── */}
+      {/* ── TOC panel lateral — solo en modo libro (en modo normal vive en NotaPanel) ── */}
       <AnimatePresence>
-        {tocOpen && tocEntries.length > 0 && (
+        {isLibro && tocOpen && tocEntries.length > 0 && (
           <motion.div
             key="toc-panel"
             initial={{ opacity: 0, x: 16 }}
