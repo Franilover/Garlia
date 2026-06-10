@@ -1462,24 +1462,44 @@ export default function MapaInteractivo() {
   const showToast = (message: string, type: ToastType) => setToast({ message, type });
 
   // ── Fondo color (color del mar) ──────────────────────────────────────────────
-  const [fondoColor, setFondoColor] = useState<string | null>(null);
+  // fondoColorGlobal: color del mapa del continente (guardado en config_mapa)
+  // fondoColorReino: color del mapa del reino activo (guardado en reinos.fondo_color)
+  const [fondoColorGlobal, setFondoColorGlobal] = useState<string | null>(null);
   const [eyedropperActive, setEyedropperActive] = useState(false);
   const fondoColorInputRef = useRef<HTMLInputElement>(null);
 
-  // Cargar color de fondo desde Supabase al montar
+  // Color activo según la vista actual
+  const fondoColor = vistaActual === "reino"
+    ? (reinoSeleccionado?.fondo_color ?? null)
+    : fondoColorGlobal;
+
+  // Cargar color de fondo global desde Supabase al montar
   useEffect(() => {
     supabase.from("config_mapa").select("value").eq("key", "fondo_color").single()
-      .then(({ data }) => { if (data?.value) setFondoColor(data.value); });
+      .then(({ data }) => { if (data?.value) setFondoColorGlobal(data.value); });
   }, []);
 
   const handleFondoColorChange = async (color: string) => {
-    setFondoColor(color);
     setEyedropperActive(false);
-    try {
-      await supabase.from("config_mapa").upsert({ key: "fondo_color", value: color }, { onConflict: "key" });
-      showToast("Color del mar guardado", "success");
-    } catch {
-      showToast("Error al guardar el color", "error");
+    if (vistaActual === "reino" && reinoSeleccionado) {
+      // Guardar en la columna fondo_color del reino activo
+      setReinoSeleccionado((prev: any) => ({ ...prev, fondo_color: color || null }));
+      setReinos(prev => prev.map(r => r.id === reinoSeleccionado.id ? { ...r, fondo_color: color || null } : r));
+      try {
+        await supabase.from("reinos").update({ fondo_color: color || null }).eq("id", reinoSeleccionado.id);
+        showToast("Color del reino guardado", "success");
+      } catch {
+        showToast("Error al guardar el color", "error");
+      }
+    } else {
+      // Guardar en config_mapa (mapa global)
+      setFondoColorGlobal(color || null);
+      try {
+        await supabase.from("config_mapa").upsert({ key: "fondo_color", value: color }, { onConflict: "key" });
+        showToast("Color del mar guardado", "success");
+      } catch {
+        showToast("Error al guardar el color", "error");
+      }
     }
   };
 
@@ -1913,7 +1933,7 @@ export default function MapaInteractivo() {
           >
             {/* Label */}
             <span className="text-[9px] font-black uppercase tracking-widest whitespace-nowrap" style={{ color: "var(--accent)", letterSpacing: "0.15em" }}>
-              Color Mar
+              {vistaActual === "reino" ? "Color Fondo Reino" : "Color Mar"}
             </span>
 
             {/* Color swatch — opens native color picker */}
@@ -1934,7 +1954,15 @@ export default function MapaInteractivo() {
                 type="color"
                 className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
                 value={fondoColor || "#5a8fa8"}
-                onChange={(e) => setFondoColor(e.target.value)}
+                onChange={(e) => {
+                  // Preview en tiempo real sin guardar en Supabase todavía
+                  if (vistaActual === "reino" && reinoSeleccionado) {
+                    setReinoSeleccionado((prev: any) => ({ ...prev, fondo_color: e.target.value }));
+                    setReinos(prev => prev.map(r => r.id === reinoSeleccionado.id ? { ...r, fondo_color: e.target.value } : r));
+                  } else {
+                    setFondoColorGlobal(e.target.value);
+                  }
+                }}
                 onBlur={(e) => handleFondoColorChange(e.target.value)}
               />
             </div>
