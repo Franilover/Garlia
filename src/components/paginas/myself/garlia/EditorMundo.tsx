@@ -26,7 +26,6 @@ import { EditorNota, ListaNotas } from "./EditorNota";
 import { EditorGrupo, useGrupos, type Grupo, GRUPO_TIPO_CONFIG } from "./EditorGrupo";
 import EstudioCapitulos from "@/components/paginas/myself/garlia/editorCapitulos/page";
 import AdminDescubrimientos from "@/components/paginas/myself/garlia/editorRelaciones";
-import { useCanciones } from "@/components/paginas/myself/garlia/editorLetras/hooks/useCanciones";
 import { PanelEditor } from "@/components/paginas/myself/garlia/editorLetras/components/editor/PanelEditor";
 import { ModalNuevaCancion } from "@/components/paginas/myself/garlia/editorLetras/components/modals/ModalNuevaCancion";
 import type { Cancion } from "@/components/paginas/myself/garlia/editorLetras/types";
@@ -1584,27 +1583,68 @@ function PanelListas({
     "runas",
     () => supabase.from("runas").select("id, nombre, imagen_url").order("nombre"),
   );
-  // Canciones: hook externo como fuente remota, Dexie como caché local
-  const { canciones: cancionesRemote, loading: loadingCancionesRemote } = useCanciones();
+  // Canciones: carga paginada directa desde Supabase (evita el límite de 1000 filas)
+  // Dexie se usa solo como caché de lectura rápida; nunca se borran filas locales
+  // que no lleguen en el fetch (bulkPut en lugar de dexieWriteAll).
   const [canciones, setCanciones] = useState<Cancion[]>([]);
   const [loadingCanciones, setLoadingCanciones] = useState(true);
   useEffect(() => {
-    // Cargar caché local primero (respuesta instantánea)
-    dexieReadAll<Cancion>("canciones").then(local => {
-      if (local.length) { setCanciones(local); setLoadingCanciones(false); }
-    }).catch(() => {});
+    let cancelled = false;
+    const cargarCanciones = async () => {
+      // 1. Dexie primero — respuesta instantánea aunque haya 100+ canciones
+      try {
+        const local = await dexieReadAll<Cancion>("canciones");
+        if (local.length && !cancelled) {
+          setCanciones(local);
+          setLoadingCanciones(false);
+        }
+      } catch {}
+
+      if (!navigator.onLine || cancelled) {
+        setLoadingCanciones(false);
+        return;
+      }
+
+      // 2. Supabase con paginación completa (PAGE_SIZE páginas hasta agotar)
+      try {
+        const PAGE_SIZE = 1000;
+        let page = 0;
+        const todas: Cancion[] = [];
+        while (true) {
+          const { data, error } = await supabase
+            .from("canciones")
+            .select("id, titulo, cantante, compositor, idioma, estado, portada_url, links, visible, created_at, updated_at, personaje_id")
+            .order("titulo")
+            .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+          if (cancelled) return;
+          if (error || !data) break;
+          todas.push(...(data as unknown as Cancion[]));
+          if (data.length < PAGE_SIZE) break; // última página
+          page++;
+        }
+        if (!cancelled && todas.length) {
+          setCanciones(todas);
+          setLoadingCanciones(false);
+          // Persistir en Dexie sin borrar filas que no llegaron (bulkPut conserva todo)
+          try {
+            if (db && (db as any).canciones) await (db as any).canciones.bulkPut(todas);
+          } catch {}
+        } else if (!cancelled) {
+          setLoadingCanciones(false);
+        }
+      } catch {
+        if (!cancelled) setLoadingCanciones(false);
+      }
+    };
+
+    cargarCanciones();
+    const handleOnline = () => { if (!cancelled) cargarCanciones(); };
+    window.addEventListener("online", handleOnline);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("online", handleOnline);
+    };
   }, []);
-  useEffect(() => {
-    // Cuando el hook remoto termine de cargar, actualizar estado y caché
-    if (loadingCancionesRemote) return;
-    if (cancionesRemote.length) {
-      setCanciones(cancionesRemote as unknown as Cancion[]);
-      setLoadingCanciones(false);
-      dexieWriteAll("canciones", cancionesRemote as unknown as any[]).catch(() => {});
-    } else {
-      setLoadingCanciones(false);
-    }
-  }, [cancionesRemote, loadingCancionesRemote]);
   const { grupos, loaded: loadedGrupos, actualizarGrupo, eliminarGrupo } = useGrupos();
   const { notas, loading: loadingNotas, crear: crearNota, actualizar: actualizarNota, eliminar: eliminarNota } = useNotas();
 
