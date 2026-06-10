@@ -76,7 +76,7 @@ function PanelContenido({
   handlePersonajeClick, modifiedDetalles, isSaving, handleSaveChanges,
   isUploadingImg, handleImageUpload, imgInputRef,
   librosReino, capitulosReino, loadingLibros,
-  personajesCiudad, criaturasCiudad, itemsCiudad, loadingCiudad,
+  personajesCiudad, criaturasCiudad, itemsCiudad, capitulosCiudad, loadingCiudad,
 }: any) {
   const router = useRouter();
   if (editMode) {
@@ -341,8 +341,43 @@ function PanelContenido({
                 </div>
               )}
 
+              {/* Capítulos que ocurren en esta ciudad */}
+              {capitulosCiudad.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }} />
+                    <span className="text-[8px] font-black uppercase tracking-[0.3em]" style={{ color: "color-mix(in srgb, var(--accent) 60%, transparent)" }}>
+                      <BookOpen size={8} className="inline mr-1" />Capítulos aquí
+                    </span>
+                    <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }} />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    {capitulosCiudad.map((cap: any) => (
+                      <div key={cap.id} className="flex items-center gap-2.5 px-3 py-2.5 border"
+                        style={{
+                          background: "color-mix(in srgb, var(--primary) 10%, transparent)",
+                          borderColor: "color-mix(in srgb, var(--accent) 12%, transparent)",
+                          borderRadius: "1px",
+                        }}>
+                        <BookMarked size={12} style={{ color: "color-mix(in srgb, var(--accent) 55%, transparent)", flexShrink: 0 }} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[10px] font-semibold uppercase truncate" style={{ color: "var(--foreground)" }}>
+                            {cap.titulo_capitulo ?? `Capítulo ${cap.orden}`}
+                          </p>
+                          {cap.libro_titulo && (
+                            <p className="text-[8px] mt-0.5 truncate" style={{ color: "color-mix(in srgb, var(--accent) 50%, transparent)" }}>
+                              {cap.libro_titulo}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Vacío */}
-              {personajesCiudad.length === 0 && criaturasCiudad.length === 0 && itemsCiudad.length === 0 && (
+              {personajesCiudad.length === 0 && criaturasCiudad.length === 0 && itemsCiudad.length === 0 && capitulosCiudad.length === 0 && (
                 <p className="text-center text-[9px] font-black uppercase tracking-widest py-4"
                   style={{ color: "color-mix(in srgb, var(--accent) 25%, transparent)" }}>
                   Sin habitantes registrados
@@ -1455,6 +1490,7 @@ export default function MapaInteractivo() {
   const [personajesCiudad, setPersonajesCiudad] = useState<any[]>([]);
   const [criaturasCiudad, setCriaturasCiudad] = useState<any[]>([]);
   const [itemsCiudad, setItemsCiudad] = useState<any[]>([]);
+  const [capitulosCiudad, setCapitulosCiudad] = useState<any[]>([]);
   const [loadingCiudad, setLoadingCiudad] = useState(false);
 
   const imgInputRef = useRef<HTMLInputElement>(null);
@@ -1532,6 +1568,7 @@ export default function MapaInteractivo() {
       setPersonajesCiudad([]);
       setCriaturasCiudad([]);
       setItemsCiudad([]);
+      setCapitulosCiudad([]);
       return;
     }
     const ciudadId = puntoSeleccionado.id;
@@ -1556,15 +1593,27 @@ export default function MapaInteractivo() {
       }
 
       // 2. Supabase
-      const [pRes, cRes, iRes] = await Promise.all([
+      const [pRes, cRes, iRes, capRes] = await Promise.all([
         supabase.from("personajes").select("id, nombre, img_url, especie").eq("ciudad_id", ciudadId).order("nombre"),
         supabase.from("criaturas").select("id, nombre, imagen_url").eq("ciudad_id", ciudadId).order("nombre"),
         supabase.from("items").select("id, nombre, imagen_url").eq("ciudad_id", ciudadId).order("nombre"),
+        supabase.from("capitulos")
+          .select("id, titulo_capitulo, orden, libro_id, libros(titulo)")
+          .contains("ciudades_ids", [ciudadId])
+          .eq("visibilidad", "publico")
+          .order("orden", { ascending: true }),
       ]);
       if (currentId !== ciudadId) return;
       if (!pRes.error) setPersonajesCiudad(pRes.data ?? []);
       if (!cRes.error) setCriaturasCiudad(cRes.data ?? []);
       if (!iRes.error) setItemsCiudad(iRes.data ?? []);
+      if (!capRes.error) {
+        const caps = (capRes.data ?? []).map((c: any) => ({
+          ...c,
+          libro_titulo: c.libros?.titulo ?? null,
+        }));
+        setCapitulosCiudad(caps);
+      }
       setLoadingCiudad(false);
     };
     run();
@@ -1789,7 +1838,7 @@ export default function MapaInteractivo() {
     handlePersonajeClick, modifiedDetalles, isSaving, handleSaveChanges,
     isUploadingImg, handleImageUpload, imgInputRef,
     librosReino, capitulosReino, loadingLibros,
-    personajesCiudad, criaturasCiudad, itemsCiudad, loadingCiudad,
+    personajesCiudad, criaturasCiudad, itemsCiudad, capitulosCiudad, loadingCiudad,
   };
 
   // Solo bloquea la UI si no hay absolutamente ningún dato todavía (primera carga ever)
