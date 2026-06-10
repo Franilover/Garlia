@@ -241,7 +241,7 @@ function MundoSectionCard({
 // ─── AddCommandMenu ───────────────────────────────────────────────────────────
 // Floating menu triggered when user types "add" and presses Enter
 
-export type MagicAddKey = "hechizos" | "dones" | "runas" | "notas" | "acontecimiento" | "grupos" | "ciudad" | "libro" | "capitulo" | "cancion";
+export type MagicAddKey = "hechizos" | "dones" | "runas" | "notas" | "acontecimiento" | "grupos" | "ciudad" | "libro" | "capitulo" | "cancion" | "grupo_libro";
 
 // Colores individuales por tipo — todos con la misma lógica color-mix
 const ADD_ITEM_COLOR: Record<string, string> = {
@@ -259,6 +259,7 @@ const ADD_ITEM_COLOR: Record<string, string> = {
   capitulo:        "var(--primary)",
   cancion:         "var(--primary)",
   ciudad:           "var(--primary)",
+  grupo_libro:      "color-mix(in srgb, var(--primary) 60%, #a78bfa)",
 };
 
 // Todas las entradas del menú en orden unificado
@@ -458,9 +459,10 @@ function AddCommandMenu({
         {/* Escritura — bloques rectangulares */}
         <div className="grid grid-cols-2 gap-1">
           {([
-            { kind: "magic" as const, key: "libro"   as MagicAddKey, label: "Nuevo libro",    Icon: BookOpen },
-            { kind: "magic" as const, key: "capitulo" as MagicAddKey, label: "Nuevo capítulo", Icon: ScrollText },
-            { kind: "magic" as const, key: "cancion"  as MagicAddKey, label: "Nueva canción",  Icon: Music },
+            { kind: "magic" as const, key: "libro"       as MagicAddKey, label: "Nuevo libro",         Icon: BookOpen   },
+            { kind: "magic" as const, key: "grupo_libro"  as MagicAddKey, label: "Grupo de libros",     Icon: Layers     },
+            { kind: "magic" as const, key: "capitulo"    as MagicAddKey, label: "Nuevo capítulo",       Icon: ScrollText },
+            { kind: "magic" as const, key: "cancion"     as MagicAddKey, label: "Nueva canción",        Icon: Music      },
           ] as AddEntry[]).map(renderRectEntry)}
         </div>
       </div>
@@ -879,7 +881,7 @@ export function ModalMagicNombre({
 // ─── ModalNuevoGrupo ──────────────────────────────────────────────────────────
 // Modal de dos pasos: 1) elegir tipo, 2) escribir nombre → insert completo
 
-type GrupoTipoLocal = "personajes" | "criaturas" | "items" | "reinos" | "hechizos" | "dones" | "runas";
+type GrupoTipoLocal = "personajes" | "criaturas" | "items" | "reinos" | "hechizos" | "dones" | "runas" | "libros";
 
 const GRUPO_MODAL_CONFIG: Record<GrupoTipoLocal, {
   label: string; labelPlural: string;
@@ -892,17 +894,20 @@ const GRUPO_MODAL_CONFIG: Record<GrupoTipoLocal, {
   reinos:     { label: "Reino",     labelPlural: "Reinos",     Icon: Map,        IconAlt: Map,         color: "color-mix(in srgb, var(--primary) 60%, #60a5fa)",             tabla: "reinos",     ejemplo: "Alianza, confederación, imperio…" },
   hechizos:   { label: "Hechizo",   labelPlural: "Hechizos",   Icon: Sparkles,   IconAlt: Wand2,       color: "var(--accent)",                                               tabla: "hechizos",   ejemplo: "Escuela, elemento, estilo…"    },
   dones:      { label: "Don",       labelPlural: "Dones",      Icon: Star,       IconAlt: Gem,         color: "color-mix(in srgb, var(--accent) 70%, var(--primary))",       tabla: "dones",      ejemplo: "Linaje, maldición, ancestral…" },
-  runas:      { label: "Runa",      labelPlural: "Runas",      Icon: ScrollText, IconAlt: ScrollText,  color: "var(--primary)",                                              tabla: "runas",      ejemplo: "Conjunto rúnico, tradición…"   },
+  runas:      { label: "Runa",      labelPlural: "Runas",      Icon: ScrollText, IconAlt: ScrollText,  color: "var(--primary)",                                                       tabla: "runas",      ejemplo: "Conjunto rúnico, tradición…"     },
+  libros:     { label: "Libro",     labelPlural: "Libros",     Icon: BookOpen,   IconAlt: BookOpen,    color: "color-mix(in srgb, var(--primary) 60%, #a78bfa)",                      tabla: "libros",     ejemplo: "Novela, poemario, saga, extra…"  },
 };
 
 export function ModalNuevoGrupo({
   onClose,
   onCreated,
+  tipoInicial,
 }: {
   onClose: () => void;
   onCreated?: (grupo: any) => void;
+  tipoInicial?: GrupoTipoLocal;
 }) {
-  const [tipo,   setTipo]   = useState<GrupoTipoLocal | null>(null);
+  const [tipo,   setTipo]   = useState<GrupoTipoLocal | null>(tipoInicial ?? null);
   const [nombre, setNombre] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved,  setSaved]  = useState(false);
