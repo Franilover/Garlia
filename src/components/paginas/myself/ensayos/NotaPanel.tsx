@@ -1,10 +1,10 @@
 "use client";
 import React, { useState, useMemo } from "react";
-import { Tag, Hash, AtSign, FileText, ChevronRight, X, Plus } from "lucide-react";
+import { Tag, Hash, AtSign, FileText, ChevronRight, Plus } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 
 // ── Tipos ──────────────────────────────────────────────────────────────────────
-type NotaPanelTab = "indice" | "tags" | "menciones";
+type NotaPanelTab = "indice" | "contexto";
 
 export interface TocEntry {
   level: number;
@@ -23,7 +23,6 @@ export interface NotaPanelProps {
 
 // ── Tab button ─────────────────────────────────────────────────────────────────
 function TabBtn({
-  id,
   label,
   icon: Icon,
   active,
@@ -31,7 +30,6 @@ function TabBtn({
   onClick,
   mono,
 }: {
-  id: NotaPanelTab;
   label: string;
   icon: React.ElementType;
   active: boolean;
@@ -65,11 +63,7 @@ function TabBtn({
         whiteSpace: "nowrap",
       }}
     >
-      <Icon
-        size={8}
-        strokeWidth={active ? 2.2 : 1.8}
-        style={{ flexShrink: 0 }}
-      />
+      <Icon size={8} strokeWidth={active ? 2.2 : 1.8} style={{ flexShrink: 0 }} />
       {label}
       {count !== undefined && count > 0 && (
         <span style={{
@@ -93,35 +87,12 @@ function TabBtn({
 }
 
 // ── Sección Índice ─────────────────────────────────────────────────────────────
-function SeccionIndice({
-  entries,
-  mono,
-}: {
-  entries: TocEntry[];
-  mono: React.CSSProperties;
-}) {
+function SeccionIndice({ entries, mono }: { entries: TocEntry[]; mono: React.CSSProperties }) {
   if (entries.length === 0) {
     return (
-      <div style={{
-        padding: "20px 16px",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        gap: 6,
-      }}>
-        <FileText
-          size={18}
-          style={{ color: "color-mix(in srgb, var(--foreground) 12%, transparent)" }}
-          strokeWidth={1.2}
-        />
-        <span style={{
-          ...mono,
-          fontSize: 9,
-          color: "color-mix(in srgb, var(--foreground) 22%, transparent)",
-          fontStyle: "italic",
-          textAlign: "center",
-          lineHeight: 1.5,
-        }}>
+      <div style={{ padding: "20px 16px", display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+        <FileText size={18} style={{ color: "color-mix(in srgb, var(--foreground) 12%, transparent)" }} strokeWidth={1.2} />
+        <span style={{ ...mono, fontSize: 9, color: "color-mix(in srgb, var(--foreground) 22%, transparent)", fontStyle: "italic", textAlign: "center", lineHeight: 1.5 }}>
           sin encabezados todavía
         </span>
       </div>
@@ -129,7 +100,7 @@ function SeccionIndice({
   }
 
   return (
-    <nav style={{ display: "flex", flexDirection: "column", gap: 0, padding: "4px 0" }}>
+    <nav style={{ display: "flex", flexDirection: "column", padding: "4px 0" }}>
       {entries.map((entry, i) => (
         <a
           key={i}
@@ -161,10 +132,8 @@ function SeccionIndice({
             marginRight: 4,
           }}
           onMouseEnter={e => {
-            (e.currentTarget as HTMLElement).style.background =
-              "color-mix(in srgb, var(--foreground) 5%, transparent)";
-            (e.currentTarget as HTMLElement).style.color =
-              "color-mix(in srgb, var(--foreground) 80%, transparent)";
+            (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--foreground) 5%, transparent)";
+            (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--foreground) 80%, transparent)";
           }}
           onMouseLeave={e => {
             (e.currentTarget as HTMLElement).style.background = "transparent";
@@ -176,15 +145,7 @@ function SeccionIndice({
           }}
         >
           {entry.level > 1 && (
-            <ChevronRight
-              size={7}
-              strokeWidth={1.6}
-              style={{
-                flexShrink: 0,
-                opacity: 0.4,
-                marginLeft: `${(entry.level - 2) * 4}px`,
-              }}
-            />
+            <ChevronRight size={7} strokeWidth={1.6} style={{ flexShrink: 0, opacity: 0.4, marginLeft: `${(entry.level - 2) * 4}px` }} />
           )}
           {entry.text}
         </a>
@@ -193,18 +154,20 @@ function SeccionIndice({
   );
 }
 
-// ── Sección Tags ───────────────────────────────────────────────────────────────
-function SeccionTags({
+// ── Sección Tags + Menciones combinadas ────────────────────────────────────────
+function SeccionContexto({
   ensayo,
   ensayos,
   onUpdateField,
   onTagClick,
+  onNavigateToPage,
   mono,
 }: {
   ensayo: any;
   ensayos: any[];
   onUpdateField: (id: string, field: string, value: any) => void;
   onTagClick?: (t: string) => void;
+  onNavigateToPage: (name: string) => void;
   mono: React.CSSProperties;
 }) {
   const [input, setInput] = useState("");
@@ -225,11 +188,19 @@ function SeccionTags({
     return allTags.filter(t => t.toLowerCase().includes(q)).slice(0, 6);
   }, [input, allTags]);
 
+  const backlinks = useMemo(() => {
+    const titulo = ensayo.titulo?.trim().toLowerCase();
+    if (!titulo) return [];
+    return ensayos.filter((e: any) => {
+      if (e.id === ensayo.id) return false;
+      const contenido = (e.contenido || "").toLowerCase();
+      return contenido.includes(`[[${titulo}]]`) || e.tags?.some((t: string) => t.toLowerCase() === titulo);
+    });
+  }, [ensayos, ensayo.id, ensayo.titulo]);
+
   const addTag = (t: string) => {
     const val = t.trim().toLowerCase();
-    if (val && !tags.includes(val)) {
-      onUpdateField(ensayo.id, "tags", [...tags, val]);
-    }
+    if (val && !tags.includes(val)) onUpdateField(ensayo.id, "tags", [...tags, val]);
     setInput("");
   };
 
@@ -237,34 +208,46 @@ function SeccionTags({
     onUpdateField(ensayo.id, "tags", tags.filter(x => x !== t));
   };
 
+  const labelStyle: React.CSSProperties = {
+    ...mono,
+    fontSize: 8,
+    textTransform: "uppercase",
+    letterSpacing: "0.12em",
+    color: "color-mix(in srgb, var(--foreground) 25%, transparent)",
+    padding: "8px 12px 4px",
+    display: "flex",
+    alignItems: "center",
+    gap: 5,
+  };
+
   return (
-    <div style={{ padding: "10px 12px", display: "flex", flexDirection: "column", gap: 8 }}>
-      {/* Chips */}
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-        {tags.length === 0 && !focused && (
-          <span style={{
-            ...mono,
-            fontSize: 9,
-            color: "color-mix(in srgb, var(--foreground) 22%, transparent)",
-            fontStyle: "italic",
-          }}>
-            sin etiquetas
+    <div style={{ display: "flex", flexDirection: "column" }}>
+
+      {/* ── TAGS ── */}
+      <div style={labelStyle}>
+        <Tag size={7} strokeWidth={1.8} />
+        etiquetas
+        {tags.length > 0 && (
+          <span style={{ ...mono, fontSize: 7, marginLeft: "auto", color: "color-mix(in srgb, var(--foreground) 22%, transparent)" }}>
+            {tags.length}
           </span>
         )}
+      </div>
+
+      <div style={{ padding: "0 12px", display: "flex", flexDirection: "column", gap: 1 }}>
         {tags.map(t => (
-          <span
+          <div
             key={t}
             style={{
-              display: "inline-flex",
+              display: "flex",
               alignItems: "center",
-              gap: 0,
-              ...mono,
-              fontSize: 9,
-              borderRadius: 3,
-              background: "color-mix(in srgb, var(--accent) 9%, transparent)",
-              border: "1px solid color-mix(in srgb, var(--accent) 20%, transparent)",
-              overflow: "hidden",
+              justifyContent: "space-between",
+              padding: "3px 6px",
+              borderRadius: 4,
+              transition: "background 0.1s",
             }}
+            onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--foreground) 4%, transparent)"}
+            onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = "transparent"}
           >
             <button
               onClick={() => onTagClick?.(t)}
@@ -272,22 +255,11 @@ function SeccionTags({
                 background: "none",
                 border: "none",
                 cursor: onTagClick ? "pointer" : "default",
-                padding: "2px 4px 2px 7px",
-                color: "color-mix(in srgb, var(--accent) 75%, transparent)",
+                padding: 0,
                 ...mono,
-                fontSize: 9,
-                transition: "color 0.1s, background 0.1s",
-              }}
-              onMouseEnter={e => {
-                if (!onTagClick) return;
-                (e.currentTarget as HTMLElement).style.background =
-                  "color-mix(in srgb, var(--accent) 16%, transparent)";
-                (e.currentTarget as HTMLElement).style.color = "var(--accent)";
-              }}
-              onMouseLeave={e => {
-                (e.currentTarget as HTMLElement).style.background = "none";
-                (e.currentTarget as HTMLElement).style.color =
-                  "color-mix(in srgb, var(--accent) 75%, transparent)";
+                fontSize: 10,
+                color: "color-mix(in srgb, var(--accent) 75%, transparent)",
+                textAlign: "left",
               }}
             >
               #{t}
@@ -298,251 +270,179 @@ function SeccionTags({
                 background: "none",
                 border: "none",
                 cursor: "pointer",
-                padding: "2px 5px 2px 2px",
-                color: "color-mix(in srgb, var(--accent) 35%, transparent)",
-                fontSize: 10,
+                padding: "0 2px",
+                color: "color-mix(in srgb, var(--foreground) 18%, transparent)",
+                fontSize: 12,
                 lineHeight: 1,
                 display: "flex",
                 alignItems: "center",
                 transition: "color 0.1s",
+                flexShrink: 0,
               }}
-              onMouseEnter={e =>
-                (e.currentTarget as HTMLElement).style.color =
-                  "color-mix(in srgb, var(--accent) 75%, transparent)"
-              }
-              onMouseLeave={e =>
-                (e.currentTarget as HTMLElement).style.color =
-                  "color-mix(in srgb, var(--accent) 35%, transparent)"
-              }
+              onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--accent) 60%, transparent)"}
+              onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--foreground) 18%, transparent)"}
             >
               ×
             </button>
-          </span>
+          </div>
         ))}
-      </div>
 
-      {/* Input nuevo tag */}
-      <div style={{ position: "relative" }}>
-        <div style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 4,
-          padding: "4px 8px",
-          borderRadius: 5,
-          border: `1px ${focused ? "solid" : "dashed"} ${
-            focused
-              ? "color-mix(in srgb, var(--foreground) 16%, transparent)"
-              : "color-mix(in srgb, var(--foreground) 10%, transparent)"
-          }`,
-          background: focused
-            ? "color-mix(in srgb, var(--foreground) 3%, transparent)"
-            : "transparent",
-          transition: "all 0.1s",
-        }}>
-          <Plus
-            size={8}
-            style={{ color: "color-mix(in srgb, var(--foreground) 22%, transparent)", flexShrink: 0 }}
-          />
-          <input
-            type="text"
-            value={input}
-            placeholder="añadir etiqueta..."
-            onFocus={() => setFocused(true)}
-            onBlur={() => setTimeout(() => setFocused(false), 150)}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={e => {
-              if (e.key === "Enter" || e.key === ",") {
-                e.preventDefault();
-                if (input.trim()) addTag(input);
-              }
-              if (e.key === "Escape") {
-                setInput("");
-                setFocused(false);
-              }
-            }}
-            style={{
-              flex: 1,
-              background: "transparent",
-              border: "none",
-              outline: "none",
-              ...mono,
-              fontSize: 9,
-              color: "color-mix(in srgb, var(--foreground) 65%, transparent)",
-            }}
-          />
-        </div>
-
-        <AnimatePresence>
-          {focused && suggestions.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: -4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -4 }}
-              transition={{ duration: 0.1 }}
-              style={{
-                position: "absolute",
-                top: "calc(100% + 4px)",
-                left: 0,
-                right: 0,
-                background: "var(--bg-menu)",
-                border: "1px solid color-mix(in srgb, var(--foreground) 10%, transparent)",
-                borderRadius: 5,
-                padding: 3,
-                display: "flex",
-                flexDirection: "column",
-                gap: 1,
-                zIndex: 50,
-                boxShadow: "0 4px 16px color-mix(in srgb, var(--bg-main) 50%, transparent)",
+        {/* Input nuevo tag */}
+        <div style={{ position: "relative", marginTop: 2 }}>
+          <div style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 5,
+            padding: "3px 6px",
+            borderRadius: 4,
+            border: `1px ${focused ? "solid" : "dashed"} ${focused ? "color-mix(in srgb, var(--foreground) 14%, transparent)" : "color-mix(in srgb, var(--foreground) 9%, transparent)"}`,
+            background: focused ? "color-mix(in srgb, var(--foreground) 3%, transparent)" : "transparent",
+            transition: "all 0.1s",
+          }}>
+            <Plus size={7} style={{ color: "color-mix(in srgb, var(--foreground) 20%, transparent)", flexShrink: 0 }} />
+            <input
+              type="text"
+              value={input}
+              placeholder="añadir..."
+              onFocus={() => setFocused(true)}
+              onBlur={() => setTimeout(() => setFocused(false), 150)}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === "Enter" || e.key === ",") { e.preventDefault(); if (input.trim()) addTag(input); }
+                if (e.key === "Escape") { setInput(""); setFocused(false); }
               }}
-            >
-              {suggestions.map(t => (
-                <button
-                  key={t}
-                  onMouseDown={() => addTag(t)}
-                  style={{
-                    ...mono,
-                    fontSize: 9,
-                    color: "color-mix(in srgb, var(--foreground) 60%, transparent)",
-                    background: "transparent",
-                    border: "none",
-                    borderRadius: 3,
-                    padding: "3px 8px",
-                    cursor: "pointer",
-                    textAlign: "left",
-                  }}
-                  onMouseEnter={e => {
-                    (e.currentTarget as HTMLElement).style.background =
-                      "color-mix(in srgb, var(--accent) 10%, transparent)";
-                    (e.currentTarget as HTMLElement).style.color =
-                      "color-mix(in srgb, var(--accent) 85%, transparent)";
-                  }}
-                  onMouseLeave={e => {
-                    (e.currentTarget as HTMLElement).style.background = "transparent";
-                    (e.currentTarget as HTMLElement).style.color =
-                      "color-mix(in srgb, var(--foreground) 60%, transparent)";
-                  }}
-                >
-                  #{t}
-                </button>
-              ))}
-            </motion.div>
-          )}
-        </AnimatePresence>
+              style={{
+                flex: 1,
+                background: "transparent",
+                border: "none",
+                outline: "none",
+                ...mono,
+                fontSize: 9,
+                color: "color-mix(in srgb, var(--foreground) 60%, transparent)",
+              }}
+            />
+          </div>
+
+          <AnimatePresence>
+            {focused && suggestions.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: -3 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -3 }}
+                transition={{ duration: 0.1 }}
+                style={{
+                  position: "absolute",
+                  top: "calc(100% + 3px)",
+                  left: 0,
+                  right: 0,
+                  background: "var(--bg-menu)",
+                  border: "1px solid color-mix(in srgb, var(--foreground) 10%, transparent)",
+                  borderRadius: 5,
+                  padding: 3,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 1,
+                  zIndex: 50,
+                  boxShadow: "0 4px 16px color-mix(in srgb, var(--bg-main) 50%, transparent)",
+                }}
+              >
+                {suggestions.map(t => (
+                  <button
+                    key={t}
+                    onMouseDown={() => addTag(t)}
+                    style={{
+                      ...mono, fontSize: 9,
+                      color: "color-mix(in srgb, var(--foreground) 60%, transparent)",
+                      background: "transparent",
+                      border: "none", borderRadius: 3,
+                      padding: "3px 8px",
+                      cursor: "pointer", textAlign: "left",
+                    }}
+                    onMouseEnter={e => {
+                      (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--accent) 10%, transparent)";
+                      (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--accent) 85%, transparent)";
+                    }}
+                    onMouseLeave={e => {
+                      (e.currentTarget as HTMLElement).style.background = "transparent";
+                      (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--foreground) 60%, transparent)";
+                    }}
+                  >
+                    #{t}
+                  </button>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
-    </div>
-  );
-}
 
-// ── Sección Menciones ──────────────────────────────────────────────────────────
-function SeccionMenciones({
-  ensayo,
-  ensayos,
-  onNavigateToPage,
-  mono,
-}: {
-  ensayo: any;
-  ensayos: any[];
-  onNavigateToPage: (name: string) => void;
-  mono: React.CSSProperties;
-}) {
-  const backlinks = useMemo(() => {
-    const titulo = ensayo.titulo?.trim().toLowerCase();
-    if (!titulo) return [];
-    return ensayos.filter((e: any) => {
-      if (e.id === ensayo.id) return false;
-      const contenido = (e.contenido || "").toLowerCase();
-      const viaWikilink = contenido.includes(`[[${titulo}]]`);
-      const viaTag = e.tags?.some((t: string) => t.toLowerCase() === titulo);
-      return viaWikilink || viaTag;
-    });
-  }, [ensayos, ensayo.id, ensayo.titulo]);
-
-  if (backlinks.length === 0) {
-    return (
+      {/* ── Divisor ── */}
       <div style={{
-        padding: "20px 16px",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        gap: 6,
-      }}>
-        <AtSign
-          size={18}
-          style={{ color: "color-mix(in srgb, var(--foreground) 12%, transparent)" }}
-          strokeWidth={1.2}
-        />
-        <span style={{
-          ...mono,
-          fontSize: 9,
-          color: "color-mix(in srgb, var(--foreground) 22%, transparent)",
-          fontStyle: "italic",
-          textAlign: "center",
-          lineHeight: 1.5,
-        }}>
-          ninguna nota menciona esta página
-        </span>
-      </div>
-    );
-  }
+        margin: "10px 12px 0",
+        borderTop: "1px solid color-mix(in srgb, var(--foreground) 6%, transparent)",
+      }} />
 
-  return (
-    <div style={{ padding: "6px 8px", display: "flex", flexDirection: "column", gap: 2 }}>
-      {backlinks.map((b: any) => {
-        const titulo = ensayo.titulo?.trim().toLowerCase() ?? "";
-        const contenido = (b.contenido || "").toLowerCase();
-        const viaWikilink = contenido.includes(`[[${titulo}]]`);
-        const viaTag = b.tags?.some((t: string) => t.toLowerCase() === titulo);
-        return (
-          <button
-            key={b.id}
-            onClick={() => onNavigateToPage(b.titulo)}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              background: "transparent",
-              border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
-              borderRadius: 5,
-              cursor: "pointer",
-              padding: "5px 9px 5px 7px",
-              transition: "all 0.1s",
-              textAlign: "left",
-              width: "100%",
-            }}
-            onMouseEnter={e => {
-              (e.currentTarget as HTMLElement).style.borderColor =
-                "color-mix(in srgb, var(--accent) 38%, transparent)";
-              (e.currentTarget as HTMLElement).style.background =
-                "color-mix(in srgb, var(--accent) 7%, transparent)";
-            }}
-            onMouseLeave={e => {
-              (e.currentTarget as HTMLElement).style.borderColor =
-                "color-mix(in srgb, var(--primary) 14%, transparent)";
-              (e.currentTarget as HTMLElement).style.background = "transparent";
-            }}
-          >
-            <span style={{
-              ...mono,
-              fontSize: 8,
-              color: "color-mix(in srgb, var(--accent) 60%, transparent)",
-              flexShrink: 0,
-            }}>
-              {viaWikilink && viaTag ? "[[]]#" : viaWikilink ? "[[]]" : "#"}
-            </span>
-            <span style={{
-              fontSize: 11,
-              fontFamily: "var(--font-serif)",
-              fontStyle: "italic",
-              color: "color-mix(in srgb, var(--foreground) 72%, transparent)",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}>
-              {b.titulo || "sin título"}
-            </span>
-          </button>
-        );
-      })}
+      {/* ── MENCIONES ── */}
+      <div style={labelStyle}>
+        <AtSign size={7} strokeWidth={1.8} />
+        menciones
+        {backlinks.length > 0 && (
+          <span style={{ ...mono, fontSize: 7, marginLeft: "auto", color: "color-mix(in srgb, var(--accent) 65%, transparent)" }}>
+            {backlinks.length}
+          </span>
+        )}
+      </div>
+
+      <div style={{ padding: "0 12px", display: "flex", flexDirection: "column", gap: 1 }}>
+        {backlinks.length === 0 ? (
+          <span style={{ ...mono, fontSize: 9, color: "color-mix(in srgb, var(--foreground) 20%, transparent)", fontStyle: "italic", padding: "3px 6px" }}>
+            ninguna nota menciona esta página
+          </span>
+        ) : backlinks.map((b: any) => {
+          const titulo = ensayo.titulo?.trim().toLowerCase() ?? "";
+          const contenido = (b.contenido || "").toLowerCase();
+          const viaWikilink = contenido.includes(`[[${titulo}]]`);
+          const viaTag = b.tags?.some((t: string) => t.toLowerCase() === titulo);
+          return (
+            <button
+              key={b.id}
+              onClick={() => onNavigateToPage(b.titulo)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                background: "transparent",
+                border: "none",
+                borderRadius: 4,
+                cursor: "pointer",
+                padding: "3px 6px",
+                transition: "background 0.1s",
+                textAlign: "left",
+                width: "100%",
+              }}
+              onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--foreground) 4%, transparent)"}
+              onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = "transparent"}
+            >
+              <span style={{ ...mono, fontSize: 8, color: "color-mix(in srgb, var(--accent) 55%, transparent)", flexShrink: 0 }}>
+                {viaWikilink && viaTag ? "[[]]#" : viaWikilink ? "[[]]" : "#"}
+              </span>
+              <span style={{
+                fontSize: 11,
+                fontFamily: "var(--font-serif)",
+                fontStyle: "italic",
+                color: "color-mix(in srgb, var(--foreground) 70%, transparent)",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}>
+                {b.titulo || "sin título"}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      <div style={{ height: 12 }} />
     </div>
   );
 }
@@ -568,31 +468,24 @@ export function NotaPanel({
     return ensayos.filter((e: any) => {
       if (e.id === ensayo.id) return false;
       const contenido = (e.contenido || "").toLowerCase();
-      return (
-        contenido.includes(`[[${titulo}]]`) ||
-        e.tags?.some((t: string) => t.toLowerCase() === titulo)
-      );
+      return contenido.includes(`[[${titulo}]]`) || e.tags?.some((t: string) => t.toLowerCase() === titulo);
     }).length;
   }, [ensayos, ensayo.id, ensayo.titulo]);
 
+  const contextoCount = tags.length + backlinksCount;
+
   return (
-    <div style={{
-      display: "flex",
-      flexDirection: "column",
-      height: "100%",
-      overflow: "hidden",
-    }}>
-      {/* ── Header con tabs ── */}
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
+
+      {/* ── Tabs ── */}
       <div style={{
         padding: "10px 8px 0",
         borderBottom: "1px solid color-mix(in srgb, var(--foreground) 6%, transparent)",
         display: "flex",
         gap: 2,
         flexShrink: 0,
-        flexWrap: "wrap",
       }}>
         <TabBtn
-          id="indice"
           label="índice"
           icon={Hash}
           active={tab === "indice"}
@@ -601,32 +494,17 @@ export function NotaPanel({
           mono={mono}
         />
         <TabBtn
-          id="tags"
-          label="etiquetas"
+          label="contexto"
           icon={Tag}
-          active={tab === "tags"}
-          count={tags.length}
-          onClick={() => setTab("tags")}
-          mono={mono}
-        />
-        <TabBtn
-          id="menciones"
-          label="menciones"
-          icon={AtSign}
-          active={tab === "menciones"}
-          count={backlinksCount}
-          onClick={() => setTab("menciones")}
+          active={tab === "contexto"}
+          count={contextoCount}
+          onClick={() => setTab("contexto")}
           mono={mono}
         />
       </div>
 
-      {/* ── Contenido de la pestaña activa ── */}
-      <div style={{
-        flex: 1,
-        overflowY: "auto",
-        scrollbarWidth: "none",
-        paddingBottom: 12,
-      }}>
+      {/* ── Contenido ── */}
+      <div style={{ flex: 1, overflowY: "auto", scrollbarWidth: "none" }}>
         <AnimatePresence mode="wait">
           {tab === "indice" && (
             <motion.div
@@ -639,34 +517,19 @@ export function NotaPanel({
               <SeccionIndice entries={tocEntries} mono={mono} />
             </motion.div>
           )}
-          {tab === "tags" && (
+          {tab === "contexto" && (
             <motion.div
-              key="tags"
+              key="contexto"
               initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -4 }}
               transition={{ duration: 0.12 }}
             >
-              <SeccionTags
+              <SeccionContexto
                 ensayo={ensayo}
                 ensayos={ensayos}
                 onUpdateField={onUpdateField}
                 onTagClick={onTagClick}
-                mono={mono}
-              />
-            </motion.div>
-          )}
-          {tab === "menciones" && (
-            <motion.div
-              key="menciones"
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -4 }}
-              transition={{ duration: 0.12 }}
-            >
-              <SeccionMenciones
-                ensayo={ensayo}
-                ensayos={ensayos}
                 onNavigateToPage={onNavigateToPage}
                 mono={mono}
               />
