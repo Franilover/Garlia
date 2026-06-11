@@ -153,6 +153,73 @@ function PersonajesPanel({ ids, border }: { ids: string[]; border: string }) {
 }
 
 /* ─────────────────────────────────────────────
+   Reinos y ciudades del capítulo activo
+   ───────────────────────────────────────────── */
+function LugaresPanel({ reinosIds, ciudadesIds, border }: { reinosIds: string[]; ciudadesIds: string[]; border: string }) {
+  const [reinos,   setReinos]   = useState<{ id: string; nombre: string }[]>([]);
+  const [ciudades, setCiudades] = useState<{ id: string; nombre: string }[]>([]);
+
+  useEffect(() => {
+    if (reinosIds.length === 0) { setReinos([]); return; }
+    supabase.from("reinos").select("id, nombre").in("id", reinosIds)
+      .then(({ data }) => { if (data) setReinos(data); });
+  }, [reinosIds.join(",")]);
+
+  useEffect(() => {
+    if (ciudadesIds.length === 0) { setCiudades([]); return; }
+    supabase.from("ciudades").select("id, nombre").in("id", ciudadesIds)
+      .then(({ data }) => { if (data) setCiudades(data); });
+  }, [ciudadesIds.join(",")]);
+
+  if (reinos.length === 0 && ciudades.length === 0) return null;
+
+  return (
+    <div style={{ padding: "10px 16px 0", flexShrink: 0, display: "flex", flexDirection: "column", gap: 8 }}>
+      {reinos.length > 0 && (
+        <div>
+          <p style={{ fontSize: 7, fontFamily: "var(--font-mono)", letterSpacing: "0.2em", textTransform: "uppercase", color: "var(--primary)", opacity: 0.25, marginBottom: 5 }}>
+            {reinos.length === 1 ? "Reino" : "Reinos"}
+          </p>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+            {reinos.map(r => (
+              <span key={r.id} style={{
+                fontSize: 9, fontFamily: "var(--font-mono)", fontWeight: 700,
+                textTransform: "uppercase", letterSpacing: "0.08em",
+                color: "var(--primary)", opacity: 0.6,
+                padding: "2px 7px", borderRadius: 99,
+                border,
+              }}>
+                {r.nombre}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+      {ciudades.length > 0 && (
+        <div>
+          <p style={{ fontSize: 7, fontFamily: "var(--font-mono)", letterSpacing: "0.2em", textTransform: "uppercase", color: "var(--primary)", opacity: 0.25, marginBottom: 5 }}>
+            {ciudades.length === 1 ? "Ciudad" : "Ciudades"}
+          </p>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+            {ciudades.map(c => (
+              <span key={c.id} style={{
+                fontSize: 9, fontFamily: "var(--font-mono)", fontWeight: 700,
+                textTransform: "uppercase", letterSpacing: "0.08em",
+                color: "var(--primary)", opacity: 0.45,
+                padding: "2px 7px", borderRadius: 99,
+                border: `1px solid color-mix(in srgb, var(--primary) 7%, transparent)`,
+              }}>
+                {c.nombre}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────
    Panel lateral izquierdo
    ───────────────────────────────────────────── */
 function PanelLateral({
@@ -229,24 +296,14 @@ function PanelLateral({
           ← Volver
         </button>
 
-        {/* Narrador + título del cap sobre el degradado */}
+        {/* Narrador solo — sin título del cap */}
         <div style={{ position: "absolute", bottom: 14, left: 16, right: 16 }}>
           {narrador?.nombre && (
             <p style={{
               fontSize: 8, fontFamily: "var(--font-mono)", letterSpacing: "0.18em",
               textTransform: "uppercase", color: "var(--primary)", opacity: 0.5,
-              marginBottom: 4,
             }}>
               {narrador.nombre}
-            </p>
-          )}
-          {capActual && (
-            <p style={{
-              fontSize: 11, fontWeight: 900, color: "var(--primary)", opacity: 0.85,
-              lineHeight: 1.25, fontStyle: "italic", letterSpacing: "-0.02em",
-              textTransform: "uppercase",
-            }}>
-              {capActual.orden}. {capActual.titulo_capitulo}
             </p>
           )}
         </div>
@@ -262,6 +319,15 @@ function PanelLateral({
             {libroTitulo}
           </p>
         </div>
+      )}
+
+      {/* ── Reinos y ciudades del capítulo ── */}
+      {!loading && capActual && !esExtra && (
+        <LugaresPanel
+          reinosIds={(capActual as any).reinos_ids ?? []}
+          ciudadesIds={(capActual as any).ciudades_ids ?? []}
+          border={border}
+        />
       )}
 
       {/* ── Personajes del capítulo ── */}
