@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
-import { Play, Calendar, Clock, CheckCircle2 } from "lucide-react";
+import { Play, Calendar, Clock, CheckCircle2, Map, Building2 } from "lucide-react";
 import { SmartImage } from "@/components/display/SmartImage";
 import { Loading, BackBtn } from "@/components/ui";
 import { toSlug, esUUID } from "@/lib/utils/slugify";
@@ -17,6 +17,8 @@ interface Capitulo {
   libro_id: string;
   narrador_id: string | null;
   personajes_ids: string[] | null;
+  reinos_ids: string[] | null;
+  ciudades_ids: string[] | null;
 }
 
 interface Libro {
@@ -31,6 +33,18 @@ interface Personaje {
   id: string;
   nombre: string;
   img_url: string | null;
+}
+
+interface Reino {
+  id: string;
+  nombre: string;
+  logo_url: string | null;
+}
+
+interface Ciudad {
+  id: string;
+  nombre: string;
+  imagen_url: string | null;
 }
 
 interface CapituloProximo {
@@ -102,6 +116,8 @@ export default function LibroDetalle() {
   const [notFound,         setNotFound]         = useState(false);
   const [leidos,           setLeidos]           = useState<Set<string>>(new Set());
   const [personajesMap,    setPersonajesMap]    = useState<Record<string, Personaje>>({});
+  const [reinosMap,        setReinosMap]        = useState<Record<string, Reino>>({});
+  const [ciudadesMap,      setCiudadesMap]      = useState<Record<string, Ciudad>>({});
 
   // ── Capítulos leídos ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -260,7 +276,7 @@ export default function LibroDetalle() {
         const [capsRes, proximoRes] = await Promise.all([
           supabase
             .from("capitulos")
-            .select("id, titulo_capitulo, orden, fecha_publicacion, libro_id, narrador_id, personajes_ids")
+            .select("id, titulo_capitulo, orden, fecha_publicacion, libro_id, narrador_id, personajes_ids, reinos_ids, ciudades_ids")
             .eq("libro_id", libroData.id)
             .eq("visibilidad", "publico")
             .not("titulo_capitulo", "like", "[Ruta]%")
@@ -287,6 +303,8 @@ export default function LibroDetalle() {
             libro_id: c.libro_id,
             narrador_id: c.narrador_id ?? null,
             personajes_ids: c.personajes_ids ?? null,
+            reinos_ids: c.reinos_ids ?? null,
+            ciudades_ids: c.ciudades_ids ?? null,
           })) as Capitulo[];
 
           // Actualizar caché de módulo
@@ -296,24 +314,50 @@ export default function LibroDetalle() {
           // Guardar caps en Dexie para la próxima visita
           try { await db?.capitulos?.bulkPut(capsNorm as any[]); } catch {}
 
-          // ── Personajes solo si el grupo es "Libro" ───────────────────────
+          // ── Personajes, reinos y ciudades solo si el grupo es "Libro" ──────
           if (grupoNombreLocal === "Libro") {
-            const ids = new Set<string>();
+            const personajeIds = new Set<string>();
+            const reinoIds     = new Set<string>();
+            const ciudadIds    = new Set<string>();
             for (const c of capsNorm) {
-              if (c.narrador_id) ids.add(c.narrador_id);
-              (c.personajes_ids ?? []).forEach(id => ids.add(id));
+              if (c.narrador_id) personajeIds.add(c.narrador_id);
+              (c.personajes_ids ?? []).forEach(id => personajeIds.add(id));
+              (c.reinos_ids   ?? []).forEach(id => reinoIds.add(id));
+              (c.ciudades_ids ?? []).forEach(id => ciudadIds.add(id));
             }
-            if (ids.size > 0) {
-              const { data: pData } = await supabase
-                .from("personajes")
-                .select("id, nombre, img_url")
-                .in("id", [...ids]);
-              if (pData && mounted) {
-                const map: Record<string, Personaje> = {};
-                for (const p of pData as Personaje[]) map[p.id] = p;
-                setPersonajesMap(map);
-              }
-            }
+
+            await Promise.all([
+              personajeIds.size > 0
+                ? supabase.from("personajes").select("id, nombre, img_url").in("id", [...personajeIds])
+                    .then(({ data }) => {
+                      if (data && mounted) {
+                        const map: Record<string, Personaje> = {};
+                        for (const p of data as Personaje[]) map[p.id] = p;
+                        setPersonajesMap(map);
+                      }
+                    })
+                : Promise.resolve(),
+              reinoIds.size > 0
+                ? supabase.from("reinos").select("id, nombre, logo_url").in("id", [...reinoIds])
+                    .then(({ data }) => {
+                      if (data && mounted) {
+                        const map: Record<string, Reino> = {};
+                        for (const r of data as Reino[]) map[r.id] = r;
+                        setReinosMap(map);
+                      }
+                    })
+                : Promise.resolve(),
+              ciudadIds.size > 0
+                ? supabase.from("ciudades").select("id, nombre, imagen_url").in("id", [...ciudadIds])
+                    .then(({ data }) => {
+                      if (data && mounted) {
+                        const map: Record<string, Ciudad> = {};
+                        for (const c of data as Ciudad[]) map[c.id] = c;
+                        setCiudadesMap(map);
+                      }
+                    })
+                : Promise.resolve(),
+            ]);
           }
         }
 
@@ -494,6 +538,50 @@ export default function LibroDetalle() {
                 <Play size={10} fill="currentColor" />
                 {leidos.size > 0 ? "Continuar leyendo" : "Empezar a leer"}
               </button>
+            )}
+
+            {/* ── Reinos ── */}
+            {Object.keys(reinosMap).length > 0 && (
+              <div className="hidden md:flex flex-col gap-2">
+                <div className="flex items-center gap-1.5">
+                  <Map size={9} className="text-primary/30" />
+                  <span className="text-[8px] font-black uppercase tracking-[0.25em] text-primary/30">Reinos</span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {Object.values(reinosMap).map(reino => (
+                    <div key={reino.id} className="flex items-center gap-1.5 px-2 py-1 rounded-full border border-primary/10 bg-primary/3">
+                      {reino.logo_url && (
+                        <div className="w-3.5 h-3.5 rounded-full overflow-hidden shrink-0">
+                          <SmartImage src={reino.logo_url} alt={reino.nombre} className="w-full h-full object-cover" />
+                        </div>
+                      )}
+                      <span className="text-[9px] font-bold text-primary/60">{reino.nombre}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ── Ciudades ── */}
+            {Object.keys(ciudadesMap).length > 0 && (
+              <div className="hidden md:flex flex-col gap-2">
+                <div className="flex items-center gap-1.5">
+                  <Building2 size={9} className="text-primary/30" />
+                  <span className="text-[8px] font-black uppercase tracking-[0.25em] text-primary/30">Ciudades</span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {Object.values(ciudadesMap).map(ciudad => (
+                    <div key={ciudad.id} className="flex items-center gap-1.5 px-2 py-1 rounded-full border border-primary/10 bg-primary/3">
+                      {ciudad.imagen_url && (
+                        <div className="w-3.5 h-3.5 rounded-full overflow-hidden shrink-0">
+                          <SmartImage src={ciudad.imagen_url} alt={ciudad.nombre} className="w-full h-full object-cover" />
+                        </div>
+                      )}
+                      <span className="text-[9px] font-bold text-primary/60">{ciudad.nombre}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
           </div>
         </aside>
