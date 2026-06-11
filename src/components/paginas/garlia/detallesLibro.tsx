@@ -38,11 +38,6 @@ interface CapituloProximo {
   fecha_publicacion: string;
 }
 
-interface GrupoLibro {
-  id: string;
-  nombre: string;
-}
-
 
 
 
@@ -107,7 +102,6 @@ export default function LibroDetalle() {
   const [notFound,         setNotFound]         = useState(false);
   const [leidos,           setLeidos]           = useState<Set<string>>(new Set());
   const [personajesMap,    setPersonajesMap]    = useState<Record<string, Personaje>>({});
-  const [grupoNombre,      setGrupoNombre]      = useState<string | null>(null);
 
   // ── Capítulos leídos ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -198,23 +192,41 @@ export default function LibroDetalle() {
       setLibroId(libroData.id);
       setLoading(false); // ← quita el spinner principal aquí, no al final
 
-      // ── Grupo: cargar nombre para decidir interfaz ────────────────────────
-      if (libroData.categoria) {
-        try {
-          const { data: gData } = await supabase
-            .from("grupos_mundo")
-            .select("id, nombre")
-            .eq("id", libroData.categoria)
-            .single();
-          if (gData && mounted) setGrupoNombre((gData as GrupoLibro).nombre);
-        } catch {}
-      }
+      // `categoria` en libros es el nombre del grupo (texto libre, no FK).
+      // "Libro" → interfaz rica con narradores; cualquier otro valor → simple.
+      const grupoNombreLocal = libroData.categoria ?? null;
 
       // ── Caps: caché de módulo (0ms) ───────────────────────────────────────
       const cached = capsCacheados(libroData.id);
       if (cached) {
+        if (!mounted) return;
         setCapitulos(cached);
         setLoadingCaps(false);
+
+        // Personajes si es "Libro"
+        if (grupoNombreLocal === "Libro") {
+          const ids = new Set<string>();
+          for (const c of cached) {
+            if (c.narrador_id) ids.add(c.narrador_id);
+            (c.personajes_ids ?? []).forEach(id => ids.add(id));
+          }
+          if (ids.size > 0) {
+            Promise.resolve(
+              supabase
+                .from("personajes")
+                .select("id, nombre, img_url")
+                .in("id", [...ids])
+                .then(({ data: pData }) => {
+                  if (pData && mounted) {
+                    const map: Record<string, Personaje> = {};
+                    for (const p of pData as Personaje[]) map[p.id] = p;
+                    setPersonajesMap(map);
+                  }
+                })
+            ).catch(() => {});
+          }
+        }
+
         // Próximo siempre se refresca (es tiempo-sensitivo)
         supabase
           .from("capitulos")
@@ -242,13 +254,12 @@ export default function LibroDetalle() {
         }
       } catch {}
 
-      // ── Caps: Supabase (fuente de verdad) ─────────────────────────────────
+      // ── Caps: Supabase (fuente de verdad) ────────────────────────────────
       try {
         const ahora = new Date().toISOString();
         const [capsRes, proximoRes] = await Promise.all([
           supabase
             .from("capitulos")
-            // FIX: select específico en vez de * — evita traer `contenido` (puede ser MBs)
             .select("id, titulo_capitulo, orden, fecha_publicacion, libro_id, narrador_id, personajes_ids")
             .eq("libro_id", libroData.id)
             .eq("visibilidad", "publico")
@@ -285,21 +296,23 @@ export default function LibroDetalle() {
           // Guardar caps en Dexie para la próxima visita
           try { await db?.capitulos?.bulkPut(capsNorm as any[]); } catch {}
 
-          // ── Personajes narradores/participantes (batch) ──────────────────
-          const ids = new Set<string>();
-          for (const c of capsNorm) {
-            if (c.narrador_id) ids.add(c.narrador_id);
-            (c.personajes_ids ?? []).forEach(id => ids.add(id));
-          }
-          if (ids.size > 0) {
-            const { data: pData } = await supabase
-              .from("personajes")
-              .select("id, nombre, img_url")
-              .in("id", [...ids]);
-            if (pData && mounted) {
-              const map: Record<string, Personaje> = {};
-              for (const p of pData as Personaje[]) map[p.id] = p;
-              setPersonajesMap(map);
+          // ── Personajes solo si el grupo es "Libro" ───────────────────────
+          if (grupoNombreLocal === "Libro") {
+            const ids = new Set<string>();
+            for (const c of capsNorm) {
+              if (c.narrador_id) ids.add(c.narrador_id);
+              (c.personajes_ids ?? []).forEach(id => ids.add(id));
+            }
+            if (ids.size > 0) {
+              const { data: pData } = await supabase
+                .from("personajes")
+                .select("id, nombre, img_url")
+                .in("id", [...ids]);
+              if (pData && mounted) {
+                const map: Record<string, Personaje> = {};
+                for (const p of pData as Personaje[]) map[p.id] = p;
+                setPersonajesMap(map);
+              }
             }
           }
         }
@@ -326,8 +339,9 @@ export default function LibroDetalle() {
     </div>
   );
 
-  // Interfaz rica solo si el grupo se llama exactamente "Libro"
-  const esLibro = grupoNombre === "Libro";
+  // `categoria` en libros es el nombre del grupo (texto libre).
+  // "Libro" → interfaz rica con narradores; cualquier otro valor → simple.
+  const esLibro = libro.categoria === "Libro";
 
   const rutaLector = (primerCapId: string, targetCapId?: string): string => {
     const targetId = targetCapId ?? primerCapId;
