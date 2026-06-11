@@ -19,7 +19,13 @@ interface Libro {
   estado: string;
   visibilidad: string;
   created_at: string;
-  categoria: string | null;
+  categoria: string | null; // id del grupo en grupos_mundo (tipo="libros"), o null
+}
+
+interface GrupoLibro {
+  id: string;
+  nombre: string;
+  created_at: string;
 }
 
 interface CapsInfo {
@@ -33,8 +39,9 @@ interface CapsInfo {
 const CACHE_TTL_MS = 5 * 60 * 1_000;
 const DEXIE_CAPS_KEY = "biblioteca_caps_v1"; // versionar la key para evitar datos corruptos
 
-let _librosCache: { data: Libro[];                  ts: number } | null = null;
-let _capsCache:   { data: Record<string, CapsInfo>; ts: number } | null = null;
+let _librosCache:  { data: Libro[];                  ts: number } | null = null;
+let _capsCache:    { data: Record<string, CapsInfo>; ts: number } | null = null;
+let _gruposCache:  { data: GrupoLibro[];             ts: number } | null = null;
 
 function isFresh(cache: { ts: number } | null): boolean {
   return !!cache && Date.now() - cache.ts < CACHE_TTL_MS;
@@ -92,6 +99,7 @@ function buildCapsMap(
 function useBibliotecaData() {
   const [libros,   setLibros]   = useState<Libro[]>([]);
   const [capsInfo, setCapsInfo] = useState<Record<string, CapsInfo>>({});
+  const [grupos,   setGrupos]   = useState<GrupoLibro[]>([]);
   const [loading,  setLoading]  = useState(true);
   const mounted = useRef(true);
 
@@ -101,19 +109,19 @@ function useBibliotecaData() {
     async function load() {
       const librosOk = isFresh(_librosCache);
       const capsOk   = isFresh(_capsCache);
+      const gruposOk = isFresh(_gruposCache);
 
       // ── 1. Caché de módulo: instantáneo ─────────────────────────────────
       if (librosOk) { setLibros(_librosCache!.data); setLoading(false); }
       if (capsOk)   { setCapsInfo(_capsCache!.data); }
+      if (gruposOk) { setGrupos(_gruposCache!.data); }
 
-      // Ambos frescos → nada más que hacer
-      if (librosOk && capsOk) return;
+      if (librosOk && capsOk && gruposOk) return;
 
-      // ── 2. Dexie: datos persistidos de la sesión anterior ────────────────
-      //    Se ejecuta en paralelo para libros y mapa de caps.
+      // ── 2. Dexie ─────────────────────────────────────────────────────────
       const dexiePromises: [
         Promise<Libro[] | undefined>,
-        Promise<{ key: string; value: any; updated_at: number } | undefined>
+        Promise<{ key: string; value: any; updated_at: number } | undefined>,
       ] = [
         !librosOk
           ? (db?.libros?.toArray() as unknown as Promise<Libro[] | undefined>).catch(() => undefined)
@@ -143,10 +151,9 @@ function useBibliotecaData() {
         } catch {}
       }
 
-      // ── 3. Supabase: solo lo que necesita actualizarse ───────────────────
+      // ── 3. Supabase ───────────────────────────────────────────────────────
       try {
-        const [librosRes, capsRes] = await Promise.all([
-          // FIX: no fetchear si ya está fresco
+        const [librosRes, capsRes, gruposRes] = await Promise.all([
           librosOk
             ? Promise.resolve(null)
             : supabase
@@ -155,7 +162,6 @@ function useBibliotecaData() {
                 .in("visibilidad", ["publico", "programado"])
                 .order("created_at", { ascending: false }),
 
-          // FIX: .limit(5000) evita el corte default de 1000 rows de Supabase
           capsOk
             ? Promise.resolve(null)
             : supabase
@@ -164,6 +170,14 @@ function useBibliotecaData() {
                 .eq("visibilidad", "publico")
                 .not("titulo_capitulo", "like", "[Ruta]%")
                 .limit(5000),
+
+          gruposOk
+            ? Promise.resolve(null)
+            : supabase
+                .from("grupos_mundo")
+                .select("id, nombre, created_at")
+                .eq("tipo", "libros")
+                .order("created_at", { ascending: true }),
         ]);
 
         if (!mounted.current) return;
@@ -177,15 +191,12 @@ function useBibliotecaData() {
 
           try {
             await db?.libros?.bulkPut(nuevosLibros as any[]);
-
-            // FIX: limpiar libros que ya no existen en Supabase
             const idsActuales = new Set(nuevosLibros.map((l) => l.id));
             const todos = (await db?.libros?.toArray()) as Libro[] | undefined;
             const stale = todos?.filter((l) => !idsActuales.has(l.id)).map((l) => l.id) ?? [];
             if (stale.length) await db?.libros?.bulkDelete(stale);
           } catch {}
         } else if (!librosOk && mounted.current) {
-          // Supabase falló y Dexie tampoco tenía nada → quitar loading
           setLoading(false);
         }
 
@@ -197,7 +208,6 @@ function useBibliotecaData() {
           _capsCache = { data: map, ts: Date.now() };
           setCapsInfo(map);
 
-          // FIX: persistir mapa en Dexie session_cache para la próxima recarga
           try {
             await db?.session_cache?.put({
               key: DEXIE_CAPS_KEY,
@@ -206,7 +216,14 @@ function useBibliotecaData() {
             });
           } catch {}
         }
-        // Si capsRes falló, el mapa de Dexie ya se aplicó en el paso 2 → no hay parpadeo.
+
+        // ── Grupos de libros ───────────────────────────────────────────────
+        if (gruposRes && gruposRes.data) {
+          const g = gruposRes.data as GrupoLibro[];
+          _gruposCache = { data: g, ts: Date.now() };
+          setGrupos(g);
+        }
+
       } catch {
         if (mounted.current) setLoading(false);
       }
@@ -216,7 +233,7 @@ function useBibliotecaData() {
     return () => { mounted.current = false; };
   }, []);
 
-  return { libros, capsInfo, loading };
+  return { libros, capsInfo, grupos, loading };
 }
 
 // ─── Tarjeta de libro ─────────────────────────────────────────────────────────
@@ -358,29 +375,45 @@ function LibroCard({
 
 // ─── Página ───────────────────────────────────────────────────────────────────
 const Biblioteca = () => {
-  const { libros, capsInfo, loading } = useBibliotecaData();
+  const { libros, capsInfo, grupos, loading } = useBibliotecaData();
 
-  // Una sola pasada de localStorage para todos los libros (no N hooks individuales)
   const [leidosMap, setLeidosMap] = useState<Record<string, number>>({});
   useEffect(() => {
     if (libros.length > 0) setLeidosMap(leerTodosLeidos(libros));
   }, [libros]);
 
-  // Agrupar por categoría
-  const grupos = useMemo(() => {
-    const map = new Map<string, Libro[]>();
-    for (const libro of libros) {
-      const cat = libro.categoria ?? "Sin categoría";
-      if (!map.has(cat)) map.set(cat, []);
-      map.get(cat)!.push(libro);
-    }
-    const orden: Record<string, number> = { Libro: 0, Extra: 1 };
-    return Array.from(map.entries()).sort(
-      ([a], [b]) => (orden[a] ?? 99) - (orden[b] ?? 99)
-    );
-  }, [libros]);
+  // Agrupar por grupo real (id del grupo en `categoria`).
+  // El orden de los grupos sigue el orden de creación en grupos_mundo.
+  // Libros sin grupo van al final bajo "Sin grupo".
+  const gruposOrdenados = useMemo(() => {
+    const grupoMap = new Map<string | null, Libro[]>();
 
-  const hayMultiplesCategorias = grupos.length > 1;
+    // Pre-poblar en el orden de grupos_mundo para mantener ese orden
+    for (const g of grupos) grupoMap.set(g.id, []);
+    grupoMap.set(null, []); // "Sin grupo" siempre al final
+
+    for (const libro of libros) {
+      const key = libro.categoria ?? null;
+      // Si el grupo ya no existe en grupos_mundo, caemos a "Sin grupo"
+      const bucket = grupoMap.has(key) ? key : null;
+      grupoMap.get(bucket)!.push(libro);
+    }
+
+    // Armar array final: grupos con libros primero, sin grupo al final
+    const resultado: { id: string | null; nombre: string; items: Libro[] }[] = [];
+
+    for (const g of grupos) {
+      const items = grupoMap.get(g.id) ?? [];
+      if (items.length > 0) resultado.push({ id: g.id, nombre: g.nombre, items });
+    }
+
+    const sinGrupo = grupoMap.get(null) ?? [];
+    if (sinGrupo.length > 0) resultado.push({ id: null, nombre: "Sin grupo", items: sinGrupo });
+
+    return resultado;
+  }, [libros, grupos]);
+
+  const hayMultiplesGrupos = gruposOrdenados.length > 1;
 
   if (loading && libros.length === 0) return <Loading text="Abriendo archivos..." />;
 
@@ -409,10 +442,10 @@ const Biblioteca = () => {
           <p className="text-center text-primary/30 font-bold text-xs uppercase tracking-widest py-24 italic">
             No hay libros disponibles por el momento
           </p>
-        ) : hayMultiplesCategorias ? (
+        ) : hayMultiplesGrupos ? (
           <div className="flex flex-col gap-16">
-            {grupos.map(([categoria, items]) => (
-              <section key={categoria}>
+            {gruposOrdenados.map(({ id, nombre, items }) => (
+              <section key={id ?? "__sin_grupo__"}>
                 <h2
                   className="text-primary font-black uppercase text-[10px] tracking-[0.25em] italic mb-8 pb-3 flex items-center gap-3"
                   style={{
@@ -420,7 +453,7 @@ const Biblioteca = () => {
                       "var(--border-width) solid color-mix(in srgb, var(--primary) 10%, transparent)",
                   }}
                 >
-                  {categoria}
+                  {nombre}
                   <span className="text-primary/30 font-bold text-[9px]">({items.length})</span>
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-12">

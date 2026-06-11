@@ -15,6 +15,8 @@ interface Capitulo {
   orden: number;
   fecha_publicacion: string | null;
   libro_id: string;
+  narrador_id: string | null;
+  personajes_ids: string[] | null;
 }
 
 interface Libro {
@@ -22,7 +24,13 @@ interface Libro {
   titulo: string;
   sinopsis: string;
   portada_url: string;
-  categoria: string | null;
+  categoria: string | null; // UUID del grupo, o null
+}
+
+interface Personaje {
+  id: string;
+  nombre: string;
+  img_url: string | null;
 }
 
 interface CapituloProximo {
@@ -93,6 +101,7 @@ export default function LibroDetalle() {
   const [capituloProximo,  setCapituloProximo]  = useState<CapituloProximo | null | false>(null);
   const [notFound,         setNotFound]         = useState(false);
   const [leidos,           setLeidos]           = useState<Set<string>>(new Set());
+  const [personajesMap,    setPersonajesMap]    = useState<Record<string, Personaje>>({});
 
   // ── Capítulos leídos ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -222,7 +231,7 @@ export default function LibroDetalle() {
           supabase
             .from("capitulos")
             // FIX: select específico en vez de * — evita traer `contenido` (puede ser MBs)
-            .select("id, titulo_capitulo, orden, fecha_publicacion, libro_id")
+            .select("id, titulo_capitulo, orden, fecha_publicacion, libro_id, narrador_id, personajes_ids")
             .eq("libro_id", libroData.id)
             .eq("visibilidad", "publico")
             .not("titulo_capitulo", "like", "[Ruta]%")
@@ -247,6 +256,8 @@ export default function LibroDetalle() {
             orden: c.orden,
             fecha_publicacion: c.fecha_publicacion,
             libro_id: c.libro_id,
+            narrador_id: c.narrador_id ?? null,
+            personajes_ids: c.personajes_ids ?? null,
           })) as Capitulo[];
 
           // Actualizar caché de módulo
@@ -255,6 +266,24 @@ export default function LibroDetalle() {
 
           // Guardar caps en Dexie para la próxima visita
           try { await db?.capitulos?.bulkPut(capsNorm as any[]); } catch {}
+
+          // ── Personajes narradores/participantes (batch) ──────────────────
+          const ids = new Set<string>();
+          for (const c of capsNorm) {
+            if (c.narrador_id) ids.add(c.narrador_id);
+            (c.personajes_ids ?? []).forEach(id => ids.add(id));
+          }
+          if (ids.size > 0) {
+            const { data: pData } = await supabase
+              .from("personajes")
+              .select("id, nombre, img_url")
+              .in("id", [...ids]);
+            if (pData && mounted) {
+              const map: Record<string, Personaje> = {};
+              for (const p of pData as Personaje[]) map[p.id] = p;
+              setPersonajesMap(map);
+            }
+          }
         }
 
         setCapituloProximo(proximoRes.data ?? false);
@@ -279,12 +308,10 @@ export default function LibroDetalle() {
     </div>
   );
 
+  // `categoria` ahora es un UUID de grupo_mundo. Si tiene valor → interfaz rica.
+  // Si es null → interfaz simple (portada + lista limpia).
+  const tieneGrupo = !!libro.categoria;
 
-
-  const esExtra = libro.categoria?.toLowerCase() === "extra";
-
-  // URL al lector: /leer/{orden} — simple y canónico.
-  // targetCapId opcional para ir a un capítulo específico dentro de la misma ruta.
   const rutaLector = (primerCapId: string, targetCapId?: string): string => {
     const targetId = targetCapId ?? primerCapId;
     const cap = capitulos.find(c => c.id === targetId) ?? capitulos.find(c => c.id === primerCapId);
@@ -292,7 +319,90 @@ export default function LibroDetalle() {
     return `/garlia/libros/${slugParam}/leer/${orden}`;
   };
 
-  if (esExtra) {
+  // ── Fila de personajes de un capítulo ────────────────────────────────────────
+  const PersonajesRow = ({ cap }: { cap: Capitulo }) => {
+    const ids = [
+      ...(cap.narrador_id ? [cap.narrador_id] : []),
+      ...(cap.personajes_ids ?? []).filter(id => id !== cap.narrador_id),
+    ];
+    const personajes = ids.map(id => personajesMap[id]).filter(Boolean);
+    if (personajes.length === 0) return null;
+    return (
+      <div className="flex items-center gap-2 flex-wrap mb-1">
+        {personajes.map((p, i) => (
+          <div key={p.id} className="flex items-center gap-1">
+            <div className={`w-5 h-5 rounded-full overflow-hidden flex-shrink-0 border ${i === 0 && cap.narrador_id === p.id ? "border-primary/30" : "border-primary/10"}`}>
+              {p.img_url
+                ? <SmartImage src={p.img_url} alt={p.nombre} className="w-full h-full object-cover" />
+                : <div className="w-full h-full bg-primary/10 flex items-center justify-center text-[7px] font-black text-primary/40">{p.nombre[0]}</div>
+              }
+            </div>
+            <span className={`text-[8px] font-black uppercase tracking-wide ${i === 0 && cap.narrador_id === p.id ? "text-primary/60" : "text-primary/30"}`}>
+              {p.nombre}
+            </span>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  // ── Lista de capítulos ────────────────────────────────────────────────────────
+  const ListaCaps = ({ withPersonajes }: { withPersonajes: boolean }) => {
+    if (loadingCaps && capitulos.length === 0) return (
+      <p className="text-center text-primary/25 font-bold text-[10px] uppercase tracking-widest py-12 italic animate-pulse">
+        Cargando capítulos…
+      </p>
+    );
+    if (capitulos.length === 0) return (
+      <p className="text-center text-primary/30 font-bold text-xs uppercase tracking-widest py-12 italic">
+        Aún no hay capítulos publicados
+      </p>
+    );
+    return (
+      <div className="grid gap-3">
+        {capitulos.map((cap) => {
+          const esRuta = cap.titulo_capitulo?.startsWith("[Ruta]");
+          const leido  = leidos.has(cap.id);
+          return (
+            <button
+              key={cap.id}
+              onClick={() => { marcarLeido(cap.id); router.push(rutaLector(cap.id)); }}
+              className={`w-full flex items-center justify-between p-4 transition-all text-left group rounded-btn shadow-card ${esRuta ? "bg-blue-50/60" : leido ? "bg-primary/[0.03]" : "bg-white-custom"}`}
+              style={{
+                border: `var(--border-width) solid ${esRuta ? "rgb(219 234 254)" : leido ? "color-mix(in srgb, var(--primary) 5%, transparent)" : "color-mix(in srgb, var(--primary) 8%, transparent)"}`,
+                boxShadow: leido ? "none" : undefined,
+                opacity: leido ? 0.55 : 1,
+              }}
+              onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.borderColor = "color-mix(in srgb, var(--primary) 25%, transparent)"; }}
+              onMouseLeave={e => { e.currentTarget.style.opacity = leido ? "0.55" : "1"; e.currentTarget.style.borderColor = esRuta ? "rgb(219 234 254)" : leido ? "color-mix(in srgb, var(--primary) 5%, transparent)" : "color-mix(in srgb, var(--primary) 8%, transparent)"; }}
+            >
+              <div className="flex flex-col gap-1 min-w-0 flex-1">
+                {withPersonajes && <PersonajesRow cap={cap} />}
+                {esRuta && <span className="text-[8px] font-black uppercase tracking-widest text-blue-400">↳ Nodo de ruta</span>}
+                <span className={`font-black uppercase text-[12px] group-hover:translate-x-1 transition-transform leading-snug ${leido ? "text-primary/40 line-through decoration-primary/20" : "text-primary"}`}>
+                  {cap.orden}. {esRuta ? cap.titulo_capitulo.replace("[Ruta] ", "") : cap.titulo_capitulo}
+                </span>
+                {cap.fecha_publicacion && (
+                  <span className="text-primary/40 font-bold text-[9px] uppercase tracking-wider italic">
+                    {new Date(cap.fecha_publicacion).toLocaleDateString("es-ES")}
+                  </span>
+                )}
+              </div>
+              <div className="flex-shrink-0 ml-4">
+                {leido
+                  ? <CheckCircle2 size={14} className="text-primary/25" />
+                  : <Play size={14} fill="currentColor" className="text-primary" />
+                }
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    );
+  };
+
+  // ── Interfaz SIMPLE: sin grupo ───────────────────────────────────────────────
+  if (!tieneGrupo) {
     return (
       <div className="min-h-screen bg-bg-main pb-20 relative">
         <BackBtn onClick={() => router.push("/garlia/libros")} />
@@ -307,54 +417,14 @@ export default function LibroDetalle() {
             <h1 className="text-4xl font-black text-primary italic tracking-tighter leading-[0.9] mb-10 uppercase text-center">
               {libro.titulo}
             </h1>
-            {loadingCaps && capitulos.length === 0 ? (
-              <p className="text-center text-primary/25 font-bold text-[10px] uppercase tracking-widest py-12 italic animate-pulse">
-                Cargando capítulos…
-              </p>
-            ) : capitulos.length === 0 ? (
-              <p className="text-center text-primary/30 font-bold text-xs uppercase tracking-widest py-12 italic">
-                Aún no hay capítulos publicados
-              </p>
-            ) : (
-              <div className="grid gap-3">
-                {capitulos.map((cap) => {
-                  const esRuta = cap.titulo_capitulo?.startsWith("[Ruta]");
-                  const leido  = leidos.has(cap.id);
-                  return (
-                    <button
-                      key={cap.id}
-                      onClick={() => { marcarLeido(cap.id); router.push(rutaLector(cap.id)); }}
-                      className={`w-full flex items-center justify-between p-6 transition-all text-left group rounded-btn shadow-card ${esRuta ? "bg-blue-50/60" : leido ? "bg-primary/[0.03]" : "bg-white-custom"}`}
-                      style={{
-                        border: `var(--border-width) solid ${esRuta ? "rgb(219 234 254)" : leido ? "color-mix(in srgb, var(--primary) 5%, transparent)" : "color-mix(in srgb, var(--primary) 8%, transparent)"}`,
-                        boxShadow: leido ? "none" : undefined, opacity: leido ? 0.55 : 1,
-                      }}
-                      onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.borderColor = "color-mix(in srgb, var(--primary) 25%, transparent)"; }}
-                      onMouseLeave={e => { e.currentTarget.style.opacity = leido ? "0.55" : "1"; e.currentTarget.style.borderColor = esRuta ? "rgb(219 234 254)" : leido ? "color-mix(in srgb, var(--primary) 5%, transparent)" : "color-mix(in srgb, var(--primary) 8%, transparent)"; }}
-                    >
-                      <div className="flex flex-col gap-1">
-                        {esRuta && <span className="text-[8px] font-black uppercase tracking-widest text-blue-400 mb-0.5">↳ Nodo de ruta</span>}
-                        <span className={`font-black uppercase text-[12px] group-hover:translate-x-1 transition-transform ${leido ? "text-primary/40 line-through decoration-primary/20" : "text-primary"}`}>
-                          {cap.orden}. {esRuta ? cap.titulo_capitulo.replace("[Ruta] ", "") : cap.titulo_capitulo}
-                        </span>
-                        {cap.fecha_publicacion && (
-                          <span className="text-primary/40 font-bold text-[9px] uppercase tracking-wider italic">
-                            Publicado: {new Date(cap.fecha_publicacion).toLocaleDateString("es-ES")}
-                          </span>
-                        )}
-                      </div>
-                      {leido ? <CheckCircle2 size={14} className="text-primary/25 flex-shrink-0" /> : <Play size={14} fill="currentColor" className="text-primary flex-shrink-0" />}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
+            <ListaCaps withPersonajes={false} />
           </main>
         </div>
       </div>
     );
   }
 
+  // ── Interfaz RICA: con grupo — sidebar + narradores por cap ─────────────────
   return (
     <div className="min-h-screen bg-bg-main pb-20 relative">
       <BackBtn onClick={() => router.push("/garlia/libros")} />
@@ -397,55 +467,9 @@ export default function LibroDetalle() {
           </div>
         </aside>
 
-        {/* ── Contenido principal ── */}
+        {/* ── Capítulos con narradores ── */}
         <main>
-          <div className="space-y-4">
-            {loadingCaps && capitulos.length === 0 ? (
-              <p className="text-center text-primary/25 font-bold text-[10px] uppercase tracking-widest py-12 italic animate-pulse">
-                Cargando capítulos…
-              </p>
-            ) : capitulos.length === 0 ? (
-              <p className="text-center text-primary/30 font-bold text-xs uppercase tracking-widest py-12 italic">
-                Aún no hay capítulos publicados
-              </p>
-            ) : (
-              <div className="grid gap-3">
-                {capitulos.map((cap) => {
-                  const esRuta = cap.titulo_capitulo?.startsWith("[Ruta]");
-                  const leido  = leidos.has(cap.id);
-                  return (
-                    <button
-                      key={cap.id}
-                      onClick={() => { marcarLeido(cap.id); router.push(rutaLector(cap.id)); }}
-                      className={`w-full flex items-center justify-between p-6 transition-all text-left group rounded-btn shadow-card ${esRuta ? "bg-blue-50/60" : leido ? "bg-primary/[0.03]" : "bg-white-custom"}`}
-                      style={{
-                        border: `var(--border-width) solid ${esRuta ? "rgb(219 234 254)" : leido ? "color-mix(in srgb, var(--primary) 5%, transparent)" : "color-mix(in srgb, var(--primary) 8%, transparent)"}`,
-                        boxShadow: leido ? "none" : undefined, opacity: leido ? 0.55 : 1,
-                      }}
-                      onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.borderColor = "color-mix(in srgb, var(--primary) 25%, transparent)"; }}
-                      onMouseLeave={e => { e.currentTarget.style.opacity = leido ? "0.55" : "1"; e.currentTarget.style.borderColor = esRuta ? "rgb(219 234 254)" : leido ? "color-mix(in srgb, var(--primary) 5%, transparent)" : "color-mix(in srgb, var(--primary) 8%, transparent)"; }}
-                    >
-                      <div className="flex flex-col gap-1">
-                        {esRuta && <span className="text-[8px] font-black uppercase tracking-widest text-blue-400 mb-0.5">↳ Nodo de ruta</span>}
-                        <span className={`font-black uppercase text-[12px] group-hover:translate-x-1 transition-transform ${leido ? "text-primary/40 line-through decoration-primary/20" : "text-primary"}`}>
-                          {cap.orden}. {esRuta ? cap.titulo_capitulo.replace("[Ruta] ", "") : cap.titulo_capitulo}
-                        </span>
-                        {cap.fecha_publicacion && (
-                          <span className="text-primary/40 font-bold text-[9px] uppercase tracking-wider italic">
-                            Publicado: {new Date(cap.fecha_publicacion).toLocaleDateString("es-ES")}
-                          </span>
-                        )}
-                      </div>
-                      {leido
-                        ? <CheckCircle2 size={14} className="text-primary/25 flex-shrink-0" />
-                        : <Play size={14} fill="currentColor" className="text-primary flex-shrink-0" />
-                      }
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+          <ListaCaps withPersonajes={true} />
         </main>
       </div>
     </div>

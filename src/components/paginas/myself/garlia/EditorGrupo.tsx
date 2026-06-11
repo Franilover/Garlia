@@ -221,8 +221,8 @@ export function useGrupos() {
 
     const { data, error } = await supabase
       .from("grupos_mundo")
-      .insert([{ id: optimista.id, nombre: optimista.nombre, tipo, subtipo: null, descripcion: null, miembro_ids: [] }])
-      .select()
+      .insert([{ id: optimista.id, nombre: optimista.nombre, tipo, subtipo: null, descripcion: null, miembro_ids: [] as string[] }])
+      .select("id, nombre, tipo, subtipo, descripcion, miembro_ids, created_at")
       .single();
 
     if (error || !data) return optimista;
@@ -243,7 +243,7 @@ export function useGrupos() {
         tipo: updated.tipo,
         subtipo: updated.subtipo ?? null,
         descripcion: updated.descripcion ?? null,
-        miembro_ids: updated.miembro_ids,
+        miembro_ids: updated.miembro_ids.map(id => String(id)),
       })
       .eq("id", updated.id);
   }, []);
@@ -563,7 +563,7 @@ export function EditorGrupo({
           tipo: form.tipo,
           subtipo: form.subtipo ?? null,
           descripcion: form.descripcion ?? null,
-          miembro_ids: form.miembro_ids,
+          miembro_ids: form.miembro_ids.map(id => String(id)),
         })
         .eq("id", form.id);
       void dexiePut("grupos_mundo", form);
