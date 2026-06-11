@@ -4,7 +4,7 @@ import { useState } from "react";
 import { LayoutGrid, AlignJustify, Search, X, ArrowUpNarrowWide, ArrowDownNarrowWide, WifiOff } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { GalleryGrid } from "@/components/layout/gallery";
-import DetalleMaestro from "@/components/display/DetalleMaestro/DetalleMaestro";
+import DetalleMaestro from "@/components/ui/DetalleMaestro/DetalleMaestro";
 import FiltrosMaestros from "@/components/layout/Filtros";
 import PageHeader from "@/components/layout/PageHeader";
 import { LoadingState, EmptyState } from "@/components/feedback/StateComponents";

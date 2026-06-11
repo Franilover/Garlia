@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/api/client/supabase";
 import { AlertCircle, Music, ExternalLink, ChevronLeft, Info, FileText } from "lucide-react";
-import { SmartImage } from "@/components/display/SmartImage";
+import { SmartImage } from "@/components/ui/SmartImage";
 import { Btn, Loading } from "@/components/ui";
 import { db } from "@/lib/api/client/db";
 import { toSlug, esUUID } from "@/lib/utils/slugify";

@@ -4,7 +4,7 @@ import React, { useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from "@/lib/utils";
 import { Sparkles } from 'lucide-react'; 
-import { SmartImage } from '../display/SmartImage';
+import { SmartImage } from '../ui/SmartImage';
 
 interface GalleryGridProps {
   children: React.ReactNode;

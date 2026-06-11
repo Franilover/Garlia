@@ -18,7 +18,7 @@ import {
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import { isReallyOnline } from "@/hooks/data/useOfflineSync";
 import EstudioLayout from "@/components/layout/EstudioLayout";
-import { BannerOffline, ModalBase, SaveIndicator, CampoInput, BotonSubmit } from "@/components/templates/EstudioTemplates";
+import { BannerOffline, ModalBase, SaveIndicator, CampoInput, BotonSubmit } from "@/components/layout/EstudioTemplates";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { ComboSelector, type ComboItem } from "@/components/ui/ComboSelector";
 import { makeSnippetOverlay } from "./snippets/SnippetOverlay";

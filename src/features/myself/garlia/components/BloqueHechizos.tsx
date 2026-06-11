@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { X, Loader2, ChevronDown } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
-import { normalize } from "@/components/templates/EstudioTemplates";
+import { normalize } from "@/components/layout/EstudioTemplates";
 import { INPUT_CLS } from "./types";
 
 async function loreReadRelaciones(

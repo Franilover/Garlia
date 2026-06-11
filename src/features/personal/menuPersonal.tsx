@@ -1,6 +1,6 @@
 "use client";
 import { Star, Palette, Camera } from "lucide-react";
-import MenuBase from "@/components/templates/MenuBase";
+import MenuBase from "@/components/layout/MenuBase";
 
 const ITEMS = [
   { href: "/personal/sobre-mi", title: "Sobre Mí", icon: <Star />,    pageKey: "sobre-mi", delay: 0.1 },

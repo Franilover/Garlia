@@ -1,6 +1,6 @@
 "use client";
 import { Compass, BookText, Music, UserCircle2 } from "lucide-react";
-import MenuBase from "@/components/templates/MenuBase";
+import MenuBase from "@/components/layout/MenuBase";
 
 const ITEMS = [
   { href: "/garlia/personal",  title: "Mi Personaje", icon: <UserCircle2 />, pageKey: "personajes", delay: 0.1 },

@@ -6,7 +6,7 @@ import {
   MoreHorizontal, Globe, Lock, Timer, Mic2, MapPin, Cat, Sword, Plus, SlidersHorizontal
 } from "lucide-react";
 import { useConfirm } from "@/components/ui/ConfirmModal";
-import { SaveIndicator } from "@/components/templates/EstudioTemplates";
+import { SaveIndicator } from "@/components/layout/EstudioTemplates";
 import SimpleImagePicker from "@/features/myself/garlia/editorCapitulos/snippets/forms/SimpleImagePicker";
 import { usePersonajes } from "@/hooks/useEditorShared";
 import { supabase } from "@/lib/api/client/supabase";

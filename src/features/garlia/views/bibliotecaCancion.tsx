@@ -4,7 +4,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import { MotionDiv } from '@/components/ui/Motion';
 import Link from "next/link";
 import { supabase } from "@/lib/api/client/supabase";
-import { SmartImage } from "@/components/display/SmartImage";
+import { SmartImage } from "@/components/ui/SmartImage";
 import { Loading } from "@/components/ui";
 import { User, ChevronRight, List, LayoutGrid } from "lucide-react";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";

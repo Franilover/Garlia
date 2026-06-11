@@ -6,7 +6,7 @@ import {
   Image as ImageIcon, X, Save, Trash2, Pencil, ExternalLink,
 } from "lucide-react";
 import SimpleImagePicker from "@/features/myself/garlia/editorCapitulos/snippets/forms/SimpleImagePicker";
-import { normalize } from "@/components/templates/EstudioTemplates";
+import { normalize } from "@/components/layout/EstudioTemplates";
 import { INPUT_CLS, type SaveStatus } from "./types";
 import { MarkdownEditor } from "@/components/forms/Markdown/MarkdownEditor";
 import { useWikilink } from "./WikilinkContext";

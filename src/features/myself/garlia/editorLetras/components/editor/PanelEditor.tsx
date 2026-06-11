@@ -7,7 +7,7 @@ import {
   User, Globe, Mic2, PenLine, Settings
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { BannerOffline } from "@/components/templates/EstudioTemplates";
+import { BannerOffline } from "@/components/layout/EstudioTemplates";
 import { useCancionEditor } from "../../hooks/useCancionEditor";
 import { secUpdate, secCreate, secDelete, secReorder } from "../../lib/seccionesDb";
 import { IDIOMAS, ESTADO_COLOR } from "../../constants";

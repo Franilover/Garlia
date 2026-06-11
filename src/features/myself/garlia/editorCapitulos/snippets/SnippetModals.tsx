@@ -21,7 +21,7 @@ import {
   X, ChevronRight as ChevronR, GitMerge, MousePointerClick,
   Music2, GitFork, Image,
 } from "lucide-react";
-import { ModalBase, CampoInput } from "@/components/templates/EstudioTemplates";
+import { ModalBase, CampoInput } from "@/components/layout/EstudioTemplates";
 import { SoundPicker, EntidadPicker, SimpleImagePicker } from "./SnippetForms";
 import { useEntidades }      from "./useEntidades";
 import { parseSnippetRaw } from "./type";

@@ -4,7 +4,7 @@ import React, { useMemo, useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { Lock, Timer, BookOpen, Sparkles } from "lucide-react";
 import { MotionDiv } from "@/components/ui/Motion";
-import { SmartImage } from "@/components/display/SmartImage";
+import { SmartImage } from "@/components/ui/SmartImage";
 import { Loading } from "@/components/ui";
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";

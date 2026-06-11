@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { Pencil, X, Eye, EyeOff, Loader2, Check } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
-import { ModalBase, CampoInput } from "@/components/templates/EstudioTemplates";
+import { ModalBase, CampoInput } from "@/components/layout/EstudioTemplates";
 import { SelectPersonaje, SelectIdioma } from "@/hooks/useEditorShared";
 import { InputConSugerencias } from "../InputConSugerencias";
 import { ESTADOS } from "../../constants";

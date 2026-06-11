@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
 import { Play, Calendar, Clock, CheckCircle2 } from "lucide-react";
-import { SmartImage } from "@/components/display/SmartImage";
+import { SmartImage } from "@/components/ui/SmartImage";
 import { Loading, BackBtn } from "@/components/ui";
 import { toSlug, esUUID } from "@/lib/utils/slugify";
 import {
