@@ -8,7 +8,7 @@ export default function PageHeader({
 }) {
   return (
     <motion.header {...animations.fadeIn} className="mb-16 text-center px-4 pt-10">
-      <h1 className={typography.pageTitle}>{titulo}</h1>
+      <h1 className="text-5xl md:text-8xl font-black italic tracking-tighter text-primary uppercase leading-none">{titulo}</h1>
       
       {mostrarDivider && (
         <div className={components.dividerThick + " mb-12"} />

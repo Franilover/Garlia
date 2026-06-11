@@ -13,7 +13,30 @@ import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import { useFiltrosGenericos } from "@/hooks/features/useFiltros";
 import { useAdminItem } from "@/hooks/features/useAdminItem";
 import { useIsAdmin } from "@/hooks/auth/useIsAdmin";
-import { TABLAS_CONFIG, getMensaje } from "@/lib/config/constants";
+
+const TABLAS_CONFIG = {
+  personajes: { orden: { campo: 'id', asc: true }, filtros: ['reino', 'especie'] },
+  criaturas: { orden: { campo: 'nombre', asc: true }, filtros: ['habitat', 'pensamiento', 'alma'] },
+  dibujos: { orden: { campo: 'id', asc: false }, filtros: ['categoria'] }
+};
+
+function getMensaje(tipo, seccion) {
+  const MENSAJES = {
+    LOADING: {
+      personajes: "Indexando...",
+      criaturas: "Sincronizando Archivos...",
+      dibujos: "Desplegando Arte...",
+      fotos: "Cargando Memorias...",
+      items: "Abriendo Almacén..."
+    },
+    EMPTY: {
+      default: "No hay registros en esta sección",
+      fotos: "No hay fotos en esta categoría",
+      items: "No hay objetos en esta sección"
+    }
+  };
+  return MENSAJES[tipo]?.[seccion] || MENSAJES[tipo]?.default || "Cargando...";
+}
 
 interface EntidadPageBaseProps {
   tabla: string;
