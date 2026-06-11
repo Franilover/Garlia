@@ -1,2 +1,2 @@
-import Canciones from "@/components/paginas/garlia/bibliotecaCancion";
+import Canciones from "@/features/garlia/views/bibliotecaCancion";
 export default Canciones;

@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import { MotionMain } from "@/components/ui/Motion";
-import SobreMi from "@/components/paginas/personal/sobre-mi";
+import SobreMi from "@/features/personal/sobre-mi";
 
 export default function Home() {
   return (

@@ -1,4 +1,4 @@
-import PersonalMenuPage from "@/components/paginas/personal/menuPersonal";
+import PersonalMenuPage from "@/features/personal/menuPersonal";
 
 export default function Page() {
   return <PersonalMenuPage />;

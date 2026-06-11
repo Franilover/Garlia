@@ -48,8 +48,8 @@ export type { CommandItem, SnippetAction, ViewMode, WikiEntity };
 import {
   parseContenido,
   parseSections,
-} from "@/components/paginas/myself/garlia/editorCapitulos/snippets/type";
-import { RenderSegmentos } from "@/components/paginas/myself/garlia/editorCapitulos/leer/ContenidoInteractivo";
+} from "@/features/myself/garlia/editorCapitulos/snippets/type";
+import { RenderSegmentos } from "@/features/myself/garlia/editorCapitulos/leer/ContenidoInteractivo";
 
 // ────────────────────────────────────────────────────────────────────────────
 // MarkdownPreviewWithSnippets (interno, combina markdown + snippets React)
