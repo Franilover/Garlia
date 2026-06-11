@@ -143,7 +143,11 @@ function useEntidades(tabla: string) {
     let cancelled = false;
     const run = async () => {
       setLoading(true);
-      const local = await dexieReadAll<EntidadMin>(tabla);
+      let local = await dexieReadAll<EntidadMin>(tabla);
+      // libros usa "titulo" en DB — normalizar si el caché tiene el campo crudo
+      if (tabla === "libros") {
+        local = local.map((r: any) => r.nombre ? r : { ...r, nombre: r.titulo ?? "" });
+      }
       if (local.length && !cancelled) { setEntidades(local); setLoading(false); }
       if (!navigator.onLine) { if (!local.length) setLoading(false); return; }
 
@@ -300,7 +304,7 @@ function SelectorMiembros({
   const disponibles = useMemo(
     () => entidades.filter(e => {
       const noEsta = !miembro_ids.includes(e.id);
-      const matchSearch = e.nombre.toLowerCase().includes(search.toLowerCase());
+      const matchSearch = (e.nombre ?? "").toLowerCase().includes(search.toLowerCase());
       return noEsta && matchSearch;
     }),
     [entidades, miembro_ids, search]
