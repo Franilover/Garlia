@@ -160,6 +160,14 @@ function useEntidades(tabla: string) {
       } else if (tabla === "reinos") {
         const { data } = await supabase.from("reinos").select("id, nombre").order("nombre");
         result = (data ?? []).map((r: any) => ({ id: r.id, nombre: r.nombre }));
+      } else if (tabla === "libros") {
+        const { data } = await supabase.from("libros").select("id, titulo, portada_url, categoria").order("titulo");
+        result = (data ?? []).map((r: any) => ({
+          id: r.id,
+          nombre: r.titulo,
+          imagen_url: r.portada_url ?? undefined,
+          categoria: r.categoria ?? undefined,
+        }));
       } else {
         const { data } = await (supabase.from(tabla as any) as any).select("id, nombre, imagen_url").order("nombre");
         result = (data ?? []).map((r: any) => ({ id: r.id, nombre: r.nombre, imagen_url: r.imagen_url ?? undefined }));
@@ -221,8 +229,8 @@ export function useGrupos() {
 
     const { data, error } = await supabase
       .from("grupos_mundo")
-      .insert([{ id: optimista.id, nombre: optimista.nombre, tipo, subtipo: null, descripcion: null, miembro_ids: [] as string[] }])
-      .select("id, nombre, tipo, subtipo, descripcion, miembro_ids, created_at")
+      .insert([{ id: optimista.id, nombre: optimista.nombre, tipo, subtipo: null, descripcion: null, miembro_ids: [] }])
+      .select()
       .single();
 
     if (error || !data) return optimista;
@@ -243,7 +251,7 @@ export function useGrupos() {
         tipo: updated.tipo,
         subtipo: updated.subtipo ?? null,
         descripcion: updated.descripcion ?? null,
-        miembro_ids: updated.miembro_ids.map(id => String(id)),
+        miembro_ids: updated.miembro_ids,
       })
       .eq("id", updated.id);
   }, []);
@@ -563,7 +571,7 @@ export function EditorGrupo({
           tipo: form.tipo,
           subtipo: form.subtipo ?? null,
           descripcion: form.descripcion ?? null,
-          miembro_ids: form.miembro_ids.map(id => String(id)),
+          miembro_ids: form.miembro_ids,
         })
         .eq("id", form.id);
       void dexiePut("grupos_mundo", form);
