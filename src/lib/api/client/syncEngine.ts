@@ -15,7 +15,7 @@
 
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
-import { isReallyOnline, dexiePut as dexiePutTable } from "@/lib/api/client/useOfflineSync";
+import { isReallyOnline, dexiePut as dexiePutTable } from "@/hooks/data/useOfflineSync";
 
 // ─── TTL por tabla (ms) ───────────────────────────────────────────────────────
 const TTL: Record<string, number> = {
