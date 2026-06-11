@@ -17,6 +17,7 @@ export type Database = {
       canciones: {
         Row: {
           cantante: string | null
+          ciudad_id: string | null
           compositor: string | null
           created_at: string | null
           duracion_segundos: number | null
@@ -27,8 +28,10 @@ export type Database = {
           idioma: string | null
           info_cancion: string | null
           links: Json | null
+          orden_linea_tiempo: number | null
           personaje_id: string | null
           portada_url: string | null
+          reino_id: string | null
           tema: string | null
           titulo: string
           updated_at: string | null
@@ -36,6 +39,7 @@ export type Database = {
         }
         Insert: {
           cantante?: string | null
+          ciudad_id?: string | null
           compositor?: string | null
           created_at?: string | null
           duracion_segundos?: number | null
@@ -46,8 +50,10 @@ export type Database = {
           idioma?: string | null
           info_cancion?: string | null
           links?: Json | null
+          orden_linea_tiempo?: number | null
           personaje_id?: string | null
           portada_url?: string | null
+          reino_id?: string | null
           tema?: string | null
           titulo: string
           updated_at?: string | null
@@ -55,6 +61,7 @@ export type Database = {
         }
         Update: {
           cantante?: string | null
+          ciudad_id?: string | null
           compositor?: string | null
           created_at?: string | null
           duracion_segundos?: number | null
@@ -65,8 +72,10 @@ export type Database = {
           idioma?: string | null
           info_cancion?: string | null
           links?: Json | null
+          orden_linea_tiempo?: number | null
           personaje_id?: string | null
           portada_url?: string | null
+          reino_id?: string | null
           tema?: string | null
           titulo?: string
           updated_at?: string | null
@@ -74,10 +83,24 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "canciones_ciudad_id_fkey"
+            columns: ["ciudad_id"]
+            isOneToOne: false
+            referencedRelation: "ciudades"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "canciones_personaje_id_fkey"
             columns: ["personaje_id"]
             isOneToOne: false
             referencedRelation: "personajes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "canciones_reino_id_fkey"
+            columns: ["reino_id"]
+            isOneToOne: false
+            referencedRelation: "reinos"
             referencedColumns: ["id"]
           },
         ]
@@ -296,6 +319,21 @@ export type Database = {
           },
         ]
       }
+      config_mapa: {
+        Row: {
+          key: string
+          value: string
+        }
+        Insert: {
+          key: string
+          value?: string
+        }
+        Update: {
+          key?: string
+          value?: string
+        }
+        Relationships: []
+      }
       criatura_ciudades: {
         Row: {
           ciudad_id: string | null
@@ -368,6 +406,72 @@ export type Database = {
             columns: ["variante_id"]
             isOneToOne: false
             referencedRelation: "criatura_variantes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      criatura_minerales: {
+        Row: {
+          criatura_id: string
+          id: string
+          mineral_id: string
+        }
+        Insert: {
+          criatura_id: string
+          id?: string
+          mineral_id: string
+        }
+        Update: {
+          criatura_id?: string
+          id?: string
+          mineral_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "criatura_minerales_criatura_id_fkey"
+            columns: ["criatura_id"]
+            isOneToOne: false
+            referencedRelation: "criaturas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "criatura_minerales_mineral_id_fkey"
+            columns: ["mineral_id"]
+            isOneToOne: false
+            referencedRelation: "minerales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      criatura_plantas: {
+        Row: {
+          criatura_id: string
+          id: string
+          planta_id: string
+        }
+        Insert: {
+          criatura_id: string
+          id?: string
+          planta_id: string
+        }
+        Update: {
+          criatura_id?: string
+          id?: string
+          planta_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "criatura_plantas_criatura_id_fkey"
+            columns: ["criatura_id"]
+            isOneToOne: false
+            referencedRelation: "criaturas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "criatura_plantas_planta_id_fkey"
+            columns: ["planta_id"]
+            isOneToOne: false
+            referencedRelation: "plantas"
             referencedColumns: ["id"]
           },
         ]
@@ -841,15 +945,15 @@ export type Database = {
       ensayos: {
         Row: {
           autor: string | null
+          calificacion: number | null
           categoria_id: string | null
+          citas: Json | null
           contenido: string | null
           id: string
+          isbn: string | null
           pagina_actual: number | null
           paginas_total: number | null
-          palabras_nuevas: { palabra: string; definicion?: string }[] | null
-          calificacion: number | null
-          citas: { texto: string; pagina?: number }[] | null
-          isbn: string | null
+          palabras_nuevas: Json | null
           tags: string[] | null
           titulo: string
           updated_at: string
@@ -857,15 +961,15 @@ export type Database = {
         }
         Insert: {
           autor?: string | null
+          calificacion?: number | null
           categoria_id?: string | null
+          citas?: Json | null
           contenido?: string | null
           id?: string
+          isbn?: string | null
           pagina_actual?: number | null
           paginas_total?: number | null
-          palabras_nuevas?: { palabra: string; definicion?: string }[] | null
-          calificacion?: number | null
-          citas?: { texto: string; pagina?: number }[] | null
-          isbn?: string | null
+          palabras_nuevas?: Json | null
           tags?: string[] | null
           titulo: string
           updated_at?: string
@@ -873,15 +977,15 @@ export type Database = {
         }
         Update: {
           autor?: string | null
+          calificacion?: number | null
           categoria_id?: string | null
+          citas?: Json | null
           contenido?: string | null
           id?: string
+          isbn?: string | null
           pagina_actual?: number | null
           paginas_total?: number | null
-          palabras_nuevas?: { palabra: string; definicion?: string }[] | null
-          calificacion?: number | null
-          citas?: { texto: string; pagina?: number }[] | null
-          isbn?: string | null
+          palabras_nuevas?: Json | null
           tags?: string[] | null
           titulo?: string
           updated_at?: string
@@ -2161,6 +2265,7 @@ export type Database = {
           cultura: string | null
           descripcion: string | null
           economia: string | null
+          fondo_color: string | null
           geografia: string | null
           historia: string | null
           id: string
@@ -2176,6 +2281,7 @@ export type Database = {
           cultura?: string | null
           descripcion?: string | null
           economia?: string | null
+          fondo_color?: string | null
           geografia?: string | null
           historia?: string | null
           id?: string
@@ -2191,6 +2297,7 @@ export type Database = {
           cultura?: string | null
           descripcion?: string | null
           economia?: string | null
+          fondo_color?: string | null
           geografia?: string | null
           historia?: string | null
           id?: string

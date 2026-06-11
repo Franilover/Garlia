@@ -26,6 +26,7 @@ interface GrupoLibro {
   id: string;
   nombre: string;
   created_at: string;
+  miembro_ids: string[];
 }
 
 interface CapsInfo {
@@ -175,7 +176,7 @@ function useBibliotecaData() {
             ? Promise.resolve(null)
             : supabase
                 .from("grupos_mundo")
-                .select("id, nombre, created_at")
+                .select("id, nombre, created_at, miembro_ids")
                 .eq("tipo", "libros")
                 .order("created_at", { ascending: true }),
         ]);
@@ -382,31 +383,31 @@ const Biblioteca = () => {
     if (libros.length > 0) setLeidosMap(leerTodosLeidos(libros));
   }, [libros]);
 
-  // Agrupar por grupo real (id del grupo en `categoria`).
-  // El orden de los grupos sigue el orden de creación en grupos_mundo.
-  // Libros sin grupo van al final bajo "Sin grupo".
+  // Agrupar usando miembro_ids de cada grupo (fuente de verdad en grupos_mundo).
+  // Un libro puede aparecer en varios grupos; si no está en ninguno, va a "Sin grupo".
   const gruposOrdenados = useMemo(() => {
-    const grupoMap = new Map<string | null, Libro[]>();
-
-    // Pre-poblar en el orden de grupos_mundo para mantener ese orden
-    for (const g of grupos) grupoMap.set(g.id, []);
-    grupoMap.set(null, []); // "Sin grupo" siempre al final
-
-    for (const libro of libros) {
-      const key = libro.categoria ?? null;
-      // Si el grupo ya no existe en grupos_mundo, caemos a "Sin grupo"
-      const bucket = grupoMap.has(key) ? key : null;
-      grupoMap.get(bucket)!.push(libro);
+    // Construir mapa libro_id → primer grupo que lo contiene (orden de creación)
+    const libroAGrupo = new Map<string, string>(); // libro_id → grupo_id
+    for (const g of grupos) {
+      for (const libroId of g.miembro_ids ?? []) {
+        if (!libroAGrupo.has(libroId)) libroAGrupo.set(libroId, g.id);
+      }
     }
 
-    // Armar array final: grupos con libros primero, sin grupo al final
-    const resultado: { id: string | null; nombre: string; items: Libro[] }[] = [];
+    const grupoMap = new Map<string | null, Libro[]>();
+    for (const g of grupos) grupoMap.set(g.id, []);
+    grupoMap.set(null, []); // "Sin grupo" al final
 
+    for (const libro of libros) {
+      const grupoId = libroAGrupo.get(libro.id) ?? null;
+      grupoMap.get(grupoId)!.push(libro);
+    }
+
+    const resultado: { id: string | null; nombre: string; items: Libro[] }[] = [];
     for (const g of grupos) {
       const items = grupoMap.get(g.id) ?? [];
       if (items.length > 0) resultado.push({ id: g.id, nombre: g.nombre, items });
     }
-
     const sinGrupo = grupoMap.get(null) ?? [];
     if (sinGrupo.length > 0) resultado.push({ id: null, nombre: "Sin grupo", items: sinGrupo });
 
