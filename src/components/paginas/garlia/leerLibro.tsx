@@ -174,32 +174,17 @@ function LugaresPanel({ reinosIds, ciudadesIds, border }: { reinosIds: string[];
   if (reinos.length === 0 && ciudades.length === 0) return null;
 
   return (
-    <div style={{ padding: "12px 16px 0", flexShrink: 0, display: "flex", flexDirection: "column", gap: 10 }}>
+    <div style={{ padding: "14px 16px 0", flexShrink: 0, display: "flex", flexDirection: "column", gap: 10 }}>
       {reinos.length > 0 && (
-        <div style={{ display: "flex", flexDirection: "column", borderRadius: "var(--radius-btn, 6px)", overflow: "hidden", border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-          <div style={{
-            fontSize: 7, fontFamily: "var(--font-mono)", letterSpacing: "0.2em",
-            textTransform: "uppercase", color: "var(--primary)", opacity: 0.5,
-            padding: "5px 10px", textAlign: "center",
-            background: "color-mix(in srgb, var(--primary) 8%, transparent)",
-          }}>
+        <div>
+          <p style={{ fontSize: 8, fontFamily: "var(--font-mono)", letterSpacing: "0.2em", textTransform: "uppercase", color: "var(--primary)", opacity: 0.25, marginBottom: 7 }}>
             {reinos.length === 1 ? "Reino" : "Reinos"}
-          </div>
-          <div style={{ display: "flex", flexDirection: "column" }}>
-            {reinos.map((r, i) => (
-              <div key={r.id} style={{
-                display: "flex", alignItems: "center", gap: 10,
-                padding: "7px 10px",
-                background: "color-mix(in srgb, var(--primary) 5%, transparent)",
-                borderTop: i > 0 ? "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" : undefined,
-              }}>
-                <span style={{ fontSize: 10, lineHeight: 1, opacity: 0.5 }}>♛</span>
-                <span style={{
-                  fontSize: 11, fontWeight: 800, fontStyle: "italic",
-                  color: "var(--primary)", opacity: 0.75,
-                  letterSpacing: "-0.01em", textTransform: "uppercase",
-                  lineHeight: 1.2,
-                }}>
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+            {reinos.map(r => (
+              <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 9, color: "var(--primary)", opacity: 0.2, lineHeight: 1 }}>♛</span>
+                <span style={{ fontSize: 11, fontWeight: 700, fontStyle: "italic", color: "var(--primary)", opacity: 0.55, letterSpacing: "-0.01em", textTransform: "uppercase", lineHeight: 1.2 }}>
                   {r.nombre}
                 </span>
               </div>
@@ -209,30 +194,15 @@ function LugaresPanel({ reinosIds, ciudadesIds, border }: { reinosIds: string[];
       )}
 
       {ciudades.length > 0 && (
-        <div style={{ display: "flex", flexDirection: "column", borderRadius: "var(--radius-btn, 6px)", overflow: "hidden", border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-          <div style={{
-            fontSize: 7, fontFamily: "var(--font-mono)", letterSpacing: "0.2em",
-            textTransform: "uppercase", color: "var(--primary)", opacity: 0.5,
-            padding: "5px 10px", textAlign: "center",
-            background: "color-mix(in srgb, var(--primary) 8%, transparent)",
-          }}>
+        <div>
+          <p style={{ fontSize: 8, fontFamily: "var(--font-mono)", letterSpacing: "0.2em", textTransform: "uppercase", color: "var(--primary)", opacity: 0.25, marginBottom: 7 }}>
             {ciudades.length === 1 ? "Ciudad" : "Ciudades"}
-          </div>
-          <div style={{ display: "flex", flexDirection: "column" }}>
-            {ciudades.map((c, i) => (
-              <div key={c.id} style={{
-                display: "flex", alignItems: "center", gap: 10,
-                padding: "7px 10px",
-                background: "color-mix(in srgb, var(--primary) 3%, transparent)",
-                borderTop: i > 0 ? "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" : undefined,
-              }}>
-                <span style={{ fontSize: 10, lineHeight: 1, opacity: 0.4 }}>◈</span>
-                <span style={{
-                  fontSize: 11, fontWeight: 700,
-                  color: "var(--primary)", opacity: 0.55,
-                  letterSpacing: "0em", textTransform: "uppercase",
-                  lineHeight: 1.2,
-                }}>
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+            {ciudades.map(c => (
+              <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 9, color: "var(--primary)", opacity: 0.2, lineHeight: 1 }}>◈</span>
+                <span style={{ fontSize: 11, fontWeight: 600, color: "var(--primary)", opacity: 0.45, textTransform: "uppercase", lineHeight: 1.2 }}>
                   {c.nombre}
                 </span>
               </div>
