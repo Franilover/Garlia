@@ -8,6 +8,16 @@ import { Play, Calendar, Clock, CheckCircle2 } from "lucide-react";
 import { SmartImage } from "@/components/display/SmartImage";
 import { Loading, BackBtn } from "@/components/ui";
 import { toSlug, esUUID } from "@/lib/utils/slugify";
+import {
+  loadCapitulos,
+  loadCapituloProximo,
+  loadPersonajesMap,
+  loadReinosMap,
+  loadCiudadesMap,
+  collectIds,
+} from "@/lib/api/client/syncEngine";
+
+// ─── Interfaces ───────────────────────────────────────────────────────────────
 
 interface Capitulo {
   id: string;
@@ -17,8 +27,8 @@ interface Capitulo {
   libro_id: string;
   narrador_id: string | null;
   personajes_ids: string[] | null;
-  reino: string | null;
-  ciudades: string[] | null;
+  reinos_ids: string[] | null;
+  ciudades_ids: string[] | null;
 }
 
 interface Libro {
@@ -26,7 +36,7 @@ interface Libro {
   titulo: string;
   sinopsis: string;
   portada_url: string;
-  categoria: string | null; // UUID del grupo, o null
+  categoria: string | null;
 }
 
 interface Personaje {
@@ -40,29 +50,8 @@ interface CapituloProximo {
   fecha_publicacion: string;
 }
 
-
-
-
-
-// ─── Caché de módulo para caps (sobrevive navegación SPA) ────────────────────
-const CAPS_TTL_MS = 5 * 60 * 1_000;
-const _capsCache: Record<string, { data: Capitulo[]; ts: number }> = {};
-
-function capsCacheados(libroId: string): Capitulo[] | null {
-  const c = _capsCache[libroId];
-  return c && Date.now() - c.ts < CAPS_TTL_MS ? c.data : null;
-}
-
-
-
-
-
-
-
-
-// ─── Resolver slug → libro usando Dexie primero ──────────────────────────────
+// ─── Resolver slug → libro (Dexie first) ─────────────────────────────────────
 async function resolverLibroPorSlug(slugParam: string): Promise<Libro | null> {
-  // 1. Intentar desde Dexie (0 RTT)
   try {
     if (db?.libros) {
       const todos = await db.libros.toArray() as any[];
@@ -75,37 +64,35 @@ async function resolverLibroPorSlug(slugParam: string): Promise<Libro | null> {
     }
   } catch {}
 
-  // 2. Fallback a Supabase — UNA sola query con los campos necesarios
   const { data } = await supabase
     .from("libros")
     .select("id, titulo, sinopsis, portada_url, categoria")
     .eq("visibilidad", "publico");
   if (!data) return null;
 
-  // Guardar en Dexie para la próxima visita
   try { await db?.libros?.bulkPut(data as any[]); } catch {}
-
   return (data.find((l: any) => toSlug(l.titulo ?? "") === slugParam) ?? null) as Libro | null;
 }
 
-
-
+// ─── Componente principal ─────────────────────────────────────────────────────
 export default function LibroDetalle() {
-  const params   = useParams();
+  const params    = useParams();
   const slugParam = params?.id as string;
-  const router   = useRouter();
+  const router    = useRouter();
 
-  const [loading,          setLoading]          = useState(true);
-  const [loadingCaps,      setLoadingCaps]      = useState(true);
-  const [libro,            setLibro]            = useState<Libro | null>(null);
-  const [libroId,          setLibroId]          = useState<string | null>(null);
-  const [capitulos,        setCapitulos]        = useState<Capitulo[]>([]);
-  const [capituloProximo,  setCapituloProximo]  = useState<CapituloProximo | null | false>(null);
-  const [notFound,         setNotFound]         = useState(false);
-  const [leidos,           setLeidos]           = useState<Set<string>>(new Set());
-  const [personajesMap,    setPersonajesMap]    = useState<Record<string, Personaje>>({});
+  const [loading,         setLoading]         = useState(true);
+  const [loadingCaps,     setLoadingCaps]     = useState(true);
+  const [libro,           setLibro]           = useState<Libro | null>(null);
+  const [libroId,         setLibroId]         = useState<string | null>(null);
+  const [capitulos,       setCapitulos]       = useState<Capitulo[]>([]);
+  const [capituloProximo, setCapituloProximo] = useState<CapituloProximo | null | false>(null);
+  const [notFound,        setNotFound]        = useState(false);
+  const [leidos,          setLeidos]          = useState<Set<string>>(new Set());
+  const [personajesMap,   setPersonajesMap]   = useState<Record<string, Personaje>>({});
+  const [reinosMap,       setReinosMap]       = useState<Record<string, any>>({});
+  const [ciudadesMap,     setCiudadesMap]     = useState<Record<string, any>>({});
 
-  // ── Capítulos leídos ─────────────────────────────────────────────────────────
+  // ── Capítulos leídos ────────────────────────────────────────────────────────
   useEffect(() => {
     if (!libroId) return;
     const leer = () => {
@@ -134,11 +121,7 @@ export default function LibroDetalle() {
     });
   };
 
-  // ── Carga principal ───────────────────────────────────────────────────────────
-  // Estrategia de tres capas para libro + caps:
-  //   1. Libro: Dexie → mostrar portada/sinopsis sin spinner
-  //   2. Caps:  caché de módulo → Dexie → Supabase (fuente de verdad)
-  //   3. Caps se guardan en Dexie para la próxima visita (offline-ready)
+  // ── Carga principal ─────────────────────────────────────────────────────────
   useEffect(() => {
     if (!slugParam) return;
     let mounted = true;
@@ -150,16 +133,16 @@ export default function LibroDetalle() {
     setLibroId(null);
     setCapitulos([]);
     setCapituloProximo(null);
+    setPersonajesMap({});
+    setReinosMap({});
+    setCiudadesMap({});
 
     const cargar = async () => {
       let libroData: Libro | null = null;
 
-      // ── Caso 1: UUID directo (links viejos) ──────────────────────────────
+      // ── Resolver libro ──────────────────────────────────────────────────────
       if (esUUID(slugParam)) {
-        try {
-          libroData = ((await db?.libros?.get(slugParam)) as any) ?? null;
-        } catch {}
-
+        try { libroData = ((await db?.libros?.get(slugParam)) as any) ?? null; } catch {}
         if (!libroData) {
           const { data } = await supabase
             .from("libros")
@@ -170,15 +153,12 @@ export default function LibroDetalle() {
           libroData = data as Libro | null;
           if (libroData) { try { await db?.libros?.put(libroData as any); } catch {} }
         }
-
         if (!libroData) {
           if (mounted) { setNotFound(true); setLoading(false); setLoadingCaps(false); }
           return;
         }
         const slug = toSlug(libroData.titulo);
         if (slug) router.replace(`/garlia/libros/${slug}`);
-
-      // ── Caso 2: slug normal ──────────────────────────────────────────────
       } else {
         libroData = await resolverLibroPorSlug(slugParam);
         if (!libroData) {
@@ -188,143 +168,57 @@ export default function LibroDetalle() {
       }
 
       if (!mounted) return;
-
-      // Libro resuelto: mostrar portada/sinopsis ya, sin esperar caps
       setLibro(libroData);
       setLibroId(libroData.id);
-      setLoading(false); // ← quita el spinner principal aquí, no al final
+      setLoading(false);
 
-      // `categoria` en libros es el nombre del grupo (texto libre, no FK).
-      // "Libro" → interfaz rica con narradores; cualquier otro valor → simple.
-      const grupoNombreLocal = libroData.categoria ?? null;
+      const esLibroRico = libroData.categoria === "Libro";
 
-      // ── Caps: caché de módulo (0ms) ───────────────────────────────────────
-      const cached = capsCacheados(libroData.id);
-      if (cached) {
+      // ── Capítulos: Dexie-first → Supabase en background ────────────────────
+      const caps = await loadCapitulos(libroData.id, (frescos) => {
         if (!mounted) return;
-        setCapitulos(cached);
-        setLoadingCaps(false);
+        setCapitulos(frescos as Capitulo[]);
+        if (esLibroRico) cargarEntidades(frescos as Capitulo[], mounted);
+      });
 
-        // Personajes si es "Libro"
-        if (grupoNombreLocal === "Libro") {
-          const ids = new Set<string>();
-          for (const c of cached) {
-            if (c.narrador_id) ids.add(c.narrador_id);
-            (c.personajes_ids ?? []).forEach(id => ids.add(id));
-          }
-          if (ids.size > 0) {
-            Promise.resolve(
-              supabase
-                .from("personajes")
-                .select("id, nombre, img_url")
-                .in("id", [...ids])
-                .then(({ data: pData }) => {
-                  if (pData && mounted) {
-                    const map: Record<string, Personaje> = {};
-                    for (const p of pData as Personaje[]) map[p.id] = p;
-                    setPersonajesMap(map);
-                  }
-                })
-            ).catch(() => {});
-          }
-        }
-
-        // Próximo siempre se refresca (es tiempo-sensitivo)
-        supabase
-          .from("capitulos")
-          .select("titulo_capitulo, fecha_publicacion")
-          .eq("libro_id", libroData.id)
-          .eq("visibilidad", "programado")
-          .gt("fecha_publicacion", new Date().toISOString())
-          .order("fecha_publicacion", { ascending: true })
-          .limit(1)
-          .maybeSingle()
-          .then(({ data }) => { if (mounted) setCapituloProximo(data ?? false); });
-        return;
-      }
-
-      // ── Caps: Dexie (sin red, ~5ms) ───────────────────────────────────────
-      try {
-        const dexieCaps = (await db?.capitulos
-          ?.where("libro_id")
-          .equals(libroData.id)
-          .filter((c: any) => c.visibilidad === "publico")
-          .sortBy("orden")) as Capitulo[] | undefined;
-        if (dexieCaps?.length && mounted) {
-          setCapitulos(dexieCaps);
-          setLoadingCaps(false); // ya hay algo útil que mostrar
-        }
-      } catch {}
-
-      // ── Caps: Supabase (fuente de verdad) ────────────────────────────────
-      try {
-        const ahora = new Date().toISOString();
-        const [capsRes, proximoRes] = await Promise.all([
-          supabase
-            .from("capitulos")
-            .select("id, titulo_capitulo, orden, fecha_publicacion, libro_id, narrador_id, personajes_ids, reino, ciudades")
-            .eq("libro_id", libroData.id)
-            .eq("visibilidad", "publico")
-            .not("titulo_capitulo", "like", "[Ruta]%")
-            .order("orden", { ascending: true }),
-          supabase
-            .from("capitulos")
-            .select("titulo_capitulo, fecha_publicacion")
-            .eq("libro_id", libroData.id)
-            .eq("visibilidad", "programado")
-            .gt("fecha_publicacion", ahora)
-            .order("fecha_publicacion", { ascending: true })
-            .limit(1)
-            .maybeSingle(),
-        ]);
-
-        if (!mounted) return;
-
-        if (capsRes.data) {
-          const capsNorm = (capsRes.data as any[]).map((c) => ({
-            id: c.id,
-            titulo_capitulo: c.titulo_capitulo,
-            orden: c.orden,
-            fecha_publicacion: c.fecha_publicacion,
-            libro_id: c.libro_id,
-            narrador_id: c.narrador_id ?? null,
-            personajes_ids: c.personajes_ids ?? null,
-            reino: c.reino ?? null,
-            ciudades: c.ciudades ?? null,
-          })) as Capitulo[];
-
-          // Actualizar caché de módulo
-          _capsCache[libroData.id] = { data: capsNorm, ts: Date.now() };
-          setCapitulos(capsNorm);
-
-          // Guardar caps en Dexie para la próxima visita
-          try { await db?.capitulos?.bulkPut(capsNorm as any[]); } catch {}
-
-          // ── Personajes solo si el grupo es "Libro" ───────────────────────
-          if (grupoNombreLocal === "Libro") {
-            const ids = new Set<string>();
-            for (const c of capsNorm) {
-              if (c.narrador_id) ids.add(c.narrador_id);
-              (c.personajes_ids ?? []).forEach(id => ids.add(id));
-            }
-            if (ids.size > 0) {
-              const { data: pData } = await supabase
-                .from("personajes")
-                .select("id, nombre, img_url")
-                .in("id", [...ids]);
-              if (pData && mounted) {
-                const map: Record<string, Personaje> = {};
-                for (const p of pData as Personaje[]) map[p.id] = p;
-                setPersonajesMap(map);
-              }
-            }
-          }
-        }
-
-        setCapituloProximo(proximoRes.data ?? false);
-      } catch {}
-
+      if (!mounted) return;
+      setCapitulos(caps as Capitulo[]);
       if (mounted) setLoadingCaps(false);
+
+      // ── Entidades relacionadas (personajes, reinos, ciudades) ───────────────
+      if (esLibroRico) await cargarEntidades(caps as Capitulo[], mounted);
+
+      // ── Próximo capítulo (siempre fresco) ───────────────────────────────────
+      const proximo = await loadCapituloProximo(libroData.id);
+      if (mounted) setCapituloProximo(proximo ?? false);
+    };
+
+    // Carga personajes, reinos y ciudades que aparecen en los capítulos
+    const cargarEntidades = async (caps: Capitulo[], mounted: boolean) => {
+      // IDs únicos de personajes
+      const personajeIds = [
+        ...new Set([
+          ...caps.flatMap(c => c.narrador_id ? [c.narrador_id] : []),
+          ...collectIds(caps, "personajes_ids"),
+        ]),
+      ];
+
+      // IDs únicos de reinos y ciudades
+      const reinoIds   = collectIds(caps, "reinos_ids");
+      const ciudadIds  = collectIds(caps, "ciudades_ids");
+
+      // Carga en paralelo: Dexie-first para cada grupo
+      const [pMap, rMap, cMap] = await Promise.all([
+        loadPersonajesMap(personajeIds, (fresh) => { if (mounted) setPersonajesMap({ ...fresh }); }),
+        loadReinosMap(reinoIds,        (fresh) => { if (mounted) setReinosMap({ ...fresh }); }),
+        loadCiudadesMap(ciudadIds,     (fresh) => { if (mounted) setCiudadesMap({ ...fresh }); }),
+      ]);
+
+      if (mounted) {
+        setPersonajesMap(pMap);
+        setReinosMap(rMap);
+        setCiudadesMap(cMap);
+      }
     };
 
     cargar().catch(() => {
@@ -334,7 +228,7 @@ export default function LibroDetalle() {
     return () => { mounted = false; };
   }, [slugParam]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Spinner solo mientras no tenemos el libro — los caps tienen su propio estado
+  // ── Early returns ───────────────────────────────────────────────────────────
   if (loading) return <Loading text="Cargando libro…" />;
   if (notFound || !libro || !libroId) return (
     <div className="min-h-screen bg-bg-main flex flex-col items-center justify-center gap-4">
@@ -343,8 +237,6 @@ export default function LibroDetalle() {
     </div>
   );
 
-  // `categoria` en libros es el nombre del grupo (texto libre).
-  // "Libro" → interfaz rica con narradores; cualquier otro valor → simple.
   const esLibro = libro.categoria === "Libro";
 
   const rutaLector = (primerCapId: string, targetCapId?: string): string => {
@@ -354,7 +246,7 @@ export default function LibroDetalle() {
     return `/garlia/libros/${slugParam}/leer/${orden}`;
   };
 
-  // ── Fila de personajes de un capítulo ────────────────────────────────────────
+  // ── Fila de personajes ──────────────────────────────────────────────────────
   const PersonajesRow = ({ cap }: { cap: Capitulo }) => {
     const ids = [
       ...(cap.narrador_id ? [cap.narrador_id] : []),
@@ -381,26 +273,28 @@ export default function LibroDetalle() {
     );
   };
 
-  // ── Fila de lugar (reino + ciudades) de un capítulo ─────────────────────────
+  // ── Fila de reinos y ciudades ───────────────────────────────────────────────
   const LugarRow = ({ cap }: { cap: Capitulo }) => {
-    if (!cap.reino && (!cap.ciudades || cap.ciudades.length === 0)) return null;
+    const reinos  = (cap.reinos_ids  ?? []).map(id => reinosMap[id]).filter(Boolean);
+    const ciudades = (cap.ciudades_ids ?? []).map(id => ciudadesMap[id]).filter(Boolean);
+    if (reinos.length === 0 && ciudades.length === 0) return null;
     return (
       <div className="flex items-center gap-1.5 flex-wrap mb-1">
-        {cap.reino && (
-          <span className="text-[8px] font-black uppercase tracking-wide text-primary/40 bg-primary/5 px-1.5 py-0.5 rounded">
-            ♛ {cap.reino}
+        {reinos.map((r: any) => (
+          <span key={r.id} className="text-[8px] font-black uppercase tracking-wide text-primary/40 bg-primary/5 px-1.5 py-0.5 rounded">
+            ♛ {r.nombre}
           </span>
-        )}
-        {(cap.ciudades ?? []).map((ciudad) => (
-          <span key={ciudad} className="text-[8px] font-bold uppercase tracking-wide text-primary/30 bg-primary/[0.03] px-1.5 py-0.5 rounded border border-primary/8">
-            ⌖ {ciudad}
+        ))}
+        {ciudades.map((c: any) => (
+          <span key={c.id} className="text-[8px] font-bold uppercase tracking-wide text-primary/30 bg-primary/[0.03] px-1.5 py-0.5 rounded border border-primary/8">
+            ⌖ {c.nombre}
           </span>
         ))}
       </div>
     );
   };
 
-
+  // ── Lista de capítulos ──────────────────────────────────────────────────────
   const ListaCaps = ({ withPersonajes }: { withPersonajes: boolean }) => {
     if (loadingCaps && capitulos.length === 0) return (
       <p className="text-center text-primary/25 font-bold text-[10px] uppercase tracking-widest py-12 italic animate-pulse">
@@ -456,7 +350,7 @@ export default function LibroDetalle() {
     );
   };
 
-  // ── Interfaz SIMPLE: poemario, one-shot, etc. ───────────────────────────────
+  // ── Interfaz SIMPLE ─────────────────────────────────────────────────────────
   if (!esLibro) {
     return (
       <div className="min-h-screen bg-bg-main pb-20 relative">
@@ -479,7 +373,7 @@ export default function LibroDetalle() {
     );
   }
 
-  // ── Interfaz RICA: grupo "Libro" — sidebar + narradores por cap ─────────────
+  // ── Interfaz RICA ────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-bg-main pb-20 relative">
       <BackBtn onClick={() => router.push("/garlia/libros")} />
@@ -522,7 +416,7 @@ export default function LibroDetalle() {
           </div>
         </aside>
 
-        {/* ── Capítulos con narradores ── */}
+        {/* ── Capítulos ── */}
         <main>
           <ListaCaps withPersonajes={true} />
         </main>
