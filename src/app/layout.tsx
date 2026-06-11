@@ -7,7 +7,7 @@ import AppLogic from "@/providers/AppLogic";
 import "@/style/tailwind.css";
 import { OfflineSyncActivator } from "@/providers/OfflineSyncActivator";
 import { ThemeProvider } from "@/providers/ThemeProvider";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils/index";
 
 const geist = Geist({ subsets: ['latin'], variable: '--font-sans' });
 const montserrat = Montserrat({ subsets: ['latin'], display: 'swap', variable: '--font-montserrat' });

@@ -49,7 +49,7 @@ import {
   parseContenido,
   parseSections,
 } from "@/features/myself/garlia/editorCapitulos/snippets/type";
-import { RenderSegmentos } from "@/features/myself/garlia/editorCapitulos/leer/ContenidoInteractivo";
+import { RenderSegmentos } from "@/features/garlia/components/leer/ContenidoInteractivo";
 
 // ────────────────────────────────────────────────────────────────────────────
 // MarkdownPreviewWithSnippets (interno, combina markdown + snippets React)

@@ -2,7 +2,7 @@
 import { MotionDiv } from "@/components/ui/Motion";
 import React from "react";
 import { AnimatePresence } from "framer-motion";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils/index";
 import { CheckSquare, Plus, Trash2 } from "lucide-react";
 import { BtnIcon } from "@/components/ui";
 

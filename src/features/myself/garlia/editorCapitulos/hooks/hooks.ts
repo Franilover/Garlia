@@ -4,7 +4,7 @@ import { isReallyOnline } from "@/hooks/data/useOfflineSync";
 import {
   Capitulo, TABLA_CAPS,
   dexieCapRead, dexieCapGet, dexieCapWrite,
-} from "./types";
+} from "../types";
 
 // ─── useCapitulos ─────────────────────────────────────────────────────────────
 
@@ -72,7 +72,7 @@ export function useCapitulos(libroId: string | null) {
       const localById = new Map(local.map(c => [c.id, c]));
       const merged = caps.map(remote => {
         const loc = localById.get(remote.id);
-        if (loc?.status === "pending") return loc;  // mantener cambios locales
+        if ((loc as any)?.status === "pending") return loc;  // mantener cambios locales
         return remote;
       });
 
@@ -82,7 +82,7 @@ export function useCapitulos(libroId: string | null) {
       await dexieCapWrite(
         caps.map(c => {
           const loc = localById.get(c.id);
-          return loc?.status === "pending"
+          return (loc as any)?.status === "pending"
             ? loc
             : { ...c, status: "synced" };
         }),

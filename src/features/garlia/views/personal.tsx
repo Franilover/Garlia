@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { Cat, Star, Sword, User, Loader2, X, Users, Music2, ChevronRight, MapPin } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils/index";
 import { supabase } from "@/lib/api/client/supabase";
 import {
   ModalDetalle, EntidadCard, EmptyTab,

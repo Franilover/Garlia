@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useMemo } from "react";
 import { Folder, FolderOpen, ChevronRight, Check, Loader2, Home } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils/index";
 
 interface SimpleImagePickerProps {
   onSelect: (url: string) => void;

@@ -2,13 +2,13 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { AlignLeft, Clock } from "lucide-react";
 import { AnimatePresence } from "framer-motion";
-import { CapituloScrollItem } from "../snippets/type";
+import { CapituloScrollItem } from "@/features/myself/garlia/editorCapitulos/snippets/type";
 import { ContenidoInteractivo } from "./ContenidoInteractivo";
 
 import { LectorSkeleton, ReadingProgressBar, Vignette, CapituloHeader, FinCapituloSeparador, IndexPanel, ChapterSelector } from "./LectorUI";
-import { useDesbloquearPersonajes, PersonajesDesbloqueadosToast } from "./usePersonajes";
-import { useDesbloquearReinos, ReinosDesbloqueadosToast } from "./useReinos";
-import { useDesbloquearCiudades, CiudadesDesbloqueadasToast } from "./useCiudades";
+import { useDesbloquearPersonajes, PersonajesDesbloqueadosToast } from "@/features/myself/garlia/editorCapitulos/hooks/usePersonajes";
+import { useDesbloquearReinos, ReinosDesbloqueadosToast } from "@/features/myself/garlia/editorCapitulos/hooks/useReinos";
+import { useDesbloquearCiudades, CiudadesDesbloqueadasToast } from "@/features/myself/garlia/editorCapitulos/hooks/useCiudades";
 
 /**
  * Estilos de fuente fluida para el lector.

@@ -24,7 +24,7 @@ import { type TimelineEvent } from "../components/LoreTab";
 import { useNotas } from "../components/useNotas";
 import { EditorNota, ListaNotas } from "./EditorNota";
 import { EditorGrupo, useGrupos, type Grupo, GRUPO_TIPO_CONFIG } from "./EditorGrupo";
-import EstudioCapitulos from "@/features/myself/garlia/editorCapitulos/page";
+import EstudioCapitulos from "@/features/myself/garlia/views/EditorCapitulos";
 import AdminDescubrimientos from "@/features/myself/garlia/views/editorRelaciones";
 import { PanelEditor } from "@/features/myself/garlia/editorLetras/components/editor/PanelEditor";
 import { ModalNuevaCancion } from "@/features/myself/garlia/editorLetras/components/modals/ModalNuevaCancion";

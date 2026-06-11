@@ -21,8 +21,8 @@ import EstudioLayout from "@/components/layout/EstudioLayout";
 import { BannerOffline, ModalBase, SaveIndicator, CampoInput, BotonSubmit } from "@/components/layout/EstudioTemplates";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { ComboSelector, type ComboItem } from "@/components/ui/ComboSelector";
-import { makeSnippetOverlay } from "./snippets/SnippetOverlay";
-import { SnippetCommandPalette } from "./snippets/SnippetCommandPalette";
+import { makeSnippetOverlay } from "@/features/myself/garlia/editorCapitulos/snippets/SnippetOverlay";
+import { SnippetCommandPalette } from "@/features/myself/garlia/editorCapitulos/snippets/SnippetCommandPalette";
 import { MarkdownEditor, renderMarkdown, renderMathInElement, PROSE_STYLES } from "@/components/forms/Markdown/MarkdownEditor";
 import type { CommandItem as MdCommandItem, SnippetAction } from "@/components/forms/Markdown/MarkdownEditor";
 
@@ -31,14 +31,14 @@ import {
   wordCount, toDateInput,
   capUpdateContenido, capUpdateMeta, capCreate, capDelete,
   libroUpdateMeta, libroDelete,
-} from "./types";
-import { useCapitulos, useCapituloEditor } from "./hooks";
+} from "@/features/myself/garlia/editorCapitulos/types";
+import { useCapitulos, useCapituloEditor } from "@/features/myself/garlia/editorCapitulos/hooks/hooks";
 import {
   EstadisticasEscritura, CapituloItem, LibroItem, LibroCard, LibroColumna,
   VisibilidadCapPicker, SelectorVisibilidad, SelectorNarrador, SelectorReino,
   SelectorPersonajesCapitulo, NarradorPill, SelectorImagenPortada, DialogSnippets,
   PanelPersonajesCapitulo,
-} from "./components";
+} from "@/features/myself/garlia/editorCapitulos/components";
 
 // ─── Dialog commands ──────────────────────────────────────────────────────────
 

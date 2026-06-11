@@ -1,6 +1,6 @@
 "use client";
 import { useLightbox } from '../LightboxProvider';
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils/index";
 
 export const Thumbnails = () => {
   const { gallery, currentIndex, setCurrentIndex } = useLightbox();

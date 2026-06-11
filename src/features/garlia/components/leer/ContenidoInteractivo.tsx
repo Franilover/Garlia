@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Segment, SectionMap, parseContenido, parseSections } from "../snippets/type";
+import { Segment, SectionMap, parseContenido, parseSections } from "@/features/myself/garlia/editorCapitulos/snippets/type";
 import {
   CitaVisual, ImgInline, FloatWord, SoundInline,
   DropWord, ChoiceButton, UseWord, UseWordPortal,

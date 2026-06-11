@@ -3,7 +3,7 @@ import { MotionDiv, MotionMain, MotionH1, MotionH2, MotionButton, MotionLi, Moti
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Search, Loader2, Sword, Package, User } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils/index";
 
 interface Entidad {
   id: string;

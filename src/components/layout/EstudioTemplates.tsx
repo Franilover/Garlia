@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { AlertCircle, CheckCircle2, Loader2, WifiOff } from "lucide-react";
 import { TEXT_VARIANTS } from "@/components/ui/Tiopgrafia";
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils/index"
 
 export function normalize(s: string): string {
   return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");

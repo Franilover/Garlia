@@ -7,7 +7,7 @@ import {
   Trash2, Save, X, Loader2, ZoomIn, Plus, Image as ImageIcon,
   Pencil, SlidersHorizontal, Sparkles,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils/index";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import SimpleImagePicker from "@/features/myself/garlia/editorCapitulos/snippets/forms/SimpleImagePicker";
 

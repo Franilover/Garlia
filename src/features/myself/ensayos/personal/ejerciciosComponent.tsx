@@ -3,7 +3,7 @@ import { MotionDiv, MotionMain, MotionH1, MotionH2, MotionButton, MotionLi, Moti
 
 import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils/index";
 import { rutinasQueries, ejerciciosQueries } from "@/lib/api/queries/personal/ejercicios";
 import { Play, Check, X, Plus, ChevronDown } from "lucide-react";
 import { Btn, BtnIcon, Badge, Loading, EmptyState } from "@/components/ui";

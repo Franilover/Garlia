@@ -1,6 +1,6 @@
 "use client";
 import Dropdown from "@/components/forms/Dropdown";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils/index";
 import { Camera } from "lucide-react";
 
 interface FiltrosMaestrosProps {

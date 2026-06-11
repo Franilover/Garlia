@@ -20,7 +20,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Music2, Sword, Package, Sparkles, Check, Loader2, User, ChevronRight as ChevronR } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils/index";
 import {
   MotionDiv, MotionSpan, MotionButton,
 } from "@/components/ui/Motion";

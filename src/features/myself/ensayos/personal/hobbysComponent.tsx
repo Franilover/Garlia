@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils/index";
 import {
   Plus, Check, X, Loader2, Pencil as PencilIcon,
   Guitar, Palette, BookOpen, PenLine, Brain, Dumbbell, Gamepad2,

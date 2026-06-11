@@ -3,7 +3,7 @@ import React, { useEffect, useState, useRef, useCallback } from "react";
 import { List, X, ChevronRight as ChevronR, BookOpen, ChevronDown, Check } from "lucide-react";
 import { MotionDiv } from "@/components/ui/Motion";
 import { motion, AnimatePresence } from "framer-motion";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils/index";
 import { BtnIcon } from "@/components/ui";
 import { CapituloLista, CapituloScrollItem } from "@/features/myself/garlia/editorCapitulos/snippets/type";
 

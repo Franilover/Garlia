@@ -10,8 +10,8 @@ import PageHeader from "@/components/layout/PageHeader";
 import { LoadingState, EmptyState } from "@/components/feedback/StateComponents";
 import { AdminAddButton } from "@/components/forms/AdminAddButton";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
-import { useFiltrosGenericos } from "@/hooks/features/useFiltros";
-import { useAdminItem } from "@/hooks/features/useAdminItem";
+import { useFiltrosGenericos } from "@/components/layout/useFiltros";
+import { useAdminItem } from "@/hooks/data/useAdminItem";
 import { useIsAdmin } from "@/hooks/auth/useIsAdmin";
 
 const TABLAS_CONFIG = {

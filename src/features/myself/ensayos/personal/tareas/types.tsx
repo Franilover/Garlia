@@ -1,7 +1,7 @@
 import React from "react";
 import { MotionDiv } from '@/components/ui/Motion';
 import { BookOpen } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils/index";
 
 export type VistaOpcion = 1 | 2 | 3 | 4 | 5 | 7;
 export type ModoCalendario = "mes" | "semana";

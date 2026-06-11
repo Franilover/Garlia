@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   X, Edit3, Save, Plus, CheckCircle2, Trash2, Camera,
 } from "lucide-react";
-import { useDetalleMaestro, type Variante } from "@/hooks/features/useDetalleMaestro";
+import { useDetalleMaestro, type Variante } from "@/components/ui/DetalleMaestro/useDetalleMaestro";
 import { useToast } from "@/hooks/ui/useToast";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { ToastContainer } from "@/components/ui/ToastContainer";

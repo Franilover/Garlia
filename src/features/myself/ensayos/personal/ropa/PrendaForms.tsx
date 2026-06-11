@@ -1,7 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import { Save, X, Loader2, Image as ImageIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils/index";
 import SimpleImagePicker from "@/features/myself/garlia/editorCapitulos/snippets/forms/SimpleImagePicker";
 import { ChipGroup } from "@/components/ui/Chip";
 

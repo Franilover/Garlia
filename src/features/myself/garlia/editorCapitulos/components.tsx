@@ -17,7 +17,7 @@ import {
   wordCount, readingTime,
   capUpdateMeta,
 } from "./types";
-import { useCapitulos, useReinos } from "./hooks";
+import { useCapitulos, useReinos } from "./hooks/hooks";
 import { ComboSelector } from "@/components/ui/ComboSelector";
 import { SeccionEntidad } from "@/components/ui/SeccionEntidad";
 

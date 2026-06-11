@@ -2,7 +2,7 @@
 import { MotionDiv } from "@/components/ui/Motion";
 import React, { useState } from "react";
 import { AnimatePresence } from "framer-motion";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils/index";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import { tareasQueries } from "@/lib/api/queries/personal/tareas";
 import { eventosQueries } from "@/lib/api/queries/personal/eventos";

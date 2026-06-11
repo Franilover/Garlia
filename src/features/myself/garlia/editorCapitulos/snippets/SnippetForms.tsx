@@ -23,7 +23,7 @@ import {
   X, Music, Folder, FolderOpen, ChevronRight, Check, Loader2,
   Play, Pause, Volume2, Search, Package, Sword, User, Home,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils/index";
 import { MotionDiv } from "@/components/ui/Motion";
 
 // ─────────────────────────────────────────────────────────────────────────────

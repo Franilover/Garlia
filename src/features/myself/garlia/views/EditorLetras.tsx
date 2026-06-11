@@ -5,13 +5,13 @@ import { Music, Loader2, ArrowLeft } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { useLastOpenedId } from "@/hooks/useEditorShared";
 
-import { useCanciones } from "./hooks/useCanciones";
-import { ESTADOS, ESTADO_COLOR } from "./constants";
-import { SidebarItem } from "./components/sidebar/SidebarItem";
-import { PanelEditor } from "./components/editor/PanelEditor";
-import { ModalNuevaCancion } from "./components/modals/ModalNuevaCancion";
+import { useCanciones } from "@/features/myself/garlia/editorLetras/hooks/useCanciones";
+import { ESTADOS, ESTADO_COLOR } from "@/features/myself/garlia/editorLetras/constants";
+import { SidebarItem } from "@/features/myself/garlia/editorLetras/components/sidebar/SidebarItem";
+import { PanelEditor } from "@/features/myself/garlia/editorLetras/components/editor/PanelEditor";
+import { ModalNuevaCancion } from "@/features/myself/garlia/editorLetras/components/modals/ModalNuevaCancion";
 
-import type { Cancion } from "./types";
+import type { Cancion } from "@/features/myself/garlia/editorLetras/types";
 
 /* ─── Estilos compartidos con el MarkdownEditor ─────────────────────────────── */
 /*

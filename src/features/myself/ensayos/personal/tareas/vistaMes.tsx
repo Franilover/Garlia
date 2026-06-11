@@ -1,7 +1,7 @@
 "use client";
 import { MotionDiv, MotionButton } from "@/components/ui/Motion";
 import React, { useState, useMemo } from "react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils/index";
 import { ChevronLeft, ChevronRight, BookOpen, Plus } from "lucide-react";
 import { BtnIcon } from "@/components/ui";
 import { MESES, TIPOS_EVENTO } from "./types";
