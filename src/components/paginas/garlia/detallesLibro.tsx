@@ -539,55 +539,59 @@ export default function LibroDetalle() {
                 {leidos.size > 0 ? "Continuar leyendo" : "Empezar a leer"}
               </button>
             )}
-
-            {/* ── Reinos ── */}
-            {Object.keys(reinosMap).length > 0 && (
-              <div className="hidden md:flex flex-col gap-2">
-                <div className="flex items-center gap-1.5">
-                  <Map size={9} className="text-primary/30" />
-                  <span className="text-[8px] font-black uppercase tracking-[0.25em] text-primary/30">Reinos</span>
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {Object.values(reinosMap).map(reino => (
-                    <div key={reino.id} className="flex items-center gap-1.5 px-2 py-1 rounded-full border border-primary/10 bg-primary/3">
-                      {reino.logo_url && (
-                        <div className="w-3.5 h-3.5 rounded-full overflow-hidden shrink-0">
-                          <SmartImage src={reino.logo_url} alt={reino.nombre} className="w-full h-full object-cover" />
-                        </div>
-                      )}
-                      <span className="text-[9px] font-bold text-primary/60">{reino.nombre}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* ── Ciudades ── */}
-            {Object.keys(ciudadesMap).length > 0 && (
-              <div className="hidden md:flex flex-col gap-2">
-                <div className="flex items-center gap-1.5">
-                  <Building2 size={9} className="text-primary/30" />
-                  <span className="text-[8px] font-black uppercase tracking-[0.25em] text-primary/30">Ciudades</span>
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {Object.values(ciudadesMap).map(ciudad => (
-                    <div key={ciudad.id} className="flex items-center gap-1.5 px-2 py-1 rounded-full border border-primary/10 bg-primary/3">
-                      {ciudad.imagen_url && (
-                        <div className="w-3.5 h-3.5 rounded-full overflow-hidden shrink-0">
-                          <SmartImage src={ciudad.imagen_url} alt={ciudad.nombre} className="w-full h-full object-cover" />
-                        </div>
-                      )}
-                      <span className="text-[9px] font-bold text-primary/60">{ciudad.nombre}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         </aside>
 
         {/* ── Capítulos con narradores ── */}
-        <main>
+        <main className="flex flex-col gap-6">
+
+          {/* Reinos y ciudades — solo desktop, sobre los caps */}
+          {(Object.keys(reinosMap).length > 0 || Object.keys(ciudadesMap).length > 0) && (
+            <div className="hidden md:flex flex-col gap-4">
+              {Object.keys(reinosMap).length > 0 && (
+                <div className="flex flex-col gap-2">
+                  <span className="text-[8px] font-black uppercase tracking-[0.3em] text-primary/25 flex items-center gap-1.5">
+                    <Map size={8} />Reinos
+                  </span>
+                  <div className="flex flex-wrap gap-2">
+                    {Object.values(reinosMap).map(reino => (
+                      <div key={reino.id} className="flex items-center gap-2 px-3 py-1.5 rounded-[var(--radius-btn)] bg-white-custom border border-primary/8 shadow-sm">
+                        {reino.logo_url && (
+                          <div className="w-4 h-4 rounded-full overflow-hidden shrink-0 border border-primary/10">
+                            <SmartImage src={reino.logo_url} alt={reino.nombre} className="w-full h-full object-cover" />
+                          </div>
+                        )}
+                        <span className="text-[10px] font-black uppercase tracking-wide text-primary/60">{reino.nombre}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {Object.keys(ciudadesMap).length > 0 && (
+                <div className="flex flex-col gap-2">
+                  <span className="text-[8px] font-black uppercase tracking-[0.3em] text-primary/25 flex items-center gap-1.5">
+                    <Building2 size={8} />Ciudades
+                  </span>
+                  <div className="flex flex-wrap gap-2">
+                    {Object.values(ciudadesMap).map(ciudad => (
+                      <div key={ciudad.id} className="flex items-center gap-2 px-3 py-1.5 rounded-[var(--radius-btn)] bg-white-custom border border-primary/8 shadow-sm">
+                        {ciudad.imagen_url && (
+                          <div className="w-4 h-4 rounded-full overflow-hidden shrink-0 border border-primary/10">
+                            <SmartImage src={ciudad.imagen_url} alt={ciudad.nombre} className="w-full h-full object-cover" />
+                          </div>
+                        )}
+                        <span className="text-[10px] font-black uppercase tracking-wide text-primary/60">{ciudad.nombre}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="border-b border-primary/8" />
+            </div>
+          )}
+
           <ListaCaps withPersonajes={true} />
         </main>
       </div>
