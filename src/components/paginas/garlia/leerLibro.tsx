@@ -710,8 +710,8 @@ export default function Lector() {
         )}
       </AnimatePresence>
 
-      {/* ── Panel lateral — oculto en móvil ── */}
-      <div className="hidden md:contents">
+      {/* ── Panel lateral — solo desktop ── */}
+      <div className="hidden md:flex">
         <PanelLateral
           libroTitulo={libroTitulo}
           capActual={capActual}
