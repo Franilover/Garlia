@@ -176,24 +176,22 @@ function LugaresPanel({ reinosIds, ciudadesIds, border }: { reinosIds: string[];
   return (
     <div style={{ padding: "12px 16px 0", flexShrink: 0, display: "flex", flexDirection: "column", gap: 10 }}>
       {reinos.length > 0 && (
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+        <div style={{ display: "flex", flexDirection: "column", borderRadius: "var(--radius-btn, 6px)", overflow: "hidden", border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
           <div style={{
             fontSize: 7, fontFamily: "var(--font-mono)", letterSpacing: "0.2em",
             textTransform: "uppercase", color: "var(--primary)", opacity: 0.5,
-            marginBottom: 6, padding: "3px 10px",
+            padding: "5px 10px", textAlign: "center",
             background: "color-mix(in srgb, var(--primary) 8%, transparent)",
-            borderRadius: "var(--radius-btn, 6px)",
           }}>
             {reinos.length === 1 ? "Reino" : "Reinos"}
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 3, width: "100%" }}>
-            {reinos.map(r => (
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            {reinos.map((r, i) => (
               <div key={r.id} style={{
                 display: "flex", alignItems: "center", gap: 10,
-                padding: "6px 10px",
+                padding: "7px 10px",
                 background: "color-mix(in srgb, var(--primary) 5%, transparent)",
-                borderRadius: "var(--radius-btn, 6px)",
-                borderLeft: "2px solid color-mix(in srgb, var(--primary) 35%, transparent)",
+                borderTop: i > 0 ? "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" : undefined,
               }}>
                 <span style={{ fontSize: 10, lineHeight: 1, opacity: 0.5 }}>♛</span>
                 <span style={{
@@ -211,24 +209,22 @@ function LugaresPanel({ reinosIds, ciudadesIds, border }: { reinosIds: string[];
       )}
 
       {ciudades.length > 0 && (
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+        <div style={{ display: "flex", flexDirection: "column", borderRadius: "var(--radius-btn, 6px)", overflow: "hidden", border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
           <div style={{
             fontSize: 7, fontFamily: "var(--font-mono)", letterSpacing: "0.2em",
             textTransform: "uppercase", color: "var(--primary)", opacity: 0.5,
-            marginBottom: 6, padding: "3px 10px",
+            padding: "5px 10px", textAlign: "center",
             background: "color-mix(in srgb, var(--primary) 8%, transparent)",
-            borderRadius: "var(--radius-btn, 6px)",
           }}>
             {ciudades.length === 1 ? "Ciudad" : "Ciudades"}
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 3, width: "100%" }}>
-            {ciudades.map(c => (
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            {ciudades.map((c, i) => (
               <div key={c.id} style={{
                 display: "flex", alignItems: "center", gap: 10,
-                padding: "6px 10px",
+                padding: "7px 10px",
                 background: "color-mix(in srgb, var(--primary) 3%, transparent)",
-                borderRadius: "var(--radius-btn, 6px)",
-                borderLeft: "2px solid color-mix(in srgb, var(--primary) 18%, transparent)",
+                borderTop: i > 0 ? "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" : undefined,
               }}>
                 <span style={{ fontSize: 10, lineHeight: 1, opacity: 0.4 }}>◈</span>
                 <span style={{
