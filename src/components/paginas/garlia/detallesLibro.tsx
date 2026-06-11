@@ -38,6 +38,11 @@ interface CapituloProximo {
   fecha_publicacion: string;
 }
 
+interface GrupoLibro {
+  id: string;
+  nombre: string;
+}
+
 
 
 
@@ -102,6 +107,7 @@ export default function LibroDetalle() {
   const [notFound,         setNotFound]         = useState(false);
   const [leidos,           setLeidos]           = useState<Set<string>>(new Set());
   const [personajesMap,    setPersonajesMap]    = useState<Record<string, Personaje>>({});
+  const [grupoNombre,      setGrupoNombre]      = useState<string | null>(null);
 
   // ── Capítulos leídos ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -191,6 +197,18 @@ export default function LibroDetalle() {
       setLibro(libroData);
       setLibroId(libroData.id);
       setLoading(false); // ← quita el spinner principal aquí, no al final
+
+      // ── Grupo: cargar nombre para decidir interfaz ────────────────────────
+      if (libroData.categoria) {
+        try {
+          const { data: gData } = await supabase
+            .from("grupos_mundo")
+            .select("id, nombre")
+            .eq("id", libroData.categoria)
+            .single();
+          if (gData && mounted) setGrupoNombre((gData as GrupoLibro).nombre);
+        } catch {}
+      }
 
       // ── Caps: caché de módulo (0ms) ───────────────────────────────────────
       const cached = capsCacheados(libroData.id);
@@ -308,9 +326,8 @@ export default function LibroDetalle() {
     </div>
   );
 
-  // `categoria` ahora es un UUID de grupo_mundo. Si tiene valor → interfaz rica.
-  // Si es null → interfaz simple (portada + lista limpia).
-  const tieneGrupo = !!libro.categoria;
+  // Interfaz rica solo si el grupo se llama exactamente "Libro"
+  const esLibro = grupoNombre === "Libro";
 
   const rutaLector = (primerCapId: string, targetCapId?: string): string => {
     const targetId = targetCapId ?? primerCapId;
@@ -401,8 +418,8 @@ export default function LibroDetalle() {
     );
   };
 
-  // ── Interfaz SIMPLE: sin grupo ───────────────────────────────────────────────
-  if (!tieneGrupo) {
+  // ── Interfaz SIMPLE: poemario, one-shot, etc. ───────────────────────────────
+  if (!esLibro) {
     return (
       <div className="min-h-screen bg-bg-main pb-20 relative">
         <BackBtn onClick={() => router.push("/garlia/libros")} />
@@ -424,7 +441,7 @@ export default function LibroDetalle() {
     );
   }
 
-  // ── Interfaz RICA: con grupo — sidebar + narradores por cap ─────────────────
+  // ── Interfaz RICA: grupo "Libro" — sidebar + narradores por cap ─────────────
   return (
     <div className="min-h-screen bg-bg-main pb-20 relative">
       <BackBtn onClick={() => router.push("/garlia/libros")} />
