@@ -8,7 +8,12 @@ import { db } from "@/lib/api/client/db";
 import { motion, AnimatePresence } from "framer-motion";
 
 import { CapituloLista, CapituloScrollItem } from "../myself/garlia/editorCapitulos/snippets/type";
-import { esUUID } from "@/lib/utils/slugify";
+import { esUUID, toSlug } from "@/lib/utils/slugify";
+import {
+  loadPersonajesMap,
+  loadReinosMap,
+  loadCiudadesMap,
+} from "@/lib/api/client/syncEngine";
 import { CapituloScrollBlock, ToastPortal } from "@/components/paginas/myself/garlia/editorCapitulos/leer/CapituloScrollBlock";
 import { LectorSkeleton, ReadingProgressBar, Vignette, CapituloHeader, FinCapituloSeparador } from "../myself/garlia/editorCapitulos/leer/LectorUI";
 
@@ -120,9 +125,13 @@ function PersonajesPanel({ ids, border }: { ids: string[]; border: string }) {
 
   useEffect(() => {
     if (ids.length === 0) return;
-    supabase
-      .from("personajes").select("id, nombre, img_url").in("id", ids)
-      .then(({ data }) => { if (data) setPersonajes(data); });
+    // Dexie-first: instantáneo desde caché, refresca en background
+    loadPersonajesMap(ids, (freshMap) => {
+      setPersonajes(Object.values(freshMap));
+    }).then((map) => {
+      const vals = Object.values(map);
+      if (vals.length > 0) setPersonajes(vals);
+    });
   }, [ids.join(",")]);
 
   if (personajes.length === 0) return null;
@@ -161,14 +170,22 @@ function LugaresPanel({ reinosIds, ciudadesIds, border }: { reinosIds: string[];
 
   useEffect(() => {
     if (reinosIds.length === 0) { setReinos([]); return; }
-    supabase.from("reinos").select("id, nombre").in("id", reinosIds)
-      .then(({ data }) => { if (data) setReinos(data); });
+    loadReinosMap(reinosIds, (freshMap) => {
+      setReinos(Object.values(freshMap));
+    }).then((map) => {
+      const vals = Object.values(map);
+      if (vals.length > 0) setReinos(vals);
+    });
   }, [reinosIds.join(",")]);
 
   useEffect(() => {
     if (ciudadesIds.length === 0) { setCiudades([]); return; }
-    supabase.from("ciudades").select("id, nombre").in("id", ciudadesIds)
-      .then(({ data }) => { if (data) setCiudades(data); });
+    loadCiudadesMap(ciudadesIds, (freshMap) => {
+      setCiudades(Object.values(freshMap));
+    }).then((map) => {
+      const vals = Object.values(map);
+      if (vals.length > 0) setCiudades(vals);
+    });
   }, [ciudadesIds.join(",")]);
 
   if (reinos.length === 0 && ciudades.length === 0) return null;
@@ -177,6 +194,9 @@ function LugaresPanel({ reinosIds, ciudadesIds, border }: { reinosIds: string[];
     <div style={{ padding: "14px 16px 0", flexShrink: 0, display: "flex", flexDirection: "column", gap: 10 }}>
       {reinos.length > 0 && (
         <div>
+          <p style={{ fontSize: 8, fontFamily: "var(--font-mono)", letterSpacing: "0.2em", textTransform: "uppercase", color: "var(--primary)", opacity: 0.25, marginBottom: 7 }}>
+            {reinos.length === 1 ? "Reino" : "Reinos"}
+          </p>
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
             {reinos.map(r => (
               <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -378,24 +398,16 @@ export default function Lector() {
     setLoading(true);
     hasScrolled.current = false;
 
-    const getDexieTable = async () => {
-      try {
-        if (!db || !(db as any).capitulos) return null;
-        return (db as any).capitulos;
-      } catch { return null; }
-    };
-
     const cachearEnDexie = async (rows: any[]) => {
-      const table = await getDexieTable();
-      if (!table || rows.length === 0) return;
+      if (!db?.capitulos || rows.length === 0) return;
       try {
         const ids      = rows.map(r => r.id);
-        const existing = await table.bulkGet(ids) as (any | undefined)[];
+        const existing = await db.capitulos.bulkGet(ids) as (any | undefined)[];
         const merged   = rows.map((row: any, i: number) => {
           const prev = existing[i];
           return { ...prev, ...row, contenido: row.contenido ?? prev?.contenido ?? "", status: "synced" };
         });
-        await table.bulkPut(merged);
+        await db.capitulos.bulkPut(merged);
       } catch (e) { console.warn("[Dexie] Error cacheando caps:", e); }
     };
 
@@ -490,16 +502,14 @@ export default function Lector() {
         try {
           if (db?.libros) {
             const dexieLibros = await db.libros.toArray() as any[];
-            encontrado = dexieLibros.find((l: any) => {
-              try { return new URL("http://x/" + l.titulo).pathname.slice(1) === slugParam || l.titulo?.toLowerCase().replace(/\s+/g, "-") === slugParam; } catch { return false; }
-            }) ?? dexieLibros.find((l: any) => l.titulo?.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") === slugParam) ?? null;
+            // Usar toSlug consistente con el resto de la app
+            encontrado = dexieLibros.find((l: any) => toSlug(l.titulo) === slugParam) ?? null;
           }
         } catch {}
         if (!encontrado) {
           const { data: todos } = await supabase.from("libros").select("id, titulo, categoria");
           if (!todos) { setError("Libro no encontrado"); return; }
           try { await db?.libros?.bulkPut(todos as any[]); } catch {}
-          const { toSlug } = await import("@/lib/utils/slugify");
           encontrado = todos.find(l => toSlug(l.titulo) === slugParam) ?? null;
         }
         if (!encontrado) { setError("Libro no encontrado"); return; }
@@ -516,9 +526,8 @@ export default function Lector() {
       // ── 2. Dexie-first: render instantáneo si hay caché ───────────────────
       let yaRenderizoDesdeCache = false;
       try {
-        const table = await getDexieTable();
-        if (table) {
-          const cached: any[] = (await table.where("libro_id").equals(libroId).toArray()) as any[];
+        if (db?.capitulos) {
+          const cached: any[] = await db.capitulos.where("libro_id").equals(libroId).toArray() as any[];
           const capsCached = cached.filter(c => c.contenido && !c.deleted);
           if (capsCached.length > 0) {
             // La URL no se canonicaliza desde caché (sin RTT) — se hará al llegar Supabase
@@ -577,9 +586,8 @@ export default function Lector() {
       .catch(async (err) => {
         console.error("Error crítico en Lector:", err);
         try {
-          const table = await getDexieTable();
-          if (table) {
-            const todos = (await table.toArray()) as any[];
+          if (db?.capitulos) {
+            const todos = await db.capitulos.toArray() as any[];
             const cached = todos.filter(c => !c.deleted && c.libro_id === id && c.contenido);
             if (cached.length > 0) { aplicarCaps(cached, id, esExtra, false); return; }
           }
