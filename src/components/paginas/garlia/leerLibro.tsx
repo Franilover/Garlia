@@ -176,11 +176,17 @@ function LugaresPanel({ reinosIds, ciudadesIds, border }: { reinosIds: string[];
   return (
     <div style={{ padding: "12px 16px 0", flexShrink: 0, display: "flex", flexDirection: "column", gap: 10 }}>
       {reinos.length > 0 && (
-        <div>
-          <p style={{ fontSize: 7, fontFamily: "var(--font-mono)", letterSpacing: "0.2em", textTransform: "uppercase", color: "var(--primary)", opacity: 0.25, marginBottom: 6 }}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+          <div style={{
+            fontSize: 7, fontFamily: "var(--font-mono)", letterSpacing: "0.2em",
+            textTransform: "uppercase", color: "var(--primary)", opacity: 0.5,
+            marginBottom: 6, padding: "3px 10px",
+            background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+            borderRadius: "var(--radius-btn, 6px)",
+          }}>
             {reinos.length === 1 ? "Reino" : "Reinos"}
-          </p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 3, width: "100%" }}>
             {reinos.map(r => (
               <div key={r.id} style={{
                 display: "flex", alignItems: "center", gap: 10,
@@ -205,11 +211,17 @@ function LugaresPanel({ reinosIds, ciudadesIds, border }: { reinosIds: string[];
       )}
 
       {ciudades.length > 0 && (
-        <div>
-          <p style={{ fontSize: 7, fontFamily: "var(--font-mono)", letterSpacing: "0.2em", textTransform: "uppercase", color: "var(--primary)", opacity: 0.25, marginBottom: 6 }}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+          <div style={{
+            fontSize: 7, fontFamily: "var(--font-mono)", letterSpacing: "0.2em",
+            textTransform: "uppercase", color: "var(--primary)", opacity: 0.5,
+            marginBottom: 6, padding: "3px 10px",
+            background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+            borderRadius: "var(--radius-btn, 6px)",
+          }}>
             {ciudades.length === 1 ? "Ciudad" : "Ciudades"}
-          </p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 3, width: "100%" }}>
             {ciudades.map(c => (
               <div key={c.id} style={{
                 display: "flex", alignItems: "center", gap: 10,
