@@ -177,9 +177,6 @@ function LugaresPanel({ reinosIds, ciudadesIds, border }: { reinosIds: string[];
     <div style={{ padding: "14px 16px 0", flexShrink: 0, display: "flex", flexDirection: "column", gap: 10 }}>
       {reinos.length > 0 && (
         <div>
-          <p style={{ fontSize: 8, fontFamily: "var(--font-mono)", letterSpacing: "0.2em", textTransform: "uppercase", color: "var(--primary)", opacity: 0.25, marginBottom: 7 }}>
-            {reinos.length === 1 ? "Reino" : "Reinos"}
-          </p>
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
             {reinos.map(r => (
               <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 8 }}>

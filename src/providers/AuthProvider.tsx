@@ -1,12 +1,38 @@
 "use client";
 import { createContext, useContext, useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/api/client/supabase";
-import {
-  getPerfilCached,
-  setPerfilCached,
-  clearPerfilCached,
-} from "@/lib/api/client/perfilCache";
 import { db } from "@/lib/api/client/db";
+
+
+async function getPerfilCached() {
+  try {
+    if (!db) return null;
+    const row = await db.session_cache.get("perfil");
+    return row ? row.value : null;
+  } catch {
+    return null;
+  }
+}
+
+async function setPerfilCached(perfil: any) {
+  try {
+    if (!db) return;
+    await db.session_cache.put({
+      key: "perfil",
+      value: { perfil, updated_at: Date.now() },
+      updated_at: Date.now(),
+    });
+  } catch (e) {
+    console.warn("[AuthProvider Cache] No se pudo guardar perfil local:", e);
+  }
+}
+
+async function clearPerfilCached() {
+  try {
+    if (!db) return;
+    await db.session_cache.delete("perfil");
+  } catch {}
+}
 
 // ─── Tiempo máximo antes de refrescar desde Supabase (5 minutos) ─────────────
 const PERFIL_CACHE_TTL_MS = 5 * 60 * 1000;
