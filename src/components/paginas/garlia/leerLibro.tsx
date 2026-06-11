@@ -175,73 +175,139 @@ function PanelLateral({
   onSelectCap?: (capId: string) => void;
 }) {
   const border = "1px solid color-mix(in srgb, var(--primary) 10%, transparent)";
+  const narrador = (capActual as any)?._narrador as NarradorInfo | null | undefined;
   const personajesIds = Array.from(new Set(capActual?.personajes_ids ?? []));
 
   return (
     <div style={{
       width: "clamp(220px, 22vw, 300px)", flexShrink: 0, height: "100vh",
       borderRight: border, display: "flex", flexDirection: "column",
-      overflow: "hidden", position: "relative",
+      overflow: "hidden", position: "relative", background: "var(--bg-main)",
     }}>
-      {/* Botón volver */}
-      <div style={{ padding: "16px 20px 0", flexShrink: 0 }}>
-        <button onClick={onVolver} style={{ display: "flex", alignItems: "center", gap: 6, border: "none", background: "none", cursor: "pointer", color: "var(--primary)", fontSize: 9, fontFamily: "var(--font-mono)", letterSpacing: "0.16em", textTransform: "uppercase", opacity: 0.25, transition: "opacity 0.15s" }}
-          onMouseEnter={e => (e.currentTarget.style.opacity = "0.6")} onMouseLeave={e => (e.currentTarget.style.opacity = "0.25")}>
+
+      {/* ── Hero: imagen del narrador con degradado ── */}
+      <div style={{ position: "relative", flexShrink: 0, height: 200, overflow: "hidden" }}>
+        {narrador?.img_url ? (
+          <img
+            src={narrador.img_url}
+            alt={narrador.nombre}
+            style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top center", display: "block" }}
+          />
+        ) : (
+          <div style={{
+            width: "100%", height: "100%",
+            background: "color-mix(in srgb, var(--primary) 6%, var(--bg-main))",
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}>
+            {narrador?.nombre && (
+              <span style={{ fontSize: 56, fontWeight: 900, color: "var(--primary)", opacity: 0.06, fontStyle: "italic", textTransform: "uppercase" }}>
+                {narrador.nombre.charAt(0)}
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Degradado sobre la imagen */}
+        <div style={{
+          position: "absolute", inset: 0,
+          background: "linear-gradient(to bottom, color-mix(in srgb, var(--bg-main) 0%, transparent) 0%, color-mix(in srgb, var(--bg-main) 55%, transparent) 55%, var(--bg-main) 100%)",
+        }} />
+
+        {/* Botón volver — arriba izquierda */}
+        <button onClick={onVolver} style={{
+          position: "absolute", top: 12, left: 14,
+          display: "flex", alignItems: "center", gap: 5,
+          border: "none", background: "none", cursor: "pointer",
+          color: "var(--primary)", fontSize: 9,
+          fontFamily: "var(--font-mono)", letterSpacing: "0.16em",
+          textTransform: "uppercase", opacity: 0.55, transition: "opacity 0.15s",
+          textShadow: "0 1px 6px var(--bg-main)",
+        }}
+          onMouseEnter={e => (e.currentTarget.style.opacity = "1")}
+          onMouseLeave={e => (e.currentTarget.style.opacity = "0.55")}
+        >
           ← Volver
         </button>
+
+        {/* Narrador + título del cap sobre el degradado */}
+        <div style={{ position: "absolute", bottom: 14, left: 16, right: 16 }}>
+          {narrador?.nombre && (
+            <p style={{
+              fontSize: 8, fontFamily: "var(--font-mono)", letterSpacing: "0.18em",
+              textTransform: "uppercase", color: "var(--primary)", opacity: 0.5,
+              marginBottom: 4,
+            }}>
+              {narrador.nombre}
+            </p>
+          )}
+          {capActual && (
+            <p style={{
+              fontSize: 11, fontWeight: 900, color: "var(--primary)", opacity: 0.85,
+              lineHeight: 1.25, fontStyle: "italic", letterSpacing: "-0.02em",
+              textTransform: "uppercase",
+            }}>
+              {capActual.orden}. {capActual.titulo_capitulo}
+            </p>
+          )}
+        </div>
       </div>
 
-      {/* Título del libro */}
+      {/* ── Título del libro ── */}
       {libroTitulo && (
-        <div style={{ padding: "16px 20px 0", flexShrink: 0 }}>
-          <p style={{ fontSize: 8, fontFamily: "var(--font-mono)", letterSpacing: "0.2em", textTransform: "uppercase", color: "var(--primary)", opacity: 0.3, marginBottom: 6 }}>Libro</p>
-          <p style={{ fontSize: 13, fontWeight: 900, color: "var(--primary)", opacity: 0.8, lineHeight: 1.3, fontStyle: "italic", letterSpacing: "-0.02em", textTransform: "uppercase" }}>
+        <div style={{ padding: "12px 16px 0", flexShrink: 0 }}>
+          <p style={{ fontSize: 7, fontFamily: "var(--font-mono)", letterSpacing: "0.2em", textTransform: "uppercase", color: "var(--primary)", opacity: 0.25, marginBottom: 4 }}>
+            Libro
+          </p>
+          <p style={{ fontSize: 11, fontWeight: 900, color: "var(--primary)", opacity: 0.65, lineHeight: 1.3, fontStyle: "italic", letterSpacing: "-0.02em", textTransform: "uppercase" }}>
             {libroTitulo}
           </p>
         </div>
       )}
 
-      <div style={{ margin: "16px 20px 8px", height: 1, background: border.replace("1px solid ", "") }} />
-
-      {/* Índice siempre visible — scrolleable */}
-      <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "0 20px 8px" }}>
-        {loading && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {[80, 60, 100, 50].map((w, i) => (
-              <div key={i} style={{ height: i === 0 ? 14 : 10, width: `${w}%`, borderRadius: 4, background: "color-mix(in srgb, var(--primary) 8%, transparent)", opacity: 0.5 }} />
-            ))}
-          </div>
-        )}
-
-        <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-          {capitulos.map(cap => {
-            const esActual = cap.id === capIdActual;
-            return (
-              <button key={cap.id} onClick={() => onSelectCap?.(cap.id)} style={{
-                display: "block", width: "100%", textAlign: "left", padding: "7px 10px", borderRadius: 6, border: "none",
-                background: esActual ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent",
-                cursor: "pointer", transition: "background 0.12s",
-                color: esActual ? "var(--primary)" : "color-mix(in srgb, var(--primary) 55%, transparent)",
-                fontSize: 10, fontFamily: "var(--font-mono)", fontWeight: 700,
-                textTransform: "uppercase", letterSpacing: "0.04em", lineHeight: 1.4,
-              }}
-                onMouseEnter={e => { if (!esActual) e.currentTarget.style.background = "color-mix(in srgb, var(--primary) 6%, transparent)"; }}
-                onMouseLeave={e => { if (!esActual) e.currentTarget.style.background = "transparent"; }}
-              >
-                <span style={{ fontSize: 8, opacity: 0.4, marginRight: 6, fontVariantNumeric: "tabular-nums" }}>{String(cap.orden).padStart(2, "0")}</span>
-                {cap.titulo_capitulo}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Info del cap activo + personajes — al fondo */}
-      {!loading && capActual && !esExtra && personajesIds.length > 0 && (
-        <div style={{ padding: "12px 20px", borderTop: border, flexShrink: 0 }}>
+      {/* ── Personajes del capítulo ── */}
+      {!loading && !esExtra && personajesIds.length > 0 && (
+        <div style={{ padding: "10px 16px 0", flexShrink: 0 }}>
           <PersonajesPanel ids={personajesIds} border={border} />
         </div>
       )}
+
+      <div style={{ margin: "10px 16px 4px", height: 1, background: border.replace("1px solid ", ""), flexShrink: 0 }} />
+
+      {/* ── Índice scrolleable ── */}
+      <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "0 8px 16px" }}>
+        {loading ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, padding: "8px" }}>
+            {[80, 60, 100, 50, 75].map((w, i) => (
+              <div key={i} style={{ height: 9, width: `${w}%`, borderRadius: 4, background: "color-mix(in srgb, var(--primary) 7%, transparent)" }} />
+            ))}
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            {capitulos.map(cap => {
+              const esActual = cap.id === capIdActual;
+              return (
+                <button key={cap.id} onClick={() => onSelectCap?.(cap.id)} style={{
+                  display: "block", width: "100%", textAlign: "left",
+                  padding: "6px 10px", borderRadius: 6, border: "none",
+                  background: esActual ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent",
+                  cursor: "pointer", transition: "background 0.12s",
+                  color: esActual ? "var(--primary)" : "color-mix(in srgb, var(--primary) 45%, transparent)",
+                  fontSize: 10, fontFamily: "var(--font-mono)", fontWeight: 700,
+                  textTransform: "uppercase", letterSpacing: "0.04em", lineHeight: 1.4,
+                }}
+                  onMouseEnter={e => { if (!esActual) e.currentTarget.style.background = "color-mix(in srgb, var(--primary) 6%, transparent)"; }}
+                  onMouseLeave={e => { if (!esActual) e.currentTarget.style.background = "transparent"; }}
+                >
+                  <span style={{ fontSize: 8, opacity: 0.35, marginRight: 6, fontVariantNumeric: "tabular-nums" }}>
+                    {String(cap.orden).padStart(2, "0")}
+                  </span>
+                  {cap.titulo_capitulo}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
 
       {/* Barra de progreso vertical */}
       <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 3, background: "color-mix(in srgb, var(--primary) 6%, transparent)", borderRadius: 99 }}>
@@ -250,7 +316,6 @@ function PanelLateral({
     </div>
   );
 }
-
 /* ─────────────────────────────────────────────
    Componente principal del lector
    ───────────────────────────────────────────── */
