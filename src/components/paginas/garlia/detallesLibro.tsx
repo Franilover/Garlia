@@ -17,6 +17,8 @@ interface Capitulo {
   libro_id: string;
   narrador_id: string | null;
   personajes_ids: string[] | null;
+  reino: string | null;
+  ciudades: string[] | null;
 }
 
 interface Libro {
@@ -260,7 +262,7 @@ export default function LibroDetalle() {
         const [capsRes, proximoRes] = await Promise.all([
           supabase
             .from("capitulos")
-            .select("id, titulo_capitulo, orden, fecha_publicacion, libro_id, narrador_id, personajes_ids")
+            .select("id, titulo_capitulo, orden, fecha_publicacion, libro_id, narrador_id, personajes_ids, reino, ciudades")
             .eq("libro_id", libroData.id)
             .eq("visibilidad", "publico")
             .not("titulo_capitulo", "like", "[Ruta]%")
@@ -287,6 +289,8 @@ export default function LibroDetalle() {
             libro_id: c.libro_id,
             narrador_id: c.narrador_id ?? null,
             personajes_ids: c.personajes_ids ?? null,
+            reino: c.reino ?? null,
+            ciudades: c.ciudades ?? null,
           })) as Capitulo[];
 
           // Actualizar caché de módulo
@@ -377,7 +381,26 @@ export default function LibroDetalle() {
     );
   };
 
-  // ── Lista de capítulos ────────────────────────────────────────────────────────
+  // ── Fila de lugar (reino + ciudades) de un capítulo ─────────────────────────
+  const LugarRow = ({ cap }: { cap: Capitulo }) => {
+    if (!cap.reino && (!cap.ciudades || cap.ciudades.length === 0)) return null;
+    return (
+      <div className="flex items-center gap-1.5 flex-wrap mb-1">
+        {cap.reino && (
+          <span className="text-[8px] font-black uppercase tracking-wide text-primary/40 bg-primary/5 px-1.5 py-0.5 rounded">
+            ♛ {cap.reino}
+          </span>
+        )}
+        {(cap.ciudades ?? []).map((ciudad) => (
+          <span key={ciudad} className="text-[8px] font-bold uppercase tracking-wide text-primary/30 bg-primary/[0.03] px-1.5 py-0.5 rounded border border-primary/8">
+            ⌖ {ciudad}
+          </span>
+        ))}
+      </div>
+    );
+  };
+
+
   const ListaCaps = ({ withPersonajes }: { withPersonajes: boolean }) => {
     if (loadingCaps && capitulos.length === 0) return (
       <p className="text-center text-primary/25 font-bold text-[10px] uppercase tracking-widest py-12 italic animate-pulse">
@@ -409,6 +432,7 @@ export default function LibroDetalle() {
             >
               <div className="flex flex-col gap-1 min-w-0 flex-1">
                 {withPersonajes && <PersonajesRow cap={cap} />}
+                {withPersonajes && <LugarRow cap={cap} />}
                 {esRuta && <span className="text-[8px] font-black uppercase tracking-widest text-blue-400">↳ Nodo de ruta</span>}
                 <span className={`font-black uppercase text-[12px] group-hover:translate-x-1 transition-transform leading-snug ${leido ? "text-primary/40 line-through decoration-primary/20" : "text-primary"}`}>
                   {cap.orden}. {esRuta ? cap.titulo_capitulo.replace("[Ruta] ", "") : cap.titulo_capitulo}
