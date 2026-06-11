@@ -320,31 +320,7 @@ function PanelLateral({
         >
           ← Volver
         </button>
-
-        {/* Narrador solo — sin título del cap */}
-        <div style={{ position: "absolute", bottom: 14, left: 16, right: 16 }}>
-          {narrador?.nombre && (
-            <p style={{
-              fontSize: 8, fontFamily: "var(--font-mono)", letterSpacing: "0.18em",
-              textTransform: "uppercase", color: "var(--primary)", opacity: 0.5,
-            }}>
-              {narrador.nombre}
-            </p>
-          )}
-        </div>
       </div>
-
-      {/* ── Título del libro ── */}
-      {libroTitulo && (
-        <div style={{ padding: "12px 16px 0", flexShrink: 0 }}>
-          <p style={{ fontSize: 7, fontFamily: "var(--font-mono)", letterSpacing: "0.2em", textTransform: "uppercase", color: "var(--primary)", opacity: 0.25, marginBottom: 4 }}>
-            Libro
-          </p>
-          <p style={{ fontSize: 11, fontWeight: 900, color: "var(--primary)", opacity: 0.65, lineHeight: 1.3, fontStyle: "italic", letterSpacing: "-0.02em", textTransform: "uppercase" }}>
-            {libroTitulo}
-          </p>
-        </div>
-      )}
 
       {/* ── Reinos y ciudades del capítulo ── */}
       {!loading && capActual && !esExtra && (
@@ -495,16 +471,31 @@ export default function Lector() {
       esExtraLocal: boolean,
       canonicalizarURL: boolean,
     ) => {
-      const lista: CapituloLista[] = capsValidas.map(c => ({
+      // ── Filtro de seguridad en cliente ────────────────────────────────────
+      // Descarta caps que no sean públicos o que tengan fecha futura,
+      // independientemente de la fuente (Supabase, Dexie, caché).
+      const ahora = new Date();
+      const caps = capsValidas.filter(c => {
+        const vis = c.visibilidad ?? "publico"; // fallback para datos Dexie sin campo
+        if (vis === "oculto") return false;
+        if (vis === "publico") return true;
+        if (vis === "programado") {
+          if (!c.fecha_publicacion) return false;
+          return new Date(c.fecha_publicacion) <= ahora;
+        }
+        return false; // cualquier otro valor desconocido → ocultar
+      });
+
+      const lista: CapituloLista[] = caps.map(c => ({
         id: c.id, orden: c.orden,
         titulo_capitulo: c.titulo_capitulo,
         fecha_publicacion: c.fecha_publicacion,
       }));
-      const capIdActivo = resolverCapActivo(capsValidas, libroId, esExtraLocal, canonicalizarURL);
+      const capIdActivo = resolverCapActivo(caps, libroId, esExtraLocal, canonicalizarURL);
 
       setId(libroId);
       setListaCapitulos(lista);
-      setCapitulos(capsValidas as unknown as CapituloScrollItem[]);
+      setCapitulos(caps as unknown as CapituloScrollItem[]);
       setCapId(capIdActivo);
     };
 
@@ -582,7 +573,7 @@ export default function Lector() {
 
       const { data: contenidos, error: capsError } = await supabase
         .from("capitulos")
-        .select(`id, orden, titulo_capitulo, contenido, fecha_publicacion, personajes_ids, reinos_ids, ciudades_ids, libros(titulo), narrador:personajes!narrador_id(id, nombre, img_url)`)
+        .select(`id, orden, titulo_capitulo, contenido, fecha_publicacion, visibilidad, personajes_ids, reinos_ids, ciudades_ids, libros(titulo), narrador:personajes!narrador_id(id, nombre, img_url)`)
         .eq("libro_id", libroId)
         .or(`visibilidad.eq.publico,and(visibilidad.eq.programado,fecha_publicacion.lte.${hoy.split("T")[0]})`)
         .not("titulo_capitulo", "like", "[Ruta]%")
