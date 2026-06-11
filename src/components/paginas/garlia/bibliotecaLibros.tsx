@@ -413,7 +413,8 @@ const Biblioteca = () => {
     return resultado;
   }, [libros, grupos]);
 
-  const hayMultiplesGrupos = gruposOrdenados.length > 1;
+  // Mostrar secciones si hay al menos un grupo con nombre real (id !== null)
+  const hayGruposReales = gruposOrdenados.some(g => g.id !== null);
 
   if (loading && libros.length === 0) return <Loading text="Abriendo archivos..." />;
 
@@ -442,7 +443,7 @@ const Biblioteca = () => {
           <p className="text-center text-primary/30 font-bold text-xs uppercase tracking-widest py-24 italic">
             No hay libros disponibles por el momento
           </p>
-        ) : hayMultiplesGrupos ? (
+        ) : hayGruposReales ? (
           <div className="flex flex-col gap-16">
             {gruposOrdenados.map(({ id, nombre, items }) => (
               <section key={id ?? "__sin_grupo__"}>
