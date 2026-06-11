@@ -13,8 +13,9 @@ import { RelojDigital } from "./relojDigital";
 import { ListaTareas } from "./listaTareas";
 import { VistaMes } from "./vistaMes";
 import { VistaSemanal } from "./vistaSemanal";
-import { USERNAME } from "@/lib/config/constants";
 import type { ModoCalendario } from "./types";
+
+const USERNAME = "franilover";
 
 export const GestionPersonal = () => {
   const { data: tareas, setData: setTareas } = useSupabaseData<any>("tareas");

@@ -1,9 +1,32 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { supabase } from "@/lib/api/client/supabase";
 import { type Nota } from "./types";
-import { loreReadAll, lorePut, loreDel, loreWriteAll } from "@/lib/api/client/loreDb";
 import { enqueueOperation, isReallyOnline } from "@/hooks/data/useOfflineSync";
+import { db } from "@/lib/api/client/db";
 
+async function loreReadAll<T>(tabla: string): Promise<T[]> {
+  if (!db) return [];
+  const t = (db as any)[tabla];
+  if (!t) return [];
+  return (await t.toArray()).filter((r: any) => !r.deleted) as T[];
+}
+
+async function lorePut(tabla: string, row: any): Promise<void> {
+  if (db) await (db as any)[tabla]?.put(row);
+}
+
+async function loreDel(tabla: string, id: string): Promise<void> {
+  if (db) await (db as any)[tabla]?.delete(id);
+}
+
+async function loreWriteAll(tabla: string, rows: any[]): Promise<void> {
+  if (!db) return;
+  const t = (db as any)[tabla];
+  if (t) {
+    await t.clear();
+    await t.bulkPut(rows);
+  }
+}
 // ─── Hook principal ───────────────────────────────────────────────────────────
 export function useNotas() {
   const [notas, setNotas] = useState<Nota[]>([]);

@@ -3,8 +3,51 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
-import { loreReadRelaciones, loreSyncRelaciones } from "@/lib/api/client/loreDb";
 import { ComboSelector } from "@/components/ui/ComboSelector";
+
+async function loreReadRelaciones(
+  tabla: string,
+  personajeId: string,
+  foreignKey: string
+): Promise<string[]> {
+  try {
+    if (!db) return [];
+    const t = (db as any)[tabla];
+    if (!t) return [];
+    // Ajustado para buscar dinámicamente tanto por personaje_id como por criatura_id
+    const searchKey = t.schema.indexes.some((i: any) => i.name === "personaje_id") 
+      ? "personaje_id" 
+      : "criatura_id";
+      
+    const rows = await t.where(searchKey).equals(personajeId).toArray();
+    return rows.map((r: any) => r[foreignKey]);
+  } catch {
+    return [];
+  }
+}
+
+async function loreSyncRelaciones(
+  tabla: string,
+  personajeId: string,
+  foreignKey: string,
+  remoteIds: string[]
+): Promise<void> {
+  try {
+    if (!db) return;
+    const t = (db as any)[tabla];
+    if (!t) return;
+    const searchKey = t.schema.indexes.some((i: any) => i.name === "personaje_id") 
+      ? "personaje_id" 
+      : "criatura_id";
+
+    await t.where(searchKey).equals(personajeId).delete();
+    for (const id of remoteIds) {
+      await t.put({ [searchKey]: personajeId, [foreignKey]: id });
+    }
+  } catch (e) {
+    console.error(`Error sincronizando relaciones locales en ${tabla}:`, e);
+  }
+}
 
 // ─── Types locales ─────────────────────────────────────────────────────────────
 type DonCatalogo = {

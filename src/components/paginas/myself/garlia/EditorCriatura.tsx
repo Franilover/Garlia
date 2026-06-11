@@ -15,9 +15,52 @@ import { useGruposDeCriatura, usePersonajesDeEspecie, type GrupoMin } from "./co
 import { SelectorImagen, SaveIndicator } from "./components/UIComponents";
 import { MarkdownEditor, WikiEntity } from "../../../forms/Markdown/MarkdownEditor";
 import { useWikilink } from "./components/WikilinkContext";
-import { loreReadRelaciones, loreSyncRelaciones } from "@/lib/api/client/loreDb";
 import { SeccionEntidad } from "@/components/ui/SeccionEntidad";
 import SimpleImagePicker from "@/components/paginas/myself/garlia/editorCapitulos/snippets//forms/SimpleImagePicker";
+
+async function loreReadRelaciones(
+  tabla: string,
+  personajeId: string,
+  foreignKey: string
+): Promise<string[]> {
+  try {
+    if (!db) return [];
+    const t = (db as any)[tabla];
+    if (!t) return [];
+    // Ajustado para buscar dinámicamente tanto por personaje_id como por criatura_id
+    const searchKey = t.schema.indexes.some((i: any) => i.name === "personaje_id") 
+      ? "personaje_id" 
+      : "criatura_id";
+      
+    const rows = await t.where(searchKey).equals(personajeId).toArray();
+    return rows.map((r: any) => r[foreignKey]);
+  } catch {
+    return [];
+  }
+}
+
+async function loreSyncRelaciones(
+  tabla: string,
+  personajeId: string,
+  foreignKey: string,
+  remoteIds: string[]
+): Promise<void> {
+  try {
+    if (!db) return;
+    const t = (db as any)[tabla];
+    if (!t) return;
+    const searchKey = t.schema.indexes.some((i: any) => i.name === "personaje_id") 
+      ? "personaje_id" 
+      : "criatura_id";
+
+    await t.where(searchKey).equals(personajeId).delete();
+    for (const id of remoteIds) {
+      await t.put({ [searchKey]: personajeId, [foreignKey]: id });
+    }
+  } catch (e) {
+    console.error(`Error sincronizando relaciones locales en ${tabla}:`, e);
+  }
+}
 
 // ─── Dexie helpers ────────────────────────────────────────────────────────────
 async function dexiePut(tabla: string, row: any): Promise<void> {

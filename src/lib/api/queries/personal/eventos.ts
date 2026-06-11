@@ -1,7 +1,7 @@
 import { supabase } from "@/lib/api/client/supabase";
-import { USERNAME } from "@/lib/config/constants";
 import { Inserts, Tables } from "@/lib/types/queries";
 
+const USERNAME = "franilover";
 export const eventosQueries = {
   getAll: async (): Promise<Tables<'eventos'>[]> => {
     const { data, error } = await supabase
