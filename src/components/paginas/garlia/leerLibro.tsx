@@ -174,43 +174,60 @@ function LugaresPanel({ reinosIds, ciudadesIds, border }: { reinosIds: string[];
   if (reinos.length === 0 && ciudades.length === 0) return null;
 
   return (
-    <div style={{ padding: "10px 16px 0", flexShrink: 0, display: "flex", flexDirection: "column", gap: 8 }}>
+    <div style={{ padding: "12px 16px 0", flexShrink: 0, display: "flex", flexDirection: "column", gap: 10 }}>
       {reinos.length > 0 && (
         <div>
-          <p style={{ fontSize: 7, fontFamily: "var(--font-mono)", letterSpacing: "0.2em", textTransform: "uppercase", color: "var(--primary)", opacity: 0.25, marginBottom: 5 }}>
+          <p style={{ fontSize: 7, fontFamily: "var(--font-mono)", letterSpacing: "0.2em", textTransform: "uppercase", color: "var(--primary)", opacity: 0.25, marginBottom: 6 }}>
             {reinos.length === 1 ? "Reino" : "Reinos"}
           </p>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
             {reinos.map(r => (
-              <span key={r.id} style={{
-                fontSize: 9, fontFamily: "var(--font-mono)", fontWeight: 700,
-                textTransform: "uppercase", letterSpacing: "0.08em",
-                color: "var(--primary)", opacity: 0.6,
-                padding: "2px 7px", borderRadius: 99,
-                border,
+              <div key={r.id} style={{
+                display: "flex", alignItems: "center", gap: 10,
+                padding: "6px 10px",
+                background: "color-mix(in srgb, var(--primary) 5%, transparent)",
+                borderRadius: "var(--radius-btn, 6px)",
+                borderLeft: "2px solid color-mix(in srgb, var(--primary) 35%, transparent)",
               }}>
-                {r.nombre}
-              </span>
+                <span style={{ fontSize: 10, lineHeight: 1, opacity: 0.5 }}>♛</span>
+                <span style={{
+                  fontSize: 11, fontWeight: 800, fontStyle: "italic",
+                  color: "var(--primary)", opacity: 0.75,
+                  letterSpacing: "-0.01em", textTransform: "uppercase",
+                  lineHeight: 1.2,
+                }}>
+                  {r.nombre}
+                </span>
+              </div>
             ))}
           </div>
         </div>
       )}
+
       {ciudades.length > 0 && (
         <div>
-          <p style={{ fontSize: 7, fontFamily: "var(--font-mono)", letterSpacing: "0.2em", textTransform: "uppercase", color: "var(--primary)", opacity: 0.25, marginBottom: 5 }}>
+          <p style={{ fontSize: 7, fontFamily: "var(--font-mono)", letterSpacing: "0.2em", textTransform: "uppercase", color: "var(--primary)", opacity: 0.25, marginBottom: 6 }}>
             {ciudades.length === 1 ? "Ciudad" : "Ciudades"}
           </p>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
             {ciudades.map(c => (
-              <span key={c.id} style={{
-                fontSize: 9, fontFamily: "var(--font-mono)", fontWeight: 700,
-                textTransform: "uppercase", letterSpacing: "0.08em",
-                color: "var(--primary)", opacity: 0.45,
-                padding: "2px 7px", borderRadius: 99,
-                border: `1px solid color-mix(in srgb, var(--primary) 7%, transparent)`,
+              <div key={c.id} style={{
+                display: "flex", alignItems: "center", gap: 10,
+                padding: "6px 10px",
+                background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+                borderRadius: "var(--radius-btn, 6px)",
+                borderLeft: "2px solid color-mix(in srgb, var(--primary) 18%, transparent)",
               }}>
-                {c.nombre}
-              </span>
+                <span style={{ fontSize: 10, lineHeight: 1, opacity: 0.4 }}>◈</span>
+                <span style={{
+                  fontSize: 11, fontWeight: 700,
+                  color: "var(--primary)", opacity: 0.55,
+                  letterSpacing: "0em", textTransform: "uppercase",
+                  lineHeight: 1.2,
+                }}>
+                  {c.nombre}
+                </span>
+              </div>
             ))}
           </div>
         </div>
