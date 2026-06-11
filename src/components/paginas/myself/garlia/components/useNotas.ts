@@ -17,7 +17,7 @@ async function lorePut(tabla: string, row: any): Promise<void> {
 
 async function loreDel(tabla: string, id: string): Promise<void> {
   if (db) await (db as any)[tabla]?.delete(id);
-}
+} 
 
 async function loreWriteAll(tabla: string, rows: any[]): Promise<void> {
   if (!db) return;
