@@ -99,9 +99,9 @@ export function HomeDashboard({
 
   /* ── Sección reutilizable ── */
   const SectionHeader = ({ icon, label, count }: { icon: React.ReactNode; label: string; count?: number }) => (
-    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12 }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 18 }}>
       {icon}
-      <span style={{ ...mono, fontSize: 8, color: "color-mix(in srgb, var(--foreground) 25%, transparent)", textTransform: "uppercase", letterSpacing: "0.14em", flex: 1 }}>
+      <span style={{ ...mono, fontSize: 9, color: "color-mix(in srgb, var(--foreground) 28%, transparent)", textTransform: "uppercase", letterSpacing: "0.13em", flex: 1 }}>
         {label}
       </span>
       {count !== undefined && count > 0 && (
@@ -139,7 +139,7 @@ export function HomeDashboard({
             grid-template-columns: 1fr 1fr !important;
           }
           .hd-outer-padding {
-            padding: 16px 16px 80px !important;
+            padding: 18px 18px 88px !important;
           }
           .hd-stats {
             font-size: 10px !important;
@@ -161,10 +161,10 @@ export function HomeDashboard({
           .hd-mobile-actions { display: none !important; }
         }
       `}</style>
-      <div className="hd-outer-padding" style={{ maxWidth: 1200, margin: "0 auto", padding: "32px 32px 64px" }}>
+      <div className="hd-outer-padding" style={{ maxWidth: 1400, margin: "0 auto", padding: "40px 40px 80px" }}>
 
         {/* ── Stats mínimo arriba ── */}
-        <p className="hd-stats" style={{ ...mono, fontSize: 9, color: "color-mix(in srgb, var(--foreground) 18%, transparent)", marginBottom: 16, textTransform: "uppercase", letterSpacing: "0.12em" }}>
+        <p className="hd-stats" style={{ ...mono, fontSize: 10, color: "color-mix(in srgb, var(--foreground) 22%, transparent)", marginBottom: 24, textTransform: "uppercase", letterSpacing: "0.12em" }}>
           {ensayos.length} notas · {totalPalabras.toLocaleString("es-ES")} palabras
           {tagMasUsado && ` · #${tagMasUsado}`}
           {pendientes.length > 0 && ` · ${pendientes.length} pendiente${pendientes.length !== 1 ? "s" : ""}`}
@@ -305,11 +305,11 @@ export function HomeDashboard({
           `,
           gap: gap,
           background: divColor,
-          borderRadius: 8,
+          borderRadius: 12,
           overflow: "hidden",
           marginBottom: gap,
           /* altura fija para que el span funcione bien */
-          minHeight: 560,
+          minHeight: 680,
         }}>
 
           {/* ── Calendario — span 2 rows (expanded) ── */}
@@ -596,26 +596,26 @@ export function HomeDashboard({
 
           {/* ── Pendientes inline ── */}
           <div style={{ gridArea: "pendientes", background: "var(--bg-main)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-            <div style={{ padding: "10px 14px 8px", borderBottom: `1px solid ${divColor}`, flexShrink: 0, display: "flex", alignItems: "center", gap: 6 }}>
-              <BookOpen size={9} style={{ color: "color-mix(in srgb, var(--foreground) 25%, transparent)" }} />
-              <span style={{ ...mono, fontSize: 8, color: "color-mix(in srgb, var(--foreground) 25%, transparent)", textTransform: "uppercase", letterSpacing: "0.14em" }}>
+            <div style={{ padding: "14px 18px 12px", borderBottom: `1px solid ${divColor}`, flexShrink: 0, display: "flex", alignItems: "center", gap: 7 }}>
+              <BookOpen size={10} style={{ color: "color-mix(in srgb, var(--foreground) 25%, transparent)" }} />
+              <span style={{ ...mono, fontSize: 9, color: "color-mix(in srgb, var(--foreground) 30%, transparent)", textTransform: "uppercase", letterSpacing: "0.12em" }}>
                 Pendientes
               </span>
             </div>
-            <div style={{ flex: 1, overflowY: "auto", scrollbarWidth: "none" }}>
+            <div style={{ flex: 1, overflowY: "auto", scrollbarWidth: "none", paddingTop: 8 }}>
               <PaginaPendientes />
             </div>
           </div>
 
           {/* ── Hobbys inline ── */}
           <div style={{ gridArea: "hobbys", background: "var(--bg-main)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-            <div style={{ padding: "10px 14px 8px", borderBottom: `1px solid ${divColor}`, flexShrink: 0, display: "flex", alignItems: "center", gap: 6 }}>
-              <Heart size={9} style={{ color: "color-mix(in srgb, var(--foreground) 25%, transparent)" }} />
-              <span style={{ ...mono, fontSize: 8, color: "color-mix(in srgb, var(--foreground) 25%, transparent)", textTransform: "uppercase", letterSpacing: "0.14em" }}>
+            <div style={{ padding: "14px 18px 12px", borderBottom: `1px solid ${divColor}`, flexShrink: 0, display: "flex", alignItems: "center", gap: 7 }}>
+              <Heart size={10} style={{ color: "color-mix(in srgb, var(--foreground) 25%, transparent)" }} />
+              <span style={{ ...mono, fontSize: 9, color: "color-mix(in srgb, var(--foreground) 30%, transparent)", textTransform: "uppercase", letterSpacing: "0.12em" }}>
                 Hobbys
               </span>
             </div>
-            <div style={{ flex: 1, overflowY: "auto", scrollbarWidth: "none" }}>
+            <div style={{ flex: 1, overflowY: "auto", scrollbarWidth: "none", paddingTop: 8 }}>
               <PaginaHobbys />
             </div>
           </div>
@@ -628,13 +628,14 @@ export function HomeDashboard({
           gridTemplateColumns: "1fr 1fr 1fr",
           gap: gap,
           background: divColor,
-          borderRadius: 8,
+          borderRadius: 12,
           overflow: "hidden",
           marginBottom: gap,
+          minHeight: 240,
         }}>
 
           {/* Favoritos */}
-          <div className="hd-favoritos" style={{ background: "var(--bg-main)", padding: "16px 18px", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          <div className="hd-favoritos" style={{ background: "var(--bg-main)", padding: "22px 22px", display: "flex", flexDirection: "column", overflow: "hidden" }}>
             <SectionHeader
               icon={<Star size={9} style={{ color: "color-mix(in srgb, var(--foreground) 25%, transparent)" }} />}
               label="Favoritos"
@@ -646,11 +647,11 @@ export function HomeDashboard({
                     <button
                       onClick={() => onNavigate(f.titulo)}
                       className="w-full text-left group flex items-center justify-between"
-                      style={{ padding: "6px 8px", borderRadius: 5, background: "transparent", border: "none", cursor: "pointer", transition: "background 0.1s" }}
+                      style={{ padding: "8px 10px", borderRadius: 6, background: "transparent", border: "none", cursor: "pointer", transition: "background 0.1s" }}
                       onMouseEnter={e => (e.currentTarget.style.background = "color-mix(in srgb, var(--foreground) 4%, transparent)")}
                       onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
                     >
-                      <span style={{ ...serif, fontSize: 12, color: "color-mix(in srgb, var(--foreground) 70%, transparent)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{f.titulo}</span>
+                      <span style={{ ...serif, fontSize: 13, color: "color-mix(in srgb, var(--foreground) 72%, transparent)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{f.titulo}</span>
                       <ArrowRight size={8} style={{ color: "color-mix(in srgb, var(--foreground) 15%, transparent)", flexShrink: 0, marginLeft: 4, opacity: 0, transition: "opacity 0.1s" }} className="group-hover:opacity-100" />
                     </button>
                   </MotionDiv>
@@ -664,12 +665,12 @@ export function HomeDashboard({
           </div>
 
           {/* Personal */}
-          <div className="hd-recientes" style={{ background: "var(--bg-main)", padding: "16px 18px", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          <div className="hd-recientes" style={{ background: "var(--bg-main)", padding: "22px 22px", display: "flex", flexDirection: "column", overflow: "hidden" }}>
             <SectionHeader
               icon={<Star size={9} style={{ color: "color-mix(in srgb, var(--foreground) 25%, transparent)" }} />}
               label="Personal"
             />
-            <div className="hd-personal-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, flex: 1, alignContent: "start" }}>
+            <div className="hd-personal-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, flex: 1, alignContent: "start" }}>
               {([
                 { id: "compras",      label: "Compras",      icon: <ShoppingCart size={16} /> },
                 { id: "ejercicios",   label: "Ejercicios",   icon: <Dumbbell size={16} /> },
@@ -683,7 +684,7 @@ export function HomeDashboard({
                     className="hd-personal-btn"
                     onClick={() => setVistaPersonal(id)}
                     style={{
-                      width: "100%", padding: "10px 8px", borderRadius: 7,
+                      width: "100%", padding: "14px 10px", borderRadius: 9,
                       border: "1px solid color-mix(in srgb, var(--foreground) 7%, transparent)",
                       background: "color-mix(in srgb, var(--foreground) 3%, transparent)",
                       cursor: "pointer", display: "flex", flexDirection: "column",
@@ -704,7 +705,7 @@ export function HomeDashboard({
                     }}
                   >
                     {icon}
-                    <span style={{ fontFamily: "var(--font-mono)", fontSize: 8, textTransform: "uppercase", letterSpacing: "0.1em" }}>{label}</span>
+                    <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, textTransform: "uppercase", letterSpacing: "0.09em" }}>{label}</span>
                   </button>
                 </MotionDiv>
               ))}
@@ -712,7 +713,7 @@ export function HomeDashboard({
           </div>
 
           {/* Tags */}
-          <div className="hd-tags" style={{ background: "var(--bg-main)", padding: "16px 18px", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          <div className="hd-tags" style={{ background: "var(--bg-main)", padding: "22px 22px", display: "flex", flexDirection: "column", overflow: "hidden" }}>
             <SectionHeader
               icon={<Hash size={9} style={{ color: "color-mix(in srgb, var(--foreground) 25%, transparent)" }} />}
               label={`Tags · ${todosLosTags.length}`}
@@ -725,7 +726,7 @@ export function HomeDashboard({
                     <button
                       onClick={() => onNavigate(tag)}
                       style={{
-                        ...mono, fontSize: 9, padding: "2px 7px", borderRadius: 4,
+                        ...mono, fontSize: 9, padding: "3px 9px", borderRadius: 5,
                         border: "1px solid color-mix(in srgb, var(--foreground) 8%, transparent)",
                         background: "color-mix(in srgb, var(--foreground) 3%, transparent)",
                         color: "color-mix(in srgb, var(--foreground) 40%, transparent)",
@@ -750,8 +751,8 @@ export function HomeDashboard({
         </div>
 
         {/* ── Todas las notas ── */}
-        <div style={{ borderRadius: 8, overflow: "hidden", background: divColor }}>
-          <div style={{ background: "var(--bg-main)", padding: "20px 18px" }}>
+        <div style={{ borderRadius: 12, overflow: "hidden", background: divColor }}>
+          <div style={{ background: "var(--bg-main)", padding: "26px 24px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 16 }}>
               <FileText size={9} style={{ color: "color-mix(in srgb, var(--foreground) 25%, transparent)" }} />
               <span style={{ ...mono, fontSize: 8, color: "color-mix(in srgb, var(--foreground) 25%, transparent)", textTransform: "uppercase", letterSpacing: "0.14em" }}>
@@ -780,17 +781,17 @@ export function HomeDashboard({
                 </span>
               )}
             </div>
-            <div className="hd-notes-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 1, background: divColor, borderRadius: 6, overflow: "hidden" }}>
+            <div className="hd-notes-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 1, background: divColor, borderRadius: 8, overflow: "hidden" }}>
               {notasFiltradas.map((e, i) => (
                 <MotionDiv key={e.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: Math.min(i * 0.015, 0.4) }}>
                   <button
                     onClick={() => onNavigate(e.titulo)}
                     className="w-full text-left group"
-                    style={{ display: "block", padding: "10px 12px", background: "var(--bg-main)", border: "none", cursor: "pointer", transition: "background 0.08s" }}
+                    style={{ display: "block", padding: "13px 15px", background: "var(--bg-main)", border: "none", cursor: "pointer", transition: "background 0.08s" }}
                     onMouseEnter={el => (el.currentTarget.style.background = "color-mix(in srgb, var(--foreground) 4%, transparent)")}
                     onMouseLeave={el => (el.currentTarget.style.background = "var(--bg-main)")}
                   >
-                    <p style={{ ...serif, fontSize: 11, color: "color-mix(in srgb, var(--foreground) 65%, transparent)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: 3 }}>
+                    <p style={{ ...serif, fontSize: 12, color: "color-mix(in srgb, var(--foreground) 68%, transparent)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: 4 }}>
                       {e.titulo || "Sin título"}
                     </p>
                     <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
