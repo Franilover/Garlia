@@ -1134,11 +1134,23 @@ export const PanelPersonajesCapitulo = ({
   const [fechaProg,     setFechaProg]     = useState<string>("");
   const [savingFecha,   setSavingFecha]   = useState(false);
 
+  // ── Narrador del capítulo ─────────────────────────────────────────────────
+  const [narradorId,  setNarradorId]  = useState<string | null>(null);
+  const [savingNarr,  setSavingNarr]  = useState(false);
+
+  // ── Rasgos y notas del personaje narrador ─────────────────────────────────
+  const [narradorRasgos,     setNarradorRasgos]     = useState<string[]>([]);
+  const [narradorNotas,      setNarradorNotas]      = useState<string>("");
+  const [savingRasgos,       setSavingRasgos]       = useState(false);
+  const [savingNotas,        setSavingNotas]         = useState(false);
+  const [nuevoRasgo,         setNuevoRasgo]         = useState("");
+  const notasTimerRef = useRef<any>(null);
+
   useEffect(() => {
     if (!capId) return;
     supabase
       .from("capitulos")
-      .select("orden_linea_tiempo, reinos_ids, visibilidad, fecha_publicacion, ciudades_ids")
+      .select("orden_linea_tiempo, reinos_ids, visibilidad, fecha_publicacion, ciudades_ids, narrador_id")
       .eq("id", capId)
       .single()
       .then(({ data }) => {
@@ -1147,6 +1159,7 @@ export const PanelPersonajesCapitulo = ({
         setCiudadesIds(data?.ciudades_ids ?? []);
         setVisibilidad(data?.visibilidad ?? "oculto");
         setFechaProg(data?.fecha_publicacion ? data.fecha_publicacion.slice(0, 10) : "");
+        setNarradorId(data?.narrador_id ?? null);
       });
   }, [capId]);
 
@@ -1186,6 +1199,61 @@ export const PanelPersonajesCapitulo = ({
     setSavingFecha(true);
     try { await capUpdateMeta(capId, { fecha_publicacion: fechaProg }); } catch {}
     setSavingFecha(false);
+  };
+
+  const handleSaveNarrador = async (id: string | null) => {
+    setNarradorId(id);
+    setSavingNarr(true);
+    // Limpiar rasgos/notas al cambiar narrador
+    setNarradorRasgos([]);
+    setNarradorNotas("");
+    try { await capUpdateMeta(capId, { narrador_id: id } as any); } catch {}
+    setSavingNarr(false);
+  };
+
+  // Cargar rasgos y notas del personaje narrador cuando cambia
+  useEffect(() => {
+    if (!narradorId) { setNarradorRasgos([]); setNarradorNotas(""); return; }
+    supabase
+      .from("personajes")
+      .select("rasgos, notas_narrador")
+      .eq("id", narradorId)
+      .single()
+      .then(({ data }) => {
+        setNarradorRasgos(data?.rasgos ?? []);
+        setNarradorNotas(data?.notas_narrador ?? "");
+      });
+  }, [narradorId]);
+
+  const handleAddRasgo = async () => {
+    const trimmed = nuevoRasgo.trim();
+    if (!trimmed || !narradorId) return;
+    const next = [...narradorRasgos, trimmed];
+    setNarradorRasgos(next);
+    setNuevoRasgo("");
+    setSavingRasgos(true);
+    try { await supabase.from("personajes").update({ rasgos: next }).eq("id", narradorId); } catch {}
+    setSavingRasgos(false);
+  };
+
+  const handleRemoveRasgo = async (rasgo: string) => {
+    if (!narradorId) return;
+    const next = narradorRasgos.filter(r => r !== rasgo);
+    setNarradorRasgos(next);
+    setSavingRasgos(true);
+    try { await supabase.from("personajes").update({ rasgos: next }).eq("id", narradorId); } catch {}
+    setSavingRasgos(false);
+  };
+
+  const handleNotasChange = (val: string) => {
+    setNarradorNotas(val);
+    clearTimeout(notasTimerRef.current);
+    setSavingNotas(true);
+    notasTimerRef.current = setTimeout(async () => {
+      if (!narradorId) return;
+      try { await supabase.from("personajes").update({ notas_narrador: val }).eq("id", narradorId); } catch {}
+      setSavingNotas(false);
+    }, 1200);
   };
 
   const handleSaveOrden = async () => {
@@ -1230,6 +1298,145 @@ export const PanelPersonajesCapitulo = ({
   // Contenido compartido entre desktop y drawer mobile
   const innerContent = (
     <>
+      {/* ── Narrador ────────────────────────────────────────────────────── */}
+      <div
+        className="shrink-0 px-3 py-2.5 border-b"
+        style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
+      >
+        <div className="flex items-center gap-1 mb-1.5">
+          <Mic2 size={8} style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }} />
+          <span
+            className="text-[8px] font-black uppercase tracking-[0.2em] flex-1"
+            style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
+          >
+            Narrador
+          </span>
+          {savingNarr && (
+            <Loader2 size={8} className="animate-spin shrink-0"
+              style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
+          )}
+        </div>
+        <SelectorNarrador value={narradorId} onChange={handleSaveNarrador} />
+      </div>
+
+      {/* ── Rasgos y notas del narrador ──────────────────────────────────── */}
+      {narradorId && (
+        <div
+          className="shrink-0 px-3 py-2.5 border-b space-y-2.5"
+          style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
+        >
+          {/* Header rasgos */}
+          <div className="flex items-center gap-1">
+            <span
+              className="text-[8px] font-black uppercase tracking-[0.2em] flex-1"
+              style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
+            >
+              Rasgos
+            </span>
+            {savingRasgos && (
+              <Loader2 size={7} className="animate-spin shrink-0"
+                style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
+            )}
+          </div>
+
+          {/* Chips existentes */}
+          {narradorRasgos.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {narradorRasgos.map(rasgo => (
+                <span
+                  key={rasgo}
+                  className="group flex items-center gap-1 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wide border transition-all"
+                  style={{
+                    background: "color-mix(in srgb, var(--primary) 6%, transparent)",
+                    borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)",
+                    color: "color-mix(in srgb, var(--primary) 60%, transparent)",
+                  }}
+                >
+                  {rasgo}
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveRasgo(rasgo)}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity rounded-full"
+                    style={{ color: "var(--accent)", lineHeight: 1 }}
+                    title="Quitar rasgo"
+                  >
+                    <X size={8} />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Input nuevo rasgo */}
+          <div className="flex items-center gap-1">
+            <input
+              type="text"
+              value={nuevoRasgo}
+              onChange={e => setNuevoRasgo(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === "Enter") { e.preventDefault(); handleAddRasgo(); }
+                if (e.key === "Escape") setNuevoRasgo("");
+              }}
+              placeholder="Añadir rasgo…"
+              maxLength={40}
+              className="flex-1 min-w-0 rounded-lg border px-2 py-1 text-[9px] font-black uppercase outline-none transition-all placeholder:normal-case placeholder:font-normal"
+              style={{
+                background: nuevoRasgo ? "color-mix(in srgb, var(--primary) 6%, transparent)" : "transparent",
+                borderColor: nuevoRasgo
+                  ? "color-mix(in srgb, var(--primary) 22%, transparent)"
+                  : "color-mix(in srgb, var(--primary) 12%, transparent)",
+                color: "var(--primary)",
+              }}
+            />
+            <button
+              type="button"
+              onClick={handleAddRasgo}
+              disabled={!nuevoRasgo.trim()}
+              className="shrink-0 flex items-center justify-center rounded-lg border transition-all disabled:opacity-20"
+              style={{
+                width: 22, height: 22,
+                background: nuevoRasgo.trim() ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent",
+                borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)",
+                color: "var(--primary)",
+              }}
+              title="Añadir (Enter)"
+            >
+              <Plus size={9} />
+            </button>
+          </div>
+
+          {/* Notas libres */}
+          <div>
+            <div className="flex items-center gap-1 mb-1">
+              <span
+                className="text-[8px] font-black uppercase tracking-[0.2em] flex-1"
+                style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
+              >
+                Notas
+              </span>
+              {savingNotas && (
+                <Loader2 size={7} className="animate-spin shrink-0"
+                  style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
+              )}
+            </div>
+            <textarea
+              value={narradorNotas}
+              onChange={e => handleNotasChange(e.target.value)}
+              placeholder="Notas sobre este personaje en el capítulo…"
+              rows={3}
+              className="w-full rounded-lg border px-2 py-1.5 text-[9px] leading-relaxed outline-none transition-all resize-none"
+              style={{
+                background: narradorNotas ? "color-mix(in srgb, var(--primary) 4%, transparent)" : "transparent",
+                borderColor: narradorNotas
+                  ? "color-mix(in srgb, var(--primary) 18%, transparent)"
+                  : "color-mix(in srgb, var(--primary) 10%, transparent)",
+                color: "var(--primary)",
+              }}
+            />
+          </div>
+        </div>
+      )}
+
       {/* ── Posición en línea de tiempo ─────────────────────────────────── */}
       <div
         className="shrink-0 px-3 py-2.5 border-b"
