@@ -1,0 +1,230 @@
+=== ESTRUCTURA ===
+.
+./public
+./public/next.svg
+./public/dibujos
+./public/dibujos/fanart
+./public/dibujos/abstracto
+./public/dibujos/Items
+./public/dibujos/personajes
+./public/dibujos/Random
+./public/dibujos/Runas
+./public/dibujos/reinos
+./public/marcos.svg
+./public/sounds
+./public/sounds/Apricot - Miku.mp3
+./public/sitemap.xsl
+./public/window.svg
+./public/file.svg
+./public/fotos
+./public/fotos/2024-11-11_1.jpg
+./public/fotos/2024-10-05_2.jpg
+./public/fotos/2025-05-09_2.jpg
+./public/fotos/2025-01-20_1.jpg
+./public/fotos/2024-11-11_2.jpg
+./public/fotos/2024-08-17_1.jpg
+./public/fotos/2024-09-21_1.jpg
+./public/fotos/2024-11-19_1.jpg
+./public/fotos/2024-11-13_1.jpg
+./public/fotos/2024-07-27_3.jpg
+./public/fotos/2024-07-27_2.jpg
+./public/fotos/2024-08-16_1.jpg
+./public/fotos/2025-05-09_1.jpg
+./public/fotos/2024-07-27_1.jpg
+./public/fotos/2024-10-28_1.jpg
+./public/globe.svg
+./public/fonts
+./public/fonts/CalligraphicFramesSoft.woff2
+./public/fonts/CalligraphicFramesSoft.woff
+./public/custom-sw.js
+./public/icon.jpg
+./public/manifest.json
+./public/sw.js
+./public/musica
+./public/icon.png
+./README.md
+./remove-comments.mjs
+./tsconfig.json
+./src
+./src/features
+./src/features/auth
+./src/features/personal
+./src/features/garlia
+./src/features/editorGarlia
+./src/features/ensayos
+./src/style
+./src/style/tailwind.css
+./src/app
+./src/app/api
+./src/app/auth
+./src/app/layout.tsx
+./src/app/personal
+./src/app/page.tsx
+./src/app/myself
+./src/app/garlia
+./src/hooks
+./src/hooks/auth
+./src/hooks/ui
+./src/hooks/useEditorShared.tsx
+./src/hooks/data
+./src/providers
+./src/providers/DataProvider.tsx
+./src/providers/OfflineSyncActivator.tsx
+./src/providers/AppLogic.tsx
+./src/providers/AuthProvider.tsx
+./src/providers/ThemeProvider.tsx
+./src/components
+./src/components/ui
+./src/components/forms
+./src/components/modal
+./src/components/layout
+./src/components/feedback
+./src/lib
+./src/lib/api
+./src/lib/utils
+./src/lib/types
+./src/lib/utils.ts
+./tsconfig.tsbuildinfo
+./jsconfig.json
+./tailwind.config.js
+./eslint.config.mjs
+./proyecto.txt
+./next-sitemap.config.js
+./package.json
+./package-lock.json
+./globals.d.ts
+./next.config.mjs
+./fix-imports-v2.sh
+./components.json
+./next-env.d.ts
+./postcss.config.js
+./knip.json
+./supabase
+./supabase/functions
+./supabase/functions/notify-subscribers
+./supabase/config.toml
+
+=== CÓDIGO ===
+
+--- Archivo: src/app/layout.tsx ---
+import { Metadata, Viewport } from 'next';
+import { Montserrat, Geist, Pixelify_Sans, Caveat, Lora, Literata } from 'next/font/google';
+import { LightboxProvider } from "@/components/modal/lightbox/";
+import { AuthProvider } from "@/providers/AuthProvider";
+import { DataProvider } from "@/providers/DataProvider";
+import AppLogic from "@/providers/AppLogic";
+import "@/style/tailwind.css";
+import { OfflineSyncActivator } from "@/providers/OfflineSyncActivator";
+import { ThemeProvider } from "@/providers/ThemeProvider";
+import { cn } from "@/lib/utils/index";
+
+const geist = Geist({ subsets: ['latin'], variable: '--font-sans' });
+const montserrat = Montserrat({ subsets: ['latin'], display: 'swap', variable: '--font-montserrat' });
+const pixelifySans = Pixelify_Sans({ subsets: ['latin'], weight: ['400', '700'], variable: '--font-pixelify', display: 'swap' });
+const caveat = Caveat({ subsets: ['latin'], weight: ['400', '700'], variable: '--font-caveat', display: 'swap' });
+const lora = Lora({ subsets: ['latin'], weight: ['400', '600'], variable: '--font-lora', display: 'swap' });
+const literata = Literata({ subsets: ["latin"], variable: "--font-literata", display: "swap" });
+
+export const metadata: Metadata = {
+  title: {
+    template: '%s | Enciclopedia de Garlia',
+    default: 'Garlia - Archivos',
+  },
+  description: 'Explora mi universo.',
+  keywords: ['wiki', 'libros', 'biblioteca', 'lectura', 'historias', 'franilover', 'arte', 'fantasia', ],
+  authors: [{ name: 'Franilover' }],
+  metadataBase: new URL('https://franilover.vercel.app/'), 
+
+  icons: {
+    icon: '/icon.jpg?v=2',      
+    shortcut: '/icon.jpg?v=2',  
+    apple: '/icon.jpg?v=2',     
+  },
+
+  verification: {
+    google: 'Wil88vfT-qaSn4IBTlmk7MKlhxcjQYX0V0zhVS5_E_A',
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'es_ES',
+    url: 'https://franilover.vercel.app/',
+    siteName: 'Garlia',
+    images: [
+      {
+        url: '/icon.jpg', 
+        width: 800,
+        height: 800,
+        alt: 'Icono de Garlia',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary', 
+    images: ['/icon.jpg'],
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: '#000000',
+  width: 'device-width',
+  initialScale: 1,
+};
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <html 
+      lang="es" 
+      className={cn(
+        geist.variable, 
+        montserrat.variable, 
+        pixelifySans.variable, 
+        caveat.variable, 
+        lora.variable, 
+        literata.variable
+      )}
+      suppressHydrationWarning
+    >
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                const savedDark  = localStorage.getItem('theme');
+                const savedTheme = localStorage.getItem('app-theme');
+                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                if (savedDark === 'dark' || (!savedDark && prefersDark)) {
+                  document.documentElement.classList.add('dark');
+                }
+                if (savedTheme) {
+                  document.documentElement.setAttribute('data-theme', savedTheme);
+                }
+              } catch {}
+            `,
+          }}
+        />
+      </head>
+      <body className="antialiased bg-bg-main min-h-screen flex flex-col selection:bg-primary/20">
+        <OfflineSyncActivator />
+        <AuthProvider>
+          <DataProvider>
+            <ThemeProvider>
+              <LightboxProvider>
+                <div className="flex-grow flex flex-col md:pl-[68px] pb-[56px] md:pb-0">
+                  <main className="flex-grow custom-scrollbar">
+                    <AppLogic>
+                      {children}
+                    </AppLogic>
+                  </main>
+                </div>
+              </LightboxProvider>
+            </ThemeProvider>
+          </DataProvider>
+        </AuthProvider>
+      </body>
+    </html>
+  );
+}
