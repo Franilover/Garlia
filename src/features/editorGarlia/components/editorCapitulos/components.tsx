@@ -1138,13 +1138,10 @@ export const PanelPersonajesCapitulo = ({
   const [narradorId,  setNarradorId]  = useState<string | null>(null);
   const [savingNarr,  setSavingNarr]  = useState(false);
 
-  // ── Rasgos y notas del personaje narrador ─────────────────────────────────
-  const [narradorRasgos,     setNarradorRasgos]     = useState<string[]>([]);
-  const [narradorNotas,      setNarradorNotas]      = useState<string>("");
-  const [savingRasgos,       setSavingRasgos]       = useState(false);
-  const [savingNotas,        setSavingNotas]         = useState(false);
-  const [nuevoRasgo,         setNuevoRasgo]         = useState("");
-  const notasTimerRef = useRef<any>(null);
+  // ── Era del narrador en la línea de tiempo del capítulo ─────────────────
+  // Muestra la era de personaje_eras cuyo momento <= orden_linea_tiempo del cap
+  const [eraActual,   setEraActual]   = useState<{ momento: number; label: string; rasgos: string[]; notas: string } | null>(null);
+  const [loadingEra,  setLoadingEra]  = useState(false);
 
   useEffect(() => {
     if (!capId) return;
@@ -1204,57 +1201,29 @@ export const PanelPersonajesCapitulo = ({
   const handleSaveNarrador = async (id: string | null) => {
     setNarradorId(id);
     setSavingNarr(true);
-    // Limpiar rasgos/notas al cambiar narrador
-    setNarradorRasgos([]);
-    setNarradorNotas("");
+    setEraActual(null);
     try { await capUpdateMeta(capId, { narrador_id: id } as any); } catch {}
     setSavingNarr(false);
   };
 
-  // Cargar rasgos y notas del personaje narrador cuando cambia
+  // Cargar la era del narrador más cercana (<=) al orden_linea_tiempo del capítulo
   useEffect(() => {
-    if (!narradorId) { setNarradorRasgos([]); setNarradorNotas(""); return; }
-    supabase
-      .from("personajes")
-      .select("rasgos, notas_narrador")
-      .eq("id", narradorId)
-      .single()
-      .then(({ data }) => {
-        setNarradorRasgos(data?.rasgos ?? []);
-        setNarradorNotas(data?.notas_narrador ?? "");
-      });
-  }, [narradorId]);
-
-  const handleAddRasgo = async () => {
-    const trimmed = nuevoRasgo.trim();
-    if (!trimmed || !narradorId) return;
-    const next = [...narradorRasgos, trimmed];
-    setNarradorRasgos(next);
-    setNuevoRasgo("");
-    setSavingRasgos(true);
-    try { await supabase.from("personajes").update({ rasgos: next }).eq("id", narradorId); } catch {}
-    setSavingRasgos(false);
-  };
-
-  const handleRemoveRasgo = async (rasgo: string) => {
-    if (!narradorId) return;
-    const next = narradorRasgos.filter(r => r !== rasgo);
-    setNarradorRasgos(next);
-    setSavingRasgos(true);
-    try { await supabase.from("personajes").update({ rasgos: next }).eq("id", narradorId); } catch {}
-    setSavingRasgos(false);
-  };
-
-  const handleNotasChange = (val: string) => {
-    setNarradorNotas(val);
-    clearTimeout(notasTimerRef.current);
-    setSavingNotas(true);
-    notasTimerRef.current = setTimeout(async () => {
-      if (!narradorId) return;
-      try { await supabase.from("personajes").update({ notas_narrador: val }).eq("id", narradorId); } catch {}
-      setSavingNotas(false);
-    }, 1200);
-  };
+    if (!narradorId) { setEraActual(null); return; }
+    const momento = ordenLinea.trim() ? parseInt(ordenLinea.trim(), 10) : null;
+    setLoadingEra(true);
+    let query = (supabase as any)
+      .from("personaje_eras")
+      .select("momento, label, rasgos, notas")
+      .eq("personaje_id", narradorId)
+      .order("momento", { ascending: false });
+    if (momento != null && !isNaN(momento)) {
+      query = query.lte("momento", momento);
+    }
+    query.limit(1).maybeSingle().then(({ data }: { data: any }) => {
+      setEraActual(data ? { momento: data.momento, label: data.label ?? "", rasgos: data.rasgos ?? [], notas: data.notas ?? "" } : null);
+      setLoadingEra(false);
+    });
+  }, [narradorId, ordenLinea]);
 
   const handleSaveOrden = async () => {
     const val = ordenLinea.trim();
@@ -1319,121 +1288,64 @@ export const PanelPersonajesCapitulo = ({
         <SelectorNarrador value={narradorId} onChange={handleSaveNarrador} />
       </div>
 
-      {/* ── Rasgos y notas del narrador ──────────────────────────────────── */}
+      {/* ── Era del narrador en la línea de tiempo ──────────────────────── */}
       {narradorId && (
         <div
-          className="shrink-0 px-3 py-2.5 border-b space-y-2.5"
+          className="shrink-0 px-3 py-2.5 border-b space-y-2"
           style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
         >
-          {/* Header rasgos */}
-          <div className="flex items-center gap-1">
-            <span
-              className="text-[8px] font-black uppercase tracking-[0.2em] flex-1"
-              style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
-            >
-              Rasgos
-            </span>
-            {savingRasgos && (
-              <Loader2 size={7} className="animate-spin shrink-0"
-                style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
-            )}
-          </div>
-
-          {/* Chips existentes */}
-          {narradorRasgos.length > 0 && (
-            <div className="flex flex-wrap gap-1">
-              {narradorRasgos.map(rasgo => (
-                <span
-                  key={rasgo}
-                  className="group flex items-center gap-1 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wide border transition-all"
-                  style={{
-                    background: "color-mix(in srgb, var(--primary) 6%, transparent)",
-                    borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)",
-                    color: "color-mix(in srgb, var(--primary) 60%, transparent)",
-                  }}
-                >
-                  {rasgo}
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveRasgo(rasgo)}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity rounded-full"
-                    style={{ color: "var(--accent)", lineHeight: 1 }}
-                    title="Quitar rasgo"
-                  >
-                    <X size={8} />
-                  </button>
+          {loadingEra ? (
+            <div className="flex justify-center py-2">
+              <Loader2 size={10} className="animate-spin text-primary/20" />
+            </div>
+          ) : eraActual ? (
+            <>
+              {/* Etiqueta del momento */}
+              <div className="flex items-center gap-1.5">
+                <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: "var(--accent)" }} />
+                <span className="text-[9px] font-black tabular-nums" style={{ color: "var(--accent)" }}>
+                  {eraActual.momento}
                 </span>
-              ))}
-            </div>
-          )}
+                {eraActual.label && (
+                  <span className="text-[8px] font-bold text-primary/35 italic truncate">
+                    {eraActual.label}
+                  </span>
+                )}
+              </div>
 
-          {/* Input nuevo rasgo */}
-          <div className="flex items-center gap-1">
-            <input
-              type="text"
-              value={nuevoRasgo}
-              onChange={e => setNuevoRasgo(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === "Enter") { e.preventDefault(); handleAddRasgo(); }
-                if (e.key === "Escape") setNuevoRasgo("");
-              }}
-              placeholder="Añadir rasgo…"
-              maxLength={40}
-              className="flex-1 min-w-0 rounded-lg border px-2 py-1 text-[9px] font-black uppercase outline-none transition-all placeholder:normal-case placeholder:font-normal"
-              style={{
-                background: nuevoRasgo ? "color-mix(in srgb, var(--primary) 6%, transparent)" : "transparent",
-                borderColor: nuevoRasgo
-                  ? "color-mix(in srgb, var(--primary) 22%, transparent)"
-                  : "color-mix(in srgb, var(--primary) 12%, transparent)",
-                color: "var(--primary)",
-              }}
-            />
-            <button
-              type="button"
-              onClick={handleAddRasgo}
-              disabled={!nuevoRasgo.trim()}
-              className="shrink-0 flex items-center justify-center rounded-lg border transition-all disabled:opacity-20"
-              style={{
-                width: 22, height: 22,
-                background: nuevoRasgo.trim() ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent",
-                borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)",
-                color: "var(--primary)",
-              }}
-              title="Añadir (Enter)"
-            >
-              <Plus size={9} />
-            </button>
-          </div>
-
-          {/* Notas libres */}
-          <div>
-            <div className="flex items-center gap-1 mb-1">
-              <span
-                className="text-[8px] font-black uppercase tracking-[0.2em] flex-1"
-                style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
-              >
-                Notas
-              </span>
-              {savingNotas && (
-                <Loader2 size={7} className="animate-spin shrink-0"
-                  style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
+              {/* Chips de rasgos */}
+              {eraActual.rasgos.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {eraActual.rasgos.map(rasgo => (
+                    <span key={rasgo}
+                      className="px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wide border"
+                      style={{
+                        background: "color-mix(in srgb, var(--primary) 6%, transparent)",
+                        borderColor: "color-mix(in srgb, var(--primary) 14%, transparent)",
+                        color: "color-mix(in srgb, var(--primary) 55%, transparent)",
+                      }}>
+                      {rasgo}
+                    </span>
+                  ))}
+                </div>
               )}
-            </div>
-            <textarea
-              value={narradorNotas}
-              onChange={e => handleNotasChange(e.target.value)}
-              placeholder="Notas sobre este personaje en el capítulo…"
-              rows={3}
-              className="w-full rounded-lg border px-2 py-1.5 text-[9px] leading-relaxed outline-none transition-all resize-none"
-              style={{
-                background: narradorNotas ? "color-mix(in srgb, var(--primary) 4%, transparent)" : "transparent",
-                borderColor: narradorNotas
-                  ? "color-mix(in srgb, var(--primary) 18%, transparent)"
-                  : "color-mix(in srgb, var(--primary) 10%, transparent)",
-                color: "var(--primary)",
-              }}
-            />
-          </div>
+
+              {/* Notas */}
+              {eraActual.notas && (
+                <p className="text-[9px] leading-relaxed"
+                  style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}>
+                  {eraActual.notas}
+                </p>
+              )}
+            </>
+          ) : (
+            <p className="text-[8px] font-black uppercase tracking-widest text-center py-1 italic"
+              style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }}>
+              {ordenLinea
+                ? "Sin era registrada en este momento"
+                : "Asigna un nº de línea de tiempo para ver la era"}
+            </p>
+          )}
         </div>
       )}
 

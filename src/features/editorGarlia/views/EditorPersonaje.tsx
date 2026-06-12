@@ -3,8 +3,8 @@
 import React, { useState, useEffect, useCallback } from "react";
 import {
   Maximize2, UserCircle2, BookOpen, Loader2,
-  ChevronDown, X, Save, Trash2,
-  Sparkles, Users, Camera, SlidersHorizontal, Music2, Plus,
+  ChevronDown, X, Save, Trash2, Check,
+  Sparkles, Users, Camera, SlidersHorizontal, Music2, Plus, Clock,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
@@ -715,157 +715,266 @@ function SeccionHechizos({ personajeId, grupoIds }: { personajeId: string; grupo
   );
 }
 
-// ─── BloqueRasgos ────────────────────────────────────────────────────────────
-function BloqueRasgos({ personajeId, initialRasgos = [], initialNotas = "" }: {
-  personajeId: string;
-  initialRasgos?: string[];
-  initialNotas?: string;
-}) {
-  const [rasgos,      setRasgos]      = useState<string[]>(initialRasgos);
-  const [notas,       setNotas]       = useState(initialNotas);
-  const [nuevoRasgo,  setNuevoRasgo]  = useState("");
-  const [savingRasgos, setSavingRasgos] = useState(false);
-  const [savingNotas,  setSavingNotas]  = useState(false);
-  const notasTimer = React.useRef<any>(null);
+// ─── BloqueEras ──────────────────────────────────────────────────────────────
+type Era = {
+  id: string;
+  momento: number;
+  label: string;
+  rasgos: string[];
+  notas: string;
+  _saving?: boolean;
+};
 
-  // Sincronizar si cambia el personaje
-  useEffect(() => { setRasgos(initialRasgos); }, [initialRasgos.join(",")]);
-  useEffect(() => { setNotas(initialNotas); }, [initialNotas]);
+function BloqueEras({ personajeId }: { personajeId: string }) {
+  const [eras, setEras]             = useState<Era[]>([]);
+  const [loading, setLoading]       = useState(true);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [addingNew, setAddingNew]   = useState(false);
+  const [newMomento, setNewMomento] = useState("");
+  const [newLabel, setNewLabel]     = useState("");
+  const [creating, setCreating]     = useState(false);
 
-  const handleAddRasgo = async () => {
-    const trimmed = nuevoRasgo.trim();
+  useEffect(() => {
+    if (!personajeId) return;
+    setLoading(true);
+    supabase
+      .from("personaje_eras" as any)
+      .select("id, momento, label, rasgos, notas")
+      .eq("personaje_id", personajeId)
+      .order("momento")
+      .then(({ data }: { data: any }) => {
+        setEras((data ?? []).map((e: any) => ({
+          id: e.id, momento: e.momento, label: e.label ?? "",
+          rasgos: e.rasgos ?? [], notas: e.notas ?? "",
+        })));
+        setLoading(false);
+      });
+  }, [personajeId]);
+
+  const updateEra = (id: string, patch: Partial<Era>) =>
+    setEras(prev => prev.map(e => e.id === id ? { ...e, ...patch } : e));
+
+  const handleAddEra = async () => {
+    const num = parseInt(newMomento.trim(), 10);
+    if (isNaN(num)) return;
+    setCreating(true);
+    const { data, error } = await (supabase as any)
+      .from("personaje_eras")
+      .insert({ personaje_id: personajeId, momento: num, label: newLabel.trim() || null, rasgos: [], notas: "" })
+      .select("id, momento, label, rasgos, notas")
+      .single();
+    if (!error && data) {
+      const era: Era = { id: data.id, momento: data.momento, label: data.label ?? "", rasgos: [], notas: "" };
+      setEras(prev => [...prev, era].sort((a, b) => a.momento - b.momento));
+      setExpandedId(era.id);
+    }
+    setNewMomento(""); setNewLabel(""); setAddingNew(false); setCreating(false);
+  };
+
+  const handleDeleteEra = async (id: string) => {
+    setEras(prev => prev.filter(e => e.id !== id));
+    await (supabase as any).from("personaje_eras").delete().eq("id", id);
+  };
+
+  const handleAddRasgo = async (era: Era, rasgo: string) => {
+    const trimmed = rasgo.trim();
     if (!trimmed) return;
-    const next = [...rasgos, trimmed];
-    setRasgos(next);
-    setNuevoRasgo("");
-    setSavingRasgos(true);
-    try { await supabase.from("personajes").update({ rasgos: next }).eq("id", personajeId); } catch {}
-    setSavingRasgos(false);
+    const next = [...era.rasgos, trimmed];
+    updateEra(era.id, { rasgos: next, _saving: true });
+    await (supabase as any).from("personaje_eras").update({ rasgos: next }).eq("id", era.id);
+    updateEra(era.id, { _saving: false });
   };
 
-  const handleRemoveRasgo = async (rasgo: string) => {
-    const next = rasgos.filter(r => r !== rasgo);
-    setRasgos(next);
-    setSavingRasgos(true);
-    try { await supabase.from("personajes").update({ rasgos: next }).eq("id", personajeId); } catch {}
-    setSavingRasgos(false);
+  const handleRemoveRasgo = async (era: Era, rasgo: string) => {
+    const next = era.rasgos.filter(r => r !== rasgo);
+    updateEra(era.id, { rasgos: next, _saving: true });
+    await (supabase as any).from("personaje_eras").update({ rasgos: next }).eq("id", era.id);
+    updateEra(era.id, { _saving: false });
   };
 
-  const handleNotasChange = (val: string) => {
-    setNotas(val);
-    clearTimeout(notasTimer.current);
-    setSavingNotas(true);
-    notasTimer.current = setTimeout(async () => {
-      try { await supabase.from("personajes").update({ notas_narrador: val }).eq("id", personajeId); } catch {}
-      setSavingNotas(false);
+  const notasTimers = React.useRef<Record<string, any>>({});
+  const handleNotasChange = (era: Era, val: string) => {
+    updateEra(era.id, { notas: val, _saving: true });
+    clearTimeout(notasTimers.current[era.id]);
+    notasTimers.current[era.id] = setTimeout(async () => {
+      await (supabase as any).from("personaje_eras").update({ notas: val }).eq("id", era.id);
+      updateEra(era.id, { _saving: false });
     }, 1200);
   };
 
   return (
     <div className="rounded-xl overflow-hidden border border-primary/10">
-      {/* Header */}
       <div className="flex items-center gap-2 px-3 py-2 border-b border-primary/[0.06] bg-primary/[0.03]">
-        <ChevronDown size={10} className="text-primary/40" />
-        <span className="flex-1 text-[9px] font-black uppercase tracking-widest text-primary/40">Rasgos y notas</span>
-        {(savingRasgos || savingNotas) && (
-          <Loader2 size={9} className="animate-spin text-primary/30" />
-        )}
+        <Clock size={10} className="text-primary/40" />
+        <span className="flex-1 text-[9px] font-black uppercase tracking-widest text-primary/40">Línea de tiempo</span>
+        <button type="button" onClick={() => setAddingNew(v => !v)}
+          className="flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border transition-all"
+          style={{
+            borderColor: addingNew ? "color-mix(in srgb, var(--primary) 25%, transparent)" : "color-mix(in srgb, var(--primary) 12%, transparent)",
+            background: addingNew ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "transparent",
+            color: addingNew ? "var(--primary)" : "color-mix(in srgb, var(--primary) 40%, transparent)",
+          }}>
+          <Plus size={8} /> Era
+        </button>
       </div>
 
-      <div className="p-2.5 space-y-3">
-        {/* Chips */}
-        <div className="space-y-2">
-          {rasgos.length > 0 && (
-            <div className="flex flex-wrap gap-1">
-              {rasgos.map(rasgo => (
-                <span
-                  key={rasgo}
-                  className="group flex items-center gap-1 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wide border transition-all"
-                  style={{
-                    background: "color-mix(in srgb, var(--primary) 6%, transparent)",
-                    borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)",
-                    color: "color-mix(in srgb, var(--primary) 60%, transparent)",
-                  }}
-                >
-                  {rasgo}
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveRasgo(rasgo)}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity"
-                    style={{ color: "var(--accent)", lineHeight: 1 }}
-                  >
-                    <X size={8} />
-                  </button>
-                </span>
-              ))}
-            </div>
-          )}
-
-          {/* Input nuevo rasgo */}
-          <div className="flex items-center gap-1">
-            <input
-              type="text"
-              value={nuevoRasgo}
-              onChange={e => setNuevoRasgo(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === "Enter") { e.preventDefault(); handleAddRasgo(); }
-                if (e.key === "Escape") setNuevoRasgo("");
-              }}
-              placeholder="Añadir rasgo…"
-              maxLength={40}
-              className="flex-1 min-w-0 rounded-lg border px-2 py-1 text-[9px] font-black uppercase outline-none transition-all placeholder:normal-case placeholder:font-normal"
-              style={{
-                background: nuevoRasgo ? "color-mix(in srgb, var(--primary) 6%, transparent)" : "transparent",
-                borderColor: nuevoRasgo
-                  ? "color-mix(in srgb, var(--primary) 22%, transparent)"
-                  : "color-mix(in srgb, var(--primary) 12%, transparent)",
-                color: "var(--primary)",
-              }}
-            />
-            <button
-              type="button"
-              onClick={handleAddRasgo}
-              disabled={!nuevoRasgo.trim()}
-              className="shrink-0 flex items-center justify-center rounded-lg border transition-all disabled:opacity-20"
-              style={{
-                width: 22, height: 22,
-                background: nuevoRasgo.trim() ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent",
-                borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)",
-                color: "var(--primary)",
-              }}
-            >
-              <Plus size={9} />
+      {addingNew && (
+        <div className="px-3 py-2.5 border-b border-primary/[0.06] space-y-2"
+          style={{ background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}>
+          <div className="flex gap-1.5">
+            <input type="number" value={newMomento} onChange={e => setNewMomento(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter") handleAddEra(); if (e.key === "Escape") setAddingNew(false); }}
+              placeholder="Momento (ej: 1980)" autoFocus
+              className="w-32 shrink-0 rounded-lg border px-2 py-1 text-[9px] font-black outline-none transition-all"
+              style={{ background: "transparent", borderColor: "color-mix(in srgb, var(--primary) 18%, transparent)", color: "var(--primary)" }} />
+            <input type="text" value={newLabel} onChange={e => setNewLabel(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter") handleAddEra(); if (e.key === "Escape") setAddingNew(false); }}
+              placeholder="Etiqueta (opcional)"
+              className="flex-1 rounded-lg border px-2 py-1 text-[9px] outline-none transition-all"
+              style={{ background: "transparent", borderColor: "color-mix(in srgb, var(--primary) 18%, transparent)", color: "var(--primary)" }} />
+          </div>
+          <div className="flex gap-1.5 justify-end">
+            <button type="button" onClick={() => setAddingNew(false)}
+              className="px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border transition-all text-primary/35 border-primary/10 hover:text-primary hover:border-primary/25">
+              Cancelar
+            </button>
+            <button type="button" onClick={handleAddEra} disabled={!newMomento.trim() || creating}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border transition-all disabled:opacity-30"
+              style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 20%, transparent)", color: "var(--primary)" }}>
+              {creating ? <Loader2 size={8} className="animate-spin" /> : <Check size={8} />} Crear
             </button>
           </div>
         </div>
+      )}
 
-        {/* Notas libres */}
-        <div className="space-y-1">
-          <div className="flex items-center gap-1">
-            <span className="text-[8px] font-black uppercase tracking-[0.2em] flex-1"
-              style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
-              Notas
-            </span>
-          </div>
-          <textarea
-            value={notas}
-            onChange={e => handleNotasChange(e.target.value)}
-            placeholder="Motivaciones, estado emocional, arco narrativo…"
-            rows={4}
-            className="w-full rounded-lg border px-2 py-1.5 text-[9px] leading-relaxed outline-none transition-all resize-none"
-            style={{
-              background: notas ? "color-mix(in srgb, var(--primary) 4%, transparent)" : "transparent",
-              borderColor: notas
-                ? "color-mix(in srgb, var(--primary) 18%, transparent)"
-                : "color-mix(in srgb, var(--primary) 10%, transparent)",
-              color: "var(--primary)",
-            }}
-          />
+      {loading ? (
+        <div className="flex justify-center py-4"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
+      ) : eras.length === 0 ? (
+        <p className="text-[9px] text-primary/25 font-black uppercase tracking-widest text-center py-4 italic">
+          Sin eras · usa el botón + Era
+        </p>
+      ) : (
+        <div>
+          {eras.map((era, idx) => (
+            <EraItem key={era.id} era={era}
+              isOpen={expandedId === era.id}
+              isLast={idx === eras.length - 1}
+              onToggle={() => setExpandedId(expandedId === era.id ? null : era.id)}
+              onDelete={() => handleDeleteEra(era.id)}
+              onAddRasgo={(r) => handleAddRasgo(era, r)}
+              onRemoveRasgo={(r) => handleRemoveRasgo(era, r)}
+              onNotasChange={(v) => handleNotasChange(era, v)}
+            />
+          ))}
         </div>
-      </div>
+      )}
     </div>
   );
 }
+
+function EraItem({ era, isOpen, isLast, onToggle, onDelete, onAddRasgo, onRemoveRasgo, onNotasChange }: {
+  era: Era; isOpen: boolean; isLast: boolean;
+  onToggle: () => void; onDelete: () => void;
+  onAddRasgo: (r: string) => void; onRemoveRasgo: (r: string) => void;
+  onNotasChange: (v: string) => void;
+}) {
+  const [nuevoRasgo, setNuevoRasgo] = useState("");
+
+  return (
+    <div className={!isLast ? "border-b border-primary/[0.06]" : ""}>
+      <button type="button" onClick={onToggle}
+        className="w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-primary/[0.03] transition-colors">
+        {/* Línea de tiempo visual */}
+        <div className="shrink-0 flex flex-col items-center" style={{ width: 20 }}>
+          <div className="w-2 h-2 rounded-full border-2 border-accent bg-bg-main shrink-0" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-[11px] font-black tabular-nums" style={{ color: "var(--accent)" }}>{era.momento}</span>
+            {era.label && <span className="text-[9px] font-bold text-primary/40 italic truncate">{era.label}</span>}
+          </div>
+          {!isOpen && era.rasgos.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-0.5">
+              {era.rasgos.slice(0, 3).map(r => (
+                <span key={r} className="px-1.5 py-0 rounded-full text-[7px] font-black uppercase border"
+                  style={{ background: "color-mix(in srgb, var(--primary) 5%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)", color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}>
+                  {r}
+                </span>
+              ))}
+              {era.rasgos.length > 3 && <span className="text-[7px] text-primary/25 font-black">+{era.rasgos.length - 3}</span>}
+            </div>
+          )}
+        </div>
+        <div className="shrink-0 flex items-center gap-1.5">
+          {era._saving && <Loader2 size={8} className="animate-spin text-primary/30" />}
+          <ChevronDown size={9} className="text-primary/25 transition-transform"
+            style={{ transform: isOpen ? "rotate(180deg)" : "rotate(0deg)" }} />
+        </div>
+      </button>
+
+      {isOpen && (
+        <div className="px-3 pb-3 ml-5 space-y-2.5 border-l-2 border-accent/20 ml-8">
+          {/* Chips */}
+          <div className="space-y-1.5">
+            {era.rasgos.length > 0 && (
+              <div className="flex flex-wrap gap-1 pt-1">
+                {era.rasgos.map(rasgo => (
+                  <span key={rasgo}
+                    className="group flex items-center gap-1 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wide border transition-all"
+                    style={{ background: "color-mix(in srgb, var(--primary) 6%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)", color: "color-mix(in srgb, var(--primary) 60%, transparent)" }}>
+                    {rasgo}
+                    <button type="button" onClick={() => onRemoveRasgo(rasgo)}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: "var(--accent)", lineHeight: 1 }}>
+                      <X size={8} />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+            <div className="flex items-center gap-1">
+              <input type="text" value={nuevoRasgo}
+                onChange={e => setNuevoRasgo(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === "Enter") { e.preventDefault(); onAddRasgo(nuevoRasgo); setNuevoRasgo(""); }
+                  if (e.key === "Escape") setNuevoRasgo("");
+                }}
+                placeholder="Añadir rasgo…" maxLength={40}
+                className="flex-1 min-w-0 rounded-lg border px-2 py-1 text-[9px] font-black uppercase outline-none transition-all placeholder:normal-case placeholder:font-normal"
+                style={{
+                  background: nuevoRasgo ? "color-mix(in srgb, var(--primary) 6%, transparent)" : "transparent",
+                  borderColor: nuevoRasgo ? "color-mix(in srgb, var(--primary) 22%, transparent)" : "color-mix(in srgb, var(--primary) 12%, transparent)",
+                  color: "var(--primary)",
+                }} />
+              <button type="button" onClick={() => { onAddRasgo(nuevoRasgo); setNuevoRasgo(""); }} disabled={!nuevoRasgo.trim()}
+                className="shrink-0 flex items-center justify-center rounded-lg border transition-all disabled:opacity-20"
+                style={{ width: 22, height: 22, background: nuevoRasgo.trim() ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent", borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)", color: "var(--primary)" }}>
+                <Plus size={9} />
+              </button>
+            </div>
+          </div>
+
+          <textarea value={era.notas} onChange={e => onNotasChange(e.target.value)}
+            placeholder="Notas sobre este momento…" rows={3}
+            className="w-full rounded-lg border px-2 py-1.5 text-[9px] leading-relaxed outline-none transition-all resize-none"
+            style={{
+              background: era.notas ? "color-mix(in srgb, var(--primary) 4%, transparent)" : "transparent",
+              borderColor: era.notas ? "color-mix(in srgb, var(--primary) 18%, transparent)" : "color-mix(in srgb, var(--primary) 10%, transparent)",
+              color: "var(--primary)",
+            }} />
+
+          <div className="flex justify-end">
+            <button type="button" onClick={onDelete}
+              className="flex items-center gap-1 px-2 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-widest border transition-all"
+              style={{ color: "var(--accent)", borderColor: "color-mix(in srgb, var(--accent) 20%, transparent)", background: "transparent" }}>
+              <Trash2 size={8} /> Eliminar era
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 
 // ─── FormularioPersonaje ──────────────────────────────────────────────────────
 export function FormularioPersonaje({
@@ -1273,11 +1382,7 @@ export function FormularioPersonaje({
 
                     <BloqueRelaciones personajeId={form.id} onSelectPersonaje={onSelectPersonaje} />
 
-                    <BloqueRasgos
-                      personajeId={form.id}
-                      initialRasgos={(form as any).rasgos ?? []}
-                      initialNotas={(form as any).notas_narrador ?? ""}
-                    />
+                    <BloqueEras personajeId={form.id} />
 
                     <div className="rounded-xl overflow-hidden border border-primary/10">
                       <div className="flex items-center gap-2 px-3 py-2 border-b border-primary/[0.06] bg-primary/[0.03]">
@@ -1340,13 +1445,8 @@ export function FormularioPersonaje({
               <BloqueRelaciones personajeId={form.id} onSelectPersonaje={onSelectPersonaje} />
             </div>
             <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
-            <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
             <div className="p-2">
-              <BloqueRasgos
-                personajeId={form.id}
-                initialRasgos={(form as any).rasgos ?? []}
-                initialNotas={(form as any).notas_narrador ?? ""}
-              />
+              <BloqueEras personajeId={form.id} />
             </div>
             <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
             <div>
