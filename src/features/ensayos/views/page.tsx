@@ -11,11 +11,11 @@ import { db } from "@/lib/api/client/db";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import { eventosQueries } from "@/lib/api/queries/personal/eventos";
 
-import Editor from "@/features/ensayos/editor";
-import { EmptyState } from "@/features/ensayos/emptyState";
-import NewNoteModal from "@/features/ensayos/newNoteModal";
-import { GrafoEnsayos } from "@/features/ensayos/GrafoEnsayos";
-import { HomeDashboard } from "@/features/ensayos/HomeDashboard";
+import Editor from "@/features/ensayos/components/editor";
+import { EmptyState } from "@/features/ensayos/components/emptyState";
+import NewNoteModal from "@/features/ensayos/components/newNoteModal";
+import { GrafoEnsayos } from "@/features/ensayos/components/GrafoEnsayos";
+import { HomeDashboard } from "@/features/ensayos/components/HomeDashboard";
 import { LibrosDashboard } from "@/features/ensayos/personal/LibrosDashboard";
 
 export interface ZoteroSource {

@@ -7,7 +7,7 @@ import { CitePopup } from "./citePopup";
 import { LibroPanel } from "./LibroPanel";
 import { NotaPanel } from "./NotaPanel";
 import { MarkdownEditor, WikiEntity } from "@/components/forms/Markdown/MarkdownEditor";
-import { ZoteroSource } from "@/features/ensayos/page";
+import { ZoteroSource } from "@/features/ensayos/views/page";
 
 // ── TOC extractor ─────────────────────────────────────────────────────────────
 function extractTOC(content: string): { level: number; text: string; id: string }[] {
