@@ -1,4 +1,4 @@
-import SobreMi from '@/features/personal/sobre-mi';
+import SobreMi from '@/features/personal/views/sobre-mi';
 
 export default function Page() {
   return (

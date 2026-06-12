@@ -9,11 +9,11 @@ import { eventosQueries } from "@/lib/api/queries/personal/eventos";
 import { enqueueOperation, dexiePut, dexieUpdate, dexieDelete } from "@/hooks/data/useOfflineSync";
 import { Calendar as CalendarIcon, Clock } from "lucide-react";
 
-import { RelojDigital } from "./relojDigital";
-import { ListaTareas } from "./listaTareas";
-import { VistaMes } from "./vistaMes";
-import { VistaSemanal } from "./vistaSemanal";
-import type { ModoCalendario } from "./types";
+import { RelojDigital } from "../components/relojDigital";
+import { ListaTareas } from "../components/listaTareas";
+import { VistaMes } from "../components/vistaMes";
+import { VistaSemanal } from "../components/vistaSemanal";
+import type { ModoCalendario } from "../components/types";
 
 const USERNAME = "franilover";
 
