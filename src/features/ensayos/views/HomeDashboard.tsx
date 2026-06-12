@@ -8,14 +8,14 @@ import { RelojDigital } from "@/features/ensayos/components/relojDigital";
 import { VistaMes } from "@/features/ensayos/components/vistaMes";
 import { VistaSemanal } from "@/features/ensayos/components/vistaSemanal";
 import type { ModoCalendario } from "@/features/ensayos/components/types";
-import ComprasPage from "@/features/ensayos/components/compras";
-import { PaginaEjercicios } from "@/features/ensayos/components/ejerciciosComponent";
-import { IngredientesPage } from "@/features/ensayos/components/ingredientes";
-import RecetasPage from "@/features/ensayos/components/recetas";
+import ComprasPage from "@/features/ensayos/views/compras";
+import { PaginaEjercicios } from "@/features/ensayos/views/ejerciciosComponent";
+import { IngredientesPage } from "@/features/ensayos/views/ingredientes";
+import RecetasPage from "@/features/ensayos/views/recetas";
 import ArmarioPage from "@/features/ensayos/components/ropa";
-import { PaginaHobbys } from "@/features/ensayos/components/hobbysComponent";
-import { PaginaPendientes } from "@/features/ensayos/components/pendientesComponent";
-import { LibrosDashboard } from "@/features/ensayos/components/LibrosDashboard";
+import { PaginaHobbys } from "@/features/ensayos/views/hobbysComponent";
+import { PaginaPendientes } from "@/features/ensayos/views/pendientesComponent";
+import { LibrosDashboard } from "@/features/ensayos/views/LibrosDashboard";
 
 interface HomeDashboardProps {
   ensayos: any[];

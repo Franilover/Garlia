@@ -2,10 +2,10 @@
 
 import { Dumbbell, Calendar, FileText, ShoppingCart, UtensilsCrossed, Carrot } from "lucide-react";
 import Secciones from "@/components/layout/Secciones";
-import { PaginaEjercicios } from "@/features/ensayos/components/ejerciciosComponent";
-import ComprasPage from "@/features/ensayos/components/compras";
-import { IngredientesPage } from "@/features/ensayos/components/ingredientes";
-import RecetasPage from "@/features/ensayos/components/recetas";
+import { PaginaEjercicios } from "@/features/ensayos/views/ejerciciosComponent";
+import ComprasPage from "@/features/ensayos/views/compras";
+import { IngredientesPage } from "@/features/ensayos/views/ingredientes";
+import RecetasPage from "@/features/ensayos/views/recetas";
 import { AdminOnly } from "@/components/forms/AdminOnly";
 
 export default function SaludPage() {
