@@ -1,0 +1,28 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "entry": [
+    "src/app/**/page.tsx",
+    "src/app/**/layout.tsx",
+    "src/app/**/route.ts",
+    "src/app/**/loading.tsx",
+    "src/app/**/error.tsx",
+    "src/app/**/not-found.tsx",
+    "next.config.*",
+    "tailwind.config.*",
+    "middleware.ts"
+  ],
+  "project": [
+    "src/**/*.{ts,tsx,js,jsx}"
+  ],
+  "ignore": [
+    "src/lib/types/supabase.ts",
+    "src/lib/api/client/db.ts",
+    "public/**",
+    ".next/**"
+  ],
+  "ignoreDependencies": [
+    "@supabase/ssr",
+    "tw-animate-css",
+    "@next/bundle-analyzer"
+  ]
+}
