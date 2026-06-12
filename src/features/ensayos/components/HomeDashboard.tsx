@@ -4,18 +4,18 @@ import { MotionDiv } from "@/components/ui/Motion";
 import { Star, FileText, ArrowRight, Hash, Clock, CheckSquare, Plus, Check, X, ShoppingCart, Dumbbell, Package, UtensilsCrossed, ChevronLeft, Search, Shirt, Heart, BookOpen, Library } from "lucide-react";
 
 import { AnimatePresence } from "framer-motion";
-import { RelojDigital } from "@/features/ensayos/personal/tareas/relojDigital";
-import { VistaMes } from "@/features/ensayos/personal/tareas/vistaMes";
-import { VistaSemanal } from "@/features/ensayos/personal/tareas/vistaSemanal";
-import type { ModoCalendario } from "@/features/ensayos/personal/tareas/types";
-import ComprasPage from "@/features/ensayos/personal/compras";
-import { PaginaEjercicios } from "@/features/ensayos/personal/ejerciciosComponent";
-import { IngredientesPage } from "@/features/ensayos/personal/ingredientes";
-import RecetasPage from "@/features/ensayos/personal/recetas";
-import ArmarioPage from "@/features/ensayos/personal/ropa";
-import { PaginaHobbys } from "@/features/ensayos/personal/hobbysComponent";
-import { PaginaPendientes } from "@/features/ensayos/personal/pendientesComponent";
-import { LibrosDashboard } from "@/features/ensayos/personal/LibrosDashboard";
+import { RelojDigital } from "@/features/ensayos/components/relojDigital";
+import { VistaMes } from "@/features/ensayos/components/vistaMes";
+import { VistaSemanal } from "@/features/ensayos/components/vistaSemanal";
+import type { ModoCalendario } from "@/features/ensayos/components/types";
+import ComprasPage from "@/features/ensayos/components/compras";
+import { PaginaEjercicios } from "@/features/ensayos/components/ejerciciosComponent";
+import { IngredientesPage } from "@/features/ensayos/components/ingredientes";
+import RecetasPage from "@/features/ensayos/components/recetas";
+import ArmarioPage from "@/features/ensayos/components/ropa";
+import { PaginaHobbys } from "@/features/ensayos/components/hobbysComponent";
+import { PaginaPendientes } from "@/features/ensayos/components/pendientesComponent";
+import { LibrosDashboard } from "@/features/ensayos/components/LibrosDashboard";
 
 interface HomeDashboardProps {
   ensayos: any[];
