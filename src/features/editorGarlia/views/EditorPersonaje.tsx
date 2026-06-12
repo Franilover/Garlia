@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import {
   Maximize2, UserCircle2, BookOpen, Loader2,
   ChevronDown, X, Save, Trash2,
-  Sparkles, Users, Camera, SlidersHorizontal, Music2,
+  Sparkles, Users, Camera, SlidersHorizontal, Music2, Plus,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
@@ -715,6 +715,158 @@ function SeccionHechizos({ personajeId, grupoIds }: { personajeId: string; grupo
   );
 }
 
+// ─── BloqueRasgos ────────────────────────────────────────────────────────────
+function BloqueRasgos({ personajeId, initialRasgos = [], initialNotas = "" }: {
+  personajeId: string;
+  initialRasgos?: string[];
+  initialNotas?: string;
+}) {
+  const [rasgos,      setRasgos]      = useState<string[]>(initialRasgos);
+  const [notas,       setNotas]       = useState(initialNotas);
+  const [nuevoRasgo,  setNuevoRasgo]  = useState("");
+  const [savingRasgos, setSavingRasgos] = useState(false);
+  const [savingNotas,  setSavingNotas]  = useState(false);
+  const notasTimer = React.useRef<any>(null);
+
+  // Sincronizar si cambia el personaje
+  useEffect(() => { setRasgos(initialRasgos); }, [initialRasgos.join(",")]);
+  useEffect(() => { setNotas(initialNotas); }, [initialNotas]);
+
+  const handleAddRasgo = async () => {
+    const trimmed = nuevoRasgo.trim();
+    if (!trimmed) return;
+    const next = [...rasgos, trimmed];
+    setRasgos(next);
+    setNuevoRasgo("");
+    setSavingRasgos(true);
+    try { await supabase.from("personajes").update({ rasgos: next }).eq("id", personajeId); } catch {}
+    setSavingRasgos(false);
+  };
+
+  const handleRemoveRasgo = async (rasgo: string) => {
+    const next = rasgos.filter(r => r !== rasgo);
+    setRasgos(next);
+    setSavingRasgos(true);
+    try { await supabase.from("personajes").update({ rasgos: next }).eq("id", personajeId); } catch {}
+    setSavingRasgos(false);
+  };
+
+  const handleNotasChange = (val: string) => {
+    setNotas(val);
+    clearTimeout(notasTimer.current);
+    setSavingNotas(true);
+    notasTimer.current = setTimeout(async () => {
+      try { await supabase.from("personajes").update({ notas_narrador: val }).eq("id", personajeId); } catch {}
+      setSavingNotas(false);
+    }, 1200);
+  };
+
+  return (
+    <div className="rounded-xl overflow-hidden border border-primary/10">
+      {/* Header */}
+      <div className="flex items-center gap-2 px-3 py-2 border-b border-primary/[0.06] bg-primary/[0.03]">
+        <ChevronDown size={10} className="text-primary/40" />
+        <span className="flex-1 text-[9px] font-black uppercase tracking-widest text-primary/40">Rasgos y notas</span>
+        {(savingRasgos || savingNotas) && (
+          <Loader2 size={9} className="animate-spin text-primary/30" />
+        )}
+      </div>
+
+      <div className="p-2.5 space-y-3">
+        {/* Chips */}
+        <div className="space-y-2">
+          {rasgos.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {rasgos.map(rasgo => (
+                <span
+                  key={rasgo}
+                  className="group flex items-center gap-1 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wide border transition-all"
+                  style={{
+                    background: "color-mix(in srgb, var(--primary) 6%, transparent)",
+                    borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)",
+                    color: "color-mix(in srgb, var(--primary) 60%, transparent)",
+                  }}
+                >
+                  {rasgo}
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveRasgo(rasgo)}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity"
+                    style={{ color: "var(--accent)", lineHeight: 1 }}
+                  >
+                    <X size={8} />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Input nuevo rasgo */}
+          <div className="flex items-center gap-1">
+            <input
+              type="text"
+              value={nuevoRasgo}
+              onChange={e => setNuevoRasgo(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === "Enter") { e.preventDefault(); handleAddRasgo(); }
+                if (e.key === "Escape") setNuevoRasgo("");
+              }}
+              placeholder="Añadir rasgo…"
+              maxLength={40}
+              className="flex-1 min-w-0 rounded-lg border px-2 py-1 text-[9px] font-black uppercase outline-none transition-all placeholder:normal-case placeholder:font-normal"
+              style={{
+                background: nuevoRasgo ? "color-mix(in srgb, var(--primary) 6%, transparent)" : "transparent",
+                borderColor: nuevoRasgo
+                  ? "color-mix(in srgb, var(--primary) 22%, transparent)"
+                  : "color-mix(in srgb, var(--primary) 12%, transparent)",
+                color: "var(--primary)",
+              }}
+            />
+            <button
+              type="button"
+              onClick={handleAddRasgo}
+              disabled={!nuevoRasgo.trim()}
+              className="shrink-0 flex items-center justify-center rounded-lg border transition-all disabled:opacity-20"
+              style={{
+                width: 22, height: 22,
+                background: nuevoRasgo.trim() ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent",
+                borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)",
+                color: "var(--primary)",
+              }}
+            >
+              <Plus size={9} />
+            </button>
+          </div>
+        </div>
+
+        {/* Notas libres */}
+        <div className="space-y-1">
+          <div className="flex items-center gap-1">
+            <span className="text-[8px] font-black uppercase tracking-[0.2em] flex-1"
+              style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
+              Notas
+            </span>
+          </div>
+          <textarea
+            value={notas}
+            onChange={e => handleNotasChange(e.target.value)}
+            placeholder="Motivaciones, estado emocional, arco narrativo…"
+            rows={4}
+            className="w-full rounded-lg border px-2 py-1.5 text-[9px] leading-relaxed outline-none transition-all resize-none"
+            style={{
+              background: notas ? "color-mix(in srgb, var(--primary) 4%, transparent)" : "transparent",
+              borderColor: notas
+                ? "color-mix(in srgb, var(--primary) 18%, transparent)"
+                : "color-mix(in srgb, var(--primary) 10%, transparent)",
+              color: "var(--primary)",
+            }}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── FormularioPersonaje ──────────────────────────────────────────────────────
 export function FormularioPersonaje({
   form, setForm, status, onSave, onDelete, compacto = false, entities = [], onNavigate, onSelectPersonaje, onOpenGrupo, onNavigateCiudad, onSelectCancion,
@@ -1121,6 +1273,12 @@ export function FormularioPersonaje({
 
                     <BloqueRelaciones personajeId={form.id} onSelectPersonaje={onSelectPersonaje} />
 
+                    <BloqueRasgos
+                      personajeId={form.id}
+                      initialRasgos={(form as any).rasgos ?? []}
+                      initialNotas={(form as any).notas_narrador ?? ""}
+                    />
+
                     <div className="rounded-xl overflow-hidden border border-primary/10">
                       <div className="flex items-center gap-2 px-3 py-2 border-b border-primary/[0.06] bg-primary/[0.03]">
                         <BookOpen size={10} className="text-primary/40" />
@@ -1180,6 +1338,15 @@ export function FormularioPersonaje({
             <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
             <div className="p-2">
               <BloqueRelaciones personajeId={form.id} onSelectPersonaje={onSelectPersonaje} />
+            </div>
+            <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
+            <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
+            <div className="p-2">
+              <BloqueRasgos
+                personajeId={form.id}
+                initialRasgos={(form as any).rasgos ?? []}
+                initialNotas={(form as any).notas_narrador ?? ""}
+              />
             </div>
             <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
             <div>
