@@ -47,7 +47,7 @@ export function HomeDashboard({
   const [nuevaTarea, setNuevaTarea] = useState("");
   const [modoCalendario, setModoCalendario] = useState<ModoCalendario>("mes");
   const [panelAbierto, setPanelAbierto] = useState<"reloj" | "tareas" | null>(null);
-  const [vistaPersonal, setVistaPersonal] = useState<"compras" | "ejercicios" | "ingredientes" | "recetas" | "ropa" | "hobbys" | "pendientes" | "libros" | null>(null);
+  const [vistaPersonal, setVistaPersonal] = useState<"compras" | "ejercicios" | "ingredientes" | "recetas" | "ropa" | "libros" | null>(null);
   const [busqueda, setBusqueda] = useState("");
 
   const favoritos = useMemo(
@@ -297,11 +297,11 @@ export function HomeDashboard({
         ══════════════════════════════════════════ */}
         <div className="hd-main-grid" style={{
           display: "grid",
-          gridTemplateColumns: "2.4fr 1fr 0.85fr",
+          gridTemplateColumns: "1.8fr 1fr",
           gridTemplateRows: "1fr 1fr",
           gridTemplateAreas: `
-            "mes favoritos tags"
-            "mes recientes tags"
+            "mes pendientes"
+            "mes hobbys"
           `,
           gap: gap,
           background: divColor,
@@ -309,7 +309,7 @@ export function HomeDashboard({
           overflow: "hidden",
           marginBottom: gap,
           /* altura fija para que el span funcione bien */
-          minHeight: 480,
+          minHeight: 560,
         }}>
 
           {/* ── Calendario — span 2 rows (expanded) ── */}
@@ -594,8 +594,47 @@ export function HomeDashboard({
             </div>
           </div>
 
-          {/* ── Favoritos ── */}
-          <div className="hd-favoritos" style={{ gridArea: "favoritos", background: "var(--bg-main)", padding: "16px 18px", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          {/* ── Pendientes inline ── */}
+          <div style={{ gridArea: "pendientes", background: "var(--bg-main)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+            <div style={{ padding: "10px 14px 8px", borderBottom: `1px solid ${divColor}`, flexShrink: 0, display: "flex", alignItems: "center", gap: 6 }}>
+              <BookOpen size={9} style={{ color: "color-mix(in srgb, var(--foreground) 25%, transparent)" }} />
+              <span style={{ ...mono, fontSize: 8, color: "color-mix(in srgb, var(--foreground) 25%, transparent)", textTransform: "uppercase", letterSpacing: "0.14em" }}>
+                Pendientes
+              </span>
+            </div>
+            <div style={{ flex: 1, overflowY: "auto", scrollbarWidth: "none" }}>
+              <PaginaPendientes />
+            </div>
+          </div>
+
+          {/* ── Hobbys inline ── */}
+          <div style={{ gridArea: "hobbys", background: "var(--bg-main)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+            <div style={{ padding: "10px 14px 8px", borderBottom: `1px solid ${divColor}`, flexShrink: 0, display: "flex", alignItems: "center", gap: 6 }}>
+              <Heart size={9} style={{ color: "color-mix(in srgb, var(--foreground) 25%, transparent)" }} />
+              <span style={{ ...mono, fontSize: 8, color: "color-mix(in srgb, var(--foreground) 25%, transparent)", textTransform: "uppercase", letterSpacing: "0.14em" }}>
+                Hobbys
+              </span>
+            </div>
+            <div style={{ flex: 1, overflowY: "auto", scrollbarWidth: "none" }}>
+              <PaginaHobbys />
+            </div>
+          </div>
+
+        </div>
+
+        {/* ── Favoritos + Personal + Tags ── */}
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr 1fr",
+          gap: gap,
+          background: divColor,
+          borderRadius: 8,
+          overflow: "hidden",
+          marginBottom: gap,
+        }}>
+
+          {/* Favoritos */}
+          <div className="hd-favoritos" style={{ background: "var(--bg-main)", padding: "16px 18px", display: "flex", flexDirection: "column", overflow: "hidden" }}>
             <SectionHeader
               icon={<Star size={9} style={{ color: "color-mix(in srgb, var(--foreground) 25%, transparent)" }} />}
               label="Favoritos"
@@ -624,8 +663,8 @@ export function HomeDashboard({
             )}
           </div>
 
-          {/* ── Personal ── */}
-          <div className="hd-recientes" style={{ gridArea: "recientes", background: "var(--bg-main)", padding: "16px 18px", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          {/* Personal */}
+          <div className="hd-recientes" style={{ background: "var(--bg-main)", padding: "16px 18px", display: "flex", flexDirection: "column", overflow: "hidden" }}>
             <SectionHeader
               icon={<Star size={9} style={{ color: "color-mix(in srgb, var(--foreground) 25%, transparent)" }} />}
               label="Personal"
@@ -637,8 +676,6 @@ export function HomeDashboard({
                 { id: "ingredientes", label: "Ingredientes", icon: <Package size={16} /> },
                 { id: "recetas",      label: "Recetas",      icon: <UtensilsCrossed size={16} /> },
                 { id: "ropa",         label: "Ropa",         icon: <Shirt size={16} /> },
-                { id: "hobbys",       label: "Hobbys",       icon: <Heart size={16} /> },
-                { id: "pendientes",   label: "Pendientes",   icon: <BookOpen size={16} /> },
                 { id: "libros",       label: "Biblioteca",   icon: <Library size={16} /> },
               ] as const).map(({ id, label, icon }) => (
                 <MotionDiv key={id} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
@@ -674,8 +711,8 @@ export function HomeDashboard({
             </div>
           </div>
 
-          {/* ── Tags — span 2 rows ── */}
-          <div className="hd-tags" style={{ gridArea: "tags", background: "var(--bg-main)", padding: "16px 18px", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          {/* Tags */}
+          <div className="hd-tags" style={{ background: "var(--bg-main)", padding: "16px 18px", display: "flex", flexDirection: "column", overflow: "hidden" }}>
             <SectionHeader
               icon={<Hash size={9} style={{ color: "color-mix(in srgb, var(--foreground) 25%, transparent)" }} />}
               label={`Tags · ${todosLosTags.length}`}
@@ -854,8 +891,6 @@ export function HomeDashboard({
               {vistaPersonal === "ingredientes" && <IngredientesPage />}
               {vistaPersonal === "recetas"      && <RecetasPage />}
               {vistaPersonal === "ropa"         && <ArmarioPage />}
-              {vistaPersonal === "hobbys"       && <PaginaHobbys />}
-              {vistaPersonal === "pendientes"   && <PaginaPendientes />}
               {vistaPersonal === "libros"       && (
                 <LibrosDashboard
                   ensayos={ensayos}
