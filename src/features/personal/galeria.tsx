@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
-import SimpleImagePicker from "@/features/myself/garlia/editorCapitulos/snippets/forms/SimpleImagePicker";
+import SimpleImagePicker from "@/features/editorGarlia/components/editorCapitulos/snippets/forms/SimpleImagePicker";
 import { useAuth } from "@/providers/AuthProvider";
 import { Plus, X, Loader2, Pencil, Trash2, ImageIcon, Save, Pipette } from "lucide-react";
 

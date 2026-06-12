@@ -7,10 +7,10 @@ import { Btn } from "@/components/ui";
 import { db } from "@/lib/api/client/db";
 import { motion, AnimatePresence } from "framer-motion";
 
-import { CapituloLista, CapituloScrollItem } from "@/features/myself/garlia/editorCapitulos/snippets/type";
+import { CapituloLista, CapituloScrollItem } from "@/features/editorGarlia/components/editorCapitulos/snippets/type";
 import { esUUID } from "@/lib/utils/slugify";
-import { CapituloScrollBlock, ToastPortal } from "@/features/garlia/components/leer/CapituloScrollBlock";
-import { LectorSkeleton, ReadingProgressBar, Vignette, CapituloHeader, FinCapituloSeparador } from "@/features/garlia/components/leer/LectorUI";
+import { CapituloScrollBlock, ToastPortal } from "@/features/garlia/components/CapituloScrollBlock";
+import { LectorSkeleton, ReadingProgressBar, Vignette, CapituloHeader, FinCapituloSeparador } from "@/features/garlia/components/LectorUI";
 
 /* ─────────────────────────────────────────────
    Tipos

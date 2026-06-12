@@ -19,7 +19,7 @@
 
 import React, { useRef, useEffect, useCallback } from "react";
 import { renderMarkdown, renderMathInElement, PROSE_STYLES } from "./markdownRenderer";
-import { useWikilink } from "@/features/myself/garlia/components/WikilinkContext";
+import { useWikilink } from "@/features/editorGarlia/components/WikilinkContext";
 
 // ── Inyección de estilos (una sola vez por página) ────────────────────────────
 let stylesInjected = false;
