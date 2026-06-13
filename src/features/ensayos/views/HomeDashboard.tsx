@@ -297,11 +297,11 @@ export function HomeDashboard({
         ══════════════════════════════════════════ */}
         <div className="hd-main-grid" style={{
           display: "grid",
-          gridTemplateColumns: "2.4fr 1fr 0.85fr",
+          gridTemplateColumns: "2.2fr 0.52fr 1fr 0.85fr",
           gridTemplateRows: "1fr 1fr",
           gridTemplateAreas: `
-            "mes favoritos tags"
-            "mes recientes tags"
+            "mes personal favoritos tags"
+            "mes personal favoritos tags"
           `,
           gap: gap,
           background: divColor,
@@ -595,7 +595,7 @@ export function HomeDashboard({
           </div>
 
           {/* ── Favoritos ── */}
-          <div className="hd-favoritos" style={{ gridArea: "favoritos", background: "var(--bg-main)", padding: "22px 22px", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          <div className="hd-favoritos" style={{ gridArea: "favoritos", background: "var(--bg-main)", padding: "22px 22px", display: "flex", flexDirection: "column", overflow: "hidden", gridRow: "1 / -1" }}>
             <SectionHeader
               icon={<Star size={9} style={{ color: "color-mix(in srgb, var(--foreground) 25%, transparent)" }} />}
               label="Favoritos"
@@ -624,48 +624,49 @@ export function HomeDashboard({
             )}
           </div>
 
-          {/* ── Personal ── */}
-          <div className="hd-recientes" style={{ gridArea: "recientes", background: "var(--bg-main)", padding: "22px 22px", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-            <SectionHeader
-              icon={<Star size={9} style={{ color: "color-mix(in srgb, var(--foreground) 25%, transparent)" }} />}
-              label="Personal"
-            />
-            <div className="hd-personal-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, flex: 1, alignContent: "start" }}>
+          {/* ── Personal — columna vertical span 2 rows ── */}
+          <div className="hd-recientes" style={{ gridArea: "personal", gridRow: "1 / -1", background: "var(--bg-main)", padding: "18px 10px", display: "flex", flexDirection: "column", overflow: "hidden", gap: 4 }}>
+            <span style={{ ...mono, fontSize: 7, color: "color-mix(in srgb, var(--foreground) 20%, transparent)", textTransform: "uppercase", letterSpacing: "0.14em", textAlign: "center", marginBottom: 8, flexShrink: 0 }}>
+              Apps
+            </span>
+            <div style={{ display: "flex", flexDirection: "column", gap: 5, flex: 1, overflowY: "auto", scrollbarWidth: "none" }}>
               {([
-                { id: "compras",      label: "Compras",      icon: <ShoppingCart size={16} /> },
-                { id: "ejercicios",   label: "Ejercicios",   icon: <Dumbbell size={16} /> },
-                { id: "ingredientes", label: "Ingredientes", icon: <Package size={16} /> },
-                { id: "recetas",      label: "Recetas",      icon: <UtensilsCrossed size={16} /> },
-                { id: "ropa",         label: "Ropa",         icon: <Shirt size={16} /> },
-                { id: "libros",       label: "Biblioteca",   icon: <Library size={16} /> },
+                { id: "compras",      label: "Compras",      icon: <ShoppingCart size={14} /> },
+                { id: "ejercicios",   label: "Ejercicios",   icon: <Dumbbell size={14} /> },
+                { id: "ingredientes", label: "Ingredientes", icon: <Package size={14} /> },
+                { id: "recetas",      label: "Recetas",      icon: <UtensilsCrossed size={14} /> },
+                { id: "ropa",         label: "Ropa",         icon: <Shirt size={14} /> },
+                { id: "libros",       label: "Biblioteca",   icon: <Library size={14} /> },
               ] as const).map(({ id, label, icon }) => (
-                <MotionDiv key={id} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
+                <MotionDiv key={id} initial={{ opacity: 0, x: -4 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.04 }}>
                   <button
                     className="hd-personal-btn"
                     onClick={() => setVistaPersonal(id)}
+                    title={label}
                     style={{
-                      width: "100%", padding: "14px 10px", borderRadius: 9,
+                      width: "100%", padding: "10px 8px", borderRadius: 8,
                       border: "1px solid color-mix(in srgb, var(--foreground) 7%, transparent)",
                       background: "color-mix(in srgb, var(--foreground) 3%, transparent)",
                       cursor: "pointer", display: "flex", flexDirection: "column",
-                      alignItems: "center", gap: 6, transition: "all 0.12s",
-                      color: "color-mix(in srgb, var(--foreground) 40%, transparent)",
+                      alignItems: "center", justifyContent: "center", gap: 5,
+                      transition: "all 0.12s",
+                      color: "color-mix(in srgb, var(--foreground) 35%, transparent)",
                     }}
                     onMouseEnter={e => {
                       const el = e.currentTarget as HTMLElement;
-                      el.style.background = "color-mix(in srgb, var(--foreground) 6%, transparent)";
-                      el.style.borderColor = "color-mix(in srgb, var(--foreground) 16%, transparent)";
-                      el.style.color = "color-mix(in srgb, var(--foreground) 70%, transparent)";
+                      el.style.background = "color-mix(in srgb, var(--foreground) 7%, transparent)";
+                      el.style.borderColor = "color-mix(in srgb, var(--foreground) 18%, transparent)";
+                      el.style.color = "color-mix(in srgb, var(--foreground) 75%, transparent)";
                     }}
                     onMouseLeave={e => {
                       const el = e.currentTarget as HTMLElement;
                       el.style.background = "color-mix(in srgb, var(--foreground) 3%, transparent)";
                       el.style.borderColor = "color-mix(in srgb, var(--foreground) 7%, transparent)";
-                      el.style.color = "color-mix(in srgb, var(--foreground) 40%, transparent)";
+                      el.style.color = "color-mix(in srgb, var(--foreground) 35%, transparent)";
                     }}
                   >
                     {icon}
-                    <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, textTransform: "uppercase", letterSpacing: "0.09em" }}>{label}</span>
+                    <span style={{ ...mono, fontSize: 7, textTransform: "uppercase", letterSpacing: "0.07em", lineHeight: 1.2, textAlign: "center" }}>{label}</span>
                   </button>
                 </MotionDiv>
               ))}
@@ -719,30 +720,30 @@ export function HomeDashboard({
           borderRadius: 12,
           overflow: "hidden",
           marginBottom: gap,
-          minHeight: 360,
+          minHeight: 260,
         }}>
           {/* Pendientes */}
           <div style={{ background: "var(--bg-main)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-            <div style={{ padding: "14px 18px 12px", borderBottom: `1px solid ${divColor}`, flexShrink: 0, display: "flex", alignItems: "center", gap: 7 }}>
-              <BookOpen size={10} style={{ color: "color-mix(in srgb, var(--foreground) 28%, transparent)" }} />
-              <span style={{ ...mono, fontSize: 9, color: "color-mix(in srgb, var(--foreground) 30%, transparent)", textTransform: "uppercase", letterSpacing: "0.12em" }}>
+            <div style={{ padding: "9px 14px 7px", borderBottom: `1px solid ${divColor}`, flexShrink: 0, display: "flex", alignItems: "center", gap: 5 }}>
+              <BookOpen size={8} style={{ color: "color-mix(in srgb, var(--foreground) 25%, transparent)" }} />
+              <span style={{ ...mono, fontSize: 8, color: "color-mix(in srgb, var(--foreground) 25%, transparent)", textTransform: "uppercase", letterSpacing: "0.13em" }}>
                 Pendientes
               </span>
             </div>
-            <div style={{ flex: 1, overflowY: "auto", scrollbarWidth: "none", paddingTop: 8 }}>
+            <div style={{ flex: 1, overflowY: "auto", scrollbarWidth: "none", zoom: 0.82 }}>
               <PaginaPendientes />
             </div>
           </div>
 
           {/* Hobbys */}
           <div style={{ background: "var(--bg-main)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-            <div style={{ padding: "14px 18px 12px", borderBottom: `1px solid ${divColor}`, flexShrink: 0, display: "flex", alignItems: "center", gap: 7 }}>
-              <Heart size={10} style={{ color: "color-mix(in srgb, var(--foreground) 28%, transparent)" }} />
-              <span style={{ ...mono, fontSize: 9, color: "color-mix(in srgb, var(--foreground) 30%, transparent)", textTransform: "uppercase", letterSpacing: "0.12em" }}>
+            <div style={{ padding: "9px 14px 7px", borderBottom: `1px solid ${divColor}`, flexShrink: 0, display: "flex", alignItems: "center", gap: 5 }}>
+              <Heart size={8} style={{ color: "color-mix(in srgb, var(--foreground) 25%, transparent)" }} />
+              <span style={{ ...mono, fontSize: 8, color: "color-mix(in srgb, var(--foreground) 25%, transparent)", textTransform: "uppercase", letterSpacing: "0.13em" }}>
                 Hobbys
               </span>
             </div>
-            <div style={{ flex: 1, overflowY: "auto", scrollbarWidth: "none", paddingTop: 8 }}>
+            <div style={{ flex: 1, overflowY: "auto", scrollbarWidth: "none", zoom: 0.82 }}>
               <PaginaHobbys />
             </div>
           </div>
