@@ -210,6 +210,33 @@ function FechaMundoEditor({
 }) {
   const estOrdenadas = [...estaciones].sort((a, b) => a.orden - b.orden);
 
+  // ─── Agrupar estaciones por nombre base ──────────────────────────────────
+  // "Florial1" / "Florial2" → grupo "Florial" con 2 partes (mostradas como
+  // dos calendarios lado a lado). "Sivial" (sin sufijo numérico) queda en su
+  // propio grupo; si hay dos estaciones llamadas igual sin sufijo, también
+  // se agrupan como 2 partes.
+  type GrupoEstacion = { nombre: string; partes: Estacion[] };
+  const gruposEstacion: GrupoEstacion[] = [];
+  {
+    const porNombreBase = new Map<string, Estacion[]>();
+    for (const est of estOrdenadas) {
+      const base = est.nombre.replace(/\s*\d+$/, "");
+      const arr = porNombreBase.get(base) ?? [];
+      arr.push(est);
+      porNombreBase.set(base, arr);
+    }
+    // Mantener el orden de aparición original
+    const vistos = new Set<string>();
+    for (const est of estOrdenadas) {
+      const base = est.nombre.replace(/\s*\d+$/, "");
+      if (vistos.has(base)) continue;
+      vistos.add(base);
+      gruposEstacion.push({ nombre: base, partes: porNombreBase.get(base)! });
+    }
+  }
+
+  const grupoDeEstacion = (orden: number) => gruposEstacion.find(g => g.partes.some(p => p.orden === orden));
+
   // Estado inicial desde value
   const inicial = value != null
     ? diaAbsolutoAFecha(value, estaciones, config)
@@ -222,6 +249,7 @@ function FechaMundoEditor({
   const [diaEnEstStr,   setDiaEnEstStr]  = useState(String(inicial?.dia_en_estacion ?? 1));
 
   const estSel = estOrdenadas.find(e => e.orden === estOrden) ?? estOrdenadas[0];
+  const grupoActual = grupoDeEstacion(estOrden) ?? gruposEstacion[0];
   const eraActual = eraEnAnio(anio, eras);
 
   const semana = Math.floor((diaEnEst - 1) / config.dias_por_semana) + 1;
@@ -292,26 +320,35 @@ function FechaMundoEditor({
       <div className="space-y-1">
         <label className="text-[8px] font-black uppercase tracking-[0.18em] text-primary/35">Estación</label>
         <div className="grid gap-1" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
-          {estOrdenadas.map(est => (
-            <button
-              key={est.id}
-              type="button"
-              onClick={() => { setEstOrden(est.orden); setDiaEnEst(1); setDiaEnEstStr("1"); }}
-              className="px-2 py-1.5 rounded-lg border text-center transition-all"
-              style={{
-                background: estOrden === est.orden
-                  ? "color-mix(in srgb, var(--accent) 15%, transparent)"
-                  : "transparent",
-                borderColor: estOrden === est.orden
-                  ? "color-mix(in srgb, var(--accent) 35%, transparent)"
-                  : "color-mix(in srgb, var(--primary) 10%, transparent)",
-                color: estOrden === est.orden ? "var(--accent)" : "color-mix(in srgb, var(--primary) 45%, transparent)",
-              }}
-            >
-              <div className="text-[8px] font-black uppercase tracking-wide">{est.nombre}</div>
-              <div className="text-[7px] opacity-60">{est.duracion_dias}d</div>
-            </button>
-          ))}
+          {gruposEstacion.map(grupo => {
+            const activo = grupo.partes.some(p => p.orden === estOrden);
+            const totalDias = grupo.partes.reduce((s, p) => s + p.duracion_dias, 0);
+            return (
+              <button
+                key={grupo.nombre}
+                type="button"
+                onClick={() => {
+                  const primera = grupo.partes[0];
+                  setEstOrden(primera.orden);
+                  setDiaEnEst(1);
+                  setDiaEnEstStr("1");
+                }}
+                className="px-2 py-1.5 rounded-lg border text-center transition-all"
+                style={{
+                  background: activo
+                    ? "color-mix(in srgb, var(--accent) 15%, transparent)"
+                    : "transparent",
+                  borderColor: activo
+                    ? "color-mix(in srgb, var(--accent) 35%, transparent)"
+                    : "color-mix(in srgb, var(--primary) 10%, transparent)",
+                  color: activo ? "var(--accent)" : "color-mix(in srgb, var(--primary) 45%, transparent)",
+                }}
+              >
+                <div className="text-[8px] font-black uppercase tracking-wide">{grupo.nombre}</div>
+                <div className="text-[7px] opacity-60">{totalDias}d</div>
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -321,48 +358,71 @@ function FechaMundoEditor({
           Semana {semana} de {totalSemanas} · Día {diaEnSemana} de {config.dias_por_semana}
         </label>
 
-        {/* Grid de días de la estación */}
-        <div className="rounded-lg border overflow-hidden"
-          style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)" }}>
-          {/* Cabecera de días de semana */}
-          <div className="grid border-b"
-            style={{
-              gridTemplateColumns: `repeat(${config.dias_por_semana}, 1fr)`,
-              borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
-              background: "color-mix(in srgb, var(--primary) 3%, transparent)",
-            }}>
-            {Array.from({ length: config.dias_por_semana }, (_, i) => (
-              <div key={i} className="text-center py-1 text-[7px] font-black uppercase tracking-widest text-primary/25">
-                D{i + 1}
-              </div>
-            ))}
-          </div>
-
-          {/* Días */}
-          <div className="grid p-1 gap-0.5"
-            style={{ gridTemplateColumns: `repeat(${config.dias_por_semana}, 1fr)` }}>
-            {Array.from({ length: estSel.duracion_dias }, (_, i) => {
-              const dia = i + 1;
-              const selected = dia === diaEnEst;
-              return (
-                <button
-                  key={dia}
-                  type="button"
-                  onClick={() => { setDiaEnEst(dia); setDiaEnEstStr(String(dia)); }}
-                  className="rounded text-center py-0.5 text-[8px] font-bold transition-all"
+        {/* Grid(s) de días — uno por cada parte del grupo (ej. Florial 1 / Florial 2) */}
+        <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${grupoActual.partes.length}, 1fr)` }}>
+          {grupoActual.partes.map((parte, idx) => {
+            const esActiva = parte.orden === estOrden;
+            return (
+              <div key={parte.id} className="rounded-lg border overflow-hidden"
+                style={{
+                  borderColor: esActiva
+                    ? "color-mix(in srgb, var(--accent) 30%, transparent)"
+                    : "color-mix(in srgb, var(--primary) 10%, transparent)",
+                }}>
+                {/* Etiqueta de la parte (solo si hay más de una) */}
+                {grupoActual.partes.length > 1 && (
+                  <div className="text-center py-0.5 text-[7px] font-black uppercase tracking-widest"
+                    style={{
+                      background: esActiva
+                        ? "color-mix(in srgb, var(--accent) 10%, transparent)"
+                        : "color-mix(in srgb, var(--primary) 4%, transparent)",
+                      color: esActiva ? "var(--accent)" : "color-mix(in srgb, var(--primary) 35%, transparent)",
+                    }}>
+                    {grupoActual.nombre} {idx + 1}
+                  </div>
+                )}
+                {/* Cabecera de días de semana */}
+                <div className="grid border-b"
                   style={{
-                    background: selected
-                      ? "var(--accent)"
-                      : "transparent",
-                    color: selected ? "white" : "color-mix(in srgb, var(--primary) 50%, transparent)",
-                    fontWeight: selected ? "900" : undefined,
-                  }}
-                >
-                  {dia}
-                </button>
-              );
-            })}
-          </div>
+                    gridTemplateColumns: `repeat(${config.dias_por_semana}, 1fr)`,
+                    borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
+                    background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+                  }}>
+                  {Array.from({ length: config.dias_por_semana }, (_, i) => (
+                    <div key={i} className="text-center py-1 text-[7px] font-black uppercase tracking-widest text-primary/25">
+                      D{i + 1}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Días */}
+                <div className="grid p-1 gap-0.5"
+                  style={{ gridTemplateColumns: `repeat(${config.dias_por_semana}, 1fr)` }}>
+                  {Array.from({ length: parte.duracion_dias }, (_, i) => {
+                    const dia = i + 1;
+                    const selected = esActiva && dia === diaEnEst;
+                    return (
+                      <button
+                        key={dia}
+                        type="button"
+                        onClick={() => { setEstOrden(parte.orden); setDiaEnEst(dia); setDiaEnEstStr(String(dia)); }}
+                        className="rounded text-center py-0.5 text-[8px] font-bold transition-all"
+                        style={{
+                          background: selected
+                            ? "var(--accent)"
+                            : "transparent",
+                          color: selected ? "white" : "color-mix(in srgb, var(--primary) 50%, transparent)",
+                          fontWeight: selected ? "900" : undefined,
+                        }}
+                      >
+                        {dia}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
         </div>
 
         {/* Input directo */}
@@ -392,7 +452,9 @@ function FechaMundoEditor({
       {/* Resumen */}
       <div className="rounded-lg px-2.5 py-2 text-[8px] font-bold"
         style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", color: "color-mix(in srgb, var(--primary) 50%, transparent)" }}>
-        Año {anio} · {estSel.nombre} · Semana {semana} · Día {diaEnSemana}
+        Año {anio} · {grupoActual.partes.length > 1
+          ? `${grupoActual.nombre} ${grupoActual.partes.findIndex(p => p.orden === estOrden) + 1}`
+          : estSel.nombre} · Semana {semana} · Día {diaEnSemana}
       </div>
 
       {/* Acciones */}
