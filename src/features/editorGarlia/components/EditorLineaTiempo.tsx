@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { ChevronDown, ChevronUp, Loader2, Check, X, Clock } from "lucide-react";
-import { supabase } from "@/lib/supabase"; // ajusta al path de tu proyecto
+import { supabase } from "@/lib/api/client/supabase"; 
 import {
   Estacion, CalendarioConfig, EraMundo, FechaMundo,
   diaAbsolutoAFecha, fechaADiaAbsoluto, formatFechaMundo, formatFechaCorta,
