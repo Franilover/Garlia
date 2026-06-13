@@ -828,7 +828,7 @@ function PanelHistoriaMundo({
         const [capsRes, capsReinosRes] = await Promise.all([
           supabase
             .from("capitulos")
-            .select("id, libro_id, titulo_capitulo, dia_absoluto, reinos_ids")
+            .select("id, libro_id, titulo_capitulo, dia_absoluto, orden_linea_tiempo, reinos_ids")
             .not("dia_absoluto", "is", null),
           supabase
             .from("capitulos")
@@ -881,6 +881,7 @@ function PanelHistoriaMundo({
               libro_id: c.libro_id,
               titulo_capitulo: c.titulo_capitulo,
               orden_linea_tiempo: c.orden_linea_tiempo,
+              dia_absoluto: c.dia_absoluto,
               libroTitulo: libroMap[c.libro_id] ?? "",
               reinos_ids: c.reinos_ids ?? [],
             })));
