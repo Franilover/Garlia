@@ -297,11 +297,11 @@ export function HomeDashboard({
         ══════════════════════════════════════════ */}
         <div className="hd-main-grid" style={{
           display: "grid",
-          gridTemplateColumns: "1.8fr 1fr",
+          gridTemplateColumns: "2.4fr 1fr 0.85fr",
           gridTemplateRows: "1fr 1fr",
           gridTemplateAreas: `
-            "mes pendientes"
-            "mes hobbys"
+            "mes favoritos tags"
+            "mes recientes tags"
           `,
           gap: gap,
           background: divColor,
@@ -594,48 +594,8 @@ export function HomeDashboard({
             </div>
           </div>
 
-          {/* ── Pendientes inline ── */}
-          <div style={{ gridArea: "pendientes", background: "var(--bg-main)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-            <div style={{ padding: "14px 18px 12px", borderBottom: `1px solid ${divColor}`, flexShrink: 0, display: "flex", alignItems: "center", gap: 7 }}>
-              <BookOpen size={10} style={{ color: "color-mix(in srgb, var(--foreground) 25%, transparent)" }} />
-              <span style={{ ...mono, fontSize: 9, color: "color-mix(in srgb, var(--foreground) 30%, transparent)", textTransform: "uppercase", letterSpacing: "0.12em" }}>
-                Pendientes
-              </span>
-            </div>
-            <div style={{ flex: 1, overflowY: "auto", scrollbarWidth: "none", paddingTop: 8 }}>
-              <PaginaPendientes />
-            </div>
-          </div>
-
-          {/* ── Hobbys inline ── */}
-          <div style={{ gridArea: "hobbys", background: "var(--bg-main)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-            <div style={{ padding: "14px 18px 12px", borderBottom: `1px solid ${divColor}`, flexShrink: 0, display: "flex", alignItems: "center", gap: 7 }}>
-              <Heart size={10} style={{ color: "color-mix(in srgb, var(--foreground) 25%, transparent)" }} />
-              <span style={{ ...mono, fontSize: 9, color: "color-mix(in srgb, var(--foreground) 30%, transparent)", textTransform: "uppercase", letterSpacing: "0.12em" }}>
-                Hobbys
-              </span>
-            </div>
-            <div style={{ flex: 1, overflowY: "auto", scrollbarWidth: "none", paddingTop: 8 }}>
-              <PaginaHobbys />
-            </div>
-          </div>
-
-        </div>
-
-        {/* ── Favoritos + Personal + Tags ── */}
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr 1fr",
-          gap: gap,
-          background: divColor,
-          borderRadius: 12,
-          overflow: "hidden",
-          marginBottom: gap,
-          minHeight: 240,
-        }}>
-
-          {/* Favoritos */}
-          <div className="hd-favoritos" style={{ background: "var(--bg-main)", padding: "22px 22px", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          {/* ── Favoritos ── */}
+          <div className="hd-favoritos" style={{ gridArea: "favoritos", background: "var(--bg-main)", padding: "22px 22px", display: "flex", flexDirection: "column", overflow: "hidden" }}>
             <SectionHeader
               icon={<Star size={9} style={{ color: "color-mix(in srgb, var(--foreground) 25%, transparent)" }} />}
               label="Favoritos"
@@ -664,8 +624,8 @@ export function HomeDashboard({
             )}
           </div>
 
-          {/* Personal */}
-          <div className="hd-recientes" style={{ background: "var(--bg-main)", padding: "22px 22px", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          {/* ── Personal ── */}
+          <div className="hd-recientes" style={{ gridArea: "recientes", background: "var(--bg-main)", padding: "22px 22px", display: "flex", flexDirection: "column", overflow: "hidden" }}>
             <SectionHeader
               icon={<Star size={9} style={{ color: "color-mix(in srgb, var(--foreground) 25%, transparent)" }} />}
               label="Personal"
@@ -712,8 +672,8 @@ export function HomeDashboard({
             </div>
           </div>
 
-          {/* Tags */}
-          <div className="hd-tags" style={{ background: "var(--bg-main)", padding: "22px 22px", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          {/* ── Tags — span 2 rows ── */}
+          <div className="hd-tags" style={{ gridArea: "tags", background: "var(--bg-main)", padding: "22px 22px", display: "flex", flexDirection: "column", overflow: "hidden" }}>
             <SectionHeader
               icon={<Hash size={9} style={{ color: "color-mix(in srgb, var(--foreground) 25%, transparent)" }} />}
               label={`Tags · ${todosLosTags.length}`}
@@ -748,6 +708,44 @@ export function HomeDashboard({
             </div>
           </div>
 
+        </div>
+
+        {/* ── Pendientes + Hobbys ── */}
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: gap,
+          background: divColor,
+          borderRadius: 12,
+          overflow: "hidden",
+          marginBottom: gap,
+          minHeight: 360,
+        }}>
+          {/* Pendientes */}
+          <div style={{ background: "var(--bg-main)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+            <div style={{ padding: "14px 18px 12px", borderBottom: `1px solid ${divColor}`, flexShrink: 0, display: "flex", alignItems: "center", gap: 7 }}>
+              <BookOpen size={10} style={{ color: "color-mix(in srgb, var(--foreground) 28%, transparent)" }} />
+              <span style={{ ...mono, fontSize: 9, color: "color-mix(in srgb, var(--foreground) 30%, transparent)", textTransform: "uppercase", letterSpacing: "0.12em" }}>
+                Pendientes
+              </span>
+            </div>
+            <div style={{ flex: 1, overflowY: "auto", scrollbarWidth: "none", paddingTop: 8 }}>
+              <PaginaPendientes />
+            </div>
+          </div>
+
+          {/* Hobbys */}
+          <div style={{ background: "var(--bg-main)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+            <div style={{ padding: "14px 18px 12px", borderBottom: `1px solid ${divColor}`, flexShrink: 0, display: "flex", alignItems: "center", gap: 7 }}>
+              <Heart size={10} style={{ color: "color-mix(in srgb, var(--foreground) 28%, transparent)" }} />
+              <span style={{ ...mono, fontSize: 9, color: "color-mix(in srgb, var(--foreground) 30%, transparent)", textTransform: "uppercase", letterSpacing: "0.12em" }}>
+                Hobbys
+              </span>
+            </div>
+            <div style={{ flex: 1, overflowY: "auto", scrollbarWidth: "none", paddingTop: 8 }}>
+              <PaginaHobbys />
+            </div>
+          </div>
         </div>
 
         {/* ── Todas las notas ── */}
