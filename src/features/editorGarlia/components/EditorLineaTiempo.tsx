@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { ChevronDown, ChevronUp, Loader2, Check, X, Clock } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase"; 
 import {
@@ -78,15 +79,51 @@ export function SelectorFechaMundo({
   const { cal, loading } = useCalendario();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const [pos, setPos] = useState<{ top: number; left: number; width: number } | null>(null);
 
-  // Cerrar al click fuera
+  // Cerrar al click fuera (incluye el dropdown en portal)
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      const target = e.target as Node;
+      if (ref.current?.contains(target)) return;
+      if (dropdownRef.current?.contains(target)) return;
+      setOpen(false);
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
+
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Calcular posición del dropdown al abrir y al hacer scroll/resize
+  useEffect(() => {
+    if (!open) return;
+    const update = () => {
+      const r = triggerRef.current?.getBoundingClientRect();
+      if (!r) return;
+      const dropdownWidth = Math.max(r.width, 260);
+      // Evitar que se salga por la derecha
+      let left = r.left;
+      if (left + dropdownWidth > window.innerWidth - 8) {
+        left = Math.max(8, window.innerWidth - dropdownWidth - 8);
+      }
+      // Si no hay espacio abajo, abrir hacia arriba
+      const spaceBelow = window.innerHeight - r.bottom;
+      const estimatedHeight = 420;
+      const top = spaceBelow < estimatedHeight && r.top > estimatedHeight
+        ? r.top - estimatedHeight - 4
+        : r.bottom + 4;
+      setPos({ top, left, width: dropdownWidth });
+    };
+    update();
+    window.addEventListener("scroll", update, true);
+    window.addEventListener("resize", update);
+    return () => {
+      window.removeEventListener("scroll", update, true);
+      window.removeEventListener("resize", update);
+    };
+  }, [open]);
 
   const fecha = cal && value != null ? diaAbsolutoAFecha(value, cal.estaciones, cal.config) : null;
   const era = fecha && cal ? eraEnAnio(fecha.anio, cal.eras) : null;
@@ -95,6 +132,7 @@ export function SelectorFechaMundo({
     <div ref={ref} className="relative">
       {/* Trigger */}
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => setOpen(v => !v)}
         className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg border text-left transition-all"
@@ -130,10 +168,15 @@ export function SelectorFechaMundo({
           style={{ transform: open ? "rotate(180deg)" : undefined }} />
       </button>
 
-      {/* Dropdown */}
-      {open && cal && (
-        <div className="absolute z-50 top-full left-0 right-0 mt-1 rounded-xl border shadow-lg overflow-hidden"
+      {/* Dropdown — renderizado en portal para no quedar cortado por contenedores con overflow */}
+      {open && cal && pos && typeof document !== "undefined" && createPortal(
+        <div ref={dropdownRef} className="fixed z-[1000] rounded-xl border shadow-lg overflow-hidden"
           style={{
+            top: pos.top,
+            left: pos.left,
+            width: pos.width,
+            maxHeight: "min(420px, calc(100vh - 16px))",
+            overflowY: "auto",
             background: "var(--bg-main)",
             borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
           }}>
@@ -145,7 +188,8 @@ export function SelectorFechaMundo({
             onChange={(dia) => { onChange(dia); setOpen(false); }}
             onClear={value != null ? () => { onChange(null); setOpen(false); } : undefined}
           />
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
