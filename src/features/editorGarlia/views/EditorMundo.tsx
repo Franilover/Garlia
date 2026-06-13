@@ -21,7 +21,7 @@ import { EditorCiudad, type Ciudad } from "./EditorCiudad";
 import { EditorHechizos } from "./EditorHechizos";
 import { type WikiEntity } from "@/components/forms/Markdown/MarkdownEditor";
 import { type TimelineEvent } from "../components/LoreTab";
-import { SelectorFechaMundo, FechaMundoBadge, useCalendario } from "../components/EditorLineaTiempo";
+import { SelectorFechaMundo, useCalendario } from "../components/EditorLineaTiempo";
 import { diaAbsolutoAFecha, eraEnAnio } from "@/lib/utils/calendario";
 import { useNotas } from "../components/useNotas";
 import { EditorNota, ListaNotas } from "./EditorNota";
@@ -502,6 +502,54 @@ function CancionMundoRow({
   );
 }
 
+// ── Tarjeta de evento de mundo/reino (tabla eventos_mundo, editable) ────────
+function EventoMundoRow({
+  evt,
+  onDiaChange,
+}: {
+  evt: MundoTimelineEvent;
+  onDiaChange?: (id: string, dia: number) => void;
+}) {
+  const [saving, setSaving] = useState(false);
+
+  const commitDia = async (dia: number | null) => {
+    if (dia == null) return;
+    setSaving(true);
+    await onDiaChange?.(evt.id, dia);
+    setSaving(false);
+  };
+
+  return (
+    <div className="group/card" style={{ width: 188 }}>
+      <div className="mx-1.5 rounded-xl p-2 flex flex-col gap-1.5"
+        style={{
+          border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+          background: "color-mix(in srgb, var(--primary) 2.5%, transparent)",
+        }}>
+        {/* Selector de fecha (editable) */}
+        <div className="relative">
+          {saving && <Loader2 size={8} className="animate-spin absolute right-2 top-2 z-10 text-primary/30" />}
+          <SelectorFechaMundo value={evt.dia_absoluto ?? null} onChange={commitDia} placeholder="Sin fecha…" />
+        </div>
+        <div className="px-1 text-[10px] font-bold truncate" style={{ color: "var(--primary)" }}>
+          {evt.title}
+        </div>
+        {evt.reinoNombre && (
+          <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest truncate self-start"
+            style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)", color: "color-mix(in srgb, var(--primary) 50%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)", maxWidth: "150px" }}>
+            <Crown size={6} /> {evt.reinoNombre}
+          </span>
+        )}
+        {evt.description && (
+          <p className="px-1 text-[8px] leading-snug line-clamp-3 opacity-70" style={{ color: "color-mix(in srgb, var(--primary) 60%, transparent)" }}>
+            {evt.description}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Tarjeta horizontal de evento (mundo O reino) — solo visualización ────────
 // ─── Tipo para capítulos con posición en línea de tiempo ─────────────────────
 type CapTimeline = {
@@ -845,6 +893,19 @@ function PanelHistoriaMundo({
   const handleDiaChange = (id: string, dia: number) => {
     setDiaOverrides(prev => ({ ...prev, [id]: dia }));
   };
+
+  const handleEventoMundoDiaChange = useCallback(async (id: string, dia: number) => {
+    setEventosMundo(prev => prev.map(e => e.id === id ? { ...e, dia_absoluto: dia } : e));
+    try {
+      await supabase.from("eventos_mundo").update({ dia_absoluto: dia } as any).eq("id", id);
+    } catch {}
+    try {
+      if (db && (db as any).eventos_mundo) {
+        const existing = await (db as any).eventos_mundo.get(id);
+        await (db as any).eventos_mundo.put({ ...(existing ?? { id }), dia_absoluto: dia });
+      }
+    } catch {}
+  }, []);
   const { onSnippetAction } = useWikilink();
   const debounceHistRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -1075,32 +1136,7 @@ function PanelHistoriaMundo({
                         }}
                       />
                     ) : isEventoMundo ? (
-                      <div className="group/card" style={{ width: 188 }}>
-                        <div className="mx-1.5 rounded-xl p-2 flex flex-col gap-1"
-                          style={{
-                            border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-                            background: "color-mix(in srgb, var(--primary) 2.5%, transparent)",
-                          }}>
-                          <div className="px-1 py-1 rounded-lg border text-center"
-                            style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)", background: "color-mix(in srgb, var(--primary) 6%, transparent)" }}>
-                            <FechaMundoBadge diaAbsoluto={evt.dia_absoluto!} />
-                          </div>
-                          <div className="px-1 text-[10px] font-bold truncate" style={{ color: "var(--primary)" }}>
-                            {evt.title}
-                          </div>
-                          {evt.reinoNombre && (
-                            <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest truncate self-start"
-                              style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)", color: "color-mix(in srgb, var(--primary) 50%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)", maxWidth: "150px" }}>
-                              <Crown size={6} /> {evt.reinoNombre}
-                            </span>
-                          )}
-                          {evt.description && (
-                            <p className="px-1 text-[8px] leading-snug line-clamp-3 opacity-70" style={{ color: "color-mix(in srgb, var(--primary) 60%, transparent)" }}>
-                              {evt.description}
-                            </p>
-                          )}
-                        </div>
-                      </div>
+                      <EventoMundoRow evt={evt} onDiaChange={handleEventoMundoDiaChange} />
                     ) : null}
                   </div>
                 );

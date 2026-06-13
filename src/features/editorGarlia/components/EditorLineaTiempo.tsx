@@ -9,25 +9,51 @@ import {
 } from "@/lib/utils/calendario";
 
 // ─── Hook: cargar calendario desde Supabase una sola vez ──────────────────────
-let _cache: { estaciones: Estacion[]; config: CalendarioConfig; eras: EraMundo[] } | null = null;
+type CalCache = { estaciones: Estacion[]; config: CalendarioConfig; eras: EraMundo[] };
+let _cache: CalCache | null = null;
+
+const LS_KEY = "garlia-calendario-cache-v1";
+
+function leerCacheLocal(): CalCache | null {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as CalCache;
+  } catch { return null; }
+}
+
+function guardarCacheLocal(data: CalCache) {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(data)); } catch {}
+}
 
 export function useCalendario() {
-  const [data, setData] = useState<typeof _cache>(null);
-  const [loading, setLoading] = useState(!_cache);
+  const [data, setData] = useState<CalCache | null>(_cache ?? leerCacheLocal());
+  const [loading, setLoading] = useState(!_cache && !data);
 
   useEffect(() => {
-    if (_cache) { setData(_cache); return; }
+    // Si ya tenemos algo (memoria o localStorage), no bloqueamos la UI —
+    // refrescamos en background de todas formas.
+    if (_cache) { setData(_cache); setLoading(false); }
+    else if (data) { setLoading(false); }
+
+    if (!navigator.onLine) { setLoading(false); return; }
+
     Promise.all([
       supabase.from("calendario_estaciones").select("*").order("orden"),
       supabase.from("calendario_config").select("*").single(),
       (supabase as any).from("eras_mundo").select("*").order("anio_inicio"),
     ]).then(([{ data: est }, { data: cfg }, { data: eras }]) => {
-      _cache = {
+      const fresh: CalCache = {
         estaciones: (est ?? []) as Estacion[],
         config: (cfg ?? { dias_por_semana: 5, horas_por_dia: 25, anio_inicio: 0 }) as CalendarioConfig,
         eras: (eras ?? []) as EraMundo[],
       };
-      setData(_cache);
+      _cache = fresh;
+      guardarCacheLocal(fresh);
+      setData(fresh);
+      setLoading(false);
+    }).catch(() => {
+      // Sin red o error: si ya teníamos datos locales, seguimos con esos.
       setLoading(false);
     });
   }, []);
