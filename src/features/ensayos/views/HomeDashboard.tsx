@@ -297,11 +297,11 @@ export function HomeDashboard({
         ══════════════════════════════════════════ */}
         <div className="hd-main-grid" style={{
           display: "grid",
-          gridTemplateColumns: "1.7fr 0.52fr 1fr 0.85fr",
+          gridTemplateColumns: "0.52fr 1.7fr 1fr 0.85fr",
           gridTemplateRows: "1fr 1fr",
           gridTemplateAreas: `
-            "mes personal favoritos tags"
-            "mes personal favoritos tags"
+            "personal mes favoritos tags"
+            "personal mes favoritos tags"
           `,
           gap: gap,
           background: divColor,
