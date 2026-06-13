@@ -533,7 +533,7 @@ function EventoMundoRow({
   };
 
   return (
-    <div className="group/card" style={{ width: 188 }}>
+    <div className="group/card" style={{ width: 240 }}>
       <div className="mx-1.5 rounded-xl p-2 flex flex-col gap-1.5"
         style={{
           border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
@@ -565,9 +565,9 @@ function EventoMundoRow({
           onChange={e => { setDescripcion(e.target.value); scheduleSave("descripcion", e.target.value); }}
           onBlur={e => onFieldChange?.(evt.id, "descripcion", e.target.value)}
           placeholder="Descripción…"
-          rows={3}
-          className="px-1 text-[8px] leading-snug bg-transparent outline-none w-full rounded resize-none"
-          style={{ color: "color-mix(in srgb, var(--primary) 60%, transparent)" }}
+          rows={6}
+          className="px-1 text-[11px] leading-relaxed bg-transparent outline-none w-full rounded resize-y"
+          style={{ color: "color-mix(in srgb, var(--primary) 70%, transparent)", minHeight: "90px" }}
         />
       </div>
     </div>
