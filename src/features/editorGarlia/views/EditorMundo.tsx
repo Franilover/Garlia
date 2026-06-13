@@ -622,7 +622,7 @@ type CapTimeline = {
   id: string;
   libro_id: string;
   titulo_capitulo: string;
-  orden_linea_tiempo: number;  // legacy — se mantiene por compatibilidad
+  orden_linea_tiempo?: number;  // legacy — opcional, se mantiene por compatibilidad
   dia_absoluto?: number;        // nuevo campo del calendario
   libroTitulo?: string;
   reinos_ids?: string[];
@@ -743,9 +743,8 @@ function PanelHistoriaMundo({
       try {
         if (db && (db as any).canciones) {
           const local: any[] = await (db as any).canciones.toArray();
-          const conOrden = local.filter(c => c.orden_linea_tiempo != null && !c.deleted);
-          if (conOrden.length && !cancelled) {
-            // Resolver reinoNombre desde Dexie
+          const conDia = local.filter(c => c.dia_absoluto != null && !c.deleted);
+          if (conDia.length && !cancelled) {
             let reinoMap: Record<string, string> = {};
             try {
               if (db && (db as any).reinos) {
@@ -753,11 +752,11 @@ function PanelHistoriaMundo({
                 rs.forEach((r: any) => { reinoMap[r.id] = r.nombre; });
               }
             } catch {}
-            setCancionesTimeline(conOrden.map(c => ({
+            setCancionesTimeline(conDia.map(c => ({
               id: c.id, titulo: c.titulo ?? "Sin título",
               cantante: c.cantante ?? null,
               reinoNombre: c.reino_id ? (reinoMap[c.reino_id] ?? null) : null,
-              orden_linea_tiempo: c.orden_linea_tiempo,
+              dia_absoluto: c.dia_absoluto,
             })));
           }
         }
@@ -804,13 +803,13 @@ function PanelHistoriaMundo({
           const libroMapLocal: Record<string, string> = {};
           localLibros.forEach((l: any) => { libroMapLocal[l.id] = l.titulo ?? ""; });
 
-          const conOrden = localCaps.filter((c: any) => c.orden_linea_tiempo != null);
-          if (conOrden.length && !cancelled) {
-            setCapsTimeline(conOrden.map((c: any) => ({
+          const conDia = localCaps.filter((c: any) => c.dia_absoluto != null);
+          if (conDia.length && !cancelled) {
+            setCapsTimeline(conDia.map((c: any) => ({
               id: c.id,
               libro_id: c.libro_id,
               titulo_capitulo: c.titulo_capitulo,
-              orden_linea_tiempo: c.orden_linea_tiempo,
+              dia_absoluto: c.dia_absoluto,
               libroTitulo: libroMapLocal[c.libro_id] ?? "",
               reinos_ids: c.reinos_ids ?? [],
             })));

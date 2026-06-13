@@ -297,7 +297,7 @@ async function refreshCapitulos(libroId: string, onUpdate?: (caps: any[]) => voi
   try {
     const { data } = await supabase
       .from("capitulos")
-      .select("id, titulo_capitulo, orden, fecha_publicacion, libro_id, narrador_id, personajes_ids, reinos_ids, ciudades_ids, visibilidad, orden_linea_tiempo")
+      .select("id, titulo_capitulo, orden, fecha_publicacion, libro_id, narrador_id, personajes_ids, reinos_ids, ciudades_ids, visibilidad, orden_linea_tiempo, dia_absoluto")
       .eq("libro_id", libroId)
       .eq("visibilidad", "publico")
       .not("titulo_capitulo", "like", "[Ruta]%")

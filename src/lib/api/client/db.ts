@@ -921,7 +921,56 @@ class AgendaFraniDB extends Dexie {
       galeria:              "++id, orden, creado_en",
       runas:                "id, nombre",
       ciudades:              "id, nombre, tipo, reino_id",
-      perfiles:             "id",                            
+      perfiles:             "id",
+    });
+
+    // ─── v17: calendario del mundo + dia_absoluto en caps y canciones ─────────
+    // - capitulos: añade dia_absoluto como campo indexado (reemplaza orden_linea_tiempo para la línea de tiempo)
+    // - canciones: añade dia_absoluto como campo indexado
+    // - calendario_estaciones, calendario_config, eras_mundo: nuevas tablas del mundo
+    this.version(17).stores({
+      personajes:              "id, nombre, visible",
+      criaturas:               "id, nombre, habitat, alma, pensamiento",
+      criatura_variantes:      "id, criatura_id, tipo",
+      items:                   "id, nombre, categoria",
+      libros:                  "id, created_at",
+      capitulos:               "id, libro_id, orden, fecha_publicacion, orden_linea_tiempo, dia_absoluto", // ← dia_absoluto indexado
+      canciones:               "id, titulo, personaje, visible, created_at, dia_absoluto",                // ← dia_absoluto indexado
+      secciones_cancion:       "id, cancion_id, orden",
+      reinos:                  "id, nombre, orden",
+      relaciones:              "id, personaje_id, personaje_rel_id, tipo",
+      tareas:                  "id, username, completada, created_at, status",
+      eventos:                 "id, username, fecha, tipo, status",
+      recetas:                 "id, autor_id, categoria, created_at",
+      ingredientes:            "id, user_id",
+      ropa:                    "id, user_id, created_at",
+      ropa_outfits:            "id, user_id, created_at",
+      diario_fotos:            "++id, categoria, created_at",
+      dibujos:                 "++id, categoria",
+      notas:                   "id, status, updated_at",
+      ensayos:                 "id, status, updated_at",
+      rutinas:                 "id, status",
+      ejercicios_rutina:       "id, rutina_id, status",
+      offline_queue:           "++id, table, operation, recordId, timestamp",
+      compras:                 "id",
+      reproductor_handles:     "key",
+      session_cache:           "key, updated_at",
+      reino_detalles:          "id, reino_id",
+      hechizos:                "id, nombre",
+      dones:                   "id, nombre",
+      notas_lore:              "id, updated_at",
+      grupos_mundo:            "id, tipo, created_at",
+      personaje_hechizos:      "id, personaje_id, hechizo_id",
+      personaje_dones:         "id, personaje_id, don_id",
+      criatura_drops:          "id, criatura_id, variante_id",
+      item_crafteres:          "id, criatura_id",
+      galeria:                 "++id, orden, creado_en",
+      runas:                   "id, nombre",
+      ciudades:                "id, nombre, tipo, reino_id",
+      perfiles:                "id",
+      calendario_estaciones:   "id, orden",               // ← nueva
+      calendario_config:       "id",                      // ← nueva (singleton)
+      eras_mundo:              "id, anio_inicio",         // ← nueva
     });
   }
 }
