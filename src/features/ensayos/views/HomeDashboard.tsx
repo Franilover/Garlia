@@ -297,7 +297,7 @@ export function HomeDashboard({
         ══════════════════════════════════════════ */}
         <div className="hd-main-grid" style={{
           display: "grid",
-          gridTemplateColumns: "2.2fr 0.52fr 1fr 0.85fr",
+          gridTemplateColumns: "1.7fr 0.52fr 1fr 0.85fr",
           gridTemplateRows: "1fr 1fr",
           gridTemplateAreas: `
             "mes personal favoritos tags"
@@ -313,60 +313,13 @@ export function HomeDashboard({
         }}>
 
           {/* ── Calendario — span 2 rows (expanded) ── */}
-          <div className="hd-mes" style={{ gridArea: "mes", background: "var(--bg-main)", overflow: "hidden", display: "flex", flexDirection: "column", position: "relative" }}>
+          <div className="hd-mes" style={{ gridArea: "mes", background: "var(--bg-main)", overflow: "hidden", display: "flex", flexDirection: "row", position: "relative" }}>
 
-            {/* Barra superior: botones icono izquierda + toggle mes/semana derecha */}
-            <div style={{
-              display: "flex", alignItems: "center", justifyContent: "space-between",
-              padding: "8px 12px 0",
-              flexShrink: 0,
-            }}>
-              {/* Botones de icono — Reloj y Tareas */}
-              <div className="hd-side-panel" style={{ display: "flex", gap: 3 }}>
-                {/* Botón Reloj */}
-                <button
-                  onClick={() => setPanelAbierto(p => p === "reloj" ? null : "reloj")}
-                  title="Reloj"
-                  style={{
-                    width: 24, height: 24, borderRadius: 6, border: "none", cursor: "pointer",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    transition: "all 0.12s",
-                    background: panelAbierto === "reloj"
-                      ? "color-mix(in srgb, var(--foreground) 12%, transparent)"
-                      : "color-mix(in srgb, var(--foreground) 4%, transparent)",
-                    color: panelAbierto === "reloj"
-                      ? "color-mix(in srgb, var(--foreground) 80%, transparent)"
-                      : "color-mix(in srgb, var(--foreground) 30%, transparent)",
-                  }}
-                  onMouseEnter={e => { if (panelAbierto !== "reloj") { (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--foreground) 8%, transparent)"; (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--foreground) 60%, transparent)"; } }}
-                  onMouseLeave={e => { if (panelAbierto !== "reloj") { (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--foreground) 4%, transparent)"; (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--foreground) 30%, transparent)"; } }}
-                >
-                  <Clock size={11} />
-                </button>
-                {/* Botón Tareas */}
-                <button
-                  onClick={() => setPanelAbierto(p => p === "tareas" ? null : "tareas")}
-                  title="Tareas"
-                  style={{
-                    width: 24, height: 24, borderRadius: 6, border: "none", cursor: "pointer",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    transition: "all 0.12s",
-                    background: panelAbierto === "tareas"
-                      ? "color-mix(in srgb, var(--foreground) 12%, transparent)"
-                      : "color-mix(in srgb, var(--foreground) 4%, transparent)",
-                    color: panelAbierto === "tareas"
-                      ? "color-mix(in srgb, var(--foreground) 80%, transparent)"
-                      : "color-mix(in srgb, var(--foreground) 30%, transparent)",
-                  }}
-                  onMouseEnter={e => { if (panelAbierto !== "tareas") { (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--foreground) 8%, transparent)"; (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--foreground) 60%, transparent)"; } }}
-                  onMouseLeave={e => { if (panelAbierto !== "tareas") { (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--foreground) 4%, transparent)"; (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--foreground) 30%, transparent)"; } }}
-                >
-                  <CheckSquare size={11} />
-                </button>
-              </div>
+            {/* Área principal del calendario */}
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, overflow: "hidden" }}>
 
               {/* Toggle Mes / Semana */}
-              <div style={{ display: "flex", gap: 2 }}>
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: 2, padding: "8px 10px 0", flexShrink: 0 }}>
                 {(["mes", "semana"] as ModoCalendario[]).map(modo => (
                   <button
                     key={modo}
@@ -393,7 +346,6 @@ export function HomeDashboard({
                   </button>
                 ))}
               </div>
-            </div>
 
             {/* Vista activa */}
             <div style={{ flex: 1, minHeight: 0, overflow: "hidden", position: "relative" }}>
@@ -592,6 +544,61 @@ export function HomeDashboard({
               </AnimatePresence>
 
             </div>
+            </div>{/* end left calendar column */}
+
+            {/* Tira vertical derecha: Reloj + Tareas */}
+            <div style={{
+              width: 34,
+              flexShrink: 0,
+              borderLeft: `1px solid ${divColor}`,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              paddingTop: 10,
+              gap: 6,
+            }}>
+              {/* Botón Reloj */}
+              <button
+                onClick={() => setPanelAbierto(p => p === "reloj" ? null : "reloj")}
+                title="Reloj"
+                style={{
+                  width: 24, height: 24, borderRadius: 6, border: "none", cursor: "pointer",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  transition: "all 0.12s",
+                  background: panelAbierto === "reloj"
+                    ? "color-mix(in srgb, var(--foreground) 12%, transparent)"
+                    : "color-mix(in srgb, var(--foreground) 4%, transparent)",
+                  color: panelAbierto === "reloj"
+                    ? "color-mix(in srgb, var(--foreground) 80%, transparent)"
+                    : "color-mix(in srgb, var(--foreground) 30%, transparent)",
+                }}
+                onMouseEnter={e => { if (panelAbierto !== "reloj") { (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--foreground) 8%, transparent)"; (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--foreground) 60%, transparent)"; } }}
+                onMouseLeave={e => { if (panelAbierto !== "reloj") { (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--foreground) 4%, transparent)"; (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--foreground) 30%, transparent)"; } }}
+              >
+                <Clock size={11} />
+              </button>
+              {/* Botón Tareas */}
+              <button
+                onClick={() => setPanelAbierto(p => p === "tareas" ? null : "tareas")}
+                title="Tareas"
+                style={{
+                  width: 24, height: 24, borderRadius: 6, border: "none", cursor: "pointer",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  transition: "all 0.12s",
+                  background: panelAbierto === "tareas"
+                    ? "color-mix(in srgb, var(--foreground) 12%, transparent)"
+                    : "color-mix(in srgb, var(--foreground) 4%, transparent)",
+                  color: panelAbierto === "tareas"
+                    ? "color-mix(in srgb, var(--foreground) 80%, transparent)"
+                    : "color-mix(in srgb, var(--foreground) 30%, transparent)",
+                }}
+                onMouseEnter={e => { if (panelAbierto !== "tareas") { (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--foreground) 8%, transparent)"; (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--foreground) 60%, transparent)"; } }}
+                onMouseLeave={e => { if (panelAbierto !== "tareas") { (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--foreground) 4%, transparent)"; (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--foreground) 30%, transparent)"; } }}
+              >
+                <CheckSquare size={11} />
+              </button>
+            </div>
+
           </div>
 
           {/* ── Favoritos ── */}
