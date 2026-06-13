@@ -533,7 +533,7 @@ function EventoMundoRow({
   };
 
   return (
-    <div className="group/card" style={{ width: 240 }}>
+    <div className="group/card" style={{ width: 220 }}>
       <div className="mx-1.5 rounded-xl p-2 flex flex-col gap-1.5"
         style={{
           border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
@@ -1109,7 +1109,7 @@ function PanelHistoriaMundo({
 
               {/* ── Franjas de eras del mundo ─────────────────────────── */}
               {cal && cal.eras.length > 0 && allEvents.length > 0 && (() => {
-                const CARD_W = 222;
+                const CARD_W = 232;
                 const minDia = allEvents[0]?.yearNum ?? 0;
                 const maxDia = allEvents[allEvents.length - 1]?.yearNum ?? 0;
                 const totalDias = maxDia - minDia || 1;
@@ -1139,7 +1139,7 @@ function PanelHistoriaMundo({
                 const totalLen = allEvents.length;
                 const key = evt.id;
                 return (
-                  <div key={key} className="flex flex-col shrink-0" style={{ width: 190 }}>
+                  <div key={key} className="flex flex-col shrink-0" style={{ width: 232 }}>
                     {/* Nodo en la línea */}
                     <div className="flex items-center" style={{ height: 26 }}>
                       <div className="flex-1 h-px" style={{ background: idx === 0 ? "transparent" : "color-mix(in srgb, var(--primary) 10%, transparent)" }} />

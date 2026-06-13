@@ -212,15 +212,19 @@ function FechaMundoEditor({
 
   // ─── Agrupar estaciones por nombre base ──────────────────────────────────
   // "Florial1" / "Florial2" → grupo "Florial" con 2 partes (mostradas como
-  // dos calendarios lado a lado). "Sivial" (sin sufijo numérico) queda en su
-  // propio grupo; si hay dos estaciones llamadas igual sin sufijo, también
-  // se agrupan como 2 partes.
+  // dos calendarios lado a lado). Los nombres SIN sufijo numérico (ej.
+  // "Sivial") quedan cada uno en su propio grupo, aunque se repitan —
+  // representan estaciones distintas del calendario (una a mitad de año,
+  // otra al final), no dos mitades de la misma.
   type GrupoEstacion = { nombre: string; partes: Estacion[] };
   const gruposEstacion: GrupoEstacion[] = [];
   {
     const porNombreBase = new Map<string, Estacion[]>();
     for (const est of estOrdenadas) {
-      const base = est.nombre.replace(/\s*\d+$/, "");
+      const tieneSufijo = /\d+$/.test(est.nombre);
+      // Clave única: si no tiene sufijo numérico, cada estación es su propio
+      // grupo (usamos su id para no fusionar duplicados de nombre).
+      const base = tieneSufijo ? est.nombre.replace(/\s*\d+$/, "") : `${est.nombre}__${est.id}`;
       const arr = porNombreBase.get(base) ?? [];
       arr.push(est);
       porNombreBase.set(base, arr);
@@ -228,10 +232,12 @@ function FechaMundoEditor({
     // Mantener el orden de aparición original
     const vistos = new Set<string>();
     for (const est of estOrdenadas) {
-      const base = est.nombre.replace(/\s*\d+$/, "");
+      const tieneSufijo = /\d+$/.test(est.nombre);
+      const base = tieneSufijo ? est.nombre.replace(/\s*\d+$/, "") : `${est.nombre}__${est.id}`;
       if (vistos.has(base)) continue;
       vistos.add(base);
-      gruposEstacion.push({ nombre: base, partes: porNombreBase.get(base)! });
+      const partes = porNombreBase.get(base)!;
+      gruposEstacion.push({ nombre: tieneSufijo ? base : est.nombre, partes });
     }
   }
 
