@@ -125,7 +125,12 @@ export function SelectorFechaMundo({
     };
   }, [open]);
 
-  const fecha = cal && value != null ? diaAbsolutoAFecha(value, cal.estaciones, cal.config) : null;
+  const fechaRaw = cal && value != null ? diaAbsolutoAFecha(value, cal.estaciones, cal.config) : null;
+  // Si el día absoluto cae fuera de cualquier estación definida (datos viejos
+  // o calendario incompleto), diaAbsolutoAFecha puede devolver `estacion`
+  // como undefined. En ese caso tratamos la fecha como inválida para no
+  // romper formatFechaCorta / formatFechaMundo.
+  const fecha = fechaRaw && fechaRaw.estacion ? fechaRaw : null;
   const era = fecha && cal ? eraEnAnio(fecha.anio, cal.eras) : null;
 
   return (
@@ -250,7 +255,7 @@ function FechaMundoEditor({
 
   const [anio,          setAnio]         = useState(inicial?.anio ?? config.anio_inicio);
   const [anioStr,       setAnioStr]      = useState(String(inicial?.anio ?? config.anio_inicio));
-  const [estOrden,      setEstOrden]     = useState(inicial?.estacion.orden ?? 1);
+  const [estOrden,      setEstOrden]     = useState(inicial?.estacion?.orden ?? estOrdenadas[0]?.orden ?? 1);
   const [diaEnEst,      setDiaEnEst]     = useState(inicial?.dia_en_estacion ?? 1);
   const [diaEnEstStr,   setDiaEnEstStr]  = useState(String(inicial?.dia_en_estacion ?? 1));
 
@@ -488,6 +493,11 @@ export function FechaMundoBadge({ diaAbsoluto }: { diaAbsoluto: number }) {
   const { cal, loading } = useCalendario();
   if (loading || !cal) return <Loader2 size={8} className="animate-spin text-primary/20" />;
   const fecha = diaAbsolutoAFecha(diaAbsoluto, cal.estaciones, cal.config);
+  // Si el día absoluto no cae dentro de ninguna estación definida, evitamos
+  // crashear formatFechaCorta y mostramos un placeholder en su lugar.
+  if (!fecha.estacion) {
+    return <span className="text-[9px] text-primary/30 italic">Fecha inválida</span>;
+  }
   const era = eraEnAnio(fecha.anio, cal.eras);
   return (
     <span className="inline-flex items-center gap-1.5">
