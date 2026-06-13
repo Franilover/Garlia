@@ -553,7 +553,7 @@ export const PaginaHobbys = () => {
           <p className="text-[11px] text-primary/25 font-bold mt-1">Añade uno para empezar a trackear</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
           <AnimatePresence mode="popLayout">
             {hobbys.map(h => (
               <motion.div
