@@ -721,7 +721,7 @@ export function HomeDashboard({
         {/* ── Pendientes + Hobbys ── */}
         <div style={{
           display: "grid",
-          gridTemplateColumns: "1fr 1fr",
+          gridTemplateColumns: "1.7fr 1fr",
           gap: gap,
           background: divColor,
           borderRadius: 12,
