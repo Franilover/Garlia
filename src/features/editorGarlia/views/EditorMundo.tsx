@@ -21,6 +21,8 @@ import { EditorCiudad, type Ciudad } from "./EditorCiudad";
 import { EditorHechizos } from "./EditorHechizos";
 import { type WikiEntity } from "@/components/forms/Markdown/MarkdownEditor";
 import { type TimelineEvent } from "../components/LoreTab";
+import { SelectorFechaMundo, FechaMundoBadge, useCalendario } from "../components/EditorLineaTiempo";
+import { diaAbsolutoAFecha, eraEnAnio } from "@/lib/utils/calendario";
 import { useNotas } from "../components/useNotas";
 import { EditorNota, ListaNotas } from "./EditorNota";
 import { EditorGrupo, useGrupos, type Grupo, GRUPO_TIPO_CONFIG } from "./EditorGrupo";
@@ -353,9 +355,10 @@ type MundoTimelineEvent = TimelineEvent & {
   source: "mundo" | "reino" | "capitulo" | "cancion";
   reinoNombre?: string;
   reinoId?: string;
-  yearNum: number; // para ordenar (valor numérico)
-  capData?: CapTimeline; // solo para source === "capitulo"
-  cancionData?: { id: string; titulo: string; cantante?: string | null; reinoNombre?: string | null; orden_linea_tiempo?: number }; // source === "cancion"
+  yearNum: number;        // dia_absoluto — para ordenar
+  dia_absoluto?: number;  // el valor real del calendario
+  capData?: CapTimeline;
+  cancionData?: { id: string; titulo: string; cantante?: string | null; reinoNombre?: string | null; dia_absoluto?: number };
 };
 
 /** Extrae el valor numérico de un año para ordenamiento.
@@ -384,32 +387,28 @@ function encodeTimeline(events: TimelineEvent[]): string {
 }
 
 function newEvent(): TimelineEvent {
-  return { id: crypto.randomUUID(), year: "", title: "", description: "" };
+  return { id: crypto.randomUUID(), year: "", title: "", description: "", dia_absoluto: undefined } as any;
 }
 
-// ── Tarjeta de capítulo en la línea de tiempo (solo lectura, con link) ─────────
+// ── Tarjeta de capítulo en la línea de tiempo ────────────────────────────────
 function CapituloEventoRow({
   cap,
   reinos = [],
   onNavigate,
-  onOrdenChange,
+  onDiaChange,
 }: {
   cap: CapTimeline;
   reinos?: { id: string; nombre: string }[];
   onNavigate: () => void;
-  onOrdenChange?: (id: string, orden: number) => void;
+  onDiaChange?: (id: string, dia: number) => void;
 }) {
-  const [editing, setEditing] = useState(false);
-  const [val, setVal]         = useState(String(cap.orden_linea_tiempo));
-  const [saving, setSaving]   = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  const commitOrden = async () => {
-    setEditing(false);
-    const num = parseInt(val, 10);
-    if (isNaN(num) || num === cap.orden_linea_tiempo) { setVal(String(cap.orden_linea_tiempo)); return; }
+  const commitDia = async (dia: number | null) => {
+    if (dia == null) return;
     setSaving(true);
-    await supabase.from("capitulos").update({ orden_linea_tiempo: num }).eq("id", cap.id);
-    onOrdenChange?.(cap.id, num);
+    await supabase.from("capitulos").update({ dia_absoluto: dia } as any).eq("id", cap.id);
+    onDiaChange?.(cap.id, dia);
     setSaving(false);
   };
 
@@ -417,95 +416,46 @@ function CapituloEventoRow({
     .map(id => reinos.find(r => r.id === id)?.nombre)
     .filter(Boolean) as string[];
 
+  const diaActual = cap.dia_absoluto ?? null;
+
   return (
-    <div className="group/card" style={{ width: 188 }}>
-      <div
-        className="mx-1.5 rounded-xl transition-all"
-        style={{
-          border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-          background: "color-mix(in srgb, var(--primary) 2%, transparent)",
-        }}
-      >
-        <div className="flex flex-col gap-1 p-2">
-          {/* Número editable + libro */}
-          <div className="flex items-center gap-1">
-            {editing ? (
-              <input
-                autoFocus
-                type="number"
-                value={val}
-                onChange={e => setVal(e.target.value)}
-                onBlur={commitOrden}
-                onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); if (e.key === "Escape") { setVal(String(cap.orden_linea_tiempo)); setEditing(false); } }}
-                className="w-12 text-[9px] font-black tracking-widest px-1.5 py-0.5 rounded-md outline-none tabular-nums text-center"
-                style={{ background: "color-mix(in srgb, var(--primary) 12%, transparent)", color: "var(--primary)", border: "1px solid color-mix(in srgb, var(--primary) 30%, transparent)" }}
-              />
-            ) : (
-              <button
-                type="button"
-                title="Editar posición"
-                onClick={() => setEditing(true)}
-                className="text-[9px] font-black tracking-widest px-1.5 py-0.5 rounded-md shrink-0 transition-all"
-                style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)", color: "var(--primary)" }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 16%, transparent)"; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 8%, transparent)"; }}
-              >
-                {saving ? "…" : cap.orden_linea_tiempo}
-              </button>
-            )}
-            {cap.libroTitulo && (
-              <span
-                className="text-[7px] font-black uppercase tracking-widest truncate"
-                style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
-              >
-                {cap.libroTitulo}
-              </span>
-            )}
+    <div className="group/card" style={{ width: 220 }}>
+      <div className="mx-1.5 rounded-xl transition-all"
+        style={{ border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, transparent)" }}>
+        <div className="flex flex-col gap-1.5 p-2">
+          {/* Libro */}
+          {cap.libroTitulo && (
+            <span className="text-[7px] font-black uppercase tracking-widest truncate"
+              style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
+              {cap.libroTitulo}
+            </span>
+          )}
+
+          {/* Selector de fecha */}
+          <div className="relative">
+            {saving && <Loader2 size={8} className="animate-spin absolute right-2 top-2 z-10 text-primary/30" />}
+            <SelectorFechaMundo value={diaActual} onChange={commitDia} placeholder="Sin fecha…" />
           </div>
 
-          {/* Título del capítulo como botón navegable */}
-          <button
-            type="button"
-            onClick={onNavigate}
+          {/* Título navegable */}
+          <button type="button" onClick={onNavigate}
             className="flex items-center gap-1 px-1.5 py-1 rounded-lg border w-full text-left transition-all"
-            style={{
-              background: "color-mix(in srgb, var(--primary) 4%, transparent)",
-              borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
-            }}
-            onMouseEnter={e => {
-              const el = e.currentTarget as HTMLElement;
-              el.style.background = "color-mix(in srgb, var(--primary) 9%, transparent)";
-              el.style.borderColor = "color-mix(in srgb, var(--primary) 22%, transparent)";
-            }}
-            onMouseLeave={e => {
-              const el = e.currentTarget as HTMLElement;
-              el.style.background = "color-mix(in srgb, var(--primary) 4%, transparent)";
-              el.style.borderColor = "color-mix(in srgb, var(--primary) 10%, transparent)";
-            }}
-            title={`Abrir: ${cap.titulo_capitulo}`}
-          >
+            style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
+            onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.background = "color-mix(in srgb, var(--primary) 9%, transparent)"; el.style.borderColor = "color-mix(in srgb, var(--primary) 22%, transparent)"; }}
+            onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.background = "color-mix(in srgb, var(--primary) 4%, transparent)"; el.style.borderColor = "color-mix(in srgb, var(--primary) 10%, transparent)"; }}
+            title={`Abrir: ${cap.titulo_capitulo}`}>
             <BookOpen size={8} style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)", flexShrink: 0 }} />
-            <span
-              className="text-[8px] font-bold truncate"
-              style={{ color: "color-mix(in srgb, var(--primary) 65%, transparent)" }}
-            >
+            <span className="text-[8px] font-bold truncate" style={{ color: "color-mix(in srgb, var(--primary) 65%, transparent)" }}>
               {cap.titulo_capitulo}
             </span>
           </button>
 
-          {/* Reinos del capítulo */}
+          {/* Reinos */}
           {reinosDelCap.length > 0 && (
-            <div className="flex flex-wrap gap-1 pt-0.5">
+            <div className="flex flex-wrap gap-1">
               {reinosDelCap.map(nombre => (
-                <span
-                  key={nombre}
-                  className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest"
-                  style={{
-                    background: "color-mix(in srgb, var(--primary) 8%, transparent)",
-                    color: "color-mix(in srgb, var(--primary) 50%, transparent)",
-                    border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-                  }}
-                >
+                <span key={nombre} className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest"
+                  style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)", color: "color-mix(in srgb, var(--primary) 50%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)" }}>
                   <Crown size={6} /> {nombre}
                 </span>
               ))}
@@ -517,25 +467,21 @@ function CapituloEventoRow({
   );
 }
 
-// ── Tarjeta horizontal de canción en la línea de tiempo — solo lectura ───────
+// ── Tarjeta horizontal de canción en la línea de tiempo ─────────────────────
 function CancionMundoRow({
   cancion,
-  onOrdenChange,
+  onDiaChange,
 }: {
-  cancion: { id: string; titulo: string; cantante?: string | null; reinoNombre?: string | null; orden_linea_tiempo?: number };
-  onOrdenChange?: (id: string, orden: number) => void;
+  cancion: { id: string; titulo: string; cantante?: string | null; reinoNombre?: string | null; dia_absoluto?: number };
+  onDiaChange?: (id: string, dia: number) => void;
 }) {
-  const [editing, setEditing] = useState(false);
-  const [val, setVal]         = useState(String(cancion.orden_linea_tiempo ?? ""));
-  const [saving, setSaving]   = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  const commitOrden = async () => {
-    setEditing(false);
-    const num = parseInt(val, 10);
-    if (isNaN(num) || num === cancion.orden_linea_tiempo) { setVal(String(cancion.orden_linea_tiempo ?? "")); return; }
+  const commitDia = async (dia: number | null) => {
+    if (dia == null) return;
     setSaving(true);
-    await supabase.from("canciones").update({ orden_linea_tiempo: num } as any).eq("id", cancion.id);
-    onOrdenChange?.(cancion.id, num);
+    await supabase.from("canciones").update({ dia_absoluto: dia } as any).eq("id", cancion.id);
+    onDiaChange?.(cancion.id, dia);
     setSaving(false);
   };
 
@@ -543,90 +489,37 @@ function CancionMundoRow({
     window.dispatchEvent(new CustomEvent("garlia-open-entity", { detail: { tabla: "canciones", id: cancion.id } }));
   };
   return (
-    <div className="group/card" style={{ width: 188 }}>
-      <div
-        className="mx-1.5 rounded-xl transition-all"
-        style={{
-          border: "1px solid color-mix(in srgb, var(--accent) 14%, transparent)",
-          background: "color-mix(in srgb, var(--accent) 2%, transparent)",
-        }}
-      >
-        <div className="flex flex-col gap-1 p-2">
-          {/* Número editable + reino */}
-          <div className="flex items-center gap-1">
-            {editing ? (
-              <input
-                autoFocus
-                type="number"
-                value={val}
-                onChange={e => setVal(e.target.value)}
-                onBlur={commitOrden}
-                onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); if (e.key === "Escape") { setVal(String(cancion.orden_linea_tiempo ?? "")); setEditing(false); } }}
-                className="w-12 text-[9px] font-black tracking-widest px-1.5 py-0.5 rounded-md outline-none tabular-nums text-center"
-                style={{ background: "color-mix(in srgb, var(--accent) 12%, transparent)", color: "var(--accent)", border: "1px solid color-mix(in srgb, var(--accent) 30%, transparent)" }}
-              />
-            ) : (
-              <button
-                type="button"
-                title="Editar posición"
-                onClick={() => setEditing(true)}
-                className="text-[9px] font-black tracking-widest px-1.5 py-0.5 rounded-md shrink-0 transition-all"
-                style={{ background: "color-mix(in srgb, var(--accent) 10%, transparent)", color: "var(--accent)" }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--accent) 18%, transparent)"; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--accent) 10%, transparent)"; }}
-              >
-                {saving ? "…" : cancion.orden_linea_tiempo}
-              </button>
-            )}
-            {cancion.reinoNombre && (
-              <span
-                className="text-[7px] font-black uppercase tracking-widest truncate"
-                style={{ color: "color-mix(in srgb, var(--accent) 35%, transparent)" }}
-              >
-                {cancion.reinoNombre}
-              </span>
-            )}
+    <div className="group/card" style={{ width: 220 }}>
+      <div className="mx-1.5 rounded-xl transition-all"
+        style={{ border: "1px solid color-mix(in srgb, var(--accent) 14%, transparent)", background: "color-mix(in srgb, var(--accent) 2%, transparent)" }}>
+        <div className="flex flex-col gap-1.5 p-2">
+          {/* Reino */}
+          {cancion.reinoNombre && (
+            <span className="text-[7px] font-black uppercase tracking-widest truncate"
+              style={{ color: "color-mix(in srgb, var(--accent) 35%, transparent)" }}>
+              {cancion.reinoNombre}
+            </span>
+          )}
+          {/* Selector de fecha */}
+          <div className="relative">
+            {saving && <Loader2 size={8} className="animate-spin absolute right-2 top-2 z-10 text-accent/40" />}
+            <SelectorFechaMundo value={cancion.dia_absoluto ?? null} onChange={commitDia} placeholder="Sin fecha…" />
           </div>
-          {/* Título navegable */}
-          <button
-            type="button"
-            onClick={navigate}
+          {/* Título */}
+          <button type="button" onClick={navigate}
             className="flex items-center gap-1 px-1.5 py-1 rounded-lg border w-full text-left transition-all"
-            style={{
-              background: "color-mix(in srgb, var(--accent) 4%, transparent)",
-              borderColor: "color-mix(in srgb, var(--accent) 10%, transparent)",
-            }}
-            onMouseEnter={e => {
-              const el = e.currentTarget as HTMLElement;
-              el.style.background = "color-mix(in srgb, var(--accent) 9%, transparent)";
-              el.style.borderColor = "color-mix(in srgb, var(--accent) 22%, transparent)";
-            }}
-            onMouseLeave={e => {
-              const el = e.currentTarget as HTMLElement;
-              el.style.background = "color-mix(in srgb, var(--accent) 4%, transparent)";
-              el.style.borderColor = "color-mix(in srgb, var(--accent) 10%, transparent)";
-            }}
-            title={`Abrir: ${cancion.titulo}`}
-          >
+            style={{ background: "color-mix(in srgb, var(--accent) 4%, transparent)", borderColor: "color-mix(in srgb, var(--accent) 10%, transparent)" }}
+            onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.background = "color-mix(in srgb, var(--accent) 9%, transparent)"; el.style.borderColor = "color-mix(in srgb, var(--accent) 22%, transparent)"; }}
+            onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.background = "color-mix(in srgb, var(--accent) 4%, transparent)"; el.style.borderColor = "color-mix(in srgb, var(--accent) 10%, transparent)"; }}
+            title={`Abrir: ${cancion.titulo}`}>
             <Music size={8} style={{ color: "color-mix(in srgb, var(--accent) 40%, transparent)", flexShrink: 0 }} />
-            <span
-              className="text-[8px] font-bold truncate"
-              style={{ color: "color-mix(in srgb, var(--accent) 65%, var(--primary))" }}
-            >
+            <span className="text-[8px] font-bold truncate" style={{ color: "color-mix(in srgb, var(--accent) 65%, var(--primary))" }}>
               {cancion.titulo}
             </span>
           </button>
-          {/* Cantante — espeja el badge de reino de capítulos */}
           {cancion.cantante && (
-            <span
-              className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest truncate self-start"
-              style={{
-                background: "color-mix(in srgb, var(--accent) 8%, transparent)",
-                color: "color-mix(in srgb, var(--accent) 50%, transparent)",
-                border: "1px solid color-mix(in srgb, var(--accent) 12%, transparent)",
-                maxWidth: "100%",
-              }}
-            >
+            <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest truncate self-start"
+              style={{ background: "color-mix(in srgb, var(--accent) 8%, transparent)", color: "color-mix(in srgb, var(--accent) 50%, transparent)", border: "1px solid color-mix(in srgb, var(--accent) 12%, transparent)", maxWidth: "100%" }}>
               <Music size={6} /> {cancion.cantante}
             </span>
           )}
@@ -675,14 +568,15 @@ function MundoEventoRow({
         }}
       >
         <div className="flex flex-col gap-1 p-2">
-          {/* Año (solo lectura — editable en panel inferior) */}
-          <div className="text-[10px] font-black tracking-widest text-center px-1 py-1 rounded-lg border"
-            style={{
-              color: hasYear ? "var(--primary)" : "color-mix(in srgb, var(--primary) 25%, transparent)",
-              borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
-              background: hasYear ? "color-mix(in srgb, var(--primary) 6%, transparent)" : "transparent",
-            }}>
-            {hasYear ? evt.year : <span className="italic opacity-40">Año…</span>}
+          {/* Fecha — badge del calendario si tiene dia_absoluto, si no texto libre */}
+          <div className="px-1 py-1 rounded-lg border text-center"
+            style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)", background: (evt as any).dia_absoluto || hasYear ? "color-mix(in srgb, var(--primary) 6%, transparent)" : "transparent" }}>
+            {(evt as any).dia_absoluto
+              ? <FechaMundoBadge diaAbsoluto={(evt as any).dia_absoluto} />
+              : hasYear
+                ? <span className="text-[10px] font-black tracking-widest" style={{ color: "var(--primary)" }}>{evt.year}</span>
+                : <span className="text-[10px] italic opacity-40" style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>Año…</span>
+            }
           </div>
           {/* Título */}
           <div className="px-1 text-[10px] font-bold truncate"
@@ -728,7 +622,8 @@ type CapTimeline = {
   id: string;
   libro_id: string;
   titulo_capitulo: string;
-  orden_linea_tiempo: number;
+  orden_linea_tiempo: number;  // legacy — se mantiene por compatibilidad
+  dia_absoluto?: number;        // nuevo campo del calendario
   libroTitulo?: string;
   reinos_ids?: string[];
 };
@@ -839,7 +734,7 @@ function PanelHistoriaMundo({
   const [capsReinosIds, setCapsReinosIds] = useState<Record<string, string[]>>({});
 
   // ── Canciones con posición en línea de tiempo ─────────────────────────────
-  const [cancionesTimeline, setCancionesTimeline] = useState<{ id: string; titulo: string; cantante?: string | null; reinoNombre?: string | null; orden_linea_tiempo: number }[]>([]);
+  const [cancionesTimeline, setCancionesTimeline] = useState<{ id: string; titulo: string; cantante?: string | null; reinoNombre?: string | null; dia_absoluto?: number; orden_linea_tiempo?: number }[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -872,8 +767,8 @@ function PanelHistoriaMundo({
       try {
         const { data } = await supabase
           .from("canciones")
-          .select("id, titulo, cantante, orden_linea_tiempo, reino_id, reinos!reino_id(nombre)")
-          .not("orden_linea_tiempo", "is", null);
+          .select("id, titulo, cantante, orden_linea_tiempo, dia_absoluto, reino_id, reinos!reino_id(nombre)")
+          .or("orden_linea_tiempo.not.is.null,dia_absoluto.not.is.null");
         if (!data?.length || cancelled) return;
         setCancionesTimeline(data.map((c: any) => {
           const reino = Array.isArray(c.reinos) ? c.reinos[0] : c.reinos;
@@ -881,7 +776,8 @@ function PanelHistoriaMundo({
             id: c.id, titulo: c.titulo ?? "Sin título",
             cantante: c.cantante ?? null,
             reinoNombre: reino?.nombre ?? null,
-            orden_linea_tiempo: c.orden_linea_tiempo,
+            dia_absoluto: c.dia_absoluto ?? undefined,
+            orden_linea_tiempo: c.orden_linea_tiempo ?? undefined,
           };
         }));
         const flat = data.map((c: any) => ({ ...c, reinos: undefined }));
@@ -934,8 +830,8 @@ function PanelHistoriaMundo({
         const [capsRes, capsReinosRes] = await Promise.all([
           supabase
             .from("capitulos")
-            .select("id, libro_id, titulo_capitulo, orden_linea_tiempo, reinos_ids")
-            .not("orden_linea_tiempo", "is", null),
+            .select("id, libro_id, titulo_capitulo, orden_linea_tiempo, dia_absoluto, reinos_ids")
+            .or("orden_linea_tiempo.not.is.null,dia_absoluto.not.is.null"),
           supabase
             .from("capitulos")
             .select("id, reinos_ids")
@@ -1079,15 +975,16 @@ function PanelHistoriaMundo({
     return error ?? null;
   }, [setReinos]);
 
+  const { cal } = useCalendario();
   const [filterReino, setFilterReino] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [savingReinos, setSavingReinos] = useState<Set<string>>(new Set());
   const [selectedEventKey, setSelectedEventKey] = useState<string | null>(null);
-  const [ordenOverrides, setOrdenOverrides] = useState<Record<string, number>>({});
+  const [diaOverrides, setDiaOverrides] = useState<Record<string, number>>({});
 
-  const handleOrdenChange = (id: string, orden: number) => {
-    setOrdenOverrides(prev => ({ ...prev, [id]: orden }));
-  }; // "evtId" o "reinoId:evtId"
+  const handleDiaChange = (id: string, dia: number) => {
+    setDiaOverrides(prev => ({ ...prev, [id]: dia }));
+  };
   const { onSnippetAction } = useWikilink();
   const debounceHistRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -1134,50 +1031,53 @@ function PanelHistoriaMundo({
     for (const e of mundoEvents) {
       const reinoId = (e as any).reinoId as string | null | undefined;
       if (filterReino && reinoId !== filterReino) continue;
-      list.push({ ...e, source: "mundo", yearNum: parseYear(e.year) });
+      const dia = (e as any).dia_absoluto as number | undefined;
+      list.push({ ...e, source: "mundo", yearNum: dia ?? parseYear(e.year), dia_absoluto: dia });
     }
     for (const reino of reinos) {
       if (filterReino && reino.id !== filterReino) continue;
       const evts = reinoEvents[reino.id] ?? decodeTimeline((reino as any).historia);
       for (const e of evts) {
-        if (!e.year?.trim() && !e.title?.trim()) continue;
-        list.push({ ...e, source: "reino", reinoNombre: reino.nombre, reinoId: reino.id, yearNum: parseYear(e.year) });
+        if (!(e as any).dia_absoluto && !e.year?.trim() && !e.title?.trim()) continue;
+        const dia = (e as any).dia_absoluto as number | undefined;
+        list.push({ ...e, source: "reino", reinoNombre: reino.nombre, reinoId: reino.id, yearNum: dia ?? parseYear(e.year), dia_absoluto: dia });
       }
     }
-    // Capítulos — cada uno como tarjeta propia, ordenada por año, sin agrupar
+    // Capítulos
     for (const cap of capsTimeline) {
-      const orden = ordenOverrides[cap.id] ?? cap.orden_linea_tiempo;
+      const dia = diaOverrides[cap.id] ?? cap.dia_absoluto ?? cap.orden_linea_tiempo;
       list.push({
         id: `cap:${cap.id}`,
-        year: String(orden),
+        year: String(dia),
         title: cap.titulo_capitulo,
         description: "",
         source: "capitulo",
-        yearNum: orden,
+        yearNum: dia,
+        dia_absoluto: cap.dia_absoluto ?? undefined,
         capData: cap,
       });
     }
-    // Canciones — tarjeta de solo lectura con link
+    // Canciones
     for (const c of cancionesTimeline) {
-      const ordenC = ordenOverrides[c.id] ?? c.orden_linea_tiempo;
+      const dia = diaOverrides[c.id] ?? c.dia_absoluto ?? (c as any).orden_linea_tiempo ?? 0;
       list.push({
         id: `cancion:${c.id}`,
-        year: String(ordenC),
+        year: String(dia),
         title: c.titulo,
         description: "",
         source: "cancion",
-        yearNum: ordenC,
-        cancionData: { id: c.id, titulo: c.titulo, cantante: c.cantante, reinoNombre: c.reinoNombre ?? null, orden_linea_tiempo: ordenC },
+        yearNum: dia,
+        dia_absoluto: c.dia_absoluto ?? undefined,
+        cancionData: { id: c.id, titulo: c.titulo, cantante: c.cantante, reinoNombre: c.reinoNombre ?? null, dia_absoluto: c.dia_absoluto },
       });
     }
-    // Sort estable: por año; en empate, mundo → reino → cancion → capítulo
     return list.sort((a, b) => {
       const diff = a.yearNum - b.yearNum;
       if (diff !== 0) return diff;
       const order = { mundo: 0, reino: 1, cancion: 2, capitulo: 3 };
       return (order[a.source] ?? 1) - (order[b.source] ?? 1);
     });
-  }, [mundoEvents, reinos, reinoEvents, filterReino, capsTimeline, cancionesTimeline, ordenOverrides]);
+  }, [mundoEvents, reinos, reinoEvents, filterReino, capsTimeline, cancionesTimeline, diaOverrides]);
 
   const reinosConEventos = useMemo(
     () => reinos.filter(r => {
@@ -1284,7 +1184,32 @@ function PanelHistoriaMundo({
         ) : (
           <div className="overflow-x-auto pb-1"
             style={{ scrollbarWidth: "thin", scrollbarColor: "color-mix(in srgb, var(--primary) 15%, transparent) transparent" }}>
-            <div className="flex items-start" style={{ minWidth: "max-content", paddingLeft: 8, paddingRight: 8 }}>
+            <div className="relative flex items-start" style={{ minWidth: "max-content", paddingLeft: 8, paddingRight: 8 }}>
+
+              {/* ── Franjas de eras del mundo ─────────────────────────── */}
+              {cal && cal.eras.length > 0 && allEvents.length > 0 && (() => {
+                const CARD_W = 222;
+                const minDia = allEvents[0]?.yearNum ?? 0;
+                const maxDia = allEvents[allEvents.length - 1]?.yearNum ?? 0;
+                const totalDias = maxDia - minDia || 1;
+                const totalPx = allEvents.length * CARD_W;
+                return cal.eras.map(era => {
+                  const eraInicio = Math.max(era.anio_inicio * 500, minDia);
+                  const eraFin = era.anio_fin != null ? Math.min(era.anio_fin * 500 + 499, maxDia) : maxDia;
+                  if (eraFin < minDia || eraInicio > maxDia) return null;
+                  const left = ((eraInicio - minDia) / totalDias) * totalPx;
+                  const width = ((eraFin - eraInicio) / totalDias) * totalPx;
+                  return (
+                    <div key={era.id} className="absolute top-0 bottom-0 pointer-events-none"
+                      style={{ left, width, background: era.color ? `${era.color}10` : "transparent", borderLeft: era.color ? `1px solid ${era.color}30` : "none" }}>
+                      <span className="absolute top-1 left-1.5 text-[7px] font-black uppercase tracking-widest whitespace-nowrap"
+                        style={{ color: era.color ?? "var(--primary)", opacity: 0.5 }}>
+                        {era.nombre}
+                      </span>
+                    </div>
+                  );
+                });
+              })()}
 
               {allEvents.map((evt, idx) => {
                 const isMundo = evt.source === "mundo";
@@ -1319,12 +1244,12 @@ function PanelHistoriaMundo({
                     </div>
                     {/* Tarjeta */}
                     {isCancion && evt.cancionData ? (
-                      <CancionMundoRow cancion={evt.cancionData} onOrdenChange={handleOrdenChange} />
+                      <CancionMundoRow cancion={evt.cancionData} onDiaChange={handleDiaChange} />
                     ) : isCapitulo && evt.capData ? (
                       <CapituloEventoRow
                         cap={evt.capData}
                         reinos={reinos}
-                        onOrdenChange={handleOrdenChange}
+                        onDiaChange={handleDiaChange}
                         onNavigate={() => {
                           localStorage.setItem("estudio-caps-last-cap", evt.capData!.id);
                           localStorage.setItem("estudio-caps-last-libro", evt.capData!.libro_id);
@@ -1393,17 +1318,13 @@ function PanelHistoriaMundo({
 
           {/* Header del panel con campos de edición inline */}
           <div className="flex items-center gap-3 flex-wrap">
-            <input
-              className="bg-transparent outline-none text-[10px] font-black tracking-widest text-center placeholder:text-primary/20 px-2 py-1 rounded-lg border w-28 shrink-0"
-              value={selectedEvt.year}
-              onChange={e => handleUpdateSelected({ year: e.target.value })}
-              placeholder="Año"
-              style={{
-                color: selectedEvt.year?.trim() ? "var(--primary)" : "color-mix(in srgb, var(--primary) 30%, transparent)",
-                borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
-                background: selectedEvt.year?.trim() ? "color-mix(in srgb, var(--primary) 5%, transparent)" : "transparent",
-              }}
-            />
+            <div className="w-52 shrink-0">
+              <SelectorFechaMundo
+                value={(selectedEvt as any).dia_absoluto ?? null}
+                onChange={dia => handleUpdateSelected({ dia_absoluto: dia, year: dia != null ? String(dia) : selectedEvt.year } as any)}
+                placeholder="Fecha del evento…"
+              />
+            </div>
             <input
               className="flex-1 min-w-0 bg-transparent outline-none text-sm font-black placeholder:text-primary/25"
               value={selectedEvt.title}

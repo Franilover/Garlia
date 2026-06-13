@@ -1,4 +1,5 @@
 "use client";
+import { FechaMundoBadge, SelectorFechaMundo } from "@/features/editorGarlia/components/EditorLineaTiempo";
 import React, { useState, useEffect, useRef } from "react";
 import {
   ChevronDown, ChevronRight, UserCircle2, Loader2, Trash2,
@@ -1363,39 +1364,27 @@ export const PanelPersonajesCapitulo = ({
             Línea de tiempo
           </span>
         </div>
-        <div className="flex items-center gap-1.5">
-          <input
-            ref={ordenInputRef}
-            type="number"
-            value={ordenLinea}
-            onChange={e => setOrdenLinea(e.target.value)}
-            onBlur={handleSaveOrden}
-            onKeyDown={e => { if (e.key === "Enter") { e.currentTarget.blur(); } }}
-            placeholder="Nº"
-            className="flex-1 min-w-0 rounded-lg border px-2 py-1 text-[10px] font-black text-center outline-none transition-all"
-            style={{
-              background: ordenLinea ? "color-mix(in srgb, var(--primary) 6%, transparent)" : "transparent",
-              borderColor: ordenLinea
-                ? "color-mix(in srgb, var(--primary) 22%, transparent)"
-                : "color-mix(in srgb, var(--primary) 12%, transparent)",
-              color: ordenLinea ? "var(--primary)" : "color-mix(in srgb, var(--primary) 30%, transparent)",
-            }}
-          />
-          {savingOrden && (
-            <Loader2 size={9} className="animate-spin shrink-0"
-              style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
-          )}
-          {!savingOrden && ordenLinea && (
-            <Check size={9} className="shrink-0"
-              style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }} />
-          )}
+        <div className="space-y-1.5">
+          {/* Selector de fecha del calendario del mundo */}
+          {(() => {
+            const diaActual = ordenLinea.trim() ? parseInt(ordenLinea.trim(), 10) : null;
+            return (
+              <div className="relative">
+                {savingOrden && <Loader2 size={8} className="animate-spin absolute right-2 top-2 z-10 text-primary/30" />}
+                <SelectorFechaMundo
+                  value={diaActual}
+                  onChange={async (dia) => {
+                    setOrdenLinea(dia != null ? String(dia) : "");
+                    setSavingOrden(true);
+                    try { await capUpdateMeta(capId, { orden_linea_tiempo: dia, dia_absoluto: dia } as any); } catch {}
+                    setSavingOrden(false);
+                  }}
+                  placeholder="Sin fecha en la línea de tiempo"
+                />
+              </div>
+            );
+          })()}
         </div>
-        <p
-          className="mt-1 text-[7px] leading-tight"
-          style={{ color: "color-mix(in srgb, var(--primary) 22%, transparent)" }}
-        >
-          Nº de posición en la línea de tiempo del mundo
-        </p>
       </div>
 
       {/* ── Reinos ──────────────────────────────────── */}

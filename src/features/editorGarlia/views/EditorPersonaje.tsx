@@ -7,6 +7,7 @@ import {
   Sparkles, Users, Camera, SlidersHorizontal, Music2, Plus, Clock,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
+import { SelectorFechaMundo, FechaMundoBadge } from "../components/EditorLineaTiempo";
 import { db } from "@/lib/api/client/db";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { type Personaje, type SaveStatus } from "../components/types";
@@ -821,16 +822,16 @@ function BloqueEras({ personajeId }: { personajeId: string }) {
       {addingNew && (
         <div className="px-3 py-2.5 border-b border-primary/[0.06] space-y-2"
           style={{ background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}>
-          <div className="flex gap-1.5">
-            <input type="number" value={newMomento} onChange={e => setNewMomento(e.target.value)}
-              onKeyDown={e => { if (e.key === "Enter") handleAddEra(); if (e.key === "Escape") setAddingNew(false); }}
-              placeholder="Momento (ej: 1980)" autoFocus
-              className="w-32 shrink-0 rounded-lg border px-2 py-1 text-[9px] font-black outline-none transition-all"
-              style={{ background: "transparent", borderColor: "color-mix(in srgb, var(--primary) 18%, transparent)", color: "var(--primary)" }} />
+          <div className="space-y-1.5">
+            <SelectorFechaMundo
+              value={newMomento ? parseInt(newMomento, 10) : null}
+              onChange={dia => setNewMomento(dia != null ? String(dia) : "")}
+              placeholder="Seleccionar fecha…"
+            />
             <input type="text" value={newLabel} onChange={e => setNewLabel(e.target.value)}
               onKeyDown={e => { if (e.key === "Enter") handleAddEra(); if (e.key === "Escape") setAddingNew(false); }}
               placeholder="Etiqueta (opcional)"
-              className="flex-1 rounded-lg border px-2 py-1 text-[9px] outline-none transition-all"
+              className="w-full rounded-lg border px-2 py-1 text-[9px] outline-none transition-all"
               style={{ background: "transparent", borderColor: "color-mix(in srgb, var(--primary) 18%, transparent)", color: "var(--primary)" }} />
           </div>
           <div className="flex gap-1.5 justify-end">
@@ -884,14 +885,14 @@ function EraItem({ era, isOpen, isLast, onToggle, onDelete, onAddRasgo, onRemove
     <div className={!isLast ? "border-b border-primary/[0.06]" : ""}>
       <button type="button" onClick={onToggle}
         className="w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-primary/[0.03] transition-colors">
-        {/* Línea de tiempo visual */}
+        {/* Nodo de línea de tiempo */}
         <div className="shrink-0 flex flex-col items-center" style={{ width: 20 }}>
           <div className="w-2 h-2 rounded-full border-2 border-accent bg-bg-main shrink-0" />
         </div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-[11px] font-black tabular-nums" style={{ color: "var(--accent)" }}>{era.momento}</span>
-            {era.label && <span className="text-[9px] font-bold text-primary/40 italic truncate">{era.label}</span>}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <FechaMundoBadge diaAbsoluto={era.momento} />
+            {era.label && <span className="text-[8px] font-bold text-primary/35 italic truncate">{era.label}</span>}
           </div>
           {!isOpen && era.rasgos.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-0.5">
@@ -902,6 +903,7 @@ function EraItem({ era, isOpen, isLast, onToggle, onDelete, onAddRasgo, onRemove
                 </span>
               ))}
               {era.rasgos.length > 3 && <span className="text-[7px] text-primary/25 font-black">+{era.rasgos.length - 3}</span>}
+              {era.notas && <span className="text-[7px] text-primary/20 italic truncate max-w-[80px]">{era.notas.slice(0, 30)}…</span>}
             </div>
           )}
         </div>
