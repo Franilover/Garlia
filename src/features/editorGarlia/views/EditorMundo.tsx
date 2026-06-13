@@ -767,8 +767,8 @@ function PanelHistoriaMundo({
       try {
         const { data } = await supabase
           .from("canciones")
-          .select("id, titulo, cantante, orden_linea_tiempo, dia_absoluto, reino_id, reinos!reino_id(nombre)")
-          .or("orden_linea_tiempo.not.is.null,dia_absoluto.not.is.null");
+          .select("id, titulo, cantante, dia_absoluto, reino_id, reinos!reino_id(nombre)")
+          .not("dia_absoluto", "is", null);
         if (!data?.length || cancelled) return;
         setCancionesTimeline(data.map((c: any) => {
           const reino = Array.isArray(c.reinos) ? c.reinos[0] : c.reinos;
@@ -830,8 +830,8 @@ function PanelHistoriaMundo({
         const [capsRes, capsReinosRes] = await Promise.all([
           supabase
             .from("capitulos")
-            .select("id, libro_id, titulo_capitulo, orden_linea_tiempo, dia_absoluto, reinos_ids")
-            .or("orden_linea_tiempo.not.is.null,dia_absoluto.not.is.null"),
+            .select("id, libro_id, titulo_capitulo, dia_absoluto, reinos_ids")
+            .not("dia_absoluto", "is", null),
           supabase
             .from("capitulos")
             .select("id, reinos_ids")
@@ -1032,20 +1032,22 @@ function PanelHistoriaMundo({
       const reinoId = (e as any).reinoId as string | null | undefined;
       if (filterReino && reinoId !== filterReino) continue;
       const dia = (e as any).dia_absoluto as number | undefined;
+      if (dia == null && !e.title?.trim()) continue; // skip eventos sin fecha ni título
       list.push({ ...e, source: "mundo", yearNum: dia ?? parseYear(e.year), dia_absoluto: dia });
     }
     for (const reino of reinos) {
       if (filterReino && reino.id !== filterReino) continue;
       const evts = reinoEvents[reino.id] ?? decodeTimeline((reino as any).historia);
       for (const e of evts) {
-        if (!(e as any).dia_absoluto && !e.year?.trim() && !e.title?.trim()) continue;
         const dia = (e as any).dia_absoluto as number | undefined;
+        if (dia == null && !e.title?.trim()) continue; // skip sin fecha ni título
         list.push({ ...e, source: "reino", reinoNombre: reino.nombre, reinoId: reino.id, yearNum: dia ?? parseYear(e.year), dia_absoluto: dia });
       }
     }
-    // Capítulos
+    // Capítulos — solo los que tienen dia_absoluto
     for (const cap of capsTimeline) {
-      const dia = diaOverrides[cap.id] ?? cap.dia_absoluto ?? cap.orden_linea_tiempo;
+      const dia = diaOverrides[cap.id] ?? cap.dia_absoluto;
+      if (dia == null) continue; // sin fecha del calendario → no aparece
       list.push({
         id: `cap:${cap.id}`,
         year: String(dia),
@@ -1053,13 +1055,14 @@ function PanelHistoriaMundo({
         description: "",
         source: "capitulo",
         yearNum: dia,
-        dia_absoluto: cap.dia_absoluto ?? undefined,
+        dia_absoluto: dia,
         capData: cap,
       });
     }
-    // Canciones
+    // Canciones — solo las que tienen dia_absoluto
     for (const c of cancionesTimeline) {
-      const dia = diaOverrides[c.id] ?? c.dia_absoluto ?? (c as any).orden_linea_tiempo ?? 0;
+      const dia = diaOverrides[c.id] ?? c.dia_absoluto;
+      if (dia == null) continue; // sin fecha del calendario → no aparece
       list.push({
         id: `cancion:${c.id}`,
         year: String(dia),
@@ -1067,8 +1070,8 @@ function PanelHistoriaMundo({
         description: "",
         source: "cancion",
         yearNum: dia,
-        dia_absoluto: c.dia_absoluto ?? undefined,
-        cancionData: { id: c.id, titulo: c.titulo, cantante: c.cantante, reinoNombre: c.reinoNombre ?? null, dia_absoluto: c.dia_absoluto },
+        dia_absoluto: dia,
+        cancionData: { id: c.id, titulo: c.titulo, cantante: c.cantante, reinoNombre: c.reinoNombre ?? null, dia_absoluto: dia },
       });
     }
     return list.sort((a, b) => {
