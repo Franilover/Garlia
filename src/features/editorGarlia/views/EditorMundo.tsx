@@ -506,17 +506,30 @@ function CancionMundoRow({
 function EventoMundoRow({
   evt,
   onDiaChange,
+  onFieldChange,
 }: {
   evt: MundoTimelineEvent;
   onDiaChange?: (id: string, dia: number) => void;
+  onFieldChange?: (id: string, field: "titulo" | "descripcion", value: string) => void;
 }) {
   const [saving, setSaving] = useState(false);
+  const [titulo, setTitulo] = useState(evt.title);
+  const [descripcion, setDescripcion] = useState(evt.description);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => { setTitulo(evt.title); }, [evt.title]);
+  useEffect(() => { setDescripcion(evt.description); }, [evt.description]);
 
   const commitDia = async (dia: number | null) => {
     if (dia == null) return;
     setSaving(true);
     await onDiaChange?.(evt.id, dia);
     setSaving(false);
+  };
+
+  const scheduleSave = (field: "titulo" | "descripcion", value: string) => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => { onFieldChange?.(evt.id, field, value); }, 800);
   };
 
   return (
@@ -531,20 +544,31 @@ function EventoMundoRow({
           {saving && <Loader2 size={8} className="animate-spin absolute right-2 top-2 z-10 text-primary/30" />}
           <SelectorFechaMundo value={evt.dia_absoluto ?? null} onChange={commitDia} placeholder="Sin fecha…" />
         </div>
-        <div className="px-1 text-[10px] font-bold truncate" style={{ color: "var(--primary)" }}>
-          {evt.title}
-        </div>
+        {/* Título editable */}
+        <input
+          value={titulo}
+          onChange={e => { setTitulo(e.target.value); scheduleSave("titulo", e.target.value); }}
+          onBlur={e => onFieldChange?.(evt.id, "titulo", e.target.value)}
+          placeholder="Título del evento…"
+          className="px-1 text-[10px] font-bold bg-transparent outline-none w-full rounded"
+          style={{ color: "var(--primary)" }}
+        />
         {evt.reinoNombre && (
           <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest truncate self-start"
             style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)", color: "color-mix(in srgb, var(--primary) 50%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)", maxWidth: "150px" }}>
             <Crown size={6} /> {evt.reinoNombre}
           </span>
         )}
-        {evt.description && (
-          <p className="px-1 text-[8px] leading-snug line-clamp-3 opacity-70" style={{ color: "color-mix(in srgb, var(--primary) 60%, transparent)" }}>
-            {evt.description}
-          </p>
-        )}
+        {/* Descripción editable */}
+        <textarea
+          value={descripcion}
+          onChange={e => { setDescripcion(e.target.value); scheduleSave("descripcion", e.target.value); }}
+          onBlur={e => onFieldChange?.(evt.id, "descripcion", e.target.value)}
+          placeholder="Descripción…"
+          rows={3}
+          className="px-1 text-[8px] leading-snug bg-transparent outline-none w-full rounded resize-none"
+          style={{ color: "color-mix(in srgb, var(--primary) 60%, transparent)" }}
+        />
       </div>
     </div>
   );
@@ -906,6 +930,19 @@ function PanelHistoriaMundo({
       }
     } catch {}
   }, []);
+
+  const handleEventoMundoFieldChange = useCallback(async (id: string, field: "titulo" | "descripcion", value: string) => {
+    setEventosMundo(prev => prev.map(e => e.id === id ? { ...e, [field]: value } : e));
+    try {
+      await supabase.from("eventos_mundo").update({ [field]: value } as any).eq("id", id);
+    } catch {}
+    try {
+      if (db && (db as any).eventos_mundo) {
+        const existing = await (db as any).eventos_mundo.get(id);
+        await (db as any).eventos_mundo.put({ ...(existing ?? { id }), [field]: value });
+      }
+    } catch {}
+  }, []);
   const { onSnippetAction } = useWikilink();
   const debounceHistRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -1136,7 +1173,7 @@ function PanelHistoriaMundo({
                         }}
                       />
                     ) : isEventoMundo ? (
-                      <EventoMundoRow evt={evt} onDiaChange={handleEventoMundoDiaChange} />
+                      <EventoMundoRow evt={evt} onDiaChange={handleEventoMundoDiaChange} onFieldChange={handleEventoMundoFieldChange} />
                     ) : null}
                   </div>
                 );
