@@ -2,13 +2,13 @@
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
-  Sparkles, Star, Globe, Plus, Trash2, Save, Loader2, X, Bug,
-  ChevronDown, ScrollText, Map, FileText, Users, UserCircle2, Package,
+  Sparkles, Star, Globe, Save, Loader2, Bug,
+  ScrollText, Map, FileText, Users, UserCircle2, Package,
   Crown, Clock, Filter, Layers, BookOpen, Music, MapPin,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
-import { enqueueOperation, isReallyOnline, onSyncDone } from "@/hooks/data/useOfflineSync";
+import { isReallyOnline, onSyncDone } from "@/hooks/data/useOfflineSync";
 import { MUNDO_SECTIONS, type MundoSectionKey, type SaveStatus, type Reino, type Personaje, type Nota } from "../components/types";
 import { SaveIndicator } from "../components/UIComponents";
 import { MarkdownEditor } from "@/components/forms/Markdown/MarkdownEditor";
@@ -21,7 +21,7 @@ import { EditorCiudad, type Ciudad } from "./EditorCiudad";
 import { EditorHechizos } from "./EditorHechizos";
 import { type WikiEntity } from "@/components/forms/Markdown/MarkdownEditor";
 import { type TimelineEvent } from "../components/LoreTab";
-import { SelectorFechaMundo, FechaMundoBadge, useCalendario } from "../components/EditorLineaTiempo";
+import { SelectorFechaMundo, useCalendario } from "../components/EditorLineaTiempo";
 import { diaAbsolutoAFecha, eraEnAnio } from "@/lib/utils/calendario";
 import { useNotas } from "../components/useNotas";
 import { EditorNota, ListaNotas } from "./EditorNota";
@@ -361,34 +361,7 @@ type MundoTimelineEvent = TimelineEvent & {
   cancionData?: { id: string; titulo: string; cantante?: string | null; reinoNombre?: string | null; dia_absoluto?: number };
 };
 
-/** Extrae el valor numérico de un año para ordenamiento.
- *  Soporta negativos: -100 < -10 < -1 < 1 < 2 < 10 < 100 …
- *  Texto puro sin números queda al final (Infinity).
- */
-function parseYear(year: string): number {
-  if (!year?.trim()) return Infinity;
-  const normalized = year.replace(/(\d)[.,](\d{3})/g, "$1$2");
-  const match = normalized.match(/(-?\d+)/);
-  if (!match) return Infinity;
-  return parseInt(match[1], 10);
-}
-
-function decodeTimeline(raw: string | undefined): TimelineEvent[] {
-  if (!raw?.trim()) return [];
-  try {
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) return parsed as TimelineEvent[];
-  } catch {}
-  return [];
-}
-
-function encodeTimeline(events: TimelineEvent[]): string {
-  return JSON.stringify(events);
-}
-
-function newEvent(): TimelineEvent {
-  return { id: crypto.randomUUID(), year: "", title: "", description: "", dia_absoluto: undefined } as any;
-}
+// (Eliminados: parseYear, decodeTimeline, encodeTimeline, newEvent — sistema antiguo)
 
 // ── Tarjeta de capítulo en la línea de tiempo ────────────────────────────────
 function CapituloEventoRow({
@@ -530,93 +503,6 @@ function CancionMundoRow({
 }
 
 // ── Tarjeta horizontal de evento (mundo O reino) — solo visualización ────────
-function MundoEventoRow({
-  evt,
-  source = "mundo",
-  isSelected,
-  onSelect,
-  onRemove,
-  reinos = [],
-}: {
-  evt: TimelineEvent;
-  source?: "mundo" | "reino";
-  isSelected: boolean;
-  onSelect: () => void;
-  onRemove: () => void;
-  reinos?: Reino[];
-}) {
-  const hasYear  = !!evt.year?.trim();
-  const hasTitle = !!evt.title?.trim();
-  const reinoId  = (evt as any).reinoId as string | null | undefined;
-  const reinoNombre = reinoId ? reinos.find(r => r.id === reinoId)?.nombre : null;
-
-  return (
-    <div className="group/card" style={{ width: 188 }}>
-      <div
-        className="mx-1.5 rounded-xl transition-all"
-        style={{
-          border: `1px solid ${isSelected
-            ? "color-mix(in srgb, var(--primary) 30%, transparent)"
-            : source === "reino"
-              ? "color-mix(in srgb, var(--primary) 8%, transparent)"
-              : "color-mix(in srgb, var(--primary) 12%, transparent)"}`,
-          background: isSelected
-            ? "color-mix(in srgb, var(--primary) 6%, transparent)"
-            : source === "reino"
-              ? "color-mix(in srgb, var(--primary) 1.5%, transparent)"
-              : "color-mix(in srgb, var(--primary) 2.5%, transparent)",
-        }}
-      >
-        <div className="flex flex-col gap-1 p-2">
-          {/* Fecha — badge del calendario si tiene dia_absoluto, si no texto libre */}
-          <div className="px-1 py-1 rounded-lg border text-center"
-            style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)", background: (evt as any).dia_absoluto || hasYear ? "color-mix(in srgb, var(--primary) 6%, transparent)" : "transparent" }}>
-            {(evt as any).dia_absoluto
-              ? <FechaMundoBadge diaAbsoluto={(evt as any).dia_absoluto} />
-              : hasYear
-                ? <span className="text-[10px] font-black tracking-widest" style={{ color: "var(--primary)" }}>{evt.year}</span>
-                : <span className="text-[10px] italic opacity-40" style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>Año…</span>
-            }
-          </div>
-          {/* Título */}
-          <div className="px-1 text-[10px] font-bold truncate"
-            style={{ color: hasTitle ? "var(--primary)" : "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
-            {hasTitle ? evt.title : <span className="italic opacity-50">Sin título…</span>}
-          </div>
-          {/* Acciones */}
-          <div className="flex items-center justify-between mt-0.5">
-            {reinoNombre && (
-              <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest truncate"
-                style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)", color: "color-mix(in srgb, var(--primary) 50%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)", maxWidth: "80px" }}>
-                <Crown size={6} /> {reinoNombre}
-              </span>
-            )}
-            <div className="flex items-center gap-1 ml-auto opacity-0 group-hover/card:opacity-100 transition-opacity">
-              <button type="button" onClick={e => { e.stopPropagation(); onRemove(); }}
-                className="p-1.5 rounded-lg border transition-all"
-                style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)", background: "transparent" }}
-                onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.color = "#f87171"; el.style.borderColor = "rgba(248,113,113,0.35)"; el.style.background = "rgba(248,113,113,0.06)"; }}
-                onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.color = "color-mix(in srgb, var(--primary) 25%, transparent)"; el.style.borderColor = "color-mix(in srgb, var(--primary) 10%, transparent)"; el.style.background = "transparent"; }}>
-                <Trash2 size={11} />
-              </button>
-              <button type="button" onClick={onSelect}
-                className="flex items-center gap-1 px-2 py-1.5 rounded-lg border text-[8px] font-black uppercase tracking-widest transition-all"
-                style={isSelected ? {
-                  color: "var(--primary)", borderColor: "color-mix(in srgb, var(--primary) 30%, transparent)", background: "color-mix(in srgb, var(--primary) 8%, transparent)"
-                } : {
-                  color: "color-mix(in srgb, var(--primary) 35%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)", background: "transparent"
-                }}>
-                <ChevronDown size={11} style={{ transform: isSelected ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s ease" }} />
-                <span>{isSelected ? "Cerrar" : "Editar"}</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ─── Tipo para capítulos con posición en línea de tiempo ─────────────────────
 type CapTimeline = {
   id: string;
@@ -707,23 +593,7 @@ function PanelHistoriaMundo({
   onChange: (v: string) => void;
   onSave: () => Promise<void>;
 }) {
-  // mundoEvents: se inicializa con texto y se actualiza cuando texto cambia,
-  // pero solo si el texto externo es más rico que lo que ya tenemos (evita pisar ediciones)
-  const mundoInitRef   = useRef(false);
-  const [mundoEvents, setMundoEvents] = useState<TimelineEvent[]>([]);
-
-  useEffect(() => {
-    const decoded = decodeTimeline(texto);
-    if (!mundoInitRef.current && decoded.length > 0) {
-      // Primera carga real con datos
-      mundoInitRef.current = true;
-      setMundoEvents(decoded);
-    } else if (!mundoInitRef.current && texto !== undefined) {
-      // texto llegó pero está vacío — igual marcamos para no volver a pisar
-      mundoInitRef.current = true;
-      setMundoEvents(decoded);
-    }
-  }, [texto]);
+  // Sistema antiguo de eventos "mundo"/"reino" (basado en columna historia JSON) eliminado.
 
   const { reinos, setReinos, loading: loadingReinos, recargar } = useReinosConHistoria();
 
@@ -906,79 +776,13 @@ function PanelHistoriaMundo({
     };
   }, []);
 
-  // ── reinoEvents: se inicializa UNA SOLA VEZ por reino, no se re-inicializa ──
-  const reinoInitedRef = useRef<Set<string>>(new Set());
-  const [reinoEvents, setReinoEvents] = useState<Record<string, TimelineEvent[]>>({});
+  // (Eliminado: inicialización de reinoEvents desde reino.historia)
 
-  useEffect(() => {
-    // Solo inicializa los reinos que aún no fueron agregados
-    const nuevos: Record<string, TimelineEvent[]> = {};
-    let hayNuevos = false;
-    for (const r of reinos) {
-      if (!reinoInitedRef.current.has(r.id)) {
-        reinoInitedRef.current.add(r.id);
-        nuevos[r.id] = decodeTimeline((r as any).historia);
-        hayNuevos = true;
-      }
-    }
-    if (hayNuevos) {
-      setReinoEvents(prev => ({ ...prev, ...nuevos }));
-    }
-  }, [reinos]);
-
-  const handleMundoChange = (evts: TimelineEvent[]) => {
-    setMundoEvents(evts);
-    onChange(encodeTimeline(evts));
-    if (debounceHistRef.current) clearTimeout(debounceHistRef.current);
-    debounceHistRef.current = setTimeout(() => { void handleSave(); }, 1500);
-  };
-
-  const updateReinoEvent = useCallback((reinoId: string, id: string, patch: Partial<TimelineEvent>) => {
-    setReinoEvents(prev => {
-      const evts = (prev[reinoId] ?? []).map(e => e.id === id ? { ...e, ...patch } : e);
-      return { ...prev, [reinoId]: evts };
-    });
-  }, []);
-
-  const removeReinoEvent = useCallback((reinoId: string, id: string) => {
-    setReinoEvents(prev => {
-      const evts = (prev[reinoId] ?? []).filter(e => e.id !== id);
-      return { ...prev, [reinoId]: evts };
-    });
-  }, []);
-
-  const saveReinoHistory = useCallback(async (reinoId: string, evts: TimelineEvent[]) => {
-    const encoded = encodeTimeline(evts);
-
-    // Siempre persistir en Dexie de inmediato
-    try {
-      if (db) {
-        const existing = await (db as any).reinos?.get(reinoId);
-        await (db as any).reinos?.put({ ...(existing ?? {}), id: reinoId, historia: encoded });
-      }
-    } catch {}
-
-    // Actualizar estado local optimistamente
-    setReinos(prev => prev.map(r => r.id === reinoId ? { ...r, historia: encoded } as Reino : r));
-
-    const online = await isReallyOnline();
-    if (!online) {
-      // Encolar para sync cuando vuelva internet
-      try {
-        await enqueueOperation("reinos", "update", reinoId, { id: reinoId, historia: encoded });
-      } catch {}
-      return null;
-    }
-
-    const { error } = await supabase.from("reinos").update({ historia: encoded }).eq("id", reinoId);
-    return error ?? null;
-  }, [setReinos]);
+  // (Eliminados: handleMundoChange, updateReinoEvent, removeReinoEvent, saveReinoHistory)
 
   const { cal } = useCalendario();
   const [filterReino, setFilterReino] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
-  const [savingReinos, setSavingReinos] = useState<Set<string>>(new Set());
-  const [selectedEventKey, setSelectedEventKey] = useState<string | null>(null);
   const [diaOverrides, setDiaOverrides] = useState<Record<string, number>>({});
 
   const handleDiaChange = (id: string, dia: number) => {
@@ -1006,43 +810,12 @@ function PanelHistoriaMundo({
     return () => window.removeEventListener("keydown", handler);
   }, [handleSave]);
 
-  const add = () => {
-    const e = newEvent();
-    handleMundoChange([...mundoEvents, e]);
-    setSelectedEventKey(e.id);
-  };
-  const update = (id: string, patch: Partial<TimelineEvent>) =>
-    handleMundoChange(mundoEvents.map(e => e.id === id ? { ...e, ...patch } : e));
-  const remove = (id: string) => {
-    handleMundoChange(mundoEvents.filter(e => e.id !== id));
-    if (selectedEventKey === id) setSelectedEventKey(null);
-  };
-
-  const handleSaveReinoEvent = useCallback(async (reinoId: string) => {
-    const evts = reinoEvents[reinoId] ?? [];
-    setSavingReinos(prev => new Set(prev).add(reinoId));
-    await saveReinoHistory(reinoId, evts);
-    setSavingReinos(prev => { const s = new Set(prev); s.delete(reinoId); return s; });
-  }, [reinoEvents, saveReinoHistory]);
+  // (Eliminados: add, update, remove, handleSaveReinoEvent — eventos "mundo"/"reino")
 
   const allEvents = useMemo<MundoTimelineEvent[]>(() => {
     const list: MundoTimelineEvent[] = [];
-    for (const e of mundoEvents) {
-      const reinoId = (e as any).reinoId as string | null | undefined;
-      if (filterReino && reinoId !== filterReino) continue;
-      const dia = (e as any).dia_absoluto as number | undefined;
-      if (dia == null && !e.title?.trim()) continue; // skip eventos sin fecha ni título
-      list.push({ ...e, source: "mundo", yearNum: dia ?? parseYear(e.year), dia_absoluto: dia });
-    }
-    for (const reino of reinos) {
-      if (filterReino && reino.id !== filterReino) continue;
-      const evts = reinoEvents[reino.id] ?? decodeTimeline((reino as any).historia);
-      for (const e of evts) {
-        const dia = (e as any).dia_absoluto as number | undefined;
-        if (dia == null && !e.title?.trim()) continue; // skip sin fecha ni título
-        list.push({ ...e, source: "reino", reinoNombre: reino.nombre, reinoId: reino.id, yearNum: dia ?? parseYear(e.year), dia_absoluto: dia });
-      }
-    }
+    // Sistema antiguo (mundoEvents / reinoEvents basados en "historia" JSON) eliminado.
+    // Solo se usa el sistema nuevo: capítulos y canciones con dia_absoluto.
     // Capítulos — solo los que tienen dia_absoluto
     for (const cap of capsTimeline) {
       const dia = diaOverrides[cap.id] ?? cap.dia_absoluto;
@@ -1079,34 +852,18 @@ function PanelHistoriaMundo({
       const order = { mundo: 0, reino: 1, cancion: 2, capitulo: 3 };
       return (order[a.source] ?? 1) - (order[b.source] ?? 1);
     });
-  }, [mundoEvents, reinos, reinoEvents, filterReino, capsTimeline, cancionesTimeline, diaOverrides]);
+  }, [filterReino, capsTimeline, cancionesTimeline, diaOverrides]);
 
   const reinosConEventos = useMemo(
     () => reinos.filter(r => {
-      const evts = reinoEvents[r.id] ?? decodeTimeline((r as any).historia);
-      const tieneEventos = evts.some(e => e.year?.trim() || e.title?.trim());
-      // Usar capsReinosIds (todos los caps con reinos) para los botones de filtro,
-      // no solo los que tienen orden_linea_tiempo
+      // Solo sistema nuevo: reinos que tienen capítulos asociados
       const tieneCaps = Object.values(capsReinosIds).some(ids => ids.includes(r.id));
-      return tieneEventos || tieneCaps;
+      return tieneCaps;
     }),
-    [reinos, reinoEvents, capsReinosIds]
+    [reinos, capsReinosIds]
   );
 
-  // Resolver el evento seleccionado actual
-  const selectedEvt = useMemo(() => {
-    if (!selectedEventKey) return null;
-    return allEvents.find(e => {
-      const key = e.source === "mundo" ? e.id : e.source === "capitulo" ? e.id : `${e.reinoId}:${e.id}`;
-      return key === selectedEventKey;
-    }) ?? null;
-  }, [selectedEventKey, allEvents]);
-
-  const handleUpdateSelected = (patch: Partial<TimelineEvent>) => {
-    if (!selectedEvt) return;
-    if (selectedEvt.source === "mundo") update(selectedEvt.id, patch);
-    else if (selectedEvt.reinoId) updateReinoEvent(selectedEvt.reinoId, selectedEvt.id, patch);
-  };
+  // (Eliminados: selectedEvt, handleUpdateSelected — panel de edición de eventos "mundo"/"reino")
 
   return (
     <div className="flex flex-col">
@@ -1147,8 +904,6 @@ function PanelHistoriaMundo({
           <button
             type="button"
             onClick={() => {
-              mundoInitRef.current = false;
-              reinoInitedRef.current = new Set();
               recargar();
             }}
             title="Recargar línea de tiempo"
@@ -1164,15 +919,6 @@ function PanelHistoriaMundo({
               ? <Loader2 size={9} className="animate-spin" />
               : <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
             }
-          </button>
-          <button onClick={async () => {
-            for (const reinoId of Object.keys(reinoEvents)) {
-              await handleSaveReinoEvent(reinoId);
-            }
-          }} disabled={saveStatus === "saving"}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all disabled:opacity-50"
-            style={{ borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)", color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
-            <Save size={9} /> Guardar reinos
           </button>
         </div>
       </div>
@@ -1214,33 +960,24 @@ function PanelHistoriaMundo({
               })()}
 
               {allEvents.map((evt, idx) => {
-                const isMundo = evt.source === "mundo";
                 const isCapitulo = evt.source === "capitulo";
                 const isCancion = evt.source === "cancion";
                 const totalLen = allEvents.length;
-                const key = isCapitulo || isCancion ? evt.id : isMundo ? evt.id : `${evt.reinoId}:${evt.id}`;
+                const key = evt.id;
                 return (
                   <div key={key} className="flex flex-col shrink-0" style={{ width: 190 }}>
                     {/* Nodo en la línea */}
                     <div className="flex items-center" style={{ height: 26 }}>
                       <div className="flex-1 h-px" style={{ background: idx === 0 ? "transparent" : "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
                       <div className="shrink-0 rounded-full transition-all"
-                        style={isMundo ? {
-                          width: 10, height: 10,
-                          background: "var(--primary)",
-                          boxShadow: "0 0 0 3px color-mix(in srgb, var(--primary) 15%, transparent)",
-                        } : isCapitulo ? {
+                        style={isCapitulo ? {
                           width: 8, height: 8,
                           background: "color-mix(in srgb, var(--accent) 70%, var(--primary))",
                           boxShadow: "0 0 0 2px color-mix(in srgb, var(--accent) 15%, transparent)",
-                        } : evt.source === "cancion" ? {
+                        } : {
                           width: 8, height: 8,
                           background: "var(--accent)",
                           boxShadow: "0 0 0 2px color-mix(in srgb, var(--accent) 20%, transparent)",
-                        } : {
-                          width: 7, height: 7,
-                          background: "color-mix(in srgb, var(--primary) 40%, transparent)",
-                          boxShadow: "0 0 0 2px color-mix(in srgb, var(--primary) 10%, transparent)",
                         }} />
                       <div className="flex-1 h-px" style={{ background: idx === totalLen - 1 ? "transparent" : "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
                     </div>
@@ -1258,127 +995,23 @@ function PanelHistoriaMundo({
                           window.dispatchEvent(new Event("estudio-caps-action"));
                         }}
                       />
-                    ) : (
-                      <MundoEventoRow
-                        evt={evt}
-                        source={isMundo ? "mundo" : "reino"}
-                        reinos={reinos}
-                        isSelected={selectedEventKey === key}
-                        onSelect={() => setSelectedEventKey(prev => prev === key ? null : key)}
-                        onRemove={() => {
-                          if (isMundo) remove(evt.id);
-                          else if (evt.reinoId) {
-                            removeReinoEvent(evt.reinoId, evt.id);
-                            void handleSaveReinoEvent(evt.reinoId);
-                          }
-                          if (selectedEventKey === key) setSelectedEventKey(null);
-                        }}
-                      />
-                    )}
+                    ) : null}
                   </div>
                 );
               })}
-
-              {/* Botón "+" al final */}
-              {!filterReino && (
-                <div className="flex flex-col shrink-0 items-center" style={{ width: 80 }}>
-                  <div className="flex items-center w-full" style={{ height: 26 }}>
-                    <div className="flex-1 h-px" style={{ background: allEvents.length > 0 ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent" }} />
-                    <button type="button" onClick={add}
-                      className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center border-2 border-dashed transition-all"
-                      style={{ borderColor: "color-mix(in srgb, var(--primary) 20%, transparent)", color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
-                      onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = "color-mix(in srgb, var(--primary) 45%, transparent)"; el.style.color = "var(--primary)"; el.style.background = "color-mix(in srgb, var(--primary) 6%, transparent)"; }}
-                      onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = "color-mix(in srgb, var(--primary) 20%, transparent)"; el.style.color = "color-mix(in srgb, var(--primary) 35%, transparent)"; el.style.background = "transparent"; }}>
-                      <Plus size={11} />
-                    </button>
-                    <div className="flex-1 h-px" style={{ background: "transparent" }} />
-                  </div>
-                  <span className="text-[7px] font-black uppercase tracking-widest mt-1 text-center"
-                    style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>
-                    Nuevo
-                  </span>
-                </div>
-              )}
 
               {/* Estado vacío */}
               {allEvents.length === 0 && filterReino && (
                 <p className="text-[9px] text-primary/20 italic px-4 py-2 self-center">Sin eventos para este reino.</p>
               )}
               {allEvents.length === 0 && !filterReino && (
-                <p className="text-[9px] text-primary/20 italic px-2 py-2 self-center">Usá el "+" para añadir el primer evento.</p>
+                <p className="text-[9px] text-primary/20 italic px-2 py-2 self-center">Sin capítulos o canciones con fecha asignada.</p>
               )}
 
             </div>
           </div>
         )}
       </div>
-
-      {/* ── Fila 2: Panel de edición — ancho completo ─────────────────────── */}
-      {selectedEvt && (
-        <div className="border-t px-4 py-4 space-y-3"
-          style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, transparent)" }}>
-
-          {/* Header del panel con campos de edición inline */}
-          <div className="flex items-center gap-3 flex-wrap">
-            <div className="w-52 shrink-0">
-              <SelectorFechaMundo
-                value={(selectedEvt as any).dia_absoluto ?? null}
-                onChange={dia => handleUpdateSelected({ dia_absoluto: dia, year: dia != null ? String(dia) : selectedEvt.year } as any)}
-                placeholder="Fecha del evento…"
-              />
-            </div>
-            <input
-              className="flex-1 min-w-0 bg-transparent outline-none text-sm font-black placeholder:text-primary/25"
-              value={selectedEvt.title}
-              onChange={e => handleUpdateSelected({ title: e.target.value })}
-              placeholder="Nombre del evento…"
-              style={{ color: "var(--primary)" }}
-            />
-            {selectedEvt.source === "mundo" && reinos.length > 0 && (
-              <div className="relative shrink-0">
-                <select
-                  value={(selectedEvt as any).reinoId ?? ""}
-                  onChange={e => handleUpdateSelected({ reinoId: e.target.value || null } as any)}
-                  className="appearance-none text-[10px] font-bold rounded-lg px-2.5 py-1.5 outline-none border cursor-pointer pr-7"
-                  style={{
-                    background: "color-mix(in srgb, var(--primary) 4%, transparent)",
-                    borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)",
-                    color: (selectedEvt as any).reinoId ? "var(--primary)" : "color-mix(in srgb, var(--primary) 40%, transparent)",
-                  }}>
-                  <option value="">— Mundo (sin reino) —</option>
-                  {reinos.map(r => <option key={r.id} value={r.id}>{r.nombre}</option>)}
-                </select>
-                <Crown size={10} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2"
-                  style={{ color: (selectedEvt as any).reinoId ? "var(--primary)" : "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
-              </div>
-            )}
-            {selectedEvt.source === "reino" && (
-              <span className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest shrink-0"
-                style={{ background: "color-mix(in srgb, var(--primary) 5%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)", color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}>
-                <Crown size={9} /> {(selectedEvt as any).reinoNombre}
-              </span>
-            )}
-            <button type="button" onClick={() => setSelectedEventKey(null)}
-              className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-[8px] font-black uppercase tracking-widest transition-all"
-              style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}
-              onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.color = "var(--primary)"; el.style.borderColor = "color-mix(in srgb, var(--primary) 28%, transparent)"; }}
-              onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.color = "color-mix(in srgb, var(--primary) 40%, transparent)"; el.style.borderColor = "color-mix(in srgb, var(--primary) 12%, transparent)"; }}>
-              <X size={11} /> Cerrar
-            </button>
-          </div>
-
-          {/* Editor de descripción — ancho completo */}
-          <MarkdownEditor
-            value={selectedEvt.description}
-            onChange={v => handleUpdateSelected({ description: v })}
-            placeholder="Descripción del evento…"
-            rows={10}
-            toolbar
-            defaultMode="edit"
-            onSnippetAction={onSnippetAction}
-          />
-        </div>
-      )}
     </div>
   );
 }
