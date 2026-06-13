@@ -972,6 +972,10 @@ class AgendaFraniDB extends Dexie {
       calendario_config:       "id",                      // ← nueva (singleton)
       eras_mundo:              "id, anio_inicio",         // ← nueva
     });
+
+    this.version(18).stores({
+      eventos_mundo: "id, reino_id, dia_absoluto, source", // ← nueva: eventos del mundo/reino (sistema dia_absoluto)
+    });
   }
 }
 

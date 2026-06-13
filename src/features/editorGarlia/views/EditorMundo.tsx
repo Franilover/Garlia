@@ -21,7 +21,7 @@ import { EditorCiudad, type Ciudad } from "./EditorCiudad";
 import { EditorHechizos } from "./EditorHechizos";
 import { type WikiEntity } from "@/components/forms/Markdown/MarkdownEditor";
 import { type TimelineEvent } from "../components/LoreTab";
-import { SelectorFechaMundo, useCalendario } from "../components/EditorLineaTiempo";
+import { SelectorFechaMundo, FechaMundoBadge, useCalendario } from "../components/EditorLineaTiempo";
 import { diaAbsolutoAFecha, eraEnAnio } from "@/lib/utils/calendario";
 import { useNotas } from "../components/useNotas";
 import { EditorNota, ListaNotas } from "./EditorNota";
@@ -606,6 +606,63 @@ function PanelHistoriaMundo({
   // ── Canciones con posición en línea de tiempo ─────────────────────────────
   const [cancionesTimeline, setCancionesTimeline] = useState<{ id: string; titulo: string; cantante?: string | null; reinoNombre?: string | null; dia_absoluto?: number; orden_linea_tiempo?: number }[]>([]);
 
+  // ── Eventos de mundo/reino (tabla eventos_mundo, sistema nuevo) ───────────
+  const [eventosMundo, setEventosMundo] = useState<{ id: string; titulo: string; descripcion: string; dia_absoluto: number; reinoId?: string | null; reinoNombre?: string | null; source: string }[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const cargarEventosMundo = async () => {
+      // 1. Dexie primero
+      try {
+        if (db && (db as any).eventos_mundo) {
+          const local: any[] = await (db as any).eventos_mundo.toArray();
+          if (local.length && !cancelled) {
+            let reinoMap: Record<string, string> = {};
+            try {
+              if (db && (db as any).reinos) {
+                const rs: any[] = await (db as any).reinos.toArray();
+                rs.forEach((r: any) => { reinoMap[r.id] = r.nombre; });
+              }
+            } catch {}
+            setEventosMundo(local.map((e: any) => ({
+              id: e.id, titulo: e.titulo ?? "Sin título",
+              descripcion: e.descripcion ?? "",
+              dia_absoluto: e.dia_absoluto,
+              reinoId: e.reino_id ?? null,
+              reinoNombre: e.reino_id ? (reinoMap[e.reino_id] ?? null) : null,
+              source: e.source ?? "mundo",
+            })));
+          }
+        }
+      } catch {}
+      if (!navigator.onLine || cancelled) return;
+      // 2. Remoto
+      try {
+        const { data } = await supabase
+          .from("eventos_mundo")
+          .select("id, titulo, descripcion, dia_absoluto, reino_id, source, reinos!reino_id(nombre)");
+        if (!data || cancelled) return;
+        setEventosMundo(data.map((e: any) => {
+          const reino = Array.isArray(e.reinos) ? e.reinos[0] : e.reinos;
+          return {
+            id: e.id, titulo: e.titulo ?? "Sin título",
+            descripcion: e.descripcion ?? "",
+            dia_absoluto: e.dia_absoluto,
+            reinoId: e.reino_id ?? null,
+            reinoNombre: reino?.nombre ?? null,
+            source: e.source ?? "mundo",
+          };
+        }));
+        const flat = data.map((e: any) => ({ ...e, reinos: undefined }));
+        try { if (db && (db as any).eventos_mundo) await (db as any).eventos_mundo.bulkPut(flat); } catch {}
+      } catch {}
+    };
+    cargarEventosMundo();
+    const handleOnline = () => { if (!cancelled) cargarEventosMundo(); };
+    window.addEventListener("online", handleOnline);
+    return () => { cancelled = true; window.removeEventListener("online", handleOnline); };
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     const cargarCanciones = async () => {
@@ -831,6 +888,23 @@ function PanelHistoriaMundo({
         capData: cap,
       });
     }
+    // Eventos de mundo/reino — tabla eventos_mundo (sistema nuevo)
+    for (const e of eventosMundo) {
+      if (filterReino && e.reinoId !== filterReino) continue;
+      const dia = e.dia_absoluto;
+      if (dia == null) continue;
+      list.push({
+        id: e.id,
+        year: String(dia),
+        title: e.titulo,
+        description: e.descripcion,
+        source: e.reinoId ? "reino" : "mundo",
+        reinoId: e.reinoId ?? undefined,
+        reinoNombre: e.reinoNombre ?? undefined,
+        yearNum: dia,
+        dia_absoluto: dia,
+      });
+    }
     // Canciones — solo las que tienen dia_absoluto
     for (const c of cancionesTimeline) {
       const dia = diaOverrides[c.id] ?? c.dia_absoluto;
@@ -852,7 +926,7 @@ function PanelHistoriaMundo({
       const order = { mundo: 0, reino: 1, cancion: 2, capitulo: 3 };
       return (order[a.source] ?? 1) - (order[b.source] ?? 1);
     });
-  }, [filterReino, capsTimeline, cancionesTimeline, diaOverrides]);
+  }, [filterReino, capsTimeline, cancionesTimeline, eventosMundo, diaOverrides]);
 
   const reinosConEventos = useMemo(
     () => reinos.filter(r => {
@@ -962,6 +1036,7 @@ function PanelHistoriaMundo({
               {allEvents.map((evt, idx) => {
                 const isCapitulo = evt.source === "capitulo";
                 const isCancion = evt.source === "cancion";
+                const isEventoMundo = evt.source === "mundo" || evt.source === "reino";
                 const totalLen = allEvents.length;
                 const key = evt.id;
                 return (
@@ -974,10 +1049,14 @@ function PanelHistoriaMundo({
                           width: 8, height: 8,
                           background: "color-mix(in srgb, var(--accent) 70%, var(--primary))",
                           boxShadow: "0 0 0 2px color-mix(in srgb, var(--accent) 15%, transparent)",
-                        } : {
+                        } : isCancion ? {
                           width: 8, height: 8,
                           background: "var(--accent)",
                           boxShadow: "0 0 0 2px color-mix(in srgb, var(--accent) 20%, transparent)",
+                        } : {
+                          width: 10, height: 10,
+                          background: "var(--primary)",
+                          boxShadow: "0 0 0 3px color-mix(in srgb, var(--primary) 15%, transparent)",
                         }} />
                       <div className="flex-1 h-px" style={{ background: idx === totalLen - 1 ? "transparent" : "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
                     </div>
@@ -995,6 +1074,33 @@ function PanelHistoriaMundo({
                           window.dispatchEvent(new Event("estudio-caps-action"));
                         }}
                       />
+                    ) : isEventoMundo ? (
+                      <div className="group/card" style={{ width: 188 }}>
+                        <div className="mx-1.5 rounded-xl p-2 flex flex-col gap-1"
+                          style={{
+                            border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+                            background: "color-mix(in srgb, var(--primary) 2.5%, transparent)",
+                          }}>
+                          <div className="px-1 py-1 rounded-lg border text-center"
+                            style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)", background: "color-mix(in srgb, var(--primary) 6%, transparent)" }}>
+                            <FechaMundoBadge diaAbsoluto={evt.dia_absoluto!} />
+                          </div>
+                          <div className="px-1 text-[10px] font-bold truncate" style={{ color: "var(--primary)" }}>
+                            {evt.title}
+                          </div>
+                          {evt.reinoNombre && (
+                            <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest truncate self-start"
+                              style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)", color: "color-mix(in srgb, var(--primary) 50%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)", maxWidth: "150px" }}>
+                              <Crown size={6} /> {evt.reinoNombre}
+                            </span>
+                          )}
+                          {evt.description && (
+                            <p className="px-1 text-[8px] leading-snug line-clamp-3 opacity-70" style={{ color: "color-mix(in srgb, var(--primary) 60%, transparent)" }}>
+                              {evt.description}
+                            </p>
+                          )}
+                        </div>
+                      </div>
                     ) : null}
                   </div>
                 );
