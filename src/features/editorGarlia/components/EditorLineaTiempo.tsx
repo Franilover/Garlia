@@ -13,7 +13,7 @@ import {
 type CalCache = { estaciones: Estacion[]; config: CalendarioConfig; eras: EraMundo[] };
 let _cache: CalCache | null = null;
 
-const LS_KEY = "garlia-calendario-cache-v1";
+const LS_KEY = "garlia-calendario-cache-v2";
 
 function leerCacheLocal(): CalCache | null {
   try {
