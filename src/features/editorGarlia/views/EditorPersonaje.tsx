@@ -803,6 +803,16 @@ function BloqueEras({ personajeId }: { personajeId: string }) {
     }, 1200);
   };
 
+  const labelTimers = React.useRef<Record<string, any>>({});
+  const handleLabelChange = (era: Era, val: string) => {
+    updateEra(era.id, { label: val, _saving: true });
+    clearTimeout(labelTimers.current[era.id]);
+    labelTimers.current[era.id] = setTimeout(async () => {
+      await (supabase as any).from("personaje_eras").update({ label: val.trim() || null }).eq("id", era.id);
+      updateEra(era.id, { _saving: false });
+    }, 800);
+  };
+
   return (
     <div className="rounded-xl overflow-hidden border border-primary/10">
       <div className="flex items-center gap-2 px-3 py-2 border-b border-primary/[0.06] bg-primary/[0.03]">
@@ -865,6 +875,7 @@ function BloqueEras({ personajeId }: { personajeId: string }) {
               onAddRasgo={(r) => handleAddRasgo(era, r)}
               onRemoveRasgo={(r) => handleRemoveRasgo(era, r)}
               onNotasChange={(v) => handleNotasChange(era, v)}
+              onLabelChange={(v) => handleLabelChange(era, v)}
             />
           ))}
         </div>
@@ -873,11 +884,12 @@ function BloqueEras({ personajeId }: { personajeId: string }) {
   );
 }
 
-function EraItem({ era, isOpen, isLast, onToggle, onDelete, onAddRasgo, onRemoveRasgo, onNotasChange }: {
+function EraItem({ era, isOpen, isLast, onToggle, onDelete, onAddRasgo, onRemoveRasgo, onNotasChange, onLabelChange }: {
   era: Era; isOpen: boolean; isLast: boolean;
   onToggle: () => void; onDelete: () => void;
   onAddRasgo: (r: string) => void; onRemoveRasgo: (r: string) => void;
   onNotasChange: (v: string) => void;
+  onLabelChange: (v: string) => void;
 }) {
   const [nuevoRasgo, setNuevoRasgo] = useState("");
 
@@ -916,6 +928,22 @@ function EraItem({ era, isOpen, isLast, onToggle, onDelete, onAddRasgo, onRemove
 
       {isOpen && (
         <div className="px-3 pb-3 ml-5 space-y-2.5 border-l-2 border-accent/20 ml-8">
+          {/* Nombre del período */}
+          <div className="pt-1">
+            <input
+              type="text"
+              value={era.label}
+              onChange={e => onLabelChange(e.target.value)}
+              placeholder="Nombre del período (ej: Infancia, Exilio…)"
+              maxLength={60}
+              className="w-full rounded-lg border px-2 py-1.5 text-[9px] font-bold outline-none transition-all placeholder:font-normal"
+              style={{
+                background: era.label ? "color-mix(in srgb, var(--primary) 4%, transparent)" : "transparent",
+                borderColor: era.label ? "color-mix(in srgb, var(--primary) 20%, transparent)" : "color-mix(in srgb, var(--primary) 12%, transparent)",
+                color: "var(--primary)",
+              }}
+            />
+          </div>
           {/* Chips */}
           <div className="space-y-1.5">
             {era.rasgos.length > 0 && (
