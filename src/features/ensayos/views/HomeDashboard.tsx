@@ -696,7 +696,7 @@ export function HomeDashboard({
                 return (
                   <MotionDiv key={tag} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }}>
                     <button
-                      onClick={() => onNavigate(tag)}
+                      onClick={() => onTagClick(tag)}
                       style={{
                         ...mono, fontSize: 9, padding: "3px 9px", borderRadius: 5,
                         border: "1px solid color-mix(in srgb, var(--foreground) 8%, transparent)",
