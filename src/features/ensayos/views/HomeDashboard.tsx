@@ -1,7 +1,7 @@
 "use client";
 import React, { useMemo, useState } from "react";
 import { MotionDiv } from "@/components/ui/Motion";
-import { Star, FileText, ArrowRight, Hash, Clock, CheckSquare, Plus, Check, X, ShoppingCart, Dumbbell, Package, UtensilsCrossed, ChevronLeft, Search, Shirt, Heart, BookOpen, Library } from "lucide-react";
+import { Star, FileText, ArrowRight, Hash, Clock, CheckSquare, Plus, Check, X, ShoppingCart, Dumbbell, Package, UtensilsCrossed, ChevronLeft, Shirt, Heart, BookOpen, Library } from "lucide-react";
 
 import { AnimatePresence } from "framer-motion";
 import { RelojDigital } from "@/features/ensayos/components/relojDigital";
@@ -48,9 +48,10 @@ export function HomeDashboard({
 
   const [nuevaTarea, setNuevaTarea] = useState("");
   const [modoCalendario, setModoCalendario] = useState<ModoCalendario>("mes");
-  const [panelAbierto, setPanelAbierto] = useState<"reloj" | "tareas" | null>(null);
-  const [vistaPersonal, setVistaPersonal] = useState<"compras" | "ejercicios" | "ingredientes" | "recetas" | "ropa" | "libros" | "favoritos" | null>(null);
-  const [busqueda, setBusqueda] = useState("");
+  const [panelAbierto, setPanelAbierto] = useState<
+    "reloj" | "tareas" | "compras" | "ejercicios" | "ingredientes" | "recetas" | "ropa" | "favoritos" | null
+  >(null);
+  const [vistaPersonal, setVistaPersonal] = useState<"libros" | null>(null);
 
   const favoritos = useMemo(
     () => ensayos.filter(e => e.tags?.includes("favorito")).slice(0, 10),
@@ -216,7 +217,7 @@ export function HomeDashboard({
 
         {/* Panel móvil: Reloj o Tareas inline (solo mobile) */}
         <AnimatePresence>
-          {panelAbierto && (
+          {(panelAbierto === "reloj" || panelAbierto === "tareas") && (
             <MotionDiv
               key={`mobile-panel-${panelAbierto}`}
               initial={{ opacity: 0, height: 0 }}
@@ -551,6 +552,76 @@ export function HomeDashboard({
                 )}
               </AnimatePresence>
 
+              {/* ── Panel flotante: Apps personales (compras, ejercicios, etc) ── */}
+              <AnimatePresence>
+                {panelAbierto && panelAbierto !== "reloj" && panelAbierto !== "tareas" && (
+                  <MotionDiv
+                    key={`panel-${panelAbierto}`}
+                    initial={{ opacity: 0, scale: 0.96, y: -4 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.96, y: -4 }}
+                    transition={{ duration: 0.15 }}
+                    style={{
+                      position: "absolute", top: 0, left: 0, right: 0, bottom: 0,
+                      background: "var(--bg-main)",
+                      zIndex: 10,
+                      display: "flex", flexDirection: "column",
+                      overflow: "hidden",
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", padding: "8px 10px 0", flexShrink: 0 }}>
+                      <button
+                        onClick={() => setPanelAbierto(null)}
+                        style={{
+                          width: 22, height: 22, borderRadius: 5, border: "none", cursor: "pointer",
+                          background: "color-mix(in srgb, var(--foreground) 5%, transparent)",
+                          color: "color-mix(in srgb, var(--foreground) 35%, transparent)",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          transition: "all 0.1s",
+                        }}
+                        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--foreground) 10%, transparent)"; }}
+                        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--foreground) 5%, transparent)"; }}
+                      >
+                        <X size={10} />
+                      </button>
+                    </div>
+                    <div style={{ flex: 1, overflow: "auto" }}>
+                      {panelAbierto === "compras"      && <ComprasPage />}
+                      {panelAbierto === "ejercicios"   && <PaginaEjercicios />}
+                      {panelAbierto === "ingredientes" && <IngredientesPage />}
+                      {panelAbierto === "recetas"      && <RecetasPage />}
+                      {panelAbierto === "ropa"         && <ArmarioPage />}
+                      {panelAbierto === "favoritos"    && (
+                        <div style={{ padding: "12px 16px" }}>
+                          {favoritos.length > 0 ? (
+                            <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                              {favoritos.map((f, i) => (
+                                <MotionDiv key={f.id} initial={{ opacity: 0, x: -4 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.03 }}>
+                                  <button
+                                    onClick={() => { onNavigate(f.titulo); setPanelAbierto(null); }}
+                                    className="w-full text-left group flex items-center justify-between"
+                                    style={{ padding: "8px 10px", borderRadius: 6, background: "transparent", border: "none", cursor: "pointer", transition: "background 0.1s" }}
+                                    onMouseEnter={e => (e.currentTarget.style.background = "color-mix(in srgb, var(--foreground) 4%, transparent)")}
+                                    onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+                                  >
+                                    <span style={{ ...serif, fontSize: 13, color: "color-mix(in srgb, var(--foreground) 72%, transparent)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{f.titulo}</span>
+                                    <ArrowRight size={8} style={{ color: "color-mix(in srgb, var(--foreground) 15%, transparent)", flexShrink: 0, marginLeft: 4, opacity: 0, transition: "opacity 0.1s" }} className="group-hover:opacity-100" />
+                                  </button>
+                                </MotionDiv>
+                              ))}
+                            </div>
+                          ) : (
+                            <p style={{ ...mono, fontSize: 9, color: "color-mix(in srgb, var(--foreground) 15%, transparent)", lineHeight: 1.6, padding: "8px 10px" }}>
+                              Agrega <span style={{ color: "color-mix(in srgb, var(--foreground) 30%, transparent)" }}>#favorito</span> a una nota para verla aquí.
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </MotionDiv>
+                )}
+              </AnimatePresence>
+
             </div>
             </div>{/* end left calendar column */}
 
@@ -623,28 +694,41 @@ export function HomeDashboard({
                 { id: "recetas",      label: "Recetas",      icon: <UtensilsCrossed size={14} /> },
                 { id: "ropa",         label: "Ropa",         icon: <Shirt size={14} /> },
                 { id: "libros",       label: "Biblioteca",   icon: <Library size={14} /> },
-              ] as const).map(({ id, label, icon }) => (
+              ] as const).map(({ id, label, icon }) => {
+                const activo = id === "libros" ? vistaPersonal === "libros" : panelAbierto === id;
+                return (
                 <MotionDiv key={id} initial={{ opacity: 0, x: -4 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.04 }}>
                   <button
                     className="hd-personal-btn"
-                    onClick={() => setVistaPersonal(id)}
+                    onClick={() => id === "libros"
+                      ? setVistaPersonal(v => v === "libros" ? null : "libros")
+                      : setPanelAbierto(p => p === id ? null : id)
+                    }
                     title={label}
                     style={{
                       width: "100%", padding: "10px 8px", borderRadius: 8,
-                      border: "1px solid color-mix(in srgb, var(--foreground) 7%, transparent)",
-                      background: "color-mix(in srgb, var(--foreground) 3%, transparent)",
+                      border: activo
+                        ? "1px solid color-mix(in srgb, var(--foreground) 22%, transparent)"
+                        : "1px solid color-mix(in srgb, var(--foreground) 7%, transparent)",
+                      background: activo
+                        ? "color-mix(in srgb, var(--foreground) 8%, transparent)"
+                        : "color-mix(in srgb, var(--foreground) 3%, transparent)",
                       cursor: "pointer", display: "flex", flexDirection: "column",
                       alignItems: "center", justifyContent: "center", gap: 5,
                       transition: "all 0.12s",
-                      color: "color-mix(in srgb, var(--foreground) 35%, transparent)",
+                      color: activo
+                        ? "color-mix(in srgb, var(--foreground) 80%, transparent)"
+                        : "color-mix(in srgb, var(--foreground) 35%, transparent)",
                     }}
                     onMouseEnter={e => {
+                      if (activo) return;
                       const el = e.currentTarget as HTMLElement;
                       el.style.background = "color-mix(in srgb, var(--foreground) 7%, transparent)";
                       el.style.borderColor = "color-mix(in srgb, var(--foreground) 18%, transparent)";
                       el.style.color = "color-mix(in srgb, var(--foreground) 75%, transparent)";
                     }}
                     onMouseLeave={e => {
+                      if (activo) return;
                       const el = e.currentTarget as HTMLElement;
                       el.style.background = "color-mix(in srgb, var(--foreground) 3%, transparent)";
                       el.style.borderColor = "color-mix(in srgb, var(--foreground) 7%, transparent)";
@@ -655,7 +739,7 @@ export function HomeDashboard({
                     <span style={{ ...mono, fontSize: 7, textTransform: "uppercase", letterSpacing: "0.07em", lineHeight: 1.2, textAlign: "center" }}>{label}</span>
                   </button>
                 </MotionDiv>
-              ))}
+              );})}
             </div>
           </div>
 
@@ -798,12 +882,12 @@ export function HomeDashboard({
       </div>
 
       {/* ══════════════════════════════════════════
-          OVERLAY PANTALLA COMPLETA — Sección Personal
+          OVERLAY PANTALLA COMPLETA — Biblioteca
       ══════════════════════════════════════════ */}
       <AnimatePresence>
-        {vistaPersonal && (
+        {vistaPersonal === "libros" && (
           <MotionDiv
-            key={vistaPersonal}
+            key="libros"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 12 }}
@@ -837,82 +921,17 @@ export function HomeDashboard({
                 <ChevronLeft size={12} />
                 Menú
               </button>
-
-              {/* Buscador de ensayos — oculto en biblioteca (tiene buscador propio) */}
-              {vistaPersonal !== "libros" && (
-              <div style={{
-                flex: 1, display: "flex", alignItems: "center", gap: 8,
-                background: "color-mix(in srgb, var(--foreground) 4%, transparent)",
-                borderRadius: 7, padding: "5px 10px",
-                border: "1px solid color-mix(in srgb, var(--foreground) 8%, transparent)",
-              }}>
-                <Search size={11} style={{ color: "color-mix(in srgb, var(--foreground) 25%, transparent)", flexShrink: 0 }} />
-                <input
-                  type="text"
-                  value={busqueda}
-                  onChange={e => setBusqueda(e.target.value)}
-                  onKeyDown={e => { if (e.key === "Enter" && busqueda.trim()) { onNavigate(busqueda.trim()); setBusqueda(""); setVistaPersonal(null); } }}
-                  placeholder="Buscar nota..."
-                  style={{
-                    flex: 1, border: "none", background: "transparent", outline: "none",
-                    fontFamily: "var(--font-mono)", fontSize: 10,
-                    color: "color-mix(in srgb, var(--foreground) 70%, transparent)",
-                  }}
-                />
-                {busqueda && (
-                  <button
-                    onClick={() => setBusqueda("")}
-                    style={{ border: "none", background: "transparent", cursor: "pointer", display: "flex", padding: 0, color: "color-mix(in srgb, var(--foreground) 25%, transparent)" }}
-                  >
-                    <X size={10} />
-                  </button>
-                )}
-              </div>
-              )}
             </div>
 
-            {/* ── Contenido del componente ── */}
+            {/* ── Contenido ── */}
             <div className="flex-1 overflow-auto pb-14 md:pb-0">
-              {vistaPersonal === "compras"      && <ComprasPage />}
-              {vistaPersonal === "ejercicios"   && <PaginaEjercicios />}
-              {vistaPersonal === "ingredientes" && <IngredientesPage />}
-              {vistaPersonal === "recetas"      && <RecetasPage />}
-              {vistaPersonal === "ropa"         && <ArmarioPage />}
-              {vistaPersonal === "libros"       && (
-                <LibrosDashboard
-                  ensayos={ensayos}
-                  onNavigate={(titulo) => { onNavigate(titulo); setVistaPersonal(null); }}
-                  onTagClick={onTagClick}
-                  onToggleEstado={onToggleEstado}
-                  onCrearLibro={onCrearLibro}
-                />
-              )}
-              {vistaPersonal === "favoritos"     && (
-                <div style={{ padding: "16px 20px", maxWidth: 640, margin: "0 auto" }}>
-                  {favoritos.length > 0 ? (
-                    <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                      {favoritos.map((f, i) => (
-                        <MotionDiv key={f.id} initial={{ opacity: 0, x: -4 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.03 }}>
-                          <button
-                            onClick={() => { onNavigate(f.titulo); setVistaPersonal(null); }}
-                            className="w-full text-left group flex items-center justify-between"
-                            style={{ padding: "10px 12px", borderRadius: 6, background: "transparent", border: "none", cursor: "pointer", transition: "background 0.1s" }}
-                            onMouseEnter={e => (e.currentTarget.style.background = "color-mix(in srgb, var(--foreground) 4%, transparent)")}
-                            onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
-                          >
-                            <span style={{ ...serif, fontSize: 14, color: "color-mix(in srgb, var(--foreground) 72%, transparent)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{f.titulo}</span>
-                            <ArrowRight size={9} style={{ color: "color-mix(in srgb, var(--foreground) 15%, transparent)", flexShrink: 0, marginLeft: 4, opacity: 0, transition: "opacity 0.1s" }} className="group-hover:opacity-100" />
-                          </button>
-                        </MotionDiv>
-                      ))}
-                    </div>
-                  ) : (
-                    <p style={{ ...mono, fontSize: 10, color: "color-mix(in srgb, var(--foreground) 15%, transparent)", lineHeight: 1.6, padding: "10px 12px" }}>
-                      Agrega <span style={{ color: "color-mix(in srgb, var(--foreground) 30%, transparent)" }}>#favorito</span> a una nota para verla aquí.
-                    </p>
-                  )}
-                </div>
-              )}
+              <LibrosDashboard
+                ensayos={ensayos}
+                onNavigate={(titulo) => { onNavigate(titulo); setVistaPersonal(null); }}
+                onTagClick={onTagClick}
+                onToggleEstado={onToggleEstado}
+                onCrearLibro={onCrearLibro}
+              />
             </div>
           </MotionDiv>
         )}
