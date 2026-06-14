@@ -14,5 +14,24 @@ export const eventosQueries = {
   },
   add: async (evento: Omit<Inserts<'eventos'>, 'username'>) => {
     return await supabase.from("eventos").insert({ ...evento, username: USERNAME }).select().single();
+  },
+  update: async (id: string, datos: Partial<Omit<Inserts<'eventos'>, 'username'>>) => {
+    const { data, error } = await supabase
+      .from("eventos")
+      .update(datos)
+      .eq("id", id)
+      .eq("username", USERNAME)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+  delete: async (id: string) => {
+    const { error } = await supabase
+      .from("eventos")
+      .delete()
+      .eq("id", id)
+      .eq("username", USERNAME);
+    if (error) throw error;
   }
 };
