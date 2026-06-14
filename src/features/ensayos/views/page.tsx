@@ -955,9 +955,7 @@ export default function Ensayos() {
                   onNavigateToPage={(name) => navigateToPage(name, false)}
                   onOpenLibrosDashboard={irALibros}
                   onTagClick={(tag) => {
-                    setTagActivo(tag);
-                    setVistaActiva("home");
-                    setEnsayoActivo(null);
+                    navigateToPage(tag, true);
                   }}
                   tocOpen={tocOpen}
                   onTocToggle={() => setTocOpen(p => !p)}
