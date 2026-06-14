@@ -49,7 +49,7 @@ export function HomeDashboard({
   const [nuevaTarea, setNuevaTarea] = useState("");
   const [modoCalendario, setModoCalendario] = useState<ModoCalendario>("mes");
   const [panelAbierto, setPanelAbierto] = useState<"reloj" | "tareas" | null>(null);
-  const [vistaPersonal, setVistaPersonal] = useState<"compras" | "ejercicios" | "ingredientes" | "recetas" | "ropa" | "libros" | null>(null);
+  const [vistaPersonal, setVistaPersonal] = useState<"compras" | "ejercicios" | "ingredientes" | "recetas" | "ropa" | "libros" | "favoritos" | null>(null);
   const [busqueda, setBusqueda] = useState("");
 
   const favoritos = useMemo(
@@ -133,8 +133,12 @@ export function HomeDashboard({
             min-height: unset !important;
           }
           .hd-mes { min-height: 340px !important; }
+          .hd-notas-tags-grid {
+            display: flex !important;
+            flex-direction: column !important;
+          }
           .hd-side-panel { display: none !important; }
-          .hd-favoritos, .hd-recientes, .hd-tags {
+          .hd-recientes, .hd-tags {
             padding: 14px 16px !important;
           }
           .hd-notes-grid {
@@ -299,11 +303,11 @@ export function HomeDashboard({
         ══════════════════════════════════════════ */}
         <div className="hd-main-grid" style={{
           display: "grid",
-          gridTemplateColumns: "0.52fr 1.7fr 1fr 0.85fr",
+          gridTemplateColumns: "0.52fr 2.85fr",
           gridTemplateRows: "1fr 1fr",
           gridTemplateAreas: `
-            "personal mes favoritos tags"
-            "personal mes favoritos tags"
+            "personal mes"
+            "personal mes"
           `,
           gap: gap,
           background: divColor,
@@ -605,36 +609,6 @@ export function HomeDashboard({
 
           </div>
 
-          {/* ── Favoritos ── */}
-          <div className="hd-favoritos" style={{ gridArea: "favoritos", background: "var(--bg-main)", padding: "22px 22px", display: "flex", flexDirection: "column", overflow: "hidden", gridRow: "1 / -1" }}>
-            <SectionHeader
-              icon={<Star size={9} style={{ color: "color-mix(in srgb, var(--foreground) 25%, transparent)" }} />}
-              label="Favoritos"
-            />
-            {favoritos.length > 0 ? (
-              <div style={{ display: "flex", flexDirection: "column", gap: 1, overflowY: "auto", flex: 1 }}>
-                {favoritos.map((f, i) => (
-                  <MotionDiv key={f.id} initial={{ opacity: 0, x: -4 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.04 }}>
-                    <button
-                      onClick={() => onNavigate(f.titulo)}
-                      className="w-full text-left group flex items-center justify-between"
-                      style={{ padding: "8px 10px", borderRadius: 6, background: "transparent", border: "none", cursor: "pointer", transition: "background 0.1s" }}
-                      onMouseEnter={e => (e.currentTarget.style.background = "color-mix(in srgb, var(--foreground) 4%, transparent)")}
-                      onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
-                    >
-                      <span style={{ ...serif, fontSize: 13, color: "color-mix(in srgb, var(--foreground) 72%, transparent)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{f.titulo}</span>
-                      <ArrowRight size={8} style={{ color: "color-mix(in srgb, var(--foreground) 15%, transparent)", flexShrink: 0, marginLeft: 4, opacity: 0, transition: "opacity 0.1s" }} className="group-hover:opacity-100" />
-                    </button>
-                  </MotionDiv>
-                ))}
-              </div>
-            ) : (
-              <p style={{ ...mono, fontSize: 9, color: "color-mix(in srgb, var(--foreground) 15%, transparent)", lineHeight: 1.6 }}>
-                Agrega <span style={{ color: "color-mix(in srgb, var(--foreground) 30%, transparent)" }}>#favorito</span> a una nota.
-              </p>
-            )}
-          </div>
-
           {/* ── Personal — columna vertical span 2 rows ── */}
           <div className="hd-recientes" style={{ gridArea: "personal", gridRow: "1 / -1", background: "var(--bg-main)", padding: "18px 10px", display: "flex", flexDirection: "column", overflow: "hidden", gap: 4 }}>
             <span style={{ ...mono, fontSize: 7, color: "color-mix(in srgb, var(--foreground) 20%, transparent)", textTransform: "uppercase", letterSpacing: "0.14em", textAlign: "center", marginBottom: 8, flexShrink: 0 }}>
@@ -642,6 +616,7 @@ export function HomeDashboard({
             </span>
             <div style={{ display: "flex", flexDirection: "column", gap: 5, flex: 1, overflowY: "auto", scrollbarWidth: "none" }}>
               {([
+                { id: "favoritos",    label: "Favoritos",    icon: <Star size={14} /> },
                 { id: "compras",      label: "Compras",      icon: <ShoppingCart size={14} /> },
                 { id: "ejercicios",   label: "Ejercicios",   icon: <Dumbbell size={14} /> },
                 { id: "ingredientes", label: "Ingredientes", icon: <Package size={14} /> },
@@ -681,42 +656,6 @@ export function HomeDashboard({
                   </button>
                 </MotionDiv>
               ))}
-            </div>
-          </div>
-
-          {/* ── Tags — span 2 rows ── */}
-          <div className="hd-tags" style={{ gridArea: "tags", background: "var(--bg-main)", padding: "22px 22px", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-            <SectionHeader
-              icon={<Hash size={9} style={{ color: "color-mix(in srgb, var(--foreground) 25%, transparent)" }} />}
-              label={`Tags · ${todosLosTags.length}`}
-            />
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "4px", overflowY: "auto", alignContent: "flex-start", flex: 1 }}>
-              {todosLosTags.map((tag, i) => {
-                const count = ensayos.filter(e => e.tags?.includes(tag)).length;
-                return (
-                  <MotionDiv key={tag} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }}>
-                    <button
-                      onClick={() => onTagClick(tag)}
-                      style={{
-                        ...mono, fontSize: 9, padding: "3px 9px", borderRadius: 5,
-                        border: "1px solid color-mix(in srgb, var(--foreground) 8%, transparent)",
-                        background: "color-mix(in srgb, var(--foreground) 3%, transparent)",
-                        color: "color-mix(in srgb, var(--foreground) 40%, transparent)",
-                        cursor: "pointer", transition: "all 0.1s",
-                        display: "flex", alignItems: "center", gap: 3,
-                      }}
-                      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--foreground) 20%, transparent)"; (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--foreground) 70%, transparent)"; (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--foreground) 6%, transparent)"; }}
-                      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--foreground) 8%, transparent)"; (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--foreground) 40%, transparent)"; (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--foreground) 3%, transparent)"; }}
-                    >
-                      #{tag}
-                      <span style={{ fontSize: 7, color: "color-mix(in srgb, var(--foreground) 20%, transparent)" }}>{count}</span>
-                    </button>
-                  </MotionDiv>
-                );
-              })}
-              {todosLosTags.length === 0 && (
-                <p style={{ ...mono, fontSize: 9, color: "color-mix(in srgb, var(--foreground) 15%, transparent)" }}>Aún sin tags.</p>
-              )}
             </div>
           </div>
 
@@ -760,8 +699,8 @@ export function HomeDashboard({
           </div>
         </div>
 
-        {/* ── Todas las notas ── */}
-        <div style={{ borderRadius: 12, overflow: "hidden", background: divColor }}>
+        {/* ── Todas las notas + Tags ── */}
+        <div className="hd-notas-tags-grid" style={{ display: "grid", gridTemplateColumns: "1.7fr 1fr", gap: gap, borderRadius: 12, overflow: "hidden", background: divColor }}>
           <div style={{ background: "var(--bg-main)", padding: "26px 24px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 16 }}>
               <FileText size={9} style={{ color: "color-mix(in srgb, var(--foreground) 25%, transparent)" }} />
@@ -817,6 +756,43 @@ export function HomeDashboard({
               ))}
             </div>
           </div>
+
+          {/* ── Tags ── */}
+          <div className="hd-tags" style={{ background: "var(--bg-main)", padding: "26px 24px", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+            <SectionHeader
+              icon={<Hash size={9} style={{ color: "color-mix(in srgb, var(--foreground) 25%, transparent)" }} />}
+              label={`Tags · ${todosLosTags.length}`}
+            />
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "4px", overflowY: "auto", alignContent: "flex-start", flex: 1 }}>
+              {todosLosTags.map((tag, i) => {
+                const count = ensayos.filter(e => e.tags?.includes(tag)).length;
+                return (
+                  <MotionDiv key={tag} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }}>
+                    <button
+                      onClick={() => onTagClick(tag)}
+                      style={{
+                        ...mono, fontSize: 9, padding: "3px 9px", borderRadius: 5,
+                        border: "1px solid color-mix(in srgb, var(--foreground) 8%, transparent)",
+                        background: "color-mix(in srgb, var(--foreground) 3%, transparent)",
+                        color: "color-mix(in srgb, var(--foreground) 40%, transparent)",
+                        cursor: "pointer", transition: "all 0.1s",
+                        display: "flex", alignItems: "center", gap: 3,
+                      }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--foreground) 20%, transparent)"; (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--foreground) 70%, transparent)"; (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--foreground) 6%, transparent)"; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--foreground) 8%, transparent)"; (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--foreground) 40%, transparent)"; (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--foreground) 3%, transparent)"; }}
+                    >
+                      #{tag}
+                      <span style={{ fontSize: 7, color: "color-mix(in srgb, var(--foreground) 20%, transparent)" }}>{count}</span>
+                    </button>
+                  </MotionDiv>
+                );
+              })}
+              {todosLosTags.length === 0 && (
+                <p style={{ ...mono, fontSize: 9, color: "color-mix(in srgb, var(--foreground) 15%, transparent)" }}>Aún sin tags.</p>
+              )}
+            </div>
+          </div>
+
         </div>
 
       </div>
@@ -910,6 +886,32 @@ export function HomeDashboard({
                   onToggleEstado={onToggleEstado}
                   onCrearLibro={onCrearLibro}
                 />
+              )}
+              {vistaPersonal === "favoritos"     && (
+                <div style={{ padding: "16px 20px", maxWidth: 640, margin: "0 auto" }}>
+                  {favoritos.length > 0 ? (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                      {favoritos.map((f, i) => (
+                        <MotionDiv key={f.id} initial={{ opacity: 0, x: -4 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.03 }}>
+                          <button
+                            onClick={() => { onNavigate(f.titulo); setVistaPersonal(null); }}
+                            className="w-full text-left group flex items-center justify-between"
+                            style={{ padding: "10px 12px", borderRadius: 6, background: "transparent", border: "none", cursor: "pointer", transition: "background 0.1s" }}
+                            onMouseEnter={e => (e.currentTarget.style.background = "color-mix(in srgb, var(--foreground) 4%, transparent)")}
+                            onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+                          >
+                            <span style={{ ...serif, fontSize: 14, color: "color-mix(in srgb, var(--foreground) 72%, transparent)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{f.titulo}</span>
+                            <ArrowRight size={9} style={{ color: "color-mix(in srgb, var(--foreground) 15%, transparent)", flexShrink: 0, marginLeft: 4, opacity: 0, transition: "opacity 0.1s" }} className="group-hover:opacity-100" />
+                          </button>
+                        </MotionDiv>
+                      ))}
+                    </div>
+                  ) : (
+                    <p style={{ ...mono, fontSize: 10, color: "color-mix(in srgb, var(--foreground) 15%, transparent)", lineHeight: 1.6, padding: "10px 12px" }}>
+                      Agrega <span style={{ color: "color-mix(in srgb, var(--foreground) 30%, transparent)" }}>#favorito</span> a una nota para verla aquí.
+                    </p>
+                  )}
+                </div>
               )}
             </div>
           </MotionDiv>
