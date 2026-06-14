@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import {
   Sparkles, Star, Globe, Save, Loader2, Bug,
   ScrollText, Map, FileText, Users, UserCircle2, Package,
-  Crown, Clock, Filter, Layers, BookOpen, Music, MapPin,
+  Crown, Clock, Filter, Layers, BookOpen, Music, MapPin, Plus, X, Check, Trash2,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
@@ -574,6 +574,120 @@ function EventoMundoRow({
   );
 }
 
+// ── Modal: crear nuevo evento de línea de tiempo (mundo o reino) ─────────────
+function ModalNuevoEvento({
+  reinos, onClose, onCrear, creando,
+}: {
+  reinos: { id: string; nombre: string }[];
+  onClose: () => void;
+  onCrear: (datos: { titulo: string; reinoId: string | null; dia_absoluto: number }) => void;
+  creando: boolean;
+}) {
+  const [titulo, setTitulo] = useState("");
+  const [reinoId, setReinoId] = useState<string | null>(null);
+  const [diaAbsoluto, setDiaAbsoluto] = useState<number | null>(null);
+
+  const puedeCrear = titulo.trim().length > 0 && diaAbsoluto != null;
+
+  return (
+    <div className="fixed inset-0 z-[1100] flex items-center justify-center p-3"
+      style={{ background: "color-mix(in srgb, black 45%, transparent)" }}
+      onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="w-full max-w-sm rounded-2xl border shadow-lg p-4 space-y-3"
+        style={{ background: "var(--bg-main)", borderColor: "color-mix(in srgb, var(--primary) 14%, transparent)" }}>
+
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: "var(--primary)" }}>
+            Nuevo evento
+          </span>
+          <button type="button" onClick={onClose}
+            className="flex items-center justify-center w-6 h-6 rounded-lg border transition-all"
+            style={{ borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)", color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>
+            <X size={10} />
+          </button>
+        </div>
+
+        {/* Título */}
+        <div className="space-y-1">
+          <label className="text-[8px] font-black uppercase tracking-[0.18em] text-primary/35">Título</label>
+          <input
+            type="text"
+            value={titulo}
+            onChange={e => setTitulo(e.target.value)}
+            placeholder="Título del evento…"
+            autoFocus
+            className="w-full rounded-lg border px-2.5 py-1.5 text-[11px] font-bold outline-none transition-all"
+            style={{
+              background: "transparent",
+              borderColor: "color-mix(in srgb, var(--primary) 14%, transparent)",
+              color: "var(--primary)",
+            }}
+          />
+        </div>
+
+        {/* Selector de reino */}
+        <div className="space-y-1">
+          <label className="text-[8px] font-black uppercase tracking-[0.18em] text-primary/35">Reino</label>
+          <div className="flex flex-wrap gap-1">
+            <button type="button" onClick={() => setReinoId(null)}
+              className="px-2.5 py-1 rounded-lg border text-[9px] font-black uppercase tracking-widest transition-all"
+              style={reinoId === null ? {
+                background: "color-mix(in srgb, var(--accent) 15%, transparent)",
+                borderColor: "color-mix(in srgb, var(--accent) 35%, transparent)",
+                color: "var(--accent)",
+              } : {
+                borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
+                color: "color-mix(in srgb, var(--primary) 45%, transparent)",
+              }}>
+              Mundo (sin reino)
+            </button>
+            {reinos.map(r => (
+              <button key={r.id} type="button" onClick={() => setReinoId(r.id)}
+                className="px-2.5 py-1 rounded-lg border text-[9px] font-black uppercase tracking-widest transition-all"
+                style={reinoId === r.id ? {
+                  background: "color-mix(in srgb, var(--accent) 15%, transparent)",
+                  borderColor: "color-mix(in srgb, var(--accent) 35%, transparent)",
+                  color: "var(--accent)",
+                } : {
+                  borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
+                  color: "color-mix(in srgb, var(--primary) 45%, transparent)",
+                }}>
+                {r.nombre}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Selector de fecha */}
+        <div className="space-y-1">
+          <label className="text-[8px] font-black uppercase tracking-[0.18em] text-primary/35">Fecha</label>
+          <SelectorFechaMundo value={diaAbsoluto} onChange={setDiaAbsoluto} placeholder="Elegir fecha…" />
+        </div>
+
+        {/* Acciones */}
+        <div className="flex gap-1.5 pt-1">
+          <button type="button" onClick={onClose}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-[8px] font-black uppercase tracking-widest transition-all"
+            style={{ borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)", color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
+            Cancelar
+          </button>
+          <button type="button"
+            disabled={!puedeCrear || creando}
+            onClick={() => { if (puedeCrear) onCrear({ titulo: titulo.trim(), reinoId, dia_absoluto: diaAbsoluto! }); }}
+            className="flex-1 flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all"
+            style={{
+              background: puedeCrear ? "var(--accent)" : "color-mix(in srgb, var(--primary) 12%, transparent)",
+              color: puedeCrear ? "white" : "color-mix(in srgb, var(--primary) 35%, transparent)",
+              cursor: puedeCrear ? "pointer" : "default",
+            }}>
+            {creando ? <Loader2 size={9} className="animate-spin" /> : <Check size={9} />} Crear
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Tarjeta horizontal de evento (mundo O reino) — solo visualización ────────
 // ─── Tipo para capítulos con posición en línea de tiempo ─────────────────────
 type CapTimeline = {
@@ -653,6 +767,168 @@ function useReinosConHistoria() {
   }, [cargar]);
 
   return { reinos, setReinos, loading, recargar: () => cargar(true) };
+}
+
+// ─── Eras: helpers y modal CRUD ──────────────────────────────────────────────
+const COLORES_ERA_PRESET = [
+  "#6366f1","#8b5cf6","#ec4899","#f59e0b",
+  "#10b981","#06b6d4","#f97316","#ef4444","#84cc16","#64748b",
+];
+const LS_KEY_CAL = "garlia-calendario-cache-v2";
+function invalidarCacheEras() { try { localStorage.removeItem(LS_KEY_CAL); } catch {} }
+
+type EraFormData = { nombre:string; descripcion:string; anio_inicio:string; anio_fin:string; color:string; };
+const ERA_FORM_VACIO: EraFormData = { nombre:"", descripcion:"", anio_inicio:"0", anio_fin:"", color: COLORES_ERA_PRESET[0] };
+
+function ModalEra({
+  era, onClose, onSaved, onDeleted,
+}: {
+  era: any | null;
+  onClose: () => void;
+  onSaved: (era: any) => void;
+  onDeleted?: (id: string) => void;
+}) {
+  const [form, setForm] = useState<EraFormData>(
+    era ? { nombre: era.nombre ?? "", descripcion: era.descripcion ?? "", anio_inicio: String(era.anio_inicio ?? 0), anio_fin: era.anio_fin != null ? String(era.anio_fin) : "", color: era.color ?? COLORES_ERA_PRESET[0] }
+        : ERA_FORM_VACIO
+  );
+  const [saving, setSaving] = useState(false);
+  const [confirmDel, setConfirmDel] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const upd = (p: Partial<EraFormData>) => setForm(f => ({ ...f, ...p }));
+
+  const guardar = async () => {
+    if (!form.nombre.trim()) return;
+    setSaving(true); setError(null);
+    const payload: any = { nombre: form.nombre.trim(), descripcion: form.descripcion.trim() || null, anio_inicio: parseInt(form.anio_inicio, 10) || 0, anio_fin: form.anio_fin.trim() !== "" ? parseInt(form.anio_fin, 10) : null, color: form.color };
+    try {
+      if (era?.id) {
+        const { data, error: err } = await (supabase as any).from("eras_mundo").update(payload).eq("id", era.id).select().single();
+        if (err) throw err; invalidarCacheEras(); onSaved(data);
+      } else {
+        const { data, error: err } = await (supabase as any).from("eras_mundo").insert(payload).select().single();
+        if (err) throw err; invalidarCacheEras(); onSaved(data);
+      }
+    } catch(e: any) { setError(e?.message ?? "Error al guardar"); setSaving(false); }
+  };
+
+  const borrar = async () => {
+    if (!era?.id) return;
+    setSaving(true); setError(null);
+    try {
+      const { error: err } = await (supabase as any).from("eras_mundo").delete().eq("id", era.id);
+      if (err) throw err; invalidarCacheEras(); onDeleted?.(era.id);
+    } catch(e: any) { setError(e?.message ?? "Error al borrar"); setSaving(false); }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[1200] flex items-center justify-center p-4"
+      style={{ background: "color-mix(in srgb, black 55%, transparent)" }}
+      onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="w-full max-w-sm rounded-2xl border shadow-2xl p-4 space-y-3"
+        style={{ background: "var(--bg-main)", borderColor: "color-mix(in srgb, var(--primary) 14%, transparent)" }}>
+
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <span className="text-[11px] font-black uppercase tracking-[0.2em]" style={{ color: "var(--primary)" }}>
+              {era ? "Editar era" : "Nueva era"}
+            </span>
+            {era && <div className="flex items-center gap-1 mt-0.5"><div className="w-2 h-2 rounded-full" style={{ background: era.color ?? "var(--accent)" }}/><span className="text-[9px] font-bold" style={{ color: era.color ?? "var(--accent)" }}>{era.nombre}</span></div>}
+          </div>
+          <button type="button" onClick={onClose} className="flex items-center justify-center w-6 h-6 rounded-lg border" style={{ borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)", color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}><X size={10}/></button>
+        </div>
+
+        {error && <div className="px-3 py-2 rounded-lg text-[9px] font-bold" style={{ background:"#ef444415", color:"#ef4444", border:"1px solid #ef444428" }}>{error}</div>}
+
+        {/* Nombre */}
+        <div className="space-y-1">
+          <label className="text-[8px] font-black uppercase tracking-[0.18em] text-primary/35">Nombre</label>
+          <input type="text" value={form.nombre} onChange={e => upd({ nombre: e.target.value })} placeholder="ej. Prehistoria, Edad de Hierro…" autoFocus
+            className="w-full rounded-lg border px-2.5 py-1.5 text-[11px] font-bold outline-none"
+            style={{ background:"transparent", borderColor:"color-mix(in srgb, var(--primary) 14%, transparent)", color:"var(--primary)" }}/>
+        </div>
+
+        {/* Descripción */}
+        <div className="space-y-1">
+          <label className="text-[8px] font-black uppercase tracking-[0.18em] text-primary/35">Descripción (opcional)</label>
+          <textarea value={form.descripcion} onChange={e => upd({ descripcion: e.target.value })} rows={2} placeholder="Breve descripción…"
+            className="w-full rounded-lg border px-2.5 py-1.5 text-[10px] outline-none resize-none"
+            style={{ background:"transparent", borderColor:"color-mix(in srgb, var(--primary) 14%, transparent)", color:"var(--primary)" }}/>
+        </div>
+
+        {/* Años */}
+        <div className="grid grid-cols-2 gap-2">
+          {(["anio_inicio","anio_fin"] as const).map((k,i) => (
+            <div key={k} className="space-y-1">
+              <label className="text-[8px] font-black uppercase tracking-[0.18em] text-primary/35">{i===0?"Año inicio":"Año fin (vacío = sin fin)"}</label>
+              <input type="number" value={form[k]} onChange={e => upd({ [k]: e.target.value })} placeholder={i===0?"0":"—"}
+                className="w-full rounded-lg border px-2.5 py-1.5 text-[11px] font-bold outline-none text-center"
+                style={{ background:"transparent", borderColor:"color-mix(in srgb, var(--primary) 14%, transparent)", color:"var(--primary)" }}/>
+            </div>
+          ))}
+        </div>
+
+        {/* Color */}
+        <div className="space-y-1.5">
+          <label className="text-[8px] font-black uppercase tracking-[0.18em] text-primary/35">Color</label>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {COLORES_ERA_PRESET.map(c => (
+              <button key={c} type="button" onClick={() => upd({ color: c })}
+                className="w-5 h-5 rounded-full transition-transform hover:scale-110"
+                style={{ background: c, outline: form.color===c ? `2px solid ${c}` : "none", outlineOffset: 2 }}/>
+            ))}
+            <label className="flex items-center gap-1 cursor-pointer">
+              <input type="color" value={form.color} onChange={e => upd({ color: e.target.value })} className="w-5 h-5 cursor-pointer border-0 p-0 rounded" style={{ background:"transparent" }}/>
+              <span className="text-[8px] text-primary/40 font-bold">Otro</span>
+            </label>
+          </div>
+          {/* Preview badge */}
+          <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg w-fit" style={{ background:`${form.color}18` }}>
+            <div className="w-2 h-2 rounded-full shrink-0" style={{ background: form.color }}/>
+            <span className="text-[8px] font-black uppercase tracking-widest" style={{ color: form.color }}>{form.nombre || "Nombre de la era"}</span>
+            {form.anio_fin && <span className="text-[7px] text-primary/30 ml-1">{form.anio_inicio} – {form.anio_fin}</span>}
+          </div>
+        </div>
+
+        {/* Acciones */}
+        <div className="flex gap-1.5 pt-1">
+          {era && !confirmDel && (
+            <button type="button" onClick={() => setConfirmDel(true)} disabled={saving}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-[8px] font-black uppercase tracking-widest"
+              style={{ borderColor:"#ef444425", color:"#ef4444aa" }}>
+              <Trash2 size={9}/> Borrar
+            </button>
+          )}
+          {confirmDel && <>
+            <button type="button" onClick={borrar} disabled={saving}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest"
+              style={{ background:"#ef444420", color:"#ef4444" }}>
+              {saving ? <Loader2 size={9} className="animate-spin"/> : <Check size={9}/>} Confirmar
+            </button>
+            <button type="button" onClick={() => setConfirmDel(false)}
+              className="px-2.5 py-1.5 rounded-lg border text-[8px] font-black uppercase tracking-widest"
+              style={{ borderColor:"color-mix(in srgb, var(--primary) 12%, transparent)", color:"color-mix(in srgb, var(--primary) 40%, transparent)" }}>
+              Cancelar
+            </button>
+          </>}
+          {!confirmDel && <>
+            <button type="button" onClick={onClose} disabled={saving}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-[8px] font-black uppercase tracking-widest"
+              style={{ borderColor:"color-mix(in srgb, var(--primary) 12%, transparent)", color:"color-mix(in srgb, var(--primary) 40%, transparent)" }}>
+              <X size={9}/> Cancelar
+            </button>
+            <button type="button" onClick={guardar} disabled={saving || !form.nombre.trim()}
+              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest disabled:opacity-40"
+              style={{ background:"var(--accent)", color:"white" }}>
+              {saving ? <Loader2 size={9} className="animate-spin"/> : <Check size={9}/>}
+              {era ? "Guardar cambios" : "Crear era"}
+            </button>
+          </>}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // ── Panel principal — vista y edición unificadas, ambas pistas editables ──────
@@ -914,6 +1190,50 @@ function PanelHistoriaMundo({
   const [filterReino, setFilterReino] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [diaOverrides, setDiaOverrides] = useState<Record<string, number>>({});
+  const [showNuevoEvento, setShowNuevoEvento] = useState(false);
+  const [creandoEvento, setCreandoEvento] = useState(false);
+  const [erasLocal, setErasLocal] = useState<any[]>([]);
+  const [eraModal, setEraModal] = useState<null | "new" | any>(null);
+
+  // Sincronizar erasLocal con cal.eras cuando el hook carga
+  useEffect(() => { if (cal?.eras?.length) setErasLocal(cal.eras); }, [cal?.eras]);
+
+  const handleCrearEvento = useCallback(async (datos: { titulo: string; reinoId: string | null; dia_absoluto: number }) => {
+    setCreandoEvento(true);
+    try {
+      const reinoNombre = datos.reinoId ? (reinos.find(r => r.id === datos.reinoId)?.nombre ?? null) : null;
+      const { data, error } = await supabase
+        .from("eventos_mundo")
+        .insert([{
+          titulo: datos.titulo || "Sin título",
+          descripcion: "",
+          dia_absoluto: datos.dia_absoluto,
+          reino_id: datos.reinoId,
+          source: datos.reinoId ? "reino" : "mundo",
+        }] as any)
+        .select("id, titulo, descripcion, dia_absoluto, reino_id, source")
+        .single();
+      if (error || !data) return;
+      const nuevo = {
+        id: (data as any).id,
+        titulo: (data as any).titulo ?? "Sin título",
+        descripcion: (data as any).descripcion ?? "",
+        dia_absoluto: (data as any).dia_absoluto,
+        reinoId: (data as any).reino_id ?? null,
+        reinoNombre,
+        source: (data as any).source ?? "mundo",
+      };
+      setEventosMundo(prev => [...prev, nuevo]);
+      try {
+        if (db && (db as any).eventos_mundo) {
+          await (db as any).eventos_mundo.put({ ...data });
+        }
+      } catch {}
+      setShowNuevoEvento(false);
+    } finally {
+      setCreandoEvento(false);
+    }
+  }, [reinos]);
 
   const handleDiaChange = (id: string, dia: number) => {
     setDiaOverrides(prev => ({ ...prev, [id]: dia }));
@@ -1074,6 +1394,35 @@ function PanelHistoriaMundo({
 
         <div className="ml-auto flex items-center gap-2">
           <SaveIndicator status={saveStatus} />
+          {/* Botón nueva era */}
+          <button
+            type="button"
+            onClick={() => setEraModal("new")}
+            title="Crear nueva era"
+            className="flex items-center gap-1 px-2 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-widest border transition-all"
+            style={{
+              borderColor: "color-mix(in srgb, var(--primary) 18%, transparent)",
+              color: "color-mix(in srgb, var(--primary) 50%, transparent)",
+            }}
+            onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.background = "color-mix(in srgb, var(--primary) 5%, transparent)"; el.style.color = "var(--primary)"; }}
+            onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.background = "transparent"; el.style.color = "color-mix(in srgb, var(--primary) 50%, transparent)"; }}
+          >
+            <Clock size={9} /> Era
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowNuevoEvento(true)}
+            title="Añadir evento"
+            className="flex items-center gap-1 px-2 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-widest border transition-all"
+            style={{
+              borderColor: "color-mix(in srgb, var(--accent) 25%, transparent)",
+              color: "var(--accent)",
+            }}
+            onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.background = "color-mix(in srgb, var(--accent) 8%, transparent)"; }}
+            onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.background = "transparent"; }}
+          >
+            <Plus size={9} /> Evento
+          </button>
           <button
             type="button"
             onClick={() => {
@@ -1096,6 +1445,36 @@ function PanelHistoriaMundo({
         </div>
       </div>
 
+      {/* Modal: nuevo evento */}
+      {showNuevoEvento && (
+        <ModalNuevoEvento
+          reinos={reinos}
+          onClose={() => setShowNuevoEvento(false)}
+          onCrear={handleCrearEvento}
+          creando={creandoEvento}
+        />
+      )}
+
+      {/* Modal: crear/editar era */}
+      {eraModal && (
+        <ModalEra
+          era={eraModal === "new" ? null : eraModal}
+          onClose={() => setEraModal(null)}
+          onSaved={(eraGuardada) => {
+            setErasLocal(prev => {
+              const idx = prev.findIndex((e: any) => e.id === eraGuardada.id);
+              if (idx >= 0) { const next = [...prev]; next[idx] = eraGuardada; return next; }
+              return [...prev, eraGuardada].sort((a: any, b: any) => a.anio_inicio - b.anio_inicio);
+            });
+            setEraModal(null);
+          }}
+          onDeleted={(id) => {
+            setErasLocal(prev => prev.filter((e: any) => e.id !== id));
+            setEraModal(null);
+          }}
+        />
+      )}
+
       {/* ── Pista única: acontecimientos + capítulos en un solo scroll ──────── */}
       <div className="px-3 py-3">
         {loadingReinos ? (
@@ -1107,26 +1486,44 @@ function PanelHistoriaMundo({
             style={{ scrollbarWidth: "thin", scrollbarColor: "color-mix(in srgb, var(--primary) 15%, transparent) transparent" }}>
             <div className="relative flex items-start" style={{ minWidth: "max-content", paddingLeft: 8, paddingRight: 8 }}>
 
-              {/* ── Franjas de eras del mundo ─────────────────────────── */}
-              {cal && cal.eras.length > 0 && allEvents.length > 0 && (() => {
+              {/* ── Franjas de eras del mundo (clickeables para editar) ── */}
+              {allEvents.length > 0 && (() => {
+                const erasMostrar = erasLocal.length > 0 ? erasLocal : (cal?.eras ?? []);
+                if (!erasMostrar.length) return null;
                 const CARD_W = 232;
                 const minDia = allEvents[0]?.yearNum ?? 0;
                 const maxDia = allEvents[allEvents.length - 1]?.yearNum ?? 0;
                 const totalDias = maxDia - minDia || 1;
                 const totalPx = allEvents.length * CARD_W;
-                return cal.eras.map(era => {
+                return erasMostrar.map((era: any) => {
                   const eraInicio = Math.max(era.anio_inicio * 500, minDia);
                   const eraFin = era.anio_fin != null ? Math.min(era.anio_fin * 500 + 499, maxDia) : maxDia;
                   if (eraFin < minDia || eraInicio > maxDia) return null;
                   const left = ((eraInicio - minDia) / totalDias) * totalPx;
-                  const width = ((eraFin - eraInicio) / totalDias) * totalPx;
+                  const width = Math.max(((eraFin - eraInicio) / totalDias) * totalPx, 48);
                   return (
-                    <div key={era.id} className="absolute top-0 bottom-0 pointer-events-none"
-                      style={{ left, width, background: era.color ? `${era.color}10` : "transparent", borderLeft: era.color ? `1px solid ${era.color}30` : "none" }}>
-                      <span className="absolute top-1 left-1.5 text-[7px] font-black uppercase tracking-widest whitespace-nowrap"
-                        style={{ color: era.color ?? "var(--primary)", opacity: 0.5 }}>
-                        {era.nombre}
-                      </span>
+                    <div key={era.id}
+                      className="absolute top-0 bottom-0 group/era cursor-pointer transition-all"
+                      style={{ left, width, background: era.color ? `${era.color}0e` : "transparent", borderLeft: era.color ? `2px solid ${era.color}45` : "none" }}
+                      onClick={() => setEraModal(era)}
+                      title={`Editar era: ${era.nombre}`}>
+                      {/* Overlay hover */}
+                      <div className="absolute inset-0 opacity-0 group-hover/era:opacity-100 transition-opacity"
+                        style={{ background: era.color ? `${era.color}0b` : "transparent" }}/>
+                      {/* Línea superior de color */}
+                      <div className="absolute top-0 left-0 right-0 h-0.5 opacity-50"
+                        style={{ background: era.color ?? "var(--accent)" }}/>
+                      {/* Etiqueta con icono de edición al hover */}
+                      <div className="absolute top-1.5 left-2 flex items-center gap-1">
+                        <span className="text-[7px] font-black uppercase tracking-widest whitespace-nowrap transition-opacity opacity-50 group-hover/era:opacity-90"
+                          style={{ color: era.color ?? "var(--primary)" }}>
+                          {era.nombre}
+                        </span>
+                        <svg className="opacity-0 group-hover/era:opacity-60 transition-opacity shrink-0" width="7" height="7" viewBox="0 0 24 24" fill="none" stroke={era.color ?? "var(--primary)"} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                        </svg>
+                      </div>
                     </div>
                   );
                 });
