@@ -304,7 +304,7 @@ export function HomeDashboard({
         ══════════════════════════════════════════ */}
         <div className="hd-main-grid" style={{
           display: "grid",
-          gridTemplateColumns: "0.52fr 2.85fr",
+          gridTemplateColumns: "0.36fr 3.01fr",
           gridTemplateRows: "1fr 1fr",
           gridTemplateAreas: `
             "personal mes"
@@ -681,19 +681,19 @@ export function HomeDashboard({
           </div>
 
           {/* ── Personal — columna vertical span 2 rows ── */}
-          <div className="hd-recientes" style={{ gridArea: "personal", gridRow: "1 / -1", background: "var(--bg-main)", padding: "18px 10px", display: "flex", flexDirection: "column", overflow: "hidden", gap: 4 }}>
+          <div className="hd-recientes" style={{ gridArea: "personal", gridRow: "1 / -1", background: "var(--bg-main)", padding: "18px 6px", display: "flex", flexDirection: "column", overflow: "hidden", gap: 4 }}>
             <span style={{ ...mono, fontSize: 7, color: "color-mix(in srgb, var(--foreground) 20%, transparent)", textTransform: "uppercase", letterSpacing: "0.14em", textAlign: "center", marginBottom: 8, flexShrink: 0 }}>
               Apps
             </span>
-            <div style={{ display: "flex", flexDirection: "column", gap: 5, flex: 1, overflowY: "auto", scrollbarWidth: "none" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1, overflowY: "auto", scrollbarWidth: "none" }}>
               {([
-                { id: "favoritos",    label: "Favoritos",    icon: <Star size={14} /> },
-                { id: "compras",      label: "Compras",      icon: <ShoppingCart size={14} /> },
-                { id: "ejercicios",   label: "Ejercicios",   icon: <Dumbbell size={14} /> },
-                { id: "ingredientes", label: "Ingredientes", icon: <Package size={14} /> },
-                { id: "recetas",      label: "Recetas",      icon: <UtensilsCrossed size={14} /> },
-                { id: "ropa",         label: "Ropa",         icon: <Shirt size={14} /> },
-                { id: "libros",       label: "Biblioteca",   icon: <Library size={14} /> },
+                { id: "favoritos",    label: "Favoritos",    icon: <Star size={13} /> },
+                { id: "compras",      label: "Compras",      icon: <ShoppingCart size={13} /> },
+                { id: "ejercicios",   label: "Ejercicios",   icon: <Dumbbell size={13} /> },
+                { id: "ingredientes", label: "Ingredientes", icon: <Package size={13} /> },
+                { id: "recetas",      label: "Recetas",      icon: <UtensilsCrossed size={13} /> },
+                { id: "ropa",         label: "Ropa",         icon: <Shirt size={13} /> },
+                { id: "libros",       label: "Biblioteca",   icon: <Library size={13} /> },
               ] as const).map(({ id, label, icon }) => {
                 const activo = id === "libros" ? vistaPersonal === "libros" : panelAbierto === id;
                 return (
@@ -706,7 +706,7 @@ export function HomeDashboard({
                     }
                     title={label}
                     style={{
-                      width: "100%", padding: "10px 8px", borderRadius: 8,
+                      width: "100%", padding: "8px 4px", borderRadius: 7,
                       border: activo
                         ? "1px solid color-mix(in srgb, var(--foreground) 22%, transparent)"
                         : "1px solid color-mix(in srgb, var(--foreground) 7%, transparent)",
@@ -714,7 +714,7 @@ export function HomeDashboard({
                         ? "color-mix(in srgb, var(--foreground) 8%, transparent)"
                         : "color-mix(in srgb, var(--foreground) 3%, transparent)",
                       cursor: "pointer", display: "flex", flexDirection: "column",
-                      alignItems: "center", justifyContent: "center", gap: 5,
+                      alignItems: "center", justifyContent: "center", gap: 4,
                       transition: "all 0.12s",
                       color: activo
                         ? "color-mix(in srgb, var(--foreground) 80%, transparent)"
@@ -736,7 +736,7 @@ export function HomeDashboard({
                     }}
                   >
                     {icon}
-                    <span style={{ ...mono, fontSize: 7, textTransform: "uppercase", letterSpacing: "0.07em", lineHeight: 1.2, textAlign: "center" }}>{label}</span>
+                    <span style={{ ...mono, fontSize: 6.5, textTransform: "uppercase", letterSpacing: "0.05em", lineHeight: 1.2, textAlign: "center" }}>{label}</span>
                   </button>
                 </MotionDiv>
               );})}
