@@ -342,6 +342,7 @@ function TagSelector({
   mono,
   onOpenLibrosDashboard,
   onTagClick,
+  tituloPropio,
 }: {
   tags: string[];
   allTags: string[];
@@ -350,11 +351,13 @@ function TagSelector({
   mono: React.CSSProperties;
   onOpenLibrosDashboard?: () => void;
   onTagClick?: (t: string) => void;
+  tituloPropio?: string;
 }) {
   const [input, setInput] = useState("");
   const [focused, setFocused] = useState(false);
 
-  const coTags = getCoTags(tags);
+  const tituloNorm = tituloPropio?.trim().toLowerCase();
+  const coTags = getCoTags(tags).filter(t => t.toLowerCase() !== tituloNorm);
 
   const suggestions = useMemo(() => {
     if (!input.trim()) return [];
@@ -1420,6 +1423,7 @@ export function LibroPanel({ ensayo, ensayos, onUpdateField, onOpenLibrosDashboa
         mono={mono}
         onOpenLibrosDashboard={onOpenLibrosDashboard}
         onTagClick={onTagClick}
+        tituloPropio={ensayo.titulo}
       />
 
       {/* ── Sección: Palabras nuevas ── */}

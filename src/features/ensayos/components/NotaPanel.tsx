@@ -175,6 +175,11 @@ function SeccionContexto({
 
   const tags: string[] = ensayo.tags ?? [];
 
+  const tagsVisibles = useMemo(() => {
+    const titulo = ensayo.titulo?.trim().toLowerCase();
+    return tags.filter(t => t.toLowerCase() !== titulo);
+  }, [tags, ensayo.titulo]);
+
   const allTags = useMemo(() => {
     const set = new Set<string>();
     ensayos.forEach((e: any) => e.tags?.forEach((t: string) => set.add(t)));
@@ -227,15 +232,15 @@ function SeccionContexto({
       <div style={labelStyle}>
         <Tag size={7} strokeWidth={1.8} />
         etiquetas
-        {tags.length > 0 && (
+        {tagsVisibles.length > 0 && (
           <span style={{ ...mono, fontSize: 7, marginLeft: "auto", color: "color-mix(in srgb, var(--foreground) 22%, transparent)" }}>
-            {tags.length}
+            {tagsVisibles.length}
           </span>
         )}
       </div>
 
       <div style={{ padding: "0 12px", display: "flex", flexDirection: "column", gap: 1 }}>
-        {tags.map(t => (
+        {tagsVisibles.map(t => (
           <div
             key={t}
             style={{
@@ -461,6 +466,10 @@ export function NotaPanel({
   const mono: React.CSSProperties = { fontFamily: "var(--font-mono)" };
 
   const tags: string[] = ensayo.tags ?? [];
+  const tagsVisiblesCount = useMemo(() => {
+    const titulo = ensayo.titulo?.trim().toLowerCase();
+    return tags.filter(t => t.toLowerCase() !== titulo).length;
+  }, [tags, ensayo.titulo]);
 
   const backlinksCount = useMemo(() => {
     const titulo = ensayo.titulo?.trim().toLowerCase();
@@ -472,7 +481,7 @@ export function NotaPanel({
     }).length;
   }, [ensayos, ensayo.id, ensayo.titulo]);
 
-  const contextoCount = tags.length + backlinksCount;
+  const contextoCount = tagsVisiblesCount + backlinksCount;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
