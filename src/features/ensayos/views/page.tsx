@@ -586,6 +586,26 @@ export default function Ensayos() {
     finally { setIsAddingEvento(false); }
   };
 
+  const handleUpdateEvento = async (id: string, datos: { titulo?: string; tipo?: string; fecha?: string }) => {
+    try {
+      const actualizado = await eventosQueries.update(id, datos);
+      setEventos((prev: any[]) =>
+        prev.map(e => e.id === id ? { ...e, ...(actualizado ?? datos) } : e)
+      );
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteEvento = async (id: string) => {
+    try {
+      await eventosQueries.delete(id);
+      setEventos((prev: any[]) => prev.filter(e => e.id !== id));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const handleEnsayoClick = (id: string) => {
     setEnsayoActivo(id);
   };
@@ -994,6 +1014,8 @@ export default function Ensayos() {
                   horario={horarioRaw ?? []}
                   isAddingEvento={isAddingEvento}
                   onAddEvento={handleAddEvento}
+                  onUpdateEvento={handleUpdateEvento}
+                  onDeleteEvento={handleDeleteEvento}
                   onToggleEstado={(libroId, estado, add) => {
                     const libro = ensayos.find((e: any) => e.id === libroId);
                     if (!libro) return;
