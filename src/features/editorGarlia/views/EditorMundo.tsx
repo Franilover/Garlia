@@ -352,8 +352,9 @@ function useGruposTodos() {
 
 type TimelineEvent = {
   id: string;
-  titulo: string;
-  descripcion: string;
+  year: string;
+  title: string;
+  description: string;
   dia_absoluto?: number;
   reinoId?: string | null;
   reinoNombre?: string | null;
