@@ -963,7 +963,7 @@ export function PanelHistoriaMundo({
   const [capsReinosIds, setCapsReinosIds] = useState<Record<string, string[]>>({});
 
   // ── Canciones con posición en línea de tiempo ─────────────────────────────
-  const [cancionesTimeline, setCancionesTimeline] = useState<{ id: string; titulo: string; cantante?: string | null; reinoNombre?: string | null; dia_absoluto?: number; orden_linea_tiempo?: number }[]>([]);
+  const [cancionesTimeline, setCancionesTimeline] = useState<{ id: string; titulo: string; cantante?: string | null; reinoId?: string | null; reinoNombre?: string | null; dia_absoluto?: number; orden_linea_tiempo?: number }[]>([]);
 
   // ── Eventos de mundo/reino (tabla eventos_mundo, sistema nuevo) ───────────
   const [eventosMundo, setEventosMundo] = useState<{ id: string; titulo: string; descripcion: string; dia_absoluto: number; reinoId?: string | null; reinoNombre?: string | null; source: string }[]>([]);
@@ -1041,6 +1041,7 @@ export function PanelHistoriaMundo({
             setCancionesTimeline(conDia.map(c => ({
               id: c.id, titulo: c.titulo ?? "Sin título",
               cantante: c.cantante ?? null,
+              reinoId: c.reino_id ?? null,
               reinoNombre: c.reino_id ? (reinoMap[c.reino_id] ?? null) : null,
               dia_absoluto: c.dia_absoluto,
             })));
@@ -1060,6 +1061,7 @@ export function PanelHistoriaMundo({
           return {
             id: c.id, titulo: c.titulo ?? "Sin título",
             cantante: c.cantante ?? null,
+            reinoId: c.reino_id ?? null,
             reinoNombre: reino?.nombre ?? null,
             dia_absoluto: c.dia_absoluto ?? undefined,
             orden_linea_tiempo: c.orden_linea_tiempo ?? undefined,
@@ -1305,6 +1307,7 @@ export function PanelHistoriaMundo({
     // Solo se usa el sistema nuevo: capítulos y canciones con dia_absoluto.
     // Capítulos — solo los que tienen dia_absoluto
     for (const cap of capsTimeline) {
+      if (filterReino && !(cap.reinos_ids ?? []).includes(filterReino)) continue;
       const dia = diaOverrides[cap.id] ?? cap.dia_absoluto;
       if (dia == null) continue; // sin fecha del calendario → no aparece
       list.push({
@@ -1337,6 +1340,7 @@ export function PanelHistoriaMundo({
     }
     // Canciones — solo las que tienen dia_absoluto
     for (const c of cancionesTimeline) {
+      if (filterReino && c.reinoId !== filterReino) continue;
       const dia = diaOverrides[c.id] ?? c.dia_absoluto;
       if (dia == null) continue; // sin fecha del calendario → no aparece
       list.push({
