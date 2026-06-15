@@ -1501,16 +1501,35 @@ export function PanelHistoriaMundo({
                 const erasMostrar = erasLocal.length > 0 ? erasLocal : (cal?.eras ?? []);
                 if (!erasMostrar.length) return null;
                 const CARD_W = 232;
-                const minDia = allEvents[0]?.yearNum ?? 0;
-                const maxDia = allEvents[allEvents.length - 1]?.yearNum ?? 0;
-                const totalDias = maxDia - minDia || 1;
-                const totalPx = allEvents.length * CARD_W;
+
+                // Días totales por año según el calendario real (suma de días de estaciones).
+                // Fallback 365 si el calendario todavía no cargó.
+                const diasAnio = cal?.estaciones?.reduce((s: number, e: any) => s + (e.dias ?? 0), 0) || 365;
+
                 return erasMostrar.map((era: any) => {
-                  const eraInicio = Math.max(era.anio_inicio * 500, minDia);
-                  const eraFin = era.anio_fin != null ? Math.min(era.anio_fin * 500 + 499, maxDia) : maxDia;
-                  if (eraFin < minDia || eraInicio > maxDia) return null;
-                  const left = ((eraInicio - minDia) / totalDias) * totalPx;
-                  const width = Math.max(((eraFin - eraInicio) / totalDias) * totalPx, 48);
+                  // Convertir año → día absoluto usando el calendario real
+                  const eraStartDia = era.anio_inicio * diasAnio;
+                  const eraEndDia = era.anio_fin != null
+                    ? (era.anio_fin + 1) * diasAnio - 1
+                    : Infinity;
+
+                  // Posicionar por índice de tarjeta, no por proporción de fecha.
+                  // Así la franja cubre exactamente las tarjetas que caen en la era,
+                  // sin importar cómo estén distribuidas en el tiempo.
+                  const firstIdx = allEvents.findIndex(
+                    e => (e.dia_absoluto ?? e.yearNum) >= eraStartDia
+                  );
+                  if (firstIdx === -1) return null;
+                  if ((allEvents[firstIdx].dia_absoluto ?? allEvents[firstIdx].yearNum) > eraEndDia) return null;
+
+                  let lastIdx = firstIdx;
+                  for (let i = firstIdx + 1; i < allEvents.length; i++) {
+                    if ((allEvents[i].dia_absoluto ?? allEvents[i].yearNum) <= eraEndDia) lastIdx = i;
+                    else break;
+                  }
+
+                  const left = firstIdx * CARD_W;
+                  const width = (lastIdx - firstIdx + 1) * CARD_W;
                   return (
                     <div key={era.id}
                       className="absolute top-0 bottom-0 group/era cursor-pointer transition-all"
