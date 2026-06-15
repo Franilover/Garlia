@@ -1533,18 +1533,18 @@ export function PanelHistoriaMundo({
                   const width = (lastIdx - firstIdx + 1) * CARD_W;
                   return (
                     <div key={era.id}
-                      className="absolute top-0 bottom-0 group/era cursor-pointer transition-all"
+                      className="absolute top-0 bottom-0 group/era transition-all pointer-events-none"
                       style={{ left, width, background: era.color ? `${era.color}0e` : "transparent", borderLeft: era.color ? `2px solid ${era.color}45` : "none" }}
-                      onClick={() => setEraModal(era)}
                       title={`Editar era: ${era.nombre}`}>
-                      {/* Overlay hover */}
-                      <div className="absolute inset-0 opacity-0 group-hover/era:opacity-100 transition-opacity"
-                        style={{ background: era.color ? `${era.color}0b` : "transparent" }}/>
                       {/* Línea superior de color */}
                       <div className="absolute top-0 left-0 right-0 h-0.5 opacity-50"
                         style={{ background: era.color ?? "var(--accent)" }}/>
-                      {/* Etiqueta con icono de edición al hover */}
-                      <div className="absolute top-1.5 left-2 flex items-center gap-1">
+                      {/* Etiqueta con icono de edición al hover (única zona clickeable) */}
+                      <div className="absolute top-1.5 left-2 flex items-center gap-1 px-1 py-0.5 -mx-1 -my-0.5 rounded cursor-pointer pointer-events-auto transition-colors hover:opacity-90"
+                        style={{ background: "transparent" }}
+                        onClick={() => setEraModal(era)}
+                        onMouseEnter={e => { e.currentTarget.style.background = era.color ? `${era.color}1a` : "color-mix(in srgb, var(--primary) 8%, transparent)"; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}>
                         <span className="text-[7px] font-black uppercase tracking-widest whitespace-nowrap transition-opacity opacity-50 group-hover/era:opacity-90"
                           style={{ color: era.color ?? "var(--primary)" }}>
                           {era.nombre}
