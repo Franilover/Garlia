@@ -3,10 +3,10 @@ import { createClient } from '@supabase/supabase-js';
 
 // Inicializa Supabase (asegúrate de usar tus variables de entorno)
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!; // Usa la Service Role en servidor si necesitas saltarte RLS
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;  
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = 'https://tuwebgarlia.com'; // <- Cambia esto por tu dominio real
+  const baseUrl = 'https://franilover.vercel.app'; 
 
   const supabase = createClient(supabaseUrl, supabaseKey);
 
@@ -14,10 +14,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const { data: libros } = await supabase.from('libros').select('id, titulo'); // O la columna que uses para las rutas
   const { data: canciones } = await supabase.from('canciones').select('id, titulo');
 
-  // Nota: Si usas tu función `toSlug(titulo)`, aplícala aquí si no guardas el slug directamente en la DB.
-  // Asumiendo que generas las rutas dinámicas con slugs legibles:
   const rutasLibros = (libros || []).map((libro) => ({
-    url: `${baseUrl}/garlia/libros/${libro.id}`, // O /libros/${toSlug(libro.titulo)}
+    url: `${baseUrl}/garlia/libros/${libro.id}`, 
     lastModified: new Date(),
     changeFrequency: 'weekly' as const,
     priority: 0.8,
