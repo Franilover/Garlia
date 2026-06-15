@@ -350,6 +350,15 @@ function useGruposTodos() {
 
 // ─── Panel de lista + editor para hechizos o dones ───────────────────────────
 
+type TimelineEvent = {
+  id: string;
+  titulo: string;
+  descripcion: string;
+  dia_absoluto?: number;
+  reinoId?: string | null;
+  reinoNombre?: string | null;
+};
+
 type MundoTimelineEvent = TimelineEvent & {
   source: "mundo" | "reino" | "capitulo" | "cancion";
   reinoNombre?: string;
