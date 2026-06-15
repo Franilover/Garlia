@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { Loader2, PenTool, Search, X, Plus, FileText, Trash2, List, BookOpen } from "lucide-react";
+import { Loader2, PenTool, Search, X, Plus, FileText, Trash2, List, BookOpen, Hash } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/providers/AuthProvider";
@@ -846,6 +846,7 @@ export default function Ensayos() {
                         ensayosFiltrados.map(ens => {
                           const isActive = ens.id === ensayoActivoId;
                           const esLibro = ens.tags?.includes("libro");
+                          const esTag = todosLosTags.some(t => t.toLowerCase() === ens.titulo?.trim().toLowerCase());
                           return (
                             <div
                               key={ens.id}
@@ -861,7 +862,9 @@ export default function Ensayos() {
                             >
                               {esLibro
                                 ? <BookOpen size={9} style={{ color: "color-mix(in srgb, var(--foreground) 35%, transparent)", flexShrink: 0 }} />
-                                : <FileText size={9} style={{ color: "color-mix(in srgb, var(--foreground) 18%, transparent)", flexShrink: 0 }} />
+                                : esTag
+                                  ? <Hash size={9} style={{ color: "color-mix(in srgb, var(--accent) 50%, transparent)", flexShrink: 0 }} />
+                                  : <FileText size={9} style={{ color: "color-mix(in srgb, var(--foreground) 18%, transparent)", flexShrink: 0 }} />
                               }
                               <div className="flex-1 min-w-0">
                                 <p style={{ fontSize: 11, fontFamily: "var(--font-serif)", fontStyle: "italic", color: "color-mix(in srgb, var(--foreground) 70%, transparent)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
@@ -889,6 +892,25 @@ export default function Ensayos() {
                                   }}
                                 >
                                   libro
+                                </span>
+                              )}
+                              {esTag && (
+                                <span
+                                  style={{
+                                    fontSize: 8,
+                                    padding: "1px 5px",
+                                    borderRadius: 3,
+                                    border: "1px solid color-mix(in srgb, var(--accent) 25%, transparent)",
+                                    background: "color-mix(in srgb, var(--accent) 8%, transparent)",
+                                    color: "color-mix(in srgb, var(--accent) 70%, transparent)",
+                                    fontFamily: "var(--font-mono)",
+                                    letterSpacing: "0.08em",
+                                    textTransform: "uppercase",
+                                    flexShrink: 0,
+                                    userSelect: "none",
+                                  }}
+                                >
+                                  tag
                                 </span>
                               )}
                               <button
