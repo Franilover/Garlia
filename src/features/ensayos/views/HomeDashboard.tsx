@@ -580,7 +580,7 @@ export function HomeDashboard({
           <div style={{ display: "flex", flexDirection: "column", gap: gap, overflow: "hidden" }}>
 
             {/* Favoritos */}
-            <div className="hd-favoritos" style={{ background: "var(--bg-main)", padding: "26px 24px", display: "flex", flexDirection: "column", overflow: "hidden", flex: 1 }}>
+            <div className="hd-favoritos" style={{ background: "var(--bg-main)", padding: "26px 24px", display: "flex", flexDirection: "column", overflow: "hidden", flex: "0 1 auto", maxHeight: "50%" }}>
               <SectionHeader
                 icon={<Star size={9} style={{ color: "color-mix(in srgb, var(--foreground) 25%, transparent)" }} />}
                 label={`Favoritos · ${favoritos.length}`}
