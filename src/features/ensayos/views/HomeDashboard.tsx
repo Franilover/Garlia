@@ -519,7 +519,7 @@ export function HomeDashboard({
         </div>
 
         {/* ── Todas las notas + Tags ── */}
-        <div className="hd-notas-tags-grid" style={{ display: "grid", gridTemplateColumns: "1.7fr 1fr", gap: gap, borderRadius: 12, overflow: "hidden", background: divColor }}>
+        <div className="hd-notas-tags-grid" style={{ display: "grid", gridTemplateColumns: "2.4fr 1fr", gap: gap, borderRadius: 12, overflow: "hidden", background: divColor }}>
           <div style={{ background: "var(--bg-main)", padding: "26px 24px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 16 }}>
               <FileText size={9} style={{ color: "color-mix(in srgb, var(--foreground) 25%, transparent)" }} />
