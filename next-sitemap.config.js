@@ -13,7 +13,7 @@ module.exports = {
       priority = 1.0;
       changefreq = 'daily';
     } 
-    else if (path.startsWith('/wiki') || path.startsWith('/personal')) {
+    else if (path.startsWith('/garlia') || path.startsWith('/personal')) {
       priority = 0.8;
       changefreq = 'weekly';
     }

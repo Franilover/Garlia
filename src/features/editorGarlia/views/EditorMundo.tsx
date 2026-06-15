@@ -20,7 +20,6 @@ import { EditorItem } from "./EditorItem";
 import { EditorCiudad, type Ciudad } from "./EditorCiudad";
 import { EditorHechizos } from "./EditorHechizos";
 import { type WikiEntity } from "@/components/forms/Markdown/MarkdownEditor";
-import { type TimelineEvent } from "../components/LoreTab";
 import { SelectorFechaMundo, useCalendario } from "../components/EditorLineaTiempo";
 import { diaAbsolutoAFecha, eraEnAnio } from "@/lib/utils/calendario";
 import { useNotas } from "../components/useNotas";
@@ -932,14 +931,16 @@ function ModalEra({
 }
 
 // ── Panel principal — vista y edición unificadas, ambas pistas editables ──────
-function PanelHistoriaMundo({
+export function PanelHistoriaMundo({
   texto,
   onChange,
   onSave,
+  initialFilterReino,
 }: {
   texto: string;
   onChange: (v: string) => void;
   onSave: () => Promise<void>;
+  initialFilterReino?: string | null;
 }) {
   // Sistema antiguo de eventos "mundo"/"reino" (basado en columna historia JSON) eliminado.
 
@@ -1187,7 +1188,7 @@ function PanelHistoriaMundo({
   // (Eliminados: handleMundoChange, updateReinoEvent, removeReinoEvent, saveReinoHistory)
 
   const { cal } = useCalendario();
-  const [filterReino, setFilterReino] = useState<string | null>(null);
+  const [filterReino, setFilterReino] = useState<string | null>(initialFilterReino ?? null);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [diaOverrides, setDiaOverrides] = useState<Record<string, number>>({});
   const [showNuevoEvento, setShowNuevoEvento] = useState(false);
