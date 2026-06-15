@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build && next-sitemap",
     "start": "next start",
-    "lint": "next lint",   
+    "lint": "next lint",
     "gen:types": "supabase gen types typescript --project-id ftdxthnizdosaaavjhah --schema public > src/lib/types/supabase.ts"
   },
   "dependencies": {
@@ -16,10 +16,13 @@
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.95.3",
     "@tailwindcss/postcss": "^4.1.18",
+    "@tanstack/react-query": "^5.101.0",
+    "@tanstack/react-query-devtools": "^5.101.0",
     "@tiptap/core": "^3.20.0",
     "@tiptap/starter-kit": "^3.20.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "cmdk": "^1.1.1",
     "d3": "^7.9.0",
     "dexie": "^4.3.0",
     "framer-motion": "^12.34.3",
