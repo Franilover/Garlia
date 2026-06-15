@@ -615,34 +615,32 @@ export function HomeDashboard({
                 icon={<Hash size={9} style={{ color: "color-mix(in srgb, var(--foreground) 25%, transparent)" }} />}
                 label={`Tags · ${todosLosTags.length}`}
               />
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "4px", overflowY: "auto", alignContent: "flex-start", flex: 1 }}>
-                {todosLosTags.map((tag, i) => {
-                  const count = ensayos.filter(e => e.tags?.includes(tag)).length;
-                  return (
-                    <MotionDiv key={tag} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }}>
-                      <button
-                        onClick={() => onTagClick(tag)}
-                        style={{
-                          ...mono, fontSize: 9, padding: "3px 9px", borderRadius: 5,
-                          border: "1px solid color-mix(in srgb, var(--foreground) 8%, transparent)",
-                          background: "color-mix(in srgb, var(--foreground) 3%, transparent)",
-                          color: "color-mix(in srgb, var(--foreground) 40%, transparent)",
-                          cursor: "pointer", transition: "all 0.1s",
-                          display: "flex", alignItems: "center", gap: 3,
-                        }}
-                        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--foreground) 20%, transparent)"; (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--foreground) 70%, transparent)"; (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--foreground) 6%, transparent)"; }}
-                        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--foreground) 8%, transparent)"; (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--foreground) 40%, transparent)"; (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--foreground) 3%, transparent)"; }}
-                      >
-                        #{tag}
-                        <span style={{ fontSize: 7, color: "color-mix(in srgb, var(--foreground) 20%, transparent)" }}>{count}</span>
-                      </button>
-                    </MotionDiv>
-                  );
-                })}
-                {todosLosTags.length === 0 && (
-                  <p style={{ ...mono, fontSize: 9, color: "color-mix(in srgb, var(--foreground) 15%, transparent)" }}>Aún sin tags.</p>
-                )}
-              </div>
+              {todosLosTags.length > 0 ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: 1, overflowY: "auto", flex: 1 }}>
+                  {todosLosTags.map((tag, i) => {
+                    const count = ensayos.filter(e => e.tags?.includes(tag)).length;
+                    return (
+                      <MotionDiv key={tag} initial={{ opacity: 0, x: -4 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.02 }}>
+                        <button
+                          onClick={() => onTagClick(tag)}
+                          className="w-full text-left group flex items-center justify-between"
+                          style={{ padding: "8px 10px", borderRadius: 6, background: "transparent", border: "none", cursor: "pointer", transition: "background 0.1s" }}
+                          onMouseEnter={e => (e.currentTarget.style.background = "color-mix(in srgb, var(--foreground) 4%, transparent)")}
+                          onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+                        >
+                          <span style={{ ...serif, fontSize: 13, color: "color-mix(in srgb, var(--foreground) 72%, transparent)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>#{tag}</span>
+                          <span style={{ ...mono, fontSize: 8, color: "color-mix(in srgb, var(--foreground) 20%, transparent)", flexShrink: 0, marginLeft: 6 }}>{count}</span>
+                          <ArrowRight size={8} style={{ color: "color-mix(in srgb, var(--foreground) 15%, transparent)", flexShrink: 0, marginLeft: 4, opacity: 0, transition: "opacity 0.1s" }} className="group-hover:opacity-100" />
+                        </button>
+                      </MotionDiv>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p style={{ ...mono, fontSize: 9, color: "color-mix(in srgb, var(--foreground) 15%, transparent)", lineHeight: 1.6 }}>
+                  Aún sin tags.
+                </p>
+              )}
             </div>
 
           </div>
