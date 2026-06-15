@@ -519,7 +519,7 @@ export function HomeDashboard({
         </div>
 
         {/* ── Todas las notas + Tags ── */}
-        <div className="hd-notas-tags-grid" style={{ display: "grid", gridTemplateColumns: "2.4fr 1fr", gap: gap, borderRadius: 12, overflow: "hidden", background: divColor }}>
+        <div className="hd-notas-tags-grid" style={{ display: "grid", gridTemplateColumns: "3.2fr 1fr", gap: gap, borderRadius: 12, overflow: "hidden", background: divColor }}>
           <div style={{ background: "var(--bg-main)", padding: "26px 24px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 16 }}>
               <FileText size={9} style={{ color: "color-mix(in srgb, var(--foreground) 25%, transparent)" }} />
@@ -628,7 +628,7 @@ export function HomeDashboard({
                           onMouseEnter={e => (e.currentTarget.style.background = "color-mix(in srgb, var(--foreground) 4%, transparent)")}
                           onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
                         >
-                          <span style={{ ...serif, fontSize: 13, color: "color-mix(in srgb, var(--foreground) 72%, transparent)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>#{tag}</span>
+                          <span style={{ ...serif, fontSize: 13, color: "color-mix(in srgb, var(--foreground) 72%, transparent)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, textTransform: "capitalize" }}>#{tag}</span>
                           <span style={{ ...mono, fontSize: 8, color: "color-mix(in srgb, var(--foreground) 20%, transparent)", flexShrink: 0, marginLeft: 6 }}>{count}</span>
                           <ArrowRight size={8} style={{ color: "color-mix(in srgb, var(--foreground) 15%, transparent)", flexShrink: 0, marginLeft: 4, opacity: 0, transition: "opacity 0.1s" }} className="group-hover:opacity-100" />
                         </button>
