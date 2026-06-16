@@ -11,8 +11,9 @@ import {
   LogOut, CircleUser, Flower2,
   PenTool, Moon, Sun, Star, Palette,
   Compass, BookText, Music,
-  ChevronRight, Cat,
+  ChevronRight, Cat, Search,
 } from "lucide-react";
+import { useCommandPalette } from "@/components/command";
 
 // ── Shared types ─────────────────────────────────────────────────────────────
 
@@ -307,6 +308,7 @@ const Navbar = () => {
   const { dark, toggleDark, theme } = useTheme();
   const useOutline = OUTLINE_THEMES.has(theme);
   const isDark = dark === "dark";
+  const { setOpen: openPalette } = useCommandPalette();
 
   const closeAll = () => {
     setThemeMenuOpen(false);
@@ -514,8 +516,8 @@ const Navbar = () => {
             borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
           }}
         >
-          {/* Theme toggle */}
-          <div className="flex items-center z-[101]">
+          {/* Theme toggle + Search */}
+          <div className="flex items-center gap-1 z-[101]">
             <button
               onClick={() => { setThemeMenuOpen(!themeMenuOpen); setMobileOpenMenu(null); }}
               className="flex items-center justify-center transition-all"
@@ -526,6 +528,24 @@ const Navbar = () => {
               }}
             >
               <Palette size={16} />
+            </button>
+            <button
+              onClick={() => { openPalette(true); closeAll(); }}
+              className="flex items-center justify-center transition-all"
+              style={{
+                width: 34, height: 34, borderRadius: "var(--radius-btn)",
+                color: "color-mix(in srgb, var(--primary) 40%, transparent)",
+              }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 10%, transparent)";
+                (e.currentTarget as HTMLElement).style.color = "var(--primary)";
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLElement).style.background = "transparent";
+                (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--primary) 40%, transparent)";
+              }}
+            >
+              <Search size={16} />
             </button>
           </div>
 
