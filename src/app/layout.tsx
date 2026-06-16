@@ -8,8 +8,7 @@ import "@/style/tailwind.css";
 import { OfflineSyncActivator } from "@/providers/OfflineSyncActivator";
 import { ThemeProvider } from "@/providers/ThemeProvider";
 import { cn } from "@/lib/utils/index";
-// ▼ NUEVO
-import { GlobalCommandPalette } from "@/components/command/GlobalCommandPalette";
+import { GlobalCommandPalette } from "@/components/command";
 
 const geist = Geist({ subsets: ['latin'], variable: '--font-sans' });
 const montserrat = Montserrat({ subsets: ['latin'], display: 'swap', variable: '--font-montserrat' });
@@ -24,14 +23,16 @@ export const metadata: Metadata = {
     default: 'Garlia - Archivos',
   },
   description: 'Explora mi universo.',
-  keywords: ['wiki', 'libros', 'biblioteca', 'lectura', 'historias', 'franilover', 'arte', 'fantasia'],
+  keywords: ['wiki', 'libros', 'biblioteca', 'lectura', 'historias', 'franilover', 'arte', 'fantasia', ],
   authors: [{ name: 'Franilover' }],
-  metadataBase: new URL('https://franilover.vercel.app/'),
+  metadataBase: new URL('https://franilover.vercel.app/'), 
+
   icons: {
-    icon: '/icon.jpg?v=2',
-    shortcut: '/icon.jpg?v=2',
-    apple: '/icon.jpg?v=2',
+    icon: '/icon.jpg?v=2',      
+    shortcut: '/icon.jpg?v=2',  
+    apple: '/icon.jpg?v=2',     
   },
+
   verification: {
     google: 'Wil88vfT-qaSn4IBTlmk7MKlhxcjQYX0V0zhVS5_E_A',
   },
@@ -40,10 +41,17 @@ export const metadata: Metadata = {
     locale: 'es_ES',
     url: 'https://franilover.vercel.app/',
     siteName: 'Garlia',
-    images: [{ url: '/icon.jpg', width: 800, height: 800, alt: 'Icono de Garlia' }],
+    images: [
+      {
+        url: '/icon.jpg', 
+        width: 800,
+        height: 800,
+        alt: 'Icono de Garlia',
+      },
+    ],
   },
   twitter: {
-    card: 'summary',
+    card: 'summary', 
     images: ['/icon.jpg'],
   },
 };
@@ -54,16 +62,20 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <html
-      lang="es"
+    <html 
+      lang="es" 
       className={cn(
-        geist.variable,
-        montserrat.variable,
-        pixelifySans.variable,
-        caveat.variable,
-        lora.variable,
+        geist.variable, 
+        montserrat.variable, 
+        pixelifySans.variable, 
+        caveat.variable, 
+        lora.variable, 
         literata.variable
       )}
       suppressHydrationWarning
@@ -94,7 +106,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <ThemeProvider>
               <LightboxProvider>
                 <GlobalCommandPalette />
-
                 <div className="flex-grow flex flex-col md:pl-[68px] pb-[56px] md:pb-0">
                   <main className="flex-grow custom-scrollbar">
                     <AppLogic>
