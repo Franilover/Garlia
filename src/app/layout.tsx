@@ -8,7 +8,12 @@ import "@/style/tailwind.css";
 import { OfflineSyncActivator } from "@/providers/OfflineSyncActivator";
 import { ThemeProvider } from "@/providers/ThemeProvider";
 import { cn } from "@/lib/utils/index";
-import { GlobalCommandPalette } from "@/components/command";
+import dynamic from "next/dynamic";
+import { CommandPaletteListener } from "@/components/command";
+const GlobalCommandPalette = dynamic(
+  () => import("@/components/command").then((m) => m.GlobalCommandPalette),
+  { ssr: false }
+);
 import { QueryProvider } from "@/providers/QueryProvider";
 
 const geist = Geist({ subsets: ['latin'], variable: '--font-sans' });
@@ -102,6 +107,7 @@ export default function RootLayout({
       </head>
       <body className="antialiased bg-bg-main min-h-screen flex flex-col selection:bg-primary/20">
         <OfflineSyncActivator />
+        <CommandPaletteListener />
         <AuthProvider>
           <QueryProvider>
           <DataProvider>

@@ -42,18 +42,14 @@ export function GlobalCommandPalette() {
   const { data, isFetching } = useGlobalSearch(search);
   const fromCache = data?.fromCache ?? false;
 
-  // Ctrl+K / Cmd+K listener — registrado una sola vez, sin "open" en deps
+  // Escape para cerrar (el Ctrl+K lo maneja CommandPaletteListener)
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === "k") {
-        e.preventDefault();
-        setOpen((prev) => !prev); // functional update — siempre lee el valor real
-      }
       if (e.key === "Escape") setOpen(false);
     };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
-  }, [setOpen]); // setOpen de Zustand es estable, no cambia entre renders
+  }, [setOpen]);
 
   // Reset search on close
   useEffect(() => {
