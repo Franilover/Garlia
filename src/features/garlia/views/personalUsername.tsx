@@ -382,15 +382,16 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
               {/* Hero imagen */}
               <div className="w-full shrink-0 overflow-hidden relative"
                 style={{
-                  height: modalPersonaje.imagen_url ? "200px" : "0px",
+                  height: modalPersonaje.imagen_url ? "220px" : "0px",
                   background: "color-mix(in srgb, var(--primary) 5%, var(--bg-main))",
                 }}>
                 {modalPersonaje.imagen_url && (
                   <img src={modalPersonaje.imagen_url} alt={modalPersonaje.nombre}
-                    className="w-full h-full object-contain" />
+                    className="w-full h-full object-cover transition-transform duration-700"
+                    style={{ objectPosition: "center 15%", transform: "scale(2.2)", transformOrigin: "center 20%" }} />
                 )}
                 <div className="absolute inset-0 pointer-events-none"
-                  style={{ background: "linear-gradient(to top, var(--white-custom) 0%, transparent 55%)" }} />
+                  style={{ background: "linear-gradient(to top, var(--white-custom) 0%, color-mix(in srgb, var(--white-custom) 15%, transparent) 45%, transparent 100%)" }} />
                 <button
                   onClick={() => { setModalPersonaje(null); setCancionesPersonaje([]); }}
                   className="absolute top-3 right-3 z-10 w-8 h-8 flex items-center justify-center transition-all hover:scale-110"
@@ -869,10 +870,10 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                 </div>
                 <div className="space-y-3.5">
                   {[
-                    { icon: <User size={10} />,   label: "Amigos",    count: misPersonajes.length,                        max: 20 },
-                    { icon: <Cat size={10} />,    label: "Criaturas", count: misCriaturas.length,                         max: 30 },
-                    { icon: <Sword size={10} />,  label: "Objetos",   count: inventario.length + misItemsDesc.length,     max: 50 },
-                    { icon: <MapPin size={10} />, label: "Ciudades",  count: reinos.length + ciudades.length,             max: 30 },
+                    { icon: <User size={10} />,   label: "Amigos",    count: misPersonajes.length,                    max: 20 },
+                    { icon: <Cat size={10} />,    label: "Criaturas", count: misCriaturas.length,                     max: 30 },
+                    { icon: <Sword size={10} />,  label: "Objetos",   count: inventario.length + misItemsDesc.length, max: 50 },
+                    { icon: <MapPin size={10} />, label: "Ciudades",  count: reinos.length + ciudades.length,         max: 30 },
                   ].map(({ icon, label, count, max }) => (
                     <div key={label}>
                       <div className="flex items-center justify-between mb-1.5">
@@ -902,7 +903,7 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
               </div>
             </div>
 
-            {/* Otros exploradores */}
+            {/* Exploradores */}
           {otrosPerfiles.length > 0 && (
             <div>
               <div className="flex items-center gap-2 mb-3 px-1">
