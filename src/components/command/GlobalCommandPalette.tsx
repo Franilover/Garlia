@@ -13,7 +13,7 @@ import {
   Compass, BookText, Music, Star, Palette,
   PenTool, Moon, Sun, Cat, Flower2, CircleUser,
   Search, ArrowRight, User, Crown, Swords, Building2,
-  Loader2,
+  Loader2, WifiOff,
 } from "lucide-react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -40,6 +40,7 @@ export function GlobalCommandPalette() {
 
   const [search, setSearch] = useState("");
   const { data, isFetching } = useGlobalSearch(search);
+  const fromCache = data?.fromCache ?? false;
 
   // Ctrl+K / Cmd+K listener
   useEffect(() => {
@@ -270,7 +271,20 @@ export function GlobalCommandPalette() {
               >
                 <span className="text-[9px] font-black uppercase tracking-widest">↑↓ navegar</span>
                 <span className="text-[9px] font-black uppercase tracking-widest">↵ abrir</span>
-                <span className="text-[9px] font-black uppercase tracking-widest ml-auto">ctrl+k cerrar</span>
+                {showDynamic && (
+                  <span
+                    className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest ml-auto"
+                    style={{ color: fromCache ? "color-mix(in srgb, var(--primary) 40%, transparent)" : "color-mix(in srgb, var(--primary) 28%, transparent)" }}
+                  >
+                    <WifiOff size={9} className={fromCache ? "opacity-100" : "opacity-0"} />
+                    {fromCache ? "cache local" : "en línea"}
+                  </span>
+                )}
+                {!showDynamic && (
+                  <span className="text-[9px] font-black uppercase tracking-widest ml-auto" style={{ color: "color-mix(in srgb, var(--primary) 28%, transparent)" }}>
+                    ctrl+k cerrar
+                  </span>
+                )}
               </div>
             </Command>
           </MotionDiv>
