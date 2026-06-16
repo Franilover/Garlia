@@ -79,6 +79,16 @@ const PanelEditor = ({
   onVolver: () => void;
 }) => {
   const { cap, setCap, loading, isOffline, reload } = useCapituloEditor(capId);
+
+  // ─── Derived state para contenido ────────────────────────────────────────────
+  // Usar useEffect para inicializar contenido provoca un flash inevitable:
+  // React pinta el editor vacío, ejecuta el effect, y pinta de nuevo con texto.
+  // Con derived state dentro del render, React descarta el render intermedio
+  // y pinta directamente con el valor correcto — cero frame vacío.
+  //
+  // Guardamos el capId que usamos para inicializar los campos de metadata;
+  // cuando cambia de capítulo reseteamos todo sincrónicamente.
+  const [initializedCapId, setInitializedCapId] = useState<string | null>(null);
   const [contenido,        setContenido]        = useState("");
   const [saveStatus,       setSaveStatus]       = useState<SaveStatus>("idle");
   const [editingTitle,     setEditingTitle]     = useState(false);
@@ -92,39 +102,12 @@ const PanelEditor = ({
   const [criaturasIds,     setCriaturasIds]     = useState<string[]>([]);
   const [itemsIds,         setItemsIds]         = useState<string[]>([]);
   const [listaSnippetCaps, setListaSnippetCaps] = useState<{id:string;orden:number;titulo_capitulo:string}[]>([]);
-  const listaSecciones = useMemo(() => {
-    const matches = [...contenido.matchAll(/\[\[section\|([^\|\]]+)(?:\|([^\]]+))?\]\]/g)];
-    return matches.map(m => ({ id: m[1].trim(), label: (m[2] ?? m[1]).trim() }));
-  }, [contenido]);
-  const [palette, setPalette] = useState<{ anchorRect: { top: number; left: number }; initialRaw?: string } | null>(null);
-  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const timer          = useRef<any>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const scrollRef      = useRef<HTMLDivElement>(null);
-  const caretMirrorRef = useRef<HTMLDivElement>(null);
-  const mdInsertRef          = useRef<((text: string) => void) | null>(null);
-  const pendingReplaceRef    = useRef<((next: string) => void) | null>(null);
-  const pendingSnippetRawRef = useRef<string | null>(null);
-  const isMountedRef   = useRef(true);
-  const { confirm, ConfirmModal } = useConfirm();
 
-  useEffect(() => {
-    isMountedRef.current = true;
-    return () => {
-      isMountedRef.current = false;
-      clearTimeout(timer.current);
-    };
-  }, []);
-
-  const draft = useDraftRestore({
-    key: `cap-draft-${capId}`,
-    serverValue: cap?.contenido || "",
-    enabled: !!capId && !loading,
-  });
-
-  // Inicialización completa al abrir un capítulo distinto
-  useEffect(() => {
-    if (!cap) return;
+  // Inicialización sincrónica al montar o cambiar de capítulo.
+  // Al llamar setState durante el render (con guard), React re-renderiza
+  // inmediatamente antes de pintar — sin frame intermedio vacío.
+  if (cap && cap.id !== initializedCapId) {
+    setInitializedCapId(cap.id);
     setContenido(cap.contenido || "");
     setTitulo(cap.titulo_capitulo || "");
     setFecha(toDateInput(cap.fecha_publicacion));
@@ -132,27 +115,20 @@ const PanelEditor = ({
     setPersonajesIds(cap.personajes_ids ?? []);
     setCriaturasIds((cap as any).criaturas_ids ?? []);
     setItemsIds((cap as any).items_ids ?? []);
-    if (cap.status === "pending") setSaveStatus("pending");
-    else setSaveStatus("idle");
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cap?.id]);
+    setSaveStatus((cap as any).status === "pending" ? "pending" : "idle");
+  }
 
-  // Cuando el hook actualiza cap con datos remotos (Dexie → Supabase),
-  // el id no cambia pero el contenido puede llegar vacío en la primera pasada
-  // y luego lleno en la segunda. Actualizamos solo si:
-  //   1. El contenido local actual está vacío (carga inicial sin datos locales)
-  //   2. O el cap no tiene pending (no hay ediciones sin guardar)
+  // Cuando el hook refresca cap con datos remotos (mismo id, Supabase llega
+  // después de Dexie), actualizar contenido solo si no hay un pending local.
+  // Se sigue usando useEffect aquí porque NO es inicialización: el editor ya
+  // está visible con datos correctos y solo estamos aplicando un refresh.
   useEffect(() => {
-    if (!cap) return;
-    const remoteContenido = cap.contenido || "";
-    setContenido(prev => {
-      if (prev === "") return remoteContenido;           // todavía vacío → aplicar
-      if (cap.status !== "pending") return remoteContenido; // sin cambios locales → aplicar
-      return prev;                                       // hay pending → no pisar
-    });
-    // Metadata siempre se puede actualizar sin riesgo
+    if (!cap || cap.id !== initializedCapId) return;
+    if ((cap as any).status === "pending") return; // no pisar borrador local
+    setContenido(cap.contenido || "");
     setTitulo(cap.titulo_capitulo || "");
     setCapVisibilidad(cap.visibilidad ?? "oculto");
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cap]);
 
   useEffect(() => {

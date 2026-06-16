@@ -1,52 +1,83 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/api/client/supabase";
+import { db } from "@/lib/api/client/db";
 import { isReallyOnline } from "@/hooks/data/useOfflineSync";
 import {
-  Capitulo, TABLA_CAPS,
+  Capitulo, Reino, TABLA_CAPS,
   dexieCapRead, dexieCapGet, dexieCapWrite,
 } from "../types";
+
+// ─── Tipos locales ─────────────────────────────────────────────────────────────
+
+// Extiende Capitulo con el campo de sync que ya existe en Dexie pero faltaba en
+// la interfaz base. Usar este tipo evita todos los `(loc as any)?.status`.
+type CapituloLocal = Capitulo & { status?: "pending" | "synced" };
+
+// Token de cancelación pasado por referencia: se puede marcar como cancelado
+// desde el cleanup del useEffect ANTES de que load() resuelva, eliminando la
+// race condition que existía al retornar la función de cancelación desde dentro
+// del propio async y capturarla con `await`.
+interface Signal { cancelled: boolean }
+
+// ─── Utilidades compartidas ────────────────────────────────────────────────────
+
+/** Detecta si un error de Supabase o de fetch es un error de red. */
+function isNetErr(err: any): boolean {
+  const msg = (err?.message ?? "").toLowerCase();
+  return (
+    msg.includes("failed to fetch") ||
+    msg.includes("network")        ||
+    msg.includes("load failed")    ||
+    err?.code === "PGRST000"
+  );
+}
+
+/** Crea una Promise que resuelve a "timeout" tras `ms` milisegundos. */
+const withTimeout = <T>(ms: number) =>
+  new Promise<"timeout">(r => setTimeout(() => r("timeout"), ms));
 
 // ─── useCapitulos ─────────────────────────────────────────────────────────────
 
 export function useCapitulos(libroId: string | null) {
-  const [capitulos, setCapitulos] = useState<Capitulo[]>([]);
+  const [capitulos, setCapitulos] = useState<CapituloLocal[]>([]);
   const [loading, setLoading]     = useState(false);
   const [isOffline, setIsOffline] = useState(false);
 
-  const load = useCallback(async (id: string) => {
-    // FIX 4: token de cancelación — si llega una nueva llamada a load()
-    // antes de que ésta resuelva, los setState se vuelven no-ops.
-    let cancelled = false;
-
-    const local = await dexieCapRead(id);
-    if (cancelled) return;
+  // load() recibe un Signal externo en lugar de crear el suyo propio e intentar
+  // retornarlo. Así el cleanup del useEffect puede cancelar inmediatamente, sin
+  // depender de que la Promise haya resuelto primero.
+  const load = useCallback(async (id: string, sig: Signal) => {
+    const local = (await dexieCapRead(id)) as CapituloLocal[];
+    if (sig.cancelled) return;
 
     if (local.length > 0) {
+      // Datos locales disponibles: mostrar inmediatamente y lanzar fetch en
+      // background sin bloquear en isReallyOnline() (~200 ms de red real).
       setCapitulos(local);
       setLoading(false);
     } else {
+      // Sin datos locales: comprobar conectividad antes de poner al usuario
+      // frente a una pantalla vacía con spinner indefinido.
       setLoading(true);
+      if (!(await isReallyOnline())) {
+        if (sig.cancelled) return;
+        setIsOffline(true);
+        setLoading(false);
+        return;
+      }
     }
-
-    if (!(await isReallyOnline())) {
-      if (cancelled) return;
-      setIsOffline(true);
-      setLoading(false);
-      return;
-    }
-    if (cancelled) return;
-    setIsOffline(false);
+    if (sig.cancelled) return;
 
     try {
-      const fetchPromise = supabase
-        .from(TABLA_CAPS)
-        .select("*")
-        .eq("libro_id", id)
-        .order("orden", { ascending: true });
-
-      const timeout = new Promise<"timeout">(r => setTimeout(() => r("timeout"), 5000));
-      const result  = await Promise.race([fetchPromise, timeout]);
-      if (cancelled) return;
+      const result = await Promise.race([
+        supabase
+          .from(TABLA_CAPS)
+          .select("*")
+          .eq("libro_id", id)
+          .order("orden", { ascending: true }),
+        withTimeout(5000),
+      ]);
+      if (sig.cancelled) return;
 
       if (result === "timeout") {
         setIsOffline(local.length === 0);
@@ -56,53 +87,44 @@ export function useCapitulos(libroId: string | null) {
 
       const { data, error } = result as any;
       if (error) {
-        const isNetworkError =
-          error?.message?.toLowerCase().includes("failed to fetch") ||
-          error?.message?.toLowerCase().includes("network") ||
-          error?.code === "PGRST000";
-        if (isNetworkError) setIsOffline(true);
+        if (isNetErr(error)) setIsOffline(true);
         setLoading(false);
         return;
       }
 
-      const caps = (data || []) as Capitulo[];
-
-      // Respetar borradores pending: no sobreescribir con la versión del servidor
-      // si el capítulo tiene cambios locales sin sincronizar.
+      const caps = (data ?? []) as CapituloLocal[];
       const localById = new Map(local.map(c => [c.id, c]));
+
+      // Respetar borradores pending: no sobreescribir con la versión remota.
       const merged = caps.map(remote => {
         const loc = localById.get(remote.id);
-        if ((loc as any)?.status === "pending") return loc;  // mantener cambios locales
-        return remote;
+        return loc?.status === "pending" ? loc : remote;
       });
 
-      setCapitulos(merged);
-      setIsOffline(false);
-      // FIX 1: escribir en Dexie usando merged para que los pending no se pierdan
+      if (!sig.cancelled) {
+        setCapitulos(merged);
+        setIsOffline(false);
+      }
+
+      // Persistir en Dexie conservando los pending sin tocar.
       await dexieCapWrite(
         caps.map(c => {
           const loc = localById.get(c.id);
-          return (loc as any)?.status === "pending"
+          return loc?.status === "pending"
             ? loc
-            : { ...c, status: "synced" };
+            : { ...c, status: "synced" as const };
         }),
       );
     } catch (err: any) {
-      if (cancelled) return;
-      const msg = err?.message?.toLowerCase() ?? "";
-      const isNetworkError =
-        msg.includes("failed to fetch") ||
-        msg.includes("network") ||
-        msg.includes("load failed");
-      setIsOffline(isNetworkError);
-      // Si no teníamos nada en memoria, releer Dexie como fallback
-      if (local.length === 0) setCapitulos(await dexieCapRead(id));
+      if (sig.cancelled) return;
+      setIsOffline(isNetErr(err));
+      // Fallback: releer Dexie solo si no teníamos nada en memoria.
+      if (local.length === 0) {
+        setCapitulos((await dexieCapRead(id)) as CapituloLocal[]);
+      }
     }
 
-    if (!cancelled) setLoading(false);
-
-    // Devolver función de cancelación para que useEffect pueda llamarla.
-    return () => { cancelled = true; };
+    if (!sig.cancelled) setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -111,71 +133,74 @@ export function useCapitulos(libroId: string | null) {
       setIsOffline(false);
       return;
     }
-    let cancel: (() => void) | undefined;
-    // load() devuelve la función cancel en la promesa; la capturamos aquí
-    // para que el cleanup del efecto la invoque si libroId cambia antes
-    // de que el fetch termine.
-    const run = async () => { cancel = await load(libroId) as any; };
-    run();
-    return () => cancel?.();
+    // El Signal vive aquí: el cleanup lo marca como cancelado sincrónicamente,
+    // antes de que load() pueda hacer ningún setState tras el desmonte.
+    const sig: Signal = { cancelled: false };
+    load(libroId, sig);
+    return () => { sig.cancelled = true; };
   }, [libroId, load]);
 
   useEffect(() => {
-    const h = () => { if (libroId) { setIsOffline(false); load(libroId); } };
+    const h = () => {
+      if (libroId) {
+        setIsOffline(false);
+        // Cada llamada desde el evento "online" tiene su propio Signal efímero;
+        // no necesita cancelarse porque no hay cleanup asociado.
+        load(libroId, { cancelled: false });
+      }
+    };
     window.addEventListener("online", h);
     return () => window.removeEventListener("online", h);
   }, [libroId, load]);
 
-  return { capitulos, setCapitulos, loading, isOffline, reload: () => libroId && load(libroId) };
+  return {
+    capitulos,
+    setCapitulos,
+    loading,
+    isOffline,
+    reload: () => libroId && load(libroId, { cancelled: false }),
+  };
 }
 
 // ─── useCapituloEditor ────────────────────────────────────────────────────────
 
 export function useCapituloEditor(capId: string | null) {
-  const [cap, setCap]             = useState<Capitulo | null>(null);
+  const [cap, setCap]             = useState<CapituloLocal | null>(null);
   const [loading, setLoading]     = useState(false);
   const [isOffline, setIsOffline] = useState(false);
 
-  const load = useCallback(async (id: string) => {
-    // FIX 4: token de cancelación (mismo patrón que useCapitulos)
-    let cancelled = false;
-
-    // FIX 2: envolver lectura Dexie en try/catch para evitar que un error
-    // interno de Dexie (quota, DB corrupta) colapse el flujo silenciosamente.
-    let local: Capitulo | null = null;
+  const load = useCallback(async (id: string, sig: Signal) => {
+    let local: CapituloLocal | null = null;
     try {
-      local = await dexieCapGet(id);
+      local = (await dexieCapGet(id)) as CapituloLocal | null;
     } catch (e) {
       console.warn("[Dexie] dexieCapGet falló:", e);
     }
-    if (cancelled) return;
+    if (sig.cancelled) return;
 
     if (local) {
+      // Datos locales disponibles: mostrar inmediatamente y lanzar fetch en
+      // background sin bloquear en isReallyOnline() (~200 ms de red real).
       setCap(local);
       setLoading(false);
     } else {
+      // Sin datos locales: comprobar conectividad antes de mostrar spinner vacío.
       setLoading(true);
+      if (!(await isReallyOnline())) {
+        if (sig.cancelled) return;
+        setIsOffline(true);
+        setLoading(false);
+        return;
+      }
     }
-
-    if (!(await isReallyOnline())) {
-      if (cancelled) return;
-      setIsOffline(true);
-      setLoading(false);
-      return;
-    }
-    if (cancelled) return;
-    setIsOffline(false);
+    if (sig.cancelled) return;
 
     try {
-      const fetchPromise = supabase
-        .from(TABLA_CAPS)
-        .select("*")
-        .eq("id", id)
-        .single();
-
-      const timeout = new Promise<"timeout">(r => setTimeout(() => r("timeout"), 5000));
-      const result  = await Promise.race([fetchPromise, timeout]);
-      if (cancelled) return;
+      const result = await Promise.race([
+        supabase.from(TABLA_CAPS).select("*").eq("id", id).single(),
+        withTimeout(5000),
+      ]);
+      if (sig.cancelled) return;
 
       if (result === "timeout") {
         setIsOffline(!local);
@@ -185,44 +210,34 @@ export function useCapituloEditor(capId: string | null) {
 
       const { data, error } = result as any;
       if (error) {
-        const isNetworkError =
-          error?.message?.toLowerCase().includes("failed to fetch") ||
-          error?.message?.toLowerCase().includes("network") ||
-          error?.code === "PGRST000";
-        if (isNetworkError) setIsOffline(true);
+        if (isNetErr(error)) setIsOffline(true);
         setLoading(false);
         return;
       }
 
       if (local?.status === "pending" && local.contenido !== data.contenido) {
-        // Conservar borrador local no sincronizado
-        setCap({ ...data, contenido: local.contenido, status: "pending" });
-        // NO sobreescribir Dexie: el pending se debe subir al sync
+        // Conservar borrador local no sincronizado; NO sobreescribir Dexie.
+        if (!sig.cancelled)
+          setCap({ ...data, contenido: local.contenido, status: "pending" });
       } else {
-        setCap(data as Capitulo);
-        await dexieCapWrite([{ ...data, status: "synced" }]);
+        if (!sig.cancelled) setCap(data as CapituloLocal);
+        await dexieCapWrite([{ ...data, status: "synced" as const }]);
       }
-      setIsOffline(false);
+
+      if (!sig.cancelled) setIsOffline(false);
     } catch (err: any) {
-      if (cancelled) return;
-      const msg = err?.message?.toLowerCase() ?? "";
-      const isNetworkError =
-        msg.includes("failed to fetch") ||
-        msg.includes("network") ||
-        msg.includes("load failed");
-      setIsOffline(isNetworkError);
-      // Solo leer Dexie si no tenemos nada en estado (evitar parpadeo)
+      if (sig.cancelled) return;
+      setIsOffline(isNetErr(err));
+      // Fallback solo si no teníamos nada en estado (evitar parpadeo).
       if (!local) {
         try {
-          const fallback = await dexieCapGet(id);
-          if (!cancelled && fallback) setCap(fallback);
+          const fallback = (await dexieCapGet(id)) as CapituloLocal | null;
+          if (!sig.cancelled && fallback) setCap(fallback);
         } catch {}
       }
     }
 
-    if (!cancelled) setLoading(false);
-
-    return () => { cancelled = true; };
+    if (!sig.cancelled) setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -231,76 +246,102 @@ export function useCapituloEditor(capId: string | null) {
       setIsOffline(false);
       return;
     }
-    let cancel: (() => void) | undefined;
-    const run = async () => { cancel = await load(capId) as any; };
-    run();
-    return () => cancel?.();
+    const sig: Signal = { cancelled: false };
+    load(capId, sig);
+    return () => { sig.cancelled = true; };
   }, [capId, load]);
 
   useEffect(() => {
-    const h = () => { if (capId) { setIsOffline(false); load(capId); } };
+    const h = () => {
+      if (capId) {
+        setIsOffline(false);
+        load(capId, { cancelled: false });
+      }
+    };
     window.addEventListener("online", h);
     return () => window.removeEventListener("online", h);
   }, [capId, load]);
 
-  return { cap, setCap, loading, isOffline, reload: () => capId && load(capId) };
+  return {
+    cap,
+    setCap,
+    loading,
+    isOffline,
+    reload: () => capId && load(capId, { cancelled: false }),
+  };
 }
 
 // ─── useReinos ────────────────────────────────────────────────────────────────
 
-// FIX 3: useReinos ahora lee Dexie primero y hace fallback offline,
-// igual que los otros hooks. Usa la tabla "reinos" que ya está en SYNC_TABLES
-// y en DEXIE_TABLES de useSupabaseData.
 export function useReinos() {
-  const [reinos, setReinos]   = useState<{ id: string; nombre: string }[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [reinos, setReinos]       = useState<Pick<Reino, "id" | "nombre">[]>([]);
+  const [loading, setLoading]     = useState(true);
   const [isOffline, setIsOffline] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
 
     const run = async () => {
-      // 1. Leer caché local primero
+      // 1. Leer Dexie primero — db.reinos es Table<Reino, string>, sin cast.
+      let hasLocal = false;
       try {
-        const { db } = await import("@/lib/api/client/db");
-        const local: any[] = await (db as any).reinos?.toArray() ?? [];
+        const local = await db.reinos.orderBy("nombre").toArray();
         if (!cancelled && local.length > 0) {
-          setReinos(local.map(r => ({ id: r.id, nombre: r.nombre })));
+          setReinos(local.map(({ id, nombre }) => ({ id, nombre })));
           setLoading(false);
+          hasLocal = true;
         }
-      } catch {}
-
-      // 2. Verificar conectividad
-      const online = await isReallyOnline();
-      if (cancelled) return;
-      if (!online) {
-        setIsOffline(true);
-        setLoading(false);
-        return;
+      } catch (e) {
+        console.warn("[Dexie] reinos.toArray falló:", e);
       }
 
-      // 3. Fetch remoto
+      // 2. Sin datos locales: verificar conectividad antes de dejar al usuario
+      //    frente a un spinner vacío. Con datos locales, el fetch va directo.
+      if (!hasLocal) {
+        const online = await isReallyOnline();
+        if (cancelled) return;
+        if (!online) {
+          setIsOffline(true);
+          setLoading(false);
+          return;
+        }
+      }
+      if (cancelled) return;
+
+      // 3. Fetch remoto (en background si había local, bloqueante si no había)
       try {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from("reinos")
           .select("id, nombre")
           .order("nombre", { ascending: true });
 
         if (cancelled) return;
-        const rows = (data ?? []) as { id: string; nombre: string }[];
+        if (error) throw error;
+
+        const rows = (data ?? []) as Pick<Reino, "id" | "nombre">[];
         setReinos(rows);
         setIsOffline(false);
         setLoading(false);
 
-        // 4. Persistir en Dexie para la próxima vez offline
-        try {
-          const { db } = await import("@/lib/api/client/db");
-          await (db as any).reinos?.bulkPut(
-            rows.map(r => ({ ...r, status: "synced" })),
-          );
-        } catch {}
+        // 4. Persistir en Dexie — merge con campos locales para no perder
+        //    descripcion, orden, mapa_url, etc.
+        const existing = await db.reinos
+          .where("id")
+          .anyOf(rows.map(r => r.id))
+          .toArray();
+        const existingById = new Map(existing.map(r => [r.id, r]));
+
+        await db.reinos.bulkPut(
+          rows.map(r => ({
+            ...existingById.get(r.id),
+            ...r,
+          })),
+        );
       } catch {
-        if (!cancelled) { setIsOffline(true); setLoading(false); }
+        if (!cancelled) {
+          setIsOffline(true);
+          setLoading(false);
+        }
       }
     };
 

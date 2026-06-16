@@ -44,6 +44,12 @@ export interface Capitulo {
   titulo_capitulo?: string;
   contenido?: string;
   fecha_publicacion?: string;
+  /** Campo de línea de tiempo (legado, reemplazado por dia_absoluto desde v17). */
+  orden_linea_tiempo?: number;
+  /** Día absoluto del calendario del mundo (indexado desde v17). */
+  dia_absoluto?: number;
+  /** Estado de sincronización offline. */
+  status?: "pending" | "synced";
 }
 
 export interface Cancion {
@@ -59,6 +65,8 @@ export interface Cancion {
   visible?: boolean;
   created_at?: string;
   updated_at?: string;
+  /** Día absoluto del calendario del mundo (indexado desde v17). */
+  dia_absoluto?: number;
 }
 
 export interface SeccionCancion {
@@ -320,6 +328,45 @@ export interface PersonajeEra {
   updated_at?: string;
 }
 
+// ─── Calendario del mundo ─────────────────────────────────────────────────────
+
+export interface CalendarioEstacion {
+  id: string;
+  nombre: string;
+  orden: number;
+  duracion_dias?: number;
+  descripcion?: string | null;
+}
+
+/** Singleton: almacena la configuración global del calendario (días/año, etc). */
+export interface CalendarioConfig {
+  id: string;           // siempre "global"
+  dias_por_anio?: number;
+  nombre_calendario?: string | null;
+  [key: string]: any;
+}
+
+export interface EraMundo {
+  id: string;
+  nombre: string;
+  anio_inicio: number;
+  anio_fin?: number | null;
+  descripcion?: string | null;
+  created_at?: string;
+}
+
+/** Eventos del mundo/reino referenciados en el sistema dia_absoluto (v18+). */
+export interface EventoMundo {
+  id: string;
+  titulo: string;
+  reino_id?: string | null;
+  dia_absoluto: number;
+  /** "manual" | "capitulo" | "cancion" — origen del evento en la línea de tiempo. */
+  source?: string;
+  descripcion?: string | null;
+  created_at?: string;
+}
+
 // ─── Ítems relacionados con criaturas ────────────────────────────────────────
 export interface CriaturaDropLocal {
   id: string;
@@ -392,8 +439,7 @@ class AgendaFraniDB extends Dexie {
 
   // Nuevas tablas para relaciones lore
   personaje_hechizos!: Table<PersonajeHechizo, string>;
-  personaje_dones!: Table<PersonajeDon, string>;
-  personaje_eras!: Table<PersonajeEra, string>;
+  personaje_dones!:    Table<PersonajeDon, string>;
 
   // Ítems de criaturas
   criatura_drops!: Table<CriaturaDropLocal, string>;
@@ -402,6 +448,15 @@ class AgendaFraniDB extends Dexie {
 
   // Perfil cacheado offline
   perfiles!: Table<PerfilLocal, string>;
+
+  // Calendario del mundo
+  calendario_estaciones!: Table<CalendarioEstacion, string>;
+  calendario_config!:     Table<CalendarioConfig, string>;
+  eras_mundo!:            Table<EraMundo, string>;
+  eventos_mundo!:         Table<EventoMundo, string>;
+
+  // Eras de personaje
+  personaje_eras!: Table<PersonajeEra, string>;
 
 
   constructor() {
