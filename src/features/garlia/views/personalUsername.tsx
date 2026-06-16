@@ -10,16 +10,21 @@ import {
   ModalDetalle, EntidadCard, EmptyTab,
   type EntidadModal, type Descubrimiento, type ItemInventario,
 } from "@/features/garlia/views/PersonalComponents";
+import {
+  loadDescubrimientos,
+  loadReinosCiudadesUsuario,
+  loadInventarioUsuario,
+  loadPerfilesResumen,
+  loadCancionesPersonaje,
+  type PerfilResumen,
+  type ReinoDesbloqueado,
+  type CiudadDesbloqueada,
+} from "@/lib/api/client/syncEngine";
+import { db } from "@/lib/api/client/db";
 
-interface PerfilResumen {
-  id: string;
-  username: string;
-  status?: string;
-  avatar_url?: string;
-  items_count: number;
-  criaturas_count: number;
-  personajes_count: number;
-}
+// Caché en memoria para perfiles públicos por username (navegación SPA)
+const PERFIL_PUBLICO_TTL = 10 * 60_000;
+const _perfilPublicoCache = new Map<string, { data: PerfilData; ts: number }>();
 
 interface PerfilData {
   id: string;
@@ -48,119 +53,78 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
   const [modalPersonaje, setModalPersonaje]         = useState<Descubrimiento | null>(null);
   const [cancionesPersonaje, setCancionesPersonaje] = useState<any[]>([]);
   const [cargandoCanciones, setCargandoCanciones]   = useState(false);
-  const [reinos, setReinos]                         = useState<{ id: string; nombre: string; mapa_url?: string | null; descripcion?: string | null }[]>([]);
-  const [ciudades, setCiudades]                     = useState<{ id: string; nombre: string; imagen_url?: string | null; descripcion?: string | null; reino_id?: string | null }[]>([]);
-  const [ciudadesReino, setCiudadesReino]           = useState<typeof ciudades>([]);
+  const [reinos, setReinos]                         = useState<ReinoDesbloqueado[]>([]);
+  const [ciudades, setCiudades]                     = useState<CiudadDesbloqueada[]>([]);
+  const [ciudadesReino, setCiudadesReino]           = useState<CiudadDesbloqueada[]>([]);
 
   useEffect(() => {
     if (!username) return;
+
     async function cargar() {
       setCargando(true);
 
-      const { data: perfilData } = await supabase
-        .from("perfiles")
-        .select("id, username, status, avatar_url, descripcion, titulo, personajes:personaje_favorito_id(id, nombre, img_url), mascota:mascota_id(id, nombre, imagen_url)")
-        .eq("username", username)
-        .maybeSingle();
+      // ── Paso 1: resolver el perfil público por username ───────────────────
+      // Primero caché en memoria (navegación SPA entre perfiles = 0ms)
+      const memHit = _perfilPublicoCache.get(username);
+      let perfilData: PerfilData | null =
+        memHit && Date.now() - memHit.ts < PERFIL_PUBLICO_TTL ? memHit.data : null;
 
-      if (!perfilData) { setNotFound(true); setCargando(false); return; }
-      setPerfil(perfilData as unknown as PerfilData);
+      if (!perfilData) {
+        // Intentar desde session_cache de Dexie (~5ms, offline-ready)
+        try {
+          const row = await db?.session_cache?.get(`perfil_publico:${username}`);
+          if (row && Date.now() - row.updated_at < PERFIL_PUBLICO_TTL) {
+            perfilData = row.value as PerfilData;
+            _perfilPublicoCache.set(username, { data: perfilData, ts: Date.now() });
+          }
+        } catch {}
+      }
 
+      if (!perfilData) {
+        // Supabase como último recurso
+        const { data } = await supabase
+          .from("perfiles")
+          .select("id, username, status, avatar_url, descripcion, titulo, personajes:personaje_favorito_id(id, nombre, img_url), mascota:mascota_id(id, nombre, imagen_url)")
+          .eq("username", username)
+          .maybeSingle();
+
+        if (!data) { setNotFound(true); setCargando(false); return; }
+        perfilData = data as unknown as PerfilData;
+        _perfilPublicoCache.set(username, { data: perfilData, ts: Date.now() });
+        try {
+          await db?.session_cache?.put({
+            key: `perfil_publico:${username}`,
+            value: perfilData,
+            updated_at: Date.now(),
+          });
+        } catch {}
+      }
+
+      setPerfil(perfilData);
       const uid = perfilData.id;
 
-      const { data: invData } = await supabase
-        .from("inventario_usuario")
-        .select("equipado, items(id, nombre, categoria, imagen_url, descripcion)")
-        .eq("perfil_id", uid);
-      if (invData) setInventario(invData as unknown as ItemInventario[]);
-
-      const [itemsRes, criaturasRes, personajesRes, reinosRes, ciudadesRes] = await Promise.all([
-        supabase.from("descubrimientos_items")
-          .select("fecha_descubrimiento, items:item_id(id, nombre, categoria, imagen_url, descripcion)")
-          .eq("perfil_id", uid),
-        supabase.from("descubrimientos_criaturas")
-          .select("fecha_descubrimiento, criaturas:criatura_id(id, nombre, habitat, alma, imagen_url, descripcion)")
-          .eq("perfil_id", uid),
-        supabase.from("descubrimientos_personajes")
-          .select("fecha_descubrimiento, personajes:personaje_id(id, nombre, reino, especie, img_url, sobre)")
-          .eq("perfil_id", uid),
-        supabase.from("descubrimientos_reinos")
-          .select("fecha_descubrimiento, reino_data:reino_id(id, nombre, mapa_url, descripcion)")
-          .eq("perfil_id", uid),
-        supabase.from("ciudades_desbloqueadas")
-          .select("ciudad_data:ciudad_id(id, nombre, imagen_url, descripcion, reino_id)")
-          .eq("user_id", uid),
+      // ── Paso 2: todo el contenido en paralelo con caché Dexie ────────────
+      // Las mismas funciones que usa personal.tsx → si el usuario vio su
+      // propio perfil antes, los datos ya están en caché y llegan al instante.
+      const [descData, reinosCiudadesData, invData] = await Promise.all([
+        loadDescubrimientos(uid, (fresh) => setDescubrimientos(fresh as Descubrimiento[])),
+        loadReinosCiudadesUsuario(uid, (r, c) => { setReinos(r); setCiudades(c); }),
+        loadInventarioUsuario(uid, (fresh) => setInventario(fresh as ItemInventario[])),
       ]);
 
-      const reinosData = (reinosRes.data ?? []).map((r: any) => ({
-        id:          r.reino_data?.id,
-        nombre:      r.reino_data?.nombre,
-        mapa_url:    r.reino_data?.mapa_url,
-        descripcion: r.reino_data?.descripcion,
-      })).filter((r: any) => r.id);
-      setReinos(reinosData);
+      if (descData.length) setDescubrimientos(descData as Descubrimiento[]);
+      if (reinosCiudadesData.reinos.length) setReinos(reinosCiudadesData.reinos);
+      if (reinosCiudadesData.ciudades.length) setCiudades(reinosCiudadesData.ciudades);
+      if (invData.length) setInventario(invData as ItemInventario[]);
 
-      const ciudadesData = (ciudadesRes.data ?? []).map((r: any) => ({
-        id:          r.ciudad_data?.id,
-        nombre:      r.ciudad_data?.nombre,
-        imagen_url:  r.ciudad_data?.imagen_url,
-        descripcion: r.ciudad_data?.descripcion,
-        reino_id:    r.ciudad_data?.reino_id ?? null,
-      })).filter((l: any) => l.id);
-      setCiudades(ciudadesData);
-
-      setDescubrimientos([
-        ...(itemsRes.data ?? []).map((r: any) => ({
-          tipo: "item" as const,
-          entidad_id:           r.items?.id,
-          fecha_descubrimiento: r.fecha_descubrimiento,
-          nombre:      r.items?.nombre,
-          descripcion: r.items?.descripcion,
-          imagen_url:  r.items?.imagen_url,
-          categoria:   r.items?.categoria,
-        })),
-        ...(criaturasRes.data ?? []).map((r: any) => ({
-          tipo: "criatura" as const,
-          entidad_id:           r.criaturas?.id,
-          fecha_descubrimiento: r.fecha_descubrimiento,
-          nombre:      r.criaturas?.nombre,
-          descripcion: r.criaturas?.descripcion,
-          imagen_url:  r.criaturas?.imagen_url,
-          habitat:     r.criaturas?.habitat,
-          alma:        r.criaturas?.alma,
-        })),
-        ...(personajesRes.data ?? []).map((r: any) => ({
-          tipo: "personaje" as const,
-          entidad_id:           r.personajes?.id,
-          fecha_descubrimiento: r.fecha_descubrimiento,
-          nombre:      r.personajes?.nombre,
-          descripcion: r.personajes?.sobre,
-          imagen_url:  r.personajes?.img_url,
-          reino:       r.personajes?.reino,
-          especie:     r.personajes?.especie,
-        })),
-      ]);
-
-      const { data: perfilesData } = await supabase
-        .from("perfiles")
-        .select("id, username, status, avatar_url")
-        .neq("id", uid)
-        .order("username");
-
-      if (perfilesData && perfilesData.length > 0) {
-        const counts = await Promise.all(perfilesData.map(async (p: any) => {
-          const [i, c, pe] = await Promise.all([
-            supabase.from("descubrimientos_items").select("id", { count: "exact", head: true }).eq("perfil_id", p.id),
-            supabase.from("descubrimientos_criaturas").select("id", { count: "exact", head: true }).eq("perfil_id", p.id),
-            supabase.from("descubrimientos_personajes").select("id", { count: "exact", head: true }).eq("perfil_id", p.id),
-          ]);
-          return { ...p, items_count: i.count ?? 0, criaturas_count: c.count ?? 0, personajes_count: pe.count ?? 0 } as PerfilResumen;
-        }));
-        setOtrosPerfiles(counts);
-      }
+      // ── Paso 3: sidebar de exploradores (baja prioridad) ─────────────────
+      loadPerfilesResumen(uid, setOtrosPerfiles)
+        .then(setOtrosPerfiles)
+        .catch(() => {});
 
       setCargando(false);
     }
+
     cargar();
   }, [username]);
 
@@ -174,12 +138,9 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
     if (!d.entidad_id) return;
     setCargandoCanciones(true);
     try {
-      const { data, error } = await supabase
-        .from("canciones")
-        .select("id, titulo, portada_url, info_cancion, links, cantante, idioma, duracion_segundos")
-        .eq("personaje_id", d.entidad_id)
-        .eq("visible", true);
-      if (!error && data) setCancionesPersonaje(data);
+      // Cacheado: segunda visita al mismo personaje es instantánea
+      const data = await loadCancionesPersonaje(d.entidad_id);
+      setCancionesPersonaje(data);
     } catch (err) {
       console.warn("[PersonalUsername] Error cargando canciones:", err);
     } finally {
@@ -257,19 +218,15 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                 overflow: "hidden",
               }}
             >
-              {/* Hero imagen */}
               <div className="w-full shrink-0 overflow-hidden relative"
                 style={{
                   height: (modalD.data.imagen_url || modalD.data.img_url) ? "220px" : "80px",
                   background: "color-mix(in srgb, var(--primary) 6%, var(--bg-main))",
                 }}>
-                {/* Mapa de fondo */}
                 {modalD.data.imagen_url && (
                   <img src={modalD.data.imagen_url} alt={modalD.data.nombre}
-                    className="w-full h-full object-cover"
-                    style={{ opacity: 0.35 }} />
+                    className="w-full h-full object-cover" style={{ opacity: 0.35 }} />
                 )}
-                {/* Logo centrado encima */}
                 {modalD.data.img_url && (
                   <div className="absolute inset-0 flex items-center justify-center">
                     <img src={modalD.data.img_url} alt={`Logo ${modalD.data.nombre}`}
@@ -316,7 +273,6 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                   </p>
                 )}
 
-                {/* Sección de ciudades del reino */}
                 {ciudadesReino.length > 0 && (
                   <>
                     <div className="flex items-center gap-3 mb-4">
@@ -330,7 +286,6 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                       </div>
                       <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
                     </div>
-
                     <div className="flex flex-col gap-2">
                       {ciudadesReino.map((lugar, i) => (
                         <button
@@ -562,7 +517,6 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
       ═══════════════════════════════════════════ */}
       <div className="w-full animate-in fade-in duration-500">
 
-        {/* Banda de color con degradado */}
         <div className="relative w-full overflow-hidden"
           style={{
             height: 96,
@@ -570,20 +524,16 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
             borderBottom: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
           }}>
           <div className="absolute inset-0 pointer-events-none overflow-hidden">
-            <div className="absolute -top-8 -right-8 w-48 h-48 rounded-full opacity-[0.06]"
-              style={{ background: "var(--primary)" }} />
-            <div className="absolute top-2 right-1/4 w-24 h-24 rounded-full opacity-[0.04]"
-              style={{ background: "var(--primary)" }} />
-            <div className="absolute -bottom-6 left-1/3 w-32 h-32 rounded-full opacity-[0.04]"
-              style={{ background: "var(--primary)" }} />
+            <div className="absolute -top-8 -right-8 w-48 h-48 rounded-full opacity-[0.06]" style={{ background: "var(--primary)" }} />
+            <div className="absolute top-2 right-1/4 w-24 h-24 rounded-full opacity-[0.04]" style={{ background: "var(--primary)" }} />
+            <div className="absolute -bottom-6 left-1/3 w-32 h-32 rounded-full opacity-[0.04]" style={{ background: "var(--primary)" }} />
           </div>
         </div>
 
-        {/* Zona identidad: avatar sobresaliente + nombre */}
+        {/* Zona identidad */}
         <div className="px-6 md:px-10 flex items-end gap-5 md:gap-7"
           style={{ marginTop: "-52px", paddingBottom: "20px" }}>
 
-          {/* Avatar circular */}
           <div className="relative shrink-0"
             style={{
               width: 104, height: 104,
@@ -599,7 +549,6 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
               : <User size={38} className="absolute inset-0 m-auto" style={{ color: "color-mix(in srgb, var(--primary) 22%, transparent)" }} />}
           </div>
 
-          {/* Nombre + título + status */}
           <div className="flex flex-col gap-1 pb-1" style={{ paddingTop: "56px" }}>
             <h1 className="font-serif italic leading-none capitalize"
               style={{ fontSize: "1.65rem", color: "var(--primary)", letterSpacing: "0.01em" }}>

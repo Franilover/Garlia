@@ -10,16 +10,18 @@ import {
   ModalDetalle, EntidadCard, EmptyTab,
   type EntidadModal, type Descubrimiento, type ItemInventario,
 } from "./PersonalComponents";
-
-interface PerfilResumen {
-  id: string;
-  username: string;
-  status?: string;
-  avatar_url?: string;
-  items_count: number;
-  criaturas_count: number;
-  personajes_count: number;
-}
+import {
+  loadPerfilUsuario,
+  loadDescubrimientos,
+  loadReinosCiudadesUsuario,
+  loadInventarioUsuario,
+  loadPerfilesResumen,
+  loadCancionesPersonaje,
+  invalidateSessionCache,
+  type PerfilResumen,
+  type ReinoDesbloqueado,
+  type CiudadDesbloqueada,
+} from "@/lib/api/client/syncEngine";
 
 interface Perfil {
   username: string;
@@ -62,9 +64,9 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
   const [otrosPerfiles, setOtrosPerfiles] = useState<PerfilResumen[]>([]);
   const [cancionesPersonaje, setCancionesPersonaje] = useState<any[]>([]);
   const [cargandoCanciones, setCargandoCanciones] = useState(false);
-  const [ciudadesReino, setCiudadesReino] = useState<typeof ciudades>([]);
-  const [reinos, setReinos] = useState<{ id: string; nombre: string; mapa_url?: string | null; logo_url?: string | null; descripcion?: string | null }[]>([]);
-  const [ciudades, setCiudades] = useState<{ id: string; nombre: string; imagen_url?: string | null; descripcion?: string | null; reino_id?: string | null }[]>([]);
+  const [ciudadesReino, setCiudadesReino] = useState<CiudadDesbloqueada[]>([]);
+  const [reinos, setReinos] = useState<ReinoDesbloqueado[]>([]);
+  const [ciudades, setCiudades] = useState<CiudadDesbloqueada[]>([]);
   const userIdRef = React.useRef<string | null>(null);
 
   useEffect(() => {
@@ -79,138 +81,27 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
         }
         userIdRef.current = user.id;
 
-        const { data: perfilData, error: perfilError } = await supabase
-          .from("perfiles")
-          .select("username, status, rol, avatar_url, descripcion, titulo, personaje_favorito_id, mascota_id, personajes:personaje_favorito_id(id, nombre, img_url), mascota:mascota_id(id, nombre, imagen_url)")
-          .eq("id", user.id)
-          .maybeSingle();
-
-        if (perfilError) console.warn("[Personal] Error al cargar perfil:", perfilError.message);
-
-        setPerfil({
-          username:              perfilData?.username   ?? datosProp?.username ?? user.email?.split("@")[0] ?? "Aventurero",
-          status:                perfilData?.status     ?? datosProp?.status,
-          avatar_url:            perfilData?.avatar_url ?? datosProp?.avatar_url,
-          descripcion:           perfilData?.descripcion,
-          titulo:                perfilData?.titulo,
-          personaje_favorito_id: perfilData?.personaje_favorito_id,
-          mascota_id:            perfilData?.mascota_id,
-          personaje_favorito:    (perfilData as any)?.personajes ?? null,
-          mascota:               (perfilData as any)?.mascota ?? null,
-        });
-
-        if (!datosProp?.inventario_usuario?.length) {
-          const { data: invData, error: invError } = await supabase
-            .from("inventario_usuario")
-            .select("equipado, items(id, nombre, categoria, imagen_url, descripcion)")
-            .eq("perfil_id", user.id);
-          if (invError) console.warn("[Personal] Error inventario:", invError.message);
-          if (invData)  setInventario(invData as unknown as ItemInventario[]);
-        }
-
-        const [itemsRes, criaturasRes, personajesRes, reinosRes, ciudadesRes] = await Promise.all([
-          supabase
-            .from("descubrimientos_items")
-            .select("fecha_descubrimiento, items:item_id(id, nombre, categoria, imagen_url, descripcion)")
-            .eq("perfil_id", user.id),
-          supabase
-            .from("descubrimientos_criaturas")
-            .select("fecha_descubrimiento, criaturas:criatura_id(id, nombre, habitat, alma, imagen_url, descripcion)")
-            .eq("perfil_id", user.id),
-          supabase
-            .from("descubrimientos_personajes")
-            .select("fecha_descubrimiento, personajes:personaje_id(id, nombre, reino, especie, img_url, sobre)")
-            .eq("perfil_id", user.id),
-          supabase
-            .from("descubrimientos_reinos")
-            .select("fecha_descubrimiento, reino_data:reino_id(id, nombre, mapa_url, logo_url, descripcion)")
-            .eq("perfil_id", user.id),
-          supabase
-            .from("ciudades_desbloqueadas")
-            .select("ciudades:ciudad_id(id, nombre, imagen_url, descripcion, reino_id)")
-            .eq("user_id", user.id),
+        // ── Todo en paralelo, cada función usa caché Dexie primero ──────────
+        const [perfilData, descData, reinosCiudadesData, invData] = await Promise.all([
+          loadPerfilUsuario(user.id, (fresh) => setPerfil(mapPerfil(fresh, datosProp, user))),
+          loadDescubrimientos(user.id, (fresh) => setDescubrimientos(fresh as Descubrimiento[])),
+          loadReinosCiudadesUsuario(user.id, (r, c) => { setReinos(r); setCiudades(c); }),
+          datosProp?.inventario_usuario?.length
+            ? Promise.resolve(null)
+            : loadInventarioUsuario(user.id, (fresh) => setInventario(fresh as ItemInventario[])),
         ]);
 
-        if (itemsRes.error)      console.warn("[Personal] descubrimientos_items error:", itemsRes.error.message);
-        if (criaturasRes.error)  console.warn("[Personal] descubrimientos_criaturas error:", criaturasRes.error.message);
-        if (personajesRes.error) console.warn("[Personal] descubrimientos_personajes error:", personajesRes.error.message);
-        if (reinosRes.error)     console.warn("[Personal] descubrimientos_reinos error:", reinosRes.error.message);
-        if (ciudadesRes.error)    console.warn("[Personal] ciudades_desbloqueadas error:", ciudadesRes.error.message);
+        if (perfilData) setPerfil(mapPerfil(perfilData, datosProp, user));
+        if (descData.length) setDescubrimientos(descData as Descubrimiento[]);
+        if (reinosCiudadesData.reinos.length) setReinos(reinosCiudadesData.reinos);
+        if (reinosCiudadesData.ciudades.length) setCiudades(reinosCiudadesData.ciudades);
+        if (invData) setInventario(invData as ItemInventario[]);
 
-        const reinosData = (reinosRes.data ?? []).map((r: any) => ({
-          id:           r.reino_data?.id,
-          nombre:       r.reino_data?.nombre,
-          mapa_url:     r.reino_data?.mapa_url,
-          logo_url:     r.reino_data?.logo_url,
-          descripcion:  r.reino_data?.descripcion,
-        })).filter(r => r.id);
-        setReinos(reinosData);
+        // ── Sidebar de exploradores: baja prioridad, no bloquea la UI ───────
+        loadPerfilesResumen(user.id, setOtrosPerfiles)
+          .then(setOtrosPerfiles)
+          .catch(() => {});
 
-        const ciudadesData = (ciudadesRes.data ?? []).map((r: any) => ({
-          id:          r.ciudades?.id,
-          nombre:      r.ciudades?.nombre,
-          imagen_url:  r.ciudades?.imagen_url,
-          descripcion: r.ciudades?.descripcion,
-          reino_id:    r.ciudades?.reino_id ?? null,
-        })).filter(l => l.id);
-        setCiudades(ciudadesData);
-
-        const planos: Descubrimiento[] = [
-          ...(itemsRes.data ?? []).map((r: any) => ({
-            tipo: "item" as const,
-            entidad_id:           r.items?.id,
-            fecha_descubrimiento: r.fecha_descubrimiento,
-            nombre:      r.items?.nombre,
-            descripcion: r.items?.descripcion,
-            imagen_url:  r.items?.imagen_url,
-            categoria:   r.items?.categoria,
-          })),
-          ...(criaturasRes.data ?? []).map((r: any) => ({
-            tipo: "criatura" as const,
-            entidad_id:           r.criaturas?.id,
-            fecha_descubrimiento: r.fecha_descubrimiento,
-            nombre:      r.criaturas?.nombre,
-            descripcion: r.criaturas?.descripcion,
-            imagen_url:  r.criaturas?.imagen_url,
-            habitat:     r.criaturas?.habitat,
-            alma:        r.criaturas?.alma,
-          })),
-          ...(personajesRes.data ?? []).map((r: any) => ({
-            tipo: "personaje" as const,
-            entidad_id:           r.personajes?.id,
-            fecha_descubrimiento: r.fecha_descubrimiento,
-            nombre:      r.personajes?.nombre,
-            imagen_url:  r.personajes?.img_url,
-            descripcion: r.personajes?.sobre,
-            reino:       r.personajes?.reino,
-            especie:     r.personajes?.especie,
-          })),
-        ];
-
-        setDescubrimientos(planos);
-
-        const { data: perfilesData } = await supabase
-          .from("perfiles")
-          .select("id, username, status, avatar_url")
-          .neq("id", user.id)
-          .order("username");
-
-        if (perfilesData && perfilesData.length > 0) {
-          const counts = await Promise.all(perfilesData.map(async (p: any) => {
-            const [i, c, pe] = await Promise.all([
-              supabase.from("descubrimientos_items").select("id", { count: "exact", head: true }).eq("perfil_id", p.id),
-              supabase.from("descubrimientos_criaturas").select("id", { count: "exact", head: true }).eq("perfil_id", p.id),
-              supabase.from("descubrimientos_personajes").select("id", { count: "exact", head: true }).eq("perfil_id", p.id),
-            ]);
-            return {
-              ...p,
-              items_count:     i.count ?? 0,
-              criaturas_count: c.count ?? 0,
-              personajes_count: pe.count ?? 0,
-            } as PerfilResumen;
-          }));
-          setOtrosPerfiles(counts);
-        }
       } catch (err) {
         console.error("[Personal] Error inesperado:", err);
       } finally {
@@ -221,64 +112,24 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
     cargarTodo();
   }, []);
 
-  // Refrescar reinos, ciudades y descubrimientos cuando el usuario vuelve a esta pestaña
-  // (por ejemplo, después de leer un capítulo que desbloqueó algo nuevo).
+  // Refrescar cuando el usuario vuelve a la pestaña (puede haber desbloqueado algo nuevo).
   useEffect(() => {
     const refrescarDescubrimientos = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
+      const uid = user.id;
 
-      const [personajesRes, reinosRes, ciudadesRes] = await Promise.all([
-        supabase
-          .from("descubrimientos_personajes")
-          .select("fecha_descubrimiento, personajes:personaje_id(id, nombre, reino, especie, img_url, sobre)")
-          .eq("perfil_id", user.id),
-        supabase
-          .from("descubrimientos_reinos")
-          .select("fecha_descubrimiento, reino_data:reino_id(id, nombre, mapa_url, logo_url, descripcion)")
-          .eq("perfil_id", user.id),
-        supabase
-          .from("ciudades_desbloqueadas")
-          .select("ciudades:ciudad_id(id, nombre, imagen_url, descripcion, reino_id)")
-          .eq("user_id", user.id),
+      await invalidateSessionCache(`descubrimientos:${uid}`);
+      await invalidateSessionCache(`reinos_ciudades_usuario:${uid}`);
+
+      const [descData, reinosCiudadesData] = await Promise.all([
+        loadDescubrimientos(uid),
+        loadReinosCiudadesUsuario(uid),
       ]);
 
-      if (reinosRes.data) {
-        const reinosData = reinosRes.data.map((r: any) => ({
-          id:           r.reino_data?.id,
-          nombre:       r.reino_data?.nombre,
-          mapa_url:     r.reino_data?.mapa_url,
-          logo_url:     r.reino_data?.logo_url,
-          descripcion:  r.reino_data?.descripcion,
-        })).filter((r: any) => r.id);
-        setReinos(reinosData);
-      }
-
-      if (ciudadesRes.data) {
-        const ciudadesData = ciudadesRes.data.map((r: any) => ({
-          id:          r.ciudades?.id,
-          nombre:      r.ciudades?.nombre,
-          imagen_url:  r.ciudades?.imagen_url,
-          descripcion: r.ciudades?.descripcion,
-          reino_id:    r.ciudades?.reino_id ?? null,
-        })).filter((l: any) => l.id);
-        setCiudades(ciudadesData);
-      }
-
-      if (personajesRes.data) {
-        setDescubrimientos(prev => [
-          ...prev.filter(d => d.tipo !== "personaje"),
-          ...personajesRes.data!.map((r: any) => ({
-            tipo: "personaje" as const,
-            entidad_id:           r.personajes?.id,
-            fecha_descubrimiento: r.fecha_descubrimiento,
-            nombre:    r.personajes?.nombre,
-            img_url:   r.personajes?.img_url,
-            reino:     r.personajes?.reino,
-            especie:   r.personajes?.especie,
-          })),
-        ]);
-      }
+      if (descData.length) setDescubrimientos(descData as Descubrimiento[]);
+      setReinos(reinosCiudadesData.reinos);
+      setCiudades(reinosCiudadesData.ciudades);
     };
 
     const handleVisibilityChange = () => {
@@ -305,6 +156,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
     if (!error) {
       setPerfil(prev => prev ? { ...prev, avatar_url: imgUrl } : prev);
       setShowAvatarPicker(false);
+      await invalidateSessionCache(`perfil_usuario:${userId}`);
     } else {
       console.warn("[Personal] Error guardando avatar:", error.message);
     }
@@ -322,6 +174,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
     if (!error) {
       setPerfil(prev => prev ? { ...prev, descripcion: descDraft } : prev);
       setEditingDesc(false);
+      await invalidateSessionCache(`perfil_usuario:${userId}`);
     }
     setSavingDesc(false);
   };
@@ -339,6 +192,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
         [tipo === 'personaje' ? 'personaje_favorito' : 'mascota']: data,
       } : prev);
       tipo === 'personaje' ? setShowPersonajePicker(false) : setShowMascotaPicker(false);
+      await invalidateSessionCache(`perfil_usuario:${userId}`);
     }
     setSavingFav(null);
   };
@@ -349,12 +203,8 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
     if (!d.entidad_id) return;
     setCargandoCanciones(true);
     try {
-      const { data, error } = await supabase
-        .from("canciones")
-        .select("id, titulo, portada_url, info_cancion, personaje_id")
-        .eq("personaje_id", d.entidad_id)
-        .eq("visible", true);
-      if (!error && data) setCancionesPersonaje(data);
+      const data = await loadCancionesPersonaje(d.entidad_id);
+      setCancionesPersonaje(data);
     } catch (err) {
       console.warn("[Personal] Error cargando canciones:", err);
     } finally {
@@ -628,13 +478,11 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                   height: (modalEntidad.data.imagen_url || modalEntidad.data.img_url) ? "220px" : "80px",
                   background: "color-mix(in srgb, var(--primary) 6%, var(--bg-main))",
                 }}>
-                {/* Mapa de fondo */}
                 {modalEntidad.data.imagen_url && (
                   <img src={modalEntidad.data.imagen_url} alt={modalEntidad.data.nombre}
                     className="w-full h-full object-cover"
                     style={{ opacity: 0.35 }} />
                 )}
-                {/* Logo centrado encima */}
                 {modalEntidad.data.img_url && (
                   <div className="absolute inset-0 flex items-center justify-center">
                     <img src={modalEntidad.data.img_url} alt={`Logo ${modalEntidad.data.nombre}`}
@@ -681,7 +529,6 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                   </p>
                 )}
 
-                {/* Sección de ciudades del reino — oculta si no hay ninguna */}
                 {ciudadesReino.length > 0 && (
                   <>
                     <div className="flex items-center gap-3 mb-4">
@@ -1052,17 +899,15 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
       ══════════════════════════════════════ */}
       <div className="w-full max-w-7xl mx-auto pb-20">
 
-        {/* ── HERO HEADER — banda decorativa + avatar circular prominente ── */}
+        {/* ── HERO HEADER ── */}
         <div className="animate-in fade-in duration-700">
 
-          {/* Banda de color/patrón superior */}
           <div className="relative w-full overflow-hidden"
             style={{
               height: "96px",
               background: `color-mix(in srgb, var(--primary) 7%, var(--bg-main))`,
               borderBottom: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
             }}>
-            {/* Patrón decorativo */}
             <div className="absolute inset-0"
               style={{
                 backgroundImage: `repeating-linear-gradient(
@@ -1073,7 +918,6 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                   transparent 24px
                 )`,
               }} />
-            {/* Badge descubrimientos — esquina superior derecha */}
             <div className="absolute top-4 right-4 md:right-10 flex items-center gap-1.5 px-3 py-1.5"
               style={{
                 border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
@@ -1093,11 +937,9 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
             </div>
           </div>
 
-          {/* Zona de identidad: avatar que sobresale + nombre a la derecha */}
           <div className="px-6 md:px-10 flex items-end gap-5 md:gap-7"
             style={{ marginTop: "-52px", paddingBottom: "20px" }}>
 
-            {/* Avatar circular grande — sobresale sobre la banda */}
             <button
               onClick={() => setShowAvatarPicker(true)}
               className="group relative shrink-0 transition-opacity hover:opacity-90"
@@ -1115,7 +957,6 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                     className="w-full h-full object-contain" />
                 : <User size={38} className="absolute inset-0 m-auto"
                     style={{ color: "color-mix(in srgb, var(--primary) 22%, transparent)" }} />}
-              {/* Overlay hover */}
               <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                 style={{ background: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
                 <span className="text-[7px] font-black uppercase tracking-widest"
@@ -1123,7 +964,6 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
               </div>
             </button>
 
-            {/* Nombre + título + status */}
             <div className="flex flex-col gap-1 pb-1" style={{ paddingTop: "56px" }}>
               {perfil?.titulo && (
                 <div className="inline-flex w-fit items-center gap-1.5 px-2 py-0.5"
@@ -1159,7 +999,6 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
           {/* ── LEFT SIDEBAR ── */}
           <div className="w-full md:w-64 xl:w-72 shrink-0 md:sticky md:top-16 self-start flex flex-col gap-4 animate-in fade-in duration-500">
 
-            {/* ── PANEL UNIFICADO: Stats + Bio + Favoritos ── */}
             <div className="overflow-hidden"
               style={{
                 background: "var(--white-custom)",
@@ -1211,10 +1050,9 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                 </div>
               </div>
 
-              {/* Divider */}
               <div style={{ height: "1px", background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
 
-              {/* Bio / Sobre mí */}
+              {/* Bio */}
               <div>
                 <div className="flex items-center justify-between px-5 pt-4 pb-2">
                   <div className="flex items-center gap-2">
@@ -1276,12 +1114,10 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                 </div>
               </div>
 
-              {/* Divider */}
               <div style={{ height: "1px", background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
 
               {/* Favoritos */}
               <div className="grid grid-cols-2">
-                {/* Personaje favorito */}
                 <button
                   onClick={() => setShowPersonajePicker(true)}
                   className="text-left px-4 py-4 transition-colors group"
@@ -1323,7 +1159,6 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                   </div>
                 </button>
 
-                {/* Mascota */}
                 <button
                   onClick={() => setShowMascotaPicker(true)}
                   className="text-left px-4 py-4 transition-colors group"
@@ -1405,13 +1240,12 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
             )}
           </div>
 
-          {/* ── MAIN CONTENT: Collection grid + desktop sidebar ── */}
+          {/* ── MAIN CONTENT ── */}
           <div className="flex flex-col md:flex-row gap-6 w-full min-w-0 items-start">
 
-            {/* Grid area */}
             <div className="w-full md:flex-1 md:min-w-0 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
 
-              {/* ── TABS Mobile ── */}
+              {/* Tabs Mobile */}
               <div className="flex md:hidden w-full"
                 style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)" }}>
                 {tabs.map((t) => {
@@ -1440,7 +1274,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                 })}
               </div>
 
-              {/* ── TABS Desktop ── */}
+              {/* Tabs Desktop */}
               <div className="hidden md:flex items-end gap-0 w-full"
                 style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)" }}>
                 {tabs.map((t) => {
@@ -1468,7 +1302,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                 })}
               </div>
 
-              {/* Inventory panel */}
+              {/* Grid panel */}
               <div style={{
                 borderLeft: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
                 borderRight: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
@@ -1515,7 +1349,6 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                               (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 3%, var(--white-custom))";
                               (e.currentTarget as HTMLElement).style.boxShadow = "inset 0 1px 0 color-mix(in srgb, var(--primary) 6%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--primary) 10%, transparent)";
                             }}>
-                            {/* Imagen */}
                             <div className="flex-1 relative overflow-hidden flex items-center justify-center p-2" style={{ minHeight: "64px", width: "100%" }}>
                               {item.items.imagen_url
                                 ? <img src={item.items.imagen_url} alt={item.items.nombre}
@@ -1523,7 +1356,6 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                                     style={{ objectPosition: "center" }} />
                                 : <Sword size={22} style={{ color: "color-mix(in srgb, var(--primary) 14%, transparent)" }} />}
                             </div>
-                            {/* Nombre en franja inferior */}
                             <div className="px-1.5 py-1" style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 4%, transparent)" }}>
                               <p className="font-serif italic text-[9px] leading-tight capitalize truncate text-center"
                                 style={{ color: "var(--primary)" }}>
@@ -1556,7 +1388,8 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                               (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 14%, transparent)";
                               (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 3%, var(--white-custom))";
                               (e.currentTarget as HTMLElement).style.boxShadow = "inset 0 1px 0 color-mix(in srgb, var(--primary) 6%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--primary) 10%, transparent)";
-                            }}>                            <div className="flex-1 relative overflow-hidden flex items-center justify-center p-2" style={{ minHeight: "64px", width: "100%" }}>
+                            }}>
+                            <div className="flex-1 relative overflow-hidden flex items-center justify-center p-2" style={{ minHeight: "64px", width: "100%" }}>
                               {d.imagen_url
                                 ? <img src={d.imagen_url} alt={d.nombre}
                                     className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-125"
@@ -1601,7 +1434,8 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                               (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 14%, transparent)";
                               (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 3%, var(--white-custom))";
                               (e.currentTarget as HTMLElement).style.boxShadow = "inset 0 1px 0 color-mix(in srgb, var(--primary) 6%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--primary) 10%, transparent)";
-                            }}>                            <div className="flex-1 relative overflow-hidden flex items-center justify-center p-2" style={{ minHeight: "64px", width: "100%" }}>
+                            }}>
+                            <div className="flex-1 relative overflow-hidden flex items-center justify-center p-2" style={{ minHeight: "64px", width: "100%" }}>
                               {d.imagen_url
                                 ? <img src={d.imagen_url} alt={d.nombre}
                                     className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-125"
@@ -1645,7 +1479,8 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                               (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 14%, transparent)";
                               (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 3%, var(--white-custom))";
                               (e.currentTarget as HTMLElement).style.boxShadow = "inset 0 1px 0 color-mix(in srgb, var(--primary) 6%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--primary) 10%, transparent)";
-                            }}>                            <div className="flex-1 relative overflow-hidden flex items-center justify-center p-2" style={{ minHeight: "64px", width: "100%" }}>
+                            }}>
+                            <div className="flex-1 relative overflow-hidden flex items-center justify-center p-2" style={{ minHeight: "64px", width: "100%" }}>
                               {d.imagen_url
                                 ? <img src={d.imagen_url} alt={d.nombre}
                                     className="w-full h-full object-contain transition-transform duration-300"
@@ -1802,4 +1637,20 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
       </div>
     </>
   );
+}
+
+// ─── Helper ───────────────────────────────────────────────────────────────────
+
+function mapPerfil(data: any, datosProp: PersonalProps["datos"], user: any): Perfil {
+  return {
+    username:              data?.username   ?? datosProp?.username ?? user.email?.split("@")[0] ?? "Aventurero",
+    status:                data?.status     ?? datosProp?.status,
+    avatar_url:            data?.avatar_url ?? datosProp?.avatar_url,
+    descripcion:           data?.descripcion,
+    titulo:                data?.titulo,
+    personaje_favorito_id: data?.personaje_favorito_id,
+    mascota_id:            data?.mascota_id,
+    personaje_favorito:    data?.personajes ?? null,
+    mascota:               data?.mascota    ?? null,
+  };
 }
