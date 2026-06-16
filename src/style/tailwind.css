@@ -507,3 +507,28 @@
     --radius: var(--radius-btn);
   }
 }
+
+
+
+/* ── Command Palette (cmdk) ──────────────────────────────────────────────── */
+
+[cmdk-item] {
+  transition: background-color 0.1s ease, color 0.1s ease;
+  cursor: pointer;
+}
+
+[cmdk-item]:hover,
+[cmdk-item][data-selected="true"] {
+  background: color-mix(in srgb, var(--primary) 7%, transparent);
+  color: var(--primary);
+}
+
+[data-theme="pixel"] [cmdk-item][data-selected="true"] {
+  background: transparent;
+  outline: var(--border-width) solid var(--primary);
+  outline-offset: -1px;
+}
+
+[cmdk-group-heading] {
+  display: none;
+}
