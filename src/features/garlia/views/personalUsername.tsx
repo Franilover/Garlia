@@ -628,22 +628,7 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
             </div>
           )}
 
-          {/* Stats inline */}
-          <div className="flex items-center gap-4 ml-auto self-end pb-0.5">
-            {[
-              { icon: <User size={10} />,  label: "Conocidos", count: misPersonajes.length },
-              { icon: <Cat  size={10} />,  label: "Bestias",   count: misCriaturas.length },
-              { icon: <Sword size={10} />, label: "Objetos",   count: inventario.length + misItemsDesc.length },
-            ].map(({ icon, label, count }) => (
-              <div key={label} className="flex flex-col items-center gap-0.5">
-                <span className="font-serif italic tabular-nums" style={{ fontSize: "1.05rem", color: "var(--primary)" }}>{count}</span>
-                <div className="flex items-center gap-1" style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
-                  {icon}
-                  <span className="text-[7px] font-black uppercase tracking-widest">{label}</span>
-                </div>
-              </div>
-            ))}
-          </div>
+
         </div>
       </div>
 
@@ -863,9 +848,63 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
             </div>
           </div>
 
-          {/* ── Sidebar: Otros exploradores ── */}
+          {/* ── Sidebar: Registro + Exploradores ── */}
+          <aside className="w-full md:w-44 xl:w-52 shrink-0 md:sticky md:top-16 self-start animate-in fade-in duration-500 delay-200 flex flex-col gap-4">
+
+            {/* Stats HUD — Registro */}
+            <div className="overflow-hidden"
+              style={{
+                background: "var(--white-custom)",
+                borderRadius: "var(--radius-card)",
+                border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+              }}>
+              <div className="px-5 pt-5 pb-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
+                  <p className="text-[7px] font-black uppercase tracking-[0.3em]"
+                    style={{ color: "color-mix(in srgb, var(--primary) 28%, transparent)" }}>
+                    Registro
+                  </p>
+                  <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
+                </div>
+                <div className="space-y-3.5">
+                  {[
+                    { icon: <User size={10} />,   label: "Amigos",    count: misPersonajes.length,                        max: 20 },
+                    { icon: <Cat size={10} />,    label: "Criaturas", count: misCriaturas.length,                         max: 30 },
+                    { icon: <Sword size={10} />,  label: "Objetos",   count: inventario.length + misItemsDesc.length,     max: 50 },
+                    { icon: <MapPin size={10} />, label: "Ciudades",  count: reinos.length + ciudades.length,             max: 30 },
+                  ].map(({ icon, label, count, max }) => (
+                    <div key={label}>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <div className="flex items-center gap-1.5"
+                          style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>
+                          {icon}
+                          <span className="text-[8px] font-black uppercase tracking-wider">{label}</span>
+                        </div>
+                        <span className="text-[13px] font-black tabular-nums" style={{ color: "var(--primary)" }}>
+                          {count}
+                        </span>
+                      </div>
+                      <div className="flex gap-0.5">
+                        {Array.from({ length: 10 }).map((_, i) => (
+                          <div key={i} className="flex-1 h-1 transition-all duration-700"
+                            style={{
+                              background: i < Math.round((count / max) * 10)
+                                ? "color-mix(in srgb, var(--primary) 55%, transparent)"
+                                : "color-mix(in srgb, var(--primary) 8%, transparent)",
+                              borderRadius: "1px",
+                            }} />
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Otros exploradores */}
           {otrosPerfiles.length > 0 && (
-            <aside className="w-full md:w-44 xl:w-52 shrink-0 md:sticky md:top-16 self-start animate-in fade-in duration-500 delay-200">
+            <div>
               <div className="flex items-center gap-2 mb-3 px-1">
                 <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
                 <div className="flex items-center gap-1">
@@ -911,8 +950,9 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                   </Link>
                 ))}
               </div>
-            </aside>
+            </div>
           )}
+          </aside>
         </div>
       </div>
     </>
