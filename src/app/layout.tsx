@@ -8,12 +8,7 @@ import "@/style/tailwind.css";
 import { OfflineSyncActivator } from "@/providers/OfflineSyncActivator";
 import { ThemeProvider } from "@/providers/ThemeProvider";
 import { cn } from "@/lib/utils/index";
-import dynamic from "next/dynamic";
-import { CommandPaletteListener } from "@/components/command";
-const GlobalCommandPalette = dynamic(
-  () => import("@/components/command").then((m) => m.GlobalCommandPalette),
-  { ssr: false }
-);
+import { GlobalCommandPalette, CommandPaletteListener } from "@/components/command";
 import { QueryProvider } from "@/providers/QueryProvider";
 
 const geist = Geist({ subsets: ['latin'], variable: '--font-sans' });
