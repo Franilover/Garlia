@@ -10,10 +10,10 @@ export function GlobalCommandPalette() {
     console.log("[GlobalCommandPalette] montado ✓");
 
     const handler = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+      if ((e.ctrlKey || e.metaKey) && e.key === "/") {
         e.preventDefault();
         e.stopPropagation();
-        console.log("[GlobalCommandPalette] Ctrl+K detectado, open actual:", open);
+        console.log("[GlobalCommandPalette] Ctrl+/ detectado, open actual:", open);
         setOpen((prev: boolean) => !prev);
       }
     };

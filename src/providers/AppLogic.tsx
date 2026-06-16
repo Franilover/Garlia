@@ -65,14 +65,23 @@ export default function AppLogic({ children }) {
         if (target.tagName === "TEXTAREA") return;
       }
       if (e.type === "contextmenu" || e.type === "dragstart") e.preventDefault();
+      const ke = e as KeyboardEvent;
+      // Ctrl+K reservado para la paleta de comandos — no interceptar
+      if (ke.key === "k" && (ke.ctrlKey || ke.metaKey)) return;
+      if ((ke.ctrlKey || ke.metaKey) && (ke.key === "s" || ke.key === "p" || ke.key === "u")) {
+        e.preventDefault();
+      }
+      if (ke.key === "F12") e.preventDefault();
     };
 
     document.addEventListener("contextmenu", manejarEventos);
     document.addEventListener("dragstart",   manejarEventos);
+    document.addEventListener("keydown",     manejarEventos);
 
     return () => {
       document.removeEventListener("contextmenu", manejarEventos);
       document.removeEventListener("dragstart",   manejarEventos);
+      document.removeEventListener("keydown",     manejarEventos);
     };
   }, []);
 
