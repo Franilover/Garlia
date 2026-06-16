@@ -102,6 +102,35 @@ const PanelEditor = ({
   const [criaturasIds,     setCriaturasIds]     = useState<string[]>([]);
   const [itemsIds,         setItemsIds]         = useState<string[]>([]);
   const [listaSnippetCaps, setListaSnippetCaps] = useState<{id:string;orden:number;titulo_capitulo:string}[]>([]);
+  const listaSecciones = useMemo(() => {
+    const matches = [...contenido.matchAll(/\[\[section\|([^\|\]]+)(?:\|([^\]]+))?\]\]/g)];
+    return matches.map(m => ({ id: m[1].trim(), label: (m[2] ?? m[1]).trim() }));
+  }, [contenido]);
+  const [palette, setPalette] = useState<{ anchorRect: { top: number; left: number }; initialRaw?: string } | null>(null);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const timer               = useRef<any>(null);
+  const textareaRef         = useRef<HTMLTextAreaElement>(null);
+  const scrollRef           = useRef<HTMLDivElement>(null);
+  const caretMirrorRef      = useRef<HTMLDivElement>(null);
+  const mdInsertRef         = useRef<((text: string) => void) | null>(null);
+  const pendingReplaceRef   = useRef<((next: string) => void) | null>(null);
+  const pendingSnippetRawRef = useRef<string | null>(null);
+  const isMountedRef        = useRef(true);
+  const { confirm, ConfirmModal } = useConfirm();
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      clearTimeout(timer.current);
+    };
+  }, []);
+
+  const draft = useDraftRestore({
+    key: `cap-draft-${capId}`,
+    serverValue: cap?.contenido || "",
+    enabled: !!capId && !loading,
+  });
 
   // Inicialización sincrónica al montar o cambiar de capítulo.
   // Al llamar setState durante el render (con guard), React re-renderiza
