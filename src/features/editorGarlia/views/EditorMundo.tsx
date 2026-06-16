@@ -940,6 +940,137 @@ function ModalEra({
   );
 }
 
+// ── Modal: gestión completa de todas las eras ────────────────────────────────
+function ModalGestionEras({
+  eras,
+  onClose,
+  onEditEra,
+  onNewEra,
+}: {
+  eras: any[];
+  onClose: () => void;
+  onEditEra: (era: any) => void;
+  onNewEra: () => void;
+}) {
+  const erasOrdenadas = [...eras].sort((a, b) => (a.anio_inicio ?? 0) - (b.anio_inicio ?? 0));
+
+  return (
+    <div
+      className="fixed inset-0 z-[1150] flex items-center justify-center p-4"
+      style={{ background: "color-mix(in srgb, black 55%, transparent)" }}
+      onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div
+        className="w-full max-w-md rounded-2xl border shadow-2xl flex flex-col"
+        style={{
+          background: "var(--bg-main)",
+          borderColor: "color-mix(in srgb, var(--primary) 14%, transparent)",
+          maxHeight: "80vh",
+        }}
+      >
+        {/* Header */}
+        <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b"
+          style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+          <div>
+            <span className="text-[11px] font-black uppercase tracking-[0.2em]" style={{ color: "var(--primary)" }}>
+              Todas las eras
+            </span>
+            <div className="text-[8px] text-primary/35 mt-0.5">
+              {erasOrdenadas.length} era{erasOrdenadas.length !== 1 ? "s" : ""} definida{erasOrdenadas.length !== 1 ? "s" : ""}
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={onNewEra}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-widest transition-all"
+              style={{ background: "var(--accent)", color: "white" }}
+            >
+              <Plus size={9} /> Nueva era
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex items-center justify-center w-6 h-6 rounded-lg border transition-all"
+              style={{ borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)", color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+            >
+              <X size={10} />
+            </button>
+          </div>
+        </div>
+
+        {/* Lista de eras */}
+        <div className="flex-1 overflow-y-auto p-3 space-y-2">
+          {erasOrdenadas.length === 0 ? (
+            <div className="text-center py-8">
+              <Clock size={20} className="mx-auto mb-2 opacity-20" style={{ color: "var(--primary)" }} />
+              <p className="text-[9px] text-primary/30 font-bold uppercase tracking-widest">No hay eras definidas</p>
+              <button
+                type="button"
+                onClick={onNewEra}
+                className="mt-3 px-3 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-widest transition-all"
+                style={{ background: "var(--accent)", color: "white" }}
+              >
+                Crear la primera era
+              </button>
+            </div>
+          ) : (
+            erasOrdenadas.map((era) => (
+              <button
+                key={era.id}
+                type="button"
+                onClick={() => onEditEra(era)}
+                className="w-full flex items-start gap-3 px-3 py-2.5 rounded-xl border text-left transition-all group"
+                style={{
+                  background: era.color ? `${era.color}08` : "color-mix(in srgb, var(--primary) 2%, transparent)",
+                  borderColor: era.color ? `${era.color}25` : "color-mix(in srgb, var(--primary) 10%, transparent)",
+                }}
+                onMouseEnter={e => {
+                  const el = e.currentTarget;
+                  el.style.background = era.color ? `${era.color}15` : "color-mix(in srgb, var(--primary) 5%, transparent)";
+                  el.style.borderColor = era.color ? `${era.color}40` : "color-mix(in srgb, var(--primary) 20%, transparent)";
+                }}
+                onMouseLeave={e => {
+                  const el = e.currentTarget;
+                  el.style.background = era.color ? `${era.color}08` : "color-mix(in srgb, var(--primary) 2%, transparent)";
+                  el.style.borderColor = era.color ? `${era.color}25` : "color-mix(in srgb, var(--primary) 10%, transparent)";
+                }}
+              >
+                <div className="w-2.5 h-2.5 rounded-full shrink-0 mt-0.5"
+                  style={{ background: era.color ?? "var(--accent)" }} />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-black truncate" style={{ color: era.color ?? "var(--primary)" }}>
+                      {era.nombre}
+                    </span>
+                    <span className="text-[7px] font-bold shrink-0" style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
+                      {era.anio_inicio != null && (
+                        era.anio_fin != null
+                          ? `Año ${era.anio_inicio} – ${era.anio_fin}`
+                          : `Desde año ${era.anio_inicio}`
+                      )}
+                    </span>
+                  </div>
+                  {era.descripcion && (
+                    <p className="text-[8px] leading-relaxed mt-0.5 line-clamp-2"
+                      style={{ color: "color-mix(in srgb, var(--primary) 50%, transparent)" }}>
+                      {era.descripcion}
+                    </p>
+                  )}
+                </div>
+                <span className="text-[7px] font-black uppercase tracking-widest shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                  style={{ color: era.color ?? "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
+                  Editar
+                </span>
+              </button>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Panel principal — vista y edición unificadas, ambas pistas editables ──────
 export function PanelHistoriaMundo({
   texto,
@@ -1207,6 +1338,7 @@ export function PanelHistoriaMundo({
   const [creandoEvento, setCreandoEvento] = useState(false);
   const [erasLocal, setErasLocal] = useState<any[]>([]);
   const [eraModal, setEraModal] = useState<null | "new" | any>(null);
+  const [showGestionEras, setShowGestionEras] = useState(false);
 
   // Sincronizar erasLocal con cal.eras cuando el hook carga
   useEffect(() => { if (cal?.eras?.length) setErasLocal(cal.eras); }, [cal?.eras]);
@@ -1409,6 +1541,21 @@ export function PanelHistoriaMundo({
 
         <div className="ml-auto flex items-center gap-2">
           <SaveIndicator status={saveStatus} />
+          {/* Botón gestionar eras */}
+          <button
+            type="button"
+            onClick={() => setShowGestionEras(true)}
+            title="Ver y editar todas las eras"
+            className="flex items-center gap-1 px-2 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-widest border transition-all"
+            style={{
+              borderColor: "color-mix(in srgb, var(--primary) 18%, transparent)",
+              color: "color-mix(in srgb, var(--primary) 50%, transparent)",
+            }}
+            onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.background = "color-mix(in srgb, var(--primary) 5%, transparent)"; el.style.color = "var(--primary)"; }}
+            onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.background = "transparent"; el.style.color = "color-mix(in srgb, var(--primary) 50%, transparent)"; }}
+          >
+            <Clock size={9} /> Eras
+          </button>
           {/* Botón nueva era */}
           <button
             type="button"
@@ -1422,7 +1569,7 @@ export function PanelHistoriaMundo({
             onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.background = "color-mix(in srgb, var(--primary) 5%, transparent)"; el.style.color = "var(--primary)"; }}
             onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.background = "transparent"; el.style.color = "color-mix(in srgb, var(--primary) 50%, transparent)"; }}
           >
-            <Clock size={9} /> Era
+            <Plus size={9} /> Era
           </button>
           <button
             type="button"
@@ -1467,6 +1614,16 @@ export function PanelHistoriaMundo({
           onClose={() => setShowNuevoEvento(false)}
           onCrear={handleCrearEvento}
           creando={creandoEvento}
+        />
+      )}
+
+      {/* Modal: gestionar todas las eras */}
+      {showGestionEras && (
+        <ModalGestionEras
+          eras={erasLocal.length > 0 ? erasLocal : (cal?.eras ?? [])}
+          onClose={() => setShowGestionEras(false)}
+          onEditEra={(era) => { setShowGestionEras(false); setEraModal(era); }}
+          onNewEra={() => { setShowGestionEras(false); setEraModal("new"); }}
         />
       )}
 
