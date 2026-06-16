@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useCallback } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { Command } from "cmdk";
 import { useRouter } from "next/navigation";
 import { AnimatePresence } from "framer-motion";
@@ -8,10 +8,12 @@ import { MotionDiv } from "@/components/ui/Motion";
 import { useCommandPalette } from "./useCommandPalette";
 import { useAuth } from "@/providers/AuthProvider";
 import { useTheme } from "@/providers/ThemeProvider";
+import { useGlobalSearch } from "@/lib/api/queries/search";
 import {
   Compass, BookText, Music, Star, Palette,
   PenTool, Moon, Sun, Cat, Flower2, CircleUser,
-  Search, ArrowRight,
+  Search, ArrowRight, User, Crown, Swords, Building2,
+  Loader2,
 } from "lucide-react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -21,6 +23,7 @@ interface CommandItem {
   label: string;
   description?: string;
   icon: React.ElementType;
+  avatar?: string | null;
   keywords?: string[];
   action: () => void;
   group: string;
@@ -35,6 +38,9 @@ export function GlobalCommandPalette() {
   const { dark, toggleDark } = useTheme();
   const isDark = dark === "dark";
 
+  const [search, setSearch] = useState("");
+  const { data, isFetching } = useGlobalSearch(search);
+
   // Ctrl+K / Cmd+K listener
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -48,6 +54,11 @@ export function GlobalCommandPalette() {
     return () => document.removeEventListener("keydown", handler);
   }, [open, setOpen]);
 
+  // Reset search on close
+  useEffect(() => {
+    if (!open) setSearch("");
+  }, [open]);
+
   const go = useCallback(
     (href: string) => {
       router.push(href);
@@ -56,118 +67,79 @@ export function GlobalCommandPalette() {
     [router, setOpen]
   );
 
-  // ── Command definitions ────────────────────────────────────────────────────
+  // ── Static command definitions ─────────────────────────────────────────────
 
   const navItems: CommandItem[] = [
-    {
-      id: "mapa",
-      label: "Mapa de Garlia",
-      description: "Explora el mundo",
-      icon: Compass,
-      keywords: ["mapa", "mundo", "garlia", "explorar"],
-      action: () => go("/garlia/mapa"),
-      group: "Navegar",
-    },
-    {
-      id: "libros",
-      label: "Libros",
-      description: "Biblioteca de historias",
-      icon: BookText,
-      keywords: ["libros", "historias", "leer", "capítulos"],
-      action: () => go("/garlia/libros"),
-      group: "Navegar",
-    },
-    {
-      id: "canciones",
-      label: "Canciones",
-      description: "Música del universo",
-      icon: Music,
-      keywords: ["canciones", "música", "melodías"],
-      action: () => go("/garlia/canciones"),
-      group: "Navegar",
-    },
-    {
-      id: "sobre-mi",
-      label: "Sobre Mí",
-      icon: Star,
-      keywords: ["sobre mi", "personal", "perfil"],
-      action: () => go("/personal/sobre-mi"),
-      group: "Navegar",
-    },
-    {
-      id: "galeria",
-      label: "Galería",
-      icon: Palette,
-      keywords: ["galería", "arte", "imágenes", "ilustraciones"],
-      action: () => go("/personal/galeria"),
-      group: "Navegar",
-    },
+    { id: "mapa",     label: "Mapa de Garlia", description: "Explora el mundo",      icon: Compass,   keywords: ["mapa", "mundo", "garlia", "explorar"], action: () => go("/garlia/mapa"),     group: "Navegar" },
+    { id: "libros",   label: "Libros",         description: "Biblioteca de historias", icon: BookText,  keywords: ["libros", "historias", "leer"],         action: () => go("/garlia/libros"),   group: "Navegar" },
+    { id: "canciones",label: "Canciones",      description: "Música del universo",    icon: Music,     keywords: ["canciones", "música", "melodías"],      action: () => go("/garlia/canciones"),group: "Navegar" },
+    { id: "sobre-mi", label: "Sobre Mí",                                              icon: Star,      keywords: ["sobre mi", "personal", "perfil"],       action: () => go("/personal/sobre-mi"),group: "Navegar" },
+    { id: "galeria",  label: "Galería",                                               icon: Palette,   keywords: ["galería", "arte", "imágenes"],          action: () => go("/personal/galeria"),group: "Navegar" },
   ];
 
   const userItems: CommandItem[] = user
-    ? [
-        {
-          id: "mi-personaje",
-          label: "Mi personaje",
-          icon: CircleUser,
-          keywords: ["mi personaje", "perfil", "personal"],
-          action: () => go("/garlia/personal"),
-          group: "Cuenta",
-        },
-      ]
-    : [
-        {
-          id: "login",
-          label: "Iniciar sesión",
-          icon: CircleUser,
-          keywords: ["login", "entrar", "acceder"],
-          action: () => go("/auth/login"),
-          group: "Cuenta",
-        },
-      ];
+    ? [{ id: "mi-personaje", label: "Mi personaje", icon: CircleUser, keywords: ["mi personaje", "perfil"], action: () => go("/garlia/personal"), group: "Cuenta" }]
+    : [{ id: "login", label: "Iniciar sesión", icon: CircleUser, keywords: ["login", "entrar"], action: () => go("/auth/login"), group: "Cuenta" }];
 
   const adminItems: CommandItem[] = isAdmin
     ? [
-        {
-          id: "escritorio",
-          label: "Escritorio",
-          description: "Panel de administración",
-          icon: PenTool,
-          keywords: ["escritorio", "admin", "editor"],
-          action: () => go("/myself/escritorio"),
-          group: "Admin",
-        },
-        {
-          id: "garlia-editor",
-          label: "Editor de Garlia",
-          icon: Cat,
-          keywords: ["editor", "arte", "garlia", "myself"],
-          action: () => go("/myself/garlia"),
-          group: "Admin",
-        },
+        { id: "escritorio",    label: "Escritorio",      description: "Panel de administración", icon: PenTool, keywords: ["escritorio", "admin", "editor"], action: () => go("/myself/escritorio"), group: "Admin" },
+        { id: "garlia-editor", label: "Editor de Garlia",                                        icon: Cat,     keywords: ["editor", "garlia", "myself"],    action: () => go("/myself/garlia"),     group: "Admin" },
       ]
     : [];
 
   const themeItems: CommandItem[] = [
-    {
-      id: "toggle-dark",
-      label: isDark ? "Cambiar a modo claro" : "Cambiar a modo oscuro",
-      icon: isDark ? Sun : Moon,
-      keywords: ["oscuro", "claro", "tema", "dark", "light", "modo"],
-      action: () => { toggleDark(); setOpen(false); },
-      group: "Ajustes",
-    },
+    { id: "toggle-dark", label: isDark ? "Modo claro" : "Modo oscuro", icon: isDark ? Sun : Moon, keywords: ["oscuro", "claro", "tema", "dark", "light"], action: () => { toggleDark(); setOpen(false); }, group: "Ajustes" },
   ];
 
-  const allItems: CommandItem[] = [
-    ...navItems,
-    ...userItems,
-    ...adminItems,
-    ...themeItems,
-  ];
+  const staticItems: CommandItem[] = [...navItems, ...userItems, ...adminItems, ...themeItems];
 
-  // Group items for rendering
-  const groups = allItems.reduce<Record<string, CommandItem[]>>((acc, item) => {
+  // ── Dynamic search results → CommandItems ──────────────────────────────────
+
+  const dynamicItems: CommandItem[] = search.trim().length >= 2 ? [
+    ...(data?.personajes ?? []).map(p => ({
+      id: `p-${p.id}`, label: p.nombre, description: p.especie ?? "Personaje",
+      icon: User, avatar: p.img_url,
+      action: () => go(`/garlia/personajes/${p.id}`), group: "Personajes",
+    })),
+    ...(data?.libros ?? []).map(l => ({
+      id: `l-${l.id}`, label: l.titulo, description: l.estado ?? "Libro",
+      icon: BookText, avatar: l.portada_url,
+      action: () => go(`/garlia/libros/${l.id}`), group: "Libros",
+    })),
+    ...(data?.canciones ?? []).map(c => ({
+      id: `c-${c.id}`, label: c.titulo, description: c.cantante ?? "Canción",
+      icon: Music, avatar: c.portada_url,
+      action: () => go(`/garlia/canciones/${c.id}`), group: "Canciones",
+    })),
+    ...(data?.reinos ?? []).map(r => ({
+      id: `r-${r.id}`, label: r.nombre, description: "Reino",
+      icon: Crown, avatar: r.logo_url,
+      action: () => go(`/garlia/reinos/${r.id}`), group: "Reinos",
+    })),
+    ...(data?.criaturas ?? []).map(c => ({
+      id: `cr-${c.id}`, label: c.nombre, description: "Criatura",
+      icon: Swords, avatar: c.imagen_url,
+      action: () => go(`/garlia/criaturas/${c.id}`), group: "Criaturas",
+    })),
+    ...(data?.ciudades ?? []).map(c => ({
+      id: `ci-${c.id}`, label: c.nombre, description: "Ciudad",
+      icon: Building2, avatar: c.imagen_url,
+      action: () => go(`/garlia/ciudades/${c.id}`), group: "Ciudades",
+    })),
+  ] : [];
+
+  const showDynamic = search.trim().length >= 2;
+  const hasDynamicResults = dynamicItems.length > 0;
+
+  // Group static items
+  const staticGroups = staticItems.reduce<Record<string, CommandItem[]>>((acc, item) => {
+    (acc[item.group] ??= []).push(item);
+    return acc;
+  }, {});
+
+  // Group dynamic items
+  const dynamicGroups = dynamicItems.reduce<Record<string, CommandItem[]>>((acc, item) => {
     (acc[item.group] ??= []).push(item);
     return acc;
   }, {});
@@ -195,7 +167,7 @@ export function GlobalCommandPalette() {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.97, y: -8 }}
             transition={{ type: "spring", stiffness: 500, damping: 36 }}
-            className="fixed left-1/2 top-[20%] z-[9001] w-full max-w-[480px] -translate-x-1/2"
+            className="fixed left-1/2 top-[18%] z-[9001] w-full max-w-[500px] -translate-x-1/2"
             style={{ padding: "0 16px" }}
           >
             <Command
@@ -206,6 +178,9 @@ export function GlobalCommandPalette() {
                 borderRadius: "var(--radius-card)",
                 boxShadow: "var(--shadow-card)",
               }}
+              // Desactivamos el filtro interno de cmdk cuando hay resultados dinámicos
+              // para que lo manejemos nosotros via useGlobalSearch
+              filter={showDynamic ? () => 1 : undefined}
               loop
             >
               {/* Search input */}
@@ -213,15 +188,17 @@ export function GlobalCommandPalette() {
                 className="flex items-center gap-3 px-4"
                 style={{ borderBottom: "var(--border-width) solid color-mix(in srgb, var(--primary) 10%, transparent)", height: "48px" }}
               >
-                <Search size={14} style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)", flexShrink: 0 }} />
+                {isFetching
+                  ? <Loader2 size={14} className="animate-spin shrink-0" style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }} />
+                  : <Search size={14} style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)", flexShrink: 0 }} />
+                }
                 <Command.Input
                   autoFocus
-                  placeholder="Buscar en Garlia…"
+                  value={search}
+                  onValueChange={setSearch}
+                  placeholder="Buscar personajes, libros, canciones…"
                   className="flex-1 bg-transparent outline-none text-sm"
-                  style={{
-                    color: "var(--primary)",
-                    caretColor: "var(--primary)",
-                  }}
+                  style={{ color: "var(--primary)", caretColor: "var(--primary)" }}
                 />
                 <kbd
                   className="text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded hidden sm:flex items-center"
@@ -238,7 +215,7 @@ export function GlobalCommandPalette() {
               {/* Results */}
               <Command.List
                 className="custom-scrollbar"
-                style={{ maxHeight: "320px", overflowY: "auto", padding: "6px" }}
+                style={{ maxHeight: "360px", overflowY: "auto", padding: "6px" }}
               >
                 <Command.Empty
                   className="flex flex-col items-center gap-2 py-10 text-center"
@@ -248,23 +225,42 @@ export function GlobalCommandPalette() {
                   <span className="text-xs font-medium">Nada por aquí…</span>
                 </Command.Empty>
 
-                {Object.entries(groups).map(([groupName, items]) => (
-                  <Command.Group key={groupName} heading={groupName}>
+                {/* Resultados dinámicos (búsqueda activa) */}
+                {showDynamic && hasDynamicResults && Object.entries(dynamicGroups).map(([groupName, items]) => (
+                  <Command.Group key={groupName}>
                     <div
                       className="text-[8px] font-black uppercase tracking-widest px-3 pt-3 pb-1"
                       style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
                     >
                       {groupName}
                     </div>
-
-                    {items.map((item) => (
-                      <CommandItemRow key={item.id} item={item} />
-                    ))}
+                    {items.map(item => <CommandItemRow key={item.id} item={item} />)}
                   </Command.Group>
                 ))}
+
+                {/* Comandos estáticos (siempre visibles o cuando no hay búsqueda activa) */}
+                {!showDynamic && Object.entries(staticGroups).map(([groupName, items]) => (
+                  <Command.Group key={groupName}>
+                    <div
+                      className="text-[8px] font-black uppercase tracking-widest px-3 pt-3 pb-1"
+                      style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
+                    >
+                      {groupName}
+                    </div>
+                    {items.map(item => <CommandItemRow key={item.id} item={item} />)}
+                  </Command.Group>
+                ))}
+
+                {/* Sin resultados dinámicos pero con búsqueda activa */}
+                {showDynamic && !hasDynamicResults && !isFetching && (
+                  <div className="flex flex-col items-center gap-2 py-10" style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
+                    <Flower2 size={20} />
+                    <span className="text-xs font-medium">Sin resultados para &ldquo;{search}&rdquo;</span>
+                  </div>
+                )}
               </Command.List>
 
-              {/* Footer hint */}
+              {/* Footer */}
               <div
                 className="flex items-center gap-3 px-4 py-2"
                 style={{
@@ -284,35 +280,34 @@ export function GlobalCommandPalette() {
   );
 }
 
-// ── Single item row ────────────────────────────────────────────────────────────
+// ── Single item row ───────────────────────────────────────────────────────────
 
 function CommandItemRow({ item }: { item: CommandItem }) {
   const Icon = item.icon;
 
   return (
     <Command.Item
-      key={item.id}
-      value={`${item.label} ${item.keywords?.join(" ") ?? ""}`}
+      value={`${item.id} ${item.label} ${item.keywords?.join(" ") ?? ""}`}
       onSelect={item.action}
       className="group flex items-center gap-3 px-3 py-2 rounded-[var(--radius-btn)] cursor-pointer transition-all duration-100 outline-none"
-      style={
-        {
-          color: "color-mix(in srgb, var(--primary) 70%, transparent)",
-          "--cmdk-selected-bg": "color-mix(in srgb, var(--primary) 7%, transparent)",
-        } as React.CSSProperties
-      }
+      style={{ color: "color-mix(in srgb, var(--primary) 70%, transparent)" }}
     >
-      <span
-        className="shrink-0 flex items-center justify-center rounded-[var(--radius-btn)]"
-        style={{
-          width: "26px",
-          height: "26px",
-          background: "color-mix(in srgb, var(--primary) 8%, transparent)",
-          color: "var(--primary)",
-        }}
-      >
-        <Icon size={13} strokeWidth={2} />
-      </span>
+      {/* Avatar o ícono */}
+      {item.avatar ? (
+        <img
+          src={item.avatar}
+          alt={item.label}
+          className="shrink-0 object-cover"
+          style={{ width: 26, height: 26, borderRadius: "var(--radius-btn)" }}
+        />
+      ) : (
+        <span
+          className="shrink-0 flex items-center justify-center rounded-[var(--radius-btn)]"
+          style={{ width: 26, height: 26, background: "color-mix(in srgb, var(--primary) 8%, transparent)", color: "var(--primary)" }}
+        >
+          <Icon size={13} strokeWidth={2} />
+        </span>
+      )}
 
       <div className="flex-1 min-w-0">
         <p className="text-xs font-semibold truncate" style={{ color: "var(--primary)" }}>

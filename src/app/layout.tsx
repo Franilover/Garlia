@@ -9,6 +9,7 @@ import { OfflineSyncActivator } from "@/providers/OfflineSyncActivator";
 import { ThemeProvider } from "@/providers/ThemeProvider";
 import { cn } from "@/lib/utils/index";
 import { GlobalCommandPalette } from "@/components/command";
+import { QueryProvider } from "@/providers/QueryProvider";
 
 const geist = Geist({ subsets: ['latin'], variable: '--font-sans' });
 const montserrat = Montserrat({ subsets: ['latin'], display: 'swap', variable: '--font-montserrat' });
@@ -102,6 +103,7 @@ export default function RootLayout({
       <body className="antialiased bg-bg-main min-h-screen flex flex-col selection:bg-primary/20">
         <OfflineSyncActivator />
         <AuthProvider>
+          <QueryProvider>
           <DataProvider>
             <ThemeProvider>
               <LightboxProvider>
@@ -116,6 +118,7 @@ export default function RootLayout({
               </LightboxProvider>
             </ThemeProvider>
           </DataProvider>
+          </QueryProvider>
         </AuthProvider>
       </body>
     </html>
