@@ -1146,19 +1146,43 @@ export const PanelPersonajesCapitulo = ({
 
   useEffect(() => {
     if (!capId) return;
-    supabase
-      .from("capitulos")
-      .select("orden_linea_tiempo, reinos_ids, visibilidad, fecha_publicacion, ciudades_ids, narrador_id")
-      .eq("id", capId)
-      .single()
-      .then(({ data }) => {
-        setOrdenLinea(data?.orden_linea_tiempo != null ? String(data.orden_linea_tiempo) : "");
-        setReinosIds(data?.reinos_ids ?? []);
-        setCiudadesIds(data?.ciudades_ids ?? []);
-        setVisibilidad(data?.visibilidad ?? "oculto");
-        setFechaProg(data?.fecha_publicacion ? data.fecha_publicacion.slice(0, 10) : "");
-        setNarradorId(data?.narrador_id ?? null);
-      });
+    let cancelled = false;
+
+    const cargar = async () => {
+      const apply = (data: any) => {
+        if (!data || cancelled) return;
+        setOrdenLinea(data.dia_absoluto != null ? String(data.dia_absoluto) : "");
+        setReinosIds(data.reinos_ids ?? []);
+        setCiudadesIds(data.ciudades_ids ?? []);
+        setVisibilidad(data.visibilidad ?? "oculto");
+        setFechaProg(data.fecha_publicacion ? data.fecha_publicacion.slice(0, 10) : "");
+        setNarradorId(data.narrador_id ?? null);
+      };
+
+      // 1. Dexie primero — respuesta instantánea
+      try {
+        const local = await (db as any).capitulos?.get(capId);
+        if (local) apply(local);
+      } catch {}
+
+      // 2. Supabase en background para asegurar datos frescos
+      if (!navigator.onLine || cancelled) return;
+      try {
+        const { data } = await supabase
+          .from("capitulos")
+          .select("dia_absoluto, reinos_ids, visibilidad, fecha_publicacion, ciudades_ids, narrador_id")
+          .eq("id", capId)
+          .single();
+        apply(data);
+        // Actualizar Dexie con los datos frescos
+        if (data) {
+          try { await (db as any).capitulos?.update(capId, data); } catch {}
+        }
+      } catch {}
+    };
+
+    cargar();
+    return () => { cancelled = true; };
   }, [capId]);
 
   const handleToggleReino = async (id: string, add: boolean) => {
@@ -1207,23 +1231,61 @@ export const PanelPersonajesCapitulo = ({
     setSavingNarr(false);
   };
 
-  // Cargar la era del narrador más cercana (<=) al orden_linea_tiempo del capítulo
+  // Cargar la era del narrador más cercana (<=) al dia_absoluto del capítulo
   useEffect(() => {
     if (!narradorId) { setEraActual(null); return; }
     const momento = ordenLinea.trim() ? parseInt(ordenLinea.trim(), 10) : null;
+    let cancelled = false;
     setLoadingEra(true);
-    let query = (supabase as any)
-      .from("personaje_eras")
-      .select("momento, label, rasgos, notas")
-      .eq("personaje_id", narradorId)
-      .order("momento", { ascending: false });
-    if (momento != null && !isNaN(momento)) {
-      query = query.lte("momento", momento);
-    }
-    query.limit(1).maybeSingle().then(({ data }: { data: any }) => {
-      setEraActual(data ? { momento: data.momento, label: data.label ?? "", rasgos: data.rasgos ?? [], notas: data.notas ?? "" } : null);
-      setLoadingEra(false);
-    });
+
+    const cargar = async () => {
+      const apply = (data: any) => {
+        if (!data || cancelled) return;
+        setEraActual({ momento: data.momento, label: data.label ?? "", rasgos: data.rasgos ?? [], notas: data.notas ?? "" });
+        setLoadingEra(false);
+      };
+
+      // 1. Dexie primero
+      try {
+        let eras: any[] = await (db as any).personaje_eras
+          ?.where("personaje_id").equals(narradorId)
+          .toArray() ?? [];
+        if (eras.length) {
+          // Filtrar <= momento y tomar el mayor
+          if (momento != null && !isNaN(momento)) {
+            eras = eras.filter((e: any) => e.momento <= momento);
+          }
+          eras.sort((a: any, b: any) => b.momento - a.momento);
+          if (eras[0]) apply(eras[0]);
+        }
+      } catch {}
+
+      // 2. Supabase en background
+      if (!navigator.onLine || cancelled) { if (!cancelled) setLoadingEra(false); return; }
+      try {
+        let query = (supabase as any)
+          .from("personaje_eras")
+          .select("id, personaje_id, momento, label, rasgos, notas")
+          .eq("personaje_id", narradorId)
+          .order("momento", { ascending: false });
+        if (momento != null && !isNaN(momento)) query = query.lte("momento", momento);
+        const { data } = await query.limit(1).maybeSingle();
+        if (!cancelled) {
+          apply(data);
+          // Cachear todas las eras del narrador en Dexie para la próxima vez
+          const { data: todas } = await (supabase as any)
+            .from("personaje_eras")
+            .select("id, personaje_id, momento, label, rasgos, notas")
+            .eq("personaje_id", narradorId);
+          if (todas?.length) {
+            try { await (db as any).personaje_eras?.bulkPut(todas); } catch {}
+          }
+        }
+      } catch { if (!cancelled) setLoadingEra(false); }
+    };
+
+    cargar();
+    return () => { cancelled = true; };
   }, [narradorId, ordenLinea]);
 
   const handleSaveOrden = async () => {
@@ -1232,7 +1294,7 @@ export const PanelPersonajesCapitulo = ({
     if (val !== "" && isNaN(num as number)) return;
     setSavingOrden(true);
     try {
-      await capUpdateMeta(capId, { orden_linea_tiempo: num } as any);
+      await capUpdateMeta(capId, { dia_absoluto: num } as any);
     } catch {}
     setSavingOrden(false);
   };
@@ -1376,7 +1438,7 @@ export const PanelPersonajesCapitulo = ({
                   onChange={async (dia) => {
                     setOrdenLinea(dia != null ? String(dia) : "");
                     setSavingOrden(true);
-                    try { await capUpdateMeta(capId, { orden_linea_tiempo: dia, dia_absoluto: dia } as any); } catch {}
+                    try { await capUpdateMeta(capId, { dia_absoluto: dia } as any); } catch {}
                     setSavingOrden(false);
                   }}
                   placeholder="Sin fecha en la línea de tiempo"

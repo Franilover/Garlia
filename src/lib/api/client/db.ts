@@ -308,6 +308,18 @@ export interface PersonajeDon {
   don_id: string;
 }
 
+// ─── Eras de personaje (arcos vitales en la línea de tiempo) ─────────────────
+export interface PersonajeEra {
+  id: string;           // uuid
+  personaje_id: string;
+  momento: number;      // dia_absoluto o número de orden en la línea de tiempo
+  label?: string | null;
+  rasgos?: string[] | null;
+  notas?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
 // ─── Ítems relacionados con criaturas ────────────────────────────────────────
 export interface CriaturaDropLocal {
   id: string;
@@ -381,6 +393,7 @@ class AgendaFraniDB extends Dexie {
   // Nuevas tablas para relaciones lore
   personaje_hechizos!: Table<PersonajeHechizo, string>;
   personaje_dones!: Table<PersonajeDon, string>;
+  personaje_eras!: Table<PersonajeEra, string>;
 
   // Ítems de criaturas
   criatura_drops!: Table<CriaturaDropLocal, string>;
@@ -975,6 +988,54 @@ class AgendaFraniDB extends Dexie {
 
     this.version(18).stores({
       eventos_mundo: "id, reino_id, dia_absoluto, source", // ← nueva: eventos del mundo/reino (sistema dia_absoluto)
+    });
+
+    // ─── v19: eras de personaje (arcos vitales en la línea de tiempo) ─────────
+    this.version(19).stores({
+      personajes:              "id, nombre, visible",
+      criaturas:               "id, nombre, habitat, alma, pensamiento",
+      criatura_variantes:      "id, criatura_id, tipo",
+      items:                   "id, nombre, categoria",
+      libros:                  "id, created_at",
+      capitulos:               "id, libro_id, orden, fecha_publicacion, orden_linea_tiempo, dia_absoluto",
+      canciones:               "id, titulo, personaje, visible, created_at, dia_absoluto",
+      secciones_cancion:       "id, cancion_id, orden",
+      reinos:                  "id, nombre, orden",
+      relaciones:              "id, personaje_id, personaje_rel_id, tipo",
+      tareas:                  "id, username, completada, created_at, status",
+      eventos:                 "id, username, fecha, tipo, status",
+      recetas:                 "id, autor_id, categoria, created_at",
+      ingredientes:            "id, user_id",
+      ropa:                    "id, user_id, created_at",
+      ropa_outfits:            "id, user_id, created_at",
+      diario_fotos:            "++id, categoria, created_at",
+      dibujos:                 "++id, categoria",
+      notas:                   "id, status, updated_at",
+      ensayos:                 "id, status, updated_at",
+      rutinas:                 "id, status",
+      ejercicios_rutina:       "id, rutina_id, status",
+      offline_queue:           "++id, table, operation, recordId, timestamp",
+      compras:                 "id",
+      reproductor_handles:     "key",
+      session_cache:           "key, updated_at",
+      reino_detalles:          "id, reino_id",
+      hechizos:                "id, nombre",
+      dones:                   "id, nombre",
+      notas_lore:              "id, updated_at",
+      grupos_mundo:            "id, tipo, created_at",
+      personaje_hechizos:      "id, personaje_id, hechizo_id",
+      personaje_dones:         "id, personaje_id, don_id",
+      criatura_drops:          "id, criatura_id, variante_id",
+      item_crafteres:          "id, criatura_id",
+      galeria:                 "++id, orden, creado_en",
+      runas:                   "id, nombre",
+      ciudades:                "id, nombre, tipo, reino_id",
+      perfiles:                "id",
+      calendario_estaciones:   "id, orden",
+      calendario_config:       "id",
+      eras_mundo:              "id, anio_inicio",
+      eventos_mundo:           "id, reino_id, dia_absoluto, source",
+      personaje_eras:          "id, personaje_id, momento", // ← nueva: arcos vitales del personaje
     });
   }
 }
