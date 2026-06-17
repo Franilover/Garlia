@@ -272,7 +272,62 @@ export default function EditorEntidades() {
     
     window.addEventListener("garlia-open-entity", handleOpenEntity);
     return () => window.removeEventListener("garlia-open-entity", handleOpenEntity);
-  }, []); // <-- Aquí faltaba cerrar el primer useEffect correctamente
+  }, []);
+
+  // Listener: paleta de comandos → crear entidad nueva (personajes, criaturas, items, reinos)
+  useEffect(() => {
+    const handleCreate = (e: Event) => {
+      const evt = e as CustomEvent<{ tab: string }>;
+      createAndOpen(evt.detail.tab as Exclude<TabKey, "mundo">, handleCreated);
+    };
+    window.addEventListener("garlia-create-entity", handleCreate);
+    return () => window.removeEventListener("garlia-create-entity", handleCreate);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Listener: paleta de comandos → onAddMagic (hechizos, notas, acontecimiento, etc.)
+  useEffect(() => {
+    const handleAddMagicEvent = (e: Event) => {
+      const evt = e as CustomEvent<{ key: string }>;
+      const key = evt.detail.key as any;
+      if (key === "acontecimiento") {
+        setShowAcontecimiento(true);
+      } else if (key === "grupos") {
+        setShowNuevoGrupo(true);
+      } else if (key === "notas") {
+        localStorage.setItem("estudio-notas-action", "nueva-nota");
+        setTab("mundo");
+        setMundoSection("geografia");
+        setTimeout(() => window.dispatchEvent(new Event("estudio-notas-action")), 0);
+      } else if (key === "libro") {
+        localStorage.setItem("estudio-caps-action", "nuevo-libro");
+        setTab("mundo");
+        setMundoSection("geografia");
+        setTimeout(() => window.dispatchEvent(new Event("estudio-caps-action")), 0);
+      } else if (key === "capitulo") {
+        localStorage.setItem("estudio-caps-action", "nuevo-cap");
+        setTab("mundo");
+        setMundoSection("geografia");
+        setTimeout(() => window.dispatchEvent(new Event("estudio-caps-action")), 0);
+      } else if (key === "cancion") {
+        localStorage.setItem("estudio-letras-action", "nueva-cancion");
+        setTab("mundo");
+        setMundoSection("geografia");
+        setTimeout(() => window.dispatchEvent(new Event("estudio-letras-action")), 0);
+      } else if (key === "ciudad") {
+        localStorage.setItem("estudio-listas-action", "nueva-ciudad");
+        setTab("mundo");
+        setMundoSection("geografia");
+        setTimeout(() => window.dispatchEvent(new Event("estudio-listas-action")), 0);
+      } else {
+        // hechizos, dones, runas → abrir editor standalone
+        setTab(key);
+        setSelectedId(null);
+      }
+    };
+    window.addEventListener("garlia-add-magic", handleAddMagicEvent);
+    return () => window.removeEventListener("garlia-add-magic", handleAddMagicEvent);
+  }, []);
 
   // Auto-limpiar onItemCreated después de que PanelListas lo consuma
   useEffect(() => {

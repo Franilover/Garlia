@@ -13,7 +13,8 @@ import {
   Compass, BookText, Music, Star, Palette,
   PenTool, Moon, Sun, Cat, Flower2, CircleUser,
   Search, ArrowRight, User, Crown, Swords, Building2,
-  Loader2, WifiOff, BookOpen,
+  Loader2, WifiOff, BookOpen, Plus, Wand2, Zap,
+  FileText, Clock, Layers, MapPin, ScrollText, Users, Package,
 } from "lucide-react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -130,6 +131,36 @@ export function GlobalCommandPalette() {
     [router, setOpen, pathname]
   );
 
+  // Navega al editor y dispara createAndOpen para entidades principales
+  const goEditorAndCreate = useCallback(
+    (tab: string) => {
+      const dispatch = () =>
+        window.dispatchEvent(new CustomEvent("garlia-create-entity", { detail: { tab } }));
+      if (pathname === "/myself/garlia") {
+        dispatch();
+      } else {
+        router.push("/myself/garlia");
+        setTimeout(dispatch, 400);
+      }
+    },
+    [router, pathname]
+  );
+
+  // Navega al editor y dispara onAddMagic para el resto (hechizos, notas, etc.)
+  const goEditorAndDispatch = useCallback(
+    (key: string) => {
+      const dispatch = () =>
+        window.dispatchEvent(new CustomEvent("garlia-add-magic", { detail: { key } }));
+      if (pathname === "/myself/garlia") {
+        dispatch();
+      } else {
+        router.push("/myself/garlia");
+        setTimeout(dispatch, 400);
+      }
+    },
+    [router, pathname]
+  );
+
   // ── Static command definitions ─────────────────────────────────────────────
 
   const navItems: CommandItem[] = [
@@ -155,7 +186,25 @@ export function GlobalCommandPalette() {
     { id: "toggle-dark", label: isDark ? "Modo claro" : "Modo oscuro", icon: isDark ? Sun : Moon, keywords: ["oscuro", "claro", "tema", "dark", "light"], action: () => { toggleDark(); setOpen(false); }, group: "Ajustes" },
   ];
 
-  const staticItems: CommandItem[] = [...navItems, ...userItems, ...adminItems, ...themeItems];
+  // Comandos de creación — solo admin
+  const createItems: CommandItem[] = isAdmin ? [
+    { id: "add-personaje",      label: "Nuevo personaje",      icon: Users,      keywords: ["add", "crear", "nuevo", "personaje"],      action: () => { setOpen(false); goEditorAndCreate("personajes"); },     group: "Crear" },
+    { id: "add-criatura",       label: "Nueva criatura",       icon: Swords,     keywords: ["add", "crear", "nueva", "criatura"],       action: () => { setOpen(false); goEditorAndCreate("criaturas"); },      group: "Crear" },
+    { id: "add-reino",          label: "Nuevo reino",          icon: Crown,      keywords: ["add", "crear", "nuevo", "reino"],          action: () => { setOpen(false); goEditorAndCreate("reinos"); },         group: "Crear" },
+    { id: "add-objeto",         label: "Nuevo objeto",         icon: Package,    keywords: ["add", "crear", "nuevo", "objeto", "item"], action: () => { setOpen(false); goEditorAndCreate("items"); },          group: "Crear" },
+    { id: "add-ciudad",         label: "Nueva ciudad",         icon: MapPin,     keywords: ["add", "crear", "nueva", "ciudad"],         action: () => { setOpen(false); goEditorAndDispatch("ciudad"); },       group: "Crear" },
+    { id: "add-hechizo",        label: "Nuevo hechizo",        icon: Wand2,      keywords: ["add", "crear", "nuevo", "hechizo"],        action: () => { setOpen(false); goEditorAndDispatch("hechizos"); },     group: "Crear" },
+    { id: "add-don",            label: "Nuevo don",            icon: Zap,        keywords: ["add", "crear", "nuevo", "don"],            action: () => { setOpen(false); goEditorAndDispatch("dones"); },        group: "Crear" },
+    { id: "add-runa",           label: "Nueva runa",           icon: ScrollText, keywords: ["add", "crear", "nueva", "runa"],           action: () => { setOpen(false); goEditorAndDispatch("runas"); },        group: "Crear" },
+    { id: "add-nota",           label: "Nueva nota",           icon: FileText,   keywords: ["add", "crear", "nueva", "nota"],           action: () => { setOpen(false); goEditorAndDispatch("notas"); },        group: "Crear" },
+    { id: "add-acontecimiento", label: "Nuevo acontecimiento", icon: Clock,      keywords: ["add", "crear", "nuevo", "acontecimiento"], action: () => { setOpen(false); goEditorAndDispatch("acontecimiento"); }, group: "Crear" },
+    { id: "add-grupo",          label: "Nuevo grupo",          icon: Layers,     keywords: ["add", "crear", "nuevo", "grupo"],          action: () => { setOpen(false); goEditorAndDispatch("grupos"); },       group: "Crear" },
+    { id: "add-libro",          label: "Nuevo libro",          icon: BookOpen,   keywords: ["add", "crear", "nuevo", "libro"],          action: () => { setOpen(false); goEditorAndDispatch("libro"); },        group: "Crear" },
+    { id: "add-capitulo",       label: "Nuevo capítulo",       icon: BookText,   keywords: ["add", "crear", "nuevo", "capitulo"],       action: () => { setOpen(false); goEditorAndDispatch("capitulo"); },     group: "Crear" },
+    { id: "add-cancion",        label: "Nueva canción",        icon: Music,      keywords: ["add", "crear", "nueva", "cancion"],        action: () => { setOpen(false); goEditorAndDispatch("cancion"); },      group: "Crear" },
+  ] : [];
+
+  const staticItems: CommandItem[] = [...navItems, ...userItems, ...adminItems, ...themeItems, ...createItems];
 
   // ── Dynamic search results → CommandItems ──────────────────────────────────
 
