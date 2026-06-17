@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from "react";
 import { Command } from "cmdk";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { AnimatePresence } from "framer-motion";
 import { MotionDiv } from "@/components/ui/Motion";
 import { useCommandPalette } from "./useCommandPalette";
@@ -62,12 +62,34 @@ export function GlobalCommandPalette() {
     if (!open) setSearch("");
   }, [open]);
 
+  const pathname = usePathname();
+
   const go = useCallback(
     (href: string) => {
       router.push(href);
       setOpen(false);
     },
     [router, setOpen]
+  );
+
+  // Abre una entidad en el EditorGarlia — si ya estamos ahí despacha directo,
+  // si no navega primero y despacha después del mount
+  const goEntity = useCallback(
+    (tabla: string, id: string) => {
+      setOpen(false);
+      const dispatch = () =>
+        window.dispatchEvent(
+          new CustomEvent("garlia-open-entity", { detail: { tabla, id } })
+        );
+      if (pathname === "/myself/garlia") {
+        dispatch();
+      } else {
+        router.push("/myself/garlia");
+        // Esperar a que EditorGarlia monte y registre el listener
+        setTimeout(dispatch, 400);
+      }
+    },
+    [router, setOpen, pathname]
   );
 
   // ── Static command definitions ─────────────────────────────────────────────
@@ -99,36 +121,37 @@ export function GlobalCommandPalette() {
 
   // ── Dynamic search results → CommandItems ──────────────────────────────────
 
-  const dynamicItems: CommandItem[] = search.trim().length >= 2 ? [
+  // Resultados dinámicos — solo para admin, abren en EditorGarlia
+  const dynamicItems: CommandItem[] = (search.trim().length >= 2 && isAdmin) ? [
     ...(data?.personajes ?? []).map(p => ({
       id: `p-${p.id}`, label: p.nombre, description: p.especie ?? "Personaje",
       icon: User, avatar: p.img_url,
-      action: () => go(`/garlia/personajes/${p.id}`), group: "Personajes",
+      action: () => goEntity("personajes", p.id), group: "Personajes",
     })),
     ...(data?.libros ?? []).map(l => ({
       id: `l-${l.id}`, label: l.titulo, description: l.estado ?? "Libro",
       icon: BookText, avatar: l.portada_url,
-      action: () => go(`/garlia/libros/${l.id}`), group: "Libros",
+      action: () => goEntity("libros", l.id), group: "Libros",
     })),
     ...(data?.canciones ?? []).map(c => ({
       id: `c-${c.id}`, label: c.titulo, description: c.cantante ?? "Canción",
       icon: Music, avatar: c.portada_url,
-      action: () => go(`/garlia/canciones/${c.id}`), group: "Canciones",
+      action: () => goEntity("canciones", c.id), group: "Canciones",
     })),
     ...(data?.reinos ?? []).map(r => ({
       id: `r-${r.id}`, label: r.nombre, description: "Reino",
       icon: Crown, avatar: r.logo_url,
-      action: () => go(`/garlia/reinos/${r.id}`), group: "Reinos",
+      action: () => goEntity("reinos", r.id), group: "Reinos",
     })),
     ...(data?.criaturas ?? []).map(c => ({
       id: `cr-${c.id}`, label: c.nombre, description: "Criatura",
       icon: Swords, avatar: c.imagen_url,
-      action: () => go(`/garlia/criaturas/${c.id}`), group: "Criaturas",
+      action: () => goEntity("criaturas", c.id), group: "Criaturas",
     })),
     ...(data?.ciudades ?? []).map(c => ({
       id: `ci-${c.id}`, label: c.nombre, description: "Ciudad",
       icon: Building2, avatar: c.imagen_url,
-      action: () => go(`/garlia/ciudades/${c.id}`), group: "Ciudades",
+      action: () => goEntity("ciudades", c.id), group: "Ciudades",
     })),
   ] : [];
 
