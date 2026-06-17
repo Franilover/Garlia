@@ -42,19 +42,28 @@ export function GlobalCommandPalette() {
   const { data, isFetching } = useGlobalSearch(search);
   const fromCache = data?.fromCache ?? false;
 
-  // Ctrl+/ abre/cierra — capture:true para ir antes que cualquier otro listener
+  // Ctrl+Ñ abre/cierra — capture:true para ir antes que cualquier otro listener
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "ñ") {
         e.preventDefault();
         e.stopPropagation();
-        setOpen((prev: boolean) => !prev);
+        console.log("[palette] Ctrl+Ñ detectado, toggling open");
+        setOpen((prev: boolean) => {
+          console.log("[palette] prev:", prev, "→ next:", !prev);
+          return !prev;
+        });
       }
       if (e.key === "Escape") setOpen(false);
     };
     document.addEventListener("keydown", handler, true);
     return () => document.removeEventListener("keydown", handler, true);
   }, [setOpen]);
+
+  // Debug: log whenever open changes
+  useEffect(() => {
+    console.log("[palette] open =", open);
+  }, [open]);
 
   // Reset search on close
   useEffect(() => {
