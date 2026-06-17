@@ -13,7 +13,7 @@ import {
   Compass, BookText, Music, Star, Palette,
   PenTool, Moon, Sun, Cat, Flower2, CircleUser,
   Search, ArrowRight, User, Crown, Swords, Building2,
-  Loader2, WifiOff,
+  Loader2, WifiOff, BookOpen,
 } from "lucide-react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -92,6 +92,44 @@ export function GlobalCommandPalette() {
     [router, setOpen, pathname]
   );
 
+  // Abre una canción en el EditorGarlia
+  const goCancion = useCallback(
+    (id: string) => {
+      setOpen(false);
+      const dispatch = () => {
+        localStorage.setItem("estudio-letras-last-id", id);
+        window.dispatchEvent(new CustomEvent("garlia-open-entity", { detail: { tabla: "canciones", id } }));
+        window.dispatchEvent(new Event("estudio-letras-action"));
+      };
+      if (pathname === "/myself/garlia") {
+        dispatch();
+      } else {
+        router.push("/myself/garlia");
+        setTimeout(dispatch, 400);
+      }
+    },
+    [router, setOpen, pathname]
+  );
+
+  // Abre un capítulo específico en el EditorGarlia
+  const goCapitulo = useCallback(
+    (capId: string, libroId: string) => {
+      setOpen(false);
+      const dispatch = () => {
+        localStorage.setItem("estudio-caps-last-cap",   capId);
+        localStorage.setItem("estudio-caps-last-libro", libroId);
+        window.dispatchEvent(new Event("estudio-caps-action"));
+      };
+      if (pathname === "/myself/garlia") {
+        dispatch();
+      } else {
+        router.push("/myself/garlia");
+        setTimeout(dispatch, 400);
+      }
+    },
+    [router, setOpen, pathname]
+  );
+
   // ── Static command definitions ─────────────────────────────────────────────
 
   const navItems: CommandItem[] = [
@@ -136,7 +174,12 @@ export function GlobalCommandPalette() {
     ...(data?.canciones ?? []).map(c => ({
       id: `c-${c.id}`, label: c.titulo, description: c.cantante ?? "Canción",
       icon: Music, avatar: c.portada_url,
-      action: () => goEntity("canciones", c.id), group: "Canciones",
+      action: () => goCancion(c.id), group: "Canciones",
+    })),
+    ...(data?.capitulos ?? []).map(c => ({
+      id: `cap-${c.id}`, label: c.titulo_capitulo ?? `Capítulo ${c.orden}`, description: `Cap. ${c.orden}`,
+      icon: BookOpen, avatar: null,
+      action: () => goCapitulo(c.id, c.libro_id ?? ""), group: "Capítulos",
     })),
     ...(data?.reinos ?? []).map(r => ({
       id: `r-${r.id}`, label: r.nombre, description: "Reino",
