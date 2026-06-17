@@ -272,7 +272,8 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                 }}>
                 {modalEntidad.data.imagen_url && (
                   <img src={modalEntidad.data.imagen_url} alt={modalEntidad.data.nombre}
-                    className="w-full h-full object-contain transition-transform duration-700 hover:scale-105" />
+                    className="w-full h-full object-cover transition-transform duration-700"
+                    style={{ objectPosition: "center center", transform: "scale(1.8)", transformOrigin: "center center" }} />
                 )}
                 <div className="absolute inset-0" style={{
                   background: "linear-gradient(to top, var(--white-custom) 0%, color-mix(in srgb, var(--white-custom) 30%, transparent) 45%, transparent 100%)"

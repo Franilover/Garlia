@@ -388,7 +388,7 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                 {modalPersonaje.imagen_url && (
                   <img src={modalPersonaje.imagen_url} alt={modalPersonaje.nombre}
                     className="w-full h-full object-cover transition-transform duration-700"
-                    style={{ objectPosition: "center center", transform: "scale(2.2)", transformOrigin: "center center" }} />
+                    style={{ objectPosition: "center center", transform: "scale(1.8)", transformOrigin: "center center" }} />
                 )}
                 <div className="absolute inset-0 pointer-events-none"
                   style={{ background: "linear-gradient(to top, var(--white-custom) 0%, color-mix(in srgb, var(--white-custom) 15%, transparent) 45%, transparent 100%)" }} />
