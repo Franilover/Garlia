@@ -173,6 +173,18 @@ export default function Ensayos() {
     };
   }, []);
 
+  // ── Escuchar evento del CommandPalette para abrir ensayo desde cualquier página ──
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { id } = (e as CustomEvent<{ id: string }>).detail;
+      setEnsayoActivoId(id);
+      localStorage.setItem(LS_ACTIVE, id);
+      localStorage.removeItem(LS_HOME);
+    };
+    window.addEventListener("ensayos-open", handler);
+    return () => window.removeEventListener("ensayos-open", handler);
+  }, []);
+
   // ─── Zotero ────────────────────────────────────────────────────────────────
 
   useEffect(() => {
