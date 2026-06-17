@@ -2127,6 +2127,7 @@ function PanelListas({
     else if (tabla === "runas")      found = runas.find(x => x.id === id);
     else if (tabla === "canciones")  found = canciones.find(x => x.id === id);
     else if (tabla === "grupos_mundo") found = grupos.find(x => x.id === id);
+    else if (tabla === "notas")      found = notas.find(x => x.id === id);
 
     if (!found || lastOpenItemRef.current === refKey) return;
     lastOpenItemRef.current = refKey;
@@ -2141,11 +2142,12 @@ function PanelListas({
     else if (tabla === "runas")      setSelectedRuna(found);
     else if (tabla === "canciones")  setSelectedCancion(found);
     else if (tabla === "grupos_mundo") selectGrupo(found);
+    else if (tabla === "notas")      setSelectedNota(found);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openItem,
       personajes.length, criaturas.length, objetos.length, reinos.length,
       ciudades.length, hechizos.length, dones.length, runas.length, canciones.length,
-      grupos.length]);
+      grupos.length, notas.length]);
 
 // ── onItemCreated ─────────────────────────────────────────────────────────
   useEffect(() => {

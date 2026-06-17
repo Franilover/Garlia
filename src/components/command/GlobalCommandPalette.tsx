@@ -317,6 +317,18 @@ export function GlobalCommandPalette() {
         action: () => goEntity("grupos_mundo", g.id), group: "Grupos",
       };
     }),
+    ...(data?.notas ?? []).map(n => {
+      // etiquetas viene como string JSON (ej: '["personaje","idea"]'), no array real
+      let etiquetas: string[] = [];
+      try { etiquetas = n.etiquetas ? JSON.parse(n.etiquetas) : []; } catch {}
+      const tagsTxt = etiquetas.slice(0, 2).map(t => `#${t}`).join(" ");
+      return {
+        id: `nt-${n.id}`, label: n.titulo ?? "Sin título",
+        description: ["Nota", tagsTxt].filter(Boolean).join(" · "),
+        icon: FileText, avatar: null,
+        action: () => goEntity("notas", n.id), group: "Notas",
+      };
+    }),
   ] : [];
 
   const showDynamic = search.trim().length >= 2;
