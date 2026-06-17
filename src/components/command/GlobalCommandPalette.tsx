@@ -260,12 +260,19 @@ export function GlobalCommandPalette() {
       icon: Building2, avatar: c.imagen_url,
       action: () => goEntity("ciudades", c.id), group: "Ciudades",
     })),
-    ...(data?.ensayos ?? []).map(e => ({
-      id: `ens-${e.id}`, label: e.titulo ?? "Sin título",
-      description: Array.isArray(e.tags) && e.tags.length > 0 ? e.tags.slice(0, 3).join(", ") : "Ensayo",
-      icon: FileText, avatar: null,
-      action: () => goEnsayo(e.id), group: "Ensayos",
-    })),
+    ...(data?.ensayos ?? []).map(e => {
+      const tags: string[] = Array.isArray(e.tags) ? e.tags : [];
+      const esLibro = tags.includes("libro");
+      const esTag   = tags.includes("tag");
+      const badge   = esLibro ? "libro" : esTag ? "tag" : "nota";
+      const otherTags = tags.filter(t => t !== "libro" && t !== "tag").slice(0, 2).map(t => `#${t}`).join(" ");
+      return {
+        id: `ens-${e.id}`, label: e.titulo ?? "Sin título",
+        description: [badge, otherTags].filter(Boolean).join(" · "),
+        icon: FileText, avatar: null,
+        action: () => goEnsayo(e.id), group: "Ensayos",
+      };
+    }),
   ] : [];
 
   const showDynamic = search.trim().length >= 2;
