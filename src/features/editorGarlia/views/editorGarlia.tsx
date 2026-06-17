@@ -11,7 +11,7 @@ import {
   type Personaje, type Criatura, type Item, type Reino,
 } from "../components/types";
 import { useMundoSecciones } from "../components/hooks";
-import { GlobalSearchBar, ModalAcontecimiento, ModalNuevoGrupo, type AllItems, type MagicAddKey } from "../components/SidebarComponents";
+import { ModalAcontecimiento, ModalNuevoGrupo, type AllItems, type MagicAddKey } from "../components/SidebarComponents";
 import { EditorMundo }     from "./EditorMundo";
 import { EditorHechizos }  from "./EditorHechizos";
 import { EditorGrupoStandalone } from "./EditorGrupo";
@@ -507,129 +507,6 @@ export default function EditorEntidades() {
         className="flex flex-col w-full overflow-hidden h-full"
         style={{ background: "var(--bg-main)" }}
       >
-        {/* ── Buscador global ──────────────────────────────────────────────── */}
-        <GlobalSearchBar
-          allItems={allItems}
-          loadingAll={loadingAll}
-          isOffline={isOffline}
-          activeTab={tab}
-          selectedId={selectedId}
-          activeMundoSection={tab === "mundo" ? mundoSection : null}
-          onBack={hasOverlay ? () => { overlayCloseFnRef.current?.(); } : undefined}
-          onSelect={handleSelect}
-          onAdd={(chosenTab) => {
-            createAndOpen(chosenTab as Exclude<TabKey, "mundo">, handleCreated);
-          }}
-          onAddMagic={(key: MagicAddKey) => {
-            if (key === "acontecimiento") {
-              setShowAcontecimiento(true);
-            } else if (key === "notas") {
-              localStorage.setItem("estudio-notas-action", "nueva-nota");
-              setTab("mundo");
-              setSelectedId(null);
-              setMundoSection("geografia");
-              setTimeout(() => window.dispatchEvent(new Event("estudio-notas-action")), 0);
-            } else if (key === "grupos") {
-              setShowNuevoGrupo(true);
-            } else if (key === "libro") {
-              localStorage.setItem("estudio-caps-action", "nuevo-libro");
-              setTab("mundo");
-              setMundoSection("geografia");
-              setTimeout(() => window.dispatchEvent(new Event("estudio-caps-action")), 0);
-            } else if (key === "capitulo") {
-              localStorage.setItem("estudio-caps-action", "nuevo-cap");
-              setTab("mundo");
-              setMundoSection("geografia");
-              setTimeout(() => window.dispatchEvent(new Event("estudio-caps-action")), 0);
-            } else if (key === "cancion") {
-              localStorage.setItem("estudio-letras-action", "nueva-cancion");
-              setTab("mundo");
-              setMundoSection("geografia");
-              setTimeout(() => window.dispatchEvent(new Event("estudio-letras-action")), 0);
-            } else if (key === "ciudad") {
-              localStorage.setItem("estudio-listas-action", "nueva-ciudad");
-              setTab("mundo");
-              setMundoSection("geografia");
-              setTimeout(() => window.dispatchEvent(new Event("estudio-listas-action")), 0);
-            } else {
-              // hechizos, dones, runas → abrir su editor directamente como tab
-              setTab(key as any);
-              setSelectedId(null);
-            }
-          }}
-          onNavigateTab={(chosenTab) => {
-            setTab(chosenTab);
-            const first = allItems[chosenTab]?.[0];
-            setSelectedId(first?.id ?? null);
-          }}
-          onSelectMundoSection={(section) => {
-            setTab("mundo");
-            setSelectedId(null);
-            setMundoSection(section);
-          }}
-          onSelectMundoSubTab={(section, subTab) => {
-            const magicTabs = ["hechizos", "dones", "runas"];
-            if (magicTabs.includes(subTab)) {
-              setTab(subTab as any);
-              setSelectedId(null);
-            } else {
-              setTab("mundo");
-              setSelectedId(null);
-              setMundoSection(section);
-              setRequestedItemId(undefined);
-            }
-          }}
-          onSelectMagic={(subTab, item) => {
-            const alreadyInList = (allItems[subTab as keyof typeof allItems] as any[])
-              ?.some((i: any) => i.id === item.id);
-            if (alreadyInList) {
-              setTab(subTab as any);
-              setSelectedId(item.id);
-            } else {
-              handleAddMagic(subTab as MagicAddKey, item);
-            }
-          }}
-          onSelectNota={(nota) => {
-            setTab("mundo");
-            setSelectedId(null);
-            setMundoSection("geografia");
-            setRequestedItemId(undefined);
-            setTimeout(() => setRequestedItemId(nota.id), 0);
-          }}
-          onSelectGrupo={(grupo) => {
-            setTab("grupos");
-            setSelectedId(grupo.id);
-            setRequestedGrupoId(grupo.id);
-          }}
-          onNavigateToCapitulo={(capId, libroId) => {
-            localStorage.setItem("estudio-caps-last-cap",   capId);
-            localStorage.setItem("estudio-caps-last-libro", libroId);
-            // 1. Cerrar cualquier overlay abierto para que EstudioCapitulos sea visible
-            if (overlayCloseFnRef.current) overlayCloseFnRef.current();
-            // 2. Asegurarse de estar en la pestaña mundo
-            setTab("mundo");
-            setMundoSection("geografia");
-            setRequestedItemId(undefined);
-            // 3. Despachar después de que React procese el cierre del overlay
-            setTimeout(() => window.dispatchEvent(new Event("estudio-caps-action")), 0);
-          }}
-
-          onNavigateToCancion={(cancionId) => {
-            // Mantenemos esto por si tu PanelEditor interno lo sigue necesitando al montar
-            localStorage.setItem("estudio-letras-last-id", cancionId);
-            window.dispatchEvent(new Event("estudio-letras-action"));
-            
-            setTab("mundo");
-            setMundoSection("geografia");
-            setRequestedItemId(undefined);
-            
-            // 👇 ¡AQUÍ ESTÁ LA MAGIA QUE FALTABA! 👇
-            // Esto le dice a EditorMundo que cargue el ítem en su overlay usando la lógica que agregamos antes
-            setOpenItem({ tabla: "canciones", id: cancionId, key: ++openItemKeyRef.current });
-          }}
-          onToggleOculto={handleToggleOcultoReino}
-        />
-
         {/* ── Indicador offline ────────────────────────────────────────────── */}
         {isOffline && (
           <div

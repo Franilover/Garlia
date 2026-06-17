@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import {
   Sparkles, Star, Globe, Save, Loader2, Bug,
   ScrollText, Map, FileText, Users, UserCircle2, Package,
-  Crown, Clock, Filter, Layers, BookOpen, Music, MapPin, Plus, X, Check, Trash2,
+  Crown, Clock, Filter, Layers, BookOpen, Music, MapPin, Plus, X, Check, Trash2, ChevronLeft,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
@@ -2284,6 +2284,22 @@ function PanelListas({
       {/* ── Editor overlay ──────────────────────────────────────────────── */}
       {overlay && (
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden" style={{ background: "var(--bg-main)" }}>
+          {/* Botón volver al menú */}
+          <div
+            className="shrink-0 flex items-center px-3"
+            style={{ height: 40, borderBottom: "var(--border-width) solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
+          >
+            <button
+              onClick={clearAllOverlays}
+              className="flex items-center gap-1.5 transition-all"
+              style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+              onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = "var(--primary)"}
+              onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--primary) 40%, transparent)"}
+            >
+              <ChevronLeft size={13} />
+              <span className="text-[10px] font-black uppercase tracking-widest">Menú</span>
+            </button>
+          </div>
           <div className="flex-1 flex min-h-0 overflow-hidden">
             {overlay === "reino" && selectedReino && (
               <EditorReino key={selectedReino.id} item={selectedReino}
