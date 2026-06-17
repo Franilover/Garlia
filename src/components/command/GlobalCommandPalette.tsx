@@ -31,6 +31,19 @@ interface CommandItem {
   group: string;
 }
 
+// Espejo liviano de GRUPO_TIPO_CONFIG (EditorGrupo.tsx) — solo lo necesario
+// para mostrar de qué tipo es un grupo en los resultados de búsqueda.
+const GRUPO_TIPO_INFO: Record<string, { label: string; icon: React.ElementType }> = {
+  personajes: { label: "Personajes", icon: Users },
+  criaturas:  { label: "Criaturas",  icon: Swords },
+  items:      { label: "Objetos",    icon: Package },
+  reinos:     { label: "Reinos",     icon: Crown },
+  hechizos:   { label: "Hechizos",   icon: Wand2 },
+  dones:      { label: "Dones",      icon: Zap },
+  runas:      { label: "Runas",      icon: ScrollText },
+  libros:     { label: "Libros",     icon: BookOpen },
+};
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function GlobalCommandPalette() {
@@ -292,6 +305,16 @@ export function GlobalCommandPalette() {
         description: [badge, otherTags].filter(Boolean).join(" · "),
         icon: FileText, avatar: null,
         action: () => goEnsayo(e.id), group: "Ensayos",
+      };
+    }),
+    ...(data?.grupos ?? []).map(g => {
+      const info = GRUPO_TIPO_INFO[g.tipo] ?? { label: g.tipo, icon: Layers };
+      const cantidad = g.miembro_ids?.length ?? 0;
+      return {
+        id: `gr-${g.id}`, label: g.nombre,
+        description: [`Grupo de ${info.label.toLowerCase()}`, g.subtipo, `${cantidad} miembros`].filter(Boolean).join(" · "),
+        icon: info.icon, avatar: null,
+        action: () => goEntity("grupos_mundo", g.id), group: "Grupos",
       };
     }),
   ] : [];
