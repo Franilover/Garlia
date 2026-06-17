@@ -45,7 +45,7 @@ export function GlobalCommandPalette() {
   // Ctrl+/ abre/cierra — capture:true para ir antes que cualquier otro listener
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === " " && e.shiftKey) {
+      if ((e.ctrlKey || e.metaKey) && (e.key === "ñ" || e.key === "Ñ" || e.code === "Semicolon")) {
         e.preventDefault();
         e.stopPropagation();
         setOpen((prev: boolean) => !prev);
@@ -283,7 +283,7 @@ export function GlobalCommandPalette() {
                 )}
                 {!showDynamic && (
                   <span className="text-[9px] font-black uppercase tracking-widest ml-auto" style={{ color: "color-mix(in srgb, var(--primary) 28%, transparent)" }}>
-                    ctrl+shift+space
+                    ctrl+ñ
                   </span>
                 )}
               </div>
