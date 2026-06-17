@@ -137,10 +137,10 @@ export function GlobalCommandPalette() {
       setOpen(false);
       localStorage.setItem("ensayos-active-id", id);
       localStorage.removeItem("ensayos-at-home");
-      if (pathname === "/myself/ensayos") {
+      if (pathname === "/myself/escritorio") {
         window.dispatchEvent(new CustomEvent("ensayos-open", { detail: { id } }));
       } else {
-        router.push("/myself/ensayos");
+        router.push("/myself/escritorio");
       }
     },
     [router, setOpen, pathname]
