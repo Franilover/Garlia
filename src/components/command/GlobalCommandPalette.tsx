@@ -15,6 +15,7 @@ import {
   Search, ArrowRight, User, Crown, Swords, Building2,
   Loader2, WifiOff, BookOpen, Plus, Wand2, Zap,
   FileText, Clock, Layers, MapPin, ScrollText, Users, Package,
+  Library,
 } from "lucide-react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -176,6 +177,23 @@ export function GlobalCommandPalette() {
     [router, pathname]
   );
 
+  // Navega a /myself/escritorio y dispara un evento de creación (ensayos).
+  // Distinto de goEditorAndDispatch: ese va al editor de Garlia (mundo/historias),
+  // este va al escritorio de ensayos/notas — no son la misma entidad "libro".
+  const goEscritorioAndCreate = useCallback(
+    (eventName: string) => {
+      setOpen(false);
+      const dispatch = () => window.dispatchEvent(new Event(eventName));
+      if (pathname === "/myself/escritorio") {
+        dispatch();
+      } else {
+        router.push("/myself/escritorio");
+        setTimeout(dispatch, 400);
+      }
+    },
+    [router, setOpen, pathname]
+  );
+
   // ── Static command definitions ─────────────────────────────────────────────
 
   const navItems: CommandItem[] = [
@@ -217,6 +235,9 @@ export function GlobalCommandPalette() {
     { id: "add-libro",          label: "Nuevo libro",          icon: BookOpen,   keywords: ["add", "crear", "nuevo", "libro"],          action: () => { setOpen(false); goEditorAndDispatch("libro"); },        group: "Crear" },
     { id: "add-capitulo",       label: "Nuevo capítulo",       icon: BookText,   keywords: ["add", "crear", "nuevo", "capitulo"],       action: () => { setOpen(false); goEditorAndDispatch("capitulo"); },     group: "Crear" },
     { id: "add-cancion",        label: "Nueva canción",        icon: Music,      keywords: ["add", "crear", "nueva", "cancion"],        action: () => { setOpen(false); goEditorAndDispatch("cancion"); },      group: "Crear" },
+    // ── Escritorio (ensayos) — distinto del editor de Garlia: estos van a /myself/escritorio ──
+    { id: "add-ensayo",         label: "Nuevo ensayo",         description: "Nota en blanco · Escritorio", icon: FileText, keywords: ["add", "crear", "nuevo", "ensayo", "nota", "escritorio"], action: () => goEscritorioAndCreate("ensayos-new-nota"),  group: "Crear" },
+    { id: "add-libro-escritorio", label: "Nuevo libro (escritorio)", description: "No confundir con libros de Garlia", icon: Library, keywords: ["add", "crear", "nuevo", "libro", "escritorio", "ensayo"], action: () => goEscritorioAndCreate("ensayos-new-libro"), group: "Crear" },
   ] : [];
 
   const staticItems: CommandItem[] = [...navItems, ...userItems, ...adminItems, ...themeItems, ...createItems];

@@ -185,6 +185,23 @@ export default function Ensayos() {
     return () => window.removeEventListener("ensayos-open", handler);
   }, []);
 
+  // ── Escuchar evento del CommandPalette para crear un ensayo (nota) en blanco ──
+  useEffect(() => {
+    const handler = () => {
+      setPendingNoteTitle(null);
+      setShowNewNoteModal(true);
+    };
+    window.addEventListener("ensayos-new-nota", handler);
+    return () => window.removeEventListener("ensayos-new-nota", handler);
+  }, []);
+
+  // ── Escuchar evento del CommandPalette para crear un libro (tag "libro") ──
+  useEffect(() => {
+    const handler = () => { crearLibro(); };
+    window.addEventListener("ensayos-new-libro", handler);
+    return () => window.removeEventListener("ensayos-new-libro", handler);
+  }, []);
+
   // ─── Zotero ────────────────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -547,6 +564,30 @@ export default function Ensayos() {
       setEditMode(true);
       setShowNewNoteModal(false);
       setPendingNoteTitle(null);
+    }
+  };
+
+  // Crea un "libro" (ensayo con tag "libro") — usado tanto por el botón de
+  // LibrosDashboard/HomeDashboard como por el comando "Nuevo libro (escritorio)"
+  // del CommandPalette. No confundir con los libros de Garlia (tabla `libros`).
+  const crearLibro = async () => {
+    if (!user) return;
+    const now = new Date().toISOString();
+    const payload = {
+      titulo:     "Nuevo libro",
+      user_id:    user.id,
+      contenido:  "",
+      tags:       ["libro"],
+      updated_at: now,
+    };
+    const { data, error } = await addRow(payload);
+    if (!error && data) {
+      setEnsayos((prev: any[]) => {
+        if (prev.find((e: any) => e.id === data.id)) return prev;
+        return [data, ...prev];
+      });
+      setEnsayoActivo(data.id);
+      setEditMode(true);
     }
   };
 
@@ -1010,25 +1051,7 @@ export default function Ensayos() {
                       : tagsActuales.filter((t: string) => t !== estado);
                     scheduleSave(libroId, { tags: nuevosTags });
                   }}
-                  onCrearLibro={async () => {
-                    const now = new Date().toISOString();
-                    const payload = {
-                      titulo:     "Nuevo libro",
-                      user_id:    user?.id,
-                      contenido:  "",
-                      tags:       ["libro"],
-                      updated_at: now,
-                    };
-                    const { data, error } = await addRow(payload);
-                    if (!error && data) {
-                      setEnsayos((prev: any[]) => {
-                        if (prev.find((e: any) => e.id === data.id)) return prev;
-                        return [data, ...prev];
-                      });
-                      setEnsayoActivo(data.id);
-                      setEditMode(true);
-                    }
-                  }}
+                  onCrearLibro={crearLibro}
                 />
               ) : (
                 <HomeDashboard 
@@ -1057,25 +1080,7 @@ export default function Ensayos() {
                       : tagsActuales.filter((t: string) => t !== estado);
                     scheduleSave(libroId, { tags: nuevosTags });
                   }}
-                  onCrearLibro={async () => {
-                    const now = new Date().toISOString();
-                    const payload = {
-                      titulo:     "Nuevo libro",
-                      user_id:    user?.id,
-                      contenido:  "",
-                      tags:       ["libro"],
-                      updated_at: now,
-                    };
-                    const { data, error } = await addRow(payload);
-                    if (!error && data) {
-                      setEnsayos((prev: any[]) => {
-                        if (prev.find((e: any) => e.id === data.id)) return prev;
-                        return [data, ...prev];
-                      });
-                      setEnsayoActivo(data.id);
-                      setEditMode(true);
-                    }
-                  }}
+                  onCrearLibro={crearLibro}
                 />
               )}
             </AnimatePresence>
