@@ -131,6 +131,21 @@ export function GlobalCommandPalette() {
     [router, setOpen, pathname]
   );
 
+  // Abre un ensayo específico en /myself/ensayos
+  const goEnsayo = useCallback(
+    (id: string) => {
+      setOpen(false);
+      localStorage.setItem("ensayos-active-id", id);
+      localStorage.removeItem("ensayos-at-home");
+      if (pathname === "/myself/ensayos") {
+        window.dispatchEvent(new CustomEvent("ensayos-open", { detail: { id } }));
+      } else {
+        router.push("/myself/ensayos");
+      }
+    },
+    [router, setOpen, pathname]
+  );
+
   // Navega al editor y dispara createAndOpen para entidades principales
   const goEditorAndCreate = useCallback(
     (tab: string) => {
@@ -244,6 +259,12 @@ export function GlobalCommandPalette() {
       id: `ci-${c.id}`, label: c.nombre, description: "Ciudad",
       icon: Building2, avatar: c.imagen_url,
       action: () => goEntity("ciudades", c.id), group: "Ciudades",
+    })),
+    ...(data?.ensayos ?? []).map(e => ({
+      id: `ens-${e.id}`, label: e.titulo ?? "Sin título",
+      description: Array.isArray(e.tags) && e.tags.length > 0 ? e.tags.slice(0, 3).join(", ") : "Ensayo",
+      icon: FileText, avatar: null,
+      action: () => goEnsayo(e.id), group: "Ensayos",
     })),
   ] : [];
 

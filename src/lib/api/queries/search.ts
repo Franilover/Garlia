@@ -12,6 +12,7 @@ export type SearchCapitulo  = Pick<Tables<"capitulos">,  "id" | "titulo_capitulo
 export type SearchReino     = Pick<Tables<"reinos">,     "id" | "nombre" | "logo_url">;
 export type SearchCriatura  = Pick<Tables<"criaturas">,  "id" | "nombre" | "imagen_url">;
 export type SearchCiudad    = Pick<Tables<"ciudades">,   "id" | "nombre" | "imagen_url">;
+export type SearchEnsayo    = Pick<Tables<"ensayos">,    "id" | "titulo" | "tags" | "updated_at">;
 
 export interface GlobalSearchResults {
   personajes: SearchPersonaje[];
@@ -21,6 +22,7 @@ export interface GlobalSearchResults {
   reinos:     SearchReino[];
   criaturas:  SearchCriatura[];
   ciudades:   SearchCiudad[];
+  ensayos:    SearchEnsayo[];
   /** true = vino de Dexie (offline), false = vino de Supabase (online) */
   fromCache:  boolean;
 }
@@ -48,7 +50,7 @@ async function searchDexie(term: string): Promise<GlobalSearchResults | null> {
   try {
     // Dexie no hace ilike nativo, pero toArray() + filter en JS es muy rápido
     // porque todo está en memoria/IndexedDB local
-    const [personajes, libros, canciones, capitulos, reinos, criaturas, ciudades] = await Promise.all([
+    const [personajes, libros, canciones, capitulos, reinos, criaturas, ciudades, ensayos] = await Promise.all([
       db.personajes.toArray(),
       db.libros.toArray(),
       db.canciones.toArray(),
@@ -56,6 +58,7 @@ async function searchDexie(term: string): Promise<GlobalSearchResults | null> {
       db.reinos.toArray(),
       db.criaturas.toArray(),
       db.ciudades.toArray(),
+      (db as any).ensayos?.toArray() ?? [],
     ]);
 
     const results: GlobalSearchResults = {
@@ -66,6 +69,7 @@ async function searchDexie(term: string): Promise<GlobalSearchResults | null> {
       reinos:     localFilter(reinos,     term, "nombre", 3) as SearchReino[],
       criaturas:  localFilter(criaturas,  term, "nombre", 3) as SearchCriatura[],
       ciudades:   localFilter(ciudades,   term, "nombre", 3) as SearchCiudad[],
+      ensayos:    localFilter(ensayos,    term, "titulo", 5) as SearchEnsayo[],
       fromCache: true,
     };
 
@@ -85,7 +89,7 @@ async function searchDexie(term: string): Promise<GlobalSearchResults | null> {
 async function searchSupabase(term: string): Promise<GlobalSearchResults> {
   const pattern = `%${term}%`;
 
-  const [personajes, libros, canciones, capitulos, reinos, criaturas, ciudades] = await Promise.all([
+  const [personajes, libros, canciones, capitulos, reinos, criaturas, ciudades, ensayos] = await Promise.all([
     supabase.from("personajes").select("id, nombre, especie, img_url").ilike("nombre", pattern).limit(4),
     supabase.from("libros").select("id, titulo, portada_url, estado").ilike("titulo", pattern).limit(4),
     supabase.from("canciones").select("id, titulo, cantante, portada_url").ilike("titulo", pattern).limit(3),
@@ -93,6 +97,7 @@ async function searchSupabase(term: string): Promise<GlobalSearchResults> {
     supabase.from("reinos").select("id, nombre, logo_url").ilike("nombre", pattern).limit(3),
     supabase.from("criaturas").select("id, nombre, imagen_url").ilike("nombre", pattern).limit(3),
     supabase.from("ciudades").select("id, nombre, imagen_url").ilike("nombre", pattern).limit(3),
+    supabase.from("ensayos").select("id, titulo, tags, updated_at").ilike("titulo", pattern).limit(5),
   ]);
 
   return {
@@ -103,6 +108,7 @@ async function searchSupabase(term: string): Promise<GlobalSearchResults> {
     reinos:     reinos.data     ?? [],
     criaturas:  criaturas.data  ?? [],
     ciudades:   ciudades.data   ?? [],
+    ensayos:    ensayos.data    ?? [],
     fromCache:  false,
   };
 }
@@ -117,7 +123,7 @@ export function useGlobalSearch(term: string) {
 
     queryFn: async (): Promise<GlobalSearchResults> => {
       if (trimmed.length < 2) {
-        return { personajes: [], libros: [], canciones: [], capitulos: [], reinos: [], criaturas: [], ciudades: [], fromCache: false };
+        return { personajes: [], libros: [], canciones: [], capitulos: [], reinos: [], criaturas: [], ciudades: [], ensayos: [], fromCache: false };
       }
 
       // 1️⃣ Intentar Dexie primero (instantáneo, offline)
@@ -130,6 +136,6 @@ export function useGlobalSearch(term: string) {
 
     enabled: trimmed.length >= 2,
     staleTime: 1000 * 60 * 2,   // 2 min — Dexie es tan rápido que no hace falta invalidar seguido
-    placeholderData: { personajes: [], libros: [], canciones: [], capitulos: [], reinos: [], criaturas: [], ciudades: [], fromCache: false },
+    placeholderData: { personajes: [], libros: [], canciones: [], capitulos: [], reinos: [], criaturas: [], ciudades: [], ensayos: [], fromCache: false },
   });
 }
