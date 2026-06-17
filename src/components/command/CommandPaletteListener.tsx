@@ -9,6 +9,7 @@ export function CommandPaletteListener() {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "ñ") {
+        if (e.repeat) return; // ignorar key repeat
         e.preventDefault();
         e.stopPropagation();
         setOpen((prev: boolean) => !prev);
