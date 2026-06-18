@@ -55,6 +55,8 @@ interface LibroPublico {
   titulo: string;
   portada_url?: string | null;
   visibilidad?: string;
+  sinopsis?: string | null;
+  estado?: string;
 }
 
 /** Búsqueda pública en Supabase — libros, canciones y capítulos visibles. */
@@ -94,7 +96,7 @@ function usePublicSearch(query: string) {
             .limit(8),
           supabase
             .from("libros")
-            .select("id, titulo, portada_url, visibilidad")
+            .select("id, titulo, portada_url, visibilidad, sinopsis, estado")
             .eq("visibilidad", "publico")
             .ilike("titulo", `%${q}%`)
             .limit(5),
@@ -148,7 +150,7 @@ function usePublicBrowse() {
         const [libRes, canRes] = await Promise.all([
           supabase
             .from("libros")
-            .select("id, titulo, portada_url, visibilidad")
+            .select("id, titulo, portada_url, visibilidad, sinopsis, estado")
             .eq("visibilidad", "publico")
             .order("titulo", { ascending: true })
             .limit(8),
@@ -392,7 +394,7 @@ export function GlobalCommandPalette() {
     ...librosPublicos.map(l => ({
       id: `l-pub-${l.id}`,
       label: l.titulo,
-      description: "Libro público",
+      description: l.sinopsis ? l.sinopsis.slice(0, 60) + (l.sinopsis.length > 60 ? "…" : "") : (l.estado ?? "Libro"),
       icon: BookText,
       avatar: l.portada_url ?? null,
       action: () => go(`/garlia/libros/${toSlug(l.titulo)}`),
@@ -491,7 +493,7 @@ export function GlobalCommandPalette() {
     ...browseLibros.map(l => ({
       id: `browse-l-${l.id}`,
       label: l.titulo,
-      description: "Libro público",
+      description: l.sinopsis ? l.sinopsis.slice(0, 60) + (l.sinopsis.length > 60 ? "…" : "") : (l.estado ?? "Libro"),
       icon: BookText,
       avatar: l.portada_url ?? null,
       keywords: ["libro", "leer", l.titulo],
