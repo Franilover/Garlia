@@ -14,12 +14,79 @@ export type Database = {
   }
   public: {
     Tables: {
+      calendario_config: {
+        Row: {
+          anio_inicio: number
+          dias_por_semana: number
+          horas_por_dia: number
+          id: number
+        }
+        Insert: {
+          anio_inicio?: number
+          dias_por_semana?: number
+          horas_por_dia?: number
+          id?: number
+        }
+        Update: {
+          anio_inicio?: number
+          dias_por_semana?: number
+          horas_por_dia?: number
+          id?: number
+        }
+        Relationships: []
+      }
+      calendario_estaciones: {
+        Row: {
+          duracion_dias: number
+          id: string
+          nombre: string
+          orden: number
+        }
+        Insert: {
+          duracion_dias: number
+          id?: string
+          nombre: string
+          orden: number
+        }
+        Update: {
+          duracion_dias?: number
+          id?: string
+          nombre?: string
+          orden?: number
+        }
+        Relationships: []
+      }
+      calendario_estaciones_backup: {
+        Row: {
+          backup_date: string | null
+          duracion_dias: number | null
+          id: string | null
+          nombre: string | null
+          orden: number | null
+        }
+        Insert: {
+          backup_date?: string | null
+          duracion_dias?: number | null
+          id?: string | null
+          nombre?: string | null
+          orden?: number | null
+        }
+        Update: {
+          backup_date?: string | null
+          duracion_dias?: number | null
+          id?: string | null
+          nombre?: string | null
+          orden?: number | null
+        }
+        Relationships: []
+      }
       canciones: {
         Row: {
           cantante: string | null
           ciudad_id: string | null
           compositor: string | null
           created_at: string | null
+          dia_absoluto: number | null
           duracion_segundos: number | null
           emocion: string | null
           estado: string | null
@@ -42,6 +109,7 @@ export type Database = {
           ciudad_id?: string | null
           compositor?: string | null
           created_at?: string | null
+          dia_absoluto?: number | null
           duracion_segundos?: number | null
           emocion?: string | null
           estado?: string | null
@@ -64,6 +132,7 @@ export type Database = {
           ciudad_id?: string | null
           compositor?: string | null
           created_at?: string | null
+          dia_absoluto?: number | null
           duracion_segundos?: number | null
           emocion?: string | null
           estado?: string | null
@@ -111,6 +180,7 @@ export type Database = {
           contenido: string | null
           created_at: string
           criaturas_ids: string[] | null
+          dia_absoluto: number | null
           fecha_publicacion: string | null
           id: string
           items_ids: string[] | null
@@ -128,6 +198,7 @@ export type Database = {
           contenido?: string | null
           created_at?: string
           criaturas_ids?: string[] | null
+          dia_absoluto?: number | null
           fecha_publicacion?: string | null
           id?: string
           items_ids?: string[] | null
@@ -145,6 +216,7 @@ export type Database = {
           contenido?: string | null
           created_at?: string
           criaturas_ids?: string[] | null
+          dia_absoluto?: number | null
           fecha_publicacion?: string | null
           id?: string
           items_ids?: string[] | null
@@ -603,33 +675,36 @@ export type Database = {
           },
         ]
       }
-      cronologia: {
+      cronologia_backup: {
         Row: {
+          backup_date: string | null
           created_at: string | null
           descripcion: string | null
-          id: string
+          id: string | null
           imagen_url: string | null
-          orden: number
+          orden: number | null
           Reino: string | null
-          titulo: string
+          titulo: string | null
         }
         Insert: {
+          backup_date?: string | null
           created_at?: string | null
           descripcion?: string | null
-          id?: string
+          id?: string | null
           imagen_url?: string | null
-          orden?: number
+          orden?: number | null
           Reino?: string | null
-          titulo: string
+          titulo?: string | null
         }
         Update: {
+          backup_date?: string | null
           created_at?: string | null
           descripcion?: string | null
-          id?: string
+          id?: string | null
           imagen_url?: string | null
-          orden?: number
+          orden?: number | null
           Reino?: string | null
-          titulo?: string
+          titulo?: string | null
         }
         Relationships: []
       }
@@ -1001,6 +1076,36 @@ export type Database = {
           },
         ]
       }
+      eras_mundo: {
+        Row: {
+          anio_fin: number | null
+          anio_inicio: number
+          color: string | null
+          descripcion: string | null
+          id: string
+          nombre: string
+          orden: number | null
+        }
+        Insert: {
+          anio_fin?: number | null
+          anio_inicio: number
+          color?: string | null
+          descripcion?: string | null
+          id?: string
+          nombre: string
+          orden?: number | null
+        }
+        Update: {
+          anio_fin?: number | null
+          anio_inicio?: number
+          color?: string | null
+          descripcion?: string | null
+          id?: string
+          nombre?: string
+          orden?: number | null
+        }
+        Relationships: []
+      }
       eventos: {
         Row: {
           created_at: string
@@ -1039,6 +1144,44 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "perfiles"
             referencedColumns: ["username"]
+          },
+        ]
+      }
+      eventos_mundo: {
+        Row: {
+          created_at: string | null
+          descripcion: string | null
+          dia_absoluto: number
+          id: string
+          reino_id: string | null
+          source: string
+          titulo: string
+        }
+        Insert: {
+          created_at?: string | null
+          descripcion?: string | null
+          dia_absoluto: number
+          id?: string
+          reino_id?: string | null
+          source?: string
+          titulo?: string
+        }
+        Update: {
+          created_at?: string | null
+          descripcion?: string | null
+          dia_absoluto?: number
+          id?: string
+          reino_id?: string | null
+          source?: string
+          titulo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "eventos_mundo_reino_id_fkey"
+            columns: ["reino_id"]
+            isOneToOne: false
+            referencedRelation: "reinos"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -1967,6 +2110,44 @@ export type Database = {
           },
         ]
       }
+      personaje_eras: {
+        Row: {
+          created_at: string | null
+          id: string
+          label: string | null
+          momento: number
+          notas: string | null
+          personaje_id: string
+          rasgos: string[]
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          label?: string | null
+          momento: number
+          notas?: string | null
+          personaje_id: string
+          rasgos?: string[]
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          label?: string | null
+          momento?: number
+          notas?: string | null
+          personaje_id?: string
+          rasgos?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "personaje_eras_personaje_id_fkey"
+            columns: ["personaje_id"]
+            isOneToOne: false
+            referencedRelation: "personajes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       personaje_hechizos: {
         Row: {
           hechizo_id: string
@@ -2267,7 +2448,6 @@ export type Database = {
           economia: string | null
           fondo_color: string | null
           geografia: string | null
-          historia: string | null
           id: string
           logo_url: string | null
           mapa_url: string | null
@@ -2283,7 +2463,6 @@ export type Database = {
           economia?: string | null
           fondo_color?: string | null
           geografia?: string | null
-          historia?: string | null
           id?: string
           logo_url?: string | null
           mapa_url?: string | null
@@ -2299,13 +2478,33 @@ export type Database = {
           economia?: string | null
           fondo_color?: string | null
           geografia?: string | null
-          historia?: string | null
           id?: string
           logo_url?: string | null
           mapa_url?: string | null
           nombre?: string
           orden?: number | null
           politica?: string | null
+        }
+        Relationships: []
+      }
+      reinos_historia_backup: {
+        Row: {
+          backup_date: string | null
+          historia: string | null
+          id: string | null
+          nombre: string | null
+        }
+        Insert: {
+          backup_date?: string | null
+          historia?: string | null
+          id?: string | null
+          nombre?: string | null
+        }
+        Update: {
+          backup_date?: string | null
+          historia?: string | null
+          id?: string | null
+          nombre?: string | null
         }
         Relationships: []
       }
