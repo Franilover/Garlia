@@ -1,18 +1,27 @@
 // src/lib/api/canciones.ts
 import { supabase } from '@/lib/api/client/supabase';
-import { cancionQuery, Cancion, Inserts, Updates } from '@/lib/types/queries';
+import { Cancion, Inserts, Updates } from '@/lib/types/queries';
+
+// Factory: crea un builder fresco en cada llamada para evitar que los
+// filtros .eq() se acumulen entre invocaciones (causa del bug 406 / PGRST116).
+const cancionQuery = () =>
+  supabase
+    .from('canciones')
+    .select(
+      `*, personaje:personajes(id, nombre, img_url), secciones:secciones_cancion(*)`
+    );
 
 export const cancionesQueries = {
   getAll: async (): Promise<Cancion[]> => {
-    const { data, error } = await cancionQuery.order('titulo');
+    const { data, error } = await cancionQuery().order('titulo');
     if (error) throw error;
     return data as Cancion[];
   },
 
   getById: async (id: string): Promise<Cancion | null> => {
-    const { data, error } = await cancionQuery.eq('id', id).single();
+    const { data, error } = await cancionQuery().eq('id', id).maybeSingle();
     if (error) throw error;
-    return data as Cancion;
+    return data as Cancion | null;
   },
 
   create: async (datos: Inserts<'canciones'>) => {
@@ -72,6 +81,6 @@ export const cancionesQueries = {
           .eq('id', id)
       );
       await Promise.all(updates);
-    }
+    },
   },
 };
