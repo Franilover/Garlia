@@ -245,7 +245,7 @@ function PanelLateral({
     }}>
 
       {/* ── Hero: imagen del narrador con degradado ── */}
-      <div style={{ position: "relative", flexShrink: 0, height: 200, overflow: "hidden" }}>
+      <div style={{ position: "relative", flexShrink: 0, height: "clamp(120px, 16vh, 200px)", overflow: "hidden" }}>
         {narrador?.img_url ? (
           <img
             src={narrador.img_url}
@@ -289,21 +289,22 @@ function PanelLateral({
         </button>
       </div>
 
-      {/* ── Reinos y ciudades del capítulo ── */}
-      {!loading && capActual && !esExtra && (
-        <LugaresPanel
-          reinosIds={(capActual as any).reinos_ids ?? []}
-          ciudadesIds={(capActual as any).ciudades_ids ?? []}
-          border={border}
-        />
-      )}
+      {/* ── Metadata: reinos, ciudades, personajes ── envueltos en un wrapper que puede encoger */}
+      <div style={{ flexShrink: 1, minHeight: 0, overflowY: "auto", overflowX: "hidden" }}>
+        {!loading && capActual && !esExtra && (
+          <LugaresPanel
+            reinosIds={(capActual as any).reinos_ids ?? []}
+            ciudadesIds={(capActual as any).ciudades_ids ?? []}
+            border={border}
+          />
+        )}
 
-      {/* ── Personajes del capítulo ── */}
-      {!loading && !esExtra && personajesIds.length > 0 && (
-        <div style={{ padding: "10px 16px 0", flexShrink: 0 }}>
-          <PersonajesPanel ids={personajesIds} border={border} />
-        </div>
-      )}
+        {!loading && !esExtra && personajesIds.length > 0 && (
+          <div style={{ padding: "10px 16px 0" }}>
+            <PersonajesPanel ids={personajesIds} border={border} />
+          </div>
+        )}
+      </div>
 
       <div style={{ margin: "10px 16px 4px", height: 1, background: border.replace("1px solid ", ""), flexShrink: 0 }} />
 
