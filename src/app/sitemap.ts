@@ -1,41 +1,96 @@
-import { MetadataRoute } from 'next';
-import { createClient } from '@supabase/supabase-js';
+import { MetadataRoute } from "next";
+import { supabase } from "@/lib/api/client/supabase";
+import { toSlug } from "@/lib/utils/slugify";
 
-// Inicializa Supabase (asegúrate de usar tus variables de entorno)
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;  
+const BASE_URL = "https://franilover.vercel.app";
+
+interface LibroQuery {
+  id: string;
+  titulo: string;
+  created_at: string | null;
+}
+
+interface CapituloQuery {
+  orden: number;
+  fecha_publicacion: string | null;
+  libros: {
+    titulo: string;
+  } | null;
+}
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = 'https://franilover.vercel.app'; 
-
-  const supabase = createClient(supabaseUrl, supabaseKey);
-
-  // 1. Traer slugs de libros y canciones desde Supabase
-  const { data: libros } = await supabase.from('libros').select('id, titulo'); // O la columna que uses para las rutas
-  const { data: canciones } = await supabase.from('canciones').select('id, titulo');
-
-  const rutasLibros = (libros || []).map((libro) => ({
-    url: `${baseUrl}/garlia/libros/${libro.id}`, 
-    lastModified: new Date(),
-    changeFrequency: 'weekly' as const,
-    priority: 0.8,
-  }));
-
-  const rutasCanciones = (canciones || []).map((cancion) => ({
-    url: `${baseUrl}/garlia/canciones/${cancion.id}`,
-    lastModified: new Date(),
-    changeFrequency: 'weekly' as const,
-    priority: 0.7,
-  }));
-
-  // 2. Rutas estáticas fijas de tu aplicación
-  const rutasEstaticas = [
-    { url: baseUrl, lastModified: new Date(), changeFrequency: 'daily' as const, priority: 1.0 },
-    { url: `${baseUrl}/garlia/personal`, lastModified: new Date(), changeFrequency: 'monthly' as const, priority: 0.5 },
-    { url: `${baseUrl}/garlia/mapa`, lastModified: new Date(), changeFrequency: 'weekly' as const, priority: 0.9 },
-    { url: `${baseUrl}/garlia/libros`, lastModified: new Date(), changeFrequency: 'daily' as const, priority: 0.9 },
-    { url: `${baseUrl}/garlia/canciones`, lastModified: new Date(), changeFrequency: 'daily' as const, priority: 0.9 },
+  // 1. Rutas Estáticas Principales y Categorías del Sistema
+  const rutasEstaticas: MetadataRoute.Sitemap = [
+    {
+      url: `${BASE_URL}`,
+      lastModified: new Date(),
+      changeFrequency: "daily",
+      priority: 1.0,
+    },
+    {
+      url: `${BASE_URL}/garlia`,
+      lastModified: new Date(),
+      changeFrequency: "weekly",
+      priority: 0.8,
+    },
+    {
+      url: `${BASE_URL}/personal`,
+      lastModified: new Date(),
+      changeFrequency: "weekly",
+      priority: 0.8,
+    },
   ];
 
-  return [...rutasEstaticas, ...rutasLibros, ...rutasCanciones];
+  try {
+    // 2. Obtener los libros desde Supabase para generar URLs con slugs reales
+    const { data: librosData, error: librosError } = await supabase
+      .from("libros")
+      .select("id, titulo, created_at")
+      .order("created_at", { ascending: false });
+
+    if (librosError) {
+      console.error("Error cargando libros para el sitemap:", librosError);
+      return rutasEstaticas;
+    }
+
+    const libros = (librosData as unknown as LibroQuery[]) || [];
+
+    const rutasLibros: MetadataRoute.Sitemap = libros.map((libro) => ({
+      url: `${BASE_URL}/garlia/libros/${toSlug(libro.titulo)}`,
+      lastModified: libro.created_at ? new Date(libro.created_at) : new Date(),
+      changeFrequency: "weekly",
+      priority: 0.8,
+    }));
+
+    // 3. Obtener los capítulos realizando un JOIN para traer el título del libro y estructurar el lector
+    const { data: capitulosData, error: capsError } = await supabase
+      .from("capitulos")
+      .select("orden, fecha_publicacion, libros ( titulo )");
+
+    if (capsError) {
+      console.error("Error cargando capítulos para el sitemap:", capsError);
+      return [...rutasEstaticas, ...rutasLibros];
+    }
+
+    const capitulos = (capitulosData as unknown as CapituloQuery[]) || [];
+
+    const rutasCapitulos: MetadataRoute.Sitemap = capitulos
+      .filter((cap) => cap.libros !== null && typeof cap.libros === "object" && "titulo" in cap.libros)
+      .map((cap) => {
+        const libroAsociado = cap.libros as { titulo: string };
+        const slugLibro = toSlug(libroAsociado.titulo);
+        return {
+          url: `${BASE_URL}/garlia/libros/${slugLibro}/leer/${cap.orden}`,
+          lastModified: cap.fecha_publicacion ? new Date(cap.fecha_publicacion) : new Date(),
+          changeFrequency: "daily",
+          priority: 0.7,
+        };
+      });
+
+    // 4. Retornar la unificación de todas las rutas recopiladas
+    return [...rutasEstaticas, ...rutasLibros, ...rutasCapitulos];
+  } catch (error) {
+    console.error("Error crítico e inesperado generando sitemap.ts:", error);
+    return rutasEstaticas;
+  }
 }
