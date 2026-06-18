@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { Command } from "cmdk";
 import { useRouter, usePathname } from "next/navigation";
 import { AnimatePresence } from "framer-motion";
@@ -9,6 +9,8 @@ import { useCommandPalette } from "./useCommandPalette";
 import { useAuth } from "@/providers/AuthProvider";
 import { useTheme } from "@/providers/ThemeProvider";
 import { useGlobalSearch } from "@/lib/api/queries/search";
+import { supabase } from "@/lib/api/client/supabase";
+import { toSlug } from "@/lib/utils/slugify";
 import {
   Compass, BookText, Music, Star, Palette,
   PenTool, Moon, Sun, Cat, Flower2, CircleUser,
@@ -30,6 +32,89 @@ interface CommandItem {
   group: string;
 }
 
+// Tipos para resultados públicos
+interface CancionPublica {
+  id: string;
+  titulo: string;
+  cantante?: string | null;
+  portada_url?: string | null;
+  visible?: boolean;
+}
+
+interface CapituloPublico {
+  id: string;
+  titulo_capitulo: string;
+  orden: number;
+  libro_id: string;
+  libro_titulo?: string;    // viene del join con libros
+  libro_portada?: string;   // viene del join con libros
+}
+
+/** Búsqueda pública en Supabase — canciones y capítulos visibles. */
+function usePublicSearch(query: string) {
+  const [canciones,  setCanciones]  = useState<CancionPublica[]>([]);
+  const [capitulos,  setCapitulos]  = useState<CapituloPublico[]>([]);
+  const [isFetching, setIsFetching] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const q = query.trim();
+    if (q.length < 2) {
+      setCanciones([]);
+      setCapitulos([]);
+      return;
+    }
+
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(async () => {
+      setIsFetching(true);
+      try {
+        const [canRes, capRes] = await Promise.all([
+          supabase
+            .from("canciones")
+            .select("id, titulo, cantante, portada_url, visible")
+            .eq("visible", true)
+            .ilike("titulo", `%${q}%`)
+            .limit(6),
+          supabase
+            .from("capitulos")
+            .select("id, titulo_capitulo, orden, libro_id, libros!libro_id(titulo, portada_url)")
+            .eq("visibilidad", "publico")
+            .not("titulo_capitulo", "like", "[Ruta]%")
+            .ilike("titulo_capitulo", `%${q}%`)
+            .limit(8),
+        ]);
+
+        setCanciones((canRes.data ?? []) as CancionPublica[]);
+
+        // Aplanar el join con libros
+        const capsAplanados: CapituloPublico[] = ((capRes.data ?? []) as any[]).map((c) => {
+          const libro = Array.isArray(c.libros) ? c.libros[0] : c.libros;
+          return {
+            id: c.id,
+            titulo_capitulo: c.titulo_capitulo,
+            orden: c.orden,
+            libro_id: c.libro_id,
+            libro_titulo:  libro?.titulo    ?? undefined,
+            libro_portada: libro?.portada_url ?? undefined,
+          };
+        });
+        setCapitulos(capsAplanados);
+      } catch {
+        // Si falla la búsqueda pública, simplemente no mostrar resultados
+        setCanciones([]);
+        setCapitulos([]);
+      } finally {
+        setIsFetching(false);
+      }
+    }, 280);
+
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, [query]);
+
+  return { canciones, capitulos, isFetching };
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function GlobalCommandPalette() {
@@ -40,8 +125,17 @@ export function GlobalCommandPalette() {
   const isDark = dark === "dark";
 
   const [search, setSearch] = useState("");
-  const { data, isFetching } = useGlobalSearch(search);
+  const { data, isFetching: isFetchingAdmin } = useGlobalSearch(search);
   const fromCache = data?.fromCache ?? false;
+
+  // Búsqueda pública — activa para todos los usuarios
+  const {
+    canciones: cancionesPublicas,
+    capitulos: capitulosPublicos,
+    isFetching: isFetchingPublic,
+  } = usePublicSearch(isAdmin ? "" : search); // si es admin usamos el flujo de admin
+
+  const isFetching = isFetchingAdmin || isFetchingPublic;
 
   // Ctrl+Ñ abre/cierra — capture:true para ir antes que cualquier otro listener
   useEffect(() => {
@@ -225,8 +319,37 @@ export function GlobalCommandPalette() {
 
   // ── Dynamic search results → CommandItems ──────────────────────────────────
 
-  // Resultados dinámicos — solo para admin, abren en EditorGarlia
-  const dynamicItems: CommandItem[] = (search.trim().length >= 2 && isAdmin) ? [
+  // Resultados públicos — visibles para usuarios NO-admin cuando hay búsqueda activa.
+  // Canciones y capítulos navegan a sus rutas públicas (/garlia/...).
+  const publicDynamicItems: CommandItem[] = search.trim().length >= 2 ? [
+    ...cancionesPublicas.map(c => ({
+      id: `c-pub-${c.id}`,
+      label: c.titulo,
+      description: c.cantante ?? "Canción",
+      icon: Music,
+      avatar: c.portada_url ?? null,
+      action: () => go(`/garlia/canciones/${toSlug(c.titulo)}`),
+      group: "Canciones",
+    })),
+    ...capitulosPublicos.map(c => {
+      const libroSlug = toSlug(c.libro_titulo ?? "");
+      const destino = libroSlug
+        ? `/garlia/libros/${libroSlug}/leer/${c.orden}`
+        : `/garlia/libros`;
+      return {
+        id: `cap-pub-${c.id}`,
+        label: c.titulo_capitulo,
+        description: c.libro_titulo ? `Cap. ${c.orden} · ${c.libro_titulo}` : `Capítulo ${c.orden}`,
+        icon: BookOpen,
+        avatar: c.libro_portada ?? null,
+        action: () => go(destino),
+        group: "Capítulos",
+      };
+    }),
+  ] : [];
+
+  // Resultados de admin — solo para administradores, abren en EditorGarlia
+  const adminDynamicItems: CommandItem[] = (search.trim().length >= 2 && isAdmin) ? [
     ...(data?.personajes ?? []).map(p => ({
       id: `p-${p.id}`, label: p.nombre, description: p.especie ?? "Personaje",
       icon: User, avatar: p.img_url,
@@ -237,15 +360,17 @@ export function GlobalCommandPalette() {
       icon: BookText, avatar: l.portada_url,
       action: () => goEntity("libros", l.id), group: "Libros",
     })),
+    // Para admin, las canciones abren en el editor (no en la ruta pública)
     ...(data?.canciones ?? []).map(c => ({
       id: `c-${c.id}`, label: c.titulo, description: c.cantante ?? "Canción",
       icon: Music, avatar: c.portada_url,
-      action: () => goCancion(c.id), group: "Canciones",
+      action: () => goCancion(c.id), group: "Canciones (editor)",
     })),
+    // Para admin, los capítulos abren en el editor
     ...(data?.capitulos ?? []).map(c => ({
       id: `cap-${c.id}`, label: c.titulo_capitulo ?? `Capítulo ${c.orden}`, description: `Cap. ${c.orden}`,
       icon: BookOpen, avatar: null,
-      action: () => goCapitulo(c.id, c.libro_id ?? ""), group: "Capítulos",
+      action: () => goCapitulo(c.id, c.libro_id ?? ""), group: "Capítulos (editor)",
     })),
     ...(data?.reinos ?? []).map(r => ({
       id: `r-${r.id}`, label: r.nombre, description: "Reino",
@@ -276,6 +401,11 @@ export function GlobalCommandPalette() {
       };
     }),
   ] : [];
+
+  // Unir: primero los públicos, luego los de admin (sin duplicar canciones/caps)
+  const dynamicItems: CommandItem[] = isAdmin
+    ? [...adminDynamicItems]
+    : [...publicDynamicItems];
 
   const showDynamic = search.trim().length >= 2;
   const hasDynamicResults = dynamicItems.length > 0;

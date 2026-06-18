@@ -3,7 +3,7 @@ import { ropaFullQuery, Ropa, Inserts, Updates } from '@/lib/types/queries';
 
 export const ropaQueries = {
   getAll: async (): Promise<Ropa[]> => {
-    const { data, error } = await ropaFullQuery.order('categoria');
+    const { data, error } = await ropaFullQuery().order('categoria');
     if (error) throw error;
     return data;
   },

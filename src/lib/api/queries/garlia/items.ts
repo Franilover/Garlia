@@ -3,7 +3,7 @@ import { itemFullQuery, Item, Inserts, Updates } from '@/lib/types/queries';
 
 export const itemsQueries = {
   getAll: async (opt: { campo?: string; asc?: boolean } = {}): Promise<Item[]> => {
-    let query = itemFullQuery;
+    let query = itemFullQuery();
     if (opt.campo) {
       query = query.order(opt.campo as any, { ascending: opt.asc ?? true });
     }
@@ -13,7 +13,7 @@ export const itemsQueries = {
   },
 
   getById: async (id: string): Promise<Item | null> => {
-    const { data, error } = await itemFullQuery.eq('id', id).single();
+    const { data, error } = await itemFullQuery().eq('id', id).maybeSingle();
     if (error) throw error;
     return data;
   },

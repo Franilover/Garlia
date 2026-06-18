@@ -13,7 +13,7 @@ export interface Capitulo {
 
 export const librosQueries = {
   getAll: async (options: { isAdmin?: boolean; order?: { campo: string; asc: boolean } } = {}): Promise<LibroFull[]> => {
-    let query = libroFullQuery;
+    let query = libroFullQuery();
 
     if (!options.isAdmin) {
       query = query.eq("visibilidad", "publico");
@@ -31,7 +31,7 @@ export const librosQueries = {
   },
 
   getById: async (id: string): Promise<LibroFull | null> => {
-    const { data, error } = await libroFullQuery.eq('id', id).single();
+    const { data, error } = await libroFullQuery().eq('id', id).maybeSingle();
     if (error) throw error;
     return data;
   },
@@ -54,7 +54,6 @@ export const librosQueries = {
     return true;
   },
 
-  // Capítulos
   getCapituloParaLectura: async (capId: string) => {
     return await supabase
       .from("capitulos")
