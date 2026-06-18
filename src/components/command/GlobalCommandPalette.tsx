@@ -189,13 +189,13 @@ export function GlobalCommandPalette() {
   const { data, isFetching: isFetchingAdmin } = useGlobalSearch(search);
   const fromCache = data?.fromCache ?? false;
 
-  // Búsqueda pública — activa para todos los usuarios
+  // Búsqueda pública — activa para TODOS los usuarios (admin y no-admin)
   const {
     canciones: cancionesPublicas,
     capitulos: capitulosPublicos,
     libros:    librosPublicos,
     isFetching: isFetchingPublic,
-  } = usePublicSearch(isAdmin ? "" : search); // si es admin usamos el flujo de admin
+  } = usePublicSearch(search);
 
   // Browse público — carga inicial sin query para el panel "Descubrir"
   const {
@@ -480,16 +480,17 @@ export function GlobalCommandPalette() {
     }),
   ] : [];
 
-  // Unir: primero los públicos, luego los de admin (sin duplicar canciones/caps)
+  // Unir: admin ve sus items de editor + los públicos del lector (para poder navegar como usuario)
+  // No-admin solo ve los públicos del lector.
   const dynamicItems: CommandItem[] = isAdmin
-    ? [...adminDynamicItems]
+    ? [...adminDynamicItems, ...publicDynamicItems]
     : [...publicDynamicItems];
 
   const showDynamic = search.trim().length >= 2;
   const hasDynamicResults = dynamicItems.length > 0;
 
-  // Elementos de descubrimiento público — se muestran cuando no hay búsqueda activa y el usuario no es admin
-  const browseItems: CommandItem[] = (!isAdmin && !showDynamic && browseLoaded) ? [
+  // Elementos de descubrimiento público — se muestran cuando no hay búsqueda activa
+  const browseItems: CommandItem[] = (!showDynamic && browseLoaded) ? [
     ...browseLibros.map(l => ({
       id: `browse-l-${l.id}`,
       label: l.titulo,
@@ -632,7 +633,7 @@ export function GlobalCommandPalette() {
                 ))}
 
                 {/* Descubrir — libros y canciones públicas cuando no hay búsqueda activa */}
-                {!showDynamic && !isAdmin && browseLoaded && browseItems.length > 0 && (
+                {!showDynamic && browseLoaded && browseItems.length > 0 && (
                   <>
                     {["Descubrir · Libros", "Descubrir · Canciones"].map(groupName => {
                       const items = browseItems.filter(i => i.group === groupName);
