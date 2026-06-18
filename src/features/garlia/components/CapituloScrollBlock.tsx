@@ -6,9 +6,9 @@ import { CapituloScrollItem } from "@/features/editorGarlia/components/editorCap
 import { ContenidoInteractivo } from "./ContenidoInteractivo";
 
 import { LectorSkeleton, ReadingProgressBar, Vignette, CapituloHeader, FinCapituloSeparador, IndexPanel, ChapterSelector } from "./LectorUI";
-import { useDesbloquearPersonajes, PersonajesDesbloqueadosToast } from "@/features/editorGarlia/components/editorCapitulos/hooks/usePersonajes";
-import { useDesbloquearReinos, ReinosDesbloqueadosToast } from "@/features/editorGarlia/components/editorCapitulos/hooks/useReinos";
-import { useDesbloquearCiudades, CiudadesDesbloqueadasToast } from "@/features/editorGarlia/components/editorCapitulos/hooks/useCiudades";
+import { useDesbloquearPersonajes, PersonajesDesbloqueadosToast } from "@/features/garlia/hooks//usePersonajes";
+import { useDesbloquearReinos, ReinosDesbloqueadosToast } from "@/features/garlia/hooks/useReinos";
+import { useDesbloquearCiudades, CiudadesDesbloqueadasToast } from "@/features/garlia/hooks//useCiudades";
 
 /**
  * Estilos de fuente fluida para el lector.
@@ -151,10 +151,12 @@ export function CapituloScrollBlock({ cap, onNavigate, esExtra = false, haySegSi
   const { disparar: dispararReinos }     = useDesbloquearReinos(cap.id, reinosIdsEfectivos);
   const { disparar: dispararCiudades }    = useDesbloquearCiudades(cap.id, ciudadesIdsEfectivos);
 
-  // Bug 3 fix: en vez de mostrar toasts directamente, los encola.
-  // El ToastPortal (montado una sola vez en leerLibro) los muestra de uno en uno.
-  // disparar() retorna los IDs nuevos directamente (no depende del estado React,
-  // que actualiza asíncronamente y no estaría disponible aquí).
+  // Fix toast: el FinCapituloSeparador tiene height:0 (ocultar=true) y el
+  // IntersectionObserver nunca dispara sobre elementos sin área. Usamos
+  // un listener de scroll directo sobre el contenedor del lector.
+  const firedFinRef = useRef(false);
+  useEffect(() => { firedFinRef.current = false; }, [cap.id]);
+
   const handleFinCapitulo = useCallback(async () => {
     // allSettled garantiza que si uno falla, los otros igual se procesan
     const results = await Promise.allSettled([
@@ -170,6 +172,30 @@ export function CapituloScrollBlock({ cap, onNavigate, esExtra = false, haySegSi
     if (nuevosReinos?.length)     encolarToast({ tipo: "reinos",     ids: nuevosReinos });
     if (nuevasCiudades?.length)    encolarToast({ tipo: "ciudades",    ids: nuevasCiudades });
   }, [dispararPersonajes, dispararReinos, dispararCiudades]);
+
+  // Escuchar scroll del contenedor y disparar al llegar al 90% del capítulo
+  useEffect(() => {
+    const container = document.getElementById("lector-scroll-container");
+    if (!container) return;
+
+    const check = () => {
+      if (firedFinRef.current) return;
+      const el = document.getElementById(`cap-${cap.id}`);
+      if (!el) return;
+      const elBottom = el.offsetTop + el.offsetHeight;
+      const viewBottom = container.scrollTop + container.clientHeight;
+      if (viewBottom >= elBottom * 0.9) {
+        firedFinRef.current = true;
+        handleFinCapitulo();
+      }
+    };
+
+    // Check inmediato por si el capítulo es muy corto y ya está visible
+    check();
+    container.addEventListener("scroll", check, { passive: true });
+    return () => container.removeEventListener("scroll", check);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cap.id, handleFinCapitulo]);
 
   return (
     <div id={`cap-${cap.id}`} className="lector-article-wrap scroll-mt-20">
@@ -216,7 +242,7 @@ export function CapituloScrollBlock({ cap, onNavigate, esExtra = false, haySegSi
           />
         </div>
 
-        <FinCapituloSeparador cap={cap} onVisible={handleFinCapitulo} ocultar={true} />
+        <FinCapituloSeparador cap={cap} onVisible={() => {}} ocultar={true} />
       </article>
     </div>
   );
