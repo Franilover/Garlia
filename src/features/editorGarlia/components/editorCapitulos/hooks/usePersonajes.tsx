@@ -34,11 +34,28 @@ export function useDesbloquearPersonajes(capId: string, personajesIds: string[] 
 
     try {
       const perfilId = session.user.id;
-      const rows = personajesIds.map(personajeId => ({ perfil_id: perfilId, personaje_id: personajeId }));
-      const { data } = await supabase
+
+      // 1. Filtrar los que ya existen para saber cuáles son NUEVOS de verdad.
+      const { data: existentes } = await supabase
+        .from("descubrimientos_personajes")
+        .select("personaje_id")
+        .eq("perfil_id", perfilId)
+        .in("personaje_id", personajesIds);
+
+      const yaDesbloquedos = new Set((existentes ?? []).map((r: any) => r.personaje_id));
+      const nuevosIds = personajesIds.filter(id => !yaDesbloquedos.has(id));
+
+      // 2. Insertar solo los realmente nuevos (evita el 409).
+      if (nuevosIds.length === 0) return [];
+
+      const rows = nuevosIds.map(personajeId => ({ perfil_id: perfilId, personaje_id: personajeId }));
+      const { data, error } = await supabase
         .from("descubrimientos_personajes")
         .insert(rows)
         .select("personaje_id");
+
+      // Un error aquí es genuino (no un 409 esperado), lo propagamos.
+      if (error) throw error;
 
       const nuevos = (data ?? []).map((r: any) => r.personaje_id);
       if (nuevos.length > 0) {
@@ -47,7 +64,7 @@ export function useDesbloquearPersonajes(capId: string, personajesIds: string[] 
       }
       return nuevos;
     } catch (err) {
-      // Si falla, quitar del guard global para que se pueda reintentar
+      // Solo quitar del guard si fue un error de red/DB real, para permitir reintento.
       _personajesDisparados.delete(capId);
       console.error("[useDesbloquearPersonajes]", err);
       return [];

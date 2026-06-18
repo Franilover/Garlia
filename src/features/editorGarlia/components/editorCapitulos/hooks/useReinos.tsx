@@ -29,11 +29,27 @@ export function useDesbloquearReinos(capId: string, reinosIds: string[] | undefi
 
     try {
       const perfilId = session.user.id;
-      const rows = reinosIds.map(reinoId => ({ perfil_id: perfilId, reino_id: reinoId }));
-      const { data } = await supabase
+
+      // 1. Filtrar los que ya existen para saber cuáles son NUEVOS de verdad.
+      const { data: existentes } = await supabase
+        .from("descubrimientos_reinos")
+        .select("reino_id")
+        .eq("perfil_id", perfilId)
+        .in("reino_id", reinosIds);
+
+      const yaDescubiertos = new Set((existentes ?? []).map((r: any) => r.reino_id));
+      const nuevosIds = reinosIds.filter(id => !yaDescubiertos.has(id));
+
+      // 2. Insertar solo los realmente nuevos (evita el 409).
+      if (nuevosIds.length === 0) return [];
+
+      const rows = nuevosIds.map(reinoId => ({ perfil_id: perfilId, reino_id: reinoId }));
+      const { data, error } = await supabase
         .from("descubrimientos_reinos")
         .insert(rows)
         .select("reino_id");
+
+      if (error) throw error;
 
       const nuevos = (data ?? []).map((r: any) => r.reino_id);
       if (nuevos.length > 0) {

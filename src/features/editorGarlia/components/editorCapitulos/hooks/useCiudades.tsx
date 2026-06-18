@@ -29,11 +29,27 @@ export function useDesbloquearCiudades(capId: string, ciudadesIds: string[] | un
 
     try {
       const userId = session.user.id;
-      const rows = ciudadesIds.map(ciudadId => ({ user_id: userId, ciudad_id: ciudadId }));
-      const { data } = await supabase
+
+      // 1. Filtrar las que ya existen para saber cuáles son NUEVAS de verdad.
+      const { data: existentes } = await supabase
+        .from("ciudades_desbloqueadas")
+        .select("ciudad_id")
+        .eq("user_id", userId)
+        .in("ciudad_id", ciudadesIds);
+
+      const yaDescubiertas = new Set((existentes ?? []).map((r: any) => r.ciudad_id));
+      const nuevosIds = ciudadesIds.filter(id => !yaDescubiertas.has(id));
+
+      // 2. Insertar solo las realmente nuevas (evita el 409).
+      if (nuevosIds.length === 0) return [];
+
+      const rows = nuevosIds.map(ciudadId => ({ user_id: userId, ciudad_id: ciudadId }));
+      const { data, error } = await supabase
         .from("ciudades_desbloqueadas")
         .insert(rows)
         .select("ciudad_id");
+
+      if (error) throw error;
 
       const nuevos = (data ?? []).map((r: any) => r.ciudad_id);
       if (nuevos.length > 0) {
