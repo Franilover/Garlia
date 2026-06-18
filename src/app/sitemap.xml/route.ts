@@ -23,7 +23,7 @@ interface PerfilRow {
 export async function GET() {
   const baseUrl = "https://franilover.vercel.app";
 
-  // 1. Definición de rutas estáticas principales del ecosistema
+  // 1. Definición de rutas estáticas principales del ecosistema con la ruta corregida
   const staticPages = [
     {
       loc: `${baseUrl}`,
@@ -38,7 +38,7 @@ export async function GET() {
       lastmod: new Date().toISOString(),
     },
     {
-      loc: `${baseUrl}/personal`,
+      loc: `${baseUrl}/garlia/personal`,
       priority: "0.8",
       changefreq: "weekly",
       lastmod: new Date().toISOString(),
@@ -70,27 +70,35 @@ export async function GET() {
 
     const capitulos = (capitulosData as unknown as CapituloRow[]) || [];
 
-    const capitulosPages = capitulos.map((cap) => {
-      let libroTitulo = "unknown";
-      
-      if (cap.libros) {
-        if (Array.isArray(cap.libros)) {
-          libroTitulo = cap.libros[0]?.titulo || "unknown";
-        } else {
-          libroTitulo = cap.libros.titulo || "unknown";
+    // Filtramos y mapeamos descartando capítulos que carecen de una relación de libro real
+    const capitulosPages = capitulos
+      .map((cap) => {
+        let libroTitulo = "";
+        
+        if (cap.libros) {
+          if (Array.isArray(cap.libros)) {
+            libroTitulo = cap.libros[0]?.titulo || "";
+          } else {
+            libroTitulo = cap.libros.titulo || "";
+          }
         }
-      }
 
-      const libroSlug = toSlug(libroTitulo);
-      return {
-        loc: `${baseUrl}/garlia/libros/${libroSlug}/leer/${cap.orden}`,
-        priority: "0.7",
-        changefreq: "daily",
-        lastmod: cap.fecha_publicacion || new Date().toISOString(),
-      };
-    });
+        // Si no se encuentra un título válido, retornamos null para filtrarlo posteriormente
+        if (!libroTitulo) {
+          return null;
+        }
 
-    // 4. Consultar todos los perfiles públicos para indexar sus nombres de usuario dinámicamente
+        const libroSlug = toSlug(libroTitulo);
+        return {
+          loc: `${baseUrl}/garlia/libros/${libroSlug}/leer/${cap.orden}`,
+          priority: "0.7",
+          changefreq: "daily",
+          lastmod: cap.fecha_publicacion || new Date().toISOString(),
+        };
+      })
+      .filter((page): page is Exclude<typeof page, null> => page !== null);
+
+    // 4. Consultar todos los perfiles públicos para indexar sus nombres de usuario dinámicamente bajo /garlia/personal
     const { data: perfilesData } = await supabase
       .from("perfiles")
       .select("username");
@@ -99,14 +107,14 @@ export async function GET() {
 
     const perfilesPages = perfiles.map((perfil) => {
       return {
-        loc: `${baseUrl}/personal/${perfil.username}`,
+        loc: `${baseUrl}/garlia/personal/${perfil.username}`,
         priority: "0.6",
         changefreq: "weekly",
         lastmod: new Date().toISOString(),
       };
     });
 
-    // Combinar absolutamente todas las colecciones de rutas procesadas
+    // Combinar absolutamente todas las colecciones de rutas procesadas y válidas
     const allPages = [
       ...staticPages,
       ...librosPages,
