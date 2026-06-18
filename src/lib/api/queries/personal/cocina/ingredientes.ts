@@ -6,7 +6,7 @@ export const ingredientesQueries = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("No autenticado");
 
-    let query = ingredienteFullQuery.eq("user_id", user.id);
+    let query = ingredienteFullQuery().eq("user_id", user.id);
 
     if (opciones.campo) {
       query = query.order(opciones.campo as any, { ascending: opciones.asc ?? true });
@@ -21,10 +21,11 @@ export const ingredientesQueries = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("No autenticado");
 
-    const { data, error } = await ingredienteFullQuery
+  const { data, error } = await ingredienteFullQuery()
       .eq("id", id)
       .eq("user_id", user.id)
       .single();
+      
     if (error) throw error;
     return data;
   },

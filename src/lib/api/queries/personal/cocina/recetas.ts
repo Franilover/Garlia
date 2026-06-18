@@ -6,7 +6,8 @@ export const recetasQueries = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('No autenticado');
 
-    const { data, error } = await recetaFullQuery
+    // CORREGIDO: Se agregaron los paréntesis ()
+    const { data, error } = await recetaFullQuery()
       .eq('autor_id', user.id)
       .order('created_at', { ascending: false });
     if (error) throw error;
@@ -17,7 +18,8 @@ export const recetasQueries = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('No autenticado');
 
-    const { data, error } = await recetaFullQuery
+    // CORREGIDO: Se agregaron los paréntesis ()
+    const { data, error } = await recetaFullQuery()
       .eq('id', id)
       .eq('autor_id', user.id)
       .single();
@@ -29,7 +31,8 @@ export const recetasQueries = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('No autenticado');
 
-    const { data, error } = await recetaFullQuery
+    // CORREGIDO: Se agregaron los paréntesis ()
+    const { data, error } = await recetaFullQuery()
       .eq('autor_id', user.id)
       .eq('categoria', categoria)
       .order('created_at', { ascending: false });
@@ -41,7 +44,8 @@ export const recetasQueries = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('No autenticado');
 
-    const { data, error } = await recetaFullQuery
+    // CORREGIDO: Se agregaron los paréntesis ()
+    const { data, error } = await recetaFullQuery()
       .eq('autor_id', user.id)
       .ilike('nombre', `%${query}%`)
       .order('nombre', { ascending: true });
