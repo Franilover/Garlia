@@ -4,6 +4,7 @@ import { AlignLeft, Clock } from "lucide-react";
 import { AnimatePresence } from "framer-motion";
 import { CapituloScrollItem } from "@/features/editorGarlia/components/editorCapitulos/snippets/type";
 import { ContenidoInteractivo } from "./ContenidoInteractivo";
+import { supabase } from "@/lib/api/client/supabase";
 
 import { LectorSkeleton, ReadingProgressBar, Vignette, CapituloHeader, FinCapituloSeparador, IndexPanel, ChapterSelector } from "./LectorUI";
 import { useDesbloquearPersonajes, PersonajesDesbloqueadosToast } from "@/features/garlia/hooks//usePersonajes";
@@ -47,20 +48,13 @@ const FLUID_FONT_STYLES = `
 `;
 
 /* ─────────────────────────────────────────────
-   Bug 3 fix: Cola global de toasts
-   Evita que múltiples toasts se sobrepongan en pantalla
-   cuando dos capítulos terminan casi al mismo tiempo
-   (scroll rápido, prefetch, etc.).
-
-   La cola muestra UN toast a la vez y avanza al siguiente
-   cuando el actual se cierra (manualmente o por timeout).
+   Cola global de toasts
    ───────────────────────────────────────────── */
 type ToastEntry =
   | { tipo: "personajes"; ids: string[] }
   | { tipo: "reinos";     ids: string[] }
   | { tipo: "ciudades";   ids: string[] };
 
-// Estado global fuera del árbol de React — no causa re-renders innecesarios
 const toastQueue: ToastEntry[] = [];
 const toastListeners = new Set<() => void>();
 
@@ -68,13 +62,11 @@ function notifyListeners() {
   toastListeners.forEach(fn => fn());
 }
 
-/** Encola un toast. Se muestra cuando termina el toast actual. */
 export function encolarToast(entry: ToastEntry) {
   toastQueue.push(entry);
   notifyListeners();
 }
 
-/** Hook para el componente que renderiza la cola */
 function useToastQueue() {
   const [, forceUpdate] = useState(0);
 
@@ -94,11 +86,6 @@ function useToastQueue() {
   return { current, avanzar };
 }
 
-/**
- * ToastPortal — se monta UNA SOLA VEZ en el árbol (en leerLibro.tsx).
- * Renderiza el primer toast de la cola; al cerrarse avanza al siguiente.
- * Exportado para que leerLibro.tsx lo incluya fuera del map de capítulos.
- */
 export function ToastPortal() {
   const { current, avanzar } = useToastQueue();
 
@@ -142,23 +129,49 @@ export function CapituloScrollBlock({ cap, onNavigate, esExtra = false, haySegSi
     ? (cap.contenido ?? "").trim().split(/\s+/).length
     : 0;
 
-  // Cada capítulo desbloquea sus propias entidades al completarse.
   const personajesIdsEfectivos = cap.personajes_ids;
   const reinosIdsEfectivos     = cap.reinos_ids as string[] | undefined;
-  const ciudadesIdsEfectivos    = (cap as any).ciudades_ids;
+  const ciudadesIdsEfectivos   = (cap as any).ciudades_ids;
 
   const { disparar: dispararPersonajes } = useDesbloquearPersonajes(cap.id, personajesIdsEfectivos);
   const { disparar: dispararReinos }     = useDesbloquearReinos(cap.id, reinosIdsEfectivos);
-  const { disparar: dispararCiudades }    = useDesbloquearCiudades(cap.id, ciudadesIdsEfectivos);
+  const { disparar: dispararCiudades }   = useDesbloquearCiudades(cap.id, ciudadesIdsEfectivos);
 
-  // Fix toast: el FinCapituloSeparador tiene height:0 (ocultar=true) y el
-  // IntersectionObserver nunca dispara sobre elementos sin área. Usamos
-  // un listener de scroll directo sobre el contenedor del lector.
   const firedFinRef = useRef(false);
   useEffect(() => { firedFinRef.current = false; }, [cap.id]);
 
   const handleFinCapitulo = useCallback(async () => {
-    // allSettled garantiza que si uno falla, los otros igual se procesan
+    // 1. Obtener sesión
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) return;
+
+    const perfilId = session.user.id;
+    const libroId  = (cap as any).libro_id as string | undefined;
+
+    // 2. INSERT atómico a capitulos_leidos.
+    //    ON CONFLICT (perfil_id, capitulo_id) DO NOTHING → retorna 0 filas si ya existía.
+    //    Retorna 1 fila si es genuinamente nuevo → solo entonces disparamos desbloqueos.
+    let esNuevo = false;
+
+    if (libroId) {
+      const { data: inserted } = await supabase
+        .from("capitulos_leidos")
+        .upsert(
+          { perfil_id: perfilId, capitulo_id: cap.id, libro_id: libroId },
+          { onConflict: "perfil_id,capitulo_id", ignoreDuplicates: true }
+        )
+        .select("capitulo_id");
+
+      esNuevo = (inserted?.length ?? 0) > 0;
+    } else {
+      // Si por alguna razón no hay libro_id en el cap (no debería pasar),
+      // disparamos igual para no perder desbloqueos.
+      esNuevo = true;
+    }
+
+    if (!esNuevo) return;
+
+    // 3. Disparar desbloqueos de entidades solo si el capítulo es realmente nuevo.
     const results = await Promise.allSettled([
       dispararPersonajes(),
       dispararReinos(),
@@ -167,11 +180,11 @@ export function CapituloScrollBlock({ cap, onNavigate, esExtra = false, haySegSi
     const [rPersonajes, rReinos, rCiudades] = results;
     const nuevosPersonajes = rPersonajes.status === "fulfilled" ? rPersonajes.value : [];
     const nuevosReinos     = rReinos.status     === "fulfilled" ? rReinos.value     : [];
-    const nuevasCiudades    = rCiudades.status    === "fulfilled" ? rCiudades.value    : [];
+    const nuevasCiudades   = rCiudades.status   === "fulfilled" ? rCiudades.value   : [];
     if (nuevosPersonajes?.length) encolarToast({ tipo: "personajes", ids: nuevosPersonajes });
     if (nuevosReinos?.length)     encolarToast({ tipo: "reinos",     ids: nuevosReinos });
-    if (nuevasCiudades?.length)    encolarToast({ tipo: "ciudades",    ids: nuevasCiudades });
-  }, [dispararPersonajes, dispararReinos, dispararCiudades]);
+    if (nuevasCiudades?.length)   encolarToast({ tipo: "ciudades",   ids: nuevasCiudades });
+  }, [cap, dispararPersonajes, dispararReinos, dispararCiudades]);
 
   // Escuchar scroll del contenedor y disparar al llegar al 90% del capítulo
   useEffect(() => {
@@ -190,7 +203,6 @@ export function CapituloScrollBlock({ cap, onNavigate, esExtra = false, haySegSi
       }
     };
 
-    // Check inmediato por si el capítulo es muy corto y ya está visible
     check();
     container.addEventListener("scroll", check, { passive: true });
     return () => container.removeEventListener("scroll", check);

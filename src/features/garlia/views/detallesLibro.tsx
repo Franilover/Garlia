@@ -92,34 +92,39 @@ export default function LibroDetalle() {
   const [reinosMap,       setReinosMap]       = useState<Record<string, any>>({});
   const [ciudadesMap,     setCiudadesMap]     = useState<Record<string, any>>({});
 
-  // ── Capítulos leídos ────────────────────────────────────────────────────────
+  // ── Capítulos leídos desde Supabase ────────────────────────────────────────
   useEffect(() => {
     if (!libroId) return;
-    const leer = () => {
-      try {
-        const raw = localStorage.getItem(`leidos:${libroId}`);
-        setLeidos(new Set(raw ? (JSON.parse(raw) as string[]) : []));
-      } catch {}
+    let mounted = true;
+
+    const cargarLeidos = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user || !mounted) return;
+
+      const { data } = await supabase
+        .from("capitulos_leidos")
+        .select("capitulo_id")
+        .eq("perfil_id", session.user.id)
+        .eq("libro_id", libroId);
+
+      if (mounted && data) {
+        setLeidos(new Set(data.map((r: any) => r.capitulo_id)));
+      }
     };
-    leer();
-    const onVisible = () => { if (document.visibilityState === "visible") leer(); };
+
+    cargarLeidos();
+
+    // Refrescar al volver al tab (el lector pudo marcar nuevos leídos mientras tanto)
+    const onVisible = () => { if (document.visibilityState === "visible") cargarLeidos(); };
     document.addEventListener("visibilitychange", onVisible);
-    window.addEventListener("focus", leer);
+    window.addEventListener("focus", cargarLeidos);
+
     return () => {
+      mounted = false;
       document.removeEventListener("visibilitychange", onVisible);
-      window.removeEventListener("focus", leer);
+      window.removeEventListener("focus", cargarLeidos);
     };
   }, [libroId]);
-
-  const marcarLeido = (capId: string) => {
-    if (!libroId) return;
-    setLeidos(prev => {
-      const next = new Set(prev);
-      next.add(capId);
-      try { localStorage.setItem(`leidos:${libroId}`, JSON.stringify([...next])); } catch {}
-      return next;
-    });
-  };
 
   // ── Carga principal ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -314,7 +319,7 @@ export default function LibroDetalle() {
           return (
             <button
               key={cap.id}
-              onClick={() => { marcarLeido(cap.id); router.push(rutaLector(cap.id)); }}
+              onClick={() => { router.push(rutaLector(cap.id)); }}
               className={`w-full flex items-center justify-between p-4 transition-all text-left group rounded-btn shadow-card ${esRuta ? "bg-blue-50/60" : leido ? "bg-primary/[0.03]" : "bg-white-custom"}`}
               style={{
                 border: `var(--border-width) solid ${esRuta ? "rgb(219 234 254)" : leido ? "color-mix(in srgb, var(--primary) 5%, transparent)" : "color-mix(in srgb, var(--primary) 8%, transparent)"}`,
@@ -389,7 +394,7 @@ export default function LibroDetalle() {
           <div className="flex flex-col gap-3">
             {capitulos.length > 0 && (
               <button
-                onClick={() => { marcarLeido(capitulos[0].id); router.push(rutaLector(capitulos[0].id)); }}
+                onClick={() => { router.push(rutaLector(capitulos[0].id)); }}
                 className="w-full flex items-center justify-center gap-2 py-3 rounded-[var(--radius-btn)] bg-primary text-[var(--btn-text)] font-black uppercase text-[10px] tracking-widest hover:opacity-90 transition-opacity"
               >
                 <Play size={10} fill="currentColor" />

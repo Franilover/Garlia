@@ -4,57 +4,33 @@ import { X, Sword } from "lucide-react";
 import { MotionDiv } from "@/components/ui/Motion";
 import { supabase } from "@/lib/api/client/supabase";
 
-/* ─────────────────────────────────────────────
-   Guard global: persiste aunque el componente se desmonte/remonte.
-   Evita doble disparo en StrictMode, remounts y scroll rápido.
-   ───────────────────────────────────────────── */
-const _personajesDisparados = new Set<string>();
-
 export function useDesbloquearPersonajes(capId: string, personajesIds: string[] | undefined) {
   const [desbloqueados,      setDesbloqueados]      = useState<string[]>([]);
   const [mostrarCelebration, setMostrarCelebration] = useState(false);
 
-  // Ref local como segunda barrera (race condition dentro de la misma instancia)
+  // Única barrera necesaria: evita doble disparo en vuelo (StrictMode, scroll rápido).
   const disparandoRef = useRef(false);
   const idsKey = (personajesIds ?? []).join(",");
 
   const disparar = useCallback(async () => {
-    // Guard global: sobrevive desmounts/remounts y StrictMode
-    if (_personajesDisparados.has(capId)) return [];
     if (!personajesIds?.length) return [];
-    // Guard local: bloquea si ya hay un await en vuelo en esta instancia
     if (disparandoRef.current) return [];
-
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user) return [];
-
-    // Marcar en AMBOS guards antes del INSERT
-    _personajesDisparados.add(capId);
     disparandoRef.current = true;
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return [];
+
       const perfilId = session.user.id;
 
-      // 1. Filtrar los que ya existen para saber cuáles son NUEVOS de verdad.
-      const { data: existentes } = await supabase
-        .from("descubrimientos_personajes")
-        .select("personaje_id")
-        .eq("perfil_id", perfilId)
-        .in("personaje_id", personajesIds);
-
-      const yaDesbloquedos = new Set((existentes ?? []).map((r: any) => r.personaje_id));
-      const nuevosIds = personajesIds.filter(id => !yaDesbloquedos.has(id));
-
-      // 2. Insertar solo los realmente nuevos (evita el 409).
-      if (nuevosIds.length === 0) return [];
-
-      const rows = nuevosIds.map(personajeId => ({ perfil_id: perfilId, personaje_id: personajeId }));
+      // upsert con ignoreDuplicates: la DB maneja el conflicto atómicamente.
+      // .select() retorna solo las filas realmente insertadas (nuevas).
+      const rows = personajesIds.map(personajeId => ({ perfil_id: perfilId, personaje_id: personajeId }));
       const { data, error } = await supabase
         .from("descubrimientos_personajes")
-        .insert(rows)
+        .upsert(rows, { onConflict: "perfil_id,personaje_id", ignoreDuplicates: true })
         .select("personaje_id");
 
-      // Un error aquí es genuino (no un 409 esperado), lo propagamos.
       if (error) throw error;
 
       const nuevos = (data ?? []).map((r: any) => r.personaje_id);
@@ -64,8 +40,6 @@ export function useDesbloquearPersonajes(capId: string, personajesIds: string[] 
       }
       return nuevos;
     } catch (err) {
-      // Solo quitar del guard si fue un error de red/DB real, para permitir reintento.
-      _personajesDisparados.delete(capId);
       console.error("[useDesbloquearPersonajes]", err);
       return [];
     } finally {
@@ -79,20 +53,12 @@ export function useDesbloquearPersonajes(capId: string, personajesIds: string[] 
   return { disparar, mostrarCelebration, desbloqueados, cerrar };
 }
 
-/* ─────────────────────────────────────────────
-   Toast de personajes desbloqueados
-
-   FIXES:
-   - Bug 6: onClose se envuelve en ref interna para que el setTimeout
-     no se recree si el padre pasa una nueva referencia de onClose.
-   ───────────────────────────────────────────── */
 export function PersonajesDesbloqueadosToast({ personajesIds, onClose }: {
   personajesIds: string[];
   onClose: () => void;
 }) {
   const [personajes, setPersonajes] = useState<{ id: string; nombre: string; img_url?: string }[]>([]);
 
-  // Bug 6 fix: ref estable para evitar recrear el timer
   const onCloseRef = useRef(onClose);
   useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
 
@@ -108,7 +74,7 @@ export function PersonajesDesbloqueadosToast({ personajesIds, onClose }: {
   useEffect(() => {
     const t = setTimeout(() => onCloseRef.current(), 6000);
     return () => clearTimeout(t);
-  }, []); // sin dependencias: el timer se crea una sola vez
+  }, []);
 
   if (!personajes.length) return null;
 

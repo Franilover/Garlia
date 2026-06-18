@@ -21,24 +21,7 @@ interface NarradorInfo {
   img_url?: string | null;
 }
 
-/* ─────────────────────────────────────────────
-   localStorage helpers
-   ───────────────────────────────────────────── */
-function cargarLeidos(libroId: string): Set<string> {
-  try {
-    const raw = localStorage.getItem(`leidos:${libroId}`);
-    if (raw) return new Set(JSON.parse(raw) as string[]);
-  } catch { }
-  return new Set();
-}
 
-function guardarLeido(libroId: string, capId: string): void {
-  try {
-    const set = cargarLeidos(libroId);
-    set.add(capId);
-    localStorage.setItem(`leidos:${libroId}`, JSON.stringify([...set]));
-  } catch { }
-}
 
 /* ─────────────────────────────────────────────
    Barra de progreso VERTICAL — rail sobre borde derecho
@@ -89,28 +72,7 @@ function BarraProgresoVertical({ capId }: { capId: string }) {
   );
 }
 
-/* ─────────────────────────────────────────────
-   Hook: marca capítulos como leídos al scrollear
-   ───────────────────────────────────────────── */
-function useScrollLeidos(libroId: string, capId: string) {
-  useEffect(() => {
-    if (!libroId || !capId) return;
-    let obs: IntersectionObserver | null = null;
-    let timer: ReturnType<typeof setTimeout> | null = null;
 
-    const montar = () => {
-      const el = document.getElementById(`cap-${capId}`);
-      if (!el) { timer = setTimeout(montar, 120); return; }
-      obs = new IntersectionObserver(
-        ([entry]) => { if (entry.isIntersecting) guardarLeido(libroId, capId); },
-        { threshold: 0.4 }
-      );
-      obs.observe(el);
-    };
-    timer = setTimeout(montar, 80);
-    return () => { if (timer) clearTimeout(timer); obs?.disconnect(); };
-  }, [libroId, capId]);
-}
 
 /* ─────────────────────────────────────────────
    Personajes del capítulo activo
@@ -616,7 +578,6 @@ export default function Lector() {
   const libroTitulo = capitulos[0]?.libros?.titulo;
   const personajesIds = Array.from(new Set(capActual?.personajes_ids ?? []));
 
-  useScrollLeidos(id, capId);
 
   // Scroll inicial al cap activo
   useEffect(() => {

@@ -4,11 +4,6 @@ import { X, MapPin } from "lucide-react";
 import { MotionDiv } from "@/components/ui/Motion";
 import { supabase } from "@/lib/api/client/supabase";
 
-/* ─────────────────────────────────────────────
-   Guard global: persiste aunque el componente se desmonte/remonte.
-   ───────────────────────────────────────────── */
-const _reinosDisparados = new Set<string>();
-
 export function useDesbloquearReinos(capId: string, reinosIds: string[] | undefined) {
   const [desbloqueados,      setDesbloqueados]      = useState<string[]>([]);
   const [mostrarCelebration, setMostrarCelebration] = useState(false);
@@ -17,36 +12,22 @@ export function useDesbloquearReinos(capId: string, reinosIds: string[] | undefi
   const idsKey = (reinosIds ?? []).join(",");
 
   const disparar = useCallback(async () => {
-    if (_reinosDisparados.has(capId)) return [];
     if (!reinosIds?.length) return [];
     if (disparandoRef.current) return [];
-
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user) return [];
-
-    _reinosDisparados.add(capId);
     disparandoRef.current = true;
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return [];
+
       const perfilId = session.user.id;
 
-      // 1. Filtrar los que ya existen para saber cuáles son NUEVOS de verdad.
-      const { data: existentes } = await supabase
-        .from("descubrimientos_reinos")
-        .select("reino_id")
-        .eq("perfil_id", perfilId)
-        .in("reino_id", reinosIds);
-
-      const yaDescubiertos = new Set((existentes ?? []).map((r: any) => r.reino_id));
-      const nuevosIds = reinosIds.filter(id => !yaDescubiertos.has(id));
-
-      // 2. Insertar solo los realmente nuevos (evita el 409).
-      if (nuevosIds.length === 0) return [];
-
-      const rows = nuevosIds.map(reinoId => ({ perfil_id: perfilId, reino_id: reinoId }));
+      // upsert con ignoreDuplicates: la DB maneja el conflicto atómicamente.
+      // .select() retorna solo las filas realmente insertadas (nuevas).
+      const rows = reinosIds.map(reinoId => ({ perfil_id: perfilId, reino_id: reinoId }));
       const { data, error } = await supabase
         .from("descubrimientos_reinos")
-        .insert(rows)
+        .upsert(rows, { onConflict: "perfil_id,reino_id", ignoreDuplicates: true })
         .select("reino_id");
 
       if (error) throw error;
@@ -58,7 +39,6 @@ export function useDesbloquearReinos(capId: string, reinosIds: string[] | undefi
       }
       return nuevos;
     } catch (err) {
-      _reinosDisparados.delete(capId);
       console.error("[useDesbloquearReinos]", err);
       return [];
     } finally {
@@ -72,9 +52,6 @@ export function useDesbloquearReinos(capId: string, reinosIds: string[] | undefi
   return { disparar, mostrarCelebration, desbloqueados, cerrar };
 }
 
-/* ─────────────────────────────────────────────
-   Toast de reinos desbloqueados
-   ───────────────────────────────────────────── */
 export function ReinosDesbloqueadosToast({
   reinosIds,
   onClose,

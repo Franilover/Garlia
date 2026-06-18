@@ -54,17 +54,7 @@ function esReciente(fecha: string | null | undefined, dias = 14): boolean {
   return Date.now() - new Date(fecha).getTime() < dias * 86_400_000;
 }
 
-/** Una sola pasada de localStorage para TODOS los libros. */
-function leerTodosLeidos(libros: Libro[]): Record<string, number> {
-  const result: Record<string, number> = {};
-  for (const libro of libros) {
-    try {
-      const raw = localStorage.getItem(`leidos:${libro.id}`);
-      if (raw) result[libro.id] = (JSON.parse(raw) as string[]).length;
-    } catch {}
-  }
-  return result;
-}
+
 
 /** Construye el mapa CapsInfo desde rows crudos de Supabase. */
 function buildCapsMap(
@@ -379,8 +369,33 @@ const Biblioteca = () => {
   const { libros, capsInfo, grupos, loading } = useBibliotecaData();
 
   const [leidosMap, setLeidosMap] = useState<Record<string, number>>({});
+
+  // Una sola query trae el conteo de leídos de todos los libros a la vez.
   useEffect(() => {
-    if (libros.length > 0) setLeidosMap(leerTodosLeidos(libros));
+    if (libros.length === 0) return;
+    let mounted = true;
+
+    const cargar = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user || !mounted) return;
+
+      const { data } = await supabase
+        .from("capitulos_leidos")
+        .select("libro_id, capitulo_id")
+        .eq("perfil_id", session.user.id)
+        .in("libro_id", libros.map(l => l.id));
+
+      if (!mounted || !data) return;
+
+      const mapa: Record<string, number> = {};
+      for (const row of data as { libro_id: string; capitulo_id: string }[]) {
+        mapa[row.libro_id] = (mapa[row.libro_id] ?? 0) + 1;
+      }
+      setLeidosMap(mapa);
+    };
+
+    cargar();
+    return () => { mounted = false; };
   }, [libros]);
 
   // Agrupar usando miembro_ids de cada grupo (fuente de verdad en grupos_mundo).

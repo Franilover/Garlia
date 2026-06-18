@@ -4,11 +4,6 @@ import { X, MapPin } from "lucide-react";
 import { MotionDiv } from "@/components/ui/Motion";
 import { supabase } from "@/lib/api/client/supabase";
 
-/* ─────────────────────────────────────────────
-   Guard global: persiste aunque el componente se desmonte/remonte.
-   ───────────────────────────────────────────── */
-const _ciudadesDisparadas = new Set<string>();
-
 export function useDesbloquearCiudades(capId: string, ciudadesIds: string[] | undefined) {
   const [desbloqueados,      setDesbloqueados]      = useState<string[]>([]);
   const [mostrarCelebration, setMostrarCelebration] = useState(false);
@@ -17,36 +12,22 @@ export function useDesbloquearCiudades(capId: string, ciudadesIds: string[] | un
   const idsKey = (ciudadesIds ?? []).join(",");
 
   const disparar = useCallback(async () => {
-    if (_ciudadesDisparadas.has(capId)) return [];
     if (!ciudadesIds?.length) return [];
     if (disparandoRef.current) return [];
-
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user) return [];
-
-    _ciudadesDisparadas.add(capId);
     disparandoRef.current = true;
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return [];
+
       const userId = session.user.id;
 
-      // 1. Filtrar las que ya existen para saber cuáles son NUEVAS de verdad.
-      const { data: existentes } = await supabase
-        .from("ciudades_desbloqueadas")
-        .select("ciudad_id")
-        .eq("user_id", userId)
-        .in("ciudad_id", ciudadesIds);
-
-      const yaDescubiertas = new Set((existentes ?? []).map((r: any) => r.ciudad_id));
-      const nuevosIds = ciudadesIds.filter(id => !yaDescubiertas.has(id));
-
-      // 2. Insertar solo las realmente nuevas (evita el 409).
-      if (nuevosIds.length === 0) return [];
-
-      const rows = nuevosIds.map(ciudadId => ({ user_id: userId, ciudad_id: ciudadId }));
+      // upsert con ignoreDuplicates: la DB maneja el conflicto atómicamente.
+      // .select() retorna solo las filas realmente insertadas (nuevas).
+      const rows = ciudadesIds.map(ciudadId => ({ user_id: userId, ciudad_id: ciudadId }));
       const { data, error } = await supabase
         .from("ciudades_desbloqueadas")
-        .insert(rows)
+        .upsert(rows, { onConflict: "user_id,ciudad_id", ignoreDuplicates: true })
         .select("ciudad_id");
 
       if (error) throw error;
@@ -58,7 +39,6 @@ export function useDesbloquearCiudades(capId: string, ciudadesIds: string[] | un
       }
       return nuevos;
     } catch (err) {
-      _ciudadesDisparadas.delete(capId);
       console.error("[useDesbloquearCiudades]", err);
       return [];
     } finally {
@@ -72,9 +52,6 @@ export function useDesbloquearCiudades(capId: string, ciudadesIds: string[] | un
   return { disparar, mostrarCelebration, desbloqueados, cerrar };
 }
 
-/* ─────────────────────────────────────────────
-   Toast de ciudades desbloqueados
-   ───────────────────────────────────────────── */
 export function CiudadesDesbloqueadasToast({
   ciudadesIds,
   onClose,
@@ -121,7 +98,7 @@ export function CiudadesDesbloqueadasToast({
         >
           <span className="text-[10px] font-black uppercase tracking-[0.25em] text-primary italic flex items-center gap-2">
             <MapPin size={11} />
-            {ciudades.length === 1 ? "Ciudad descubierta" : `${ciudades.length} ciudades descubiertos`}
+            {ciudades.length === 1 ? "Ciudad descubierta" : `${ciudades.length} ciudades descubiertas`}
           </span>
           <button onClick={onClose} className="text-primary/30 hover:text-primary transition-colors">
             <X size={14} />
