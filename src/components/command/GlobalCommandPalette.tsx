@@ -15,7 +15,6 @@ import {
   Search, ArrowRight, User, Crown, Swords, Building2,
   Loader2, WifiOff, BookOpen, Plus, Wand2, Zap,
   FileText, Clock, Layers, MapPin, ScrollText, Users, Package,
-  Library,
 } from "lucide-react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -30,19 +29,6 @@ interface CommandItem {
   action: () => void;
   group: string;
 }
-
-// Espejo liviano de GRUPO_TIPO_CONFIG (EditorGrupo.tsx) — solo lo necesario
-// para mostrar de qué tipo es un grupo en los resultados de búsqueda.
-const GRUPO_TIPO_INFO: Record<string, { label: string; icon: React.ElementType }> = {
-  personajes: { label: "Personajes", icon: Users },
-  criaturas:  { label: "Criaturas",  icon: Swords },
-  items:      { label: "Objetos",    icon: Package },
-  reinos:     { label: "Reinos",     icon: Crown },
-  hechizos:   { label: "Hechizos",   icon: Wand2 },
-  dones:      { label: "Dones",      icon: Zap },
-  runas:      { label: "Runas",      icon: ScrollText },
-  libros:     { label: "Libros",     icon: BookOpen },
-};
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -190,23 +176,6 @@ export function GlobalCommandPalette() {
     [router, pathname]
   );
 
-  // Navega a /myself/escritorio y dispara un evento de creación (ensayos).
-  // Distinto de goEditorAndDispatch: ese va al editor de Garlia (mundo/historias),
-  // este va al escritorio de ensayos/notas — no son la misma entidad "libro".
-  const goEscritorioAndCreate = useCallback(
-    (eventName: string) => {
-      setOpen(false);
-      const dispatch = () => window.dispatchEvent(new Event(eventName));
-      if (pathname === "/myself/escritorio") {
-        dispatch();
-      } else {
-        router.push("/myself/escritorio");
-        setTimeout(dispatch, 400);
-      }
-    },
-    [router, setOpen, pathname]
-  );
-
   // ── Static command definitions ─────────────────────────────────────────────
 
   const navItems: CommandItem[] = [
@@ -248,9 +217,8 @@ export function GlobalCommandPalette() {
     { id: "add-libro",          label: "Nuevo libro",          icon: BookOpen,   keywords: ["add", "crear", "nuevo", "libro"],          action: () => { setOpen(false); goEditorAndDispatch("libro"); },        group: "Crear" },
     { id: "add-capitulo",       label: "Nuevo capítulo",       icon: BookText,   keywords: ["add", "crear", "nuevo", "capitulo"],       action: () => { setOpen(false); goEditorAndDispatch("capitulo"); },     group: "Crear" },
     { id: "add-cancion",        label: "Nueva canción",        icon: Music,      keywords: ["add", "crear", "nueva", "cancion"],        action: () => { setOpen(false); goEditorAndDispatch("cancion"); },      group: "Crear" },
-    // ── Escritorio (ensayos) — distinto del editor de Garlia: estos van a /myself/escritorio ──
-    { id: "add-ensayo",         label: "Nuevo ensayo",         description: "Nota en blanco · Escritorio", icon: FileText, keywords: ["add", "crear", "nuevo", "ensayo", "nota", "escritorio"], action: () => goEscritorioAndCreate("ensayos-new-nota"),  group: "Crear" },
-    { id: "add-libro-escritorio", label: "Nuevo libro (escritorio)", description: "No confundir con libros de Garlia", icon: Library, keywords: ["add", "crear", "nuevo", "libro", "escritorio", "ensayo"], action: () => goEscritorioAndCreate("ensayos-new-libro"), group: "Crear" },
+    { id: "add-ensayo",         label: "Nuevo ensayo",         icon: FileText,   keywords: ["add", "crear", "nuevo", "ensayo", "nota"],  action: () => { setOpen(false); if (pathname === "/myself/escritorio") { window.dispatchEvent(new CustomEvent("ensayos-create", { detail: { tipo: "ensayo" } })); } else { router.push("/myself/escritorio?crear=ensayo"); } }, group: "Crear" },
+    { id: "add-ensayo-libro",   label: "Nuevo libro (ensayo)", icon: BookOpen,   keywords: ["add", "crear", "nuevo", "libro", "ensayo"], action: () => { setOpen(false); if (pathname === "/myself/escritorio") { window.dispatchEvent(new CustomEvent("ensayos-create", { detail: { tipo: "libro"  } })); } else { router.push("/myself/escritorio?crear=libro");  } }, group: "Crear" },
   ] : [];
 
   const staticItems: CommandItem[] = [...navItems, ...userItems, ...adminItems, ...themeItems, ...createItems];
@@ -305,28 +273,6 @@ export function GlobalCommandPalette() {
         description: [badge, otherTags].filter(Boolean).join(" · "),
         icon: FileText, avatar: null,
         action: () => goEnsayo(e.id), group: "Ensayos",
-      };
-    }),
-    ...(data?.grupos ?? []).map(g => {
-      const info = GRUPO_TIPO_INFO[g.tipo] ?? { label: g.tipo, icon: Layers };
-      const cantidad = g.miembro_ids?.length ?? 0;
-      return {
-        id: `gr-${g.id}`, label: g.nombre,
-        description: [`Grupo de ${info.label.toLowerCase()}`, g.subtipo, `${cantidad} miembros`].filter(Boolean).join(" · "),
-        icon: info.icon, avatar: null,
-        action: () => goEntity("grupos_mundo", g.id), group: "Grupos",
-      };
-    }),
-    ...(data?.notas ?? []).map(n => {
-      // etiquetas viene como string JSON (ej: '["personaje","idea"]'), no array real
-      let etiquetas: string[] = [];
-      try { etiquetas = n.etiquetas ? JSON.parse(n.etiquetas) : []; } catch {}
-      const tagsTxt = etiquetas.slice(0, 2).map(t => `#${t}`).join(" ");
-      return {
-        id: `nt-${n.id}`, label: n.titulo ?? "Sin título",
-        description: ["Nota", tagsTxt].filter(Boolean).join(" · "),
-        icon: FileText, avatar: null,
-        action: () => goEntity("notas", n.id), group: "Notas",
       };
     }),
   ] : [];

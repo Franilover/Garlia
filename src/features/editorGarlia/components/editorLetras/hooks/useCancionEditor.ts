@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { cancionesQueries } from "@/lib/api/queries/garlia/canciones";
 import { db } from "@/lib/api/client/db";
 import { dexieSecRead, dexieSecWrite } from "../lib/seccionesDb";
+import { fetchConReintento } from "../lib/utils/fetchConTimeout";
 import type { Cancion, Seccion } from "../types";
 
 export function useCancionEditor(id: string | null) {
@@ -32,18 +33,15 @@ export function useCancionEditor(id: string | null) {
     setIsOffline(false);
 
     try {
-      const fetchPromise = cancionesQueries.getById(cancionId);
-      const timeout = new Promise<"timeout">(r => setTimeout(() => r("timeout"), 5000));
-      const result = await Promise.race([fetchPromise, timeout]);
+      // Antes esto se rendía a los 5s y marcaba "offline" — eso disparaba el
+      // falso error de conexión cuando esta era la primera consulta de la
+      // sesión (ej: abrir una canción navegando desde otra página, con la
+      // conexión a Supabase todavía "fría"). Ahora reintentamos con timeouts
+      // más generosos antes de asumir que estamos realmente sin conexión.
+      const data = await fetchConReintento(() => cancionesQueries.getById(cancionId)) as unknown as Cancion;
 
-      if (result === "timeout") {
-        setIsOffline(true);
-        setLoading(false);
-        return;
-      }
-
-      const data = result as unknown as Cancion;
       setCancion(data);
+      setIsOffline(false);
       try {
         const cTable = (db as any)["canciones"];
         if (cTable) await cTable.put({ ...data, status: "synced" });

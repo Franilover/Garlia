@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { cancionesQueries } from "@/lib/api/queries/garlia/canciones";
 import { db } from "@/lib/api/client/db";
+import { fetchConReintento } from "../lib/fetchConTimeout";
 import type { Cancion } from "../types";
 
 export function useCanciones() {
@@ -33,18 +34,12 @@ export function useCanciones() {
     setIsOffline(false);
 
     try {
-      const fetchPromise = cancionesQueries.getAll();
-      const timeout = new Promise<"timeout">(r => setTimeout(() => r("timeout"), 5000));
-      const result = await Promise.race([fetchPromise, timeout]);
-
-      if (result === "timeout") {
-        setIsOffline(local.length === 0);
-        setLoading(false);
-        return;
-      }
-
-      const data = result as unknown as Cancion[];
+      // Mismo fix que en useCancionEditor: reintentar con timeouts generosos
+      // en vez de marcar "offline" apenas la primera consulta de la sesión
+      // tarda más de 5s (algo normal en una conexión "fría" recién abierta).
+      const data = await fetchConReintento(() => cancionesQueries.getAll()) as unknown as Cancion[];
       setCanciones(data);
+      setIsOffline(false);
       try {
         const table = (db as any)["canciones"];
         if (table) await table.bulkPut(data.map(r => ({ ...r, status: "synced" })));
