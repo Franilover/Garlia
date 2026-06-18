@@ -102,7 +102,7 @@
         <div class="container">
           <h1>Mapa de Rutas XML</h1>
           <div class="subtitle">
-            URLs Detectadas: <span class="counter"><xsl:value-of select="count(sitemap:urlset/sitemap:url)"/></span>
+            URLs Publicas: <span class="counter"><xsl:value-of select="count(sitemap:urlset/sitemap:url)"/></span>
           </div>
           <table>
             <thead>
