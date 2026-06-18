@@ -100,14 +100,14 @@
       </head>
       <body>
         <div class="container">
-          <h1>Mapa de Sitio XML</h1>
+          <h1>Mapa de Rutas XML</h1>
           <div class="subtitle">
             URLs Detectadas: <span class="counter"><xsl:value-of select="count(sitemap:urlset/sitemap:url)"/></span>
           </div>
           <table>
             <thead>
               <tr>
-                <th>Ruta del Ecosistema (Location)</th>
+                <th>Ruta </th>
                 <th>Prioridad</th>
                 <th>Frecuencia</th>
                 <th>Última Modificación</th>
