@@ -484,7 +484,7 @@ export default function Lector() {
         libroId = data.id;
         actualSlug = toSlug(data.titulo); // <--- Obtenemos el slug real si vino un UUID
         // Detectar tipo de grupo: poemario u otros sin navegación lineal
-        if (data.categoria) {
+        if (data.categoria && esUUID(data.categoria)) {
           const { data: grupo } = await supabase.from("grupos_mundo").select("nombre").eq("id", data.categoria).single();
           if (grupo?.nombre?.toLowerCase().includes("poemario") || grupo?.nombre?.toLowerCase().includes("extra")) {
             esExtraLocal = true; setEsExtra(true);
@@ -509,7 +509,7 @@ export default function Lector() {
         libroId = encontrado.id;
         actualSlug = toSlug(encontrado.titulo); // <--- Nos aseguramos de tener el slug formateado correctamente
         // Detectar tipo de grupo
-        if (encontrado.categoria) {
+        if (encontrado.categoria && esUUID(encontrado.categoria)) {
           const { data: grupo } = await supabase.from("grupos_mundo").select("nombre").eq("id", encontrado.categoria).single();
           if (grupo?.nombre?.toLowerCase().includes("poemario") || grupo?.nombre?.toLowerCase().includes("extra")) {
             esExtraLocal = true; setEsExtra(true);
