@@ -8,7 +8,7 @@ import { db } from "@/lib/api/client/db";
 import { motion, AnimatePresence } from "framer-motion";
 
 import { CapituloLista, CapituloScrollItem } from "@/features/editorGarlia/components/editorCapitulos/snippets/type";
-import { esUUID } from "@/lib/utils/slugify";
+import { toSlug, esUUID } from "@/lib/utils/slugify";
 import { CapituloScrollBlock, ToastPortal } from "@/features/garlia/components/CapituloScrollBlock";
 import { LectorSkeleton, ReadingProgressBar, Vignette, CapituloHeader, FinCapituloSeparador } from "@/features/garlia/components/LectorUI";
 
@@ -408,6 +408,7 @@ export default function Lector() {
       libroId: string,
       esExtraLocal: boolean,
       canonicalizarURL: boolean,
+      actualSlug: string
     ): string => {
       let capActivo: any | null = null;
 
@@ -424,7 +425,7 @@ export default function Lector() {
 
       // Canonicalizar URL: siempre debe ser /leer/{orden}
       if (canonicalizarURL) {
-        const nuevaURL = `/garlia/libros/${slugParam}/leer/${capActivo.orden}`;
+        const nuevaURL = `/garlia/libros/${actualSlug}/leer/${capActivo.orden}`;
         router.replace(nuevaURL, { scroll: false });
       }
 
@@ -437,6 +438,7 @@ export default function Lector() {
       libroId: string,
       esExtraLocal: boolean,
       canonicalizarURL: boolean,
+      actualSlug: string,
     ) => {
       // ── Filtro de seguridad en cliente ────────────────────────────────────
       // Descarta caps que no sean públicos o que tengan fecha futura,
@@ -458,7 +460,7 @@ export default function Lector() {
         titulo_capitulo: c.titulo_capitulo,
         fecha_publicacion: c.fecha_publicacion,
       }));
-      const capIdActivo = resolverCapActivo(caps, libroId, esExtraLocal, canonicalizarURL);
+      const capIdActivo = resolverCapActivo(caps, libroId, esExtraLocal, canonicalizarURL, actualSlug,);
 
       setId(libroId);
       setListaCapitulos(lista);
@@ -472,12 +474,14 @@ export default function Lector() {
       // ── 1. Resolver UUID del libro ────────────────────────────────────────
       let libroId: string;
       let esExtraLocal = false;
+      let actualSlug = slugParam; // <--- Inicializamos con el parámetro actual
 
       if (esUUID(slugParam)) {
         const { data } = await supabase
           .from("libros").select("id, titulo, categoria").eq("id", slugParam).single();
         if (!data) { setError("Libro no encontrado"); return; }
         libroId = data.id;
+        actualSlug = toSlug(data.titulo); // <--- Obtenemos el slug real si vino un UUID
         // Detectar tipo de grupo: poemario u otros sin navegación lineal
         if (data.categoria) {
           const { data: grupo } = await supabase.from("grupos_mundo").select("nombre").eq("id", data.categoria).single();
@@ -490,20 +494,19 @@ export default function Lector() {
         try {
           if (db?.libros) {
             const dexieLibros = await db.libros.toArray() as any[];
-            encontrado = dexieLibros.find((l: any) => {
-              try { return new URL("http://x/" + l.titulo).pathname.slice(1) === slugParam || l.titulo?.toLowerCase().replace(/\s+/g, "-") === slugParam; } catch { return false; }
-            }) ?? dexieLibros.find((l: any) => l.titulo?.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") === slugParam) ?? null;
+            // Simplificamos la comparación manual usando la función toSlug importada arriba
+            encontrado = dexieLibros.find((l: any) => toSlug(l.titulo ?? "") === slugParam) ?? null;
           }
         } catch {}
         if (!encontrado) {
           const { data: todos } = await supabase.from("libros").select("id, titulo, categoria");
           if (!todos) { setError("Libro no encontrado"); return; }
           try { await db?.libros?.bulkPut(todos as any[]); } catch {}
-          const { toSlug } = await import("@/lib/utils/slugify");
           encontrado = todos.find(l => toSlug(l.titulo) === slugParam) ?? null;
         }
         if (!encontrado) { setError("Libro no encontrado"); return; }
         libroId = encontrado.id;
+        actualSlug = toSlug(encontrado.titulo); // <--- Nos aseguramos de tener el slug formateado correctamente
         // Detectar tipo de grupo
         if (encontrado.categoria) {
           const { data: grupo } = await supabase.from("grupos_mundo").select("nombre").eq("id", encontrado.categoria).single();
@@ -521,8 +524,8 @@ export default function Lector() {
           const cached: any[] = (await table.where("libro_id").equals(libroId).toArray()) as any[];
           const capsCached = cached.filter(c => c.contenido && !c.deleted);
           if (capsCached.length > 0) {
-            // La URL no se canonicaliza desde caché (sin RTT) — se hará al llegar Supabase
-            aplicarCaps(capsCached, libroId, esExtraLocal, false);
+            // Pasamos el actualSlug correspondiente
+            aplicarCaps(capsCached, libroId, esExtraLocal, false, actualSlug);
             setLoading(false);
             yaRenderizoDesdeCache = true;
           }
@@ -569,10 +572,9 @@ export default function Lector() {
 
       cachearEnDexie(capsValidas);
 
-      // canonicalizarURL=true: convierte UUID o número incorrecto → /leer/{orden}
-      aplicarCaps(capsValidas, libroId, esExtraLocal, true);
+      // canonicalizarURL=true: pasa el actualSlug correcto para limpiar la barra de direcciones de inmediato
+      aplicarCaps(capsValidas, libroId, esExtraLocal, true, actualSlug );
     };
-
     run()
       .catch(async (err) => {
         console.error("Error crítico en Lector:", err);
@@ -581,13 +583,13 @@ export default function Lector() {
           if (table) {
             const todos = (await table.toArray()) as any[];
             const cached = todos.filter(c => !c.deleted && c.libro_id === id && c.contenido);
-            if (cached.length > 0) { aplicarCaps(cached, id, esExtra, false); return; }
+            if (cached.length > 0) { aplicarCaps(cached, id, esExtra, false, slugParam); return; }
           }
         } catch {}
         setError("Error al abrir el pergamino");
       })
       .finally(() => setLoading(false));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps 
   }, [slugParam, ordenParam]);
 
   // ── Navegación entre capítulos ─────────────────────────────────────────────
