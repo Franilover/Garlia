@@ -2131,7 +2131,12 @@ function PanelListas({
 
     if (!found || lastOpenItemRef.current === refKey) return;
     lastOpenItemRef.current = refKey;
-    
+
+    // Limpiar cualquier overlay anterior — si no, el overlay activo (que tiene
+    // prioridad fija: reino > criatura > objeto > ... > personaje > ...) puede
+    // tapar la nueva selección y parecer que "no deja cambiar" de entidad.
+    clearAllOverlays();
+
     if      (tabla === "personajes") setSelectedPersonaje(found);
     else if (tabla === "criaturas")  setSelectedCriatura(found);
     else if (tabla === "items")      setSelectedObjeto(found);
@@ -2147,7 +2152,7 @@ function PanelListas({
   }, [openItem,
       personajes.length, criaturas.length, objetos.length, reinos.length,
       ciudades.length, hechizos.length, dones.length, runas.length, canciones.length,
-      grupos.length, notas.length]);
+      grupos.length, notas.length, clearAllOverlays]);
 
 // ── onItemCreated ─────────────────────────────────────────────────────────
   useEffect(() => {
