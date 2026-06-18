@@ -6,7 +6,7 @@ import { CapituloScrollItem } from "@/features/editorGarlia/components/editorCap
 import { ContenidoInteractivo } from "./ContenidoInteractivo";
 import { supabase } from "@/lib/api/client/supabase";
 
-import { LectorSkeleton, ReadingProgressBar, Vignette, CapituloHeader, FinCapituloSeparador, IndexPanel, ChapterSelector } from "./LectorUI";
+import { FinCapituloSeparador } from "./LectorUI";
 import { useDesbloquearPersonajes, PersonajesDesbloqueadosToast } from "@/features/garlia/hooks//usePersonajes";
 import { useDesbloquearReinos, ReinosDesbloqueadosToast } from "@/features/garlia/hooks/useReinos";
 import { useDesbloquearCiudades, CiudadesDesbloqueadasToast } from "@/features/garlia/hooks//useCiudades";

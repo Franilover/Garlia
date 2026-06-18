@@ -10,7 +10,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { CapituloLista, CapituloScrollItem } from "@/features/editorGarlia/components/editorCapitulos/snippets/type";
 import { toSlug, esUUID } from "@/lib/utils/slugify";
 import { CapituloScrollBlock, ToastPortal } from "@/features/garlia/components/CapituloScrollBlock";
-import { LectorSkeleton, ReadingProgressBar, Vignette, CapituloHeader, FinCapituloSeparador } from "@/features/garlia/components/LectorUI";
+import { Vignette } from "@/features/garlia/components/LectorUI";
 
 /* ─────────────────────────────────────────────
    Tipos
