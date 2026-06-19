@@ -1,7 +1,6 @@
-import Image from "next/image";
 "use client";
-
 import { ChevronDown, Check, X, Search, Pencil } from "lucide-react";
+import Image from "next/image";
 
 /* ─────────────────────────────────────────────────────────────────────────────
    ComboSelector — selector reutilizable con búsqueda, flechas y Tab

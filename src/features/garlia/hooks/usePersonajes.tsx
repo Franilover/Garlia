@@ -1,6 +1,6 @@
-import Image from "next/image";
 "use client";
 import { X, Sword } from "lucide-react";
+import Image from "next/image";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 
 import { MotionDiv } from "@/components/ui/Motion";

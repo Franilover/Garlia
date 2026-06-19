@@ -1,25 +1,63 @@
-import Image from "next/image";
 "use client";
+import Image from "next/image";
 
 import {
-  Loader2, Eye, EyeOff, Plus, Search, X, SlidersHorizontal, Sparkles,
-  Wand2, ScrollText, FileText, Zap, Clock, Globe, Check, Layers,
-  Users, Bug, Package, Star, Feather, Swords, Gem, Map, BookOpen, Music,
+  Loader2,
+  Eye,
+  EyeOff,
+  Plus,
+  Search,
+  X,
+  SlidersHorizontal,
+  Sparkles,
+  Wand2,
+  ScrollText,
+  FileText,
+  Zap,
+  Clock,
+  Globe,
+  Check,
+  Layers,
+  Users,
+  Bug,
+  Package,
+  Star,
+  Feather,
+  Swords,
+  Gem,
+  Map,
+  BookOpen,
+  Music,
   ChevronLeft,
 } from "lucide-react";
-import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
+import React, {
+  useState,
+  useMemo,
+  useEffect,
+  useRef,
+  useCallback,
+} from "react";
 
 import { db } from "@/lib/api/client/db";
 import { supabase } from "@/lib/api/client/supabase";
 
-import { TAB_CONFIG, MUNDO_SECTIONS, type TabKey, type MundoSectionKey } from "./types";
+import {
+  TAB_CONFIG,
+  MUNDO_SECTIONS,
+  type TabKey,
+  type MundoSectionKey,
+} from "./types";
 
 // ─── Dexie helpers ────────────────────────────────────────────────────────────
 async function dexiePut(tabla: string, row: any): Promise<void> {
-  try { if (db) await (db as any)[tabla]?.put(row); } catch {}
+  try {
+    if (db) await (db as any)[tabla]?.put(row);
+  } catch {}
 }
 async function dexieDel(tabla: string, id: string): Promise<void> {
-  try { if (db) await (db as any)[tabla]?.delete(id); } catch {}
+  try {
+    if (db) await (db as any)[tabla]?.delete(id);
+  } catch {}
 }
 async function dexieReadAll<T>(tabla: string): Promise<T[]> {
   try {
@@ -27,7 +65,9 @@ async function dexieReadAll<T>(tabla: string): Promise<T[]> {
     const t = (db as any)[tabla];
     if (!t) return [];
     return ((await t.toArray()) as any[]).filter((r: any) => !r.deleted) as T[];
-  } catch { return []; }
+  } catch {
+    return [];
+  }
 }
 async function dexieWriteAll(tabla: string, rows: any[]): Promise<void> {
   try {
@@ -37,46 +77,140 @@ async function dexieWriteAll(tabla: string, rows: any[]): Promise<void> {
     if (rows.length > 0) await t.bulkPut(rows);
     const remoteIds = new Set(rows.map((r: any) => r.id));
     const local: any[] = await t.toArray();
-    const toDelete = local.map((r: any) => r.id).filter((id: string) => !remoteIds.has(id));
+    const toDelete = local
+      .map((r: any) => r.id)
+      .filter((id: string) => !remoteIds.has(id));
     if (toDelete.length > 0) await t.bulkDelete(toDelete);
   } catch {}
 }
 
-
-
 // Todas las tabs del módulo Mundo navegables desde el buscador
 // section se usa para setear mundoSection; subTab es el tab unificado dentro de EditorMundo
-const MUNDO_NAV: { section: MundoSectionKey; label: string; subTab: string; aliases: string[] }[] = [
-  { section: "geografia", label: "Mundo",      subTab: "mundo",      aliases: ["mundo", "world", "geografia", "geografía"] },
-  { section: "historia",  label: "Historia",   subTab: "historia",   aliases: ["historia", "history", "lore"] },
-  { section: "geografia", label: "Listas",     subTab: "listas",     aliases: ["lista", "listas", "entidades", "reino", "reinos", "mapa", "mapas", "criatura", "criaturas", "bestia", "bestias", "monstruo", "objeto", "objetos", "arma", "reliquia", "personaje", "personajes", "character", "characters"] },
-  { section: "magia",     label: "Magia",      subTab: "magia",      aliases: ["magia", "magic", "sistema"] },
-  { section: "magia",     label: "Hechizos",   subTab: "hechizos",   aliases: ["hechizo", "hechizos", "spell", "spells"] },
-  { section: "magia",     label: "Dones",      subTab: "dones",      aliases: ["don", "dones", "gift", "gifts"] },
-  { section: "magia",     label: "Runas",      subTab: "runas",      aliases: ["runa", "runas", "rune", "runes"] },
-  { section: "geografia", label: "Capítulos",  subTab: "capitulos",  aliases: ["capitulo", "capítulo", "capitulos", "capítulos", "cap", "chapter", "chapters"] },
-  { section: "geografia", label: "Canciones",  subTab: "letras",     aliases: ["cancion", "canción", "canciones", "canciones", "letra", "letras", "song", "songs", "music", "musica", "música"] },
+const MUNDO_NAV: {
+  section: MundoSectionKey;
+  label: string;
+  subTab: string;
+  aliases: string[];
+}[] = [
+  {
+    section: "geografia",
+    label: "Mundo",
+    subTab: "mundo",
+    aliases: ["mundo", "world", "geografia", "geografía"],
+  },
+  {
+    section: "historia",
+    label: "Historia",
+    subTab: "historia",
+    aliases: ["historia", "history", "lore"],
+  },
+  {
+    section: "geografia",
+    label: "Listas",
+    subTab: "listas",
+    aliases: [
+      "lista",
+      "listas",
+      "entidades",
+      "reino",
+      "reinos",
+      "mapa",
+      "mapas",
+      "criatura",
+      "criaturas",
+      "bestia",
+      "bestias",
+      "monstruo",
+      "objeto",
+      "objetos",
+      "arma",
+      "reliquia",
+      "personaje",
+      "personajes",
+      "character",
+      "characters",
+    ],
+  },
+  {
+    section: "magia",
+    label: "Magia",
+    subTab: "magia",
+    aliases: ["magia", "magic", "sistema"],
+  },
+  {
+    section: "magia",
+    label: "Hechizos",
+    subTab: "hechizos",
+    aliases: ["hechizo", "hechizos", "spell", "spells"],
+  },
+  {
+    section: "magia",
+    label: "Dones",
+    subTab: "dones",
+    aliases: ["don", "dones", "gift", "gifts"],
+  },
+  {
+    section: "magia",
+    label: "Runas",
+    subTab: "runas",
+    aliases: ["runa", "runas", "rune", "runes"],
+  },
+  {
+    section: "geografia",
+    label: "Capítulos",
+    subTab: "capitulos",
+    aliases: [
+      "capitulo",
+      "capítulo",
+      "capitulos",
+      "capítulos",
+      "cap",
+      "chapter",
+      "chapters",
+    ],
+  },
+  {
+    section: "geografia",
+    label: "Canciones",
+    subTab: "letras",
+    aliases: [
+      "cancion",
+      "canción",
+      "canciones",
+      "canciones",
+      "letra",
+      "letras",
+      "song",
+      "songs",
+      "music",
+      "musica",
+      "música",
+    ],
+  },
 ];
 
 function normalize(s: string) {
-  return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  return s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
 }
 
 export type AllItems = {
   personajes: any[];
-  criaturas:  any[];
-  items:      any[];
-  reinos:     any[];
-  hechizos:   any[];
-  dones:      any[];
-  runas:      any[];
-  notas:      any[];
-  grupos:     any[];
+  criaturas: any[];
+  items: any[];
+  reinos: any[];
+  hechizos: any[];
+  dones: any[];
+  runas: any[];
+  notas: any[];
+  grupos: any[];
 };
 
 // Tipos para resultados de escritura
 type CapituloResult = { item: any; libroNombre: string };
-type CancionResult  = { item: any };
+type CancionResult = { item: any };
 
 type SearchResult = {
   item: any;
@@ -102,9 +236,16 @@ type MundoSubTabResult = {
 // ─── EntidadCard ──────────────────────────────────────────────────────────────
 // Compact card for grid/column layout
 function EntidadCard({
-  item, tab, selected, onClick, onToggleOculto,
+  item,
+  tab,
+  selected,
+  onClick,
+  onToggleOculto,
 }: {
-  item: any; tab: Exclude<TabKey, "mundo">; selected: boolean; onClick: () => void;
+  item: any;
+  tab: Exclude<TabKey, "mundo">;
+  selected: boolean;
+  onClick: () => void;
   onToggleOculto?: (id: string, oculto: boolean) => void;
 }) {
   const img = tab === "personajes" ? item.img_url : item.imagen_url;
@@ -112,10 +253,17 @@ function EntidadCard({
   const [toggling, setToggling] = useState(false);
 
   const subtitle =
-    tab === "personajes" ? [item.especie, item.reino].filter(Boolean).join(" · ") :
-    tab === "criaturas"  ? item.habitat :
-    tab === "items"      ? item.categoria :
-    tab === "reinos"     ? (item.oculto ? "Oculto" : "") : "";
+    tab === "personajes"
+      ? [item.especie, item.reino].filter(Boolean).join(" · ")
+      : tab === "criaturas"
+        ? item.habitat
+        : tab === "items"
+          ? item.categoria
+          : tab === "reinos"
+            ? item.oculto
+              ? "Oculto"
+              : ""
+            : "";
 
   const handleToggle = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -123,10 +271,15 @@ function EntidadCard({
     setToggling(true);
     const nuevoOculto = !item.oculto;
     try {
-      await supabase.from("reinos").update({ oculto: nuevoOculto }).eq("id", item.id);
+      await supabase
+        .from("reinos")
+        .update({ oculto: nuevoOculto })
+        .eq("id", item.id);
       void dexiePut("reinos", { ...item, oculto: nuevoOculto });
       onToggleOculto(item.id, nuevoOculto);
-    } finally { setToggling(false); }
+    } finally {
+      setToggling(false);
+    }
   };
 
   return (
@@ -145,24 +298,40 @@ function EntidadCard({
         <div
           className="shrink-0 w-7 h-7 rounded-lg overflow-hidden border flex items-center justify-center"
           style={{
-            background: img ? "transparent" : "color-mix(in srgb, var(--primary) 7%, transparent)",
+            background: img
+              ? "transparent"
+              : "color-mix(in srgb, var(--primary) 7%, transparent)",
             borderColor: selected
               ? "color-mix(in srgb, var(--primary) 25%, transparent)"
               : "color-mix(in srgb, var(--primary) 10%, transparent)",
           }}
         >
-          {img
-            ? <Image alt={item.nombre} className="w-full h-full object-cover" src={img} />
-            : <TabIcon className="text-primary/30" size={13} />}
+          {img ? (
+            <Image
+              alt={item.nombre}
+              className="w-full h-full object-cover"
+              src={img}
+            />
+          ) : (
+            <TabIcon className="text-primary/30" size={13} />
+          )}
         </div>
 
         {/* Name + subtitle */}
         <div className="w-full min-w-0 text-center">
-          <p className={`text-[10px] font-bold truncate transition-colors leading-tight ${
-            selected ? "text-primary" : "text-primary/70 group-hover:text-primary/90"
-          }`}>{item.nombre}</p>
+          <p
+            className={`text-[10px] font-bold truncate transition-colors leading-tight ${
+              selected
+                ? "text-primary"
+                : "text-primary/70 group-hover:text-primary/90"
+            }`}
+          >
+            {item.nombre}
+          </p>
           {subtitle && (
-            <p className="text-[8px] text-primary/35 truncate mt-0.5 leading-tight">{subtitle}</p>
+            <p className="text-[8px] text-primary/35 truncate mt-0.5 leading-tight">
+              {subtitle}
+            </p>
           )}
         </div>
 
@@ -185,9 +354,15 @@ function EntidadCard({
                   : "text-primary/20 bg-transparent border-transparent group-hover:text-primary/30 group-hover:bg-primary/5 group-hover:border-primary/10"
               } ${toggling ? "opacity-40 pointer-events-none" : ""}`}
               onClick={handleToggle}
-              onMouseDown={e => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
             >
-              {toggling ? <Loader2 className="animate-spin" size={8} /> : item.oculto ? <EyeOff size={8} /> : <Eye size={8} />}
+              {toggling ? (
+                <Loader2 className="animate-spin" size={8} />
+              ) : item.oculto ? (
+                <EyeOff size={8} />
+              ) : (
+                <Eye size={8} />
+              )}
             </button>
           )}
         </div>
@@ -198,18 +373,27 @@ function EntidadCard({
 
 // ─── MundoSectionCard ─────────────────────────────────────────────────────────
 function MundoSectionCard({
-  section, selected, onClick,
+  section,
+  selected,
+  onClick,
 }: {
-  section: typeof MUNDO_SECTIONS[number]; selected: boolean; onClick: () => void;
+  section: (typeof MUNDO_SECTIONS)[number];
+  selected: boolean;
+  onClick: () => void;
 }) {
   const { label, Icon } = section;
   return (
-    <button className="group relative w-full text-left transition-all duration-150" onClick={onClick}>
-      <div className={`flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-150 ${
-        selected
-          ? "bg-primary/12 border border-primary/20"
-          : "border border-transparent hover:bg-primary/6 hover:border-primary/10"
-      }`}>
+    <button
+      className="group relative w-full text-left transition-all duration-150"
+      onClick={onClick}
+    >
+      <div
+        className={`flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-150 ${
+          selected
+            ? "bg-primary/12 border border-primary/20"
+            : "border border-transparent hover:bg-primary/6 hover:border-primary/10"
+        }`}
+      >
         <div
           className="shrink-0 w-8 h-8 rounded-lg border flex items-center justify-center"
           style={{
@@ -222,10 +406,18 @@ function MundoSectionCard({
           <Icon className="text-primary/40" size={13} />
         </div>
         <div className="flex-1 min-w-0">
-          <p className={`text-[11px] font-bold truncate transition-colors ${
-            selected ? "text-primary" : "text-primary/70 group-hover:text-primary/90"
-          }`}>{label}</p>
-          <p className="text-[9px] text-primary/30 truncate mt-0.5">Worldbuilding</p>
+          <p
+            className={`text-[11px] font-bold truncate transition-colors ${
+              selected
+                ? "text-primary"
+                : "text-primary/70 group-hover:text-primary/90"
+            }`}
+          >
+            {label}
+          </p>
+          <p className="text-[9px] text-primary/30 truncate mt-0.5">
+            Worldbuilding
+          </p>
         </div>
         <span
           className="shrink-0 text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md"
@@ -244,32 +436,54 @@ function MundoSectionCard({
 // ─── AddCommandMenu ───────────────────────────────────────────────────────────
 // Floating menu triggered when user types "add" and presses Enter
 
-export type MagicAddKey = "hechizos" | "dones" | "runas" | "notas" | "acontecimiento" | "grupos" | "ciudad" | "libro" | "capitulo" | "cancion" | "grupo_libro";
+export type MagicAddKey =
+  | "hechizos"
+  | "dones"
+  | "runas"
+  | "notas"
+  | "acontecimiento"
+  | "grupos"
+  | "ciudad"
+  | "libro"
+  | "capitulo"
+  | "cancion"
+  | "grupo_libro";
 
 // Colores individuales por tipo — todos con la misma lógica color-mix
 const ADD_ITEM_COLOR: Record<string, string> = {
-  personajes:      "var(--primary)",
-  criaturas:       "var(--primary)",
-  items:           "var(--primary)",
-  reinos:          "var(--primary)",
-  hechizos:        "var(--accent)",
-  dones:           "color-mix(in srgb, var(--accent) 70%, var(--primary))",
-  runas:           "var(--primary)",
-  notas:           "var(--primary)",
-  acontecimiento:  "var(--primary)",
-  grupos:          "var(--primary)",
-  libro:           "var(--primary)",
-  capitulo:        "var(--primary)",
-  cancion:         "var(--primary)",
-  ciudad:           "var(--primary)",
-  grupo_libro:      "color-mix(in srgb, var(--primary) 60%, #a78bfa)",
+  personajes: "var(--primary)",
+  criaturas: "var(--primary)",
+  items: "var(--primary)",
+  reinos: "var(--primary)",
+  hechizos: "var(--accent)",
+  dones: "color-mix(in srgb, var(--accent) 70%, var(--primary))",
+  runas: "var(--primary)",
+  notas: "var(--primary)",
+  acontecimiento: "var(--primary)",
+  grupos: "var(--primary)",
+  libro: "var(--primary)",
+  capitulo: "var(--primary)",
+  cancion: "var(--primary)",
+  ciudad: "var(--primary)",
+  grupo_libro: "color-mix(in srgb, var(--primary) 60%, #a78bfa)",
 };
 
 // Todas las entradas del menú en orden unificado
 type AddEntry =
-  | { kind: "tab";   key: Exclude<TabKey, "mundo">; label: string; Icon: React.ElementType }
-  | { kind: "magic"; key: MagicAddKey;               label: string; Icon: React.ElementType }
-  | { kind: "nav";   key: string;                    label: string; Icon: React.ElementType; onNavigate: () => void };
+  | {
+      kind: "tab";
+      key: Exclude<TabKey, "mundo">;
+      label: string;
+      Icon: React.ElementType;
+    }
+  | { kind: "magic"; key: MagicAddKey; label: string; Icon: React.ElementType }
+  | {
+      kind: "nav";
+      key: string;
+      label: string;
+      Icon: React.ElementType;
+      onNavigate: () => void;
+    };
 
 function AddCommandMenu({
   open,
@@ -288,33 +502,65 @@ function AddCommandMenu({
 
   // Entidades principales
   const tabEntries: AddEntry[] = (
-    Object.entries(TAB_CONFIG) as [Exclude<TabKey, "mundo">, typeof TAB_CONFIG[Exclude<TabKey, "mundo">]][]
-  ).filter(([key]) => !["hechizos", "dones", "runas", "grupos", "capitulos", "letras"].includes(key))
-   .map(([key, cfg]) => ({ kind: "tab", key, label: cfg.label, Icon: cfg.Icon }));
+    Object.entries(TAB_CONFIG) as [
+      Exclude<TabKey, "mundo">,
+      (typeof TAB_CONFIG)[Exclude<TabKey, "mundo">],
+    ][]
+  )
+    .filter(
+      ([key]) =>
+        ![
+          "hechizos",
+          "dones",
+          "runas",
+          "grupos",
+          "capitulos",
+          "letras",
+        ].includes(key),
+    )
+    .map(([key, cfg]) => ({
+      kind: "tab",
+      key,
+      label: cfg.label,
+      Icon: cfg.Icon,
+    }));
 
   // Magia + notas — sin duplicar hechizos/dones/runas que ya están en tabEntries
   const magicEntries: AddEntry[] = [
-    { kind: "magic", key: "hechizos",       label: "Hechizo",        Icon: Wand2    },
-    { kind: "magic", key: "dones",          label: "Don",            Icon: Sparkles },
-    { kind: "magic", key: "runas",          label: "Runa",           Icon: Zap      },
-    { kind: "magic", key: "notas",          label: "Nota",           Icon: FileText },
-    { kind: "magic", key: "acontecimiento", label: "Acontecimiento", Icon: Clock    },
-    { kind: "magic", key: "grupos",         label: "Grupo",          Icon: Layers   },
-    { kind: "magic", key: "ciudad",          label: "Ciudad",          Icon: Map      },
+    { kind: "magic", key: "hechizos", label: "Hechizo", Icon: Wand2 },
+    { kind: "magic", key: "dones", label: "Don", Icon: Sparkles },
+    { kind: "magic", key: "runas", label: "Runa", Icon: Zap },
+    { kind: "magic", key: "notas", label: "Nota", Icon: FileText },
+    {
+      kind: "magic",
+      key: "acontecimiento",
+      label: "Acontecimiento",
+      Icon: Clock,
+    },
+    { kind: "magic", key: "grupos", label: "Grupo", Icon: Layers },
+    { kind: "magic", key: "ciudad", label: "Ciudad", Icon: Map },
   ];
 
   useEffect(() => {
     if (!open) return;
     const h = (e: MouseEvent) => {
       if (
-        ref.current && !ref.current.contains(e.target as Node) &&
-        anchorRef.current && !anchorRef.current.contains(e.target as Node)
-      ) onClose();
+        ref.current &&
+        !ref.current.contains(e.target as Node) &&
+        anchorRef.current &&
+        !anchorRef.current.contains(e.target as Node)
+      )
+        onClose();
     };
-    const k = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    const k = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
     document.addEventListener("mousedown", h);
     document.addEventListener("keydown", k);
-    return () => { document.removeEventListener("mousedown", h); document.removeEventListener("keydown", k); };
+    return () => {
+      document.removeEventListener("mousedown", h);
+      document.removeEventListener("keydown", k);
+    };
   }, [open, onClose, anchorRef]);
 
   if (!open) return null;
@@ -323,9 +569,15 @@ function AddCommandMenu({
   const renderRectEntry = (entry: AddEntry) => {
     const color = ADD_ITEM_COLOR[entry.key] ?? "var(--primary)";
     const handleClick = () => {
-      if (entry.kind === "tab") { onAdd(entry.key as Exclude<TabKey, "mundo">); onClose(); }
-      else if (entry.kind === "nav") { entry.onNavigate(); }
-      else { onAddMagic?.(entry.key as MagicAddKey); onClose(); }
+      if (entry.kind === "tab") {
+        onAdd(entry.key as Exclude<TabKey, "mundo">);
+        onClose();
+      } else if (entry.kind === "nav") {
+        entry.onNavigate();
+      } else {
+        onAddMagic?.(entry.key as MagicAddKey);
+        onClose();
+      }
     };
     return (
       <button
@@ -336,13 +588,13 @@ function AddCommandMenu({
           color: `color-mix(in srgb, ${color} 50%, transparent)`,
         }}
         onClick={handleClick}
-        onMouseEnter={e => {
+        onMouseEnter={(e) => {
           const el = e.currentTarget as HTMLElement;
           el.style.background = `color-mix(in srgb, ${color} 9%, transparent)`;
           el.style.color = color;
           el.style.borderColor = `color-mix(in srgb, ${color} 38%, transparent)`;
         }}
-        onMouseLeave={e => {
+        onMouseLeave={(e) => {
           const el = e.currentTarget as HTMLElement;
           el.style.background = "transparent";
           el.style.color = `color-mix(in srgb, ${color} 50%, transparent)`;
@@ -351,11 +603,15 @@ function AddCommandMenu({
       >
         <span
           className="shrink-0 w-6 h-6 rounded-lg flex items-center justify-center"
-          style={{ background: `color-mix(in srgb, ${color} 11%, transparent)` }}
+          style={{
+            background: `color-mix(in srgb, ${color} 11%, transparent)`,
+          }}
         >
           <entry.Icon size={11} />
         </span>
-        <span className="flex-1 text-[10px] font-black uppercase tracking-widest">{entry.label}</span>
+        <span className="flex-1 text-[10px] font-black uppercase tracking-widest">
+          {entry.label}
+        </span>
         <Plus className="opacity-35" size={8} />
       </button>
     );
@@ -365,9 +621,15 @@ function AddCommandMenu({
   const renderSquareEntry = (entry: AddEntry) => {
     const color = ADD_ITEM_COLOR[entry.key] ?? "var(--primary)";
     const handleClick = () => {
-      if (entry.kind === "tab") { onAdd(entry.key as Exclude<TabKey, "mundo">); onClose(); }
-      else if (entry.kind === "nav") { entry.onNavigate(); }
-      else { onAddMagic?.(entry.key as MagicAddKey); onClose(); }
+      if (entry.kind === "tab") {
+        onAdd(entry.key as Exclude<TabKey, "mundo">);
+        onClose();
+      } else if (entry.kind === "nav") {
+        entry.onNavigate();
+      } else {
+        onAddMagic?.(entry.key as MagicAddKey);
+        onClose();
+      }
     };
     return (
       <button
@@ -380,13 +642,13 @@ function AddCommandMenu({
           padding: "8px 4px",
         }}
         onClick={handleClick}
-        onMouseEnter={e => {
+        onMouseEnter={(e) => {
           const el = e.currentTarget as HTMLElement;
           el.style.background = `color-mix(in srgb, ${color} 9%, transparent)`;
           el.style.color = color;
           el.style.borderColor = `color-mix(in srgb, ${color} 38%, transparent)`;
         }}
-        onMouseLeave={e => {
+        onMouseLeave={(e) => {
           const el = e.currentTarget as HTMLElement;
           el.style.background = "transparent";
           el.style.color = `color-mix(in srgb, ${color} 50%, transparent)`;
@@ -395,11 +657,15 @@ function AddCommandMenu({
       >
         <span
           className="shrink-0 w-7 h-7 rounded-lg flex items-center justify-center"
-          style={{ background: `color-mix(in srgb, ${color} 11%, transparent)` }}
+          style={{
+            background: `color-mix(in srgb, ${color} 11%, transparent)`,
+          }}
         >
           <entry.Icon size={13} />
         </span>
-        <span className="text-[9px] font-black uppercase tracking-widest leading-tight">{entry.label}</span>
+        <span className="text-[9px] font-black uppercase tracking-widest leading-tight">
+          {entry.label}
+        </span>
       </button>
     );
   };
@@ -411,7 +677,8 @@ function AddCommandMenu({
       style={{
         background: "var(--bg-main)",
         border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-        boxShadow: "0 12px 40px color-mix(in srgb, var(--primary) 18%, transparent)",
+        boxShadow:
+          "0 12px 40px color-mix(in srgb, var(--primary) 18%, transparent)",
         animation: "popIn 140ms cubic-bezier(0.34, 1.56, 0.64, 1)",
         transformOrigin: "top center",
       }}
@@ -425,7 +692,9 @@ function AddCommandMenu({
         }}
       >
         <Plus className="text-primary/30" size={10} />
-        <p className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/30">Añadir nueva entrada</p>
+        <p className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/30">
+          Añadir nueva entrada
+        </p>
       </div>
 
       <div className="p-2 space-y-3">
@@ -437,11 +706,25 @@ function AddCommandMenu({
         {/* Separador */}
         <div
           className="flex items-center gap-2 px-1"
-          style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }}
+          style={{
+            color: "color-mix(in srgb, var(--primary) 20%, transparent)",
+          }}
         >
-          <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
-          <span className="text-[7px] font-black uppercase tracking-[0.3em]">Magia &amp; Notas</span>
-          <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
+          <div
+            className="flex-1 h-px"
+            style={{
+              background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+            }}
+          />
+          <span className="text-[7px] font-black uppercase tracking-[0.3em]">
+            Magia &amp; Notas
+          </span>
+          <div
+            className="flex-1 h-px"
+            style={{
+              background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+            }}
+          />
         </div>
 
         {/* Magia + notas — bloques cuadrados */}
@@ -452,21 +735,57 @@ function AddCommandMenu({
         {/* Separador Escritura */}
         <div
           className="flex items-center gap-2 px-1"
-          style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }}
+          style={{
+            color: "color-mix(in srgb, var(--primary) 20%, transparent)",
+          }}
         >
-          <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
-          <span className="text-[7px] font-black uppercase tracking-[0.3em]">Escritura</span>
-          <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
+          <div
+            className="flex-1 h-px"
+            style={{
+              background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+            }}
+          />
+          <span className="text-[7px] font-black uppercase tracking-[0.3em]">
+            Escritura
+          </span>
+          <div
+            className="flex-1 h-px"
+            style={{
+              background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+            }}
+          />
         </div>
 
         {/* Escritura — bloques rectangulares */}
         <div className="grid grid-cols-2 gap-1">
-          {([
-            { kind: "magic" as const, key: "libro"       as MagicAddKey, label: "Nuevo libro",         Icon: BookOpen   },
-            { kind: "magic" as const, key: "grupo_libro"  as MagicAddKey, label: "Grupo de libros",     Icon: Layers     },
-            { kind: "magic" as const, key: "capitulo"    as MagicAddKey, label: "Nuevo capítulo",       Icon: ScrollText },
-            { kind: "magic" as const, key: "cancion"     as MagicAddKey, label: "Nueva canción",        Icon: Music      },
-          ] as AddEntry[]).map(renderRectEntry)}
+          {(
+            [
+              {
+                kind: "magic" as const,
+                key: "libro" as MagicAddKey,
+                label: "Nuevo libro",
+                Icon: BookOpen,
+              },
+              {
+                kind: "magic" as const,
+                key: "grupo_libro" as MagicAddKey,
+                label: "Grupo de libros",
+                Icon: Layers,
+              },
+              {
+                kind: "magic" as const,
+                key: "capitulo" as MagicAddKey,
+                label: "Nuevo capítulo",
+                Icon: ScrollText,
+              },
+              {
+                kind: "magic" as const,
+                key: "cancion" as MagicAddKey,
+                label: "Nueva canción",
+                Icon: Music,
+              },
+            ] as AddEntry[]
+          ).map(renderRectEntry)}
         </div>
       </div>
 
@@ -483,31 +802,45 @@ function AddCommandMenu({
 // ─── ModalAcontecimiento ──────────────────────────────────────────────────────
 type ReinoMin = { id: string; nombre: string };
 
-export function ModalAcontecimiento({ onClose, onSaved }: {
+export function ModalAcontecimiento({
+  onClose,
+  onSaved,
+}: {
   onClose: () => void;
   onSaved?: () => void;
 }) {
-  const [scope, setScope]       = useState<"global" | "reino">("global");
-  const [reinos, setReinos]     = useState<ReinoMin[]>([]);
-  const [reinoId, setReinoId]   = useState<string>("");
+  const [scope, setScope] = useState<"global" | "reino">("global");
+  const [reinos, setReinos] = useState<ReinoMin[]>([]);
+  const [reinoId, setReinoId] = useState<string>("");
   const [loadingR, setLoadingR] = useState(true);
-  const [year, setYear]         = useState("");
-  const [title, setTitle]       = useState("");
-  const [desc, setDesc]         = useState("");
-  const [saving, setSaving]     = useState(false);
-  const [saved, setSaved]       = useState(false);
-  const [error, setError]       = useState<string | null>(null);
+  const [year, setYear] = useState("");
+  const [title, setTitle] = useState("");
+  const [desc, setDesc] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Load reinos
   useEffect(() => {
     (async () => {
       try {
         const local = await dexieReadAll<ReinoMin>("reinos");
-        if (local.length) { setReinos(local); setLoadingR(false); }
-        if (!navigator.onLine) { if (!local.length) setLoadingR(false); return; }
-        const { data } = await supabase.from("reinos").select("id, nombre").order("nombre");
+        if (local.length) {
+          setReinos(local);
+          setLoadingR(false);
+        }
+        if (!navigator.onLine) {
+          if (!local.length) setLoadingR(false);
+          return;
+        }
+        const { data } = await supabase
+          .from("reinos")
+          .select("id, nombre")
+          .order("nombre");
         setReinos((data ?? []) as ReinoMin[]);
-      } finally { setLoadingR(false); }
+      } finally {
+        setLoadingR(false);
+      }
     })();
   }, []);
 
@@ -518,7 +851,12 @@ export function ModalAcontecimiento({ onClose, onSaved }: {
     setSaving(true);
     setError(null);
     try {
-      const newEvt = { id: crypto.randomUUID(), year: year.trim(), title: title.trim(), description: desc.trim() };
+      const newEvt = {
+        id: crypto.randomUUID(),
+        year: year.trim(),
+        title: title.trim(),
+        description: desc.trim(),
+      };
 
       if (scope === "global") {
         // La historia del mundo vive en mundo_secciones, fila key="historia", campo contenido (JSON)
@@ -528,23 +866,37 @@ export function ModalAcontecimiento({ onClose, onSaved }: {
           .eq("key", "historia")
           .single();
         let events: any[] = [];
-        try { events = JSON.parse(secRow?.contenido ?? "[]"); } catch {}
+        try {
+          events = JSON.parse(secRow?.contenido ?? "[]");
+        } catch {}
         if (!Array.isArray(events)) events = [];
         events.push(newEvt);
         const { error: err } = await supabase
           .from("mundo_secciones")
-          .update({ contenido: JSON.stringify(events), updated_at: new Date().toISOString() })
+          .update({
+            contenido: JSON.stringify(events),
+            updated_at: new Date().toISOString(),
+          })
           .eq("key", "historia");
         if (err) throw err;
       } else {
         // Historia del reino: tabla reinos, campo historia (JSON)
-        const { data: reinoRow } = await supabase.from("reinos").select("id, historia").eq("id", reinoId).single();
+        const { data: reinoRow } = await supabase
+          .from("reinos")
+          .select("id, historia")
+          .eq("id", reinoId)
+          .single();
         if (!reinoRow) throw new Error("No se encontró el reino");
         let events: any[] = [];
-        try { events = JSON.parse((reinoRow as any).historia ?? "[]"); } catch {}
+        try {
+          events = JSON.parse((reinoRow as any).historia ?? "[]");
+        } catch {}
         if (!Array.isArray(events)) events = [];
         events.push(newEvt);
-        const { error: err } = await supabase.from("reinos").update({ historia: JSON.stringify(events) }).eq("id", reinoId);
+        const { error: err } = await supabase
+          .from("reinos")
+          .update({ historia: JSON.stringify(events) })
+          .eq("id", reinoId);
         if (err) throw err;
       }
 
@@ -553,67 +905,108 @@ export function ModalAcontecimiento({ onClose, onSaved }: {
       setTimeout(onClose, 900);
     } catch (e: any) {
       setError(e?.message ?? "Error al guardar");
-    } finally { setSaving(false); }
+    } finally {
+      setSaving(false);
+    }
   };
 
   // Close on Escape
   useEffect(() => {
-    const k = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    const k = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
     document.addEventListener("keydown", k);
     return () => document.removeEventListener("keydown", k);
   }, [onClose]);
 
-  const INPUT = "w-full px-3 py-2 rounded-xl text-xs font-medium text-primary bg-transparent border transition-all outline-none placeholder:text-primary/25 focus:border-primary/40 focus:bg-primary/3";
+  const INPUT =
+    "w-full px-3 py-2 rounded-xl text-xs font-medium text-primary bg-transparent border transition-all outline-none placeholder:text-primary/25 focus:border-primary/40 focus:bg-primary/3";
   const borderNorm = "border-primary/15";
 
   return (
     <div
       className="fixed inset-0 z-80 flex items-center justify-center p-4"
-      style={{ background: "color-mix(in srgb, var(--primary) 30%, transparent)", backdropFilter: "blur(6px)" }}
+      style={{
+        background: "color-mix(in srgb, var(--primary) 30%, transparent)",
+        backdropFilter: "blur(6px)",
+      }}
       onClick={onClose}
     >
       <div
         className="w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl"
         style={{
           background: "var(--bg-main)",
-          border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
+          border:
+            "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
           animation: "popIn 160ms cubic-bezier(0.34, 1.56, 0.64, 1)",
         }}
-        onClick={e => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center gap-3 px-4 py-3 border-b"
-          style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}>
-          <div className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0 border"
-            style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 18%, transparent)" }}>
+        <div
+          className="flex items-center gap-3 px-4 py-3 border-b"
+          style={{
+            borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
+            background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+          }}
+        >
+          <div
+            className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0 border"
+            style={{
+              background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+              borderColor:
+                "color-mix(in srgb, var(--primary) 18%, transparent)",
+            }}
+          >
             <Clock className="text-primary/50" size={12} />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/40">Añadir acontecimiento</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/40">
+              Añadir acontecimiento
+            </p>
           </div>
-          <button className="text-primary/25 hover:text-primary transition-colors" onClick={onClose}><X size={15} /></button>
+          <button
+            className="text-primary/25 hover:text-primary transition-colors"
+            onClick={onClose}
+          >
+            <X size={15} />
+          </button>
         </div>
 
         <div className="p-4 space-y-3">
           {/* Scope toggle */}
           <div className="space-y-1.5">
-            <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Ámbito</label>
+            <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">
+              Ámbito
+            </label>
             <div className="flex gap-1.5">
-              {(["global", "reino"] as const).map(s => (
+              {(["global", "reino"] as const).map((s) => (
                 <button
                   key={s}
                   className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all"
-                  style={scope === s ? {
-                    background: "color-mix(in srgb, var(--primary) 10%, transparent)",
-                    borderColor: "color-mix(in srgb, var(--primary) 30%, transparent)",
-                    color: "var(--primary)",
-                  } : {
-                    borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
-                    color: "color-mix(in srgb, var(--primary) 35%, transparent)",
-                  }}
+                  style={
+                    scope === s
+                      ? {
+                          background:
+                            "color-mix(in srgb, var(--primary) 10%, transparent)",
+                          borderColor:
+                            "color-mix(in srgb, var(--primary) 30%, transparent)",
+                          color: "var(--primary)",
+                        }
+                      : {
+                          borderColor:
+                            "color-mix(in srgb, var(--primary) 12%, transparent)",
+                          color:
+                            "color-mix(in srgb, var(--primary) 35%, transparent)",
+                        }
+                  }
                   onClick={() => setScope(s)}
                 >
-                  {s === "global" ? <Globe size={10} /> : <ScrollText size={10} />}
+                  {s === "global" ? (
+                    <Globe size={10} />
+                  ) : (
+                    <ScrollText size={10} />
+                  )}
                   {s === "global" ? "Global" : "Un reino"}
                 </button>
               ))}
@@ -623,21 +1016,29 @@ export function ModalAcontecimiento({ onClose, onSaved }: {
           {/* Reino selector */}
           {scope === "reino" && (
             <div className="space-y-1.5">
-              <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Reino</label>
+              <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">
+                Reino
+              </label>
               {loadingR ? (
                 <div className="flex items-center gap-2 px-3 py-2">
                   <Loader2 className="animate-spin text-primary/20" size={11} />
-                  <span className="text-[10px] text-primary/30">Cargando reinos…</span>
+                  <span className="text-[10px] text-primary/30">
+                    Cargando reinos…
+                  </span>
                 </div>
               ) : (
                 <select
                   className={`${INPUT} ${borderNorm} cursor-pointer`}
                   style={{ appearance: "none" }}
                   value={reinoId}
-                  onChange={e => setReinoId(e.target.value)}
+                  onChange={(e) => setReinoId(e.target.value)}
                 >
                   <option value="">Seleccionar reino…</option>
-                  {reinos.map(r => <option key={r.id} value={r.id}>{r.nombre}</option>)}
+                  {reinos.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.nombre}
+                    </option>
+                  ))}
                 </select>
               )}
             </div>
@@ -645,36 +1046,50 @@ export function ModalAcontecimiento({ onClose, onSaved }: {
 
           {/* Año/era */}
           <div className="space-y-1.5">
-            <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Año / Era <span className="text-primary/20 normal-case tracking-normal font-medium">(opcional)</span></label>
+            <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">
+              Año / Era{" "}
+              <span className="text-primary/20 normal-case tracking-normal font-medium">
+                (opcional)
+              </span>
+            </label>
             <input
               className={`${INPUT} ${borderNorm}`}
               placeholder="Año 342, Era del Fuego, Antes del Caos…"
               value={year}
-              onChange={e => setYear(e.target.value)}
+              onChange={(e) => setYear(e.target.value)}
             />
           </div>
 
           {/* Título */}
           <div className="space-y-1.5">
-            <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Título</label>
+            <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">
+              Título
+            </label>
             <input
               className={`${INPUT} ${borderNorm}`}
               placeholder="La Gran Batalla, Fundación del Imperio…"
               value={title}
-              onChange={e => setTitle(e.target.value)}
-              onKeyDown={e => { if (e.key === "Enter") handleSave(); }}
+              onChange={(e) => setTitle(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleSave();
+              }}
             />
           </div>
 
           {/* Descripción */}
           <div className="space-y-1.5">
-            <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Qué ocurrió <span className="text-primary/20 normal-case tracking-normal font-medium">(opcional)</span></label>
+            <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">
+              Qué ocurrió{" "}
+              <span className="text-primary/20 normal-case tracking-normal font-medium">
+                (opcional)
+              </span>
+            </label>
             <textarea
               className={`${INPUT} ${borderNorm} resize-none`}
               placeholder="Describe el acontecimiento, sus causas y consecuencias…"
               rows={3}
               value={desc}
-              onChange={e => setDesc(e.target.value)}
+              onChange={(e) => setDesc(e.target.value)}
             />
           </div>
 
@@ -684,22 +1099,37 @@ export function ModalAcontecimiento({ onClose, onSaved }: {
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-2 px-4 py-3 border-t"
-          style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, transparent)" }}>
-          <button className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest text-primary/40 hover:text-primary hover:bg-primary/6 transition-all border border-transparent hover:border-primary/10"
-            onClick={onClose}>
+        <div
+          className="flex items-center justify-end gap-2 px-4 py-3 border-t"
+          style={{
+            borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
+            background: "color-mix(in srgb, var(--primary) 2%, transparent)",
+          }}
+        >
+          <button
+            className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest text-primary/40 hover:text-primary hover:bg-primary/6 transition-all border border-transparent hover:border-primary/10"
+            onClick={onClose}
+          >
             Cancelar
           </button>
           <button
             className="flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all disabled:opacity-40"
             disabled={!canSave || saving}
             style={{
-              background: saved ? "color-mix(in srgb, #22c55e 80%, transparent)" : "var(--primary)",
+              background: saved
+                ? "color-mix(in srgb, #22c55e 80%, transparent)"
+                : "var(--primary)",
               color: "var(--btn-text, white)",
             }}
             onClick={handleSave}
           >
-            {saving ? <Loader2 className="animate-spin" size={10} /> : saved ? <Check size={10} /> : <Clock size={10} />}
+            {saving ? (
+              <Loader2 className="animate-spin" size={10} />
+            ) : saved ? (
+              <Check size={10} />
+            ) : (
+              <Clock size={10} />
+            )}
             {saved ? "Guardado" : saving ? "Guardando…" : "Añadir"}
           </button>
         </div>
@@ -713,23 +1143,39 @@ export function ModalAcontecimiento({ onClose, onSaved }: {
 
 type MagicNombreKey = "hechizos" | "dones" | "runas";
 
-const MAGIC_NOMBRE_CONFIG: Record<MagicNombreKey, {
-  tabla: string; label: string; labelSing: string;
-  Icon: React.ElementType; color: string; placeholder: string;
-}> = {
+const MAGIC_NOMBRE_CONFIG: Record<
+  MagicNombreKey,
+  {
+    tabla: string;
+    label: string;
+    labelSing: string;
+    Icon: React.ElementType;
+    color: string;
+    placeholder: string;
+  }
+> = {
   hechizos: {
-    tabla: "hechizos", label: "Hechizos", labelSing: "Hechizo",
-    Icon: Wand2, color: "var(--accent)",
+    tabla: "hechizos",
+    label: "Hechizos",
+    labelSing: "Hechizo",
+    Icon: Wand2,
+    color: "var(--accent)",
     placeholder: "Nombre del hechizo…",
   },
   dones: {
-    tabla: "dones", label: "Dones", labelSing: "Don",
-    Icon: Sparkles, color: "color-mix(in srgb, var(--accent) 70%, var(--primary))",
+    tabla: "dones",
+    label: "Dones",
+    labelSing: "Don",
+    Icon: Sparkles,
+    color: "color-mix(in srgb, var(--accent) 70%, var(--primary))",
     placeholder: "Nombre del don…",
   },
   runas: {
-    tabla: "runas", label: "Runas", labelSing: "Runa",
-    Icon: Zap, color: "var(--primary)",
+    tabla: "runas",
+    label: "Runas",
+    labelSing: "Runa",
+    Icon: Zap,
+    color: "var(--primary)",
     placeholder: "Nombre de la runa…",
   },
 };
@@ -744,10 +1190,10 @@ export function ModalMagicNombre({
   onCreated?: (item: any) => void;
 }) {
   const cfg = MAGIC_NOMBRE_CONFIG[tipo];
-  const [nombre,  setNombre]  = useState("");
-  const [saving,  setSaving]  = useState(false);
-  const [saved,   setSaved]   = useState(false);
-  const [error,   setError]   = useState<string | null>(null);
+  const [nombre, setNombre] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -755,7 +1201,9 @@ export function ModalMagicNombre({
   }, []);
 
   useEffect(() => {
-    const k = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    const k = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
     document.addEventListener("keydown", k);
     return () => document.removeEventListener("keydown", k);
   }, [onClose]);
@@ -783,22 +1231,27 @@ export function ModalMagicNombre({
     }
   };
 
-  const INPUT = "w-full px-3 py-2 rounded-xl text-xs font-medium text-primary bg-transparent border transition-all outline-none placeholder:text-primary/25 focus:border-primary/40 focus:bg-primary/3";
+  const INPUT =
+    "w-full px-3 py-2 rounded-xl text-xs font-medium text-primary bg-transparent border transition-all outline-none placeholder:text-primary/25 focus:border-primary/40 focus:bg-primary/3";
 
   return (
     <div
       className="fixed inset-0 z-80 flex items-center justify-center p-4"
-      style={{ background: "color-mix(in srgb, var(--primary) 30%, transparent)", backdropFilter: "blur(6px)" }}
+      style={{
+        background: "color-mix(in srgb, var(--primary) 30%, transparent)",
+        backdropFilter: "blur(6px)",
+      }}
       onClick={onClose}
     >
       <div
         className="w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl"
         style={{
           background: "var(--bg-main)",
-          border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
+          border:
+            "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
           animation: "popIn 160ms cubic-bezier(0.34, 1.56, 0.64, 1)",
         }}
-        onClick={e => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div
@@ -822,7 +1275,10 @@ export function ModalMagicNombre({
               Nuevo {cfg.labelSing}
             </p>
           </div>
-          <button className="text-primary/25 hover:text-primary transition-colors" onClick={onClose}>
+          <button
+            className="text-primary/25 hover:text-primary transition-colors"
+            onClick={onClose}
+          >
             <X size={15} />
           </button>
         </div>
@@ -837,8 +1293,10 @@ export function ModalMagicNombre({
               className={`${INPUT} border-primary/15`}
               placeholder={cfg.placeholder}
               value={nombre}
-              onChange={e => setNombre(e.target.value)}
-              onKeyDown={e => { if (e.key === "Enter") handleSave(); }}
+              onChange={(e) => setNombre(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleSave();
+              }}
             />
           </div>
 
@@ -872,7 +1330,13 @@ export function ModalMagicNombre({
             }}
             onClick={handleSave}
           >
-            {saving ? <Loader2 className="animate-spin" size={10} /> : saved ? <Check size={10} /> : <cfg.Icon size={10} />}
+            {saving ? (
+              <Loader2 className="animate-spin" size={10} />
+            ) : saved ? (
+              <Check size={10} />
+            ) : (
+              <cfg.Icon size={10} />
+            )}
             {saved ? "Creado" : saving ? "Creando…" : `Crear ${cfg.labelSing}`}
           </button>
         </div>
@@ -884,21 +1348,100 @@ export function ModalMagicNombre({
 // ─── ModalNuevoGrupo ──────────────────────────────────────────────────────────
 // Modal de dos pasos: 1) elegir tipo, 2) escribir nombre → insert completo
 
-type GrupoTipoLocal = "personajes" | "criaturas" | "items" | "reinos" | "hechizos" | "dones" | "runas" | "libros";
+type GrupoTipoLocal =
+  | "personajes"
+  | "criaturas"
+  | "items"
+  | "reinos"
+  | "hechizos"
+  | "dones"
+  | "runas"
+  | "libros";
 
-const GRUPO_MODAL_CONFIG: Record<GrupoTipoLocal, {
-  label: string; labelPlural: string;
-  Icon: React.ElementType; IconAlt: React.ElementType;
-  color: string; ejemplo: string; tabla: string;
-}> = {
-  personajes: { label: "Personaje",  labelPlural: "Personajes", Icon: Users,      IconAlt: Users,       color: "var(--primary)",                                              tabla: "personajes", ejemplo: "Facción, clan, gremio…"        },
-  criaturas:  { label: "Criatura",   labelPlural: "Criaturas",  Icon: Bug,        IconAlt: Feather,     color: "color-mix(in srgb, var(--primary) 70%, #4ade80)",             tabla: "criaturas",  ejemplo: "Manada, especie, orden…"       },
-  items:      { label: "Objeto",     labelPlural: "Objetos",    Icon: Package,    IconAlt: Swords,      color: "color-mix(in srgb, var(--primary) 60%, #f59e0b)",             tabla: "items",      ejemplo: "Arsenal, colección, reliquias…" },
-  reinos:     { label: "Reino",     labelPlural: "Reinos",     Icon: Map,        IconAlt: Map,         color: "color-mix(in srgb, var(--primary) 60%, #60a5fa)",             tabla: "reinos",     ejemplo: "Alianza, confederación, imperio…" },
-  hechizos:   { label: "Hechizo",   labelPlural: "Hechizos",   Icon: Sparkles,   IconAlt: Wand2,       color: "var(--accent)",                                               tabla: "hechizos",   ejemplo: "Escuela, elemento, estilo…"    },
-  dones:      { label: "Don",       labelPlural: "Dones",      Icon: Star,       IconAlt: Gem,         color: "color-mix(in srgb, var(--accent) 70%, var(--primary))",       tabla: "dones",      ejemplo: "Linaje, maldición, ancestral…" },
-  runas:      { label: "Runa",      labelPlural: "Runas",      Icon: ScrollText, IconAlt: ScrollText,  color: "var(--primary)",                                                       tabla: "runas",      ejemplo: "Conjunto rúnico, tradición…"     },
-  libros:     { label: "Libro",     labelPlural: "Libros",     Icon: BookOpen,   IconAlt: BookOpen,    color: "color-mix(in srgb, var(--primary) 60%, #a78bfa)",                      tabla: "libros",     ejemplo: "Novela, poemario, saga, extra…"  },
+const GRUPO_MODAL_CONFIG: Record<
+  GrupoTipoLocal,
+  {
+    label: string;
+    labelPlural: string;
+    Icon: React.ElementType;
+    IconAlt: React.ElementType;
+    color: string;
+    ejemplo: string;
+    tabla: string;
+  }
+> = {
+  personajes: {
+    label: "Personaje",
+    labelPlural: "Personajes",
+    Icon: Users,
+    IconAlt: Users,
+    color: "var(--primary)",
+    tabla: "personajes",
+    ejemplo: "Facción, clan, gremio…",
+  },
+  criaturas: {
+    label: "Criatura",
+    labelPlural: "Criaturas",
+    Icon: Bug,
+    IconAlt: Feather,
+    color: "color-mix(in srgb, var(--primary) 70%, #4ade80)",
+    tabla: "criaturas",
+    ejemplo: "Manada, especie, orden…",
+  },
+  items: {
+    label: "Objeto",
+    labelPlural: "Objetos",
+    Icon: Package,
+    IconAlt: Swords,
+    color: "color-mix(in srgb, var(--primary) 60%, #f59e0b)",
+    tabla: "items",
+    ejemplo: "Arsenal, colección, reliquias…",
+  },
+  reinos: {
+    label: "Reino",
+    labelPlural: "Reinos",
+    Icon: Map,
+    IconAlt: Map,
+    color: "color-mix(in srgb, var(--primary) 60%, #60a5fa)",
+    tabla: "reinos",
+    ejemplo: "Alianza, confederación, imperio…",
+  },
+  hechizos: {
+    label: "Hechizo",
+    labelPlural: "Hechizos",
+    Icon: Sparkles,
+    IconAlt: Wand2,
+    color: "var(--accent)",
+    tabla: "hechizos",
+    ejemplo: "Escuela, elemento, estilo…",
+  },
+  dones: {
+    label: "Don",
+    labelPlural: "Dones",
+    Icon: Star,
+    IconAlt: Gem,
+    color: "color-mix(in srgb, var(--accent) 70%, var(--primary))",
+    tabla: "dones",
+    ejemplo: "Linaje, maldición, ancestral…",
+  },
+  runas: {
+    label: "Runa",
+    labelPlural: "Runas",
+    Icon: ScrollText,
+    IconAlt: ScrollText,
+    color: "var(--primary)",
+    tabla: "runas",
+    ejemplo: "Conjunto rúnico, tradición…",
+  },
+  libros: {
+    label: "Libro",
+    labelPlural: "Libros",
+    Icon: BookOpen,
+    IconAlt: BookOpen,
+    color: "color-mix(in srgb, var(--primary) 60%, #a78bfa)",
+    tabla: "libros",
+    ejemplo: "Novela, poemario, saga, extra…",
+  },
 };
 
 export function ModalNuevoGrupo({
@@ -910,11 +1453,11 @@ export function ModalNuevoGrupo({
   onCreated?: (grupo: any) => void;
   tipoInicial?: GrupoTipoLocal;
 }) {
-  const [tipo,   setTipo]   = useState<GrupoTipoLocal | null>(tipoInicial ?? null);
+  const [tipo, setTipo] = useState<GrupoTipoLocal | null>(tipoInicial ?? null);
   const [nombre, setNombre] = useState("");
   const [saving, setSaving] = useState(false);
-  const [saved,  setSaved]  = useState(false);
-  const [error,  setError]  = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Focus el input cuando se elige el tipo
@@ -925,8 +1468,11 @@ export function ModalNuevoGrupo({
   useEffect(() => {
     const k = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        if (tipo) { setTipo(null); setNombre(""); setError(null); }
-        else onClose();
+        if (tipo) {
+          setTipo(null);
+          setNombre("");
+          setError(null);
+        } else onClose();
       }
     };
     document.addEventListener("keydown", k);
@@ -949,9 +1495,9 @@ export function ModalNuevoGrupo({
         descripcion: null;
         miembro_ids: string[];
       } = {
-        id:          crypto.randomUUID(),
-        nombre:      nombre.trim(),
-        tipo:        tipo,
+        id: crypto.randomUUID(),
+        nombre: nombre.trim(),
+        tipo: tipo,
         descripcion: null,
         miembro_ids: [],
       };
@@ -973,45 +1519,68 @@ export function ModalNuevoGrupo({
     }
   };
 
-  const INPUT = "w-full px-3 py-2 rounded-xl text-xs font-medium text-primary bg-transparent border transition-all outline-none placeholder:text-primary/25 focus:border-primary/40 focus:bg-primary/3";
+  const INPUT =
+    "w-full px-3 py-2 rounded-xl text-xs font-medium text-primary bg-transparent border transition-all outline-none placeholder:text-primary/25 focus:border-primary/40 focus:bg-primary/3";
 
   return (
     <div
       className="fixed inset-0 z-80 flex items-center justify-center p-4"
-      style={{ background: "color-mix(in srgb, var(--primary) 30%, transparent)", backdropFilter: "blur(6px)" }}
+      style={{
+        background: "color-mix(in srgb, var(--primary) 30%, transparent)",
+        backdropFilter: "blur(6px)",
+      }}
       onClick={onClose}
     >
       <div
         className="w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl"
         style={{
           background: "var(--bg-main)",
-          border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
+          border:
+            "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
           animation: "popIn 160ms cubic-bezier(0.34, 1.56, 0.64, 1)",
         }}
-        onClick={e => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center gap-3 px-4 py-3 border-b"
-          style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}>
+        <div
+          className="flex items-center gap-3 px-4 py-3 border-b"
+          style={{
+            borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
+            background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+          }}
+        >
           {/* Icono: tipo elegido o genérico */}
-          <div className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0 border transition-all"
-            style={cfg ? {
-              background: `color-mix(in srgb, ${cfg.color} 12%, transparent)`,
-              borderColor: `color-mix(in srgb, ${cfg.color} 25%, transparent)`,
-            } : {
-              background: "color-mix(in srgb, var(--primary) 8%, transparent)",
-              borderColor: "color-mix(in srgb, var(--primary) 18%, transparent)",
-            }}>
-            {cfg
-              ? <cfg.Icon size={12} style={{ color: cfg.color }} />
-              : <Layers className="text-primary/40" size={12} />}
+          <div
+            className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0 border transition-all"
+            style={
+              cfg
+                ? {
+                    background: `color-mix(in srgb, ${cfg.color} 12%, transparent)`,
+                    borderColor: `color-mix(in srgb, ${cfg.color} 25%, transparent)`,
+                  }
+                : {
+                    background:
+                      "color-mix(in srgb, var(--primary) 8%, transparent)",
+                    borderColor:
+                      "color-mix(in srgb, var(--primary) 18%, transparent)",
+                  }
+            }
+          >
+            {cfg ? (
+              <cfg.Icon size={12} style={{ color: cfg.color }} />
+            ) : (
+              <Layers className="text-primary/40" size={12} />
+            )}
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/40">
               {cfg ? `Nuevo grupo · ${cfg.labelPlural}` : "Nuevo grupo"}
             </p>
           </div>
-          <button className="text-primary/25 hover:text-primary transition-colors" onClick={onClose}>
+          <button
+            className="text-primary/25 hover:text-primary transition-colors"
+            onClick={onClose}
+          >
             <X size={15} />
           </button>
         </div>
@@ -1023,37 +1592,69 @@ export function ModalNuevoGrupo({
               Tipo de miembros
             </label>
             <div className="grid grid-cols-3 gap-1.5">
-              {(Object.entries(GRUPO_MODAL_CONFIG) as [GrupoTipoLocal, typeof GRUPO_MODAL_CONFIG[GrupoTipoLocal]][]).map(([key, c]) => {
+              {(
+                Object.entries(GRUPO_MODAL_CONFIG) as [
+                  GrupoTipoLocal,
+                  (typeof GRUPO_MODAL_CONFIG)[GrupoTipoLocal],
+                ][]
+              ).map(([key, c]) => {
                 const isSelected = tipo === key;
                 return (
                   <button
                     key={key}
                     className="flex flex-col items-center gap-1.5 p-2.5 rounded-xl border transition-all"
-                    style={isSelected ? {
-                      borderColor: `color-mix(in srgb, ${c.color} 40%, transparent)`,
-                      background:  `color-mix(in srgb, ${c.color} 12%, transparent)`,
-                    } : {
-                      borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
-                      background:  "color-mix(in srgb, var(--primary) 3%, transparent)",
+                    style={
+                      isSelected
+                        ? {
+                            borderColor: `color-mix(in srgb, ${c.color} 40%, transparent)`,
+                            background: `color-mix(in srgb, ${c.color} 12%, transparent)`,
+                          }
+                        : {
+                            borderColor:
+                              "color-mix(in srgb, var(--primary) 10%, transparent)",
+                            background:
+                              "color-mix(in srgb, var(--primary) 3%, transparent)",
+                          }
+                    }
+                    onClick={() => {
+                      setTipo(key);
+                      setNombre("");
+                      setError(null);
                     }}
-                    onClick={() => { setTipo(key); setNombre(""); setError(null); }}
-                    onMouseEnter={e => {
+                    onMouseEnter={(e) => {
                       if (!isSelected) {
-                        (e.currentTarget as HTMLElement).style.borderColor = `color-mix(in srgb, ${c.color} 25%, transparent)`;
-                        (e.currentTarget as HTMLElement).style.background  = `color-mix(in srgb, ${c.color} 7%, transparent)`;
+                        (e.currentTarget as HTMLElement).style.borderColor =
+                          `color-mix(in srgb, ${c.color} 25%, transparent)`;
+                        (e.currentTarget as HTMLElement).style.background =
+                          `color-mix(in srgb, ${c.color} 7%, transparent)`;
                       }
                     }}
-                    onMouseLeave={e => {
+                    onMouseLeave={(e) => {
                       if (!isSelected) {
-                        (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 10%, transparent)";
-                        (e.currentTarget as HTMLElement).style.background  = "color-mix(in srgb, var(--primary) 3%, transparent)";
+                        (e.currentTarget as HTMLElement).style.borderColor =
+                          "color-mix(in srgb, var(--primary) 10%, transparent)";
+                        (e.currentTarget as HTMLElement).style.background =
+                          "color-mix(in srgb, var(--primary) 3%, transparent)";
                       }
                     }}
                   >
-                    <c.IconAlt size={16} strokeWidth={1.5}
-                      style={{ color: isSelected ? c.color : `color-mix(in srgb, ${c.color} 55%, transparent)` }} />
-                    <span className="text-[9px] font-black uppercase tracking-widest leading-tight text-center"
-                      style={{ color: isSelected ? "var(--primary)" : "color-mix(in srgb, var(--primary) 45%, transparent)" }}>
+                    <c.IconAlt
+                      size={16}
+                      strokeWidth={1.5}
+                      style={{
+                        color: isSelected
+                          ? c.color
+                          : `color-mix(in srgb, ${c.color} 55%, transparent)`,
+                      }}
+                    />
+                    <span
+                      className="text-[9px] font-black uppercase tracking-widest leading-tight text-center"
+                      style={{
+                        color: isSelected
+                          ? "var(--primary)"
+                          : "color-mix(in srgb, var(--primary) 45%, transparent)",
+                      }}
+                    >
                       {c.labelPlural}
                     </span>
                   </button>
@@ -1061,7 +1662,9 @@ export function ModalNuevoGrupo({
               })}
             </div>
             {tipo && cfg && (
-              <p className="text-[8px] text-primary/25 italic px-0.5">{cfg.ejemplo}</p>
+              <p className="text-[8px] text-primary/25 italic px-0.5">
+                {cfg.ejemplo}
+              </p>
             )}
           </div>
 
@@ -1076,20 +1679,31 @@ export function ModalNuevoGrupo({
                 className={`${INPUT} border-primary/15`}
                 placeholder={`Nombre del grupo de ${cfg!.labelPlural.toLowerCase()}…`}
                 value={nombre}
-                onChange={e => setNombre(e.target.value)}
-                onKeyDown={e => { if (e.key === "Enter") handleSave(); }}
+                onChange={(e) => setNombre(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleSave();
+                }}
               />
             </div>
           )}
 
-          {error && <p className="text-[10px] text-red-400 font-medium px-1">{error}</p>}
+          {error && (
+            <p className="text-[10px] text-red-400 font-medium px-1">{error}</p>
+          )}
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-2 px-4 py-3 border-t"
-          style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, transparent)" }}>
-          <button className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest text-primary/40 hover:text-primary hover:bg-primary/6 transition-all border border-transparent hover:border-primary/10"
-            onClick={onClose}>
+        <div
+          className="flex items-center justify-end gap-2 px-4 py-3 border-t"
+          style={{
+            borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
+            background: "color-mix(in srgb, var(--primary) 2%, transparent)",
+          }}
+        >
+          <button
+            className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest text-primary/40 hover:text-primary hover:bg-primary/6 transition-all border border-transparent hover:border-primary/10"
+            onClick={onClose}
+          >
             Cancelar
           </button>
           <button
@@ -1105,9 +1719,13 @@ export function ModalNuevoGrupo({
             }}
             onClick={handleSave}
           >
-            {saving ? <Loader2 className="animate-spin" size={10} />
-              : saved ? <Check size={10} />
-              : <Layers size={10} />}
+            {saving ? (
+              <Loader2 className="animate-spin" size={10} />
+            ) : saved ? (
+              <Check size={10} />
+            ) : (
+              <Layers size={10} />
+            )}
             {saved ? "Creado" : saving ? "Creando…" : "Crear grupo"}
           </button>
         </div>
@@ -1158,36 +1776,48 @@ export function GlobalSearchBar({
   onNavigateToCancion?: (cancionId: string) => void;
   onBack?: () => void;
 }) {
-  const [query,           setQuery]           = useState("");
-  const [open,            setOpen]            = useState(false);
-  const [focused,         setFocused]         = useState(false);
-  const [addMenuOpen,     setAddMenuOpen]     = useState(false);
-  const [activeIndex,     setActiveIndex]     = useState(-1);
-  const inputRef      = useRef<HTMLInputElement>(null);
-  const wrapRef       = useRef<HTMLDivElement>(null);
-  const dropdownRef   = useRef<HTMLDivElement>(null);
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const [addMenuOpen, setAddMenuOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const activeItemRef = useRef<HTMLButtonElement | null>(null);
 
   // Detect "add" command
   const isAddCommand = normalize(query.trim()) === "add";
 
   // ── Datos de escritura (cargados internamente) ────────────────────────────
-  const [libros,    setLibros]    = useState<any[]>([]);
+  const [libros, setLibros] = useState<any[]>([]);
   const [capitulos, setCapitulos] = useState<any[]>([]);
   const [canciones, setCanciones] = useState<any[]>([]);
 
   useEffect(() => {
     // Cargar libros + capítulos
-    supabase.from("libros").select("id, titulo").order("titulo").then(({ data }) => {
-      if (data) setLibros(data);
-    });
-    supabase.from("capitulos").select("id, titulo_capitulo, libro_id, orden").order("orden").then(({ data }) => {
-      if (data) setCapitulos(data);
-    });
+    supabase
+      .from("libros")
+      .select("id, titulo")
+      .order("titulo")
+      .then(({ data }) => {
+        if (data) setLibros(data);
+      });
+    supabase
+      .from("capitulos")
+      .select("id, titulo_capitulo, libro_id, orden")
+      .order("orden")
+      .then(({ data }) => {
+        if (data) setCapitulos(data);
+      });
     // Cargar canciones
-    supabase.from("canciones").select("id, titulo, cantante, compositor").order("titulo").then(({ data }) => {
-      if (data) setCanciones(data);
-    });
+    supabase
+      .from("canciones")
+      .select("id, titulo, cantante, compositor")
+      .order("titulo")
+      .then(({ data }) => {
+        if (data) setCanciones(data);
+      });
   }, []);
 
   const isMundo = activeTab === "mundo";
@@ -1199,19 +1829,25 @@ export function GlobalSearchBar({
     return allItems[tab]?.find((i: any) => i.id === selectedId) ?? null;
   }, [allItems, selectedId, activeTab, isMundo]);
 
-  const totalCount = useMemo(() =>
-    Object.values(allItems).reduce((a, arr) => a + arr.length, 0),
-  [allItems]);
+  const totalCount = useMemo(
+    () => Object.values(allItems).reduce((a, arr) => a + arr.length, 0),
+    [allItems],
+  );
 
   // Búsqueda global en todas las categorías
   const globalResults = useMemo((): SearchResult[] => {
     const q = normalize(query.trim());
     if (!q) return [];
-    const tabs: Exclude<TabKey, "mundo">[] = ["personajes", "criaturas", "items", "reinos"];
-    return tabs.flatMap(tab =>
+    const tabs: Exclude<TabKey, "mundo">[] = [
+      "personajes",
+      "criaturas",
+      "items",
+      "reinos",
+    ];
+    return tabs.flatMap((tab) =>
       (allItems[tab] ?? [])
         .filter((i: any) => normalize(i.nombre ?? "").includes(q))
-        .map(item => ({ item, tab }))
+        .map((item) => ({ item, tab })),
     );
   }, [allItems, query]);
 
@@ -1221,12 +1857,13 @@ export function GlobalSearchBar({
     const q = normalize(query.trim());
     if (!q) return [];
     return (allItems.notas ?? [])
-      .filter((n: any) =>
-        normalize(n.titulo ?? "").includes(q) ||
-        normalize(n.contenido ?? "").includes(q) ||
-        normalize(n.etiquetas ?? "").includes(q)
+      .filter(
+        (n: any) =>
+          normalize(n.titulo ?? "").includes(q) ||
+          normalize(n.contenido ?? "").includes(q) ||
+          normalize(n.etiquetas ?? "").includes(q),
       )
-      .map(item => ({ item }));
+      .map((item) => ({ item }));
   }, [allItems, query]);
 
   const magicResults = useMemo((): MagicResult[] => {
@@ -1234,13 +1871,13 @@ export function GlobalSearchBar({
     if (!q) return [];
     const magic: { key: "hechizos" | "dones" | "runas"; label: string }[] = [
       { key: "hechizos", label: "Hechizo" },
-      { key: "dones",    label: "Don"     },
-      { key: "runas",    label: "Runa"    },
+      { key: "dones", label: "Don" },
+      { key: "runas", label: "Runa" },
     ];
     return magic.flatMap(({ key, label }) =>
       (allItems[key] ?? [])
         .filter((i: any) => normalize(i.nombre ?? "").includes(q))
-        .map(item => ({ item, subTab: key, label }))
+        .map((item) => ({ item, subTab: key, label })),
     );
   }, [allItems, query]);
 
@@ -1249,11 +1886,11 @@ export function GlobalSearchBar({
     const q = normalize(query.trim());
     if (!q || q.length < 2) return [];
     return capitulos
-      .filter(c => normalize(c.titulo_capitulo ?? "").includes(q))
+      .filter((c) => normalize(c.titulo_capitulo ?? "").includes(q))
       .slice(0, 8)
-      .map(c => ({
+      .map((c) => ({
         item: c,
-        libroNombre: libros.find(l => l.id === c.libro_id)?.titulo ?? "",
+        libroNombre: libros.find((l) => l.id === c.libro_id)?.titulo ?? "",
       }));
   }, [capitulos, libros, query]);
 
@@ -1262,13 +1899,14 @@ export function GlobalSearchBar({
     const q = normalize(query.trim());
     if (!q || q.length < 2) return [];
     return canciones
-      .filter(c =>
-        normalize(c.titulo ?? "").includes(q) ||
-        normalize(c.cantante ?? "").includes(q) ||
-        normalize(c.compositor ?? "").includes(q)
+      .filter(
+        (c) =>
+          normalize(c.titulo ?? "").includes(q) ||
+          normalize(c.cantante ?? "").includes(q) ||
+          normalize(c.compositor ?? "").includes(q),
       )
       .slice(0, 8)
-      .map(item => ({ item }));
+      .map((item) => ({ item }));
   }, [canciones, query]);
 
   const grupoResults = useMemo((): { item: any }[] => {
@@ -1277,18 +1915,24 @@ export function GlobalSearchBar({
     return (allItems.grupos ?? [])
       .filter((g: any) => normalize(g.nombre ?? "").includes(q))
       .slice(0, 8)
-      .map(item => ({ item }));
+      .map((item) => ({ item }));
   }, [allItems, query]);
 
   // Navegación a capítulo y canción — declaradas después de close (ver abajo)
   const tabNavResults = useMemo((): TabNavResult[] => {
     const q = normalize(query.trim());
     if (!q) return [];
-    const tabs = Object.entries(TAB_CONFIG) as [Exclude<TabKey, "mundo">, typeof TAB_CONFIG[Exclude<TabKey, "mundo">]][];
+    const tabs = Object.entries(TAB_CONFIG) as [
+      Exclude<TabKey, "mundo">,
+      (typeof TAB_CONFIG)[Exclude<TabKey, "mundo">],
+    ][];
     return tabs
-      .filter(([key, cfg]) =>
-        key !== "reinos" && key !== "criaturas" && key !== "personajes" &&
-        (normalize(cfg.label).includes(q) || normalize(key).includes(q))
+      .filter(
+        ([key, cfg]) =>
+          key !== "reinos" &&
+          key !== "criaturas" &&
+          key !== "personajes" &&
+          (normalize(cfg.label).includes(q) || normalize(key).includes(q)),
       )
       .map(([tab]) => ({ tab }));
   }, [query]);
@@ -1297,9 +1941,15 @@ export function GlobalSearchBar({
   const mundoSubTabResults = useMemo((): MundoSubTabResult[] => {
     const q = normalize(query.trim());
     if (!q) return [];
-    return MUNDO_NAV
-      .filter(n => n.aliases.some(a => normalize(a).includes(q) || q.includes(normalize(a))))
-      .map(n => ({ section: n.section as MundoSectionKey, subTab: n.subTab as string, label: n.label }));
+    return MUNDO_NAV.filter((n) =>
+      n.aliases.some(
+        (a) => normalize(a).includes(q) || q.includes(normalize(a)),
+      ),
+    ).map((n) => ({
+      section: n.section as MundoSectionKey,
+      subTab: n.subTab as string,
+      label: n.label,
+    }));
   }, [query]);
 
   // mundoNavResults ya no se usa por separado — todo está en mundoSubTabResults
@@ -1307,8 +1957,8 @@ export function GlobalSearchBar({
   const mundoResults = useMemo(() => {
     const q = normalize(query.trim());
     if (!q) return [...MUNDO_SECTIONS];
-    return [...MUNDO_SECTIONS].filter(s =>
-      normalize(s.label).includes(q) || normalize(s.key).includes(q)
+    return [...MUNDO_SECTIONS].filter(
+      (s) => normalize(s.label).includes(q) || normalize(s.key).includes(q),
     );
   }, [query]);
 
@@ -1329,107 +1979,146 @@ export function GlobalSearchBar({
   const flatResultsRef = useRef<FlatResult[]>([]);
 
   // Navegación a capítulo
-  const handleSelectCapitulo = useCallback((cap: any) => {
-    onSelectMundoSubTab?.("geografia", "capitulos");
-    onNavigateToCapitulo?.(cap.id, cap.libro_id);
-    close();
-  }, [onSelectMundoSubTab, onNavigateToCapitulo, close]);
+  const handleSelectCapitulo = useCallback(
+    (cap: any) => {
+      onSelectMundoSubTab?.("geografia", "capitulos");
+      onNavigateToCapitulo?.(cap.id, cap.libro_id);
+      close();
+    },
+    [onSelectMundoSubTab, onNavigateToCapitulo, close],
+  );
 
   // Navegación a canción
-  const handleSelectCancion = useCallback((cancion: any) => {
-    onSelectMundoSubTab?.("geografia", "letras");
-    onNavigateToCancion?.(cancion.id);
-    close();
-  }, [onSelectMundoSubTab, onNavigateToCancion, close]);
+  const handleSelectCancion = useCallback(
+    (cancion: any) => {
+      onSelectMundoSubTab?.("geografia", "letras");
+      onNavigateToCancion?.(cancion.id);
+      close();
+    },
+    [onSelectMundoSubTab, onNavigateToCancion, close],
+  );
 
-  const handleSelect = useCallback((item: any, tab: Exclude<TabKey, "mundo">) => {
-    onSelect(item, tab);
-    close();
-    inputRef.current?.blur();
-  }, [onSelect, close]);
+  const handleSelect = useCallback(
+    (item: any, tab: Exclude<TabKey, "mundo">) => {
+      onSelect(item, tab);
+      close();
+      inputRef.current?.blur();
+    },
+    [onSelect, close],
+  );
 
-  const handleSelectNota = useCallback((nota: any) => {
-    onSelectNota?.(nota);
-    close();
-    inputRef.current?.blur();
-  }, [onSelectNota, close]);
+  const handleSelectNota = useCallback(
+    (nota: any) => {
+      onSelectNota?.(nota);
+      close();
+      inputRef.current?.blur();
+    },
+    [onSelectNota, close],
+  );
 
-  const handleSelectGrupo = useCallback((grupo: any) => {
-    onSelectGrupo?.(grupo);
-    close();
-    inputRef.current?.blur();
-  }, [onSelectGrupo, close]);
+  const handleSelectGrupo = useCallback(
+    (grupo: any) => {
+      onSelectGrupo?.(grupo);
+      close();
+      inputRef.current?.blur();
+    },
+    [onSelectGrupo, close],
+  );
 
-  const handleMundoSection = useCallback((key: MundoSectionKey) => {
-    onSelectMundoSection(key);
-    close();
-    inputRef.current?.blur();
-  }, [onSelectMundoSection, close]);
+  const handleMundoSection = useCallback(
+    (key: MundoSectionKey) => {
+      onSelectMundoSection(key);
+      close();
+      inputRef.current?.blur();
+    },
+    [onSelectMundoSection, close],
+  );
 
-  const handleTabNav = useCallback((tab: Exclude<TabKey, "mundo">) => {
-    onNavigateTab?.(tab);
-    close();
-    inputRef.current?.blur();
-  }, [onNavigateTab, close]);
+  const handleTabNav = useCallback(
+    (tab: Exclude<TabKey, "mundo">) => {
+      onNavigateTab?.(tab);
+      close();
+      inputRef.current?.blur();
+    },
+    [onNavigateTab, close],
+  );
 
-  const handleMundoSubTab = useCallback((section: MundoSectionKey, subTab: string) => {
-    onSelectMundoSection(section);
-    onSelectMundoSubTab?.(section, subTab);
-    close();
-    inputRef.current?.blur();
-  }, [onSelectMundoSection, onSelectMundoSubTab, close]);
+  const handleMundoSubTab = useCallback(
+    (section: MundoSectionKey, subTab: string) => {
+      onSelectMundoSection(section);
+      onSelectMundoSubTab?.(section, subTab);
+      close();
+      inputRef.current?.blur();
+    },
+    [onSelectMundoSection, onSelectMundoSubTab, close],
+  );
 
-  const handleMagic = useCallback((subTab: "hechizos" | "dones" | "runas", item: any) => {
-    onSelectMundoSection("magia");
-    onSelectMundoSubTab?.("magia", subTab);
-    onSelectMagic?.(subTab, item);
-    close();
-    inputRef.current?.blur();
-  }, [onSelectMagic, onSelectMundoSection, onSelectMundoSubTab, close]);
+  const handleMagic = useCallback(
+    (subTab: "hechizos" | "dones" | "runas", item: any) => {
+      onSelectMundoSection("magia");
+      onSelectMundoSubTab?.("magia", subTab);
+      onSelectMagic?.(subTab, item);
+      close();
+      inputRef.current?.blur();
+    },
+    [onSelectMagic, onSelectMundoSection, onSelectMundoSubTab, close],
+  );
 
   // Add magic: hechizos/dones/runas → insert directo con placeholder, sin modal
-  const handleAddMagicWithModal = useCallback((key: MagicAddKey) => {
-    close();
-    if (key === "hechizos" || key === "dones" || key === "runas") {
-      const tablaMap: Record<string, string> = { hechizos: "hechizos", dones: "dones", runas: "runas" };
-      const placeholderMap: Record<string, string> = {
-        hechizos: "Nuevo hechizo",
-        dones:    "Nuevo don",
-        runas:    "Nueva runa",
-      };
-      supabase
-        .from(tablaMap[key])
-        .insert([{ nombre: placeholderMap[key] }])
-        .select("id, nombre, explicacion")
-        .single()
-        .then(({ data, error }) => {
-          if (error || !data) return;
-          onAddMagic?.(key);
-          onSelectMagic?.(key as "hechizos" | "dones" | "runas", data);
-        });
-    } else {
-      onAddMagic?.(key);
-    }
-  }, [onAddMagic, onSelectMagic, close]);
+  const handleAddMagicWithModal = useCallback(
+    (key: MagicAddKey) => {
+      close();
+      if (key === "hechizos" || key === "dones" || key === "runas") {
+        const tablaMap: Record<string, string> = {
+          hechizos: "hechizos",
+          dones: "dones",
+          runas: "runas",
+        };
+        const placeholderMap: Record<string, string> = {
+          hechizos: "Nuevo hechizo",
+          dones: "Nuevo don",
+          runas: "Nueva runa",
+        };
+        supabase
+          .from(tablaMap[key])
+          .insert([{ nombre: placeholderMap[key] }])
+          .select("id, nombre, explicacion")
+          .single()
+          .then(({ data, error }) => {
+            if (error || !data) return;
+            onAddMagic?.(key);
+            onSelectMagic?.(key as "hechizos" | "dones" | "runas", data);
+          });
+      } else {
+        onAddMagic?.(key);
+      }
+    },
+    [onAddMagic, onSelectMagic, close],
+  );
 
   useEffect(() => {
     if (!open) return;
     const onMouse = (e: MouseEvent) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) close();
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node))
+        close();
     };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") { close(); inputRef.current?.blur(); return; }
+      if (e.key === "Escape") {
+        close();
+        inputRef.current?.blur();
+        return;
+      }
 
       const flat = flatResultsRef.current;
 
       if (e.key === "ArrowDown") {
         e.preventDefault();
-        setActiveIndex(prev => (prev + 1) % Math.max(flat.length, 1));
+        setActiveIndex((prev) => (prev + 1) % Math.max(flat.length, 1));
         return;
       }
       if (e.key === "ArrowUp") {
         e.preventDefault();
-        setActiveIndex(prev => prev <= 0 ? flat.length - 1 : prev - 1);
+        setActiveIndex((prev) => (prev <= 0 ? flat.length - 1 : prev - 1));
         return;
       }
 
@@ -1442,7 +2131,8 @@ export function GlobalSearchBar({
         }
         // Si hay un item activo con flecha, ejecutarlo
         if (flat.length > 0) {
-          const idx = activeIndex >= 0 && activeIndex < flat.length ? activeIndex : 0;
+          const idx =
+            activeIndex >= 0 && activeIndex < flat.length ? activeIndex : 0;
           flat[idx]?.action();
           return;
         }
@@ -1450,18 +2140,27 @@ export function GlobalSearchBar({
     };
     document.addEventListener("mousedown", onMouse);
     document.addEventListener("keydown", onKey);
-    return () => { document.removeEventListener("mousedown", onMouse); document.removeEventListener("keydown", onKey); };
+    return () => {
+      document.removeEventListener("mousedown", onMouse);
+      document.removeEventListener("keydown", onKey);
+    };
   }, [open, close, isAddCommand, activeIndex]);
 
   // Auto-scroll al item activo
   useEffect(() => {
     if (activeIndex < 0) return;
-    activeItemRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    activeItemRef.current?.scrollIntoView({
+      block: "nearest",
+      behavior: "smooth",
+    });
   }, [activeIndex]);
 
   useEffect(() => {
     const k = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") { e.preventDefault(); inputRef.current?.focus(); }
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        inputRef.current?.focus();
+      }
     };
     document.addEventListener("keydown", k);
     return () => document.removeEventListener("keydown", k);
@@ -1469,43 +2168,66 @@ export function GlobalSearchBar({
 
   // Returns ref + active style for a flat-list item id
   const itemProps = (id: string) => {
-    const idx = flatResultsRef.current.findIndex(r => r.id === id);
+    const idx = flatResultsRef.current.findIndex((r) => r.id === id);
     const isActive = idx >= 0 && idx === activeIndex;
     return {
-      ref: isActive ? (el: HTMLButtonElement | null) => { activeItemRef.current = el; } : undefined,
+      ref: isActive
+        ? (el: HTMLButtonElement | null) => {
+            activeItemRef.current = el;
+          }
+        : undefined,
       "data-active": isActive,
     } as any;
   };
 
-  const activeMundoLabel = isMundo && activeMundoSection
-    ? MUNDO_SECTIONS.find(s => s.key === activeMundoSection)?.label
-    : null;
+  const activeMundoLabel =
+    isMundo && activeMundoSection
+      ? MUNDO_SECTIONS.find((s) => s.key === activeMundoSection)?.label
+      : null;
 
   const placeholder = focused
     ? "Buscar personajes, criaturas, items, reinos, magia…"
-    : activeMundoLabel
-      ?? selectedItem?.nombre
-      ?? (loadingAll ? "Cargando…" : `${totalCount} entidades`);
+    : (activeMundoLabel ??
+      selectedItem?.nombre ??
+      (loadingAll ? "Cargando…" : `${totalCount} entidades`));
 
-  const totalResults = globalResults.length + mundoResults.length + tabNavResults.length + mundoSubTabResults.length + mundoNavResults.length + magicResults.length + capituloResults.length + cancionResults.length + grupoResults.length;
+  const totalResults =
+    globalResults.length +
+    mundoResults.length +
+    tabNavResults.length +
+    mundoSubTabResults.length +
+    mundoNavResults.length +
+    magicResults.length +
+    capituloResults.length +
+    cancionResults.length +
+    grupoResults.length;
 
   return (
     <div
       className="shrink-0 flex flex-col border-b"
-      style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
+      style={{
+        borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
+      }}
     >
       <div ref={wrapRef} className="flex items-center gap-2 px-3 py-2 relative">
-
         {/* Input */}
         <div
           className="flex-1 flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all border"
-          style={focused ? {
-            background: "color-mix(in srgb, var(--primary) 6%, transparent)",
-            borderColor: "color-mix(in srgb, var(--primary) 30%, transparent)",
-          } : {
-            background: "color-mix(in srgb, var(--primary) 4%, transparent)",
-            borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
-          }}
+          style={
+            focused
+              ? {
+                  background:
+                    "color-mix(in srgb, var(--primary) 6%, transparent)",
+                  borderColor:
+                    "color-mix(in srgb, var(--primary) 30%, transparent)",
+                }
+              : {
+                  background:
+                    "color-mix(in srgb, var(--primary) 4%, transparent)",
+                  borderColor:
+                    "color-mix(in srgb, var(--primary) 10%, transparent)",
+                }
+          }
         >
           {/* Icono contextual / botón volver */}
           {onBack ? (
@@ -1518,21 +2240,33 @@ export function GlobalSearchBar({
             </button>
           ) : !focused && activeMundoLabel ? (
             (() => {
-              const sec = MUNDO_SECTIONS.find(s => s.key === activeMundoSection);
-              return sec
-                ? <sec.Icon className="shrink-0 text-primary/40" size={11} />
-                : <Search className="shrink-0 text-primary/30" size={11} />;
+              const sec = MUNDO_SECTIONS.find(
+                (s) => s.key === activeMundoSection,
+              );
+              return sec ? (
+                <sec.Icon className="shrink-0 text-primary/40" size={11} />
+              ) : (
+                <Search className="shrink-0 text-primary/30" size={11} />
+              );
             })()
           ) : selectedItem && !focused ? (
             <div className="shrink-0 w-5 h-5 rounded-md overflow-hidden border border-primary/15 bg-primary/8 flex items-center justify-center">
-              {(selectedItem.img_url || selectedItem.imagen_url)
-                ? <Image alt={selectedItem.nombre} className="w-full h-full object-cover" src={selectedItem.img_url || selectedItem.imagen_url} />
-                : (() => {
-                    const tabCfg = TAB_CONFIG[activeTab as Exclude<TabKey, "mundo">];
-                    if (!tabCfg) return <Search className="text-primary/40" size={9} />;
-                    const Icon = tabCfg.Icon;
-                    return <Icon className="text-primary/40" size={9} />;
-                  })()}
+              {selectedItem.img_url || selectedItem.imagen_url ? (
+                <Image
+                  alt={selectedItem.nombre}
+                  className="w-full h-full object-cover"
+                  src={selectedItem.img_url || selectedItem.imagen_url}
+                />
+              ) : (
+                (() => {
+                  const tabCfg =
+                    TAB_CONFIG[activeTab as Exclude<TabKey, "mundo">];
+                  if (!tabCfg)
+                    return <Search className="text-primary/40" size={9} />;
+                  const Icon = tabCfg.Icon;
+                  return <Icon className="text-primary/40" size={9} />;
+                })()
+              )}
             </div>
           ) : (
             <Search className="shrink-0 text-primary/30" size={11} />
@@ -1543,24 +2277,47 @@ export function GlobalSearchBar({
             className="flex-1 min-w-0 bg-transparent text-[12px] font-medium text-primary outline-none placeholder:text-primary/40"
             placeholder={placeholder}
             value={focused ? query : ""}
-            onChange={e => { setQuery(e.target.value); setOpen(true); setActiveIndex(-1); }}
-            onFocus={() => { setFocused(true); setOpen(true); setQuery(""); }}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setOpen(true);
+              setActiveIndex(-1);
+            }}
+            onFocus={() => {
+              setFocused(true);
+              setOpen(true);
+              setQuery("");
+            }}
           />
 
-          {focused && query
-            ? <button className="shrink-0 text-primary/25 hover:text-primary transition-colors" onClick={() => setQuery("")}><X size={10} /></button>
-            : !focused
-              ? <kbd className="shrink-0 hidden sm:flex items-center px-1 py-0.5 rounded text-[8px] font-black text-primary/20 border border-primary/10 font-mono">⌘K</kbd>
-              : null}
+          {focused && query ? (
+            <button
+              className="shrink-0 text-primary/25 hover:text-primary transition-colors"
+              onClick={() => setQuery("")}
+            >
+              <X size={10} />
+            </button>
+          ) : !focused ? (
+            <kbd className="shrink-0 hidden sm:flex items-center px-1 py-0.5 rounded text-[8px] font-black text-primary/20 border border-primary/10 font-mono">
+              ⌘K
+            </kbd>
+          ) : null}
         </div>
 
         {/* AddCommandMenu — aparece cuando el usuario escribe "add" y presiona Enter */}
         <AddCommandMenu
           anchorRef={wrapRef}
           open={addMenuOpen}
-          onAdd={(tab) => { onAdd(tab); close(); }}
+          onAdd={(tab) => {
+            onAdd(tab);
+            close();
+          }}
           onAddMagic={handleAddMagicWithModal}
-          onClose={() => { setAddMenuOpen(false); setQuery(""); setFocused(false); inputRef.current?.blur(); }}
+          onClose={() => {
+            setAddMenuOpen(false);
+            setQuery("");
+            setFocused(false);
+            inputRef.current?.blur();
+          }}
         />
 
         {/* Dropdown de búsqueda */}
@@ -1569,13 +2326,20 @@ export function GlobalSearchBar({
             className="absolute left-3 right-3 top-full mt-1.5 z-50 rounded-2xl overflow-hidden"
             style={{
               background: "var(--bg-main)",
-              border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
-              boxShadow: "0 12px 40px color-mix(in srgb, var(--primary) 18%, transparent)",
+              border:
+                "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
+              boxShadow:
+                "0 12px 40px color-mix(in srgb, var(--primary) 18%, transparent)",
             }}
           >
             <div
               className="px-3 py-1.5 flex items-center justify-between border-b"
-              style={{ background: "color-mix(in srgb, var(--primary) 3%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 6%, transparent)" }}
+              style={{
+                background:
+                  "color-mix(in srgb, var(--primary) 3%, transparent)",
+                borderColor:
+                  "color-mix(in srgb, var(--primary) 6%, transparent)",
+              }}
             >
               <span className="text-[9px] font-black uppercase tracking-widest text-primary/25">
                 {loadingAll
@@ -1587,11 +2351,19 @@ export function GlobalSearchBar({
                       : `${totalCount} entidades · Mundo`}
               </span>
               <div className="flex items-center gap-2">
-                {isOffline && <span className="text-[8px] font-black uppercase tracking-widest text-orange-400">Offline</span>}
+                {isOffline && (
+                  <span className="text-[8px] font-black uppercase tracking-widest text-orange-400">
+                    Offline
+                  </span>
+                )}
                 {query.trim() && flatResultsRef.current.length > 0 && (
                   <span className="hidden sm:flex items-center gap-1 text-[8px] font-black uppercase tracking-widest text-primary/20">
-                    <kbd className="px-1 py-0.5 rounded border border-primary/15 font-mono">↑↓</kbd>
-                    <kbd className="px-1 py-0.5 rounded border border-primary/15 font-mono">↵</kbd>
+                    <kbd className="px-1 py-0.5 rounded border border-primary/15 font-mono">
+                      ↑↓
+                    </kbd>
+                    <kbd className="px-1 py-0.5 rounded border border-primary/15 font-mono">
+                      ↵
+                    </kbd>
                   </span>
                 )}
               </div>
@@ -1603,28 +2375,52 @@ export function GlobalSearchBar({
                 const flat: { id: string; action: () => void }[] = [];
                 if (query.trim()) {
                   tabNavResults.forEach(({ tab }) =>
-                    flat.push({ id: `tabnav-${tab}`, action: () => handleTabNav(tab) })
+                    flat.push({
+                      id: `tabnav-${tab}`,
+                      action: () => handleTabNav(tab),
+                    }),
                   );
                   mundoSubTabResults.forEach(({ section, subTab }) =>
-                    flat.push({ id: `subtab-${section}-${subTab}`, action: () => handleMundoSubTab(section, subTab) })
+                    flat.push({
+                      id: `subtab-${section}-${subTab}`,
+                      action: () => handleMundoSubTab(section, subTab),
+                    }),
                   );
                   globalResults.forEach(({ item, tab }) =>
-                    flat.push({ id: `entity-${tab}-${item.id}`, action: () => handleSelect(item, tab) })
+                    flat.push({
+                      id: `entity-${tab}-${item.id}`,
+                      action: () => handleSelect(item, tab),
+                    }),
                   );
                   magicResults.forEach(({ item, subTab }) =>
-                    flat.push({ id: `magic-${subTab}-${item.id}`, action: () => handleMagic(subTab, item) })
+                    flat.push({
+                      id: `magic-${subTab}-${item.id}`,
+                      action: () => handleMagic(subTab, item),
+                    }),
                   );
                   notaResults.forEach(({ item }) =>
-                    flat.push({ id: `nota-${item.id}`, action: () => handleSelectNota(item) })
+                    flat.push({
+                      id: `nota-${item.id}`,
+                      action: () => handleSelectNota(item),
+                    }),
                   );
                   capituloResults.forEach(({ item }) =>
-                    flat.push({ id: `cap-${item.id}`, action: () => handleSelectCapitulo(item) })
+                    flat.push({
+                      id: `cap-${item.id}`,
+                      action: () => handleSelectCapitulo(item),
+                    }),
                   );
                   cancionResults.forEach(({ item }) =>
-                    flat.push({ id: `cancion-${item.id}`, action: () => handleSelectCancion(item) })
+                    flat.push({
+                      id: `cancion-${item.id}`,
+                      action: () => handleSelectCancion(item),
+                    }),
                   );
                   grupoResults.forEach(({ item }) =>
-                    flat.push({ id: `grupo-${item.id}`, action: () => handleSelectGrupo(item) })
+                    flat.push({
+                      id: `grupo-${item.id}`,
+                      action: () => handleSelectGrupo(item),
+                    }),
                   );
                 }
                 flatResultsRef.current = flat;
@@ -1638,7 +2434,9 @@ export function GlobalSearchBar({
               ) : isAddCommand ? (
                 <div className="flex flex-col items-center gap-2 py-6 text-primary/25">
                   <Sparkles size={18} />
-                  <p className="text-[9px] font-black uppercase tracking-widest">Presiona Enter para abrir el menú de añadir</p>
+                  <p className="text-[9px] font-black uppercase tracking-widest">
+                    Presiona Enter para abrir el menú de añadir
+                  </p>
                 </div>
               ) : query.trim() ? (
                 totalResults > 0 ? (
@@ -1647,7 +2445,9 @@ export function GlobalSearchBar({
                     {tabNavResults.length > 0 && (
                       <>
                         <div className="px-2 pt-2 pb-1">
-                          <p className="text-[8px] font-black uppercase tracking-widest text-primary/25">Ir a sección</p>
+                          <p className="text-[8px] font-black uppercase tracking-widest text-primary/25">
+                            Ir a sección
+                          </p>
                         </div>
                         <div className="space-y-0.5 mb-1">
                           {tabNavResults.map(({ tab }) => {
@@ -1666,16 +2466,32 @@ export function GlobalSearchBar({
                                       : "border-transparent hover:bg-primary/6 hover:border-primary/10"
                                 }`}
                               >
-                                <div className="shrink-0 w-7 h-7 rounded-lg border flex items-center justify-center"
+                                <div
+                                  className="shrink-0 w-7 h-7 rounded-lg border flex items-center justify-center"
                                   style={{
-                                    background: "color-mix(in srgb, var(--primary) 7%, transparent)",
-                                    borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
-                                  }}>
-                                  <TabIcon className="text-primary/40" size={12} />
+                                    background:
+                                      "color-mix(in srgb, var(--primary) 7%, transparent)",
+                                    borderColor:
+                                      "color-mix(in srgb, var(--primary) 12%, transparent)",
+                                  }}
+                                >
+                                  <TabIcon
+                                    className="text-primary/40"
+                                    size={12}
+                                  />
                                 </div>
-                                <span className="flex-1 text-[11px] font-bold text-primary/70">{cfg.label}</span>
-                                <span className="text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md"
-                                  style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)", color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>
+                                <span className="flex-1 text-[11px] font-bold text-primary/70">
+                                  {cfg.label}
+                                </span>
+                                <span
+                                  className="text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md"
+                                  style={{
+                                    background:
+                                      "color-mix(in srgb, var(--primary) 8%, transparent)",
+                                    color:
+                                      "color-mix(in srgb, var(--primary) 40%, transparent)",
+                                  }}
+                                >
                                   Tab
                                 </span>
                               </button>
@@ -1689,12 +2505,21 @@ export function GlobalSearchBar({
                     {mundoNavResults.length > 0 && (
                       <>
                         <div className="px-2 pt-2 pb-1">
-                          <p className="text-[8px] font-black uppercase tracking-widest text-primary/25">Mundo</p>
+                          <p className="text-[8px] font-black uppercase tracking-widest text-primary/25">
+                            Mundo
+                          </p>
                         </div>
                         <div className="space-y-0.5 mb-1">
                           {mundoNavResults.map(({ section, label, subTab }) => {
-                            const sec = MUNDO_SECTIONS.find(s => s.key === section);
-                            const SecIcon = subTab === "capitulos" ? BookOpen : subTab === "letras" ? Music : sec?.Icon;
+                            const sec = MUNDO_SECTIONS.find(
+                              (s) => s.key === section,
+                            );
+                            const SecIcon =
+                              subTab === "capitulos"
+                                ? BookOpen
+                                : subTab === "letras"
+                                  ? Music
+                                  : sec?.Icon;
                             return (
                               <button
                                 key={section + label}
@@ -1704,20 +2529,39 @@ export function GlobalSearchBar({
                                     : "border-transparent hover:bg-primary/6 hover:border-primary/10"
                                 }`}
                                 onMouseDown={() => {
-                                  if (subTab) handleMundoSubTab(section, subTab);
+                                  if (subTab)
+                                    handleMundoSubTab(section, subTab);
                                   else handleMundoSection(section);
                                 }}
                               >
-                                <div className="shrink-0 w-7 h-7 rounded-lg border flex items-center justify-center"
+                                <div
+                                  className="shrink-0 w-7 h-7 rounded-lg border flex items-center justify-center"
                                   style={{
-                                    background: "color-mix(in srgb, var(--primary) 7%, transparent)",
-                                    borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
-                                  }}>
-                                  {SecIcon && <SecIcon className="text-primary/40" size={12} />}
+                                    background:
+                                      "color-mix(in srgb, var(--primary) 7%, transparent)",
+                                    borderColor:
+                                      "color-mix(in srgb, var(--primary) 12%, transparent)",
+                                  }}
+                                >
+                                  {SecIcon && (
+                                    <SecIcon
+                                      className="text-primary/40"
+                                      size={12}
+                                    />
+                                  )}
                                 </div>
-                                <span className="flex-1 text-[11px] font-bold text-primary/70">{label}</span>
-                                <span className="text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md"
-                                  style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)", color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>
+                                <span className="flex-1 text-[11px] font-bold text-primary/70">
+                                  {label}
+                                </span>
+                                <span
+                                  className="text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md"
+                                  style={{
+                                    background:
+                                      "color-mix(in srgb, var(--primary) 8%, transparent)",
+                                    color:
+                                      "color-mix(in srgb, var(--primary) 40%, transparent)",
+                                  }}
+                                >
                                   Mundo
                                 </span>
                               </button>
@@ -1731,45 +2575,81 @@ export function GlobalSearchBar({
                     {mundoSubTabResults.length > 0 && (
                       <>
                         <div className="px-2 pt-2 pb-1">
-                          <p className="text-[8px] font-black uppercase tracking-widest text-primary/25">Mundo</p>
+                          <p className="text-[8px] font-black uppercase tracking-widest text-primary/25">
+                            Mundo
+                          </p>
                         </div>
                         <div className="space-y-0.5 mb-1">
-                          {mundoSubTabResults.map(({ section, subTab, label }) => {
-                            const sec = MUNDO_SECTIONS.find(s => s.key === section);
-                            const SecIcon = sec?.Icon;
-                            const isMagiaTab = ["magia", "hechizos", "dones", "runas"].includes(subTab);
-                            return (
-                              <button
-                                key={section + subTab}
-                                onMouseDown={() => handleMundoSubTab(section, subTab)}
-                                {...itemProps(`subtab-${section}-${subTab}`)}
-                                className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-150 border ${
-                                  isMundo && activeMundoSection === section
-                                    ? "bg-primary/12 border-primary/20"
-                                    : itemProps(`subtab-${section}-${subTab}`)["data-active"]
-                                      ? "bg-primary/8 border-primary/15"
-                                      : "border-transparent hover:bg-primary/6 hover:border-primary/10"
-                                }`}
-                              >
-                                <div className="shrink-0 w-7 h-7 rounded-lg border flex items-center justify-center"
-                                  style={{
-                                    background: isMagiaTab
-                                      ? "color-mix(in srgb, var(--accent) 8%, transparent)"
-                                      : "color-mix(in srgb, var(--primary) 7%, transparent)",
-                                    borderColor: isMagiaTab
-                                      ? "color-mix(in srgb, var(--accent) 15%, transparent)"
-                                      : "color-mix(in srgb, var(--primary) 12%, transparent)",
-                                  }}>
-                                  {SecIcon && <SecIcon size={12} style={{ color: isMagiaTab ? "var(--accent)" : "var(--primary)", opacity: 0.5 }} />}
-                                </div>
-                                <span className="flex-1 text-[11px] font-bold text-primary/70">{label}</span>
-                                <span className="text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md"
-                                  style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)", color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>
-                                  Mundo
-                                </span>
-                              </button>
-                            );
-                          })}
+                          {mundoSubTabResults.map(
+                            ({ section, subTab, label }) => {
+                              const sec = MUNDO_SECTIONS.find(
+                                (s) => s.key === section,
+                              );
+                              const SecIcon = sec?.Icon;
+                              const isMagiaTab = [
+                                "magia",
+                                "hechizos",
+                                "dones",
+                                "runas",
+                              ].includes(subTab);
+                              return (
+                                <button
+                                  key={section + subTab}
+                                  onMouseDown={() =>
+                                    handleMundoSubTab(section, subTab)
+                                  }
+                                  {...itemProps(`subtab-${section}-${subTab}`)}
+                                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-150 border ${
+                                    isMundo && activeMundoSection === section
+                                      ? "bg-primary/12 border-primary/20"
+                                      : itemProps(
+                                            `subtab-${section}-${subTab}`,
+                                          )["data-active"]
+                                        ? "bg-primary/8 border-primary/15"
+                                        : "border-transparent hover:bg-primary/6 hover:border-primary/10"
+                                  }`}
+                                >
+                                  <div
+                                    className="shrink-0 w-7 h-7 rounded-lg border flex items-center justify-center"
+                                    style={{
+                                      background: isMagiaTab
+                                        ? "color-mix(in srgb, var(--accent) 8%, transparent)"
+                                        : "color-mix(in srgb, var(--primary) 7%, transparent)",
+                                      borderColor: isMagiaTab
+                                        ? "color-mix(in srgb, var(--accent) 15%, transparent)"
+                                        : "color-mix(in srgb, var(--primary) 12%, transparent)",
+                                    }}
+                                  >
+                                    {SecIcon && (
+                                      <SecIcon
+                                        size={12}
+                                        style={{
+                                          color: isMagiaTab
+                                            ? "var(--accent)"
+                                            : "var(--primary)",
+                                          opacity: 0.5,
+                                        }}
+                                      />
+                                    )}
+                                  </div>
+                                  <span className="flex-1 text-[11px] font-bold text-primary/70">
+                                    {label}
+                                  </span>
+                                  <span
+                                    className="text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md"
+                                    style={{
+                                      background:
+                                        "color-mix(in srgb, var(--primary) 8%, transparent)",
+                                      color:
+                                        "color-mix(in srgb, var(--primary) 40%, transparent)",
+                                    }}
+                                  >
+                                    Mundo
+                                  </span>
+                                </button>
+                              );
+                            },
+                          )}
                         </div>
                       </>
                     )}
@@ -1778,35 +2658,56 @@ export function GlobalSearchBar({
                     {globalResults.length > 0 && (
                       <div className="grid grid-cols-3 sm:grid-cols-6 gap-1">
                         {globalResults.map(({ item, tab }) => {
-                            const fid = `entity-${tab}-${item.id}`;
-                            const props = itemProps(fid);
-                            return (
-                              <div
-                                key={`${tab}-${item.id}`}
-                                ref={props.ref}
-                                className={props["data-active"] ? "rounded-xl outline-2 outline-primary/30" : ""}
-                              >
-                                <EntidadCard
-                                  item={item} selected={selectedId === item.id && activeTab === tab}
-                                  tab={tab}
-                                  onClick={() => handleSelect(item, tab)}
-                                  onToggleOculto={tab === "reinos" ? onToggleOculto : undefined}
-                                />
-                              </div>
-                            );
-                          })}
+                          const fid = `entity-${tab}-${item.id}`;
+                          const props = itemProps(fid);
+                          return (
+                            <div
+                              key={`${tab}-${item.id}`}
+                              ref={props.ref}
+                              className={
+                                props["data-active"]
+                                  ? "rounded-xl outline-2 outline-primary/30"
+                                  : ""
+                              }
+                            >
+                              <EntidadCard
+                                item={item}
+                                selected={
+                                  selectedId === item.id && activeTab === tab
+                                }
+                                tab={tab}
+                                onClick={() => handleSelect(item, tab)}
+                                onToggleOculto={
+                                  tab === "reinos" ? onToggleOculto : undefined
+                                }
+                              />
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
 
                     {magicResults.length > 0 && (
                       <>
                         <div className="px-2 pt-3 pb-1">
-                          <p className="text-[8px] font-black uppercase tracking-widest text-primary/25">Magia</p>
+                          <p className="text-[8px] font-black uppercase tracking-widest text-primary/25">
+                            Magia
+                          </p>
                         </div>
                         <div className="grid grid-cols-3 sm:grid-cols-6 gap-1 mb-1">
                           {magicResults.map(({ item, subTab, label }) => {
-                            const color = subTab === "hechizos" ? "var(--accent)" : subTab === "dones" ? "color-mix(in srgb, var(--accent) 70%, var(--primary))" : "var(--primary)";
-                            const abbr = subTab === "hechizos" ? "HZ" : subTab === "dones" ? "DN" : "RN";
+                            const color =
+                              subTab === "hechizos"
+                                ? "var(--accent)"
+                                : subTab === "dones"
+                                  ? "color-mix(in srgb, var(--accent) 70%, var(--primary))"
+                                  : "var(--primary)";
+                            const abbr =
+                              subTab === "hechizos"
+                                ? "HZ"
+                                : subTab === "dones"
+                                  ? "DN"
+                                  : "RN";
                             return (
                               <button
                                 key={`${subTab}-${item.id}`}
@@ -1814,8 +2715,17 @@ export function GlobalSearchBar({
                                 {...itemProps(`magic-${subTab}-${item.id}`)}
                                 className={`group flex flex-col items-center gap-1 p-1.5 rounded-xl transition-all duration-150 border ${itemProps(`magic-${subTab}-${item.id}`)["data-active"] ? "border-primary/25 bg-primary/6" : "border-transparent hover:border-primary/10"}`}
                                 style={{ aspectRatio: "1 / 1" }}
-                                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = `color-mix(in srgb, ${color} 7%, transparent)`; }}
-                                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
+                                onMouseEnter={(e) => {
+                                  (
+                                    e.currentTarget as HTMLElement
+                                  ).style.background =
+                                    `color-mix(in srgb, ${color} 7%, transparent)`;
+                                }}
+                                onMouseLeave={(e) => {
+                                  (
+                                    e.currentTarget as HTMLElement
+                                  ).style.background = "transparent";
+                                }}
                               >
                                 <div
                                   className="shrink-0 w-7 h-7 rounded-lg border flex items-center justify-center"
@@ -1824,14 +2734,26 @@ export function GlobalSearchBar({
                                     borderColor: `color-mix(in srgb, ${color} 15%, transparent)`,
                                   }}
                                 >
-                                  <span style={{ fontSize: 9, fontWeight: 900, fontFamily: "var(--font-mono)", color: `color-mix(in srgb, ${color} 60%, transparent)` }}>
+                                  <span
+                                    style={{
+                                      fontSize: 9,
+                                      fontWeight: 900,
+                                      fontFamily: "var(--font-mono)",
+                                      color: `color-mix(in srgb, ${color} 60%, transparent)`,
+                                    }}
+                                  >
                                     {abbr}
                                   </span>
                                 </div>
-                                <p className="text-[10px] font-bold truncate w-full text-center text-primary/70 group-hover:text-primary/90 leading-tight">{item.nombre}</p>
+                                <p className="text-[10px] font-bold truncate w-full text-center text-primary/70 group-hover:text-primary/90 leading-tight">
+                                  {item.nombre}
+                                </p>
                                 <span
                                   className="shrink-0 text-[7px] font-black uppercase tracking-widest px-1 py-0.5 rounded-md"
-                                  style={{ background: `color-mix(in srgb, ${color} 8%, transparent)`, color: `color-mix(in srgb, ${color} 50%, transparent)` }}
+                                  style={{
+                                    background: `color-mix(in srgb, ${color} 8%, transparent)`,
+                                    color: `color-mix(in srgb, ${color} 50%, transparent)`,
+                                  }}
                                 >
                                   {label}
                                 </span>
@@ -1845,7 +2767,9 @@ export function GlobalSearchBar({
                     {notaResults.length > 0 && (
                       <>
                         <div className="px-2 pt-3 pb-1">
-                          <p className="text-[8px] font-black uppercase tracking-widest text-primary/25">Notas</p>
+                          <p className="text-[8px] font-black uppercase tracking-widest text-primary/25">
+                            Notas
+                          </p>
                         </div>
                         <div className="space-y-0.5 mb-1">
                           {notaResults.map(({ item }) => (
@@ -1858,16 +2782,28 @@ export function GlobalSearchBar({
                               <div
                                 className="shrink-0 w-7 h-7 rounded-lg border flex items-center justify-center"
                                 style={{
-                                  background: "color-mix(in srgb, var(--primary) 7%, transparent)",
-                                  borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
+                                  background:
+                                    "color-mix(in srgb, var(--primary) 7%, transparent)",
+                                  borderColor:
+                                    "color-mix(in srgb, var(--primary) 12%, transparent)",
                                 }}
                               >
-                                <FileText className="text-primary/35" size={12} />
+                                <FileText
+                                  className="text-primary/35"
+                                  size={12}
+                                />
                               </div>
-                              <span className="flex-1 text-[11px] font-bold text-primary/70 truncate">{item.titulo}</span>
+                              <span className="flex-1 text-[11px] font-bold text-primary/70 truncate">
+                                {item.titulo}
+                              </span>
                               <span
                                 className="shrink-0 text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md"
-                                style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)", color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
+                                style={{
+                                  background:
+                                    "color-mix(in srgb, var(--primary) 8%, transparent)",
+                                  color:
+                                    "color-mix(in srgb, var(--primary) 35%, transparent)",
+                                }}
                               >
                                 Nota
                               </span>
@@ -1881,7 +2817,9 @@ export function GlobalSearchBar({
                     {capituloResults.length > 0 && (
                       <>
                         <div className="px-2 pt-3 pb-1">
-                          <p className="text-[8px] font-black uppercase tracking-widest text-primary/25">Capítulos</p>
+                          <p className="text-[8px] font-black uppercase tracking-widest text-primary/25">
+                            Capítulos
+                          </p>
                         </div>
                         <div className="space-y-0.5 mb-1">
                           {capituloResults.map(({ item, libroNombre }) => (
@@ -1891,16 +2829,39 @@ export function GlobalSearchBar({
                               {...itemProps(`cap-${item.id}`)}
                               className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-150 border ${itemProps(`cap-${item.id}`)["data-active"] ? "bg-primary/8 border-primary/15" : "border-transparent hover:bg-primary/6 hover:border-primary/10"}`}
                             >
-                              <div className="shrink-0 w-7 h-7 rounded-lg border flex items-center justify-center"
-                                style={{ background: "color-mix(in srgb, var(--primary) 7%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
-                                <BookOpen className="text-primary/40" size={12} />
+                              <div
+                                className="shrink-0 w-7 h-7 rounded-lg border flex items-center justify-center"
+                                style={{
+                                  background:
+                                    "color-mix(in srgb, var(--primary) 7%, transparent)",
+                                  borderColor:
+                                    "color-mix(in srgb, var(--primary) 12%, transparent)",
+                                }}
+                              >
+                                <BookOpen
+                                  className="text-primary/40"
+                                  size={12}
+                                />
                               </div>
                               <div className="flex-1 min-w-0 text-left">
-                                <p className="text-[11px] font-bold text-primary/70 truncate">{item.titulo_capitulo}</p>
-                                {libroNombre && <p className="text-[9px] text-primary/30 truncate">{libroNombre}</p>}
+                                <p className="text-[11px] font-bold text-primary/70 truncate">
+                                  {item.titulo_capitulo}
+                                </p>
+                                {libroNombre && (
+                                  <p className="text-[9px] text-primary/30 truncate">
+                                    {libroNombre}
+                                  </p>
+                                )}
                               </div>
-                              <span className="shrink-0 text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md"
-                                style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)", color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
+                              <span
+                                className="shrink-0 text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md"
+                                style={{
+                                  background:
+                                    "color-mix(in srgb, var(--primary) 8%, transparent)",
+                                  color:
+                                    "color-mix(in srgb, var(--primary) 35%, transparent)",
+                                }}
+                              >
                                 Cap
                               </span>
                             </button>
@@ -1913,7 +2874,9 @@ export function GlobalSearchBar({
                     {cancionResults.length > 0 && (
                       <>
                         <div className="px-2 pt-3 pb-1">
-                          <p className="text-[8px] font-black uppercase tracking-widest text-primary/25">Canciones</p>
+                          <p className="text-[8px] font-black uppercase tracking-widest text-primary/25">
+                            Canciones
+                          </p>
                         </div>
                         <div className="space-y-0.5 mb-1">
                           {cancionResults.map(({ item }) => (
@@ -1923,16 +2886,36 @@ export function GlobalSearchBar({
                               {...itemProps(`cancion-${item.id}`)}
                               className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-150 border ${itemProps(`cancion-${item.id}`)["data-active"] ? "bg-primary/8 border-primary/15" : "border-transparent hover:bg-primary/6 hover:border-primary/10"}`}
                             >
-                              <div className="shrink-0 w-7 h-7 rounded-lg border flex items-center justify-center"
-                                style={{ background: "color-mix(in srgb, var(--primary) 7%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
+                              <div
+                                className="shrink-0 w-7 h-7 rounded-lg border flex items-center justify-center"
+                                style={{
+                                  background:
+                                    "color-mix(in srgb, var(--primary) 7%, transparent)",
+                                  borderColor:
+                                    "color-mix(in srgb, var(--primary) 12%, transparent)",
+                                }}
+                              >
                                 <Music className="text-primary/40" size={12} />
                               </div>
                               <div className="flex-1 min-w-0 text-left">
-                                <p className="text-[11px] font-bold text-primary/70 truncate">{item.titulo}</p>
-                                {item.cantante && <p className="text-[9px] text-primary/30 truncate">{item.cantante}</p>}
+                                <p className="text-[11px] font-bold text-primary/70 truncate">
+                                  {item.titulo}
+                                </p>
+                                {item.cantante && (
+                                  <p className="text-[9px] text-primary/30 truncate">
+                                    {item.cantante}
+                                  </p>
+                                )}
                               </div>
-                              <span className="shrink-0 text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md"
-                                style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)", color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
+                              <span
+                                className="shrink-0 text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md"
+                                style={{
+                                  background:
+                                    "color-mix(in srgb, var(--primary) 8%, transparent)",
+                                  color:
+                                    "color-mix(in srgb, var(--primary) 35%, transparent)",
+                                }}
+                              >
                                 Song
                               </span>
                             </button>
@@ -1945,7 +2928,9 @@ export function GlobalSearchBar({
                     {grupoResults.length > 0 && (
                       <>
                         <div className="px-2 pt-3 pb-1">
-                          <p className="text-[8px] font-black uppercase tracking-widest text-primary/25">Grupos</p>
+                          <p className="text-[8px] font-black uppercase tracking-widest text-primary/25">
+                            Grupos
+                          </p>
                         </div>
                         <div className="space-y-0.5 mb-1">
                           {grupoResults.map(({ item }) => (
@@ -1955,16 +2940,34 @@ export function GlobalSearchBar({
                               {...itemProps(`grupo-${item.id}`)}
                               className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-150 border ${itemProps(`grupo-${item.id}`)["data-active"] ? "bg-primary/8 border-primary/15" : "border-transparent hover:bg-primary/6 hover:border-primary/10"}`}
                             >
-                              <div className="shrink-0 w-7 h-7 rounded-lg border flex items-center justify-center"
-                                style={{ background: "color-mix(in srgb, var(--primary) 7%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
+                              <div
+                                className="shrink-0 w-7 h-7 rounded-lg border flex items-center justify-center"
+                                style={{
+                                  background:
+                                    "color-mix(in srgb, var(--primary) 7%, transparent)",
+                                  borderColor:
+                                    "color-mix(in srgb, var(--primary) 12%, transparent)",
+                                }}
+                              >
                                 <Layers className="text-primary/35" size={12} />
                               </div>
                               <div className="flex-1 min-w-0 text-left">
-                                <p className="text-[11px] font-bold text-primary/70 truncate">{item.nombre}</p>
-                                <p className="text-[9px] text-primary/30 truncate">{item.miembro_ids?.length ?? 0} miembros</p>
+                                <p className="text-[11px] font-bold text-primary/70 truncate">
+                                  {item.nombre}
+                                </p>
+                                <p className="text-[9px] text-primary/30 truncate">
+                                  {item.miembro_ids?.length ?? 0} miembros
+                                </p>
                               </div>
-                              <span className="shrink-0 text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md"
-                                style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)", color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
+                              <span
+                                className="shrink-0 text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md"
+                                style={{
+                                  background:
+                                    "color-mix(in srgb, var(--primary) 8%, transparent)",
+                                  color:
+                                    "color-mix(in srgb, var(--primary) 35%, transparent)",
+                                }}
+                              >
                                 Grupo
                               </span>
                             </button>
@@ -1976,15 +2979,23 @@ export function GlobalSearchBar({
                     {mundoResults.length > 0 && (
                       <>
                         <div className="px-2 pt-3 pb-1">
-                          <p className="text-[8px] font-black uppercase tracking-widest text-primary/25">Mundo</p>
+                          <p className="text-[8px] font-black uppercase tracking-widest text-primary/25">
+                            Mundo
+                          </p>
                         </div>
                         <div className="space-y-0.5">
-                          {mundoResults.map(section => (
+                          {mundoResults.map((section) => (
                             <MundoSectionCard
                               key={section.key}
                               section={section}
-                              selected={isMundo && activeMundoSection === section.key}
-                              onClick={() => handleMundoSection(section.key as MundoSectionKey)}
+                              selected={
+                                isMundo && activeMundoSection === section.key
+                              }
+                              onClick={() =>
+                                handleMundoSection(
+                                  section.key as MundoSectionKey,
+                                )
+                              }
                             />
                           ))}
                         </div>
@@ -1994,7 +3005,9 @@ export function GlobalSearchBar({
                 ) : (
                   <div className="flex flex-col items-center gap-2 py-8 text-primary/20">
                     <SlidersHorizontal size={16} />
-                    <p className="text-[9px] font-black uppercase tracking-widest">Sin coincidencias</p>
+                    <p className="text-[9px] font-black uppercase tracking-widest">
+                      Sin coincidencias
+                    </p>
                   </div>
                 )
               ) : (
@@ -2003,35 +3016,62 @@ export function GlobalSearchBar({
                     {Object.entries(allItems)
                       .filter(([tab]) => tab !== "grupos" && tab !== "notas")
                       .flatMap(([tab, items]) =>
-                        items.map(item => ({ item, tab: tab as Exclude<TabKey, "mundo"> }))
+                        items.map((item) => ({
+                          item,
+                          tab: tab as Exclude<TabKey, "mundo">,
+                        })),
                       )
                       .slice(0, 30)
                       .map(({ item, tab }) => (
                         <EntidadCard
                           key={`${tab}-${item.id}`}
-                          item={item} selected={selectedId === item.id && activeTab === tab}
+                          item={item}
+                          selected={selectedId === item.id && activeTab === tab}
                           tab={tab}
                           onClick={() => handleSelect(item, tab)}
-                          onToggleOculto={tab === "reinos" ? onToggleOculto : undefined}
+                          onToggleOculto={
+                            tab === "reinos" ? onToggleOculto : undefined
+                          }
                         />
                       ))}
                   </div>
                   <div className="px-2 pt-3 pb-1">
-                    <p className="text-[8px] font-black uppercase tracking-widest text-primary/25">Mundo</p>
+                    <p className="text-[8px] font-black uppercase tracking-widest text-primary/25">
+                      Mundo
+                    </p>
                   </div>
                   <div className="space-y-0.5">
-                    {MUNDO_NAV.filter(nav => !["hechizos", "dones", "runas", "capitulos", "letras"].includes(nav.subTab)).map(nav => {
-                      const sec = MUNDO_SECTIONS.find(s => s.key === nav.section);
+                    {MUNDO_NAV.filter(
+                      (nav) =>
+                        ![
+                          "hechizos",
+                          "dones",
+                          "runas",
+                          "capitulos",
+                          "letras",
+                        ].includes(nav.subTab),
+                    ).map((nav) => {
+                      const sec = MUNDO_SECTIONS.find(
+                        (s) => s.key === nav.section,
+                      );
                       const NavIcon = sec?.Icon;
                       const isMagiaTab = nav.subTab === "magia";
-                      const isActive = isMundo && activeMundoSection === nav.section;
+                      const isActive =
+                        isMundo && activeMundoSection === nav.section;
                       return (
                         <button
                           key={nav.section + nav.subTab}
                           className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-150 border ${
-                            isActive ? "bg-primary/12 border-primary/20" : "border-transparent hover:bg-primary/6 hover:border-primary/10"
+                            isActive
+                              ? "bg-primary/12 border-primary/20"
+                              : "border-transparent hover:bg-primary/6 hover:border-primary/10"
                           }`}
-                          onMouseDown={() => handleMundoSubTab(nav.section as MundoSectionKey, nav.subTab)}
+                          onMouseDown={() =>
+                            handleMundoSubTab(
+                              nav.section as MundoSectionKey,
+                              nav.subTab,
+                            )
+                          }
                         >
                           <div
                             className="shrink-0 w-7 h-7 rounded-lg border flex items-center justify-center"
@@ -2044,14 +3084,31 @@ export function GlobalSearchBar({
                                 : "color-mix(in srgb, var(--primary) 12%, transparent)",
                             }}
                           >
-                            {NavIcon && <NavIcon size={12} style={{ color: isMagiaTab ? "var(--accent)" : "var(--primary)", opacity: 0.4 }} />}
+                            {NavIcon && (
+                              <NavIcon
+                                size={12}
+                                style={{
+                                  color: isMagiaTab
+                                    ? "var(--accent)"
+                                    : "var(--primary)",
+                                  opacity: 0.4,
+                                }}
+                              />
+                            )}
                           </div>
-                          <span className={`flex-1 text-[11px] font-bold truncate transition-colors ${isActive ? "text-primary" : "text-primary/70 hover:text-primary/90"}`}>
+                          <span
+                            className={`flex-1 text-[11px] font-bold truncate transition-colors ${isActive ? "text-primary" : "text-primary/70 hover:text-primary/90"}`}
+                          >
                             {nav.label}
                           </span>
                           <span
                             className="shrink-0 text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md"
-                            style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)", color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
+                            style={{
+                              background:
+                                "color-mix(in srgb, var(--primary) 8%, transparent)",
+                              color:
+                                "color-mix(in srgb, var(--primary) 35%, transparent)",
+                            }}
                           >
                             Mun
                           </span>
@@ -2062,37 +3119,57 @@ export function GlobalSearchBar({
 
                   {/* Escritura: acceso rápido a Capítulos y Canciones */}
                   <div className="px-2 pt-3 pb-1">
-                    <p className="text-[8px] font-black uppercase tracking-widest text-primary/25">Escritura</p>
+                    <p className="text-[8px] font-black uppercase tracking-widest text-primary/25">
+                      Escritura
+                    </p>
                   </div>
                   <div className="space-y-0.5">
                     {[
-                      { subTab: "capitulos", label: "Capítulos",  Icon: BookOpen },
-                      { subTab: "letras",    label: "Canciones",  Icon: Music    },
+                      {
+                        subTab: "capitulos",
+                        label: "Capítulos",
+                        Icon: BookOpen,
+                      },
+                      { subTab: "letras", label: "Canciones", Icon: Music },
                     ].map(({ subTab, label, Icon }) => {
-                      const isActive = isMundo && (activeTab as string) === subTab;
+                      const isActive =
+                        isMundo && (activeTab as string) === subTab;
                       return (
                         <button
                           key={subTab}
                           className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-150 border ${
-                            isActive ? "bg-primary/12 border-primary/20" : "border-transparent hover:bg-primary/6 hover:border-primary/10"
+                            isActive
+                              ? "bg-primary/12 border-primary/20"
+                              : "border-transparent hover:bg-primary/6 hover:border-primary/10"
                           }`}
-                          onMouseDown={() => handleMundoSubTab("geografia", subTab)}
+                          onMouseDown={() =>
+                            handleMundoSubTab("geografia", subTab)
+                          }
                         >
                           <div
                             className="shrink-0 w-7 h-7 rounded-lg border flex items-center justify-center"
                             style={{
-                              background: "color-mix(in srgb, var(--primary) 7%, transparent)",
-                              borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
+                              background:
+                                "color-mix(in srgb, var(--primary) 7%, transparent)",
+                              borderColor:
+                                "color-mix(in srgb, var(--primary) 12%, transparent)",
                             }}
                           >
                             <Icon className="text-primary/40" size={12} />
                           </div>
-                          <span className={`flex-1 text-[11px] font-bold truncate transition-colors ${isActive ? "text-primary" : "text-primary/70 hover:text-primary/90"}`}>
+                          <span
+                            className={`flex-1 text-[11px] font-bold truncate transition-colors ${isActive ? "text-primary" : "text-primary/70 hover:text-primary/90"}`}
+                          >
                             {label}
                           </span>
                           <span
                             className="shrink-0 text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md"
-                            style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)", color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
+                            style={{
+                              background:
+                                "color-mix(in srgb, var(--primary) 8%, transparent)",
+                              color:
+                                "color-mix(in srgb, var(--primary) 35%, transparent)",
+                            }}
                           >
                             Mun
                           </span>
@@ -2102,11 +3179,17 @@ export function GlobalSearchBar({
                   </div>
 
                   {/* Add hint at the bottom */}
-                  <div className="mt-2 px-2 py-1.5 rounded-xl border border-dashed flex items-center gap-2"
-                    style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)" }}>
+                  <div
+                    className="mt-2 px-2 py-1.5 rounded-xl border border-dashed flex items-center gap-2"
+                    style={{
+                      borderColor:
+                        "color-mix(in srgb, var(--primary) 10%, transparent)",
+                    }}
+                  >
                     <Sparkles className="text-primary/20 shrink-0" size={9} />
                     <p className="text-[8px] font-black uppercase tracking-widest text-primary/20">
-                      Escribe <span className="text-primary/40">add</span> + Enter para añadir nueva entrada
+                      Escribe <span className="text-primary/40">add</span> +
+                      Enter para añadir nueva entrada
                     </p>
                   </div>
                 </>

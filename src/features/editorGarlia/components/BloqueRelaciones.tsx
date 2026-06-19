@@ -1,6 +1,4 @@
-import Image from "next/image";
 "use client";
-
 import {
   Users,
   Plus,
@@ -9,6 +7,7 @@ import {
   UserCircle2,
   ChevronDown,
 } from "lucide-react";
+import Image from "next/image";
 import React, { useState, useEffect, useCallback, useRef } from "react";
 
 import { enqueueOperation, isReallyOnline } from "@/hooks/data/useOfflineSync";

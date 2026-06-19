@@ -1,7 +1,6 @@
-import Image from "next/image";
 "use client";
-
 import { Check, ChevronDown, Loader2, Search, X } from "lucide-react";
+import Image from "next/image";
 
 /* ─────────────────────────────────────────────────────────────────────────────
    SeccionEntidad — sección de barra lateral con mini combo multi-selector

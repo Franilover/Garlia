@@ -1,4 +1,3 @@
-import Image from "next/image";
 "use client";
 
 import {
@@ -26,10 +25,10 @@ import {
   SlidersHorizontal,
   Camera,
 } from "lucide-react";
+import Image from "next/image";
 
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { SeccionEntidad } from "@/components/ui/SeccionEntidad";
-import SimpleImagePicker from "@/features/editorGarlia/components/editorCapitulos/snippets/forms/SimpleImagePicker";
 
 import { useWikilink } from "../components/WikilinkContext";
 
@@ -2326,6 +2325,7 @@ import {
   MarkdownEditor,
   WikiEntity,
 } from "@/components/forms/Markdown/MarkdownEditor";
+import SimpleImagePicker from "@/features/editorGarlia/components/editorCapitulos/snippets/forms/SimpleImagePicker";
 import { db } from "@/lib/api/client/db";
 import { supabase } from "@/lib/api/client/supabase";
 

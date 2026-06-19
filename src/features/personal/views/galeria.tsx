@@ -1,4 +1,3 @@
-import Image from "next/image";
 "use client";
 
 import { AnimatePresence } from "framer-motion";
@@ -12,6 +11,7 @@ import {
   Save,
   Pipette,
 } from "lucide-react";
+import Image from "next/image";
 import React, { useState, useEffect, useCallback, useRef } from "react";
 
 import SimpleImagePicker from "@/features/editorGarlia/components/editorCapitulos/snippets/forms/SimpleImagePicker";

@@ -1,4 +1,3 @@
-import Image from "next/image";
 "use client";
 
 import { AnimatePresence } from "framer-motion";
@@ -14,6 +13,7 @@ import {
   Users,
   X,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import React, { useEffect, useState } from "react";
 
