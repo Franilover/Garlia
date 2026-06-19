@@ -5,7 +5,7 @@ import { Play, Check, X, Plus, ChevronDown } from "lucide-react";
 import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
 
 import { Btn, BtnIcon, Badge, Loading, EmptyState } from "@/components/ui";
-import { MotionDiv, MotionMain, MotionH1, MotionH2, MotionButton, MotionLi, MotionSpan, MotionP, MotionSection, MotionArticle, MotionImg } from "@/components/ui/Motion";
+import { MotionDiv } from "@/components/ui/Motion";
 import { rutinasQueries, ejerciciosQueries } from "@/lib/api/queries/personal/ejercicios";
 import { cn } from "@/lib/utils/index";
 

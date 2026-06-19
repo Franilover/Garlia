@@ -1,5 +1,5 @@
 "use client";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence } from "framer-motion";
 import {
   Search, Plus, ChevronLeft, X, Save,
   Package, PackageX, Minus, FlaskConical, Flame, Trash2, Calculator, ShoppingCart,
@@ -9,8 +9,8 @@ import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import React, { useState, useMemo, useEffect } from "react";
 
-import { Btn, BtnIcon, Badge, Modal, InputLine, Textarea, Loading, EmptyState, BackBtn, Divider, PageHeader } from "@/components/ui";
-import { MotionDiv, MotionMain, MotionH1, MotionH2, MotionButton, MotionLi, MotionSpan, MotionP, MotionSection, MotionArticle, MotionImg } from "@/components/ui/Motion";
+import { Btn, BtnIcon, Loading } from "@/components/ui";
+import { MotionDiv } from "@/components/ui/Motion";
 import { ToastContainer } from "@/components/ui/ToastContainer";
 import { SectionTitle, FieldInput, MacroBadge } from "@/features/ensayos/components/SaludUi";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";

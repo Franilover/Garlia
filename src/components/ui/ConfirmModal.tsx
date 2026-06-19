@@ -1,9 +1,9 @@
 "use client";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence } from "framer-motion";
 import { AlertTriangle } from "lucide-react";
 import React, { useState, useCallback } from "react";
 
-import { MotionDiv, MotionMain, MotionH1, MotionH2, MotionButton, MotionLi, MotionSpan, MotionP, MotionSection, MotionArticle, MotionImg } from "@/components/ui/Motion";
+import { MotionDiv } from "@/components/ui/Motion";
 
 interface ConfirmOptions {
   title?: string;

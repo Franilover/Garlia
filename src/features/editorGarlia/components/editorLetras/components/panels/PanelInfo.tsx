@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   Loader2, CheckCircle2, Mic2, Music,
   PenLine, Globe, Beaker, FileText, ChevronDown,
-  Heart, Sparkles, Clock, Tag, Eye, EyeOff, Users, MapPin, Crown
+  Heart, Clock, Tag, Eye, EyeOff, Users, MapPin, Crown
 } from "lucide-react";
 import React, { useState, useEffect, useCallback, useRef } from "react";
 

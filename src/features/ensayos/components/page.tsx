@@ -1,6 +1,6 @@
 "use client";
 
-import { Dumbbell, Calendar, FileText, ShoppingCart, UtensilsCrossed, Carrot } from "lucide-react";
+import { Dumbbell, ShoppingCart, UtensilsCrossed, Carrot } from "lucide-react";
 
 import { AdminOnly } from "@/components/forms/AdminOnly";
 import Secciones from "@/components/layout/Secciones";

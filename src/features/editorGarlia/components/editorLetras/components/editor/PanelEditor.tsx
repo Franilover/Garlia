@@ -1,10 +1,8 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
-  Music, Info, Film, Loader2, RefreshCw, FileText,
-  Eye, EyeOff, Columns2, Plus, Check, X, Layers,
-  User, Globe, Mic2, PenLine, Settings
+  Music, Info, Film, Loader2, RefreshCw, FileText, Columns2, Plus, Check, X, Layers, Globe, Mic2
 } from "lucide-react";
 import React, { useState, useCallback, useEffect } from "react";
 

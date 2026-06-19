@@ -1,9 +1,9 @@
 "use client";
 import { motion, AnimatePresence } from "framer-motion";
-import { Clock, ChevronLeft, X, ChevronUp, ChevronDown, CheckSquare, Circle } from "lucide-react";
+import { X, ChevronUp, ChevronDown, CheckSquare, Circle } from "lucide-react";
 import React, { useState, useEffect, useMemo, useRef } from "react";
 
-import { MotionDiv, MotionMain, MotionH1, MotionH2, MotionButton, MotionLi, MotionSpan, MotionP, MotionSection, MotionArticle, MotionImg } from "@/components/ui/Motion";
+import { MotionDiv } from "@/components/ui/Motion";
 
 const PRESETS = [
   { label: "5m",   min: 5,  h: 0 },

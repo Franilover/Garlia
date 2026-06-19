@@ -6,12 +6,9 @@ import React, { useState, useEffect, useMemo } from "react";
 
 import { PanelEditor } from "@/features/editorGarlia/components/editorLetras/components/editor/PanelEditor";
 import { ModalNuevaCancion } from "@/features/editorGarlia/components/editorLetras/components/modals/ModalNuevaCancion";
-import { SidebarItem } from "@/features/editorGarlia/components/editorLetras/components/sidebar/SidebarItem";
-import { ESTADOS, ESTADO_COLOR } from "@/features/editorGarlia/components/editorLetras/constants";
 import { useCanciones } from "@/features/editorGarlia/components/editorLetras/hooks/useCanciones";
 import type { Cancion } from "@/features/editorGarlia/components/editorLetras/types";
 import { useLastOpenedId } from "@/hooks/useEditorShared";
-import { supabase } from "@/lib/api/client/supabase";
 
 /* ─── Estilos compartidos con el MarkdownEditor ─────────────────────────────── */
 /*

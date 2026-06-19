@@ -1,6 +1,6 @@
 "use client";
 
-import { Folder, FolderOpen, ChevronRight, Check, Loader2, Home } from "lucide-react";
+import { FolderOpen, ChevronRight, Check, Loader2, Home } from "lucide-react";
 import React, { useEffect, useState, useMemo } from "react";
 
 import { cn } from "@/lib/utils/index";

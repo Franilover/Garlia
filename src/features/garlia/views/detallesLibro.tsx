@@ -1,6 +1,6 @@
 "use client";
 
-import { Play, Calendar, Clock, CheckCircle2 } from "lucide-react";
+import { Play, Clock, CheckCircle2 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 

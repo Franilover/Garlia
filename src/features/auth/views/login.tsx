@@ -1,9 +1,9 @@
 "use client";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
 
-import { MotionDiv, MotionMain, MotionH1, MotionH2, MotionButton, MotionLi, MotionSpan, MotionP, MotionSection, MotionArticle, MotionImg } from "@/components/ui/Motion";
+import { MotionDiv, MotionP } from "@/components/ui/Motion";
 import { supabase } from "@/lib/api/client/supabase";
 
 

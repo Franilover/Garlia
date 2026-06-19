@@ -1,6 +1,6 @@
 "use client";
 import { AnimatePresence } from "framer-motion";
-import { Star, FileText, ArrowRight, Hash, CheckSquare, Plus, Check, X, ShoppingCart, Dumbbell, Package, UtensilsCrossed, ChevronLeft, Shirt, Heart, BookOpen, Library } from "lucide-react";
+import { Star, FileText, ArrowRight, Hash, CheckSquare, Plus, X, ShoppingCart, Dumbbell, Package, UtensilsCrossed, ChevronLeft, Shirt, Heart, BookOpen, Library } from "lucide-react";
 import React, { useMemo, useState } from "react";
 
 import { MotionDiv } from "@/components/ui/Motion";

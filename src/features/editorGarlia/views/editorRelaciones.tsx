@@ -2,8 +2,7 @@
 
 import { AnimatePresence } from "framer-motion";
 import {
-  User, Cat, Sword, MapPin, Crown, Plus, Trash2,
-  ChevronDown, Loader2, Search, X, ShieldCheck, AlertTriangle,
+  User, Cat, Sword, MapPin, Crown, Plus, Trash2, Loader2, Search, X, AlertTriangle,
 } from "lucide-react";
 import React, { useEffect, useState, useCallback } from "react";
 

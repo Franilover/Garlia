@@ -1,10 +1,15 @@
 "use client";
-import { motion, AnimatePresence } from "framer-motion";
-import { CheckCircle2, AlertCircle, AlertTriangle, Info, X } from "lucide-react";
+import { AnimatePresence } from "framer-motion";
+import {
+  AlertCircle,
+  AlertTriangle,
+  CheckCircle2,
+  Info,
+  X,
+} from "lucide-react";
 import React from "react";
 
-import { MotionDiv, MotionMain, MotionH1, MotionH2, MotionButton, MotionLi, MotionSpan, MotionP, MotionSection, MotionArticle, MotionImg } from "@/components/ui/Motion";
-import { Text } from "@/components/ui/Tiopgrafia";
+import { MotionDiv } from "@/components/ui/Motion";
 import type { ToastType } from "@/hooks/ui/useToast";
 
 interface Toast {
@@ -21,15 +26,18 @@ interface ToastContainerProps {
 const CONFIG: Record<ToastType, { icon: React.ReactNode; classes: string }> = {
   success: {
     icon: <CheckCircle2 size={14} />,
-    classes: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800",
+    classes:
+      "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800",
   },
   error: {
     icon: <AlertCircle size={14} />,
-    classes: "bg-red-50 text-red-600 border-red-200 dark:bg-red-950 dark:text-red-300 dark:border-red-800",
+    classes:
+      "bg-red-50 text-red-600 border-red-200 dark:bg-red-950 dark:text-red-300 dark:border-red-800",
   },
   warning: {
     icon: <AlertTriangle size={14} />,
-    classes: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800",
+    classes:
+      "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800",
   },
   info: {
     icon: <Info size={14} />,

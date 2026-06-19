@@ -5,7 +5,7 @@
  * Renderiza chips visuales sobre el textarea. Sin cambios de lógica —
  * solo reemplaza la copia local de KIND_DEFS por la de snippetDefs.ts.
  */
-import React, { useRef, useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 
 import { KIND_DEFS, KIND_FALLBACK } from "./snippetDefs";
 import type { SnippetKind } from "./snippetDefs";

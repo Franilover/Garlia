@@ -1,5 +1,5 @@
 "use client";
-import { AlertCircle, Music, ExternalLink, ChevronLeft, Info, FileText } from "lucide-react";
+import { AlertCircle, Music, ExternalLink, ChevronLeft, Info } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 

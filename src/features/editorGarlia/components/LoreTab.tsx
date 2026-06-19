@@ -1,4 +1,4 @@
-import { Mountain, Users, Plus, Trash2, ChevronUp, ChevronDown, ChevronRight, UserCircle2, Loader2, MapPin, Map, Check, X, Eye, EyeOff, Bug, Package, SlidersHorizontal } from "lucide-react";
+import { Mountain, Users, Plus, Trash2, UserCircle2, Loader2, MapPin, Map, Check, X, Eye, EyeOff, Bug, Package, SlidersHorizontal } from "lucide-react";
 import React, { useState, useRef, useEffect, useCallback } from "react";
 
 import { MarkdownEditor, WikiEntity } from "@/components/forms/Markdown/MarkdownEditor";

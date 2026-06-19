@@ -1,7 +1,7 @@
 "use client";
 
 import { AlertCircle, CheckCircle2, Loader2, WifiOff } from "lucide-react";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect } from "react";
 
 import { TEXT_VARIANTS } from "@/components/ui/Tiopgrafia";
 import { cn } from "@/lib/utils/index"

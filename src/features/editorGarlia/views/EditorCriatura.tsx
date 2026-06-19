@@ -1,7 +1,7 @@
 "use client";
 
 import {
-  Bug, Plus, Check, X, Trash2, Save, ChevronDown,
+  Bug, Plus, X, Trash2, Save, ChevronDown,
   Brain, Wand2, Package, Wrench, Layers, Users,
   MapPin, Globe, ExternalLink, Pencil, Search, UserCircle2,
   Sparkles, Star, Loader2, SlidersHorizontal, Camera,
@@ -15,7 +15,7 @@ import SimpleImagePicker from "@/features/editorGarlia/components/editorCapitulo
 import { db } from "@/lib/api/client/db";
 import { supabase } from "@/lib/api/client/supabase";
 
-import { useGruposDeCriatura, usePersonajesDeEspecie, type GrupoMin } from "../components/hooks";
+import { useGruposDeCriatura, type GrupoMin } from "../components/hooks";
 import { type Criatura, type SaveStatus } from "../components/types";
 import { SelectorImagen, SaveIndicator } from "../components/UIComponents";
 import { useWikilink } from "../components/WikilinkContext";

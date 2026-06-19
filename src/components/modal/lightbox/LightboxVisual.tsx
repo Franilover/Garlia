@@ -1,9 +1,8 @@
 "use client";
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 
 
-import { typography, components } from '@/lib/config/design-system';
 
 import { AdminControls } from './components/AdminControls'; 
 import { ShareButton } from './components/ShareButton'; 

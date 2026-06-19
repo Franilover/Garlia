@@ -1,15 +1,15 @@
 "use client";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence } from "framer-motion";
 import {
   Utensils, Clock, ChevronRight, Search, ChefHat, Flame,
-  Plus, X, ChevronLeft, Minus, Carrot, Save, Activity,
+  Plus, X, ChevronLeft, Minus, Carrot, Save,
   Dumbbell, Wheat, Droplets,
 } from "lucide-react";
 import Link from "next/link";
 import React, { useState, useMemo } from "react";
 
 import { Btn, BtnIcon, Loading } from "@/components/ui";
-import { MotionDiv, MotionMain, MotionH1, MotionH2, MotionButton, MotionLi, MotionSpan, MotionP, MotionSection, MotionArticle } from "@/components/ui/Motion";
+import { MotionDiv, MotionButton } from "@/components/ui/Motion";
 import { ToastContainer } from "@/components/ui/ToastContainer";
 import { SectionTitle, FieldInput } from "@/features/ensayos/components/SaludUi";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";

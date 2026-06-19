@@ -1,13 +1,12 @@
 "use client";
-import { ChevronDown, ChevronUp, Loader2, Check, X, Clock } from "lucide-react";
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import { ChevronDown, ChevronUp, Loader2, Check, X } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 
 import { supabase } from "@/lib/api/client/supabase"; 
 import {
-  Estacion, CalendarioConfig, EraMundo, FechaMundo,
-  diaAbsolutoAFecha, fechaADiaAbsoluto, formatFechaMundo, formatFechaCorta,
-  diasPorAnio, eraEnAnio,
+  Estacion, CalendarioConfig, EraMundo,
+  diaAbsolutoAFecha, fechaADiaAbsoluto, formatFechaCorta, eraEnAnio,
 } from "@/lib/utils/calendario";
 
 // ─── Hook: cargar calendario — Dexie → memoria → Supabase ────────────────────

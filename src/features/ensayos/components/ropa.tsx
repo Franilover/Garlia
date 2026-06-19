@@ -1,13 +1,13 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence } from "framer-motion";
 import {
   Trash2, Save, X, Loader2, ZoomIn, Plus, Image as ImageIcon,
   Pencil, SlidersHorizontal, Sparkles,
 } from "lucide-react";
 import React, { useState, useMemo } from "react";
 
-import { MotionDiv, MotionMain, MotionH1, MotionH2, MotionButton, MotionLi, MotionSpan, MotionP, MotionSection, MotionArticle, MotionImg } from "@/components/ui/Motion";
+import { MotionDiv, MotionButton } from "@/components/ui/Motion";
 import SimpleImagePicker from "@/features/editorGarlia/components/editorCapitulos/snippets/forms/SimpleImagePicker";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import { cn } from "@/lib/utils/index";

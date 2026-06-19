@@ -6,7 +6,7 @@ import {
   Compass, BookText, Music, Star, Palette,
   PenTool, Moon, Sun, Cat, Flower2, CircleUser,
   Search, ArrowRight, User, Crown, Swords, Building2,
-  Loader2, WifiOff, BookOpen, Plus, Wand2, Zap,
+  Loader2, WifiOff, BookOpen, Wand2, Zap,
   FileText, Clock, Layers, MapPin, ScrollText, Users, Package,
 } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";

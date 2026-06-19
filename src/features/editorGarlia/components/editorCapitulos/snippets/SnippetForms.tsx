@@ -17,7 +17,7 @@
  *       import { SoundPicker, EntidadPicker, SimpleImagePicker } from "./SnippetForms";
  */
 
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence } from "framer-motion";
 import {
   X, Music, Folder, FolderOpen, ChevronRight, Check, Loader2,
   Play, Pause, Volume2, Search, Package, Sword, User, Home,

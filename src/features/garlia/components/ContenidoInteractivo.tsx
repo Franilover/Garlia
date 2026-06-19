@@ -1,9 +1,9 @@
 "use client";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 
 import { renderMarkdown } from "@/components/forms/Markdown/MarkdownEditor";
-import { Segment, SectionMap, parseContenido, parseSections } from "@/features/editorGarlia/components/editorCapitulos/snippets/type";
+import { Segment, parseContenido, parseSections } from "@/features/editorGarlia/components/editorCapitulos/snippets/type";
 
 import {
   CitaVisual, ImgInline, FloatWord, SoundInline,

@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, Loader2, Globe, WifiOff } from "lucide-react";
+import { Globe, WifiOff } from "lucide-react";
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 
 import { WikilinkProvider } from "@/features/editorGarlia/components/WikilinkContext";
@@ -13,7 +13,7 @@ import { EditorMundo }     from "./EditorMundo";
 import { useMundoSecciones } from "../components/hooks";
 import { ModalAcontecimiento, ModalNuevoGrupo, type AllItems, type MagicAddKey } from "../components/SidebarComponents";
 import {
-  TAB_CONFIG, MUNDO_SECTIONS,
+  TAB_CONFIG,
   type TabKey, type MundoSectionKey,
   type Hechizo, type Don, type Runa, type Nota,
   type Personaje, type Criatura, type Item, type Reino,

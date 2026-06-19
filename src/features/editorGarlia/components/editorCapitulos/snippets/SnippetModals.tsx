@@ -17,10 +17,9 @@
  */
 
 import {
-  X, ChevronRight as ChevronR, GitMerge, MousePointerClick,
-  Music2, GitFork, Image,
+  X, ChevronRight as ChevronR, GitMerge, MousePointerClick, GitFork, Image,
 } from "lucide-react";
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 
 import { ModalBase, CampoInput } from "@/components/layout/EstudioTemplates";
 

@@ -1,9 +1,9 @@
 "use client";
 import { AnimatePresence, motion } from "framer-motion";
-import { Save, List, BookOpen, X, PanelRight } from "lucide-react";
+import { Save, BookOpen, X, PanelRight } from "lucide-react";
 import React, { useRef, useState, useEffect, useCallback, useMemo } from "react";
 
-import { MarkdownEditor, WikiEntity } from "@/components/forms/Markdown/MarkdownEditor";
+import { MarkdownEditor } from "@/components/forms/Markdown/MarkdownEditor";
 import { MotionDiv } from "@/components/ui/Motion";
 import { ZoteroSource } from "@/features/ensayos/views/page";
 

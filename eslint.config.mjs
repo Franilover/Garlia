@@ -1,3 +1,5 @@
+import pluginImport from "eslint-plugin-import";
+import unusedImports from "eslint-plugin-unused-imports";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTypescript from "eslint-config-next/typescript";
 
@@ -29,8 +31,30 @@ const eslintConfig = [
   // REGLAS GLOBALES — aplican a todos los archivos
   // ───────────────────────────────────────────────────────────────────────────
   {
+    plugins: {
+      // Registrar import explícitamente en flat config para que --fix funcione.
+      // Si ves "plugin 'import' already defined", elimina esta línea.
+      import: pluginImport,
+
+      // Detecta y elimina imports sin usar (auto-fixable con --fix ✅)
+      "unused-imports": unusedImports,
+    },
+
     rules: {
-      // Imports siempre ordenados: builtin → external → internal → relativo
+      // ── Imports sin usar — auto-fixable ✅ ──────────────────────────────
+      // Elimina el import entero si ningún símbolo de él se usa.
+      "unused-imports/no-unused-imports": "error",
+
+      // Variables/args sin usar — reemplaza @typescript-eslint/no-unused-vars
+      // para que la variante de unused-imports pueda auto-fixear prefijando con _
+      "@typescript-eslint/no-unused-vars": "off",
+      "unused-imports/no-unused-vars": [
+        "error",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
+      ],
+
+      // ── Orden de imports — auto-fixable ✅ ──────────────────────────────
+      // builtin → external → internal (@/) → relativo
       "import/order": [
         "error",
         {
@@ -49,14 +73,14 @@ const eslintConfig = [
         },
       ],
 
-      // Nunca importar con extensión (excepto .css)
+      // Nunca importar con extensión (excepto .css y .svg) — auto-fixable ✅
       "import/extensions": [
         "error",
         "never",
         { css: "always", svg: "always" },
       ],
 
-      // No imports duplicados
+      // No imports duplicados — auto-fixable ✅
       "import/no-duplicates": "error",
 
       // No importes cosas que no existen
@@ -66,17 +90,11 @@ const eslintConfig = [
       // (desactivado porque en proyectos TS suele ser más útil namedExports)
       "import/prefer-default-export": "off",
 
+      // ── Calidad ─────────────────────────────────────────────────────────
       // Sin console.log en producción (usa console.warn/error si necesitas)
       "no-console": ["warn", { allow: ["warn", "error"] }],
 
-      // Variables sin usar = error
-      "no-unused-vars": "off", // lo maneja TypeScript
-      "@typescript-eslint/no-unused-vars": [
-        "error",
-        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
-      ],
-
-      // Props en orden en JSX
+      // Props en orden en JSX — auto-fixable ✅
       "react/jsx-sort-props": [
         "warn",
         {

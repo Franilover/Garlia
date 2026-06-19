@@ -16,7 +16,7 @@
  *     from "./SegmentRenderers";
  */
 
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence } from "framer-motion";
 import { X, Music2, Sword, Package, Sparkles, Check, Loader2, User, ChevronRight as ChevronR } from "lucide-react";
 import React, { useState, useEffect, useRef } from "react";
 

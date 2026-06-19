@@ -1,16 +1,16 @@
 "use client";
 
 import {
-  Map, MapPin, Plus, Check, X, Trash2, Save,
+  Map, MapPin, Check, X, Trash2, Save,
   Loader2, Image as ImageIcon, SlidersHorizontal,
 } from "lucide-react";
 import React, { useState, useEffect, useRef } from "react";
 
-import { MarkdownEditor, WikiEntity } from "@/components/forms/Markdown/MarkdownEditor";
+import { WikiEntity } from "@/components/forms/Markdown/MarkdownEditor";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { usePersonajesDelReino } from "@/features/editorGarlia/components/hooks";
 import { LoreTab } from "@/features/editorGarlia/components/LoreTab";
-import { type Reino, type SaveStatus, INPUT_CLS } from "@/features/editorGarlia/components/types";
+import { type Reino, type SaveStatus } from "@/features/editorGarlia/components/types";
 import { SaveIndicator } from "@/features/editorGarlia/components/UIComponents";
 import { type Ciudad } from "@/features/editorGarlia/views/EditorCiudad";
 import { db } from "@/lib/api/client/db";

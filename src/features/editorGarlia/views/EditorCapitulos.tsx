@@ -4,8 +4,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronRight, Loader2, Plus, Save,
   Trash2, X, Check, Eye,
-  Minimize2, Clock, Hash,
-  Calendar, BookMarked, Pencil, Lock, Timer, SlidersHorizontal,
+  Minimize2, Hash,
+  Calendar, BookMarked, Pencil, Lock, SlidersHorizontal,
 } from "lucide-react";
 import React, {
   useState, useEffect, useCallback, useRef, useMemo,
@@ -13,23 +13,21 @@ import React, {
 
 import { MarkdownEditor, renderMarkdown, renderMathInElement, PROSE_STYLES } from "@/components/forms/Markdown/MarkdownEditor";
 import type { CommandItem as MdCommandItem, SnippetAction } from "@/components/forms/Markdown/MarkdownEditor";
-import EstudioLayout from "@/components/layout/EstudioLayout";
 import { BannerOffline, ModalBase, SaveIndicator, CampoInput, BotonSubmit } from "@/components/layout/EstudioTemplates";
 import { ComboSelector, type ComboItem } from "@/components/ui/ComboSelector";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { MotionDiv } from '@/components/ui/Motion';
 import {
-  EstadisticasEscritura, CapituloItem, LibroItem, LibroCard, LibroColumna,
+  EstadisticasEscritura, LibroCard, LibroColumna,
   VisibilidadCapPicker, SelectorVisibilidad, SelectorNarrador, SelectorReino,
-  SelectorPersonajesCapitulo, NarradorPill, SelectorImagenPortada, DialogSnippets,
+  SelectorPersonajesCapitulo, NarradorPill, SelectorImagenPortada,
   PanelPersonajesCapitulo,
 } from "@/features/editorGarlia/components/editorCapitulos/components";
 import { useCapitulos, useCapituloEditor } from "@/features/editorGarlia/components/editorCapitulos/hooks/hooks";
 import { SnippetCommandPalette } from "@/features/editorGarlia/components/editorCapitulos/snippets/SnippetCommandPalette";
 import { makeSnippetOverlay } from "@/features/editorGarlia/components/editorCapitulos/snippets/SnippetOverlay";
 import {
-  Libro, Capitulo, SaveStatus, TABLA_CAPS, VISIBILIDAD_CONFIG,
-  wordCount, toDateInput,
+  Libro, Capitulo, SaveStatus, VISIBILIDAD_CONFIG, toDateInput,
   capUpdateContenido, capUpdateMeta, capCreate, capDelete,
   libroUpdateMeta, libroDelete,
 } from "@/features/editorGarlia/components/editorCapitulos/types";

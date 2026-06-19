@@ -1,13 +1,11 @@
 "use client";
 import { AnimatePresence, motion } from "framer-motion";
 import { Loader2, PenTool, Search, X, Plus, FileText, Trash2, List, BookOpen, Hash } from "lucide-react";
-import { useRouter } from "next/navigation";
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { ToastContainer } from "@/components/ui/ToastContainer";
 import Editor from "@/features/ensayos/components/editor";
-import { EmptyState } from "@/features/ensayos/components/emptyState";
 import { GrafoEnsayos } from "@/features/ensayos/components/GrafoEnsayos";
 import NewNoteModal from "@/features/ensayos/components/newNoteModal";
 import { HomeDashboard } from "@/features/ensayos/views/HomeDashboard";

@@ -1,17 +1,16 @@
 "use client";
 import {
   ChevronDown, ChevronRight, UserCircle2, Loader2, Trash2,
-  X, Check, Clock, Hash, AlignLeft, Calendar, BookMarked, Pencil,
+  X, Clock, Hash, AlignLeft, Calendar, BookMarked, Pencil,
   MoreHorizontal, Globe, Lock, Timer, Mic2, MapPin, Cat, Sword, Plus, SlidersHorizontal
 } from "lucide-react";
 import React, { useState, useEffect, useRef } from "react";
 
-import { SaveIndicator } from "@/components/layout/EstudioTemplates";
 import { ComboSelector } from "@/components/ui/ComboSelector";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { SeccionEntidad } from "@/components/ui/SeccionEntidad";
 import SimpleImagePicker from "@/features/editorGarlia/components/editorCapitulos/snippets/forms/SimpleImagePicker";
-import { FechaMundoBadge, SelectorFechaMundo } from "@/features/editorGarlia/components/EditorLineaTiempo";
+import { SelectorFechaMundo } from "@/features/editorGarlia/components/EditorLineaTiempo";
 import { usePersonajes } from "@/hooks/useEditorShared";
 import { db } from "@/lib/api/client/db";
 import { supabase } from "@/lib/api/client/supabase";
