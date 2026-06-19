@@ -1,9 +1,21 @@
 "use client";
 
+
+
+
+
 import { useEffect, useRef } from "react";
+
+
+
+
 
 import { db } from "@/lib/api/client/db";
 import { supabase } from "@/lib/api/client/supabase";
+
+
+
+
 
 const SYNC_TABLES: Record<string, {
   supabaseTable: string;
@@ -36,17 +48,37 @@ const SYNC_TABLES: Record<string, {
   notas_lore:         { supabaseTable: "notas",              excludeFields: ["deleted"] },
 };
 
+
+
+
+
 const MAX_RETRIES      = 3;
+
+
+
+
 const SYNC_DEBOUNCE_MS = 500;
 
 // ─── Callbacks globales ───────────────────────────────────────────────────────
 type SyncDoneCallback = () => void;
+
+
+
+
 const syncDoneCallbacks = new Set<SyncDoneCallback>();
+
+
+
+
 
 export function onSyncDone(cb: SyncDoneCallback): () => void {
   syncDoneCallbacks.add(cb);
   return () => syncDoneCallbacks.delete(cb);
 }
+
+
+
+
 
 function notifySyncDone() {
   for (const cb of syncDoneCallbacks) {
@@ -55,6 +87,10 @@ function notifySyncDone() {
 }
 
 // ─── Verificación real de conectividad ───────────────────────────────────────
+
+
+
+
 export async function isReallyOnline(): Promise<boolean> {
   if (!navigator.onLine) return false;
   try {
@@ -64,21 +100,37 @@ export async function isReallyOnline(): Promise<boolean> {
     return false;
   }
 }
+
+
+
+
 function cleanPayload(payload: any, exclude: string[] = []): any {
   const clean = { ...payload };
   for (const field of exclude) delete clean[field];
   return clean;
 }
 
+
+
+
+
 export async function dexiePut(table: string, data: any): Promise<void> {
   try { if (db) await (db as any)[table]?.put(data); }
   catch (e) { console.warn(`[Dexie] put failed on '${table}':`, e); }
 }
 
+
+
+
+
 export async function dexieUpdate(table: string, id: string | number, data: any): Promise<void> {
   try { if (db) await (db as any)[table]?.update(id, data); }
   catch (e) { console.warn(`[Dexie] update failed on '${table}':`, e); }
 }
+
+
+
+
 
 export async function dexieDelete(table: string, id: string | number): Promise<void> {
   try { if (db) await (db as any)[table]?.delete(id); }
@@ -90,6 +142,10 @@ let globalSyncPromise: Promise<void> | null = null;
 let lastSyncTime = 0;
 
 let syncInFlight = false;
+
+
+
+
 
 export async function runSync(): Promise<void> {
   if (globalSyncPromise) return globalSyncPromise;
@@ -196,6 +252,10 @@ export async function runSync(): Promise<void> {
   return globalSyncPromise;
 }
 
+
+
+
+
 export function useOfflineSync() {
   const debounceRef    = useRef<ReturnType<typeof setTimeout> | null>(null);
   const triggerSyncRef = useRef<() => void>(() => {});
@@ -220,6 +280,10 @@ export function useOfflineSync() {
 }
 
 // ─── Encolar operación con deduplicación ──────────────────────────────────────
+
+
+
+
 export async function enqueueOperation(
   table: string,
   operation: "upsert" | "update" | "delete",
@@ -257,6 +321,10 @@ export async function enqueueOperation(
     throw e;
   }
 }
+
+
+
+
 
 export async function getPendingCount(): Promise<number> {
   return await db.offline_queue.count();

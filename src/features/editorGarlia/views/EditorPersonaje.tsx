@@ -1,3 +1,4 @@
+import Image from "next/image";
 "use client";
 
 import {
@@ -287,7 +288,7 @@ function BloqueCanciones({
         >
           {c.portada_url ? (
             <div className="shrink-0 w-6 h-6 rounded-lg overflow-hidden border border-primary/15">
-              <img alt={c.titulo} className="w-full h-full object-cover" src={c.portada_url} />
+              <Image alt={c.titulo} className="w-full h-full object-cover" src={c.portada_url} />
             </div>
           ) : (
             <div className="shrink-0 w-6 h-6 rounded-lg flex items-center justify-center bg-accent/10 text-accent">
@@ -328,7 +329,7 @@ function PickerCuerpo({ value, onChange }: { value: string; onChange: (url: stri
         <button className="flex items-center gap-2 px-3 py-2 rounded-xl border border-primary/15 text-[10px] font-black uppercase tracking-widest text-primary/50 hover:text-primary hover:border-primary/30 transition-all"
           onClick={() => setOpen(true)}>
           <div className="w-5 h-5 rounded overflow-hidden border border-primary/15 shrink-0">
-            <img alt="Cuerpo" className="w-full h-full object-cover" src={value} />
+            <Image alt="Cuerpo" className="w-full h-full object-cover" src={value} />
           </div>
           Cambiar cuerpo
         </button>
@@ -1102,7 +1103,7 @@ export function FormularioPersonaje({
       >
         <div className="shrink-0 w-8 h-8 rounded-lg overflow-hidden border border-primary/15 bg-primary/5 flex items-center justify-center">
           {form.img_url
-            ? <img alt={form.nombre} className="w-full h-full object-cover" src={form.img_url} />
+            ? <Image alt={form.nombre} className="w-full h-full object-cover" src={form.img_url} />
             : <UserCircle2 className="text-primary/25" size={16} />}
         </div>
 
@@ -1153,7 +1154,7 @@ export function FormularioPersonaje({
                   {/* Mobile: imagen grande con botón flotante */}
                   <div className="sm:hidden relative w-full rounded-xl overflow-hidden border border-primary/10 bg-primary/3" style={{ aspectRatio: "1 / 1" }}>
                     {form.img_url
-                      ? <img alt={form.nombre} className="w-full h-full object-cover" src={form.img_url} />
+                      ? <Image alt={form.nombre} className="w-full h-full object-cover" src={form.img_url} />
                       : <div className="w-full h-full flex items-center justify-center"><UserCircle2 className="text-primary/15" size={48} /></div>
                     }
                     <div className="absolute top-2 right-2 z-10">

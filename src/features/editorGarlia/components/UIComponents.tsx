@@ -1,3 +1,4 @@
+import Image from "next/image";
 "use client";
 
 import {
@@ -104,7 +105,7 @@ export function SelectorImagen({ label, value, onChange, aspect, placeholder }: 
       >
         {value ? (
           <>
-            <img alt={label} className={`w-full h-full ${fitCls} transition-transform duration-300 group-hover:scale-105`} src={value} />
+            <Image alt={label} className={`w-full h-full ${fitCls} transition-transform duration-300 group-hover:scale-105`} src={value} />
             <div className="absolute inset-0 bg-black/40 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1.5">
               <ImageIcon className="text-white" size={18} />
               <span className="text-[9px] font-black uppercase text-white tracking-widest">Cambiar</span>

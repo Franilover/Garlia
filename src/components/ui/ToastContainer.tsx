@@ -1,4 +1,8 @@
 "use client";
+
+
+
+
 import { AnimatePresence } from "framer-motion";
 import {
   AlertCircle,
@@ -8,6 +12,10 @@ import {
   X,
 } from "lucide-react";
 import React from "react";
+
+
+
+
 
 import { MotionDiv } from "@/components/ui/Motion";
 import type { ToastType } from "@/hooks/ui/useToast";
@@ -22,6 +30,10 @@ interface ToastContainerProps {
   toasts: Toast[];
   onDismiss: (id: number) => void;
 }
+
+
+
+
 
 const CONFIG: Record<ToastType, { icon: React.ReactNode; classes: string }> = {
   success: {
@@ -44,6 +56,10 @@ const CONFIG: Record<ToastType, { icon: React.ReactNode; classes: string }> = {
     classes: "bg-primary/8 text-primary border-primary/20",
   },
 };
+
+
+
+
 
 export function ToastContainer({ toasts, onDismiss }: ToastContainerProps) {
   if (toasts.length === 0) return null;

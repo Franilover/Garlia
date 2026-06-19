@@ -1,3 +1,4 @@
+import Image from "next/image";
 "use client";
 
 import {
@@ -477,7 +478,7 @@ export function FormularioCiudad({
         {/* Thumbnail */}
         <div className="shrink-0 w-9 h-9 rounded-xl overflow-hidden border border-primary/15 bg-primary/5 flex items-center justify-center">
           {form.imagen_url
-            ? <img alt={form.nombre} className="w-full h-full object-cover" src={form.imagen_url} />
+            ? <Image alt={form.nombre} className="w-full h-full object-cover" src={form.imagen_url} />
             : <MapPin className="text-primary/25" size={16} />}
         </div>
 

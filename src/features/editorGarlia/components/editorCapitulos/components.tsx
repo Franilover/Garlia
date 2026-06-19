@@ -1,3 +1,4 @@
+import Image from "next/image";
 "use client";
 import {
   ChevronDown, ChevronRight, UserCircle2, Loader2, Trash2,
@@ -432,7 +433,7 @@ export const LibroCard = ({
         style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
       >
         {libro.portada_url ? (
-          <img alt="" className="w-4 h-4 rounded object-cover shrink-0 border border-primary/10" src={libro.portada_url} />
+          <Image alt="" className="w-4 h-4 rounded object-cover shrink-0 border border-primary/10" src={libro.portada_url} />
         ) : (
           <BookMarked className="text-primary/25 shrink-0" size={9} />
         )}
@@ -572,7 +573,7 @@ export const LibroColumna = ({
         onMouseLeave={() => setHdrHovered(false)}
       >
         {libro.portada_url ? (
-          <img alt="" src={libro.portada_url} style={{ width: 22, height: 30, borderRadius: 3, objectFit: "cover", flexShrink: 0, border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)" }} />
+          <Image alt="" src={libro.portada_url} style={{ width: 22, height: 30, borderRadius: 3, objectFit: "cover", flexShrink: 0, border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)" }} />
         ) : (
           <div style={{
             width: 22, height: 30, borderRadius: 3, flexShrink: 0, display: "flex",
@@ -932,7 +933,7 @@ export function SelectorImagenPortada({ value, onChange }: { value: string; onCh
       >
         {value ? (
           <>
-            <img alt="portada" className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" src={value} />
+            <Image alt="portada" className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" src={value} />
             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1.5">
               <BookMarked className="text-white" size={16} />
               <span className="text-[9px] font-black uppercase text-white tracking-widest">Cambiar</span>

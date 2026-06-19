@@ -1,3 +1,4 @@
+import Image from "next/image";
 "use client";
 
 import { AnimatePresence } from "framer-motion";
@@ -380,7 +381,7 @@ export default function AdminDescubrimientos() {
                   background: "color-mix(in srgb, var(--primary) 10%, transparent)",
                 }}>
                 {p.avatar_url
-                  ? <img alt={p.username} className="w-full h-full object-contain" src={p.avatar_url} />
+                  ? <Image alt={p.username} className="w-full h-full object-contain" src={p.avatar_url} />
                   : <User size={10} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />}
               </div>
               <span className="text-[10px] font-black uppercase tracking-tight capitalize"
@@ -503,7 +504,7 @@ export default function AdminDescubrimientos() {
                       border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
                     }}>
                     {row.imagen_url
-                      ? <img alt={row.nombre} className="w-full h-full object-contain" src={row.imagen_url} />
+                      ? <Image alt={row.nombre} className="w-full h-full object-contain" src={row.imagen_url} />
                       : TAB_CONFIG[tab].icon}
                   </div>
 
@@ -683,7 +684,7 @@ export default function AdminDescubrimientos() {
                             border: `1px solid ${sel ? "color-mix(in srgb, var(--primary) 30%, transparent)" : "color-mix(in srgb, var(--primary) 10%, transparent)"}`,
                           }}>
                           {e.imagen_url
-                            ? <img alt={e.nombre} className="w-full h-full object-contain" src={e.imagen_url} />
+                            ? <Image alt={e.nombre} className="w-full h-full object-contain" src={e.imagen_url} />
                             : TAB_CONFIG[tab].icon}
                         </div>
 

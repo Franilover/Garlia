@@ -1,6 +1,7 @@
+import Image from "next/image";
 "use client";
-import { Search, X, Check, Loader2, ChevronDown } from "lucide-react";
-import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
+
+import { Check, ChevronDown, Loader2, Search, X } from "lucide-react";
 
 /* ─────────────────────────────────────────────────────────────────────────────
    SeccionEntidad — sección de barra lateral con mini combo multi-selector
@@ -66,17 +67,17 @@ export const SeccionEntidad = ({
   onEntityClick,
   columns,
 }: SeccionEntidadProps) => {
-  const [open,   setOpen]   = useState(false);
-  const [query,  setQuery]  = useState("");
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
   const [cursor, setCursor] = useState(-1);
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const inputRef     = useRef<HTMLInputElement>(null);
-  const listRef      = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
 
   // ── Entidades ──────────────────────────────────────────────────────────────
-  const selected  = allEntities.filter(e => selectedIds.includes(e.id));
-  const available = allEntities.filter(e => !selectedIds.includes(e.id));
+  const selected = allEntities.filter((e) => selectedIds.includes(e.id));
+  const available = allEntities.filter((e) => !selectedIds.includes(e.id));
 
   // ── Filtrado por búsqueda (sobre todas las entidades, marcando las ya seleccionadas) ─
   const filtered = useMemo(() => {
@@ -84,9 +85,10 @@ export const SeccionEntidad = ({
     if (!query.trim()) return pool;
     const q = query.toLowerCase();
     return pool
-      .filter(e =>
-        e.nombre.toLowerCase().startsWith(q) ||
-        e.nombre.toLowerCase().includes(q)
+      .filter(
+        (e) =>
+          e.nombre.toLowerCase().startsWith(q) ||
+          e.nombre.toLowerCase().includes(q),
       )
       .sort((a, b) => {
         const aS = a.nombre.toLowerCase().startsWith(q);
@@ -101,7 +103,10 @@ export const SeccionEntidad = ({
   useEffect(() => {
     if (!open) return;
     const h = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(e.target as Node)
+      ) {
         setOpen(false);
         setQuery("");
         setCursor(-1);
@@ -124,18 +129,23 @@ export const SeccionEntidad = ({
   // ── Scroll del cursor ─────────────────────────────────────────────────────
   useEffect(() => {
     if (cursor < 0 || !listRef.current) return;
-    const el = listRef.current.querySelector(`[data-idx="${cursor}"]`) as HTMLElement | null;
+    const el = listRef.current.querySelector(
+      `[data-idx="${cursor}"]`,
+    ) as HTMLElement | null;
     el?.scrollIntoView({ block: "nearest" });
   }, [cursor]);
 
   // ── Toggle ────────────────────────────────────────────────────────────────
-  const toggle = useCallback((id: string) => {
-    const add = !selectedIds.includes(id);
-    onToggle(id, add);
-    setQuery("");
-    setCursor(-1);
-    inputRef.current?.focus();
-  }, [selectedIds, onToggle]);
+  const toggle = useCallback(
+    (id: string) => {
+      const add = !selectedIds.includes(id);
+      onToggle(id, add);
+      setQuery("");
+      setCursor(-1);
+      inputRef.current?.focus();
+    },
+    [selectedIds, onToggle],
+  );
 
   // ── Teclado ───────────────────────────────────────────────────────────────
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -144,10 +154,10 @@ export const SeccionEntidad = ({
 
     if (e.key === "ArrowDown") {
       e.preventDefault();
-      setCursor(c => Math.min(c + 1, max));
+      setCursor((c) => Math.min(c + 1, max));
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
-      setCursor(c => Math.max(c - 1, 0));
+      setCursor((c) => Math.max(c - 1, 0));
     } else if (e.key === "Tab" || e.key === "Enter") {
       e.preventDefault();
       const idx = cursor < 0 ? 0 : cursor;
@@ -159,20 +169,26 @@ export const SeccionEntidad = ({
   };
 
   // ── Estilos reutilizables ─────────────────────────────────────────────────
-  const border      = "1px solid color-mix(in srgb, var(--primary) 12%, transparent)";
-  const borderFocus = "1px solid color-mix(in srgb, var(--primary) 28%, transparent)";
+  const border =
+    "1px solid color-mix(in srgb, var(--primary) 12%, transparent)";
+  const borderFocus =
+    "1px solid color-mix(in srgb, var(--primary) 28%, transparent)";
 
   return (
     <div ref={containerRef} className="shrink-0 flex flex-col">
-
       {/* ── Cabecera ── */}
       <div
         className="flex items-center justify-between px-3 py-2"
-        style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" }}
+        style={{
+          borderBottom:
+            "1px solid color-mix(in srgb, var(--primary) 6%, transparent)",
+        }}
       >
         <span
           className="flex items-center gap-1.5 text-[8px] font-black uppercase tracking-widest"
-          style={{ color: "color-mix(in srgb, var(--primary) 38%, transparent)" }}
+          style={{
+            color: "color-mix(in srgb, var(--primary) 38%, transparent)",
+          }}
         >
           {icon}
           {label}
@@ -191,7 +207,7 @@ export const SeccionEntidad = ({
           }}
           title={`Añadir ${label.toLowerCase()}`}
           type="button"
-          onClick={() => setOpen(o => !o)}
+          onClick={() => setOpen((o) => !o)}
         >
           {/* Contador de seleccionados */}
           {selectedIds.length > 0 && (
@@ -216,17 +232,24 @@ export const SeccionEntidad = ({
           style={{
             border: borderFocus,
             background: "var(--bg-main)",
-            boxShadow: "0 6px 20px color-mix(in srgb, var(--primary) 10%, transparent)",
+            boxShadow:
+              "0 6px 20px color-mix(in srgb, var(--primary) 10%, transparent)",
           }}
         >
           {/* Búsqueda */}
           <div
             className="flex items-center gap-1.5 px-2 py-1.5"
-            style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }}
+            style={{
+              borderBottom:
+                "1px solid color-mix(in srgb, var(--primary) 7%, transparent)",
+            }}
           >
             <Search
               size={9}
-              style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)", flexShrink: 0 }}
+              style={{
+                color: "color-mix(in srgb, var(--primary) 30%, transparent)",
+                flexShrink: 0,
+              }}
             />
             <input
               ref={inputRef}
@@ -238,14 +261,21 @@ export const SeccionEntidad = ({
               }}
               type="text"
               value={query}
-              onChange={e => { setQuery(e.target.value); setCursor(-1); }}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setCursor(-1);
+              }}
               onKeyDown={handleKeyDown}
             />
             {query && (
               <button
                 className="opacity-30 hover:opacity-70 transition-opacity"
                 type="button"
-                onClick={() => { setQuery(""); setCursor(-1); inputRef.current?.focus(); }}
+                onClick={() => {
+                  setQuery("");
+                  setCursor(-1);
+                  inputRef.current?.focus();
+                }}
               >
                 <X size={8} style={{ color: "var(--primary)" }} />
               </button>
@@ -265,12 +295,17 @@ export const SeccionEntidad = ({
             ) : groups && groups.length > 0 ? (
               // ── Modo agrupado ──────────────────────────────────────────────
               (() => {
-                const ungrouped = filtered.filter(e => !e.group);
-                const grouped = groups.map(g => ({
-                  group: g,
-                  items: filtered.filter(e => e.group === g.key),
-                })).filter(g => g.items.length > 0);
-                const flatItems = [...ungrouped, ...grouped.flatMap(g => g.items)];
+                const ungrouped = filtered.filter((e) => !e.group);
+                const grouped = groups
+                  .map((g) => ({
+                    group: g,
+                    items: filtered.filter((e) => e.group === g.key),
+                  }))
+                  .filter((g) => g.items.length > 0);
+                const flatItems = [
+                  ...ungrouped,
+                  ...grouped.flatMap((g) => g.items),
+                ];
 
                 const renderItem = (e: EntidadBase) => {
                   const i = flatItems.indexOf(e);
@@ -282,8 +317,12 @@ export const SeccionEntidad = ({
                       className="w-full flex items-center gap-2 px-2.5 py-1.5 text-left transition-all"
                       data-idx={i}
                       style={{
-                        background: isCursor ? "color-mix(in srgb, var(--primary) 6%, transparent)" : "transparent",
-                        color: sel ? "var(--primary)" : "color-mix(in srgb, var(--primary) 50%, transparent)",
+                        background: isCursor
+                          ? "color-mix(in srgb, var(--primary) 6%, transparent)"
+                          : "transparent",
+                        color: sel
+                          ? "var(--primary)"
+                          : "color-mix(in srgb, var(--primary) 50%, transparent)",
                       }}
                       type="button"
                       onClick={() => toggle(e.id)}
@@ -291,14 +330,41 @@ export const SeccionEntidad = ({
                       onMouseLeave={() => setCursor(-1)}
                     >
                       {e.imagen_url ? (
-                        <img alt={e.nombre} className="w-4 h-4 rounded-full shrink-0 object-cover border" src={e.imagen_url} style={{ borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)", background: "color-mix(in srgb, var(--primary) 6%, transparent)" }} />
+                        <Image
+                          alt={e.nombre}
+                          className="w-4 h-4 rounded-full shrink-0 object-cover border"
+                          src={e.imagen_url}
+                          style={{
+                            borderColor:
+                              "color-mix(in srgb, var(--primary) 12%, transparent)",
+                            background:
+                              "color-mix(in srgb, var(--primary) 6%, transparent)",
+                          }}
+                        />
                       ) : (
-                        <div className="w-4 h-4 rounded-full shrink-0 flex items-center justify-center text-[6px] font-black uppercase" style={{ background: sel ? "color-mix(in srgb, var(--primary) 15%, transparent)" : "color-mix(in srgb, var(--primary) 8%, transparent)", color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}>
+                        <div
+                          className="w-4 h-4 rounded-full shrink-0 flex items-center justify-center text-[6px] font-black uppercase"
+                          style={{
+                            background: sel
+                              ? "color-mix(in srgb, var(--primary) 15%, transparent)"
+                              : "color-mix(in srgb, var(--primary) 8%, transparent)",
+                            color:
+                              "color-mix(in srgb, var(--primary) 55%, transparent)",
+                          }}
+                        >
                           {e.nombre.charAt(0)}
                         </div>
                       )}
-                      <span className="flex-1 min-w-0 text-[9px] font-black uppercase tracking-wide truncate">{e.nombre}</span>
-                      {sel && <Check className="shrink-0" size={9} style={{ color: "var(--primary)" }} />}
+                      <span className="flex-1 min-w-0 text-[9px] font-black uppercase tracking-wide truncate">
+                        {e.nombre}
+                      </span>
+                      {sel && (
+                        <Check
+                          className="shrink-0"
+                          size={9}
+                          style={{ color: "var(--primary)" }}
+                        />
+                      )}
                     </button>
                   );
                 };
@@ -308,9 +374,36 @@ export const SeccionEntidad = ({
                     {ungrouped.map(renderItem)}
                     {grouped.map(({ group, items: gItems }) => (
                       <React.Fragment key={group.key}>
-                        <div className="flex items-center gap-1.5 px-2.5 py-1 sticky top-0" style={{ borderTop: ungrouped.length > 0 ? "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" : undefined, background: "color-mix(in srgb, var(--primary) 3%, var(--bg-main))" }}>
-                          {group.icon && <span style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>{group.icon}</span>}
-                          <span className="text-[7px] font-black uppercase tracking-[0.2em]" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>{group.label}</span>
+                        <div
+                          className="flex items-center gap-1.5 px-2.5 py-1 sticky top-0"
+                          style={{
+                            borderTop:
+                              ungrouped.length > 0
+                                ? "1px solid color-mix(in srgb, var(--primary) 6%, transparent)"
+                                : undefined,
+                            background:
+                              "color-mix(in srgb, var(--primary) 3%, var(--bg-main))",
+                          }}
+                        >
+                          {group.icon && (
+                            <span
+                              style={{
+                                color:
+                                  "color-mix(in srgb, var(--primary) 35%, transparent)",
+                              }}
+                            >
+                              {group.icon}
+                            </span>
+                          )}
+                          <span
+                            className="text-[7px] font-black uppercase tracking-[0.2em]"
+                            style={{
+                              color:
+                                "color-mix(in srgb, var(--primary) 30%, transparent)",
+                            }}
+                          >
+                            {group.label}
+                          </span>
                         </div>
                         {gItems.map(renderItem)}
                       </React.Fragment>
@@ -320,8 +413,8 @@ export const SeccionEntidad = ({
               })()
             ) : (
               filtered.map((e, i) => {
-                const sel       = selectedIds.includes(e.id);
-                const isCursor  = cursor === i;
+                const sel = selectedIds.includes(e.id);
+                const isCursor = cursor === i;
                 return (
                   <button
                     key={e.id}
@@ -347,8 +440,10 @@ export const SeccionEntidad = ({
                         className="w-4 h-4 rounded-full shrink-0 object-cover border"
                         src={e.imagen_url}
                         style={{
-                          borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
-                          background: "color-mix(in srgb, var(--primary) 6%, transparent)",
+                          borderColor:
+                            "color-mix(in srgb, var(--primary) 12%, transparent)",
+                          background:
+                            "color-mix(in srgb, var(--primary) 6%, transparent)",
                         }}
                       />
                     ) : (
@@ -358,7 +453,8 @@ export const SeccionEntidad = ({
                           background: sel
                             ? "color-mix(in srgb, var(--primary) 15%, transparent)"
                             : "color-mix(in srgb, var(--primary) 8%, transparent)",
-                          color: "color-mix(in srgb, var(--primary) 55%, transparent)",
+                          color:
+                            "color-mix(in srgb, var(--primary) 55%, transparent)",
                         }}
                       >
                         {e.nombre.charAt(0)}
@@ -386,7 +482,8 @@ export const SeccionEntidad = ({
           <div
             className="flex items-center gap-2 px-2.5 py-1"
             style={{
-              borderTop: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)",
+              borderTop:
+                "1px solid color-mix(in srgb, var(--primary) 6%, transparent)",
               background: "color-mix(in srgb, var(--primary) 2%, transparent)",
             }}
           >
@@ -399,16 +496,22 @@ export const SeccionEntidad = ({
                 <kbd
                   className="text-[6px] font-black uppercase px-1 py-0.5 rounded"
                   style={{
-                    background: "color-mix(in srgb, var(--primary) 10%, transparent)",
-                    color: "color-mix(in srgb, var(--primary) 40%, transparent)",
-                    border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+                    background:
+                      "color-mix(in srgb, var(--primary) 10%, transparent)",
+                    color:
+                      "color-mix(in srgb, var(--primary) 40%, transparent)",
+                    border:
+                      "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
                   }}
                 >
                   {key}
                 </kbd>
                 <span
                   className="text-[6px] font-bold uppercase tracking-wider"
-                  style={{ color: "color-mix(in srgb, var(--primary) 22%, transparent)" }}
+                  style={{
+                    color:
+                      "color-mix(in srgb, var(--primary) 22%, transparent)",
+                  }}
                 >
                   {kl}
                 </span>
@@ -420,13 +523,22 @@ export const SeccionEntidad = ({
 
       {/* ── Entidades seleccionadas ── */}
       {selected.length === 0 ? (
-        <div className="flex items-center gap-2 px-3 py-2" style={{ opacity: 0.35 }}>
-          <span style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>
+        <div
+          className="flex items-center gap-2 px-3 py-2"
+          style={{ opacity: 0.35 }}
+        >
+          <span
+            style={{
+              color: "color-mix(in srgb, var(--primary) 40%, transparent)",
+            }}
+          >
             {fallbackIcon}
           </span>
           <p
             className="text-[8px] font-black uppercase tracking-widest"
-            style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
+            style={{
+              color: "color-mix(in srgb, var(--primary) 30%, transparent)",
+            }}
           >
             {emptyLabel}
           </p>
@@ -434,7 +546,7 @@ export const SeccionEntidad = ({
       ) : columns === 2 ? (
         /* ── Grid 2 columnas ── */
         <div className="grid grid-cols-2 gap-1 p-2">
-          {selected.map(e => (
+          {selected.map((e) => (
             <div
               key={e.id}
               className="group relative flex flex-col items-center gap-1 p-1.5 rounded-lg transition-all hover:bg-primary/5"
@@ -446,14 +558,19 @@ export const SeccionEntidad = ({
                   alt={e.nombre}
                   className="w-8 h-8 rounded-lg shrink-0 object-cover"
                   src={e.imagen_url}
-                  style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
+                  style={{
+                    background:
+                      "color-mix(in srgb, var(--primary) 10%, transparent)",
+                  }}
                 />
               ) : (
                 <div
                   className="w-8 h-8 rounded-lg shrink-0 flex items-center justify-center text-[9px] font-black uppercase"
                   style={{
-                    background: "color-mix(in srgb, var(--primary) 12%, transparent)",
-                    color: "color-mix(in srgb, var(--primary) 60%, transparent)",
+                    background:
+                      "color-mix(in srgb, var(--primary) 12%, transparent)",
+                    color:
+                      "color-mix(in srgb, var(--primary) 60%, transparent)",
                   }}
                 >
                   {e.nombre.charAt(0)}
@@ -461,16 +578,23 @@ export const SeccionEntidad = ({
               )}
               <span
                 className="w-full text-center text-[8px] font-black uppercase tracking-wide truncate leading-tight"
-                style={{ color: "color-mix(in srgb, var(--primary) 65%, transparent)" }}
+                style={{
+                  color: "color-mix(in srgb, var(--primary) 65%, transparent)",
+                }}
               >
                 {e.nombre}
               </span>
               <button
                 className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-red-500/10 hover:bg-red-500/20"
-                style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
+                style={{
+                  color: "color-mix(in srgb, var(--primary) 30%, transparent)",
+                }}
                 title="Quitar"
                 type="button"
-                onClick={ev => { ev.stopPropagation(); onToggle(e.id, false); }}
+                onClick={(ev) => {
+                  ev.stopPropagation();
+                  onToggle(e.id, false);
+                }}
               >
                 <X size={8} />
               </button>
@@ -480,11 +604,13 @@ export const SeccionEntidad = ({
       ) : groups && groups.length > 0 ? (
         /* ── Lista agrupada ── */
         (() => {
-          const ungroupedSel = selected.filter(e => !e.group);
-          const groupedSel = groups.map(g => ({
-            group: g,
-            items: selected.filter(e => e.group === g.key),
-          })).filter(g => g.items.length > 0);
+          const ungroupedSel = selected.filter((e) => !e.group);
+          const groupedSel = groups
+            .map((g) => ({
+              group: g,
+              items: selected.filter((e) => e.group === g.key),
+            }))
+            .filter((g) => g.items.length > 0);
 
           const renderSelItem = (e: EntidadBase) => (
             <div
@@ -494,16 +620,48 @@ export const SeccionEntidad = ({
               onClick={() => onEntityClick?.(e.id)}
             >
               {e.imagen_url ? (
-                <img alt={e.nombre} className="w-5 h-5 rounded-full shrink-0 object-cover" src={e.imagen_url} style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
+                <Image
+                  alt={e.nombre}
+                  className="w-5 h-5 rounded-full shrink-0 object-cover"
+                  src={e.imagen_url}
+                  style={{
+                    background:
+                      "color-mix(in srgb, var(--primary) 10%, transparent)",
+                  }}
+                />
               ) : (
-                <div className="w-5 h-5 rounded-full shrink-0 flex items-center justify-center text-[7px] font-black uppercase" style={{ background: "color-mix(in srgb, var(--primary) 12%, transparent)", color: "color-mix(in srgb, var(--primary) 60%, transparent)" }}>
+                <div
+                  className="w-5 h-5 rounded-full shrink-0 flex items-center justify-center text-[7px] font-black uppercase"
+                  style={{
+                    background:
+                      "color-mix(in srgb, var(--primary) 12%, transparent)",
+                    color:
+                      "color-mix(in srgb, var(--primary) 60%, transparent)",
+                  }}
+                >
                   {e.nombre.charAt(0)}
                 </div>
               )}
-              <span className="flex-1 min-w-0 text-[10px] font-black uppercase tracking-wide truncate" style={{ color: "color-mix(in srgb, var(--primary) 65%, transparent)" }}>
+              <span
+                className="flex-1 min-w-0 text-[10px] font-black uppercase tracking-wide truncate"
+                style={{
+                  color: "color-mix(in srgb, var(--primary) 65%, transparent)",
+                }}
+              >
                 {e.nombre}
               </span>
-              <button className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity rounded p-0.5 hover:bg-red-500/10" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} title="Quitar" type="button" onClick={ev => { ev.stopPropagation(); onToggle(e.id, false); }}>
+              <button
+                className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity rounded p-0.5 hover:bg-red-500/10"
+                style={{
+                  color: "color-mix(in srgb, var(--primary) 30%, transparent)",
+                }}
+                title="Quitar"
+                type="button"
+                onClick={(ev) => {
+                  ev.stopPropagation();
+                  onToggle(e.id, false);
+                }}
+              >
                 <X size={9} />
               </button>
             </div>
@@ -514,9 +672,34 @@ export const SeccionEntidad = ({
               {ungroupedSel.map(renderSelItem)}
               {groupedSel.map(({ group, items: gItems }, gi) => (
                 <React.Fragment key={group.key}>
-                  <div className="flex items-center gap-1 px-3 py-0.5" style={{ borderTop: (ungroupedSel.length > 0 || gi > 0) ? "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" : undefined }}>
-                    {group.icon && <span style={{ color: "color-mix(in srgb, var(--primary) 28%, transparent)" }}>{group.icon}</span>}
-                    <span className="text-[7px] font-black uppercase tracking-[0.2em]" style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>{group.label}</span>
+                  <div
+                    className="flex items-center gap-1 px-3 py-0.5"
+                    style={{
+                      borderTop:
+                        ungroupedSel.length > 0 || gi > 0
+                          ? "1px solid color-mix(in srgb, var(--primary) 6%, transparent)"
+                          : undefined,
+                    }}
+                  >
+                    {group.icon && (
+                      <span
+                        style={{
+                          color:
+                            "color-mix(in srgb, var(--primary) 28%, transparent)",
+                        }}
+                      >
+                        {group.icon}
+                      </span>
+                    )}
+                    <span
+                      className="text-[7px] font-black uppercase tracking-[0.2em]"
+                      style={{
+                        color:
+                          "color-mix(in srgb, var(--primary) 25%, transparent)",
+                      }}
+                    >
+                      {group.label}
+                    </span>
                   </div>
                   {gItems.map(renderSelItem)}
                 </React.Fragment>
@@ -526,7 +709,7 @@ export const SeccionEntidad = ({
         })()
       ) : (
         /* ── Lista simple (default) ── */
-        selected.map(e => (
+        selected.map((e) => (
           <div
             key={e.id}
             className="group flex items-center gap-2 px-3 py-1.5 transition-all hover:bg-primary/5"
@@ -538,13 +721,17 @@ export const SeccionEntidad = ({
                 alt={e.nombre}
                 className="w-5 h-5 rounded-full shrink-0 object-cover"
                 src={e.imagen_url}
-                style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
+                style={{
+                  background:
+                    "color-mix(in srgb, var(--primary) 10%, transparent)",
+                }}
               />
             ) : (
               <div
                 className="w-5 h-5 rounded-full shrink-0 flex items-center justify-center text-[7px] font-black uppercase"
                 style={{
-                  background: "color-mix(in srgb, var(--primary) 12%, transparent)",
+                  background:
+                    "color-mix(in srgb, var(--primary) 12%, transparent)",
                   color: "color-mix(in srgb, var(--primary) 60%, transparent)",
                 }}
               >
@@ -553,16 +740,23 @@ export const SeccionEntidad = ({
             )}
             <span
               className="flex-1 min-w-0 text-[10px] font-black uppercase tracking-wide truncate"
-              style={{ color: "color-mix(in srgb, var(--primary) 65%, transparent)" }}
+              style={{
+                color: "color-mix(in srgb, var(--primary) 65%, transparent)",
+              }}
             >
               {e.nombre}
             </span>
             <button
               className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity rounded p-0.5 hover:bg-red-500/10"
-              style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
+              style={{
+                color: "color-mix(in srgb, var(--primary) 30%, transparent)",
+              }}
               title="Quitar"
               type="button"
-              onClick={ev => { ev.stopPropagation(); onToggle(e.id, false); }}
+              onClick={(ev) => {
+                ev.stopPropagation();
+                onToggle(e.id, false);
+              }}
             >
               <X size={9} />
             </button>
@@ -572,5 +766,13 @@ export const SeccionEntidad = ({
     </div>
   );
 };
+
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 export default SeccionEntidad;

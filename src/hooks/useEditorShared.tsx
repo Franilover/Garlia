@@ -1,12 +1,28 @@
 "use client";
 
+
+
+
+
 import { RotateCcw, Save, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+
+
+
+
 
 import { db } from "@/lib/api/client/db";
 import { supabase } from "@/lib/api/client/supabase";
 
+
+
+
+
 export interface Personaje { id: string; nombre: string; }
+
+
+
+
 
 export function usePersonajes() {
   const [personajes, setPersonajes] = useState<Personaje[]>([]);
@@ -47,6 +63,10 @@ export function usePersonajes() {
   return { personajes, loading };
 }
 
+
+
+
+
 export function useLastOpenedId(storageKey: string): [string | null, (id: string | null) => void] {
   const [id, setIdState] = useState<string | null>(() => {
     if (typeof window === "undefined") return null;
@@ -72,6 +92,10 @@ interface DraftRestoreOptions {
   enabled?: boolean;
 }
 
+
+
+
+
 export interface DraftHandle {
   hasDraft:   boolean;
   draftValue: string;
@@ -79,6 +103,10 @@ export interface DraftHandle {
   clear:      () => void;
   dismiss:    () => void;
 }
+
+
+
+
 
 export function useDraftRestore({ key, serverValue, enabled = true }: DraftRestoreOptions): DraftHandle {
   const [draftValue,  setDraftValue]  = useState("");
@@ -132,6 +160,10 @@ export function useDraftRestore({ key, serverValue, enabled = true }: DraftResto
   };
 }
 
+
+
+
+
 export function DraftRestoreBanner({
   draft,
   onRestore,
@@ -168,7 +200,15 @@ export function DraftRestoreBanner({
   );
 }
 
+
+
+
+
 const selectCls = "w-full bg-primary/5 border border-primary/15 rounded-xl px-4 py-2.5 text-sm font-medium text-primary outline-none focus:border-primary/40 transition-colors appearance-none cursor-pointer";
+
+
+
+
 
 export function SelectPersonaje({
   value,
@@ -205,11 +245,19 @@ export function SelectPersonaje({
   );
 }
 
+
+
+
+
 const IDIOMAS_OPCIONES = [
   { value: "Español",  label: "Español (ES)" },
   { value: "Japonés",  label: "Japonés (JP)" },
   { value: "Inglés",   label: "Inglés (EN)"  },
 ];
+
+
+
+
 
 export function SelectIdioma({
   value,

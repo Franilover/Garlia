@@ -1,10 +1,22 @@
 "use client";
+
+
+
+
 import { Instagram, Youtube } from "lucide-react";
 import React, { useState } from "react";
+
+
+
+
 
 import { MotionA, MotionDiv, MotionH1, MotionSection } from '@/components/ui/Motion';
 import { ToastContainer } from "@/components/ui/ToastContainer";
 import { useToast } from "@/hooks/ui/useToast";
+
+
+
+
 
 const fade = (delay = 0) => ({
   initial: { opacity: 0, y: 18 },
@@ -12,11 +24,19 @@ const fade = (delay = 0) => ({
   transition: { duration: 0.55, delay, ease: [0.25, 0.1, 0.25, 1] as any },
 });
 
+
+
+
+
 const TOOLS = [
   { num: "01", title: "Arch Linux",       },
   { num: "02",  title: "Krita", },
   { num: "03",  title: "Reaper", },
 ];
+
+
+
+
 
 export default function SobreMi() {
   const FORMSPREE_ID = "xvzpjdgr";

@@ -1,3 +1,4 @@
+import Image from "next/image";
 "use client";
 
 import {
@@ -480,7 +481,7 @@ function FormularioMagico({ item, modo, grupos, loadingGrupos, onSaved, onDelete
               {/* Mobile: imagen con botón flotante */}
               <div className="sm:hidden relative w-full rounded-xl overflow-hidden border border-primary/10 bg-primary/3" style={{ aspectRatio: "1 / 1" }}>
                 {(form as any).imagen_url
-                  ? <img alt={form.nombre} className="w-full h-full object-cover" src={(form as any).imagen_url} />
+                  ? <Image alt={form.nombre} className="w-full h-full object-cover" src={(form as any).imagen_url} />
                   : <div className="w-full h-full flex items-center justify-center"><cfg.Icon size={64} style={{ color: cfg.color, opacity: 0.15 }} /></div>
                 }
                 <div className="absolute top-2 right-2 z-10">
@@ -495,7 +496,7 @@ function FormularioMagico({ item, modo, grupos, loadingGrupos, onSaved, onDelete
               {/* Desktop: imagen grande con overlay de cambio */}
               <div className="hidden sm:block relative w-full rounded-xl overflow-hidden border border-primary/10 bg-primary/3" style={{ aspectRatio: "1 / 1" }}>
                 {(form as any).imagen_url
-                  ? <img alt={form.nombre} className="w-full h-full object-cover" src={(form as any).imagen_url} />
+                  ? <Image alt={form.nombre} className="w-full h-full object-cover" src={(form as any).imagen_url} />
                   : <div className="w-full h-full flex items-center justify-center"><cfg.Icon size={64} style={{ color: cfg.color, opacity: 0.15 }} /></div>
                 }
                 <div className="absolute top-2 right-2 z-10">
@@ -539,7 +540,7 @@ function FormularioMagico({ item, modo, grupos, loadingGrupos, onSaved, onDelete
               {/* Mobile: imagen con botón flotante */}
               <div className="sm:hidden relative w-full rounded-xl overflow-hidden border border-primary/10 bg-primary/3" style={{ aspectRatio: "1 / 1" }}>
                 {(form as any).imagen_url
-                  ? <img alt={form.nombre} className="w-full h-full object-cover" src={(form as any).imagen_url} />
+                  ? <Image alt={form.nombre} className="w-full h-full object-cover" src={(form as any).imagen_url} />
                   : <div className="w-full h-full flex items-center justify-center"><cfg.Icon size={64} style={{ color: cfg.color, opacity: 0.15 }} /></div>
                 }
                 <div className="absolute top-2 right-2 z-10">
@@ -554,7 +555,7 @@ function FormularioMagico({ item, modo, grupos, loadingGrupos, onSaved, onDelete
               {/* Desktop: imagen grande con overlay de cambio */}
               <div className="hidden sm:block relative w-full rounded-xl overflow-hidden border border-primary/10 bg-primary/3" style={{ aspectRatio: "1 / 1" }}>
                 {(form as any).imagen_url
-                  ? <img alt={form.nombre} className="w-full h-full object-cover" src={(form as any).imagen_url} />
+                  ? <Image alt={form.nombre} className="w-full h-full object-cover" src={(form as any).imagen_url} />
                   : <div className="w-full h-full flex items-center justify-center"><cfg.Icon size={64} style={{ color: cfg.color, opacity: 0.15 }} /></div>
                 }
                 <div className="absolute top-2 right-2 z-10">

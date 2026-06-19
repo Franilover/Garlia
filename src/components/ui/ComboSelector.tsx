@@ -1,6 +1,7 @@
+import Image from "next/image";
 "use client";
+
 import { ChevronDown, Check, X, Search, Pencil } from "lucide-react";
-import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 
 /* ─────────────────────────────────────────────────────────────────────────────
    ComboSelector — selector reutilizable con búsqueda, flechas y Tab
@@ -62,61 +63,86 @@ type ComboSelectorProps = {
   onNavigate?: (id: string, label: string) => void;
 } & (SingleProps | MultiProps);
 
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useMemo,
+} from "react";
+
 export function ComboSelector(props: ComboSelectorProps) {
   const {
-    items, groups, label, icon, placeholder, emptyText = "Sin resultados",
-    loading, hint, className = "", onNavigate,
+    items,
+    groups,
+    label,
+    icon,
+    placeholder,
+    emptyText = "Sin resultados",
+    loading,
+    hint,
+    className = "",
+    onNavigate,
   } = props;
 
-  const [open, setOpen]         = useState(false);
-  const [query, setQuery]       = useState("");
-  const [cursor, setCursor]     = useState(-1);
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [cursor, setCursor] = useState(-1);
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const inputRef     = useRef<HTMLInputElement>(null);
-  const listRef      = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
 
   // ── Items filtrados por búsqueda ──────────────────────────────────────────
   const filtered = useMemo(() => {
     if (!query.trim()) return items;
     const q = query.toLowerCase();
-    return items.filter(it =>
-      it.label.toLowerCase().startsWith(q) ||
-      it.label.toLowerCase().includes(q)
-    ).sort((a, b) => {
-      // Priorizar los que empiezan con la query
-      const aStarts = a.label.toLowerCase().startsWith(q);
-      const bStarts = b.label.toLowerCase().startsWith(q);
-      if (aStarts && !bStarts) return -1;
-      if (!aStarts && bStarts) return 1;
-      return 0;
-    });
+    return items
+      .filter(
+        (it) =>
+          it.label.toLowerCase().startsWith(q) ||
+          it.label.toLowerCase().includes(q),
+      )
+      .sort((a, b) => {
+        // Priorizar los que empiezan con la query
+        const aStarts = a.label.toLowerCase().startsWith(q);
+        const bStarts = b.label.toLowerCase().startsWith(q);
+        if (aStarts && !bStarts) return -1;
+        if (!aStarts && bStarts) return 1;
+        return 0;
+      });
   }, [items, query]);
 
   // ── Helpers de valor ─────────────────────────────────────────────────────
-  const isSelected = useCallback((id: string) => {
-    if (props.mode === "single") return props.value === id;
-    return props.value.includes(id);
-  }, [props]);
+  const isSelected = useCallback(
+    (id: string) => {
+      if (props.mode === "single") return props.value === id;
+      return props.value.includes(id);
+    },
+    [props],
+  );
 
-  const toggle = useCallback((id: string) => {
-    if (props.mode === "single") {
-      props.onChange(props.value === id ? null : id);
-      setOpen(false);
-      setQuery("");
-      setCursor(-1);
-    } else {
-      props.onChange(
-        props.value.includes(id)
-          ? props.value.filter(x => x !== id)
-          : [...props.value, id]
-      );
-      // En multi: mantener abierto
-      setQuery("");
-      setCursor(-1);
-      inputRef.current?.focus();
-    }
-  }, [props]);
+  const toggle = useCallback(
+    (id: string) => {
+      if (props.mode === "single") {
+        props.onChange(props.value === id ? null : id);
+        setOpen(false);
+        setQuery("");
+        setCursor(-1);
+      } else {
+        props.onChange(
+          props.value.includes(id)
+            ? props.value.filter((x) => x !== id)
+            : [...props.value, id],
+        );
+        // En multi: mantener abierto
+        setQuery("");
+        setCursor(-1);
+        inputRef.current?.focus();
+      }
+    },
+    [props],
+  );
 
   const selectNone = useCallback(() => {
     if (props.mode === "single") {
@@ -127,19 +153,25 @@ export function ComboSelector(props: ComboSelectorProps) {
     }
   }, [props]);
 
-  const removeItem = useCallback((id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (props.mode === "multi") {
-      props.onChange(props.value.filter(x => x !== id));
-    } else {
-      props.onChange(null);
-    }
-  }, [props]);
+  const removeItem = useCallback(
+    (id: string, e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (props.mode === "multi") {
+        props.onChange(props.value.filter((x) => x !== id));
+      } else {
+        props.onChange(null);
+      }
+    },
+    [props],
+  );
 
   // ── Labels de selección ───────────────────────────────────────────────────
-  const selectedItems = props.mode === "single"
-    ? (props.value ? items.filter(it => it.id === props.value) : [])
-    : items.filter(it => (props.value as string[]).includes(it.id));
+  const selectedItems =
+    props.mode === "single"
+      ? props.value
+        ? items.filter((it) => it.id === props.value)
+        : []
+      : items.filter((it) => (props.value as string[]).includes(it.id));
 
   const triggerLabel = loading
     ? "Cargando…"
@@ -153,7 +185,10 @@ export function ComboSelector(props: ComboSelectorProps) {
   useEffect(() => {
     if (!open) return;
     const h = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(e.target as Node)
+      ) {
         setOpen(false);
         setQuery("");
         setCursor(-1);
@@ -166,18 +201,23 @@ export function ComboSelector(props: ComboSelectorProps) {
   // ── Focus al input al abrir ───────────────────────────────────────────────
   useEffect(() => {
     if (open) setTimeout(() => inputRef.current?.focus(), 30);
-    else { setQuery(""); setCursor(-1); }
+    else {
+      setQuery("");
+      setCursor(-1);
+    }
   }, [open]);
 
   // ── Scroll del cursor visible ─────────────────────────────────────────────
   useEffect(() => {
     if (cursor < 0 || !listRef.current) return;
-    const el = listRef.current.querySelector(`[data-idx="${cursor}"]`) as HTMLElement | null;
+    const el = listRef.current.querySelector(
+      `[data-idx="${cursor}"]`,
+    ) as HTMLElement | null;
     el?.scrollIntoView({ block: "nearest" });
   }, [cursor]);
 
   // ── Lista con opción "Ninguno" en single ──────────────────────────────────
-  const showNone = props.mode === "single" && (props.allowNone !== false);
+  const showNone = props.mode === "single" && props.allowNone !== false;
   // cursor 0 = Ninguno (si aplica), resto = filtered[cursor - (showNone?1:0)]
   const cursorMax = filtered.length + (showNone ? 1 : 0) - 1;
 
@@ -187,15 +227,18 @@ export function ComboSelector(props: ComboSelectorProps) {
 
     if (e.key === "ArrowDown") {
       e.preventDefault();
-      setCursor(c => Math.min(c + 1, cursorMax));
+      setCursor((c) => Math.min(c + 1, cursorMax));
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
-      setCursor(c => Math.max(c - 1, showNone ? 0 : 0));
+      setCursor((c) => Math.max(c - 1, showNone ? 0 : 0));
     } else if (e.key === "Tab" || e.key === "Enter") {
       e.preventDefault();
       if (cursor < 0 && filtered.length > 0) {
         // Tab sin cursor: selecciona el primero del filtro
-        if (showNone && filtered.length === 0) { selectNone(); return; }
+        if (showNone && filtered.length === 0) {
+          selectNone();
+          return;
+        }
         const first = filtered[0];
         if (first) toggle(first.id);
       } else if (showNone && cursor === 0) {
@@ -212,8 +255,10 @@ export function ComboSelector(props: ComboSelectorProps) {
     }
   };
 
-  const border = "1px solid color-mix(in srgb, var(--primary) 15%, transparent)";
-  const borderFocus = "1px solid color-mix(in srgb, var(--primary) 35%, transparent)";
+  const border =
+    "1px solid color-mix(in srgb, var(--primary) 15%, transparent)";
+  const borderFocus =
+    "1px solid color-mix(in srgb, var(--primary) 35%, transparent)";
 
   return (
     <div ref={containerRef} className={`space-y-1.5 ${className}`}>
@@ -227,7 +272,9 @@ export function ComboSelector(props: ComboSelectorProps) {
             </label>
           )}
           {hint && (
-            <span className="text-[8px] font-medium text-primary/25 normal-case">{hint}</span>
+            <span className="text-[8px] font-medium text-primary/25 normal-case">
+              {hint}
+            </span>
           )}
         </div>
       )}
@@ -235,18 +282,24 @@ export function ComboSelector(props: ComboSelectorProps) {
       {/* Chips de selección en modo multi */}
       {props.mode === "multi" && selectedItems.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
-          {selectedItems.map(it => (
+          {selectedItems.map((it) => (
             <span
               key={it.id}
               className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wide border"
               style={{
-                background: "color-mix(in srgb, var(--primary) 10%, transparent)",
-                borderColor: "color-mix(in srgb, var(--primary) 20%, transparent)",
+                background:
+                  "color-mix(in srgb, var(--primary) 10%, transparent)",
+                borderColor:
+                  "color-mix(in srgb, var(--primary) 20%, transparent)",
                 color: "var(--primary)",
               }}
             >
               {it.imgUrl && (
-                <img alt="" className="w-3.5 h-3.5 rounded-full object-cover" src={it.imgUrl} />
+                <Image
+                  alt=""
+                  className="w-3.5 h-3.5 rounded-full object-cover"
+                  src={it.imgUrl}
+                />
               )}
               {it.label}
               <button
@@ -275,7 +328,9 @@ export function ComboSelector(props: ComboSelectorProps) {
             className="flex-1 flex items-center gap-2 px-4 py-2.5 text-[11px] font-bold transition-all min-w-0 hover:bg-primary/5"
             style={{ color: "var(--primary)" }}
             type="button"
-            onClick={() => onNavigate(selectedItems[0].id, selectedItems[0].label)}
+            onClick={() =>
+              onNavigate(selectedItems[0].id, selectedItems[0].label)
+            }
           >
             {selectedItems[0].imgUrl && (
               <img
@@ -284,17 +339,23 @@ export function ComboSelector(props: ComboSelectorProps) {
                 src={selectedItems[0].imgUrl}
               />
             )}
-            <span className="truncate font-black uppercase">{triggerLabel}</span>
+            <span className="truncate font-black uppercase">
+              {triggerLabel}
+            </span>
           </button>
           <button
             className="shrink-0 flex items-center justify-center px-2.5 py-2.5 transition-all hover:bg-primary/10"
             style={{
-              borderLeft: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+              borderLeft:
+                "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
               color: "color-mix(in srgb, var(--primary) 35%, transparent)",
             }}
             title="Cambiar"
             type="button"
-            onClick={(e) => { e.stopPropagation(); setOpen(o => !o); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              setOpen((o) => !o);
+            }}
           >
             <Pencil size={11} />
           </button>
@@ -305,12 +366,13 @@ export function ComboSelector(props: ComboSelectorProps) {
           style={{
             background: "color-mix(in srgb, var(--primary) 5%, transparent)",
             border: open ? borderFocus : border,
-            color: selectedItems.length > 0
-              ? "var(--primary)"
-              : "color-mix(in srgb, var(--primary) 40%, transparent)",
+            color:
+              selectedItems.length > 0
+                ? "var(--primary)"
+                : "color-mix(in srgb, var(--primary) 40%, transparent)",
           }}
           type="button"
-          onClick={() => setOpen(o => !o)}
+          onClick={() => setOpen((o) => !o)}
         >
           <span className="flex items-center gap-2 min-w-0">
             {/* Imagen en single */}
@@ -321,7 +383,9 @@ export function ComboSelector(props: ComboSelectorProps) {
                 src={selectedItems[0].imgUrl}
               />
             )}
-            <span className="truncate font-black uppercase">{triggerLabel}</span>
+            <span className="truncate font-black uppercase">
+              {triggerLabel}
+            </span>
           </span>
           <ChevronDown
             className={`shrink-0 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
@@ -338,15 +402,25 @@ export function ComboSelector(props: ComboSelectorProps) {
           style={{
             border,
             background: "var(--bg-main)",
-            boxShadow: "0 8px 24px color-mix(in srgb, var(--primary) 10%, transparent)",
+            boxShadow:
+              "0 8px 24px color-mix(in srgb, var(--primary) 10%, transparent)",
           }}
         >
           {/* Input de búsqueda */}
           <div
             className="flex items-center gap-2 px-3 py-2"
-            style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
+            style={{
+              borderBottom:
+                "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+            }}
           >
-            <Search size={11} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)", flexShrink: 0 }} />
+            <Search
+              size={11}
+              style={{
+                color: "color-mix(in srgb, var(--primary) 30%, transparent)",
+                flexShrink: 0,
+              }}
+            />
             <input
               ref={inputRef}
               className="flex-1 bg-transparent outline-none text-[11px] font-bold uppercase tracking-wide placeholder:normal-case placeholder:font-medium placeholder:tracking-normal"
@@ -357,14 +431,21 @@ export function ComboSelector(props: ComboSelectorProps) {
               }}
               type="text"
               value={query}
-              onChange={e => { setQuery(e.target.value); setCursor(-1); }}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setCursor(-1);
+              }}
               onKeyDown={handleKeyDown}
             />
             {query && (
               <button
                 className="opacity-30 hover:opacity-70 transition-opacity"
                 type="button"
-                onClick={() => { setQuery(""); setCursor(-1); inputRef.current?.focus(); }}
+                onClick={() => {
+                  setQuery("");
+                  setCursor(-1);
+                  inputRef.current?.focus();
+                }}
               >
                 <X size={10} style={{ color: "var(--primary)" }} />
               </button>
@@ -382,9 +463,10 @@ export function ComboSelector(props: ComboSelectorProps) {
                   color: !props.value
                     ? "var(--primary)"
                     : "color-mix(in srgb, var(--primary) 45%, transparent)",
-                  background: cursor === 0
-                    ? "color-mix(in srgb, var(--primary) 6%, transparent)"
-                    : "transparent",
+                  background:
+                    cursor === 0
+                      ? "color-mix(in srgb, var(--primary) 6%, transparent)"
+                      : "transparent",
                 }}
                 type="button"
                 onClick={selectNone}
@@ -397,7 +479,9 @@ export function ComboSelector(props: ComboSelectorProps) {
                   </span>
                   {(props as SingleProps).noneLabel ?? "Ninguno"}
                 </span>
-                {!props.value && <Check size={11} style={{ color: "var(--primary)" }} />}
+                {!props.value && (
+                  <Check size={11} style={{ color: "var(--primary)" }} />
+                )}
               </button>
             )}
 
@@ -410,16 +494,18 @@ export function ComboSelector(props: ComboSelectorProps) {
               (() => {
                 // Build a flat ordered list: items without group first (ungrouped),
                 // then each group with its items
-                const ungrouped = filtered.filter(it => !it.group);
-                const grouped = groups.map(g => ({
-                  group: g,
-                  items: filtered.filter(it => it.group === g.key),
-                })).filter(g => g.items.length > 0);
+                const ungrouped = filtered.filter((it) => !it.group);
+                const grouped = groups
+                  .map((g) => ({
+                    group: g,
+                    items: filtered.filter((it) => it.group === g.key),
+                  }))
+                  .filter((g) => g.items.length > 0);
 
                 // Build a flat index map for cursor tracking
                 const flatItems: ComboItem[] = [
                   ...ungrouped,
-                  ...grouped.flatMap(g => g.items),
+                  ...grouped.flatMap((g) => g.items),
                 ];
 
                 const renderItem = (it: ComboItem) => {
@@ -433,8 +519,12 @@ export function ComboSelector(props: ComboSelectorProps) {
                       className="w-full flex items-center justify-between px-4 py-2.5 text-[11px] font-bold uppercase transition-all"
                       data-idx={cursorIdx}
                       style={{
-                        color: sel ? "var(--primary)" : "color-mix(in srgb, var(--primary) 50%, transparent)",
-                        background: isCursor ? "color-mix(in srgb, var(--primary) 6%, transparent)" : "transparent",
+                        color: sel
+                          ? "var(--primary)"
+                          : "color-mix(in srgb, var(--primary) 50%, transparent)",
+                        background: isCursor
+                          ? "color-mix(in srgb, var(--primary) 6%, transparent)"
+                          : "transparent",
                       }}
                       type="button"
                       onClick={() => toggle(it.id)}
@@ -442,11 +532,27 @@ export function ComboSelector(props: ComboSelectorProps) {
                       onMouseLeave={() => setCursor(-1)}
                     >
                       <span className="flex items-center gap-2 min-w-0">
-                        {it.imgUrl ? <img alt="" className="w-5 h-5 rounded-full object-cover border border-primary/15 shrink-0" src={it.imgUrl} /> : null}
+                        {it.imgUrl ? (
+                          <Image
+                            alt=""
+                            className="w-5 h-5 rounded-full object-cover border border-primary/15 shrink-0"
+                            src={it.imgUrl}
+                          />
+                        ) : null}
                         <span className="truncate">{it.label}</span>
-                        {it.sublabel && <span className="text-[9px] normal-case font-medium opacity-50 truncate">{it.sublabel}</span>}
+                        {it.sublabel && (
+                          <span className="text-[9px] normal-case font-medium opacity-50 truncate">
+                            {it.sublabel}
+                          </span>
+                        )}
                       </span>
-                      {sel && <Check className="shrink-0" size={11} style={{ color: "var(--primary)" }} />}
+                      {sel && (
+                        <Check
+                          className="shrink-0"
+                          size={11}
+                          style={{ color: "var(--primary)" }}
+                        />
+                      )}
                     </button>
                   );
                 };
@@ -460,14 +566,28 @@ export function ComboSelector(props: ComboSelectorProps) {
                         <div
                           className="flex items-center gap-1.5 px-4 py-1.5 sticky top-0"
                           style={{
-                            borderTop: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)",
-                            background: "color-mix(in srgb, var(--primary) 3%, var(--bg-main))",
+                            borderTop:
+                              "1px solid color-mix(in srgb, var(--primary) 6%, transparent)",
+                            background:
+                              "color-mix(in srgb, var(--primary) 3%, var(--bg-main))",
                           }}
                         >
-                          {group.icon && <span style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>{group.icon}</span>}
+                          {group.icon && (
+                            <span
+                              style={{
+                                color:
+                                  "color-mix(in srgb, var(--primary) 35%, transparent)",
+                              }}
+                            >
+                              {group.icon}
+                            </span>
+                          )}
                           <span
                             className="text-[8px] font-black uppercase tracking-[0.25em]"
-                            style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
+                            style={{
+                              color:
+                                "color-mix(in srgb, var(--primary) 30%, transparent)",
+                            }}
                           >
                             {group.label}
                           </span>
@@ -518,7 +638,11 @@ export function ComboSelector(props: ComboSelectorProps) {
                       )}
                     </span>
                     {sel && (
-                      <Check className="shrink-0" size={11} style={{ color: "var(--primary)" }} />
+                      <Check
+                        className="shrink-0"
+                        size={11}
+                        style={{ color: "var(--primary)" }}
+                      />
                     )}
                   </button>
                 );
@@ -530,7 +654,8 @@ export function ComboSelector(props: ComboSelectorProps) {
           <div
             className="flex items-center gap-3 px-4 py-2"
             style={{
-              borderTop: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)",
+              borderTop:
+                "1px solid color-mix(in srgb, var(--primary) 6%, transparent)",
               background: "color-mix(in srgb, var(--primary) 2%, transparent)",
             }}
           >
@@ -543,16 +668,22 @@ export function ComboSelector(props: ComboSelectorProps) {
                 <kbd
                   className="text-[7px] font-black uppercase px-1 py-0.5 rounded"
                   style={{
-                    background: "color-mix(in srgb, var(--primary) 10%, transparent)",
-                    color: "color-mix(in srgb, var(--primary) 45%, transparent)",
-                    border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+                    background:
+                      "color-mix(in srgb, var(--primary) 10%, transparent)",
+                    color:
+                      "color-mix(in srgb, var(--primary) 45%, transparent)",
+                    border:
+                      "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
                   }}
                 >
                   {key}
                 </kbd>
                 <span
                   className="text-[7px] font-bold uppercase tracking-wider"
-                  style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}
+                  style={{
+                    color:
+                      "color-mix(in srgb, var(--primary) 25%, transparent)",
+                  }}
                 >
                   {kl}
                 </span>

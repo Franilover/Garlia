@@ -1,3 +1,4 @@
+import Image from "next/image";
 "use client";
 import { AnimatePresence } from "framer-motion";
 import {
@@ -139,7 +140,7 @@ function PanelContenido({
             {reinoSeleccionado.mapa_url && (
               <div className="relative w-full h-20 overflow-hidden border mb-1"
                 style={{ borderColor: "color-mix(in srgb, var(--primary) 20%, transparent)" }}>
-                <img alt="Mapa actual" className="w-full h-full object-cover" src={reinoSeleccionado.mapa_url} />
+                <Image alt="Mapa actual" className="w-full h-full object-cover" src={reinoSeleccionado.mapa_url} />
                 <div className="absolute inset-0 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.4)" }}>
                   <span className="text-[8px] font-black uppercase tracking-widest" style={{ color: "var(--accent)" }}>Imagen actual</span>
                 </div>
@@ -247,7 +248,7 @@ function PanelContenido({
                               borderRadius: "1px",
                             }}>
                             {desbloqueado && p.img_url
-                              ? <img alt={p.nombre} className="w-full h-full object-cover" src={p.img_url} />
+                              ? <Image alt={p.nombre} className="w-full h-full object-cover" src={p.img_url} />
                               : <UserX size={14} style={{ color: "color-mix(in srgb, var(--accent) 30%, transparent)" }} />}
                           </div>
                           <div className="flex-1 min-w-0">
@@ -293,7 +294,7 @@ function PanelContenido({
                             borderRadius: "1px",
                           }}>
                           {c.imagen_url
-                            ? <img alt={c.nombre} className="w-full h-full object-cover" src={c.imagen_url} />
+                            ? <Image alt={c.nombre} className="w-full h-full object-cover" src={c.imagen_url} />
                             : <Bug className="m-auto mt-1" size={14} style={{ color: "color-mix(in srgb, var(--accent) 40%, transparent)" }} />}
                         </div>
                         <p className="text-[10px] font-semibold uppercase truncate" style={{ color: "var(--foreground)" }}>
@@ -330,7 +331,7 @@ function PanelContenido({
                             borderRadius: "1px",
                           }}>
                           {item.imagen_url
-                            ? <img alt={item.nombre} className="w-full h-full object-cover" src={item.imagen_url} />
+                            ? <Image alt={item.nombre} className="w-full h-full object-cover" src={item.imagen_url} />
                             : <Package className="m-auto mt-1" size={14} style={{ color: "color-mix(in srgb, var(--accent) 40%, transparent)" }} />}
                         </div>
                         <p className="text-[10px] font-semibold uppercase truncate" style={{ color: "var(--foreground)" }}>
@@ -430,7 +431,7 @@ function PanelContenido({
                       }}
                     >
                       {desbloqueado && p.img_url
-                        ? <img alt={p.nombre} className="w-full h-full object-cover" src={p.img_url} />
+                        ? <Image alt={p.nombre} className="w-full h-full object-cover" src={p.img_url} />
                         : <UserX size={16} style={{ color: "color-mix(in srgb, var(--accent) 30%, transparent)" }} />}
                     </div>
                     {/* Nombre + especie — derecha */}

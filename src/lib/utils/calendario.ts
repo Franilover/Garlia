@@ -3,6 +3,10 @@
 // Sin dependencias externas — solo matemáticas.
 // Las estaciones y config se cargan una vez desde Supabase y se pasan aquí.
 
+
+
+
+
 export type Estacion = {
   id: string;
   nombre: string;
@@ -10,11 +14,19 @@ export type Estacion = {
   orden: number;
 };
 
+
+
+
+
 export type CalendarioConfig = {
   dias_por_semana: number;
   horas_por_dia: number;
   anio_inicio: number;
 };
+
+
+
+
 
 export type FechaMundo = {
   dia_absoluto: number;
@@ -26,6 +38,10 @@ export type FechaMundo = {
   dia_en_anio: number;      // 1-based
 };
 
+
+
+
+
 export type FechaMundoInput = {
   anio: number;
   estacion_orden: number;   // 1-based
@@ -33,11 +49,19 @@ export type FechaMundoInput = {
 };
 
 // ─── Calcular días totales por año ────────────────────────────────────────────
+
+
+
+
 export function diasPorAnio(estaciones: Estacion[]): number {
   return estaciones.reduce((sum, e) => sum + e.duracion_dias, 0);
 }
 
 // ─── Día absoluto → FechaMundo ────────────────────────────────────────────────
+
+
+
+
 export function diaAbsolutoAFecha(
   diaAbsoluto: number,
   estaciones: Estacion[],
@@ -77,6 +101,10 @@ export function diaAbsolutoAFecha(
 }
 
 // ─── FechaMundoInput → día absoluto ───────────────────────────────────────────
+
+
+
+
 export function fechaADiaAbsoluto(
   input: FechaMundoInput,
   estaciones: Estacion[],
@@ -99,15 +127,27 @@ export function fechaADiaAbsoluto(
 }
 
 // ─── Formato legible ──────────────────────────────────────────────────────────
+
+
+
+
 export function formatFechaMundo(fecha: FechaMundo, config: CalendarioConfig): string {
   return `Año ${fecha.anio} · ${fecha.estacion.nombre} · Semana ${fecha.semana_en_estacion} · Día ${fecha.dia_en_semana}`;
 }
+
+
+
+
 
 export function formatFechaCorta(fecha: FechaMundo): string {
   return `Año ${fecha.anio}, ${fecha.estacion.nombre} día ${fecha.dia_en_estacion}`;
 }
 
 // ─── Era del mundo en un día absoluto ────────────────────────────────────────
+
+
+
+
 export type EraMundo = {
   id: string;
   nombre: string;
@@ -116,6 +156,10 @@ export type EraMundo = {
   color: string | null;
   descripcion: string | null;
 };
+
+
+
+
 
 export function eraEnAnio(anio: number, eras: EraMundo[]): EraMundo | null {
   return eras.find(e =>

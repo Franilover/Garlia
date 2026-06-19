@@ -1,3 +1,4 @@
+import Image from "next/image";
 "use client";
 import { Save, X, Loader2, Image as ImageIcon } from "lucide-react";
 import React, { useState } from "react";
@@ -81,7 +82,7 @@ export function PrendaForm({ initial, onSave, onClose, saving, title, icon }: Pr
           >
             {form.imagen_url ? (
               <>
-                <img alt="preview" className="w-full h-full object-cover" src={form.imagen_url} />
+                <Image alt="preview" className="w-full h-full object-cover" src={form.imagen_url} />
                 <div className="absolute inset-0 bg-foreground/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                   <ImageIcon className="text-white" size={16} />
                   <span className="text-[10px] font-black uppercase text-white tracking-widest">Cambiar foto</span>

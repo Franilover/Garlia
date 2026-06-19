@@ -1,9 +1,18 @@
+import Image from "next/image";
 "use client";
+
+
+
+
 
 import { AnimatePresence } from "framer-motion";
 import { User, Sword, Cat, X, Loader2, Music2, ChevronRight, Star, MapPin } from "lucide-react";
 import Link from "next/link";
 import React, { useEffect, useState } from "react";
+
+
+
+
 
 import { MotionDiv } from "@/components/ui/Motion";
 import {
@@ -24,7 +33,15 @@ import {
 } from "@/lib/api/client/syncEngine";
 
 // Caché en memoria para perfiles públicos por username (navegación SPA)
+
+
+
+
 const PERFIL_PUBLICO_TTL = 10 * 60_000;
+
+
+
+
 const _perfilPublicoCache = new Map<string, { data: PerfilData; ts: number }>();
 
 interface PerfilData {
@@ -41,6 +58,10 @@ interface PerfilData {
 interface PersonalUsernameProps {
   username: string;
 }
+
+
+
+
 
 export default function PersonalUsername({ username }: PersonalUsernameProps) {
   const [perfil, setPerfil]                         = useState<PerfilData | null>(null);
@@ -484,7 +505,7 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                         onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 8%, transparent)"; (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 3%, var(--white-custom))"; }}>
                         {cancion.portada_url && !cancion.portada_url.includes("placeholder") ? (
                           <div className="w-11 h-11 shrink-0 overflow-hidden" style={{ borderRadius: "var(--radius-btn)", background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-                            <img alt={cancion.titulo} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" src={cancion.portada_url} />
+                            <Image alt={cancion.titulo} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" src={cancion.portada_url} />
                           </div>
                         ) : (
                           <div className="w-11 h-11 shrink-0 flex items-center justify-center" style={{ borderRadius: "var(--radius-btn)", background: "color-mix(in srgb, var(--primary) 6%, transparent)" }}>
@@ -547,7 +568,7 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
               flexShrink: 0,
             }}>
             {perfil?.avatar_url
-              ? <img alt={perfil?.username} className="w-full h-full object-contain" src={perfil.avatar_url} />
+              ? <Image alt={perfil?.username} className="w-full h-full object-contain" src={perfil.avatar_url} />
               : <User className="absolute inset-0 m-auto" size={38} style={{ color: "color-mix(in srgb, var(--primary) 22%, transparent)" }} />}
           </div>
 
@@ -597,7 +618,7 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                   <div className="w-8 h-8 overflow-hidden shrink-0"
                     style={{ borderRadius: "var(--radius-btn)", background: "color-mix(in srgb, var(--primary) 5%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)" }}>
                     {perfil.personaje_favorito.img_url
-                      ? <img alt={perfil.personaje_favorito.nombre} className="w-full h-full object-contain" src={perfil.personaje_favorito.img_url} />
+                      ? <Image alt={perfil.personaje_favorito.nombre} className="w-full h-full object-contain" src={perfil.personaje_favorito.img_url} />
                       : <User className="m-auto mt-1" size={14} style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }} />}
                   </div>
                   <p className="font-serif italic text-[11px] capitalize" style={{ color: "var(--primary)" }}>
@@ -619,7 +640,7 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                   <div className="w-8 h-8 overflow-hidden shrink-0"
                     style={{ borderRadius: "var(--radius-btn)", background: "color-mix(in srgb, var(--primary) 5%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)" }}>
                     {perfil.mascota.imagen_url
-                      ? <img alt={perfil.mascota.nombre} className="w-full h-full object-contain" src={perfil.mascota.imagen_url} />
+                      ? <Image alt={perfil.mascota.nombre} className="w-full h-full object-contain" src={perfil.mascota.imagen_url} />
                       : <Cat className="m-auto mt-1" size={14} style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }} />}
                   </div>
                   <p className="font-serif italic text-[11px] capitalize" style={{ color: "var(--primary)" }}>
@@ -928,7 +949,7 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                       <div className="w-7 h-7 shrink-0 overflow-hidden flex items-center justify-center"
                         style={{ borderRadius: "2px", background: "color-mix(in srgb, var(--primary) 7%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)" }}>
                         {p.avatar_url
-                          ? <img alt={p.username} className="w-full h-full object-contain" src={p.avatar_url} />
+                          ? <Image alt={p.username} className="w-full h-full object-contain" src={p.avatar_url} />
                           : <User size={11} style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }} />}
                       </div>
                       <div className="flex-1 min-w-0">

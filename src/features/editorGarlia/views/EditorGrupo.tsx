@@ -1,3 +1,4 @@
+import Image from "next/image";
 "use client";
 
 import {
@@ -345,7 +346,7 @@ function SelectorMiembros({
                   style={{ borderColor: `color-mix(in srgb, ${cfg.color} 15%, transparent)`, background: `color-mix(in srgb, ${cfg.color} 5%, transparent)` }}>
                   <div className="shrink-0 w-6 h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
                     {img
-                      ? <img alt={e.nombre} className="w-full h-full object-cover" src={img} />
+                      ? <Image alt={e.nombre} className="w-full h-full object-cover" src={img} />
                       : <cfg.Icon className="text-primary/25" size={10} />}
                   </div>
                   <button
@@ -421,7 +422,7 @@ function SelectorMiembros({
                     >
                       <div className="shrink-0 w-6 h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
                         {img
-                          ? <img alt={e.nombre} className="w-full h-full object-cover" src={img} />
+                          ? <Image alt={e.nombre} className="w-full h-full object-cover" src={img} />
                           : <cfg.Icon className="text-primary/25" size={10} />}
                       </div>
                       <div className="flex-1 min-w-0">

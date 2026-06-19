@@ -1,7 +1,7 @@
-import pluginImport from "eslint-plugin-import";
-import unusedImports from "eslint-plugin-unused-imports";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTypescript from "eslint-config-next/typescript";
+import pluginImport from "eslint-plugin-import";
+import unusedImports from "eslint-plugin-unused-imports";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ZONAS DE LA ARQUITECTURA

@@ -1,3 +1,4 @@
+import Image from "next/image";
 "use client";
 /**
  * SnippetCommandPalette — búsqueda unificada
@@ -215,7 +216,7 @@ function FormDrop({ initialRaw, onInsert, onBack, query }: {
         <div style={{ padding: "10px 12px", display: "flex", flexDirection: "column", gap: 8 }}>
           <div style={S.selectedPill(cfg.color)}>
             {selected.imagen_url
-              ? <img alt="" src={selected.imagen_url} style={{ width: 36, height: 36, objectFit: "cover", borderRadius: 6, flexShrink: 0 }} />
+              ? <Image alt="" src={selected.imagen_url} style={{ width: 36, height: 36, objectFit: "cover", borderRadius: 6, flexShrink: 0 }} />
               : <span style={S.iconBox(cfg.color)}>{cfg.icon}</span>
             }
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -255,7 +256,7 @@ function FormDrop({ initialRaw, onInsert, onBack, query }: {
             <div key={e.id} style={S.row(i === active || e.id === initialId)}
               onClick={() => setSelected(e)} onMouseEnter={() => setActive(i)}>
               {e.imagen_url
-                ? <img alt="" src={e.imagen_url} style={{ width: 28, height: 28, objectFit: "cover", borderRadius: 6, flexShrink: 0 }} />
+                ? <Image alt="" src={e.imagen_url} style={{ width: 28, height: 28, objectFit: "cover", borderRadius: 6, flexShrink: 0 }} />
                 : <span style={S.iconBox(cfg.color)}>{cfg.icon}</span>
               }
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -596,7 +597,7 @@ function FormImagen({ initialRaw, onInsert, onBack, query }: {
             {!loading && filtered.length === 0 && <div style={S.empty}>Sin resultados</div>}
             {filtered.map((f, i) => (
               <div key={f.url} style={S.row(i === active)} onClick={() => setSelected(f.url)} onMouseEnter={() => setActive(i)}>
-                <img alt={f.name} src={f.url} style={{ width: 32, height: 32, objectFit: "cover", borderRadius: 5, flexShrink: 0, border: "1px solid color-mix(in srgb,var(--foreground) 10%,transparent)" }} />
+                <Image alt={f.name} src={f.url} style={{ width: 32, height: 32, objectFit: "cover", borderRadius: 5, flexShrink: 0, border: "1px solid color-mix(in srgb,var(--foreground) 10%,transparent)" }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={S.label}>{f.name}</div>
                   <div style={S.sublabel}>{f.path}</div>
@@ -606,7 +607,7 @@ function FormImagen({ initialRaw, onInsert, onBack, query }: {
           </div>
         ) : (
           <div style={S.selectedPill("#2dc896")}>
-            <img alt="" src={selected} style={{ width: 36, height: 36, objectFit: "cover", borderRadius: 6, flexShrink: 0 }} />
+            <Image alt="" src={selected} style={{ width: 36, height: 36, objectFit: "cover", borderRadius: 6, flexShrink: 0 }} />
             <span style={{ ...S.label, flex: 1, fontSize: 11 }}>{selected.split("/").pop()}</span>
             <button style={{ background: "none", border: "none", cursor: "pointer", color: "color-mix(in srgb,var(--foreground) 35%,transparent)", fontSize: 14 }}
               onClick={() => setSelected(null)}>✕</button>

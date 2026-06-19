@@ -13,11 +13,19 @@
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
+
+
+
+
 import { isReallyOnline } from "@/hooks/data/useOfflineSync";
 import { db } from "@/lib/api/client/db";
 import { supabase } from "@/lib/api/client/supabase";
 
 // ─── TTL por tabla (ms) ───────────────────────────────────────────────────────
+
+
+
+
 const TTL: Record<string, number> = {
   personajes:           10 * 60_000,  // 10 min
   reinos:               30 * 60_000,  // 30 min — muy estables
@@ -31,10 +39,22 @@ const TTL: Record<string, number> = {
   perfiles_resumen:     10 * 60_000,  // 10 min — sidebar de exploradores
   canciones_personaje:  10 * 60_000,  // 10 min — raramente cambia
 };
+
+
+
+
 const DEFAULT_TTL = 5 * 60_000;
 
 // ─── Caché en memoria ─────────────────────────────────────────────────────────
+
+
+
+
 const _memCache = new Map<string, { data: any; ts: number }>();
+
+
+
+
 
 function memGet<T>(key: string, ttlOverride?: number): T | null {
   const entry = _memCache.get(key);
@@ -43,11 +63,19 @@ function memGet<T>(key: string, ttlOverride?: number): T | null {
   return Date.now() - entry.ts < ttl ? (entry.data as T) : null;
 }
 
+
+
+
+
 function memSet<T>(key: string, data: T): void {
   _memCache.set(key, { data, ts: Date.now() });
 }
 
 /** Invalida la caché en memoria de una tabla (fuerza refetch la próxima vez). */
+
+
+
+
 export function invalidateCache(tablePrefix: string): void {
   for (const key of _memCache.keys()) {
     if (key.startsWith(tablePrefix)) _memCache.delete(key);
@@ -76,6 +104,10 @@ async function sessionDelete(key: string): Promise<void> {
 }
 
 /** Invalida session_cache para todas las claves que empiecen con un prefijo. */
+
+
+
+
 export async function invalidateSessionCache(prefix: string): Promise<void> {
   try {
     const all = await db?.session_cache?.toArray();
@@ -154,6 +186,10 @@ async function fetchAndStore<T>(
 
 // ─── Personajes ───────────────────────────────────────────────────────────────
 
+
+
+
+
 export async function loadPersonajes(onUpdate?: (data: any[]) => void): Promise<any[]> {
   return loadWithCache({
     cacheKey: "personajes:all",
@@ -165,6 +201,10 @@ export async function loadPersonajes(onUpdate?: (data: any[]) => void): Promise<
     persist: (rows) => persist("personajes", rows),
   }, onUpdate);
 }
+
+
+
+
 
 export async function loadPersonajesMap(
   ids: string[],
@@ -200,6 +240,10 @@ export async function loadPersonajesMap(
 
 // ─── Reinos ───────────────────────────────────────────────────────────────────
 
+
+
+
+
 export async function loadReinos(onUpdate?: (data: any[]) => void): Promise<any[]> {
   return loadWithCache({
     cacheKey: "reinos:all",
@@ -211,6 +255,10 @@ export async function loadReinos(onUpdate?: (data: any[]) => void): Promise<any[
     persist: (rows) => persist("reinos", rows),
   }, onUpdate);
 }
+
+
+
+
 
 export async function loadReinosMap(
   ids: string[],
@@ -244,6 +292,10 @@ export async function loadReinosMap(
 
 // ─── Ciudades ─────────────────────────────────────────────────────────────────
 
+
+
+
+
 export async function loadCiudades(onUpdate?: (data: any[]) => void): Promise<any[]> {
   return loadWithCache({
     cacheKey: "ciudades:all",
@@ -255,6 +307,10 @@ export async function loadCiudades(onUpdate?: (data: any[]) => void): Promise<an
     persist: (rows) => persist("ciudades", rows),
   }, onUpdate);
 }
+
+
+
+
 
 export async function loadCiudadesMap(
   ids: string[],
@@ -291,12 +347,24 @@ export async function loadCiudadesMap(
 
 // ─── Capítulos de un libro ────────────────────────────────────────────────────
 
+
+
+
+
 const _capsMemCache: Record<string, { data: any[]; ts: number }> = {};
+
+
+
+
 
 export function capsCacheados(libroId: string): any[] | null {
   const c = _capsMemCache[libroId];
   return c && Date.now() - c.ts < TTL["capitulos"] ? c.data : null;
 }
+
+
+
+
 
 export async function loadCapitulos(
   libroId: string,
@@ -337,6 +405,10 @@ async function refreshCapitulos(libroId: string, onUpdate?: (caps: any[]) => voi
 
 // ─── Capítulo próximo (siempre Supabase, tiempo-sensitivo) ───────────────────
 
+
+
+
+
 export async function loadCapituloProximo(
   libroId: string,
 ): Promise<{ titulo_capitulo: string; fecha_publicacion: string } | null> {
@@ -355,6 +427,10 @@ export async function loadCapituloProximo(
 }
 
 // ─── Libros ───────────────────────────────────────────────────────────────────
+
+
+
+
 
 export async function loadLibros(onUpdate?: (data: any[]) => void): Promise<any[]> {
   return loadWithCache({
@@ -377,6 +453,10 @@ export async function loadLibros(onUpdate?: (data: any[]) => void): Promise<any[
 //  lee un capítulo nuevo que desbloquea algo. TTL corto (3 min) + invalidación
 //  manual al volver a la pestaña.
 
+
+
+
+
 export interface DescubrimientoRaw {
   tipo: "item" | "criatura" | "personaje";
   fecha_descubrimiento: string;
@@ -384,6 +464,10 @@ export interface DescubrimientoRaw {
 }
 
 /** Carga los descubrimientos del usuario (items + criaturas + personajes) en una sola llamada. */
+
+
+
+
 export async function loadDescubrimientos(
   userId: string,
   onUpdate?: (data: DescubrimientoRaw[]) => void,
@@ -470,6 +554,10 @@ async function fetchDescubrimientos(
 
 // ─── Reinos + ciudades desbloqueadas por usuario ─────────────────────────────
 
+
+
+
+
 export interface ReinoDesbloqueado {
   id: string;
   nombre: string;
@@ -478,6 +566,10 @@ export interface ReinoDesbloqueado {
   descripcion?: string | null;
 }
 
+
+
+
+
 export interface CiudadDesbloqueada {
   id: string;
   nombre: string;
@@ -485,6 +577,10 @@ export interface CiudadDesbloqueada {
   descripcion?: string | null;
   reino_id?: string | null;
 }
+
+
+
+
 
 export async function loadReinosCiudadesUsuario(
   userId: string,
@@ -557,6 +653,10 @@ async function fetchReinosCiudadesUsuario(
 
 // ─── Inventario de usuario ────────────────────────────────────────────────────
 
+
+
+
+
 export async function loadInventarioUsuario(
   userId: string,
   onUpdate?: (data: any[]) => void,
@@ -596,6 +696,10 @@ async function fetchInventario(
 }
 
 // ─── Perfil de usuario (con caché) ───────────────────────────────────────────
+
+
+
+
 
 export async function loadPerfilUsuario(
   userId: string,
@@ -645,6 +749,10 @@ async function fetchPerfilUsuario(
 //  ANTES: N perfiles × 3 queries COUNT = potencialmente 30+ round-trips.
 //  AHORA: 1 query por tabla con GROUP BY perfil_id, cacheado en session_cache.
 
+
+
+
+
 export interface PerfilResumen {
   id: string;
   username: string;
@@ -654,6 +762,10 @@ export interface PerfilResumen {
   criaturas_count: number;
   personajes_count: number;
 }
+
+
+
+
 
 export async function loadPerfilesResumen(
   excludeId: string,
@@ -722,6 +834,10 @@ async function fetchPerfilesResumen(
 
 // ─── Canciones de personaje (con caché) ──────────────────────────────────────
 
+
+
+
+
 export async function loadCancionesPersonaje(
   personajeId: string,
   onUpdate?: (data: any[]) => void,
@@ -754,11 +870,19 @@ export async function loadCancionesPersonaje(
 
 // ─── Utilidades ───────────────────────────────────────────────────────────────
 
+
+
+
+
 export function toMap<T extends { id: string }>(arr: T[]): Record<string, T> {
   const map: Record<string, T> = {};
   for (const item of arr) map[item.id] = item;
   return map;
 }
+
+
+
+
 
 export function collectIds(caps: any[], field: string): string[] {
   const set = new Set<string>();

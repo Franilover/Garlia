@@ -1,3 +1,4 @@
+import Image from "next/image";
 "use client";
 /**
  * SnippetForms.tsx
@@ -215,7 +216,7 @@ export function EntidadPicker({
                     >
                       <div className="w-9 h-9 rounded-xl overflow-hidden shrink-0 border border-primary/10 bg-primary/5 flex items-center justify-center">
                         {e.imagen_url
-                          ? <img alt={e.nombre} className="w-full h-full object-cover" src={e.imagen_url} />
+                          ? <Image alt={e.nombre} className="w-full h-full object-cover" src={e.imagen_url} />
                           : getIcon(e.tipo)}
                       </div>
                       <div className="flex-1 min-w-0">
@@ -235,7 +236,7 @@ export function EntidadPicker({
                     <div className="flex items-center gap-3 p-3 bg-white border border-primary/8 rounded-2xl shadow-sm">
                       <div className="w-12 h-12 rounded-xl overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center shrink-0">
                         {selected.imagen_url
-                          ? <img alt="" className="w-full h-full object-cover" src={selected.imagen_url} />
+                          ? <Image alt="" className="w-full h-full object-cover" src={selected.imagen_url} />
                           : getIcon(selected.tipo, 16)}
                       </div>
                       <div>
@@ -594,7 +595,7 @@ export function SimpleImagePicker({ onSelect, onClose }: SimpleImagePickerProps)
                     type="button"
                     onClick={() => setSelected(img.url)}
                   >
-                    <img alt={img.name} className="w-full h-full object-cover" loading="lazy" src={img.url} />
+                    <Image alt={img.name} className="w-full h-full object-cover" loading="lazy" src={img.url} />
                     {selected === img.url && (
                       <div className="absolute inset-0 bg-primary/30 flex items-center justify-center">
                         <div className="bg-primary rounded-full p-1 shadow">

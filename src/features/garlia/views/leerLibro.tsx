@@ -1,3 +1,4 @@
+import Image from "next/image";
 "use client";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, List, ChevronRight } from "lucide-react";
@@ -98,7 +99,7 @@ function PersonajesPanel({ ids, border }: { ids: string[]; border: string }) {
         {personajes.map(p => (
           <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 9 }}>
             {p.img_url ? (
-              <img alt={p.nombre} src={p.img_url} style={{ width: 24, height: 24, borderRadius: "var(--radius-btn, 4px)", objectFit: "cover", border, flexShrink: 0 }} />
+              <Image alt={p.nombre} src={p.img_url} style={{ width: 24, height: 24, borderRadius: "var(--radius-btn, 4px)", objectFit: "cover", border, flexShrink: 0 }} />
             ) : (
               <div style={{ width: 24, height: 24, borderRadius: "var(--radius-btn, 4px)", border, flexShrink: 0, background: "color-mix(in srgb, var(--primary) 8%, transparent)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 800, color: "var(--primary)", opacity: 0.4 }}>
                 {p.nombre.charAt(0)}

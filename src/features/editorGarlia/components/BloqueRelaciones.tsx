@@ -1,6 +1,14 @@
+import Image from "next/image";
 "use client";
 
-import { Users, Plus, X, Loader2, UserCircle2, ChevronDown } from "lucide-react";
+import {
+  Users,
+  Plus,
+  X,
+  Loader2,
+  UserCircle2,
+  ChevronDown,
+} from "lucide-react";
 import React, { useState, useEffect, useCallback, useRef } from "react";
 
 import { enqueueOperation, isReallyOnline } from "@/hooks/data/useOfflineSync";
@@ -8,7 +16,6 @@ import { db } from "@/lib/api/client/db";
 import { supabase } from "@/lib/api/client/supabase";
 
 import { GrafoRelaciones } from "./GrafoRelaciones";
-
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -25,47 +32,74 @@ export interface Relacion {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function generateUUID(): string {
-  if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
+  if (typeof crypto !== "undefined" && crypto.randomUUID)
+    return crypto.randomUUID();
   return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
     const r = (Math.random() * 16) | 0;
     return (c === "x" ? r : (r & 0x3) | 0x8).toString(16);
   });
 }
 
-async function dexiePutRelacion(row: Omit<Relacion, "rel_nombre" | "rel_img_url">): Promise<void> {
-  try { if (db) await (db as any).relaciones?.put(row); } catch {}
+async function dexiePutRelacion(
+  row: Omit<Relacion, "rel_nombre" | "rel_img_url">,
+): Promise<void> {
+  try {
+    if (db) await (db as any).relaciones?.put(row);
+  } catch {}
 }
 async function dexieDelRelacion(id: string): Promise<void> {
-  try { if (db) await (db as any).relaciones?.delete(id); } catch {}
+  try {
+    if (db) await (db as any).relaciones?.delete(id);
+  } catch {}
 }
 
 // ─── Mapa de tipos inversos ───────────────────────────────────────────────────
 
 function norm(s: string) {
-  return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+  return s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
 }
 
 const INVERSOS: [string, string][] = [
   // familia
-  ["madre", "hijo"], ["padre", "hijo"],
-  ["hijo", "padre"], ["hija", "padre"],
-  ["hermano", "hermano"], ["hermana", "hermana"],
-  ["abuelo", "nieto"], ["abuela", "nieto"],
-  ["nieto", "abuelo"], ["nieta", "abuela"],
-  ["tio", "sobrino"], ["tia", "sobrino"],
-  ["sobrino", "tio"], ["sobrina", "tia"],
+  ["madre", "hijo"],
+  ["padre", "hijo"],
+  ["hijo", "padre"],
+  ["hija", "padre"],
+  ["hermano", "hermano"],
+  ["hermana", "hermana"],
+  ["abuelo", "nieto"],
+  ["abuela", "nieto"],
+  ["nieto", "abuelo"],
+  ["nieta", "abuela"],
+  ["tio", "sobrino"],
+  ["tia", "sobrino"],
+  ["sobrino", "tio"],
+  ["sobrina", "tia"],
   // relaciones
-  ["amigo", "amigo"], ["amiga", "amiga"],
-  ["enemigo", "enemigo"], ["rival", "rival"],
-  ["mentor", "aprendiz"], ["aprendiz", "mentor"],
-  ["maestro", "alumno"], ["alumno", "maestro"],
-  ["lider", "seguidor"], ["seguidor", "lider"],
+  ["amigo", "amigo"],
+  ["amiga", "amiga"],
+  ["enemigo", "enemigo"],
+  ["rival", "rival"],
+  ["mentor", "aprendiz"],
+  ["aprendiz", "mentor"],
+  ["maestro", "alumno"],
+  ["alumno", "maestro"],
+  ["lider", "seguidor"],
+  ["seguidor", "lider"],
   // romance
-  ["pareja", "pareja"], ["novio", "novia"], ["novia", "novio"],
-  ["esposo", "esposa"], ["esposa", "esposo"],
+  ["pareja", "pareja"],
+  ["novio", "novia"],
+  ["novia", "novio"],
+  ["esposo", "esposa"],
+  ["esposa", "esposo"],
   ["amante", "amante"],
   // alianza
-  ["aliado", "aliado"], ["socio", "socio"],
+  ["aliado", "aliado"],
+  ["socio", "socio"],
 ];
 
 function tipoInverso(tipo: string): string {
@@ -85,8 +119,10 @@ function useTiposExistentes() {
     (async () => {
       try {
         if (db) {
-          const all: any[] = await (db as any).relaciones?.toArray() ?? [];
-          const set = [...new Set<string>(all.map((r: any) => r.tipo).filter(Boolean))].sort();
+          const all: any[] = (await (db as any).relaciones?.toArray()) ?? [];
+          const set = [
+            ...new Set<string>(all.map((r: any) => r.tipo).filter(Boolean)),
+          ].sort();
           if (set.length) setTipos(set);
         }
       } catch {}
@@ -95,11 +131,16 @@ function useTiposExistentes() {
     // 2. Fetch remoto solo si hay conexión
     if (!navigator.onLine) return;
 
-    supabase.from("relaciones").select("tipo").then(({ data }) => {
-      if (!data) return;
-      const set = [...new Set<string>(data.map((r: any) => r.tipo).filter(Boolean))].sort();
-      setTipos(set);
-    });
+    supabase
+      .from("relaciones")
+      .select("tipo")
+      .then(({ data }) => {
+        if (!data) return;
+        const set = [
+          ...new Set<string>(data.map((r: any) => r.tipo).filter(Boolean)),
+        ].sort();
+        setTipos(set);
+      });
   }, []);
 
   return tipos;
@@ -107,17 +148,26 @@ function useTiposExistentes() {
 
 // ─── Input tipo con autocomplete ──────────────────────────────────────────────
 
-function InputTipo({ value, onChange, sugerencias }: {
-  value: string; onChange: (v: string) => void; sugerencias: string[];
+function InputTipo({
+  value,
+  onChange,
+  sugerencias,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  sugerencias: string[];
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const filtradas = sugerencias.filter(s =>
-    s.toLowerCase().includes(value.toLowerCase()) && s.toLowerCase() !== value.toLowerCase()
+  const filtradas = sugerencias.filter(
+    (s) =>
+      s.toLowerCase().includes(value.toLowerCase()) &&
+      s.toLowerCase() !== value.toLowerCase(),
   );
   useEffect(() => {
     const h = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      if (ref.current && !ref.current.contains(e.target as Node))
+        setOpen(false);
     };
     document.addEventListener("mousedown", h);
     return () => document.removeEventListener("mousedown", h);
@@ -128,14 +178,24 @@ function InputTipo({ value, onChange, sugerencias }: {
         className="w-full bg-primary/[0.03] text-[10px] font-bold text-primary outline-none placeholder:text-primary/20 border border-primary/10 focus:border-primary/25 rounded-md px-2.5 py-1.5 transition-all"
         placeholder="Tipo de relación…"
         value={value}
-        onChange={e => { onChange(e.target.value); setOpen(true); }}
+        onChange={(e) => {
+          onChange(e.target.value);
+          setOpen(true);
+        }}
         onFocus={() => setOpen(true)}
       />
       {open && filtradas.length > 0 && (
         <div className="absolute z-[80] top-full left-0 mt-1 w-full rounded-lg shadow-xl overflow-hidden bg-bg-main border border-primary/15">
-          {filtradas.map(s => (
-            <button key={s} className="w-full flex items-center gap-2 px-2.5 py-1.5 hover:bg-primary/6 transition-colors text-left"
-              onMouseDown={e => { e.preventDefault(); onChange(s); setOpen(false); }}>
+          {filtradas.map((s) => (
+            <button
+              key={s}
+              className="w-full flex items-center gap-2 px-2.5 py-1.5 hover:bg-primary/6 transition-colors text-left"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                onChange(s);
+                setOpen(false);
+              }}
+            >
               <span className="shrink-0 w-1 h-1 rounded-full bg-primary/30" />
               <span className="text-[10px] font-bold text-primary/70">{s}</span>
             </button>
@@ -148,64 +208,122 @@ function InputTipo({ value, onChange, sugerencias }: {
 
 // ─── Selector de personaje ────────────────────────────────────────────────────
 
-interface PersonajeMin { id: string; nombre: string; img_url?: string | null; }
+interface PersonajeMin {
+  id: string;
+  nombre: string;
+  img_url?: string | null;
+}
 
-function SelectorPersonaje({ excludeId, onSelect, onClose }: {
-  excludeId: string; onSelect: (p: PersonajeMin) => void; onClose: () => void;
+function SelectorPersonaje({
+  excludeId,
+  onSelect,
+  onClose,
+}: {
+  excludeId: string;
+  onSelect: (p: PersonajeMin) => void;
+  onClose: () => void;
 }) {
-  const [query,   setQuery]   = useState("");
+  const [query, setQuery] = useState("");
   const [results, setResults] = useState<PersonajeMin[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const search = useCallback(async (q: string) => {
-    setLoading(true);
-    try {
-      if (!navigator.onLine) {
-        if (db) {
-          const all: any[] = await (db as any).personajes?.toArray() ?? [];
-          setResults(
-            all
-              .filter((p: any) => p.id !== excludeId && (!q.trim() || p.nombre?.toLowerCase().includes(q.trim().toLowerCase())))
-              .sort((a: any, b: any) => a.nombre.localeCompare(b.nombre))
-              .slice(0, 20) as PersonajeMin[]
-          );
+  const search = useCallback(
+    async (q: string) => {
+      setLoading(true);
+      try {
+        if (!navigator.onLine) {
+          if (db) {
+            const all: any[] = (await (db as any).personajes?.toArray()) ?? [];
+            setResults(
+              all
+                .filter(
+                  (p: any) =>
+                    p.id !== excludeId &&
+                    (!q.trim() ||
+                      p.nombre?.toLowerCase().includes(q.trim().toLowerCase())),
+                )
+                .sort((a: any, b: any) => a.nombre.localeCompare(b.nombre))
+                .slice(0, 20) as PersonajeMin[],
+            );
+          }
+          setLoading(false);
+          return;
         }
-        setLoading(false); return;
+        let sb = supabase
+          .from("personajes")
+          .select("id, nombre, img_url")
+          .neq("id", excludeId)
+          .order("nombre")
+          .limit(20);
+        if (q.trim()) sb = sb.ilike("nombre", `%${q.trim()}%`);
+        const { data } = await sb;
+        setResults((data ?? []) as PersonajeMin[]);
+      } catch {
+        setResults([]);
       }
-      let sb = supabase.from("personajes").select("id, nombre, img_url").neq("id", excludeId).order("nombre").limit(20);
-      if (q.trim()) sb = sb.ilike("nombre", `%${q.trim()}%`);
-      const { data } = await sb;
-      setResults((data ?? []) as PersonajeMin[]);
-    } catch { setResults([]); }
-    setLoading(false);
-  }, [excludeId]);
+      setLoading(false);
+    },
+    [excludeId],
+  );
 
-  useEffect(() => { const t = setTimeout(() => search(query), 250); return () => clearTimeout(t); }, [query, search]);
-  useEffect(() => { search(""); }, [search]);
+  useEffect(() => {
+    const t = setTimeout(() => search(query), 250);
+    return () => clearTimeout(t);
+  }, [query, search]);
+  useEffect(() => {
+    search("");
+  }, [search]);
 
   return (
-    <div className="absolute z-[70] top-full left-0 mt-1 w-full rounded-lg shadow-2xl overflow-hidden bg-bg-main border border-primary/15" style={{ maxHeight: 200 }}>
+    <div
+      className="absolute z-[70] top-full left-0 mt-1 w-full rounded-lg shadow-2xl overflow-hidden bg-bg-main border border-primary/15"
+      style={{ maxHeight: 200 }}
+    >
       <div className="px-2.5 py-1.5 border-b border-primary/10">
-        <input autoFocus className="w-full bg-transparent text-[10px] font-bold text-primary outline-none placeholder:text-primary/25" placeholder="Buscar personaje…"
+        <input
+          autoFocus
+          className="w-full bg-transparent text-[10px] font-bold text-primary outline-none placeholder:text-primary/25"
+          placeholder="Buscar personaje…"
           value={query}
-          onChange={e => setQuery(e.target.value)} />
+          onChange={(e) => setQuery(e.target.value)}
+        />
       </div>
       <div className="overflow-y-auto" style={{ maxHeight: 158 }}>
         {loading ? (
-          <div className="flex justify-center py-3"><Loader2 className="animate-spin text-primary/20" size={12} /></div>
+          <div className="flex justify-center py-3">
+            <Loader2 className="animate-spin text-primary/20" size={12} />
+          </div>
         ) : results.length === 0 ? (
-          <p className="text-[9px] text-primary/25 text-center py-3 font-bold uppercase tracking-widest italic">Sin resultados</p>
-        ) : results.map(p => (
-          <button key={p.id} className="w-full flex items-center gap-2 px-2.5 py-1.5 hover:bg-primary/6 transition-colors text-left"
-            onClick={() => { onSelect(p); onClose(); }}>
-            <div className="shrink-0 w-5 h-5 rounded overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
-              {p.img_url
-                ? <img alt={p.nombre} className="w-full h-full object-cover" src={p.img_url} />
-                : <UserCircle2 className="text-primary/20" size={9} />}
-            </div>
-            <span className="text-[10px] font-bold text-primary/80 truncate">{p.nombre}</span>
-          </button>
-        ))}
+          <p className="text-[9px] text-primary/25 text-center py-3 font-bold uppercase tracking-widest italic">
+            Sin resultados
+          </p>
+        ) : (
+          results.map((p) => (
+            <button
+              key={p.id}
+              className="w-full flex items-center gap-2 px-2.5 py-1.5 hover:bg-primary/6 transition-colors text-left"
+              onClick={() => {
+                onSelect(p);
+                onClose();
+              }}
+            >
+              <div className="shrink-0 w-5 h-5 rounded overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
+                {p.img_url ? (
+                  <Image
+                    alt={p.nombre}
+                    className="w-full h-full object-cover"
+                    src={p.img_url}
+                  />
+                ) : (
+                  <UserCircle2 className="text-primary/20" size={9} />
+                )}
+              </div>
+              <span className="text-[10px] font-bold text-primary/80 truncate">
+                {p.nombre}
+              </span>
+            </button>
+          ))
+        )}
       </div>
     </div>
   );
@@ -213,57 +331,104 @@ function SelectorPersonaje({ excludeId, onSelect, onClose }: {
 
 // ─── Formulario inline compacto ───────────────────────────────────────────────
 
-function FormNuevaRelacion({ personajeId, tiposExistentes, onAdded, onCancel }: {
-  personajeId: string; tiposExistentes: string[];
-  onAdded: (r: Relacion) => void; onCancel: () => void;
+function FormNuevaRelacion({
+  personajeId,
+  tiposExistentes,
+  onAdded,
+  onCancel,
+}: {
+  personajeId: string;
+  tiposExistentes: string[];
+  onAdded: (r: Relacion) => void;
+  onCancel: () => void;
 }) {
-  const [tipo,         setTipo]         = useState("");
+  const [tipo, setTipo] = useState("");
   const [personajeSel, setPersonajeSel] = useState<PersonajeMin | null>(null);
-  const [nota,         setNota]         = useState("");
+  const [nota, setNota] = useState("");
   const [selectorOpen, setSelectorOpen] = useState(false);
-  const [saving,       setSaving]       = useState(false);
-  const [error,        setError]        = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
   const guardar = async () => {
-    if (!personajeSel) { setError("Selecciona un personaje"); return; }
-    if (!tipo.trim())  { setError("Escribe el tipo de relación"); return; }
-    setError(""); setSaving(true);
+    if (!personajeSel) {
+      setError("Selecciona un personaje");
+      return;
+    }
+    if (!tipo.trim()) {
+      setError("Escribe el tipo de relación");
+      return;
+    }
+    setError("");
+    setSaving(true);
 
     const online = await isReallyOnline();
     const row = {
-      personaje_id: personajeId, personaje_rel_id: personajeSel.id,
-      tipo: tipo.trim(), nota: nota.trim() || null,
+      personaje_id: personajeId,
+      personaje_rel_id: personajeSel.id,
+      tipo: tipo.trim(),
+      nota: nota.trim() || null,
     };
     const rowInverso = {
-      personaje_id: personajeSel.id, personaje_rel_id: personajeId,
-      tipo: tipoInverso(tipo.trim()), nota: nota.trim() || null,
+      personaje_id: personajeSel.id,
+      personaje_rel_id: personajeId,
+      tipo: tipoInverso(tipo.trim()),
+      nota: nota.trim() || null,
     };
 
     if (!online) {
       const id = generateUUID();
       const idInv = generateUUID();
-      const nueva: Relacion = { id, ...row, rel_nombre: personajeSel.nombre, rel_img_url: personajeSel.img_url ?? null };
+      const nueva: Relacion = {
+        id,
+        ...row,
+        rel_nombre: personajeSel.nombre,
+        rel_img_url: personajeSel.img_url ?? null,
+      };
       void dexiePutRelacion({ id, ...row });
       void dexiePutRelacion({ id: idInv, ...rowInverso });
       await enqueueOperation("relaciones", "upsert", id, { id, ...row });
-      await enqueueOperation("relaciones", "upsert", idInv, { id: idInv, ...rowInverso });
-      onAdded(nueva); setSaving(false); return;
+      await enqueueOperation("relaciones", "upsert", idInv, {
+        id: idInv,
+        ...rowInverso,
+      });
+      onAdded(nueva);
+      setSaving(false);
+      return;
     }
 
     try {
       const [{ data, error: err }, { error: errInv }] = await Promise.all([
-        supabase.from("relaciones").insert(row).select("id, personaje_id, personaje_rel_id, tipo, nota").single(),
-        supabase.from("relaciones").insert({ id: generateUUID(), ...rowInverso }),
+        supabase
+          .from("relaciones")
+          .insert(row)
+          .select("id, personaje_id, personaje_rel_id, tipo, nota")
+          .single(),
+        supabase
+          .from("relaciones")
+          .insert({ id: generateUUID(), ...rowInverso }),
       ]);
       if (err) throw err;
-      if (errInv) console.warn("[BloqueRelaciones] Error al insertar relación inversa:", errInv);
+      if (errInv)
+        console.warn(
+          "[BloqueRelaciones] Error al insertar relación inversa:",
+          errInv,
+        );
       const nueva: Relacion = {
         ...(data as any),
-        rel_nombre: personajeSel.nombre, rel_img_url: personajeSel.img_url ?? null,
+        rel_nombre: personajeSel.nombre,
+        rel_img_url: personajeSel.img_url ?? null,
       };
-      void dexiePutRelacion({ id: nueva.id, personaje_id: nueva.personaje_id, personaje_rel_id: nueva.personaje_rel_id, tipo: nueva.tipo, nota: nueva.nota });
+      void dexiePutRelacion({
+        id: nueva.id,
+        personaje_id: nueva.personaje_id,
+        personaje_rel_id: nueva.personaje_rel_id,
+        tipo: nueva.tipo,
+        nota: nueva.nota,
+      });
       onAdded(nueva);
-    } catch { setError("Error al guardar"); }
+    } catch {
+      setError("Error al guardar");
+    }
     setSaving(false);
   };
 
@@ -271,30 +436,57 @@ function FormNuevaRelacion({ personajeId, tiposExistentes, onAdded, onCancel }: 
     <div className="border border-primary/12 rounded-lg bg-primary/[0.025] p-2.5 space-y-2">
       <div className="grid grid-cols-2 gap-2">
         <div className="space-y-1">
-          <label className="text-[7.5px] font-black uppercase tracking-[0.25em] text-primary/30">Tipo</label>
-          <InputTipo sugerencias={tiposExistentes} value={tipo} onChange={setTipo} />
+          <label className="text-[7.5px] font-black uppercase tracking-[0.25em] text-primary/30">
+            Tipo
+          </label>
+          <InputTipo
+            sugerencias={tiposExistentes}
+            value={tipo}
+            onChange={setTipo}
+          />
         </div>
         <div className="space-y-1">
-          <label className="text-[7.5px] font-black uppercase tracking-[0.25em] text-primary/30">Personaje</label>
+          <label className="text-[7.5px] font-black uppercase tracking-[0.25em] text-primary/30">
+            Personaje
+          </label>
           <div className="relative">
-            <button className="w-full flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-primary/10 bg-primary/[0.03] text-left hover:border-primary/25 transition-all"
-              onClick={() => setSelectorOpen(o => !o)}>
+            <button
+              className="w-full flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-primary/10 bg-primary/[0.03] text-left hover:border-primary/25 transition-all"
+              onClick={() => setSelectorOpen((o) => !o)}
+            >
               {personajeSel ? (
                 <>
                   <div className="shrink-0 w-4 h-4 rounded overflow-hidden border border-primary/10 bg-primary/5">
-                    {personajeSel.img_url
-                      ? <img alt="" className="w-full h-full object-cover" src={personajeSel.img_url} />
-                      : <UserCircle2 className="text-primary/20" size={8} />}
+                    {personajeSel.img_url ? (
+                      <Image
+                        alt=""
+                        className="w-full h-full object-cover"
+                        src={personajeSel.img_url}
+                      />
+                    ) : (
+                      <UserCircle2 className="text-primary/20" size={8} />
+                    )}
                   </div>
-                  <span className="flex-1 text-[10px] font-bold text-primary/80 truncate">{personajeSel.nombre}</span>
+                  <span className="flex-1 text-[10px] font-bold text-primary/80 truncate">
+                    {personajeSel.nombre}
+                  </span>
                 </>
               ) : (
-                <span className="flex-1 text-[10px] font-bold text-primary/25 italic">Seleccionar…</span>
+                <span className="flex-1 text-[10px] font-bold text-primary/25 italic">
+                  Seleccionar…
+                </span>
               )}
-              <ChevronDown className={`text-primary/25 shrink-0 transition-transform ${selectorOpen ? "rotate-180" : ""}`} size={9} />
+              <ChevronDown
+                className={`text-primary/25 shrink-0 transition-transform ${selectorOpen ? "rotate-180" : ""}`}
+                size={9}
+              />
             </button>
             {selectorOpen && (
-              <SelectorPersonaje excludeId={personajeId} onClose={() => setSelectorOpen(false)} onSelect={setPersonajeSel} />
+              <SelectorPersonaje
+                excludeId={personajeId}
+                onClose={() => setSelectorOpen(false)}
+                onSelect={setPersonajeSel}
+              />
             )}
           </div>
         </div>
@@ -302,12 +494,20 @@ function FormNuevaRelacion({ personajeId, tiposExistentes, onAdded, onCancel }: 
 
       {tiposExistentes.length > 0 && tiposExistentes.length <= 10 && (
         <div className="flex flex-wrap gap-1">
-          {tiposExistentes.map(s => (
-            <button key={s} className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border transition-all
-                ${tipo === s
-                  ? "bg-primary/10 border-primary/25 text-primary"
-                  : "border-primary/8 text-primary/30 hover:border-primary/20 hover:text-primary/55"}`}
-              onMouseDown={e => { e.preventDefault(); setTipo(s); }}>
+          {tiposExistentes.map((s) => (
+            <button
+              key={s}
+              className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border transition-all
+                ${
+                  tipo === s
+                    ? "bg-primary/10 border-primary/25 text-primary"
+                    : "border-primary/8 text-primary/30 hover:border-primary/20 hover:text-primary/55"
+                }`}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                setTipo(s);
+              }}
+            >
               {s}
             </button>
           ))}
@@ -315,17 +515,29 @@ function FormNuevaRelacion({ personajeId, tiposExistentes, onAdded, onCancel }: 
       )}
 
       <div className="flex items-center gap-2">
-        <input className="flex-1 bg-primary/[0.03] text-[10px] font-medium text-primary outline-none placeholder:text-primary/20 border border-primary/10 focus:border-primary/25 rounded-md px-2.5 py-1.5 transition-all min-w-0" placeholder="Nota opcional…"
+        <input
+          className="flex-1 bg-primary/[0.03] text-[10px] font-medium text-primary outline-none placeholder:text-primary/20 border border-primary/10 focus:border-primary/25 rounded-md px-2.5 py-1.5 transition-all min-w-0"
+          placeholder="Nota opcional…"
           value={nota}
-          onChange={e => setNota(e.target.value)} />
+          onChange={(e) => setNota(e.target.value)}
+        />
         <div className="flex items-center gap-1 shrink-0">
-          <button className="px-2.5 py-1.5 rounded-md text-[8.5px] font-black uppercase tracking-widest border border-primary/10 text-primary/30 hover:text-primary/60 hover:border-primary/20 transition-all"
-            onClick={onCancel}>
+          <button
+            className="px-2.5 py-1.5 rounded-md text-[8.5px] font-black uppercase tracking-widest border border-primary/10 text-primary/30 hover:text-primary/60 hover:border-primary/20 transition-all"
+            onClick={onCancel}
+          >
             ✕
           </button>
-          <button className="px-2.5 py-1.5 rounded-md text-[8.5px] font-black uppercase tracking-widest bg-primary text-btn-text disabled:opacity-40 hover:bg-primary/90 transition-all flex items-center gap-1" disabled={saving}
-            onClick={guardar}>
-            {saving ? <Loader2 className="animate-spin" size={8} /> : <Plus size={8} />}
+          <button
+            className="px-2.5 py-1.5 rounded-md text-[8.5px] font-black uppercase tracking-widest bg-primary text-btn-text disabled:opacity-40 hover:bg-primary/90 transition-all flex items-center gap-1"
+            disabled={saving}
+            onClick={guardar}
+          >
+            {saving ? (
+              <Loader2 className="animate-spin" size={8} />
+            ) : (
+              <Plus size={8} />
+            )}
             Añadir
           </button>
         </div>
@@ -338,7 +550,11 @@ function FormNuevaRelacion({ personajeId, tiposExistentes, onAdded, onCancel }: 
 
 // ─── Fila de relación compacta ────────────────────────────────────────────────
 
-function FilaRelacion({ rel, onDelete, onSelectPersonaje }: {
+function FilaRelacion({
+  rel,
+  onDelete,
+  onSelectPersonaje,
+}: {
   rel: Relacion;
   onDelete: (id: string) => void;
   onSelectPersonaje?: (id: string) => void;
@@ -354,16 +570,27 @@ function FilaRelacion({ rel, onDelete, onSelectPersonaje }: {
       await enqueueOperation("relaciones", "delete", rel.id);
       try {
         if (db) {
-          const inversas: any[] = await (db as any).relaciones
-            ?.where("personaje_id").equals(rel.personaje_rel_id).toArray() ?? [];
-          const inv = inversas.find((r: any) => r.personaje_rel_id === rel.personaje_id);
-          if (inv) { void dexieDelRelacion(inv.id); await enqueueOperation("relaciones", "delete", inv.id); }
+          const inversas: any[] =
+            (await (db as any).relaciones
+              ?.where("personaje_id")
+              .equals(rel.personaje_rel_id)
+              .toArray()) ?? [];
+          const inv = inversas.find(
+            (r: any) => r.personaje_rel_id === rel.personaje_id,
+          );
+          if (inv) {
+            void dexieDelRelacion(inv.id);
+            await enqueueOperation("relaciones", "delete", inv.id);
+          }
         }
       } catch {}
       return;
     }
     try {
-      const { error } = await supabase.from("relaciones").delete().eq("id", rel.id);
+      const { error } = await supabase
+        .from("relaciones")
+        .delete()
+        .eq("id", rel.id);
       if (error) await enqueueOperation("relaciones", "delete", rel.id);
       const { data: inversas } = await supabase
         .from("relaciones")
@@ -375,7 +602,9 @@ function FilaRelacion({ rel, onDelete, onSelectPersonaje }: {
         await supabase.from("relaciones").delete().in("id", invIds);
         invIds.forEach((id: string) => void dexieDelRelacion(id));
       }
-    } catch { await enqueueOperation("relaciones", "delete", rel.id); }
+    } catch {
+      await enqueueOperation("relaciones", "delete", rel.id);
+    }
   };
 
   return (
@@ -384,9 +613,15 @@ function FilaRelacion({ rel, onDelete, onSelectPersonaje }: {
         className="shrink-0 w-[18px] h-[18px] rounded overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center hover:border-primary/30 transition-colors"
         onClick={() => onSelectPersonaje?.(rel.personaje_rel_id)}
       >
-        {rel.rel_img_url
-          ? <img alt={rel.rel_nombre} className="w-full h-full object-cover" src={rel.rel_img_url} />
-          : <UserCircle2 className="text-primary/20" size={8} />}
+        {rel.rel_img_url ? (
+          <Image
+            alt={rel.rel_nombre}
+            className="w-full h-full object-cover"
+            src={rel.rel_img_url}
+          />
+        ) : (
+          <UserCircle2 className="text-primary/20" size={8} />
+        )}
       </button>
       <button
         className="flex-1 text-left text-[10px] font-bold text-primary/75 truncate leading-none min-w-0 hover:text-primary transition-colors"
@@ -394,9 +629,16 @@ function FilaRelacion({ rel, onDelete, onSelectPersonaje }: {
       >
         {rel.rel_nombre ?? "—"}
       </button>
-      <button className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity w-4 h-4 rounded flex items-center justify-center text-primary/20 hover:text-red-400 hover:bg-red-500/8" disabled={deleting}
-        onClick={handleDelete}>
-        {deleting ? <Loader2 className="animate-spin" size={8} /> : <X size={8} />}
+      <button
+        className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity w-4 h-4 rounded flex items-center justify-center text-primary/20 hover:text-red-400 hover:bg-red-500/8"
+        disabled={deleting}
+        onClick={handleDelete}
+      >
+        {deleting ? (
+          <Loader2 className="animate-spin" size={8} />
+        ) : (
+          <X size={8} />
+        )}
       </button>
     </div>
   );
@@ -404,7 +646,12 @@ function FilaRelacion({ rel, onDelete, onSelectPersonaje }: {
 
 // ─── Columna por tipo ─────────────────────────────────────────────────────────
 
-function ColumnaTipo({ tipo, relaciones, onDelete, onSelectPersonaje }: {
+function ColumnaTipo({
+  tipo,
+  relaciones,
+  onDelete,
+  onSelectPersonaje,
+}: {
   tipo: string;
   relaciones: Relacion[];
   onDelete: (id: string) => void;
@@ -416,11 +663,18 @@ function ColumnaTipo({ tipo, relaciones, onDelete, onSelectPersonaje }: {
         <span className="text-[7.5px] font-black uppercase tracking-[0.25em] text-primary/35 truncate leading-none">
           {tipo}
         </span>
-        <span className="text-[7.5px] font-bold text-primary/20 shrink-0">{relaciones.length}</span>
+        <span className="text-[7.5px] font-bold text-primary/20 shrink-0">
+          {relaciones.length}
+        </span>
       </div>
       <div className="space-y-0">
-        {relaciones.map(rel => (
-          <FilaRelacion key={rel.id} rel={rel} onDelete={onDelete} onSelectPersonaje={onSelectPersonaje} />
+        {relaciones.map((rel) => (
+          <FilaRelacion
+            key={rel.id}
+            rel={rel}
+            onDelete={onDelete}
+            onSelectPersonaje={onSelectPersonaje}
+          />
         ))}
       </div>
     </div>
@@ -429,11 +683,17 @@ function ColumnaTipo({ tipo, relaciones, onDelete, onSelectPersonaje }: {
 
 // ─── BloqueRelaciones ─────────────────────────────────────────────────────────
 
-export function BloqueRelaciones({ personajeId, personajeNombre, onSelectPersonaje }: {
-  personajeId: string; personajeNombre?: string; onSelectPersonaje?: (id: string) => void;
+export function BloqueRelaciones({
+  personajeId,
+  personajeNombre,
+  onSelectPersonaje,
+}: {
+  personajeId: string;
+  personajeNombre?: string;
+  onSelectPersonaje?: (id: string) => void;
 }) {
-  const [relaciones,  setRelaciones]  = useState<Relacion[]>([]);
-  const [loading,     setLoading]     = useState(true);
+  const [relaciones, setRelaciones] = useState<Relacion[]>([]);
+  const [loading, setLoading] = useState(true);
   const [formVisible, setFormVisible] = useState(false);
   const tiposExistentes = useTiposExistentes();
 
@@ -441,74 +701,109 @@ export function BloqueRelaciones({ personajeId, personajeNombre, onSelectPersona
     setLoading(true);
     try {
       if (db) {
-        const local: any[] = await (db as any).relaciones?.where("personaje_id").equals(personajeId).toArray() ?? [];
+        const local: any[] =
+          (await (db as any).relaciones
+            ?.where("personaje_id")
+            .equals(personajeId)
+            .toArray()) ?? [];
         if (local.length) {
           const ids = local.map((r: any) => r.personaje_rel_id);
-          const pjs: any[] = await (db as any).personajes?.where("id").anyOf(ids).toArray() ?? [];
+          const pjs: any[] =
+            (await (db as any).personajes?.where("id").anyOf(ids).toArray()) ??
+            [];
           const pjMap = Object.fromEntries(pjs.map((p: any) => [p.id, p]));
-          setRelaciones(local.map((r: any) => ({
-            ...r,
-            rel_nombre:  pjMap[r.personaje_rel_id]?.nombre  ?? "—",
-            rel_img_url: pjMap[r.personaje_rel_id]?.img_url ?? null,
-          })));
+          setRelaciones(
+            local.map((r: any) => ({
+              ...r,
+              rel_nombre: pjMap[r.personaje_rel_id]?.nombre ?? "—",
+              rel_img_url: pjMap[r.personaje_rel_id]?.img_url ?? null,
+            })),
+          );
           setLoading(false);
         }
       }
     } catch {}
 
-    if (!navigator.onLine) { setLoading(false); return; }
+    if (!navigator.onLine) {
+      setLoading(false);
+      return;
+    }
 
     try {
       const { data, error } = await supabase
         .from("relaciones")
-        .select(`id, personaje_id, personaje_rel_id, tipo, nota,
-          personaje_rel:personajes!relaciones_personaje_rel_id_fkey(nombre, img_url)`)
+        .select(
+          `id, personaje_id, personaje_rel_id, tipo, nota,
+          personaje_rel:personajes!relaciones_personaje_rel_id_fkey(nombre, img_url)`,
+        )
         .eq("personaje_id", personajeId)
         .order("tipo");
       if (error) throw error;
-      const enriquecidas: Relacion[] = (data as any[]).map(r => ({
-        id: r.id, personaje_id: r.personaje_id, personaje_rel_id: r.personaje_rel_id,
-        tipo: r.tipo, nota: r.nota,
-        rel_nombre:  r.personaje_rel?.nombre  ?? "—",
+      const enriquecidas: Relacion[] = (data as any[]).map((r) => ({
+        id: r.id,
+        personaje_id: r.personaje_id,
+        personaje_rel_id: r.personaje_rel_id,
+        tipo: r.tipo,
+        nota: r.nota,
+        rel_nombre: r.personaje_rel?.nombre ?? "—",
         rel_img_url: r.personaje_rel?.img_url ?? null,
       }));
       setRelaciones(enriquecidas);
       try {
-        if (db) await (db as any).relaciones?.bulkPut(
-          enriquecidas.map(({ rel_nombre: _n, rel_img_url: _i, ...rest }) => rest)
-        );
+        if (db)
+          await (db as any).relaciones?.bulkPut(
+            enriquecidas.map(
+              ({ rel_nombre: _n, rel_img_url: _i, ...rest }) => rest,
+            ),
+          );
       } catch {}
     } catch {}
     setLoading(false);
   }, [personajeId]);
 
-  useEffect(() => { cargar(); }, [cargar]);
+  useEffect(() => {
+    cargar();
+  }, [cargar]);
 
-  const handleAdded   = (r: Relacion) => { setRelaciones(prev => [...prev, r]); setFormVisible(false); };
-  const handleDeleted = (id: string)  => setRelaciones(prev => prev.filter(r => r.id !== id));
+  const handleAdded = (r: Relacion) => {
+    setRelaciones((prev) => [...prev, r]);
+    setFormVisible(false);
+  };
+  const handleDeleted = (id: string) =>
+    setRelaciones((prev) => prev.filter((r) => r.id !== id));
 
-  const tiposConData = [...new Set(relaciones.map(r => r.tipo))].sort();
-  const porTipo = (t: string) => relaciones.filter(r => r.tipo === t);
+  const tiposConData = [...new Set(relaciones.map((r) => r.tipo))].sort();
+  const porTipo = (t: string) => relaciones.filter((r) => r.tipo === t);
 
   return (
     <div className="rounded-xl overflow-hidden border border-primary/10">
-
       {/* Header */}
       <div className="flex items-center gap-1.5 px-2 py-1 border-b border-primary/[0.06]">
         <Users className="text-primary/25 shrink-0" size={8} />
-        <span className="text-[7px] font-black uppercase tracking-[0.2em] text-primary/30 leading-none">Relaciones</span>
+        <span className="text-[7px] font-black uppercase tracking-[0.2em] text-primary/30 leading-none">
+          Relaciones
+        </span>
         {relaciones.length > 0 && (
-          <span className="text-[7px] font-black text-primary/20 tabular-nums leading-none">{relaciones.length}</span>
+          <span className="text-[7px] font-black text-primary/20 tabular-nums leading-none">
+            {relaciones.length}
+          </span>
         )}
         <div className="flex-1" />
         {!loading && relaciones.length > 0 && (
-          <GrafoRelaciones personajeId={personajeId} personajeNombre={personajeNombre} />
+          <GrafoRelaciones
+            personajeId={personajeId}
+            personajeNombre={personajeNombre}
+          />
         )}
-        <button className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[7px] font-black uppercase tracking-widest border transition-all leading-none
-            ${formVisible
-              ? "bg-primary/8 border-primary/20 text-primary"
-              : "border-primary/8 text-primary/25 hover:text-primary/50 hover:border-primary/18"}`}
-          onClick={() => setFormVisible(v => !v)}>
+        <button
+          className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[7px] font-black uppercase tracking-widest border transition-all leading-none
+            ${
+              formVisible
+                ? "bg-primary/8 border-primary/20 text-primary"
+                : "border-primary/8 text-primary/25 hover:text-primary/50 hover:border-primary/18"
+            }`}
+          onClick={() => setFormVisible((v) => !v)}
+        >
           {formVisible ? <X size={7} /> : <Plus size={7} />}
           {formVisible ? "Cerrar" : "Añadir"}
         </button>
@@ -516,7 +811,6 @@ export function BloqueRelaciones({ personajeId, personajeNombre, onSelectPersona
 
       {/* Cuerpo */}
       <div className="px-2 py-1.5 space-y-1.5">
-
         {formVisible && (
           <div className="pb-1">
             <FormNuevaRelacion
@@ -532,15 +826,13 @@ export function BloqueRelaciones({ personajeId, personajeNombre, onSelectPersona
           <div className="flex justify-center py-4">
             <Loader2 className="animate-spin text-primary/20" size={12} />
           </div>
-
         ) : relaciones.length === 0 ? (
           <p className="text-[8.5px] font-bold text-primary/18 uppercase tracking-widest text-center py-3 italic">
             Sin relaciones
           </p>
-
         ) : (
           <div className="flex flex-wrap gap-x-3 gap-y-2.5">
-            {tiposConData.map(tipo => (
+            {tiposConData.map((tipo) => (
               <ColumnaTipo
                 key={tipo}
                 relaciones={porTipo(tipo)}

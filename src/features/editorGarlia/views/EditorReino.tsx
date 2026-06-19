@@ -1,3 +1,4 @@
+import Image from "next/image";
 "use client";
 
 import {
@@ -423,7 +424,7 @@ export function EditorReino({ item, onSaved, onDeleted, entities = [], onSelectP
               }}
             >
               {form.mapa_url
-                ? <img alt={form.nombre} className="w-full h-full object-cover" src={form.mapa_url} />
+                ? <Image alt={form.nombre} className="w-full h-full object-cover" src={form.mapa_url} />
                 : <Map className="text-primary/25" size={14} />}
             </div>
 

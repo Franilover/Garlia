@@ -1,8 +1,24 @@
 "use client";
+
+
+
+
 import React, { createContext, useContext, useEffect, useState } from "react";
 
+
+
+
+
 export type ThemeName   = "default" | "pixel" | "slate" | "sepia";
+
+
+
+
 export type DarkMode    = "light" | "dark";
+
+
+
+
 export type AccentColor  = "purple" | "yellow" | "blue" | "red" | "green";
 
 interface ThemeCtx {
@@ -14,7 +30,15 @@ interface ThemeCtx {
   setAccent:  (a: AccentColor)  => void;
 }
 
+
+
+
+
 const ThemeContext = createContext<ThemeCtx | null>(null);
+
+
+
+
 
 const ACCENT_PALETTES: Record<AccentColor, {
   light: Record<string, string>;
@@ -144,6 +168,10 @@ const ACCENT_PALETTES: Record<AccentColor, {
 
 // Paletas extra para temas slate y sepia (no dependen del acento, usan sus propios CSS vars)
 // Estas se usan para sobreescribir solo cuando el tema lo requiere
+
+
+
+
 const THEME_OVERRIDES: Partial<Record<ThemeName, {
   light: Record<string, string>;
   dark:  Record<string, string>;
@@ -198,6 +226,10 @@ const THEME_OVERRIDES: Partial<Record<ThemeName, {
   },
 };
 
+
+
+
+
 export const ACCENT_OPTIONS: { id: AccentColor; label: string; hex: string }[] = [
   { id: "purple", label: "Lila",   hex: "#9d70b5" },
   { id: "yellow", label: "Dorado", hex: "#e8c84a" },
@@ -205,6 +237,10 @@ export const ACCENT_OPTIONS: { id: AccentColor; label: string; hex: string }[] =
   { id: "red",    label: "Rojo",   hex: "#d96060" },
   { id: "green",  label: "Verde",  hex: "#5ab87a" },
 ];
+
+
+
+
 
 const THEMES: { id: ThemeName; label: string; emoji: string }[] = [
   { id: "default",  label: "Minimalista", emoji: "" },
@@ -214,7 +250,15 @@ const THEMES: { id: ThemeName; label: string; emoji: string }[] = [
 ];
 
 // Temas que tienen paleta fija y no usan el selector de color de acento
+
+
+
+
 const THEMES_WITH_OVERRIDE = new Set<ThemeName>(["slate", "sepia"]);
+
+
+
+
 
 function applyAccentPalette(accent: AccentColor, dark: DarkMode, theme?: ThemeName) {
   const root = document.documentElement;
@@ -227,6 +271,10 @@ function applyAccentPalette(accent: AccentColor, dark: DarkMode, theme?: ThemeNa
   const palette = ACCENT_PALETTES[accent][dark];
   Object.entries(palette).forEach(([key, val]) => root.style.setProperty(key, val));
 }
+
+
+
+
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme,  setThemeState]  = useState<ThemeName>("sepia");
@@ -281,11 +329,19 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
+
+
+
+
 export function useTheme() {
   const ctx = useContext(ThemeContext);
   if (!ctx) throw new Error("useTheme debe usarse dentro de <ThemeProvider>");
   return ctx;
 }
+
+
+
+
 
 export function ThemeSelector() {
   const { theme, setTheme, accent, setAccent } = useTheme();

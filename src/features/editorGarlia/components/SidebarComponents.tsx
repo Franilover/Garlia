@@ -1,3 +1,4 @@
+import Image from "next/image";
 "use client";
 
 import {
@@ -151,7 +152,7 @@ function EntidadCard({
           }}
         >
           {img
-            ? <img alt={item.nombre} className="w-full h-full object-cover" src={img} />
+            ? <Image alt={item.nombre} className="w-full h-full object-cover" src={img} />
             : <TabIcon className="text-primary/30" size={13} />}
         </div>
 
@@ -1525,7 +1526,7 @@ export function GlobalSearchBar({
           ) : selectedItem && !focused ? (
             <div className="shrink-0 w-5 h-5 rounded-md overflow-hidden border border-primary/15 bg-primary/8 flex items-center justify-center">
               {(selectedItem.img_url || selectedItem.imagen_url)
-                ? <img alt={selectedItem.nombre} className="w-full h-full object-cover" src={selectedItem.img_url || selectedItem.imagen_url} />
+                ? <Image alt={selectedItem.nombre} className="w-full h-full object-cover" src={selectedItem.img_url || selectedItem.imagen_url} />
                 : (() => {
                     const tabCfg = TAB_CONFIG[activeTab as Exclude<TabKey, "mundo">];
                     if (!tabCfg) return <Search className="text-primary/40" size={9} />;

@@ -1,3 +1,4 @@
+import Image from "next/image";
 "use client";
 import { X, MapPin } from "lucide-react";
 import React, { useState, useEffect, useRef, useCallback } from "react";
@@ -110,7 +111,7 @@ export function ReinosDesbloqueadosToast({
             <div key={r.id} className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-[var(--radius-btn)] overflow-hidden border border-primary/10 shrink-0 bg-primary/5">
                 {r.mapa_url
-                  ? <img alt={r.nombre} className="w-full h-full object-cover" src={r.mapa_url} />
+                  ? <Image alt={r.nombre} className="w-full h-full object-cover" src={r.mapa_url} />
                   : <div className="w-full h-full flex items-center justify-center text-primary/20 text-xs font-black">{r.nombre[0]}</div>
                 }
               </div>

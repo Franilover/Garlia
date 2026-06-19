@@ -1,3 +1,4 @@
+import Image from "next/image";
 "use client";
 
 import { AnimatePresence } from "framer-motion";
@@ -135,7 +136,7 @@ function OutfitForm({ initial, onSave, onClose, saving, title, icon }: OutfitFor
           >
             {form.imagen_url ? (
               <>
-                <img alt="preview" className="w-full h-full object-cover" src={form.imagen_url} />
+                <Image alt="preview" className="w-full h-full object-cover" src={form.imagen_url} />
                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                   <ImageIcon className="text-white" size={16} />
                   <span className="text-[10px] font-black uppercase text-white tracking-widest">Cambiar foto</span>
@@ -384,7 +385,7 @@ export default function ArmarioPage() {
               </div>
               {confirmDelete.imagen_url && (
                 <div className="w-full aspect-video overflow-hidden bg-primary/5 opacity-50" style={{ borderRadius: "var(--radius-btn)" }}>
-                  <img alt="" className="w-full h-full object-cover" src={confirmDelete.imagen_url} />
+                  <Image alt="" className="w-full h-full object-cover" src={confirmDelete.imagen_url} />
                 </div>
               )}
               <div className="flex gap-3">
@@ -442,7 +443,7 @@ export default function ArmarioPage() {
             {}
             <div className="aspect-[3/4] w-full bg-primary/5 overflow-hidden flex items-center justify-center">
               {lightbox.imagen_url
-                ? <img alt={lightbox.nombre} className="w-full h-full object-cover" src={lightbox.imagen_url} />
+                ? <Image alt={lightbox.nombre} className="w-full h-full object-cover" src={lightbox.imagen_url} />
                 : <Sparkles className="text-primary/20" size={64} />
               }
             </div>

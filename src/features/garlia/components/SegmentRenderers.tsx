@@ -1,3 +1,4 @@
+import Image from "next/image";
 "use client";
 /**
  * SegmentRenderers.tsx
@@ -90,7 +91,7 @@ export function ImgInline({ url, caption }: { url: string; caption?: string }) {
   return (
     <figure className="my-12 -mx-6 md:-mx-12">
       <div className="relative overflow-hidden rounded-[var(--radius-btn)] md:rounded-[var(--radius-card)] shadow-xl shadow-[var(--foreground)]/10">
-        <img alt={caption ?? ""} className="w-full object-cover" src={url} style={{ maxHeight: 520 }} />
+        <Image alt={caption ?? ""} className="w-full object-cover" src={url} style={{ maxHeight: 520 }} />
         {caption && (
           <div className="absolute inset-x-0 bottom-0 h-20 bg-linear-to-t from-[var(--bg-menu)]/60 to-transparent" />
         )}
@@ -228,7 +229,7 @@ export function FloatWord({ word, url, caption }: { word: string; url: string; c
               <div className="rounded-[var(--radius-btn)] overflow-hidden shadow-2xl"
                 style={{ boxShadow: "0 24px 64px rgba(44,38,46,0.22), 0 4px 16px rgba(44,38,46,0.12)" }}>
                 <div className="relative">
-                  <img alt={caption ?? word} className="w-full object-cover" src={url} style={{ maxHeight: 260 }} />
+                  <Image alt={caption ?? word} className="w-full object-cover" src={url} style={{ maxHeight: 260 }} />
                   <BtnIcon onClick={() => setOpen(false)}><X size={13} /></BtnIcon>
                 </div>
                 {caption && (
