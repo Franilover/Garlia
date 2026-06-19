@@ -685,7 +685,7 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
     setImgLoaded(false);
     compassStartRef.current = null;
     imgRef.current = null;
-    const img = new Image();
+    const img = new window.Image();
     img.crossOrigin = "anonymous";
     img.src = imageSrc;
     img.onload = () => {
@@ -701,7 +701,7 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
     };
     img.onerror = () => {
       setTimeout(() => {
-        const retry = new Image();
+        const retry = new window.Image();
         retry.crossOrigin = "anonymous";
         retry.src = imageSrc + (imageSrc.includes("?") ? "&" : "?") + "_r=" + Date.now();
         retry.onload = () => {
