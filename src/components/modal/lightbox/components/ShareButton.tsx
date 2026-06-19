@@ -2,10 +2,10 @@
 import { Share2 } from 'lucide-react';
 import React, { useState } from 'react';
 
-export const ShareButton = ({ url, titulo }) => {
+export const ShareButton = ({ url, titulo }: { url: string; titulo: string }) => {
   const [copiado, setCopiado] = useState(false);
   
-  const handleShare = async (e) => {
+  const handleShare = async (e: React.MouseEvent) => {
     e.stopPropagation(); 
     
     const fullUrl = typeof window !== 'undefined' 
@@ -22,7 +22,6 @@ export const ShareButton = ({ url, titulo }) => {
         console.log("Error compartiendo:", err);
       }
     } else {
-      
       try {
         await navigator.clipboard.writeText(fullUrl);
         setCopiado(true);

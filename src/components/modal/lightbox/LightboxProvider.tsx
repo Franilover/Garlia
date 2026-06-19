@@ -1,20 +1,37 @@
 "use client";
 import React, { createContext, useContext, useState, useCallback } from 'react';
 
-const LightboxContext = createContext(null);
+export type GalleryImage = {
+  id?: string;
+  src: string;
+  alt: string;
+};
 
-export const useLightbox = () => {
+type LightboxContextType = {
+  selectedImg: GalleryImage | undefined;
+  gallery: GalleryImage[];
+  currentIndex: number;
+  setCurrentIndex: React.Dispatch<React.SetStateAction<number>>;
+  openLightbox: (index: number, images: GalleryImage[], table?: string) => void;
+  closeLightbox: () => void;
+  updateGalleryItem: (index: number, newTitle: string) => void;
+  tableContext: string;
+};
+
+const LightboxContext = createContext<LightboxContextType | null>(null);
+
+export const useLightbox = (): LightboxContextType => {
   const context = useContext(LightboxContext);
   if (!context) throw new Error("useLightbox debe usarse dentro de LightboxProvider");
   return context;
 };
 
-export const LightboxProvider = ({ children }) => {
-  const [gallery, setGallery] = useState([]);
+export const LightboxProvider = ({ children }: { children: React.ReactNode }) => {
+  const [gallery, setGallery] = useState<GalleryImage[]>([]);
   const [currentIndex, setCurrentIndex] = useState(-1);
   const [tableContext, setTableContext] = useState('dibujos');
 
-  const openLightbox = useCallback((index, images, table = 'dibujos') => {
+  const openLightbox = useCallback((index: number, images: GalleryImage[], table = 'dibujos') => {
     setGallery(images);
     setCurrentIndex(index);
     setTableContext(table);
@@ -27,7 +44,7 @@ export const LightboxProvider = ({ children }) => {
     if (typeof window !== 'undefined') document.body.style.overflow = 'auto';
   }, []);
 
-  const updateGalleryItem = useCallback((index, newTitle) => {
+  const updateGalleryItem = useCallback((index: number, newTitle: string) => {
     setGallery(prev => {
       const newGallery = [...prev];
       newGallery[index] = { ...newGallery[index], alt: newTitle };

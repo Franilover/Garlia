@@ -282,7 +282,7 @@ function GrafoD3({
           .on("end", (event, d) => {
             if (!event.active) sim.alphaTarget(0);
             if (!posiciones[d.id]?.fixed) { d.fx = null; d.fy = null; }
-          })
+          }) as unknown as (selection: d3.Selection<SVGGElement | d3.BaseType, any, SVGGElement, unknown>) => void
       );
 
     // Sombra del nodo

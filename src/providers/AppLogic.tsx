@@ -8,7 +8,7 @@ import { supabase } from "@/lib/api/client/supabase";
 
 const RECONNECT_AFTER_MS = 10_000;
 
-export default function AppLogic({ children }) {
+export default function AppLogic({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { closeLightbox } = useLightbox() || {};
   const hiddenAtRef = useRef<number | null>(null);
@@ -25,7 +25,7 @@ useEffect(() => {
         if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
       } else {
         
-        const hiddenDuration = Date.now() - hiddenAtRef.current;
+        const hiddenDuration = Date.now() - (hiddenAtRef.current ?? Date.now());
 
         if (hiddenDuration > RECONNECT_AFTER_MS) {
           
@@ -56,7 +56,7 @@ useEffect(() => {
   useEffect(() => {
     if (typeof window === "undefined") return;
     window.scrollTo(0, 0);
-    if (closeLightbox && typeof closeLightbox === "function") closeLightbox();
+    if (closeLightbox && typeof closeLightbox === "function") (closeLightbox as () => void)();
   }, [pathname, closeLightbox]);
 
   

@@ -145,19 +145,19 @@ export function PrendaForm({ initial, onSave, onClose, saving, title, icon }: Pr
             {}
             <div>
               <p className="text-[8px] font-black uppercase tracking-widest text-muted-on-surface mb-2">Temporada</p>
-              <ChipGroup options={TEMPORADAS} selected={form.temporadas} onToggle={(v) => set("temporadas", toggleArr(form.temporadas, v))} />
+              <ChipGroup options={TEMPORADAS} selected={form.temporadas} onToggle={(v: Temporada) => set("temporadas", toggleArr(form.temporadas, v))} />
             </div>
 
             {}
             <div>
               <p className="text-[8px] font-black uppercase tracking-widest text-muted-on-surface mb-2">Vibra</p>
-              <ChipGroup options={VIBRAS} selected={form.vibras} onToggle={(v) => set("vibras", toggleArr(form.vibras, v))} />
+              <ChipGroup options={VIBRAS} selected={form.vibras} onToggle={(v: Vibra) => set("vibras", toggleArr(form.vibras, v))} />
             </div>
 
             {}
             <div>
               <p className="text-[8px] font-black uppercase tracking-widest text-muted-on-surface mb-2">Colores</p>
-              <ChipGroup colorDot={COLOR_DOT} options={COLORES} selected={form.colores} onToggle={(v) => set("colores", toggleArr(form.colores, v))} />
+              <ChipGroup colorDot={COLOR_DOT} options={COLORES} selected={form.colores} onToggle={(v: Color) => set("colores", toggleArr(form.colores, v))} />
             </div>
 
             <button

@@ -72,7 +72,7 @@ function MarkdownPreviewWithSnippets({
   value: string;
   placeholder?: string;
   onSnippetAction?: (action: SnippetAction) => void;
-  pvRef: React.RefObject<HTMLDivElement>;
+  pvRef: React.RefObject<HTMLDivElement | null>;
   style: React.CSSProperties;
   onTableClick?: (table: HTMLTableElement) => void;
   isLibro?: boolean;

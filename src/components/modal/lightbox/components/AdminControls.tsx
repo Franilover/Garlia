@@ -34,6 +34,7 @@ export const AdminControls = () => {
   }, [selectedImg]);
 
   const handleUpdate = async () => {
+    if (!selectedImg?.id) return;
     setSaving(true);
     try {
       const { error } = await supabase
@@ -50,7 +51,7 @@ export const AdminControls = () => {
     }
   };
 
-  if (!isAdmin) return <h2 className="text-white text-[10px] font-black uppercase tracking-[0.4em]">{selectedImg.alt}</h2>;
+  if (!isAdmin) return <h2 className="text-white text-[10px] font-black uppercase tracking-[0.4em]">{selectedImg?.alt}</h2>;
 
   return (
     <div className="flex items-center gap-3">
@@ -66,7 +67,7 @@ export const AdminControls = () => {
         </>
       ) : (
         <>
-          <h2 className="text-white text-[10px] font-black uppercase tracking-[0.4em]">{selectedImg.alt}</h2>
+          <h2 className="text-white text-[10px] font-black uppercase tracking-[0.4em]">{selectedImg?.alt}</h2>
           <button className="p-1 hover:bg-white/10 rounded" onClick={() => setEditMode(true)}><Edit3 size={14}/></button>
         </>
       )}

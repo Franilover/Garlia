@@ -616,7 +616,7 @@ const PanelEditor = ({
               placeholder="Empieza a escribir…"
               renderOverlay={snippetOverlay}
               rows={focusMode ? 30 : 20}
-              textareaRef={textareaRef}
+              textareaRef={textareaRef as React.RefObject<HTMLTextAreaElement>}
               value={contenido}
               onChange={onChange}
               onSnippetAction={handleSnippetAction}
@@ -784,7 +784,7 @@ const ModalEditarLibro = ({
         visibilidad,
         reino_id: reinoId,
         categoria: grupoId ?? null,
-        fecha_publicacion: visibilidad === "programado" ? (fechaLibro || null) : null,
+        fecha_publicacion: visibilidad === "programado" ? (fechaLibro || undefined) : undefined,
       };
       await libroUpdateMeta(libro.id, fields);
       onSaved({ ...libro, ...fields });

@@ -309,7 +309,7 @@ function GrafoD3({
           .on("end",   (ev, d) => {
             if (!ev.active) sim.alphaTarget(0);
             if (d.profundidad !== 0) { d.fx = null; d.fy = null; }
-          })
+          }) as unknown as (selection: d3.Selection<SVGGElement | d3.BaseType, any, SVGGElement, unknown>) => void
       )
       .on("click", (ev, d: any) => {
         ev.stopPropagation();

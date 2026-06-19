@@ -206,6 +206,8 @@ export type AllItems = {
   runas: any[];
   notas: any[];
   grupos: any[];
+  capitulos: any[];
+  letras: any[];
 };
 
 // Tipos para resultados de escritura

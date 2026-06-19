@@ -2,8 +2,6 @@
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import React from 'react';
 
-
-
 import { AdminControls } from './components/AdminControls'; 
 import { ShareButton } from './components/ShareButton'; 
 import { Thumbnails } from './components/Thumbnails'; 
@@ -18,7 +16,6 @@ export default function LightboxVisual() {
     <div className="fixed inset-0 z-[9999] flex flex-col bg-black overflow-y-auto no-scrollbar">
       <div className="fixed inset-0 bg-black/95 backdrop-blur-3xl -z-10" />
 
-      {}
       <header className="sticky top-0 w-full p-6 md:px-10 flex justify-between items-center z-[110] bg-black/80 backdrop-blur-md border-b border-white/5">
         <div className="flex flex-col flex-1 mr-4">
           <AdminControls />
@@ -35,7 +32,6 @@ export default function LightboxVisual() {
         </div>
       </header>
 
-      {}
       <div className="flex flex-col lg:flex-row w-full max-w-[2000px] mx-auto flex-1">
         <div className="flex-1 flex flex-col items-center w-full lg:border-r lg:border-white/5 relative justify-center min-h-[70vh]">
           
@@ -57,7 +53,6 @@ export default function LightboxVisual() {
           </button>
         </div>
 
-        {}
         <Thumbnails />
       </div>
     </div>

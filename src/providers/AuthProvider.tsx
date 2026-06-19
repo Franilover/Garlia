@@ -1,9 +1,10 @@
 "use client";
 import { createContext, useContext, useEffect, useState, useRef } from "react";
+import type { User } from "@supabase/supabase-js";
+import React from "react";
 
 import { db } from "@/lib/api/client/db";
 import { supabase } from "@/lib/api/client/supabase";
-
 
 async function getPerfilCached() {
   try {
@@ -38,19 +39,43 @@ async function clearPerfilCached() {
 // ─── Tiempo máximo antes de refrescar desde Supabase (5 minutos) ─────────────
 const PERFIL_CACHE_TTL_MS = 5 * 60 * 1000;
 
-const AuthContext = createContext({});
+type PerfilLocal = {
+  id: string;
+  email?: string | null;
+  username?: string | null;
+  rol?: string | null;
+  status?: string | null;
+  cached_at?: number;
+  [key: string]: any;
+};
 
-export const AuthProvider = ({ children }) => {
-  const [user, setPerfil_user] = useState(null);
-  const [perfil, setPerfil]    = useState(null);
-  const [loading, setLoading]  = useState(true);
+type AuthContextType = {
+  user: User | null;
+  perfil: PerfilLocal | null;
+  loading: boolean;
+  isAdmin: boolean;
+};
+
+const AuthContext = createContext<AuthContextType>({
+  user: null,
+  perfil: null,
+  loading: true,
+  isAdmin: false,
+});
+
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  const [user, setPerfil_user] = useState<User | null>(null);
+  const [perfil, setPerfil] = useState<PerfilLocal | null>(null);
+  const [loading, setLoading] = useState(true);
   const isAdmin = perfil?.rol === "admin";
 
   // Ref para evitar actualizaciones de estado en componente desmontado
   const mountedRef = useRef(true);
   useEffect(() => {
     mountedRef.current = true;
-    return () => { mountedRef.current = false; };
+    return () => {
+      mountedRef.current = false;
+    };
   }, []);
 
   // ── Guardar perfil en Dexie ───────────────────────────────────────────────
@@ -65,7 +90,7 @@ export const AuthProvider = ({ children }) => {
   // ── Leer perfil desde Dexie ───────────────────────────────────────────────
   const leerPerfilDexie = async (userId: string) => {
     try {
-      return await db.perfiles.get(userId) ?? null;
+      return (await db.perfiles.get(userId)) ?? null;
     } catch {
       return null;
     }
@@ -167,7 +192,9 @@ export const AuthProvider = ({ children }) => {
       }
     });
 
-    return () => { subscription.unsubscribe(); };
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   return (

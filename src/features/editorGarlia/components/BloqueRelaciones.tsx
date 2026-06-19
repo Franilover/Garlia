@@ -614,7 +614,7 @@ function FilaRelacion({
       >
         {rel.rel_img_url ? (
           <Image
-            alt={rel.rel_nombre}
+            alt={rel.rel_nombre ?? ""}
             className="w-full h-full object-cover"
             src={rel.rel_img_url}
           />

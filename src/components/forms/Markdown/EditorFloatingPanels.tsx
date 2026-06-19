@@ -475,7 +475,7 @@ export function CommandMenu({
 // WikilinkMenu
 // ────────────────────────────────────────────────────────────────────────────
 interface WikilinkMenuProps {
-  menuRef: React.RefObject<HTMLDivElement>;
+  menuRef: React.RefObject<HTMLDivElement | null>;
   pos: { top: number; left: number };
   query: string;
   selectedIdx: number;

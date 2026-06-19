@@ -116,9 +116,9 @@ type ObjetoMin = {
 type CiudadMin = {
   id: string;
   nombre: string;
-  imagen_url?: string;
-  tipo?: string;
-  reino_id?: string;
+  imagen_url?: string | null;
+  tipo?: string | null;
+  reino_id?: string | null;
 };
 type EntidadMagicaMin = { id: string; nombre: string };
 type RunaMin = { id: string; nombre: string; imagen_url?: string | null };

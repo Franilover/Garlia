@@ -555,9 +555,9 @@ function ModalAddReceta({ onClose, onSuccess }: { onClose: () => void; onSuccess
                       </div>
                       <MacroBar
                         carbos={parseFloat(String(ing.carbohidratos || 0))}
-                        grasas={ing.grasas}
-                        kcal={ing.kcal}
-                        proteinas={ing.proteinas}
+                        grasas={parseFloat(String(ing.grasas || 0))}
+                        kcal={parseFloat(String(ing.kcal || 0))}
+                        proteinas={parseFloat(String(ing.proteinas || 0))}
                       />
                       <button className="p-1 text-primary/20 hover:text-red-400 transition-colors ml-1 shrink-0" type="button"
                         onClick={() => removeIngrediente(idx)}

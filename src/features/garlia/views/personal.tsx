@@ -1123,7 +1123,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                             }}
                           >
                             <img
-                              alt={p.nombre}
+                              alt={p.nombre ?? ""}
                               className="w-full h-full object-contain"
                               src={p.imagen_url}
                             />
@@ -1287,7 +1287,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                           >
                             {p.imagen_url ? (
                               <Image
-                                alt={p.nombre}
+                                alt={p.nombre ?? ""}
                                 className="w-full h-full object-contain"
                                 src={p.imagen_url}
                               />
@@ -1433,7 +1433,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                           >
                             {c.imagen_url ? (
                               <Image
-                                alt={c.nombre}
+                                alt={c.nombre ?? ""}
                                 className="w-full h-full object-contain"
                                 src={c.imagen_url}
                               />
