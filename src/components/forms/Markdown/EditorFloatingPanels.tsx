@@ -13,8 +13,9 @@
  *   TableEditorPanel  — editor visual de tablas flotante
  */
 
-import React, { useState, useMemo, useRef, useEffect } from "react";
 import { ChevronDown, ChevronUp, Replace, X, Search } from "lucide-react";
+import React, { useState, useMemo, useRef, useEffect } from "react";
+
 import type { CommandItem, WikiEntity } from "./commandItems";
 
 // ── Shared token ─────────────────────────────────────────────────────────────
@@ -123,9 +124,6 @@ export function CommandMenu({
         <Search size={13} style={{ color: `color-mix(in srgb, ${PRIMARY} 55%, transparent)`, flexShrink: 0 }} />
         <input
           ref={inputRef}
-          type="text"
-          value={localQuery}
-          onChange={e => setLocalQuery(e.target.value)}
           placeholder="Buscar…"
           style={{
             flex: 1,
@@ -137,12 +135,15 @@ export function CommandMenu({
             color: "color-mix(in srgb, var(--foreground) 85%, transparent)",
             caretColor: PRIMARY,
           }}
+          type="text"
+          value={localQuery}
+          onChange={e => setLocalQuery(e.target.value)}
         />
         {localQuery && (
           <button
+            style={{ background: "none", border: "none", cursor: "pointer", padding: 2, display: "flex", color: `color-mix(in srgb, var(--foreground) 30%, transparent)` }}
             type="button"
             onClick={() => setLocalQuery("")}
-            style={{ background: "none", border: "none", cursor: "pointer", padding: 2, display: "flex", color: `color-mix(in srgb, var(--foreground) 30%, transparent)` }}
           >
             <X size={11} />
           </button>
@@ -166,9 +167,6 @@ export function CommandMenu({
             return (
               <button
                 key={item.id}
-                type="button"
-                onMouseEnter={() => onHover(idx)}
-                onClick={() => onSelect(item)}
                 style={{
                   width: "100%",
                   display: "flex",
@@ -182,6 +180,9 @@ export function CommandMenu({
                   textAlign: "left",
                   transition: "background 0.1s",
                 }}
+                type="button"
+                onClick={() => onSelect(item)}
+                onMouseEnter={() => onHover(idx)}
               >
                 {/* Icono */}
                 <div
@@ -263,8 +264,6 @@ export function CommandMenu({
           return (
             <button
               key={cat.id}
-              type="button"
-              onClick={() => setCategory(cat.id)}
               style={{
                 flexShrink: 0,
                 display: "flex",
@@ -289,6 +288,8 @@ export function CommandMenu({
                   : `color-mix(in srgb, var(--foreground) 38%, transparent)`,
                 transition: "all 0.12s",
               }}
+              type="button"
+              onClick={() => setCategory(cat.id)}
             >
               <span style={{ fontSize: 10 }}>{cat.emoji}</span>
               {cat.label}
@@ -437,9 +438,6 @@ export function WikilinkMenu({
             return (
               <button
                 key={entity.name}
-                type="button"
-                onMouseEnter={() => onHover(idx)}
-                onClick={() => onSelect(entity)}
                 style={{
                   width: "100%",
                   display: "flex",
@@ -457,6 +455,9 @@ export function WikilinkMenu({
                   textAlign: "left",
                   transition: "background 0.1s, border-color 0.1s",
                 }}
+                type="button"
+                onClick={() => onSelect(entity)}
+                onMouseEnter={() => onHover(idx)}
               >
                 {/* Avatar */}
                 <div
@@ -628,8 +629,6 @@ export function FindReplacePanel({
           Buscar y reemplazar
         </span>
         <button
-          type="button"
-          onClick={onClose}
           style={{
             background: "none",
             border: "none",
@@ -638,6 +637,8 @@ export function FindReplacePanel({
             padding: 2,
             display: "flex",
           }}
+          type="button"
+          onClick={onClose}
         >
           <X size={12} />
         </button>
@@ -648,12 +649,12 @@ export function FindReplacePanel({
         <div style={{ flex: 1, position: "relative" }}>
           <input
             ref={findInputRef}
+            placeholder="Buscar…"
+            style={inputStyle}
             type="text"
             value={find}
             onChange={e => onFindChange(e.target.value)}
             onKeyDown={onFindKeyDown}
-            placeholder="Buscar…"
-            style={inputStyle}
           />
           {find && (
             <span
@@ -672,10 +673,10 @@ export function FindReplacePanel({
             </span>
           )}
         </div>
-        <button type="button" onClick={onFindPrev} title="Anterior (Shift+Enter)" style={navBtn}>
+        <button style={navBtn} title="Anterior (Shift+Enter)" type="button" onClick={onFindPrev}>
           <ChevronUp size={12} />
         </button>
-        <button type="button" onClick={onFindNext} title="Siguiente (Enter)" style={navBtn}>
+        <button style={navBtn} title="Siguiente (Enter)" type="button" onClick={onFindNext}>
           <ChevronDown size={12} />
         </button>
       </div>
@@ -683,17 +684,17 @@ export function FindReplacePanel({
       {/* Replace row */}
       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
         <input
+          placeholder="Reemplazar con…"
+          style={{ ...inputStyle, flex: 1 }}
           type="text"
           value={replace}
           onChange={e => onReplaceChange(e.target.value)}
           onKeyDown={e => { if (e.key === "Escape") onClose(); }}
-          placeholder="Reemplazar con…"
-          style={{ ...inputStyle, flex: 1 }}
         />
-        <button type="button" onClick={onReplaceOne} title="Reemplazar este" style={actionBtn(true)}>
+        <button style={actionBtn(true)} title="Reemplazar este" type="button" onClick={onReplaceOne}>
           <Replace size={11} />
         </button>
-        <button type="button" onClick={onReplaceAll} title="Reemplazar todos" style={actionBtn(true)}>
+        <button style={actionBtn(true)} title="Reemplazar todos" type="button" onClick={onReplaceAll}>
           All
         </button>
       </div>
@@ -712,10 +713,10 @@ export function FindReplacePanel({
           }}
         >
           <input
-            type="checkbox"
             checked={caseSensitive}
-            onChange={e => onCaseSensitiveChange(e.target.checked)}
             style={{ accentColor: PRIMARY, width: 11, height: 11 }}
+            type="checkbox"
+            onChange={e => onCaseSensitiveChange(e.target.checked)}
           />
           Aa (mayúsculas)
         </label>
@@ -797,9 +798,6 @@ export function TableEditorPanel({
           ].map(({ label, title, onClick }) => (
             <button
               key={label}
-              type="button"
-              title={title}
-              onClick={onClick}
               style={{
                 fontSize: 10,
                 ...mono,
@@ -810,13 +808,14 @@ export function TableEditorPanel({
                 padding: "2px 7px",
                 cursor: "pointer",
               }}
+              title={title}
+              type="button"
+              onClick={onClick}
             >
               {label}
             </button>
           ))}
           <button
-            type="button"
-            onClick={onClose}
             style={{
               background: "none",
               border: "none",
@@ -826,6 +825,8 @@ export function TableEditorPanel({
               display: "flex",
               alignItems: "center",
             }}
+            type="button"
+            onClick={onClose}
           >
             <X size={13} />
           </button>
@@ -841,9 +842,6 @@ export function TableEditorPanel({
                 {row.map((cell, ci) => (
                   <td key={ci} style={{ padding: 2 }}>
                     <input
-                      type="text"
-                      value={cell}
-                      onChange={e => onCellChange(ri, ci, e.target.value)}
                       style={{
                         width: "100%",
                         minWidth: 80,
@@ -860,19 +858,19 @@ export function TableEditorPanel({
                         outline: "none",
                         boxSizing: "border-box",
                       }}
+                      type="text"
+                      value={cell}
+                      onBlur={e => { e.target.style.borderColor = ""; }}
+                      onChange={e => onCellChange(ri, ci, e.target.value)}
                       onFocus={e => {
                         e.target.style.borderColor = `color-mix(in srgb, ${PRIMARY} 60%, transparent)`;
                       }}
-                      onBlur={e => { e.target.style.borderColor = ""; }}
                     />
                   </td>
                 ))}
                 <td style={{ padding: "2px 0 2px 4px" }}>
                   <button
-                    type="button"
-                    title={ri === 0 ? "Fila de encabezado (no eliminable)" : "Eliminar fila"}
                     disabled={ri === 0}
-                    onClick={() => onDeleteRow(ri)}
                     style={{
                       background: "none",
                       border: "none",
@@ -886,6 +884,9 @@ export function TableEditorPanel({
                       display: "flex",
                       alignItems: "center",
                     }}
+                    title={ri === 0 ? "Fila de encabezado (no eliminable)" : "Eliminar fila"}
+                    type="button"
+                    onClick={() => onDeleteRow(ri)}
                   >
                     <X size={11} />
                   </button>
@@ -912,9 +913,6 @@ export function TableEditorPanel({
         ].map(({ label, title, onClick }) => (
           <button
             key={label}
-            type="button"
-            title={title}
-            onClick={onClick}
             style={{
               fontSize: 10,
               ...mono,
@@ -925,6 +923,9 @@ export function TableEditorPanel({
               padding: "2px 7px",
               cursor: "pointer",
             }}
+            title={title}
+            type="button"
+            onClick={onClick}
           >
             {label}
           </button>

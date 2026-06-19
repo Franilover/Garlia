@@ -1,9 +1,9 @@
 "use client";
 
+import * as d3 from "d3";
+import { X, Loader2, Network, FileText, ChevronLeft } from "lucide-react";
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { X, Loader2, Network, FileText, ChevronLeft } from "lucide-react";
-import * as d3 from "d3";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -499,7 +499,7 @@ function GrafoD3({
     return () => { sim.stop(); };
   }, [datos, centroId, width, height, primary, bgMain]);
 
-  return <svg ref={svgRef} width={width} height={height} className="w-full h-full" />;
+  return <svg ref={svgRef} className="w-full h-full" height={height} width={width} />;
 }
 
 // ─── Modal principal ──────────────────────────────────────────────────────────
@@ -577,10 +577,10 @@ export function GrafoEnsayos({
     <>
       {/* ── Botón trigger ── */}
       <button
-        onClick={() => setAbierto(true)}
-        title="Ver red de ensayos relacionados"
-        style={{ fontFamily: "var(--font-mono)" }}
         className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-[9px] font-bold uppercase tracking-widest border transition-all border-primary/10 text-primary/35 hover:bg-primary/8 hover:border-primary/25 hover:text-primary/70"
+        style={{ fontFamily: "var(--font-mono)" }}
+        title="Ver red de ensayos relacionados"
+        onClick={() => setAbierto(true)}
       >
         <Network size={10} />
       </button>
@@ -602,24 +602,24 @@ export function GrafoEnsayos({
                 {/* Botón atrás si hay historial */}
                 {historial.length > 1 && (
                   <button
-                    onClick={handleAtras}
                     className="flex items-center gap-1 px-1.5 py-0.5 rounded text-primary/40 hover:text-primary/70 hover:bg-primary/8 transition-all"
                     title="Volver al ensayo anterior"
+                    onClick={handleAtras}
                   >
                     <ChevronLeft size={11} />
                   </button>
                 )}
-                <Network size={11} className="text-primary/40" />
-                <span style={{ fontFamily: "var(--font-mono)" }} className="text-[9px] font-black uppercase tracking-widest text-primary/50">
+                <Network className="text-primary/40" size={11} />
+                <span className="text-[9px] font-black uppercase tracking-widest text-primary/50" style={{ fontFamily: "var(--font-mono)" }}>
                   red de ensayos
                 </span>
-                <span style={{ fontFamily: "var(--font-serif)", fontStyle: "italic" }} className="text-[11px] text-primary/30">
+                <span className="text-[11px] text-primary/30" style={{ fontFamily: "var(--font-serif)", fontStyle: "italic" }}>
                   — {ensayoCentro.titulo || "Sin título"}
                 </span>
               </div>
               <button
-                onClick={() => setAbierto(false)}
                 className="w-6 h-6 flex items-center justify-center rounded-lg text-primary/30 hover:text-primary hover:bg-primary/10 transition-all"
+                onClick={() => setAbierto(false)}
               >
                 <X size={12} />
               </button>
@@ -630,36 +630,36 @@ export function GrafoEnsayos({
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-1.5">
                   <div className="w-3 h-3 rounded-full border border-primary/40 bg-transparent" />
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 8 }} className="uppercase tracking-widest text-primary/35">este ensayo</span>
+                  <span className="uppercase tracking-widest text-primary/35" style={{ fontFamily: "var(--font-mono)", fontSize: 8 }}>este ensayo</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <svg width="10" height="10" viewBox="-5 -5 10 10">
-                    <polygon points="0,-4 4,0 0,4 -4,0" fill="none" stroke="currentColor" strokeWidth="1.2" className="text-primary/40" />
+                  <svg height="10" viewBox="-5 -5 10 10" width="10">
+                    <polygon className="text-primary/40" fill="none" points="0,-4 4,0 0,4 -4,0" stroke="currentColor" strokeWidth="1.2" />
                   </svg>
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 8 }} className="uppercase tracking-widest text-primary/35">tags</span>
+                  <span className="uppercase tracking-widest text-primary/35" style={{ fontFamily: "var(--font-mono)", fontSize: 8 }}>tags</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <svg width="10" height="10" viewBox="-5 -5 10 10">
-                    <polygon points="0,-4 4,0 0,4 -4,0" fill="rgba(100,150,255,0.25)" stroke="rgba(100,150,255,0.8)" strokeWidth="1.5" />
+                  <svg height="10" viewBox="-5 -5 10 10" width="10">
+                    <polygon fill="rgba(100,150,255,0.25)" points="0,-4 4,0 0,4 -4,0" stroke="rgba(100,150,255,0.8)" strokeWidth="1.5" />
                   </svg>
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 8 }} className="uppercase tracking-widest text-primary/35">tag = ensayo</span>
+                  <span className="uppercase tracking-widest text-primary/35" style={{ fontFamily: "var(--font-mono)", fontSize: 8 }}>tag = ensayo</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <div className="w-2.5 h-2.5 rounded-full border border-dashed border-primary/20 bg-transparent" />
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 8 }} className="uppercase tracking-widest text-primary/35">relacionados</span>
+                  <span className="uppercase tracking-widest text-primary/35" style={{ fontFamily: "var(--font-mono)", fontSize: 8 }}>relacionados</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <svg width="8" height="8" viewBox="-4 -4 8 8">
-                    <polygon points="0,-3 3,0 0,3 -3,0" fill="none" stroke="currentColor" strokeWidth="1" className="text-primary/25" />
+                  <svg height="8" viewBox="-4 -4 8 8" width="8">
+                    <polygon className="text-primary/25" fill="none" points="0,-3 3,0 0,3 -3,0" stroke="currentColor" strokeWidth="1" />
                   </svg>
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 8 }} className="uppercase tracking-widest text-primary/25">tags de relacionados</span>
+                  <span className="uppercase tracking-widest text-primary/25" style={{ fontFamily: "var(--font-mono)", fontSize: 8 }}>tags de relacionados</span>
                 </div>
               </div>
 
               {tagsCentro.slice(0, 8).map(tag => (
                 <div key={tag} className="flex items-center gap-1">
                   <div className="w-1.5 h-1.5 rounded-full" style={{ background: hashColor(tag, 0.75) }} />
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 7 }} className="uppercase tracking-widest text-primary/30">
+                  <span className="uppercase tracking-widest text-primary/30" style={{ fontFamily: "var(--font-mono)", fontSize: 7 }}>
                     #{tag}
                   </span>
                 </div>
@@ -674,23 +674,23 @@ export function GrafoEnsayos({
             <div ref={contenedorRef} className="flex-1 min-h-0 overflow-hidden relative">
               {!datos ? (
                 <div className="flex items-center justify-center h-full">
-                  <Loader2 size={18} className="animate-spin text-primary/20" />
+                  <Loader2 className="animate-spin text-primary/20" size={18} />
                 </div>
               ) : datos.nodos.filter(n => n.profundidad === 2 || n.profundidad === 3).length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full gap-2">
-                  <FileText size={28} className="text-primary/15" />
-                  <p style={{ fontFamily: "var(--font-mono)" }} className="text-[9px] font-bold text-primary/20 uppercase tracking-widest italic">
+                  <FileText className="text-primary/15" size={28} />
+                  <p className="text-[9px] font-bold text-primary/20 uppercase tracking-widest italic" style={{ fontFamily: "var(--font-mono)" }}>
                     ningún ensayo comparte estos tags
                   </p>
                 </div>
               ) : (
                 <>
                   <GrafoD3
-                    datos={datos}
                     centroId={centroActual}
-                    width={size.w}
+                    datos={datos}
                     height={size.h}
                     selectedId={selectedId}
+                    width={size.w}
                     onSelectNodo={handleSelectNodo}
                   />
                 </>

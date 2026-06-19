@@ -12,10 +12,10 @@
  *   SnippetAction, WikiEntity, CommandItem, ViewMode    (de commandItems)
  */
 
+import { Edit3, Eye } from "lucide-react";
 import React, {
   useState, useRef, useEffect, useCallback,
 } from "react";
-import { Edit3, Eye } from "lucide-react";
 
 // ── Módulos internos ──────────────────────────────────────────────────────────
 import {
@@ -23,7 +23,6 @@ import {
   renderMathInElement,
   PROSE_STYLES,
 } from "./markdownRenderer";
-
 import {
   COMMAND_ITEMS,
   toWikiEntities,
@@ -32,7 +31,6 @@ import {
   type ViewMode,
   type WikiEntity,
 } from "./commandItems";
-
 import {
   CommandMenu,
   WikilinkMenu,
@@ -157,7 +155,7 @@ function MarkdownPreviewWithSnippets({
       {blocks.map((block, i) => {
         if (block.kind === "md") {
           return (
-            <div key={i} dangerouslySetInnerHTML={{ __html: renderMarkdown(block.text, isLibro) }} />
+            <div dangerouslySetInnerHTML={{ __html: renderMarkdown(block.text, isLibro) }} key={i} />
           );
         }
         const segs = parseContenido(block.text);
@@ -379,7 +377,7 @@ export function MarkdownEditor({
     };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [containerWidth, modeProp]);
 
   // ── Command menu state ────────────────────────────────────────────────────
@@ -818,9 +816,6 @@ export function MarkdownEditor({
                 return (
                   <button
                     key={m}
-                    type="button"
-                    onClick={() => wrappedSetMode(m)}
-                    title={m === "edit" ? "Editar" : "Vista previa"}
                     style={{
                       display: "flex", alignItems: "center", justifyContent: "center",
                       width: 26, height: 22,
@@ -834,6 +829,9 @@ export function MarkdownEditor({
                       cursor: "pointer",
                       transition: "background 0.1s, color 0.1s",
                     }}
+                    title={m === "edit" ? "Editar" : "Vista previa"}
+                    type="button"
+                    onClick={() => wrappedSetMode(m)}
                   >
                     <Icon size={10} />
                   </button>
@@ -846,24 +844,24 @@ export function MarkdownEditor({
         {/* ── Find & Replace panel ── */}
         {findReplace.open && (
           <FindReplacePanel
-            findInputRef={findInputRef}
-            find={findReplace.find}
-            replace={findReplace.replace}
             caseSensitive={findReplace.caseSensitive}
             currentMatch={findReplace.currentMatch}
+            find={findReplace.find}
+            findInputRef={findInputRef}
+            replace={findReplace.replace}
             totalMatches={findReplace.totalMatches}
-            onFindChange={v => setFindReplace(s => ({ ...s, find: v, currentMatch: 0 }))}
-            onReplaceChange={v => setFindReplace(s => ({ ...s, replace: v }))}
             onCaseSensitiveChange={v => setFindReplace(s => ({ ...s, caseSensitive: v, currentMatch: 0 }))}
-            onFindNext={() => findAndHighlight(1)}
-            onFindPrev={() => findAndHighlight(-1)}
-            onReplaceOne={replaceOne}
-            onReplaceAll={replaceAll}
             onClose={() => setFindReplace(s => ({ ...s, open: false }))}
+            onFindChange={v => setFindReplace(s => ({ ...s, find: v, currentMatch: 0 }))}
             onFindKeyDown={e => {
               if (e.key === "Enter") { e.shiftKey ? findAndHighlight(-1) : findAndHighlight(1); }
               if (e.key === "Escape") setFindReplace(s => ({ ...s, open: false }));
             }}
+            onFindNext={() => findAndHighlight(1)}
+            onFindPrev={() => findAndHighlight(-1)}
+            onReplaceAll={replaceAll}
+            onReplaceChange={v => setFindReplace(s => ({ ...s, replace: v }))}
+            onReplaceOne={replaceOne}
           />
         )}
 
@@ -878,7 +876,6 @@ export function MarkdownEditor({
           {/* Textarea */}
           {(mode === "edit" || mode === "split") && (
             <div
-              onScroll={handleScroll}
               style={{
                 flex: mode === "split" ? 1 : "none",
                 position: "relative",
@@ -886,6 +883,7 @@ export function MarkdownEditor({
                 flexDirection: "column",
                 ...(maxHeight && mode === "edit" ? { maxHeight, overflow: "hidden" } : {}),
               }}
+              onScroll={handleScroll}
             >
               {/* Section title decoration */}
               {sectionTitle && (
@@ -915,14 +913,14 @@ export function MarkdownEditor({
                     (textareaRef as React.MutableRefObject<HTMLTextAreaElement | null>).current = node;
                   if (node !== taEl) setTaEl(node);
                 }}
+                className={textareaCls}
+                lang={spellCheck.enabled ? spellCheck.lang : undefined}
+                placeholder={placeholder}
+                spellCheck={spellCheck.enabled}
+                style={textareaStyle}
                 value={value}
                 onChange={handleChange}
                 onKeyDown={handleKeyDown}
-                placeholder={placeholder}
-                className={textareaCls}
-                style={textareaStyle}
-                spellCheck={spellCheck.enabled}
-                lang={spellCheck.enabled ? spellCheck.lang : undefined}
               />
 
               {/* External overlay */}
@@ -935,13 +933,13 @@ export function MarkdownEditor({
               {/* Command menu */}
               {cmdMenu.open && (
                 <CommandMenu
+                  items={filteredItems}
                   menuRef={menuRef}
                   pos={cmdMenu.menuPos}
                   query={cmdMenu.query}
                   selectedIdx={cmdMenu.selectedIdx}
-                  items={filteredItems}
-                  onSelect={applyCommand}
                   onHover={idx => setCmdMenu(m => ({ ...m, selectedIdx: idx }))}
+                  onSelect={applyCommand}
                 />
               )}
             </div>
@@ -950,13 +948,13 @@ export function MarkdownEditor({
           {/* Wikilink menu */}
           {wikiMenu.open && normalizedEntities.length > 0 && (
             <WikilinkMenu
+              entities={filteredEntities}
               menuRef={wikiMenuRef}
               pos={wikiMenu.menuPos}
               query={wikiMenu.query}
               selectedIdx={wikiMenu.selectedIdx}
-              entities={filteredEntities}
-              onSelect={applyWikilink}
               onHover={idx => setWikiMenu(m => ({ ...m, selectedIdx: idx }))}
+              onSelect={applyWikilink}
             />
           )}
 
@@ -968,13 +966,13 @@ export function MarkdownEditor({
           {/* Preview */}
           {(mode === "preview" || mode === "split") && (
             <MarkdownPreviewWithSnippets
-              value={sectionTitle ? `# ${sectionTitle}\n\n${value}` : value}
+              isLibro={isLibro}
               placeholder={placeholder}
-              onSnippetAction={onSnippetAction}
               pvRef={pvRef}
               style={previewStyle}
+              value={sectionTitle ? `# ${sectionTitle}\n\n${value}` : value}
+              onSnippetAction={onSnippetAction}
               onTableClick={openTableEditor}
-              isLibro={isLibro}
             />
           )}
         </div>
@@ -985,25 +983,25 @@ export function MarkdownEditor({
         <TableEditorPanel
           anchorEl={tableEditor.anchorEl}
           rows={tableEditor.rows}
+          onAddCol={() => commitTableEdit(tableEditor.rows.map(r => [...r, ""]))}
+          onAddRow={() => {
+            const cols = tableEditor.rows[0]?.length ?? 1;
+            commitTableEdit([...tableEditor.rows, Array(cols).fill("")]);
+          }}
           onCellChange={(ri, ci, v) => {
             commitTableEdit(tableEditor.rows.map((r, rr) =>
               r.map((c, cc) => rr === ri && cc === ci ? v : c),
             ));
           }}
-          onAddRow={() => {
-            const cols = tableEditor.rows[0]?.length ?? 1;
-            commitTableEdit([...tableEditor.rows, Array(cols).fill("")]);
-          }}
-          onAddCol={() => commitTableEdit(tableEditor.rows.map(r => [...r, ""]))}
-          onDeleteRow={ri => { if (ri > 0) commitTableEdit(tableEditor.rows.filter((_, r) => r !== ri)); }}
-          onDeleteLastRow={() => {
-            if (tableEditor.rows.length > 1) commitTableEdit(tableEditor.rows.slice(0, -1));
-          }}
+          onClose={() => setTableEditor(te => ({ ...te, open: false }))}
           onDeleteLastCol={() => {
             if ((tableEditor.rows[0]?.length ?? 0) > 1)
               commitTableEdit(tableEditor.rows.map(r => r.slice(0, -1)));
           }}
-          onClose={() => setTableEditor(te => ({ ...te, open: false }))}
+          onDeleteLastRow={() => {
+            if (tableEditor.rows.length > 1) commitTableEdit(tableEditor.rows.slice(0, -1));
+          }}
+          onDeleteRow={ri => { if (ri > 0) commitTableEdit(tableEditor.rows.filter((_, r) => r !== ri)); }}
         />
       )}
     </div>

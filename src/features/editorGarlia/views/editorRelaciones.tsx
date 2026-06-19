@@ -1,13 +1,15 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
-import { supabase } from "@/lib/api/client/supabase";
 import { AnimatePresence } from "framer-motion";
-import { MotionDiv } from "@/components/ui/Motion";
 import {
   User, Cat, Sword, MapPin, Crown, Plus, Trash2,
   ChevronDown, Loader2, Search, X, ShieldCheck, AlertTriangle,
 } from "lucide-react";
+import React, { useEffect, useState, useCallback } from "react";
+
+import { MotionDiv } from "@/components/ui/Motion";
+import { supabase } from "@/lib/api/client/supabase";
+
 
 // ── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -184,7 +186,7 @@ export default function AdminDescubrimientos() {
 
     const idCol = cfg.compositePk ? "" : "id, ";
     const extraCol = cfg.entidadExtra ? `, ${cfg.entidadExtra}` : "";
-    let q = supabase
+    const q = supabase
       .from(cfg.tabla)
       .select(`${idCol}${cfg.fechaCol}, ${cfg.fk}, ${cfg.joinAlias}:${cfg.fk}(id, ${cfg.entidadSelect}, ${cfg.entidadImagen}${extraCol})`)
       .eq(cfg.perfilCol, perfilSel.id)
@@ -193,7 +195,7 @@ export default function AdminDescubrimientos() {
     const { data, error } = await q;
 
     if (!error && data) {
-      let rows = data.map((r: any) => {
+      const rows = data.map((r: any) => {
         const ent = r[cfg.joinAlias];
         return {
           id:                    cfg.compositePk ? r[cfg.fk] : r.id,
@@ -312,7 +314,7 @@ export default function AdminDescubrimientos() {
 
   if (esAdmin === null) return (
     <div className="flex items-center justify-center min-h-60">
-      <Loader2 size={18} className="animate-spin" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
+      <Loader2 className="animate-spin" size={18} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
     </div>
   );
 
@@ -340,7 +342,8 @@ export default function AdminDescubrimientos() {
     <div className="w-full px-4 py-6">
       <div className="flex flex-col md:flex-row gap-6 w-full items-start">
       {/* Selector de perfil */}
-      <div style={{
+      <div className="md:w-64"
+        style={{
         background: "var(--white-custom)",
         border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
         borderRadius: "var(--radius-card)",
@@ -348,7 +351,6 @@ export default function AdminDescubrimientos() {
         flexShrink: 0,
         width: "100%",
       }}
-        className="md:w-64"
       >
         <div className="px-4 py-3" style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
           <p className="text-[8px] font-black uppercase tracking-[0.25em]"
@@ -361,7 +363,6 @@ export default function AdminDescubrimientos() {
           {perfiles.map(p => (
             <div key={p.id} className="group flex items-center gap-1">
             <button
-              onClick={() => { setPerfilSel(p); setDescubrimientos([]); }}
               className="flex-1 flex items-center gap-2 px-3 py-2 transition-all text-left"
               style={{
                 borderRadius: "var(--radius-btn)",
@@ -372,14 +373,15 @@ export default function AdminDescubrimientos() {
                 background: perfilSel?.id === p.id
                   ? "color-mix(in srgb, var(--primary) 8%, transparent)"
                   : "transparent",
-              }}>
+              }}
+              onClick={() => { setPerfilSel(p); setDescubrimientos([]); }}>
               <div className="w-6 h-6 shrink-0 overflow-hidden flex items-center justify-center"
                 style={{
                   borderRadius: "2px",
                   background: "color-mix(in srgb, var(--primary) 10%, transparent)",
                 }}>
                 {p.avatar_url
-                  ? <img src={p.avatar_url} alt={p.username} className="w-full h-full object-contain" />
+                  ? <img alt={p.username} className="w-full h-full object-contain" src={p.avatar_url} />
                   : <User size={10} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />}
               </div>
               <span className="text-[10px] font-black uppercase tracking-tight capitalize"
@@ -399,18 +401,18 @@ export default function AdminDescubrimientos() {
             </button>
             {/* Botón eliminar usuario */}
             <button
-              onClick={() => eliminarPerfil(p)}
-              disabled={eliminandoPerfil === p.id}
-              title="Eliminar usuario"
               className="opacity-0 group-hover:opacity-100 transition-all w-7 h-7 flex items-center justify-center shrink-0"
+              disabled={eliminandoPerfil === p.id}
               style={{
                 borderRadius: "var(--radius-btn)",
                 border: "1px solid color-mix(in srgb, #ef4444 25%, transparent)",
                 background: "color-mix(in srgb, #ef4444 6%, transparent)",
                 color: "#ef4444",
-              }}>
+              }}
+              title="Eliminar usuario"
+              onClick={() => eliminarPerfil(p)}>
               {eliminandoPerfil === p.id
-                ? <Loader2 size={10} className="animate-spin" />
+                ? <Loader2 className="animate-spin" size={10} />
                 : <Trash2 size={10} />}
             </button>
             </div>
@@ -433,7 +435,6 @@ export default function AdminDescubrimientos() {
             {(Object.entries(TAB_CONFIG) as [TabId, typeof TAB_CONFIG[TabId]][]).map(([id, cfg]) => (
               <button
                 key={id}
-                onClick={() => { setTab(id); setDescubrimientos([]); }}
                 className="flex items-center gap-1.5 px-4 py-3 shrink-0 transition-all"
                 style={{
                   borderBottom: tab === id
@@ -446,7 +447,8 @@ export default function AdminDescubrimientos() {
                   fontWeight: 900,
                   letterSpacing: "0.2em",
                   textTransform: "uppercase",
-                }}>
+                }}
+                onClick={() => { setTab(id); setDescubrimientos([]); }}>
                 {cfg.icon}
                 {cfg.label}
               </button>
@@ -456,7 +458,6 @@ export default function AdminDescubrimientos() {
 
             <div className="px-3 py-2 shrink-0">
               <button
-                onClick={() => { setShowAdd(true); setEntidadSel(null); setBusquedaEnt(""); }}
                 className="flex items-center gap-1.5 px-3 py-1.5 transition-all"
                 style={{
                   borderRadius: "var(--radius-btn)",
@@ -467,7 +468,8 @@ export default function AdminDescubrimientos() {
                   fontWeight: 900,
                   letterSpacing: "0.15em",
                   textTransform: "uppercase",
-                }}>
+                }}
+                onClick={() => { setShowAdd(true); setEntidadSel(null); setBusquedaEnt(""); }}>
                 <Plus size={10} /> Agregar
               </button>
             </div>
@@ -477,7 +479,7 @@ export default function AdminDescubrimientos() {
           <div className="divide-y" style={{ "--divide-color": "color-mix(in srgb, var(--primary) 6%, transparent)" } as any}>
             {cargando ? (
               <div className="flex items-center justify-center py-12">
-                <Loader2 size={16} className="animate-spin" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
+                <Loader2 className="animate-spin" size={16} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
               </div>
             ) : descubrimientos.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 gap-2">
@@ -502,7 +504,7 @@ export default function AdminDescubrimientos() {
                       border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
                     }}>
                     {row.imagen_url
-                      ? <img src={row.imagen_url} alt={row.nombre} className="w-full h-full object-contain" />
+                      ? <img alt={row.nombre} className="w-full h-full object-contain" src={row.imagen_url} />
                       : TAB_CONFIG[tab].icon}
                   </div>
 
@@ -531,18 +533,18 @@ export default function AdminDescubrimientos() {
 
                   {/* Eliminar */}
                   <button
-                    onClick={() => eliminar(row)}
-                    disabled={eliminando === row.id}
                     className="opacity-0 group-hover:opacity-100 transition-all w-7 h-7 flex items-center justify-center shrink-0"
+                    disabled={eliminando === row.id}
                     style={{
                       borderRadius: "var(--radius-btn)",
                       border: "1px solid color-mix(in srgb, #ef4444 25%, transparent)",
                       background: "color-mix(in srgb, #ef4444 6%, transparent)",
                       color: "#ef4444",
                     }}
-                    title="Eliminar descubrimiento">
+                    title="Eliminar descubrimiento"
+                    onClick={() => eliminar(row)}>
                     {eliminando === row.id
-                      ? <Loader2 size={10} className="animate-spin" />
+                      ? <Loader2 className="animate-spin" size={10} />
                       : <Trash2 size={10} />}
                   </button>
                 </div>
@@ -569,17 +571,16 @@ export default function AdminDescubrimientos() {
         {showAdd && (
           <>
             <MotionDiv
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => setShowAdd(false)}
-              className="fixed inset-0 z-40 backdrop-blur-sm"
+              animate={{ opacity: 1 }} className="fixed inset-0 z-40 backdrop-blur-sm" exit={{ opacity: 0 }}
+              initial={{ opacity: 0 }}
               style={{ background: "rgba(0,0,0,0.4)" }}
+              onClick={() => setShowAdd(false)}
             />
             <MotionDiv
-              initial={{ opacity: 0, scale: 0.95, y: 16 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 16 }}
-              transition={{ type: "spring", stiffness: 360, damping: 30 }}
               className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-50 md:inset-x-auto md:left-1/2 md:-translate-x-1/2 md:w-[26rem]"
+              exit={{ opacity: 0, scale: 0.95, y: 16 }}
+              initial={{ opacity: 0, scale: 0.95, y: 16 }}
               style={{
                 background: "var(--white-custom)",
                 borderRadius: "var(--radius-card)",
@@ -589,7 +590,8 @@ export default function AdminDescubrimientos() {
                 display: "flex",
                 flexDirection: "column",
                 overflow: "hidden",
-              }}>
+              }}
+              transition={{ type: "spring", stiffness: 360, damping: 30 }}>
 
               {/* Header modal */}
               <div className="flex items-center justify-between px-5 py-4 shrink-0"
@@ -603,9 +605,9 @@ export default function AdminDescubrimientos() {
                     a {perfilSel?.username}
                   </p>
                 </div>
-                <button onClick={() => setShowAdd(false)}
-                  className="w-7 h-7 flex items-center justify-center transition-opacity hover:opacity-60"
-                  style={{ color: "var(--primary)" }}>
+                <button className="w-7 h-7 flex items-center justify-center transition-opacity hover:opacity-60"
+                  style={{ color: "var(--primary)" }}
+                  onClick={() => setShowAdd(false)}>
                   <X size={13} />
                 </button>
               </div>
@@ -622,15 +624,15 @@ export default function AdminDescubrimientos() {
                   <Search size={11} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)", flexShrink: 0 }} />
                   <input
                     autoFocus
+                    className="flex-1 bg-transparent outline-none text-[11px] font-black uppercase tracking-tight"
+                    placeholder={`Buscar ${TAB_CONFIG[tab].label.toLowerCase()}…`}
+                    style={{ color: "var(--primary)" }}
                     value={busquedaEnt}
                     onChange={e => setBusquedaEnt(e.target.value)}
-                    placeholder={`Buscar ${TAB_CONFIG[tab].label.toLowerCase()}…`}
-                    className="flex-1 bg-transparent outline-none text-[11px] font-black uppercase tracking-tight"
-                    style={{ color: "var(--primary)" }}
                   />
                   {busquedaEnt && (
-                    <button onClick={() => setBusquedaEnt("")}
-                      style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
+                    <button style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
+                      onClick={() => setBusquedaEnt("")}>
                       <X size={10} />
                     </button>
                   )}
@@ -653,9 +655,8 @@ export default function AdminDescubrimientos() {
                     return (
                       <button
                         key={e.id}
-                        disabled={yaTiene}
-                        onClick={() => setEntidadSel(sel ? null : e)}
                         className="w-full flex items-center gap-3 px-4 py-3 text-left transition-colors"
+                        disabled={yaTiene}
                         style={{
                           borderBottom: "1px solid color-mix(in srgb, var(--primary) 5%, transparent)",
                           background: sel
@@ -664,6 +665,7 @@ export default function AdminDescubrimientos() {
                           opacity: yaTiene ? 0.35 : 1,
                           cursor: yaTiene ? "not-allowed" : "pointer",
                         }}
+                        onClick={() => setEntidadSel(sel ? null : e)}
                         onMouseEnter={e2 => {
                           if (!yaTiene) (e2.currentTarget as HTMLElement).style.background =
                             sel ? "color-mix(in srgb, var(--primary) 8%, transparent)"
@@ -682,7 +684,7 @@ export default function AdminDescubrimientos() {
                             border: `1px solid ${sel ? "color-mix(in srgb, var(--primary) 30%, transparent)" : "color-mix(in srgb, var(--primary) 10%, transparent)"}`,
                           }}>
                           {e.imagen_url
-                            ? <img src={e.imagen_url} alt={e.nombre} className="w-full h-full object-contain" />
+                            ? <img alt={e.nombre} className="w-full h-full object-contain" src={e.imagen_url} />
                             : TAB_CONFIG[tab].icon}
                         </div>
 
@@ -716,8 +718,8 @@ export default function AdminDescubrimientos() {
                               borderRadius: "50%",
                               background: "var(--primary)",
                             }}>
-                            <svg width="7" height="7" viewBox="0 0 7 7" fill="none">
-                              <path d="M1 3.5L3 5.5L6 1.5" stroke="white" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+                            <svg fill="none" height="7" viewBox="0 0 7 7" width="7">
+                              <path d="M1 3.5L3 5.5L6 1.5" stroke="white" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.2" />
                             </svg>
                           </div>
                         )}
@@ -735,9 +737,8 @@ export default function AdminDescubrimientos() {
                   {entidadSel ? `Seleccionado: ${entidadSel.nombre}` : "Ninguno seleccionado"}
                 </p>
                 <button
-                  onClick={agregar}
-                  disabled={!entidadSel || guardando}
                   className="flex items-center gap-1.5 px-4 py-2 transition-all"
+                  disabled={!entidadSel || guardando}
                   style={{
                     borderRadius: "var(--radius-btn)",
                     background: entidadSel ? "var(--primary)" : "color-mix(in srgb, var(--primary) 12%, transparent)",
@@ -747,8 +748,9 @@ export default function AdminDescubrimientos() {
                     letterSpacing: "0.15em",
                     textTransform: "uppercase",
                     cursor: entidadSel ? "pointer" : "not-allowed",
-                  }}>
-                  {guardando ? <Loader2 size={10} className="animate-spin" /> : <Plus size={10} />}
+                  }}
+                  onClick={agregar}>
+                  {guardando ? <Loader2 className="animate-spin" size={10} /> : <Plus size={10} />}
                   Agregar
                 </button>
               </div>
@@ -761,10 +763,10 @@ export default function AdminDescubrimientos() {
       <AnimatePresence>
         {toast && (
           <MotionDiv
-            initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 8 }}
             className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-3 flex items-center gap-2"
+            exit={{ opacity: 0, y: 8 }}
+            initial={{ opacity: 0, y: 8 }}
             style={{
               borderRadius: "var(--radius-btn)",
               background: toast.ok ? "color-mix(in srgb, #16a34a 12%, var(--white-custom))" : "color-mix(in srgb, #ef4444 10%, var(--white-custom))",
@@ -775,8 +777,8 @@ export default function AdminDescubrimientos() {
             <div className="w-4 h-4 rounded-full flex items-center justify-center"
               style={{ background: toast.ok ? "#16a34a" : "#ef4444" }}>
               {toast.ok
-                ? <svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M1.5 4L3 5.5L6.5 2" stroke="white" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                : <X size={7} color="white" />}
+                ? <svg fill="none" height="8" viewBox="0 0 8 8" width="8"><path d="M1.5 4L3 5.5L6.5 2" stroke="white" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.2" /></svg>
+                : <X color="white" size={7} />}
             </div>
             <span className="text-[10px] font-black uppercase tracking-tight"
               style={{ color: toast.ok ? "#16a34a" : "#ef4444" }}>

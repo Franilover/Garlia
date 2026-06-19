@@ -1,8 +1,9 @@
 "use client";
-import { useAuth } from "@/providers/AuthProvider";
+import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { Loader2 } from "lucide-react";
+
+import { useAuth } from "@/providers/AuthProvider";
 
 interface Props {
   children: React.ReactNode;

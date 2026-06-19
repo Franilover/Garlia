@@ -48,6 +48,7 @@
  */
 
 import React, { createContext, useContext, useCallback } from "react";
+
 import type { SnippetAction } from "@/components/forms/Markdown/MarkdownEditor";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────

@@ -1,9 +1,10 @@
 "use client";
-import { MotionDiv, MotionMain, MotionH1, MotionH2, MotionButton, MotionLi, MotionSpan, MotionP, MotionSection, MotionArticle, MotionImg } from "@/components/ui/Motion";
-import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { User, Sword, Package, ShieldCheck, X, Star, Music2, ChevronRight, MapPin } from "lucide-react";
 import Link from "next/link";
+import React from "react";
+
+import { MotionDiv, MotionMain, MotionH1, MotionH2, MotionButton, MotionLi, MotionSpan, MotionP, MotionSection, MotionArticle, MotionImg } from "@/components/ui/Motion";
 
 export interface Descubrimiento {
   tipo: "item" | "criatura" | "personaje";
@@ -82,17 +83,17 @@ export function ModalDetalle({ entidad, onClose, canciones, cargandoCanciones }:
     <AnimatePresence>
       <MotionDiv
         key="backdrop"
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        animate={{ opacity: 1 }} className="fixed inset-0 z-40 bg-primary/10 backdrop-blur-sm" exit={{ opacity: 0 }}
+        initial={{ opacity: 0 }}
         onClick={onClose}
-        className="fixed inset-0 z-40 bg-primary/10 backdrop-blur-sm"
       />
       <MotionDiv
         key="modal"
-        initial={{ opacity: 0, scale: 0.94, y: 16 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.94, y: 16 }}
-        transition={{ type: "spring", stiffness: 380, damping: 32 }}
         className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none"
+        exit={{ opacity: 0, scale: 0.94, y: 16 }}
+        initial={{ opacity: 0, scale: 0.94, y: 16 }}
+        transition={{ type: "spring", stiffness: 380, damping: 32 }}
       >
         <div
           className="pointer-events-auto w-full max-w-sm overflow-hidden"
@@ -109,7 +110,7 @@ export function ModalDetalle({ entidad, onClose, canciones, cargandoCanciones }:
             style={{ background: "color-mix(in srgb, var(--primary) 4%, var(--bg-main))" }}>
 
             {imagen
-              ? <img src={imagen} alt={nombre} className="w-full h-full object-cover" />
+              ? <img alt={nombre} className="w-full h-full object-cover" src={imagen} />
               : <IconComp size={48} style={{ color: "color-mix(in srgb, var(--primary) 12%, transparent)" }} />
             }
 
@@ -118,13 +119,13 @@ export function ModalDetalle({ entidad, onClose, canciones, cargandoCanciones }:
               style={{ background: "linear-gradient(to top, var(--white-custom), transparent)" }} />
 
             {/* Close btn */}
-            <button onClick={onClose}
-              className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center transition-opacity hover:opacity-70"
+            <button className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center transition-opacity hover:opacity-70"
               style={{
                 background: "var(--white-custom)",
                 borderRadius: "var(--radius-btn)",
                 border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
-              }}>
+              }}
+              onClick={onClose}>
               <X size={14} style={{ color: "var(--primary)" }} />
             </button>
 
@@ -208,8 +209,8 @@ export function ModalDetalle({ entidad, onClose, canciones, cargandoCanciones }:
                 ) : (
                   <div className="flex flex-col gap-2">
                     {canciones.map((cancion, i) => (
-                      <Link key={cancion.id ?? i} href={`/garlia/canciones/${cancion.id}`}
-                        className="group flex items-center gap-3 px-3 py-2.5 transition-all"
+                      <Link key={cancion.id ?? i} className="group flex items-center gap-3 px-3 py-2.5 transition-all"
+                        href={`/garlia/canciones/${cancion.id}`}
                         style={{
                           background: "color-mix(in srgb, var(--primary) 3%, var(--white-custom))",
                           border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
@@ -226,8 +227,8 @@ export function ModalDetalle({ entidad, onClose, canciones, cargandoCanciones }:
                         {cancion.portada_url && !cancion.portada_url.includes("placeholder") ? (
                           <div className="w-10 h-10 shrink-0 overflow-hidden"
                             style={{ borderRadius: "var(--radius-btn)", background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-                            <img src={cancion.portada_url} alt={cancion.titulo}
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                            <img alt={cancion.titulo} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              src={cancion.portada_url} />
                           </div>
                         ) : (
                           <div className="w-10 h-10 shrink-0 flex items-center justify-center"
@@ -247,8 +248,8 @@ export function ModalDetalle({ entidad, onClose, canciones, cargandoCanciones }:
                             </span>
                           )}
                         </div>
-                        <ChevronRight size={13} style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)", flexShrink: 0 }}
-                          className="group-hover:translate-x-0.5 transition-transform" />
+                        <ChevronRight className="group-hover:translate-x-0.5 transition-transform" size={13}
+                          style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)", flexShrink: 0 }} />
                       </Link>
                     ))}
                   </div>
@@ -289,9 +290,6 @@ export function EntidadCard({ imagen, nombre, sub, icono, onClick }: {
 
   return (
     <button
-      onClick={onClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
       className="text-left cursor-pointer w-full overflow-hidden"
       style={{
         background: "var(--white-custom)",
@@ -302,6 +300,9 @@ export function EntidadCard({ imagen, nombre, sub, icono, onClick }: {
         transform: hovered ? "translateY(-2px)" : "translateY(0)",
         transition: "all 0.16s ease",
       }}
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
     >
       {/* Desktop image area */}
       <div
@@ -316,8 +317,8 @@ export function EntidadCard({ imagen, nombre, sub, icono, onClick }: {
       >
         {imagen ? (
           <img
-            src={imagen} alt={nombre}
-            className="w-full h-full object-contain p-3"
+            alt={nombre} className="w-full h-full object-contain p-3"
+            src={imagen}
             style={{
               transform: hovered ? "scale(1.04)" : "scale(1)",
               transition: "transform 0.16s ease",
@@ -351,7 +352,7 @@ export function EntidadCard({ imagen, nombre, sub, icono, onClick }: {
           }}
         >
           {imagen
-            ? <img src={imagen} alt={nombre} className="w-full h-full object-contain p-1" />
+            ? <img alt={nombre} className="w-full h-full object-contain p-1" src={imagen} />
             : icono
           }
         </div>

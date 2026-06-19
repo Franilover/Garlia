@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useEffect, useState, useCallback, useRef } from "react";
-import { RotateCcw, X, Save, WifiOff } from "lucide-react";
-import { supabase } from "@/lib/api/client/supabase";
+import { RotateCcw, Save, X } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+
 import { db } from "@/lib/api/client/db";
+import { supabase } from "@/lib/api/client/supabase";
 
 export interface Personaje { id: string; nombre: string; }
 
@@ -150,15 +151,15 @@ export function DraftRestoreBanner({
       </span>
       <div className="flex items-center gap-2">
         <button
-          onClick={() => { onRestore(draft.draftValue); draft.dismiss(); }}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500 text-white hover:bg-amber-400 transition-all text-[9px] font-black uppercase"
+          onClick={() => { onRestore(draft.draftValue); draft.dismiss(); }}
         >
           <RotateCcw size={10} /> Restaurar
         </button>
         <button
-          onClick={draft.dismiss}
           className="p-1.5 rounded-lg hover:bg-amber-500/20 text-amber-500/60 hover:text-amber-500 transition-all"
           title="Descartar borrador"
+          onClick={draft.dismiss}
         >
           <X size={12} />
         </button>
@@ -187,10 +188,10 @@ export function SelectPersonaje({
       <label className="text-[9px] font-black uppercase text-primary/30 tracking-widest">{label}</label>
       <div className="relative">
         <select
+          className={selectCls}
+          disabled={loading}
           value={value}
           onChange={e => onChange(e.target.value)}
-          disabled={loading}
-          className={selectCls}
         >
           <option value="">{loading ? "Cargando…" : placeholder}</option>
           {personajes.map(p => (
@@ -224,9 +225,9 @@ export function SelectIdioma({
       <label className="text-[9px] font-black uppercase text-primary/30 tracking-widest">{label}</label>
       <div className="relative">
         <select
+          className={selectCls}
           value={value}
           onChange={e => onChange(e.target.value)}
-          className={selectCls}
         >
           <option value="">Sin idioma</option>
           {IDIOMAS_OPCIONES.map(({ value: v, label: l }) => (

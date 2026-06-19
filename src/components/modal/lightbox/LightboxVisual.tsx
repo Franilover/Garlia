@@ -1,11 +1,14 @@
 "use client";
-import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
-import { useLightbox } from './LightboxProvider';
+import React, { useState, useEffect } from 'react';
+
+
 import { typography, components } from '@/lib/config/design-system';
-import { ShareButton } from './components/ShareButton'; 
+
 import { AdminControls } from './components/AdminControls'; 
+import { ShareButton } from './components/ShareButton'; 
 import { Thumbnails } from './components/Thumbnails'; 
+import { useLightbox } from './LightboxProvider';
 
 export default function LightboxVisual() {
   const { selectedImg, gallery, currentIndex, setCurrentIndex, closeLightbox, tableContext } = useLightbox();
@@ -26,8 +29,8 @@ export default function LightboxVisual() {
         </div>
         
         <div className="flex items-center gap-4 md:gap-8">
-          <ShareButton url={selectedImg.src} titulo={selectedImg.alt} />
-          <button onClick={closeLightbox} className="text-white/40 hover:text-white transition-all hover:rotate-90 duration-300">
+          <ShareButton titulo={selectedImg.alt} url={selectedImg.src} />
+          <button className="text-white/40 hover:text-white transition-all hover:rotate-90 duration-300" onClick={closeLightbox}>
             <X size={32} strokeWidth={1} />
           </button>
         </div>
@@ -44,9 +47,9 @@ export default function LightboxVisual() {
 
           <img 
             key={selectedImg.src} 
-            src={selectedImg.src} 
             alt={selectedImg.alt} 
             className="max-h-[75vh] md:max-h-[80vh] object-contain shadow-2xl animate-in zoom-in-95 duration-500" 
+            src={selectedImg.src} 
           />
 
           <button className="absolute right-4 md:right-8 z-[105] text-white/20 hover:text-white hidden md:block"

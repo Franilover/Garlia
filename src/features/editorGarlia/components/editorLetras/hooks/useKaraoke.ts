@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+
 import { supabase } from "@/lib/api/client/supabase";
+
 import type { Seccion, IdiomaKey, KaraokeTimings, LineaConTiempo } from "../types";
 
 export function useKaraoke(

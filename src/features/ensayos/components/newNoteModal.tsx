@@ -1,8 +1,9 @@
 "use client";
+import { X } from "lucide-react";
 import React, { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
+
 import { MotionDiv } from "@/components/ui/Motion";
-import { X } from "lucide-react";
 
 interface NewNoteModalProps {
   /** Pre-fill the title input (used when creating a tag-page or following a [[link]]). */
@@ -38,21 +39,20 @@ export default function NewNoteModal({ initialTitle, onConfirm, onClose }: NewNo
     <>
       {/* Overlay */}
       <MotionDiv
-        initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
         className="fixed inset-0 z-[9999]"
+        exit={{ opacity: 0 }}
+        initial={{ opacity: 0 }}
         style={{ background: "color-mix(in srgb, var(--bg-main) 70%, transparent)", backdropFilter: "blur(6px)" }}
         onClick={onClose}
       />
 
       {/* Modal */}
       <MotionDiv
-        initial={{ opacity: 0, scale: 0.97, y: -8, x: "-50%" }}
         animate={{ opacity: 1, scale: 1, y: 0, x: "-50%" }}
-        exit={{ opacity: 0, scale: 0.97, y: -8, x: "-50%" }}
-        transition={{ type: "spring", damping: 28, stiffness: 320 }}
         className="fixed z-[9999]"
+        exit={{ opacity: 0, scale: 0.97, y: -8, x: "-50%" }}
+        initial={{ opacity: 0, scale: 0.97, y: -8, x: "-50%" }}
         style={{
           top: "30%",
           left: "50%",
@@ -63,6 +63,7 @@ export default function NewNoteModal({ initialTitle, onConfirm, onClose }: NewNo
           overflow: "hidden",
           boxShadow: "0 24px 80px color-mix(in srgb, var(--bg-main) 60%, transparent)",
         }}
+        transition={{ type: "spring", damping: 28, stiffness: 320 }}
       >
         {/* Header */}
         <div
@@ -79,7 +80,6 @@ export default function NewNoteModal({ initialTitle, onConfirm, onClose }: NewNo
             {initialTitle ? `nueva página · "${initialTitle}"` : "nueva nota"}
           </span>
           <button
-            onClick={onClose}
             style={{
               background: "none",
               border: "none",
@@ -88,6 +88,7 @@ export default function NewNoteModal({ initialTitle, onConfirm, onClose }: NewNo
               display: "flex",
               alignItems: "center",
             }}
+            onClick={onClose}
           >
             <X size={13} />
           </button>
@@ -97,12 +98,8 @@ export default function NewNoteModal({ initialTitle, onConfirm, onClose }: NewNo
         <div className="px-4 py-4">
           <input
             ref={inputRef}
-            type="text"
-            value={titulo}
-            onChange={(e) => setTitulo(e.target.value)}
-            onKeyDown={handleKey}
-            placeholder="título del pensamiento..."
             className="w-full bg-transparent outline-none border-none"
+            placeholder="título del pensamiento..."
             style={{
               fontSize: 20,
               fontFamily: "var(--font-serif)",
@@ -110,6 +107,10 @@ export default function NewNoteModal({ initialTitle, onConfirm, onClose }: NewNo
               color: "color-mix(in srgb, var(--foreground) 80%, transparent)",
               letterSpacing: "-0.02em",
             }}
+            type="text"
+            value={titulo}
+            onChange={(e) => setTitulo(e.target.value)}
+            onKeyDown={handleKey}
           />
         </div>
 
@@ -127,7 +128,6 @@ export default function NewNoteModal({ initialTitle, onConfirm, onClose }: NewNo
 
           <div className="flex items-center gap-2">
             <button
-              onClick={onClose}
               style={{
                 fontSize: 10,
                 padding: "5px 12px",
@@ -138,11 +138,11 @@ export default function NewNoteModal({ initialTitle, onConfirm, onClose }: NewNo
                 cursor: "pointer",
                 ...monoStyle,
               }}
+              onClick={onClose}
             >
               cancelar
             </button>
             <button
-              onClick={handleSubmit}
               disabled={!titulo.trim()}
               style={{
                 fontSize: 10,
@@ -155,6 +155,7 @@ export default function NewNoteModal({ initialTitle, onConfirm, onClose }: NewNo
                 ...monoStyle,
                 transition: "all 0.1s",
               }}
+              onClick={handleSubmit}
             >
               crear →
             </button>

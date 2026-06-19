@@ -1,22 +1,22 @@
 "use client";
-import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { Loader2, PenTool, Search, X, Plus, FileText, Trash2, List, BookOpen, Hash } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
+import { Loader2, PenTool, Search, X, Plus, FileText, Trash2, List, BookOpen, Hash } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/providers/AuthProvider";
-import { useToast } from "@/hooks/ui/useToast";
-import { ToastContainer } from "@/components/ui/ToastContainer";
-import { useConfirm } from "@/components/ui/ConfirmModal";
-import { db } from "@/lib/api/client/db";
-import { useSupabaseData } from "@/hooks/data/useSupabaseData";
-import { eventosQueries } from "@/lib/api/queries/personal/eventos";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 
+import { useConfirm } from "@/components/ui/ConfirmModal";
+import { ToastContainer } from "@/components/ui/ToastContainer";
 import Editor from "@/features/ensayos/components/editor";
 import { EmptyState } from "@/features/ensayos/components/emptyState";
-import NewNoteModal from "@/features/ensayos/components/newNoteModal";
 import { GrafoEnsayos } from "@/features/ensayos/components/GrafoEnsayos";
+import NewNoteModal from "@/features/ensayos/components/newNoteModal";
 import { HomeDashboard } from "@/features/ensayos/views/HomeDashboard";
 import { LibrosDashboard } from "@/features/ensayos/views/LibrosDashboard";
+import { useSupabaseData } from "@/hooks/data/useSupabaseData";
+import { useToast } from "@/hooks/ui/useToast";
+import { db } from "@/lib/api/client/db";
+import { eventosQueries } from "@/lib/api/queries/personal/eventos";
+import { useAuth } from "@/providers/AuthProvider";
 
 export interface ZoteroSource {
   title: string;
@@ -701,8 +701,6 @@ export default function Ensayos() {
         <div className="shrink-0 flex items-center gap-2">
           {/* Botón Home — solo icono */}
           <button
-            onClick={irAlHome}
-            title="Volver al escritorio"
             style={{
               background: ensayoActivoId ? "transparent" : "color-mix(in srgb, var(--foreground) 6%, transparent)",
               border: "1px solid",
@@ -714,6 +712,8 @@ export default function Ensayos() {
               alignItems: "center",
               transition: "all 0.12s",
             }}
+            title="Volver al escritorio"
+            onClick={irAlHome}
             onMouseEnter={e => {
               (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--foreground) 25%, transparent)";
               (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--foreground) 6%, transparent)";
@@ -738,8 +738,6 @@ export default function Ensayos() {
           {/* TOC (solo cuando hay nota activa con headings) */}
           {ensayoActivo && tocEntries.length > 0 && (
             <button
-              onClick={() => setTocOpen(p => !p)}
-              title="Tabla de contenidos"
               style={{
                 background: tocOpen ? "color-mix(in srgb, var(--color-primary,#7c6af7) 12%, transparent)" : "none",
                 border: "1px solid",
@@ -753,6 +751,8 @@ export default function Ensayos() {
                 alignItems: "center",
                 transition: "all 0.12s",
               }}
+              title="Tabla de contenidos"
+              onClick={() => setTocOpen(p => !p)}
               onMouseEnter={e => {
                 if (!tocOpen) {
                   (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--foreground) 25%, transparent)";
@@ -773,32 +773,16 @@ export default function Ensayos() {
 
           {/* Buscador + panel — centro */}
           <div className="flex-1 flex justify-center">
-            <div className="relative" style={{ width: "min(400px, 100%)" }} ref={searchPanelRef}>
+            <div ref={searchPanelRef} className="relative" style={{ width: "min(400px, 100%)" }}>
               {/* Input */}
               <Search
-                size={10}
                 className="absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none"
+                size={10}
                 style={{ color: "color-mix(in srgb, var(--foreground) 22%, transparent)" }}
               />
               <input
-                type="text"
-                placeholder={`buscar entre ${ensayos.length} notas...`}
-                value={searchTerm}
-                onFocus={() => setSearchPanelOpen(true)}
-                onChange={e => {
-                  const val = e.target.value;
-                  setSearchTerm(val);
-                  setSearchPanelOpen(true);
-                }}
-                onKeyDown={e => {
-                  if (e.key === "Escape") { setSearchPanelOpen(false); setSearchTerm(""); (e.target as HTMLInputElement).blur(); }
-                  if (e.key === "Enter" && ensayosFiltrados.length > 0) {
-                    handleEnsayoClick(ensayosFiltrados[0].id);
-                    setSearchPanelOpen(false);
-                    setSearchTerm("");
-                  }
-                }}
                 className="w-full outline-none"
+                placeholder={`buscar entre ${ensayos.length} notas...`}
                 style={{
                   background:   "color-mix(in srgb, var(--foreground) 4%, transparent)",
                   border:       "1px solid color-mix(in srgb, var(--foreground) 8%, transparent)",
@@ -809,20 +793,36 @@ export default function Ensayos() {
                   fontFamily:   "var(--font-mono)",
                   transition:   "border-radius 0.1s",
                 }}
+                type="text"
+                value={searchTerm}
+                onChange={e => {
+                  const val = e.target.value;
+                  setSearchTerm(val);
+                  setSearchPanelOpen(true);
+                }}
+                onFocus={() => setSearchPanelOpen(true)}
+                onKeyDown={e => {
+                  if (e.key === "Escape") { setSearchPanelOpen(false); setSearchTerm(""); (e.target as HTMLInputElement).blur(); }
+                  if (e.key === "Enter" && ensayosFiltrados.length > 0) {
+                    handleEnsayoClick(ensayosFiltrados[0].id);
+                    setSearchPanelOpen(false);
+                    setSearchTerm("");
+                  }
+                }}
               />
               {searchTerm ? (
                 <button
-                  onClick={() => { setSearchTerm(""); setSearchPanelOpen(false); }}
                   className="absolute right-2 top-1/2 -translate-y-1/2"
                   style={{ background: "none", border: "none", cursor: "pointer", color: "color-mix(in srgb, var(--foreground) 22%, transparent)", display: "flex", padding: 0 }}
+                  onClick={() => { setSearchTerm(""); setSearchPanelOpen(false); }}
                 >
                   <X size={9} />
                 </button>
               ) : (
                 <button
-                  onClick={() => setSearchPanelOpen(p => !p)}
                   className="absolute right-2 top-1/2 -translate-y-1/2"
                   style={{ background: "none", border: "none", cursor: "pointer", color: "color-mix(in srgb, var(--foreground) 18%, transparent)", display: "flex", padding: 0 }}
+                  onClick={() => setSearchPanelOpen(p => !p)}
                 >
                   <Plus size={9} onClick={e => { e.stopPropagation(); setShowNewNoteModal(true); setSearchPanelOpen(false); }} />
                 </button>
@@ -832,10 +832,9 @@ export default function Ensayos() {
               <AnimatePresence>
                 {searchPanelOpen && (
                   <motion.div
-                    initial={{ opacity: 0, y: -4 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -4 }}
-                    transition={{ duration: 0.1 }}
+                    initial={{ opacity: 0, y: -4 }}
                     style={{
                       position: "absolute",
                       top: "100%",
@@ -852,6 +851,7 @@ export default function Ensayos() {
                       display: "flex",
                       flexDirection: "column",
                     }}
+                    transition={{ duration: 0.1 }}
                   >
                     {/* Tags */}
                     {todosLosTags.length > 0 && (
@@ -860,7 +860,6 @@ export default function Ensayos() {
                         style={{ borderBottom: "1px solid color-mix(in srgb, var(--foreground) 5%, transparent)" }}
                       >
                         <button
-                          onClick={() => { setTagActivo(null); }}
                           style={{
                             fontSize: 9, padding: "1px 7px", borderRadius: 3,
                             border: "1px solid",
@@ -869,11 +868,11 @@ export default function Ensayos() {
                             color: !tagActivo ? "color-mix(in srgb, var(--foreground) 80%, transparent)" : "color-mix(in srgb, var(--foreground) 25%, transparent)",
                             cursor: "pointer", fontFamily: "var(--font-mono)", transition: "all 0.1s",
                           }}
+                          onClick={() => { setTagActivo(null); }}
                         >all</button>
                         {todosLosTags.map(tag => (
                           <button
                             key={tag}
-                            onClick={() => setTagActivo(tagActivo === tag ? null : tag)}
                             style={{
                               fontSize: 9, padding: "1px 7px", borderRadius: 3,
                               border: "1px solid",
@@ -882,6 +881,7 @@ export default function Ensayos() {
                               color: tagActivo === tag ? "color-mix(in srgb, var(--foreground) 80%, transparent)" : "color-mix(in srgb, var(--foreground) 25%, transparent)",
                               cursor: "pointer", fontFamily: "var(--font-mono)", transition: "all 0.1s",
                             }}
+                            onClick={() => setTagActivo(tagActivo === tag ? null : tag)}
                           >#{tag}</button>
                         ))}
                       </div>
@@ -968,8 +968,8 @@ export default function Ensayos() {
                               )}
                               <button
                                 className="opacity-0 group-hover:opacity-100"
-                                onClick={e => { e.stopPropagation(); eliminarEnsayo(ens.id); }}
                                 style={{ background: "none", border: "none", cursor: "pointer", color: "color-mix(in srgb, var(--accent) 50%, transparent)", padding: 2, flexShrink: 0, transition: "opacity 0.1s" }}
+                                onClick={e => { e.stopPropagation(); eliminarEnsayo(ens.id); }}
                               >
                                 <Trash2 size={9} />
                               </button>
@@ -988,9 +988,9 @@ export default function Ensayos() {
                         {ensayosFiltrados.length} de {ensayos.length} notas · enter para abrir
                       </span>
                       <button
-                        onClick={() => { setShowNewNoteModal(true); setSearchPanelOpen(false); }}
                         className="flex items-center gap-1"
                         style={{ fontSize: 9, padding: "2px 8px", borderRadius: 4, border: "1px solid color-mix(in srgb, var(--foreground) 10%, transparent)", background: "color-mix(in srgb, var(--foreground) 5%, transparent)", color: "color-mix(in srgb, var(--foreground) 45%, transparent)", cursor: "pointer", fontFamily: "var(--font-mono)" }}
+                        onClick={() => { setShowNewNoteModal(true); setSearchPanelOpen(false); }}
                       >
                         <Plus size={8} /> nueva nota
                       </button>
@@ -1021,25 +1021,26 @@ export default function Ensayos() {
               {ensayoActivo ? (
                 <Editor
                   key={ensayoActivo.id}
+                  editMode={editMode}
                   ensayo={ensayoActivo}
                   ensayos={ensayos}
                   sources={sources}
-                  editMode={editMode}
-                  onToggleEditMode={() => setEditMode(p => !p)}
-                  onUpdateField={actualizarLocal}
+                  tocOpen={tocOpen}
                   onNavigateToPage={(name) => navigateToPage(name, false)}
                   onOpenLibrosDashboard={irALibros}
                   onTagClick={(tag) => {
                     navigateToPage(tag, true);
                   }}
-                  tocOpen={tocOpen}
-                  onTocToggle={() => setTocOpen(p => !p)}
                   onTocEntriesChange={setTocEntries}
+                  onTocToggle={() => setTocOpen(p => !p)}
+                  onToggleEditMode={() => setEditMode(p => !p)}
+                  onUpdateField={actualizarLocal}
                 />
               ) : vistaActiva === "libros" ? (
                 <LibrosDashboard
                   key="libros"
                   ensayos={ensayos}
+                  onCrearLibro={crearLibro}
                   onNavigate={(titulo) => navigateToPage(titulo, false)}
                   onTagClick={handleTagClick}
                   onToggleEstado={(libroId, estado, add) => {
@@ -1051,26 +1052,24 @@ export default function Ensayos() {
                       : tagsActuales.filter((t: string) => t !== estado);
                     scheduleSave(libroId, { tags: nuevosTags });
                   }}
-                  onCrearLibro={crearLibro}
                 />
               ) : (
                 <HomeDashboard 
                   key="home"
-                  ensayos={ensayos} 
-                  todosLosTags={todosLosTags}
-                  tagActivo={tagActivo}
-                  onNavigate={(titulo) => navigateToPage(titulo, false)}
-                  onTagClick={(tag) => navigateToPage(tag, true)}
-                  tareas={tareas}
-                  onToggleTarea={handleToggleTarea}
-                  onAddTarea={handleAddTarea}
+                  capitulosRaw={capitulosRaw ?? []} 
+                  ensayos={ensayos}
                   eventos={eventos ?? []}
-                  capitulosRaw={capitulosRaw ?? []}
                   horario={horarioRaw ?? []}
                   isAddingEvento={isAddingEvento}
+                  tagActivo={tagActivo}
+                  tareas={tareas}
+                  todosLosTags={todosLosTags}
                   onAddEvento={handleAddEvento}
-                  onUpdateEvento={handleUpdateEvento}
+                  onAddTarea={handleAddTarea}
+                  onCrearLibro={crearLibro}
                   onDeleteEvento={handleDeleteEvento}
+                  onNavigate={(titulo) => navigateToPage(titulo, false)}
+                  onTagClick={(tag) => navigateToPage(tag, true)}
                   onToggleEstado={(libroId, estado, add) => {
                     const libro = ensayos.find((e: any) => e.id === libroId);
                     if (!libro) return;
@@ -1080,7 +1079,8 @@ export default function Ensayos() {
                       : tagsActuales.filter((t: string) => t !== estado);
                     scheduleSave(libroId, { tags: nuevosTags });
                   }}
-                  onCrearLibro={crearLibro}
+                  onToggleTarea={handleToggleTarea}
+                  onUpdateEvento={handleUpdateEvento}
                 />
               )}
             </AnimatePresence>
@@ -1092,11 +1092,11 @@ export default function Ensayos() {
         {showNewNoteModal && (
           <NewNoteModal
             initialTitle={pendingNoteTitle ?? undefined}
-            onConfirm={crearEnsayo}
             onClose={() => {
               setShowNewNoteModal(false);
               setPendingNoteTitle(null);
             }}
+            onConfirm={crearEnsayo}
           />
         )}
       </AnimatePresence>

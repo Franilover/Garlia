@@ -1,15 +1,17 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { 
   Loader2, CheckCircle2, Mic2, Music,
   PenLine, Globe, Beaker, FileText, ChevronDown,
   Heart, Sparkles, Clock, Tag, Eye, EyeOff, Users, MapPin, Crown
 } from "lucide-react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
+
 import { ComboSelector, type ComboItem } from "@/components/ui/ComboSelector";
 import { SelectorFechaMundo } from "@/features/editorGarlia/components/EditorLineaTiempo";
-import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/api/client/supabase";
+
 import { ESTADOS } from "../../constants";
 import type { Cancion } from "../../types";
 
@@ -297,9 +299,9 @@ export const PanelInfo = ({
 
   return (
     <motion.div 
-      initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       className="max-w-5xl mx-auto px-6 py-10"
+      initial={{ opacity: 0, y: 10 }}
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
@@ -313,8 +315,8 @@ export const PanelInfo = ({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {saving && <Loader2 size={10} className="animate-spin text-primary/20" />}
-          {saved  && <CheckCircle2 size={10} className="text-emerald-500" />}
+          {saving && <Loader2 className="animate-spin text-primary/20" size={10} />}
+          {saved  && <CheckCircle2 className="text-emerald-500" size={10} />}
         </div>
       </div>
 
@@ -337,13 +339,13 @@ export const PanelInfo = ({
                 return (
                   <button
                     key={e}
-                    type="button"
-                    onClick={() => handleEstadoChange(e)}
                     className={`flex-1 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all ${
                       isActive
                         ? styles.active
                         : "border-primary/10 text-primary/30 hover:border-primary/25 hover:text-primary/50"
                     }`}
+                    type="button"
+                    onClick={() => handleEstadoChange(e)}
                   >
                     {ESTADO_LABEL[e] ?? e}
                   </button>
@@ -358,10 +360,10 @@ export const PanelInfo = ({
               <Music size={12} /> Título
             </label>
             <input
-              value={localData.titulo}
-              onChange={(e) => handleChange("titulo", e.target.value)}
               className="w-full bg-transparent border-b border-primary/10 py-2 text-sm font-bold text-primary outline-none focus:border-primary/40 transition-all"
               placeholder="Nombre de la canción..."
+              value={localData.titulo}
+              onChange={(e) => handleChange("titulo", e.target.value)}
             />
           </div>
 
@@ -379,29 +381,29 @@ export const PanelInfo = ({
                   {field.icon} {field.label}
                 </label>
                 <input
-                  value={(localData as any)[field.key]}
-                  onFocus={() => setActiveField(field.key)}
-                  onBlur={() => setTimeout(() => setActiveField(null), 200)}
-                  onChange={(e) => handleChange(field.key, e.target.value)}
                   className="w-full bg-transparent border-b border-primary/10 py-2 text-sm font-bold text-primary outline-none focus:border-primary/40 transition-all"
                   placeholder={field.placeholder}
+                  value={(localData as any)[field.key]}
+                  onBlur={() => setTimeout(() => setActiveField(null), 200)}
+                  onChange={(e) => handleChange(field.key, e.target.value)}
+                  onFocus={() => setActiveField(field.key)}
                 />
                 <AnimatePresence>
                   {activeField === field.key && filtered.length > 0 && (
                     <motion.div
-                      initial={{ opacity: 0, y: -5 }}
                       animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0 }}
                       className="absolute z-10 w-full mt-1 bg-bg-main border border-primary/10 rounded-xl shadow-2xl overflow-hidden backdrop-blur-xl"
+                      exit={{ opacity: 0 }}
+                      initial={{ opacity: 0, y: -5 }}
                     >
                       {filtered.map((s) => (
                         <button
                           key={s}
-                          onClick={() => handleChange(field.key, s)}
                           className="w-full px-4 py-2 text-left text-[10px] font-bold text-primary/60 hover:bg-primary/5 hover:text-primary transition-colors flex items-center justify-between group"
+                          onClick={() => handleChange(field.key, s)}
                         >
                           {s}
-                          <ChevronDown size={10} className="-rotate-90 opacity-0 group-hover:opacity-100 transition-opacity" />
+                          <ChevronDown className="-rotate-90 opacity-0 group-hover:opacity-100 transition-opacity" size={10} />
                         </button>
                       ))}
                     </motion.div>
@@ -417,11 +419,11 @@ export const PanelInfo = ({
               <Clock size={12} /> Línea de tiempo
             </label>
             <div className="relative max-w-xs">
-              {savingDia && <Loader2 size={10} className="animate-spin absolute right-2 top-1/2 -translate-y-1/2 z-10 text-primary/30" />}
+              {savingDia && <Loader2 className="animate-spin absolute right-2 top-1/2 -translate-y-1/2 z-10 text-primary/30" size={10} />}
               <SelectorFechaMundo
+                placeholder="Sin fecha en la línea de tiempo"
                 value={diaAbsoluto}
                 onChange={handleDiaAbsolutoChange}
-                placeholder="Sin fecha en la línea de tiempo"
               />
             </div>
             <p className="text-[8px] text-primary/20 leading-tight">
@@ -436,12 +438,12 @@ export const PanelInfo = ({
             </label>
             <div className="flex items-center gap-3">
               <input
-                value={duracionInput}
-                onChange={e => setDuracionInput(e.target.value)}
-                onBlur={handleDuracionBlur}
-                onKeyDown={e => e.key === "Enter" && (e.currentTarget.blur())}
                 className="w-32 bg-transparent border-b border-primary/10 py-2 text-sm font-bold text-primary outline-none focus:border-primary/40 transition-all tabular-nums"
                 placeholder="3:45"
+                value={duracionInput}
+                onBlur={handleDuracionBlur}
+                onChange={e => setDuracionInput(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && (e.currentTarget.blur())}
               />
               {localData.duracion_segundos && (
                 <span className="text-[9px] text-primary/25 font-bold uppercase tracking-widest">
@@ -457,13 +459,13 @@ export const PanelInfo = ({
               <Users size={12} /> Personaje
             </label>
             <ComboSelector
-              mode="single"
+              emptyText="No hay personajes"
               items={personajes}
+              mode="single"
+              noneLabel="Sin personaje"
+              placeholder="Sin personaje asignado…"
               value={localData.personaje_id}
               onChange={handlePersonajeChange}
-              placeholder="Sin personaje asignado…"
-              noneLabel="Sin personaje"
-              emptyText="No hay personajes"
             />
           </div>
 
@@ -471,16 +473,16 @@ export const PanelInfo = ({
           <div className="space-y-2">
             <label className="text-[9px] font-black text-primary/25 uppercase tracking-[0.2em] flex items-center gap-2">
               <Crown size={12} /> Reino
-              {savingUbi && <Loader2 size={9} className="ml-auto animate-spin text-primary/20" />}
+              {savingUbi && <Loader2 className="ml-auto animate-spin text-primary/20" size={9} />}
             </label>
             <ComboSelector
-              mode="single"
+              emptyText="No hay reinos"
               items={reinos}
+              mode="single"
+              noneLabel="Sin reino"
+              placeholder="Sin reino asignado…"
               value={reinoId}
               onChange={handleReinoChange}
-              placeholder="Sin reino asignado…"
-              noneLabel="Sin reino"
-              emptyText="No hay reinos"
             />
           </div>
 
@@ -491,13 +493,13 @@ export const PanelInfo = ({
                 <MapPin size={12} /> Ciudad
               </label>
               <ComboSelector
-                mode="single"
+                emptyText="Este reino no tiene ciudades"
                 items={ciudadesFiltradas}
+                mode="single"
+                noneLabel="Sin ciudad"
+                placeholder="Sin ciudad asignada…"
                 value={ciudadId}
                 onChange={handleCiudadChange}
-                placeholder="Sin ciudad asignada…"
-                noneLabel="Sin ciudad"
-                emptyText="Este reino no tiene ciudades"
               />
             </div>
           )}
@@ -523,13 +525,13 @@ export const PanelInfo = ({
                 return (
                   <button
                     key={e.label}
-                    type="button"
-                    onClick={() => handleEmocionChange(e.label)}
                     className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest border transition-all cursor-pointer ${
                       isActive
                         ? e.color
                         : "border-primary/10 text-primary/25 hover:border-primary/25 hover:text-primary/50"
                     }`}
+                    type="button"
+                    onClick={() => handleEmocionChange(e.label)}
                   >
                     {e.label}
                   </button>
@@ -545,13 +547,13 @@ export const PanelInfo = ({
               Visibilidad
             </label>
             <button
-              type="button"
-              onClick={() => handleVisibleChange(!localData.visible)}
               className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-all cursor-pointer ${
                 localData.visible
                   ? "bg-emerald-500/8 border-emerald-400/25 text-emerald-400"
                   : "bg-primary/4 border-primary/10 text-primary/30 hover:border-primary/20 hover:text-primary/50"
               }`}
+              type="button"
+              onClick={() => handleVisibleChange(!localData.visible)}
             >
               <div className="flex items-center gap-2.5">
                 {localData.visible
@@ -585,10 +587,10 @@ export const PanelInfo = ({
               </div>
             </div>
             <textarea
+              className="flex-1 w-full bg-transparent border-l-2 border-primary/5 focus:border-primary/20 px-4 py-1 text-sm text-primary/80 placeholder:text-primary/20 outline-none transition-all resize-none min-h-[180px]"
+              placeholder="¿De qué trata la canción? ¿Qué la inspiró?…"
               value={localData.info_cancion}
               onChange={e => handleChange("info_cancion", e.target.value)}
-              placeholder="¿De qué trata la canción? ¿Qué la inspiró?…"
-              className="flex-1 w-full bg-transparent border-l-2 border-primary/5 focus:border-primary/20 px-4 py-1 text-sm text-primary/80 placeholder:text-primary/20 outline-none transition-all resize-none min-h-[180px]"
             />
           </div>
 

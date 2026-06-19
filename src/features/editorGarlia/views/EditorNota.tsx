@@ -1,12 +1,15 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
 import { FileText, Save, Trash2, Loader2, Tag, X, Plus, Check } from "lucide-react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+
+import { MarkdownEditor } from "@/components/forms/Markdown/MarkdownEditor";
+import { useConfirm } from "@/components/ui/ConfirmModal";
+
 import { type Nota, SaveStatus } from "../components/types";
 import { SaveIndicator } from "../components/UIComponents";
-import { MarkdownEditor } from "@/components/forms/Markdown/MarkdownEditor";
 import { useWikilink } from "../components/WikilinkContext";
-import { useConfirm } from "@/components/ui/ConfirmModal";
+
 
 // ─── Etiqueta chip ────────────────────────────────────────────────────────────
 function EtiquetaChip({ label, onRemove }: { label: string; onRemove: () => void }) {
@@ -21,9 +24,9 @@ function EtiquetaChip({ label, onRemove }: { label: string; onRemove: () => void
     >
       {label}
       <button
+        className="w-3 h-3 rounded-full flex items-center justify-center hover:text-red-400 transition-colors"
         type="button"
         onClick={onRemove}
-        className="w-3 h-3 rounded-full flex items-center justify-center hover:text-red-400 transition-colors"
       >
         <X size={7} />
       </button>
@@ -116,15 +119,15 @@ export function EditorNota({
       >
         {/* Título editable */}
         <input
+          className="w-full bg-transparent text-[13px] font-black text-primary outline-none placeholder:text-primary/25 border-b border-transparent focus:border-primary/15 pb-0.5 transition-colors"
+          placeholder="Título de la nota…"
           value={form.titulo}
           onChange={e => setForm(f => ({ ...f, titulo: e.target.value }))}
-          placeholder="Título de la nota…"
-          className="w-full bg-transparent text-[13px] font-black text-primary outline-none placeholder:text-primary/25 border-b border-transparent focus:border-primary/15 pb-0.5 transition-colors"
         />
 
         {/* Etiquetas */}
         <div className="flex flex-wrap items-center gap-1 min-h-[22px]">
-          <Tag size={9} className="text-primary/25 shrink-0" />
+          <Tag className="text-primary/25 shrink-0" size={9} />
           {etiquetas.map(tag => (
             <EtiquetaChip key={tag} label={tag} onRemove={() => removeTag(tag)} />
           ))}
@@ -133,32 +136,32 @@ export function EditorNota({
             <div className="flex items-center gap-1">
               <input
                 ref={tagInputRef}
+                autoFocus
+                className="w-24 bg-primary/5 border border-primary/15 rounded-lg px-2 py-0.5 text-[9px] font-medium outline-none focus:border-primary/30 text-primary placeholder:text-primary/25"
+                placeholder="Nueva etiqueta…"
                 value={etiquetaInput}
+                onBlur={e => { if (e.relatedTarget instanceof HTMLButtonElement && e.relatedTarget.dataset.addtag) return; addTag(); setShowTagInput(false); }}
                 onChange={e => setEtiquetaInput(e.target.value)}
                 onKeyDown={e => {
                   if (e.key === "Enter") { e.preventDefault(); addTag(); }
                   if (e.key === "Escape") { setShowTagInput(false); setEtiquetaInput(""); }
                 }}
-                onBlur={e => { if (e.relatedTarget instanceof HTMLButtonElement && e.relatedTarget.dataset.addtag) return; addTag(); setShowTagInput(false); }}
-                placeholder="Nueva etiqueta…"
-                className="w-24 bg-primary/5 border border-primary/15 rounded-lg px-2 py-0.5 text-[9px] font-medium outline-none focus:border-primary/30 text-primary placeholder:text-primary/25"
-                autoFocus
               />
               <button
-                type="button"
-                data-addtag="true"
-                onMouseDown={e => { e.preventDefault(); addTag(); }}
                 className="w-4 h-4 rounded flex items-center justify-center text-primary/30 hover:text-primary transition-colors"
+                data-addtag="true"
+                type="button"
+                onMouseDown={e => { e.preventDefault(); addTag(); }}
               >
                 <Check size={9} />
               </button>
             </div>
           ) : (
             <button
-              type="button"
-              onClick={() => setShowTagInput(true)}
               className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest border border-dashed transition-all text-primary/25 hover:text-primary/50"
               style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
+              type="button"
+              onClick={() => setShowTagInput(true)}
             >
               <Plus size={7} /> Tag
             </button>
@@ -169,12 +172,12 @@ export function EditorNota({
       {/* ── Contenido — Markdown ────────────────────────────────────────── */}
       <div className="flex-1 min-h-0 overflow-y-auto p-3 sm:p-5">
         <MarkdownEditor
-          value={form.contenido ?? ""}
-          onChange={v => setForm(f => ({ ...f, contenido: v }))}
-          placeholder="Escribe tu nota aquí… Ideas, referencias, fragmentos, recordatorios…"
-          rows={24}
           toolbar
           defaultMode="edit"
+          placeholder="Escribe tu nota aquí… Ideas, referencias, fragmentos, recordatorios…"
+          rows={24}
+          value={form.contenido ?? ""}
+          onChange={v => setForm(f => ({ ...f, contenido: v }))}
           onSnippetAction={onSnippetAction}
         />
       </div>
@@ -186,8 +189,8 @@ export function EditorNota({
       >
         {/* Eliminar */}
         <button
-          onClick={handleDelete}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-red-400/20 text-red-400/50 hover:text-red-400 hover:border-red-400/40 hover:bg-red-400/5 transition-all"
+          onClick={handleDelete}
         >
           <Trash2 size={10} /> Eliminar
         </button>
@@ -196,12 +199,12 @@ export function EditorNota({
         <div className="flex items-center gap-2">
           <SaveIndicator status={status} />
           <button
-            onClick={handleSave}
-            disabled={status === "saving"}
             className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-sm shadow-primary/20 disabled:opacity-50"
+            disabled={status === "saving"}
+            onClick={handleSave}
           >
             {status === "saving"
-              ? <Loader2 size={10} className="animate-spin" />
+              ? <Loader2 className="animate-spin" size={10} />
               : <Save size={10} />}
             Guardar
           </button>
@@ -247,20 +250,19 @@ export function ListaNotas({
         style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
         <div className="relative flex-1">
           <input
+            className="w-full bg-primary/4 border border-primary/10 rounded-xl pl-2.5 pr-5 py-1.5 text-[10px] font-medium outline-none focus:border-primary/25 text-primary placeholder:text-primary/25"
+            placeholder="Buscar notas…"
             value={search}
             onChange={e => onSearch(e.target.value)}
-            placeholder="Buscar notas…"
-            className="w-full bg-primary/4 border border-primary/10 rounded-xl pl-2.5 pr-5 py-1.5 text-[10px] font-medium outline-none focus:border-primary/25 text-primary placeholder:text-primary/25"
           />
           {search && (
-            <button onClick={() => onSearch("")}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-primary/25 hover:text-primary transition-colors">
+            <button className="absolute right-2 top-1/2 -translate-y-1/2 text-primary/25 hover:text-primary transition-colors"
+              onClick={() => onSearch("")}>
               <X size={8} />
             </button>
           )}
         </div>
         <button
-          onClick={onNew}
           className="shrink-0 w-7 h-7 rounded-xl flex items-center justify-center transition-all border"
           style={{
             background: "color-mix(in srgb, var(--primary) 8%, transparent)",
@@ -268,6 +270,7 @@ export function ListaNotas({
             color: "var(--primary)",
           }}
           title="Nueva nota"
+          onClick={onNew}
         >
           <Plus size={11} />
         </button>
@@ -277,19 +280,19 @@ export function ListaNotas({
       <div className="flex-1 overflow-y-auto min-h-0 px-2 py-2 space-y-0.5">
         {loading ? (
           <div className="flex justify-center py-10">
-            <Loader2 size={16} className="animate-spin text-primary/20" />
+            <Loader2 className="animate-spin text-primary/20" size={16} />
           </div>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center gap-2 py-10 text-center">
-            <FileText size={20} strokeWidth={1} className="text-primary/15" />
+            <FileText className="text-primary/15" size={20} strokeWidth={1} />
             <p className="text-[9px] font-black uppercase tracking-widest text-primary/20">
               {search ? "Sin resultados" : "Sin notas aún"}
             </p>
             {!search && (
               <button
-                onClick={onNew}
                 className="mt-1 text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-xl border border-dashed transition-all text-primary/30 hover:text-primary/60"
                 style={{ borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}
+                onClick={onNew}
               >
                 Crear primera nota
               </button>
@@ -302,7 +305,6 @@ export function ListaNotas({
             return (
               <button
                 key={n.id}
-                onClick={() => onSelect(n)}
                 className="w-full text-left px-3 py-2.5 rounded-xl border transition-all group"
                 style={isSelected ? {
                   background: "color-mix(in srgb, var(--primary) 10%, transparent)",
@@ -311,6 +313,7 @@ export function ListaNotas({
                   background: "transparent",
                   borderColor: "transparent",
                 }}
+                onClick={() => onSelect(n)}
               >
                 <p className={`text-[11px] font-bold truncate transition-colors ${
                   isSelected ? "text-primary" : "text-primary/70 group-hover:text-primary/90"

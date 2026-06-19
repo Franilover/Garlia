@@ -1,15 +1,16 @@
 import { Metadata, Viewport } from 'next';
 import { Montserrat, Geist, Pixelify_Sans, Caveat, Lora, Literata } from 'next/font/google';
+
+import { GlobalCommandPalette } from "@/components/command";
 import { LightboxProvider } from "@/components/modal/lightbox/";
+import { cn } from "@/lib/utils/index";
+import AppLogic from "@/providers/AppLogic";
 import { AuthProvider } from "@/providers/AuthProvider";
 import { DataProvider } from "@/providers/DataProvider";
-import AppLogic from "@/providers/AppLogic";
 import "@/style/tailwind.css";
 import { OfflineSyncActivator } from "@/providers/OfflineSyncActivator";
-import { ThemeProvider } from "@/providers/ThemeProvider";
-import { cn } from "@/lib/utils/index";
-import { GlobalCommandPalette } from "@/components/command";
 import { QueryProvider } from "@/providers/QueryProvider";
+import { ThemeProvider } from "@/providers/ThemeProvider";
 
 const geist = Geist({ subsets: ['latin'], variable: '--font-sans' });
 const montserrat = Montserrat({ subsets: ['latin'], display: 'swap', variable: '--font-montserrat' });
@@ -70,7 +71,7 @@ export default function RootLayout({
 }) {
   return (
     <html 
-      lang="es" 
+      suppressHydrationWarning 
       className={cn(
         geist.variable, 
         montserrat.variable, 
@@ -79,7 +80,7 @@ export default function RootLayout({
         lora.variable, 
         literata.variable
       )}
-      suppressHydrationWarning
+      lang="es"
     >
       <head>
         <script

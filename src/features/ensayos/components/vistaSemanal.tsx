@@ -1,10 +1,12 @@
 "use client";
-import { MotionDiv, MotionMain, MotionH1, MotionH2, MotionButton, MotionLi, MotionSpan, MotionP, MotionSection, MotionArticle, MotionImg } from "@/components/ui/Motion";
-import React, { useState, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { cn } from "@/lib/utils/index";
 import { ChevronLeft, ChevronRight, Calendar, BookOpen, Bookmark, Plus } from "lucide-react";
+import React, { useState, useMemo, useCallback } from "react";
+
 import { BtnIcon } from "@/components/ui";
+import { MotionDiv, MotionMain, MotionH1, MotionH2, MotionButton, MotionLi, MotionSpan, MotionP, MotionSection, MotionArticle, MotionImg } from "@/components/ui/Motion";
+import { cn } from "@/lib/utils/index";
+
 import {
   VistaOpcion, Evento, EventoBadge,
   DIAS_SEMANA_CORTO, DIAS_SEMANA_LETRA, MESES, VISTAS, TIPOS_EVENTO,
@@ -18,7 +20,6 @@ const ColumniaDia = ({
   seleccionado: boolean; onClick: () => void; compact: boolean;
 }) => (
   <div
-    onClick={onClick}
     className={cn(
       "flex flex-col min-h-0 flex-1 rounded-[var(--radius-btn)] border transition-all cursor-pointer group",
       seleccionado
@@ -26,6 +27,7 @@ const ColumniaDia = ({
         : "bg-[var(--white-custom)] border-primary/10 hover:border-primary/25 hover:shadow-sm",
       esHoy && !seleccionado && "border-primary/25 bg-primary/5 dark:bg-primary/10"
     )}
+    onClick={onClick}
   >
     {/* Header día */}
     <div className={cn(
@@ -55,7 +57,7 @@ const ColumniaDia = ({
       {eventos.length === 0 && (
         <p className="text-[7px] text-primary/20 dark:text-primary/30 font-bold italic text-center mt-3">—</p>
       )}
-      {eventos.map((ev) => <EventoBadge key={ev.id} item={ev} compact={compact} />)}
+      {eventos.map((ev) => <EventoBadge key={ev.id} compact={compact} item={ev} />)}
     </div>
   </div>
 );
@@ -146,20 +148,20 @@ export const VistaSemanal = ({ eventos, capitulosRaw, isAddingEvento, onAddEvent
         {/* Navegación */}
         <div className="flex items-center gap-2 flex-wrap">
           <button
-            onClick={irAHoy}
             className="text-[9px] font-black uppercase tracking-widest border border-primary/20 text-primary px-3 py-1.5 rounded-[var(--radius-btn)] hover:bg-primary hover:text-[var(--btn-text)] transition-all shrink-0"
+            onClick={irAHoy}
           >
             Hoy
           </button>
           <button
-            onClick={() => navegar(-1)}
             className="p-1.5 hover:bg-primary/8 rounded-[var(--radius-btn)] text-primary/40 hover:text-primary transition-all"
+            onClick={() => navegar(-1)}
           >
             <ChevronLeft size={16} />
           </button>
           <button
-            onClick={() => navegar(1)}
             className="p-1.5 hover:bg-primary/8 rounded-[var(--radius-btn)] text-primary/40 hover:text-primary transition-all"
+            onClick={() => navegar(1)}
           >
             <ChevronRight size={16} />
           </button>
@@ -173,13 +175,13 @@ export const VistaSemanal = ({ eventos, capitulosRaw, isAddingEvento, onAddEvent
           {VISTAS.map((v) => (
             <button
               key={v.valor}
-              onClick={() => setVista(v.valor)}
               className={cn(
                 "text-[8px] font-black uppercase tracking-wide px-2 py-1.5 rounded-[var(--radius-btn)] transition-all",
                 vista === v.valor
                   ? "bg-primary text-[var(--btn-text)] shadow-md shadow-primary/20"
                   : "text-primary/50 hover:text-primary hover:bg-[var(--white-custom)] dark:hover:bg-[var(--white-custom)]/20"
               )}
+              onClick={() => setVista(v.valor)}
             >
               <span className="hidden sm:inline">{v.label}</span>
               <span className="sm:hidden">{v.short}</span>
@@ -193,11 +195,10 @@ export const VistaSemanal = ({ eventos, capitulosRaw, isAddingEvento, onAddEvent
         <AnimatePresence mode="wait">
           <MotionDiv
             key={`${vista}-${fechaBase.toISOString()}`}
-            initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            transition={{ duration: 0.15 }}
             className="h-full"
+            exit={{ opacity: 0, y: -6 }}
+            initial={{ opacity: 0, y: 6 }}
             style={{
               display: "grid",
               gridTemplateColumns: `repeat(${Math.min(vista, 7)}, minmax(${compact ? "3.5rem" : "5.5rem"}, 1fr))`,
@@ -205,16 +206,17 @@ export const VistaSemanal = ({ eventos, capitulosRaw, isAddingEvento, onAddEvent
               minWidth: compact ? `${vista * 3.5}rem` : `${vista * 5.5}rem`,
               minHeight: "140px",
             }}
+            transition={{ duration: 0.15 }}
           >
             {diasVista.map((fecha) => (
               <ColumniaDia
                 key={fecha.toISOString()}
-                fecha={fecha}
-                eventos={eventosDelDia(fecha)}
+                compact={compact}
                 esHoy={isSameDay(fecha, hoy)}
+                eventos={eventosDelDia(fecha)}
+                fecha={fecha}
                 seleccionado={isSameDay(fecha, diaSeleccionado)}
                 onClick={() => setDiaSeleccionado(fecha)}
-                compact={compact}
               />
             ))}
           </MotionDiv>
@@ -225,7 +227,7 @@ export const VistaSemanal = ({ eventos, capitulosRaw, isAddingEvento, onAddEvent
       <div className="bg-primary/5 dark:bg-primary/10 rounded-[var(--radius-btn)] p-2 sm:p-3 border border-primary/10 shrink-0">
         {/* Cabecera */}
         <div className="flex items-center gap-2 mb-2">
-          <Calendar size={12} className="text-primary/50" />
+          <Calendar className="text-primary/50" size={12} />
           <span className="text-[9px] font-black uppercase tracking-widest text-primary/50">
             {diaSeleccionado.getDate()} de {MESES[diaSeleccionado.getMonth()]} · {DIAS_SEMANA_CORTO[diaSeleccionado.getDay()]}
           </span>
@@ -234,26 +236,26 @@ export const VistaSemanal = ({ eventos, capitulosRaw, isAddingEvento, onAddEvent
         {/* Formulario */}
         <div className="flex flex-col sm:flex-row gap-2 mb-2">
           <select
+            className="bg-[var(--white-custom)] border border-primary/12 rounded-[var(--radius-btn)] px-3 py-2 text-[10px] font-black text-[var(--input-text)] outline-none focus:border-primary/30 cursor-pointer"
             value={tipoEvento}
             onChange={e => setTipoEvento(e.target.value)}
-            className="bg-[var(--white-custom)] border border-primary/12 rounded-[var(--radius-btn)] px-3 py-2 text-[10px] font-black text-[var(--input-text)] outline-none focus:border-primary/30 cursor-pointer"
           >
             {TIPOS_EVENTO.map(t => <option key={t} value={t}>{t}</option>)}
           </select>
           <div className="flex gap-2 flex-1">
             <input
+              className="flex-1 bg-[var(--white-custom)] border border-primary/12 rounded-[var(--radius-btn)] px-4 py-2 text-[10px] font-bold text-[var(--input-text)] placeholder:text-[var(--input-text)]/40 outline-none focus:border-primary/30 min-w-0"
+              placeholder="Nuevo evento..."
               type="text"
               value={nuevoEvento}
               onChange={e => setNuevoEvento(e.target.value)}
               onKeyDown={e => e.key === "Enter" && handleAdd()}
-              placeholder="Nuevo evento..."
-              className="flex-1 bg-[var(--white-custom)] border border-primary/12 rounded-[var(--radius-btn)] px-4 py-2 text-[10px] font-bold text-[var(--input-text)] placeholder:text-[var(--input-text)]/40 outline-none focus:border-primary/30 min-w-0"
             />
             <BtnIcon
-              loading={isAddingEvento}
-              disabled={!nuevoEvento.trim()}
-              onClick={handleAdd}
               className="rounded-[var(--radius-btn)] w-10 h-10 shrink-0"
+              disabled={!nuevoEvento.trim()}
+              loading={isAddingEvento}
+              onClick={handleAdd}
             >
               <Plus size={14} />
             </BtnIcon>
@@ -267,7 +269,6 @@ export const VistaSemanal = ({ eventos, capitulosRaw, isAddingEvento, onAddEvent
           ) : eventosDiaSeleccionado.map(ev => (
             <MotionDiv
               key={ev.id}
-              initial={{ opacity: 0, x: -6 }}
               animate={{ opacity: 1, x: 0 }}
               className={cn(
                 "flex items-center gap-3 p-2.5 rounded-[var(--radius-btn)] border",
@@ -275,11 +276,12 @@ export const VistaSemanal = ({ eventos, capitulosRaw, isAddingEvento, onAddEvent
                   ? "bg-amber-500/10 border-amber-500/25 dark:bg-amber-500/15 dark:border-amber-500/30"
                   : "bg-[var(--white-custom)] border-primary/10 shadow-sm"
               )}
+              initial={{ opacity: 0, x: -6 }}
             >
               <div className="w-7 h-7 bg-primary/8 dark:bg-primary/15 rounded-[var(--radius-btn)] flex items-center justify-center shrink-0">
                 {ev.esCapitulo
-                  ? <BookOpen size={12} className="text-amber-500 dark:text-amber-400" />
-                  : <Bookmark size={12} className="text-primary/50" />
+                  ? <BookOpen className="text-amber-500 dark:text-amber-400" size={12} />
+                  : <Bookmark className="text-primary/50" size={12} />
                 }
               </div>
               <div className="flex-1 min-w-0">

@@ -1,5 +1,6 @@
 "use client";
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
+
 import { db } from "@/lib/api/client/db";
 
 const CACHE_KEY = "app_data_cache";

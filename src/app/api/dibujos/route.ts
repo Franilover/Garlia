@@ -1,8 +1,9 @@
 
 
-import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
+
+import { NextResponse } from "next/server";
 
 const DIBUJOS_DIR = path.join(process.cwd(), "public", "dibujos");
 const IMG_EXTS = new Set([".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg", ".avif"]);

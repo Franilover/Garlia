@@ -1,10 +1,11 @@
 "use client";
-import { MotionDiv, MotionMain, MotionH1, MotionH2, MotionButton, MotionLi, MotionSpan, MotionP, MotionSection, MotionArticle, MotionImg } from "@/components/ui/Motion";
-import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle2, AlertCircle, AlertTriangle, Info, X } from "lucide-react";
-import type { ToastType } from "@/hooks/ui/useToast";
+import React from "react";
+
+import { MotionDiv, MotionMain, MotionH1, MotionH2, MotionButton, MotionLi, MotionSpan, MotionP, MotionSection, MotionArticle, MotionImg } from "@/components/ui/Motion";
 import { Text } from "@/components/ui/Tiopgrafia";
+import type { ToastType } from "@/hooks/ui/useToast";
 
 interface Toast {
   id: number;
@@ -48,10 +49,7 @@ export function ToastContainer({ toasts, onDismiss }: ToastContainerProps) {
             <MotionDiv
               key={t.id}
               layout
-              initial={{ opacity: 0, y: 16, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 8, scale: 0.95 }}
-              transition={{ type: "spring", stiffness: 400, damping: 28 }}
               className={`
                 pointer-events-auto
                 flex items-center gap-3 px-5 py-3 rounded-[var(--radius-btn)]
@@ -59,12 +57,15 @@ export function ToastContainer({ toasts, onDismiss }: ToastContainerProps) {
                 shadow-lg backdrop-blur-sm whitespace-nowrap
                 ${classes}
               `}
+              exit={{ opacity: 0, y: 8, scale: 0.95 }}
+              initial={{ opacity: 0, y: 16, scale: 0.95 }}
+              transition={{ type: "spring", stiffness: 400, damping: 28 }}
             >
               {icon}
               <span>{t.message}</span>
               <button
-                onClick={() => onDismiss(t.id)}
                 className="ml-1 opacity-50 hover:opacity-100 transition-opacity"
+                onClick={() => onDismiss(t.id)}
               >
                 <X size={12} />
               </button>

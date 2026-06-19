@@ -1,7 +1,7 @@
+import { ExpirationPlugin } from "workbox-expiration";
 import { precacheAndRoute } from "workbox-precaching";
 import { registerRoute, NavigationRoute } from "workbox-routing";
 import { CacheFirst, NetworkFirst, StaleWhileRevalidate } from "workbox-strategies";
-import { ExpirationPlugin } from "workbox-expiration";
 
 // ── Precaché de assets estáticos generados por Next.js ───────────────────────
 precacheAndRoute(self.__WB_MANIFEST);

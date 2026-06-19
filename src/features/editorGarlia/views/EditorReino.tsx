@@ -1,20 +1,23 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
 import {
   Map, MapPin, Plus, Check, X, Trash2, Save,
   Loader2, Image as ImageIcon, SlidersHorizontal,
 } from "lucide-react";
-import { supabase } from "@/lib/api/client/supabase";
-import { db } from "@/lib/api/client/db";
-import { useConfirm } from "@/components/ui/ConfirmModal";
-import { type Reino, type SaveStatus, INPUT_CLS } from "@/features/editorGarlia/components/types";
-import { usePersonajesDelReino } from "@/features/editorGarlia/components/hooks";
-import { type Ciudad } from "@/features/editorGarlia/views/EditorCiudad";
-import { SaveIndicator } from "@/features/editorGarlia/components/UIComponents";
+import React, { useState, useEffect, useRef } from "react";
+
 import { MarkdownEditor, WikiEntity } from "@/components/forms/Markdown/MarkdownEditor";
-import { useWikilink } from "../components/WikilinkContext";
+import { useConfirm } from "@/components/ui/ConfirmModal";
+import { usePersonajesDelReino } from "@/features/editorGarlia/components/hooks";
 import { LoreTab } from "@/features/editorGarlia/components/LoreTab";
+import { type Reino, type SaveStatus, INPUT_CLS } from "@/features/editorGarlia/components/types";
+import { SaveIndicator } from "@/features/editorGarlia/components/UIComponents";
+import { type Ciudad } from "@/features/editorGarlia/views/EditorCiudad";
+import { db } from "@/lib/api/client/db";
+import { supabase } from "@/lib/api/client/supabase";
+
+import { useWikilink } from "../components/WikilinkContext";
+
 
 // ─── Dexie helpers ────────────────────────────────────────────────────────────
 async function dexiePut(tabla: string, row: any): Promise<void> {
@@ -109,18 +112,18 @@ function MapaConPuntos({ mapaUrl, onMapaChange, detalles, onDetallesChange }: {
       >
         {mapaUrl ? (
           <img
-            src={mapaUrl}
             alt="Mapa"
             className="w-full h-auto object-contain pointer-events-none block"
             draggable={false}
+            src={mapaUrl}
           />
         ) : (
           <div className="flex flex-col items-center justify-center gap-2 py-12 text-primary/20">
             <Map size={24} strokeWidth={1} />
             <span className="text-[9px] font-black uppercase tracking-widest">Sin imagen de mapa</span>
             <button
-              onClick={e => { e.stopPropagation(); setPickerOpen(true); }}
               className="mt-1 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-primary/20 text-primary/40 hover:text-primary hover:border-primary/40 transition-all"
+              onClick={e => { e.stopPropagation(); setPickerOpen(true); }}
             >
               <ImageIcon size={10} /> Elegir imagen
             </button>
@@ -140,10 +143,10 @@ function MapaConPuntos({ mapaUrl, onMapaChange, detalles, onDetallesChange }: {
                 isSelected ? "bg-primary text-btn-text scale-110" : "bg-black/60 text-white/90 backdrop-blur-sm"
               }`}>{d.nombre}</div>
               <button
-                onClick={e => { e.stopPropagation(); setSelectedId(prev => prev === d.id ? null : d.id); }}
                 className={`pointer-events-auto w-3 h-3 rounded-full border-2 border-white shadow-md transition-all ${
                   isSelected ? "bg-yellow-400 scale-125 ring-2 ring-yellow-400/50" : "bg-primary hover:scale-110"
                 }`}
+                onClick={e => { e.stopPropagation(); setSelectedId(prev => prev === d.id ? null : d.id); }}
               />
               <div className={`w-px h-2 ${isSelected ? "bg-yellow-400" : "bg-white/60"}`} />
             </div>
@@ -157,9 +160,9 @@ function MapaConPuntos({ mapaUrl, onMapaChange, detalles, onDetallesChange }: {
               className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-white pointer-events-auto max-w-full"
               style={{ background: "color-mix(in srgb, var(--foreground) 70%, transparent)", backdropFilter: "blur(8px)" }}
             >
-              <MapPin size={10} className="shrink-0" />
+              <MapPin className="shrink-0" size={10} />
               <span className="truncate">Tocá para mover el punto</span>
-              <button onClick={e => { e.stopPropagation(); setSelectedId(null); }} className="shrink-0 ml-1 opacity-60 hover:opacity-100 transition-opacity">
+              <button className="shrink-0 ml-1 opacity-60 hover:opacity-100 transition-opacity" onClick={e => { e.stopPropagation(); setSelectedId(null); }}>
                 <X size={10} />
               </button>
             </div>
@@ -169,20 +172,20 @@ function MapaConPuntos({ mapaUrl, onMapaChange, detalles, onDetallesChange }: {
         {/* Botón cambiar imagen — siempre visible en mobile, hover en desktop */}
         {mapaUrl && (
           <button
-            onClick={e => { e.stopPropagation(); setPickerOpen(true); }}
             className="absolute top-2 right-2 z-20 flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all sm:opacity-0 sm:group-hover:opacity-100"
             style={{
               background: "color-mix(in srgb, var(--foreground) 65%, transparent)",
               color: "white",
               backdropFilter: "blur(8px)",
             }}
+            onClick={e => { e.stopPropagation(); setPickerOpen(true); }}
           >
             <ImageIcon size={10} /> Cambiar
           </button>
         )}
       </div>
 
-      {pickerOpen && <ImagePickerModal onSelect={url => { onMapaChange(url); setPickerOpen(false); }} onClose={() => setPickerOpen(false)} />}
+      {pickerOpen && <ImagePickerModal onClose={() => setPickerOpen(false)} onSelect={url => { onMapaChange(url); setPickerOpen(false); }} />}
     </>
   );
 }
@@ -207,11 +210,11 @@ function ImagePickerModal({ onSelect, onClose }: { onSelect: (url: string) => vo
           <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-2">
             <ImageIcon size={11} /> Imagen del mapa
           </h3>
-          <button onClick={onClose} className="text-primary/30 hover:text-primary transition-colors"><X size={16} /></button>
+          <button className="text-primary/30 hover:text-primary transition-colors" onClick={onClose}><X size={16} /></button>
         </div>
         {SimpleImagePicker
-          ? <SimpleImagePicker onSelect={onSelect} onClose={onClose} />
-          : <div className="flex items-center justify-center py-12"><Loader2 size={16} className="animate-spin text-primary/20" /></div>
+          ? <SimpleImagePicker onClose={onClose} onSelect={onSelect} />
+          : <div className="flex items-center justify-center py-12"><Loader2 className="animate-spin text-primary/20" size={16} /></div>
         }
       </div>
     </div>
@@ -274,18 +277,18 @@ function DetalleEditor({ detalle, onSaved, onDeleted, onOpenEditor, entities = [
 
       {/* Fila compacta siempre visible */}
       <div className="flex items-center gap-1.5 px-2.5 py-2 min-h-[36px]">
-        <MapPin size={10} className="shrink-0 text-primary/30" />
+        <MapPin className="shrink-0 text-primary/30" size={10} />
 
         {/* Nombre inline-editable */}
         <input
           ref={nameRef}
-          value={form.nombre}
-          onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))}
-          onFocus={() => setEditing(true)}
-          onBlur={() => { if (!form.descripcion?.trim()) handleSave(); }}
-          onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleSave(); nameRef.current?.blur(); } }}
           className="flex-1 min-w-0 bg-transparent text-[11px] font-black uppercase tracking-widest text-primary outline-none placeholder:text-primary/25 truncate"
           placeholder="Nombre de la ciudad"
+          value={form.nombre}
+          onBlur={() => { if (!form.descripcion?.trim()) handleSave(); }}
+          onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))}
+          onFocus={() => setEditing(true)}
+          onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleSave(); nameRef.current?.blur(); } }}
         />
 
         {/* Acciones — visibles al hacer hover o al editar */}
@@ -293,26 +296,26 @@ function DetalleEditor({ detalle, onSaved, onDeleted, onOpenEditor, entities = [
           <SaveIndicator status={status} />
           {editing && (
             <button
-              onClick={handleSave}
               className="flex items-center justify-center w-6 h-6 rounded-md bg-primary text-btn-text hover:bg-primary/90 transition-all"
               title="Guardar"
+              onClick={handleSave}
             >
               <Check size={10} />
             </button>
           )}
           {onOpenEditor && (
             <button
-              onClick={() => onOpenEditor(form.id)}
               className="flex items-center justify-center w-6 h-6 rounded-md text-primary/30 hover:text-primary hover:bg-primary/8 transition-all"
               title="Ver ficha completa"
+              onClick={() => onOpenEditor(form.id)}
             >
               <MapPin size={10} />
             </button>
           )}
           <button
-            onClick={handleDelete}
             className="flex items-center justify-center w-6 h-6 rounded-md text-red-400/40 hover:text-red-400 hover:bg-red-500/8 transition-all"
             title="Eliminar"
+            onClick={handleDelete}
           >
             <Trash2 size={10} />
           </button>
@@ -326,11 +329,11 @@ function DetalleEditor({ detalle, onSaved, onDeleted, onOpenEditor, entities = [
           style={{ borderColor: "color-mix(in srgb, var(--primary) 6%, transparent)" }}
         >
           <textarea
+            className="mt-2 w-full bg-transparent text-[11px] text-primary/80 placeholder:text-primary/25 outline-none resize-none leading-relaxed"
+            placeholder="Descripción breve…"
+            rows={3}
             value={form.descripcion ?? ""}
             onChange={e => setForm(f => ({ ...f, descripcion: e.target.value }))}
-            rows={3}
-            placeholder="Descripción breve…"
-            className="mt-2 w-full bg-transparent text-[11px] text-primary/80 placeholder:text-primary/25 outline-none resize-none leading-relaxed"
           />
         </div>
       )}
@@ -420,24 +423,24 @@ export function EditorReino({ item, onSaved, onDeleted, entities = [], onSelectP
               }}
             >
               {form.mapa_url
-                ? <img src={form.mapa_url} alt={form.nombre} className="w-full h-full object-cover" />
-                : <Map size={14} className="text-primary/25" />}
+                ? <img alt={form.nombre} className="w-full h-full object-cover" src={form.mapa_url} />
+                : <Map className="text-primary/25" size={14} />}
             </div>
 
             {/* Nombre editable */}
             <input
+              className="flex-1 min-w-0 bg-transparent text-sm font-black text-primary outline-none placeholder:text-primary/25"
+              placeholder="Nombre del reino"
               value={form.nombre ?? ""}
               onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))}
-              placeholder="Nombre del reino"
-              className="flex-1 min-w-0 bg-transparent text-sm font-black text-primary outline-none placeholder:text-primary/25"
             />
 
             <SaveIndicator status={status} />
 
             {/* Eliminar — solo ícono en mobile, con texto en desktop */}
             <button
-              onClick={del}
               className="flex items-center justify-center gap-1 px-2 sm:px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all"
+              onClick={del}
             >
               <Trash2 size={10} />
               <span className="hidden sm:inline">Eliminar</span>
@@ -445,9 +448,9 @@ export function EditorReino({ item, onSaved, onDeleted, entities = [], onSelectP
 
             {/* Guardar — siempre visible */}
             <button
-              onClick={save}
-              disabled={status === "saving"}
               className="flex items-center gap-1.5 px-3 sm:px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50"
+              disabled={status === "saving"}
+              onClick={save}
             >
               <Save size={11} />
               <span className="hidden sm:inline">Guardar</span>
@@ -455,9 +458,9 @@ export function EditorReino({ item, onSaved, onDeleted, entities = [], onSelectP
 
             {/* Barra lateral — solo mobile */}
             <button
-              onClick={() => setMobileAsideOpen(true)}
               className="sm:hidden flex items-center justify-center p-2 rounded-xl text-primary/30 hover:text-primary hover:bg-primary/8 transition-all border border-primary/10"
               title="Entidades"
+              onClick={() => setMobileAsideOpen(true)}
             >
               <SlidersHorizontal size={13} />
             </button>
@@ -467,29 +470,29 @@ export function EditorReino({ item, onSaved, onDeleted, entities = [], onSelectP
         {/* Lore — ocupa todo el espacio restante */}
         <div className="flex-1 min-h-0 overflow-hidden" style={{ minHeight: "0" }}>
           <LoreTab
-            form={form}
-            setForm={setForm}
+            MapaConPuntosComponent={MapaConPuntos}
+            addingPoint={addingPoint}
+            detalles={detalles}
             entities={entities}
-            personajes={personajes}
+            form={form}
             loadingPersonajes={loadingPersonajes}
-            onSelectPersonaje={onSelectPersonaje}
+            mapaUrl={form.mapa_url ?? ""}
+            mobileAsideOpen={mobileAsideOpen}
+            newPointName={newPointName}
+            personajes={personajes}
+            setAddingPoint={setAddingPoint}
+            setForm={setForm}
+            setMobileAsideOpen={setMobileAsideOpen}
+            setNewPointName={setNewPointName}
+            onAddPoint={handleAddPoint}
+            onDetalleDelete={id => setDetalles(prev => prev.filter(x => x.id !== id))}
+            onDetalleUpdate={d => setDetalles(prev => prev.map(x => x.id === d.id ? d : x))}
+            onDetallesArrayChange={handleDetallesMapChange}
+            onMapaChange={url => setForm(f => ({ ...f, mapa_url: url }))}
+            onOpenDetalleEditor={onSelectCiudad}
             onSelectCriatura={onSelectCriatura}
             onSelectItem={onSelectItem}
-            detalles={detalles}
-            onAddPoint={handleAddPoint}
-            addingPoint={addingPoint}
-            setAddingPoint={setAddingPoint}
-            newPointName={newPointName}
-            setNewPointName={setNewPointName}
-            onDetalleUpdate={d => setDetalles(prev => prev.map(x => x.id === d.id ? d : x))}
-            onDetalleDelete={id => setDetalles(prev => prev.filter(x => x.id !== id))}
-            onOpenDetalleEditor={onSelectCiudad}
-            mapaUrl={form.mapa_url ?? ""}
-            onMapaChange={url => setForm(f => ({ ...f, mapa_url: url }))}
-            onDetallesArrayChange={handleDetallesMapChange}
-            MapaConPuntosComponent={MapaConPuntos}
-            mobileAsideOpen={mobileAsideOpen}
-            setMobileAsideOpen={setMobileAsideOpen}
+            onSelectPersonaje={onSelectPersonaje}
           />
         </div>
       </div>

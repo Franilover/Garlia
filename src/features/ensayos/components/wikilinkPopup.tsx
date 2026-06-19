@@ -1,7 +1,8 @@
 "use client";
-import React from "react";
-import { MotionDiv } from "@/components/ui/Motion";
 import { FileText, Plus } from "lucide-react";
+import React from "react";
+
+import { MotionDiv } from "@/components/ui/Motion";
 
 interface WikilinkPopupProps {
   ensayos: any[];
@@ -35,10 +36,9 @@ export function WikilinkPopup({ ensayos, query, activeIndex, onSelect, onClose }
 
   return (
     <MotionDiv
-      initial={{ opacity: 0, y: 4, scale: 0.98 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: 4, scale: 0.98 }}
-      transition={{ duration: 0.1 }}
+      initial={{ opacity: 0, y: 4, scale: 0.98 }}
       style={{
         minWidth: 300,
         maxWidth: 420,
@@ -48,6 +48,7 @@ export function WikilinkPopup({ ensayos, query, activeIndex, onSelect, onClose }
         overflow: "hidden",
         boxShadow: "0 16px 48px color-mix(in srgb, var(--bg-main) 0%, transparent)",
       }}
+      transition={{ duration: 0.1 }}
     >
       {/* Header */}
       <div
@@ -76,7 +77,6 @@ export function WikilinkPopup({ ensayos, query, activeIndex, onSelect, onClose }
           return (
             <button
               key={note.id}
-              onMouseDown={e => { e.preventDefault(); onSelect(note.titulo); }}
               className="w-full text-left"
               style={{
                 display: "block",
@@ -90,6 +90,7 @@ export function WikilinkPopup({ ensayos, query, activeIndex, onSelect, onClose }
                 cursor: "pointer",
                 transition: "background 0.08s",
               }}
+              onMouseDown={e => { e.preventDefault(); onSelect(note.titulo); }}
             >
               <div className="flex items-center gap-2">
                 <FileText size={10} style={{ color: "color-mix(in srgb, var(--foreground) 25%, transparent)", flexShrink: 0 }} />
@@ -132,7 +133,6 @@ export function WikilinkPopup({ ensayos, query, activeIndex, onSelect, onClose }
         {/* Create new page option */}
         {showCreate && (
           <button
-            onMouseDown={e => { e.preventDefault(); onSelect(query.trim()); }}
             className="w-full text-left"
             style={{
               display: "flex",
@@ -153,6 +153,7 @@ export function WikilinkPopup({ ensayos, query, activeIndex, onSelect, onClose }
               borderTop: filtered.length > 0 ? "1px solid color-mix(in srgb, var(--foreground) 5%, transparent)" : "none",
               transition: "background 0.08s",
             }}
+            onMouseDown={e => { e.preventDefault(); onSelect(query.trim()); }}
           >
             <Plus size={10} style={{ color: "color-mix(in srgb, var(--accent) 60%, transparent)", flexShrink: 0 }} />
             <div>

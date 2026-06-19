@@ -1,7 +1,7 @@
 "use client";
-import React, { useState, useMemo } from "react";
-import { BookOpen, BookCheck, BookDashed, User, Tag, Hash, FileDigit, Bookmark, BookMarked, Plus, X, Quote, Barcode, Star } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
+import { BookOpen, BookCheck, BookDashed, User, Tag, Hash, FileDigit, Bookmark, BookMarked, Plus, X, Quote, Barcode, Star } from "lucide-react";
+import React, { useState, useMemo } from "react";
 
 // ── Tipos ──────────────────────────────────────────────────────────────────────
 type EstadoLectura = "leyendo" | "leido" | "pendiente" | null;
@@ -61,8 +61,6 @@ function EstadoSelector({
         return (
           <button
             key={e}
-            onClick={() => onChange(isActive ? null : e)}
-            title={cfg.label}
             style={{
               display: "flex",
               alignItems: "center",
@@ -84,6 +82,8 @@ function EstadoSelector({
               textTransform: "lowercase",
               letterSpacing: "0.04em",
             }}
+            title={cfg.label}
+            onClick={() => onChange(isActive ? null : e)}
           >
             <Icon size={9} strokeWidth={isActive ? 2.2 : 1.8} />
             {cfg.label}
@@ -156,16 +156,8 @@ function PaginasInput({
         transition: "all 0.1s",
       }}>
         <input
-          type="number"
-          min={0}
           max={max ?? undefined}
-          value={value ?? ""}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-          onChange={e => {
-            const v = e.target.value === "" ? null : parseInt(e.target.value, 10);
-            onChange(isNaN(v as any) ? null : v);
-          }}
+          min={0}
           placeholder="—"
           style={{
             width: "100%",
@@ -177,6 +169,14 @@ function PaginasInput({
             color: "color-mix(in srgb, var(--foreground) 75%, transparent)",
             letterSpacing: "-0.02em",
           }}
+          type="number"
+          value={value ?? ""}
+          onBlur={() => setFocused(false)}
+          onChange={e => {
+            const v = e.target.value === "" ? null : parseInt(e.target.value, 10);
+            onChange(isNaN(v as any) ? null : v);
+          }}
+          onFocus={() => setFocused(true)}
         />
         <span style={{ ...mono, fontSize: 8, color: "color-mix(in srgb, var(--foreground) 15%, transparent)", flexShrink: 0 }}>
           p.
@@ -192,14 +192,14 @@ function PaginasInput({
           overflow: "hidden",
         }}>
           <motion.div
-            initial={{ width: 0 }}
             animate={{ width: `${porcentaje}%` }}
-            transition={{ duration: 0.4, ease: "easeOut" }}
+            initial={{ width: 0 }}
             style={{
               height: "100%",
               borderRadius: 99,
               background: accent ?? "var(--accent)",
             }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
           />
         </div>
       )}
@@ -264,12 +264,7 @@ function InlineTextInput({
         transition: "all 0.1s",
       }}>
         <input
-          type="text"
-          value={value}
           placeholder={placeholder}
-          onFocus={() => { setFocused(true); setShowSug(true); }}
-          onBlur={() => { setFocused(false); setTimeout(() => setShowSug(false), 150); }}
-          onChange={e => onChange(e.target.value)}
           style={{
             width: "100%",
             background: "transparent",
@@ -279,6 +274,11 @@ function InlineTextInput({
             fontSize: 11,
             color: "color-mix(in srgb, var(--foreground) 75%, transparent)",
           }}
+          type="text"
+          value={value}
+          onBlur={() => { setFocused(false); setTimeout(() => setShowSug(false), 150); }}
+          onChange={e => onChange(e.target.value)}
+          onFocus={() => { setFocused(true); setShowSug(true); }}
         />
       </div>
 
@@ -286,10 +286,9 @@ function InlineTextInput({
       <AnimatePresence>
         {showSug && filtered.length > 0 && (
           <motion.div
-            initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
-            transition={{ duration: 0.1 }}
+            initial={{ opacity: 0, y: -4 }}
             style={{
               position: "absolute",
               top: "100%",
@@ -302,11 +301,11 @@ function InlineTextInput({
               overflow: "hidden",
               boxShadow: "0 6px 20px color-mix(in srgb, var(--bg-main) 50%, transparent)",
             }}
+            transition={{ duration: 0.1 }}
           >
             {filtered.map(s => (
               <button
                 key={s}
-                onMouseDown={() => { onChange(s); setShowSug(false); }}
                 style={{
                   display: "block",
                   width: "100%",
@@ -320,6 +319,7 @@ function InlineTextInput({
                   color: "color-mix(in srgb, var(--foreground) 60%, transparent)",
                   transition: "background 0.08s",
                 }}
+                onMouseDown={() => { onChange(s); setShowSug(false); }}
                 onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--foreground) 5%, transparent)"}
                 onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = "transparent"}
               >
@@ -390,7 +390,6 @@ function TagSelector({
       <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 4 }}>
         {/* libro chip — fijo, clickeable → abre LibrosDashboard */}
         <button
-          onClick={onOpenLibrosDashboard}
           style={{
             ...mono, fontSize: 9,
             padding: "2px 7px",
@@ -401,6 +400,7 @@ function TagSelector({
             cursor: onOpenLibrosDashboard ? "pointer" : "default",
             transition: "all 0.1s",
           }}
+          onClick={onOpenLibrosDashboard}
           onMouseEnter={e => {
             if (!onOpenLibrosDashboard) return;
             (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--accent) 10%, transparent)";
@@ -431,7 +431,6 @@ function TagSelector({
             }}
           >
             <button
-              onClick={() => onTagClick?.(t)}
               style={{
                 background: "none", border: "none", cursor: onTagClick ? "pointer" : "default",
                 padding: "2px 4px 2px 7px",
@@ -439,6 +438,7 @@ function TagSelector({
                 ...mono, fontSize: 9,
                 transition: "color 0.1s, background 0.1s",
               }}
+              onClick={() => onTagClick?.(t)}
               onMouseEnter={e => {
                 if (!onTagClick) return;
                 (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--accent) 18%, transparent)";
@@ -452,13 +452,13 @@ function TagSelector({
               #{t}
             </button>
             <button
-              onClick={() => onRemoveTag(t)}
               style={{
                 background: "none", border: "none", cursor: "pointer", padding: "2px 5px 2px 2px",
                 color: "color-mix(in srgb, var(--accent) 40%, transparent)",
                 fontSize: 10, lineHeight: 1,
                 display: "flex", alignItems: "center",
               }}
+              onClick={() => onRemoveTag(t)}
               onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--accent) 80%, transparent)"}
               onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--accent) 40%, transparent)"}
             >
@@ -470,16 +470,7 @@ function TagSelector({
         {/* Input nuevo tag */}
         <div style={{ position: "relative" }}>
           <input
-            type="text"
-            value={input}
             placeholder="+ tag"
-            onFocus={() => setFocused(true)}
-            onBlur={() => setTimeout(() => setFocused(false), 150)}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={e => {
-              if (e.key === "Enter" || e.key === ",") { e.preventDefault(); addTag(input); }
-              if (e.key === "Escape") { setInput(""); }
-            }}
             style={{
               ...mono, fontSize: 9,
               padding: "2px 7px",
@@ -491,14 +482,22 @@ function TagSelector({
               width: input ? 110 : 50,
               transition: "width 0.12s, background 0.1s",
             }}
+            type="text"
+            value={input}
+            onBlur={() => setTimeout(() => setFocused(false), 150)}
+            onChange={e => setInput(e.target.value)}
+            onFocus={() => setFocused(true)}
+            onKeyDown={e => {
+              if (e.key === "Enter" || e.key === ",") { e.preventDefault(); addTag(input); }
+              if (e.key === "Escape") { setInput(""); }
+            }}
           />
           <AnimatePresence>
             {focused && suggestions.length > 0 && (
               <motion.div
-                initial={{ opacity: 0, y: -4 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -4 }}
-                transition={{ duration: 0.1 }}
+                initial={{ opacity: 0, y: -4 }}
                 style={{
                   position: "absolute",
                   bottom: "calc(100% + 4px)",
@@ -514,11 +513,11 @@ function TagSelector({
                   minWidth: 120,
                   boxShadow: "0 -4px 12px color-mix(in srgb, var(--foreground) 8%, transparent)",
                 }}
+                transition={{ duration: 0.1 }}
               >
                 {suggestions.map(t => (
                   <button
                     key={t}
-                    onMouseDown={() => addTag(t)}
                     style={{
                       ...mono, fontSize: 9,
                       color: "color-mix(in srgb, var(--foreground) 60%, transparent)",
@@ -528,6 +527,7 @@ function TagSelector({
                       cursor: "pointer",
                       textAlign: "left",
                     }}
+                    onMouseDown={() => addTag(t)}
                     onMouseEnter={e => {
                       (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--accent) 12%, transparent)";
                       (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--accent) 90%, transparent)";
@@ -574,8 +574,6 @@ function CalificacionSelector({
         }}>calificación</span>
         {value !== null && (
           <button
-            onClick={() => onChange(null)}
-            title="quitar calificación"
             style={{
               marginLeft: "auto",
               background: "none", border: "none", cursor: "pointer", padding: 0,
@@ -583,6 +581,8 @@ function CalificacionSelector({
               color: "color-mix(in srgb, var(--foreground) 20%, transparent)",
               transition: "color 0.1s",
             }}
+            title="quitar calificación"
+            onClick={() => onChange(null)}
             onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--foreground) 45%, transparent)"}
             onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--foreground) 20%, transparent)"}
           >
@@ -594,10 +594,6 @@ function CalificacionSelector({
         {[1, 2, 3, 4, 5].map(n => (
           <button
             key={n}
-            onClick={() => onChange(value === n ? null : n)}
-            onMouseEnter={() => setHovered(n)}
-            onMouseLeave={() => setHovered(null)}
-            title={`${n} estrella${n > 1 ? "s" : ""}`}
             style={{
               background: "none", border: "none", cursor: "pointer",
               padding: "2px 1px",
@@ -605,10 +601,14 @@ function CalificacionSelector({
               transition: "transform 0.1s",
               transform: hovered !== null && n <= hovered ? "scale(1.15)" : "scale(1)",
             }}
+            title={`${n} estrella${n > 1 ? "s" : ""}`}
+            onClick={() => onChange(value === n ? null : n)}
+            onMouseEnter={() => setHovered(n)}
+            onMouseLeave={() => setHovered(null)}
           >
             <Star
-              size={18}
               fill={n <= displayed ? "var(--accent)" : "transparent"}
+              size={18}
               stroke={n <= displayed
                 ? "var(--accent)"
                 : "color-mix(in srgb, var(--foreground) 18%, transparent)"}
@@ -706,11 +706,11 @@ function CitasLibro({
         {citas.map((cita, idx) => (
           <motion.div
             key={idx}
-            initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.15 }}
+            initial={{ opacity: 0, height: 0 }}
             style={{ overflow: "hidden" }}
+            transition={{ duration: 0.15 }}
           >
             <div style={{
               borderRadius: 5,
@@ -731,7 +731,6 @@ function CitasLibro({
                   "
                 </span>
                 <button
-                  onClick={() => setExpandedIdx(expandedIdx === idx ? null : idx)}
                   style={{
                     flex: 1,
                     textAlign: "left",
@@ -751,6 +750,7 @@ function CitasLibro({
                     overflow: expandedIdx === idx ? "visible" : "hidden",
                     textOverflow: "ellipsis",
                   }}
+                  onClick={() => setExpandedIdx(expandedIdx === idx ? null : idx)}
                 >
                   {cita.texto}
                 </button>
@@ -761,12 +761,12 @@ function CitasLibro({
                     </span>
                   )}
                   <button
-                    onClick={() => remove(idx)}
                     style={{
                       background: "none", border: "none", cursor: "pointer", padding: "0 2px",
                       color: "color-mix(in srgb, var(--foreground) 18%, transparent)",
                       display: "flex", alignItems: "center", transition: "color 0.1s",
                     }}
+                    onClick={() => remove(idx)}
                     onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--foreground) 55%, transparent)"}
                     onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--foreground) 18%, transparent)"}
                   >
@@ -779,11 +779,11 @@ function CitasLibro({
               <AnimatePresence>
                 {expandedIdx === idx && (
                   <motion.div
-                    initial={{ height: 0, opacity: 0 }}
                     animate={{ height: "auto", opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.15 }}
+                    initial={{ height: 0, opacity: 0 }}
                     style={{ overflow: "hidden" }}
+                    transition={{ duration: 0.15 }}
                   >
                     <div style={{
                       borderTop: "1px solid color-mix(in srgb, var(--foreground) 6%, transparent)",
@@ -793,8 +793,6 @@ function CitasLibro({
                       gap: 5,
                     }}>
                       <textarea
-                        value={cita.texto}
-                        onChange={e => updateCita(idx, "texto", e.target.value)}
                         rows={3}
                         style={{
                           width: "100%",
@@ -808,22 +806,24 @@ function CitasLibro({
                           resize: "none",
                           lineHeight: 1.5,
                         }}
+                        value={cita.texto}
+                        onChange={e => updateCita(idx, "texto", e.target.value)}
                       />
                       <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
                         <span style={{ ...mono, fontSize: 8, color: "color-mix(in srgb, var(--foreground) 25%, transparent)" }}>
                           página
                         </span>
                         <input
-                          type="number"
                           min={1}
-                          value={cita.pagina ?? ""}
-                          onChange={e => updateCita(idx, "pagina", e.target.value)}
                           placeholder="—"
                           style={{
                             width: 48, background: "transparent", border: "none", outline: "none",
                             ...mono, fontSize: 11,
                             color: "color-mix(in srgb, var(--foreground) 60%, transparent)",
                           }}
+                          type="number"
+                          value={cita.pagina ?? ""}
+                          onChange={e => updateCita(idx, "pagina", e.target.value)}
                         />
                       </div>
                     </div>
@@ -845,40 +845,39 @@ function CitasLibro({
         transition: "all 0.1s",
       }}>
         <textarea
-          value={inputTexto}
           placeholder="añadir cita..."
           rows={2}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-          onChange={e => setInputTexto(e.target.value)}
-          onKeyDown={e => {
-            if (e.key === "Escape") { setInputTexto(""); setInputPagina(""); }
-          }}
           style={{
             background: "transparent", border: "none", outline: "none", resize: "none",
             fontFamily: "var(--font-serif)", fontStyle: "italic", fontSize: 11,
             color: "color-mix(in srgb, var(--foreground) 65%, transparent)",
             lineHeight: 1.5, width: "100%",
           }}
+          value={inputTexto}
+          onBlur={() => setFocused(false)}
+          onChange={e => setInputTexto(e.target.value)}
+          onFocus={() => setFocused(true)}
+          onKeyDown={e => {
+            if (e.key === "Escape") { setInputTexto(""); setInputPagina(""); }
+          }}
         />
         {inputTexto.trim() && (
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <span style={{ ...mono, fontSize: 8, color: "color-mix(in srgb, var(--foreground) 25%, transparent)" }}>p.</span>
             <input
-              type="number"
               min={1}
-              value={inputPagina}
-              onChange={e => setInputPagina(e.target.value)}
               placeholder="—"
-              onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); add(); } }}
               style={{
                 width: 48, background: "transparent", border: "none", outline: "none",
                 ...mono, fontSize: 11,
                 color: "color-mix(in srgb, var(--foreground) 55%, transparent)",
               }}
+              type="number"
+              value={inputPagina}
+              onChange={e => setInputPagina(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); add(); } }}
             />
             <button
-              onClick={add}
               style={{
                 marginLeft: "auto",
                 background: "color-mix(in srgb, var(--accent) 12%, transparent)",
@@ -889,6 +888,7 @@ function CitasLibro({
                 transition: "all 0.1s", flexShrink: 0,
                 ...mono, fontSize: 9,
               }}
+              onClick={add}
               onMouseEnter={e => {
                 (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--accent) 22%, transparent)";
                 (e.currentTarget as HTMLElement).style.color = "var(--accent)";
@@ -978,11 +978,11 @@ function PalabrasNuevas({
         {palabras.map((entry, idx) => (
           <motion.div
             key={idx}
-            initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.15 }}
+            initial={{ opacity: 0, height: 0 }}
             style={{ overflow: "hidden" }}
+            transition={{ duration: 0.15 }}
           >
             <div style={{
               borderRadius: 5,
@@ -994,7 +994,6 @@ function PalabrasNuevas({
               {/* Fila principal */}
               <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 8px" }}>
                 <button
-                  onClick={() => setExpandedIdx(expandedIdx === idx ? null : idx)}
                   style={{
                     flex: 1,
                     textAlign: "left",
@@ -1006,6 +1005,7 @@ function PalabrasNuevas({
                     color: "color-mix(in srgb, var(--foreground) 75%, transparent)",
                     letterSpacing: "-0.01em",
                   }}
+                  onClick={() => setExpandedIdx(expandedIdx === idx ? null : idx)}
                 >
                   {entry.palabra}
                 </button>
@@ -1022,14 +1022,14 @@ function PalabrasNuevas({
                   </span>
                 )}
                 <button
-                  onClick={() => remove(idx)}
-                  title="eliminar"
                   style={{
                     background: "none", border: "none", cursor: "pointer", padding: "0 2px",
                     color: "color-mix(in srgb, var(--foreground) 20%, transparent)",
                     display: "flex", alignItems: "center",
                     transition: "color 0.1s", flexShrink: 0,
                   }}
+                  title="eliminar"
+                  onClick={() => remove(idx)}
                   onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--foreground) 55%, transparent)"}
                   onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--foreground) 20%, transparent)"}
                 >
@@ -1041,21 +1041,18 @@ function PalabrasNuevas({
               <AnimatePresence>
                 {expandedIdx === idx && (
                   <motion.div
-                    initial={{ height: 0, opacity: 0 }}
                     animate={{ height: "auto", opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.15 }}
+                    initial={{ height: 0, opacity: 0 }}
                     style={{ overflow: "hidden" }}
+                    transition={{ duration: 0.15 }}
                   >
                     <div style={{
                       borderTop: "1px solid color-mix(in srgb, var(--foreground) 6%, transparent)",
                       padding: "5px 8px",
                     }}>
                       <input
-                        type="text"
-                        value={entry.definicion ?? ""}
                         placeholder="definición o nota..."
-                        onChange={e => updateDef(idx, e.target.value)}
                         style={{
                           width: "100%",
                           background: "transparent",
@@ -1065,6 +1062,9 @@ function PalabrasNuevas({
                           color: "color-mix(in srgb, var(--foreground) 55%, transparent)",
                           letterSpacing: "0.01em",
                         }}
+                        type="text"
+                        value={entry.definicion ?? ""}
+                        onChange={e => updateDef(idx, e.target.value)}
                       />
                     </div>
                   </motion.div>
@@ -1086,41 +1086,40 @@ function PalabrasNuevas({
         alignItems: "center",
       }}>
         <input
-          type="text"
-          value={inputPalabra}
           placeholder="nueva palabra..."
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-          onChange={e => setInputPalabra(e.target.value)}
-          onKeyDown={e => {
-            if (e.key === "Enter") { e.preventDefault(); add(); }
-            if (e.key === "Escape") { setInputPalabra(""); setInputDef(""); }
-          }}
           style={{
             flex: 1, background: "transparent", border: "none", outline: "none",
             ...mono, fontSize: 11,
             color: "color-mix(in srgb, var(--foreground) 70%, transparent)",
             letterSpacing: "-0.01em",
           }}
+          type="text"
+          value={inputPalabra}
+          onBlur={() => setFocused(false)}
+          onChange={e => setInputPalabra(e.target.value)}
+          onFocus={() => setFocused(true)}
+          onKeyDown={e => {
+            if (e.key === "Enter") { e.preventDefault(); add(); }
+            if (e.key === "Escape") { setInputPalabra(""); setInputDef(""); }
+          }}
         />
         {inputPalabra.trim() && (
           <>
             <span style={{ color: "color-mix(in srgb, var(--foreground) 10%, transparent)", fontSize: 10, userSelect: "none" }}>|</span>
             <input
-              type="text"
-              value={inputDef}
               placeholder="definición..."
-              onChange={e => setInputDef(e.target.value)}
-              onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); add(); } }}
               style={{
                 flex: 1.5, background: "transparent", border: "none", outline: "none",
                 ...mono, fontSize: 10,
                 color: "color-mix(in srgb, var(--foreground) 40%, transparent)",
                 letterSpacing: "0.01em",
               }}
+              type="text"
+              value={inputDef}
+              onChange={e => setInputDef(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); add(); } }}
             />
             <button
-              onClick={add}
               style={{
                 background: "color-mix(in srgb, var(--accent) 12%, transparent)",
                 border: "1px solid color-mix(in srgb, var(--accent) 25%, transparent)",
@@ -1129,6 +1128,7 @@ function PalabrasNuevas({
                 color: "color-mix(in srgb, var(--accent) 80%, transparent)",
                 transition: "all 0.1s", flexShrink: 0,
               }}
+              onClick={add}
               onMouseEnter={e => {
                 (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--accent) 22%, transparent)";
                 (e.currentTarget as HTMLElement).style.color = "var(--accent)";
@@ -1335,19 +1335,19 @@ export function LibroPanel({ ensayo, ensayos, onUpdateField, onOpenLibrosDashboa
               estado
             </span>
           </div>
-          <EstadoSelector estado={estado} onChange={handleEstado} mono={mono} />
+          <EstadoSelector estado={estado} mono={mono} onChange={handleEstado} />
         </div>
 
         {/* Autor */}
         <div style={{ flex: 1, minWidth: 180 }}>
           <InlineTextInput
-            value={localAutor}
-            onChange={handleAutor}
-            placeholder="autor..."
             icon={<User size={9} />}
             label="autor"
             mono={mono}
+            placeholder="autor..."
             suggestions={allAutores}
+            value={localAutor}
+            onChange={handleAutor}
           />
         </div>
       </div>
@@ -1355,20 +1355,20 @@ export function LibroPanel({ ensayo, ensayos, onUpdateField, onOpenLibrosDashboa
       {/* ── Fila: Páginas ── */}
       <div style={{ display: "flex", gap: 12 }}>
         <PaginasInput
+          icon={<FileDigit size={9} />}
           label="páginas totales"
+          mono={mono}
           value={localPaginasTotal}
           onChange={handlePaginasTotal}
-          icon={<FileDigit size={9} />}
-          mono={mono}
         />
         <PaginasInput
+          accent="var(--accent)"
+          icon={<Hash size={9} />}
           label="página actual"
+          max={localPaginasTotal}
+          mono={mono}
           value={localPaginaActual}
           onChange={handlePaginaActual}
-          max={localPaginasTotal}
-          icon={<Hash size={9} />}
-          mono={mono}
-          accent="var(--accent)"
         />
       </div>
 
@@ -1384,12 +1384,8 @@ export function LibroPanel({ ensayo, ensayos, onUpdateField, onOpenLibrosDashboa
           }}>isbn</span>
         </div>
         <input
-          type="text"
-          value={localIsbn}
-          onChange={e => setLocalIsbn(e.target.value)}
-          onBlur={handleIsbnBlur}
-          placeholder="978-..."
           maxLength={17}
+          placeholder="978-..."
           style={{
             background: "transparent",
             border: "1px solid color-mix(in srgb, var(--foreground) 8%, transparent)",
@@ -1402,36 +1398,40 @@ export function LibroPanel({ ensayo, ensayos, onUpdateField, onOpenLibrosDashboa
             width: "100%",
             transition: "border-color 0.15s",
           }}
-          onFocus={e => (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--foreground) 18%, transparent)"}
+          type="text"
+          value={localIsbn}
+          onBlur={handleIsbnBlur}
           onBlurCapture={e => (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--foreground) 8%, transparent)"}
+          onChange={e => setLocalIsbn(e.target.value)}
+          onFocus={e => (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--foreground) 18%, transparent)"}
         />
       </div>
 
       {/* ── Calificación ── */}
       <CalificacionSelector
+        mono={mono}
         value={localCalificacion}
         onChange={handleCalificacion}
-        mono={mono}
       />
 
       {/* ── Fila: Tags ── */}
       <TagSelector
-        tags={tags}
         allTags={allTags}
-        onAddTag={handleAddTag}
-        onRemoveTag={handleRemoveTag}
         mono={mono}
-        onOpenLibrosDashboard={onOpenLibrosDashboard}
-        onTagClick={onTagClick}
+        tags={tags}
         tituloPropio={ensayo.titulo}
+        onAddTag={handleAddTag}
+        onOpenLibrosDashboard={onOpenLibrosDashboard}
+        onRemoveTag={handleRemoveTag}
+        onTagClick={onTagClick}
       />
 
       {/* ── Sección: Palabras nuevas ── */}
       <div style={{ borderTop: "1px solid color-mix(in srgb, var(--foreground) 6%, transparent)", paddingTop: 14 }}>
         <PalabrasNuevas
+          mono={mono}
           palabras={localPalabras}
           onUpdate={handlePalabras}
-          mono={mono}
         />
       </div>
 
@@ -1439,8 +1439,8 @@ export function LibroPanel({ ensayo, ensayos, onUpdateField, onOpenLibrosDashboa
       <div style={{ borderTop: "1px solid color-mix(in srgb, var(--foreground) 6%, transparent)", paddingTop: 14 }}>
         <CitasLibro
           citas={localCitas}
-          onUpdate={handleCitas}
           mono={mono}
+          onUpdate={handleCitas}
         />
       </div>
     </div>

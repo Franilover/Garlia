@@ -1,6 +1,7 @@
 "use client";
-import React, { useState, useEffect, useRef, useCallback } from "react";
 import { X, Sword } from "lucide-react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+
 import { MotionDiv } from "@/components/ui/Motion";
 import { supabase } from "@/lib/api/client/supabase";
 
@@ -80,11 +81,11 @@ export function PersonajesDesbloqueadosToast({ personajesIds, onClose }: {
 
   return (
     <MotionDiv
-      initial={{ opacity: 0, y: 40, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: 20, scale: 0.95 }}
-      transition={{ type: "spring", stiffness: 400, damping: 30 }}
       className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[300] w-[calc(100vw-2rem)] max-w-sm"
+      exit={{ opacity: 0, y: 20, scale: 0.95 }}
+      initial={{ opacity: 0, y: 40, scale: 0.95 }}
+      transition={{ type: "spring", stiffness: 400, damping: 30 }}
     >
       <div className="rounded-[var(--radius-card)] border border-primary/15 shadow-2xl overflow-hidden" style={{ background: "var(--white-custom)" }}>
         <div className="px-5 py-3 flex items-center justify-between border-b border-primary/8" style={{ background: "color-mix(in srgb, var(--primary) 6%, transparent)" }}>
@@ -92,7 +93,7 @@ export function PersonajesDesbloqueadosToast({ personajesIds, onClose }: {
             <Sword size={11} />
             {personajes.length === 1 ? "Personaje desbloqueado" : `${personajes.length} personajes desbloqueados`}
           </span>
-          <button onClick={onClose} className="text-primary/30 hover:text-primary transition-colors">
+          <button className="text-primary/30 hover:text-primary transition-colors" onClick={onClose}>
             <X size={14} />
           </button>
         </div>
@@ -101,7 +102,7 @@ export function PersonajesDesbloqueadosToast({ personajesIds, onClose }: {
             <div key={p.id} className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-[var(--radius-btn)] overflow-hidden border border-primary/10 shrink-0 bg-primary/5">
                 {p.img_url
-                  ? <img src={p.img_url} alt={p.nombre} className="w-full h-full object-cover" />
+                  ? <img alt={p.nombre} className="w-full h-full object-cover" src={p.img_url} />
                   : <div className="w-full h-full flex items-center justify-center text-primary/20 text-xs font-black">{p.nombre[0]}</div>
                 }
               </div>

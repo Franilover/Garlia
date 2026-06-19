@@ -1,9 +1,11 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { Film, Plus, Loader2, Check, Clock, Pencil, Trash2 } from "lucide-react";
-import { supabase } from "@/lib/api/client/supabase";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+
 import { useConfirm } from "@/components/ui/ConfirmModal";
+import { supabase } from "@/lib/api/client/supabase";
+
 import { TIPO_ESCENA_LABEL, TIPO_ESCENA_COLOR } from "../../constants";
 import { fmtTimeSeg, parseTimeSeg } from "../../lib/karaokeUtils";
 import type { EscenaMV, Seccion, IdiomaKey } from "../../types";
@@ -133,10 +135,10 @@ export const PanelGuionMV = ({
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {saving && <Loader2 size={12} className="animate-spin text-primary/30" />}
+          {saving && <Loader2 className="animate-spin text-primary/30" size={12} />}
           <button
-            onClick={() => { resetForm(); setFormOpen(true); }}
             className="flex items-center gap-1.5 px-3 py-2 bg-primary text-bg-main rounded-xl text-[9px] font-black uppercase tracking-widest hover:opacity-90 transition-all"
+            onClick={() => { resetForm(); setFormOpen(true); }}
           >
             <Plus size={11} /> Añadir escena
           </button>
@@ -155,12 +157,12 @@ export const PanelGuionMV = ({
               return (
                 <button
                   key={ts}
-                  onClick={() => handleTimestampClick(ts)}
                   className={`font-mono text-[10px] font-black px-2.5 py-1 rounded-lg border transition-all ${
                     tienEscena
                       ? "bg-primary/20 text-primary border-primary/40 hover:bg-primary/30"
                       : "bg-primary/5 text-primary/40 border-primary/15 hover:bg-primary/10 hover:text-primary hover:border-primary/30"
                   }`}
+                  onClick={() => handleTimestampClick(ts)}
                 >
                   {fmtTimeSeg(ts)}
                   {tienEscena && <span className="ml-1 text-[8px]">✦</span>}
@@ -195,12 +197,12 @@ export const PanelGuionMV = ({
             <div className="space-y-1.5 w-28">
               <label className="text-[8px] font-black uppercase text-primary/30 tracking-widest">Tiempo</label>
               <div className="relative">
-                <Clock size={10} className="absolute left-3 top-1/2 -translate-y-1/2 text-primary/30 pointer-events-none" />
+                <Clock className="absolute left-3 top-1/2 -translate-y-1/2 text-primary/30 pointer-events-none" size={10} />
                 <input
+                  className="w-full bg-bg-main border border-primary/20 rounded-xl pl-8 pr-3 py-2.5 text-sm font-mono font-black text-primary outline-none focus:border-primary/40 transition-colors placeholder:text-primary/20"
+                  placeholder="1:12"
                   value={formTs}
                   onChange={e => setFormTs(e.target.value)}
-                  placeholder="1:12"
-                  className="w-full bg-bg-main border border-primary/20 rounded-xl pl-8 pr-3 py-2.5 text-sm font-mono font-black text-primary outline-none focus:border-primary/40 transition-colors placeholder:text-primary/20"
                 />
               </div>
             </div>
@@ -211,13 +213,13 @@ export const PanelGuionMV = ({
                 {(Object.keys(TIPO_ESCENA_LABEL) as EscenaMV["tipo"][]).map(t => (
                   <button
                     key={t}
-                    type="button"
-                    onClick={() => setFormTipo(t)}
                     className={`px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest border transition-all ${
                       formTipo === t
                         ? TIPO_ESCENA_COLOR[t]
                         : "border-primary/10 text-primary/30 hover:border-primary/25 hover:text-primary/60"
                     }`}
+                    type="button"
+                    onClick={() => setFormTipo(t)}
                   >
                     {TIPO_ESCENA_LABEL[t]}
                   </button>
@@ -229,10 +231,7 @@ export const PanelGuionMV = ({
           <div className="space-y-1.5">
             <label className="text-[8px] font-black uppercase text-primary/30 tracking-widest">Descripción</label>
             <textarea
-              value={formDesc}
-              onChange={e => setFormDesc(e.target.value)}
-              onKeyDown={e => { if ((e.ctrlKey || e.metaKey) && e.key === "Enter") handleSubmit(); }}
-              rows={3}
+              className="w-full bg-bg-main border border-primary/15 rounded-xl px-4 py-3 text-sm text-primary resize-none outline-none transition-colors placeholder:text-primary/15 leading-relaxed focus:border-primary/30"
               placeholder={
                 formTipo === "escena"     ? "La cámara abre en un plano aéreo de la ciudad de noche…" :
                 formTipo === "camara"     ? "Primer plano del personaje, zoom lento hacia sus ojos…" :
@@ -240,24 +239,27 @@ export const PanelGuionMV = ({
                 formTipo === "transicion" ? "Corte rápido al siguiente escenario, flash blanco…" :
                                            "El personaje aparece caminando hacia la cámara…"
               }
-              className="w-full bg-bg-main border border-primary/15 rounded-xl px-4 py-3 text-sm text-primary resize-none outline-none transition-colors placeholder:text-primary/15 leading-relaxed focus:border-primary/30"
+              rows={3}
+              value={formDesc}
+              onChange={e => setFormDesc(e.target.value)}
+              onKeyDown={e => { if ((e.ctrlKey || e.metaKey) && e.key === "Enter") handleSubmit(); }}
             />
           </div>
 
           <div className="flex items-center gap-2 pt-1 flex-wrap">
             <button
+              className="flex items-center gap-1.5 px-4 py-2 bg-primary text-bg-main rounded-xl text-[9px] font-black uppercase tracking-widest disabled:opacity-40 hover:opacity-90 transition-all"
+              disabled={!formDesc.trim() || !formTs.trim() || parseTimeSeg(formTs) === null}
               type="button"
               onClick={handleSubmit}
-              disabled={!formDesc.trim() || !formTs.trim() || parseTimeSeg(formTs) === null}
-              className="flex items-center gap-1.5 px-4 py-2 bg-primary text-bg-main rounded-xl text-[9px] font-black uppercase tracking-widest disabled:opacity-40 hover:opacity-90 transition-all"
             >
-              {saving ? <Loader2 size={10} className="animate-spin" /> : <Check size={10} />}
+              {saving ? <Loader2 className="animate-spin" size={10} /> : <Check size={10} />}
               {editId ? "Guardar cambios" : "Añadir escena"}
             </button>
             <button
+              className="px-3 py-2 rounded-xl border border-primary/15 text-[9px] font-black uppercase text-primary/40 hover:text-primary hover:border-primary/30 transition-all"
               type="button"
               onClick={resetForm}
-              className="px-3 py-2 rounded-xl border border-primary/15 text-[9px] font-black uppercase text-primary/40 hover:text-primary hover:border-primary/30 transition-all"
             >
               Cancelar
             </button>
@@ -293,14 +295,14 @@ export const PanelGuionMV = ({
 
               <div className="shrink-0 flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
                 <button
-                  onClick={() => handleEdit(escena)}
                   className="p-1.5 rounded-lg hover:bg-primary/10 text-primary/30 hover:text-primary transition-all"
+                  onClick={() => handleEdit(escena)}
                 >
                   <Pencil size={11} />
                 </button>
                 <button
-                  onClick={() => handleDelete(escena.id)}
                   className="p-1.5 rounded-lg hover:bg-red-500/10 text-primary/20 hover:text-red-400 transition-all"
+                  onClick={() => handleDelete(escena.id)}
                 >
                   <Trash2 size={11} />
                 </button>

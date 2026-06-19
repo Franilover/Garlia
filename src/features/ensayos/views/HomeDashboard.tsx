@@ -1,21 +1,21 @@
 "use client";
-import React, { useMemo, useState } from "react";
-import { MotionDiv } from "@/components/ui/Motion";
-import { Star, FileText, ArrowRight, Hash, CheckSquare, Plus, Check, X, ShoppingCart, Dumbbell, Package, UtensilsCrossed, ChevronLeft, Shirt, Heart, BookOpen, Library } from "lucide-react";
-
 import { AnimatePresence } from "framer-motion";
+import { Star, FileText, ArrowRight, Hash, CheckSquare, Plus, Check, X, ShoppingCart, Dumbbell, Package, UtensilsCrossed, ChevronLeft, Shirt, Heart, BookOpen, Library } from "lucide-react";
+import React, { useMemo, useState } from "react";
+
+import { MotionDiv } from "@/components/ui/Motion";
 import { RelojDigital } from "@/features/ensayos/components/relojDigital";
+import ArmarioPage from "@/features/ensayos/components/ropa";
+import type { ModoCalendario } from "@/features/ensayos/components/types";
 import { VistaMes } from "@/features/ensayos/components/vistaMes";
 import { VistaSemanal } from "@/features/ensayos/components/vistaSemanal";
-import type { ModoCalendario } from "@/features/ensayos/components/types";
 import ComprasPage from "@/features/ensayos/views/compras";
 import { PaginaEjercicios } from "@/features/ensayos/views/ejerciciosComponent";
-import { IngredientesPage } from "@/features/ensayos/views/ingredientes";
-import RecetasPage from "@/features/ensayos/views/recetas";
-import ArmarioPage from "@/features/ensayos/components/ropa";
 import { PaginaHobbys } from "@/features/ensayos/views/hobbysComponent";
-import { PaginaPendientes } from "@/features/ensayos/views/pendientesComponent";
+import { IngredientesPage } from "@/features/ensayos/views/ingredientes";
 import { LibrosDashboard } from "@/features/ensayos/views/LibrosDashboard";
+import { PaginaPendientes } from "@/features/ensayos/views/pendientesComponent";
+import RecetasPage from "@/features/ensayos/views/recetas";
 
 interface HomeDashboardProps {
   ensayos: any[];
@@ -119,11 +119,11 @@ export function HomeDashboard({
 
   return (
     <MotionDiv
-      initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ duration: 0.25 }}
       className="h-full overflow-y-auto"
+      initial={{ opacity: 0 }}
       style={{ background: "var(--bg-main)" }}
+      transition={{ duration: 0.25 }}
     >
       <style>{`
         @media (max-width: 767px) {
@@ -218,7 +218,6 @@ export function HomeDashboard({
                 {(["mes", "semana"] as ModoCalendario[]).map(modo => (
                   <button
                     key={modo}
-                    onClick={() => setModoCalendario(modo)}
                     style={{
                       ...mono,
                       fontSize: 7,
@@ -236,6 +235,7 @@ export function HomeDashboard({
                         ? "color-mix(in srgb, var(--foreground) 70%, transparent)"
                         : "color-mix(in srgb, var(--foreground) 25%, transparent)",
                     }}
+                    onClick={() => setModoCalendario(modo)}
                   >
                     {modo}
                   </button>
@@ -248,33 +248,33 @@ export function HomeDashboard({
                 {modoCalendario === "mes" ? (
                   <MotionDiv
                     key="mes"
-                    initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -6 }}
-                    transition={{ duration: 0.15 }}
+                    initial={{ opacity: 0, y: 6 }}
                     style={{ height: "100%" }}
+                    transition={{ duration: 0.15 }}
                   >
                     <VistaMes
-                      eventos={eventos}
                       capitulosRaw={capitulosRaw}
+                      eventos={eventos}
                       isAddingEvento={isAddingEvento}
                       onAddEvento={handleAddEvento}
-                      onUpdateEvento={onUpdateEvento}
                       onDeleteEvento={onDeleteEvento}
+                      onUpdateEvento={onUpdateEvento}
                     />
                   </MotionDiv>
                 ) : (
                   <MotionDiv
                     key="semana"
-                    initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -6 }}
-                    transition={{ duration: 0.15 }}
+                    initial={{ opacity: 0, y: 6 }}
                     style={{ height: "100%", padding: "12px 16px", overflow: "auto" }}
+                    transition={{ duration: 0.15 }}
                   >
                     <VistaSemanal
-                      eventos={eventos}
                       capitulosRaw={capitulosRaw}
+                      eventos={eventos}
                       isAddingEvento={isAddingEvento}
                       onAddEvento={handleAddEvento}
                     />
@@ -319,10 +319,6 @@ export function HomeDashboard({
                 {onAddTarea && (
                   <div style={{ display: "flex", gap: 4, marginBottom: 8, flexShrink: 0 }}>
                     <input
-                      type="text"
-                      value={nuevaTarea}
-                      onChange={e => setNuevaTarea(e.target.value)}
-                      onKeyDown={e => e.key === "Enter" && handleAddTarea()}
                       placeholder="Nueva tarea..."
                       style={{
                         ...mono, flex: 1, fontSize: 9, padding: "4px 8px", borderRadius: 5,
@@ -331,11 +327,14 @@ export function HomeDashboard({
                         color: "color-mix(in srgb, var(--foreground) 70%, transparent)",
                         outline: "none", minWidth: 0,
                       }}
-                      onFocus={e => { e.currentTarget.style.borderColor = "color-mix(in srgb, var(--foreground) 20%, transparent)"; e.currentTarget.style.background = "color-mix(in srgb, var(--foreground) 5%, transparent)"; }}
+                      type="text"
+                      value={nuevaTarea}
                       onBlur={e => { e.currentTarget.style.borderColor = "color-mix(in srgb, var(--foreground) 8%, transparent)"; e.currentTarget.style.background = "color-mix(in srgb, var(--foreground) 3%, transparent)"; }}
+                      onChange={e => setNuevaTarea(e.target.value)}
+                      onFocus={e => { e.currentTarget.style.borderColor = "color-mix(in srgb, var(--foreground) 20%, transparent)"; e.currentTarget.style.background = "color-mix(in srgb, var(--foreground) 5%, transparent)"; }}
+                      onKeyDown={e => e.key === "Enter" && handleAddTarea()}
                     />
                     <button
-                      onClick={handleAddTarea}
                       disabled={!nuevaTarea.trim()}
                       style={{
                         width: 22, height: 22, borderRadius: 5, border: "none", cursor: "pointer",
@@ -344,6 +343,7 @@ export function HomeDashboard({
                         display: "flex", alignItems: "center", justifyContent: "center",
                         transition: "all 0.1s", flexShrink: 0,
                       }}
+                      onClick={handleAddTarea}
                     ><Plus size={10} /></button>
                   </div>
                 )}
@@ -353,11 +353,11 @@ export function HomeDashboard({
                     <p style={{ ...mono, fontSize: 9, color: "color-mix(in srgb, var(--foreground) 15%, transparent)", fontStyle: "italic" }}>Sin pendientes.</p>
                   )}
                   {pendientes.map((t, i) => (
-                    <MotionDiv key={t.id} initial={{ opacity: 0, x: 4 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.03 }}>
+                    <MotionDiv key={t.id} animate={{ opacity: 1, x: 0 }} initial={{ opacity: 0, x: 4 }} transition={{ delay: i * 0.03 }}>
                       <button
-                        onClick={() => onToggleTarea?.(t.id, t.completada)}
                         className="w-full text-left group flex items-center gap-2"
                         style={{ padding: "5px 6px", borderRadius: 5, background: "transparent", border: "none", cursor: onToggleTarea ? "pointer" : "default", transition: "background 0.1s" }}
+                        onClick={() => onToggleTarea?.(t.id, t.completada)}
                         onMouseEnter={e => onToggleTarea && (e.currentTarget.style.background = "color-mix(in srgb, var(--foreground) 4%, transparent)")}
                         onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
                       >
@@ -375,10 +375,9 @@ export function HomeDashboard({
               {panelAbierto && (
                 <MotionDiv
                   key={`panel-${panelAbierto}`}
-                  initial={{ opacity: 0, scale: 0.96, y: -4 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.96, y: -4 }}
-                  transition={{ duration: 0.15 }}
+                  initial={{ opacity: 0, scale: 0.96, y: -4 }}
                   style={{
                     position: "absolute", top: 0, left: 0, right: 0, bottom: 0,
                     background: "var(--bg-main)",
@@ -386,10 +385,10 @@ export function HomeDashboard({
                     display: "flex", flexDirection: "column",
                     overflow: "hidden",
                   }}
+                  transition={{ duration: 0.15 }}
                 >
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", padding: "8px 10px 0", flexShrink: 0 }}>
                     <button
-                      onClick={() => setPanelAbierto(null)}
                       style={{
                         width: 22, height: 22, borderRadius: 5, border: "none", cursor: "pointer",
                         background: "color-mix(in srgb, var(--foreground) 5%, transparent)",
@@ -397,6 +396,7 @@ export function HomeDashboard({
                         display: "flex", alignItems: "center", justifyContent: "center",
                         transition: "all 0.1s",
                       }}
+                      onClick={() => setPanelAbierto(null)}
                       onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--foreground) 10%, transparent)"; }}
                       onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--foreground) 5%, transparent)"; }}
                     >
@@ -432,14 +432,9 @@ export function HomeDashboard({
               ] as const).map(({ id, label, icon }) => {
                 const activo = id === "libros" ? vistaPersonal === "libros" : panelAbierto === id;
                 return (
-                <MotionDiv key={id} initial={{ opacity: 0, x: -4 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.04 }}>
+                <MotionDiv key={id} animate={{ opacity: 1, x: 0 }} initial={{ opacity: 0, x: -4 }} transition={{ delay: 0.04 }}>
                   <button
                     className="hd-personal-btn"
-                    onClick={() => id === "libros"
-                      ? setVistaPersonal(v => v === "libros" ? null : "libros")
-                      : setPanelAbierto(p => p === id ? null : id)
-                    }
-                    title={label}
                     style={{
                       width: "100%", padding: "8px 4px", borderRadius: 7,
                       border: activo
@@ -455,6 +450,11 @@ export function HomeDashboard({
                         ? "color-mix(in srgb, var(--foreground) 80%, transparent)"
                         : "color-mix(in srgb, var(--foreground) 35%, transparent)",
                     }}
+                    title={label}
+                    onClick={() => id === "libros"
+                      ? setVistaPersonal(v => v === "libros" ? null : "libros")
+                      : setPanelAbierto(p => p === id ? null : id)
+                    }
                     onMouseEnter={e => {
                       if (activo) return;
                       const el = e.currentTarget as HTMLElement;
@@ -538,9 +538,9 @@ export function HomeDashboard({
                 }}>
                   #{tagActivo}
                   <button
-                    onClick={() => onTagClick(tagActivo)}
-                    title="Ver página del tag"
                     style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "center", color: "inherit", opacity: 0.6 }}
+                    title="Ver página del tag"
+                    onClick={() => onTagClick(tagActivo)}
                     onMouseEnter={e => (e.currentTarget as HTMLElement).style.opacity = "1"}
                     onMouseLeave={e => (e.currentTarget as HTMLElement).style.opacity = "0.6"}
                   >
@@ -551,11 +551,11 @@ export function HomeDashboard({
             </div>
             <div className="hd-notes-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 1, background: divColor, borderRadius: 8, overflow: "hidden" }}>
               {notasFiltradas.map((e, i) => (
-                <MotionDiv key={e.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: Math.min(i * 0.015, 0.4) }}>
+                <MotionDiv key={e.id} animate={{ opacity: 1 }} initial={{ opacity: 0 }} transition={{ delay: Math.min(i * 0.015, 0.4) }}>
                   <button
-                    onClick={() => onNavigate(e.titulo)}
                     className="w-full text-left group"
                     style={{ display: "block", padding: "13px 15px", background: "var(--bg-main)", border: "none", cursor: "pointer", transition: "background 0.08s" }}
+                    onClick={() => onNavigate(e.titulo)}
                     onMouseEnter={el => (el.currentTarget.style.background = "color-mix(in srgb, var(--foreground) 4%, transparent)")}
                     onMouseLeave={el => (el.currentTarget.style.background = "var(--bg-main)")}
                   >
@@ -588,16 +588,16 @@ export function HomeDashboard({
               {favoritos.length > 0 ? (
                 <div style={{ display: "flex", flexDirection: "column", gap: 1, overflowY: "auto", flex: 1 }}>
                   {favoritos.map((f, i) => (
-                    <MotionDiv key={f.id} initial={{ opacity: 0, x: -4 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.04 }}>
+                    <MotionDiv key={f.id} animate={{ opacity: 1, x: 0 }} initial={{ opacity: 0, x: -4 }} transition={{ delay: i * 0.04 }}>
                       <button
-                        onClick={() => onNavigate(f.titulo)}
                         className="w-full text-left group flex items-center justify-between"
                         style={{ padding: "8px 10px", borderRadius: 6, background: "transparent", border: "none", cursor: "pointer", transition: "background 0.1s" }}
+                        onClick={() => onNavigate(f.titulo)}
                         onMouseEnter={e => (e.currentTarget.style.background = "color-mix(in srgb, var(--foreground) 4%, transparent)")}
                         onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
                       >
                         <span style={{ ...serif, fontSize: 13, color: "color-mix(in srgb, var(--foreground) 72%, transparent)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{f.titulo}</span>
-                        <ArrowRight size={8} style={{ color: "color-mix(in srgb, var(--foreground) 15%, transparent)", flexShrink: 0, marginLeft: 4, opacity: 0, transition: "opacity 0.1s" }} className="group-hover:opacity-100" />
+                        <ArrowRight className="group-hover:opacity-100" size={8} style={{ color: "color-mix(in srgb, var(--foreground) 15%, transparent)", flexShrink: 0, marginLeft: 4, opacity: 0, transition: "opacity 0.1s" }} />
                       </button>
                     </MotionDiv>
                   ))}
@@ -620,17 +620,17 @@ export function HomeDashboard({
                   {todosLosTags.map((tag, i) => {
                     const count = ensayos.filter(e => e.tags?.includes(tag)).length;
                     return (
-                      <MotionDiv key={tag} initial={{ opacity: 0, x: -4 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.02 }}>
+                      <MotionDiv key={tag} animate={{ opacity: 1, x: 0 }} initial={{ opacity: 0, x: -4 }} transition={{ delay: i * 0.02 }}>
                         <button
-                          onClick={() => onTagClick(tag)}
                           className="w-full text-left group flex items-center justify-between"
                           style={{ padding: "8px 10px", borderRadius: 6, background: "transparent", border: "none", cursor: "pointer", transition: "background 0.1s" }}
+                          onClick={() => onTagClick(tag)}
                           onMouseEnter={e => (e.currentTarget.style.background = "color-mix(in srgb, var(--foreground) 4%, transparent)")}
                           onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
                         >
                           <span style={{ ...serif, fontSize: 13, color: "color-mix(in srgb, var(--foreground) 72%, transparent)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, textTransform: "capitalize" }}>#{tag}</span>
                           <span style={{ ...mono, fontSize: 8, color: "color-mix(in srgb, var(--foreground) 20%, transparent)", flexShrink: 0, marginLeft: 6 }}>{count}</span>
-                          <ArrowRight size={8} style={{ color: "color-mix(in srgb, var(--foreground) 15%, transparent)", flexShrink: 0, marginLeft: 4, opacity: 0, transition: "opacity 0.1s" }} className="group-hover:opacity-100" />
+                          <ArrowRight className="group-hover:opacity-100" size={8} style={{ color: "color-mix(in srgb, var(--foreground) 15%, transparent)", flexShrink: 0, marginLeft: 4, opacity: 0, transition: "opacity 0.1s" }} />
                         </button>
                       </MotionDiv>
                     );
@@ -656,12 +656,12 @@ export function HomeDashboard({
         {vistaPersonal === "libros" && (
           <MotionDiv
             key="libros"
-            initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 12 }}
-            transition={{ duration: 0.18 }}
             className="fixed inset-0 md:left-[68px] z-50 flex flex-col overflow-hidden"
+            exit={{ opacity: 0, y: 12 }}
+            initial={{ opacity: 0, y: 12 }}
             style={{ background: "var(--bg-main)" }}
+            transition={{ duration: 0.18 }}
           >
             {/* ── Barra superior ── */}
             <div style={{
@@ -673,7 +673,6 @@ export function HomeDashboard({
             }}>
               {/* Botón volver */}
               <button
-                onClick={() => setVistaPersonal(null)}
                 style={{
                   display: "flex", alignItems: "center", gap: 5,
                   padding: "4px 10px", borderRadius: 6, border: "none",
@@ -683,6 +682,7 @@ export function HomeDashboard({
                   fontFamily: "var(--font-mono)", fontSize: 9,
                   textTransform: "uppercase", letterSpacing: "0.1em",
                 }}
+                onClick={() => setVistaPersonal(null)}
                 onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--foreground) 10%, transparent)"; (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--foreground) 80%, transparent)"; }}
                 onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--foreground) 5%, transparent)"; (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--foreground) 55%, transparent)"; }}
               >
@@ -695,10 +695,10 @@ export function HomeDashboard({
             <div className="flex-1 overflow-auto pb-14 md:pb-0">
               <LibrosDashboard
                 ensayos={ensayos}
+                onCrearLibro={onCrearLibro}
                 onNavigate={(titulo) => { onNavigate(titulo); setVistaPersonal(null); }}
                 onTagClick={onTagClick}
                 onToggleEstado={onToggleEstado}
-                onCrearLibro={onCrearLibro}
               />
             </div>
           </MotionDiv>

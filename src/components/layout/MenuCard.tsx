@@ -1,8 +1,9 @@
 "use client";
-import React from "react";
-import { MotionDiv } from '@/components/ui/Motion';
-import Link from "next/link";
 import { LucideProps } from "lucide-react";
+import Link from "next/link";
+import React from "react";
+
+import { MotionDiv } from '@/components/ui/Motion';
 import { useTheme } from "@/providers/ThemeProvider";
 
 interface MenuCardProps {
@@ -28,14 +29,14 @@ export const MenuCard = ({
 
   return (
     <MotionDiv
-      initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay, type: "spring", stiffness: 100 }}
       className={horizontal ? undefined : "flex-1 min-h-0"}
+      initial={{ opacity: 0, y: 20 }}
+      transition={{ delay, type: "spring", stiffness: 100 }}
     >
       <Link
-        href={href}
         className={`group block relative ${horizontal ? "" : "h-full"}`}
+        href={href}
         onClick={onClick}
       >
         <div
@@ -47,13 +48,13 @@ export const MenuCard = ({
         >
           {hasNewContent && (
             <MotionDiv
-              initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               className={`absolute z-20 bg-red-500 rounded-full shadow-lg ${
                 horizontal
                   ? "top-3 right-3 w-3 h-3"
                   : "top-3 right-3 w-3 h-3 md:w-4 md:h-4"
               }`}
+              initial={{ scale: 0 }}
             >
               <span
                 className={`absolute inset-0 bg-red-500 rounded-full animate-ping opacity-75 ${

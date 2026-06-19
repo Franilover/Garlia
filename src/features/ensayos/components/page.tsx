@@ -1,18 +1,18 @@
 "use client";
 
 import { Dumbbell, Calendar, FileText, ShoppingCart, UtensilsCrossed, Carrot } from "lucide-react";
+
+import { AdminOnly } from "@/components/forms/AdminOnly";
 import Secciones from "@/components/layout/Secciones";
-import { PaginaEjercicios } from "@/features/ensayos/views/ejerciciosComponent";
 import ComprasPage from "@/features/ensayos/views/compras";
+import { PaginaEjercicios } from "@/features/ensayos/views/ejerciciosComponent";
 import { IngredientesPage } from "@/features/ensayos/views/ingredientes";
 import RecetasPage from "@/features/ensayos/views/recetas";
-import { AdminOnly } from "@/components/forms/AdminOnly";
 
 export default function SaludPage() {
   return (
     <AdminOnly>
       <Secciones
-        storageKey="salud-panel-activo"
         panels={[
           {
             id: "ejercicios",
@@ -43,6 +43,7 @@ export default function SaludPage() {
             content: <ComprasPage />,
           },
         ]}
+        storageKey="salud-panel-activo"
       />
     </AdminOnly>
   );

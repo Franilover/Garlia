@@ -1,6 +1,7 @@
 "use client";
-import React from "react";
 import { PenTool, Plus } from "lucide-react";
+import React from "react";
+
 import { MotionDiv } from "@/components/ui/Motion";
 
 interface EmptyStateProps {
@@ -12,9 +13,9 @@ export function EmptyState({ onCrearEnsayo }: EmptyStateProps) {
 
   return (
     <MotionDiv
-      initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       className="flex flex-col items-center justify-center h-full min-h-[60vh] text-center gap-6"
+      initial={{ opacity: 0 }}
     >
       {/* ASCII-style decorative border */}
       <div style={{ color: "color-mix(in srgb, var(--foreground) 6%, transparent)", ...monoStyle, fontSize: 11, lineHeight: 1.4, userSelect: "none" }}>
@@ -60,7 +61,6 @@ export function EmptyState({ onCrearEnsayo }: EmptyStateProps) {
         {onCrearEnsayo && (
           <div className="flex items-center justify-center gap-4 mt-6">
             <button
-              onClick={onCrearEnsayo}
               className="flex items-center gap-2"
               style={{
                 fontSize: 11,
@@ -72,6 +72,7 @@ export function EmptyState({ onCrearEnsayo }: EmptyStateProps) {
                 cursor: "pointer",
                 ...monoStyle,
               }}
+              onClick={onCrearEnsayo}
             >
               <Plus size={12} />
               nueva nota

@@ -1,7 +1,5 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7"
-
-
 import WebPush from "https://esm.sh/web-push@3.6.6?target=deno&no-check"
 
 const VAPID_PUBLIC_KEY = "BG-LnxDWcr_4PGYVPdRr_L4qAnvgSGsc18-NAZR23bz4O1MmV8SEsV8ew_RlvEaSKPjN3mS9LI4wa-96-dWPKIY";

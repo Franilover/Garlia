@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
 import { AlertCircle, CheckCircle2, Loader2, WifiOff } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
+
 import { TEXT_VARIANTS } from "@/components/ui/Tiopgrafia";
 import { cn } from "@/lib/utils/index"
 
@@ -30,11 +31,11 @@ export function CampoInput({ label, value, onChange, placeholder, autoFocus, typ
       </label>
       <input
         autoFocus={autoFocus}
+        className="w-full bg-primary/5 border border-primary/15 rounded-xl px-4 py-3 text-sm font-medium text-primary outline-none focus:border-primary/40 transition-colors placeholder:text-primary/20"
+        placeholder={placeholder}
         type={type}
         value={value}
         onChange={e => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="w-full bg-primary/5 border border-primary/15 rounded-xl px-4 py-3 text-sm font-medium text-primary outline-none focus:border-primary/40 transition-colors placeholder:text-primary/20"
       />
     </div>
   );
@@ -124,7 +125,7 @@ interface SaveIndicatorProps {
 export function SaveIndicator({ status }: SaveIndicatorProps) {
   const map: Record<SaveStatus, { label: string; icon: React.ReactNode; cls: string }> = {
     idle:    { label: "",                         icon: null,                                          cls: "" },
-    saving:  { label: "Guardando…",               icon: <Loader2 size={10} className="animate-spin"/>, cls: "text-primary/40" },
+    saving:  { label: "Guardando…",               icon: <Loader2 className="animate-spin" size={10}/>, cls: "text-primary/40" },
     saved:   { label: "Guardado",                 icon: <CheckCircle2 size={10}/>,                     cls: "text-emerald-400" },
     pending: { label: "Sin conexión — pendiente", icon: <WifiOff size={10}/>,                          cls: "text-blue-400" },
     error:   { label: "Error al guardar",         icon: <AlertCircle size={10}/>,                      cls: "text-red-400" },
@@ -148,9 +149,9 @@ interface BotonSubmitProps {
 export function BotonSubmit({ loading, disabled, labelNormal, labelLoading }: BotonSubmitProps) {
   return (
     <button
-      type="submit"
-      disabled={loading || disabled}
       className="w-full bg-primary text-bg-main py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-40 flex items-center justify-center gap-2"
+      disabled={loading || disabled}
+      type="submit"
     >
       {loading ? labelLoading : labelNormal}
     </button>

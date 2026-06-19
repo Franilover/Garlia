@@ -1,6 +1,6 @@
 "use client";
-import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Search, X, Check, Loader2, ChevronDown } from "lucide-react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 
 /* ─────────────────────────────────────────────────────────────────────────────
    SeccionEntidad — sección de barra lateral con mini combo multi-selector
@@ -163,7 +163,7 @@ export const SeccionEntidad = ({
   const borderFocus = "1px solid color-mix(in srgb, var(--primary) 28%, transparent)";
 
   return (
-    <div className="shrink-0 flex flex-col" ref={containerRef}>
+    <div ref={containerRef} className="shrink-0 flex flex-col">
 
       {/* ── Cabecera ── */}
       <div
@@ -176,14 +176,11 @@ export const SeccionEntidad = ({
         >
           {icon}
           {label}
-          {saving && <Loader2 size={8} className="animate-spin opacity-50" />}
+          {saving && <Loader2 className="animate-spin opacity-50" size={8} />}
         </span>
 
         {/* Trigger del mini-combo */}
         <button
-          type="button"
-          onClick={() => setOpen(o => !o)}
-          title={`Añadir ${label.toLowerCase()}`}
           className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-md transition-all"
           style={{
             border: open ? borderFocus : border,
@@ -192,6 +189,9 @@ export const SeccionEntidad = ({
               : "transparent",
             color: "color-mix(in srgb, var(--primary) 40%, transparent)",
           }}
+          title={`Añadir ${label.toLowerCase()}`}
+          type="button"
+          onClick={() => setOpen(o => !o)}
         >
           {/* Contador de seleccionados */}
           {selectedIds.length > 0 && (
@@ -203,8 +203,8 @@ export const SeccionEntidad = ({
             </span>
           )}
           <ChevronDown
-            size={9}
             className={`transition-transform duration-150 ${open ? "rotate-180" : ""}`}
+            size={9}
           />
         </button>
       </div>
@@ -230,22 +230,22 @@ export const SeccionEntidad = ({
             />
             <input
               ref={inputRef}
-              type="text"
-              value={query}
-              onChange={e => { setQuery(e.target.value); setCursor(-1); }}
-              onKeyDown={handleKeyDown}
-              placeholder="Buscar…"
               className="flex-1 bg-transparent outline-none text-[9px] font-bold uppercase tracking-wide placeholder:normal-case placeholder:font-medium placeholder:tracking-normal placeholder:opacity-50"
+              placeholder="Buscar…"
               style={{
                 color: "var(--primary)",
                 caretColor: "var(--primary)",
               }}
+              type="text"
+              value={query}
+              onChange={e => { setQuery(e.target.value); setCursor(-1); }}
+              onKeyDown={handleKeyDown}
             />
             {query && (
               <button
+                className="opacity-30 hover:opacity-70 transition-opacity"
                 type="button"
                 onClick={() => { setQuery(""); setCursor(-1); inputRef.current?.focus(); }}
-                className="opacity-30 hover:opacity-70 transition-opacity"
               >
                 <X size={8} style={{ color: "var(--primary)" }} />
               </button>
@@ -253,10 +253,10 @@ export const SeccionEntidad = ({
           </div>
 
           {/* Lista */}
-          <div className="max-h-36 overflow-y-auto" ref={listRef}>
+          <div ref={listRef} className="max-h-36 overflow-y-auto">
             {loading ? (
               <div className="flex items-center justify-center py-3 text-primary/20">
-                <Loader2 size={11} className="animate-spin" />
+                <Loader2 className="animate-spin" size={11} />
               </div>
             ) : filtered.length === 0 ? (
               <p className="text-[8px] font-black uppercase text-primary/25 px-3 py-2.5 text-center tracking-widest">
@@ -279,26 +279,26 @@ export const SeccionEntidad = ({
                   return (
                     <button
                       key={e.id}
-                      type="button"
-                      data-idx={i}
-                      onClick={() => toggle(e.id)}
-                      onMouseEnter={() => setCursor(i)}
-                      onMouseLeave={() => setCursor(-1)}
                       className="w-full flex items-center gap-2 px-2.5 py-1.5 text-left transition-all"
+                      data-idx={i}
                       style={{
                         background: isCursor ? "color-mix(in srgb, var(--primary) 6%, transparent)" : "transparent",
                         color: sel ? "var(--primary)" : "color-mix(in srgb, var(--primary) 50%, transparent)",
                       }}
+                      type="button"
+                      onClick={() => toggle(e.id)}
+                      onMouseEnter={() => setCursor(i)}
+                      onMouseLeave={() => setCursor(-1)}
                     >
                       {e.imagen_url ? (
-                        <img src={e.imagen_url} alt={e.nombre} className="w-4 h-4 rounded-full shrink-0 object-cover border" style={{ borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)", background: "color-mix(in srgb, var(--primary) 6%, transparent)" }} />
+                        <img alt={e.nombre} className="w-4 h-4 rounded-full shrink-0 object-cover border" src={e.imagen_url} style={{ borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)", background: "color-mix(in srgb, var(--primary) 6%, transparent)" }} />
                       ) : (
                         <div className="w-4 h-4 rounded-full shrink-0 flex items-center justify-center text-[6px] font-black uppercase" style={{ background: sel ? "color-mix(in srgb, var(--primary) 15%, transparent)" : "color-mix(in srgb, var(--primary) 8%, transparent)", color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}>
                           {e.nombre.charAt(0)}
                         </div>
                       )}
                       <span className="flex-1 min-w-0 text-[9px] font-black uppercase tracking-wide truncate">{e.nombre}</span>
-                      {sel && <Check size={9} className="shrink-0" style={{ color: "var(--primary)" }} />}
+                      {sel && <Check className="shrink-0" size={9} style={{ color: "var(--primary)" }} />}
                     </button>
                   );
                 };
@@ -325,12 +325,8 @@ export const SeccionEntidad = ({
                 return (
                   <button
                     key={e.id}
-                    type="button"
-                    data-idx={i}
-                    onClick={() => toggle(e.id)}
-                    onMouseEnter={() => setCursor(i)}
-                    onMouseLeave={() => setCursor(-1)}
                     className="w-full flex items-center gap-2 px-2.5 py-1.5 text-left transition-all"
+                    data-idx={i}
                     style={{
                       background: isCursor
                         ? "color-mix(in srgb, var(--primary) 6%, transparent)"
@@ -339,13 +335,17 @@ export const SeccionEntidad = ({
                         ? "var(--primary)"
                         : "color-mix(in srgb, var(--primary) 50%, transparent)",
                     }}
+                    type="button"
+                    onClick={() => toggle(e.id)}
+                    onMouseEnter={() => setCursor(i)}
+                    onMouseLeave={() => setCursor(-1)}
                   >
                     {/* Avatar / imagen */}
                     {e.imagen_url ? (
                       <img
-                        src={e.imagen_url}
                         alt={e.nombre}
                         className="w-4 h-4 rounded-full shrink-0 object-cover border"
+                        src={e.imagen_url}
                         style={{
                           borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
                           background: "color-mix(in srgb, var(--primary) 6%, transparent)",
@@ -371,8 +371,8 @@ export const SeccionEntidad = ({
 
                     {sel && (
                       <Check
-                        size={9}
                         className="shrink-0"
+                        size={9}
                         style={{ color: "var(--primary)" }}
                       />
                     )}
@@ -437,15 +437,15 @@ export const SeccionEntidad = ({
           {selected.map(e => (
             <div
               key={e.id}
-              onClick={() => onEntityClick?.(e.id)}
               className="group relative flex flex-col items-center gap-1 p-1.5 rounded-lg transition-all hover:bg-primary/5"
               style={{ cursor: onEntityClick ? "pointer" : "default" }}
+              onClick={() => onEntityClick?.(e.id)}
             >
               {e.imagen_url ? (
                 <img
-                  src={e.imagen_url}
                   alt={e.nombre}
                   className="w-8 h-8 rounded-lg shrink-0 object-cover"
+                  src={e.imagen_url}
                   style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
                 />
               ) : (
@@ -466,11 +466,11 @@ export const SeccionEntidad = ({
                 {e.nombre}
               </span>
               <button
-                type="button"
-                onClick={ev => { ev.stopPropagation(); onToggle(e.id, false); }}
-                title="Quitar"
                 className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-red-500/10 hover:bg-red-500/20"
                 style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
+                title="Quitar"
+                type="button"
+                onClick={ev => { ev.stopPropagation(); onToggle(e.id, false); }}
               >
                 <X size={8} />
               </button>
@@ -489,12 +489,12 @@ export const SeccionEntidad = ({
           const renderSelItem = (e: EntidadBase) => (
             <div
               key={e.id}
-              onClick={() => onEntityClick?.(e.id)}
               className="group flex items-center gap-2 px-3 py-1.5 transition-all hover:bg-primary/5"
               style={{ cursor: onEntityClick ? "pointer" : "default" }}
+              onClick={() => onEntityClick?.(e.id)}
             >
               {e.imagen_url ? (
-                <img src={e.imagen_url} alt={e.nombre} className="w-5 h-5 rounded-full shrink-0 object-cover" style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
+                <img alt={e.nombre} className="w-5 h-5 rounded-full shrink-0 object-cover" src={e.imagen_url} style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
               ) : (
                 <div className="w-5 h-5 rounded-full shrink-0 flex items-center justify-center text-[7px] font-black uppercase" style={{ background: "color-mix(in srgb, var(--primary) 12%, transparent)", color: "color-mix(in srgb, var(--primary) 60%, transparent)" }}>
                   {e.nombre.charAt(0)}
@@ -503,7 +503,7 @@ export const SeccionEntidad = ({
               <span className="flex-1 min-w-0 text-[10px] font-black uppercase tracking-wide truncate" style={{ color: "color-mix(in srgb, var(--primary) 65%, transparent)" }}>
                 {e.nombre}
               </span>
-              <button type="button" onClick={ev => { ev.stopPropagation(); onToggle(e.id, false); }} title="Quitar" className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity rounded p-0.5 hover:bg-red-500/10" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
+              <button className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity rounded p-0.5 hover:bg-red-500/10" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} title="Quitar" type="button" onClick={ev => { ev.stopPropagation(); onToggle(e.id, false); }}>
                 <X size={9} />
               </button>
             </div>
@@ -529,15 +529,15 @@ export const SeccionEntidad = ({
         selected.map(e => (
           <div
             key={e.id}
-            onClick={() => onEntityClick?.(e.id)}
             className="group flex items-center gap-2 px-3 py-1.5 transition-all hover:bg-primary/5"
             style={{ cursor: onEntityClick ? "pointer" : "default" }}
+            onClick={() => onEntityClick?.(e.id)}
           >
             {e.imagen_url ? (
               <img
-                src={e.imagen_url}
                 alt={e.nombre}
                 className="w-5 h-5 rounded-full shrink-0 object-cover"
+                src={e.imagen_url}
                 style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
               />
             ) : (
@@ -558,11 +558,11 @@ export const SeccionEntidad = ({
               {e.nombre}
             </span>
             <button
-              type="button"
-              onClick={ev => { ev.stopPropagation(); onToggle(e.id, false); }}
-              title="Quitar"
               className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity rounded p-0.5 hover:bg-red-500/10"
               style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
+              title="Quitar"
+              type="button"
+              onClick={ev => { ev.stopPropagation(); onToggle(e.id, false); }}
             >
               <X size={9} />
             </button>

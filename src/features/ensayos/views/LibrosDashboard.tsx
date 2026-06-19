@@ -1,10 +1,11 @@
 "use client";
-import React, { useMemo, useState } from "react";
-import { MotionDiv } from "@/components/ui/Motion";
 import {
   BookOpen, Search, X, ArrowRight, BookMarked,
   BookCheck, BookDashed, Library,
 } from "lucide-react";
+import React, { useMemo, useState } from "react";
+
+import { MotionDiv } from "@/components/ui/Motion";
 import { SeccionEntidad } from "@/components/ui/SeccionEntidad";
 
 interface LibrosDashboardProps {
@@ -47,9 +48,6 @@ function LibroRow({
   const [hovered, setHovered] = useState(false);
   return (
     <button
-      onClick={() => onNavigate(libro.titulo)}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
       className="w-full text-left"
       style={{
         display: "flex", alignItems: "center", gap: 8,
@@ -58,6 +56,9 @@ function LibroRow({
         border: "none", borderRadius: 5, cursor: "pointer",
         transition: "background 0.08s",
       }}
+      onClick={() => onNavigate(libro.titulo)}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
     >
       <div style={{ flex: 1, minWidth: 0 }}>
         <p style={{
@@ -165,51 +166,51 @@ export function LibrosDashboard({ ensayos, onNavigate, onTagClick, onToggleEstad
   const panelEstados = (
     <>
       <SeccionEntidad
-        label="Leyendo ahora"
-        icon={<BookOpen size={9} />}
-        fallbackIcon={<BookOpen size={12} />}
+        allEntities={librosComoEntidades}
         emptyLabel="ninguno en curso"
-        allEntities={librosComoEntidades}
+        fallbackIcon={<BookOpen size={12} />}
+        icon={<BookOpen size={9} />}
+        label="Leyendo ahora"
+        loading={false}
+        saving={false}
         selectedIds={leyendo.map(l => l.id)}
-        loading={false}
-        saving={false}
+        onEntityClick={onNavigate ? (id) => {
+          const libro = libros.find(l => l.id === id);
+          if (libro) onNavigate(libro.titulo);
+        } : undefined}
         onToggle={(id, add) => onToggleEstado?.(id, "leyendo", add)}
-        onEntityClick={onNavigate ? (id) => {
-          const libro = libros.find(l => l.id === id);
-          if (libro) onNavigate(libro.titulo);
-        } : undefined}
       />
       <div style={{ height: 1, background: borderColor, flexShrink: 0 }} />
       <SeccionEntidad
-        label="Leídos"
-        icon={<BookCheck size={9} />}
-        fallbackIcon={<BookCheck size={12} />}
+        allEntities={librosComoEntidades}
         emptyLabel="aún nada terminado"
-        allEntities={librosComoEntidades}
-        selectedIds={leidos.map(l => l.id)}
+        fallbackIcon={<BookCheck size={12} />}
+        icon={<BookCheck size={9} />}
+        label="Leídos"
         loading={false}
         saving={false}
-        onToggle={(id, add) => onToggleEstado?.(id, "leido", add)}
+        selectedIds={leidos.map(l => l.id)}
         onEntityClick={onNavigate ? (id) => {
           const libro = libros.find(l => l.id === id);
           if (libro) onNavigate(libro.titulo);
         } : undefined}
+        onToggle={(id, add) => onToggleEstado?.(id, "leido", add)}
       />
       <div style={{ height: 1, background: borderColor, flexShrink: 0 }} />
       <SeccionEntidad
-        label="Pendientes"
-        icon={<BookDashed size={9} />}
-        fallbackIcon={<BookDashed size={12} />}
-        emptyLabel="lista limpia"
         allEntities={librosComoEntidades}
-        selectedIds={pendientes.map(l => l.id)}
+        emptyLabel="lista limpia"
+        fallbackIcon={<BookDashed size={12} />}
+        icon={<BookDashed size={9} />}
+        label="Pendientes"
         loading={false}
         saving={false}
-        onToggle={(id, add) => onToggleEstado?.(id, "pendiente", add)}
+        selectedIds={pendientes.map(l => l.id)}
         onEntityClick={onNavigate ? (id) => {
           const libro = libros.find(l => l.id === id);
           if (libro) onNavigate(libro.titulo);
         } : undefined}
+        onToggle={(id, add) => onToggleEstado?.(id, "pendiente", add)}
       />
     </>
   );
@@ -251,18 +252,18 @@ export function LibrosDashboard({ ensayos, onNavigate, onTagClick, onToggleEstad
         }}>
           <Search size={10} style={{ color: "color-mix(in srgb, var(--foreground) 25%, transparent)", flexShrink: 0 }} />
           <input
-            type="text"
-            value={busqueda}
-            onChange={e => setBusqueda(e.target.value)}
             placeholder="buscar libro..."
             style={{
               flex: 1, border: "none", background: "transparent", outline: "none",
               ...mono, fontSize: 10,
               color: "color-mix(in srgb, var(--foreground) 70%, transparent)",
             }}
+            type="text"
+            value={busqueda}
+            onChange={e => setBusqueda(e.target.value)}
           />
           {busqueda && (
-            <button onClick={() => setBusqueda("")} style={{ border: "none", background: "transparent", cursor: "pointer", display: "flex", padding: 0, color: "color-mix(in srgb, var(--foreground) 25%, transparent)" }}>
+            <button style={{ border: "none", background: "transparent", cursor: "pointer", display: "flex", padding: 0, color: "color-mix(in srgb, var(--foreground) 25%, transparent)" }} onClick={() => setBusqueda("")}>
               <X size={9} />
             </button>
           )}
@@ -271,7 +272,6 @@ export function LibrosDashboard({ ensayos, onNavigate, onTagClick, onToggleEstad
           {(["reciente", "titulo", "palabras"] as OrdenLibros[]).map(o => (
             <button
               key={o}
-              onClick={() => setOrden(o)}
               style={{
                 ...mono, fontSize: isMobile ? 7 : 8, padding: isMobile ? "4px 7px" : "5px 9px", borderRadius: 5, border: "none",
                 cursor: "pointer", textTransform: "uppercase", letterSpacing: "0.1em",
@@ -279,6 +279,7 @@ export function LibrosDashboard({ ensayos, onNavigate, onTagClick, onToggleEstad
                 background: orden === o ? "color-mix(in srgb, var(--foreground) 10%, transparent)" : "transparent",
                 color: orden === o ? "color-mix(in srgb, var(--foreground) 70%, transparent)" : "color-mix(in srgb, var(--foreground) 28%, transparent)",
               }}
+              onClick={() => setOrden(o)}
             >
               {o}
             </button>
@@ -290,7 +291,6 @@ export function LibrosDashboard({ ensayos, onNavigate, onTagClick, onToggleEstad
       {coTags.length > 0 && (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 16 }}>
           <button
-            onClick={() => setTagFiltro(null)}
             style={{
               ...mono, fontSize: 9, padding: "2px 8px", borderRadius: 4, cursor: "pointer",
               border: "1px solid",
@@ -299,6 +299,7 @@ export function LibrosDashboard({ ensayos, onNavigate, onTagClick, onToggleEstad
               color: !tagFiltro ? "color-mix(in srgb, var(--foreground) 80%, transparent)" : "color-mix(in srgb, var(--foreground) 30%, transparent)",
               transition: "all 0.1s",
             }}
+            onClick={() => setTagFiltro(null)}
           >
             todos
           </button>
@@ -307,7 +308,6 @@ export function LibrosDashboard({ ensayos, onNavigate, onTagClick, onToggleEstad
             return (
               <button
                 key={tag}
-                onClick={() => setTagFiltro(isActive ? null : tag)}
                 style={{
                   ...mono, fontSize: 9, padding: "2px 8px", borderRadius: 4, cursor: "pointer",
                   border: "1px solid",
@@ -317,6 +317,7 @@ export function LibrosDashboard({ ensayos, onNavigate, onTagClick, onToggleEstad
                   transition: "all 0.1s",
                   display: "flex", alignItems: "center", gap: 4,
                 }}
+                onClick={() => setTagFiltro(isActive ? null : tag)}
               >
                 #{tag}
                 <span style={{ fontSize: 7, color: "color-mix(in srgb, var(--foreground) 18%, transparent)" }}>{count}</span>
@@ -329,8 +330,8 @@ export function LibrosDashboard({ ensayos, onNavigate, onTagClick, onToggleEstad
       {/* Empty state */}
       {filtrados.length === 0 && (
         <MotionDiv
-          initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
+          initial={{ opacity: 0 }}
           style={{ textAlign: "center", padding: "64px 0" }}
         >
           <BookMarked size={28} style={{ color: "color-mix(in srgb, var(--foreground) 10%, transparent)", margin: "0 auto 14px" }} />
@@ -348,13 +349,12 @@ export function LibrosDashboard({ ensayos, onNavigate, onTagClick, onToggleEstad
       {/* Carta destacada */}
       {filtrados.length > 0 && orden === "reciente" && !busqueda && !tagFiltro && (
         <MotionDiv
-          initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.18 }}
+          initial={{ opacity: 0, y: 6 }}
           style={{ marginBottom: 8 }}
+          transition={{ duration: 0.18 }}
         >
           <button
-            onClick={() => onNavigate(filtrados[0].titulo)}
             className="w-full text-left group"
             style={{
               display: "block", width: "100%",
@@ -364,6 +364,7 @@ export function LibrosDashboard({ ensayos, onNavigate, onTagClick, onToggleEstad
               borderRadius: 10, cursor: "pointer",
               transition: "all 0.12s",
             }}
+            onClick={() => onNavigate(filtrados[0].titulo)}
             onMouseEnter={e => {
               (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--foreground) 3%, transparent)";
               (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--foreground) 18%, transparent)";
@@ -440,13 +441,13 @@ export function LibrosDashboard({ ensayos, onNavigate, onTagClick, onToggleEstad
       }}>
         {/* Botón nuevo libro */}
         <button
-          onClick={onCrearLibro}
           style={{
             display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
             padding: "14px 15px", gap: 8, background: "var(--bg-main)",
             border: "none", cursor: "pointer", transition: "background 0.08s",
             minHeight: isMobile ? 80 : 100,
           }}
+          onClick={onCrearLibro}
           onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--foreground) 3%, transparent)"}
           onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = "var(--bg-main)"}
         >
@@ -465,14 +466,11 @@ export function LibrosDashboard({ ensayos, onNavigate, onTagClick, onToggleEstad
           return (
             <MotionDiv
               key={libro.id}
-              initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
+              initial={{ opacity: 0 }}
               transition={{ delay: Math.min(i * 0.02, 0.3) }}
             >
               <button
-                onClick={() => onNavigate(libro.titulo)}
-                onMouseEnter={() => setHoveredId(libro.id)}
-                onMouseLeave={() => setHoveredId(null)}
                 className="w-full text-left"
                 style={{
                   display: "flex", flexDirection: "column",
@@ -484,6 +482,9 @@ export function LibrosDashboard({ ensayos, onNavigate, onTagClick, onToggleEstad
                   transition: "background 0.08s",
                   height: "100%",
                 }}
+                onClick={() => onNavigate(libro.titulo)}
+                onMouseEnter={() => setHoveredId(libro.id)}
+                onMouseLeave={() => setHoveredId(null)}
               >
                 <p style={{
                   ...serif, fontSize: 13,
@@ -540,9 +541,8 @@ export function LibrosDashboard({ ensayos, onNavigate, onTagClick, onToggleEstad
   // ─── Render ───────────────────────────────────────────────────────────────
   return (
     <MotionDiv
-      initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ duration: 0.22 }}
+      initial={{ opacity: 0 }}
       style={{
         display: "flex",
         flexDirection: isMobile ? "column" : "row",
@@ -550,6 +550,7 @@ export function LibrosDashboard({ ensayos, onNavigate, onTagClick, onToggleEstad
         overflow: isMobile ? "visible" : "hidden",
         background: "var(--bg-main)",
       }}
+      transition={{ duration: 0.22 }}
     >
       {/* Columna izquierda / principal */}
       <div style={{

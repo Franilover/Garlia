@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/lib/api/client/supabase";
+
 import { db } from "@/lib/api/client/db";
+import { supabase } from "@/lib/api/client/supabase";
+
 import {
   TAB_CONFIG,
   type TabKey,

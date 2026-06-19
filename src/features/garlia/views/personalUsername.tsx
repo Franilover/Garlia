@@ -1,15 +1,17 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import Link from "next/link";
 import { AnimatePresence } from "framer-motion";
-import { MotionDiv } from "@/components/ui/Motion";
 import { User, Sword, Cat, X, Loader2, Music2, ChevronRight, Star, MapPin } from "lucide-react";
-import { supabase } from "@/lib/api/client/supabase";
+import Link from "next/link";
+import React, { useEffect, useState } from "react";
+
+import { MotionDiv } from "@/components/ui/Motion";
 import {
   ModalDetalle, EntidadCard, EmptyTab,
   type EntidadModal, type Descubrimiento, type ItemInventario,
 } from "@/features/garlia/views/PersonalComponents";
+import { db } from "@/lib/api/client/db";
+import { supabase } from "@/lib/api/client/supabase";
 import {
   loadDescubrimientos,
   loadReinosCiudadesUsuario,
@@ -20,7 +22,6 @@ import {
   type ReinoDesbloqueado,
   type CiudadDesbloqueada,
 } from "@/lib/api/client/syncEngine";
-import { db } from "@/lib/api/client/db";
 
 // Caché en memoria para perfiles públicos por username (navegación SPA)
 const PERFIL_PUBLICO_TTL = 10 * 60_000;
@@ -159,7 +160,7 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
   if (cargando) return (
     <div className="flex items-center justify-center min-h-60">
       <div className="flex flex-col items-center gap-3">
-        <Loader2 size={20} className="animate-spin"
+        <Loader2 className="animate-spin" size={20}
           style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
         <span className="text-[9px] font-black uppercase tracking-[0.3em]"
           style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
@@ -176,8 +177,8 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
         style={{ fontSize: "0.9rem", color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
         "Explorador no encontrado"
       </p>
-      <Link href="/garlia/personal"
-        className="font-serif italic text-[9px] flex items-center gap-1.5 hover:opacity-70"
+      <Link className="font-serif italic text-[9px] flex items-center gap-1.5 hover:opacity-70"
+        href="/garlia/personal"
         style={{ color: "var(--primary)" }}>
         ← Volver a mi perfil
       </Link>
@@ -196,17 +197,16 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
         {modalD && modalD.tipo === "reino" && (
           <>
             <MotionDiv
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => { setModalD(null); setCiudadesReino([]); }}
-              className="fixed inset-0 z-40 backdrop-blur-sm"
+              animate={{ opacity: 1 }} className="fixed inset-0 z-40 backdrop-blur-sm" exit={{ opacity: 0 }}
+              initial={{ opacity: 0 }}
               style={{ background: "rgba(0,0,0,0.45)" }}
+              onClick={() => { setModalD(null); setCiudadesReino([]); }}
             />
             <MotionDiv
-              initial={{ opacity: 0, scale: 0.94, y: 24 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.94, y: 24 }}
-              transition={{ type: "spring", stiffness: 340, damping: 30 }}
               className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-50 md:inset-x-auto md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[30rem]"
+              exit={{ opacity: 0, scale: 0.94, y: 24 }}
+              initial={{ opacity: 0, scale: 0.94, y: 24 }}
               style={{
                 background: "var(--white-custom)",
                 borderRadius: "var(--radius-card)",
@@ -217,6 +217,7 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                 flexDirection: "column",
                 overflow: "hidden",
               }}
+              transition={{ type: "spring", stiffness: 340, damping: 30 }}
             >
               <div className="w-full shrink-0 overflow-hidden relative"
                 style={{
@@ -224,13 +225,13 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                   background: "color-mix(in srgb, var(--primary) 6%, var(--bg-main))",
                 }}>
                 {modalD.data.imagen_url && (
-                  <img src={modalD.data.imagen_url} alt={modalD.data.nombre}
-                    className="w-full h-full object-cover" style={{ opacity: 0.35 }} />
+                  <img alt={modalD.data.nombre} className="w-full h-full object-cover"
+                    src={modalD.data.imagen_url} style={{ opacity: 0.35 }} />
                 )}
                 {modalD.data.img_url && (
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <img src={modalD.data.img_url} alt={`Logo ${modalD.data.nombre}`}
-                      className="object-contain drop-shadow-lg transition-transform duration-700 hover:scale-105"
+                    <img alt={`Logo ${modalD.data.nombre}`} className="object-contain drop-shadow-lg transition-transform duration-700 hover:scale-105"
+                      src={modalD.data.img_url}
                       style={{ maxHeight: "140px", maxWidth: "60%" }} />
                   </div>
                 )}
@@ -238,7 +239,6 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                   background: "linear-gradient(to top, var(--white-custom) 0%, color-mix(in srgb, var(--white-custom) 20%, transparent) 50%, transparent 100%)"
                 }} />
                 <button
-                  onClick={() => { setModalD(null); setCiudadesReino([]); }}
                   className="absolute top-3 right-3 z-10 w-8 h-8 flex items-center justify-center transition-all hover:scale-110"
                   style={{
                     color: "var(--primary)",
@@ -246,7 +246,8 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                     borderRadius: "var(--radius-btn)",
                     border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
                     backdropFilter: "blur(6px)",
-                  }}>
+                  }}
+                  onClick={() => { setModalD(null); setCiudadesReino([]); }}>
                   <X size={13} />
                 </button>
                 {(modalD.data.imagen_url || modalD.data.img_url) && (
@@ -290,6 +291,12 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                       {ciudadesReino.map((lugar, i) => (
                         <button
                           key={lugar.id ?? i}
+                          className="group flex items-center gap-3 px-3 py-3 transition-all text-left w-full"
+                          style={{
+                            background: "color-mix(in srgb, var(--primary) 3%, var(--white-custom))",
+                            border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+                            borderRadius: "var(--radius-btn)",
+                          }}
                           onClick={() => {
                             setModalD(null);
                             setCiudadesReino([]);
@@ -302,12 +309,6 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                               fecha_descubrimiento: "",
                             }}), 120);
                           }}
-                          className="group flex items-center gap-3 px-3 py-3 transition-all text-left w-full"
-                          style={{
-                            background: "color-mix(in srgb, var(--primary) 3%, var(--white-custom))",
-                            border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
-                            borderRadius: "var(--radius-btn)",
-                          }}
                           onMouseEnter={e => {
                             (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 22%, transparent)";
                             (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 6%, var(--white-custom))";
@@ -319,8 +320,8 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                           {lugar.imagen_url ? (
                             <div className="w-11 h-11 shrink-0 overflow-hidden"
                               style={{ borderRadius: "var(--radius-btn)", background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-                              <img src={lugar.imagen_url} alt={lugar.nombre}
-                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                              <img alt={lugar.nombre} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                src={lugar.imagen_url} />
                             </div>
                           ) : (
                             <div className="w-11 h-11 shrink-0 flex items-center justify-center"
@@ -340,8 +341,8 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                               </span>
                             )}
                           </div>
-                          <ChevronRight size={13} style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)", flexShrink: 0 }}
-                            className="group-hover:translate-x-0.5 transition-transform" />
+                          <ChevronRight className="group-hover:translate-x-0.5 transition-transform" size={13}
+                            style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)", flexShrink: 0 }} />
                         </button>
                       ))}
                     </div>
@@ -358,17 +359,16 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
         {modalPersonaje && (
           <>
             <MotionDiv
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => { setModalPersonaje(null); setCancionesPersonaje([]); }}
-              className="fixed inset-0 z-40 backdrop-blur-sm"
+              animate={{ opacity: 1 }} className="fixed inset-0 z-40 backdrop-blur-sm" exit={{ opacity: 0 }}
+              initial={{ opacity: 0 }}
               style={{ background: "rgba(0,0,0,0.45)" }}
+              onClick={() => { setModalPersonaje(null); setCancionesPersonaje([]); }}
             />
             <MotionDiv
-              initial={{ opacity: 0, scale: 0.94, y: 24 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.94, y: 24 }}
-              transition={{ type: "spring", stiffness: 340, damping: 30 }}
               className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-50 md:inset-x-auto md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[30rem]"
+              exit={{ opacity: 0, scale: 0.94, y: 24 }}
+              initial={{ opacity: 0, scale: 0.94, y: 24 }}
               style={{
                 background: "var(--white-custom)",
                 borderRadius: "var(--radius-card)",
@@ -378,7 +378,8 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                 display: "flex",
                 flexDirection: "column",
                 overflow: "hidden",
-              }}>
+              }}
+              transition={{ type: "spring", stiffness: 340, damping: 30 }}>
               {/* Hero imagen */}
               <div className="w-full shrink-0 overflow-hidden relative"
                 style={{
@@ -386,14 +387,13 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                   background: "color-mix(in srgb, var(--primary) 5%, var(--bg-main))",
                 }}>
                 {modalPersonaje.imagen_url && (
-                  <img src={modalPersonaje.imagen_url} alt={modalPersonaje.nombre}
-                    className="w-full h-full object-cover transition-transform duration-700"
+                  <img alt={modalPersonaje.nombre} className="w-full h-full object-cover transition-transform duration-700"
+                    src={modalPersonaje.imagen_url}
                     style={{ objectPosition: "center center", transform: "scale(1.8)", transformOrigin: "center center" }} />
                 )}
                 <div className="absolute inset-0 pointer-events-none"
                   style={{ background: "linear-gradient(to top, var(--white-custom) 0%, color-mix(in srgb, var(--white-custom) 15%, transparent) 45%, transparent 100%)" }} />
                 <button
-                  onClick={() => { setModalPersonaje(null); setCancionesPersonaje([]); }}
                   className="absolute top-3 right-3 z-10 w-8 h-8 flex items-center justify-center transition-all hover:scale-110"
                   style={{
                     color: "var(--primary)",
@@ -401,7 +401,8 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                     borderRadius: "var(--radius-btn)",
                     border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
                     backdropFilter: "blur(6px)",
-                  }}>
+                  }}
+                  onClick={() => { setModalPersonaje(null); setCancionesPersonaje([]); }}>
                   <X size={13} />
                 </button>
                 {modalPersonaje.imagen_url && (
@@ -435,9 +436,9 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                 {!modalPersonaje.imagen_url && (
                   <>
                     <button
-                      onClick={() => { setModalPersonaje(null); setCancionesPersonaje([]); }}
                       className="absolute top-3 right-3 z-10 w-8 h-8 flex items-center justify-center transition-all hover:scale-110"
-                      style={{ color: "var(--primary)", background: "color-mix(in srgb, var(--white-custom) 85%, transparent)", borderRadius: "var(--radius-btn)", border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)" }}>
+                      style={{ color: "var(--primary)", background: "color-mix(in srgb, var(--white-custom) 85%, transparent)", borderRadius: "var(--radius-btn)", border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)" }}
+                      onClick={() => { setModalPersonaje(null); setCancionesPersonaje([]); }}>
                       <X size={13} />
                     </button>
                     <div className="mb-4">
@@ -468,7 +469,7 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                 </div>
                 {cargandoCanciones ? (
                   <div className="flex items-center gap-2 py-5 justify-center">
-                    <Loader2 size={13} className="animate-spin" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
+                    <Loader2 className="animate-spin" size={13} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
                     <span className="font-serif italic text-[9px]" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>Cargando canciones…</span>
                   </div>
                 ) : cancionesPersonaje.length === 0 ? (
@@ -476,14 +477,14 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                 ) : (
                   <div className="flex flex-col gap-2">
                     {cancionesPersonaje.map((cancion, i) => (
-                      <Link key={cancion.id ?? i} href={`/garlia/canciones/${cancion.id}`}
-                        className="group flex items-center gap-3 px-3 py-3 transition-all"
+                      <Link key={cancion.id ?? i} className="group flex items-center gap-3 px-3 py-3 transition-all"
+                        href={`/garlia/canciones/${cancion.id}`}
                         style={{ background: "color-mix(in srgb, var(--primary) 3%, var(--white-custom))", border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)", borderRadius: "var(--radius-btn)" }}
                         onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 22%, transparent)"; (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 6%, var(--white-custom))"; }}
                         onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 8%, transparent)"; (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 3%, var(--white-custom))"; }}>
                         {cancion.portada_url && !cancion.portada_url.includes("placeholder") ? (
                           <div className="w-11 h-11 shrink-0 overflow-hidden" style={{ borderRadius: "var(--radius-btn)", background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-                            <img src={cancion.portada_url} alt={cancion.titulo} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                            <img alt={cancion.titulo} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" src={cancion.portada_url} />
                           </div>
                         ) : (
                           <div className="w-11 h-11 shrink-0 flex items-center justify-center" style={{ borderRadius: "var(--radius-btn)", background: "color-mix(in srgb, var(--primary) 6%, transparent)" }}>
@@ -494,7 +495,7 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                           <span className="font-serif italic text-[12px] truncate block group-hover:underline" style={{ color: "var(--primary)" }}>{cancion.titulo ?? `Canción ${i + 1}`}</span>
                           {cancion.info_cancion && <p className="font-serif italic text-[9px] truncate mt-0.5" style={{ color: "color-mix(in srgb, var(--foreground) 45%, transparent)" }}>{cancion.info_cancion}</p>}
                         </div>
-                        <ChevronRight size={12} style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)", flexShrink: 0 }} className="group-hover:translate-x-0.5 transition-transform" />
+                        <ChevronRight className="group-hover:translate-x-0.5 transition-transform" size={12} style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)", flexShrink: 0 }} />
                       </Link>
                     ))}
                   </div>
@@ -506,8 +507,8 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
       </AnimatePresence>
 
       {/* Botón volver */}
-      <Link href="/garlia/personal"
-        className="fixed top-4 left-4 z-[100] flex items-center justify-center w-9 h-9 transition-all hover:scale-110"
+      <Link className="fixed top-4 left-4 z-[100] flex items-center justify-center w-9 h-9 transition-all hover:scale-110"
+        href="/garlia/personal"
         style={{ background: "var(--bg-menu)", borderRadius: "50%", border: "2px solid color-mix(in srgb, var(--menu-text) 20%, transparent)", boxShadow: "var(--shadow-card)" }}
         title="Volver a mi perfil">
         <X size={14} style={{ color: "var(--menu-text)", opacity: 0.7 }} />
@@ -546,8 +547,8 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
               flexShrink: 0,
             }}>
             {perfil?.avatar_url
-              ? <img src={perfil.avatar_url} alt={perfil?.username} className="w-full h-full object-contain" />
-              : <User size={38} className="absolute inset-0 m-auto" style={{ color: "color-mix(in srgb, var(--primary) 22%, transparent)" }} />}
+              ? <img alt={perfil?.username} className="w-full h-full object-contain" src={perfil.avatar_url} />
+              : <User className="absolute inset-0 m-auto" size={38} style={{ color: "color-mix(in srgb, var(--primary) 22%, transparent)" }} />}
           </div>
 
           <div className="flex flex-col gap-1 pb-1" style={{ paddingTop: "56px" }}>
@@ -596,8 +597,8 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                   <div className="w-8 h-8 overflow-hidden shrink-0"
                     style={{ borderRadius: "var(--radius-btn)", background: "color-mix(in srgb, var(--primary) 5%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)" }}>
                     {perfil.personaje_favorito.img_url
-                      ? <img src={perfil.personaje_favorito.img_url} alt={perfil.personaje_favorito.nombre} className="w-full h-full object-contain" />
-                      : <User size={14} className="m-auto mt-1" style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }} />}
+                      ? <img alt={perfil.personaje_favorito.nombre} className="w-full h-full object-contain" src={perfil.personaje_favorito.img_url} />
+                      : <User className="m-auto mt-1" size={14} style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }} />}
                   </div>
                   <p className="font-serif italic text-[11px] capitalize" style={{ color: "var(--primary)" }}>
                     {perfil.personaje_favorito.nombre}
@@ -618,8 +619,8 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                   <div className="w-8 h-8 overflow-hidden shrink-0"
                     style={{ borderRadius: "var(--radius-btn)", background: "color-mix(in srgb, var(--primary) 5%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)" }}>
                     {perfil.mascota.imagen_url
-                      ? <img src={perfil.mascota.imagen_url} alt={perfil.mascota.nombre} className="w-full h-full object-contain" />
-                      : <Cat size={14} className="m-auto mt-1" style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }} />}
+                      ? <img alt={perfil.mascota.nombre} className="w-full h-full object-contain" src={perfil.mascota.imagen_url} />
+                      : <Cat className="m-auto mt-1" size={14} style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }} />}
                   </div>
                   <p className="font-serif italic text-[11px] capitalize" style={{ color: "var(--primary)" }}>
                     {perfil.mascota.nombre}
@@ -658,8 +659,7 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
               {tabs.map(t => {
                 const isActive = tab === t.id;
                 return (
-                  <button key={t.id} onClick={() => setTab(t.id)}
-                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 transition-all duration-200"
+                  <button key={t.id} className="flex-1 flex items-center justify-center gap-1.5 py-2.5 transition-all duration-200"
                     style={{
                       background: isActive ? "color-mix(in srgb, var(--primary) 2%, var(--bg-main))" : "transparent",
                       color: isActive ? "var(--primary)" : "color-mix(in srgb, var(--primary) 35%, transparent)",
@@ -671,7 +671,8 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                       marginBottom: isActive ? "-1px" : "0",
                       zIndex: isActive ? 2 : 1,
                       position: "relative",
-                    }}>
+                    }}
+                    onClick={() => setTab(t.id)}>
                     <t.icon size={11} />
                     <span className="text-[9px] font-black uppercase tracking-widest">{t.label}</span>
                   </button>
@@ -686,8 +687,7 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                 {tabs.map(t => {
                   const isActive = tab === t.id;
                   return (
-                    <button key={t.id} onClick={() => setTab(t.id)}
-                      className="relative flex flex-1 items-center justify-center gap-2 px-5 py-2.5 transition-all duration-200"
+                    <button key={t.id} className="relative flex flex-1 items-center justify-center gap-2 px-5 py-2.5 transition-all duration-200"
                       style={{
                         background: isActive ? "var(--white-custom)" : "transparent",
                         color: isActive ? "var(--primary)" : "color-mix(in srgb, var(--primary) 35%, transparent)",
@@ -697,7 +697,8 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                         borderBottom: isActive ? "1px solid var(--white-custom)" : "1px solid transparent",
                         borderRadius: "4px 4px 0 0",
                         marginBottom: isActive ? "-1px" : "0",
-                      }}>
+                      }}
+                      onClick={() => setTab(t.id)}>
                       <t.icon size={11} />
                       <span className="text-[10px] font-black uppercase tracking-widest">{t.label}</span>
                     </button>
@@ -727,21 +728,21 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
             }}>
               <AnimatePresence mode="wait">
                 <MotionDiv key={tab}
-                  initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
-                  transition={{ duration: 0.16 }}
-                  className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                  animate={{ opacity: 1, y: 0 }} className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3" exit={{ opacity: 0, y: -6 }}
+                  initial={{ opacity: 0, y: 6 }}
+                  transition={{ duration: 0.16 }}>
 
                   {tab === "items" && (
                     <>
                       {inventario.map((item, i) => (
                         <EntidadCard key={`inv-${i}`}
-                          imagen={item.items.imagen_url} nombre={item.items.nombre} sub={item.items.categoria}
-                          icono={<Sword size={20} />} onClick={() => setModalD({ tipo: "item_inv", data: item })} />
+                          icono={<Sword size={20} />} imagen={item.items.imagen_url} nombre={item.items.nombre}
+                          sub={item.items.categoria} onClick={() => setModalD({ tipo: "item_inv", data: item })} />
                       ))}
                       {misItemsDesc.map((d, i) => (
                         <EntidadCard key={`desc-${i}`}
-                          imagen={d.imagen_url} nombre={d.nombre ?? "Objeto"} sub={d.categoria ?? "Item"}
-                          icono={<Sword size={20} />} onClick={() => setModalD({ tipo: "item", data: d })} />
+                          icono={<Sword size={20} />} imagen={d.imagen_url} nombre={d.nombre ?? "Objeto"}
+                          sub={d.categoria ?? "Item"} onClick={() => setModalD({ tipo: "item", data: d })} />
                       ))}
                       {inventario.length === 0 && misItemsDesc.length === 0 && <EmptyTab label="Sin items registrados aún" />}
                     </>
@@ -750,8 +751,8 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                   {tab === "criaturas" && (
                     misCriaturas.length > 0
                       ? misCriaturas.map((d, i) => (
-                        <EntidadCard key={i} imagen={d.imagen_url} nombre={d.nombre ?? "Criatura"} sub={d.habitat}
-                          icono={<Cat size={20} />} onClick={() => setModalD({ tipo: "criatura", data: d })} />
+                        <EntidadCard key={i} icono={<Cat size={20} />} imagen={d.imagen_url} nombre={d.nombre ?? "Criatura"}
+                          sub={d.habitat} onClick={() => setModalD({ tipo: "criatura", data: d })} />
                       ))
                       : <EmptyTab label="Sin criaturas descubiertas" />
                   )}
@@ -760,7 +761,6 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                     misPersonajes.length > 0
                       ? misPersonajes.map((d, i) => (
                           <button key={i}
-                            onClick={() => handleOpenPersonajeModal(d)}
                             className="group relative flex flex-col overflow-hidden transition-all duration-200 hover:shadow-md"
                             style={{
                               background: "var(--white-custom)",
@@ -768,12 +768,13 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                               borderRadius: "var(--radius-btn)",
                               aspectRatio: "3/4",
                             }}
+                            onClick={() => handleOpenPersonajeModal(d)}
                             onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 22%, transparent)"; }}
                             onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 10%, transparent)"; }}>
                             <div className="flex-1 relative overflow-hidden flex items-center justify-center p-2">
                               {d.imagen_url
-                                ? <img src={d.imagen_url} alt={d.nombre}
-                                    className="w-full h-full object-contain transition-transform duration-300"
+                                ? <img alt={d.nombre} className="w-full h-full object-contain transition-transform duration-300"
+                                    src={d.imagen_url}
                                     style={{ objectPosition: "center", transform: "scale(3)" }}
                                     onMouseEnter={e => { (e.currentTarget as HTMLImageElement).style.transform = "scale(3.3)"; }}
                                     onMouseLeave={e => { (e.currentTarget as HTMLImageElement).style.transform = "scale(3)"; }} />
@@ -795,17 +796,6 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                     reinos.length > 0
                       ? reinos.map((r, i) => (
                           <button key={i}
-                            onClick={() => {
-                              setCiudadesReino(ciudades.filter(l => l.reino_id === r.id));
-                              setModalD({ tipo: "reino", data: {
-                                tipo: "item",
-                                entidad_id: r.id,
-                                nombre: r.nombre,
-                                imagen_url: r.mapa_url ?? undefined,
-                                descripcion: r.descripcion ?? undefined,
-                                fecha_descubrimiento: "",
-                              }});
-                            }}
                             className="group relative overflow-hidden text-left transition-all duration-150"
                             style={{
                               background: "color-mix(in srgb, var(--primary) 3%, var(--white-custom))",
@@ -816,6 +806,17 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                               display: "flex",
                               flexDirection: "column",
                               minHeight: "80px",
+                            }}
+                            onClick={() => {
+                              setCiudadesReino(ciudades.filter(l => l.reino_id === r.id));
+                              setModalD({ tipo: "reino", data: {
+                                tipo: "item",
+                                entidad_id: r.id,
+                                nombre: r.nombre,
+                                imagen_url: r.mapa_url ?? undefined,
+                                descripcion: r.descripcion ?? undefined,
+                                fecha_descubrimiento: "",
+                              }});
                             }}
                             onMouseEnter={e => {
                               (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 35%, transparent)";
@@ -829,8 +830,8 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                             }}>
                             <div className="flex-1 relative overflow-hidden flex items-center justify-center p-2" style={{ minHeight: "64px", width: "100%" }}>
                               {r.mapa_url
-                                ? <img src={r.mapa_url} alt={r.nombre}
-                                    className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-110" />
+                                ? <img alt={r.nombre} className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-110"
+                                    src={r.mapa_url} />
                                 : <MapPin size={22} style={{ color: "color-mix(in srgb, var(--primary) 14%, transparent)" }} />}
                             </div>
                             <div className="px-1.5 py-1" style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 4%, transparent)" }}>
@@ -919,15 +920,15 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                 style={{ border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)", borderRadius: "var(--radius-card)", background: "var(--white-custom)" }}>
                 {otrosPerfiles.map((p, idx) => (
                   <Link key={p.id} href={`/garlia/personal/${p.username}`}>
-                    <MotionDiv whileHover={{ x: 2 }}
-                      className="flex items-center gap-2.5 px-3 py-3 cursor-pointer transition-colors"
+                    <MotionDiv className="flex items-center gap-2.5 px-3 py-3 cursor-pointer transition-colors"
                       style={{ borderBottom: idx < otrosPerfiles.length - 1 ? "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" : "none" }}
+                      whileHover={{ x: 2 }}
                       onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 3%, transparent)"; }}
                       onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}>
                       <div className="w-7 h-7 shrink-0 overflow-hidden flex items-center justify-center"
                         style={{ borderRadius: "2px", background: "color-mix(in srgb, var(--primary) 7%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)" }}>
                         {p.avatar_url
-                          ? <img src={p.avatar_url} alt={p.username} className="w-full h-full object-contain" />
+                          ? <img alt={p.username} className="w-full h-full object-contain" src={p.avatar_url} />
                           : <User size={11} style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }} />}
                       </div>
                       <div className="flex-1 min-w-0">

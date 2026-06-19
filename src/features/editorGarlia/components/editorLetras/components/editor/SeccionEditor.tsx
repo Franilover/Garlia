@@ -1,8 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
 import { GripVertical, ChevronUp, ChevronDown, Copy, Trash2 } from "lucide-react";
+import React, { useState } from "react";
+
 import { useConfirm } from "@/components/ui/ConfirmModal";
+
 import { SeccionTextarea } from "./SeccionTextarea";
 import type { Seccion, IdiomaKey } from "../../types";
 
@@ -31,27 +33,27 @@ export const SeccionEditor = ({
   return (
     <div>
       <div className="flex items-center gap-2 px-4 pt-1.5 pb-0.5">
-        <GripVertical size={13} className="text-primary/15 shrink-0" />
+        <GripVertical className="text-primary/15 shrink-0" size={13} />
         <input
-          value={nombre}
-          onChange={e => setNombre(e.target.value)}
-          onBlur={() => nombre !== sec.nombre_seccion && onSaveNombre(sec.id, nombre)}
-          onKeyDown={e => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
           className="flex-1 bg-transparent text-[11px] font-black uppercase text-primary outline-none tracking-widest placeholder:text-primary/20 min-w-0 hover:bg-primary/5 focus:bg-primary/8 rounded-lg px-2 py-0.5 -mx-2 transition-colors"
           placeholder="NOMBRE DE SECCIÓN…"
+          value={nombre}
+          onBlur={() => nombre !== sec.nombre_seccion && onSaveNombre(sec.id, nombre)}
+          onChange={e => setNombre(e.target.value)}
+          onKeyDown={e => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
         />
         <div className="flex items-center gap-0.5 shrink-0">
-          <button onClick={onMoveUp}   disabled={isFirst} className="p-1 rounded-lg hover:bg-primary/10 text-primary/20 hover:text-primary disabled:opacity-20 transition-all"><ChevronUp   size={12} /></button>
-          <button onClick={onMoveDown} disabled={isLast}  className="p-1 rounded-lg hover:bg-primary/10 text-primary/20 hover:text-primary disabled:opacity-20 transition-all"><ChevronDown size={12} /></button>
+          <button className="p-1 rounded-lg hover:bg-primary/10 text-primary/20 hover:text-primary disabled:opacity-20 transition-all"   disabled={isFirst} onClick={onMoveUp}><ChevronUp   size={12} /></button>
+          <button className="p-1 rounded-lg hover:bg-primary/10 text-primary/20 hover:text-primary disabled:opacity-20 transition-all" disabled={isLast}  onClick={onMoveDown}><ChevronDown size={12} /></button>
           <button
-            onClick={() => onDuplicate(sec)}
-            title="Duplicar sección"
             className="p-1 rounded-lg hover:bg-primary/10 text-primary/20 hover:text-primary transition-all"
+            title="Duplicar sección"
+            onClick={() => onDuplicate(sec)}
           ><Copy size={12} /></button>
-          <button onClick={async () => {
+          <button className="p-1 rounded-lg hover:bg-red-500/10 text-primary/20 hover:text-red-400 transition-all" onClick={async () => {
             const ok = await confirm({ message: `¿Eliminar sección "${nombre}"?`, danger: true });
             if (ok) onDelete(sec.id);
-          }} className="p-1 rounded-lg hover:bg-red-500/10 text-primary/20 hover:text-red-400 transition-all"><Trash2 size={12} /></button>
+          }}><Trash2 size={12} /></button>
         </div>
       </div>
 
@@ -63,23 +65,23 @@ export const SeccionEditor = ({
           En modo simple no hay referencia automática.
         */}
         <SeccionTextarea
-          sec={sec}
-          idioma={idiomaA}
-          refIdioma={splitMode ? idiomaB : undefined}
-          onSave={onSaveField}
-          nombreSeccion={nombre}
           countMode={countMode}
+          idioma={idiomaA}
+          nombreSeccion={nombre}
+          refIdioma={splitMode ? idiomaB : undefined}
+          sec={sec}
+          onSave={onSaveField}
         />
         {splitMode && (
           <>
             <div className="w-px bg-primary/10 shrink-0 self-stretch" />
             <SeccionTextarea
-              sec={sec}
-              idioma={idiomaB}
-              refIdioma={idiomaA}
-              onSave={onSaveField}
-              nombreSeccion={nombre}
               countMode={countMode}
+              idioma={idiomaB}
+              nombreSeccion={nombre}
+              refIdioma={idiomaA}
+              sec={sec}
+              onSave={onSaveField}
             />
           </>
         )}

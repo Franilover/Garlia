@@ -304,7 +304,6 @@ export function ThemeSelector() {
         {THEMES.map(t => (
           <button
             key={t.id}
-            onClick={() => setTheme(t.id)}
             className="flex items-center gap-3 px-3 py-2.5 transition-all text-left"
             style={{
               borderRadius: "var(--radius-btn)",
@@ -316,6 +315,7 @@ export function ThemeSelector() {
                 ? "var(--btn-text)"
                 : "color-mix(in srgb, var(--primary) 60%, transparent)",
             }}
+            onClick={() => setTheme(t.id)}
           >
             <span className="text-lg leading-none">{t.emoji}</span>
             <p className="text-[11px] font-black uppercase tracking-wide leading-none">{t.label}</p>
@@ -336,14 +336,14 @@ export function ThemeSelector() {
             {ACCENT_OPTIONS.map(a => (
               <button
                 key={a.id}
-                onClick={() => setAccent(a.id)}
-                title={a.label}
                 className={`w-8 h-8 rounded-full border-2 transition-all ${
                   accent === a.id
                     ? "scale-110 border-white shadow-lg"
                     : "border-transparent hover:scale-105 opacity-70 hover:opacity-100"
                 }`}
                 style={{ backgroundColor: a.hex }}
+                title={a.label}
+                onClick={() => setAccent(a.id)}
               />
             ))}
           </div>

@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { supabase } from "@/lib/api/client/supabase";
-import { db } from "@/lib/api/client/db";
+
 import { ComboSelector } from "@/components/ui/ComboSelector";
+import { db } from "@/lib/api/client/db";
+import { supabase } from "@/lib/api/client/supabase";
 
 async function loreReadRelaciones(
   tabla: string,
@@ -207,20 +208,20 @@ export function BloqueDones({ personajeId, grupoIds = [] }: {
   return (
     <div className="space-y-1">
       <ComboSelector
-        mode="single"
+        allowNone
+        hint={sinGrupos ? "requiere especie" : undefined}
         items={items}
-        value={donId}
-        onChange={assign}
         label="Don"
+        loading={loading}
+        mode="single"
+        noneLabel="Sin don"
         placeholder={
           loading    ? "Cargando…"   :
           sinGrupos  ? "Sin grupos…" :
           "Elegir don…"
         }
-        loading={loading}
-        allowNone
-        noneLabel="Sin don"
-        hint={sinGrupos ? "requiere especie" : undefined}
+        value={donId}
+        onChange={assign}
       />
     </div>
   );

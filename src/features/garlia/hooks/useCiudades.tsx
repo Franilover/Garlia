@@ -1,6 +1,7 @@
 "use client";
-import React, { useState, useEffect, useRef, useCallback } from "react";
 import { X, MapPin } from "lucide-react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+
 import { MotionDiv } from "@/components/ui/Motion";
 import { supabase } from "@/lib/api/client/supabase";
 
@@ -82,11 +83,11 @@ export function CiudadesDesbloqueadasToast({
 
   return (
     <MotionDiv
-      initial={{ opacity: 0, y: 40, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: 20, scale: 0.95 }}
-      transition={{ type: "spring", stiffness: 400, damping: 30 }}
       className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[300] w-[calc(100vw-2rem)] max-w-sm"
+      exit={{ opacity: 0, y: 20, scale: 0.95 }}
+      initial={{ opacity: 0, y: 40, scale: 0.95 }}
+      transition={{ type: "spring", stiffness: 400, damping: 30 }}
     >
       <div
         className="rounded-[var(--radius-card)] border border-primary/15 shadow-2xl overflow-hidden"
@@ -100,7 +101,7 @@ export function CiudadesDesbloqueadasToast({
             <MapPin size={11} />
             {ciudades.length === 1 ? "Ciudad descubierta" : `${ciudades.length} ciudades descubiertas`}
           </span>
-          <button onClick={onClose} className="text-primary/30 hover:text-primary transition-colors">
+          <button className="text-primary/30 hover:text-primary transition-colors" onClick={onClose}>
             <X size={14} />
           </button>
         </div>
@@ -109,7 +110,7 @@ export function CiudadesDesbloqueadasToast({
             <div key={l.id} className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-[var(--radius-btn)] overflow-hidden border border-primary/10 shrink-0 bg-primary/5">
                 {l.imagen_url
-                  ? <img src={l.imagen_url} alt={l.nombre} className="w-full h-full object-cover" />
+                  ? <img alt={l.nombre} className="w-full h-full object-cover" src={l.imagen_url} />
                   : <div className="w-full h-full flex items-center justify-center text-primary/20 text-xs font-black">{l.nombre[0]}</div>
                 }
               </div>

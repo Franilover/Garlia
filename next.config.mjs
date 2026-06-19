@@ -12,6 +12,9 @@ const withPWA = withPWAInit({
 });
 
 const nextConfig = {
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   turbopack: {},
   images: {
     remotePatterns: [

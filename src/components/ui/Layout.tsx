@@ -1,8 +1,9 @@
 "use client";
-import { MotionDiv, MotionMain, MotionH1, MotionH2, MotionButton, MotionLi, MotionSpan, MotionP, MotionSection, MotionArticle, MotionImg } from "@/components/ui/Motion";
-import React from "react";
-import { X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { X } from "lucide-react";
+import React from "react";
+
+import { MotionDiv, MotionMain, MotionH1, MotionH2, MotionButton, MotionLi, MotionSpan, MotionP, MotionSection, MotionArticle, MotionImg } from "@/components/ui/Motion";
 import { Text } from "@/components/ui/Tiopgrafia";
 
 interface ModalProps {
@@ -20,16 +21,16 @@ export function Modal({ open, onClose, title, subtitle, children, maxWidth = "ma
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
           <MotionDiv
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            animate={{ opacity: 1 }} className="absolute inset-0 bg-primary/20 backdrop-blur-sm" exit={{ opacity: 0 }}
+            initial={{ opacity: 0 }}
             onClick={onClose}
-            className="absolute inset-0 bg-primary/20 backdrop-blur-sm"
           />
           <MotionDiv
-            initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.9, opacity: 0 }}
-            transition={{ type: "spring", stiffness: 400, damping: 30 }}
             className={`relative bg-white-custom rounded-[var(--radius-card)] p-8 w-full ${maxWidth} shadow-2xl border border-primary/10 z-10`}
+            exit={{ scale: 0.9, opacity: 0 }}
+            initial={{ scale: 0.9, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 400, damping: 30 }}
           >
             {(title || subtitle) && (
               <div className="mb-6">
@@ -45,7 +46,7 @@ export function Modal({ open, onClose, title, subtitle, children, maxWidth = "ma
                 )}
               </div>
             )}
-            <button onClick={onClose} className="absolute top-5 right-5 text-primary/20 hover:text-primary transition-colors">
+            <button className="absolute top-5 right-5 text-primary/20 hover:text-primary transition-colors" onClick={onClose}>
               <X size={18} />
             </button>
             {children}
@@ -71,7 +72,6 @@ export function Card({ children, className = "", onClick, hover, padding = "md" 
   return (
     <Tag
       {...(onClick ? { onClick } : {})}
-      whileHover={hover || onClick ? { y: -2 } : undefined}
       className={[
         "card-main text-left transition-all duration-200",
         pads[padding],
@@ -81,6 +81,7 @@ export function Card({ children, className = "", onClick, hover, padding = "md" 
           : "",
         className,
       ].join(" ")}
+      whileHover={hover || onClick ? { y: -2 } : undefined}
     >
       {children}
     </Tag>
@@ -97,15 +98,15 @@ interface PageHeaderProps {
 export function PageHeader({ title, subtitle, icon, action }: PageHeaderProps) {
   return (
     <MotionDiv
-      initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }}
-      className="flex items-end justify-between mb-10"
+      animate={{ x: 0, opacity: 1 }} className="flex items-end justify-between mb-10"
+      initial={{ x: -20, opacity: 0 }}
     >
       <div>
-        <Text variant="xl" as="h1" className="text-primary flex items-center gap-3 leading-none">
+        <Text as="h1" className="text-primary flex items-center gap-3 leading-none" variant="xl">
           {icon} {title}
         </Text>
         {subtitle && (
-          <Text variant="cap" className="mt-2">
+          <Text className="mt-2" variant="cap">
             {subtitle}
           </Text>
         )}
@@ -123,8 +124,8 @@ interface BackBtnProps {
 export function BackBtn({ onClick, label = "Volver" }: BackBtnProps) {
   return (
     <button
-      onClick={onClick}
       className="flex items-center gap-2 font-black text-[10px] uppercase italic text-primary/40 hover:text-primary transition-colors group p-4"
+      onClick={onClick}
     >
       <span className="group-hover:-translate-x-1 transition-transform">←</span>
       {label}

@@ -1,6 +1,7 @@
+import { enqueueOperation } from "@/hooks/data/useOfflineSync";
 import { db } from "@/lib/api/client/db";
 import { cancionesQueries } from "@/lib/api/queries/garlia/canciones";
-import { enqueueOperation } from "@/hooks/data/useOfflineSync";
+
 import { TABLA_SEC } from "../constants";
 import type { Seccion } from "../types";
 

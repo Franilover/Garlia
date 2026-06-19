@@ -1,22 +1,25 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Bug, Plus, Check, X, Trash2, Save, ChevronDown,
   Brain, Wand2, Package, Wrench, Layers, Users,
   MapPin, Globe, ExternalLink, Pencil, Search, UserCircle2,
   Sparkles, Star, Loader2, SlidersHorizontal, Camera,
 } from "lucide-react";
-import { supabase } from "@/lib/api/client/supabase";
-import { db } from "@/lib/api/client/db";
-import { useConfirm } from "@/components/ui/ConfirmModal";
-import { type Criatura, type SaveStatus } from "../components/types";
-import { useGruposDeCriatura, usePersonajesDeEspecie, type GrupoMin } from "../components/hooks";
-import { SelectorImagen, SaveIndicator } from "../components/UIComponents";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+
 import { MarkdownEditor, WikiEntity } from "@/components/forms/Markdown/MarkdownEditor";
-import { useWikilink } from "../components/WikilinkContext";
+import { useConfirm } from "@/components/ui/ConfirmModal";
 import { SeccionEntidad } from "@/components/ui/SeccionEntidad";
 import SimpleImagePicker from "@/features/editorGarlia/components/editorCapitulos/snippets/forms/SimpleImagePicker";
+import { db } from "@/lib/api/client/db";
+import { supabase } from "@/lib/api/client/supabase";
+
+import { useGruposDeCriatura, usePersonajesDeEspecie, type GrupoMin } from "../components/hooks";
+import { type Criatura, type SaveStatus } from "../components/types";
+import { SelectorImagen, SaveIndicator } from "../components/UIComponents";
+import { useWikilink } from "../components/WikilinkContext";
+
 
 async function loreReadRelaciones(
   tabla: string,
@@ -100,16 +103,16 @@ function PickerImagenCriaturaBtn({ value, onChange }: { value: string; onChange:
           <div className="bg-white-custom rounded-2xl shadow-2xl border border-primary/15 w-full max-w-lg p-5" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-2"><Camera size={11} /> Imagen de la criatura</h3>
-              <button onClick={() => setOpen(false)} className="text-primary/30 hover:text-primary transition-colors"><X size={16} /></button>
+              <button className="text-primary/30 hover:text-primary transition-colors" onClick={() => setOpen(false)}><X size={16} /></button>
             </div>
-            <SimpleImagePicker onSelect={url => { onChange(url); setOpen(false); }} onClose={() => setOpen(false)} />
+            <SimpleImagePicker onClose={() => setOpen(false)} onSelect={url => { onChange(url); setOpen(false); }} />
           </div>
         </div>
       )}
       <button
-        onClick={() => setOpen(true)}
         className="flex items-center justify-center w-8 h-8 rounded-full bg-bg-main/80 backdrop-blur-sm border border-primary/20 text-primary/50 hover:text-primary hover:bg-bg-main transition-all shadow-md"
         title="Cambiar imagen"
+        onClick={() => setOpen(true)}
       >
         <Camera size={13} />
       </button>
@@ -404,23 +407,23 @@ function BloqueItemsNaturales({
           {items.map(it => (
             <div key={it.dropId} className="relative group">
               <button
-                onClick={() => onSelectItem?.(it.itemId)}
                 className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-left transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
                 style={{
                   background: "color-mix(in srgb, var(--primary) 4%, transparent)",
                   border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
                 }}
+                onClick={() => onSelectItem?.(it.itemId)}
               >
                 <div className="shrink-0 w-7 h-7 rounded-md overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
                   {it.itemImg
-                    ? <img src={it.itemImg} alt={it.itemName} className="w-full h-full object-cover" />
-                    : <Package size={11} className="text-primary/20" />}
+                    ? <img alt={it.itemName} className="w-full h-full object-cover" src={it.itemImg} />
+                    : <Package className="text-primary/20" size={11} />}
                 </div>
                 <span className="flex-1 text-[10px] font-bold text-primary/65 truncate leading-tight">{it.itemName}</span>
               </button>
               <button
-                onClick={e => { e.stopPropagation(); remove(it.dropId); }}
                 className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all bg-red-500/10 hover:bg-red-500/20 text-red-400/60 hover:text-red-400 border border-red-500/20 cursor-pointer"
+                onClick={e => { e.stopPropagation(); remove(it.dropId); }}
               >
                 <X size={8} />
               </button>
@@ -430,29 +433,29 @@ function BloqueItemsNaturales({
       )}
 
       <div className="relative">
-        <button onClick={() => setOpen(o => !o)}
-          className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg border border-dashed border-primary/15 text-[9px] font-black uppercase tracking-widest text-primary/30 hover:text-primary/60 hover:border-primary/30 transition-all cursor-pointer">
+        <button className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg border border-dashed border-primary/15 text-[9px] font-black uppercase tracking-widest text-primary/30 hover:text-primary/60 hover:border-primary/30 transition-all cursor-pointer"
+          onClick={() => setOpen(o => !o)}>
           <Plus size={9} /> Añadir ítem
         </button>
         {open && (
           <div className="absolute top-full left-0 right-0 z-20 mt-1 rounded-xl shadow-xl overflow-hidden"
             style={{ background: "var(--bg-main)", border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)" }}>
             <div className="p-1.5 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-              <input autoFocus value={search} onChange={e => setSearch(e.target.value)}
-                placeholder="Buscar ítem…"
-                className="w-full bg-transparent text-[10px] text-primary outline-none placeholder:text-primary/30 px-1.5 py-0.5" />
+              <input autoFocus className="w-full bg-transparent text-[10px] text-primary outline-none placeholder:text-primary/30 px-1.5 py-0.5" placeholder="Buscar ítem…"
+                value={search}
+                onChange={e => setSearch(e.target.value)} />
             </div>
             <div className="max-h-40 overflow-y-auto">
               {filtered.length === 0 && (
                 <p className="text-[9px] text-primary/25 italic text-center py-3">Sin resultados</p>
               )}
               {filtered.map(it => (
-                <button key={it.id} onClick={() => { add(it); setOpen(false); setSearch(""); }}
-                  className="w-full flex items-center gap-2 px-2.5 py-1.5 hover:bg-primary/5 transition-colors text-left cursor-pointer">
+                <button key={it.id} className="w-full flex items-center gap-2 px-2.5 py-1.5 hover:bg-primary/5 transition-colors text-left cursor-pointer"
+                  onClick={() => { add(it); setOpen(false); setSearch(""); }}>
                   <div className="shrink-0 w-5 h-5 rounded-md overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
                     {it.imagen_url
-                      ? <img src={it.imagen_url} alt={it.nombre} className="w-full h-full object-cover" />
-                      : <Package size={8} className="text-primary/20" />}
+                      ? <img alt={it.nombre} className="w-full h-full object-cover" src={it.imagen_url} />
+                      : <Package className="text-primary/20" size={8} />}
                   </div>
                   <span className="text-[10px] font-bold text-primary/65 truncate">{it.nombre}</span>
                 </button>
@@ -501,25 +504,25 @@ function BloqueItemsCraftedos({
             <div key={it.crafterId} className="relative group">
               {/* Tarjeta clickeable */}
               <button
-                onClick={() => onSelectItem?.(it.itemId)}
                 className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-left transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
                 style={{
                   background: "color-mix(in srgb, var(--primary) 4%, transparent)",
                   border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
                 }}
+                onClick={() => onSelectItem?.(it.itemId)}
               >
                 <div className="shrink-0 w-7 h-7 rounded-md overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
                   {it.itemImg
-                    ? <img src={it.itemImg} alt={it.itemName} className="w-full h-full object-cover" />
-                    : <Package size={11} className="text-primary/20" />}
+                    ? <img alt={it.itemName} className="w-full h-full object-cover" src={it.itemImg} />
+                    : <Package className="text-primary/20" size={11} />}
                 </div>
                 <span className="flex-1 text-[10px] font-bold text-primary/65 truncate leading-tight">{it.itemName}</span>
               </button>
 
               {/* Botón quitar flotante */}
               <button
-                onClick={e => { e.stopPropagation(); remove(it.crafterId); }}
                 className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all bg-red-500/10 hover:bg-red-500/20 text-red-400/60 hover:text-red-400 border border-red-500/20 cursor-pointer"
+                onClick={e => { e.stopPropagation(); remove(it.crafterId); }}
               >
                 <X size={8} />
               </button>
@@ -530,29 +533,29 @@ function BloqueItemsCraftedos({
 
       {/* Dropdown para añadir */}
       <div className="relative">
-        <button onClick={() => setOpen(o => !o)}
-          className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg border border-dashed border-primary/15 text-[9px] font-black uppercase tracking-widest text-primary/30 hover:text-primary/60 hover:border-primary/30 transition-all cursor-pointer">
+        <button className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg border border-dashed border-primary/15 text-[9px] font-black uppercase tracking-widest text-primary/30 hover:text-primary/60 hover:border-primary/30 transition-all cursor-pointer"
+          onClick={() => setOpen(o => !o)}>
           <Plus size={9} /> Añadir ítem
         </button>
         {open && (
           <div className="absolute top-full left-0 right-0 z-20 mt-1 rounded-xl shadow-xl overflow-hidden"
             style={{ background: "var(--bg-main)", border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)" }}>
             <div className="p-1.5 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-              <input autoFocus value={search} onChange={e => setSearch(e.target.value)}
-                placeholder="Buscar ítem…"
-                className="w-full bg-transparent text-[10px] text-primary outline-none placeholder:text-primary/30 px-1.5 py-0.5" />
+              <input autoFocus className="w-full bg-transparent text-[10px] text-primary outline-none placeholder:text-primary/30 px-1.5 py-0.5" placeholder="Buscar ítem…"
+                value={search}
+                onChange={e => setSearch(e.target.value)} />
             </div>
             <div className="max-h-40 overflow-y-auto">
               {filtered.length === 0 && (
                 <p className="text-[9px] text-primary/25 italic text-center py-3">Sin resultados</p>
               )}
               {filtered.map(it => (
-                <button key={it.id} onClick={() => { add(it); setOpen(false); setSearch(""); }}
-                  className="w-full flex items-center gap-2 px-2.5 py-1.5 hover:bg-primary/5 transition-colors text-left cursor-pointer">
+                <button key={it.id} className="w-full flex items-center gap-2 px-2.5 py-1.5 hover:bg-primary/5 transition-colors text-left cursor-pointer"
+                  onClick={() => { add(it); setOpen(false); setSearch(""); }}>
                   <div className="shrink-0 w-5 h-5 rounded-md overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
                     {it.imagen_url
-                      ? <img src={it.imagen_url} alt={it.nombre} className="w-full h-full object-cover" />
-                      : <Package size={8} className="text-primary/20" />}
+                      ? <img alt={it.nombre} className="w-full h-full object-cover" src={it.imagen_url} />
+                      : <Package className="text-primary/20" size={8} />}
                   </div>
                   <span className="text-[10px] font-bold text-primary/65 truncate">{it.nombre}</span>
                 </button>
@@ -585,22 +588,22 @@ function CampoLore({
       }}
     >
       <button
+        className="w-full flex items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-primary/3 cursor-pointer"
         type="button"
         onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-primary/3 cursor-pointer"
       >
-        {Icon && <Icon size={12} className="shrink-0 text-primary/35" />}
+        {Icon && <Icon className="shrink-0 text-primary/35" size={12} />}
         <div className="flex-1 min-w-0">
           <p className="text-[10px] font-black uppercase tracking-[0.25em] text-primary/40">{label}</p>
           {!open && preview && <p className="text-[11px] text-primary/35 truncate mt-0.5 font-medium italic">{preview}…</p>}
           {!open && !preview && <p className="text-[10px] text-primary/20 mt-0.5 italic">{placeholder?.slice(0, 55)}…</p>}
         </div>
-        <ChevronDown size={13} className="shrink-0 text-primary/25 transition-transform duration-200"
+        <ChevronDown className="shrink-0 text-primary/25 transition-transform duration-200" size={13}
           style={{ transform: open ? "rotate(180deg)" : undefined }} />
       </button>
       {open && (
         <div className="px-4 pb-4 pt-1">
-          <MarkdownEditor value={value} onChange={onChange} placeholder={placeholder} rows={rows} toolbar defaultMode="edit" onSnippetAction={onSnippetAction} entities={entities}
+          <MarkdownEditor toolbar defaultMode="edit" entities={entities} placeholder={placeholder} rows={rows} value={value} onChange={onChange} onSnippetAction={onSnippetAction}
 />
         </div>
       )}
@@ -658,7 +661,7 @@ function BloqueGrupoCategoria({
   }, [open]);
 
   return (
-    <div className="space-y-1.5" ref={containerRef}>
+    <div ref={containerRef} className="space-y-1.5">
       {/* Filas de valores asignados */}
       {actual.length > 0 && (
         <div className="flex flex-col gap-1">
@@ -673,24 +676,24 @@ function BloqueGrupoCategoria({
             >
               {/* Click principal → navegar al grupo */}
               <button
-                type="button"
-                onClick={() => onSelectGrupo?.(g.id)}
                 className="flex-1 flex items-center gap-2 px-3 py-2 text-[11px] font-black uppercase truncate transition-all hover:bg-primary/5 min-w-0"
                 style={{ color: "var(--primary)" }}
                 title="Ir al grupo"
+                type="button"
+                onClick={() => onSelectGrupo?.(g.id)}
               >
                 <span className="truncate">{g.nombre}</span>
               </button>
               {/* Lápiz → abre el dropdown para cambiar */}
               <button
-                type="button"
-                onClick={() => { setOpen(o => !o); setSearch(""); }}
                 className="shrink-0 flex items-center justify-center px-2.5 py-2 transition-all hover:bg-primary/10"
                 style={{
                   borderLeft: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
                   color: "color-mix(in srgb, var(--primary) 35%, transparent)",
                 }}
                 title="Cambiar"
+                type="button"
+                onClick={() => { setOpen(o => !o); setSearch(""); }}
               >
                 <Pencil size={10} />
               </button>
@@ -702,19 +705,19 @@ function BloqueGrupoCategoria({
       {/* Trigger vacío */}
       {actual.length === 0 && (
         <button
-          type="button"
-          onClick={() => setOpen(o => !o)}
           className="w-full flex items-center justify-between px-3 py-2 rounded-[var(--radius-btn)] text-[11px] font-bold transition-all"
           style={{
             background: "color-mix(in srgb, var(--primary) 5%, transparent)",
             border: open ? borderFocus : border,
             color: "color-mix(in srgb, var(--primary) 40%, transparent)",
           }}
+          type="button"
+          onClick={() => setOpen(o => !o)}
         >
           <span className="font-black uppercase text-[10px] tracking-wide">Sin asignar</span>
           <ChevronDown
-            size={12}
             className={`shrink-0 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+            size={12}
             style={{ opacity: 0.5 }}
           />
         </button>
@@ -738,16 +741,16 @@ function BloqueGrupoCategoria({
             <Search size={11} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)", flexShrink: 0 }} />
             <input
               autoFocus
+              className="flex-1 bg-transparent outline-none text-[11px] font-bold uppercase tracking-wide placeholder:normal-case placeholder:font-medium placeholder:tracking-normal"
+              placeholder="Buscar…"
+              style={{ color: "var(--primary)", caretColor: "var(--primary)" }}
               type="text"
               value={search}
               onChange={e => setSearch(e.target.value)}
               onKeyDown={e => e.key === "Escape" && (setOpen(false), setSearch(""))}
-              placeholder="Buscar…"
-              className="flex-1 bg-transparent outline-none text-[11px] font-bold uppercase tracking-wide placeholder:normal-case placeholder:font-medium placeholder:tracking-normal"
-              style={{ color: "var(--primary)", caretColor: "var(--primary)" }}
             />
             {search && (
-              <button type="button" onClick={() => setSearch("")} className="opacity-30 hover:opacity-70 transition-opacity">
+              <button className="opacity-30 hover:opacity-70 transition-opacity" type="button" onClick={() => setSearch("")}>
                 <X size={10} style={{ color: "var(--primary)" }} />
               </button>
             )}
@@ -758,13 +761,13 @@ function BloqueGrupoCategoria({
             {/* Opción "quitar" si hay algo asignado */}
             {actual.length > 0 && (
               <button
-                type="button"
-                onMouseDown={() => { actual.forEach(g => onRemove(g.id)); setOpen(false); setSearch(""); }}
                 className="w-full flex items-center gap-2 px-4 py-2.5 text-[11px] font-bold uppercase transition-all hover:bg-primary/5"
                 style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}
+                type="button"
+                onMouseDown={() => { actual.forEach(g => onRemove(g.id)); setOpen(false); setSearch(""); }}
               >
                 <span className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center">
-                  <X size={9} className="opacity-50" />
+                  <X className="opacity-50" size={9} />
                 </span>
                 Sin asignar
               </button>
@@ -781,10 +784,10 @@ function BloqueGrupoCategoria({
             ) : disponibles.map(g => (
               <button
                 key={g.id}
-                type="button"
-                onMouseDown={() => { onAdd(g.id); setOpen(false); setSearch(""); }}
                 className="w-full flex items-center justify-between px-4 py-2.5 text-[11px] font-bold uppercase transition-all hover:bg-primary/6"
                 style={{ color: "color-mix(in srgb, var(--primary) 50%, transparent)" }}
+                type="button"
+                onMouseDown={() => { onAdd(g.id); setOpen(false); setSearch(""); }}
               >
                 <span className="truncate">{g.nombre}</span>
               </button>
@@ -845,17 +848,17 @@ function BloqueGruposCriatura({
                 color: "var(--primary)",
               }}>
               <button
-                type="button"
-                onClick={() => onSelectGrupo?.(g.id)}
                 className="hover:underline cursor-pointer text-left leading-none"
                 title="Ir al grupo"
+                type="button"
+                onClick={() => onSelectGrupo?.(g.id)}
               >
                 {g.nombre}
               </button>
               <button
+                className="w-3.5 h-3.5 rounded flex items-center justify-center text-primary/30 hover:text-red-400 transition-colors cursor-pointer"
                 type="button"
                 onClick={() => onRemove(g.id)}
-                className="w-3.5 h-3.5 rounded flex items-center justify-center text-primary/30 hover:text-red-400 transition-colors cursor-pointer"
               >
                 <X size={8} />
               </button>
@@ -867,13 +870,13 @@ function BloqueGruposCriatura({
       {/* Dropdown añadir */}
       <div className="relative">
         <button
-          type="button"
-          onClick={() => setOpen(o => !o)}
           className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-dashed text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer"
           style={{
             borderColor: "color-mix(in srgb, var(--primary) 18%, transparent)",
             color: "color-mix(in srgb, var(--primary) 35%, transparent)",
           }}
+          type="button"
+          onClick={() => setOpen(o => !o)}
         >
           <Plus size={8} /> Añadir a grupo
         </button>
@@ -886,10 +889,10 @@ function BloqueGruposCriatura({
               <div className="p-1.5 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
                 <input
                   autoFocus
+                  className="w-full bg-transparent text-[10px] text-primary outline-none placeholder:text-primary/30 px-1.5 py-0.5"
+                  placeholder="Buscar grupo…"
                   value={search}
                   onChange={e => setSearch(e.target.value)}
-                  placeholder="Buscar grupo…"
-                  className="w-full bg-transparent text-[10px] text-primary outline-none placeholder:text-primary/30 px-1.5 py-0.5"
                 />
               </div>
               <div className="max-h-44 overflow-y-auto p-1">
@@ -900,9 +903,9 @@ function BloqueGruposCriatura({
                 ) : disponibles.map(g => (
                   <button
                     key={g.id}
+                    className="w-full text-left px-2.5 py-1.5 rounded-lg text-[11px] font-medium text-primary/75 hover:bg-primary/6 hover:text-primary transition-colors truncate cursor-pointer"
                     type="button"
                     onMouseDown={() => { onAdd(g.id); setOpen(false); setSearch(""); }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-lg text-[11px] font-medium text-primary/75 hover:bg-primary/6 hover:text-primary transition-colors truncate cursor-pointer"
                   >
                     {g.nombre}
                   </button>
@@ -1076,29 +1079,29 @@ function BloqueHabitat({
                     }}
                   >
                     <button
-                      type="button"
-                      onClick={() => setReinoFiltro(f => f === r.reinoId ? null : r.reinoId)}
                       className="leading-none flex items-center gap-1 hover:underline transition-opacity"
                       style={{ cursor: "pointer", opacity: reinoFiltro === r.reinoId ? 1 : 0.75 }}
                       title={reinoFiltro === r.reinoId ? "Quitar filtro de ciudades" : "Filtrar ciudades por este reino"}
+                      type="button"
+                      onClick={() => setReinoFiltro(f => f === r.reinoId ? null : r.reinoId)}
                     >
                       {r.reinoNombre}
-                      {reinoFiltro === r.reinoId && <X size={7} className="opacity-60" />}
+                      {reinoFiltro === r.reinoId && <X className="opacity-60" size={7} />}
                     </button>
                     {onNavigateReino && (
                       <button
-                        type="button"
-                        onClick={() => onNavigateReino(r.reinoId)}
                         className="w-3.5 h-3.5 rounded flex items-center justify-center text-primary/30 hover:text-primary/70 transition-colors"
                         title="Abrir reino"
+                        type="button"
+                        onClick={() => onNavigateReino(r.reinoId)}
                       >
                         <ExternalLink size={7} />
                       </button>
                     )}
                     <button
+                      className="w-3.5 h-3.5 rounded flex items-center justify-center text-primary/30 hover:text-red-400 transition-colors"
                       type="button"
                       onClick={() => removeReino(r.rowId)}
-                      className="w-3.5 h-3.5 rounded flex items-center justify-center text-primary/30 hover:text-red-400 transition-colors"
                     >
                       <X size={8} />
                     </button>
@@ -1108,9 +1111,9 @@ function BloqueHabitat({
             )}
 
             <div className="relative">
-              <button type="button" onClick={() => setOpenR(o => !o)}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-dashed text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer"
-                style={{ borderColor: "color-mix(in srgb, var(--primary) 18%, transparent)", color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
+              <button className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-dashed text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer" style={{ borderColor: "color-mix(in srgb, var(--primary) 18%, transparent)", color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
+                type="button"
+                onClick={() => setOpenR(o => !o)}>
                 <Plus size={8} /> Añadir reino
               </button>
               {openR && (
@@ -1119,17 +1122,17 @@ function BloqueHabitat({
                   <div className="absolute z-50 top-full left-0 mt-1 w-48 rounded-xl border shadow-xl overflow-hidden"
                     style={{ background: "var(--bg-main)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
                     <div className="p-1.5 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-                      <input autoFocus value={searchR} onChange={e => setSearchR(e.target.value)}
-                        placeholder="Buscar reino…"
-                        className="w-full bg-transparent text-[10px] text-primary outline-none placeholder:text-primary/30 px-1.5 py-0.5" />
+                      <input autoFocus className="w-full bg-transparent text-[10px] text-primary outline-none placeholder:text-primary/30 px-1.5 py-0.5" placeholder="Buscar reino…"
+                        value={searchR}
+                        onChange={e => setSearchR(e.target.value)} />
                     </div>
                     <div className="max-h-40 overflow-y-auto p-1">
                       {reinosDisponibles.length === 0
                         ? <p className="text-[9px] text-primary/25 italic text-center py-3">Sin resultados</p>
                         : reinosDisponibles.map(r => (
-                          <button key={r.id} type="button"
-                            onMouseDown={() => { addReino(r); setOpenR(false); setSearchR(""); }}
-                            className="w-full text-left px-2.5 py-1.5 rounded-lg text-[11px] font-medium text-primary/75 hover:bg-primary/6 hover:text-primary transition-colors truncate cursor-pointer">
+                          <button key={r.id} className="w-full text-left px-2.5 py-1.5 rounded-lg text-[11px] font-medium text-primary/75 hover:bg-primary/6 hover:text-primary transition-colors truncate cursor-pointer"
+                            type="button"
+                            onMouseDown={() => { addReino(r); setOpenR(false); setSearchR(""); }}>
                             {r.nombre}
                           </button>
                         ))}
@@ -1169,15 +1172,15 @@ function BloqueHabitat({
                 {ciudadesAsignadas.map(r => (
                   <div key={r.rowId} className="relative group flex items-center gap-2 px-2.5 py-1.5 rounded-xl transition-colors"
                     style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-                    <button onClick={() => onNavigateCiudad?.(r.ciudadId)}
-                      className="flex items-center gap-2 flex-1 min-w-0 text-left cursor-pointer hover:text-primary transition-colors group/ciudad">
-                      <MapPin size={9} className="shrink-0 text-primary/30 group-hover/ciudad:text-primary/60 transition-colors" />
+                    <button className="flex items-center gap-2 flex-1 min-w-0 text-left cursor-pointer hover:text-primary transition-colors group/ciudad"
+                      onClick={() => onNavigateCiudad?.(r.ciudadId)}>
+                      <MapPin className="shrink-0 text-primary/30 group-hover/ciudad:text-primary/60 transition-colors" size={9} />
                       <span className="text-[10px] font-bold text-primary/65 truncate group-hover/ciudad:text-primary transition-colors underline-offset-2 group-hover/ciudad:underline">
                         {r.ciudadNombre}
                       </span>
                     </button>
-                    <button onClick={() => removeCiudad(r.rowId)}
-                      className="shrink-0 opacity-0 group-hover:opacity-100 transition-all p-0.5 rounded text-red-400/50 hover:text-red-400 cursor-pointer">
+                    <button className="shrink-0 opacity-0 group-hover:opacity-100 transition-all p-0.5 rounded text-red-400/50 hover:text-red-400 cursor-pointer"
+                      onClick={() => removeCiudad(r.rowId)}>
                       <X size={9} />
                     </button>
                   </div>
@@ -1186,9 +1189,9 @@ function BloqueHabitat({
             )}
 
             <div className="relative">
-              <button type="button" onClick={() => setOpenL(o => !o)}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-dashed text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer"
-                style={{ borderColor: "color-mix(in srgb, var(--primary) 18%, transparent)", color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
+              <button className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-dashed text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer" style={{ borderColor: "color-mix(in srgb, var(--primary) 18%, transparent)", color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
+                type="button"
+                onClick={() => setOpenL(o => !o)}>
                 <Plus size={8} /> Añadir ciudad
               </button>
               {openL && (
@@ -1197,17 +1200,17 @@ function BloqueHabitat({
                   <div className="absolute z-50 top-full left-0 mt-1 w-52 rounded-xl border shadow-xl overflow-hidden"
                     style={{ background: "var(--bg-main)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
                     <div className="p-1.5 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-                      <input autoFocus value={searchL} onChange={e => setSearchL(e.target.value)}
-                        placeholder="Buscar ciudad…"
-                        className="w-full bg-transparent text-[10px] text-primary outline-none placeholder:text-primary/30 px-1.5 py-0.5" />
+                      <input autoFocus className="w-full bg-transparent text-[10px] text-primary outline-none placeholder:text-primary/30 px-1.5 py-0.5" placeholder="Buscar ciudad…"
+                        value={searchL}
+                        onChange={e => setSearchL(e.target.value)} />
                     </div>
                     <div className="max-h-40 overflow-y-auto p-1">
                       {ciudadesDisponibles.length === 0
                         ? <p className="text-[9px] text-primary/25 italic text-center py-3">Sin resultados</p>
                         : ciudadesDisponibles.map(l => (
-                          <button key={l.id} type="button"
-                            onMouseDown={() => { addCiudad(l); setOpenL(false); setSearchL(""); }}
-                            className="w-full text-left px-2.5 py-1.5 rounded-lg text-[11px] font-medium text-primary/75 hover:bg-primary/6 hover:text-primary transition-colors truncate cursor-pointer">
+                          <button key={l.id} className="w-full text-left px-2.5 py-1.5 rounded-lg text-[11px] font-medium text-primary/75 hover:bg-primary/6 hover:text-primary transition-colors truncate cursor-pointer"
+                            type="button"
+                            onMouseDown={() => { addCiudad(l); setOpenL(false); setSearchL(""); }}>
                             {l.nombre}
                           </button>
                         ))}
@@ -1372,23 +1375,23 @@ function BloqueMagico({
   usarHook: "hechizos" | "dones";
 }) {
   if (usarHook === "hechizos") {
-    return <BloqueMagicoHechizos label={label} icon={Icon} criaturaId={criaturaId} gruposActuales={gruposActuales} />;
+    return <BloqueMagicoHechizos criaturaId={criaturaId} gruposActuales={gruposActuales} icon={Icon} label={label} />;
   }
-  return <BloqueMagicoDones label={label} icon={Icon} criaturaId={criaturaId} gruposActuales={gruposActuales} />;
+  return <BloqueMagicoDones criaturaId={criaturaId} gruposActuales={gruposActuales} icon={Icon} label={label} />;
 }
 
 function BloqueMagicoHechizos({ label, icon: Icon, criaturaId, gruposActuales }: {
   label: string; icon: React.ElementType; criaturaId: string; gruposActuales: string[];
 }) {
   const { catalogo, ids, loading, add, remove } = useHechizoCriatura(criaturaId);
-  return <BloqueMagicoUI label={label} icon={Icon} catalogo={catalogo} ids={ids} loading={loading} add={add} remove={remove} gruposActuales={gruposActuales} />;
+  return <BloqueMagicoUI add={add} catalogo={catalogo} gruposActuales={gruposActuales} icon={Icon} ids={ids} label={label} loading={loading} remove={remove} />;
 }
 
 function BloqueMagicoDones({ label, icon: Icon, criaturaId, gruposActuales }: {
   label: string; icon: React.ElementType; criaturaId: string; gruposActuales: string[];
 }) {
   const { catalogo, ids, loading, add, remove } = useDonCriatura(criaturaId);
-  return <BloqueMagicoUI label={label} icon={Icon} catalogo={catalogo} ids={ids} loading={loading} add={add} remove={remove} gruposActuales={gruposActuales} />;
+  return <BloqueMagicoUI add={add} catalogo={catalogo} gruposActuales={gruposActuales} icon={Icon} ids={ids} label={label} loading={loading} remove={remove} />;
 }
 
 function BloqueMagicoUI({
@@ -1422,8 +1425,6 @@ function BloqueMagicoUI({
           <Icon size={9} /> {label}
         </span>
         <button
-          type="button"
-          onClick={() => setOpen(o => !o)}
           className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-md transition-all"
           style={{
             border: open
@@ -1432,13 +1433,15 @@ function BloqueMagicoUI({
             background: open ? "color-mix(in srgb, var(--primary) 6%, transparent)" : "transparent",
             color: "color-mix(in srgb, var(--primary) 40%, transparent)",
           }}
+          type="button"
+          onClick={() => setOpen(o => !o)}
         >
           {ids.length > 0 && (
             <span className="text-[7px] font-black tabular-nums" style={{ color: "var(--primary)" }}>
               {ids.length}
             </span>
           )}
-          <ChevronDown size={9} className={`transition-transform duration-150 ${open ? "rotate-180" : ""}`} />
+          <ChevronDown className={`transition-transform duration-150 ${open ? "rotate-180" : ""}`} size={9} />
         </button>
       </div>
 
@@ -1456,15 +1459,15 @@ function BloqueMagicoUI({
             <Search size={9} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)", flexShrink: 0 }} />
             <input
               autoFocus
+              className="flex-1 bg-transparent outline-none text-[9px] font-bold uppercase tracking-wide placeholder:normal-case placeholder:font-medium placeholder:tracking-normal placeholder:opacity-50"
+              placeholder="Buscar…"
+              style={{ color: "var(--primary)", caretColor: "var(--primary)" }}
               type="text"
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Buscar…"
-              className="flex-1 bg-transparent outline-none text-[9px] font-bold uppercase tracking-wide placeholder:normal-case placeholder:font-medium placeholder:tracking-normal placeholder:opacity-50"
-              style={{ color: "var(--primary)", caretColor: "var(--primary)" }}
             />
             {search && (
-              <button type="button" onClick={() => setSearch("")} className="opacity-30 hover:opacity-70 transition-opacity">
+              <button className="opacity-30 hover:opacity-70 transition-opacity" type="button" onClick={() => setSearch("")}>
                 <X size={8} style={{ color: "var(--primary)" }} />
               </button>
             )}
@@ -1472,17 +1475,17 @@ function BloqueMagicoUI({
           <div className="max-h-36 overflow-y-auto">
             {loading ? (
               <div className="flex items-center justify-center py-3 text-primary/20">
-                <Loader2 size={11} className="animate-spin" />
+                <Loader2 className="animate-spin" size={11} />
               </div>
             ) : disponibles.length === 0 ? (
               <p className="text-[8px] font-black uppercase text-primary/25 px-3 py-2.5 text-center tracking-widest">
                 {search ? "Sin resultados" : gruposActuales.length === 0 ? "Sin grupos asignados" : "Todos asignados"}
               </p>
             ) : disponibles.map(e => (
-              <button key={e.id} type="button"
-                onClick={() => { add(e.id); setSearch(""); setOpen(false); }}
-                className="w-full flex items-center gap-2 px-2.5 py-1.5 text-left transition-all hover:bg-primary/5"
+              <button key={e.id} className="w-full flex items-center gap-2 px-2.5 py-1.5 text-left transition-all hover:bg-primary/5"
                 style={{ color: "color-mix(in srgb, var(--primary) 50%, transparent)" }}
+                type="button"
+                onClick={() => { add(e.id); setSearch(""); setOpen(false); }}
               >
                 <span className="flex-1 min-w-0 text-[9px] font-black uppercase tracking-wide truncate">{e.nombre}</span>
               </button>
@@ -1509,10 +1512,10 @@ function BloqueMagicoUI({
               style={{ color: "color-mix(in srgb, var(--primary) 65%, transparent)" }}>
               {e.nombre}
             </span>
-            <button type="button"
-              onClick={() => remove(e.id)}
-              className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity rounded p-0.5 hover:bg-red-500/10"
+            <button className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity rounded p-0.5 hover:bg-red-500/10"
               style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
+              type="button"
+              onClick={() => remove(e.id)}
             >
               <X size={9} />
             </button>
@@ -1704,31 +1707,31 @@ export function EditorCriatura({
         >
           <div className="shrink-0 w-9 h-9 rounded-xl overflow-hidden border border-primary/15 bg-primary/5 flex items-center justify-center">
             {form.imagen_url
-              ? <img src={form.imagen_url} alt={form.nombre} className="w-full h-full object-cover" />
-              : <Bug size={16} className="text-primary/25" />}
+              ? <img alt={form.nombre} className="w-full h-full object-cover" src={form.imagen_url} />
+              : <Bug className="text-primary/25" size={16} />}
           </div>
 
           <input
+            className="flex-1 min-w-0 bg-transparent text-sm font-black text-primary outline-none placeholder:text-primary/25"
+            placeholder="Nombre de la criatura"
             value={form.nombre ?? ""}
             onChange={field("nombre")}
-            placeholder="Nombre de la criatura"
-            className="flex-1 min-w-0 bg-transparent text-sm font-black text-primary outline-none placeholder:text-primary/25"
           />
 
           <div className="shrink-0 flex items-center gap-2">
             <SaveIndicator status={status} />
-            <button onClick={del}
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all cursor-pointer">
+            <button className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all cursor-pointer"
+              onClick={del}>
               <Trash2 size={10} />
             </button>
-            <button onClick={save} disabled={status === "saving"}
-              className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed">
+            <button className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed" disabled={status === "saving"}
+              onClick={save}>
               <Save size={11} /> Guardar
             </button>
             <button
-              onClick={() => setMobileAsideOpen(true)}
               className="sm:hidden flex items-center justify-center p-2 rounded-xl text-primary/30 hover:text-primary hover:bg-primary/8 transition-all border border-primary/10"
               title="Entidades"
+              onClick={() => setMobileAsideOpen(true)}
             >
               <SlidersHorizontal size={13} />
             </button>
@@ -1749,8 +1752,8 @@ export function EditorCriatura({
                   {/* Mobile: imagen grande con botón flotante */}
                   <div className="sm:hidden relative w-full rounded-xl overflow-hidden border border-primary/10 bg-primary/3" style={{ aspectRatio: "1 / 1" }}>
                     {form.imagen_url
-                      ? <img src={form.imagen_url} alt={form.nombre} className="w-full h-full object-cover" />
-                      : <div className="w-full h-full flex items-center justify-center"><Bug size={48} className="text-primary/15" /></div>
+                      ? <img alt={form.nombre} className="w-full h-full object-cover" src={form.imagen_url} />
+                      : <div className="w-full h-full flex items-center justify-center"><Bug className="text-primary/15" size={48} /></div>
                     }
                     <div className="absolute top-2 right-2 z-10">
                       <PickerImagenCriaturaBtn
@@ -1761,68 +1764,68 @@ export function EditorCriatura({
                   </div>
                   {/* Desktop: selector normal */}
                   <div className="hidden sm:block w-full">
-                    <SelectorImagen label="" value={form.imagen_url ?? ""}
-                      onChange={url => setForm(f => ({ ...f, imagen_url: url }))} aspect="square"
-                      placeholder={<Bug size={20} className="opacity-20" />} />
+                    <SelectorImagen aspect="square" label=""
+                      placeholder={<Bug className="opacity-20" size={20} />} value={form.imagen_url ?? ""}
+                      onChange={url => setForm(f => ({ ...f, imagen_url: url }))} />
                   </div>
                 </div>
 
                 {/* Descripción */}
                 <div className="flex-1 min-w-0 flex flex-col gap-1.5">
                   <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Descripción</label>
-                  <MarkdownEditor value={form.descripcion ?? ""} onChange={v => setForm(f => ({ ...f, descripcion: v }))}
-                    placeholder="Aspecto físico general…" rows={7} toolbar defaultMode="edit" onSnippetAction={onSnippetAction}
-                    entities={entities} />
+                  <MarkdownEditor toolbar defaultMode="edit"
+                    entities={entities} placeholder="Aspecto físico general…" rows={7} value={form.descripcion ?? ""} onChange={v => setForm(f => ({ ...f, descripcion: v }))}
+                    onSnippetAction={onSnippetAction} />
                 </div>
               </div>
 
               {/* ── Fila 2: Selectores de grupo ──────────────────────────────── */}
               <div className="grid grid-cols-3 gap-2">
                 <BloqueGrupoCategoria
+                  gruposActuales={gruposActuales as GrupoMinExt[]}
+                  icon={Globe}
                   label="Hábitat"
                   subtipo="Hábitat"
-                  icon={Globe}
-                  gruposActuales={gruposActuales as GrupoMinExt[]}
                   todosGrupos={todosGrupos as GrupoMinExt[]}
                   onAdd={addToGrupo}
                   onRemove={removeFromGrupo}
                   onSelectGrupo={onSelectGrupo}
                 />
                 <BloqueGrupoCategoria
+                  gruposActuales={gruposActuales as GrupoMinExt[]}
+                  icon={Brain}
                   label="Inteligencia"
                   subtipo="Inteligencia"
-                  icon={Brain}
-                  gruposActuales={gruposActuales as GrupoMinExt[]}
                   todosGrupos={todosGrupos as GrupoMinExt[]}
                   onAdd={addToGrupo}
                   onRemove={removeFromGrupo}
                   onSelectGrupo={onSelectGrupo}
                 />
                 <BloqueGrupoCategoria
+                  gruposActuales={gruposActuales as GrupoMinExt[]}
+                  icon={Wand2}
                   label="Alma"
                   subtipo="Alma"
-                  icon={Wand2}
-                  gruposActuales={gruposActuales as GrupoMinExt[]}
                   todosGrupos={todosGrupos as GrupoMinExt[]}
                   onAdd={addToGrupo}
                   onRemove={removeFromGrupo}
                   onSelectGrupo={onSelectGrupo}
                 />
                 <BloqueGrupoCategoria
+                  gruposActuales={gruposActuales as GrupoMinExt[]}
+                  icon={Sparkles}
                   label="Usar Mana"
                   subtipo="Usar Mana"
-                  icon={Sparkles}
-                  gruposActuales={gruposActuales as GrupoMinExt[]}
                   todosGrupos={todosGrupos as GrupoMinExt[]}
                   onAdd={addToGrupo}
                   onRemove={removeFromGrupo}
                   onSelectGrupo={onSelectGrupo}
                 />
                 <BloqueGrupoCategoria
+                  gruposActuales={gruposActuales as GrupoMinExt[]}
+                  icon={Star}
                   label="Produce Mana"
                   subtipo="Produce Mana"
-                  icon={Star}
-                  gruposActuales={gruposActuales as GrupoMinExt[]}
                   todosGrupos={todosGrupos as GrupoMinExt[]}
                   onAdd={addToGrupo}
                   onRemove={removeFromGrupo}
@@ -1852,17 +1855,17 @@ export function EditorCriatura({
           }}
         >
           <SeccionEntidad
-            label="Personajes"
-            icon={<Users size={9} />}
-            fallbackIcon={<UserCircle2 size={14} strokeWidth={1} />}
-            emptyLabel="Sin personajes"
             allEntities={allPersonajes.map(p => ({ id: p.id, nombre: p.nombre, imagen_url: p.img_url }))}
-            selectedIds={personajesDeEspecie.map(p => p.id)}
+            columns={2}
+            emptyLabel="Sin personajes"
+            fallbackIcon={<UserCircle2 size={14} strokeWidth={1} />}
+            icon={<Users size={9} />}
+            label="Personajes"
             loading={loadingPersonajes}
             saving={savingPersonajes}
-            onToggle={handleTogglePersonaje}
+            selectedIds={personajesDeEspecie.map(p => p.id)}
             onEntityClick={id => onSelectPersonaje?.(id)}
-            columns={2}
+            onToggle={handleTogglePersonaje}
           />
         </div>
 
@@ -1876,31 +1879,31 @@ export function EditorCriatura({
           }}
         >
           <SeccionEntidad
-            label="Territorio"
-            icon={<Globe size={9} />}
-            fallbackIcon={<Globe size={14} strokeWidth={1} />}
-            emptyLabel="Sin territorio"
             allEntities={allReinos.map(r => ({ id: r.id, nombre: r.nombre }))}
-            selectedIds={reinoRows.map(r => r.reinoId)}
+            emptyLabel="Sin territorio"
+            fallbackIcon={<Globe size={14} strokeWidth={1} />}
+            icon={<Globe size={9} />}
+            label="Territorio"
             loading={loadingReinos}
             saving={savingReinos}
-            onToggle={(id, add) => handleToggleReino(id, add)}
+            selectedIds={reinoRows.map(r => r.reinoId)}
             onEntityClick={id => onNavigateReino?.(id)}
+            onToggle={(id, add) => handleToggleReino(id, add)}
           />
 
           <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
 
           <SeccionEntidad
-            label={reinosSeleccionadosIds.length > 0 ? `Ciudades (${reinosSeleccionadosIds.length})` : "Ciudades"}
-            icon={<MapPin size={9} />}
-            fallbackIcon={<MapPin size={14} strokeWidth={1} />}
-            emptyLabel={reinosSeleccionadosIds.length > 0 ? "Sin ciudades en estos reinos" : "Sin ciudades"}
             allEntities={ciudadesConReino.map(l => ({ id: l.id, nombre: l.nombre }))}
-            selectedIds={ciudadRows.map(r => r.ciudadId)}
+            emptyLabel={reinosSeleccionadosIds.length > 0 ? "Sin ciudades en estos reinos" : "Sin ciudades"}
+            fallbackIcon={<MapPin size={14} strokeWidth={1} />}
+            icon={<MapPin size={9} />}
+            label={reinosSeleccionadosIds.length > 0 ? `Ciudades (${reinosSeleccionadosIds.length})` : "Ciudades"}
             loading={loadingCiudades}
             saving={savingCiudades}
-            onToggle={(id, add) => handleToggleCiudad(id, add)}
+            selectedIds={ciudadRows.map(r => r.ciudadId)}
             onEntityClick={id => onNavigateCiudad?.(id)}
+            onToggle={(id, add) => handleToggleCiudad(id, add)}
           />
         </div>
 
@@ -1914,16 +1917,16 @@ export function EditorCriatura({
           }}
         >
           <SeccionEntidad
-            label="Creaciones"
-            icon={<Wrench size={9} />}
-            fallbackIcon={<Package size={14} strokeWidth={1} />}
-            emptyLabel="Sin creaciones"
             allEntities={allCraftedItems.map(i => ({ id: i.id, nombre: i.nombre, imagen_url: i.imagen_url }))}
-            selectedIds={craftedItems.map(i => i.itemId)}
+            emptyLabel="Sin creaciones"
+            fallbackIcon={<Package size={14} strokeWidth={1} />}
+            icon={<Wrench size={9} />}
+            label="Creaciones"
             loading={loadingCrafted}
             saving={savingCrafted}
-            onToggle={handleToggleCrafted}
+            selectedIds={craftedItems.map(i => i.itemId)}
             onEntityClick={id => onSelectItem?.(id)}
+            onToggle={handleToggleCrafted}
           />
         </div>
 
@@ -1936,20 +1939,20 @@ export function EditorCriatura({
           }}
         >
           <BloqueMagico
-            label="Hechizos"
-            icon={Sparkles}
             criaturaId={form.id}
             gruposActuales={gruposActuales.map(g => g.id)}
+            icon={Sparkles}
+            label="Hechizos"
             usarHook="hechizos"
           />
 
           <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
 
           <BloqueMagico
-            label="Dones"
-            icon={Star}
             criaturaId={form.id}
             gruposActuales={gruposActuales.map(g => g.id)}
+            icon={Star}
+            label="Dones"
             usarHook="dones"
           />
         </div>
@@ -1980,33 +1983,33 @@ export function EditorCriatura({
               <span className="text-[8px] font-black uppercase tracking-[0.2em] flex items-center gap-1.5" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>
                 <SlidersHorizontal size={9} /> Entidades
               </span>
-              <button onClick={() => setMobileAsideOpen(false)} className="p-1 rounded-lg text-primary/30 hover:text-primary hover:bg-primary/8 transition-all">
+              <button className="p-1 rounded-lg text-primary/30 hover:text-primary hover:bg-primary/8 transition-all" onClick={() => setMobileAsideOpen(false)}>
                 <X size={14} />
               </button>
             </div>
 
-            <SeccionEntidad label="Personajes" icon={<Users size={9} />} fallbackIcon={<UserCircle2 size={14} strokeWidth={1} />} emptyLabel="Sin personajes" allEntities={allPersonajes.map(p => ({ id: p.id, nombre: p.nombre, imagen_url: p.img_url }))} selectedIds={personajesDeEspecie.map(p => p.id)} loading={loadingPersonajes} saving={savingPersonajes} onToggle={handleTogglePersonaje} onEntityClick={id => onSelectPersonaje?.(id)} columns={2} />
+            <SeccionEntidad allEntities={allPersonajes.map(p => ({ id: p.id, nombre: p.nombre, imagen_url: p.img_url }))} columns={2} emptyLabel="Sin personajes" fallbackIcon={<UserCircle2 size={14} strokeWidth={1} />} icon={<Users size={9} />} label="Personajes" loading={loadingPersonajes} saving={savingPersonajes} selectedIds={personajesDeEspecie.map(p => p.id)} onEntityClick={id => onSelectPersonaje?.(id)} onToggle={handleTogglePersonaje} />
             <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
-            <SeccionEntidad label="Reinos" icon={<Globe size={9} />} fallbackIcon={<Globe size={14} strokeWidth={1} />} emptyLabel="Sin territorio"
-              allEntities={allReinos.map(r => ({ id: r.id, nombre: r.nombre }))}
-              selectedIds={reinoRows.map(r => r.reinoId)}
-              loading={loadingReinos} saving={savingReinos}
-              onToggle={(id, add) => handleToggleReino(id, add)}
+            <SeccionEntidad allEntities={allReinos.map(r => ({ id: r.id, nombre: r.nombre }))} emptyLabel="Sin territorio" fallbackIcon={<Globe size={14} strokeWidth={1} />} icon={<Globe size={9} />}
+              label="Reinos"
+              loading={loadingReinos}
+              saving={savingReinos} selectedIds={reinoRows.map(r => r.reinoId)}
               onEntityClick={id => onNavigateReino?.(id)}
+              onToggle={(id, add) => handleToggleReino(id, add)}
             />
             <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
-            <SeccionEntidad label={reinosSeleccionadosIds.length > 0 ? `Ciudades (${reinosSeleccionadosIds.length})` : "Ciudades"} icon={<MapPin size={9} />} fallbackIcon={<MapPin size={14} strokeWidth={1} />} emptyLabel={reinosSeleccionadosIds.length > 0 ? "Sin ciudades en estos reinos" : "Sin ciudades"}
-              allEntities={ciudadesConReino.map(l => ({ id: l.id, nombre: l.nombre }))}
-              selectedIds={ciudadRows.map(r => r.ciudadId)}
-              loading={loadingCiudades} saving={savingCiudades}
-              onToggle={(id, add) => handleToggleCiudad(id, add)}
-              onEntityClick={id => onNavigateCiudad?.(id)} />
+            <SeccionEntidad allEntities={ciudadesConReino.map(l => ({ id: l.id, nombre: l.nombre }))} emptyLabel={reinosSeleccionadosIds.length > 0 ? "Sin ciudades en estos reinos" : "Sin ciudades"} fallbackIcon={<MapPin size={14} strokeWidth={1} />} icon={<MapPin size={9} />}
+              label={reinosSeleccionadosIds.length > 0 ? `Ciudades (${reinosSeleccionadosIds.length})` : "Ciudades"}
+              loading={loadingCiudades}
+              saving={savingCiudades} selectedIds={ciudadRows.map(r => r.ciudadId)}
+              onEntityClick={id => onNavigateCiudad?.(id)}
+              onToggle={(id, add) => handleToggleCiudad(id, add)} />
             <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
-            <SeccionEntidad label="Creaciones" icon={<Wrench size={9} />} fallbackIcon={<Package size={14} strokeWidth={1} />} emptyLabel="Sin creaciones" allEntities={allCraftedItems.map(i => ({ id: i.id, nombre: i.nombre, imagen_url: i.imagen_url }))} selectedIds={craftedItems.map(i => i.itemId)} loading={loadingCrafted} saving={savingCrafted} onToggle={handleToggleCrafted} onEntityClick={id => onSelectItem?.(id)} />
+            <SeccionEntidad allEntities={allCraftedItems.map(i => ({ id: i.id, nombre: i.nombre, imagen_url: i.imagen_url }))} emptyLabel="Sin creaciones" fallbackIcon={<Package size={14} strokeWidth={1} />} icon={<Wrench size={9} />} label="Creaciones" loading={loadingCrafted} saving={savingCrafted} selectedIds={craftedItems.map(i => i.itemId)} onEntityClick={id => onSelectItem?.(id)} onToggle={handleToggleCrafted} />
             <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
-            <BloqueMagico label="Hechizos" icon={Sparkles} criaturaId={form.id} gruposActuales={gruposActuales.map(g => g.id)} usarHook="hechizos" />
+            <BloqueMagico criaturaId={form.id} gruposActuales={gruposActuales.map(g => g.id)} icon={Sparkles} label="Hechizos" usarHook="hechizos" />
             <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
-            <BloqueMagico label="Dones" icon={Star} criaturaId={form.id} gruposActuales={gruposActuales.map(g => g.id)} usarHook="dones" />
+            <BloqueMagico criaturaId={form.id} gruposActuales={gruposActuales.map(g => g.id)} icon={Star} label="Dones" usarHook="dones" />
           </div>
         </div>
       )}

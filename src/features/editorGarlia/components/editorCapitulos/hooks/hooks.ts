@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/lib/api/client/supabase";
-import { db } from "@/lib/api/client/db";
+
 import { isReallyOnline } from "@/hooks/data/useOfflineSync";
+import { db } from "@/lib/api/client/db";
+import { supabase } from "@/lib/api/client/supabase";
+
 import {
   Capitulo, Reino, TABLA_CAPS,
   dexieCapRead, dexieCapGet, dexieCapWrite,

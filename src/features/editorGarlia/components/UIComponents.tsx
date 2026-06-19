@@ -1,20 +1,22 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   Loader2, AlertCircle, CheckCircle2,
   Image as ImageIcon, X, Save, Trash2, Pencil, ExternalLink,
 } from "lucide-react";
-import SimpleImagePicker from "@/features/editorGarlia/components/editorCapitulos/snippets/forms/SimpleImagePicker";
-import { normalize } from "@/components/layout/EstudioTemplates";
-import { INPUT_CLS, type SaveStatus } from "./types";
+import React, { useState, useEffect, useRef, useMemo } from "react";
+
 import { MarkdownEditor } from "@/components/forms/Markdown/MarkdownEditor";
+import { normalize } from "@/components/layout/EstudioTemplates";
+import SimpleImagePicker from "@/features/editorGarlia/components/editorCapitulos/snippets/forms/SimpleImagePicker";
+
+import { INPUT_CLS, type SaveStatus } from "./types";
 import { useWikilink } from "./WikilinkContext";
 
 export function SaveIndicator({ status }: { status: SaveStatus }) {
   if (status === "idle") return null;
   const map = {
-    saving: { icon: <Loader2 size={11} className="animate-spin" />, text: "Guardando…", cls: "text-primary/40" },
+    saving: { icon: <Loader2 className="animate-spin" size={11} />, text: "Guardando…", cls: "text-primary/40" },
     saved:  { icon: <CheckCircle2 size={11} />,                     text: "Guardado",   cls: "text-emerald-400" },
     error:  { icon: <AlertCircle  size={11} />,                     text: "Error",      cls: "text-red-400" },
   }[status];
@@ -33,7 +35,7 @@ export function Campo({ label, value, onChange, placeholder }: {
   return (
     <div className="space-y-1.5">
       <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">{label}</label>
-      <input value={value} onChange={onChange} placeholder={placeholder} className={INPUT_CLS} />
+      <input className={INPUT_CLS} placeholder={placeholder} value={value} onChange={onChange} />
     </div>
   );
 }
@@ -50,7 +52,7 @@ export function CampoArea({ label, value, onChange, placeholder, rows = 4 }: {
   return (
     <div className="space-y-1.5">
       <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">{label}</label>
-      <MarkdownEditor value={value} onChange={handleChange} placeholder={placeholder} rows={rows} toolbar defaultMode="split" onSnippetAction={onSnippetAction} />
+      <MarkdownEditor toolbar defaultMode="split" placeholder={placeholder} rows={rows} value={value} onChange={handleChange} onSnippetAction={onSnippetAction} />
     </div>
   );
 }
@@ -65,12 +67,12 @@ export function BarraAcciones({ status, onSave, onDelete }: {
     >
       <SaveIndicator status={status} />
       <div className="flex items-center gap-2 ml-auto">
-        <button onClick={onDelete}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-red-500/20 text-red-400/60 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all min-h-[36px]">
+        <button className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-red-500/20 text-red-400/60 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all min-h-[36px]"
+          onClick={onDelete}>
           <Trash2 size={11} /> <span className="hidden xs:inline">Eliminar</span>
         </button>
-        <button onClick={onSave}
-          className="flex items-center gap-1.5 px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 min-h-[36px]">
+        <button className="flex items-center gap-1.5 px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 min-h-[36px]"
+          onClick={onSave}>
           <Save size={11} /> Guardar
         </button>
       </div>
@@ -97,21 +99,21 @@ export function SelectorImagen({ label, value, onChange, aspect, placeholder }: 
       {label && <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35 shrink-0">{label}</label>}
 
       <div
-        onClick={() => setOpen(true)}
         className={`relative ${aspectCls} ${aspect === "full" ? "flex-1" : ""} rounded-none overflow-hidden border-0 bg-primary/4 cursor-pointer group`}
+        onClick={() => setOpen(true)}
       >
         {value ? (
           <>
-            <img src={value} alt={label} className={`w-full h-full ${fitCls} transition-transform duration-300 group-hover:scale-105`} />
+            <img alt={label} className={`w-full h-full ${fitCls} transition-transform duration-300 group-hover:scale-105`} src={value} />
             <div className="absolute inset-0 bg-black/40 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1.5">
-              <ImageIcon size={18} className="text-white" />
+              <ImageIcon className="text-white" size={18} />
               <span className="text-[9px] font-black uppercase text-white tracking-widest">Cambiar</span>
             </div>
             <button
-              onClick={e => { e.stopPropagation(); onChange(""); }}
               className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/50 hover:bg-red-500/80 flex items-center justify-center opacity-100 sm:opacity-0 group-hover:opacity-100 transition-all"
+              onClick={e => { e.stopPropagation(); onChange(""); }}
             >
-              <X size={10} className="text-white" />
+              <X className="text-white" size={10} />
             </button>
           </>
         ) : (
@@ -135,13 +137,13 @@ export function SelectorImagen({ label, value, onChange, aspect, placeholder }: 
               <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-2">
                 <ImageIcon size={11} /> {label}
               </h3>
-              <button onClick={() => setOpen(false)} className="text-primary/30 hover:text-primary transition-colors">
+              <button className="text-primary/30 hover:text-primary transition-colors" onClick={() => setOpen(false)}>
                 <X size={16} />
               </button>
             </div>
             <SimpleImagePicker
-              onSelect={url => { onChange(url); setOpen(false); }}
               onClose={() => setOpen(false)}
+              onSelect={url => { onChange(url); setOpen(false); }}
             />
           </div>
         </div>
@@ -195,7 +197,7 @@ export function SelectorTexto({ label, value, onChange, opciones, placeholder, o
   );
 
   return (
-    <div className="space-y-1" ref={ref}>
+    <div ref={ref} className="space-y-1">
       <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">{label}</label>
 
       {editing ? (
@@ -203,19 +205,19 @@ export function SelectorTexto({ label, value, onChange, opciones, placeholder, o
         <div className="relative">
           <input
             ref={inputRef}
+            className={INPUT_CLS + " pr-7"}
+            placeholder={placeholder}
             value={draft}
             onChange={e => { setDraft(e.target.value); setOpen(true); }}
             onKeyDown={e => {
               if (e.key === "Enter") commit();
               if (e.key === "Escape") { setDraft(value); setEditing(false); setOpen(false); }
             }}
-            placeholder={placeholder}
-            className={INPUT_CLS + " pr-7"}
           />
           <button
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-primary/30 hover:text-primary transition-colors"
             type="button"
             onMouseDown={e => { e.preventDefault(); commit(); }}
-            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-primary/30 hover:text-primary transition-colors"
           >
             <X size={10} />
           </button>
@@ -225,21 +227,21 @@ export function SelectorTexto({ label, value, onChange, opciones, placeholder, o
               {/* Opción quitar si hay valor */}
               {value && (
                 <button
-                  onMouseDown={e => { e.preventDefault(); select(""); }}
                   className="w-full px-3 py-2 text-left text-[10px] font-bold text-red-400/60 hover:text-red-400 hover:bg-red-400/5 transition-colors border-b border-primary/8 italic"
+                  onMouseDown={e => { e.preventDefault(); select(""); }}
                 >
                   Quitar {label.toLowerCase()}
                 </button>
               )}
               {filtradas.map(o => (
-                <button key={o} onMouseDown={() => select(o)}
-                  className={`w-full px-3 py-2 text-left text-xs font-medium transition-colors hover:bg-primary/8 hover:text-primary ${o === value ? "text-primary bg-primary/5" : "text-primary/70"}`}>
+                <button key={o} className={`w-full px-3 py-2 text-left text-xs font-medium transition-colors hover:bg-primary/8 hover:text-primary ${o === value ? "text-primary bg-primary/5" : "text-primary/70"}`}
+                  onMouseDown={() => select(o)}>
                   {o}
                 </button>
               ))}
               {draft.trim() && !opciones.includes(draft.trim()) && (
-                <button onMouseDown={() => select(draft.trim())}
-                  className="w-full px-3 py-2 text-left text-xs font-medium text-primary/40 hover:bg-primary/5 transition-colors italic">
+                <button className="w-full px-3 py-2 text-left text-xs font-medium text-primary/40 hover:bg-primary/5 transition-colors italic"
+                  onMouseDown={() => select(draft.trim())}>
                   Usar "{draft.trim()}"
                 </button>
               )}
@@ -250,8 +252,6 @@ export function SelectorTexto({ label, value, onChange, opciones, placeholder, o
         /* ── Modo display: chip link + botón lápiz ── */
         <div className="flex items-center gap-1">
           <button
-            type="button"
-            onClick={() => { onNavigate?.(value); }}
             className="flex-1 min-w-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-bold text-left transition-all border"
             style={{
               background: "color-mix(in srgb, var(--primary) 5%, transparent)",
@@ -259,6 +259,8 @@ export function SelectorTexto({ label, value, onChange, opciones, placeholder, o
               color: "var(--primary)",
               cursor: onNavigate ? "pointer" : "default",
             }}
+            type="button"
+            onClick={() => { onNavigate?.(value); }}
             onMouseEnter={e => {
               if (!onNavigate) return;
               (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--accent) 8%, transparent)";
@@ -272,13 +274,13 @@ export function SelectorTexto({ label, value, onChange, opciones, placeholder, o
             }}
           >
             <span className="truncate flex-1">{value}</span>
-            {onNavigate && <ExternalLink size={9} className="shrink-0 opacity-35" />}
+            {onNavigate && <ExternalLink className="shrink-0 opacity-35" size={9} />}
           </button>
           <button
-            type="button"
-            onClick={startEdit}
             className="shrink-0 w-6 h-6 rounded-lg flex items-center justify-center border border-transparent text-primary/25 hover:text-primary hover:bg-primary/8 hover:border-primary/15 transition-all"
             title={`Editar ${label.toLowerCase()}`}
+            type="button"
+            onClick={startEdit}
           >
             <Pencil size={9} />
           </button>
@@ -286,15 +288,15 @@ export function SelectorTexto({ label, value, onChange, opciones, placeholder, o
       ) : (
         /* ── Modo vacío: placeholder como botón ── */
         <button
-          type="button"
-          onClick={startEdit}
           className="w-full flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-bold text-left transition-all border border-dashed"
           style={{
             borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
             color: "color-mix(in srgb, var(--primary) 25%, transparent)",
           }}
+          type="button"
+          onClick={startEdit}
         >
-          <Pencil size={9} className="opacity-50" />
+          <Pencil className="opacity-50" size={9} />
           <span className="italic">{placeholder}</span>
         </button>
       )}

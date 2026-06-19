@@ -1,8 +1,5 @@
-import { FlatCompat } from "@eslint/eslintrc";
-
-const compat = new FlatCompat({
-  baseDirectory: import.meta.dirname,
-});
+import nextVitals from "eslint-config-next/core-web-vitals";
+import nextTypescript from "eslint-config-next/typescript";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ZONAS DE LA ARQUITECTURA
@@ -21,10 +18,11 @@ const ZONES = {
 };
 
 const eslintConfig = [
-  ...compat.extends("next/core-web-vitals"),
+  ...nextVitals,
+  ...nextTypescript,
 
   {
-    ignores: [".next/**", "out/**", "build/**", "next-env.d.ts"],
+    ignores: [".next/**", "out/**", "build/**", "next-env.d.ts", "supabase/functions/**"],
   },
 
   // ───────────────────────────────────────────────────────────────────────────

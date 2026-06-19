@@ -1,14 +1,16 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   X, Copy, Timer, FileText, Play, Pause, SkipBack, Clock,
   Trash2, Upload, Dot,
 } from "lucide-react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
+
 import { supabase } from "@/lib/api/client/supabase";
+
+import { IDIOMAS } from "../../constants";
 import { useKaraoke } from "../../hooks/useKaraoke";
 import { buildLineas, parseLrc, fmtTime } from "../../lib/karaokeUtils";
-import { IDIOMAS } from "../../constants";
 import type { Seccion, IdiomaKey } from "../../types";
 
 export const ModalLectorLetras = ({
@@ -107,10 +109,10 @@ export const ModalLectorLetras = ({
             {/* Selector de idioma */}
             <div className="flex gap-0.5 p-0.5 bg-primary/5 rounded-lg border border-primary/10">
               {IDIOMAS.map(({ id, label }) => (
-                <button key={id} onClick={() => { setIdioma(id); karaoke.reset(); }}
-                  className={`px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-widest transition-all ${
+                <button key={id} className={`px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-widest transition-all ${
                     idioma === id ? "bg-primary text-bg-main shadow" : "text-primary/40 hover:text-primary"
                   }`}
+                  onClick={() => { setIdioma(id); karaoke.reset(); }}
                 >{label}</button>
               ))}
             </div>
@@ -118,18 +120,18 @@ export const ModalLectorLetras = ({
             {/* Modo karaoke / letra */}
             <div className="flex gap-0.5 p-0.5 bg-primary/5 rounded-lg border border-primary/10">
               <button
-                onClick={() => setModoKaraoke(true)}
                 className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-widest transition-all ${
                   modoKaraoke ? "bg-primary text-bg-main shadow" : "text-primary/40 hover:text-primary"
                 }`}
+                onClick={() => setModoKaraoke(true)}
               >
                 <Timer size={10} /> Karaoke
               </button>
               <button
-                onClick={() => setModoKaraoke(false)}
                 className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-widest transition-all ${
                   !modoKaraoke ? "bg-primary text-bg-main shadow" : "text-primary/40 hover:text-primary"
                 }`}
+                onClick={() => setModoKaraoke(false)}
               >
                 <FileText size={10} /> Letra
               </button>
@@ -137,16 +139,16 @@ export const ModalLectorLetras = ({
 
             {!modoKaraoke && (
               <div className="flex items-center gap-0.5">
-                <button onClick={() => setZoom(z => Math.max(0.4, z - 0.1))} className="w-6 h-6 flex items-center justify-center bg-primary/5 rounded text-primary hover:bg-primary/10 font-bold text-sm">-</button>
+                <button className="w-6 h-6 flex items-center justify-center bg-primary/5 rounded text-primary hover:bg-primary/10 font-bold text-sm" onClick={() => setZoom(z => Math.max(0.4, z - 0.1))}>-</button>
                 <span className="text-[9px] font-black text-primary/50 w-8 text-center">{Math.round(zoom * 100)}%</span>
-                <button onClick={() => setZoom(z => Math.min(1.6, z + 0.1))} className="w-6 h-6 flex items-center justify-center bg-primary/5 rounded text-primary hover:bg-primary/10 font-bold text-sm">+</button>
+                <button className="w-6 h-6 flex items-center justify-center bg-primary/5 rounded text-primary hover:bg-primary/10 font-bold text-sm" onClick={() => setZoom(z => Math.min(1.6, z + 0.1))}>+</button>
               </div>
             )}
 
-            <button onClick={handleCopy} className="p-1.5 rounded-lg hover:bg-primary/10 text-primary/30 hover:text-primary transition-all" title="Copiar letra">
+            <button className="p-1.5 rounded-lg hover:bg-primary/10 text-primary/30 hover:text-primary transition-all" title="Copiar letra" onClick={handleCopy}>
               <Copy size={14} />
             </button>
-            <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-primary/10 text-primary/30 hover:text-primary transition-all">
+            <button className="p-1.5 rounded-lg hover:bg-primary/10 text-primary/30 hover:text-primary transition-all" onClick={onClose}>
               <X size={16} />
             </button>
           </div>
@@ -157,13 +159,13 @@ export const ModalLectorLetras = ({
           <div className="flex-shrink-0 border-b border-primary/10 bg-white-custom/80 backdrop-blur-sm">
             <div className="px-4 py-2 flex items-center gap-2">
               <button
-                onClick={karaoke.toggle}
                 className="flex items-center justify-center w-9 h-9 rounded-xl bg-primary text-bg-main hover:opacity-90 active:scale-95 transition-all shrink-0"
+                onClick={karaoke.toggle}
               >
                 {karaoke.playing ? <Pause size={15} /> : <Play size={15} />}
               </button>
 
-              <button onClick={karaoke.reset} className="p-2 rounded-xl border border-primary/15 text-primary/40 hover:text-primary hover:border-primary/30 transition-all shrink-0" title="Reiniciar">
+              <button className="p-2 rounded-xl border border-primary/15 text-primary/40 hover:text-primary hover:border-primary/30 transition-all shrink-0" title="Reiniciar" onClick={karaoke.reset}>
                 <SkipBack size={13} />
               </button>
 
@@ -172,31 +174,31 @@ export const ModalLectorLetras = ({
               </span>
 
               <div className="flex-1 min-w-0">
-                <input type="range" min={0} max={sliderMax} step={0.1}
+                <input className="w-full h-1.5 rounded-full appearance-none cursor-pointer" max={sliderMax} min={0} step={0.1}
+                  style={{ accentColor: "var(--primary)" }}
+                  type="range"
                   value={Math.min(karaoke.elapsed, sliderMax)}
                   onChange={e => karaoke.seekTo(parseFloat(e.target.value))}
-                  className="w-full h-1.5 rounded-full appearance-none cursor-pointer"
-                  style={{ accentColor: "var(--primary)" }}
                 />
               </div>
 
-              <button onClick={() => karaoke.setModoEdit(m => !m)}
-                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all shrink-0 ${
+              <button className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all shrink-0 ${
                   karaoke.modoEdit ? "bg-accent/20 border-accent text-accent" : "border-primary/15 text-primary/40 hover:text-primary hover:border-primary/30"
                 }`}
+                onClick={() => karaoke.setModoEdit(m => !m)}
               >
                 <Clock size={10} /> {karaoke.modoEdit ? "Vinculando" : "Vincular"}
               </button>
 
-              <button onClick={() => lrcInputRef.current?.click()}
-                className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-primary/15 text-primary/40 hover:text-primary hover:border-primary/30 transition-all shrink-0"
+              <button className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-primary/15 text-primary/40 hover:text-primary hover:border-primary/30 transition-all shrink-0"
                 title="Importar archivo .lrc"
+                onClick={() => lrcInputRef.current?.click()}
               >
                 <Upload size={10} /> .lrc
               </button>
-              <input ref={lrcInputRef} type="file" accept=".lrc" className="hidden" onChange={handleLrcImport} />
+              <input ref={lrcInputRef} accept=".lrc" className="hidden" type="file" onChange={handleLrcImport} />
 
-              <button onClick={karaoke.borrarTodo} className="p-2 rounded-xl border border-primary/15 text-primary/30 hover:text-red-400 hover:border-red-300/30 transition-all shrink-0" title="Borrar todos los tiempos">
+              <button className="p-2 rounded-xl border border-primary/15 text-primary/30 hover:text-red-400 hover:border-red-300/30 transition-all shrink-0" title="Borrar todos los tiempos" onClick={karaoke.borrarTodo}>
                 <Trash2 size={12} />
               </button>
             </div>
@@ -204,7 +206,7 @@ export const ModalLectorLetras = ({
             {karaoke.modoEdit && (
               <div className="px-4 pb-2">
                 <p className="text-[9px] font-black uppercase tracking-widest text-accent flex items-center gap-1.5">
-                  <Dot size={12} className="animate-pulse" />
+                  <Dot className="animate-pulse" size={12} />
                   Clic = marcar tiempo · Clic der = borrar · Clic en tiempo = editar número
                 </p>
               </div>
@@ -241,11 +243,6 @@ export const ModalLectorLetras = ({
                         <div
                           key={lineaIdx}
                           ref={isActiva ? activaRef : undefined}
-                          onClick={() => {
-                            if (karaoke.modoEdit) karaoke.marcarLinea(sec.id, lineaIdx);
-                            else if (tiempo !== null) karaoke.seekTo(tiempo);
-                          }}
-                          onContextMenu={e => { e.preventDefault(); if (karaoke.modoEdit) karaoke.borrarLinea(sec.id, lineaIdx); }}
                           className={`group relative flex items-center gap-2 py-1 px-2 rounded-lg transition-all duration-200 ${
                             isActiva
                               ? "bg-primary/8"
@@ -253,6 +250,11 @@ export const ModalLectorLetras = ({
                                 ? "cursor-pointer hover:bg-primary/5 active:bg-primary/10"
                                 : ""
                           }`}
+                          onClick={() => {
+                            if (karaoke.modoEdit) karaoke.marcarLinea(sec.id, lineaIdx);
+                            else if (tiempo !== null) karaoke.seekTo(tiempo);
+                          }}
+                          onContextMenu={e => { e.preventDefault(); if (karaoke.modoEdit) karaoke.borrarLinea(sec.id, lineaIdx); }}
                         >
                           {isActiva && (
                             <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 bg-primary rounded-r-full" />
@@ -262,21 +264,19 @@ export const ModalLectorLetras = ({
                             {esEditable ? (
                               <input
                                 autoFocus
+                                className="w-[52px] font-mono text-[10px] font-black text-primary bg-primary/10 border border-primary/30 rounded px-1 py-0.5 outline-none"
+                                placeholder="0:00"
                                 value={tiempoEditStr}
-                                onChange={e => setTiempoEditStr(e.target.value)}
                                 onBlur={confirmarEdicion}
+                                onChange={e => setTiempoEditStr(e.target.value)}
+                                onClick={e => e.stopPropagation()}
                                 onKeyDown={e => {
                                   if (e.key === "Enter") confirmarEdicion();
                                   if (e.key === "Escape") setEditandoTiempo(null);
                                 }}
-                                onClick={e => e.stopPropagation()}
-                                className="w-[52px] font-mono text-[10px] font-black text-primary bg-primary/10 border border-primary/30 rounded px-1 py-0.5 outline-none"
-                                placeholder="0:00"
                               />
                             ) : (
                               <button
-                                type="button"
-                                onClick={e => { e.stopPropagation(); iniciarEdicion(sec.id, lineaIdx); }}
                                 className={`font-mono text-[10px] font-black tracking-widest transition-all rounded px-1 py-0.5 ${
                                   tiempo !== null
                                     ? isActiva
@@ -288,6 +288,8 @@ export const ModalLectorLetras = ({
                                       ? "text-primary/15 group-hover:text-primary/35 group-hover:bg-primary/5"
                                       : "text-transparent"
                                 }`}
+                                type="button"
+                                onClick={e => { e.stopPropagation(); iniciarEdicion(sec.id, lineaIdx); }}
                               >
                                 {tiempo !== null ? fmtTime(tiempo) : "──:──"}
                               </button>

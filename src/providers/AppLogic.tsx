@@ -1,8 +1,9 @@
 "use client";
-import React, { useEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
-import { useLightbox } from "@/components/modal/lightbox";
+import React, { useEffect, useRef } from 'react';
+
 import Navbar from "@/components/layout/navbar";
+import { useLightbox } from "@/components/modal/lightbox";
 import { supabase } from "@/lib/api/client/supabase";
 
 const RECONNECT_AFTER_MS = 10_000;
@@ -10,7 +11,10 @@ const RECONNECT_AFTER_MS = 10_000;
 export default function AppLogic({ children }) {
   const pathname = usePathname();
   const { closeLightbox } = useLightbox() || {};
-  const hiddenAtRef = useRef<number>(Date.now());
+  const hiddenAtRef = useRef<number | null>(null);
+useEffect(() => {
+  hiddenAtRef.current = Date.now();
+}, []);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   useEffect(() => {

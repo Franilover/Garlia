@@ -1,11 +1,14 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Users, Plus, X, Loader2, UserCircle2, ChevronDown } from "lucide-react";
-import { supabase } from "@/lib/api/client/supabase";
-import { db } from "@/lib/api/client/db";
-import { GrafoRelaciones } from "./GrafoRelaciones";
+import React, { useState, useEffect, useCallback, useRef } from "react";
+
 import { enqueueOperation, isReallyOnline } from "@/hooks/data/useOfflineSync";
+import { db } from "@/lib/api/client/db";
+import { supabase } from "@/lib/api/client/supabase";
+
+import { GrafoRelaciones } from "./GrafoRelaciones";
+
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -122,17 +125,17 @@ function InputTipo({ value, onChange, sugerencias }: {
   return (
     <div ref={ref} className="relative">
       <input
+        className="w-full bg-primary/[0.03] text-[10px] font-bold text-primary outline-none placeholder:text-primary/20 border border-primary/10 focus:border-primary/25 rounded-md px-2.5 py-1.5 transition-all"
+        placeholder="Tipo de relación…"
         value={value}
         onChange={e => { onChange(e.target.value); setOpen(true); }}
         onFocus={() => setOpen(true)}
-        placeholder="Tipo de relación…"
-        className="w-full bg-primary/[0.03] text-[10px] font-bold text-primary outline-none placeholder:text-primary/20 border border-primary/10 focus:border-primary/25 rounded-md px-2.5 py-1.5 transition-all"
       />
       {open && filtradas.length > 0 && (
         <div className="absolute z-[80] top-full left-0 mt-1 w-full rounded-lg shadow-xl overflow-hidden bg-bg-main border border-primary/15">
           {filtradas.map(s => (
-            <button key={s} onMouseDown={e => { e.preventDefault(); onChange(s); setOpen(false); }}
-              className="w-full flex items-center gap-2 px-2.5 py-1.5 hover:bg-primary/6 transition-colors text-left">
+            <button key={s} className="w-full flex items-center gap-2 px-2.5 py-1.5 hover:bg-primary/6 transition-colors text-left"
+              onMouseDown={e => { e.preventDefault(); onChange(s); setOpen(false); }}>
               <span className="shrink-0 w-1 h-1 rounded-full bg-primary/30" />
               <span className="text-[10px] font-bold text-primary/70">{s}</span>
             </button>
@@ -183,22 +186,22 @@ function SelectorPersonaje({ excludeId, onSelect, onClose }: {
   return (
     <div className="absolute z-[70] top-full left-0 mt-1 w-full rounded-lg shadow-2xl overflow-hidden bg-bg-main border border-primary/15" style={{ maxHeight: 200 }}>
       <div className="px-2.5 py-1.5 border-b border-primary/10">
-        <input autoFocus value={query} onChange={e => setQuery(e.target.value)}
-          placeholder="Buscar personaje…"
-          className="w-full bg-transparent text-[10px] font-bold text-primary outline-none placeholder:text-primary/25" />
+        <input autoFocus className="w-full bg-transparent text-[10px] font-bold text-primary outline-none placeholder:text-primary/25" placeholder="Buscar personaje…"
+          value={query}
+          onChange={e => setQuery(e.target.value)} />
       </div>
       <div className="overflow-y-auto" style={{ maxHeight: 158 }}>
         {loading ? (
-          <div className="flex justify-center py-3"><Loader2 size={12} className="animate-spin text-primary/20" /></div>
+          <div className="flex justify-center py-3"><Loader2 className="animate-spin text-primary/20" size={12} /></div>
         ) : results.length === 0 ? (
           <p className="text-[9px] text-primary/25 text-center py-3 font-bold uppercase tracking-widest italic">Sin resultados</p>
         ) : results.map(p => (
-          <button key={p.id} onClick={() => { onSelect(p); onClose(); }}
-            className="w-full flex items-center gap-2 px-2.5 py-1.5 hover:bg-primary/6 transition-colors text-left">
+          <button key={p.id} className="w-full flex items-center gap-2 px-2.5 py-1.5 hover:bg-primary/6 transition-colors text-left"
+            onClick={() => { onSelect(p); onClose(); }}>
             <div className="shrink-0 w-5 h-5 rounded overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
               {p.img_url
-                ? <img src={p.img_url} alt={p.nombre} className="w-full h-full object-cover" />
-                : <UserCircle2 size={9} className="text-primary/20" />}
+                ? <img alt={p.nombre} className="w-full h-full object-cover" src={p.img_url} />
+                : <UserCircle2 className="text-primary/20" size={9} />}
             </div>
             <span className="text-[10px] font-bold text-primary/80 truncate">{p.nombre}</span>
           </button>
@@ -269,29 +272,29 @@ function FormNuevaRelacion({ personajeId, tiposExistentes, onAdded, onCancel }: 
       <div className="grid grid-cols-2 gap-2">
         <div className="space-y-1">
           <label className="text-[7.5px] font-black uppercase tracking-[0.25em] text-primary/30">Tipo</label>
-          <InputTipo value={tipo} onChange={setTipo} sugerencias={tiposExistentes} />
+          <InputTipo sugerencias={tiposExistentes} value={tipo} onChange={setTipo} />
         </div>
         <div className="space-y-1">
           <label className="text-[7.5px] font-black uppercase tracking-[0.25em] text-primary/30">Personaje</label>
           <div className="relative">
-            <button onClick={() => setSelectorOpen(o => !o)}
-              className="w-full flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-primary/10 bg-primary/[0.03] text-left hover:border-primary/25 transition-all">
+            <button className="w-full flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-primary/10 bg-primary/[0.03] text-left hover:border-primary/25 transition-all"
+              onClick={() => setSelectorOpen(o => !o)}>
               {personajeSel ? (
                 <>
                   <div className="shrink-0 w-4 h-4 rounded overflow-hidden border border-primary/10 bg-primary/5">
                     {personajeSel.img_url
-                      ? <img src={personajeSel.img_url} alt="" className="w-full h-full object-cover" />
-                      : <UserCircle2 size={8} className="text-primary/20" />}
+                      ? <img alt="" className="w-full h-full object-cover" src={personajeSel.img_url} />
+                      : <UserCircle2 className="text-primary/20" size={8} />}
                   </div>
                   <span className="flex-1 text-[10px] font-bold text-primary/80 truncate">{personajeSel.nombre}</span>
                 </>
               ) : (
                 <span className="flex-1 text-[10px] font-bold text-primary/25 italic">Seleccionar…</span>
               )}
-              <ChevronDown size={9} className={`text-primary/25 shrink-0 transition-transform ${selectorOpen ? "rotate-180" : ""}`} />
+              <ChevronDown className={`text-primary/25 shrink-0 transition-transform ${selectorOpen ? "rotate-180" : ""}`} size={9} />
             </button>
             {selectorOpen && (
-              <SelectorPersonaje excludeId={personajeId} onSelect={setPersonajeSel} onClose={() => setSelectorOpen(false)} />
+              <SelectorPersonaje excludeId={personajeId} onClose={() => setSelectorOpen(false)} onSelect={setPersonajeSel} />
             )}
           </div>
         </div>
@@ -300,11 +303,11 @@ function FormNuevaRelacion({ personajeId, tiposExistentes, onAdded, onCancel }: 
       {tiposExistentes.length > 0 && tiposExistentes.length <= 10 && (
         <div className="flex flex-wrap gap-1">
           {tiposExistentes.map(s => (
-            <button key={s} onMouseDown={e => { e.preventDefault(); setTipo(s); }}
-              className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border transition-all
+            <button key={s} className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border transition-all
                 ${tipo === s
                   ? "bg-primary/10 border-primary/25 text-primary"
-                  : "border-primary/8 text-primary/30 hover:border-primary/20 hover:text-primary/55"}`}>
+                  : "border-primary/8 text-primary/30 hover:border-primary/20 hover:text-primary/55"}`}
+              onMouseDown={e => { e.preventDefault(); setTipo(s); }}>
               {s}
             </button>
           ))}
@@ -312,17 +315,17 @@ function FormNuevaRelacion({ personajeId, tiposExistentes, onAdded, onCancel }: 
       )}
 
       <div className="flex items-center gap-2">
-        <input value={nota} onChange={e => setNota(e.target.value)}
-          placeholder="Nota opcional…"
-          className="flex-1 bg-primary/[0.03] text-[10px] font-medium text-primary outline-none placeholder:text-primary/20 border border-primary/10 focus:border-primary/25 rounded-md px-2.5 py-1.5 transition-all min-w-0" />
+        <input className="flex-1 bg-primary/[0.03] text-[10px] font-medium text-primary outline-none placeholder:text-primary/20 border border-primary/10 focus:border-primary/25 rounded-md px-2.5 py-1.5 transition-all min-w-0" placeholder="Nota opcional…"
+          value={nota}
+          onChange={e => setNota(e.target.value)} />
         <div className="flex items-center gap-1 shrink-0">
-          <button onClick={onCancel}
-            className="px-2.5 py-1.5 rounded-md text-[8.5px] font-black uppercase tracking-widest border border-primary/10 text-primary/30 hover:text-primary/60 hover:border-primary/20 transition-all">
+          <button className="px-2.5 py-1.5 rounded-md text-[8.5px] font-black uppercase tracking-widest border border-primary/10 text-primary/30 hover:text-primary/60 hover:border-primary/20 transition-all"
+            onClick={onCancel}>
             ✕
           </button>
-          <button onClick={guardar} disabled={saving}
-            className="px-2.5 py-1.5 rounded-md text-[8.5px] font-black uppercase tracking-widest bg-primary text-btn-text disabled:opacity-40 hover:bg-primary/90 transition-all flex items-center gap-1">
-            {saving ? <Loader2 size={8} className="animate-spin" /> : <Plus size={8} />}
+          <button className="px-2.5 py-1.5 rounded-md text-[8.5px] font-black uppercase tracking-widest bg-primary text-btn-text disabled:opacity-40 hover:bg-primary/90 transition-all flex items-center gap-1" disabled={saving}
+            onClick={guardar}>
+            {saving ? <Loader2 className="animate-spin" size={8} /> : <Plus size={8} />}
             Añadir
           </button>
         </div>
@@ -378,22 +381,22 @@ function FilaRelacion({ rel, onDelete, onSelectPersonaje }: {
   return (
     <div className="group flex items-center gap-1.5 py-[3px] rounded-md hover:bg-primary/[0.04] px-1 transition-all">
       <button
-        onClick={() => onSelectPersonaje?.(rel.personaje_rel_id)}
         className="shrink-0 w-[18px] h-[18px] rounded overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center hover:border-primary/30 transition-colors"
+        onClick={() => onSelectPersonaje?.(rel.personaje_rel_id)}
       >
         {rel.rel_img_url
-          ? <img src={rel.rel_img_url} alt={rel.rel_nombre} className="w-full h-full object-cover" />
-          : <UserCircle2 size={8} className="text-primary/20" />}
+          ? <img alt={rel.rel_nombre} className="w-full h-full object-cover" src={rel.rel_img_url} />
+          : <UserCircle2 className="text-primary/20" size={8} />}
       </button>
       <button
-        onClick={() => onSelectPersonaje?.(rel.personaje_rel_id)}
         className="flex-1 text-left text-[10px] font-bold text-primary/75 truncate leading-none min-w-0 hover:text-primary transition-colors"
+        onClick={() => onSelectPersonaje?.(rel.personaje_rel_id)}
       >
         {rel.rel_nombre ?? "—"}
       </button>
-      <button onClick={handleDelete} disabled={deleting}
-        className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity w-4 h-4 rounded flex items-center justify-center text-primary/20 hover:text-red-400 hover:bg-red-500/8">
-        {deleting ? <Loader2 size={8} className="animate-spin" /> : <X size={8} />}
+      <button className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity w-4 h-4 rounded flex items-center justify-center text-primary/20 hover:text-red-400 hover:bg-red-500/8" disabled={deleting}
+        onClick={handleDelete}>
+        {deleting ? <Loader2 className="animate-spin" size={8} /> : <X size={8} />}
       </button>
     </div>
   );
@@ -492,7 +495,7 @@ export function BloqueRelaciones({ personajeId, personajeNombre, onSelectPersona
 
       {/* Header */}
       <div className="flex items-center gap-1.5 px-2 py-1 border-b border-primary/[0.06]">
-        <Users size={8} className="text-primary/25 shrink-0" />
+        <Users className="text-primary/25 shrink-0" size={8} />
         <span className="text-[7px] font-black uppercase tracking-[0.2em] text-primary/30 leading-none">Relaciones</span>
         {relaciones.length > 0 && (
           <span className="text-[7px] font-black text-primary/20 tabular-nums leading-none">{relaciones.length}</span>
@@ -501,11 +504,11 @@ export function BloqueRelaciones({ personajeId, personajeNombre, onSelectPersona
         {!loading && relaciones.length > 0 && (
           <GrafoRelaciones personajeId={personajeId} personajeNombre={personajeNombre} />
         )}
-        <button onClick={() => setFormVisible(v => !v)}
-          className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[7px] font-black uppercase tracking-widest border transition-all leading-none
+        <button className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[7px] font-black uppercase tracking-widest border transition-all leading-none
             ${formVisible
               ? "bg-primary/8 border-primary/20 text-primary"
-              : "border-primary/8 text-primary/25 hover:text-primary/50 hover:border-primary/18"}`}>
+              : "border-primary/8 text-primary/25 hover:text-primary/50 hover:border-primary/18"}`}
+          onClick={() => setFormVisible(v => !v)}>
           {formVisible ? <X size={7} /> : <Plus size={7} />}
           {formVisible ? "Cerrar" : "Añadir"}
         </button>
@@ -527,7 +530,7 @@ export function BloqueRelaciones({ personajeId, personajeNombre, onSelectPersona
 
         {loading ? (
           <div className="flex justify-center py-4">
-            <Loader2 size={12} className="animate-spin text-primary/20" />
+            <Loader2 className="animate-spin text-primary/20" size={12} />
           </div>
 
         ) : relaciones.length === 0 ? (
@@ -540,8 +543,8 @@ export function BloqueRelaciones({ personajeId, personajeNombre, onSelectPersona
             {tiposConData.map(tipo => (
               <ColumnaTipo
                 key={tipo}
-                tipo={tipo}
                 relaciones={porTipo(tipo)}
+                tipo={tipo}
                 onDelete={handleDeleted}
                 onSelectPersonaje={onSelectPersonaje}
               />

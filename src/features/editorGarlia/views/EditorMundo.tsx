@@ -1,44 +1,55 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
-  Sparkles, Star, Globe, Save, Loader2, Bug,
-  ScrollText, Map, FileText, Users, UserCircle2, Package,
-  Crown, Clock, Filter, Layers, BookOpen, Music, MapPin, Plus, X, Check, Trash2, ChevronLeft,
+  BookOpen,
+  Bug,
+  Check,
+  ChevronLeft,
+  Clock,
+  Crown,
+  FileText,
+  Filter, Layers,
+  Loader2,
+  Map,
+  MapPin,
+  Music,
+  Package,
+  Plus,
+  ScrollText,
+  Sparkles, Star,
+  Trash2,
+  UserCircle2,
+  Users,
+  X
 } from "lucide-react";
-import { supabase } from "@/lib/api/client/supabase";
-import { db } from "@/lib/api/client/db";
-import { isReallyOnline, onSyncDone } from "@/hooks/data/useOfflineSync";
-import { MUNDO_SECTIONS, type MundoSectionKey, type SaveStatus, type Reino, type Personaje, type Nota } from "../components/types";
-import { SaveIndicator } from "../components/UIComponents";
-import { MarkdownEditor } from "@/components/forms/Markdown/MarkdownEditor";
-import { useWikilink } from "../components/WikilinkContext";
-import { EditorReino } from "./EditorReino";
-import { EditorPersonaje } from "./EditorPersonaje";
-import { EditorCriatura } from "./EditorCriatura";
-import { EditorItem } from "./EditorItem";
-import { EditorCiudad, type Ciudad } from "./EditorCiudad";
-import { EditorHechizos } from "./EditorHechizos";
-import { type WikiEntity } from "@/components/forms/Markdown/MarkdownEditor";
-import { SelectorFechaMundo, useCalendario } from "../components/EditorLineaTiempo";
-import { diaAbsolutoAFecha, eraEnAnio } from "@/lib/utils/calendario";
-import { useNotas } from "../components/useNotas";
-import { EditorNota, ListaNotas } from "./EditorNota";
-import { EditorGrupo, useGrupos, type Grupo, GRUPO_TIPO_CONFIG } from "./EditorGrupo";
-import EstudioCapitulos from "@/features/editorGarlia/views/EditorCapitulos";
-import AdminDescubrimientos from "@/features/editorGarlia/views/editorRelaciones";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
+import { MarkdownEditor, type WikiEntity } from "@/components/forms/Markdown/MarkdownEditor";
 import { PanelEditor } from "@/features/editorGarlia/components/editorLetras/components/editor/PanelEditor";
 import { ModalNuevaCancion } from "@/features/editorGarlia/components/editorLetras/components/modals/ModalNuevaCancion";
 import type { Cancion } from "@/features/editorGarlia/components/editorLetras/types";
+import EstudioCapitulos from "@/features/editorGarlia/views/EditorCapitulos";
+import AdminDescubrimientos from "@/features/editorGarlia/views/editorRelaciones";
+import { onSyncDone } from "@/hooks/data/useOfflineSync";
+import { db } from "@/lib/api/client/db";
+import { supabase } from "@/lib/api/client/supabase";
+
+import { EditorCiudad, type Ciudad } from "./EditorCiudad";
+import { EditorCriatura } from "./EditorCriatura";
+import { EditorGrupo, GRUPO_TIPO_CONFIG, useGrupos, type Grupo } from "./EditorGrupo";
+import { EditorHechizos } from "./EditorHechizos";
+import { EditorItem } from "./EditorItem";
+import { EditorNota } from "./EditorNota";
+import { EditorPersonaje } from "./EditorPersonaje";
+import { EditorReino } from "./EditorReino";
+import { SelectorFechaMundo, useCalendario } from "../components/EditorLineaTiempo";
+import { type MundoSectionKey, type Nota, type Personaje, type Reino, type SaveStatus } from "../components/types";
+import { SaveIndicator } from "../components/UIComponents";
+import { useNotas } from "../components/useNotas";
+import { useWikilink } from "../components/WikilinkContext";
 
 
 // ─── Dexie helpers ────────────────────────────────────────────────────────────
-async function dexiePut(tabla: string, row: any): Promise<void> {
-  try { if (db) await (db as any)[tabla]?.put(row); } catch {}
-}
-async function dexieDel(tabla: string, id: string): Promise<void> {
-  try { if (db) await (db as any)[tabla]?.delete(id); } catch {}
-}
 async function dexieReadAll<T>(tabla: string): Promise<T[]> {
   try {
     if (!db) return [];
@@ -147,7 +158,7 @@ function useEntityList<T>(
       ctrl.abort();
       window.removeEventListener("online", handleOnline);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [tablaLocal, fetchRemote]);
 
   return { items, setItems, loading };
@@ -261,6 +272,7 @@ function useCriaturaVariantes(criaturaId: string | null) {
 
 // ─── Hook: grupos del mundo (filtrable por tipo) ──────────────────────────────
 type GrupoTodo = { id: string; nombre: string; tipo: string; miembro_ids: string[] };
+// (GrupoTodo used in useGruposTodos return type)
 
 function useGruposMundo(filtroTipo?: string) {
   const [grupos, setGrupos] = useState<any[]>([]);
@@ -287,7 +299,7 @@ function useGruposMundo(filtroTipo?: string) {
       if (ctrl.signal.aborted || e?.name === "AbortError") return;
       if (isMounted.current) setLoading(false);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [filtroTipo]);
 
   useEffect(() => {
@@ -415,17 +427,19 @@ function CapituloEventoRow({
 
           {/* Selector de fecha */}
           <div className="relative">
-            {saving && <Loader2 size={8} className="animate-spin absolute right-2 top-2 z-10 text-primary/30" />}
-            <SelectorFechaMundo value={diaActual} onChange={commitDia} placeholder="Sin fecha…" />
+            {saving && <Loader2 className="animate-spin absolute right-2 top-2 z-10 text-primary/30" size={8} />}
+            <SelectorFechaMundo placeholder="Sin fecha…" value={diaActual} onChange={commitDia} />
           </div>
 
           {/* Título navegable */}
-          <button type="button" onClick={onNavigate}
+          <button
             className="flex items-center gap-1 px-1.5 py-1 rounded-lg border w-full text-left transition-all"
             style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
+            title={`Abrir: ${cap.titulo_capitulo}`}
+            type="button"
+            onClick={onNavigate}
             onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.background = "color-mix(in srgb, var(--primary) 9%, transparent)"; el.style.borderColor = "color-mix(in srgb, var(--primary) 22%, transparent)"; }}
-            onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.background = "color-mix(in srgb, var(--primary) 4%, transparent)"; el.style.borderColor = "color-mix(in srgb, var(--primary) 10%, transparent)"; }}
-            title={`Abrir: ${cap.titulo_capitulo}`}>
+            onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.background = "color-mix(in srgb, var(--primary) 4%, transparent)"; el.style.borderColor = "color-mix(in srgb, var(--primary) 10%, transparent)"; }}>
             <BookOpen size={8} style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)", flexShrink: 0 }} />
             <span className="text-[8px] font-bold truncate" style={{ color: "color-mix(in srgb, var(--primary) 65%, transparent)" }}>
               {cap.titulo_capitulo}
@@ -484,16 +498,18 @@ function CancionMundoRow({
           )}
           {/* Selector de fecha */}
           <div className="relative">
-            {saving && <Loader2 size={8} className="animate-spin absolute right-2 top-2 z-10 text-accent/40" />}
-            <SelectorFechaMundo value={cancion.dia_absoluto ?? null} onChange={commitDia} placeholder="Sin fecha…" />
+            {saving && <Loader2 className="animate-spin absolute right-2 top-2 z-10 text-accent/40" size={8} />}
+            <SelectorFechaMundo placeholder="Sin fecha…" value={cancion.dia_absoluto ?? null} onChange={commitDia} />
           </div>
           {/* Título */}
-          <button type="button" onClick={navigate}
+          <button
             className="flex items-center gap-1 px-1.5 py-1 rounded-lg border w-full text-left transition-all"
             style={{ background: "color-mix(in srgb, var(--accent) 4%, transparent)", borderColor: "color-mix(in srgb, var(--accent) 10%, transparent)" }}
+            title={`Abrir: ${cancion.titulo}`}
+            type="button"
+            onClick={navigate}
             onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.background = "color-mix(in srgb, var(--accent) 9%, transparent)"; el.style.borderColor = "color-mix(in srgb, var(--accent) 22%, transparent)"; }}
-            onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.background = "color-mix(in srgb, var(--accent) 4%, transparent)"; el.style.borderColor = "color-mix(in srgb, var(--accent) 10%, transparent)"; }}
-            title={`Abrir: ${cancion.titulo}`}>
+            onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.background = "color-mix(in srgb, var(--accent) 4%, transparent)"; el.style.borderColor = "color-mix(in srgb, var(--accent) 10%, transparent)"; }}>
             <Music size={8} style={{ color: "color-mix(in srgb, var(--accent) 40%, transparent)", flexShrink: 0 }} />
             <span className="text-[8px] font-bold truncate" style={{ color: "color-mix(in srgb, var(--accent) 65%, var(--primary))" }}>
               {cancion.titulo}
@@ -550,17 +566,17 @@ function EventoMundoRow({
         }}>
         {/* Selector de fecha (editable) */}
         <div className="relative">
-          {saving && <Loader2 size={8} className="animate-spin absolute right-2 top-2 z-10 text-primary/30" />}
-          <SelectorFechaMundo value={evt.dia_absoluto ?? null} onChange={commitDia} placeholder="Sin fecha…" />
+          {saving && <Loader2 className="animate-spin absolute right-2 top-2 z-10 text-primary/30" size={8} />}
+          <SelectorFechaMundo placeholder="Sin fecha…" value={evt.dia_absoluto ?? null} onChange={commitDia} />
         </div>
         {/* Título editable */}
         <input
-          value={titulo}
-          onChange={e => { setTitulo(e.target.value); scheduleSave("titulo", e.target.value); }}
-          onBlur={e => onFieldChange?.(evt.id, "titulo", e.target.value)}
-          placeholder="Título del evento…"
           className="px-1 text-[10px] font-bold bg-transparent outline-none w-full rounded"
+          placeholder="Título del evento…"
           style={{ color: "var(--primary)" }}
+          value={titulo}
+          onBlur={e => onFieldChange?.(evt.id, "titulo", e.target.value)}
+          onChange={e => { setTitulo(e.target.value); scheduleSave("titulo", e.target.value); }}
         />
         {evt.reinoNombre && (
           <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest truncate self-start"
@@ -570,13 +586,13 @@ function EventoMundoRow({
         )}
         {/* Descripción editable */}
         <textarea
-          value={descripcion}
-          onChange={e => { setDescripcion(e.target.value); scheduleSave("descripcion", e.target.value); }}
-          onBlur={e => onFieldChange?.(evt.id, "descripcion", e.target.value)}
+          className="px-1 text-[11px] leading-relaxed bg-transparent outline-none w-full rounded resize-y"
           placeholder="Descripción…"
           rows={6}
-          className="px-1 text-[11px] leading-relaxed bg-transparent outline-none w-full rounded resize-y"
           style={{ color: "color-mix(in srgb, var(--primary) 70%, transparent)", minHeight: "90px" }}
+          value={descripcion}
+          onBlur={e => onFieldChange?.(evt.id, "descripcion", e.target.value)}
+          onChange={e => { setDescripcion(e.target.value); scheduleSave("descripcion", e.target.value); }}
         />
       </div>
     </div>
@@ -609,9 +625,9 @@ function ModalNuevoEvento({
           <span className="text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: "var(--primary)" }}>
             Nuevo evento
           </span>
-          <button type="button" onClick={onClose}
-            className="flex items-center justify-center w-6 h-6 rounded-lg border transition-all"
-            style={{ borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)", color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>
+          <button className="flex items-center justify-center w-6 h-6 rounded-lg border transition-all" style={{ borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)", color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+            type="button"
+            onClick={onClose}>
             <X size={10} />
           </button>
         </div>
@@ -620,17 +636,17 @@ function ModalNuevoEvento({
         <div className="space-y-1">
           <label className="text-[8px] font-black uppercase tracking-[0.18em] text-primary/35">Título</label>
           <input
-            type="text"
-            value={titulo}
-            onChange={e => setTitulo(e.target.value)}
-            placeholder="Título del evento…"
             autoFocus
             className="w-full rounded-lg border px-2.5 py-1.5 text-[11px] font-bold outline-none transition-all"
+            placeholder="Título del evento…"
             style={{
               background: "transparent",
               borderColor: "color-mix(in srgb, var(--primary) 14%, transparent)",
               color: "var(--primary)",
             }}
+            type="text"
+            value={titulo}
+            onChange={e => setTitulo(e.target.value)}
           />
         </div>
 
@@ -638,29 +654,29 @@ function ModalNuevoEvento({
         <div className="space-y-1">
           <label className="text-[8px] font-black uppercase tracking-[0.18em] text-primary/35">Reino</label>
           <div className="flex flex-wrap gap-1">
-            <button type="button" onClick={() => setReinoId(null)}
-              className="px-2.5 py-1 rounded-lg border text-[9px] font-black uppercase tracking-widest transition-all"
-              style={reinoId === null ? {
+            <button className="px-2.5 py-1 rounded-lg border text-[9px] font-black uppercase tracking-widest transition-all" style={reinoId === null ? {
                 background: "color-mix(in srgb, var(--accent) 15%, transparent)",
                 borderColor: "color-mix(in srgb, var(--accent) 35%, transparent)",
                 color: "var(--accent)",
               } : {
                 borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
                 color: "color-mix(in srgb, var(--primary) 45%, transparent)",
-              }}>
+              }}
+              type="button"
+              onClick={() => setReinoId(null)}>
               Mundo (sin reino)
             </button>
             {reinos.map(r => (
-              <button key={r.id} type="button" onClick={() => setReinoId(r.id)}
-                className="px-2.5 py-1 rounded-lg border text-[9px] font-black uppercase tracking-widest transition-all"
-                style={reinoId === r.id ? {
+              <button key={r.id} className="px-2.5 py-1 rounded-lg border text-[9px] font-black uppercase tracking-widest transition-all" style={reinoId === r.id ? {
                   background: "color-mix(in srgb, var(--accent) 15%, transparent)",
                   borderColor: "color-mix(in srgb, var(--accent) 35%, transparent)",
                   color: "var(--accent)",
                 } : {
                   borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
                   color: "color-mix(in srgb, var(--primary) 45%, transparent)",
-                }}>
+                }}
+                type="button"
+                onClick={() => setReinoId(r.id)}>
                 {r.nombre}
               </button>
             ))}
@@ -670,26 +686,26 @@ function ModalNuevoEvento({
         {/* Selector de fecha */}
         <div className="space-y-1">
           <label className="text-[8px] font-black uppercase tracking-[0.18em] text-primary/35">Fecha</label>
-          <SelectorFechaMundo value={diaAbsoluto} onChange={setDiaAbsoluto} placeholder="Elegir fecha…" />
+          <SelectorFechaMundo placeholder="Elegir fecha…" value={diaAbsoluto} onChange={setDiaAbsoluto} />
         </div>
 
         {/* Acciones */}
         <div className="flex gap-1.5 pt-1">
-          <button type="button" onClick={onClose}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-[8px] font-black uppercase tracking-widest transition-all"
-            style={{ borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)", color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
+          <button className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-[8px] font-black uppercase tracking-widest transition-all" style={{ borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)", color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
+            type="button"
+            onClick={onClose}>
             Cancelar
           </button>
-          <button type="button"
+          <button className="flex-1 flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all"
             disabled={!puedeCrear || creando}
-            onClick={() => { if (puedeCrear) onCrear({ titulo: titulo.trim(), reinoId, dia_absoluto: diaAbsoluto! }); }}
-            className="flex-1 flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all"
             style={{
               background: puedeCrear ? "var(--accent)" : "color-mix(in srgb, var(--primary) 12%, transparent)",
               color: puedeCrear ? "white" : "color-mix(in srgb, var(--primary) 35%, transparent)",
               cursor: puedeCrear ? "pointer" : "default",
-            }}>
-            {creando ? <Loader2 size={9} className="animate-spin" /> : <Check size={9} />} Crear
+            }}
+            type="button"
+            onClick={() => { if (puedeCrear) onCrear({ titulo: titulo.trim(), reinoId, dia_absoluto: diaAbsoluto! }); }}>
+            {creando ? <Loader2 className="animate-spin" size={9} /> : <Check size={9} />} Crear
           </button>
         </div>
       </div>
@@ -845,7 +861,7 @@ function ModalEra({
             </span>
             {era && <div className="flex items-center gap-1 mt-0.5"><div className="w-2 h-2 rounded-full" style={{ background: era.color ?? "var(--accent)" }}/><span className="text-[9px] font-bold" style={{ color: era.color ?? "var(--accent)" }}>{era.nombre}</span></div>}
           </div>
-          <button type="button" onClick={onClose} className="flex items-center justify-center w-6 h-6 rounded-lg border" style={{ borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)", color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}><X size={10}/></button>
+          <button className="flex items-center justify-center w-6 h-6 rounded-lg border" style={{ borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)", color: "color-mix(in srgb, var(--primary) 40%, transparent)" }} type="button" onClick={onClose}><X size={10}/></button>
         </div>
 
         {error && <div className="px-3 py-2 rounded-lg text-[9px] font-bold" style={{ background:"#ef444415", color:"#ef4444", border:"1px solid #ef444428" }}>{error}</div>}
@@ -853,17 +869,17 @@ function ModalEra({
         {/* Nombre */}
         <div className="space-y-1">
           <label className="text-[8px] font-black uppercase tracking-[0.18em] text-primary/35">Nombre</label>
-          <input type="text" value={form.nombre} onChange={e => upd({ nombre: e.target.value })} placeholder="ej. Prehistoria, Edad de Hierro…" autoFocus
-            className="w-full rounded-lg border px-2.5 py-1.5 text-[11px] font-bold outline-none"
-            style={{ background:"transparent", borderColor:"color-mix(in srgb, var(--primary) 14%, transparent)", color:"var(--primary)" }}/>
+          <input autoFocus className="w-full rounded-lg border px-2.5 py-1.5 text-[11px] font-bold outline-none" placeholder="ej. Prehistoria, Edad de Hierro…" style={{ background:"transparent", borderColor:"color-mix(in srgb, var(--primary) 14%, transparent)", color:"var(--primary)" }} type="text"
+            value={form.nombre}
+            onChange={e => upd({ nombre: e.target.value })}/>
         </div>
 
         {/* Descripción */}
         <div className="space-y-1">
           <label className="text-[8px] font-black uppercase tracking-[0.18em] text-primary/35">Descripción (opcional)</label>
-          <textarea value={form.descripcion} onChange={e => upd({ descripcion: e.target.value })} rows={2} placeholder="Breve descripción…"
-            className="w-full rounded-lg border px-2.5 py-1.5 text-[10px] outline-none resize-none"
-            style={{ background:"transparent", borderColor:"color-mix(in srgb, var(--primary) 14%, transparent)", color:"var(--primary)" }}/>
+          <textarea className="w-full rounded-lg border px-2.5 py-1.5 text-[10px] outline-none resize-none" placeholder="Breve descripción…" rows={2} style={{ background:"transparent", borderColor:"color-mix(in srgb, var(--primary) 14%, transparent)", color:"var(--primary)" }}
+            value={form.descripcion}
+            onChange={e => upd({ descripcion: e.target.value })}/>
         </div>
 
         {/* Años */}
@@ -871,9 +887,9 @@ function ModalEra({
           {(["anio_inicio","anio_fin"] as const).map((k,i) => (
             <div key={k} className="space-y-1">
               <label className="text-[8px] font-black uppercase tracking-[0.18em] text-primary/35">{i===0?"Año inicio":"Año fin (vacío = sin fin)"}</label>
-              <input type="number" value={form[k]} onChange={e => upd({ [k]: e.target.value })} placeholder={i===0?"0":"—"}
-                className="w-full rounded-lg border px-2.5 py-1.5 text-[11px] font-bold outline-none text-center"
-                style={{ background:"transparent", borderColor:"color-mix(in srgb, var(--primary) 14%, transparent)", color:"var(--primary)" }}/>
+              <input className="w-full rounded-lg border px-2.5 py-1.5 text-[11px] font-bold outline-none text-center" placeholder={i===0?"0":"—"} style={{ background:"transparent", borderColor:"color-mix(in srgb, var(--primary) 14%, transparent)", color:"var(--primary)" }} type="number"
+                value={form[k]}
+                onChange={e => upd({ [k]: e.target.value })}/>
             </div>
           ))}
         </div>
@@ -883,12 +899,12 @@ function ModalEra({
           <label className="text-[8px] font-black uppercase tracking-[0.18em] text-primary/35">Color</label>
           <div className="flex items-center gap-1.5 flex-wrap">
             {COLORES_ERA_PRESET.map(c => (
-              <button key={c} type="button" onClick={() => upd({ color: c })}
-                className="w-5 h-5 rounded-full transition-transform hover:scale-110"
-                style={{ background: c, outline: form.color===c ? `2px solid ${c}` : "none", outlineOffset: 2 }}/>
+              <button key={c} className="w-5 h-5 rounded-full transition-transform hover:scale-110" style={{ background: c, outline: form.color===c ? `2px solid ${c}` : "none", outlineOffset: 2 }}
+                type="button"
+                onClick={() => upd({ color: c })}/>
             ))}
             <label className="flex items-center gap-1 cursor-pointer">
-              <input type="color" value={form.color} onChange={e => upd({ color: e.target.value })} className="w-5 h-5 cursor-pointer border-0 p-0 rounded" style={{ background:"transparent" }}/>
+              <input className="w-5 h-5 cursor-pointer border-0 p-0 rounded" style={{ background:"transparent" }} type="color" value={form.color} onChange={e => upd({ color: e.target.value })}/>
               <span className="text-[8px] text-primary/40 font-bold">Otro</span>
             </label>
           </div>
@@ -903,34 +919,34 @@ function ModalEra({
         {/* Acciones */}
         <div className="flex gap-1.5 pt-1">
           {era && !confirmDel && (
-            <button type="button" onClick={() => setConfirmDel(true)} disabled={saving}
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-[8px] font-black uppercase tracking-widest"
-              style={{ borderColor:"#ef444425", color:"#ef4444aa" }}>
+            <button className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-[8px] font-black uppercase tracking-widest" disabled={saving} style={{ borderColor:"#ef444425", color:"#ef4444aa" }}
+              type="button"
+              onClick={() => setConfirmDel(true)}>
               <Trash2 size={9}/> Borrar
             </button>
           )}
           {confirmDel && <>
-            <button type="button" onClick={borrar} disabled={saving}
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest"
-              style={{ background:"#ef444420", color:"#ef4444" }}>
-              {saving ? <Loader2 size={9} className="animate-spin"/> : <Check size={9}/>} Confirmar
+            <button className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest" disabled={saving} style={{ background:"#ef444420", color:"#ef4444" }}
+              type="button"
+              onClick={borrar}>
+              {saving ? <Loader2 className="animate-spin" size={9}/> : <Check size={9}/>} Confirmar
             </button>
-            <button type="button" onClick={() => setConfirmDel(false)}
-              className="px-2.5 py-1.5 rounded-lg border text-[8px] font-black uppercase tracking-widest"
-              style={{ borderColor:"color-mix(in srgb, var(--primary) 12%, transparent)", color:"color-mix(in srgb, var(--primary) 40%, transparent)" }}>
+            <button className="px-2.5 py-1.5 rounded-lg border text-[8px] font-black uppercase tracking-widest" style={{ borderColor:"color-mix(in srgb, var(--primary) 12%, transparent)", color:"color-mix(in srgb, var(--primary) 40%, transparent)" }}
+              type="button"
+              onClick={() => setConfirmDel(false)}>
               Cancelar
             </button>
           </>}
           {!confirmDel && <>
-            <button type="button" onClick={onClose} disabled={saving}
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-[8px] font-black uppercase tracking-widest"
-              style={{ borderColor:"color-mix(in srgb, var(--primary) 12%, transparent)", color:"color-mix(in srgb, var(--primary) 40%, transparent)" }}>
+            <button className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-[8px] font-black uppercase tracking-widest" disabled={saving} style={{ borderColor:"color-mix(in srgb, var(--primary) 12%, transparent)", color:"color-mix(in srgb, var(--primary) 40%, transparent)" }}
+              type="button"
+              onClick={onClose}>
               <X size={9}/> Cancelar
             </button>
-            <button type="button" onClick={guardar} disabled={saving || !form.nombre.trim()}
-              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest disabled:opacity-40"
-              style={{ background:"var(--accent)", color:"white" }}>
-              {saving ? <Loader2 size={9} className="animate-spin"/> : <Check size={9}/>}
+            <button className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest disabled:opacity-40" disabled={saving || !form.nombre.trim()} style={{ background:"var(--accent)", color:"white" }}
+              type="button"
+              onClick={guardar}>
+              {saving ? <Loader2 className="animate-spin" size={9}/> : <Check size={9}/>}
               {era ? "Guardar cambios" : "Crear era"}
             </button>
           </>}
@@ -981,18 +997,18 @@ function ModalGestionEras({
           </div>
           <div className="flex items-center gap-1.5">
             <button
-              type="button"
-              onClick={onNewEra}
               className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-widest transition-all"
               style={{ background: "var(--accent)", color: "white" }}
+              type="button"
+              onClick={onNewEra}
             >
               <Plus size={9} /> Nueva era
             </button>
             <button
-              type="button"
-              onClick={onClose}
               className="flex items-center justify-center w-6 h-6 rounded-lg border transition-all"
               style={{ borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)", color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+              type="button"
+              onClick={onClose}
             >
               <X size={10} />
             </button>
@@ -1003,13 +1019,13 @@ function ModalGestionEras({
         <div className="flex-1 overflow-y-auto p-3 space-y-2">
           {erasOrdenadas.length === 0 ? (
             <div className="text-center py-8">
-              <Clock size={20} className="mx-auto mb-2 opacity-20" style={{ color: "var(--primary)" }} />
+              <Clock className="mx-auto mb-2 opacity-20" size={20} style={{ color: "var(--primary)" }} />
               <p className="text-[9px] text-primary/30 font-bold uppercase tracking-widest">No hay eras definidas</p>
               <button
-                type="button"
-                onClick={onNewEra}
                 className="mt-3 px-3 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-widest transition-all"
                 style={{ background: "var(--accent)", color: "white" }}
+                type="button"
+                onClick={onNewEra}
               >
                 Crear la primera era
               </button>
@@ -1018,13 +1034,13 @@ function ModalGestionEras({
             erasOrdenadas.map((era) => (
               <button
                 key={era.id}
-                type="button"
-                onClick={() => onEditEra(era)}
                 className="w-full flex items-start gap-3 px-3 py-2.5 rounded-xl border text-left transition-all group"
                 style={{
                   background: era.color ? `${era.color}08` : "color-mix(in srgb, var(--primary) 2%, transparent)",
                   borderColor: era.color ? `${era.color}25` : "color-mix(in srgb, var(--primary) 10%, transparent)",
                 }}
+                type="button"
+                onClick={() => onEditEra(era)}
                 onMouseEnter={e => {
                   const el = e.currentTarget;
                   el.style.background = era.color ? `${era.color}15` : "color-mix(in srgb, var(--primary) 5%, transparent)";
@@ -1107,7 +1123,7 @@ export function PanelHistoriaMundo({
         if (db && (db as any).eventos_mundo) {
           const local: any[] = await (db as any).eventos_mundo.toArray();
           if (local.length && !cancelled) {
-            let reinoMap: Record<string, string> = {};
+            const reinoMap: Record<string, string> = {};
             try {
               if (db && (db as any).reinos) {
                 const rs: any[] = await (db as any).reinos.toArray();
@@ -1162,7 +1178,7 @@ export function PanelHistoriaMundo({
           const local: any[] = await (db as any).canciones.toArray();
           const conDia = local.filter(c => c.dia_absoluto != null && !c.deleted);
           if (conDia.length && !cancelled) {
-            let reinoMap: Record<string, string> = {};
+            const reinoMap: Record<string, string> = {};
             try {
               if (db && (db as any).reinos) {
                 const rs: any[] = await (db as any).reinos.toArray();
@@ -1272,7 +1288,7 @@ export function PanelHistoriaMundo({
         if (capsData.length) {
           // Resolver títulos de libros desde Dexie primero, solo pedir los que faltan
           const libroIds = [...new Set((capsData as any[]).map((c: any) => c.libro_id).filter(Boolean))];
-          let libroMap: Record<string, string> = {};
+          const libroMap: Record<string, string> = {};
           try {
             if (db && libroIds.length) {
               const localLibros: any[] = await (db as any).libros?.toArray() ?? [];
@@ -1409,7 +1425,6 @@ export function PanelHistoriaMundo({
       }
     } catch {}
   }, []);
-  const { onSnippetAction } = useWikilink();
   const debounceHistRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleSave = useCallback(async () => {
@@ -1516,23 +1531,25 @@ export function PanelHistoriaMundo({
         {reinosConEventos.length > 0 && (
           <div className="flex items-center gap-1 flex-wrap">
             <Filter size={8} style={{ color: "color-mix(in srgb, var(--primary) 28%, transparent)" }} />
-            <button onClick={() => setFilterReino(null)}
-              className="px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border transition-all"
+            <button className="px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border transition-all"
               style={filterReino === null ? {
                 background: "color-mix(in srgb, var(--primary) 10%, transparent)",
                 borderColor: "color-mix(in srgb, var(--primary) 22%, transparent)",
                 color: "var(--primary)",
-              } : { borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)", color: "color-mix(in srgb, var(--primary) 28%, transparent)" }}>
+              } : { borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)", color: "color-mix(in srgb, var(--primary) 28%, transparent)" }}
+              type="button"
+              onClick={() => setFilterReino(null)}>
               Todos
             </button>
             {reinosConEventos.map(r => (
-              <button key={r.id} onClick={() => setFilterReino(prev => prev === r.id ? null : r.id)}
-                className="px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border transition-all"
+              <button key={r.id} className="px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border transition-all"
                 style={filterReino === r.id ? {
                   background: "color-mix(in srgb, var(--primary) 10%, transparent)",
                   borderColor: "color-mix(in srgb, var(--primary) 22%, transparent)",
                   color: "var(--primary)",
-                } : { borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)", color: "color-mix(in srgb, var(--primary) 28%, transparent)" }}>
+                } : { borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)", color: "color-mix(in srgb, var(--primary) 28%, transparent)" }}
+                type="button"
+                onClick={() => setFilterReino(prev => prev === r.id ? null : r.id)}>
                 {r.nombre}
               </button>
             ))}
@@ -1543,14 +1560,14 @@ export function PanelHistoriaMundo({
           <SaveIndicator status={saveStatus} />
           {/* Botón gestionar eras */}
           <button
-            type="button"
-            onClick={() => setShowGestionEras(true)}
-            title="Ver y editar todas las eras"
             className="flex items-center gap-1 px-2 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-widest border transition-all"
             style={{
               borderColor: "color-mix(in srgb, var(--primary) 18%, transparent)",
               color: "color-mix(in srgb, var(--primary) 50%, transparent)",
             }}
+            title="Ver y editar todas las eras"
+            type="button"
+            onClick={() => setShowGestionEras(true)}
             onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.background = "color-mix(in srgb, var(--primary) 5%, transparent)"; el.style.color = "var(--primary)"; }}
             onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.background = "transparent"; el.style.color = "color-mix(in srgb, var(--primary) 50%, transparent)"; }}
           >
@@ -1558,50 +1575,50 @@ export function PanelHistoriaMundo({
           </button>
           {/* Botón nueva era */}
           <button
-            type="button"
-            onClick={() => setEraModal("new")}
-            title="Crear nueva era"
             className="flex items-center gap-1 px-2 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-widest border transition-all"
             style={{
               borderColor: "color-mix(in srgb, var(--primary) 18%, transparent)",
               color: "color-mix(in srgb, var(--primary) 50%, transparent)",
             }}
+            title="Crear nueva era"
+            type="button"
+            onClick={() => setEraModal("new")}
             onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.background = "color-mix(in srgb, var(--primary) 5%, transparent)"; el.style.color = "var(--primary)"; }}
             onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.background = "transparent"; el.style.color = "color-mix(in srgb, var(--primary) 50%, transparent)"; }}
           >
             <Plus size={9} /> Era
           </button>
           <button
-            type="button"
-            onClick={() => setShowNuevoEvento(true)}
-            title="Añadir evento"
             className="flex items-center gap-1 px-2 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-widest border transition-all"
             style={{
               borderColor: "color-mix(in srgb, var(--accent) 25%, transparent)",
               color: "var(--accent)",
             }}
+            title="Añadir evento"
+            type="button"
+            onClick={() => setShowNuevoEvento(true)}
             onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.background = "color-mix(in srgb, var(--accent) 8%, transparent)"; }}
             onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.background = "transparent"; }}
           >
             <Plus size={9} /> Evento
           </button>
           <button
-            type="button"
-            onClick={() => {
-              recargar();
-            }}
-            title="Recargar línea de tiempo"
             className="flex items-center gap-1 px-2 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-widest border transition-all"
             style={{
               borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
               color: "color-mix(in srgb, var(--primary) 35%, transparent)",
             }}
+            title="Recargar línea de tiempo"
+            type="button"
+            onClick={() => {
+              recargar();
+            }}
             onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.color = "var(--primary)"; el.style.borderColor = "color-mix(in srgb, var(--primary) 28%, transparent)"; }}
             onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.color = "color-mix(in srgb, var(--primary) 35%, transparent)"; el.style.borderColor = "color-mix(in srgb, var(--primary) 12%, transparent)"; }}
           >
             {loadingReinos
-              ? <Loader2 size={9} className="animate-spin" />
-              : <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+              ? <Loader2 className="animate-spin" size={9} />
+              : <svg fill="none" height="9" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" viewBox="0 0 24 24" width="9"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
             }
           </button>
         </div>
@@ -1610,10 +1627,10 @@ export function PanelHistoriaMundo({
       {/* Modal: nuevo evento */}
       {showNuevoEvento && (
         <ModalNuevoEvento
+          creando={creandoEvento}
           reinos={reinos}
           onClose={() => setShowNuevoEvento(false)}
           onCrear={handleCrearEvento}
-          creando={creandoEvento}
         />
       )}
 
@@ -1632,16 +1649,16 @@ export function PanelHistoriaMundo({
         <ModalEra
           era={eraModal === "new" ? null : eraModal}
           onClose={() => setEraModal(null)}
+          onDeleted={(id) => {
+            setErasLocal(prev => prev.filter((e: any) => e.id !== id));
+            setEraModal(null);
+          }}
           onSaved={(eraGuardada) => {
             setErasLocal(prev => {
               const idx = prev.findIndex((e: any) => e.id === eraGuardada.id);
               if (idx >= 0) { const next = [...prev]; next[idx] = eraGuardada; return next; }
               return [...prev, eraGuardada].sort((a: any, b: any) => a.anio_inicio - b.anio_inicio);
             });
-            setEraModal(null);
-          }}
-          onDeleted={(id) => {
-            setErasLocal(prev => prev.filter((e: any) => e.id !== id));
             setEraModal(null);
           }}
         />
@@ -1651,7 +1668,7 @@ export function PanelHistoriaMundo({
       <div className="px-3 py-3">
         {loadingReinos ? (
           <div className="flex justify-center py-4">
-            <Loader2 size={14} className="animate-spin text-primary/20" />
+            <Loader2 className="animate-spin text-primary/20" size={14} />
           </div>
         ) : (
           <div className="overflow-x-auto pb-1"
@@ -1710,7 +1727,7 @@ export function PanelHistoriaMundo({
                           style={{ color: era.color ?? "var(--primary)" }}>
                           {era.nombre}
                         </span>
-                        <svg className="opacity-0 group-hover/era:opacity-60 transition-opacity shrink-0" width="7" height="7" viewBox="0 0 24 24" fill="none" stroke={era.color ?? "var(--primary)"} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <svg className="opacity-0 group-hover/era:opacity-60 transition-opacity shrink-0" fill="none" height="7" stroke={era.color ?? "var(--primary)"} strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" viewBox="0 0 24 24" width="7">
                           <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                           <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                         </svg>
@@ -1850,15 +1867,15 @@ export function EditorMundo({
   return (
     <div className="flex-1 flex min-h-0 overflow-hidden">
       <PanelListas
+        entityLabels={entityLabels}
         initialItemId={initialItemId}
         openItem={openItem}
-        textos={textos}
-        onTextoChange={onTextoChange}
-        onSave={onSave}
-        onOverlayChange={onOverlayChange}
-        onItemCreated={onItemCreated}
         sectionLabels={sectionLabels}
-        entityLabels={entityLabels}
+        textos={textos}
+        onItemCreated={onItemCreated}
+        onOverlayChange={onOverlayChange}
+        onSave={onSave}
+        onTextoChange={onTextoChange}
       />
     </div>
   );
@@ -2050,7 +2067,7 @@ function PanelListas({
 
   useEffect(() => {
     onOverlayChange?.(!!overlay, clearAllOverlays);
-  }, [!!overlay, clearAllOverlays, onOverlayChange]);
+  }, [overlay, clearAllOverlays, onOverlayChange]);
 
   // ── WikiEntity list ────────────────────────────────────────────────────────
   const allEntityNames = useMemo((): WikiEntity[] => [
@@ -2176,6 +2193,8 @@ function PanelListas({
     else if (tabla === "dones")      setSelectedDon(item);
     else if (tabla === "runas")      setSelectedRuna(item);
     else if (tabla === "canciones")  setSelectedCancion(item);
+  // Setters from useState are stable; only re-run when onItemCreated changes
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onItemCreated]);
 
   // ── nuevo-ciudad / nueva-nota actions ─────────────────────────────────────
@@ -2222,7 +2241,7 @@ function PanelListas({
     check();
     window.addEventListener("estudio-letras-action", check);
     return () => window.removeEventListener("estudio-letras-action", check);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, []);
 
   // ── Navegar a la sección Capítulos desde el sidebar ──────────────────────
@@ -2247,17 +2266,17 @@ function PanelListas({
     const hasImg = !!imgUrl;
     if (hasImg) {
       return (
-        <button onClick={onClick} type="button" title={nombre}
-          className={`relative rounded-xl border overflow-hidden transition-all hover:scale-[1.02] active:scale-[0.98]${fullWidth ? " w-full" : ""}`}
-          style={{ background: accentBg ?? "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: accentBorder ?? "color-mix(in srgb, var(--primary) 12%, transparent)", aspectRatio: "1/1", width: "100%" }}>
-          <img src={imgUrl} alt={nombre} className="w-full h-full object-cover" />
+        <button className={`relative rounded-xl border overflow-hidden transition-all hover:scale-[1.02] active:scale-[0.98]${fullWidth ? " w-full" : ""}`} style={{ background: accentBg ?? "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: accentBorder ?? "color-mix(in srgb, var(--primary) 12%, transparent)", aspectRatio: "1/1", width: "100%" }} title={nombre}
+          type="button"
+          onClick={onClick}>
+          <img alt={nombre} className="w-full h-full object-cover" src={imgUrl} />
         </button>
       );
     }
     return (
-      <button onClick={onClick} type="button"
-        className={`flex items-center rounded-xl border transition-all hover:scale-[1.02] active:scale-[0.98]${fullWidth ? " w-full" : ""} px-3 py-1.5`}
-        style={{ background: accentBg ?? "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: accentBorder ?? "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
+      <button className={`flex items-center rounded-xl border transition-all hover:scale-[1.02] active:scale-[0.98]${fullWidth ? " w-full" : ""} px-3 py-1.5`} style={{ background: accentBg ?? "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: accentBorder ?? "color-mix(in srgb, var(--primary) 12%, transparent)" }}
+        type="button"
+        onClick={onClick}>
         <span className={`text-[11px] font-bold truncate${(fullWidth || noMaxW) ? "" : " max-w-[120px] sm:max-w-[90px]"}`} style={{ color: accentText ?? "color-mix(in srgb, var(--primary) 70%, transparent)" }}>{nombre}</span>
       </button>
     );
@@ -2270,13 +2289,13 @@ function PanelListas({
     return (
       <div className="pb-1">
         <div className="flex items-center gap-1.5 mb-2">
-          <Icon size={10} className="text-primary/30 shrink-0" />
+          <Icon className="text-primary/30 shrink-0" size={10} />
           <span className="text-[8px] font-black uppercase tracking-[0.25em]" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
             {label} · {count}
           </span>
         </div>
         {loading
-          ? <div className="flex justify-center py-3"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
+          ? <div className="flex justify-center py-3"><Loader2 className="animate-spin text-primary/20" size={14} /></div>
           : count === 0
             ? <p className="text-[9px] text-primary/20 italic px-1 pb-2">Sin {label.toLowerCase()} aún</p>
             : <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${minColWidth}, 1fr))` }}>{children}</div>
@@ -2300,9 +2319,10 @@ function PanelListas({
             style={{ height: 40, borderBottom: "var(--border-width) solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
           >
             <button
-              onClick={clearAllOverlays}
               className="flex items-center gap-1.5 transition-all"
               style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+              type="button"
+              onClick={clearAllOverlays}
               onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = "var(--primary)"}
               onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--primary) 40%, transparent)"}
             >
@@ -2312,15 +2332,10 @@ function PanelListas({
           </div>
           <div className="flex-1 flex min-h-0 overflow-hidden">
             {overlay === "reino" && selectedReino && (
-              <EditorReino key={selectedReino.id} item={selectedReino}
-                entities={allEntityNames}
-                onSaved={u => { setReinos(p => p.map(r => r.id === u.id ? u : r)); setSelectedReino(u); }}
+              <EditorReino key={selectedReino.id} entities={allEntityNames}
+                item={selectedReino}
                 onDeleted={id => { setReinos(p => p.filter(r => r.id !== id)); setSelectedReino(null); }}
-                onSelectPersonaje={p => {
-                  const found = personajes.find(x => x.id === p?.id || x.nombre === p?.nombre);
-                  if (!found) return;
-                  clearAllOverlays(); setSelectedPersonaje(found);
-                }}
+                onSaved={u => { setReinos(p => p.map(r => r.id === u.id ? u : r)); setSelectedReino(u); }}
                 onSelectCiudad={async (id: string) => {
                   const local = ciudades.find(x => x.id === id);
                   clearAllOverlays();
@@ -2330,15 +2345,32 @@ function PanelListas({
                 }}
                 onSelectCriatura={id => { const c = criaturas.find(x => x.id === id); if (!c) return; clearAllOverlays(); setSelectedCriatura(c); }}
                 onSelectItem={id => { const o = objetos.find(x => x.id === id); if (!o) return; clearAllOverlays(); setSelectedObjeto(o); }}
+                onSelectPersonaje={p => {
+                  const found = personajes.find(x => x.id === p?.id || x.nombre === p?.nombre);
+                  if (!found) return;
+                  clearAllOverlays(); setSelectedPersonaje(found);
+                }}
               />
             )}
             {overlay === "criatura" && selectedCriatura && (
-              <EditorCriatura key={selectedCriatura.id} item={selectedCriatura as any}
-                entities={allEntityNames}
-                onSaved={u => { setCriaturas(p => p.map(c => c.id === u.id ? { ...c, ...u } : c)); setSelectedCriatura({ ...selectedCriatura, ...u }); }}
+              <EditorCriatura key={selectedCriatura.id} entities={allEntityNames}
+                item={selectedCriatura as any}
                 onDeleted={id => { setCriaturas(p => p.filter(c => c.id !== id)); setSelectedCriatura(null); }}
-                onSelectItem={id => { const o = objetos.find(x => x.id === id); if (!o) return; clearAllOverlays(); setSelectedObjeto(o); }}
-                onSelectPersonaje={id => { const p = personajes.find(x => x.id === id); if (!p) return; clearAllOverlays(); setSelectedPersonaje(p); }}
+                onNavigateCiudad={async (id) => {
+                  const local = ciudades.find(x => x.id === id);
+                  clearAllOverlays();
+                  if (local) { selectCiudad(local); return; }
+                  const { data } = await supabase.from("ciudades").select("*").eq("id", id).single();
+                  if (data) selectCiudad(data as Ciudad);
+                }}
+                onNavigateReino={async (id) => {
+                  const local = reinos.find(x => x.id === id);
+                  clearAllOverlays();
+                  if (local) { selectReino(local); return; }
+                  const { data } = await supabase.from("reinos").select("*").eq("id", id).single();
+                  if (data) selectReino(data as Reino);
+                }}
+                onSaved={u => { setCriaturas(p => p.map(c => c.id === u.id ? { ...c, ...u } : c)); setSelectedCriatura({ ...selectedCriatura, ...u }); }}
                 onSelectGrupo={async (id) => {
                   const local = grupos.find(x => x.id === id);
                   clearAllOverlays();
@@ -2346,28 +2378,14 @@ function PanelListas({
                   const { data } = await supabase.from("grupos_mundo").select("*").eq("id", id).single();
                   if (data) selectGrupo({ ...data, miembro_ids: data.miembro_ids ?? [] } as Grupo);
                 }}
-                onNavigateCiudad={async (id) => {
-                  const local = ciudades.find(x => x.id === id);
-                  clearAllOverlays();
-                  if (local) { selectCiudad(local); return; }
-                  const { data } = await supabase.from("ciudades").select("*").eq("id", id).single();
-                  if (data) selectCiudad(data as Ciudad);
-                }}
-                onNavigateReino={async (id) => {
-                  const local = reinos.find(x => x.id === id);
-                  clearAllOverlays();
-                  if (local) { selectReino(local); return; }
-                  const { data } = await supabase.from("reinos").select("*").eq("id", id).single();
-                  if (data) selectReino(data as Reino);
-                }}
+                onSelectItem={id => { const o = objetos.find(x => x.id === id); if (!o) return; clearAllOverlays(); setSelectedObjeto(o); }}
+                onSelectPersonaje={id => { const p = personajes.find(x => x.id === id); if (!p) return; clearAllOverlays(); setSelectedPersonaje(p); }}
               />
             )}
             {overlay === "objeto" && selectedObjeto && (
-              <EditorItem key={selectedObjeto.id} item={selectedObjeto as any}
-                entities={allEntityNames}
-                onSaved={u => { setObjetos(p => p.map(o => o.id === u.id ? { ...o, ...u } : o)); setSelectedObjeto({ ...selectedObjeto, ...u }); }}
+              <EditorItem key={selectedObjeto.id} entities={allEntityNames}
+                item={selectedObjeto as any}
                 onDeleted={id => { setObjetos(p => p.filter(o => o.id !== id)); setSelectedObjeto(null); }}
-                onSelectCriatura={id => { const c = criaturas.find(x => x.id === id); if (!c) return; clearAllOverlays(); setSelectedCriatura(c); }}
                 onNavigateCiudad={async (id) => {
                   const local = ciudades.find(x => x.id === id);
                   clearAllOverlays();
@@ -2382,29 +2400,29 @@ function PanelListas({
                   const { data } = await supabase.from("reinos").select("*").eq("id", id).single();
                   if (data) selectReino(data as Reino);
                 }}
+                onSaved={u => { setObjetos(p => p.map(o => o.id === u.id ? { ...o, ...u } : o)); setSelectedObjeto({ ...selectedObjeto, ...u }); }}
+                onSelectCriatura={id => { const c = criaturas.find(x => x.id === id); if (!c) return; clearAllOverlays(); setSelectedCriatura(c); }}
               />
             )}
             {overlay === "ciudad" && selectedCiudad && (
-              <EditorCiudad key={selectedCiudad.id} item={selectedCiudad as Ciudad}
-                entities={allEntityNames}
-                onSaved={u => { setCiudades(p => p.map(l => l.id === u.id ? { ...l, ...u } : l)); setSelectedCiudad({ ...selectedCiudad, ...u }); }}
+              <EditorCiudad key={selectedCiudad.id} entities={allEntityNames}
+                item={selectedCiudad as Ciudad}
                 onDeleted={id => { setCiudades(p => p.filter(l => l.id !== id)); setSelectedCiudad(null); }}
-                onSelectPersonaje={id => { const p = personajes.find(x => x.id === id); if (!p) return; clearAllOverlays(); setSelectedPersonaje(p); }}
+                onNavigateReino={id => { const r = reinos.find(x => x.id === id); if (!r) return; clearAllOverlays(); setSelectedReino(r); }}
+                onSaved={u => { setCiudades(p => p.map(l => l.id === u.id ? { ...l, ...u } : l)); setSelectedCiudad({ ...selectedCiudad, ...u }); }}
                 onSelectCriatura={id => { const c = criaturas.find(x => x.id === id); if (!c) return; clearAllOverlays(); setSelectedCriatura(c); }}
                 onSelectItem={id => { const o = objetos.find(x => x.id === id); if (!o) return; clearAllOverlays(); setSelectedObjeto(o); }}
-                onNavigateReino={id => { const r = reinos.find(x => x.id === id); if (!r) return; clearAllOverlays(); setSelectedReino(r); }}
+                onSelectPersonaje={id => { const p = personajes.find(x => x.id === id); if (!p) return; clearAllOverlays(); setSelectedPersonaje(p); }}
               />
             )}
             {overlay === "personaje" && selectedPersonaje && (
-              <EditorPersonaje key={selectedPersonaje.id} item={selectedPersonaje}
-                entities={allEntityNames}
-                onSaved={u => { setPersonajes(p => p.map(x => x.id === u.id ? u : x)); setSelectedPersonaje(u); }}
+              <EditorPersonaje key={selectedPersonaje.id} entities={allEntityNames}
+                item={selectedPersonaje}
                 onDeleted={id => { setPersonajes(p => p.filter(x => x.id !== id)); setSelectedPersonaje(null); }}
                 onNavigate={(tab, nombre) => {
                   if (tab === "criaturas") { const c = criaturas.find(x => x.nombre.toLowerCase() === nombre.toLowerCase()); if (!c) return; clearAllOverlays(); setSelectedCriatura(c); }
                   else if (tab === "reinos") { const r = reinos.find(x => x.nombre.toLowerCase() === nombre.toLowerCase()); if (!r) return; clearAllOverlays(); setSelectedReino(r); }
                 }}
-                onSelectPersonaje={id => { const p = personajes.find(x => x.id === id); if (!p) return; clearAllOverlays(); setSelectedPersonaje(p); }}
                 onOpenGrupo={async (id) => {
                   const local = grupos.find(x => x.id === id);
                   clearAllOverlays();
@@ -2412,6 +2430,7 @@ function PanelListas({
                   const { data } = await supabase.from("grupos_mundo").select("*").eq("id", id).single();
                   if (data) selectGrupo({ ...data, miembro_ids: data.miembro_ids ?? [] } as Grupo);
                 }}
+                onSaved={u => { setPersonajes(p => p.map(x => x.id === u.id ? u : x)); setSelectedPersonaje(u); }}
                 onSelectCancion={async (id) => {
                   const local = canciones.find(x => x.id === id);
                   clearAllOverlays();
@@ -2419,51 +2438,52 @@ function PanelListas({
                   const { data } = await supabase.from("canciones").select("*").eq("id", id).single();
                   if (data) selectCancion(data as unknown as Cancion);
                 }}
+                onSelectPersonaje={id => { const p = personajes.find(x => x.id === id); if (!p) return; clearAllOverlays(); setSelectedPersonaje(p); }}
               />
             )}
             {overlay === "hechizo" && selectedHechizo && (
               <EditorHechizos
-                modo="hechizos"
                 initialSelectedId={selectedHechizo.id}
-                onSelectedIdChange={id => { if (!id) setSelectedHechizo(null); }}
-                onItemSaved={updated => setHechizos(p => p.map(h => h.id === updated.id ? { id: updated.id, nombre: updated.nombre } : h))}
+                modo="hechizos"
                 onItemDeleted={id => { setHechizos(p => p.filter(h => h.id !== id)); setSelectedHechizo(null); }}
+                onItemSaved={updated => setHechizos(p => p.map(h => h.id === updated.id ? { id: updated.id, nombre: updated.nombre } : h))}
+                onSelectedIdChange={id => { if (!id) setSelectedHechizo(null); }}
               />
             )}
             {overlay === "don" && selectedDon && (
               <EditorHechizos
-                modo="dones"
                 initialSelectedId={selectedDon.id}
-                onSelectedIdChange={id => { if (!id) setSelectedDon(null); }}
-                onItemSaved={updated => setDones(p => p.map(d => d.id === updated.id ? { id: updated.id, nombre: updated.nombre } : d))}
+                modo="dones"
                 onItemDeleted={id => { setDones(p => p.filter(d => d.id !== id)); setSelectedDon(null); }}
+                onItemSaved={updated => setDones(p => p.map(d => d.id === updated.id ? { id: updated.id, nombre: updated.nombre } : d))}
+                onSelectedIdChange={id => { if (!id) setSelectedDon(null); }}
               />
             )}
             {overlay === "runa" && selectedRuna && (
               <EditorHechizos
-                modo="runas"
                 initialSelectedId={selectedRuna.id}
-                onSelectedIdChange={id => { if (!id) setSelectedRuna(null); }}
-                onItemSaved={updated => setRunas(p => p.map(r => r.id === updated.id ? { id: updated.id, nombre: updated.nombre, imagen_url: (updated as any).imagen_url } : r))}
+                modo="runas"
                 onItemDeleted={id => { setRunas(p => p.filter(r => r.id !== id)); setSelectedRuna(null); }}
+                onItemSaved={updated => setRunas(p => p.map(r => r.id === updated.id ? { id: updated.id, nombre: updated.nombre, imagen_url: (updated as any).imagen_url } : r))}
+                onSelectedIdChange={id => { if (!id) setSelectedRuna(null); }}
               />
             )}
             {overlay === "nota" && selectedNota && (
               <EditorNota key={selectedNota.id} nota={selectedNota}
-                onSaved={async (updated) => { await actualizarNota(updated); setSelectedNota(updated); }}
                 onDeleted={id => { eliminarNota(id); setSelectedNota(null); }}
+                onSaved={async (updated) => { await actualizarNota(updated); setSelectedNota(updated); }}
               />
             )}
             {overlay === "grupo" && selectedGrupo && (
               <EditorGrupo key={selectedGrupo.id} grupo={selectedGrupo}
-                onSaved={async updated => { await actualizarGrupo(updated); setSelectedGrupo(updated); }}
-                onDeleted={async id => { await eliminarGrupo(id); setSelectedGrupo(null); }}
                 onClickMiembro={(id, tabla) => {
                   if (tabla === "personajes") { const p = personajes.find(x => x.id === id); if (!p) return; clearAllOverlays(); setSelectedPersonaje(p); }
                   else if (tabla === "criaturas") { const c = criaturas.find(x => x.id === id); if (!c) return; clearAllOverlays(); setSelectedCriatura(c); }
                   else if (tabla === "items") { const o = objetos.find(x => x.id === id); if (!o) return; clearAllOverlays(); setSelectedObjeto(o); }
                   else if (tabla === "reinos") { const r = reinos.find(x => x.id === id); if (!r) return; clearAllOverlays(); setSelectedReino(r); }
                 }}
+                onDeleted={async id => { await eliminarGrupo(id); setSelectedGrupo(null); }}
+                onSaved={async updated => { await actualizarGrupo(updated); setSelectedGrupo(updated); }}
               />
             )}
             {overlay === "cancion" && selectedCancion && (
@@ -2478,7 +2498,7 @@ function PanelListas({
 
       {/* ── Scroll vertical ─────────────────────────────────────────────── */}
       {!overlay && (
-        <div ref={scrollRef} onScroll={handleScroll} className="flex-1 overflow-y-auto min-h-0">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto min-h-0" onScroll={handleScroll}>
 
           {/* HISTORIA */}
           {textos && onTextoChange && onSave && (
@@ -2500,12 +2520,12 @@ function PanelListas({
 
             {/* ── Fila 1 desktop: Personajes · Grupos · Notas ── */}
             <div className="sm:grid sm:grid-cols-3 sm:gap-x-4">
-              <SeccionEntidades icon={Users} label={el.personajes} count={personajes.length} loading={loadingPersonajes}>
-                {[...personajes].sort((a,b)=>(!!b.img_url ? 1:0)-(!!a.img_url ? 1:0)||a.nombre.localeCompare(b.nombre)).map(p => <Chip key={p.id} onClick={() => selectPersonaje(p)} imgUrl={p.img_url} icon={UserCircle2} nombre={p.nombre} />)}
+              <SeccionEntidades count={personajes.length} icon={Users} label={el.personajes} loading={loadingPersonajes}>
+                {[...personajes].sort((a,b)=>(!!b.img_url ? 1:0)-(!!a.img_url ? 1:0)||a.nombre.localeCompare(b.nombre)).map(p => <Chip key={p.id} icon={UserCircle2} imgUrl={p.img_url} nombre={p.nombre} onClick={() => selectPersonaje(p)} />)}
               </SeccionEntidades>
               <div className={`${div} sm:hidden`} style={divStyle} />
 
-              <SeccionEntidades icon={Layers} label={el.grupos} count={grupos.length} loading={!loadedGrupos}>
+              <SeccionEntidades count={grupos.length} icon={Layers} label={el.grupos} loading={!loadedGrupos}>
                 {(() => {
                   const porTipo = grupos.reduce((acc, g) => {
                     const t = g.tipo || "otro";
@@ -2520,15 +2540,15 @@ function PanelListas({
                         {lista.map(g => {
                           const cfg = GRUPO_TIPO_CONFIG[g.tipo as keyof typeof GRUPO_TIPO_CONFIG];
                           return (
-                            <button key={g.id} type="button"
+                            <button key={g.id} className="flex items-center px-3 py-1.5 rounded-xl border transition-all hover:scale-[1.02] active:scale-[0.98]"
+                              style={{ background: `color-mix(in srgb, ${cfg?.color ?? "var(--primary)"} 4%, transparent)`, borderColor: `color-mix(in srgb, ${cfg?.color ?? "var(--primary)"} 12%, transparent)` }}
+                              type="button"
                               onClick={async () => {
                                 const full = grupos.find(x => x.id === g.id);
                                 if (full) { selectGrupo(full); return; }
                                 const { data } = await supabase.from("grupos_mundo").select("*").eq("id", g.id).single();
                                 if (data) selectGrupo({ ...data, miembro_ids: data.miembro_ids ?? [] } as Grupo);
-                              }}
-                              className="flex items-center px-3 py-1.5 rounded-xl border transition-all hover:scale-[1.02] active:scale-[0.98]"
-                              style={{ background: `color-mix(in srgb, ${cfg?.color ?? "var(--primary)"} 4%, transparent)`, borderColor: `color-mix(in srgb, ${cfg?.color ?? "var(--primary)"} 12%, transparent)` }}>
+                              }}>
                               <span className="text-[11px] font-bold text-primary/70 truncate">{g.nombre}</span>
                             </button>
                           );
@@ -2540,11 +2560,11 @@ function PanelListas({
               </SeccionEntidades>
               <div className={`${div} sm:hidden`} style={divStyle} />
 
-              <SeccionEntidades icon={FileText} label={el.notas} count={notas.length} loading={loadingNotas}>
+              <SeccionEntidades count={notas.length} icon={FileText} label={el.notas} loading={loadingNotas}>
                 {notas.map(n => (
-                  <button key={n.id} onClick={() => setSelectedNota(n)} type="button"
-                    className="flex items-center px-3 py-1.5 rounded-xl border transition-all hover:scale-[1.02] active:scale-[0.98]"
-                    style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
+                  <button key={n.id} className="flex items-center px-3 py-1.5 rounded-xl border transition-all hover:scale-[1.02] active:scale-[0.98]" style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}
+                    type="button"
+                    onClick={() => setSelectedNota(n)}>
                     <span className="text-[11px] font-bold text-primary/70 truncate">{n.titulo || <span className="italic text-primary/30">Sin título</span>}</span>
                   </button>
                 ))}
@@ -2554,30 +2574,30 @@ function PanelListas({
 
             {/* ── Fila 2 desktop: Criaturas · Objetos ── */}
             <div className="sm:grid sm:grid-cols-2 sm:gap-x-4">
-              <SeccionEntidades icon={Bug} label={el.criaturas} count={criaturas.length} loading={loadingCriaturas}>
-                {[...criaturas].sort((a,b)=>(!!b.imagen_url ? 1:0)-(!!a.imagen_url ? 1:0)||a.nombre.localeCompare(b.nombre)).map(c => <Chip key={c.id} onClick={() => selectCriatura(c)} imgUrl={c.imagen_url} icon={Bug} nombre={c.nombre} />)}
+              <SeccionEntidades count={criaturas.length} icon={Bug} label={el.criaturas} loading={loadingCriaturas}>
+                {[...criaturas].sort((a,b)=>(!!b.imagen_url ? 1:0)-(!!a.imagen_url ? 1:0)||a.nombre.localeCompare(b.nombre)).map(c => <Chip key={c.id} icon={Bug} imgUrl={c.imagen_url} nombre={c.nombre} onClick={() => selectCriatura(c)} />)}
               </SeccionEntidades>
               <div className={`${div} sm:hidden`} style={divStyle} />
 
-              <SeccionEntidades icon={Package} label="Objetos" count={objetos.length} loading={loadingObjetos}>
-                {[...objetos].sort((a,b)=>(!!b.imagen_url ? 1:0)-(!!a.imagen_url ? 1:0)||a.nombre.localeCompare(b.nombre)).map(o => <Chip key={o.id} onClick={() => selectObjeto(o)} imgUrl={o.imagen_url} icon={Package} nombre={o.nombre} />)}
+              <SeccionEntidades count={objetos.length} icon={Package} label="Objetos" loading={loadingObjetos}>
+                {[...objetos].sort((a,b)=>(!!b.imagen_url ? 1:0)-(!!a.imagen_url ? 1:0)||a.nombre.localeCompare(b.nombre)).map(o => <Chip key={o.id} icon={Package} imgUrl={o.imagen_url} nombre={o.nombre} onClick={() => selectObjeto(o)} />)}
               </SeccionEntidades>
             </div>
             <div className={div} style={divStyle} />
 
             {/* ── Extra desktop: Reinos · Ciudades ── */}
             <div className="sm:grid sm:grid-cols-2 sm:gap-x-4">
-              <SeccionEntidades icon={Map} label={el.reinos} count={reinos.length} loading={loadingReinos}>
-                {[...reinos].sort((a,b)=>(!!b.mapa_url ? 1:0)-(!!a.mapa_url ? 1:0)||a.nombre.localeCompare(b.nombre)).map(r => <Chip key={r.id} onClick={() => selectReino(r)} imgUrl={r.mapa_url} icon={Map} nombre={r.nombre} />)}
+              <SeccionEntidades count={reinos.length} icon={Map} label={el.reinos} loading={loadingReinos}>
+                {[...reinos].sort((a,b)=>(!!b.mapa_url ? 1:0)-(!!a.mapa_url ? 1:0)||a.nombre.localeCompare(b.nombre)).map(r => <Chip key={r.id} icon={Map} imgUrl={r.mapa_url} nombre={r.nombre} onClick={() => selectReino(r)} />)}
               </SeccionEntidades>
               <div className={`${div} sm:hidden`} style={divStyle} />
 
-              <SeccionEntidades icon={MapPin} label={el.ciudades} count={ciudades.length} loading={loadingCiudades}>
+              <SeccionEntidades count={ciudades.length} icon={MapPin} label={el.ciudades} loading={loadingCiudades}>
                 {[...ciudades].sort((a,b)=>(!!b.imagen_url ? 1:0)-(!!a.imagen_url ? 1:0)||a.nombre.localeCompare(b.nombre)).map(l => (
-                  <Chip key={l.id} onClick={async () => {
+                  <Chip key={l.id} icon={MapPin} imgUrl={l.imagen_url} nombre={l.nombre} onClick={async () => {
                     try { const { data } = await supabase.from("ciudades").select("*").eq("id", l.id).single(); if (data) { selectCiudad(data as Ciudad); return; } } catch {}
                     selectCiudad(l as Ciudad);
-                  }} imgUrl={l.imagen_url} icon={MapPin} nombre={l.nombre} />
+                  }} />
                 ))}
               </SeccionEntidades>
             </div>
@@ -2585,28 +2605,28 @@ function PanelListas({
 
             {/* ── Fila 3 desktop: Hechizos · Dones · Runas ── */}
             <div className="sm:grid sm:grid-cols-3 sm:gap-x-4">
-              <SeccionEntidades icon={Sparkles} label={el.hechizos} count={hechizos.length} loading={loadingHechizos}>
-                {hechizos.map(h => <Chip key={h.id} onClick={() => selectHechizo(h)} icon={Sparkles} nombre={h.nombre}
-                  accentBg="color-mix(in srgb, var(--accent) 5%, transparent)" accentBorder="color-mix(in srgb, var(--accent) 15%, transparent)" accentText="color-mix(in srgb, var(--accent) 80%, var(--primary))" />)}
+              <SeccionEntidades count={hechizos.length} icon={Sparkles} label={el.hechizos} loading={loadingHechizos}>
+                {hechizos.map(h => <Chip key={h.id} accentBg="color-mix(in srgb, var(--accent) 5%, transparent)" accentBorder="color-mix(in srgb, var(--accent) 15%, transparent)" accentText="color-mix(in srgb, var(--accent) 80%, var(--primary))"
+                  icon={Sparkles} nombre={h.nombre} onClick={() => selectHechizo(h)} />)}
               </SeccionEntidades>
               <div className={`${div} sm:hidden`} style={divStyle} />
 
-              <SeccionEntidades icon={Star} label={el.dones} count={dones.length} loading={loadingDones}>
-                {dones.map(d => <Chip key={d.id} onClick={() => selectDon(d)} icon={Star} nombre={d.nombre}
-                  accentBg="color-mix(in srgb, var(--accent) 4%, transparent)" accentBorder="color-mix(in srgb, var(--accent) 13%, transparent)" accentText="color-mix(in srgb, var(--accent) 75%, var(--primary))" />)}
+              <SeccionEntidades count={dones.length} icon={Star} label={el.dones} loading={loadingDones}>
+                {dones.map(d => <Chip key={d.id} accentBg="color-mix(in srgb, var(--accent) 4%, transparent)" accentBorder="color-mix(in srgb, var(--accent) 13%, transparent)" accentText="color-mix(in srgb, var(--accent) 75%, var(--primary))"
+                  icon={Star} nombre={d.nombre} onClick={() => selectDon(d)} />)}
               </SeccionEntidades>
               <div className={`${div} sm:hidden`} style={divStyle} />
 
-              <SeccionEntidades icon={ScrollText} label={el.runas} count={runas.length} loading={loadingRunas}>
-                {[...runas].sort((a,b)=>(!!b.imagen_url ? 1:0)-(!!a.imagen_url ? 1:0)||a.nombre.localeCompare(b.nombre)).map(r => <Chip key={r.id} onClick={() => selectRuna(r)} imgUrl={r.imagen_url} icon={ScrollText} nombre={r.nombre} />)}
+              <SeccionEntidades count={runas.length} icon={ScrollText} label={el.runas} loading={loadingRunas}>
+                {[...runas].sort((a,b)=>(!!b.imagen_url ? 1:0)-(!!a.imagen_url ? 1:0)||a.nombre.localeCompare(b.nombre)).map(r => <Chip key={r.id} icon={ScrollText} imgUrl={r.imagen_url} nombre={r.nombre} onClick={() => selectRuna(r)} />)}
               </SeccionEntidades>
             </div>
             <div className={div} style={divStyle} />
 
             {/* ── Fila 4 desktop: Canciones (ancho completo) ── */}
-            <SeccionEntidades icon={Music} label={el.canciones} count={canciones.length} loading={loadingCanciones} cols={1} minColWidth="160px">
+            <SeccionEntidades cols={1} count={canciones.length} icon={Music} label={el.canciones} loading={loadingCanciones} minColWidth="160px">
               {canciones.map(c => (
-                <Chip key={c.id} onClick={() => selectCancion(c as unknown as Cancion)} icon={Music} nombre={c.titulo} noMaxW />
+                <Chip key={c.id} noMaxW icon={Music} nombre={c.titulo} onClick={() => selectCancion(c as unknown as Cancion)} />
               ))}
             </SeccionEntidades>
 
@@ -2626,11 +2646,11 @@ function PanelListas({
       {/* Modal nueva canción */}
       {showModalCancion && (
         <ModalNuevaCancion
+          onClose={() => setShowModalCancion(false)}
           onCreated={(c: Cancion) => {
             setShowModalCancion(false);
             selectCancion(c as unknown as Cancion);
           }}
-          onClose={() => setShowModalCancion(false)}
         />
       )}
 
@@ -2641,14 +2661,12 @@ function PanelListas({
 
 // ─── Panel de texto genérico (reemplaza PanelMagia y el texto de los demás) ──
 function PanelTexto({
-  texto, onChange, onSave, placeholder, SaveIcon,
+  texto, onChange, onSave, placeholder,
 }: {
   texto: string;
   onChange: (v: string) => void;
   onSave: () => Promise<void>;
   placeholder: string;
-  saveLabel?: string;
-  SaveIcon: React.ElementType;
 }) {
   const [status, setStatus] = useState<SaveStatus>("idle");
   const { onSnippetAction } = useWikilink();
@@ -2683,7 +2701,7 @@ function PanelTexto({
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
       <div className="flex-1 min-h-0 overflow-y-auto p-3 sm:p-5">
-        <MarkdownEditor value={texto} onChange={handleChange} placeholder={placeholder} rows={22} toolbar defaultMode="edit" onSnippetAction={onSnippetAction} />
+        <MarkdownEditor toolbar defaultMode="edit" placeholder={placeholder} rows={22} value={texto} onChange={handleChange} onSnippetAction={onSnippetAction} />
       </div>
       <div className="shrink-0 flex items-center justify-end gap-2 px-3 py-1.5 border-t"
         style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>

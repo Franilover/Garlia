@@ -1,7 +1,7 @@
 "use client";
-import React, { useState, useMemo } from "react";
-import { Tag, Hash, AtSign, FileText, ChevronRight, Plus } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
+import { Tag, Hash, AtSign, FileText, ChevronRight, Plus } from "lucide-react";
+import React, { useState, useMemo } from "react";
 
 // ── Tipos ──────────────────────────────────────────────────────────────────────
 type NotaPanelTab = "indice" | "contexto";
@@ -39,7 +39,6 @@ function TabBtn({
 }) {
   return (
     <button
-      onClick={onClick}
       style={{
         display: "flex",
         alignItems: "center",
@@ -62,6 +61,7 @@ function TabBtn({
         flexShrink: 0,
         whiteSpace: "nowrap",
       }}
+      onClick={onClick}
     >
       <Icon size={8} strokeWidth={active ? 2.2 : 1.8} style={{ flexShrink: 0 }} />
       {label}
@@ -91,7 +91,7 @@ function SeccionIndice({ entries, mono }: { entries: TocEntry[]; mono: React.CSS
   if (entries.length === 0) {
     return (
       <div style={{ padding: "20px 16px", display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
-        <FileText size={18} style={{ color: "color-mix(in srgb, var(--foreground) 12%, transparent)" }} strokeWidth={1.2} />
+        <FileText size={18} strokeWidth={1.2} style={{ color: "color-mix(in srgb, var(--foreground) 12%, transparent)" }} />
         <span style={{ ...mono, fontSize: 9, color: "color-mix(in srgb, var(--foreground) 22%, transparent)", fontStyle: "italic", textAlign: "center", lineHeight: 1.5 }}>
           sin encabezados todavía
         </span>
@@ -255,7 +255,6 @@ function SeccionContexto({
             onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = "transparent"}
           >
             <button
-              onClick={() => onTagClick?.(t)}
               style={{
                 background: "none",
                 border: "none",
@@ -266,11 +265,11 @@ function SeccionContexto({
                 color: "color-mix(in srgb, var(--accent) 75%, transparent)",
                 textAlign: "left",
               }}
+              onClick={() => onTagClick?.(t)}
             >
               #{t}
             </button>
             <button
-              onClick={() => removeTag(t)}
               style={{
                 background: "none",
                 border: "none",
@@ -284,6 +283,7 @@ function SeccionContexto({
                 transition: "color 0.1s",
                 flexShrink: 0,
               }}
+              onClick={() => removeTag(t)}
               onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--accent) 60%, transparent)"}
               onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--foreground) 18%, transparent)"}
             >
@@ -306,16 +306,7 @@ function SeccionContexto({
           }}>
             <Plus size={7} style={{ color: "color-mix(in srgb, var(--foreground) 20%, transparent)", flexShrink: 0 }} />
             <input
-              type="text"
-              value={input}
               placeholder="añadir..."
-              onFocus={() => setFocused(true)}
-              onBlur={() => setTimeout(() => setFocused(false), 150)}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === "Enter" || e.key === ",") { e.preventDefault(); if (input.trim()) addTag(input); }
-                if (e.key === "Escape") { setInput(""); setFocused(false); }
-              }}
               style={{
                 flex: 1,
                 background: "transparent",
@@ -325,16 +316,24 @@ function SeccionContexto({
                 fontSize: 9,
                 color: "color-mix(in srgb, var(--foreground) 60%, transparent)",
               }}
+              type="text"
+              value={input}
+              onBlur={() => setTimeout(() => setFocused(false), 150)}
+              onChange={e => setInput(e.target.value)}
+              onFocus={() => setFocused(true)}
+              onKeyDown={e => {
+                if (e.key === "Enter" || e.key === ",") { e.preventDefault(); if (input.trim()) addTag(input); }
+                if (e.key === "Escape") { setInput(""); setFocused(false); }
+              }}
             />
           </div>
 
           <AnimatePresence>
             {focused && suggestions.length > 0 && (
               <motion.div
-                initial={{ opacity: 0, y: -3 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -3 }}
-                transition={{ duration: 0.1 }}
+                initial={{ opacity: 0, y: -3 }}
                 style={{
                   position: "absolute",
                   top: "calc(100% + 3px)",
@@ -350,11 +349,11 @@ function SeccionContexto({
                   zIndex: 50,
                   boxShadow: "0 4px 16px color-mix(in srgb, var(--bg-main) 50%, transparent)",
                 }}
+                transition={{ duration: 0.1 }}
               >
                 {suggestions.map(t => (
                   <button
                     key={t}
-                    onMouseDown={() => addTag(t)}
                     style={{
                       ...mono, fontSize: 9,
                       color: "color-mix(in srgb, var(--foreground) 60%, transparent)",
@@ -363,6 +362,7 @@ function SeccionContexto({
                       padding: "3px 8px",
                       cursor: "pointer", textAlign: "left",
                     }}
+                    onMouseDown={() => addTag(t)}
                     onMouseEnter={e => {
                       (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--accent) 10%, transparent)";
                       (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--accent) 85%, transparent)";
@@ -411,7 +411,6 @@ function SeccionContexto({
           return (
             <button
               key={b.id}
-              onClick={() => onNavigateToPage(b.titulo)}
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -425,6 +424,7 @@ function SeccionContexto({
                 textAlign: "left",
                 width: "100%",
               }}
+              onClick={() => onNavigateToPage(b.titulo)}
               onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--foreground) 4%, transparent)"}
               onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = "transparent"}
             >
@@ -495,20 +495,20 @@ export function NotaPanel({
         flexShrink: 0,
       }}>
         <TabBtn
-          label="índice"
-          icon={Hash}
           active={tab === "indice"}
           count={tocEntries.length}
-          onClick={() => setTab("indice")}
+          icon={Hash}
+          label="índice"
           mono={mono}
+          onClick={() => setTab("indice")}
         />
         <TabBtn
-          label="contexto"
-          icon={Tag}
           active={tab === "contexto"}
           count={contextoCount}
-          onClick={() => setTab("contexto")}
+          icon={Tag}
+          label="contexto"
           mono={mono}
+          onClick={() => setTab("contexto")}
         />
       </div>
 
@@ -518,9 +518,9 @@ export function NotaPanel({
           {tab === "indice" && (
             <motion.div
               key="indice"
-              initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -4 }}
+              initial={{ opacity: 0, y: 4 }}
               transition={{ duration: 0.12 }}
             >
               <SeccionIndice entries={tocEntries} mono={mono} />
@@ -529,18 +529,18 @@ export function NotaPanel({
           {tab === "contexto" && (
             <motion.div
               key="contexto"
-              initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -4 }}
+              initial={{ opacity: 0, y: 4 }}
               transition={{ duration: 0.12 }}
             >
               <SeccionContexto
                 ensayo={ensayo}
                 ensayos={ensayos}
-                onUpdateField={onUpdateField}
-                onTagClick={onTagClick}
-                onNavigateToPage={onNavigateToPage}
                 mono={mono}
+                onNavigateToPage={onNavigateToPage}
+                onTagClick={onTagClick}
+                onUpdateField={onUpdateField}
               />
             </motion.div>
           )}

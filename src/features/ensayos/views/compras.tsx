@@ -1,15 +1,16 @@
 "use client";
-import React, { useState, useMemo, useRef, useEffect } from "react";
-import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search, X, ShoppingCart, Flame, Dumbbell, Wheat, Droplets,
   ChevronLeft, Package, Plus, Minus, Pencil, Check,
 } from "lucide-react";
+import Link from "next/link";
+import React, { useState, useMemo, useRef, useEffect } from "react";
+
+import { Loading } from "@/components/ui";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import type { Ingrediente } from "@/lib/types/queries";
 
-import { Loading } from "@/components/ui";
 
 // ─── tipos ────────────────────────────────────────────────────────────────────
 type MacroEdits = Partial<{ kcal: number; proteinas: number; carbohidratos: number; grasas: number; precio: number }>;
@@ -47,11 +48,11 @@ function MacroPopover({
   return (
     <motion.div
       ref={ref}
-      initial={{ opacity: 0, scale: 0.92, y: -6 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.92, y: -6 }}
-      transition={{ duration: 0.15 }}
       className="absolute right-0 top-full mt-1.5 z-50 w-52 bg-white-custom border border-primary/12 rounded-[var(--radius-card)] shadow-xl p-3 space-y-1.5"
+      exit={{ opacity: 0, scale: 0.92, y: -6 }}
+      initial={{ opacity: 0, scale: 0.92, y: -6 }}
+      transition={{ duration: 0.15 }}
       onClick={e => e.stopPropagation()}
     >
       <p className="text-[9px] font-black uppercase tracking-widest text-primary/30 pb-1 border-b border-primary/8">
@@ -59,7 +60,7 @@ function MacroPopover({
       </p>
       {macros.map(({ label, value, unit, Icon, color }) => (
         <div key={label} className="flex items-center gap-2">
-          <Icon size={11} className={`${color} shrink-0`} />
+          <Icon className={`${color} shrink-0`} size={11} />
           <span className="text-[10px] font-bold text-primary/50 flex-1">{label}</span>
           <span className="text-[11px] font-black text-primary">{value.toFixed(unit === "kcal" ? 0 : 1)}</span>
           <span className="text-[9px] text-primary/25">{unit}</span>
@@ -95,36 +96,36 @@ function IngredienteEditor({
 
   return (
     <motion.div
-      initial={{ opacity: 0, height: 0 }}
       animate={{ opacity: 1, height: "auto" }}
-      exit={{ opacity: 0, height: 0 }}
-      transition={{ duration: 0.18 }}
       className="overflow-hidden"
+      exit={{ opacity: 0, height: 0 }}
+      initial={{ opacity: 0, height: 0 }}
+      transition={{ duration: 0.18 }}
     >
       <div className="mx-4 mb-3 rounded-[var(--radius-btn)] border border-primary/10 bg-bg-main overflow-hidden">
         <div className="px-3 py-2 border-b border-primary/8 flex items-center justify-between">
           <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">Editar valores · por porción</span>
-          <button onClick={onClose} className="text-primary/25 hover:text-primary transition-colors"><X size={12} /></button>
+          <button className="text-primary/25 hover:text-primary transition-colors" onClick={onClose}><X size={12} /></button>
         </div>
         <div className="p-3 grid grid-cols-2 sm:grid-cols-3 gap-2">
           {fields.map(({ key, label, unit, step }) => (
             <div key={key} className="flex flex-col gap-1">
               <label className="text-[8px] font-black uppercase tracking-widest text-primary/30 pl-0.5">{label} ({unit})</label>
               <input
-                type="number"
+                className="input-brand text-[11px] font-black py-1.5 px-2"
                 min="0"
                 step={step}
+                type="number"
                 value={local[key] ?? 0}
                 onChange={e => setLocal(p => ({ ...p, [key]: Number(e.target.value) }))}
-                className="input-brand text-[11px] font-black py-1.5 px-2"
               />
             </div>
           ))}
         </div>
         <div className="px-3 pb-3 flex justify-end">
           <button
-            onClick={() => { onUpdate(local); onClose(); }}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-btn)] bg-accent text-white text-[9px] font-black uppercase tracking-widest"
+            onClick={() => { onUpdate(local); onClose(); }}
           >
             <Check size={11} /> Aplicar
           </button>
@@ -170,15 +171,15 @@ function CartItemRow({
         {/* Qty controls */}
         <div className="flex items-center gap-1 shrink-0">
           <button
-            onClick={() => onQty(-1)}
             className="w-6 h-6 flex items-center justify-center rounded-[var(--radius-btn)] border border-primary/15 text-primary/30 hover:text-red-400 hover:border-red-100 transition-all"
+            onClick={() => onQty(-1)}
           >
             <Minus size={10} />
           </button>
           <span className="w-5 text-center text-[11px] font-black text-primary">{entry.qty}</span>
           <button
-            onClick={() => onQty(1)}
             className="w-6 h-6 flex items-center justify-center rounded-[var(--radius-btn)] border border-primary/15 text-primary/30 hover:text-accent hover:border-accent/40 transition-all"
+            onClick={() => onQty(1)}
           >
             <Plus size={10} />
           </button>
@@ -186,8 +187,8 @@ function CartItemRow({
 
         {/* Remove */}
         <button
-          onClick={onRemove}
           className="w-6 h-6 flex items-center justify-center rounded-[var(--radius-btn)] text-primary/20 hover:text-red-400 hover:bg-red-50 transition-all"
+          onClick={onRemove}
         >
           <X size={10} />
         </button>
@@ -219,14 +220,14 @@ function IngredienteRow({
       }`}>
         <td className="pl-4 pr-2 py-3 w-8">
           <button
-            onClick={onToggle}
             className={`w-5 h-5 rounded-[5px] border-2 flex items-center justify-center transition-all shrink-0 ${
               inCart ? "bg-accent border-accent text-white" : "border-primary/20 hover:border-accent/60"
             }`}
+            onClick={onToggle}
           >
             {inCart && (
-              <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
-                <path d="M1 4l3 3 5-6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              <svg fill="none" height="8" viewBox="0 0 10 8" width="10">
+                <path d="M1 4l3 3 5-6" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
               </svg>
             )}
           </button>
@@ -238,8 +239,6 @@ function IngredienteRow({
               <p className="text-[9px] font-bold text-primary/30 uppercase mt-0.5">{item.porcion_texto}</p>
             </div>
             <button
-              onClick={() => setEditing(p => !p)}
-              title="Editar macros"
               className={`w-5 h-5 flex items-center justify-center rounded-[var(--radius-btn)] transition-all shrink-0 ${
                 editing
                   ? "bg-accent/20 text-accent"
@@ -247,6 +246,8 @@ function IngredienteRow({
                     ? "text-accent/60 hover:text-accent hover:bg-accent/10"
                     : "text-primary/20 hover:text-accent hover:bg-accent/10"
               }`}
+              title="Editar macros"
+              onClick={() => setEditing(p => !p)}
             >
               <Pencil size={10} />
             </button>
@@ -264,7 +265,7 @@ function IngredienteRow({
               <span className="text-[8px] text-primary/25 ml-0.5">kcal</span>
             </button>
             <AnimatePresence>
-              {popoverOpen && <MacroPopover item={item} edits={edits} onClose={() => setPopoverOpen(false)} />}
+              {popoverOpen && <MacroPopover edits={edits} item={item} onClose={() => setPopoverOpen(false)} />}
             </AnimatePresence>
           </div>
         </td>
@@ -300,12 +301,12 @@ function IngredienteRow({
       <AnimatePresence>
         {editing && (
           <tr>
-            <td colSpan={7} className="p-0 border-b border-primary/5">
+            <td className="p-0 border-b border-primary/5" colSpan={7}>
               <IngredienteEditor
-                item={item}
                 edits={edits}
-                onUpdate={onUpdateEdits}
+                item={item}
                 onClose={() => setEditing(false)}
+                onUpdate={onUpdateEdits}
               />
             </td>
           </tr>
@@ -401,7 +402,7 @@ export default function ComprasPage() {
       <header className="sticky top-0 z-10 bg-bg-main/90 backdrop-blur-xl border-b border-primary/10">
         <div className="max-w-5xl mx-auto px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-3">
           <div className="flex-1 min-w-0">
-            <Link href="/personal/salud" className="inline-flex items-center gap-1 mb-1 text-[9px] font-black uppercase tracking-widest text-primary/40 hover:text-primary transition-colors">
+            <Link className="inline-flex items-center gap-1 mb-1 text-[9px] font-black uppercase tracking-widest text-primary/40 hover:text-primary transition-colors" href="/personal/salud">
               <ChevronLeft size={12} /> Salud
             </Link>
             <h1 className="text-2xl font-black uppercase tracking-tighter italic leading-none text-primary">
@@ -411,13 +412,13 @@ export default function ComprasPage() {
           <div className="relative w-full sm:w-56">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-primary/30" size={13} />
             <input
-              placeholder="Buscar..."
               className="input-brand pl-9 pr-8 text-[11px] py-2"
+              placeholder="Buscar..."
               value={search}
               onChange={e => setSearch(e.target.value)}
             />
             {search && (
-              <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-primary/30 hover:text-primary transition-colors">
+              <button className="absolute right-3 top-1/2 -translate-y-1/2 text-primary/30 hover:text-primary transition-colors" onClick={() => setSearch("")}>
                 <X size={12} />
               </button>
             )}
@@ -431,22 +432,22 @@ export default function ComprasPage() {
         <AnimatePresence>
           {cartItems.length > 0 && (
             <motion.div
-              initial={{ opacity: 0, y: -12 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -12 }}
-              transition={{ type: "spring", stiffness: 340, damping: 30 }}
               className="card-main overflow-hidden border-accent/25 bg-accent/5"
+              exit={{ opacity: 0, y: -12 }}
+              initial={{ opacity: 0, y: -12 }}
+              transition={{ type: "spring", stiffness: 340, damping: 30 }}
             >
               {/* Header carrito */}
               <div className="flex items-center justify-between px-4 py-3 border-b border-accent/15">
                 <div className="flex items-center gap-2">
-                  <ShoppingCart size={14} className="text-accent" />
+                  <ShoppingCart className="text-accent" size={14} />
                   <span className="text-[10px] font-black uppercase tracking-widest text-primary/60">Carrito</span>
                   <span className="text-[9px] px-2 py-0.5 rounded-full bg-accent/20 text-accent font-black">{totalCartItems}</span>
                 </div>
                 <button
-                  onClick={() => setCart({})}
                   className="text-[8px] font-black uppercase tracking-widest text-primary/25 hover:text-red-400 transition-colors"
+                  onClick={() => setCart({})}
                 >
                   Vaciar
                 </button>
@@ -457,11 +458,11 @@ export default function ComprasPage() {
                 {cartItems.map(item => (
                   <CartItemRow
                     key={item.id}
-                    item={item}
-                    entry={cart[item.id] ?? { qty: 1 }}
                     edits={getEdits(item.id)}
-                    onRemove={() => removeFromCart(item.id)}
+                    entry={cart[item.id] ?? { qty: 1 }}
+                    item={item}
                     onQty={delta => updateQty(item.id, delta)}
+                    onRemove={() => removeFromCart(item.id)}
                   />
                 ))}
               </div>
@@ -469,22 +470,22 @@ export default function ComprasPage() {
               {/* Totales carrito */}
               <div className="flex items-center gap-4 px-4 py-3 border-t border-accent/15 bg-accent/8 flex-wrap">
                 <div className="flex items-center gap-1.5">
-                  <Flame size={11} className="text-orange-400" />
+                  <Flame className="text-orange-400" size={11} />
                   <span className="text-[10px] font-black text-primary">{cartTotals.kcal.toFixed(0)}</span>
                   <span className="text-[8px] text-primary/30">kcal</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <Dumbbell size={11} className="text-blue-400" />
+                  <Dumbbell className="text-blue-400" size={11} />
                   <span className="text-[10px] font-black text-primary">{cartTotals.proteinas.toFixed(1)}</span>
                   <span className="text-[8px] text-primary/30">g prot</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <Wheat size={11} className="text-amber-400" />
+                  <Wheat className="text-amber-400" size={11} />
                   <span className="text-[10px] font-black text-primary">{cartTotals.carbohidratos.toFixed(1)}</span>
                   <span className="text-[8px] text-primary/30">g carb</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <Droplets size={11} className="text-yellow-400" />
+                  <Droplets className="text-yellow-400" size={11} />
                   <span className="text-[10px] font-black text-primary">{cartTotals.grasas.toFixed(1)}</span>
                   <span className="text-[8px] text-primary/30">g gras</span>
                 </div>
@@ -507,15 +508,15 @@ export default function ComprasPage() {
                 <tr className="border-b border-primary/8">
                   <th className="pl-4 pr-2 py-3 w-8">
                     <button
-                      onClick={toggleAll}
-                      title={allVisibleInCart ? "Deseleccionar todo" : "Seleccionar todo"}
                       className={`w-5 h-5 rounded-[5px] border-2 flex items-center justify-center transition-all ${
                         allVisibleInCart ? "bg-accent border-accent text-white" : "border-primary/20 hover:border-accent/60"
                       }`}
+                      title={allVisibleInCart ? "Deseleccionar todo" : "Seleccionar todo"}
+                      onClick={toggleAll}
                     >
                       {allVisibleInCart && (
-                        <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
-                          <path d="M1 4l3 3 5-6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                        <svg fill="none" height="8" viewBox="0 0 10 8" width="10">
+                          <path d="M1 4l3 3 5-6" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
                         </svg>
                       )}
                     </button>
@@ -534,7 +535,7 @@ export default function ComprasPage() {
               <tbody>
                 {items.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="text-center py-20">
+                    <td className="text-center py-20" colSpan={7}>
                       <Package className="mx-auto text-primary/15 mb-2" size={36} />
                       <p className="text-[10px] font-black uppercase tracking-widest text-primary/25">Sin resultados</p>
                     </td>
@@ -542,11 +543,11 @@ export default function ComprasPage() {
                 ) : items.map((item, i) => (
                   <IngredienteRow
                     key={item.id}
-                    item={item}
+                    edits={getEdits(item.id)}
                     i={i}
                     inCart={inCart(item.id)}
+                    item={item}
                     onToggle={() => toggle(item.id)}
-                    edits={getEdits(item.id)}
                     onUpdateEdits={edits => updateEdits(item.id, edits)}
                   />
                 ))}
@@ -589,15 +590,15 @@ export default function ComprasPage() {
       <AnimatePresence>
         {cartItems.length > 0 && (
           <motion.div
-            initial={{ y: 80, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 80, opacity: 0 }}
-            transition={{ type: "spring", stiffness: 340, damping: 32 }}
             className="fixed bottom-0 inset-x-0 z-20 bg-bg-main/95 backdrop-blur-xl border-t border-primary/10"
+            exit={{ y: 80, opacity: 0 }}
+            initial={{ y: 80, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 340, damping: 32 }}
           >
             <div className="max-w-5xl mx-auto px-5 py-4 flex items-center gap-4">
               <div className="flex items-center gap-2 shrink-0">
-                <ShoppingCart size={15} className="text-accent" />
+                <ShoppingCart className="text-accent" size={15} />
                 <span className="text-[10px] font-black uppercase tracking-widest text-primary/50">
                   {totalCartItems} ítem{totalCartItems !== 1 ? "s" : ""}
                 </span>

@@ -1,5 +1,6 @@
 "use client";
 import React from "react";
+
 import { MotionDiv } from "@/components/ui/Motion";
 import { ZoteroSource } from "@/features/ensayos/views/page";
 
@@ -28,10 +29,9 @@ export function CitePopup({ sources, query, position, onSelect, onClose, activeI
 
   return (
     <MotionDiv
-      initial={{ opacity: 0, y: 4, scale: 0.98 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: 4, scale: 0.98 }}
-      transition={{ duration: 0.1 }}
+      initial={{ opacity: 0, y: 4, scale: 0.98 }}
       style={{
         minWidth: 300,
         maxWidth: 420,
@@ -41,6 +41,7 @@ export function CitePopup({ sources, query, position, onSelect, onClose, activeI
         overflow: "hidden",
         boxShadow: "0 16px 48px color-mix(in srgb, var(--bg-main) 0%, transparent)",
       }}
+      transition={{ duration: 0.1 }}
     >
       {/* Header */}
       <div
@@ -59,7 +60,6 @@ export function CitePopup({ sources, query, position, onSelect, onClose, activeI
           return (
             <button
               key={src.citekey || i}
-              onMouseDown={e => { e.preventDefault(); onSelect(src); }}
               className="w-full text-left"
               style={{
                 display: "block",
@@ -70,6 +70,7 @@ export function CitePopup({ sources, query, position, onSelect, onClose, activeI
                 cursor: "pointer",
                 transition: "background 0.08s",
               }}
+              onMouseDown={e => { e.preventDefault(); onSelect(src); }}
             >
               <p style={{ fontSize: 11, color: "color-mix(in srgb, var(--foreground) 75%, transparent)", ...monoStyle, marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {src.title}

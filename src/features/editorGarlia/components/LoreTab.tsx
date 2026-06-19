@@ -1,16 +1,17 @@
-import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Mountain, Users, Plus, Trash2, ChevronUp, ChevronDown, ChevronRight, UserCircle2, Loader2, MapPin, Map, Check, X, Eye, EyeOff, Bug, Package, SlidersHorizontal } from "lucide-react";
-import { INPUT_CLS, type SaveStatus } from "./types";
-import { SeccionEntidad } from "@/components/ui/SeccionEntidad";
+import React, { useState, useRef, useEffect, useCallback } from "react";
+
 import { MarkdownEditor, WikiEntity } from "@/components/forms/Markdown/MarkdownEditor";
-import { useWikilink } from "./WikilinkContext";
-import { type Reino } from "./types";
-import { type Ciudad } from "@/features/editorGarlia/views/EditorCiudad";
-import { supabase } from "@/lib/api/client/supabase";
-import { db } from "@/lib/api/client/db";
 import { useConfirm } from "@/components/ui/ConfirmModal";
-import { SaveIndicator } from "./UIComponents";
+import { SeccionEntidad } from "@/components/ui/SeccionEntidad";
+import { type Ciudad } from "@/features/editorGarlia/views/EditorCiudad";
 import { PanelHistoriaMundo } from "@/features/editorGarlia/views/EditorMundo";
+import { db } from "@/lib/api/client/db";
+import { supabase } from "@/lib/api/client/supabase";
+
+import { INPUT_CLS, type SaveStatus , type Reino } from "./types";
+import { SaveIndicator } from "./UIComponents";
+import { useWikilink } from "./WikilinkContext";
 
 // ─── Tipo Personaje (local) ───────────────────────────────────────────────────
 type Personaje = {
@@ -99,51 +100,51 @@ function DetalleEditor({ detalle, onSaved, onDeleted, onOpenEditor, entities = [
       style={{ border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, transparent)" }}>
       <ConfirmModal />
       <div className="flex items-center gap-2 px-3 py-2.5 cursor-pointer" onClick={() => setExpanded(!expanded)}>
-        <MapPin size={11} className={`shrink-0 ${form.oculto ? "text-primary/20" : "text-primary/40"}`} />
+        <MapPin className={`shrink-0 ${form.oculto ? "text-primary/20" : "text-primary/40"}`} size={11} />
         <span className={`flex-1 text-[11px] font-black uppercase tracking-widest truncate ${form.oculto ? "text-primary/30 line-through" : "text-primary"}`}>{form.nombre}</span>
         {form.oculto && (
           <span className="shrink-0 text-[8px] font-black uppercase tracking-widest text-orange-400/70 bg-orange-400/10 border border-orange-400/20 px-1.5 py-0.5 rounded-lg flex items-center gap-1">
             <EyeOff size={8} /> Oculto
           </span>
         )}
-        <button onClick={e => { e.stopPropagation(); toggleOculto(); }} className={`shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all border ${
+        <button className={`shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all border ${
           form.oculto ? "text-orange-400 bg-orange-400/10 border-orange-400/30" : "text-primary/40 bg-primary/5 border-primary/10 hover:text-primary"
-        }`}>
+        }`} onClick={e => { e.stopPropagation(); toggleOculto(); }}>
           {form.oculto ? <Eye size={9} /> : <EyeOff size={9} />}
         </button>
-        <X size={12} className="text-primary/25 transition-transform duration-200" style={{ transform: expanded ? "rotate(45deg)" : undefined }} />
+        <X className="text-primary/25 transition-transform duration-200" size={12} style={{ transform: expanded ? "rotate(45deg)" : undefined }} />
       </div>
 
       {expanded && (
         <div className="px-3 pb-3 pt-0 border-t space-y-3" style={{ borderColor: "color-mix(in srgb, var(--primary) 6%, transparent)" }}>
           <div className="mt-3">
             <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">Nombre</label>
-            <input value={form.nombre} onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))} className={INPUT_CLS + " mt-1"} placeholder="Nombre de la ciudad" />
+            <input className={INPUT_CLS + " mt-1"} placeholder="Nombre de la ciudad" value={form.nombre} onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))} />
           </div>
           <div>
             <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35 block mb-1">Descripción</label>
-            <MarkdownEditor value={form.descripcion ?? ""} onChange={v => setForm(f => ({ ...f, descripcion: v }))}
-              rows={4} placeholder="Describe esta ciudad…" toolbar defaultMode="edit"
+            <MarkdownEditor toolbar defaultMode="edit"
+              entities={entities} placeholder="Describe esta ciudad…" rows={4} value={form.descripcion ?? ""}
+              onChange={v => setForm(f => ({ ...f, descripcion: v }))}
               onSnippetAction={onSnippetAction}
-              entities={entities}
             />
           </div>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <button onClick={async e => {
+              <button className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest text-red-400/60 hover:text-red-400 hover:bg-red-500/10 transition-all border border-transparent hover:border-red-500/20" onClick={async e => {
                 e.stopPropagation();
                 const ok = await confirm({ message: `¿Eliminar punto "${form.nombre}"?`, danger: true });
                 if (!ok) return;
                 await supabase.from("ciudades").delete().eq("id", form.id);
                 void dexieDel("ciudades", form.id);
                 onDeleted(form.id);
-              }} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest text-red-400/60 hover:text-red-400 hover:bg-red-500/10 transition-all border border-transparent hover:border-red-500/20">
+              }}>
                 <Trash2 size={10} /> Eliminar
               </button>
               {onOpenEditor && (
                 <button
-                  onClick={e => { e.stopPropagation(); onOpenEditor(form.id); }}
                   className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest text-primary/40 hover:text-primary hover:bg-primary/5 transition-all border border-primary/10 hover:border-primary/20"
+                  onClick={e => { e.stopPropagation(); onOpenEditor(form.id); }}
                 >
                   <MapPin size={10} /> Ver ficha
                 </button>
@@ -151,8 +152,8 @@ function DetalleEditor({ detalle, onSaved, onDeleted, onOpenEditor, entities = [
             </div>
             <div className="flex items-center gap-2">
               <SaveIndicator status={status} />
-              <button onClick={() => saveDetalle(form)}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-btn-text rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-primary/90 transition-all">
+              <button className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-btn-text rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-primary/90 transition-all"
+                onClick={() => saveDetalle(form)}>
                 <Check size={10} /> Guardar
               </button>
             </div>
@@ -207,10 +208,10 @@ function MapaPanel({
       >
         {MapaConPuntosComponent ? (
           <MapaConPuntosComponent
-            mapaUrl={mapaUrl}
-            onMapaChange={onMapaChange ?? (() => {})}
             detalles={detalles}
+            mapaUrl={mapaUrl}
             onDetallesChange={(d: any) => onDetallesArrayChange?.(d)}
+            onMapaChange={onMapaChange ?? (() => {})}
           />
         ) : (
           <div className="flex flex-col items-center justify-center py-12 text-primary/20 gap-2">
@@ -234,7 +235,6 @@ function MapaPanel({
             return (
               <button
                 key={key}
-                onClick={() => setSideTab(key)}
                 className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[8px] font-black uppercase tracking-widest transition-all border-b-2"
                 style={isActive ? {
                   borderColor: "var(--primary)",
@@ -244,6 +244,7 @@ function MapaPanel({
                   borderColor: "transparent",
                   color: "color-mix(in srgb, var(--primary) 35%, transparent)",
                 }}
+                onClick={() => setSideTab(key)}
               >
                 <Icon size={9} />
                 {label}
@@ -277,9 +278,9 @@ function MapaPanel({
                 key={det.id}
                 detalle={det}
                 entities={entities}
-                onSaved={d => onDetalleUpdate?.(d)}
                 onDeleted={id => onDetalleDelete?.(id)}
                 onOpenEditor={onOpenDetalleEditor}
+                onSaved={d => onDetalleUpdate?.(d)}
               />
             ))}
 
@@ -287,26 +288,26 @@ function MapaPanel({
               <div className="flex flex-col gap-1.5 p-2 rounded-xl border border-primary/15" style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)" }}>
                 <input
                   autoFocus
+                  className="w-full bg-bg-main border border-primary/20 rounded-lg px-2.5 py-1.5 text-[10px] font-black uppercase text-primary outline-none focus:border-primary/50 tracking-widest"
+                  placeholder="NOMBRE..."
                   value={newPointName ?? ""}
                   onChange={e => setNewPointName?.(e.target.value)}
                   onKeyDown={e => { if (e.key === "Enter") onAddPoint?.(); if (e.key === "Escape") setAddingPoint?.(false); }}
-                  className="w-full bg-bg-main border border-primary/20 rounded-lg px-2.5 py-1.5 text-[10px] font-black uppercase text-primary outline-none focus:border-primary/50 tracking-widest"
-                  placeholder="NOMBRE..."
                 />
                 <div className="flex gap-1">
-                  <button onClick={onAddPoint} disabled={!newPointName?.trim()}
-                    className="flex-1 bg-primary text-btn-text py-1.5 rounded-lg text-[9px] font-black hover:bg-primary/90 transition-all disabled:opacity-40 flex items-center justify-center">
+                  <button className="flex-1 bg-primary text-btn-text py-1.5 rounded-lg text-[9px] font-black hover:bg-primary/90 transition-all disabled:opacity-40 flex items-center justify-center" disabled={!newPointName?.trim()}
+                    onClick={onAddPoint}>
                     <Check size={11} />
                   </button>
-                  <button onClick={() => setAddingPoint?.(false)} className="px-2 py-1.5 rounded-lg text-primary/40 hover:text-primary transition-all">
+                  <button className="px-2 py-1.5 rounded-lg text-primary/40 hover:text-primary transition-all" onClick={() => setAddingPoint?.(false)}>
                     <X size={11} />
                   </button>
                 </div>
               </div>
             ) : (
               <button
-                onClick={() => setAddingPoint?.(true)}
                 className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl border border-dashed border-primary/15 text-[9px] font-black uppercase text-primary/30 hover:text-primary hover:border-primary/30 transition-all tracking-widest"
+                onClick={() => setAddingPoint?.(true)}
               >
                 <Plus size={9} /> Añadir
               </button>
@@ -316,12 +317,12 @@ function MapaPanel({
           <div className="flex-1 overflow-y-auto p-3">
             <MarkdownEditor
               key="geografia"
-              value={(form as any).geografia ?? ""}
-              onChange={(v) => setForm((f) => ({ ...f, geografia: v }))}
-              placeholder="Paisajes, clima, fronteras, ciudades principales…"
-              rows={20}
               toolbar
               defaultMode="edit"
+              placeholder="Paisajes, clima, fronteras, ciudades principales…"
+              rows={20}
+              value={(form as any).geografia ?? ""}
+              onChange={(v) => setForm((f) => ({ ...f, geografia: v }))}
               onSnippetAction={onSnippetAction}
             />
           </div>
@@ -573,7 +574,7 @@ function SeccionReadOnly({
       <div className="px-2 pb-2 flex flex-col gap-0.5">
         {loading ? (
           <div className="flex justify-center py-3">
-            <Loader2 size={12} className="animate-spin" style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }} />
+            <Loader2 className="animate-spin" size={12} style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }} />
           </div>
         ) : items.length === 0 ? (
           <p
@@ -586,11 +587,11 @@ function SeccionReadOnly({
           items.map(item => (
             <button
               key={item.id}
+              className="w-full flex items-center gap-2 px-1.5 py-1 rounded-lg transition-all text-left disabled:cursor-default"
+              disabled={!onEntityClick}
+              style={{ color: "color-mix(in srgb, var(--primary) 65%, transparent)" }}
               type="button"
               onClick={() => onEntityClick?.(item.id)}
-              disabled={!onEntityClick}
-              className="w-full flex items-center gap-2 px-1.5 py-1 rounded-lg transition-all text-left disabled:cursor-default"
-              style={{ color: "color-mix(in srgb, var(--primary) 65%, transparent)" }}
               onMouseEnter={e => { if (onEntityClick) (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 6%, transparent)"; }}
               onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
             >
@@ -602,7 +603,7 @@ function SeccionReadOnly({
                 }}
               >
                 {item.imagen_url
-                  ? <img src={item.imagen_url} alt={item.nombre} className="w-full h-full object-cover" />
+                  ? <img alt={item.nombre} className="w-full h-full object-cover" src={item.imagen_url} />
                   : <FallbackIcon size={11} style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }} />}
               </div>
               <span className="text-[10px] font-semibold truncate flex-1">{item.nombre}</span>
@@ -717,8 +718,8 @@ export function LoreTab({
   // ── Etiqueta de sección ───────────────────────────────────────────────────
   const SectionHeader = ({ id, label, Icon }: { id: SectionId; label: string; Icon: React.ElementType }) => (
     <header
-      id={`lore-section-${id}`}
       className="flex items-center gap-1.5 mb-2 select-none"
+      id={`lore-section-${id}`}
     >
       <Icon size={10} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
       <span
@@ -765,10 +766,10 @@ export function LoreTab({
             >
               <PanelHistoriaMundo
                 key={`historia-panel-${form.id}`}
+                initialFilterReino={filtroReinoId ?? form.id}
                 texto={(form as any).historia ?? ""}
                 onChange={(v) => setForm((f) => ({ ...f, historia: v }))}
                 onSave={async () => {}}
-                initialFilterReino={filtroReinoId ?? form.id}
               />
             </div>
 
@@ -786,8 +787,6 @@ export function LoreTab({
               {TABS.map(tab => (
                 <button
                   key={tab.id}
-                  type="button"
-                  onClick={() => setActiveTab(tab.id as any)}
                   className="flex-1 px-2 py-2 text-[9px] font-black uppercase tracking-widest transition-all border-b-2"
                   style={activeTab === tab.id ? {
                     borderColor: "var(--primary)",
@@ -796,6 +795,8 @@ export function LoreTab({
                     borderColor: "transparent",
                     color: "color-mix(in srgb, var(--primary) 35%, transparent)",
                   }}
+                  type="button"
+                  onClick={() => setActiveTab(tab.id as any)}
                 >
                   {tab.label}
                 </button>
@@ -805,24 +806,24 @@ export function LoreTab({
             {/* MAPA — tab activo */}
             {activeTab === "mapa" && (
               <MapaPanel
-                mapaUrl={mapaUrl}
-                onMapaChange={onMapaChange}
-                onDetallesArrayChange={onDetallesArrayChange}
                 MapaConPuntosComponent={MapaConPuntosComponent}
+                addingPoint={addingPoint}
                 detalles={detalles}
                 entities={entities}
-                onDetalleUpdate={onDetalleUpdate}
-                onDetalleDelete={onDetalleDelete}
-                onOpenDetalleEditor={onOpenDetalleEditor}
-                addingPoint={addingPoint}
-                setAddingPoint={setAddingPoint}
+                form={form}
+                mapaUrl={mapaUrl}
                 newPointName={newPointName}
+                reinoId={form.id}
+                setAddingPoint={setAddingPoint}
+                setForm={setForm}
                 setNewPointName={setNewPointName}
                 onAddPoint={onAddPoint}
-                form={form}
-                setForm={setForm}
+                onDetalleDelete={onDetalleDelete}
+                onDetalleUpdate={onDetalleUpdate}
+                onDetallesArrayChange={onDetallesArrayChange}
+                onMapaChange={onMapaChange}
+                onOpenDetalleEditor={onOpenDetalleEditor}
                 onSnippetAction={onSnippetAction}
-                reinoId={form.id}
               />
             )}
 
@@ -830,40 +831,40 @@ export function LoreTab({
             {activeTab === "cultura" && (
               <MarkdownEditor
                 key="cultura"
-                value={(form as any).cultura ?? ""}
-                onChange={(v) => setForm((f) => ({ ...f, cultura: v }))}
-                placeholder="Tradiciones, religión, idioma, costumbres, arte…"
-                rows={12}
                 toolbar
                 defaultMode="edit"
-                onSnippetAction={onSnippetAction}
                 entities={entities}
+                placeholder="Tradiciones, religión, idioma, costumbres, arte…"
+                rows={12}
+                value={(form as any).cultura ?? ""}
+                onChange={(v) => setForm((f) => ({ ...f, cultura: v }))}
+                onSnippetAction={onSnippetAction}
               />
             )}
             {activeTab === "politica" && (
               <MarkdownEditor
                 key="politica"
-                value={(form as any).politica ?? ""}
-                onChange={(v) => setForm((f) => ({ ...f, politica: v }))}
-                placeholder="Sistema de gobierno, facciones, líderes, leyes…"
-                rows={12}
                 toolbar
                 defaultMode="edit"
-                onSnippetAction={onSnippetAction}
                 entities={entities}
+                placeholder="Sistema de gobierno, facciones, líderes, leyes…"
+                rows={12}
+                value={(form as any).politica ?? ""}
+                onChange={(v) => setForm((f) => ({ ...f, politica: v }))}
+                onSnippetAction={onSnippetAction}
               />
             )}
             {activeTab === "economia" && (
               <MarkdownEditor
                 key="economia"
-                value={(form as any).economia ?? ""}
-                onChange={(v) => setForm((f) => ({ ...f, economia: v }))}
-                placeholder="Recursos, comercio, moneda, riqueza…"
-                rows={12}
                 toolbar
                 defaultMode="edit"
-                onSnippetAction={onSnippetAction}
                 entities={entities}
+                placeholder="Recursos, comercio, moneda, riqueza…"
+                rows={12}
+                value={(form as any).economia ?? ""}
+                onChange={(v) => setForm((f) => ({ ...f, economia: v }))}
+                onSnippetAction={onSnippetAction}
               />
             )}
 
@@ -883,12 +884,12 @@ export function LoreTab({
           scrollbarWidth: "none",
         }}
       >
-        <SeccionEntidad label="Personajes" icon={<Users size={9} />} fallbackIcon={<UserCircle2 size={14} strokeWidth={1} />} emptyLabel="Sin personajes" allEntities={allPersonajes.map(p => ({ id: p.id, nombre: p.nombre, imagen_url: p.img_url }))} selectedIds={personajesEditables.map(p => p.id)} loading={loadingPersonajesEditables} saving={savingPersonajes} onToggle={handleTogglePersonaje} onEntityClick={id => { const p = personajesEditables.find(x => x.id === id); if (p) onSelectPersonaje?.(p as any); }} />
+        <SeccionEntidad allEntities={allPersonajes.map(p => ({ id: p.id, nombre: p.nombre, imagen_url: p.img_url }))} emptyLabel="Sin personajes" fallbackIcon={<UserCircle2 size={14} strokeWidth={1} />} icon={<Users size={9} />} label="Personajes" loading={loadingPersonajesEditables} saving={savingPersonajes} selectedIds={personajesEditables.map(p => p.id)} onEntityClick={id => { const p = personajesEditables.find(x => x.id === id); if (p) onSelectPersonaje?.(p as any); }} onToggle={handleTogglePersonaje} />
         <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
-        <SeccionEntidad label="Criaturas" icon={<Bug size={9} />} fallbackIcon={<Bug size={14} strokeWidth={1} />} emptyLabel="Sin criaturas" allEntities={allCriaturas.map(c => ({ id: c.id, nombre: c.nombre, imagen_url: c.imagen_url }))} selectedIds={criaturas.map(c => c.id)} loading={loadingCriaturas} saving={savingCriaturas} onToggle={handleToggleCriatura} onEntityClick={id => onSelectCriatura?.(id)} />
+        <SeccionEntidad allEntities={allCriaturas.map(c => ({ id: c.id, nombre: c.nombre, imagen_url: c.imagen_url }))} emptyLabel="Sin criaturas" fallbackIcon={<Bug size={14} strokeWidth={1} />} icon={<Bug size={9} />} label="Criaturas" loading={loadingCriaturas} saving={savingCriaturas} selectedIds={criaturas.map(c => c.id)} onEntityClick={id => onSelectCriatura?.(id)} onToggle={handleToggleCriatura} />
         <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
         <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
-        <SeccionReadOnly label="Ítems" Icon={Package} FallbackIcon={Package} items={items} loading={loadingItems} emptyLabel="Sin ítems en el reino" onEntityClick={onSelectItem} />
+        <SeccionReadOnly FallbackIcon={Package} Icon={Package} emptyLabel="Sin ítems en el reino" items={items} label="Ítems" loading={loadingItems} onEntityClick={onSelectItem} />
       </aside>
 
       {/* Mobile: drawer desde la derecha */}
@@ -916,16 +917,16 @@ export function LoreTab({
               <span className="text-[8px] font-black uppercase tracking-[0.2em] flex items-center gap-1.5" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>
                 <SlidersHorizontal size={9} /> Entidades
               </span>
-              <button onClick={() => setMobileAsideOpen(false)} className="p-1 rounded-lg text-primary/30 hover:text-primary hover:bg-primary/8 transition-all">
+              <button className="p-1 rounded-lg text-primary/30 hover:text-primary hover:bg-primary/8 transition-all" onClick={() => setMobileAsideOpen(false)}>
                 <X size={14} />
               </button>
             </div>
-            <SeccionEntidad label="Personajes" icon={<Users size={9} />} fallbackIcon={<UserCircle2 size={14} strokeWidth={1} />} emptyLabel="Sin personajes" allEntities={allPersonajes.map(p => ({ id: p.id, nombre: p.nombre, imagen_url: p.img_url }))} selectedIds={personajesEditables.map(p => p.id)} loading={loadingPersonajesEditables} saving={savingPersonajes} onToggle={handleTogglePersonaje} onEntityClick={id => { const p = personajesEditables.find(x => x.id === id); if (p) onSelectPersonaje?.(p as any); }} />
+            <SeccionEntidad allEntities={allPersonajes.map(p => ({ id: p.id, nombre: p.nombre, imagen_url: p.img_url }))} emptyLabel="Sin personajes" fallbackIcon={<UserCircle2 size={14} strokeWidth={1} />} icon={<Users size={9} />} label="Personajes" loading={loadingPersonajesEditables} saving={savingPersonajes} selectedIds={personajesEditables.map(p => p.id)} onEntityClick={id => { const p = personajesEditables.find(x => x.id === id); if (p) onSelectPersonaje?.(p as any); }} onToggle={handleTogglePersonaje} />
             <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
-            <SeccionEntidad label="Criaturas" icon={<Bug size={9} />} fallbackIcon={<Bug size={14} strokeWidth={1} />} emptyLabel="Sin criaturas" allEntities={allCriaturas.map(c => ({ id: c.id, nombre: c.nombre, imagen_url: c.imagen_url }))} selectedIds={criaturas.map(c => c.id)} loading={loadingCriaturas} saving={savingCriaturas} onToggle={handleToggleCriatura} onEntityClick={id => onSelectCriatura?.(id)} />
+            <SeccionEntidad allEntities={allCriaturas.map(c => ({ id: c.id, nombre: c.nombre, imagen_url: c.imagen_url }))} emptyLabel="Sin criaturas" fallbackIcon={<Bug size={14} strokeWidth={1} />} icon={<Bug size={9} />} label="Criaturas" loading={loadingCriaturas} saving={savingCriaturas} selectedIds={criaturas.map(c => c.id)} onEntityClick={id => onSelectCriatura?.(id)} onToggle={handleToggleCriatura} />
             <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
             <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
-            <SeccionReadOnly label="Ítems" Icon={Package} FallbackIcon={Package} items={items} loading={loadingItems} emptyLabel="Sin ítems en el reino" onEntityClick={onSelectItem} />
+            <SeccionReadOnly FallbackIcon={Package} Icon={Package} emptyLabel="Sin ítems en el reino" items={items} label="Ítems" loading={loadingItems} onEntityClick={onSelectItem} />
           </div>
         </div>
       )}

@@ -1,13 +1,16 @@
 "use client";
-import { MotionDiv } from "@/components/ui/Motion";
-import React, { useRef, useState, useEffect, useCallback, useMemo } from "react";
-import { Save, List, BookOpen, X, PanelRight } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
+import { Save, List, BookOpen, X, PanelRight } from "lucide-react";
+import React, { useRef, useState, useEffect, useCallback, useMemo } from "react";
+
+import { MarkdownEditor, WikiEntity } from "@/components/forms/Markdown/MarkdownEditor";
+import { MotionDiv } from "@/components/ui/Motion";
+import { ZoteroSource } from "@/features/ensayos/views/page";
+
 import { CitePopup } from "./citePopup";
 import { LibroPanel } from "./LibroPanel";
 import { NotaPanel } from "./NotaPanel";
-import { MarkdownEditor, WikiEntity } from "@/components/forms/Markdown/MarkdownEditor";
-import { ZoteroSource } from "@/features/ensayos/views/page";
+
 
 // ── TOC extractor ─────────────────────────────────────────────────────────────
 function extractTOC(content: string): { level: number; text: string; id: string }[] {
@@ -200,9 +203,18 @@ export function Editor({
   // ── Input de título reutilizable ─────────────────────────────────────────
   const tituloInput = (
     <input
+      className="w-full bg-transparent outline-none border-none"
+      placeholder="título..."
+      style={{
+        fontSize: "clamp(18px, 3vw, 26px)",
+        fontFamily: "var(--font-serif)",
+        fontStyle: "italic",
+        color: "color-mix(in srgb, var(--foreground) 85%, transparent)",
+        letterSpacing: "-0.02em",
+        lineHeight: 1.2,
+      }}
       type="text"
       value={localTitulo}
-      onFocus={() => { tituloOriginalRef.current = localTitulo; }}
       onBlur={e => {
         const finalVal = e.target.value.trim();
         if (tituloOriginalRef.current !== null && tituloOriginalRef.current !== finalVal) {
@@ -214,16 +226,7 @@ export function Editor({
         setLocalTitulo(e.target.value);
         onUpdateField(ensayo.id, "titulo", e.target.value);
       }}
-      className="w-full bg-transparent outline-none border-none"
-      style={{
-        fontSize: "clamp(18px, 3vw, 26px)",
-        fontFamily: "var(--font-serif)",
-        fontStyle: "italic",
-        color: "color-mix(in srgb, var(--foreground) 85%, transparent)",
-        letterSpacing: "-0.02em",
-        lineHeight: 1.2,
-      }}
-      placeholder="título..."
+      onFocus={() => { tituloOriginalRef.current = localTitulo; }}
     />
   );
 
@@ -231,13 +234,13 @@ export function Editor({
   const markdownBlock = (
     <div className="flex-1 overflow-y-auto relative pb-8" style={{ paddingLeft: isLibro ? 20 : 32, paddingRight: isLibro ? 20 : 32 }}>
       <MarkdownEditor
-        value={localContenido}
-        onChange={handleContenidoChange}
-        placeholder="empieza a escribir... (usa @ para citar · [[ para enlazar notas)"
-        rows={28}
         toolbar
         defaultMode={editMode ? "edit" : "preview"}
         isLibro={isLibro}
+        placeholder="empieza a escribir... (usa @ para citar · [[ para enlazar notas)"
+        rows={28}
+        value={localContenido}
+        onChange={handleContenidoChange}
         onSnippetAction={(action) => {
           if (action.type === "wikilink") {
             onNavigateToPage(action.target);
@@ -248,12 +251,12 @@ export function Editor({
         {citePopup && sources.length > 0 && (
           <div style={{ position: "fixed", top: citePopup.position.top + 25, left: citePopup.position.left, zIndex: 9999 }}>
             <CitePopup
-              sources={sources}
-              query={citePopup.query}
-              position={{ top: 0, left: 0 }}
-              onSelect={insertCite}
-              onClose={() => setCitePopup(null)}
               activeIndex={citeActiveIdx}
+              position={{ top: 0, left: 0 }}
+              query={citePopup.query}
+              sources={sources}
+              onClose={() => setCitePopup(null)}
+              onSelect={insertCite}
             />
           </div>
         )}
@@ -262,14 +265,14 @@ export function Editor({
   );
 
   return (
-    <div className="relative h-full flex flex-col" ref={containerRef}>
+    <div ref={containerRef} className="relative h-full flex flex-col">
       <MotionDiv
         key={ensayo.id}
-        initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.2 }}
         className="flex flex-col flex-1 min-h-0"
+        exit={{ opacity: 0 }}
+        initial={{ opacity: 0 }}
+        transition={{ duration: 0.2 }}
       >
 
         {/* ══════════════════════════════════════════════════════
@@ -302,9 +305,9 @@ export function Editor({
                   <LibroPanel
                     ensayo={ensayo}
                     ensayos={ensayos}
-                    onUpdateField={onUpdateField}
                     onOpenLibrosDashboard={onOpenLibrosDashboard}
                     onTagClick={onTagClick ?? onNavigateToPage}
+                    onUpdateField={onUpdateField}
                   />
                 </div>
               </div>
@@ -323,8 +326,6 @@ export function Editor({
                 {/* Botón ficha — solo en mobile */}
                 {isMobile && (
                   <button
-                    onClick={() => setLibroPanelOpen(true)}
-                    title="Ver ficha del libro"
                     style={{
                       display: "flex",
                       alignItems: "center",
@@ -339,6 +340,8 @@ export function Editor({
                       ...monoStyle,
                       fontSize: 9,
                     }}
+                    title="Ver ficha del libro"
+                    onClick={() => setLibroPanelOpen(true)}
                   >
                     <BookOpen size={9} />
                     ficha
@@ -366,11 +369,9 @@ export function Editor({
                   {/* Overlay */}
                   <motion.div
                     key="libro-overlay"
-                    initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                    onClick={() => setLibroPanelOpen(false)}
+                    initial={{ opacity: 0 }}
                     style={{
                       position: "fixed",
                       inset: 0,
@@ -378,14 +379,15 @@ export function Editor({
                       backdropFilter: "blur(2px)",
                       zIndex: 40,
                     }}
+                    transition={{ duration: 0.2 }}
+                    onClick={() => setLibroPanelOpen(false)}
                   />
                   {/* Drawer */}
                   <motion.div
                     key="libro-drawer"
-                    initial={{ x: "-100%" }}
                     animate={{ x: 0 }}
                     exit={{ x: "-100%" }}
-                    transition={{ type: "spring", stiffness: 320, damping: 32 }}
+                    initial={{ x: "-100%" }}
                     style={{
                       position: "fixed",
                       top: 0,
@@ -400,6 +402,7 @@ export function Editor({
                       overflowY: "auto",
                       boxShadow: "6px 0 32px color-mix(in srgb, var(--bg-main) 40%, transparent)",
                     }}
+                    transition={{ type: "spring", stiffness: 320, damping: 32 }}
                   >
                     {/* Header del drawer */}
                     <div style={{
@@ -419,7 +422,6 @@ export function Editor({
                         </div>
                       </div>
                       <button
-                        onClick={() => setLibroPanelOpen(false)}
                         style={{
                           background: "none",
                           border: "none",
@@ -431,6 +433,7 @@ export function Editor({
                           flexShrink: 0,
                           marginTop: 2,
                         }}
+                        onClick={() => setLibroPanelOpen(false)}
                       >
                         <X size={14} />
                       </button>
@@ -441,9 +444,9 @@ export function Editor({
                       <LibroPanel
                         ensayo={ensayo}
                         ensayos={ensayos}
-                        onUpdateField={onUpdateField}
                         onOpenLibrosDashboard={() => { setLibroPanelOpen(false); onOpenLibrosDashboard?.(); }}
                         onTagClick={(t) => { setLibroPanelOpen(false); (onTagClick ?? onNavigateToPage)(t); }}
+                        onUpdateField={onUpdateField}
                       />
                     </div>
                   </motion.div>
@@ -498,8 +501,6 @@ export function Editor({
                     {/* Botón panel lateral — solo en mobile */}
                     {isMobile && (
                       <button
-                        onClick={() => setNotaPanelOpen(true)}
-                        title="Índice, tags y menciones"
                         style={{
                           display: "flex",
                           alignItems: "center",
@@ -513,6 +514,8 @@ export function Editor({
                           ...monoStyle,
                           fontSize: 9,
                         }}
+                        title="Índice, tags y menciones"
+                        onClick={() => setNotaPanelOpen(true)}
                       >
                         <PanelRight size={9} />
                         panel
@@ -540,9 +543,9 @@ export function Editor({
                   ensayo={ensayo}
                   ensayos={ensayos}
                   tocEntries={tocEntries}
-                  onUpdateField={onUpdateField}
                   onNavigateToPage={onNavigateToPage}
                   onTagClick={onTagClick ?? onNavigateToPage}
+                  onUpdateField={onUpdateField}
                 />
               </div>
             )}
@@ -554,11 +557,9 @@ export function Editor({
                   {/* Overlay */}
                   <motion.div
                     key="nota-overlay"
-                    initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                    onClick={() => setNotaPanelOpen(false)}
+                    initial={{ opacity: 0 }}
                     style={{
                       position: "fixed",
                       inset: 0,
@@ -566,14 +567,15 @@ export function Editor({
                       backdropFilter: "blur(2px)",
                       zIndex: 40,
                     }}
+                    transition={{ duration: 0.2 }}
+                    onClick={() => setNotaPanelOpen(false)}
                   />
                   {/* Drawer */}
                   <motion.div
                     key="nota-drawer"
-                    initial={{ x: "100%" }}
                     animate={{ x: 0 }}
                     exit={{ x: "100%" }}
-                    transition={{ type: "spring", stiffness: 320, damping: 32 }}
+                    initial={{ x: "100%" }}
                     style={{
                       position: "fixed",
                       top: 0,
@@ -588,6 +590,7 @@ export function Editor({
                       overflowY: "auto",
                       boxShadow: "-6px 0 32px color-mix(in srgb, var(--bg-main) 40%, transparent)",
                     }}
+                    transition={{ type: "spring", stiffness: 320, damping: 32 }}
                   >
                     {/* Header del drawer */}
                     <div style={{
@@ -608,7 +611,6 @@ export function Editor({
                         panel
                       </span>
                       <button
-                        onClick={() => setNotaPanelOpen(false)}
                         style={{
                           background: "none",
                           border: "none",
@@ -618,6 +620,7 @@ export function Editor({
                           display: "flex",
                           alignItems: "center",
                         }}
+                        onClick={() => setNotaPanelOpen(false)}
                       >
                         <X size={14} />
                       </button>
@@ -629,9 +632,9 @@ export function Editor({
                         ensayo={ensayo}
                         ensayos={ensayos}
                         tocEntries={tocEntries}
-                        onUpdateField={onUpdateField}
                         onNavigateToPage={(name) => { setNotaPanelOpen(false); onNavigateToPage(name); }}
                         onTagClick={(t) => { setNotaPanelOpen(false); (onTagClick ?? onNavigateToPage)(t); }}
+                        onUpdateField={onUpdateField}
                       />
                     </div>
                   </motion.div>
@@ -649,10 +652,9 @@ export function Editor({
         {isLibro && tocOpen && tocEntries.length > 0 && (
           <motion.div
             key="toc-panel"
-            initial={{ opacity: 0, x: 16 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 16 }}
-            transition={{ duration: 0.18 }}
+            initial={{ opacity: 0, x: 16 }}
             style={{
               position: "absolute",
               top: 0,
@@ -667,6 +669,7 @@ export function Editor({
               padding: "14px 12px",
               scrollbarWidth: "none",
             }}
+            transition={{ duration: 0.18 }}
           >
             <div style={{
               fontSize: 8,
@@ -683,7 +686,6 @@ export function Editor({
                 <a
                   key={i}
                   href={`#${entry.id}`}
-                  onClick={() => setTocOpen(false)}
                   style={{
                     display: "block",
                     paddingLeft: `${(entry.level - 1) * 10}px`,
@@ -706,6 +708,7 @@ export function Editor({
                     overflow: "hidden",
                     textOverflow: "ellipsis",
                   }}
+                  onClick={() => setTocOpen(false)}
                   onMouseEnter={e => {
                     (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--color-primary,#7c6af7) 8%, transparent)";
                     (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--color-primary,#7c6af7) 90%, white)";

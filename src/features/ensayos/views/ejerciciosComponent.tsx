@@ -1,12 +1,13 @@
 "use client";
-import { MotionDiv, MotionMain, MotionH1, MotionH2, MotionButton, MotionLi, MotionSpan, MotionP, MotionSection, MotionArticle, MotionImg } from "@/components/ui/Motion";
 
-import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { cn } from "@/lib/utils/index";
-import { rutinasQueries, ejerciciosQueries } from "@/lib/api/queries/personal/ejercicios";
 import { Play, Check, X, Plus, ChevronDown } from "lucide-react";
+import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
+
 import { Btn, BtnIcon, Badge, Loading, EmptyState } from "@/components/ui";
+import { MotionDiv, MotionMain, MotionH1, MotionH2, MotionButton, MotionLi, MotionSpan, MotionP, MotionSection, MotionArticle, MotionImg } from "@/components/ui/Motion";
+import { rutinasQueries, ejerciciosQueries } from "@/lib/api/queries/personal/ejercicios";
+import { cn } from "@/lib/utils/index";
 
 interface Ejercicio {
   id: string; nombre: string; series: number; reps: string;
@@ -107,32 +108,32 @@ const PlanDiario = () => {
                     </div>
                   )}
                   <MotionDiv animate={{ rotate: abierto ? 180 : 0 }} transition={{ duration: 0.2 }}>
-                    <ChevronDown size={14} className="opacity-50" />
+                    <ChevronDown className="opacity-50" size={14} />
                   </MotionDiv>
                 </div>
               </div>
               <AnimatePresence>
                 {abierto && (
                   <MotionDiv
-                    initial={{ height: 0, opacity: 0 }}
                     animate={{ height: "auto", opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.2 }}
                     className="overflow-hidden"
+                    exit={{ height: 0, opacity: 0 }}
+                    initial={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.2 }}
                   >
                     <div className="px-3.5 pb-3.5 pt-0 flex gap-1.5">
                       {DIAS.map((dia, i) => (
                         <button
                           key={dia}
-                          onClick={() => toggleDia(tipo, i)}
                           className={cn(
                             "flex-1 py-2 rounded-[var(--radius-btn)] border-[length:var(--border-width)] text-[9px] font-black uppercase tracking-widest transition-all",
                             dias[i]
                               ? "bg-primary text-btn-text border-primary"
                               : "bg-white-custom/50 text-primary/40 border-primary/10 hover:bg-white-custom/80"
                           )}
+                          onClick={() => toggleDia(tipo, i)}
                         >
-                          {dias[i] ? <Check size={10} className="mx-auto" /> : dia}
+                          {dias[i] ? <Check className="mx-auto" size={10} /> : dia}
                         </button>
                       ))}
                     </div>
@@ -196,27 +197,27 @@ const EjecutarRutina = ({ rutina, onCerrar }: { rutina: Rutina; onCerrar: () => 
   const pct = fase === "descanso" ? segundos / ejercicio.descanso : 1;
 
   if (fase === "fin") return (
-    <MotionDiv initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-primary">
-      <MotionDiv initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.2 }} className="flex flex-col items-center gap-4">
+    <MotionDiv animate={{ opacity: 1 }} className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-primary" initial={{ opacity: 0 }}>
+      <MotionDiv animate={{ scale: 1, opacity: 1 }} className="flex flex-col items-center gap-4" initial={{ scale: 0.8, opacity: 0 }} transition={{ delay: 0.2 }}>
         <span className="text-[10px] font-black uppercase tracking-[0.4em] text-[color-mix(in_srgb,var(--btn-text)_40%,transparent)] italic">Completado</span>
         <h2 className="text-5xl font-black text-btn-text italic tracking-tighter text-center">{rutina.nombre}</h2>
         <p className="text-[color-mix(in_srgb,var(--btn-text)_40%,transparent)] text-sm font-bold uppercase tracking-widest">
           {rutina.ejercicios.length} ejercicios · {(rutina.ejercicios ?? []).reduce((a, e) => a + e.series, 0)} series
         </p>
-        <Btn onClick={onCerrar} size="lg" className="mt-8 bg-white-custom text-primary hover:bg-white-custom/90 shadow-2xl">Terminar</Btn>
+        <Btn className="mt-8 bg-white-custom text-primary hover:bg-white-custom/90 shadow-2xl" size="lg" onClick={onCerrar}>Terminar</Btn>
       </MotionDiv>
     </MotionDiv>
   );
 
   return (
-    <MotionDiv initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex flex-col bg-primary">
+    <MotionDiv animate={{ opacity: 1 }} className="fixed inset-0 z-50 flex flex-col bg-primary" exit={{ opacity: 0 }} initial={{ opacity: 0 }}>
       <div className="flex items-center justify-between px-6 pt-6 pb-4">
         <div>
           <span className="text-[8px] font-black uppercase tracking-[0.3em] text-[color-mix(in_srgb,var(--btn-text)_30%,transparent)] italic">Rutina</span>
           <h2 className="text-lg font-black text-btn-text italic tracking-tight">{rutina.nombre}</h2>
         </div>
-        <BtnIcon variant="ghost" onClick={onCerrar} className="bg-btn-text/10 hover:bg-btn-text/20 border-none">
-          <X size={18} className="text-[color-mix(in_srgb,var(--btn-text)_60%,transparent)]" />
+        <BtnIcon className="bg-btn-text/10 hover:bg-btn-text/20 border-none" variant="ghost" onClick={onCerrar}>
+          <X className="text-[color-mix(in_srgb,var(--btn-text)_60%,transparent)]" size={18} />
         </BtnIcon>
       </div>
       <div className="px-6 mb-6">
@@ -232,7 +233,7 @@ const EjecutarRutina = ({ rutina, onCerrar }: { rutina: Rutina; onCerrar: () => 
       </div>
       <div className="flex-1 flex flex-col items-center justify-center px-6 gap-8">
         <AnimatePresence mode="wait">
-          <MotionDiv key={ejercicioIdx} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="flex flex-col items-center gap-3 text-center">
+          <MotionDiv key={ejercicioIdx} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-center gap-3 text-center" exit={{ opacity: 0, y: -20 }} initial={{ opacity: 0, y: 20 }}>
             <span className="text-[9px] font-black uppercase tracking-[0.3em] text-[color-mix(in_srgb,var(--btn-text)_30%,transparent)] italic">{ejercicio.musculo}</span>
             <h1 className="text-4xl sm:text-6xl font-black text-btn-text italic tracking-tighter leading-none">{ejercicio.nombre}</h1>
             <div className="flex items-center gap-4 mt-2">
@@ -254,16 +255,16 @@ const EjecutarRutina = ({ rutina, onCerrar }: { rutina: Rutina; onCerrar: () => 
             <span className="text-[9px] font-black uppercase tracking-[0.3em] text-[color-mix(in_srgb,var(--btn-text)_40%,transparent)]">Descansando</span>
             <div className="relative w-36 h-36">
               <svg className="w-full h-full -rotate-90" viewBox="0 0 120 120">
-                <circle cx="60" cy="60" r={r} fill="none" stroke="white" strokeWidth="5" opacity="0.1" />
-                <motion.circle cx="60" cy="60" r={r} fill="none" stroke="white" strokeWidth="5" strokeLinecap="round" strokeDasharray={circ} strokeDashoffset={circ * (1 - pct)} style={{ transition: "stroke-dashoffset 1s linear" }} />
+                <circle cx="60" cy="60" fill="none" opacity="0.1" r={r} stroke="white" strokeWidth="5" />
+                <motion.circle cx="60" cy="60" fill="none" r={r} stroke="white" strokeDasharray={circ} strokeDashoffset={circ * (1 - pct)} strokeLinecap="round" strokeWidth="5" style={{ transition: "stroke-dashoffset 1s linear" }} />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
                 <span className="text-4xl font-black text-btn-text tabular-nums tracking-tighter">{segundos}</span>
                 <span className="text-[8px] font-black text-[color-mix(in_srgb,var(--btn-text)_40%,transparent)] uppercase tracking-widest">seg</span>
               </div>
             </div>
-            <Btn variant="outline" size="sm" onClick={() => { clearInterval(intervalRef.current!); setCorriendo(false); setFase("ejercicio"); }}
-              className="border-[color-mix(in_srgb,var(--btn-text)_15%,transparent)] text-[color-mix(in_srgb,var(--btn-text)_40%,transparent)]">
+            <Btn className="border-[color-mix(in_srgb,var(--btn-text)_15%,transparent)] text-[color-mix(in_srgb,var(--btn-text)_40%,transparent)]" size="sm" variant="outline"
+              onClick={() => { clearInterval(intervalRef.current!); setCorriendo(false); setFase("ejercicio"); }}>
               Saltar descanso
             </Btn>
           </div>
@@ -284,7 +285,7 @@ const EjecutarRutina = ({ rutina, onCerrar }: { rutina: Rutina; onCerrar: () => 
       </div>
       {fase === "ejercicio" && (
         <div className="px-6 pb-10">
-          <Btn onClick={completarSerie} fullWidth size="lg" icon={<Check size={20} />} className="bg-white-custom text-primary hover:bg-white-custom/90 shadow-2xl">
+          <Btn fullWidth className="bg-white-custom text-primary hover:bg-white-custom/90 shadow-2xl" icon={<Check size={20} />} size="lg" onClick={completarSerie}>
             {esUltimaSerie && esUltimoEjercicio ? "Finalizar rutina" : `Serie ${serieActual} completada`}
           </Btn>
         </div>
@@ -311,26 +312,26 @@ const CardRutina = ({ rutina, onIniciar, onEliminar, expandida, onToggle }: {
             <p className="text-[10px] font-bold text-primary/40 uppercase tracking-wide">{rutina.descripcion}</p>
           </div>
           <MotionDiv animate={{ rotate: expandida ? 180 : 0 }} transition={{ duration: 0.25 }}>
-            <ChevronDown size={18} className="text-primary/30 shrink-0 mt-1" />
+            <ChevronDown className="text-primary/30 shrink-0 mt-1" size={18} />
           </MotionDiv>
         </div>
         <div className="flex items-center gap-4 mt-4 pt-4 border-t border-primary/5">
           <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">{ejercicios.length} ejercicios</span>
           <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">{totalSeries} series</span>
           <div className="ml-auto flex items-center gap-2">
-            <BtnIcon variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onEliminar(); }} className="text-accent hover:text-primary hover:bg-accent/10 border-none"><X size={14} /></BtnIcon>
-            <Btn size="sm" icon={<Play size={11} fill="white" />} onClick={(e) => { e.stopPropagation(); onIniciar(); }}>Iniciar</Btn>
+            <BtnIcon className="text-accent hover:text-primary hover:bg-accent/10 border-none" size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); onEliminar(); }}><X size={14} /></BtnIcon>
+            <Btn icon={<Play fill="white" size={11} />} size="sm" onClick={(e) => { e.stopPropagation(); onIniciar(); }}>Iniciar</Btn>
           </div>
         </div>
       </div>
       <AnimatePresence>
         {expandida && (
-          <MotionDiv initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.25 }} className="overflow-hidden">
+          <MotionDiv animate={{ height: "auto", opacity: 1 }} className="overflow-hidden" exit={{ height: 0, opacity: 0 }} initial={{ height: 0, opacity: 0 }} transition={{ duration: 0.25 }}>
             <div className="px-5 pb-5 border-t border-primary/5">
               <div className="pt-4 space-y-2">
                 {ejercicios.map((ej, i) => (
-                  <MotionDiv key={ej.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.04 }}
-                    className="flex items-center gap-3 p-3 bg-primary/3 rounded-[var(--radius-btn)] border-[length:var(--border-width)] border-primary/5">
+                  <MotionDiv key={ej.id} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-3 p-3 bg-primary/3 rounded-[var(--radius-btn)] border-[length:var(--border-width)] border-primary/5" initial={{ opacity: 0, x: -8 }}
+                    transition={{ delay: i * 0.04 }}>
                     <div className="w-6 h-6 rounded-[var(--radius-btn)] bg-primary/10 flex items-center justify-center shrink-0"><span className="text-[8px] font-black text-primary">{i + 1}</span></div>
                     <div className="flex-1 min-w-0">
                       <p className="text-[11px] font-black text-primary uppercase tracking-tight truncate">{ej.nombre}</p>
@@ -369,11 +370,11 @@ const FormNuevaRutina = ({ onGuardar, onCancelar, guardando }: {
   };
 
   return (
-    <MotionDiv initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white-custom border-[length:var(--border-width)] border-primary/10 rounded-[var(--radius-card)] p-6 shadow-xl shadow-primary/5">
-      <div className="flex items-center gap-3 mb-6"><Plus size={18} className="text-primary" /><h3 className="text-[12px] font-black uppercase tracking-widest text-primary/60">Nueva Rutina</h3></div>
+    <MotionDiv animate={{ opacity: 1, y: 0 }} className="bg-white-custom border-[length:var(--border-width)] border-primary/10 rounded-[var(--radius-card)] p-6 shadow-xl shadow-primary/5" initial={{ opacity: 0, y: 20 }}>
+      <div className="flex items-center gap-3 mb-6"><Plus className="text-primary" size={18} /><h3 className="text-[12px] font-black uppercase tracking-widest text-primary/60">Nueva Rutina</h3></div>
       <div className="space-y-3 mb-6">
-        <input value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Nombre de la rutina..." className="w-full bg-primary/5 border-[length:var(--border-width)] border-transparent focus:border-primary/15 focus:bg-white-custom rounded-[var(--radius-btn)] py-3 px-5 text-sm font-bold text-primary outline-none placeholder:text-primary/25 transition-all" />
-        <input value={descripcion} onChange={e => setDescripcion(e.target.value)} placeholder="Descripción..." className="w-full bg-primary/5 border-[length:var(--border-width)] border-transparent focus:border-primary/15 focus:bg-white-custom rounded-[var(--radius-btn)] py-3 px-5 text-sm font-bold text-primary outline-none placeholder:text-primary/25 transition-all" />
+        <input className="w-full bg-primary/5 border-[length:var(--border-width)] border-transparent focus:border-primary/15 focus:bg-white-custom rounded-[var(--radius-btn)] py-3 px-5 text-sm font-bold text-primary outline-none placeholder:text-primary/25 transition-all" placeholder="Nombre de la rutina..." value={nombre} onChange={e => setNombre(e.target.value)} />
+        <input className="w-full bg-primary/5 border-[length:var(--border-width)] border-transparent focus:border-primary/15 focus:bg-white-custom rounded-[var(--radius-btn)] py-3 px-5 text-sm font-bold text-primary outline-none placeholder:text-primary/25 transition-all" placeholder="Descripción..." value={descripcion} onChange={e => setDescripcion(e.target.value)} />
         <div className="flex gap-2 flex-wrap">
           {TAGS.filter(t => t !== "Todas").map(t => <Badge key={t} active={tag === t} onClick={() => setTag(t)}>{t}</Badge>)}
         </div>
@@ -385,7 +386,7 @@ const FormNuevaRutina = ({ onGuardar, onCancelar, guardando }: {
               <span className="text-[8px] font-black text-primary/30 w-4">{i + 1}</span>
               <span className="text-[11px] font-black text-primary flex-1 truncate">{ej.nombre}</span>
               <span className="text-[9px] text-primary/40 font-bold">{ej.series}×{ej.reps}</span>
-              <BtnIcon variant="ghost" size="sm" onClick={() => setEjercicios(p => p.filter((_, j) => j !== i))} className="text-accent hover:text-primary border-none w-6 h-6"><X size={14} /></BtnIcon>
+              <BtnIcon className="text-accent hover:text-primary border-none w-6 h-6" size="sm" variant="ghost" onClick={() => setEjercicios(p => p.filter((_, j) => j !== i))}><X size={14} /></BtnIcon>
             </div>
           ))}
         </div>
@@ -393,17 +394,17 @@ const FormNuevaRutina = ({ onGuardar, onCancelar, guardando }: {
       <div className="bg-primary/4 rounded-[var(--radius-btn)] p-4 mb-6 border-[length:var(--border-width)] border-primary/8">
         <p className="text-[9px] font-black uppercase tracking-widest text-primary/30 mb-3">Añadir ejercicio</p>
         <div className="grid grid-cols-2 gap-2 mb-2">
-          <input value={nuevoEj.nombre} onChange={e => setNuevoEj(p => ({ ...p, nombre: e.target.value }))} placeholder="Nombre..." onKeyDown={e => e.key === "Enter" && addEjercicio()} className={`col-span-2 ${inputCls}`} />
-          <input value={nuevoEj.musculo} onChange={e => setNuevoEj(p => ({ ...p, musculo: e.target.value }))} placeholder="Músculo..." className={inputCls} />
-          <input value={nuevoEj.series} onChange={e => setNuevoEj(p => ({ ...p, series: e.target.value }))} placeholder="Series" type="number" className={inputCls} />
-          <input value={nuevoEj.reps} onChange={e => setNuevoEj(p => ({ ...p, reps: e.target.value }))} placeholder="Reps (ej: 12 o 30s)" className={inputCls} />
-          <input value={nuevoEj.descanso} onChange={e => setNuevoEj(p => ({ ...p, descanso: e.target.value }))} placeholder="Descanso (seg)" type="number" className={inputCls} />
+          <input className={`col-span-2 ${inputCls}`} placeholder="Nombre..." value={nuevoEj.nombre} onChange={e => setNuevoEj(p => ({ ...p, nombre: e.target.value }))} onKeyDown={e => e.key === "Enter" && addEjercicio()} />
+          <input className={inputCls} placeholder="Músculo..." value={nuevoEj.musculo} onChange={e => setNuevoEj(p => ({ ...p, musculo: e.target.value }))} />
+          <input className={inputCls} placeholder="Series" type="number" value={nuevoEj.series} onChange={e => setNuevoEj(p => ({ ...p, series: e.target.value }))} />
+          <input className={inputCls} placeholder="Reps (ej: 12 o 30s)" value={nuevoEj.reps} onChange={e => setNuevoEj(p => ({ ...p, reps: e.target.value }))} />
+          <input className={inputCls} placeholder="Descanso (seg)" type="number" value={nuevoEj.descanso} onChange={e => setNuevoEj(p => ({ ...p, descanso: e.target.value }))} />
         </div>
-        <Btn variant="ghost" fullWidth size="sm" onClick={addEjercicio} disabled={!nuevoEj.nombre.trim()}>+ Añadir ejercicio</Btn>
+        <Btn fullWidth disabled={!nuevoEj.nombre.trim()} size="sm" variant="ghost" onClick={addEjercicio}>+ Añadir ejercicio</Btn>
       </div>
       <div className="flex gap-3">
-        <Btn variant="outline" className="flex-1" onClick={onCancelar} disabled={guardando}>Cancelar</Btn>
-        <Btn className="flex-1" loading={guardando} onClick={() => onGuardar({ nombre, descripcion, tag }, ejercicios)} disabled={!nombre.trim() || ejercicios.length === 0 || guardando}>Guardar rutina</Btn>
+        <Btn className="flex-1" disabled={guardando} variant="outline" onClick={onCancelar}>Cancelar</Btn>
+        <Btn className="flex-1" disabled={!nombre.trim() || ejercicios.length === 0 || guardando} loading={guardando} onClick={() => onGuardar({ nombre, descripcion, tag }, ejercicios)}>Guardar rutina</Btn>
       </div>
     </MotionDiv>
   );
@@ -485,13 +486,13 @@ export const PaginaEjercicios = () => {
               </div>
               <Btn className="ml-auto shrink-0" icon={<Plus size={14} />} onClick={() => setCreando(true)}>Nueva rutina</Btn>
             </div>
-            <AnimatePresence>{creando && <FormNuevaRutina onGuardar={handleGuardar} onCancelar={() => setCreando(false)} guardando={guardando} />}</AnimatePresence>
-            {cargando ? <Loading text="Cargando rutinas..." fullScreen={false} /> : (
+            <AnimatePresence>{creando && <FormNuevaRutina guardando={guardando} onCancelar={() => setCreando(false)} onGuardar={handleGuardar} />}</AnimatePresence>
+            {cargando ? <Loading fullScreen={false} text="Cargando rutinas..." /> : (
               <div className="space-y-4">
                 <AnimatePresence mode="popLayout">
                   {rutinasFiltradas.map(rutina => (
-                    <MotionDiv key={rutina.id} layout initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.97 }}>
-                      <CardRutina rutina={rutina} onIniciar={() => setRutinaActiva(rutina)} onEliminar={() => handleEliminar(rutina.id)} expandida={expandida === rutina.id} onToggle={() => setExpandida(expandida === rutina.id ? null : rutina.id)} />
+                    <MotionDiv key={rutina.id} layout animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.97 }} initial={{ opacity: 0, y: 12 }}>
+                      <CardRutina expandida={expandida === rutina.id} rutina={rutina} onEliminar={() => handleEliminar(rutina.id)} onIniciar={() => setRutinaActiva(rutina)} onToggle={() => setExpandida(expandida === rutina.id ? null : rutina.id)} />
                     </MotionDiv>
                   ))}
                 </AnimatePresence>

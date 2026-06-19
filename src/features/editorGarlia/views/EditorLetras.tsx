@@ -1,17 +1,17 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
 import { Music, Loader2, ArrowLeft } from "lucide-react";
-import { supabase } from "@/lib/api/client/supabase";
-import { useLastOpenedId } from "@/hooks/useEditorShared";
+import React, { useState, useEffect, useMemo } from "react";
 
-import { useCanciones } from "@/features/editorGarlia/components/editorLetras/hooks/useCanciones";
-import { ESTADOS, ESTADO_COLOR } from "@/features/editorGarlia/components/editorLetras/constants";
-import { SidebarItem } from "@/features/editorGarlia/components/editorLetras/components/sidebar/SidebarItem";
+
 import { PanelEditor } from "@/features/editorGarlia/components/editorLetras/components/editor/PanelEditor";
 import { ModalNuevaCancion } from "@/features/editorGarlia/components/editorLetras/components/modals/ModalNuevaCancion";
-
+import { SidebarItem } from "@/features/editorGarlia/components/editorLetras/components/sidebar/SidebarItem";
+import { ESTADOS, ESTADO_COLOR } from "@/features/editorGarlia/components/editorLetras/constants";
+import { useCanciones } from "@/features/editorGarlia/components/editorLetras/hooks/useCanciones";
 import type { Cancion } from "@/features/editorGarlia/components/editorLetras/types";
+import { useLastOpenedId } from "@/hooks/useEditorShared";
+import { supabase } from "@/lib/api/client/supabase";
 
 /* ─── Estilos compartidos con el MarkdownEditor ─────────────────────────────── */
 /*
@@ -409,14 +409,14 @@ const CancionCard = ({
 }) => (
   <button
     key={cancion.id}
-    onClick={onClick}
-    type="button"
     className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl border transition-all hover:scale-[1.02] cursor-pointer"
     style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}
+    type="button"
+    onClick={onClick}
   >
     {/* Icono con dot de color por estado */}
     <div className="w-6 h-6 rounded-lg border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center relative">
-      <Music size={10} className="text-primary/25" />
+      <Music className="text-primary/25" size={10} />
       {ESTADO_DOT[cancion.estado] && (
         <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full" style={{ background: ESTADO_DOT[cancion.estado] }} />
       )}
@@ -485,7 +485,6 @@ export default function EstudioLetras() {
             gap: 10,
           }}>
             <button
-              onClick={() => setSelectedId(null)}
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -502,6 +501,7 @@ export default function EstudioLetras() {
                 cursor: "pointer",
                 transition: "color 0.1s",
               }}
+              onClick={() => setSelectedId(null)}
               onMouseEnter={e => { e.currentTarget.style.opacity = "1"; }}
               onMouseLeave={e => { e.currentTarget.style.opacity = "0.5"; }}
             >
@@ -539,7 +539,7 @@ export default function EstudioLetras() {
       <div style={{ padding: "8px 10px" }}>
         {loadingLista ? (
           <div style={{ display: "flex", justifyContent: "center", padding: "40px 0", color: "var(--primary)", opacity: 0.3 }}>
-            <Loader2 size={16} className="animate-spin" />
+            <Loader2 className="animate-spin" size={16} />
           </div>
         ) : canciones.length === 0 ? (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, padding: "40px 0", color: "var(--primary)", opacity: 0.25 }}>
@@ -561,8 +561,8 @@ export default function EstudioLetras() {
 
       {showNueva && (
         <ModalNuevaCancion
-          onCreated={handleCancionCreada}
           onClose={() => setShowNueva(false)}
+          onCreated={handleCancionCreada}
         />
       )}
     </>

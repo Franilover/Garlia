@@ -17,14 +17,15 @@
  *       import { SoundPicker, EntidadPicker, SimpleImagePicker } from "./SnippetForms";
  */
 
-import React, { useState, useEffect, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X, Music, Folder, FolderOpen, ChevronRight, Check, Loader2,
   Play, Pause, Volume2, Search, Package, Sword, User, Home,
 } from "lucide-react";
-import { cn } from "@/lib/utils/index";
+import React, { useState, useEffect, useRef, useMemo } from "react";
+
 import { MotionDiv } from "@/components/ui/Motion";
+import { cn } from "@/lib/utils/index";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Tipos compartidos de árbol de archivos
@@ -135,15 +136,15 @@ export function EntidadPicker({
       {open && (
         <>
           <MotionDiv
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            animate={{ opacity: 1 }} className="fixed inset-0 z-[72] bg-primary-dark/50 backdrop-blur-sm" exit={{ opacity: 0 }}
+            initial={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 z-[72] bg-primary-dark/50 backdrop-blur-sm"
           />
           <MotionDiv
-            initial={{ opacity: 0, y: 32, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 16, scale: 0.98 }}
             className="fixed z-[73] inset-x-4 bottom-0 md:inset-auto md:left-1/2 md:-translate-x-1/2 md:top-1/2 md:-translate-y-1/2 md:w-[600px] bg-white rounded-t-3xl md:rounded-3xl shadow-2xl overflow-hidden flex flex-col"
+            exit={{ opacity: 0, y: 16, scale: 0.98 }}
+            initial={{ opacity: 0, y: 32, scale: 0.97 }}
             style={{ maxHeight: "85vh" }}
           >
             {/* Header */}
@@ -155,8 +156,8 @@ export function EntidadPicker({
                 </p>
               </div>
               <button
-                onClick={onClose}
                 className="w-8 h-8 rounded-xl bg-primary/6 hover:bg-primary/12 flex items-center justify-center text-primary/50 transition-all"
+                onClick={onClose}
               >
                 <X size={15} />
               </button>
@@ -170,11 +171,11 @@ export function EntidadPicker({
                   {(["item", "criatura", "personaje"] as const).map(t => (
                     <button
                       key={t}
-                      onClick={() => { setTab(t); setSelected(null); }}
                       className={cn(
                         "flex-1 py-2.5 text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all",
                         tab === t ? "text-primary border-b-2 border-primary" : "text-primary/30 hover:text-primary/60",
                       )}
+                      onClick={() => { setTab(t); setSelected(null); }}
                     >
                       {getIcon(t, 12)} {t}s
                     </button>
@@ -184,12 +185,12 @@ export function EntidadPicker({
                 {/* Search */}
                 <div className="px-3 py-2 border-b border-primary/8 shrink-0">
                   <div className="flex items-center gap-2 bg-primary/5 rounded-xl px-3 py-2">
-                    <Search size={13} className="text-primary/30 shrink-0" />
+                    <Search className="text-primary/30 shrink-0" size={13} />
                     <input
+                      className="flex-1 bg-transparent text-[11px] font-semibold text-primary-dark outline-none"
+                      placeholder="Buscar..."
                       value={query}
                       onChange={e => setQuery(e.target.value)}
-                      placeholder="Buscar..."
-                      className="flex-1 bg-transparent text-[11px] font-semibold text-primary-dark outline-none"
                     />
                   </div>
                 </div>
@@ -198,7 +199,7 @@ export function EntidadPicker({
                 <div className="flex-1 overflow-y-auto py-1">
                   {loading ? (
                     <div className="flex items-center justify-center h-24 gap-2 text-primary/30">
-                      <Loader2 size={14} className="animate-spin" />
+                      <Loader2 className="animate-spin" size={14} />
                       <span className="text-[10px] font-black uppercase">Cargando…</span>
                     </div>
                   ) : error ? (
@@ -208,13 +209,13 @@ export function EntidadPicker({
                   ) : lista.map(e => (
                     <button
                       key={e.id}
-                      onClick={() => setSelected(e)}
                       className={cn("w-full flex items-center gap-3 px-4 py-2.5 text-left transition-all",
                         selected?.id === e.id ? "bg-primary/10 shadow-inner" : "hover:bg-primary/5")}
+                      onClick={() => setSelected(e)}
                     >
                       <div className="w-9 h-9 rounded-xl overflow-hidden shrink-0 border border-primary/10 bg-primary/5 flex items-center justify-center">
                         {e.imagen_url
-                          ? <img src={e.imagen_url} className="w-full h-full object-cover" alt={e.nombre} />
+                          ? <img alt={e.nombre} className="w-full h-full object-cover" src={e.imagen_url} />
                           : getIcon(e.tipo)}
                       </div>
                       <div className="flex-1 min-w-0">
@@ -234,7 +235,7 @@ export function EntidadPicker({
                     <div className="flex items-center gap-3 p-3 bg-white border border-primary/8 rounded-2xl shadow-sm">
                       <div className="w-12 h-12 rounded-xl overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center shrink-0">
                         {selected.imagen_url
-                          ? <img src={selected.imagen_url} className="w-full h-full object-cover" alt="" />
+                          ? <img alt="" className="w-full h-full object-cover" src={selected.imagen_url} />
                           : getIcon(selected.tipo, 16)}
                       </div>
                       <div>
@@ -247,10 +248,10 @@ export function EntidadPicker({
                         Palabra en el texto
                       </label>
                       <input
+                        className="w-full px-4 py-3 rounded-xl border border-primary/12 text-sm focus:outline-none focus:border-primary/30 transition-all bg-white shadow-sm"
+                        placeholder="Ej: la espada antigua..."
                         value={palabra}
                         onChange={e => setPalabra(e.target.value)}
-                        placeholder="Ej: la espada antigua..."
-                        className="w-full px-4 py-3 rounded-xl border border-primary/12 text-sm focus:outline-none focus:border-primary/30 transition-all bg-white shadow-sm"
                       />
                     </div>
                   </div>
@@ -266,15 +267,15 @@ export function EntidadPicker({
             {/* Footer */}
             <div className="px-6 py-4 border-t border-primary/8 shrink-0 flex items-center justify-between bg-white">
               <button
-                onClick={onClose}
                 className="text-[10px] font-black uppercase text-primary/40 hover:text-primary/60 transition-colors"
+                onClick={onClose}
               >
                 Cancelar
               </button>
               <button
-                onClick={handleInsert}
-                disabled={!selected || !palabra.trim()}
                 className="px-6 py-2.5 rounded-xl text-[10px] font-black uppercase bg-primary text-white disabled:opacity-30 shadow-lg shadow-primary/20 transition-all active:scale-95"
+                disabled={!selected || !palabra.trim()}
+                onClick={handleInsert}
               >
                 Insertar Drop
               </button>
@@ -349,13 +350,13 @@ export function SoundPicker({ open, onClose, onInsert, initialSrc }: SoundPicker
       return (
         <div key={currentPath} className="select-none">
           <div
-            onClick={() => toggleFolder(currentPath)}
             className="flex items-center gap-2 py-1.5 px-2 hover:bg-[#6B5E70]/5 rounded-lg cursor-pointer transition-colors"
+            onClick={() => toggleFolder(currentPath)}
           >
-            <ChevronRight size={14} className={cn("text-[#6B5E70]/40 transition-transform", isExp && "rotate-90")} />
+            <ChevronRight className={cn("text-[#6B5E70]/40 transition-transform", isExp && "rotate-90")} size={14} />
             {isExp
-              ? <FolderOpen size={16} className="text-[#6B5E70]/60" />
-              : <Folder size={16} className="text-[#6B5E70]/40" />}
+              ? <FolderOpen className="text-[#6B5E70]/60" size={16} />
+              : <Folder className="text-[#6B5E70]/40" size={16} />}
             <span className="text-[11px] font-bold text-[#6B5E70]/70 uppercase tracking-tight">{node.name}</span>
           </div>
           {isExp && (
@@ -371,17 +372,17 @@ export function SoundPicker({ open, onClose, onInsert, initialSrc }: SoundPicker
     return (
       <div
         key={node.url}
-        onClick={() => setSelected(node.url)}
         className={cn(
           "flex items-center justify-between py-1.5 px-3 rounded-lg cursor-pointer mb-1 transition-all",
           isSel ? "bg-[#6B5E70] text-white shadow-md shadow-[#6B5E70]/20" : "hover:bg-[#6B5E70]/5 text-[#6B5E70]/60",
         )}
+        onClick={() => setSelected(node.url)}
       >
         <div className="flex items-center gap-2 overflow-hidden">
-          <Music size={14} className={isSel ? "text-white/80" : "text-[#6B5E70]/30"} />
+          <Music className={isSel ? "text-white/80" : "text-[#6B5E70]/30"} size={14} />
           <span className="text-[10px] font-medium truncate uppercase tracking-widest">{node.name}</span>
         </div>
-        {isSel && <Check size={12} className="text-white" />}
+        {isSel && <Check className="text-white" size={12} />}
       </div>
     );
   });
@@ -391,9 +392,9 @@ export function SoundPicker({ open, onClose, onInsert, initialSrc }: SoundPicker
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 backdrop-blur-md bg-black/20">
       <MotionDiv
-        initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         className="bg-white w-full max-w-2xl h-[500px] rounded-[32px] shadow-2xl border border-[#6B5E70]/10 flex flex-col overflow-hidden"
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
       >
         {/* Header */}
         <div className="px-8 py-6 border-b border-[#6B5E70]/5 flex items-center justify-between bg-gradient-to-r from-white to-[#6B5E70]/5">
@@ -401,7 +402,7 @@ export function SoundPicker({ open, onClose, onInsert, initialSrc }: SoundPicker
             <h3 className="text-[#6B5E70] font-black text-xs uppercase tracking-[0.2em]">Biblioteca de Sonidos</h3>
             <p className="text-[10px] text-[#6B5E70]/40 font-bold uppercase mt-1">Solo para Franilover</p>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-[#6B5E70]/10 rounded-full transition-colors text-[#6B5E70]/40 hover:text-[#6B5E70]">
+          <button className="p-2 hover:bg-[#6B5E70]/10 rounded-full transition-colors text-[#6B5E70]/40 hover:text-[#6B5E70]" onClick={onClose}>
             <X size={20} />
           </button>
         </div>
@@ -410,7 +411,7 @@ export function SoundPicker({ open, onClose, onInsert, initialSrc }: SoundPicker
           {/* Árbol */}
           <div className="w-64 border-r border-[#6B5E70]/5 overflow-y-auto p-4">
             {loading
-              ? <div className="flex items-center justify-center h-full"><Loader2 size={20} className="animate-spin text-[#6B5E70]/20" /></div>
+              ? <div className="flex items-center justify-center h-full"><Loader2 className="animate-spin text-[#6B5E70]/20" size={20} /></div>
               : renderTree(tree)}
           </div>
 
@@ -431,8 +432,8 @@ export function SoundPicker({ open, onClose, onInsert, initialSrc }: SoundPicker
                 </div>
                 <div className="flex flex-col gap-6 bg-white p-6 rounded-[24px] shadow-sm border border-[#6B5E70]/5">
                   <button
-                    onClick={() => togglePreview(selected)}
                     className="flex items-center justify-center gap-3 w-full py-3 rounded-xl bg-[#6B5E70] text-white text-[10px] font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-lg shadow-[#6B5E70]/20"
+                    onClick={() => togglePreview(selected)}
                   >
                     {isPlaying ? <Pause size={14} /> : <Play size={14} />}
                     {isPlaying ? "Pausar" : "Escuchar Preview"}
@@ -443,19 +444,19 @@ export function SoundPicker({ open, onClose, onInsert, initialSrc }: SoundPicker
                       <span>{Math.round(volume * 100)}%</span>
                     </div>
                     <input
-                      type="range" min="0" max="1" step="0.1" value={volume}
+                      className="w-full accent-[#6B5E70] h-1 bg-[#6B5E70]/10 rounded-lg appearance-none cursor-pointer" max="1" min="0" step="0.1" type="range"
+                      value={volume}
                       onChange={e => {
                         setVolume(parseFloat(e.target.value));
                         if (audioRef.current) audioRef.current.volume = parseFloat(e.target.value);
                       }}
-                      className="w-full accent-[#6B5E70] h-1 bg-[#6B5E70]/10 rounded-lg appearance-none cursor-pointer"
                     />
                   </div>
                 </div>
               </div>
             ) : (
               <div className="text-center opacity-30">
-                <Volume2 size={40} className="mx-auto text-[#6B5E70] mb-4" />
+                <Volume2 className="mx-auto text-[#6B5E70] mb-4" size={40} />
                 <p className="text-[10px] font-black uppercase tracking-widest text-[#6B5E70]">Selecciona un ambiente</p>
               </div>
             )}
@@ -468,13 +469,13 @@ export function SoundPicker({ open, onClose, onInsert, initialSrc }: SoundPicker
             {selected ? "Audio listo para Franilover" : "Esperando selección"}
           </p>
           <div className="flex gap-3">
-            <button onClick={onClose} className="px-5 py-2 text-[10px] font-black uppercase text-[#6B5E70]/40 hover:text-[#6B5E70] transition-colors">
+            <button className="px-5 py-2 text-[10px] font-black uppercase text-[#6B5E70]/40 hover:text-[#6B5E70] transition-colors" onClick={onClose}>
               Cancelar
             </button>
             <button
-              onClick={handleInsert}
-              disabled={!selected}
               className="px-6 py-2 bg-[#6B5E70] text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-[#6B5E70]/20 hover:scale-105 active:scale-95 disabled:opacity-20 transition-all"
+              disabled={!selected}
+              onClick={handleInsert}
             >
               Insertar Sonido
             </button>
@@ -527,19 +528,19 @@ export function SimpleImagePicker({ onSelect, onClose }: SimpleImagePickerProps)
       {/* Breadcrumb */}
       <div className="flex items-center gap-1 px-1 pb-3 flex-wrap">
         <button
+          className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-muted-on-surface hover:text-on-surface transition-colors"
           type="button"
           onClick={() => setStack([])}
-          className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-muted-on-surface hover:text-on-surface transition-colors"
         >
           <Home size={12} /> Inicio
         </button>
         {stack.map((s, i) => (
           <React.Fragment key={i}>
-            <ChevronRight size={10} className="text-muted-on-surface opacity-40" />
+            <ChevronRight className="text-muted-on-surface opacity-40" size={10} />
             <button
+              className="text-[10px] font-black uppercase tracking-widest text-muted-on-surface hover:text-on-surface transition-colors"
               type="button"
               onClick={() => goBack(i + 1)}
-              className="text-[10px] font-black uppercase tracking-widest text-muted-on-surface hover:text-on-surface transition-colors"
             >
               {s.name}
             </button>
@@ -551,7 +552,7 @@ export function SimpleImagePicker({ onSelect, onClose }: SimpleImagePickerProps)
       <div className="flex-1 overflow-y-auto space-y-4 pr-1">
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 size={20} className="animate-spin text-primary/30" />
+            <Loader2 className="animate-spin text-primary/30" size={20} />
           </div>
         ) : (
           <>
@@ -559,12 +560,12 @@ export function SimpleImagePicker({ onSelect, onClose }: SimpleImagePickerProps)
               <div className="grid grid-cols-2 gap-2">
                 {folders.map((folder, i) => (
                   <button
-                    type="button" key={i}
-                    onClick={() => openFolder(folder)}
-                    className="flex items-center gap-3 px-4 py-3 bg-primary/5 hover:bg-primary/10 transition-all text-left group border border-primary/10 hover:border-primary/20"
+                    key={i} className="flex items-center gap-3 px-4 py-3 bg-primary/5 hover:bg-primary/10 transition-all text-left group border border-primary/10 hover:border-primary/20"
                     style={{ borderRadius: "var(--radius-btn)" }}
+                    type="button"
+                    onClick={() => openFolder(folder)}
                   >
-                    <FolderOpen size={16} className="text-primary/40 group-hover:text-primary/70 transition-colors shrink-0" />
+                    <FolderOpen className="text-primary/40 group-hover:text-primary/70 transition-colors shrink-0" size={16} />
                     <div className="min-w-0">
                       <p className="text-[10px] font-black uppercase tracking-widest text-on-surface truncate">
                         {folder.name}
@@ -573,7 +574,7 @@ export function SimpleImagePicker({ onSelect, onClose }: SimpleImagePickerProps)
                         {flattenImages(folder.children).length} imágenes
                       </p>
                     </div>
-                    <ChevronRight size={12} className="text-muted-on-surface opacity-40 ml-auto shrink-0" />
+                    <ChevronRight className="text-muted-on-surface opacity-40 ml-auto shrink-0" size={12} />
                   </button>
                 ))}
               </div>
@@ -583,17 +584,17 @@ export function SimpleImagePicker({ onSelect, onClose }: SimpleImagePickerProps)
               <div className="grid grid-cols-3 gap-2">
                 {images.map((img, i) => (
                   <button
-                    type="button" key={i}
-                    onClick={() => setSelected(img.url)}
-                    className={cn(
+                    key={i} className={cn(
                       "relative aspect-square overflow-hidden border-2 transition-all",
                       selected === img.url
                         ? "border-primary shadow-lg scale-[0.97]"
                         : "border-transparent hover:border-primary/30",
                     )}
                     style={{ borderRadius: "var(--radius-btn)" }}
+                    type="button"
+                    onClick={() => setSelected(img.url)}
                   >
-                    <img src={img.url} alt={img.name} className="w-full h-full object-cover" loading="lazy" />
+                    <img alt={img.name} className="w-full h-full object-cover" loading="lazy" src={img.url} />
                     {selected === img.url && (
                       <div className="absolute inset-0 bg-primary/30 flex items-center justify-center">
                         <div className="bg-primary rounded-full p-1 shadow">
@@ -618,16 +619,16 @@ export function SimpleImagePicker({ onSelect, onClose }: SimpleImagePickerProps)
       {/* Acciones */}
       <div className="pt-4 flex gap-3">
         <button
-          type="button" onClick={onClose}
-          className="flex-1 py-4 text-[10px] font-black uppercase tracking-widest text-muted-on-surface hover:text-on-surface transition-colors"
+          className="flex-1 py-4 text-[10px] font-black uppercase tracking-widest text-muted-on-surface hover:text-on-surface transition-colors" type="button"
+          onClick={onClose}
         >
           Cancelar
         </button>
         <button
+          className="btn-brand flex-[2] py-4 text-xs uppercase tracking-widest disabled:opacity-30"
+          disabled={!selected}
           type="button"
           onClick={() => selected && onSelect(selected)}
-          disabled={!selected}
-          className="btn-brand flex-[2] py-4 text-xs uppercase tracking-widest disabled:opacity-30"
         >
           Seleccionar
         </button>

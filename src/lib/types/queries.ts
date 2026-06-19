@@ -1,5 +1,7 @@
 import { QueryData } from '@supabase/supabase-js';
+
 import { supabase } from '@/lib/api/client/supabase';
+
 import { Database } from './supabase';
 
 // --- HELPERS PARA CRUD ---

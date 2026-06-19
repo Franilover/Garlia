@@ -1,12 +1,15 @@
 "use client";
-import React, { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+
+import { renderMarkdown } from "@/components/forms/Markdown/MarkdownEditor";
 import { Segment, SectionMap, parseContenido, parseSections } from "@/features/editorGarlia/components/editorCapitulos/snippets/type";
+
 import {
   CitaVisual, ImgInline, FloatWord, SoundInline,
   DropWord, ChoiceButton, UseWord, UseWordPortal,
 } from "./SegmentRenderers";
-import { renderMarkdown } from "@/components/forms/Markdown/MarkdownEditor";
+
 
 /* ─────────────────────────────────────────────
    Drop cap animado — la primera letra "aparece
@@ -16,22 +19,22 @@ function AnimatedDropCap({ char, rest }: { char: string; rest: string }) {
   return (
     <span>
       <motion.span
+        animate={{ opacity: 1, filter: "blur(0px)", scale: 1 }}
         className="float-left font-black text-primary leading-none mr-3"
+        initial={{ opacity: 0, filter: "blur(8px)", scale: 1.15 }}
         style={{
           fontFamily: "var(--font-literata), Georgia, serif",
           fontSize: "clamp(4.5rem, 12vw, 6rem)",
           marginTop: "0.18em",
           lineHeight: 0.82,
         }}
-        initial={{ opacity: 0, filter: "blur(8px)", scale: 1.15 }}
-        animate={{ opacity: 1, filter: "blur(0px)", scale: 1 }}
         transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1], delay: 0.15 }}
       >
         {char}
       </motion.span>
       <motion.span
-        initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
+        initial={{ opacity: 0 }}
         transition={{ duration: 0.8, delay: 0.4 }}
       >
         {rest}
@@ -50,8 +53,8 @@ function TextoMarkdown({ value, className }: { value: string; className?: string
   const html = renderMarkdown(value);
   return (
     <span
-      className={className}
       dangerouslySetInnerHTML={{ __html: html }}
+      className={className}
     />
   );
 }
@@ -158,23 +161,23 @@ export function RenderSegmentos({
         }
 
         if (seg.type === "cita")   return <CitaVisual  key={i} content={seg.content} />;
-        if (seg.type === "img")    return <ImgInline   key={i} url={seg.url} caption={seg.caption} />;
-        if (seg.type === "float")  return <FloatWord   key={i} word={seg.word} url={seg.url} caption={seg.caption} />;
+        if (seg.type === "img")    return <ImgInline   key={i} caption={seg.caption} url={seg.url} />;
+        if (seg.type === "float")  return <FloatWord   key={i} caption={seg.caption} url={seg.url} word={seg.word} />;
         if (seg.type === "sound")  return <SoundInline key={i} url={seg.url} volume={seg.volume} />;
         if (seg.type === "drop")   return (
-          <DropWord key={i} word={seg.word} tipo={seg.entidadTipo}
-            entidadId={seg.entidadId} entidadNombre={seg.entidadNombre} />
+          <DropWord key={i} entidadId={seg.entidadId} entidadNombre={seg.entidadNombre}
+            tipo={seg.entidadTipo} word={seg.word} />
         );
         if (seg.type === "choice") return (
           <ChoiceButton key={i} label={seg.label} onSelect={() => onNavigate(seg.target)} />
         );
         if (seg.type === "use")    return (
-          <UseWord key={i} word={seg.word} itemId={seg.itemId}
-            targetSuccess={seg.targetSuccess} targetFail={seg.targetFail} onNavigate={onNavigate} />
+          <UseWord key={i} itemId={seg.itemId} targetFail={seg.targetFail}
+            targetSuccess={seg.targetSuccess} word={seg.word} onNavigate={onNavigate} />
         );
         if (seg.type === "gate")   return (
           <GateBlock key={i} itemId={seg.itemId}
-            tieneSegs={seg.tieneSegs} noTieneSegs={seg.noTieneSegs} onNavigate={onNavigate} />
+            noTieneSegs={seg.noTieneSegs} tieneSegs={seg.tieneSegs} onNavigate={onNavigate} />
         );
 
         return null;
@@ -206,10 +209,10 @@ function RevealedSection({
 
   return (
     <motion.div
-      ref={ref}
       key={id}
-      initial={{ opacity: 0, y: 20 }}
+      ref={ref}
       animate={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0, y: 20 }}
       transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
     >
       <SectionDivider label={id} />
@@ -267,10 +270,10 @@ export function ContenidoInteractivo({
 
       {/* Contenido raíz — siempre visible */}
       <RenderSegmentos
-        segs={sectionMap[""]}
-        onNavigate={handleNavigate}
         isFirst
         esExtra={esExtra}
+        segs={sectionMap[""]}
+        onNavigate={handleNavigate}
       />
 
       {/* Secciones reveladas — se acumulan debajo en orden de elección */}

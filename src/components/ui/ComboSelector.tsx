@@ -1,6 +1,6 @@
 "use client";
-import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { ChevronDown, Check, X, Search, Pencil } from "lucide-react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 
 /* ─────────────────────────────────────────────────────────────────────────────
    ComboSelector — selector reutilizable con búsqueda, flechas y Tab
@@ -216,7 +216,7 @@ export function ComboSelector(props: ComboSelectorProps) {
   const borderFocus = "1px solid color-mix(in srgb, var(--primary) 35%, transparent)";
 
   return (
-    <div className={`space-y-1.5 ${className}`} ref={containerRef}>
+    <div ref={containerRef} className={`space-y-1.5 ${className}`}>
       {/* Label */}
       {(label || hint) && (
         <div className="flex items-center gap-2">
@@ -246,13 +246,13 @@ export function ComboSelector(props: ComboSelectorProps) {
               }}
             >
               {it.imgUrl && (
-                <img src={it.imgUrl} alt="" className="w-3.5 h-3.5 rounded-full object-cover" />
+                <img alt="" className="w-3.5 h-3.5 rounded-full object-cover" src={it.imgUrl} />
               )}
               {it.label}
               <button
+                className="opacity-50 hover:opacity-100 transition-opacity ml-0.5"
                 type="button"
                 onClick={(e) => removeItem(it.id, e)}
-                className="opacity-50 hover:opacity-100 transition-opacity ml-0.5"
               >
                 <X size={9} />
               </button>
@@ -272,37 +272,35 @@ export function ComboSelector(props: ComboSelectorProps) {
           }}
         >
           <button
-            type="button"
-            onClick={() => onNavigate(selectedItems[0].id, selectedItems[0].label)}
             className="flex-1 flex items-center gap-2 px-4 py-2.5 text-[11px] font-bold transition-all min-w-0 hover:bg-primary/5"
             style={{ color: "var(--primary)" }}
+            type="button"
+            onClick={() => onNavigate(selectedItems[0].id, selectedItems[0].label)}
           >
             {selectedItems[0].imgUrl && (
               <img
-                src={selectedItems[0].imgUrl}
                 alt=""
                 className="w-5 h-5 rounded-full object-cover border border-primary/20 shrink-0"
+                src={selectedItems[0].imgUrl}
               />
             )}
             <span className="truncate font-black uppercase">{triggerLabel}</span>
           </button>
           <button
-            type="button"
-            onClick={(e) => { e.stopPropagation(); setOpen(o => !o); }}
             className="shrink-0 flex items-center justify-center px-2.5 py-2.5 transition-all hover:bg-primary/10"
             style={{
               borderLeft: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
               color: "color-mix(in srgb, var(--primary) 35%, transparent)",
             }}
             title="Cambiar"
+            type="button"
+            onClick={(e) => { e.stopPropagation(); setOpen(o => !o); }}
           >
             <Pencil size={11} />
           </button>
         </div>
       ) : (
         <button
-          type="button"
-          onClick={() => setOpen(o => !o)}
           className="w-full flex items-center justify-between px-4 py-2.5 rounded-[var(--radius-btn)] text-[11px] font-bold transition-all"
           style={{
             background: "color-mix(in srgb, var(--primary) 5%, transparent)",
@@ -311,21 +309,23 @@ export function ComboSelector(props: ComboSelectorProps) {
               ? "var(--primary)"
               : "color-mix(in srgb, var(--primary) 40%, transparent)",
           }}
+          type="button"
+          onClick={() => setOpen(o => !o)}
         >
           <span className="flex items-center gap-2 min-w-0">
             {/* Imagen en single */}
             {props.mode === "single" && selectedItems[0]?.imgUrl && (
               <img
-                src={selectedItems[0].imgUrl}
                 alt=""
                 className="w-5 h-5 rounded-full object-cover border border-primary/20 shrink-0"
+                src={selectedItems[0].imgUrl}
               />
             )}
             <span className="truncate font-black uppercase">{triggerLabel}</span>
           </span>
           <ChevronDown
-            size={12}
             className={`shrink-0 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+            size={12}
             style={{ opacity: 0.5 }}
           />
         </button>
@@ -349,22 +349,22 @@ export function ComboSelector(props: ComboSelectorProps) {
             <Search size={11} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)", flexShrink: 0 }} />
             <input
               ref={inputRef}
-              type="text"
-              value={query}
-              onChange={e => { setQuery(e.target.value); setCursor(-1); }}
-              onKeyDown={handleKeyDown}
-              placeholder="Buscar…"
               className="flex-1 bg-transparent outline-none text-[11px] font-bold uppercase tracking-wide placeholder:normal-case placeholder:font-medium placeholder:tracking-normal"
+              placeholder="Buscar…"
               style={{
                 color: "var(--primary)",
                 caretColor: "var(--primary)",
               }}
+              type="text"
+              value={query}
+              onChange={e => { setQuery(e.target.value); setCursor(-1); }}
+              onKeyDown={handleKeyDown}
             />
             {query && (
               <button
+                className="opacity-30 hover:opacity-70 transition-opacity"
                 type="button"
                 onClick={() => { setQuery(""); setCursor(-1); inputRef.current?.focus(); }}
-                className="opacity-30 hover:opacity-70 transition-opacity"
               >
                 <X size={10} style={{ color: "var(--primary)" }} />
               </button>
@@ -372,14 +372,12 @@ export function ComboSelector(props: ComboSelectorProps) {
           </div>
 
           {/* Items — con o sin grupos */}
-          <div className="max-h-48 overflow-y-auto" ref={listRef}>
+          <div ref={listRef} className="max-h-48 overflow-y-auto">
             {/* Opción ninguno (solo single) */}
             {showNone && (
               <button
-                type="button"
-                data-idx={0}
-                onClick={selectNone}
                 className="w-full flex items-center justify-between px-4 py-2.5 text-[11px] font-bold uppercase transition-all"
+                data-idx={0}
                 style={{
                   color: !props.value
                     ? "var(--primary)"
@@ -388,12 +386,14 @@ export function ComboSelector(props: ComboSelectorProps) {
                     ? "color-mix(in srgb, var(--primary) 6%, transparent)"
                     : "transparent",
                 }}
+                type="button"
+                onClick={selectNone}
                 onMouseEnter={() => setCursor(0)}
                 onMouseLeave={() => setCursor(-1)}
               >
                 <span className="flex items-center gap-2">
                   <span className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center">
-                    <X size={9} className="opacity-50" />
+                    <X className="opacity-50" size={9} />
                   </span>
                   {(props as SingleProps).noneLabel ?? "Ninguno"}
                 </span>
@@ -430,23 +430,23 @@ export function ComboSelector(props: ComboSelectorProps) {
                   return (
                     <button
                       key={it.id}
-                      type="button"
-                      data-idx={cursorIdx}
-                      onClick={() => toggle(it.id)}
-                      onMouseEnter={() => setCursor(cursorIdx)}
-                      onMouseLeave={() => setCursor(-1)}
                       className="w-full flex items-center justify-between px-4 py-2.5 text-[11px] font-bold uppercase transition-all"
+                      data-idx={cursorIdx}
                       style={{
                         color: sel ? "var(--primary)" : "color-mix(in srgb, var(--primary) 50%, transparent)",
                         background: isCursor ? "color-mix(in srgb, var(--primary) 6%, transparent)" : "transparent",
                       }}
+                      type="button"
+                      onClick={() => toggle(it.id)}
+                      onMouseEnter={() => setCursor(cursorIdx)}
+                      onMouseLeave={() => setCursor(-1)}
                     >
                       <span className="flex items-center gap-2 min-w-0">
-                        {it.imgUrl ? <img src={it.imgUrl} alt="" className="w-5 h-5 rounded-full object-cover border border-primary/15 shrink-0" /> : null}
+                        {it.imgUrl ? <img alt="" className="w-5 h-5 rounded-full object-cover border border-primary/15 shrink-0" src={it.imgUrl} /> : null}
                         <span className="truncate">{it.label}</span>
                         {it.sublabel && <span className="text-[9px] normal-case font-medium opacity-50 truncate">{it.sublabel}</span>}
                       </span>
-                      {sel && <Check size={11} className="shrink-0" style={{ color: "var(--primary)" }} />}
+                      {sel && <Check className="shrink-0" size={11} style={{ color: "var(--primary)" }} />}
                     </button>
                   );
                 };
@@ -487,12 +487,8 @@ export function ComboSelector(props: ComboSelectorProps) {
                 return (
                   <button
                     key={it.id}
-                    type="button"
-                    data-idx={cursorIdx}
-                    onClick={() => toggle(it.id)}
-                    onMouseEnter={() => setCursor(cursorIdx)}
-                    onMouseLeave={() => setCursor(-1)}
                     className="w-full flex items-center justify-between px-4 py-2.5 text-[11px] font-bold uppercase transition-all"
+                    data-idx={cursorIdx}
                     style={{
                       color: sel
                         ? "var(--primary)"
@@ -501,13 +497,17 @@ export function ComboSelector(props: ComboSelectorProps) {
                         ? "color-mix(in srgb, var(--primary) 6%, transparent)"
                         : "transparent",
                     }}
+                    type="button"
+                    onClick={() => toggle(it.id)}
+                    onMouseEnter={() => setCursor(cursorIdx)}
+                    onMouseLeave={() => setCursor(-1)}
                   >
                     <span className="flex items-center gap-2 min-w-0">
                       {it.imgUrl ? (
                         <img
-                          src={it.imgUrl}
                           alt=""
                           className="w-5 h-5 rounded-full object-cover border border-primary/15 shrink-0"
+                          src={it.imgUrl}
                         />
                       ) : null}
                       <span className="truncate">{it.label}</span>
@@ -518,7 +518,7 @@ export function ComboSelector(props: ComboSelectorProps) {
                       )}
                     </span>
                     {sel && (
-                      <Check size={11} className="shrink-0" style={{ color: "var(--primary)" }} />
+                      <Check className="shrink-0" size={11} style={{ color: "var(--primary)" }} />
                     )}
                   </button>
                 );

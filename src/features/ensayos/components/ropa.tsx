@@ -1,15 +1,16 @@
 "use client";
-import { MotionDiv, MotionMain, MotionH1, MotionH2, MotionButton, MotionLi, MotionSpan, MotionP, MotionSection, MotionArticle, MotionImg } from "@/components/ui/Motion";
 
-import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Trash2, Save, X, Loader2, ZoomIn, Plus, Image as ImageIcon,
   Pencil, SlidersHorizontal, Sparkles,
 } from "lucide-react";
-import { cn } from "@/lib/utils/index";
-import { useSupabaseData } from "@/hooks/data/useSupabaseData";
+import React, { useState, useMemo } from "react";
+
+import { MotionDiv, MotionMain, MotionH1, MotionH2, MotionButton, MotionLi, MotionSpan, MotionP, MotionSection, MotionArticle, MotionImg } from "@/components/ui/Motion";
 import SimpleImagePicker from "@/features/editorGarlia/components/editorCapitulos/snippets/forms/SimpleImagePicker";
+import { useSupabaseData } from "@/hooks/data/useSupabaseData";
+import { cn } from "@/lib/utils/index";
 
 type Temporada = "Primavera" | "Verano" | "Otoño" | "Invierno";
 type Vibra     = "Casual" | "Formal" | "Sport" | "Noche" | "Aesthetic";
@@ -65,7 +66,6 @@ function ChipGroup<T extends string>({
         return (
           <button
             key={opt}
-            onClick={() => onToggle(opt)}
             className={cn(
               "flex items-center gap-1.5 px-2.5 py-1 text-[8px] font-black uppercase tracking-widest transition-all border",
               active
@@ -73,6 +73,7 @@ function ChipGroup<T extends string>({
                 : "bg-primary/5 text-muted-on-surface border-primary/10 hover:border-primary/30"
             )}
             style={{ borderRadius: "var(--radius-btn)" }}
+            onClick={() => onToggle(opt)}
           >
             {colorDot && (
               <span
@@ -113,9 +114,9 @@ function OutfitForm({ initial, onSave, onClose, saving, title, icon }: OutfitFor
           <h3 className="text-xs font-black uppercase tracking-widest text-on-surface">{title}</h3>
         </div>
         <button
-          onClick={onClose}
           className="p-1.5 text-muted-on-surface hover:text-on-surface transition-colors"
           style={{ borderRadius: "9999px" }}
+          onClick={onClose}
         >
           <X size={16} />
         </button>
@@ -125,24 +126,24 @@ function OutfitForm({ initial, onSave, onClose, saving, title, icon }: OutfitFor
         {}
         {!showPicker ? (
           <button
-            onClick={() => setShowPicker(true)}
             className={cn(
               "relative w-full aspect-video border-2 border-dashed transition-all overflow-hidden group",
               form.imagen_url ? "border-primary/20" : "border-primary/10 hover:border-primary/30"
             )}
             style={{ borderRadius: "var(--radius-card)" }}
+            onClick={() => setShowPicker(true)}
           >
             {form.imagen_url ? (
               <>
-                <img src={form.imagen_url} className="w-full h-full object-cover" alt="preview" />
+                <img alt="preview" className="w-full h-full object-cover" src={form.imagen_url} />
                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                  <ImageIcon size={16} className="text-white" />
+                  <ImageIcon className="text-white" size={16} />
                   <span className="text-[10px] font-black uppercase text-white tracking-widest">Cambiar foto</span>
                 </div>
               </>
             ) : (
               <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-primary/5">
-                <ImageIcon size={28} className="text-primary/20" />
+                <ImageIcon className="text-primary/20" size={28} />
                 <span className="text-[9px] font-black uppercase tracking-widest text-muted-on-surface">Elegir foto</span>
               </div>
             )}
@@ -151,12 +152,12 @@ function OutfitForm({ initial, onSave, onClose, saving, title, icon }: OutfitFor
           <div className="border border-primary/10 overflow-hidden" style={{ borderRadius: "var(--radius-card)" }}>
             <div className="flex items-center justify-between px-4 pt-4 pb-2">
               <p className="text-[9px] font-black uppercase tracking-widest text-muted-on-surface">Selecciona una foto</p>
-              <button onClick={() => setShowPicker(false)} className="text-muted-on-surface hover:text-on-surface"><X size={14} /></button>
+              <button className="text-muted-on-surface hover:text-on-surface" onClick={() => setShowPicker(false)}><X size={14} /></button>
             </div>
             <div className="px-4 pb-4">
               <SimpleImagePicker
-                onSelect={(url) => { set("imagen_url", url); setShowPicker(false); }}
                 onClose={() => setShowPicker(false)}
+                onSelect={(url) => { set("imagen_url", url); setShowPicker(false); }}
               />
             </div>
           </div>
@@ -166,20 +167,20 @@ function OutfitForm({ initial, onSave, onClose, saving, title, icon }: OutfitFor
           <>
             {}
             <input
-              type="text"
+              className="input-brand text-[10px] font-black"
               placeholder="NOMBRE DEL OUTFIT..."
+              type="text"
               value={form.nombre}
               onChange={(e) => set("nombre", e.target.value.toUpperCase())}
-              className="input-brand text-[10px] font-black"
             />
 
             {}
             <textarea
+              className="input-brand text-[10px] resize-none"
               placeholder="Descripción o notas (opcional)..."
+              rows={2}
               value={form.descripcion}
               onChange={(e) => set("descripcion", e.target.value)}
-              rows={2}
-              className="input-brand text-[10px] resize-none"
             />
 
             {}
@@ -206,17 +207,17 @@ function OutfitForm({ initial, onSave, onClose, saving, title, icon }: OutfitFor
             <div>
               <p className="text-[8px] font-black uppercase tracking-widest text-muted-on-surface mb-2">Colores</p>
               <ChipGroup
+                colorDot={COLOR_DOT}
                 options={COLORES}
                 selected={form.colores}
                 onToggle={(v) => set("colores", toggleArr(form.colores, v))}
-                colorDot={COLOR_DOT}
               />
             </div>
 
             <button
-              onClick={() => onSave(form)}
-              disabled={!form.nombre || !form.imagen_url || saving}
               className="btn-brand w-full text-[10px] uppercase tracking-widest"
+              disabled={!form.nombre || !form.imagen_url || saving}
+              onClick={() => onSave(form)}
             >
               {saving ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
               Guardar outfit
@@ -305,18 +306,18 @@ export default function ArmarioPage() {
 
   const Modal = ({ children, onClose }: { children: React.ReactNode; onClose: () => void }) => (
     <MotionDiv
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      animate={{ opacity: 1 }} className="fixed inset-0 z-50 bg-foreground/50 backdrop-blur-sm flex items-center justify-center p-4" exit={{ opacity: 0 }}
+      initial={{ opacity: 0 }}
       onClick={onClose}
-      className="fixed inset-0 z-50 bg-foreground/50 backdrop-blur-sm flex items-center justify-center p-4"
     >
       <MotionDiv
-        initial={{ scale: 0.92, opacity: 0, y: 16 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
+        className="modal-surface relative shadow-2xl w-full max-w-md overflow-hidden"
         exit={{ scale: 0.92, opacity: 0, y: 16 }}
+        initial={{ scale: 0.92, opacity: 0, y: 16 }}
+        style={{ borderRadius: "var(--radius-card)" }}
         transition={{ type: "spring", stiffness: 300, damping: 28 }}
         onClick={(e) => e.stopPropagation()}
-        className="modal-surface relative shadow-2xl w-full max-w-md overflow-hidden"
-        style={{ borderRadius: "var(--radius-card)" }}
       >
         {children}
       </MotionDiv>
@@ -333,12 +334,12 @@ export default function ArmarioPage() {
         {showNuevo && (
           <Modal onClose={() => setShowNuevo(false)}>
             <OutfitForm
-              title="Nuevo Outfit"
-              icon={<Sparkles size={16} className="text-primary" />}
+              icon={<Sparkles className="text-primary" size={16} />}
               initial={EMPTY_FORM}
-              onSave={guardarNuevo}
-              onClose={() => setShowNuevo(false)}
               saving={savingOutfit}
+              title="Nuevo Outfit"
+              onClose={() => setShowNuevo(false)}
+              onSave={guardarNuevo}
             />
           </Modal>
         )}
@@ -349,8 +350,7 @@ export default function ArmarioPage() {
         {editando && (
           <Modal onClose={() => setEditando(null)}>
             <OutfitForm
-              title="Editar Outfit"
-              icon={<Pencil size={16} className="text-primary" />}
+              icon={<Pencil className="text-primary" size={16} />}
               initial={{
                 nombre: editando.nombre,
                 descripcion: editando.descripcion ?? "",
@@ -359,9 +359,10 @@ export default function ArmarioPage() {
                 vibras: editando.vibras ?? [],
                 colores: editando.colores ?? [],
               }}
-              onSave={guardarEdicion}
-              onClose={() => setEditando(null)}
               saving={savingOutfit}
+              title="Editar Outfit"
+              onClose={() => setEditando(null)}
+              onSave={guardarEdicion}
             />
           </Modal>
         )}
@@ -374,7 +375,7 @@ export default function ArmarioPage() {
             <div className="p-6 flex flex-col gap-5">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-full" style={{ background: "color-mix(in srgb, #ef4444 10%, transparent)" }}>
-                  <Trash2 size={18} className="text-red-400" />
+                  <Trash2 className="text-red-400" size={18} />
                 </div>
                 <div>
                   <p className="text-xs font-black uppercase text-on-surface">¿Borrar este outfit?</p>
@@ -383,24 +384,24 @@ export default function ArmarioPage() {
               </div>
               {confirmDelete.imagen_url && (
                 <div className="w-full aspect-video overflow-hidden bg-primary/5 opacity-50" style={{ borderRadius: "var(--radius-btn)" }}>
-                  <img src={confirmDelete.imagen_url} className="w-full h-full object-cover" alt="" />
+                  <img alt="" className="w-full h-full object-cover" src={confirmDelete.imagen_url} />
                 </div>
               )}
               <div className="flex gap-3">
                 <button
-                  onClick={() => setConfirmDelete(null)}
                   className="flex-1 py-3 text-[10px] font-black uppercase tracking-widest text-muted-on-surface hover:text-on-surface transition-colors border border-primary/10"
                   style={{ borderRadius: "var(--radius-btn)" }}
+                  onClick={() => setConfirmDelete(null)}
                 >
                   Cancelar
                 </button>
                 <button
-                  onClick={confirmarBorrado}
-                  disabled={!!deletingId}
                   className="flex-1 py-3 text-[10px] font-black uppercase tracking-widest bg-red-500 text-white hover:bg-red-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                  disabled={!!deletingId}
                   style={{ borderRadius: "var(--radius-btn)" }}
+                  onClick={confirmarBorrado}
                 >
-                  {deletingId ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                  {deletingId ? <Loader2 className="animate-spin" size={14} /> : <Trash2 size={14} />}
                   Borrar
                 </button>
               </div>
@@ -416,24 +417,24 @@ export default function ArmarioPage() {
             {}
             <div className="absolute top-4 left-4 z-10 flex gap-2">
               <button
-                onClick={() => { setEditando(lightbox); setLightbox(null); }}
                 className="modal-surface p-2 shadow-md text-muted-on-surface hover:text-primary transition-colors"
                 style={{ borderRadius: "9999px" }}
+                onClick={() => { setEditando(lightbox); setLightbox(null); }}
               >
                 <Pencil size={14} />
               </button>
               <button
-                onClick={() => { setConfirmDelete(lightbox); setLightbox(null); }}
                 className="modal-surface p-2 shadow-md text-muted-on-surface hover:text-red-500 transition-colors"
                 style={{ borderRadius: "9999px" }}
+                onClick={() => { setConfirmDelete(lightbox); setLightbox(null); }}
               >
                 <Trash2 size={14} />
               </button>
             </div>
             <button
-              onClick={() => setLightbox(null)}
               className="absolute top-4 right-4 z-10 modal-surface p-2 shadow-md text-muted-on-surface hover:text-on-surface transition-colors"
               style={{ borderRadius: "9999px" }}
+              onClick={() => setLightbox(null)}
             >
               <X size={16} />
             </button>
@@ -441,7 +442,7 @@ export default function ArmarioPage() {
             {}
             <div className="aspect-[3/4] w-full bg-primary/5 overflow-hidden flex items-center justify-center">
               {lightbox.imagen_url
-                ? <img src={lightbox.imagen_url} alt={lightbox.nombre} className="w-full h-full object-cover" />
+                ? <img alt={lightbox.nombre} className="w-full h-full object-cover" src={lightbox.imagen_url} />
                 : <Sparkles className="text-primary/20" size={64} />
               }
             </div>
@@ -491,7 +492,6 @@ export default function ArmarioPage() {
 
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setShowFiltros(!showFiltros)}
               className={cn(
                 "flex items-center gap-2 px-3 py-2 text-[9px] font-black uppercase tracking-widest transition-all border",
                 showFiltros || hayFiltros
@@ -499,6 +499,7 @@ export default function ArmarioPage() {
                   : "bg-primary/5 text-muted-on-surface border-primary/10 hover:border-primary/30"
               )}
               style={{ borderRadius: "var(--radius-btn)" }}
+              onClick={() => setShowFiltros(!showFiltros)}
             >
               <SlidersHorizontal size={12} />
               Filtros
@@ -510,8 +511,8 @@ export default function ArmarioPage() {
             </button>
 
             <button
-              onClick={() => setShowNuevo(true)}
               className="btn-brand flex items-center gap-2 text-[10px] uppercase tracking-widest"
+              onClick={() => setShowNuevo(true)}
             >
               <Plus size={14} />
               <span className="hidden sm:inline">Nuevo</span>
@@ -523,11 +524,11 @@ export default function ArmarioPage() {
         <AnimatePresence>
           {showFiltros && (
             <MotionDiv
-              initial={{ height: 0, opacity: 0 }}
               animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.2 }}
               className="overflow-hidden border-t border-primary/8"
+              exit={{ height: 0, opacity: 0 }}
+              initial={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
             >
               <div className="max-w-7xl mx-auto px-6 py-4 flex flex-col gap-4">
 
@@ -538,7 +539,6 @@ export default function ArmarioPage() {
                     {TEMPORADAS.map(t => (
                       <button
                         key={t}
-                        onClick={() => setFiltroTemporada(filtroTemporada === t ? null : t)}
                         className={cn(
                           "px-2.5 py-1 text-[8px] font-black uppercase tracking-widest transition-all border",
                           filtroTemporada === t
@@ -546,6 +546,7 @@ export default function ArmarioPage() {
                             : "bg-primary/5 text-muted-on-surface border-primary/10 hover:border-primary/30"
                         )}
                         style={{ borderRadius: "var(--radius-btn)" }}
+                        onClick={() => setFiltroTemporada(filtroTemporada === t ? null : t)}
                       >
                         {t}
                       </button>
@@ -560,7 +561,6 @@ export default function ArmarioPage() {
                     {VIBRAS.map(v => (
                       <button
                         key={v}
-                        onClick={() => setFiltroVibra(filtroVibra === v ? null : v)}
                         className={cn(
                           "px-2.5 py-1 text-[8px] font-black uppercase tracking-widest transition-all border",
                           filtroVibra === v
@@ -568,6 +568,7 @@ export default function ArmarioPage() {
                             : "bg-primary/5 text-muted-on-surface border-primary/10 hover:border-primary/30"
                         )}
                         style={{ borderRadius: "var(--radius-btn)" }}
+                        onClick={() => setFiltroVibra(filtroVibra === v ? null : v)}
                       >
                         {v}
                       </button>
@@ -582,7 +583,6 @@ export default function ArmarioPage() {
                     {COLORES.map(c => (
                       <button
                         key={c}
-                        onClick={() => setFiltroColor(filtroColor === c ? null : c)}
                         className={cn(
                           "flex items-center gap-1.5 px-2.5 py-1 text-[8px] font-black uppercase tracking-widest transition-all border",
                           filtroColor === c
@@ -590,6 +590,7 @@ export default function ArmarioPage() {
                             : "bg-primary/5 text-muted-on-surface border-primary/10 hover:border-primary/30"
                         )}
                         style={{ borderRadius: "var(--radius-btn)" }}
+                        onClick={() => setFiltroColor(filtroColor === c ? null : c)}
                       >
                         <span className="w-2 h-2 rounded-full shrink-0 border border-black/10" style={{ background: COLOR_DOT[c] }} />
                         {c}
@@ -601,8 +602,8 @@ export default function ArmarioPage() {
                 {}
                 {hayFiltros && (
                   <button
-                    onClick={limpiarFiltros}
                     className="self-start text-[8px] font-black uppercase tracking-widest text-muted-on-surface hover:text-on-surface transition-colors underline underline-offset-2"
+                    onClick={limpiarFiltros}
                   >
                     Limpiar filtros
                   </button>
@@ -626,9 +627,9 @@ export default function ArmarioPage() {
             ].filter(Boolean).map((f: any, i) => (
               <button
                 key={i}
-                onClick={f.clear}
                 className="flex items-center gap-1.5 px-3 py-1 bg-primary text-btn-text text-[8px] font-black uppercase tracking-widest"
                 style={{ borderRadius: "var(--radius-btn)" }}
+                onClick={f.clear}
               >
                 {f.label} <X size={10} />
               </button>
@@ -646,7 +647,7 @@ export default function ArmarioPage() {
               <>
                 <SlidersHorizontal className="text-primary/10 mb-4" size={40} />
                 <p className="text-[10px] font-black uppercase text-muted-on-surface mb-3">Sin resultados</p>
-                <button onClick={limpiarFiltros} className="btn-brand text-[9px]">Limpiar filtros</button>
+                <button className="btn-brand text-[9px]" onClick={limpiarFiltros}>Limpiar filtros</button>
               </>
             ) : (
               <>
@@ -661,18 +662,18 @@ export default function ArmarioPage() {
             {outfitsFiltrados.map((outfit: Outfit) => (
               <div key={outfit.id} className="relative group/card">
                 <MotionButton
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => setLightbox(outfit)}
                   className="card-main w-full relative overflow-hidden group p-0 transition-all border-primary/10 hover:border-primary/30"
                   style={{ aspectRatio: "3/4" }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setLightbox(outfit)}
                 >
                   {}
                   <div className="absolute inset-0 flex items-center justify-center bg-primary/5">
                     {outfit.imagen_url
                       ? <img
-                          src={outfit.imagen_url}
                           alt={outfit.nombre}
                           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                          src={outfit.imagen_url}
                         />
                       : <Sparkles className="text-primary/10" size={32} />
                     }
@@ -681,7 +682,7 @@ export default function ArmarioPage() {
                   {}
                   <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                     <div className="modal-surface p-3 rounded-full shadow-lg">
-                      <ZoomIn size={18} className="text-primary" />
+                      <ZoomIn className="text-primary" size={18} />
                     </div>
                   </div>
 
@@ -729,16 +730,16 @@ export default function ArmarioPage() {
                 {}
                 <div className="absolute top-2 left-2 flex gap-1 opacity-0 group-hover/card:opacity-100 transition-all">
                   <button
-                    onClick={() => setEditando(outfit)}
                     className="modal-surface p-1.5 shadow-md text-muted-on-surface hover:text-primary transition-colors"
                     style={{ borderRadius: "var(--radius-btn)" }}
+                    onClick={() => setEditando(outfit)}
                   >
                     <Pencil size={12} />
                   </button>
                   <button
-                    onClick={() => setConfirmDelete(outfit)}
                     className="modal-surface p-1.5 shadow-md text-muted-on-surface hover:text-red-500 transition-colors"
                     style={{ borderRadius: "var(--radius-btn)" }}
+                    onClick={() => setConfirmDelete(outfit)}
                   >
                     <Trash2 size={12} />
                   </button>
@@ -748,12 +749,12 @@ export default function ArmarioPage() {
 
             {}
             <MotionButton
-              whileTap={{ scale: 0.98 }}
-              onClick={() => setShowNuevo(true)}
               className="relative border-2 border-dashed border-primary/10 hover:border-primary/30 transition-all flex flex-col items-center justify-center gap-3 text-muted-on-surface hover:text-primary"
               style={{ aspectRatio: "3/4", borderRadius: "var(--radius-card)" }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setShowNuevo(true)}
             >
-              <Plus size={24} className="opacity-30" />
+              <Plus className="opacity-30" size={24} />
               <p className="text-[9px] font-black uppercase tracking-widest opacity-30">Añadir</p>
             </MotionButton>
           </div>

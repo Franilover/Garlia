@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+
 import { supabase } from "@/lib/api/client/supabase";
 import { toSlug } from "@/lib/utils/slugify";
 

@@ -1,16 +1,16 @@
 "use client";
-import React, { useEffect, useState, useRef, useCallback } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { supabase } from "@/lib/api/client/supabase";
-import { ChevronLeft, List, ChevronRight } from "lucide-react";
-import { Btn } from "@/components/ui";
-import { db } from "@/lib/api/client/db";
 import { motion, AnimatePresence } from "framer-motion";
+import { ChevronLeft, List, ChevronRight } from "lucide-react";
+import { useParams, useRouter } from "next/navigation";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 
+import { Btn } from "@/components/ui";
 import { CapituloLista, CapituloScrollItem } from "@/features/editorGarlia/components/editorCapitulos/snippets/type";
-import { toSlug, esUUID } from "@/lib/utils/slugify";
 import { CapituloScrollBlock, ToastPortal } from "@/features/garlia/components/CapituloScrollBlock";
 import { Vignette } from "@/features/garlia/components/LectorUI";
+import { db } from "@/lib/api/client/db";
+import { supabase } from "@/lib/api/client/supabase";
+import { toSlug, esUUID } from "@/lib/utils/slugify";
 
 /* ─────────────────────────────────────────────
    Tipos
@@ -51,21 +51,21 @@ function BarraProgresoVertical({ capId }: { capId: string }) {
   return (
     <div style={{ position: "absolute", inset: 0 }}>
       <motion.div
+        animate={{ height: `${progress}%` }}
         style={{
           position: "absolute", top: 0, left: 0, right: 0, originY: 0,
           background: "linear-gradient(to bottom, var(--accent, var(--primary)), color-mix(in srgb, var(--primary) 60%, transparent))",
           borderRadius: 99,
         }}
-        animate={{ height: `${progress}%` }}
         transition={{ duration: 0.18, ease: "linear" }}
       />
       <motion.div
+        animate={{ top: `${progress}%` }}
         style={{
           position: "absolute", left: "50%", transform: "translateX(-50%)",
           width: 6, height: 6, borderRadius: "50%",
           background: "var(--primary)", opacity: 0.6, marginLeft: -1,
         }}
-        animate={{ top: `${progress}%` }}
         transition={{ duration: 0.18, ease: "linear" }}
       />
     </div>
@@ -98,7 +98,7 @@ function PersonajesPanel({ ids, border }: { ids: string[]; border: string }) {
         {personajes.map(p => (
           <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 9 }}>
             {p.img_url ? (
-              <img src={p.img_url} alt={p.nombre} style={{ width: 24, height: 24, borderRadius: "var(--radius-btn, 4px)", objectFit: "cover", border, flexShrink: 0 }} />
+              <img alt={p.nombre} src={p.img_url} style={{ width: 24, height: 24, borderRadius: "var(--radius-btn, 4px)", objectFit: "cover", border, flexShrink: 0 }} />
             ) : (
               <div style={{ width: 24, height: 24, borderRadius: "var(--radius-btn, 4px)", border, flexShrink: 0, background: "color-mix(in srgb, var(--primary) 8%, transparent)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 800, color: "var(--primary)", opacity: 0.4 }}>
                 {p.nombre.charAt(0)}
@@ -210,8 +210,8 @@ function PanelLateral({
       <div style={{ position: "relative", flexShrink: 0, height: "clamp(120px, 16vh, 200px)", overflow: "hidden" }}>
         {narrador?.img_url ? (
           <img
-            src={narrador.img_url}
             alt={narrador.nombre}
+            src={narrador.img_url}
             style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top center", display: "block" }}
           />
         ) : (
@@ -235,7 +235,7 @@ function PanelLateral({
         }} />
 
         {/* Botón volver — arriba izquierda */}
-        <button onClick={onVolver} style={{
+        <button style={{
           position: "absolute", top: 12, left: 14,
           display: "flex", alignItems: "center", gap: 5,
           border: "none", background: "none", cursor: "pointer",
@@ -243,7 +243,7 @@ function PanelLateral({
           fontFamily: "var(--font-mono)", letterSpacing: "0.16em",
           textTransform: "uppercase", opacity: 0.55, transition: "opacity 0.15s",
           textShadow: "0 1px 6px var(--bg-main)",
-        }}
+        }} onClick={onVolver}
           onMouseEnter={e => (e.currentTarget.style.opacity = "1")}
           onMouseLeave={e => (e.currentTarget.style.opacity = "0.55")}
         >
@@ -255,15 +255,15 @@ function PanelLateral({
       <div style={{ flexShrink: 1, minHeight: 0, overflowY: "auto", overflowX: "hidden" }}>
         {!loading && capActual && !esExtra && (
           <LugaresPanel
-            reinosIds={(capActual as any).reinos_ids ?? []}
-            ciudadesIds={(capActual as any).ciudades_ids ?? []}
             border={border}
+            ciudadesIds={(capActual as any).ciudades_ids ?? []}
+            reinosIds={(capActual as any).reinos_ids ?? []}
           />
         )}
 
         {!loading && !esExtra && personajesIds.length > 0 && (
           <div style={{ padding: "10px 16px 0" }}>
-            <PersonajesPanel ids={personajesIds} border={border} />
+            <PersonajesPanel border={border} ids={personajesIds} />
           </div>
         )}
       </div>
@@ -283,7 +283,7 @@ function PanelLateral({
             {capitulos.map(cap => {
               const esActual = cap.id === capIdActual;
               return (
-                <button key={cap.id} onClick={() => onSelectCap?.(cap.id)} style={{
+                <button key={cap.id} style={{
                   display: "block", width: "100%", textAlign: "left",
                   padding: "6px 10px", borderRadius: 6, border: "none",
                   background: esActual ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent",
@@ -291,7 +291,7 @@ function PanelLateral({
                   color: esActual ? "var(--primary)" : "color-mix(in srgb, var(--primary) 45%, transparent)",
                   fontSize: 10, fontFamily: "var(--font-mono)", fontWeight: 700,
                   textTransform: "uppercase", letterSpacing: "0.04em", lineHeight: 1.4,
-                }}
+                }} onClick={() => onSelectCap?.(cap.id)}
                   onMouseEnter={e => { if (!esActual) e.currentTarget.style.background = "color-mix(in srgb, var(--primary) 6%, transparent)"; }}
                   onMouseLeave={e => { if (!esActual) e.currentTarget.style.background = "transparent"; }}
                 >
@@ -612,7 +612,7 @@ export default function Lector() {
       <h2 className="font-black uppercase text-xl mb-4 italic tracking-tighter">
         {error || "No hay capítulos disponibles"}
       </h2>
-      <Btn variant="outline" size="sm" onClick={() => router.push(`/garlia/libros/${slugParam}`)}>
+      <Btn size="sm" variant="outline" onClick={() => router.push(`/garlia/libros/${slugParam}`)}>
         Volver al índice
       </Btn>
     </div>
@@ -624,8 +624,8 @@ export default function Lector() {
       {/* ── Barra superior fija en móvil ── */}
       <div className="md:hidden fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-4 h-12 border-b border-primary/8 backdrop-blur-md"
         style={{ background: "color-mix(in srgb, var(--bg-main) 92%, transparent)" }}>
-        <button onClick={() => router.push(`/garlia/libros/${slugParam}`)}
-          className="flex items-center gap-2 text-primary/40 hover:text-primary transition-colors font-black text-[9px] uppercase tracking-widest">
+        <button className="flex items-center gap-2 text-primary/40 hover:text-primary transition-colors font-black text-[9px] uppercase tracking-widest"
+          onClick={() => router.push(`/garlia/libros/${slugParam}`)}>
           <ChevronLeft size={14} /> Volver
         </button>
         {libroTitulo && (
@@ -633,8 +633,8 @@ export default function Lector() {
             {libroTitulo}
           </span>
         )}
-        <button onClick={() => setShowSidebar(true)}
-          className="flex items-center gap-1.5 text-primary/40 hover:text-primary transition-colors font-black text-[9px] uppercase tracking-widest">
+        <button className="flex items-center gap-1.5 text-primary/40 hover:text-primary transition-colors font-black text-[9px] uppercase tracking-widest"
+          onClick={() => setShowSidebar(true)}>
           <List size={13} /> Índice
         </button>
       </div>
@@ -644,27 +644,27 @@ export default function Lector() {
         {showSidebar && (
           <>
             <motion.div
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              animate={{ opacity: 1 }} className="md:hidden fixed inset-0 z-50" exit={{ opacity: 0 }}
+              initial={{ opacity: 0 }}
+              style={{ background: "color-mix(in srgb, var(--primary) 30%, transparent)", backdropFilter: "blur(2px)" }}
               transition={{ duration: 0.18 }}
               onClick={() => setShowSidebar(false)}
-              className="md:hidden fixed inset-0 z-50"
-              style={{ background: "color-mix(in srgb, var(--primary) 30%, transparent)", backdropFilter: "blur(2px)" }}
             />
             <motion.div
-              initial={{ x: "-100%" }} animate={{ x: 0 }} exit={{ x: "-100%" }}
-              transition={{ duration: 0.22, ease: "easeOut" }}
-              className="md:hidden fixed top-0 left-0 bottom-0 z-50"
+              animate={{ x: 0 }} className="md:hidden fixed top-0 left-0 bottom-0 z-50" exit={{ x: "-100%" }}
+              initial={{ x: "-100%" }}
               style={{ width: "clamp(260px, 80vw, 340px)", background: "var(--bg-main)", borderRight: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)" }}
+              transition={{ duration: 0.22, ease: "easeOut" }}
             >
               <PanelLateral
-                libroTitulo={libroTitulo}
                 capActual={capActual}
-                capitulos={capitulos}
                 capIdActual={capId}
-                loading={loading}
+                capitulos={capitulos}
                 esExtra={esExtra}
-                onVolver={() => router.push(`/garlia/libros/${slugParam}`)}
+                libroTitulo={libroTitulo}
+                loading={loading}
                 onSelectCap={(id) => { handleNavigate(id); setShowSidebar(false); }}
+                onVolver={() => router.push(`/garlia/libros/${slugParam}`)}
               />
             </motion.div>
           </>
@@ -674,21 +674,21 @@ export default function Lector() {
       {/* ── Panel lateral — solo desktop ── */}
       <div className="hidden md:flex">
         <PanelLateral
-          libroTitulo={libroTitulo}
           capActual={capActual}
-          capitulos={capitulos}
           capIdActual={capId}
-          loading={loading}
+          capitulos={capitulos}
           esExtra={esExtra}
-          onVolver={() => router.push(`/garlia/libros/${slugParam}`)}
+          libroTitulo={libroTitulo}
+          loading={loading}
           onSelectCap={handleNavigate}
+          onVolver={() => router.push(`/garlia/libros/${slugParam}`)}
         />
       </div>
 
       {/* ── Columna derecha: texto scrolleable ── */}
-      <div id="lector-scroll-container"
-        style={{ flex: 1, height: "100vh", overflowY: "auto", position: "relative" }}
-        className="bg-bg-main text-primary-dark">
+      <div className="bg-bg-main text-primary-dark"
+        id="lector-scroll-container"
+        style={{ flex: 1, height: "100vh", overflowY: "auto", position: "relative" }}>
         <Vignette />
 
         {/* Indicador de capítulo activo */}
@@ -709,9 +709,9 @@ export default function Lector() {
           <CapituloScrollBlock
             key={capActual.id}
             cap={capActual}
-            onNavigate={handleNavigate}
             esExtra={esExtra}
             haySegSiguiente={!!capSiguiente}
+            onNavigate={handleNavigate}
           />
         )}
 
@@ -728,28 +728,28 @@ export default function Lector() {
 
             {esExtra ? (
               /* Poemario / extra: solo botón volver al índice, sin anterior/siguiente */
-              <button onClick={() => router.push(`/garlia/libros/${slugParam}`)}
-                className="flex items-center gap-2 text-primary/40 hover:text-primary font-black text-[10px] uppercase tracking-widest transition-all">
+              <button className="flex items-center gap-2 text-primary/40 hover:text-primary font-black text-[10px] uppercase tracking-widest transition-all"
+                onClick={() => router.push(`/garlia/libros/${slugParam}`)}>
                 <List size={16} /> Índice
               </button>
             ) : (
               /* Novela / libro: navegación anterior + índice + siguiente */
               <div className="flex items-center justify-between w-full gap-4">
                 {capAnterior ? (
-                  <button onClick={() => router.push(`/garlia/libros/${slugParam}/leer/${capAnterior.orden}`)}
-                    className="flex items-center gap-2 text-primary/40 hover:text-primary font-black text-[10px] uppercase tracking-widest transition-all">
+                  <button className="flex items-center gap-2 text-primary/40 hover:text-primary font-black text-[10px] uppercase tracking-widest transition-all"
+                    onClick={() => router.push(`/garlia/libros/${slugParam}/leer/${capAnterior.orden}`)}>
                     <ChevronLeft size={14} /> Cap. {capAnterior.orden}
                   </button>
                 ) : <div />}
 
-                <button onClick={() => router.push(`/garlia/libros/${slugParam}`)}
-                  className="flex items-center gap-2 text-primary/40 hover:text-primary font-black text-[10px] uppercase tracking-widest transition-all">
+                <button className="flex items-center gap-2 text-primary/40 hover:text-primary font-black text-[10px] uppercase tracking-widest transition-all"
+                  onClick={() => router.push(`/garlia/libros/${slugParam}`)}>
                   <List size={16} /> Índice
                 </button>
 
                 {capSiguiente ? (
-                  <button onClick={() => router.push(`/garlia/libros/${slugParam}/leer/${capSiguiente.orden}`)}
-                    className="flex items-center gap-2 text-primary/40 hover:text-primary font-black text-[10px] uppercase tracking-widest transition-all">
+                  <button className="flex items-center gap-2 text-primary/40 hover:text-primary font-black text-[10px] uppercase tracking-widest transition-all"
+                    onClick={() => router.push(`/garlia/libros/${slugParam}/leer/${capSiguiente.orden}`)}>
                     Cap. {capSiguiente.orden} <ChevronRight size={14} />
                   </button>
                 ) : <div />}

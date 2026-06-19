@@ -1,5 +1,6 @@
 "use client";
-import { Star, Palette, Camera } from "lucide-react";
+import { Palette, Star } from "lucide-react";
+
 import MenuBase from "@/components/layout/MenuBase";
 
 const ITEMS = [
@@ -8,5 +9,5 @@ const ITEMS = [
 ];
 
 export default function PersonalMenuPage() {
-  return <MenuBase titulo="Personal" items={ITEMS} />;
+  return <MenuBase items={ITEMS} titulo="Personal" />;
 }

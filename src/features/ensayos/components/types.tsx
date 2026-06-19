@@ -1,6 +1,7 @@
-import React from "react";
-import { MotionDiv } from '@/components/ui/Motion';
 import { BookOpen } from "lucide-react";
+import React from "react";
+
+import { MotionDiv } from '@/components/ui/Motion';
 import { cn } from "@/lib/utils/index";
 
 export type VistaOpcion = 1 | 2 | 3 | 4 | 5 | 7;
@@ -48,15 +49,15 @@ export const EventoBadge = ({ item, compact = false }: { item: Evento; compact?:
   const color = COLORES_EVENTO[item.tipo] ?? COLORES_EVENTO["default"];
   return (
     <MotionDiv
-      initial={{ opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
       className={cn(
         "rounded-[var(--radius-btn)] border px-2 py-1 flex items-center gap-1.5 cursor-default select-none",
         color,
         compact ? "text-[9px]" : "text-[10px]"
       )}
+      initial={{ opacity: 0, y: 4 }}
     >
-      {item.esCapitulo && <BookOpen size={9} className="shrink-0" />}
+      {item.esCapitulo && <BookOpen className="shrink-0" size={9} />}
       <span className="font-black uppercase tracking-tight truncate">{item.titulo}</span>
     </MotionDiv>
   );

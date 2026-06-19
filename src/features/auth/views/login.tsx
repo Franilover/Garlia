@@ -1,9 +1,11 @@
 "use client";
-import { MotionDiv, MotionMain, MotionH1, MotionH2, MotionButton, MotionLi, MotionSpan, MotionP, MotionSection, MotionArticle, MotionImg } from "@/components/ui/Motion";
-import React, { useState } from "react";
-import { supabase } from "@/lib/api/client/supabase";
-import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import { useRouter } from "next/navigation";
+import React, { useState } from "react";
+
+import { MotionDiv, MotionMain, MotionH1, MotionH2, MotionButton, MotionLi, MotionSpan, MotionP, MotionSection, MotionArticle, MotionImg } from "@/components/ui/Motion";
+import { supabase } from "@/lib/api/client/supabase";
+
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -69,30 +71,30 @@ export default function LoginPage() {
   return (
     <main className="min-h-screen flex items-center justify-center bg-bg-main px-4">
       <MotionDiv 
-        initial={{ opacity: 0, y: 20 }} 
-        animate={{ opacity: 1, y: 0 }}
+        animate={{ opacity: 1, y: 0 }} 
         className="w-full max-w-md card-main bg-white shadow-2xl p-8 md:p-12"
+        initial={{ opacity: 0, y: 20 }}
       >
         <h1 className="text-3xl md:text-4xl font-black italic text-primary uppercase tracking-tighter text-center mb-10">
           {isRegistering ? "Crear Cuenta" : "Iniciar Sesión"}
         </h1>
 
-        <form onSubmit={handleAuth} className="space-y-6">
+        <form className="space-y-6" onSubmit={handleAuth}>
           <AnimatePresence mode="popLayout">
             {isRegistering && (
               <MotionDiv 
-                initial={{ opacity: 0, x: -10 }} 
                 animate={{ opacity: 1, x: 0 }} 
-                exit={{ opacity: 0, x: 10 }}
+                exit={{ opacity: 0, x: 10 }} 
+                initial={{ opacity: 0, x: -10 }}
               >
                 <label className={labelStyle}>Nombre de Usuario</label>
                 <input
-                  type="text"
+                  required
+                  className="input-brand"
                   placeholder="Tu apodo..."
+                  type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="input-brand"
-                  required
                 />
               </MotionDiv>
             )}
@@ -101,12 +103,12 @@ export default function LoginPage() {
           <div>
             <label className={labelStyle}>Email</label>
             <input
-              type="email"
+              required
+              className="input-brand"
               placeholder="nombre@ejemplo.com"
+              type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="input-brand"
-              required
             />
           </div>
 
@@ -114,27 +116,27 @@ export default function LoginPage() {
             <label className={labelStyle}>Contraseña</label>
             <div className="relative">
               <input
-                type={showPassword ? "text" : "password"}
+                required
+                className="input-brand pr-10"
                 placeholder="••••••••"
+                type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="input-brand pr-10"
-                required
               />
               <button
+                aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-primary/40 hover:text-primary transition-colors"
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-primary/40 hover:text-primary transition-colors"
-                aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
               >
                 {showPassword ? (
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <svg fill="none" height="16" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" viewBox="0 0 24 24" width="16" xmlns="http://www.w3.org/2000/svg">
                     <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
                     <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
-                    <line x1="1" y1="1" x2="23" y2="23"/>
+                    <line x1="1" x2="23" y1="1" y2="23"/>
                   </svg>
                 ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <svg fill="none" height="16" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" viewBox="0 0 24 24" width="16" xmlns="http://www.w3.org/2000/svg">
                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                     <circle cx="12" cy="12" r="3"/>
                   </svg>
@@ -144,8 +146,8 @@ export default function LoginPage() {
           </div>
           
           <button 
-            disabled={loading} 
-            className="btn-brand w-full mt-4 uppercase text-xs tracking-widest disabled:opacity-50"
+            className="btn-brand w-full mt-4 uppercase text-xs tracking-widest disabled:opacity-50" 
+            disabled={loading}
           >
             {loading ? "Procesando..." : isRegistering ? "Registrarse" : "Entrar"}
           </button>
@@ -153,17 +155,17 @@ export default function LoginPage() {
 
         {mensaje && (
           <MotionP 
-            initial={{ opacity: 0 }} 
             animate={{ opacity: 1 }} 
-            className="mt-6 text-[10px] text-center text-primary font-black uppercase italic border-t border-primary/10 pt-4"
+            className="mt-6 text-[10px] text-center text-primary font-black uppercase italic border-t border-primary/10 pt-4" 
+            initial={{ opacity: 0 }}
           >
             {mensaje}
           </MotionP>
         )}
 
         <button 
-          onClick={() => { setIsRegistering(!isRegistering); setMensaje(""); }}
           className="w-full mt-8 text-[10px] font-black uppercase tracking-[0.2em] text-primary/40 hover:text-primary transition-all underline decoration-1 underline-offset-8"
+          onClick={() => { setIsRegistering(!isRegistering); setMensaje(""); }}
         >
           {isRegistering ? "¿Ya tienes cuenta? Entra aquí" : "¿No tienes cuenta? Regístrate"}
         </button>

@@ -1,11 +1,13 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Loader2, CheckCircle2, AlertCircle, WifiOff } from "lucide-react";
-import { DraftRestoreBanner, useDraftRestore } from "@/hooks/useEditorShared";
-import { dexieSecGet } from "../../lib/seccionesDb";
-import { IDIOMAS, IDLE_STATE } from "../../constants";
+import React, { useState, useEffect, useCallback, useRef } from "react";
+
 import { MarkdownEditor } from "@/components/forms/Markdown/MarkdownEditor";
+import { DraftRestoreBanner, useDraftRestore } from "@/hooks/useEditorShared";
+
+import { IDIOMAS, IDLE_STATE } from "../../constants";
+import { dexieSecGet } from "../../lib/seccionesDb";
 import type { Seccion, IdiomaKey, ColState } from "../../types";
 
 // ── Conteo ───────────────────────────────────────────────────────────────────
@@ -211,8 +213,8 @@ export const SeccionTextarea = ({
       {/* ── Banner de borrador local ── */}
       <DraftRestoreBanner
         draft={draft}
-        onRestore={(v) => { setTexto(v); draft.dismiss(); }}
         label="Borrador local disponible"
+        onRestore={(v) => { setTexto(v); draft.dismiss(); }}
       />
 
       {/* ── Banner sin conexión ── */}
@@ -227,10 +229,10 @@ export const SeccionTextarea = ({
       {(st.saving || st.saved || st.mode === "pending" || st.mode === "error") && (
         <div className="flex justify-end mb-0.5">
           <span className="flex items-center gap-1.5 pr-1">
-            {st.saving                           && <Loader2      size={11} className="animate-spin text-primary/30" />}
-            {st.saved                            && <CheckCircle2 size={11} className="text-emerald-400" />}
+            {st.saving                           && <Loader2      className="animate-spin text-primary/30" size={11} />}
+            {st.saved                            && <CheckCircle2 className="text-emerald-400" size={11} />}
             {st.mode === "pending" && !st.saving && <span className="w-2 h-2 rounded-full bg-blue-400" />}
-            {st.mode === "error"                 && <AlertCircle  size={11} className="text-red-400" />}
+            {st.mode === "error"                 && <AlertCircle  className="text-red-400" size={11} />}
           </span>
         </div>
       )}
@@ -238,20 +240,20 @@ export const SeccionTextarea = ({
       {/* ── Editor markdown con overlay de contadores ── */}
       <div className={statusRingClass}>
         <MarkdownEditor
-          value={texto}
-          onChange={onChange}
-          placeholder={`Letra en ${IDIOMAS.find(i => i.id === idioma)?.nombre}…`}
-          toolbar={false}
-          mode="edit"
           autoResize={false}
-          rows={dynamicRows}
+          mode="edit"
+          placeholder={`Letra en ${IDIOMAS.find(i => i.id === idioma)?.nombre}…`}
           renderOverlay={(val) => (
             <SyllableOverlay
-              texto={val}
-              refLineas={refLineas}
               countMode={countMode}
+              refLineas={refLineas}
+              texto={val}
             />
           )}
+          rows={dynamicRows}
+          toolbar={false}
+          value={texto}
+          onChange={onChange}
         />
       </div>
 

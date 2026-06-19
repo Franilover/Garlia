@@ -6,13 +6,14 @@
  * Los modales viven en SnippetModals.tsx — este archivo solo maneja
  * el botón de cada tipo y delega la lógica de inserción.
  */
-import React, { useState, useCallback } from "react";
 import {
   Sword, Image, GitMerge, MousePointerClick,
   ChevronRight as ChevronR, Music2, GitFork,
 } from "lucide-react";
-import { SnippetModalDispatcher } from "./SnippetModals";
+import React, { useState, useCallback } from "react";
+
 import type { ModalKind } from "./snippetDefs";
+import { SnippetModalDispatcher } from "./SnippetModals";
 
 type ToolbarProps = {
   textareaRef: React.RefObject<HTMLTextAreaElement>;
@@ -51,19 +52,19 @@ export function SnippetToolbar({ textareaRef, value, onChange }: ToolbarProps) {
       >
         <span className="text-[8px] font-black uppercase tracking-widest text-primary/20 mr-2">Snippets</span>
         {BTNS.map(b => (
-          <button key={b.key} onClick={() => setOpenModal(b.key)} className={btnCls}>
+          <button key={b.key} className={btnCls} onClick={() => setOpenModal(b.key)}>
             {b.icon} {b.label}
           </button>
         ))}
         <div className="w-px h-4 bg-primary/10 mx-1" />
-        <button onClick={() => insertAtCursor("[[cita|Texto de la cita — Fuente]]")} className={btnCls}>« Cita</button>
-        <button onClick={() => insertAtCursor("\n\n")} className={btnCls}>¶ Párrafo</button>
+        <button className={btnCls} onClick={() => insertAtCursor("[[cita|Texto de la cita — Fuente]]")}>« Cita</button>
+        <button className={btnCls} onClick={() => insertAtCursor("\n\n")}>¶ Párrafo</button>
       </div>
 
       <SnippetModalDispatcher
         kind={openModal}
-        onInsert={insertAtCursor}
         onClose={() => setOpenModal(null)}
+        onInsert={insertAtCursor}
       />
     </>
   );

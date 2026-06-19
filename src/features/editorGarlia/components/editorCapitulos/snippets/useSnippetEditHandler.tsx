@@ -6,9 +6,10 @@
  * Usa SnippetModalDispatcher directamente — sin duplicar el switch de modales.
  */
 import React, { useState, useCallback } from "react";
-import { SnippetModalDispatcher } from "./SnippetModals";
+
 import type { ModalKind } from "./snippetDefs";
 import { KIND_DEFS } from "./snippetDefs";
+import { SnippetModalDispatcher } from "./SnippetModals";
 
 interface ActiveEdit {
   kind: ModalKind;
@@ -33,10 +34,10 @@ export function useSnippetEditHandler() {
     if (!activeEdit) return null;
     return (
       <SnippetModalDispatcher
-        kind={activeEdit.kind}
         initialRaw={activeEdit.raw}
-        onInsert={next => { activeEdit.replace(next); close(); }}
+        kind={activeEdit.kind}
         onClose={close}
+        onInsert={next => { activeEdit.replace(next); close(); }}
       />
     );
   }, [activeEdit, close]);

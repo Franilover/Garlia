@@ -1,14 +1,16 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
   Users, Bug, Package, Sparkles, Star, ScrollText, Map,
   Plus, Trash2, Save, Search, X,
   Loader2, Layers, UserCircle2, Swords, Wand2, Gem, Feather,
 } from "lucide-react";
-import { supabase } from "@/lib/api/client/supabase";
-import { db } from "@/lib/api/client/db";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
+
 import { useConfirm } from "@/components/ui/ConfirmModal";
+import { db } from "@/lib/api/client/db";
+import { supabase } from "@/lib/api/client/supabase";
+
 import { type SaveStatus } from "../components/types";
 import { SaveIndicator } from "../components/UIComponents";
 
@@ -343,13 +345,13 @@ function SelectorMiembros({
                   style={{ borderColor: `color-mix(in srgb, ${cfg.color} 15%, transparent)`, background: `color-mix(in srgb, ${cfg.color} 5%, transparent)` }}>
                   <div className="shrink-0 w-6 h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
                     {img
-                      ? <img src={img} alt={e.nombre} className="w-full h-full object-cover" />
-                      : <cfg.Icon size={10} className="text-primary/25" />}
+                      ? <img alt={e.nombre} className="w-full h-full object-cover" src={img} />
+                      : <cfg.Icon className="text-primary/25" size={10} />}
                   </div>
                   <button
+                    className="flex-1 min-w-0 text-left group"
                     type="button"
                     onClick={() => onClickMiembro?.(e.id, cfg.tabla)}
-                    className="flex-1 min-w-0 text-left group"
                   >
                     <p className="text-[10px] font-bold text-primary/85 truncate group-hover:text-primary transition-colors leading-tight">
                       {e.nombre}
@@ -357,9 +359,9 @@ function SelectorMiembros({
                     {sub && <p className="text-[8px] text-primary/35 truncate leading-tight">{sub}</p>}
                   </button>
                   <button
+                    className="shrink-0 w-4 h-4 rounded flex items-center justify-center text-primary/20 hover:text-red-400 transition-colors"
                     type="button"
                     onClick={() => toggle(e.id)}
-                    className="shrink-0 w-4 h-4 rounded flex items-center justify-center text-primary/20 hover:text-red-400 transition-colors"
                   >
                     <X size={8} />
                   </button>
@@ -370,15 +372,15 @@ function SelectorMiembros({
         </div>
       )}
 
-      <div className="relative" ref={ref}>
+      <div ref={ref} className="relative">
         <button
-          type="button"
-          onClick={() => setOpen(o => !o)}
           className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl border border-dashed text-[9px] font-black uppercase tracking-widest transition-all"
           style={{
             borderColor: `color-mix(in srgb, ${cfg.color} 25%, transparent)`,
             color: `color-mix(in srgb, ${cfg.color} 55%, transparent)`,
           }}
+          type="button"
+          onClick={() => setOpen(o => !o)}
         >
           <Plus size={9} /> Agregar {cfg.label.toLowerCase()}
         </button>
@@ -390,19 +392,19 @@ function SelectorMiembros({
               style={{ background: "var(--bg-main)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
               <div className="p-2 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
                 <div className="relative">
-                  <Search size={9} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-primary/25" />
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-primary/25" size={9} />
                   <input
                     autoFocus
+                    className="w-full bg-primary/5 border border-primary/10 rounded-lg pl-7 pr-2 py-1.5 text-[10px] outline-none focus:border-primary/25 text-primary placeholder:text-primary/25"
+                    placeholder={`Buscar ${cfg.labelPlural.toLowerCase()}…`}
                     value={search}
                     onChange={e => setSearch(e.target.value)}
-                    placeholder={`Buscar ${cfg.labelPlural.toLowerCase()}…`}
-                    className="w-full bg-primary/5 border border-primary/10 rounded-lg pl-7 pr-2 py-1.5 text-[10px] outline-none focus:border-primary/25 text-primary placeholder:text-primary/25"
                   />
                 </div>
               </div>
               <div className="max-h-52 overflow-y-auto p-1">
                 {loading ? (
-                  <div className="flex justify-center py-6"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
+                  <div className="flex justify-center py-6"><Loader2 className="animate-spin text-primary/20" size={14} /></div>
                 ) : disponibles.length === 0 ? (
                   <p className="text-[9px] text-primary/25 text-center py-4 italic">
                     {search ? "Sin resultados" : `Todos los ${cfg.labelPlural.toLowerCase()} ya están en el grupo`}
@@ -413,14 +415,14 @@ function SelectorMiembros({
                   return (
                     <button
                       key={e.id}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left hover:bg-primary/6 transition-colors"
                       type="button"
                       onMouseDown={() => { toggle(e.id); setSearch(""); }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left hover:bg-primary/6 transition-colors"
                     >
                       <div className="shrink-0 w-6 h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
                         {img
-                          ? <img src={img} alt={e.nombre} className="w-full h-full object-cover" />
-                          : <cfg.Icon size={10} className="text-primary/25" />}
+                          ? <img alt={e.nombre} className="w-full h-full object-cover" src={img} />
+                          : <cfg.Icon className="text-primary/25" size={10} />}
                       </div>
                       <div className="flex-1 min-w-0">
                         <span className="text-[11px] font-medium text-primary/80 truncate block">{e.nombre}</span>
@@ -485,14 +487,14 @@ function SubtipoInput({
   };
 
   return (
-    <div className="relative" ref={ref}>
+    <div ref={ref} className="relative">
       <input
         ref={inputRef}
+        className="w-full bg-primary/4 border border-primary/10 rounded-xl px-3 py-2 text-[11px] text-primary outline-none focus:border-primary/25 placeholder:text-primary/25 transition-colors"
+        placeholder={cfg.ejemplo}
         value={value}
         onChange={e => { onChange(e.target.value); setOpen(true); }}
         onFocus={() => setOpen(true)}
-        placeholder={cfg.ejemplo}
-        className="w-full bg-primary/4 border border-primary/10 rounded-xl px-3 py-2 text-[11px] text-primary outline-none focus:border-primary/25 placeholder:text-primary/25 transition-colors"
       />
       {open && filtered.length > 0 && (
         <>
@@ -517,9 +519,9 @@ function SubtipoInput({
                 return (
                   <button
                     key={s}
+                    className="w-full flex items-center justify-between gap-2 px-3 py-1.5 rounded-lg text-left transition-colors hover:bg-primary/6"
                     type="button"
                     onMouseDown={() => select(s)}
-                    className="w-full flex items-center justify-between gap-2 px-3 py-1.5 rounded-lg text-left transition-colors hover:bg-primary/6"
                   >
                     <span className="text-[11px] text-primary/75">{s}</span>
                     {isCustom && (
@@ -612,10 +614,10 @@ export function EditorGrupo({
 
         {/* Nombre */}
         <input
+          className="flex-1 min-w-0 bg-transparent text-sm font-black text-primary outline-none placeholder:text-primary/25"
+          placeholder="Nombre del grupo…"
           value={form.nombre}
           onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))}
-          placeholder="Nombre del grupo…"
-          className="flex-1 min-w-0 bg-transparent text-sm font-black text-primary outline-none placeholder:text-primary/25"
         />
 
         {/* Badge tipo */}
@@ -627,12 +629,12 @@ export function EditorGrupo({
         {/* Acciones */}
         <div className="shrink-0 flex items-center gap-1.5">
           <SaveIndicator status={status} />
-          <button onClick={del}
-            className="flex items-center gap-1 px-2 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all">
+          <button className="flex items-center gap-1 px-2 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all"
+            onClick={del}>
             <Trash2 size={10} />
           </button>
-          <button onClick={save} disabled={status === "saving"}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50">
+          <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50" disabled={status === "saving"}
+            onClick={save}>
             <Save size={11} /> Guardar
           </button>
         </div>
@@ -647,21 +649,21 @@ export function EditorGrupo({
             <div className="space-y-1.5">
               <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">Tipo</label>
               <SubtipoInput
+                sugerencias={sugerenciasSubtipo}
+                tipo={form.tipo}
                 value={form.subtipo ?? ""}
                 onChange={v => setForm(f => ({ ...f, subtipo: v || null }))}
-                tipo={form.tipo}
-                sugerencias={sugerenciasSubtipo}
               />
             </div>
 
             <div className="space-y-1.5 flex-1 flex flex-col">
               <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">Descripción</label>
               <textarea
-                value={form.descripcion ?? ""}
-                onChange={e => setForm(f => ({ ...f, descripcion: e.target.value || null }))}
+                className="flex-1 w-full bg-primary/4 border border-primary/10 rounded-xl px-3 py-2.5 text-[11px] text-primary outline-none focus:border-primary/25 resize-none placeholder:text-primary/25 leading-relaxed"
                 placeholder={`¿Qué es este grupo? ${cfg.ejemplo}`}
                 rows={4}
-                className="flex-1 w-full bg-primary/4 border border-primary/10 rounded-xl px-3 py-2.5 text-[11px] text-primary outline-none focus:border-primary/25 resize-none placeholder:text-primary/25 leading-relaxed"
+                value={form.descripcion ?? ""}
+                onChange={e => setForm(f => ({ ...f, descripcion: e.target.value || null }))}
               />
             </div>
           </div>
@@ -672,8 +674,8 @@ export function EditorGrupo({
               {cfg.labelPlural} del grupo
             </label>
             <SelectorMiembros
-              tipo={form.tipo}
               miembro_ids={form.miembro_ids}
+              tipo={form.tipo}
               onChange={ids => setForm(f => ({ ...f, miembro_ids: ids }))}
               onClickMiembro={onClickMiembro}
             />
@@ -757,7 +759,7 @@ export function EditorGrupoStandalone({
   if (!loaded) {
     return (
       <div className="w-full h-full flex items-center justify-center">
-        <Loader2 size={18} className="animate-spin text-primary/20" />
+        <Loader2 className="animate-spin text-primary/20" size={18} />
       </div>
     );
   }
@@ -772,25 +774,25 @@ export function EditorGrupoStandalone({
       >
         <div className="shrink-0 flex items-center gap-2 px-4 py-3 border-b"
           style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}>
-          <Layers size={13} className="text-primary/40 shrink-0" />
+          <Layers className="text-primary/40 shrink-0" size={13} />
           <span className="text-[11px] font-black uppercase tracking-[0.2em] text-primary/50 flex-1">Grupos</span>
           <span className="text-[9px] text-primary/25 tabular-nums">{grupos.length}</span>
         </div>
 
         <div className="shrink-0 px-3 pt-3 pb-2 space-y-2">
           <div className="relative">
-            <Search size={10} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-primary/25" />
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar grupos…"
-              className="w-full bg-primary/4 border border-primary/10 rounded-lg pl-7 pr-6 py-1.5 text-[10px] font-medium outline-none focus:border-primary/25 text-primary placeholder:text-primary/25" />
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-primary/25" size={10} />
+            <input className="w-full bg-primary/4 border border-primary/10 rounded-lg pl-7 pr-6 py-1.5 text-[10px] font-medium outline-none focus:border-primary/25 text-primary placeholder:text-primary/25" placeholder="Buscar grupos…" value={search}
+              onChange={e => setSearch(e.target.value)} />
             {search && (
-              <button onClick={() => setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-primary/30 hover:text-primary">
+              <button className="absolute right-2 top-1/2 -translate-y-1/2 text-primary/30 hover:text-primary" onClick={() => setSearch("")}>
                 <X size={9} />
               </button>
             )}
           </div>
-          <button onClick={() => { setCreando(true); setSelectedId(null); }}
-            className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg border border-dashed text-[9px] font-black uppercase tracking-widest transition-all"
-            style={{ borderColor: "color-mix(in srgb, var(--primary) 20%, transparent)", color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}>
+          <button className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg border border-dashed text-[9px] font-black uppercase tracking-widest transition-all"
+            style={{ borderColor: "color-mix(in srgb, var(--primary) 20%, transparent)", color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}
+            onClick={() => { setCreando(true); setSelectedId(null); }}>
             <Plus size={9} /> Nuevo grupo
           </button>
         </div>
@@ -798,7 +800,7 @@ export function EditorGrupoStandalone({
         <div className="flex-1 overflow-y-auto min-h-0 px-3 pb-3 space-y-3">
           {grupos.length === 0 ? (
             <div className="flex flex-col items-center gap-3 py-12 text-center">
-              <Layers size={26} strokeWidth={1} className="text-primary/15" />
+              <Layers className="text-primary/15" size={26} strokeWidth={1} />
               <p className="text-[9px] font-black uppercase tracking-widest text-primary/20">Sin grupos aún</p>
             </div>
           ) : filtered.length === 0 ? (
@@ -818,10 +820,10 @@ export function EditorGrupoStandalone({
                   <div className="space-y-0.5">
                     {gruposPorTipo[tipo]!.map(grupo => (
                       <button key={grupo.id}
-                        onClick={() => { setSelectedId(grupo.id); setCreando(false); }}
                         className={`w-full text-left px-2.5 py-2 rounded-xl transition-all border ${
                           selectedId === grupo.id ? "border-primary/20 bg-primary/10" : "border-transparent hover:bg-primary/6 hover:border-primary/10"
-                        }`}>
+                        }`}
+                        onClick={() => { setSelectedId(grupo.id); setCreando(false); }}>
                         <p className={`text-[11px] font-bold truncate ${selectedId === grupo.id ? "text-primary" : "text-primary/70"}`}>{grupo.nombre}</p>
                         <div className="flex items-center gap-1 mt-0.5 flex-wrap">
                           {grupo.subtipo && (
@@ -844,19 +846,19 @@ export function EditorGrupoStandalone({
       {/* Panel principal */}
       <div className={`flex-1 flex flex-col min-h-0 overflow-hidden ${selected || creando ? "flex" : "hidden sm:flex"}`}>
         {creando ? (
-          <SelectorTipoGrupo onSelect={handleCrear} onCancel={() => setCreando(false)} />
+          <SelectorTipoGrupo onCancel={() => setCreando(false)} onSelect={handleCrear} />
         ) : selected ? (
           <EditorGrupo
             key={selected.id}
             grupo={selected}
-            onSaved={async updated => { await actualizarGrupo(updated); }}
-            onDeleted={async id => { await eliminarGrupo(id); setSelectedId(null); }}
-            onClickMiembro={onClickMiembro}
             sugerenciasSubtipo={sugerenciasSubtipo}
+            onClickMiembro={onClickMiembro}
+            onDeleted={async id => { await eliminarGrupo(id); setSelectedId(null); }}
+            onSaved={async updated => { await actualizarGrupo(updated); }}
           />
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center gap-3 select-none">
-            <Layers size={36} strokeWidth={1} className="text-primary/15" />
+            <Layers className="text-primary/15" size={36} strokeWidth={1} />
             <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/25">Grupos</p>
             <p className="text-[10px] text-primary/20 tracking-widest text-center max-w-xs px-4">
               Agrupá personajes, criaturas, objetos o magia en facciones, manadas, colecciones y más
@@ -873,15 +875,15 @@ function SelectorTipoGrupo({ onSelect, onCancel }: { onSelect: (tipo: GrupoTipo)
   return (
     <div className="flex-1 flex flex-col items-center justify-center gap-5 p-6">
       <div className="text-center">
-        <Layers size={28} strokeWidth={1} className="text-primary/20 mx-auto mb-2" />
+        <Layers className="text-primary/20 mx-auto mb-2" size={28} strokeWidth={1} />
         <p className="text-[11px] font-black uppercase tracking-[0.2em] text-primary/50">Tipo de grupo</p>
         <p className="text-[9px] text-primary/25 mt-0.5">¿De qué serán los miembros?</p>
       </div>
       <div className="w-full max-w-xs grid grid-cols-2 gap-2">
         {(Object.entries(GRUPO_TIPO_CONFIG) as [GrupoTipo, typeof GRUPO_TIPO_CONFIG[GrupoTipo]][]).map(([tipo, cfg]) => (
-          <button key={tipo} onClick={() => onSelect(tipo)}
-            className="flex flex-col items-center gap-2 p-3 rounded-xl border transition-all hover:scale-[1.02]"
+          <button key={tipo} className="flex flex-col items-center gap-2 p-3 rounded-xl border transition-all hover:scale-[1.02]"
             style={{ borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)", background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}
+            onClick={() => onSelect(tipo)}
             onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = `color-mix(in srgb, ${cfg.color} 30%, transparent)`; (e.currentTarget as HTMLElement).style.background = `color-mix(in srgb, ${cfg.color} 8%, transparent)`; }}
             onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 12%, transparent)"; (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 3%, transparent)"; }}>
             <cfg.IconAlt size={20} strokeWidth={1.5} style={{ color: `color-mix(in srgb, ${cfg.color} 70%, transparent)` }} />
@@ -892,7 +894,7 @@ function SelectorTipoGrupo({ onSelect, onCancel }: { onSelect: (tipo: GrupoTipo)
           </button>
         ))}
       </div>
-      <button onClick={onCancel} className="text-[9px] font-black uppercase tracking-widest text-primary/25 hover:text-primary/50 transition-colors">
+      <button className="text-[9px] font-black uppercase tracking-widest text-primary/25 hover:text-primary/50 transition-colors" onClick={onCancel}>
         Cancelar
       </button>
     </div>

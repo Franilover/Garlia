@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/api/client/supabase';
-import { tareaFullQuery, Tarea, Inserts, Updates } from '@/lib/types/queries';
+import { Inserts, Tarea } from '@/lib/types/queries';
 
 export const tareasQueries = {
   getAll: async (): Promise<Tarea[]> => {

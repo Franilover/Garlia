@@ -1,9 +1,10 @@
 "use client";
-import { MotionH1, MotionSection, MotionDiv, MotionA } from '@/components/ui/Motion';
+import { Instagram, Youtube } from "lucide-react";
 import React, { useState } from "react";
-import { Monitor, Droplets, Palette , Music, Instagram, Youtube } from "lucide-react";
-import { useToast } from "@/hooks/ui/useToast";
+
+import { MotionA, MotionDiv, MotionH1, MotionSection } from '@/components/ui/Motion';
 import { ToastContainer } from "@/components/ui/ToastContainer";
+import { useToast } from "@/hooks/ui/useToast";
 
 const fade = (delay = 0) => ({
   initial: { opacity: 0, y: 18 },
@@ -51,15 +52,15 @@ export default function SobreMi() {
               <header className="mb-10 flex flex-col items-center text-center">
                 <div className="overflow-visible">
                   <MotionH1
-                    initial={{ y: "110%" }}
                     animate={{ y: 0 }}
-                    transition={{ duration: 0.7, delay: 0.06, ease: [0.16, 1, 0.3, 1] as any }}
                     className="font-black italic uppercase leading-[0.9]"
+                    initial={{ y: "110%" }}
                     style={{
                       color: "var(--primary)",
                       fontSize: "clamp(2.8rem, 7vw, 6rem)",
                       letterSpacing: "-0.02em",
                     }}
+                    transition={{ duration: 0.7, delay: 0.06, ease: [0.16, 1, 0.3, 1] as any }}
                   >
                     Sobre Mí
                   </MotionH1>
@@ -102,8 +103,6 @@ export default function SobreMi() {
                     <MotionDiv
                       key={tool.num}
                       {...fade(0.28 + i * 0.07)}
-                      whileHover={{ x: 4 }}
-                      transition={{ duration: 0.22 }}
                       className="group relative flex items-center justify-center gap-4 p-5 overflow-hidden cursor-default text-center"
                       style={{
                         background: "var(--white-custom)",
@@ -111,6 +110,8 @@ export default function SobreMi() {
                         border: "var(--border-width) solid color-mix(in srgb, var(--primary) 10%, transparent)",
                         boxShadow: "var(--shadow-card)",
                       }}
+                      transition={{ duration: 0.22 }}
+                      whileHover={{ x: 4 }}
                     >
 
                       <div className="relative z-10 space-y-0.5 text-left">
@@ -173,14 +174,14 @@ export default function SobreMi() {
             {/* Columna derecha: texto */}
             <div className="flex-1 min-w-0 flex items-center">
               <MotionDiv
-                whileHover={{ x: 4 }}
-                transition={{ duration: 0.22 }}
                 className="relative pl-8 py-6 pr-6 w-full"
                 style={{
                   background: "color-mix(in srgb, var(--primary) 4%, var(--white-custom))",
                   borderRadius: "var(--radius-card)",
                   borderLeft: "3px solid color-mix(in srgb, var(--primary) 35%, transparent)",
                 }}
+                transition={{ duration: 0.22 }}
+                whileHover={{ x: 4 }}
               >
                 <span
                   className="absolute top-3 left-5 text-5xl font-black leading-none select-none"
@@ -237,7 +238,7 @@ export default function SobreMi() {
                 handle: "@franilover",
                 href: "https://tiktok.com/@franilover",
                 icon: (
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" strokeWidth="1.5" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.65 }}>
+                  <svg fill="none" height="20" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" style={{ opacity: 0.65 }} viewBox="0 0 24 24" width="20">
                     <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5" />
                   </svg>
                 ),
@@ -246,11 +247,9 @@ export default function SobreMi() {
               <MotionA
                 key={social.label}
                 href={social.href}
-                target="_blank"
                 rel="noopener noreferrer"
+                target="_blank"
                 {...fade(0.38 + i * 0.06)}
-                whileHover={{ y: -4 }}
-                transition={{ duration: 0.22 }}
                 className="group relative flex flex-col items-center gap-3 p-6 overflow-hidden cursor-pointer no-underline"
                 style={{
                   background: "var(--white-custom)",
@@ -258,6 +257,8 @@ export default function SobreMi() {
                   border: "var(--border-width) solid color-mix(in srgb, var(--primary) 10%, transparent)",
                   boxShadow: "var(--shadow-card)",
                 }}
+                transition={{ duration: 0.22 }}
+                whileHover={{ y: -4 }}
               >
                 <div
                   className="w-10 h-10 flex items-center justify-center transition-transform duration-300 group-hover:scale-110"

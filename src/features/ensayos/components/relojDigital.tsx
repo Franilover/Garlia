@@ -1,8 +1,9 @@
 "use client";
-import { MotionDiv, MotionMain, MotionH1, MotionH2, MotionButton, MotionLi, MotionSpan, MotionP, MotionSection, MotionArticle, MotionImg } from "@/components/ui/Motion";
-import React, { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Clock, ChevronLeft, X, ChevronUp, ChevronDown, CheckSquare, Circle } from "lucide-react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
+
+import { MotionDiv, MotionMain, MotionH1, MotionH2, MotionButton, MotionLi, MotionSpan, MotionP, MotionSection, MotionArticle, MotionImg } from "@/components/ui/Motion";
 
 const PRESETS = [
   { label: "5m",   min: 5,  h: 0 },
@@ -67,10 +68,10 @@ const NumSpinner = ({
         style={{ color: "color-mix(in srgb, var(--menu-text) 30%, transparent)" }}>
         {label}
       </span>
-      <button onClick={inc} style={btnStyle}
+      <button disabled={disabled} style={btnStyle}
+        onClick={inc}
         onMouseEnter={e => (e.currentTarget.style.color = "var(--menu-text)")}
         onMouseLeave={e => (e.currentTarget.style.color = "color-mix(in srgb, var(--menu-text) 40%, transparent)")}
-        disabled={disabled}
       >
         <ChevronUp size={18} />
       </button>
@@ -78,10 +79,10 @@ const NumSpinner = ({
         style={{ color: "var(--menu-text)" }}>
         {String(value).padStart(2, "0")}
       </span>
-      <button onClick={dec} style={btnStyle}
+      <button disabled={disabled} style={btnStyle}
+        onClick={dec}
         onMouseEnter={e => (e.currentTarget.style.color = "var(--menu-text)")}
         onMouseLeave={e => (e.currentTarget.style.color = "color-mix(in srgb, var(--menu-text) 40%, transparent)")}
-        disabled={disabled}
       >
         <ChevronDown size={18} />
       </button>
@@ -219,8 +220,8 @@ export const RelojDigital = ({ horario, tareas = [] }: Props) => {
       {/* Trigger compacto — sin borde/sombra propios, vive dentro del bloque padre */}
       <MotionDiv
         layout
-        onClick={() => setPomPantallaCompleta(true)}
         className="flex flex-col items-center gap-1 px-4 py-4 cursor-pointer hover:bg-primary/3 transition-all select-none"
+        onClick={() => setPomPantallaCompleta(true)}
       >
         {/* Hora grande */}
         <span className="text-2xl font-black tracking-tighter tabular-nums text-primary leading-none">
@@ -240,12 +241,12 @@ export const RelojDigital = ({ horario, tareas = [] }: Props) => {
       <AnimatePresence>
         {pomPantallaCompleta && (
           <MotionDiv
-            initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.25 }}
             className="fixed inset-0 z-[9999] overflow-hidden"
+            exit={{ opacity: 0 }}
+            initial={{ opacity: 0 }}
             style={{ backgroundColor: "var(--bg-menu)", color: "var(--menu-text)" }}
+            transition={{ duration: 0.25 }}
           >
             {}
             <div className="flex items-center justify-between px-6 py-4 shrink-0"
@@ -262,9 +263,9 @@ export const RelojDigital = ({ horario, tareas = [] }: Props) => {
               )}
               {}
               <button
-                onClick={() => setPomPantallaCompleta(false)}
                 className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest px-3 py-2 rounded-[var(--radius-btn)] transition-all"
                 style={styBorder}
+                onClick={() => setPomPantallaCompleta(false)}
                 onMouseEnter={e => {
                   e.currentTarget.style.background = "color-mix(in srgb, var(--menu-text) 10%, transparent)";
                   e.currentTarget.style.color = "var(--menu-text)";
@@ -291,20 +292,20 @@ export const RelojDigital = ({ horario, tareas = [] }: Props) => {
                   onClick={togglePomodoro}
                 >
                   <svg className="w-full h-full -rotate-90" viewBox="0 0 200 200">
-                    <circle cx="100" cy="100" r="88" fill="none"
-                      stroke="var(--menu-text)" strokeWidth="5" opacity="0.08" />
+                    <circle cx="100" cy="100" fill="none" opacity="0.08"
+                      r="88" stroke="var(--menu-text)" strokeWidth="5" />
                     <motion.circle
-                      cx="100" cy="100" r="88" fill="none"
-                      stroke="var(--menu-text)" strokeWidth="5"
-                      strokeLinecap="round"
+                      cx="100" cy="100" fill="none" opacity={pomTerminado ? 0 : 0.85}
+                      r="88" stroke="var(--menu-text)"
                       strokeDasharray={2 * Math.PI * 88}
                       strokeDashoffset={2 * Math.PI * 88 * (1 - pct)}
-                      opacity={pomTerminado ? 0 : 0.85}
+                      strokeLinecap="round"
+                      strokeWidth="5"
                       style={{ transition: "stroke-dashoffset 1s linear" }}
                     />
                     {pomTerminado && (
-                      <circle cx="100" cy="100" r="88" fill="none"
-                        stroke="#34d399" strokeWidth="5" opacity="0.9" />
+                      <circle cx="100" cy="100" fill="none" opacity="0.9"
+                        r="88" stroke="#34d399" strokeWidth="5" />
                     )}
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
@@ -341,11 +342,11 @@ export const RelojDigital = ({ horario, tareas = [] }: Props) => {
 
                 {}
                 <div className="flex items-end gap-3">
-                  <NumSpinner value={pomHoras} min={0} max={9}
-                    onChange={cambiarHoras} label="Horas" disabled={pomActivo} />
+                  <NumSpinner disabled={pomActivo} label="Horas" max={9}
+                    min={0} value={pomHoras} onChange={cambiarHoras} />
                   <span className="text-3xl font-black mb-3" style={styMuted}>:</span>
-                  <NumSpinner value={pomMins} min={0} max={59}
-                    onChange={cambiarMins} label="Minutos" disabled={pomActivo} />
+                  <NumSpinner disabled={pomActivo} label="Minutos" max={59}
+                    min={0} value={pomMins} onChange={cambiarMins} />
                 </div>
 
                 {}
@@ -354,9 +355,8 @@ export const RelojDigital = ({ horario, tareas = [] }: Props) => {
                     const activo = pomHoras === p.h && pomMins === p.min;
                     return (
                       <button key={p.label}
-                        onClick={() => seleccionarPreset(p.h, p.min)}
-                        disabled={pomActivo}
                         className="text-[9px] font-black uppercase tracking-wide px-3 py-1.5 rounded-[var(--radius-btn)] transition-all disabled:opacity-40"
+                        disabled={pomActivo}
                         style={activo ? {
                           background: "color-mix(in srgb, var(--menu-text) 14%, transparent)",
                           color: "var(--menu-text)",
@@ -365,6 +365,7 @@ export const RelojDigital = ({ horario, tareas = [] }: Props) => {
                           color: "color-mix(in srgb, var(--menu-text) 35%, transparent)",
                           border: "1px solid transparent",
                         }}
+                        onClick={() => seleccionarPreset(p.h, p.min)}
                       >
                         {p.label}
                       </button>
@@ -375,9 +376,8 @@ export const RelojDigital = ({ horario, tareas = [] }: Props) => {
                 {}
                 <div className="flex items-center gap-3">
                   <button
-                    onClick={togglePomodoro}
-                    disabled={totalSegundosConfig === 0 && !pomActivo}
                     className="font-black uppercase tracking-widest px-10 py-3 rounded-[var(--radius-btn)] transition-all text-sm hover:scale-105 active:scale-95 disabled:opacity-30"
+                    disabled={totalSegundosConfig === 0 && !pomActivo}
                     style={pomActivo ? {
                       background: "color-mix(in srgb, var(--menu-text) 10%, transparent)",
                       color: "var(--menu-text)",
@@ -387,17 +387,18 @@ export const RelojDigital = ({ horario, tareas = [] }: Props) => {
                       color: "var(--btn-text)",
                       boxShadow: "0 8px 30px color-mix(in srgb, var(--primary) 35%, transparent)",
                     }}
+                    onClick={togglePomodoro}
                   >
                     {pomTerminado ? "Reiniciar" : pomActivo ? "Pausar" : "Iniciar"}
                   </button>
                   {(pomActivo || pomSegundos !== totalSegundosConfig) && !pomTerminado && (
                     <button
-                      onClick={resetPomodoro}
                       className="text-[9px] font-black uppercase tracking-widest px-4 py-3 rounded-[var(--radius-btn)] transition-all"
                       style={{
                         color: "color-mix(in srgb, var(--menu-text) 30%, transparent)",
                         border: "1px solid color-mix(in srgb, var(--menu-text) 10%, transparent)",
                       }}
+                      onClick={resetPomodoro}
                       onMouseEnter={e => (e.currentTarget.style.color = "var(--menu-text)")}
                       onMouseLeave={e => (e.currentTarget.style.color = "color-mix(in srgb, var(--menu-text) 30%, transparent)")}
                     >
@@ -452,7 +453,6 @@ export const RelojDigital = ({ horario, tareas = [] }: Props) => {
                     return (
                       <button
                         key={t.id}
-                        onClick={() => setTareaSeleccionada(seleccionada ? null : t)}
                         className="flex items-center gap-3 px-3 py-2.5 rounded-[var(--radius-btn)] text-left transition-all"
                         style={seleccionada ? {
                           background: "color-mix(in srgb, var(--primary) 15%, transparent)",
@@ -461,6 +461,7 @@ export const RelojDigital = ({ horario, tareas = [] }: Props) => {
                           background: "color-mix(in srgb, var(--menu-text) 4%, transparent)",
                           border: "1px solid color-mix(in srgb, var(--menu-text) 8%, transparent)",
                         }}
+                        onClick={() => setTareaSeleccionada(seleccionada ? null : t)}
                         onMouseEnter={e => !seleccionada && (e.currentTarget.style.background = "color-mix(in srgb, var(--menu-text) 8%, transparent)")}
                         onMouseLeave={e => !seleccionada && (e.currentTarget.style.background = "color-mix(in srgb, var(--menu-text) 4%, transparent)")}
                       >

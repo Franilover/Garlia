@@ -1,13 +1,14 @@
 "use client";
 
-import React, { useMemo, useState, useEffect, useRef } from "react";
-import Link from "next/link";
 import { Lock, Timer, BookOpen, Sparkles } from "lucide-react";
+import Link from "next/link";
+import React, { useMemo, useState, useEffect, useRef } from "react";
+
+import { Loading } from "@/components/ui";
 import { MotionDiv } from "@/components/ui/Motion";
 import { SmartImage } from "@/components/ui/SmartImage";
-import { Loading } from "@/components/ui";
-import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
+import { supabase } from "@/lib/api/client/supabase";
 import { toSlug } from "@/lib/utils/slugify";
 
 // ─── Tipos ───────────────────────────────────────────────────────────────────
@@ -247,19 +248,19 @@ function LibroCard({
 
   return (
     <MotionDiv
-      initial={{ y: 20, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
-      transition={{ delay: index * 0.05 }}
       className="relative group"
+      initial={{ y: 20, opacity: 0 }}
+      transition={{ delay: index * 0.05 }}
     >
-      <Link href={href} className="block">
+      <Link className="block" href={href}>
         {/* MÓVIL: layout horizontal */}
         <div className="flex sm:hidden items-center gap-4 p-3 rounded-[var(--radius-card)] border border-primary/8 bg-white-custom shadow-sm group-hover:border-primary/20 transition-colors">
           <div className="relative flex-shrink-0 w-16 aspect-[3/4] rounded-[var(--radius-btn)] overflow-hidden">
             <SmartImage
-              src={libro.portada_url || "/placeholder-cover.jpg"}
               alt={libro.titulo}
               className="w-full h-full object-cover"
+              src={libro.portada_url || "/placeholder-cover.jpg"}
             />
             {nuevo && (
               <span className="absolute top-1 left-1 w-2 h-2 rounded-full bg-[var(--accent,var(--primary))] shadow-sm" />
@@ -272,8 +273,8 @@ function LibroCard({
               </h2>
               {libro.visibilidad !== "publico" && (
                 <div className="flex items-center gap-1 flex-shrink-0 bg-primary/5 px-2 py-0.5 rounded-full border border-primary/10">
-                  {libro.visibilidad === "programado" && <Timer size={8} className="text-primary" />}
-                  {libro.visibilidad === "oculto"     && <Lock  size={8} className="text-primary" />}
+                  {libro.visibilidad === "programado" && <Timer className="text-primary" size={8} />}
+                  {libro.visibilidad === "oculto"     && <Lock  className="text-primary" size={8} />}
                   <span className="text-[7px] font-black uppercase text-primary tracking-widest">{libro.estado}</span>
                 </div>
               )}
@@ -300,13 +301,13 @@ function LibroCard({
         {/* DESKTOP: portada con hover overlay */}
         <div className="hidden sm:block">
           <MotionDiv
-            whileHover={{ y: -8 }}
             className="relative aspect-[3/4] rounded-[var(--radius-card)] overflow-hidden shadow-xl border border-primary/10 bg-white-custom"
+            whileHover={{ y: -8 }}
           >
             <SmartImage
-              src={libro.portada_url || "/placeholder-cover.jpg"}
               alt={libro.titulo}
               className="w-full h-full object-cover"
+              src={libro.portada_url || "/placeholder-cover.jpg"}
             />
 
             <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-5">
@@ -317,22 +318,22 @@ function LibroCard({
 
             {libro.visibilidad !== "publico" && (
               <div className="absolute top-4 left-4 z-20 bg-white-custom/90 backdrop-blur-md px-3 py-1 rounded-full border border-primary/10 flex items-center gap-1.5">
-                {libro.visibilidad === "programado" && <Timer size={9} className="text-primary" />}
-                {libro.visibilidad === "oculto"     && <Lock  size={9} className="text-primary" />}
+                {libro.visibilidad === "programado" && <Timer className="text-primary" size={9} />}
+                {libro.visibilidad === "oculto"     && <Lock  className="text-primary" size={9} />}
                 <span className="text-[8px] font-black uppercase text-primary tracking-widest">{libro.estado}</span>
               </div>
             )}
 
             {nuevo && (
               <div className="absolute top-4 right-4 z-20 bg-[var(--accent,var(--primary))]/90 backdrop-blur-md px-3 py-1 rounded-full flex items-center gap-1.5">
-                <Sparkles size={8} className="text-white" />
+                <Sparkles className="text-white" size={8} />
                 <span className="text-[8px] font-black uppercase text-white tracking-widest">Nuevo</span>
               </div>
             )}
 
             {numCaps > 0 && (
               <div className="absolute bottom-4 right-4 z-20 bg-white-custom/85 backdrop-blur-md px-2.5 py-1 rounded-full border border-primary/10 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                <BookOpen size={8} className="text-primary/60" />
+                <BookOpen className="text-primary/60" size={8} />
                 <span className="text-[8px] font-bold text-primary/70 tracking-wide">
                   {numCaps} cap{numCaps !== 1 ? "s" : ""}
                 </span>
@@ -442,11 +443,11 @@ const Biblioteca = () => {
     return (
       <LibroCard
         key={libro.id}
-        libro={libro}
         index={index}
-        numCaps={numCaps}
-        nuevo={nuevo}
         leidosCount={leidos}
+        libro={libro}
+        nuevo={nuevo}
+        numCaps={numCaps}
       />
     );
   };

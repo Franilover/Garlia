@@ -57,7 +57,7 @@ export function FieldWrapper({ label, error, children }: FieldWrapperProps) {
       {children}
       
       {error && (
-        <Text variant="err" className="mt-1">
+        <Text className="mt-1" variant="err">
           {error}
         </Text>
       )}

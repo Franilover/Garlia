@@ -1,16 +1,7 @@
 "use client";
 
-import React, { useEffect, useState, useCallback, useRef } from "react";
 import { Command } from "cmdk";
-import { useRouter, usePathname } from "next/navigation";
 import { AnimatePresence } from "framer-motion";
-import { MotionDiv } from "@/components/ui/Motion";
-import { useCommandPalette } from "./useCommandPalette";
-import { useAuth } from "@/providers/AuthProvider";
-import { useTheme } from "@/providers/ThemeProvider";
-import { useGlobalSearch } from "@/lib/api/queries/search";
-import { supabase } from "@/lib/api/client/supabase";
-import { toSlug } from "@/lib/utils/slugify";
 import {
   Compass, BookText, Music, Star, Palette,
   PenTool, Moon, Sun, Cat, Flower2, CircleUser,
@@ -18,6 +9,18 @@ import {
   Loader2, WifiOff, BookOpen, Plus, Wand2, Zap,
   FileText, Clock, Layers, MapPin, ScrollText, Users, Package,
 } from "lucide-react";
+import { useRouter, usePathname } from "next/navigation";
+import React, { useEffect, useState, useCallback, useRef } from "react";
+
+import { MotionDiv } from "@/components/ui/Motion";
+import { supabase } from "@/lib/api/client/supabase";
+import { useGlobalSearch } from "@/lib/api/queries/search";
+import { toSlug } from "@/lib/utils/slugify";
+import { useAuth } from "@/providers/AuthProvider";
+import { useTheme } from "@/providers/ThemeProvider";
+
+import { useCommandPalette } from "./useCommandPalette";
+
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -532,27 +535,27 @@ export function GlobalCommandPalette() {
           {/* Backdrop */}
           <MotionDiv
             key="backdrop"
-            initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
             className="fixed inset-0 z-[9000]"
+            exit={{ opacity: 0 }}
+            initial={{ opacity: 0 }}
             style={{ background: "color-mix(in srgb, var(--bg-main) 60%, transparent)", backdropFilter: "blur(4px)", WebkitBackdropFilter: "blur(4px)" }}
+            transition={{ duration: 0.15 }}
             onClick={() => setOpen(false)}
           />
 
           {/* Palette */}
           <MotionDiv
             key="palette"
-            initial={{ opacity: 0, scale: 0.97, y: -8 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.97, y: -8 }}
-            transition={{ type: "spring", stiffness: 500, damping: 36 }}
             className="fixed left-1/2 top-[18%] z-[9001] w-full max-w-[500px] -translate-x-1/2"
+            exit={{ opacity: 0, scale: 0.97, y: -8 }}
+            initial={{ opacity: 0, scale: 0.97, y: -8 }}
             style={{ padding: "0 16px" }}
+            transition={{ type: "spring", stiffness: 500, damping: 36 }}
           >
             <Command
-              className="overflow-hidden"
+              loop
               style={{
                 background: "var(--white-custom)",
                 border: "var(--border-width) solid color-mix(in srgb, var(--primary) 15%, transparent)",
@@ -561,8 +564,8 @@ export function GlobalCommandPalette() {
               }}
               // Desactivamos el filtro interno de cmdk cuando hay resultados dinámicos
               // para que lo manejemos nosotros via useGlobalSearch
+              className="overflow-hidden"
               filter={showDynamic ? () => 1 : undefined}
-              loop
             >
               {/* Search input */}
               <div
@@ -570,16 +573,16 @@ export function GlobalCommandPalette() {
                 style={{ borderBottom: "var(--border-width) solid color-mix(in srgb, var(--primary) 10%, transparent)", height: "48px" }}
               >
                 {isFetching
-                  ? <Loader2 size={14} className="animate-spin shrink-0" style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }} />
+                  ? <Loader2 className="animate-spin shrink-0" size={14} style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }} />
                   : <Search size={14} style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)", flexShrink: 0 }} />
                 }
                 <Command.Input
                   autoFocus
+                  className="flex-1 bg-transparent outline-none text-sm"
+                  placeholder="Buscar personajes, libros, canciones…"
+                  style={{ color: "var(--primary)", caretColor: "var(--primary)" }}
                   value={search}
                   onValueChange={setSearch}
-                  placeholder="Buscar personajes, libros, canciones…"
-                  className="flex-1 bg-transparent outline-none text-sm"
-                  style={{ color: "var(--primary)", caretColor: "var(--primary)" }}
                 />
                 <kbd
                   className="text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded hidden sm:flex items-center"
@@ -677,7 +680,7 @@ export function GlobalCommandPalette() {
                     className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest ml-auto"
                     style={{ color: fromCache ? "color-mix(in srgb, var(--primary) 40%, transparent)" : "color-mix(in srgb, var(--primary) 28%, transparent)" }}
                   >
-                    <WifiOff size={9} className={fromCache ? "opacity-100" : "opacity-0"} />
+                    <WifiOff className={fromCache ? "opacity-100" : "opacity-0"} size={9} />
                     {fromCache ? "cache local" : "en línea"}
                   </span>
                 )}
@@ -702,17 +705,17 @@ function CommandItemRow({ item }: { item: CommandItem }) {
 
   return (
     <Command.Item
-      value={`${item.id} ${item.label} ${item.keywords?.join(" ") ?? ""}`}
-      onSelect={item.action}
       className="group flex items-center gap-3 px-3 py-2 rounded-[var(--radius-btn)] cursor-pointer transition-all duration-100 outline-none"
       style={{ color: "color-mix(in srgb, var(--primary) 70%, transparent)" }}
+      value={`${item.id} ${item.label} ${item.keywords?.join(" ") ?? ""}`}
+      onSelect={item.action}
     >
       {/* Avatar o ícono */}
       {item.avatar ? (
         <img
-          src={item.avatar}
           alt={item.label}
           className="shrink-0 object-cover"
+          src={item.avatar}
           style={{ width: 26, height: 26, borderRadius: "var(--radius-btn)" }}
         />
       ) : (
@@ -736,8 +739,8 @@ function CommandItemRow({ item }: { item: CommandItem }) {
       </div>
 
       <ArrowRight
-        size={12}
         className="shrink-0 opacity-0 group-data-[selected=true]:opacity-100 transition-opacity"
+        size={12}
         style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
       />
     </Command.Item>

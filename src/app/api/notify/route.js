@@ -1,6 +1,6 @@
+import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import webpush from 'web-push';
-import { createClient } from '@supabase/supabase-js';
 
 webpush.setVapidDetails(
   'mailto:fran@ateliervirtual.art',

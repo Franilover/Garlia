@@ -1,28 +1,29 @@
 "use client";
-import { useState, useEffect, useCallback, useRef } from "react";
-import { useRouter } from "next/navigation";
 import { AnimatePresence } from "framer-motion";
-import {
-  MotionDiv, MotionButton,
-} from "@/components/ui/Motion";
 import {
   X, ArrowLeft,
   Save, Edit3, ImagePlus, Move, CheckCircle2, AlertCircle, UserX, ZoomIn, ZoomOut, User,
   BookOpen, BookMarked, Bug, Package,
 } from "lucide-react";
-import { supabase } from "@/lib/api/client/supabase";
-import { useIsAdmin } from "@/hooks/auth/useIsAdmin";
+import { useRouter } from "next/navigation";
+import { useState, useEffect, useCallback, useRef } from "react";
+
+import {
+  MotionDiv, MotionButton,
+} from "@/components/ui/Motion";
 import { ModalDetalle } from "@/features/garlia/views/PersonalComponents";
+import { useIsAdmin } from "@/hooks/auth/useIsAdmin";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import { db } from "@/lib/api/client/db";
+import { supabase } from "@/lib/api/client/supabase";
 
 // ─── Hourglass — reemplaza Loader2 en todos los indicadores de carga ──────────
 function Hourglass({ size = 14 }: { size?: number }) {
   return (
     <svg
-      width={size} height={size * 1.45}
-      viewBox="0 0 22 32" fill="none" xmlns="http://www.w3.org/2000/svg"
-      style={{ animation: "hg-flip 2.4s ease-in-out infinite", transformOrigin: "center", flexShrink: 0 }}
+      fill="none" height={size * 1.45}
+      style={{ animation: "hg-flip 2.4s ease-in-out infinite", transformOrigin: "center", flexShrink: 0 }} viewBox="0 0 22 32" width={size}
+      xmlns="http://www.w3.org/2000/svg"
     >
       <style>{`
         @keyframes hg-flip {
@@ -31,10 +32,10 @@ function Hourglass({ size = 14 }: { size?: number }) {
           100%    { transform: rotate(180deg); }
         }
       `}</style>
-      <rect x="1" y="0"  width="20" height="2.5" rx="0" fill="currentColor" opacity="0.7"/>
-      <rect x="1" y="29.5" width="20" height="2.5" rx="0" fill="currentColor" opacity="0.7"/>
-      <path d="M2 2.5 L11 16 L20 2.5 Z"  fill="currentColor" fillOpacity="0.2" stroke="currentColor" strokeWidth="0.8" strokeOpacity="0.6"/>
-      <path d="M2 29.5 L11 16 L20 29.5 Z" fill="currentColor" fillOpacity="0.5" stroke="currentColor" strokeWidth="0.8" strokeOpacity="0.6"/>
+      <rect fill="currentColor" height="2.5"  opacity="0.7" rx="0" width="20" x="1" y="0"/>
+      <rect fill="currentColor" height="2.5" opacity="0.7" rx="0" width="20" x="1" y="29.5"/>
+      <path d="M2 2.5 L11 16 L20 2.5 Z"  fill="currentColor" fillOpacity="0.2" stroke="currentColor" strokeOpacity="0.6" strokeWidth="0.8"/>
+      <path d="M2 29.5 L11 16 L20 29.5 Z" fill="currentColor" fillOpacity="0.5" stroke="currentColor" strokeOpacity="0.6" strokeWidth="0.8"/>
     </svg>
   );
 }
@@ -52,8 +53,8 @@ function Toast({ message, type, onClose }: { message: string; type: ToastType; o
   useEffect(() => { const t = setTimeout(onClose, 3000); return () => clearTimeout(t); }, [onClose]);
   return (
     <MotionDiv
-      initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
-      className="fixed bottom-24 left-1/2 -translate-x-1/2 z-300 flex items-center gap-3 px-5 py-3 shadow-lg text-[10px] font-bold uppercase tracking-widest"
+      animate={{ opacity: 1, y: 0 }} className="fixed bottom-24 left-1/2 -translate-x-1/2 z-300 flex items-center gap-3 px-5 py-3 shadow-lg text-[10px] font-bold uppercase tracking-widest" exit={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 20 }}
       style={{
         background: type === "success" ? "rgba(5,150,105,0.92)" : "rgba(185,28,28,0.92)",
         color: "var(--btn-text, #fff)",
@@ -85,6 +86,8 @@ function PanelContenido({
         <div className="flex flex-col gap-1">
           <label className="text-[9px] font-bold uppercase tracking-widest ml-1" style={{ color: "color-mix(in srgb, var(--foreground) 60%, transparent)" }}>Nombre</label>
           <input
+            className="input-brand font-bold uppercase text-xl outline-none px-4 py-3"
+            style={{ borderRadius: "1px", letterSpacing: "0.08em" }}
             type="text"
             value={puntoSeleccionado ? puntoSeleccionado.nombre : reinoSeleccionado.nombre}
             onChange={(e) => {
@@ -94,13 +97,12 @@ function PanelContenido({
                 setModifiedDetalles((prev: Set<string>) => new Set(prev).add(puntoSeleccionado.id));
               } else setReinoSeleccionado({ ...reinoSeleccionado, nombre: e.target.value });
             }}
-            className="input-brand font-bold uppercase text-xl outline-none px-4 py-3"
-            style={{ borderRadius: "1px", letterSpacing: "0.08em" }}
           />
         </div>
         <div className="flex flex-col gap-1 grow">
           <label className="text-[9px] font-bold uppercase tracking-widest ml-1" style={{ color: "color-mix(in srgb, var(--foreground) 60%, transparent)" }}>Descripción / Lore</label>
           <textarea
+            className="input-brand text-sm italic leading-relaxed h-36 resize-none outline-none px-4 py-3"
             value={puntoSeleccionado ? puntoSeleccionado.descripcion : reinoSeleccionado.descripcion}
             onChange={(e) => {
               if (puntoSeleccionado) {
@@ -109,7 +111,6 @@ function PanelContenido({
                 setModifiedDetalles((prev: Set<string>) => new Set(prev).add(puntoSeleccionado.id));
               } else setReinoSeleccionado({ ...reinoSeleccionado, descripcion: e.target.value });
             }}
-            className="input-brand text-sm italic leading-relaxed h-36 resize-none outline-none px-4 py-3"
           />
         </div>
         <div className="flex flex-col gap-1">
@@ -138,18 +139,18 @@ function PanelContenido({
             {reinoSeleccionado.mapa_url && (
               <div className="relative w-full h-20 overflow-hidden border mb-1"
                 style={{ borderColor: "color-mix(in srgb, var(--primary) 20%, transparent)" }}>
-                <img src={reinoSeleccionado.mapa_url} alt="Mapa actual" className="w-full h-full object-cover" />
+                <img alt="Mapa actual" className="w-full h-full object-cover" src={reinoSeleccionado.mapa_url} />
                 <div className="absolute inset-0 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.4)" }}>
                   <span className="text-[8px] font-black uppercase tracking-widest" style={{ color: "var(--accent)" }}>Imagen actual</span>
                 </div>
               </div>
             )}
-            <input ref={imgInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+            <input ref={imgInputRef} accept="image/*" className="hidden" type="file" onChange={handleImageUpload} />
             <button
-              onClick={() => imgInputRef.current?.click()}
-              disabled={isUploadingImg}
               className="w-full flex items-center justify-center gap-2 border border-dashed text-[10px] font-black uppercase py-3 transition-all disabled:opacity-50"
+              disabled={isUploadingImg}
               style={{ borderColor: "color-mix(in srgb, var(--primary) 30%, transparent)", color: "var(--accent)", background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
+              onClick={() => imgInputRef.current?.click()}
             >
               {isUploadingImg
                 ? <><Hourglass size={12} /> Subiendo...</>
@@ -158,10 +159,10 @@ function PanelContenido({
           </div>
         )}
         <button
-          onClick={handleSaveChanges}
-          disabled={isSaving}
           className="btn-brand w-full justify-center text-[11px] uppercase py-4 mt-auto disabled:opacity-50"
+          disabled={isSaving}
           style={{ letterSpacing: "0.12em" }}
+          onClick={handleSaveChanges}
         >
           {isSaving ? <Hourglass size={14} /> : <Save size={14} />}
           Guardar cambios
@@ -217,7 +218,7 @@ function PanelContenido({
                   <div className="flex items-center gap-2 mb-3">
                     <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }} />
                     <span className="text-[8px] font-black uppercase tracking-[0.3em]" style={{ color: "color-mix(in srgb, var(--accent) 60%, transparent)" }}>
-                      <User size={8} className="inline mr-1" />Habitantes
+                      <User className="inline mr-1" size={8} />Habitantes
                     </span>
                     <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }} />
                   </div>
@@ -227,7 +228,6 @@ function PanelContenido({
                       return (
                         <button
                           key={p.id}
-                          onClick={desbloqueado ? () => handlePersonajeClick(p) : undefined}
                           className="flex items-center gap-2 p-2 w-full text-left transition-all"
                           style={{
                             background: desbloqueado
@@ -237,6 +237,7 @@ function PanelContenido({
                             opacity: desbloqueado ? 1 : 0.5,
                             cursor: desbloqueado ? "pointer" : "default",
                           }}
+                          onClick={desbloqueado ? () => handlePersonajeClick(p) : undefined}
                         >
                           <div className="shrink-0 w-9 h-9 overflow-hidden flex items-center justify-center border"
                             style={{
@@ -246,7 +247,7 @@ function PanelContenido({
                               borderRadius: "1px",
                             }}>
                             {desbloqueado && p.img_url
-                              ? <img src={p.img_url} alt={p.nombre} className="w-full h-full object-cover" />
+                              ? <img alt={p.nombre} className="w-full h-full object-cover" src={p.img_url} />
                               : <UserX size={14} style={{ color: "color-mix(in srgb, var(--accent) 30%, transparent)" }} />}
                           </div>
                           <div className="flex-1 min-w-0">
@@ -273,7 +274,7 @@ function PanelContenido({
                   <div className="flex items-center gap-2 mb-3">
                     <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }} />
                     <span className="text-[8px] font-black uppercase tracking-[0.3em]" style={{ color: "color-mix(in srgb, var(--accent) 60%, transparent)" }}>
-                      <Bug size={8} className="inline mr-1" />Criaturas avistadas
+                      <Bug className="inline mr-1" size={8} />Criaturas avistadas
                     </span>
                     <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }} />
                   </div>
@@ -292,8 +293,8 @@ function PanelContenido({
                             borderRadius: "1px",
                           }}>
                           {c.imagen_url
-                            ? <img src={c.imagen_url} alt={c.nombre} className="w-full h-full object-cover" />
-                            : <Bug size={14} className="m-auto mt-1" style={{ color: "color-mix(in srgb, var(--accent) 40%, transparent)" }} />}
+                            ? <img alt={c.nombre} className="w-full h-full object-cover" src={c.imagen_url} />
+                            : <Bug className="m-auto mt-1" size={14} style={{ color: "color-mix(in srgb, var(--accent) 40%, transparent)" }} />}
                         </div>
                         <p className="text-[10px] font-semibold uppercase truncate" style={{ color: "var(--foreground)" }}>
                           {c.nombre}
@@ -310,7 +311,7 @@ function PanelContenido({
                   <div className="flex items-center gap-2 mb-3">
                     <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }} />
                     <span className="text-[8px] font-black uppercase tracking-[0.3em]" style={{ color: "color-mix(in srgb, var(--accent) 60%, transparent)" }}>
-                      <Package size={8} className="inline mr-1" />Objetos encontrables
+                      <Package className="inline mr-1" size={8} />Objetos encontrables
                     </span>
                     <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }} />
                   </div>
@@ -329,8 +330,8 @@ function PanelContenido({
                             borderRadius: "1px",
                           }}>
                           {item.imagen_url
-                            ? <img src={item.imagen_url} alt={item.nombre} className="w-full h-full object-cover" />
-                            : <Package size={14} className="m-auto mt-1" style={{ color: "color-mix(in srgb, var(--accent) 40%, transparent)" }} />}
+                            ? <img alt={item.nombre} className="w-full h-full object-cover" src={item.imagen_url} />
+                            : <Package className="m-auto mt-1" size={14} style={{ color: "color-mix(in srgb, var(--accent) 40%, transparent)" }} />}
                         </div>
                         <p className="text-[10px] font-semibold uppercase truncate" style={{ color: "var(--foreground)" }}>
                           {item.nombre}
@@ -347,7 +348,7 @@ function PanelContenido({
                   <div className="flex items-center gap-2 mb-3">
                     <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }} />
                     <span className="text-[8px] font-black uppercase tracking-[0.3em]" style={{ color: "color-mix(in srgb, var(--accent) 60%, transparent)" }}>
-                      <BookOpen size={8} className="inline mr-1" />Capítulos aquí
+                      <BookOpen className="inline mr-1" size={8} />Capítulos aquí
                     </span>
                     <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }} />
                   </div>
@@ -355,14 +356,14 @@ function PanelContenido({
                     {capitulosCiudad.map((cap: any) => (
                       <button
                         key={cap.id}
-                        onClick={() => router.push(`/garlia/libros/${cap.libro_id}/leer/${cap.id}`)}
                         className="flex items-center gap-2.5 px-3 py-2.5 border w-full text-left transition-all hover:opacity-80 active:scale-[0.98]"
                         style={{
                           background: "color-mix(in srgb, var(--primary) 10%, transparent)",
                           borderColor: "color-mix(in srgb, var(--accent) 12%, transparent)",
                           borderRadius: "1px",
                           cursor: "pointer",
-                        }}>
+                        }}
+                        onClick={() => router.push(`/garlia/libros/${cap.libro_id}/leer/${cap.id}`)}>
                         <BookMarked size={12} style={{ color: "color-mix(in srgb, var(--accent) 55%, transparent)", flexShrink: 0 }} />
                         <div className="flex-1 min-w-0">
                           <p className="text-[10px] font-semibold uppercase truncate" style={{ color: "var(--foreground)" }}>
@@ -407,7 +408,6 @@ function PanelContenido({
                 return (
                   <button
                     key={p.id}
-                    onClick={desbloqueado ? () => handlePersonajeClick(p) : undefined}
                     className="flex items-center gap-2 p-2 w-full text-left transition-all group"
                     style={{
                       background: desbloqueado
@@ -417,6 +417,7 @@ function PanelContenido({
                       opacity: desbloqueado ? 1 : 0.5,
                       cursor: desbloqueado ? "pointer" : "default",
                     }}
+                    onClick={desbloqueado ? () => handlePersonajeClick(p) : undefined}
                   >
                     {/* Avatar — izquierda */}
                     <div
@@ -429,7 +430,7 @@ function PanelContenido({
                       }}
                     >
                       {desbloqueado && p.img_url
-                        ? <img src={p.img_url} alt={p.nombre} className="w-full h-full object-cover" />
+                        ? <img alt={p.nombre} className="w-full h-full object-cover" src={p.img_url} />
                         : <UserX size={16} style={{ color: "color-mix(in srgb, var(--accent) 30%, transparent)" }} />}
                     </div>
                     {/* Nombre + especie — derecha */}
@@ -477,15 +478,15 @@ function PanelContenido({
                     {librosReino.map((libro: any) => (
                       <button
                         key={libro.id}
-                        onClick={() => router.push(`/garlia/libros/${libro.id}`)}
                         className="flex gap-3 p-3 border w-full text-left transition-all hover:opacity-80 active:scale-[0.98]"
                         style={{
                           background: "color-mix(in srgb, var(--primary) 10%, transparent)",
                           borderColor: "color-mix(in srgb, var(--accent) 15%, transparent)",
                           cursor: "pointer",
-                        }}>
+                        }}
+                        onClick={() => router.push(`/garlia/libros/${libro.id}`)}>
                         {libro.portada_url && (
-                          <img src={libro.portada_url} alt={libro.titulo} className="w-14 h-20 object-cover shrink-0"
+                          <img alt={libro.titulo} className="w-14 h-20 object-cover shrink-0" src={libro.portada_url}
                             style={{ filter: "brightness(0.92)" }} />
                         )}
                         <div className="flex-1 min-w-0 flex flex-col justify-center gap-1.5">
@@ -535,13 +536,13 @@ function PanelContenido({
                       {grupo.caps.map((cap: any) => (
                         <button
                           key={cap.id}
-                          onClick={() => router.push(`/garlia/libros/${cap.libro_id}/leer/${cap.id}`)}
                           className="flex items-center gap-2 px-3 py-2.5 border w-full text-left transition-all hover:opacity-80 active:scale-[0.98]"
                           style={{
                             background: "color-mix(in srgb, var(--primary) 8%, transparent)",
                             borderColor: "color-mix(in srgb, var(--accent) 10%, transparent)",
                             cursor: "pointer",
-                          }}>
+                          }}
+                          onClick={() => router.push(`/garlia/libros/${cap.libro_id}/leer/${cap.id}`)}>
                           <span className="text-[8px] font-black shrink-0 px-1.5 py-0.5"
                             style={{ background: "color-mix(in srgb, var(--accent) 12%, transparent)", color: "var(--accent)" }}>
                             {cap.orden}
@@ -717,7 +718,7 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
     return () => {
       if (compassTimerRef.current) clearTimeout(compassTimerRef.current);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [imageSrc, centerImage, isFirstOpen]);
 
   useEffect(() => {
@@ -1433,21 +1434,20 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
           { icon: <ZoomIn size={14} />, fn: () => zoom(1.25) },
           { icon: <ZoomOut size={14} />, fn: () => zoom(0.8) },
         ].map((btn, i) => (
-          <button key={i} onClick={btn.fn}
-            className="w-9 h-9 flex items-center justify-center transition-all border"
+          <button key={i} className="w-9 h-9 flex items-center justify-center transition-all border"
             style={{
               background: "color-mix(in srgb, var(--bg-menu) 88%, transparent)",
               borderColor: "color-mix(in srgb, var(--primary) 30%, transparent)",
               color: "var(--accent)",
               borderRadius: "2px",
               boxShadow: "0 1px 4px rgba(0,0,0,0.3)",
-            }}>
+            }}
+            onClick={btn.fn}>
             {btn.icon}
           </button>
         ))}
         {onOpenPanel && (
           <button
-            onClick={onOpenPanel}
             className="w-9 h-9 flex items-center justify-center transition-all border md:hidden"
             style={{
               background: "color-mix(in srgb, var(--primary) 80%, transparent)",
@@ -1455,7 +1455,8 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
               color: "var(--btn-text, #fff)",
               borderRadius: "2px",
               boxShadow: "0 1px 4px rgba(0,0,0,0.3)",
-            }}>
+            }}
+            onClick={onOpenPanel}>
             <User size={14} />
           </button>
         )}
@@ -1885,10 +1886,10 @@ export default function MapaInteractivo() {
 
       {modalEntidad && (
         <ModalDetalle
-          entidad={modalEntidad}
-          onClose={() => { setModalEntidad(null); setCancionesPersonaje([]); }}
           canciones={cancionesPersonaje}
           cargandoCanciones={cargandoCanciones}
+          entidad={modalEntidad}
+          onClose={() => { setModalEntidad(null); setCancionesPersonaje([]); }}
         />
       )}
 
@@ -1903,7 +1904,6 @@ export default function MapaInteractivo() {
           <div className="absolute z-70 flex gap-2"
             style={{ top: (!panelOpen && (reinoSeleccionado || puntoSeleccionado)) ? "3rem" : "1rem", right: "1rem", transition: "top 0.2s ease" }}>
             <button
-              onClick={() => setEditMode(!editMode)}
               className="flex items-center gap-2 px-4 py-2 text-[10px] font-semibold uppercase tracking-widest transition-all border"
               style={{
                 background: editMode
@@ -1917,13 +1917,13 @@ export default function MapaInteractivo() {
                 letterSpacing: "0.12em",
                 boxShadow: "0 1px 4px rgba(0,0,0,0.3)",
               }}
+              onClick={() => setEditMode(!editMode)}
             >
               {editMode ? <X size={14} /> : <Edit3 size={14} />}
               {editMode ? "Cancelar" : "Editar Mapa"}
             </button>
             {editMode && (
-              <button onClick={handleSaveChanges} disabled={isSaving}
-                className="flex items-center gap-2 px-4 py-2 text-[10px] font-semibold uppercase tracking-widest disabled:opacity-50 transition-all"
+              <button className="flex items-center gap-2 px-4 py-2 text-[10px] font-semibold uppercase tracking-widest disabled:opacity-50 transition-all" disabled={isSaving}
                 style={{
                   background: "color-mix(in srgb, var(--accent) 70%, #1a5c30)",
                   color: "var(--btn-text, #fff)",
@@ -1931,7 +1931,8 @@ export default function MapaInteractivo() {
                   borderRadius: "2px",
                   letterSpacing: "0.12em",
                   boxShadow: "0 1px 4px rgba(0,0,0,0.3)",
-                }}>
+                }}
+                onClick={handleSaveChanges}>
                 {isSaving ? <Hourglass size={14} /> : <Save size={14} />}
                 Guardar
               </button>
@@ -1941,8 +1942,8 @@ export default function MapaInteractivo() {
 
         <AnimatePresence>
           {editMode && (reinoSeleccionado || puntoSeleccionado) && (
-            <MotionDiv initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
-              className="absolute left-1/2 -translate-x-1/2 z-50 text-[10px] font-semibold uppercase px-4 py-2 shadow-md flex items-center gap-2 bottom-[calc(56px+1rem)] md:bottom-16"
+            <MotionDiv animate={{ opacity: 1, y: 0 }} className="absolute left-1/2 -translate-x-1/2 z-50 text-[10px] font-semibold uppercase px-4 py-2 shadow-md flex items-center gap-2 bottom-[calc(56px+1rem)] md:bottom-16" exit={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: 10 }}
               style={{
                 background: "color-mix(in srgb, var(--bg-menu) 92%, transparent)",
                 color: "var(--accent)",
@@ -1961,9 +1962,8 @@ export default function MapaInteractivo() {
 
         <AnimatePresence>
           {vistaActual === "reino" && (
-            <MotionButton initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
-              onClick={volverAlGlobal}
-              className="absolute top-4 left-4 z-50 flex items-center gap-2 px-4 py-2 text-[10px] font-semibold uppercase tracking-widest transition-colors"
+            <MotionButton animate={{ opacity: 1, x: 0 }} className="absolute top-4 left-4 z-50 flex items-center gap-2 px-4 py-2 text-[10px] font-semibold uppercase tracking-widest transition-colors" exit={{ opacity: 0, x: -20 }}
+              initial={{ opacity: 0, x: -20 }}
               style={{
                 background: "color-mix(in srgb, var(--bg-menu) 88%, transparent)",
                 border: "1px solid color-mix(in srgb, var(--primary) 30%, transparent)",
@@ -1971,7 +1971,8 @@ export default function MapaInteractivo() {
                 borderRadius: "2px",
                 letterSpacing: "0.12em",
                 boxShadow: "0 1px 4px rgba(0,0,0,0.3)",
-              }}>
+              }}
+              onClick={volverAlGlobal}>
               <ArrowLeft size={14} /> Volver
             </MotionButton>
           )}
@@ -1980,11 +1981,10 @@ export default function MapaInteractivo() {
         <AnimatePresence>
           {!panelOpen && (reinoSeleccionado || puntoSeleccionado) && (
             <MotionButton
-              initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              onClick={() => setPanelOpen(true)}
               className="absolute top-4 z-50 flex items-center gap-2.5 px-3 py-2 text-[10px] font-bold uppercase transition-all"
+              exit={{ opacity: 0, x: 20 }}
+              initial={{ opacity: 0, x: 20 }}
               style={{
                 right: "1rem",
                 background: "color-mix(in srgb, var(--bg-menu) 92%, transparent)",
@@ -1994,6 +1994,7 @@ export default function MapaInteractivo() {
                 letterSpacing: "0.12em",
                 boxShadow: "0 1px 4px rgba(0,0,0,0.3)",
               }}
+              onClick={() => setPanelOpen(true)}
             >
               <BookOpen size={13} />
               <span className="max-w-[120px] truncate" style={{ fontFamily: "'Cinzel', serif" }}>
@@ -2023,21 +2024,22 @@ export default function MapaInteractivo() {
             {/* Color swatch — opens native color picker */}
             <div className="relative">
               <button
-                onClick={() => fondoColorInputRef.current?.click()}
                 className="w-7 h-7 border-2 transition-all"
-                title="Elegir color manual"
                 style={{
                   background: fondoColor || "var(--bg-main)",
                   borderColor: "color-mix(in srgb, var(--accent) 50%, transparent)",
                   borderRadius: "1px",
                   boxShadow: "inset 0 0 0 1px rgba(0,0,0,0.2)",
                 }}
+                title="Elegir color manual"
+                onClick={() => fondoColorInputRef.current?.click()}
               />
               <input
                 ref={fondoColorInputRef}
-                type="color"
                 className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                type="color"
                 value={fondoColor || "#5a8fa8"}
+                onBlur={(e) => handleFondoColorChange(e.target.value)}
                 onChange={(e) => {
                   // Preview en tiempo real sin guardar en Supabase todavía
                   if (vistaActual === "reino" && reinoSeleccionado) {
@@ -2047,14 +2049,11 @@ export default function MapaInteractivo() {
                     setFondoColorGlobal(e.target.value);
                   }
                 }}
-                onBlur={(e) => handleFondoColorChange(e.target.value)}
               />
             </div>
 
             {/* Eyedropper button */}
             <button
-              onClick={() => setEyedropperActive(v => !v)}
-              title="Cuentagotas — click en el mapa para samplear"
               className="w-7 h-7 flex items-center justify-center border transition-all"
               style={{
                 background: eyedropperActive
@@ -2066,9 +2065,11 @@ export default function MapaInteractivo() {
                 color: eyedropperActive ? "var(--accent)" : "color-mix(in srgb, var(--foreground) 60%, transparent)",
                 borderRadius: "1px",
               }}
+              title="Cuentagotas — click en el mapa para samplear"
+              onClick={() => setEyedropperActive(v => !v)}
             >
               {/* Eyedropper SVG icon */}
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg fill="none" height="13" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" width="13">
                 <path d="m2 22 1-1h3l9-9"/>
                 <path d="M3 21v-3l9-9"/>
                 <path d="m15 6 3.4-3.4a2.1 2.1 0 1 1 3 3L18 9l.4.4a2.1 2.1 0 1 1-3 3l-3.8-3.8-1.6 1.6"/>
@@ -2078,8 +2079,6 @@ export default function MapaInteractivo() {
             {/* Reset */}
             {fondoColor && (
               <button
-                onClick={() => handleFondoColorChange("")}
-                title="Resetear a color del tema"
                 className="w-7 h-7 flex items-center justify-center border transition-all"
                 style={{
                   background: "color-mix(in srgb, var(--primary) 10%, transparent)",
@@ -2087,6 +2086,8 @@ export default function MapaInteractivo() {
                   color: "color-mix(in srgb, var(--foreground) 45%, transparent)",
                   borderRadius: "1px",
                 }}
+                title="Resetear a color del tema"
+                onClick={() => handleFondoColorChange("")}
               >
                 <X size={10} />
               </button>
@@ -2102,10 +2103,17 @@ export default function MapaInteractivo() {
         )}
 
         <CanvasMap
-          imageSrc={currentImage}
-          markers={editMode ? [...visibleMarkers, ...hiddenMarkers] : visibleMarkers}
-          hiddenMarkers={hiddenMarkers}
           editMode={editMode}
+          eyedropperActive={eyedropperActive}
+          fondoColor={fondoColor}
+          hiddenMarkers={hiddenMarkers}
+          imageSrc={currentImage}
+          isFirstOpen={isFirstOpen}
+          markers={editMode ? [...visibleMarkers, ...hiddenMarkers] : visibleMarkers}
+          selectedMarkerId={puntoSeleccionado?.id ?? reinoSeleccionado?.id ?? null}
+          tipo={vistaActual}
+          onEyedropperPick={handleFondoColorChange}
+          onMapClick={handleMapClick}
           onMarkerClick={(m) => {
             if (vistaActual === "global") {
               handleReinoClick(m);
@@ -2114,13 +2122,6 @@ export default function MapaInteractivo() {
               setPanelOpen(true);
             }
           }}
-          onMapClick={handleMapClick}
-          selectedMarkerId={puntoSeleccionado?.id ?? reinoSeleccionado?.id ?? null}
-          tipo={vistaActual}
-          isFirstOpen={isFirstOpen}
-          fondoColor={fondoColor}
-          eyedropperActive={eyedropperActive}
-          onEyedropperPick={handleFondoColorChange}
           onOpenPanel={isMobile && (reinoSeleccionado || puntoSeleccionado) ? () => setPanelOpen(true) : undefined}
         />
       </div>
@@ -2129,21 +2130,20 @@ export default function MapaInteractivo() {
       <AnimatePresence>
         {!isMobile && panelOpen && (reinoSeleccionado || puntoSeleccionado) && (
           <MotionDiv
-            initial={{ width: 0, opacity: 0 }}
             animate={{ width: 380, opacity: 1 }}
-            exit={{ width: 0, opacity: 0 }}
-            transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
             className="relative overflow-hidden shrink-0"
+            exit={{ width: 0, opacity: 0 }}
+            initial={{ width: 0, opacity: 0 }}
             style={{
               background: "var(--white-custom)",
               borderLeft: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
               boxShadow: "-20px 0 60px rgba(0,0,0,0.4)",
             }}
+            transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
           >
             <div className="absolute top-0 left-0 right-0 h-px"
               style={{ background: "linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 50%, transparent), transparent)" }} />
             <button
-              onClick={() => { setPanelOpen(false); setPuntoSeleccionado(null); }}
               className="absolute top-4 right-4 z-10 w-7 h-7 flex items-center justify-center transition-colors border"
               style={{
                 background: "color-mix(in srgb, var(--bg-main) 80%, transparent)",
@@ -2151,6 +2151,7 @@ export default function MapaInteractivo() {
                 color: "color-mix(in srgb, var(--foreground) 50%, transparent)",
                 borderRadius: "1px",
               }}
+              onClick={() => { setPanelOpen(false); setPuntoSeleccionado(null); }}
             >
               <X size={12} />
             </button>
@@ -2165,11 +2166,10 @@ export default function MapaInteractivo() {
       <AnimatePresence>
         {isMobile && panelOpen && (reinoSeleccionado || puntoSeleccionado) && (
           <MotionDiv
-            initial={{ y: "100%" }}
             animate={{ y: 0 }}
-            exit={{ y: "100%" }}
-            transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
             className="fixed left-0 right-0 z-999 overflow-hidden"
+            exit={{ y: "100%" }}
+            initial={{ y: "100%" }}
             style={{
               bottom: "56px",
               background: "var(--white-custom)",
@@ -2177,6 +2177,7 @@ export default function MapaInteractivo() {
               maxHeight: "60dvh",
               boxShadow: "0 -20px 60px rgba(0,0,0,0.5)",
             }}
+            transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
           >
             <div className="absolute top-0 left-0 right-0 h-px"
               style={{ background: "linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 60%, transparent), transparent)" }} />
@@ -2184,9 +2185,9 @@ export default function MapaInteractivo() {
               <div className="w-10 h-0.5" style={{ background: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
             </div>
             <button
-              onClick={() => { setPanelOpen(false); setPuntoSeleccionado(null); }}
               className="absolute top-3 right-4 w-7 h-7 flex items-center justify-center transition-colors"
               style={{ color: "color-mix(in srgb, var(--foreground) 50%, transparent)" }}
+              onClick={() => { setPanelOpen(false); setPuntoSeleccionado(null); }}
             >
               <X size={14} />
             </button>

@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
 import { PanelLeftClose, PanelLeftOpen, RefreshCw, Search, WifiOff, X } from "lucide-react";
+import React, { useState } from "react";
 
 export interface EstudioLayoutProps {
   titulo: string;
@@ -54,9 +54,9 @@ export function EstudioLayout({
       {!isOpen && (
         <div className="hidden md:flex shrink-0 w-10 flex-col items-center pt-6 gap-4 border-r border-primary/10 bg-bg-main">
           <button
-            onClick={() => setOpen(true)}
             className="p-2 rounded-xl hover:bg-primary/10 text-primary/30 hover:text-primary transition-all"
             title="Abrir panel"
+            onClick={() => setOpen(true)}
           >
             <PanelLeftOpen size={16} />
           </button>
@@ -88,17 +88,17 @@ export function EstudioLayout({
               <div className="flex items-center gap-1">
                 {onRefetch && (
                   <button
-                    onClick={onRefetch}
-                    title="Recargar"
                     className="p-1.5 rounded-lg hover:bg-primary/10 text-primary/30 hover:text-primary transition-all"
+                    title="Recargar"
+                    onClick={onRefetch}
                   >
                     <RefreshCw size={12} />
                   </button>
                 )}
                 <button
-                  onClick={() => setOpen(false)}
-                  title="Cerrar panel"
                   className="p-1.5 rounded-lg hover:bg-primary/10 text-primary/30 hover:text-primary transition-all"
+                  title="Cerrar panel"
+                  onClick={() => setOpen(false)}
                 >
                   <PanelLeftClose size={14} />
                 </button>
@@ -108,17 +108,17 @@ export function EstudioLayout({
             {}
             {onBusquedaChange && (
               <div className="relative">
-                <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-primary/30" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-primary/30" size={13} />
                 <input
+                  className="w-full bg-input-bg border border-primary/10 rounded-xl pl-9 pr-9 py-3 md:py-2.5 text-sm md:text-xs font-medium text-input-text outline-none focus:border-primary/30 placeholder:text-primary/25 transition-colors"
+                  placeholder={busquedaPlaceholder}
                   value={busqueda}
                   onChange={e => onBusquedaChange(e.target.value)}
-                  placeholder={busquedaPlaceholder}
-                  className="w-full bg-input-bg border border-primary/10 rounded-xl pl-9 pr-9 py-3 md:py-2.5 text-sm md:text-xs font-medium text-input-text outline-none focus:border-primary/30 placeholder:text-primary/25 transition-colors"
                 />
                 {busqueda && (
                   <button
-                    onClick={() => onBusquedaChange("")}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-primary/30 hover:text-primary"
+                    onClick={() => onBusquedaChange("")}
                   >
                     <X size={14} />
                   </button>
@@ -157,8 +157,8 @@ export function EstudioLayout({
         {!isOpen && (
           <div className="md:hidden shrink-0 px-4 py-2 border-b border-primary/10 flex items-center">
             <button
-              onClick={() => setOpen(true)}
               className="flex items-center gap-2 p-2 rounded-xl hover:bg-primary/10 text-primary/40 hover:text-primary transition-all"
+              onClick={() => setOpen(true)}
             >
               <PanelLeftOpen size={16} />
               <span className="text-[10px] font-black uppercase tracking-widest">Lista</span>

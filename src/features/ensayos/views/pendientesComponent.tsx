@@ -1,12 +1,14 @@
 "use client";
-import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { cn } from "@/lib/utils/index";
 import {
   Plus, Check, X, Music, BookOpen, Youtube, Headphones,
   Film, Gamepad2, Tv, Rss, ExternalLink, Loader2, ChevronDown, Pencil as PencilIcon,
   type LucideIcon,
 } from "lucide-react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+
+import { cn } from "@/lib/utils/index";
+
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -152,15 +154,15 @@ const IconSelector = ({ value, onChange }: { value: string; onChange: (v: string
     {CAT_ICONS.map(({ name, component: Icon, label }) => (
       <button
         key={name}
-        type="button"
-        title={label}
-        onClick={() => onChange(name)}
         className={cn(
           "w-8 h-8 rounded-[var(--radius-btn)] flex items-center justify-center transition-all border-[length:var(--border-width)]",
           value === name
             ? "bg-primary text-btn-text border-primary"
             : "bg-primary/5 text-primary/50 border-transparent hover:bg-primary/10 hover:text-primary/70"
         )}
+        title={label}
+        type="button"
+        onClick={() => onChange(name)}
       >
         <Icon size={14} />
       </button>
@@ -188,19 +190,19 @@ const FormNuevaCategoria = ({ onGuardar, onCancelar, guardando, orden }: FormNue
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: -6 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -6 }}
       className="bg-white-custom border-[length:var(--border-width)] border-primary/10 rounded-[var(--radius-card)] p-4 shadow-lg shadow-primary/5 mb-3 space-y-3"
+      exit={{ opacity: 0, y: -6 }}
+      initial={{ opacity: 0, y: -6 }}
     >
       <p className="text-[9px] font-black uppercase tracking-widest text-primary/40">Nueva categoría</p>
       <input
+        autoFocus
+        className={inputCls}
+        placeholder="Nombre de la categoría..."
         value={nombre}
         onChange={e => setNombre(e.target.value)}
-        placeholder="Nombre de la categoría..."
-        className={inputCls}
         onKeyDown={e => e.key === "Enter" && handleGuardar()}
-        autoFocus
       />
       <div>
         <p className="text-[9px] font-black uppercase tracking-widest text-primary/30 mb-1.5">Icono</p>
@@ -208,16 +210,16 @@ const FormNuevaCategoria = ({ onGuardar, onCancelar, guardando, orden }: FormNue
       </div>
       <div className="flex gap-2">
         <button
-          onClick={handleGuardar}
-          disabled={!nombre.trim() || guardando}
           className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text px-3 py-1.5 rounded-[var(--radius-btn)] hover:opacity-90 disabled:opacity-40 transition-all"
+          disabled={!nombre.trim() || guardando}
+          onClick={handleGuardar}
         >
-          {guardando ? <Loader2 size={10} className="animate-spin" /> : <Check size={10} />}
+          {guardando ? <Loader2 className="animate-spin" size={10} /> : <Check size={10} />}
           Guardar
         </button>
         <button
-          onClick={onCancelar}
           className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest bg-primary/8 text-primary px-3 py-1.5 rounded-[var(--radius-btn)] hover:bg-primary/12 transition-all"
+          onClick={onCancelar}
         >
           <X size={10} /> Cancelar
         </button>
@@ -247,15 +249,15 @@ const FormEditarCategoria = ({ cat, onGuardar, onCancelar, guardando }: FormEdit
   return (
     <div className="px-3 pb-3 border-t border-primary/5 pt-3 space-y-2.5">
       <p className="text-[9px] font-black uppercase tracking-widest text-primary/40">Editar categoría</p>
-      <input value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Nombre..." className={inputCls} onKeyDown={e => e.key === "Enter" && handleGuardar()} autoFocus />
+      <input autoFocus className={inputCls} placeholder="Nombre..." value={nombre} onChange={e => setNombre(e.target.value)} onKeyDown={e => e.key === "Enter" && handleGuardar()} />
       <div>
         <p className="text-[9px] font-black uppercase tracking-widest text-primary/30 mb-1.5">Icono</p>
         <IconSelector value={icon} onChange={setIcon} />
       </div>
       <div className="flex gap-2">
-        <button onClick={onCancelar} className="flex-1 py-1.5 rounded-[var(--radius-btn)] border-[length:var(--border-width)] border-primary/15 text-xs font-black text-primary/60 hover:bg-primary/4 transition-all">Cancelar</button>
-        <button onClick={handleGuardar} disabled={!nombre.trim() || guardando} className="flex-1 py-1.5 rounded-[var(--radius-btn)] bg-primary text-btn-text text-xs font-black hover:opacity-90 disabled:opacity-40 transition-all flex items-center justify-center gap-1.5">
-          {guardando ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
+        <button className="flex-1 py-1.5 rounded-[var(--radius-btn)] border-[length:var(--border-width)] border-primary/15 text-xs font-black text-primary/60 hover:bg-primary/4 transition-all" onClick={onCancelar}>Cancelar</button>
+        <button className="flex-1 py-1.5 rounded-[var(--radius-btn)] bg-primary text-btn-text text-xs font-black hover:opacity-90 disabled:opacity-40 transition-all flex items-center justify-center gap-1.5" disabled={!nombre.trim() || guardando} onClick={handleGuardar}>
+          {guardando ? <Loader2 className="animate-spin" size={12} /> : <Check size={12} />}
           Guardar
         </button>
       </div>
@@ -306,35 +308,37 @@ const FormNuevoItem = ({ categoriaId, orden, onGuardar, onCancelar }: FormNuevoI
 
   return (
     <motion.div
-      initial={{ opacity: 0, height: 0 }}
       animate={{ opacity: 1, height: "auto" }}
-      exit={{ opacity: 0, height: 0 }}
       className="overflow-hidden"
+      exit={{ opacity: 0, height: 0 }}
+      initial={{ opacity: 0, height: 0 }}
     >
       <div
         className={cn("pt-2 pb-1 space-y-1.5", dragOver && "ring-1 ring-primary/20 bg-primary/3 rounded-[var(--radius-btn)]")}
-        onDragOver={e => { e.preventDefault(); setDragOver(true); }}
         onDragLeave={() => setDragOver(false)}
+        onDragOver={e => { e.preventDefault(); setDragOver(true); }}
         onDrop={handleDrop}
       >
         <div className="relative">
           <input
+            autoFocus
+            className={inputCls}
+            disabled={fetchingTitle}
+            placeholder={fetchingTitle ? "" : "Título..."}
             value={titulo}
             onChange={e => setTitulo(e.target.value)}
-            placeholder={fetchingTitle ? "" : "Título..."}
-            className={inputCls}
             onKeyDown={e => e.key === "Enter" && handleGuardar()}
-            autoFocus
-            disabled={fetchingTitle}
           />
           {fetchingTitle && (
             <div className="absolute inset-0 flex items-center gap-2 px-3 pointer-events-none">
-              <Loader2 size={11} className="animate-spin text-primary/40" />
+              <Loader2 className="animate-spin text-primary/40" size={11} />
               <span className="text-xs font-bold text-primary/40">Obteniendo título…</span>
             </div>
           )}
         </div>
         <input
+          className={inputCls}
+          placeholder="URL (opcional)..."
           value={url}
           onChange={async e => {
             const val = e.target.value;
@@ -346,21 +350,19 @@ const FormNuevoItem = ({ categoriaId, orden, onGuardar, onCancelar }: FormNuevoI
               if (fetched) setTitulo(fetched);
             }
           }}
-          placeholder="URL (opcional)..."
-          className={inputCls}
         />
         <div className="flex gap-1.5 pt-0.5">
           <button
-            onClick={handleGuardar}
-            disabled={!titulo.trim() || guardando || fetchingTitle}
             className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text px-2.5 py-1.5 rounded-[var(--radius-btn)] hover:opacity-90 disabled:opacity-40 transition-all"
+            disabled={!titulo.trim() || guardando || fetchingTitle}
+            onClick={handleGuardar}
           >
-            {guardando ? <Loader2 size={9} className="animate-spin" /> : <Check size={9} />}
+            {guardando ? <Loader2 className="animate-spin" size={9} /> : <Check size={9} />}
             Añadir
           </button>
           <button
-            onClick={onCancelar}
             className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest bg-primary/8 text-primary px-2.5 py-1.5 rounded-[var(--radius-btn)] hover:bg-primary/12 transition-all"
+            onClick={onCancelar}
           >
             <X size={9} /> Cancelar
           </button>
@@ -384,23 +386,23 @@ const CardItem = ({ item, onToggle, onEliminar }: CardItemProps) => {
   return (
     <motion.div
       layout
-      initial={{ opacity: 0, x: -4 }}
       animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: 4, scale: 0.97 }}
       className={cn(
         "flex items-center gap-2 py-1 px-1.5 rounded group transition-all",
         item.hecho ? "opacity-35" : "hover:bg-primary/3"
       )}
+      exit={{ opacity: 0, x: 4, scale: 0.97 }}
+      initial={{ opacity: 0, x: -4 }}
     >
       {/* Checkbox */}
       <button
-        onClick={() => onToggle(item.id, !item.hecho)}
         className={cn(
           "w-3.5 h-3.5 rounded-[3px] border-[length:var(--border-width)] shrink-0 flex items-center justify-center transition-all",
           item.hecho ? "bg-primary/20 border-primary/20" : "bg-transparent border-primary/25 hover:border-primary/50"
         )}
+        onClick={() => onToggle(item.id, !item.hecho)}
       >
-        {item.hecho && <Check size={8} className="text-primary/60" />}
+        {item.hecho && <Check className="text-primary/60" size={8} />}
       </button>
 
       {/* Título */}
@@ -412,11 +414,11 @@ const CardItem = ({ item, onToggle, onEliminar }: CardItemProps) => {
       <div className="flex items-center gap-1 shrink-0">
         {item.url && (
           <a
-            href={cleanUrl(item.url)}
-            target="_blank"
-            rel="noopener noreferrer"
-            title={item.url}
             className="text-primary/30 hover:text-primary/60 transition-all"
+            href={cleanUrl(item.url)}
+            rel="noopener noreferrer"
+            target="_blank"
+            title={item.url}
             onClick={e => e.stopPropagation()}
           >
             {urlType === "youtube" && <Youtube size={11} />}
@@ -425,8 +427,8 @@ const CardItem = ({ item, onToggle, onEliminar }: CardItemProps) => {
           </a>
         )}
         <button
-          onClick={() => onEliminar(item.id)}
           className="opacity-0 group-hover:opacity-100 text-primary/20 hover:text-primary/60 transition-all"
+          onClick={() => onEliminar(item.id)}
         >
           <X size={11} />
         </button>
@@ -476,7 +478,7 @@ const CardCategoria = ({
   return (
     <div className="rounded-[var(--radius-card)] border-[length:var(--border-width)] border-primary/10 bg-white-custom overflow-hidden break-inside-avoid mb-3">
       {editando ? (
-        <FormEditarCategoria cat={cat} onGuardar={handleEditar} onCancelar={() => setEditando(false)} guardando={guardandoEdit} />
+        <FormEditarCategoria cat={cat} guardando={guardandoEdit} onCancelar={() => setEditando(false)} onGuardar={handleEditar} />
       ) : (
         <>
           {/* Header */}
@@ -495,14 +497,13 @@ const CardCategoria = ({
 
             <div className="flex items-center gap-1">
               <button
-                onClick={() => setEditando(true)}
                 className="w-6 h-6 flex items-center justify-center rounded text-primary/25 hover:text-primary/60 hover:bg-primary/8 transition-all"
                 title="Editar"
+                onClick={() => setEditando(true)}
               >
                 <PencilIcon size={11} />
               </button>
               <button
-                onClick={() => setAnadiendo(v => !v)}
                 className={cn(
                   "w-6 h-6 flex items-center justify-center rounded transition-all",
                   anadiendo
@@ -510,6 +511,7 @@ const CardCategoria = ({
                     : "text-primary/30 hover:bg-primary/8 hover:text-primary/60"
                 )}
                 title={anadiendo ? "Cancelar" : "Añadir ítem"}
+                onClick={() => setAnadiendo(v => !v)}
               >
                 {anadiendo ? <X size={11} /> : <Plus size={11} />}
               </button>
@@ -523,8 +525,8 @@ const CardCategoria = ({
                 <FormNuevoItem
                   categoriaId={cat.id}
                   orden={items.length}
-                  onGuardar={handleAddItem}
                   onCancelar={() => setAnadiendo(false)}
+                  onGuardar={handleAddItem}
                 />
               </div>
             )}
@@ -537,7 +539,7 @@ const CardCategoria = ({
             )}
             <AnimatePresence mode="popLayout">
               {pendientes.map(item => (
-                <CardItem key={item.id} item={item} onToggle={onToggleItem} onEliminar={onEliminarItem} />
+                <CardItem key={item.id} item={item} onEliminar={onEliminarItem} onToggle={onToggleItem} />
               ))}
             </AnimatePresence>
           </div>
@@ -546,8 +548,8 @@ const CardCategoria = ({
           {hechos.length > 0 && (
             <div className="border-t border-primary/5 px-3 py-1.5">
               <button
-                onClick={() => setMostrarHechos(v => !v)}
                 className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-primary/25 hover:text-primary/45 transition-all w-full"
+                onClick={() => setMostrarHechos(v => !v)}
               >
                 <motion.div animate={{ rotate: mostrarHechos ? 180 : 0 }} transition={{ duration: 0.2 }}>
                   <ChevronDown size={9} />
@@ -558,13 +560,13 @@ const CardCategoria = ({
               <AnimatePresence>
                 {mostrarHechos && (
                   <motion.div
-                    initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: "auto" }}
-                    exit={{ opacity: 0, height: 0 }}
                     className="overflow-hidden mt-0.5"
+                    exit={{ opacity: 0, height: 0 }}
+                    initial={{ opacity: 0, height: 0 }}
                   >
                     {hechos.map(item => (
-                      <CardItem key={item.id} item={item} onToggle={onToggleItem} onEliminar={onEliminarItem} />
+                      <CardItem key={item.id} item={item} onEliminar={onEliminarItem} onToggle={onToggleItem} />
                     ))}
                   </motion.div>
                 )}
@@ -575,8 +577,8 @@ const CardCategoria = ({
           {/* Eliminar categoría */}
           <div className="px-3 pb-2 pt-0.5">
             <button
-              onClick={() => onEliminarCat(cat.id)}
               className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-primary/15 hover:text-primary/40 transition-all"
+              onClick={() => onEliminarCat(cat.id)}
             >
               <X size={8} /> Eliminar
             </button>
@@ -704,8 +706,8 @@ export const PaginaPendientes = () => {
       <div className="flex items-center justify-between">
         <span className="text-[10px] font-black uppercase tracking-widest text-primary/30">Pendientes</span>
         <button
-          onClick={() => setCreandoCat(v => !v)}
           className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text px-3 py-1.5 rounded-[var(--radius-btn)] hover:opacity-90 transition-opacity"
+          onClick={() => setCreandoCat(v => !v)}
         >
           {creandoCat ? <X size={11} /> : <Plus size={11} />}
           {creandoCat ? "Cancelar" : "Nueva categoría"}
@@ -716,10 +718,10 @@ export const PaginaPendientes = () => {
       <AnimatePresence>
         {creandoCat && (
           <FormNuevaCategoria
-            onGuardar={handleGuardarCat}
-            onCancelar={() => setCreandoCat(false)}
             guardando={guardandoCat}
             orden={categorias.length}
+            onCancelar={() => setCreandoCat(false)}
+            onGuardar={handleGuardarCat}
           />
         )}
       </AnimatePresence>
@@ -727,12 +729,12 @@ export const PaginaPendientes = () => {
       {/* Lista */}
       {cargando ? (
         <div className="flex items-center justify-center py-10 gap-2 text-primary/40">
-          <Loader2 size={14} className="animate-spin" />
+          <Loader2 className="animate-spin" size={14} />
           <span className="text-xs font-bold">Cargando…</span>
         </div>
       ) : categorias.length === 0 && !creandoCat ? (
         <div className="text-center py-12">
-          <BookOpen size={28} className="mx-auto mb-2 text-primary/20" />
+          <BookOpen className="mx-auto mb-2 text-primary/20" size={28} />
           <p className="text-xs font-black text-primary/40 uppercase tracking-widest">Nada por aquí aún</p>
           <p className="text-[11px] text-primary/25 font-bold mt-1">Crea una categoría para empezar</p>
         </div>
@@ -745,18 +747,18 @@ export const PaginaPendientes = () => {
               <motion.div
                 key={cat.id}
                 layout
-                initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.97 }}
+                initial={{ opacity: 0, y: 8 }}
               >
                 <CardCategoria
                   cat={cat}
                   items={items.filter(i => i.categoria_id === cat.id)}
                   onAddItem={handleAddItem}
-                  onToggleItem={handleToggleItem}
-                  onEliminarItem={handleEliminarItem}
-                  onEliminarCat={handleEliminarCat}
                   onEditarCat={handleEditarCat}
+                  onEliminarCat={handleEliminarCat}
+                  onEliminarItem={handleEliminarItem}
+                  onToggleItem={handleToggleItem}
                 />
               </motion.div>
             ))}

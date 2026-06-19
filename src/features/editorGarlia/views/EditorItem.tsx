@@ -1,16 +1,19 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
 import { Package, Save, Trash2, Bug, Loader2, Wrench, X, MapPin, Globe, Camera, ChevronDown, Pencil, Search, Leaf } from "lucide-react";
-import { supabase } from "@/lib/api/client/supabase";
-import { db } from "@/lib/api/client/db";
+import React, { useState, useEffect, useCallback } from "react";
+
+import { MarkdownEditor, WikiEntity } from "@/components/forms/Markdown/MarkdownEditor";
 import { useConfirm } from "@/components/ui/ConfirmModal";
+import { SeccionEntidad } from "@/components/ui/SeccionEntidad";
+import SimpleImagePicker from "@/features/editorGarlia/components/editorCapitulos/snippets/forms/SimpleImagePicker";
+import { db } from "@/lib/api/client/db";
+import { supabase } from "@/lib/api/client/supabase";
+
 import { type Item, type SaveStatus } from "../components/types";
 import { SelectorImagen, SaveIndicator } from "../components/UIComponents";
-import { SeccionEntidad } from "@/components/ui/SeccionEntidad";
-import { MarkdownEditor, WikiEntity } from "@/components/forms/Markdown/MarkdownEditor";
 import { useWikilink } from "../components/WikilinkContext";
-import SimpleImagePicker from "@/features/editorGarlia/components/editorCapitulos/snippets/forms/SimpleImagePicker";
+
 
 
 // ─── Dexie helpers ────────────────────────────────────────────────────────────
@@ -125,16 +128,16 @@ function PanelCrafterSources({ itemId, onSelectCriatura }: { itemId: string; onS
 
   return (
     <SeccionEntidad
-      label="Criaturas"
-      icon={<Bug size={9} />}
-      fallbackIcon={<Bug size={9} />}
-      emptyLabel="Ninguna criatura asignada"
       allEntities={allCriaturas.map(c => ({ id: c.id, nombre: c.nombre, imagen_url: c.imagen_url }))}
-      selectedIds={crafters.map(c => c.criaturaId)}
+      emptyLabel="Ninguna criatura asignada"
+      fallbackIcon={<Bug size={9} />}
+      icon={<Bug size={9} />}
+      label="Criaturas"
       loading={loading}
       saving={saving}
-      onToggle={handleToggle}
+      selectedIds={crafters.map(c => c.criaturaId)}
       onEntityClick={onSelectCriatura}
+      onToggle={handleToggle}
     />
   );
 }
@@ -167,17 +170,17 @@ function PanelTerritorio({
 
   return (
     <SeccionEntidad
-      label="Territorio"
-      icon={<Globe size={9} />}
-      fallbackIcon={<Globe size={9} />}
-      emptyLabel="Sin territorio asignado"
       allEntities={allReinos.map(r => ({ id: r.id, nombre: r.nombre }))}
+      emptyLabel="Sin territorio asignado"
+      fallbackIcon={<Globe size={9} />}
       groups={[]}
-      selectedIds={value}
+      icon={<Globe size={9} />}
+      label="Territorio"
       loading={loadingReinos}
       saving={saving}
-      onToggle={handleToggle}
+      selectedIds={value}
       onEntityClick={id => onNavigateReino?.(id)}
+      onToggle={handleToggle}
     />
   );
 }
@@ -212,17 +215,17 @@ function PanelCiudades({
 
   return (
     <SeccionEntidad
-      label={reinosSeleccionados.length > 0 ? `Ciudades (${reinosSeleccionados.length})` : "Ciudades"}
-      icon={<MapPin size={9} />}
-      fallbackIcon={<MapPin size={9} />}
-      emptyLabel={reinosSeleccionados.length > 0 ? "Sin ciudades en estos reinos" : "Sin ciudades"}
       allEntities={ciudadesConReino.map(c => ({ id: c.id, nombre: c.nombre }))}
+      emptyLabel={reinosSeleccionados.length > 0 ? "Sin ciudades en estos reinos" : "Sin ciudades"}
+      fallbackIcon={<MapPin size={9} />}
       groups={[]}
-      selectedIds={ciudadRows.map(r => r.ciudadId)}
+      icon={<MapPin size={9} />}
+      label={reinosSeleccionados.length > 0 ? `Ciudades (${reinosSeleccionados.length})` : "Ciudades"}
       loading={loadingCiudades}
       saving={saving}
-      onToggle={handleToggle}
+      selectedIds={ciudadRows.map(r => r.ciudadId)}
       onEntityClick={id => onNavigateCiudad?.(id)}
+      onToggle={handleToggle}
     />
   );
 }
@@ -284,16 +287,16 @@ function PickerImagenItemBtn({ value, onChange }: { value: string; onChange: (ur
           <div className="bg-white-custom rounded-2xl shadow-2xl border border-primary/15 w-full max-w-lg p-5" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-2"><Camera size={11} /> Imagen del objeto</h3>
-              <button onClick={() => setOpen(false)} className="text-primary/30 hover:text-primary transition-colors"><X size={16} /></button>
+              <button className="text-primary/30 hover:text-primary transition-colors" onClick={() => setOpen(false)}><X size={16} /></button>
             </div>
-            <SimpleImagePicker onSelect={url => { onChange(url); setOpen(false); }} onClose={() => setOpen(false)} />
+            <SimpleImagePicker onClose={() => setOpen(false)} onSelect={url => { onChange(url); setOpen(false); }} />
           </div>
         </div>
       )}
       <button
-        onClick={() => setOpen(true)}
         className="flex items-center justify-center w-8 h-8 rounded-full bg-bg-main/80 backdrop-blur-sm border border-primary/20 text-primary/50 hover:text-primary hover:bg-bg-main transition-all shadow-md"
         title="Cambiar imagen"
+        onClick={() => setOpen(true)}
       >
         <Camera size={13} />
       </button>
@@ -366,7 +369,7 @@ function SelectorCategoriaGrupo({
   }, [open]);
 
   return (
-    <div className="space-y-1" ref={containerRef}>
+    <div ref={containerRef} className="space-y-1">
       {/* Label */}
       <div className="flex items-center gap-1.5">
         <Package size={9} style={{ color: "color-mix(in srgb, var(--primary) 38%, transparent)" }} />
@@ -381,7 +384,7 @@ function SelectorCategoriaGrupo({
       {loading ? (
         <div className="flex items-center gap-2 px-3 py-2 rounded-[var(--radius-btn)]"
           style={{ background: "color-mix(in srgb, var(--primary) 5%, transparent)", border }}>
-          <Loader2 size={10} className="animate-spin text-primary/30" />
+          <Loader2 className="animate-spin text-primary/30" size={10} />
           <span className="text-[10px] text-primary/30">Cargando…</span>
         </div>
       ) : grupoActual ? (
@@ -392,24 +395,24 @@ function SelectorCategoriaGrupo({
         >
           {/* Click en nombre → navegar al grupo */}
           <button
-            type="button"
-            onClick={() => onSelectGrupo?.(grupoActual.id)}
             className="flex-1 flex items-center gap-2 px-3 py-2 text-[11px] font-black uppercase truncate transition-all hover:bg-primary/5 min-w-0"
             style={{ color: "var(--primary)" }}
             title="Ir al grupo"
+            type="button"
+            onClick={() => onSelectGrupo?.(grupoActual.id)}
           >
             <span className="truncate">{grupoActual.nombre}</span>
           </button>
           {/* Lápiz → abrir dropdown */}
           <button
-            type="button"
-            onClick={() => { setOpen(o => !o); setSearch(""); }}
             className="shrink-0 flex items-center justify-center px-2.5 py-2 transition-all hover:bg-primary/10"
             style={{
               borderLeft: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
               color: "color-mix(in srgb, var(--primary) 35%, transparent)",
             }}
             title="Cambiar categoría"
+            type="button"
+            onClick={() => { setOpen(o => !o); setSearch(""); }}
           >
             <Pencil size={10} />
           </button>
@@ -417,19 +420,19 @@ function SelectorCategoriaGrupo({
       ) : (
         /* ── Sin valor: trigger vacío ───────────────────────────────────────── */
         <button
-          type="button"
-          onClick={() => setOpen(o => !o)}
           className="w-full flex items-center justify-between px-3 py-2 rounded-[var(--radius-btn)] text-[11px] font-bold transition-all"
           style={{
             background: "color-mix(in srgb, var(--primary) 5%, transparent)",
             border: open ? borderFocus : border,
             color: "color-mix(in srgb, var(--primary) 40%, transparent)",
           }}
+          type="button"
+          onClick={() => setOpen(o => !o)}
         >
           <span className="font-black uppercase text-[10px] tracking-wide">Sin categoría</span>
           <ChevronDown
-            size={12}
             className={`shrink-0 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+            size={12}
             style={{ opacity: 0.5 }}
           />
         </button>
@@ -453,16 +456,16 @@ function SelectorCategoriaGrupo({
             <Search size={11} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)", flexShrink: 0 }} />
             <input
               autoFocus
+              className="flex-1 bg-transparent outline-none text-[11px] font-bold uppercase tracking-wide placeholder:normal-case placeholder:font-medium placeholder:tracking-normal"
+              placeholder="Buscar categoría…"
+              style={{ color: "var(--primary)", caretColor: "var(--primary)" }}
               type="text"
               value={search}
               onChange={e => setSearch(e.target.value)}
               onKeyDown={e => e.key === "Escape" && (setOpen(false), setSearch(""))}
-              placeholder="Buscar categoría…"
-              className="flex-1 bg-transparent outline-none text-[11px] font-bold uppercase tracking-wide placeholder:normal-case placeholder:font-medium placeholder:tracking-normal"
-              style={{ color: "var(--primary)", caretColor: "var(--primary)" }}
             />
             {search && (
-              <button type="button" onClick={() => setSearch("")} className="opacity-30 hover:opacity-70 transition-opacity">
+              <button className="opacity-30 hover:opacity-70 transition-opacity" type="button" onClick={() => setSearch("")}>
                 <X size={10} style={{ color: "var(--primary)" }} />
               </button>
             )}
@@ -473,13 +476,13 @@ function SelectorCategoriaGrupo({
             {/* Opción "quitar" si hay valor */}
             {grupoActual && (
               <button
-                type="button"
-                onMouseDown={() => { onChange(null); setOpen(false); setSearch(""); }}
                 className="w-full flex items-center gap-2 px-4 py-2.5 text-[11px] font-bold uppercase transition-all hover:bg-primary/5"
                 style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}
+                type="button"
+                onMouseDown={() => { onChange(null); setOpen(false); setSearch(""); }}
               >
                 <span className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center">
-                  <X size={9} className="opacity-50" />
+                  <X className="opacity-50" size={9} />
                 </span>
                 Sin categoría
               </button>
@@ -501,10 +504,10 @@ function SelectorCategoriaGrupo({
               disponibles.map(g => (
                 <button
                   key={g.id}
-                  type="button"
-                  onMouseDown={() => { onChange(g.nombre); setOpen(false); setSearch(""); }}
                   className="w-full flex items-center justify-between px-4 py-2.5 text-[11px] font-bold uppercase transition-all hover:bg-primary/6"
                   style={{ color: "color-mix(in srgb, var(--primary) 50%, transparent)" }}
+                  type="button"
+                  onMouseDown={() => { onChange(g.nombre); setOpen(false); setSearch(""); }}
                 >
                   <span className="truncate">{g.nombre}</span>
                 </button>
@@ -582,25 +585,25 @@ export function EditorItem({
       >
         <div className="shrink-0 w-9 h-9 rounded-xl overflow-hidden border border-primary/15 bg-primary/5 flex items-center justify-center">
           {form.imagen_url
-            ? <img src={form.imagen_url} alt={form.nombre} className="w-full h-full object-cover" />
-            : <Package size={16} className="text-primary/25" />}
+            ? <img alt={form.nombre} className="w-full h-full object-cover" src={form.imagen_url} />
+            : <Package className="text-primary/25" size={16} />}
         </div>
 
         <input
+          className="flex-1 min-w-0 bg-transparent text-sm font-black text-primary outline-none placeholder:text-primary/25"
+          placeholder="Nombre del objeto"
           value={form.nombre ?? ""}
           onChange={field("nombre")}
-          placeholder="Nombre del objeto"
-          className="flex-1 min-w-0 bg-transparent text-sm font-black text-primary outline-none placeholder:text-primary/25"
         />
 
         <div className="shrink-0 flex items-center gap-2">
           <SaveIndicator status={status} />
-          <button onClick={del}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all">
+          <button className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all"
+            onClick={del}>
             <Trash2 size={10} />
           </button>
-          <button onClick={save} disabled={status === "saving"}
-            className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50">
+          <button className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50" disabled={status === "saving"}
+            onClick={save}>
             <Save size={11} /> Guardar
           </button>
         </div>
@@ -615,8 +618,8 @@ export function EditorItem({
                 {/* Mobile: imagen con botón flotante (igual que personaje) */}
                 <div className="sm:hidden relative w-full rounded-xl overflow-hidden border border-primary/10 bg-primary/3" style={{ aspectRatio: "1 / 1" }}>
                   {form.imagen_url
-                    ? <img src={form.imagen_url} alt={form.nombre} className="w-full h-full object-cover" />
-                    : <div className="w-full h-full flex items-center justify-center"><Package size={48} className="text-primary/15" /></div>
+                    ? <img alt={form.nombre} className="w-full h-full object-cover" src={form.imagen_url} />
+                    : <div className="w-full h-full flex items-center justify-center"><Package className="text-primary/15" size={48} /></div>
                   }
                   <div className="absolute top-2 right-2 z-10">
                     <PickerImagenItemBtn
@@ -627,9 +630,9 @@ export function EditorItem({
                 </div>
                 {/* Desktop: selector normal */}
                 <div className="hidden sm:block w-full">
-                  <SelectorImagen label="Imagen" value={form.imagen_url ?? ""}
-                    onChange={url => setForm(f => ({ ...f, imagen_url: url }))} aspect="square"
-                    placeholder={<Package size={20} className="opacity-20" />} />
+                  <SelectorImagen aspect="square" label="Imagen"
+                    placeholder={<Package className="opacity-20" size={20} />} value={form.imagen_url ?? ""}
+                    onChange={url => setForm(f => ({ ...f, imagen_url: url }))} />
                 </div>
               </div>
 
@@ -664,14 +667,14 @@ export function EditorItem({
                         const isSelected = form.origen === op;
                         const Icon = op === "Natural" ? Leaf : Wrench;
                         return (
-                          <button key={op} type="button"
-                            onClick={() => setForm(f => ({ ...f, origen: isSelected ? null : op, sub_origen: null }))}
-                            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[9px] font-black uppercase tracking-widest transition-all"
+                          <button key={op} className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[9px] font-black uppercase tracking-widest transition-all"
                             style={{
                               borderRight: i === 0 ? "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" : undefined,
                               background: isSelected ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent",
                               color: isSelected ? "var(--primary)" : "color-mix(in srgb, var(--primary) 30%, transparent)",
                             }}
+                            type="button"
+                            onClick={() => setForm(f => ({ ...f, origen: isSelected ? null : op, sub_origen: null }))}
                           >
                             <Icon size={10} /> {op}
                           </button>
@@ -687,13 +690,13 @@ export function EditorItem({
                           {(["Criatura"] as const).map((sub) => {
                             const isSelected = form.sub_origen === sub;
                             return (
-                              <button key={sub} type="button"
-                                onClick={() => setForm(f => ({ ...f, sub_origen: isSelected ? null : sub }))}
-                                className="flex-1 flex items-center justify-center gap-1.5 py-2 text-[9px] font-black uppercase tracking-widest transition-all"
+                              <button key={sub} className="flex-1 flex items-center justify-center gap-1.5 py-2 text-[9px] font-black uppercase tracking-widest transition-all"
                                 style={{
                                   background: isSelected ? "color-mix(in srgb, var(--primary) 7%, transparent)" : "color-mix(in srgb, var(--primary) 2%, transparent)",
                                   color: isSelected ? "var(--primary)" : "color-mix(in srgb, var(--primary) 25%, transparent)",
                                 }}
+                                type="button"
+                                onClick={() => setForm(f => ({ ...f, sub_origen: isSelected ? null : sub }))}
                               >
                                 <Bug size={9} /> {sub}
                               </button>
@@ -729,8 +732,8 @@ export function EditorItem({
                   {/* Columna Ciudades */}
                   <div className="flex-1 min-w-0">
                     <PanelCiudades
-                      reinosSeleccionados={form.reino_ids ?? []}
                       itemId={form.id}
+                      reinosSeleccionados={form.reino_ids ?? []}
                       onNavigateCiudad={onNavigateCiudad}
                     />
                   </div>
@@ -740,14 +743,14 @@ export function EditorItem({
                 <div className="space-y-1.5">
                   <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Descripción</label>
                   <MarkdownEditor
-                    value={form.descripcion ?? ""}
-                    onChange={v => setForm(f => ({ ...f, descripcion: v }))}
-                    rows={10}
-                    placeholder="Qué es, qué hace, su historia…"
                     toolbar
                     defaultMode="edit"
+                    entities={entities}
+                    placeholder="Qué es, qué hace, su historia…"
+                    rows={10}
+                    value={form.descripcion ?? ""}
+                            onChange={v => setForm(f => ({ ...f, descripcion: v }))}
                             onSnippetAction={onSnippetAction}
-                            entities={entities}
           />
                 </div>
               </div>

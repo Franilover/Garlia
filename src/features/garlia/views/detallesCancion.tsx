@@ -1,12 +1,13 @@
 "use client";
-import { MotionDiv } from "@/components/ui/Motion";
-import React, { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { supabase } from "@/lib/api/client/supabase";
 import { AlertCircle, Music, ExternalLink, ChevronLeft, Info, FileText } from "lucide-react";
-import { SmartImage } from "@/components/ui/SmartImage";
+import { useParams, useRouter } from "next/navigation";
+import React, { useEffect, useState } from "react";
+
 import { Btn, Loading } from "@/components/ui";
+import { MotionDiv } from "@/components/ui/Motion";
+import { SmartImage } from "@/components/ui/SmartImage";
 import { db } from "@/lib/api/client/db";
+import { supabase } from "@/lib/api/client/supabase";
 import { toSlug, esUUID } from "@/lib/utils/slugify";
 
 function useIsMobile() {
@@ -131,9 +132,9 @@ function CoverFlip({
           {/* Filtro sepia sobre la imagen */}
           <div style={{ width: "100%", height: "100%", filter: "sepia(25%) contrast(0.93) brightness(0.93)" }}>
             <SmartImage
-              src={portada_url || "/placeholder-cover.jpg"}
               alt={titulo}
               className="w-full h-full object-cover"
+              src={portada_url || "/placeholder-cover.jpg"}
             />
           </div>
           {/* Esquina doblada estilo papel antiguo */}
@@ -324,7 +325,7 @@ useEffect(() => {
         <p className="text-primary uppercase text-[10px] tracking-widest italic font-black">
           Canción no encontrada
         </p>
-        <Btn onClick={() => router.push("/garlia/canciones")} className="mt-4 rounded-full">
+        <Btn className="mt-4 rounded-full" onClick={() => router.push("/garlia/canciones")}>
           Volver
         </Btn>
       </div>
@@ -352,7 +353,6 @@ useEffect(() => {
         {/* Botón volver */}
         <div style={{ padding: "16px 24px 0" }}>
           <button
-            onClick={() => router.push("/garlia/canciones")}
             style={{
               background: "none",
               border: "none",
@@ -369,6 +369,7 @@ useEffect(() => {
               gap: 4,
               transition: "opacity 0.15s",
             }}
+            onClick={() => router.push("/garlia/canciones")}
           >
             <ChevronLeft size={10} />
             Volver
@@ -378,11 +379,11 @@ useEffect(() => {
         {/* ── Hero con imagen con márgenes y flip igual que desktop ── */}
         <div style={{ padding: "20px 24px 0", display: "flex", justifyContent: "center" }}>
           <CoverFlip
-            portada_url={cancion?.portada_url}
-            titulo={cancion?.titulo ?? ""}
-            info={cancion?.info_cancion}
             border={border}
+            info={cancion?.info_cancion}
+            portada_url={cancion?.portada_url}
             size="min(100%, 400px)"
+            titulo={cancion?.titulo ?? ""}
           />
         </div>
 
@@ -421,10 +422,10 @@ useEffect(() => {
         {/* ── Links ── */}
         {cancion?.links && cancion.links.length > 0 && (
           <MotionDiv
-            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: 0.15 }}
+            initial={{ opacity: 0, y: 10 }}
             style={{ padding: "18px 32px 0" }}
+            transition={{ duration: 0.3, delay: 0.15 }}
           >
             <div
               style={{
@@ -439,7 +440,6 @@ useEffect(() => {
                 <a
                   key={i}
                   href={link.url}
-                  target="_blank"
                   rel="noopener noreferrer"
                   style={{
                     display: "flex",
@@ -457,6 +457,7 @@ useEffect(() => {
                     flexShrink: 0,
                     background: "color-mix(in srgb, var(--primary) 4%, transparent)",
                   }}
+                  target="_blank"
                 >
                   {link.titulo}
                   <ExternalLink size={9} style={{ opacity: 0.5 }} />
@@ -505,10 +506,10 @@ useEffect(() => {
                 return (
                   <MotionDiv
                     key={sec.id}
-                    initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3, delay: 0.1 + i * 0.04 }}
+                    initial={{ opacity: 0, y: 8 }}
                     style={{ paddingBottom: 40 }}
+                    transition={{ duration: 0.3, delay: 0.1 + i * 0.04 }}
                   >
                     {sec.nombre_seccion && (
                       <p
@@ -593,9 +594,8 @@ useEffect(() => {
     >
       {/* ── Columna izquierda: 50%, scrolleable ── */}
       <MotionDiv
-        initial={{ opacity: 0, x: -16 }}
         animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.4 }}
+        initial={{ opacity: 0, x: -16 }}
         style={{
           flex: "0 0 50%",
           display: "flex",
@@ -605,11 +605,11 @@ useEffect(() => {
           padding: "40px clamp(24px, 4vw, 56px)",
           gap: 32,
         }}
+        transition={{ duration: 0.4 }}
       >
         {/* Volver */}
         <div>
           <button
-            onClick={() => router.push("/garlia/canciones")}
             style={{
               background: "none",
               border: "none",
@@ -623,6 +623,7 @@ useEffect(() => {
               opacity: 0.3,
               transition: "opacity 0.15s",
             }}
+            onClick={() => router.push("/garlia/canciones")}
             onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.7")}
             onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.3")}
           >
@@ -633,11 +634,11 @@ useEffect(() => {
         {/* Imagen con flip a info */}
         <div style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
           <CoverFlip
-            portada_url={cancion?.portada_url}
-            titulo={cancion?.titulo ?? ""}
-            info={cancion?.info_cancion}
             border={border}
+            info={cancion?.info_cancion}
+            portada_url={cancion?.portada_url}
             size="clamp(250px, 80%, 480px)"
+            titulo={cancion?.titulo ?? ""}
           />
         </div>
 
@@ -678,7 +679,6 @@ useEffect(() => {
                 <a
                   key={i}
                   href={link.url}
-                  target="_blank"
                   rel="noopener noreferrer"
                   style={{
                     display: "flex",
@@ -694,6 +694,7 @@ useEffect(() => {
                     opacity: 0.7,
                     transition: "opacity 0.15s",
                   }}
+                  target="_blank"
                   onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
                   onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.7")}
                 >
@@ -708,15 +709,15 @@ useEffect(() => {
 
       {/* ── Columna derecha: letra, scrolleable ── */}
       <MotionDiv
-        initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.1 }}
+        initial={{ opacity: 0, y: 12 }}
         style={{
           flex: 1,
           overflowY: "auto",
           height: "100%",
           padding: "48px clamp(24px, 4vw, 64px)",
         }}
+        transition={{ duration: 0.4, delay: 0.1 }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 10, paddingBottom: 20 }}>
           <Music size={11} style={{ color: "var(--primary)", opacity: 0.3 }} />
@@ -742,8 +743,8 @@ useEffect(() => {
               return (
                 <MotionDiv
                   key={sec.id}
-                  initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
+                  initial={{ opacity: 0, y: 8 }}
                   transition={{ duration: 0.3, delay: 0.15 + i * 0.05 }}
                 >
                   {sec.nombre_seccion && (
@@ -818,7 +819,6 @@ function InfoFlipMobile({ info, border }: { info: string; border: string }) {
   return (
     <div>
       <button
-        onClick={() => setOpen((o) => !o)}
         style={{
           width: "100%",
           display: "flex",
@@ -832,6 +832,7 @@ function InfoFlipMobile({ info, border }: { info: string; border: string }) {
           color: "var(--primary)",
           transition: "border-radius 0.2s",
         }}
+        onClick={() => setOpen((o) => !o)}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <Info size={10} style={{ opacity: 0.5 }} />
@@ -863,9 +864,8 @@ function InfoFlipMobile({ info, border }: { info: string; border: string }) {
 
       {open && (
         <MotionDiv
-          initial={{ opacity: 0, y: -4 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.2 }}
+          initial={{ opacity: 0, y: -4 }}
           style={{
             border,
             borderTop: "none",
@@ -873,6 +873,7 @@ function InfoFlipMobile({ info, border }: { info: string; border: string }) {
             padding: "14px 16px 16px",
             background: "color-mix(in srgb, var(--primary) 3%, transparent)",
           }}
+          transition={{ duration: 0.2 }}
         >
           <p
             style={{

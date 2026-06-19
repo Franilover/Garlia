@@ -1,17 +1,20 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
   Sparkles, Star, Plus, Trash2, Save, Loader2, Search, X, Layers, Check, ScrollText, Camera,
 } from "lucide-react";
-import { supabase } from "@/lib/api/client/supabase";
-import { db } from "@/lib/api/client/db";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
+
+import { MarkdownEditor } from "@/components/forms/Markdown/MarkdownEditor";
 import { useConfirm } from "@/components/ui/ConfirmModal";
+import SimpleImagePicker from "@/features/editorGarlia/components/editorCapitulos/snippets/forms/SimpleImagePicker";
+import { db } from "@/lib/api/client/db";
+import { supabase } from "@/lib/api/client/supabase";
+
 import { type SaveStatus } from "../components/types";
 import { SaveIndicator } from "../components/UIComponents";
-import { MarkdownEditor } from "@/components/forms/Markdown/MarkdownEditor";
 import { useWikilink } from "../components/WikilinkContext";
-import SimpleImagePicker from "@/features/editorGarlia/components/editorCapitulos/snippets/forms/SimpleImagePicker";
+
 
 // ─── Botón mobile para cambiar imagen de una runa ────────────────────────────
 function PickerImagenRunaBtn({ value, onChange, color, Icon }: {
@@ -28,16 +31,16 @@ function PickerImagenRunaBtn({ value, onChange, color, Icon }: {
           <div className="bg-white-custom rounded-2xl shadow-2xl border border-primary/15 w-full max-w-lg p-5" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-2"><Camera size={11} /> Imagen de la runa</h3>
-              <button onClick={() => setOpen(false)} className="text-primary/30 hover:text-primary transition-colors"><X size={16} /></button>
+              <button className="text-primary/30 hover:text-primary transition-colors" onClick={() => setOpen(false)}><X size={16} /></button>
             </div>
-            <SimpleImagePicker onSelect={url => { onChange(url); setOpen(false); }} onClose={() => setOpen(false)} />
+            <SimpleImagePicker onClose={() => setOpen(false)} onSelect={url => { onChange(url); setOpen(false); }} />
           </div>
         </div>
       )}
       <button
-        onClick={() => setOpen(true)}
         className="flex items-center justify-center w-8 h-8 rounded-full bg-bg-main/80 backdrop-blur-sm border border-primary/20 text-primary/50 hover:text-primary hover:bg-bg-main transition-all shadow-md"
         title="Cambiar imagen"
+        onClick={() => setOpen(true)}
       >
         <Camera size={13} />
       </button>
@@ -198,16 +201,16 @@ function FilaGrupo({ grupo, onQuitar, color }: {
     >
       <div className="flex items-center gap-2.5 px-3 py-2">
         <div className="shrink-0 w-7 h-7 rounded-lg border border-primary/10 bg-primary/5 flex items-center justify-center">
-          <Layers size={11} className="text-primary/30" />
+          <Layers className="text-primary/30" size={11} />
         </div>
         <div className="flex-1 min-w-0">
           <span className="text-[11px] font-bold text-primary/85 truncate block">{grupo.nombre}</span>
           <span className="text-[9px] text-primary/30">{grupo.miembro_ids.length} criaturas</span>
         </div>
         <button
-          onClick={onQuitar}
           className="w-6 h-6 rounded-lg flex items-center justify-center text-primary/20 hover:text-red-400 hover:bg-red-400/10 transition-all"
           title="Quitar grupo"
+          onClick={onQuitar}
         >
           <X size={10} />
         </button>
@@ -248,15 +251,15 @@ function SelectorAgregarGrupo({ grupos, loadingGrupos, asignados, onAgregar, col
   }, [open]);
 
   return (
-    <div className="relative" ref={ref}>
+    <div ref={ref} className="relative">
       <button
-        type="button"
-        onClick={() => setOpen(o => !o)}
         className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl border border-dashed text-[9px] font-black uppercase tracking-widest transition-all"
         style={{
           borderColor: `color-mix(in srgb, ${color} 22%, transparent)`,
           color: `color-mix(in srgb, ${color} 55%, transparent)`,
         }}
+        type="button"
+        onClick={() => setOpen(o => !o)}
         onMouseEnter={e => {
           (e.currentTarget as HTMLElement).style.background = `color-mix(in srgb, ${color} 6%, transparent)`;
           (e.currentTarget as HTMLElement).style.color = color;
@@ -278,19 +281,19 @@ function SelectorAgregarGrupo({ grupos, loadingGrupos, asignados, onAgregar, col
           >
             <div className="p-2 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
               <div className="relative">
-                <Search size={9} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-primary/25" />
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-primary/25" size={9} />
                 <input
                   autoFocus
+                  className="w-full bg-primary/5 border border-primary/10 rounded-lg pl-7 pr-2 py-1.5 text-[10px] outline-none focus:border-primary/25 text-primary placeholder:text-primary/25"
+                  placeholder="Buscar grupo…"
                   value={search}
                   onChange={e => setSearch(e.target.value)}
-                  placeholder="Buscar grupo…"
-                  className="w-full bg-primary/5 border border-primary/10 rounded-lg pl-7 pr-2 py-1.5 text-[10px] outline-none focus:border-primary/25 text-primary placeholder:text-primary/25"
                 />
               </div>
             </div>
             <div className="max-h-52 overflow-y-auto p-1">
               {loadingGrupos ? (
-                <div className="flex justify-center py-6"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
+                <div className="flex justify-center py-6"><Loader2 className="animate-spin text-primary/20" size={14} /></div>
               ) : disponibles.length === 0 ? (
                 <p className="text-[9px] text-primary/25 text-center py-4 italic">
                   {grupos.length === asignados.length ? "Todos los grupos ya están asignados" : "Sin resultados"}
@@ -298,17 +301,17 @@ function SelectorAgregarGrupo({ grupos, loadingGrupos, asignados, onAgregar, col
               ) : disponibles.map(g => (
                 <button
                   key={g.id}
-                  onMouseDown={() => { onAgregar(g); setSearch(""); }}
                   className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left hover:bg-primary/6 transition-colors"
+                  onMouseDown={() => { onAgregar(g); setSearch(""); }}
                 >
                   <div className="shrink-0 w-6 h-6 rounded-lg border border-primary/10 bg-primary/5 flex items-center justify-center">
-                    <Layers size={10} className="text-primary/25" />
+                    <Layers className="text-primary/25" size={10} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <span className="text-[11px] font-medium text-primary/80 truncate block">{g.nombre}</span>
                     <span className="text-[9px] text-primary/30">{g.miembro_ids.length} criaturas</span>
                   </div>
-                  <Check size={9} className="text-primary/15" />
+                  <Check className="text-primary/15" size={9} />
                 </button>
               ))}
             </div>
@@ -351,7 +354,7 @@ function PanelGruposAsignados({ entidadId, modo, grupoIds, onGrupoIdsChange, gru
 
       {loadingGrupos ? (
         <div className="flex items-center gap-2 py-2">
-          <Loader2 size={11} className="animate-spin text-primary/20" />
+          <Loader2 className="animate-spin text-primary/20" size={11} />
           <span className="text-[10px] text-primary/25 italic">Cargando grupos…</span>
         </div>
       ) : (
@@ -365,18 +368,18 @@ function PanelGruposAsignados({ entidadId, modo, grupoIds, onGrupoIdsChange, gru
           {asignados.map(g => (
             <FilaGrupo
               key={g.id}
-              grupo={g}
               color={color}
+              grupo={g}
               onQuitar={() => quitar(g.id)}
             />
           ))}
 
           <SelectorAgregarGrupo
+            asignados={grupoIds}
+            color={color}
             grupos={grupos}
             loadingGrupos={loadingGrupos}
-            asignados={grupoIds}
             onAgregar={agregar}
-            color={color}
           />
         </div>
       )}
@@ -447,20 +450,20 @@ function FormularioMagico({ item, modo, grupos, loadingGrupos, onSaved, onDelete
             <cfg.Icon size={15} style={{ color: cfg.color }} />
           </div>
           <input
+            className="flex-1 min-w-0 bg-transparent text-sm font-black text-primary outline-none placeholder:text-primary/25"
+            placeholder={`Nombre del ${cfg.labelSing.toLowerCase()}…`}
             value={form.nombre ?? ""}
             onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))}
-            placeholder={`Nombre del ${cfg.labelSing.toLowerCase()}…`}
-            className="flex-1 min-w-0 bg-transparent text-sm font-black text-primary outline-none placeholder:text-primary/25"
           />
         </div>
         <div className="flex items-center justify-end gap-2">
           <SaveIndicator status={status} />
-          <button onClick={del}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all">
+          <button className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all"
+            onClick={del}>
             <Trash2 size={10} />
           </button>
-          <button onClick={save} disabled={status === "saving"}
-            className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50">
+          <button className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50" disabled={status === "saving"}
+            onClick={save}>
             <Save size={11} /> Guardar
           </button>
         </div>
@@ -477,30 +480,30 @@ function FormularioMagico({ item, modo, grupos, loadingGrupos, onSaved, onDelete
               {/* Mobile: imagen con botón flotante */}
               <div className="sm:hidden relative w-full rounded-xl overflow-hidden border border-primary/10 bg-primary/3" style={{ aspectRatio: "1 / 1" }}>
                 {(form as any).imagen_url
-                  ? <img src={(form as any).imagen_url} alt={form.nombre} className="w-full h-full object-cover" />
+                  ? <img alt={form.nombre} className="w-full h-full object-cover" src={(form as any).imagen_url} />
                   : <div className="w-full h-full flex items-center justify-center"><cfg.Icon size={64} style={{ color: cfg.color, opacity: 0.15 }} /></div>
                 }
                 <div className="absolute top-2 right-2 z-10">
                   <PickerImagenRunaBtn
+                    Icon={cfg.Icon}
+                    color={cfg.color}
                     value={(form as any).imagen_url ?? ""}
                     onChange={url => setForm(f => ({ ...f, imagen_url: url } as any))}
-                    color={cfg.color}
-                    Icon={cfg.Icon}
                   />
                 </div>
               </div>
               {/* Desktop: imagen grande con overlay de cambio */}
               <div className="hidden sm:block relative w-full rounded-xl overflow-hidden border border-primary/10 bg-primary/3" style={{ aspectRatio: "1 / 1" }}>
                 {(form as any).imagen_url
-                  ? <img src={(form as any).imagen_url} alt={form.nombre} className="w-full h-full object-cover" />
+                  ? <img alt={form.nombre} className="w-full h-full object-cover" src={(form as any).imagen_url} />
                   : <div className="w-full h-full flex items-center justify-center"><cfg.Icon size={64} style={{ color: cfg.color, opacity: 0.15 }} /></div>
                 }
                 <div className="absolute top-2 right-2 z-10">
                   <PickerImagenRunaBtn
+                    Icon={cfg.Icon}
+                    color={cfg.color}
                     value={(form as any).imagen_url ?? ""}
                     onChange={url => setForm(f => ({ ...f, imagen_url: url } as any))}
-                    color={cfg.color}
-                    Icon={cfg.Icon}
                   />
                 </div>
               </div>
@@ -514,12 +517,12 @@ function FormularioMagico({ item, modo, grupos, loadingGrupos, onSaved, onDelete
               <div className="space-y-1.5">
                 <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">Explicación</label>
                 <MarkdownEditor
-                  value={form.explicacion ?? ""}
-                  onChange={v => setForm(f => ({ ...f, explicacion: v }))}
-                  rows={16}
-                  placeholder={cfg.placeholder}
                   toolbar
                   defaultMode="edit"
+                  placeholder={cfg.placeholder}
+                  rows={16}
+                  value={form.explicacion ?? ""}
+                  onChange={v => setForm(f => ({ ...f, explicacion: v }))}
                   onSnippetAction={onSnippetAction}
                 />
               </div>
@@ -536,30 +539,30 @@ function FormularioMagico({ item, modo, grupos, loadingGrupos, onSaved, onDelete
               {/* Mobile: imagen con botón flotante */}
               <div className="sm:hidden relative w-full rounded-xl overflow-hidden border border-primary/10 bg-primary/3" style={{ aspectRatio: "1 / 1" }}>
                 {(form as any).imagen_url
-                  ? <img src={(form as any).imagen_url} alt={form.nombre} className="w-full h-full object-cover" />
+                  ? <img alt={form.nombre} className="w-full h-full object-cover" src={(form as any).imagen_url} />
                   : <div className="w-full h-full flex items-center justify-center"><cfg.Icon size={64} style={{ color: cfg.color, opacity: 0.15 }} /></div>
                 }
                 <div className="absolute top-2 right-2 z-10">
                   <PickerImagenRunaBtn
+                    Icon={cfg.Icon}
+                    color={cfg.color}
                     value={(form as any).imagen_url ?? ""}
                     onChange={url => setForm(f => ({ ...f, imagen_url: url } as any))}
-                    color={cfg.color}
-                    Icon={cfg.Icon}
                   />
                 </div>
               </div>
               {/* Desktop: imagen grande con overlay de cambio */}
               <div className="hidden sm:block relative w-full rounded-xl overflow-hidden border border-primary/10 bg-primary/3" style={{ aspectRatio: "1 / 1" }}>
                 {(form as any).imagen_url
-                  ? <img src={(form as any).imagen_url} alt={form.nombre} className="w-full h-full object-cover" />
+                  ? <img alt={form.nombre} className="w-full h-full object-cover" src={(form as any).imagen_url} />
                   : <div className="w-full h-full flex items-center justify-center"><cfg.Icon size={64} style={{ color: cfg.color, opacity: 0.15 }} /></div>
                 }
                 <div className="absolute top-2 right-2 z-10">
                   <PickerImagenRunaBtn
+                    Icon={cfg.Icon}
+                    color={cfg.color}
                     value={(form as any).imagen_url ?? ""}
                     onChange={url => setForm(f => ({ ...f, imagen_url: url } as any))}
-                    color={cfg.color}
-                    Icon={cfg.Icon}
                   />
                 </div>
               </div>
@@ -571,23 +574,23 @@ function FormularioMagico({ item, modo, grupos, loadingGrupos, onSaved, onDelete
             {/* Columna derecha: grupos + explicación */}
             <div className="flex-1 min-w-0 p-4 space-y-4">
               <PanelGruposAsignados
+                color={cfg.color}
                 entidadId={form.id}
-                modo={modo}
                 grupoIds={form.grupo_ids ?? []}
-                onGrupoIdsChange={ids => setForm(f => ({ ...f, grupo_ids: ids }))}
                 grupos={grupos}
                 loadingGrupos={loadingGrupos}
-                color={cfg.color}
+                modo={modo}
+                onGrupoIdsChange={ids => setForm(f => ({ ...f, grupo_ids: ids }))}
               />
               <div className="space-y-1.5">
                 <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">Explicación</label>
                 <MarkdownEditor
-                  value={form.explicacion ?? ""}
-                  onChange={v => setForm(f => ({ ...f, explicacion: v }))}
-                  rows={14}
-                  placeholder={cfg.placeholder}
                   toolbar
                   defaultMode="edit"
+                  placeholder={cfg.placeholder}
+                  rows={14}
+                  value={form.explicacion ?? ""}
+                  onChange={v => setForm(f => ({ ...f, explicacion: v }))}
                   onSnippetAction={onSnippetAction}
                 />
               </div>
@@ -678,24 +681,24 @@ export function EditorHechizos({
         {selected ? (
           <FormularioMagico
             key={selected.id}
-            item={selected}
-            modo={modo}
             grupos={grupos}
+            item={selected}
             loadingGrupos={loadingGrupos}
-            onSaved={updated => {
-              setItems(prev => prev.map(i => i.id === updated.id ? updated : i));
-              onItemSaved?.(updated);
-            }}
+            modo={modo}
             onDeleted={id => {
               setItems(prev => prev.filter(i => i.id !== id));
               setSelectedId(null);
               onSelectedIdChange?.(null);
               onItemDeleted?.(id);
             }}
+            onSaved={updated => {
+              setItems(prev => prev.map(i => i.id === updated.id ? updated : i));
+              onItemSaved?.(updated);
+            }}
           />
         ) : loading && selectedId ? (
           <div className="flex-1 flex items-center justify-center">
-            <Loader2 size={20} className="animate-spin text-primary/20" />
+            <Loader2 className="animate-spin text-primary/20" size={20} />
           </div>
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center gap-3 select-none">
@@ -704,9 +707,9 @@ export function EditorHechizos({
             <p className="text-[10px] text-primary/20 tracking-widest">
               Seleccioná un {cfg.labelSing.toLowerCase()} o creá uno nuevo
             </p>
-            <button onClick={handleCreate} disabled={creating}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-primary/15 text-primary/40 hover:text-primary hover:border-primary/30 hover:bg-primary/5 transition-all mt-2">
-              {creating ? <Loader2 size={10} className="animate-spin" /> : <Plus size={10} />}
+            <button className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-primary/15 text-primary/40 hover:text-primary hover:border-primary/30 hover:bg-primary/5 transition-all mt-2" disabled={creating}
+              onClick={handleCreate}>
+              {creating ? <Loader2 className="animate-spin" size={10} /> : <Plus size={10} />}
               Nuevo {cfg.labelSing}
             </button>
           </div>

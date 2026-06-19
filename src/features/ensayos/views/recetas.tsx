@@ -1,9 +1,19 @@
 "use client";
-import { MotionDiv, MotionMain, MotionH1, MotionH2, MotionButton, MotionLi, MotionSpan, MotionP, MotionSection, MotionArticle } from "@/components/ui/Motion";
-import React, { useState, useMemo } from "react";
-import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
+import {
+  Utensils, Clock, ChevronRight, Search, ChefHat, Flame,
+  Plus, X, ChevronLeft, Minus, Carrot, Save, Activity,
+  Dumbbell, Wheat, Droplets,
+} from "lucide-react";
+import Link from "next/link";
+import React, { useState, useMemo } from "react";
+
+import { Btn, BtnIcon, Loading } from "@/components/ui";
+import { MotionDiv, MotionMain, MotionH1, MotionH2, MotionButton, MotionLi, MotionSpan, MotionP, MotionSection, MotionArticle } from "@/components/ui/Motion";
+import { ToastContainer } from "@/components/ui/ToastContainer";
+import { SectionTitle, FieldInput } from "@/features/ensayos/components/SaludUi";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
+import { recetasQueries } from "@/lib/api/queries/personal/cocina/recetas";
 import type { Receta, Ingrediente, Inserts } from "@/lib/types/queries";
 type NuevaReceta = Inserts<'recetas'>;
 type IngredienteReceta = {
@@ -14,16 +24,8 @@ type IngredienteReceta = {
   carbohidratos?: number;
   grasas?: number;
 };
-import { recetasQueries } from "@/lib/api/queries/personal/cocina/recetas";
-import { Btn, BtnIcon, Loading } from "@/components/ui";
 import { useToast } from "@/hooks/ui/useToast";
-import { ToastContainer } from "@/components/ui/ToastContainer";
-import { SectionTitle, FieldInput } from "@/features/ensayos/components/SaludUi";
-import {
-  Utensils, Clock, ChevronRight, Search, ChefHat, Flame,
-  Plus, X, ChevronLeft, Minus, Carrot, Save, Activity,
-  Dumbbell, Wheat, Droplets,
-} from "lucide-react";
+
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -86,7 +88,7 @@ function MacroBar({ kcal, proteinas, carbos, grasas }: { kcal: number; proteinas
   return (
     <div className="flex items-center gap-2">
       <div className="flex items-center gap-1 text-[9px] font-black text-primary/40">
-        <Flame size={9} className="text-accent" />
+        <Flame className="text-accent" size={9} />
         <span>{kcal.toFixed(0)}</span>
       </div>
       <span className="text-primary/10">·</span>
@@ -107,10 +109,10 @@ function MacroBar({ kcal, proteinas, carbos, grasas }: { kcal: number; proteinas
 
 function MacroGrid({ kcal, proteinas, carbos, grasas }: { kcal: number; proteinas: number; carbos: number; grasas: number }) {
   const items = [
-    { label: "Kcal", value: kcal,      unit: "",  icon: <Flame size={10} className="text-accent" /> },
-    { label: "Prot", value: proteinas, unit: "g", icon: <Dumbbell size={10} className="text-blue-400" /> },
-    { label: "Carb", value: carbos,    unit: "g", icon: <Wheat size={10} className="text-amber-400" /> },
-    { label: "Gras", value: grasas,    unit: "g", icon: <Droplets size={10} className="text-emerald-400" /> },
+    { label: "Kcal", value: kcal,      unit: "",  icon: <Flame className="text-accent" size={10} /> },
+    { label: "Prot", value: proteinas, unit: "g", icon: <Dumbbell className="text-blue-400" size={10} /> },
+    { label: "Carb", value: carbos,    unit: "g", icon: <Wheat className="text-amber-400" size={10} /> },
+    { label: "Gras", value: grasas,    unit: "g", icon: <Droplets className="text-emerald-400" size={10} /> },
   ];
   return (
     <div className="grid grid-cols-4 gap-2">
@@ -139,18 +141,18 @@ function RecetaDrawer({ receta, onClose }: { receta: Receta; onClose: () => void
     <>
       {/* Backdrop */}
       <MotionDiv
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        animate={{ opacity: 1 }} className="fixed inset-0 z-40 bg-foreground/20 backdrop-blur-sm" exit={{ opacity: 0 }}
+        initial={{ opacity: 0 }}
         onClick={onClose}
-        className="fixed inset-0 z-40 bg-foreground/20 backdrop-blur-sm"
       />
 
       {/* Drawer panel — slides from right on desktop, from bottom on mobile */}
       <MotionDiv
-        initial={{ x: "100%", opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
-        exit={{ x: "100%", opacity: 0 }}
-        transition={{ type: "spring", stiffness: 340, damping: 38 }}
         className="fixed top-0 right-0 bottom-0 z-50 w-full sm:w-[420px] bg-white-custom shadow-2xl flex flex-col overflow-hidden"
+        exit={{ x: "100%", opacity: 0 }}
+        initial={{ x: "100%", opacity: 0 }}
+        transition={{ type: "spring", stiffness: 340, damping: 38 }}
         onClick={e => e.stopPropagation()}
       >
         {/* Mobile drag handle */}
@@ -163,7 +165,7 @@ function RecetaDrawer({ receta, onClose }: { receta: Receta; onClose: () => void
               {catEmoji} {receta.categoria}
             </span>
           </div>
-          <BtnIcon variant="ghost" onClick={onClose} className="border-none bg-primary/8 text-primary/40">
+          <BtnIcon className="border-none bg-primary/8 text-primary/40" variant="ghost" onClick={onClose}>
             <X size={16} />
           </BtnIcon>
         </div>
@@ -181,16 +183,16 @@ function RecetaDrawer({ receta, onClose }: { receta: Receta; onClose: () => void
             )}
             <div className="flex items-center gap-4 mt-3 pt-3 border-t border-primary/8">
               <div className="flex items-center gap-1.5 text-[10px] font-bold text-primary/45">
-                <Clock size={12} className="text-primary/25" /> {receta.tiempo}
+                <Clock className="text-primary/25" size={12} /> {receta.tiempo}
               </div>
               <div className="flex items-center gap-1.5 text-[10px] font-bold text-primary/45">
-                <ChefHat size={12} className="text-primary/25" /> {receta.dificultad}
+                <ChefHat className="text-primary/25" size={12} /> {receta.dificultad}
               </div>
             </div>
           </div>
 
           {/* Macros */}
-          <MacroGrid kcal={totales.kcal} proteinas={totales.proteinas} carbos={totales.carbos} grasas={totales.grasas} />
+          <MacroGrid carbos={totales.carbos} grasas={totales.grasas} kcal={totales.kcal} proteinas={totales.proteinas} />
 
           {/* Ingredientes */}
           <div className="card-main p-4 space-y-2">
@@ -244,10 +246,10 @@ function RecipeCard({ receta, index, onSelect }: { receta: Receta; index: number
 
   return (
     <MotionDiv
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0, transition: { delay: index * 0.025 } }}
       layout
+      animate={{ opacity: 1, y: 0, transition: { delay: index * 0.025 } }}
       className="card-main p-4 hover:shadow-md hover:-translate-y-0.5 transition-all group"
+      initial={{ opacity: 0, y: 12 }}
     >
       {/* Top row: name + category badge */}
       <div className="flex items-start gap-3 mb-3">
@@ -274,10 +276,10 @@ function RecipeCard({ receta, index, onSelect }: { receta: Receta; index: number
 
       {/* Macro bar */}
       <div className="flex items-center justify-between">
-        <MacroBar kcal={totales.kcal} proteinas={totales.proteinas} carbos={totales.carbos} grasas={totales.grasas} />
+        <MacroBar carbos={totales.carbos} grasas={totales.grasas} kcal={totales.kcal} proteinas={totales.proteinas} />
         <button
-          onClick={onSelect}
           className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-primary/40 hover:text-primary transition-colors group-hover:gap-1.5"
+          onClick={onSelect}
         >
           Ver <ChevronRight size={11} />
         </button>
@@ -378,15 +380,15 @@ function ModalAddReceta({ onClose, onSuccess }: { onClose: () => void; onSuccess
     <>
       <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6 pb-16 sm:pb-6">
         <MotionDiv
-          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          animate={{ opacity: 1 }} className="absolute inset-0 bg-foreground/20 backdrop-blur-sm" exit={{ opacity: 0 }}
+          initial={{ opacity: 0 }}
           onClick={onClose}
-          className="absolute inset-0 bg-foreground/20 backdrop-blur-sm"
         />
         <MotionDiv
-          initial={{ y: 60, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
+          animate={{ y: 0, opacity: 1 }} className="relative w-full sm:max-w-2xl rounded-t-[40px] sm:rounded-(--radius-card) p-6 overflow-y-auto max-h-[92vh] bg-white-custom shadow-2xl"
           exit={{ y: 60, opacity: 0 }}
+          initial={{ y: 60, opacity: 0 }}
           transition={{ type: "spring", stiffness: 380, damping: 36 }}
-          className="relative w-full sm:max-w-2xl rounded-t-[40px] sm:rounded-(--radius-card) p-6 overflow-y-auto max-h-[92vh] bg-white-custom shadow-2xl"
           onClick={e => e.stopPropagation()}
         >
           <div className="sm:hidden w-10 h-1 bg-primary/15 rounded-full mx-auto mb-5" />
@@ -395,21 +397,21 @@ function ModalAddReceta({ onClose, onSuccess }: { onClose: () => void; onSuccess
             <h2 className="text-2xl font-black italic uppercase tracking-tighter text-primary">
               Nueva <span className="text-primary/20">Receta</span>
             </h2>
-            <BtnIcon variant="ghost" onClick={onClose} className="border-none bg-primary/8 text-primary/40">
+            <BtnIcon className="border-none bg-primary/8 text-primary/40" variant="ghost" onClick={onClose}>
               <X size={16} />
             </BtnIcon>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form className="space-y-6" onSubmit={handleSubmit}>
 
             {/* Información básica */}
             <section className="space-y-3">
               <SectionTitle>Información básica</SectionTitle>
               <FieldInput
-                label="Nombre del plato" required
+                required label="Nombre del plato"
+                placeholder="Tortilla, Ensalada…"
                 value={formData.nombre}
                 onChange={v => setFormData(p => ({ ...p, nombre: v }))}
-                placeholder="Tortilla, Ensalada…"
               />
 
               {/* Categoría + Tiempo en la misma fila */}
@@ -417,18 +419,18 @@ function ModalAddReceta({ onClose, onSuccess }: { onClose: () => void; onSuccess
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[9px] font-black uppercase tracking-widest text-primary/40 pl-1">Categoría</label>
                   <select
+                    className="input-brand text-[11px] font-bold appearance-none"
                     value={formData.categoria}
                     onChange={e => setFormData(p => ({ ...p, categoria: e.target.value as any }))}
-                    className="input-brand text-[11px] font-bold appearance-none"
                   >
                     {CATEGORIAS.map(c => <option key={c.label} value={c.label}>{c.emoji} {c.label}</option>)}
                   </select>
                 </div>
                 <FieldInput
                   label="Tiempo"
+                  placeholder="20 min"
                   value={formData.tiempo}
                   onChange={v => setFormData(p => ({ ...p, tiempo: v }))}
-                  placeholder="20 min"
                 />
               </div>
 
@@ -438,13 +440,13 @@ function ModalAddReceta({ onClose, onSuccess }: { onClose: () => void; onSuccess
                 <div className="flex gap-2">
                   {DIFICULTADES.map(d => (
                     <button
-                      key={d} type="button"
-                      onClick={() => setFormData(p => ({ ...p, dificultad: d }))}
-                      className={`flex-1 py-2 rounded-(--radius-btn) text-[10px] font-black uppercase tracking-wide border transition-all ${
+                      key={d} className={`flex-1 py-2 rounded-(--radius-btn) text-[10px] font-black uppercase tracking-wide border transition-all ${
                         formData.dificultad === d
                           ? "bg-bg-menu text-menu-text border-bg-menu"
                           : "bg-bg-main border-primary/15 text-primary/40 hover:border-primary/30"
                       }`}
+                      type="button"
+                      onClick={() => setFormData(p => ({ ...p, dificultad: d }))}
                     >
                       {d}
                     </button>
@@ -460,27 +462,27 @@ function ModalAddReceta({ onClose, onSuccess }: { onClose: () => void; onSuccess
               <div className="relative">
                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-primary/30" size={14} />
                 <input
-                  type="text"
+                  className="input-brand pl-10 text-[11px]"
                   placeholder="Buscar en mi despensa..."
+                  type="text"
                   value={searchIng}
                   onChange={e => setSearchIng(e.target.value)}
-                  className="input-brand pl-10 text-[11px]"
                 />
                 <AnimatePresence>
                   {filteredDbIngredientes.length > 0 && (
                     <MotionDiv
-                      initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
-                      className="absolute top-full left-0 w-full bg-white-custom border border-primary/10 rounded-(--radius-btn) mt-1.5 shadow-xl z-50 overflow-hidden"
+                      animate={{ opacity: 1, y: 0 }} className="absolute top-full left-0 w-full bg-white-custom border border-primary/10 rounded-(--radius-btn) mt-1.5 shadow-xl z-50 overflow-hidden" exit={{ opacity: 0, y: -6 }}
+                      initial={{ opacity: 0, y: -6 }}
                     >
                       {filteredDbIngredientes.map(ing => (
                         <button
-                          key={ing.id} type="button"
+                          key={ing.id} className="w-full px-4 py-2.5 text-left flex items-center justify-between hover:bg-bg-main transition-colors border-b border-primary/5 last:border-0"
+                          type="button"
                           onClick={() => selectIngrediente(ing)}
-                          className="w-full px-4 py-2.5 text-left flex items-center justify-between hover:bg-bg-main transition-colors border-b border-primary/5 last:border-0"
                         >
                           <span className="text-[11px] font-bold uppercase text-primary">{ing.nombre}</span>
                           <span className="text-[9px] font-black text-primary/30 flex items-center gap-1">
-                            {ing.proteinas}g P <Plus size={10} className="text-primary/40" />
+                            {ing.proteinas}g P <Plus className="text-primary/40" size={10} />
                           </span>
                         </button>
                       ))}
@@ -493,9 +495,9 @@ function ModalAddReceta({ onClose, onSuccess }: { onClose: () => void; onSuccess
               <AnimatePresence>
                 {pendingIng && (
                   <MotionDiv
-                    initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }}
-                    exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.18 }}
-                    className="overflow-hidden"
+                    animate={{ opacity: 1, height: "auto" }} className="overflow-hidden"
+                    exit={{ opacity: 0, height: 0 }} initial={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.18 }}
                   >
                     <div className="bg-accent/10 border border-accent/25 rounded-(--radius-btn) p-4 space-y-3">
                       <div className="flex items-center justify-between">
@@ -505,21 +507,21 @@ function ModalAddReceta({ onClose, onSuccess }: { onClose: () => void; onSuccess
 
                       <div className="flex items-center gap-3">
                         <span className="text-[9px] font-black uppercase tracking-widest text-primary/40 shrink-0">Cantidad</span>
-                        <button type="button"
+                        <button className="w-7 h-7 flex items-center justify-center bg-white-custom rounded-(--radius-btn) border border-primary/10 text-primary/30 hover:text-primary transition-all shrink-0"
+                          type="button"
                           onClick={() => setPendingIng(p => p && p.qty > 0.5 ? { ...p, qty: Math.round((p.qty - 0.5) * 10) / 10 } : p)}
-                          className="w-7 h-7 flex items-center justify-center bg-white-custom rounded-(--radius-btn) border border-primary/10 text-primary/30 hover:text-primary transition-all shrink-0"
                         >
                           <Minus size={12} />
                         </button>
                         <input
-                          type="number" min="0.5" step="0.5"
+                          className="w-16 text-center bg-white-custom border border-primary/10 rounded-(--radius-btn) py-1.5 text-[12px] font-black text-primary outline-none" min="0.5" step="0.5"
+                          type="number"
                           value={pendingIng.qty}
                           onChange={e => setPendingIng(p => p ? { ...p, qty: Math.max(0.1, Number(e.target.value)) } : p)}
-                          className="w-16 text-center bg-white-custom border border-primary/10 rounded-(--radius-btn) py-1.5 text-[12px] font-black text-primary outline-none"
                         />
-                        <button type="button"
+                        <button className="w-7 h-7 flex items-center justify-center bg-white-custom rounded-(--radius-btn) border border-primary/10 text-primary/30 hover:text-primary transition-all shrink-0"
+                          type="button"
                           onClick={() => setPendingIng(p => p ? { ...p, qty: Math.round((p.qty + 0.5) * 10) / 10 } : p)}
-                          className="w-7 h-7 flex items-center justify-center bg-white-custom rounded-(--radius-btn) border border-primary/10 text-primary/30 hover:text-primary transition-all shrink-0"
                         >
                           <Plus size={12} />
                         </button>
@@ -527,15 +529,15 @@ function ModalAddReceta({ onClose, onSuccess }: { onClose: () => void; onSuccess
 
                       {/* Macros preview of pending ingredient */}
                       <MacroGrid
-                        kcal={pendingIng.base.kcal * pendingIng.qty}
-                        proteinas={pendingIng.base.proteinas * pendingIng.qty}
                         carbos={pendingIng.base.carbohidratos * pendingIng.qty}
                         grasas={pendingIng.base.grasas * pendingIng.qty}
+                        kcal={pendingIng.base.kcal * pendingIng.qty}
+                        proteinas={pendingIng.base.proteinas * pendingIng.qty}
                       />
 
                       <div className="flex gap-2 pt-1">
-                        <Btn type="button" variant="ghost" onClick={() => setPendingIng(null)} className="flex-1">Cancelar</Btn>
-                        <Btn type="button" onClick={confirmIngrediente} className="flex-1">✓ Añadir</Btn>
+                        <Btn className="flex-1" type="button" variant="ghost" onClick={() => setPendingIng(null)}>Cancelar</Btn>
+                        <Btn className="flex-1" type="button" onClick={confirmIngrediente}>✓ Añadir</Btn>
                       </div>
                     </div>
                   </MotionDiv>
@@ -552,13 +554,13 @@ function ModalAddReceta({ onClose, onSuccess }: { onClose: () => void; onSuccess
                         <span className="text-[9px] text-primary/30 ml-2">{ing.cantidad}</span>
                       </div>
                       <MacroBar
-                        kcal={ing.kcal}
-                        proteinas={ing.proteinas}
                         carbos={parseFloat(String(ing.carbohidratos || 0))}
                         grasas={ing.grasas}
+                        kcal={ing.kcal}
+                        proteinas={ing.proteinas}
                       />
-                      <button type="button" onClick={() => removeIngrediente(idx)}
-                        className="p-1 text-primary/20 hover:text-red-400 transition-colors ml-1 shrink-0"
+                      <button className="p-1 text-primary/20 hover:text-red-400 transition-colors ml-1 shrink-0" type="button"
+                        onClick={() => removeIngrediente(idx)}
                       >
                         <X size={13} />
                       </button>
@@ -568,10 +570,10 @@ function ModalAddReceta({ onClose, onSuccess }: { onClose: () => void; onSuccess
                   {/* Totals row */}
                   <div className="pt-1">
                     <MacroGrid
-                      kcal={totalesPreview.kcal}
-                      proteinas={totalesPreview.proteinas}
                       carbos={totalesPreview.carbos}
                       grasas={totalesPreview.grasas}
+                      kcal={totalesPreview.kcal}
+                      proteinas={totalesPreview.proteinas}
                     />
                   </div>
                 </div>
@@ -584,12 +586,12 @@ function ModalAddReceta({ onClose, onSuccess }: { onClose: () => void; onSuccess
               <div className="flex gap-2">
                 <input
                   className="input-brand flex-1 text-[11px]"
+                  placeholder="Describe un paso…"
                   value={nuevoPaso}
                   onChange={e => setNuevoPaso(e.target.value)}
                   onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addPaso(); }}}
-                  placeholder="Describe un paso…"
                 />
-                <BtnIcon type="button" onClick={addPaso} className="shrink-0 w-10 h-10"><Plus size={16} /></BtnIcon>
+                <BtnIcon className="shrink-0 w-10 h-10" type="button" onClick={addPaso}><Plus size={16} /></BtnIcon>
               </div>
               {formData.instrucciones.length > 0 && (
                 <div className="space-y-1.5">
@@ -599,9 +601,9 @@ function ModalAddReceta({ onClose, onSuccess }: { onClose: () => void; onSuccess
                         {idx + 1}
                       </span>
                       <span className="text-[11px] font-bold text-primary/65 uppercase flex-1 leading-relaxed">{paso}</span>
-                      <button type="button"
+                      <button className="text-primary/20 hover:text-red-400 transition-colors shrink-0"
+                        type="button"
                         onClick={() => setFormData(p => ({ ...p, instrucciones: p.instrucciones.filter((_, i) => i !== idx) }))}
-                        className="text-primary/20 hover:text-red-400 transition-colors shrink-0"
                       >
                         <X size={13} />
                       </button>
@@ -611,7 +613,7 @@ function ModalAddReceta({ onClose, onSuccess }: { onClose: () => void; onSuccess
               )}
             </section>
 
-            <Btn type="submit" loading={isSaving} disabled={!formData.nombre.trim()} icon={<Save size={16} />} fullWidth size="lg">
+            <Btn fullWidth disabled={!formData.nombre.trim()} icon={<Save size={16} />} loading={isSaving} size="lg" type="submit">
               Guardar receta
             </Btn>
           </form>
@@ -656,8 +658,8 @@ const RecetasPage = () => {
         <div className="max-w-7xl mx-auto px-5 py-3 flex flex-col sm:flex-row sm:items-center gap-3">
           <div className="flex-1 min-w-0">
             <Link
-              href="/personal/cocina"
               className="inline-flex items-center gap-1 mb-0.5 text-[9px] font-black uppercase tracking-widest text-primary/40 hover:text-primary transition-colors"
+              href="/personal/cocina"
             >
               <ChevronLeft size={12} /> Cocina
             </Link>
@@ -670,13 +672,13 @@ const RecetasPage = () => {
           <div className="relative w-full sm:w-56">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-primary/30" size={13} />
             <input
-              placeholder="Buscar..."
               className="input-brand pl-9 pr-8 text-[11px] py-2"
+              placeholder="Buscar..."
               value={filter}
               onChange={e => setFilter(e.target.value)}
             />
             {filter && (
-              <button onClick={() => setFilter("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-primary/30 hover:text-primary transition-colors">
+              <button className="absolute right-3 top-1/2 -translate-y-1/2 text-primary/30 hover:text-primary transition-colors" onClick={() => setFilter("")}>
                 <X size={12} />
               </button>
             )}
@@ -685,24 +687,24 @@ const RecetasPage = () => {
           {/* Actions (desktop) */}
           <div className="hidden sm:flex items-center gap-2">
             <Link
-              href="/personal/salud/ingredientes"
               className="flex items-center gap-2 text-[11px] py-2 px-4 tracking-widest font-black uppercase rounded-(--radius-btn) border border-primary/20 text-primary/50 hover:border-primary/40 hover:text-primary transition-all bg-white-custom"
+              href="/personal/salud/ingredientes"
             >
               <Carrot size={13} /> Ingredientes
             </Link>
-            <Btn onClick={() => setIsModalOpen(true)} icon={<Plus size={14} />} size="md">Añadir</Btn>
+            <Btn icon={<Plus size={14} />} size="md" onClick={() => setIsModalOpen(true)}>Añadir</Btn>
           </div>
         </div>
 
         {/* Category filters — sub-row */}
         <div className="max-w-7xl mx-auto px-5 pb-3 flex items-center gap-2 flex-wrap">
           <button
-            onClick={() => setCatFilter(null)}
             className={`flex items-center gap-1.5 px-2.5 py-1 rounded-(--radius-btn) text-[9px] font-black uppercase tracking-wide transition-all border ${
               catFilter === null
                 ? "bg-primary text-btn-text border-primary"
                 : "bg-white-custom border-primary/15 text-primary/50 hover:border-primary/30"
             }`}
+            onClick={() => setCatFilter(null)}
           >
             Todas
             <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-black ${catFilter === null ? "bg-btn-text/20" : "bg-primary/5 text-primary/35"}`}>
@@ -717,12 +719,12 @@ const RecetasPage = () => {
             return (
               <button
                 key={label}
-                onClick={() => setCatFilter(active ? null : label)}
                 className={`flex items-center gap-1.5 px-2.5 py-1 rounded-(--radius-btn) text-[9px] font-black uppercase tracking-wide transition-all border ${
                   active
                     ? "bg-bg-menu text-menu-text border-bg-menu"
                     : "bg-white-custom border-primary/15 text-primary/50 hover:border-primary/30"
                 }`}
+                onClick={() => setCatFilter(active ? null : label)}
               >
                 <span>{emoji}</span> {label}
                 <span className={`text-[8px] px-1 py-0.5 rounded-full font-black ${active ? "bg-btn-text/20" : "bg-primary/5 text-primary/35"}`}>
@@ -734,8 +736,8 @@ const RecetasPage = () => {
 
           {catFilter && (
             <button
-              onClick={() => setCatFilter(null)}
               className="flex items-center gap-1 px-2.5 py-1 rounded-(--radius-btn) text-[9px] font-black uppercase tracking-wide text-primary/40 hover:text-primary border border-dashed border-primary/20 hover:border-primary/40 transition-all"
+              onClick={() => setCatFilter(null)}
             >
               <X size={10} /> Limpiar
             </button>
@@ -750,9 +752,9 @@ const RecetasPage = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5">
             {/* Add new — compact card */}
             <MotionButton
-              whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}
+              className="border-(length:--border-width) border-dashed border-primary/15 rounded-(--radius-card) flex items-center justify-center gap-3 p-4 bg-white-custom hover:bg-primary/5 transition-all group min-h-[72px]" whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.98 }}
               onClick={() => setIsModalOpen(true)}
-              className="border-(length:--border-width) border-dashed border-primary/15 rounded-(--radius-card) flex items-center justify-center gap-3 p-4 bg-white-custom hover:bg-primary/5 transition-all group min-h-[72px]"
             >
               <div className="w-8 h-8 flex items-center justify-center bg-primary text-btn-text rounded-(--radius-btn) shadow group-hover:scale-110 transition-transform">
                 <Plus size={15} />
@@ -766,8 +768,8 @@ const RecetasPage = () => {
               {filteredRecipes.length === 0 && !loading ? (
                 <MotionDiv
                   key="empty"
-                  initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                  className="col-span-full flex flex-col items-center justify-center py-16 gap-2"
+                  animate={{ opacity: 1 }} className="col-span-full flex flex-col items-center justify-center py-16 gap-2"
+                  initial={{ opacity: 0 }}
                 >
                   <Utensils className="text-primary/15" size={40} />
                   <p className="text-[11px] font-black uppercase tracking-widest text-primary/25">
@@ -776,7 +778,7 @@ const RecetasPage = () => {
                 </MotionDiv>
               ) : (
                 filteredRecipes.map((receta, i) => (
-                  <RecipeCard key={receta.id ?? i} receta={receta} index={i} onSelect={() => setSelectedReceta(receta)} />
+                  <RecipeCard key={receta.id ?? i} index={i} receta={receta} onSelect={() => setSelectedReceta(receta)} />
                 ))
               )}
             </AnimatePresence>
@@ -787,15 +789,15 @@ const RecetasPage = () => {
       {/* FAB (mobile) */}
       <div className="sm:hidden fixed bottom-24 right-6 z-20 flex flex-col items-end gap-3">
         <Link
-          href="/personal/salud/ingredientes"
           className="w-12 h-12 rounded-(--radius-btn) flex items-center justify-center bg-white-custom border border-primary/20 text-primary/50 shadow-lg"
+          href="/personal/salud/ingredientes"
         >
           <Carrot size={18} />
         </Link>
         <MotionButton
-          whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.94 }}
+          className="w-14 h-14 rounded-(--radius-btn) btn-brand shadow-2xl" whileHover={{ scale: 1.06 }}
+          whileTap={{ scale: 0.94 }}
           onClick={() => setIsModalOpen(true)}
-          className="w-14 h-14 rounded-(--radius-btn) btn-brand shadow-2xl"
         >
           <Plus size={22} />
         </MotionButton>

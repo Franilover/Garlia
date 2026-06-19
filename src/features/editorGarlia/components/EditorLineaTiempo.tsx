@@ -1,7 +1,8 @@
 "use client";
+import { ChevronDown, ChevronUp, Loader2, Check, X, Clock } from "lucide-react";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { ChevronDown, ChevronUp, Loader2, Check, X, Clock } from "lucide-react";
+
 import { supabase } from "@/lib/api/client/supabase"; 
 import {
   Estacion, CalendarioConfig, EraMundo, FechaMundo,
@@ -128,7 +129,7 @@ export function useCalendario() {
 
     void cargar();
     return () => { cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, []);
 
   return { cal: data, loading };
@@ -211,8 +212,6 @@ export function SelectorFechaMundo({
       {/* Trigger */}
       <button
         ref={triggerRef}
-        type="button"
-        onClick={() => setOpen(v => !v)}
         className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg border text-left transition-all"
         style={{
           background: open ? "color-mix(in srgb, var(--primary) 5%, transparent)" : "transparent",
@@ -220,9 +219,11 @@ export function SelectorFechaMundo({
             ? "color-mix(in srgb, var(--primary) 22%, transparent)"
             : "color-mix(in srgb, var(--primary) 12%, transparent)",
         }}
+        type="button"
+        onClick={() => setOpen(v => !v)}
       >
         {loading ? (
-          <Loader2 size={9} className="animate-spin text-primary/30" />
+          <Loader2 className="animate-spin text-primary/30" size={9} />
         ) : fecha ? (
           <div className="flex-1 min-w-0">
             {era && (
@@ -242,7 +243,7 @@ export function SelectorFechaMundo({
         ) : (
           <span className="flex-1 text-[9px] text-primary/30 italic">{placeholder}</span>
         )}
-        <ChevronDown size={9} className="shrink-0 text-primary/25 transition-transform"
+        <ChevronDown className="shrink-0 text-primary/25 transition-transform" size={9}
           style={{ transform: open ? "rotate(180deg)" : undefined }} />
       </button>
 
@@ -259,10 +260,10 @@ export function SelectorFechaMundo({
             borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
           }}>
           <FechaMundoEditor
-            value={value}
-            estaciones={cal.estaciones}
             config={cal.config}
             eras={cal.eras}
+            estaciones={cal.estaciones}
+            value={value}
             onChange={(dia) => { onChange(dia); setOpen(false); }}
             onClear={value != null ? () => { onChange(null); setOpen(false); } : undefined}
           />
@@ -372,12 +373,18 @@ function FechaMundoEditor({
       <div className="space-y-1">
         <label className="text-[8px] font-black uppercase tracking-[0.18em] text-primary/35">Año</label>
         <div className="flex items-center gap-1.5">
-          <button type="button" onClick={() => { const v = anio - 1; setAnio(v); setAnioStr(String(v)); }}
-            className="flex items-center justify-center w-6 h-6 rounded-lg border transition-all"
-            style={{ borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)", color: "var(--primary)" }}>
+          <button className="flex items-center justify-center w-6 h-6 rounded-lg border transition-all" style={{ borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)", color: "var(--primary)" }}
+            type="button"
+            onClick={() => { const v = anio - 1; setAnio(v); setAnioStr(String(v)); }}>
             <ChevronDown size={10} />
           </button>
           <input
+            className="flex-1 text-center rounded-lg border px-2 py-1 text-[11px] font-black outline-none transition-all"
+            style={{
+              background: "transparent",
+              borderColor: "color-mix(in srgb, var(--primary) 14%, transparent)",
+              color: "var(--primary)",
+            }}
             type="number"
             value={anioStr}
             onChange={e => {
@@ -385,16 +392,10 @@ function FechaMundoEditor({
               const n = parseInt(e.target.value, 10);
               if (!isNaN(n)) setAnio(n);
             }}
-            className="flex-1 text-center rounded-lg border px-2 py-1 text-[11px] font-black outline-none transition-all"
-            style={{
-              background: "transparent",
-              borderColor: "color-mix(in srgb, var(--primary) 14%, transparent)",
-              color: "var(--primary)",
-            }}
           />
-          <button type="button" onClick={() => { const v = anio + 1; setAnio(v); setAnioStr(String(v)); }}
-            className="flex items-center justify-center w-6 h-6 rounded-lg border transition-all"
-            style={{ borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)", color: "var(--primary)" }}>
+          <button className="flex items-center justify-center w-6 h-6 rounded-lg border transition-all" style={{ borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)", color: "var(--primary)" }}
+            type="button"
+            onClick={() => { const v = anio + 1; setAnio(v); setAnioStr(String(v)); }}>
             <ChevronUp size={10} />
           </button>
         </div>
@@ -410,13 +411,6 @@ function FechaMundoEditor({
             return (
               <button
                 key={grupo.nombre}
-                type="button"
-                onClick={() => {
-                  const primera = grupo.partes[0];
-                  setEstOrden(primera.orden);
-                  setDiaEnEst(1);
-                  setDiaEnEstStr("1");
-                }}
                 className="px-2 py-1.5 rounded-lg border text-center transition-all"
                 style={{
                   background: activo
@@ -426,6 +420,13 @@ function FechaMundoEditor({
                     ? "color-mix(in srgb, var(--accent) 35%, transparent)"
                     : "color-mix(in srgb, var(--primary) 10%, transparent)",
                   color: activo ? "var(--accent)" : "color-mix(in srgb, var(--primary) 45%, transparent)",
+                }}
+                type="button"
+                onClick={() => {
+                  const primera = grupo.partes[0];
+                  setEstOrden(primera.orden);
+                  setDiaEnEst(1);
+                  setDiaEnEstStr("1");
                 }}
               >
                 <div className="text-[8px] font-black uppercase tracking-wide">{grupo.nombre}</div>
@@ -488,8 +489,6 @@ function FechaMundoEditor({
                     return (
                       <button
                         key={dia}
-                        type="button"
-                        onClick={() => { setEstOrden(parte.orden); setDiaEnEst(dia); setDiaEnEstStr(String(dia)); }}
                         className="rounded text-center py-0.5 text-[8px] font-bold transition-all"
                         style={{
                           background: selected
@@ -498,6 +497,8 @@ function FechaMundoEditor({
                           color: selected ? "white" : "color-mix(in srgb, var(--primary) 50%, transparent)",
                           fontWeight: selected ? "900" : undefined,
                         }}
+                        type="button"
+                        onClick={() => { setEstOrden(parte.orden); setDiaEnEst(dia); setDiaEnEstStr(String(dia)); }}
                       >
                         {dia}
                       </button>
@@ -513,20 +514,20 @@ function FechaMundoEditor({
         <div className="flex items-center gap-1 pt-0.5">
           <span className="text-[8px] text-primary/30">Día directo:</span>
           <input
-            type="number"
-            min={1}
+            className="w-16 rounded-lg border px-2 py-0.5 text-[9px] font-black text-center outline-none"
             max={estSel.duracion_dias}
+            min={1}
+            style={{
+              background: "transparent",
+              borderColor: "color-mix(in srgb, var(--primary) 14%, transparent)",
+              color: "var(--primary)",
+            }}
+            type="number"
             value={diaEnEstStr}
             onChange={e => {
               setDiaEnEstStr(e.target.value);
               const n = parseInt(e.target.value, 10);
               if (!isNaN(n) && n >= 1 && n <= estSel.duracion_dias) setDiaEnEst(n);
-            }}
-            className="w-16 rounded-lg border px-2 py-0.5 text-[9px] font-black text-center outline-none"
-            style={{
-              background: "transparent",
-              borderColor: "color-mix(in srgb, var(--primary) 14%, transparent)",
-              color: "var(--primary)",
             }}
           />
           <span className="text-[8px] text-primary/25">/ {estSel.duracion_dias}</span>
@@ -544,15 +545,15 @@ function FechaMundoEditor({
       {/* Acciones */}
       <div className="flex gap-1.5">
         {onClear && (
-          <button type="button" onClick={onClear}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-[8px] font-black uppercase tracking-widest transition-all"
-            style={{ borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)", color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
+          <button className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-[8px] font-black uppercase tracking-widest transition-all" style={{ borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)", color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
+            type="button"
+            onClick={onClear}>
             <X size={8} /> Limpiar
           </button>
         )}
-        <button type="button" onClick={handleConfirm}
-          className="flex-1 flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all"
-          style={{ background: "var(--accent)", color: "white" }}>
+        <button className="flex-1 flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all" style={{ background: "var(--accent)", color: "white" }}
+          type="button"
+          onClick={handleConfirm}>
           <Check size={9} /> Confirmar
         </button>
       </div>
@@ -564,7 +565,7 @@ function FechaMundoEditor({
 // Muestra una fecha compacta como badge (solo lectura).
 export function FechaMundoBadge({ diaAbsoluto }: { diaAbsoluto: number }) {
   const { cal, loading } = useCalendario();
-  if (loading || !cal) return <Loader2 size={8} className="animate-spin text-primary/20" />;
+  if (loading || !cal) return <Loader2 className="animate-spin text-primary/20" size={8} />;
   const fecha = diaAbsolutoAFecha(diaAbsoluto, cal.estaciones, cal.config);
   // Si el día absoluto no cae dentro de ninguna estación definida, evitamos
   // crashear formatFechaCorta y mostramos un placeholder en su lugar.

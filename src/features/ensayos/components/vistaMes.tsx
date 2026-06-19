@@ -1,9 +1,13 @@
 "use client";
-import { MotionDiv, MotionButton } from "@/components/ui/Motion";
-import React, { useState, useMemo } from "react";
-import { cn } from "@/lib/utils/index";
 import { ChevronLeft, ChevronRight, BookOpen, Plus, Pencil, Trash2, Check, X } from "lucide-react";
+import React, { useState, useMemo } from "react";
+
 import { BtnIcon } from "@/components/ui";
+import { MotionDiv, MotionButton } from "@/components/ui/Motion";
+import { cn } from "@/lib/utils/index";
+
+
+
 import { MESES, TIPOS_EVENTO } from "./types";
 
 interface Props {
@@ -130,8 +134,8 @@ export const VistaMes = ({ eventos, capitulosRaw, isAddingEvento, onAddEvento, o
       {/* Nav mes */}
       <div className="flex items-center justify-center gap-4 px-5 py-2 border-b border-primary/8 shrink-0">
         <button
-          onClick={() => cambiarMes(-1)}
           className="p-1 text-primary/40 hover:text-primary transition-colors"
+          onClick={() => cambiarMes(-1)}
         >
           <ChevronLeft size={13} />
         </button>
@@ -139,8 +143,8 @@ export const VistaMes = ({ eventos, capitulosRaw, isAddingEvento, onAddEvento, o
           {MESES[mesActual]} {añoActual}
         </span>
         <button
-          onClick={() => cambiarMes(1)}
           className="p-1 text-primary/40 hover:text-primary transition-colors"
+          onClick={() => cambiarMes(1)}
         >
           <ChevronRight size={13} />
         </button>
@@ -172,9 +176,6 @@ export const VistaMes = ({ eventos, capitulosRaw, isAddingEvento, onAddEvento, o
             return (
               <MotionButton
                 key={dia}
-                onClick={() => setDiaSeleccionado(dia)}
-                whileHover={{ scale: 1.08 }}
-                whileTap={{ scale: 0.92 }}
                 className={cn(
                   "h-8 sm:h-14 w-full rounded-[var(--radius-btn)] flex flex-col items-center justify-center relative",
                   "text-[11px] sm:text-[13px] font-black transition-all",
@@ -184,6 +185,9 @@ export const VistaMes = ({ eventos, capitulosRaw, isAddingEvento, onAddEvento, o
                       ? "bg-primary/10 text-primary dark:bg-primary/20"
                       : "text-[var(--text-on-card)]/65 hover:bg-primary/7"
                 )}
+                whileHover={{ scale: 1.08 }}
+                whileTap={{ scale: 0.92 }}
+                onClick={() => setDiaSeleccionado(dia)}
               >
                 {dia}
                 {tieneAlgo(dia) && (
@@ -207,25 +211,25 @@ export const VistaMes = ({ eventos, capitulosRaw, isAddingEvento, onAddEvento, o
           {/* Formulario */}
           <div className="flex gap-1.5 shrink-0">
             <select
+              className="bg-primary/8 dark:bg-primary/15 border border-transparent rounded-[var(--radius-btn)] px-2 py-1.5 text-[9px] font-black text-[var(--input-text)] outline-none focus:border-primary/20 cursor-pointer"
               value={tipoEvento}
               onChange={e => setTipoEvento(e.target.value)}
-              className="bg-primary/8 dark:bg-primary/15 border border-transparent rounded-[var(--radius-btn)] px-2 py-1.5 text-[9px] font-black text-[var(--input-text)] outline-none focus:border-primary/20 cursor-pointer"
             >
               {TIPOS_EVENTO.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
             <input
+              className="flex-1 bg-primary/5 dark:bg-primary/10 rounded-[var(--radius-btn)] px-3 py-1.5 text-[11px] text-[var(--input-text)] font-semibold outline-none border border-transparent focus:border-primary/20 focus:bg-[var(--white-custom)] transition-all min-w-0 placeholder:text-[var(--input-text)]/40"
+              placeholder="Añadir evento..."
               type="text"
               value={nuevoEvento}
               onChange={e => setNuevoEvento(e.target.value)}
               onKeyDown={e => e.key === "Enter" && handleAdd()}
-              placeholder="Añadir evento..."
-              className="flex-1 bg-primary/5 dark:bg-primary/10 rounded-[var(--radius-btn)] px-3 py-1.5 text-[11px] text-[var(--input-text)] font-semibold outline-none border border-transparent focus:border-primary/20 focus:bg-[var(--white-custom)] transition-all min-w-0 placeholder:text-[var(--input-text)]/40"
             />
             <BtnIcon
-              loading={isAddingEvento}
-              disabled={!nuevoEvento.trim()}
-              onClick={handleAdd}
               className="rounded-[var(--radius-btn)] w-8 h-8 shrink-0"
+              disabled={!nuevoEvento.trim()}
+              loading={isAddingEvento}
+              onClick={handleAdd}
             >
               <Plus size={12} />
             </BtnIcon>
@@ -242,44 +246,44 @@ export const VistaMes = ({ eventos, capitulosRaw, isAddingEvento, onAddEvento, o
                 return (
                   <MotionDiv
                     key={item.id}
-                    initial={{ opacity: 0, x: -4 }}
                     animate={{ opacity: 1, x: 0 }}
                     className="flex flex-col gap-1.5 px-3 py-2 rounded-[var(--radius-btn)] border bg-primary/5 dark:bg-primary/10 border-primary/20"
+                    initial={{ opacity: 0, x: -4 }}
                   >
                     <div className="flex gap-1.5">
                       <select
+                        className="bg-primary/8 dark:bg-primary/15 border border-transparent rounded-[var(--radius-btn)] px-2 py-1.5 text-[9px] font-black text-[var(--input-text)] outline-none focus:border-primary/20 cursor-pointer"
                         value={editTipo}
                         onChange={e => setEditTipo(e.target.value)}
-                        className="bg-primary/8 dark:bg-primary/15 border border-transparent rounded-[var(--radius-btn)] px-2 py-1.5 text-[9px] font-black text-[var(--input-text)] outline-none focus:border-primary/20 cursor-pointer"
                       >
                         {TIPOS_EVENTO.map(t => <option key={t} value={t}>{t}</option>)}
                       </select>
                       <input
+                        className="flex-1 bg-[var(--white-custom)] rounded-[var(--radius-btn)] px-3 py-1.5 text-[11px] text-[var(--input-text)] font-semibold outline-none border border-primary/20 min-w-0"
                         type="text"
                         value={editTitulo}
                         onChange={e => setEditTitulo(e.target.value)}
                         onKeyDown={e => e.key === "Enter" && guardarEdicion()}
-                        className="flex-1 bg-[var(--white-custom)] rounded-[var(--radius-btn)] px-3 py-1.5 text-[11px] text-[var(--input-text)] font-semibold outline-none border border-primary/20 min-w-0"
                       />
                     </div>
                     <div className="flex gap-1.5 items-center">
                       <input
+                        className="bg-[var(--white-custom)] rounded-[var(--radius-btn)] px-2 py-1.5 text-[10px] text-[var(--input-text)] font-semibold outline-none border border-primary/20 flex-1 min-w-0"
                         type="date"
                         value={editFecha}
                         onChange={e => setEditFecha(e.target.value)}
-                        className="bg-[var(--white-custom)] rounded-[var(--radius-btn)] px-2 py-1.5 text-[10px] text-[var(--input-text)] font-semibold outline-none border border-primary/20 flex-1 min-w-0"
                       />
                       <BtnIcon
-                        loading={guardando}
-                        disabled={!editTitulo.trim()}
-                        onClick={guardarEdicion}
                         className="rounded-[var(--radius-btn)] w-8 h-8 shrink-0 bg-green-500/15 text-green-600 hover:bg-green-500/25"
+                        disabled={!editTitulo.trim()}
+                        loading={guardando}
+                        onClick={guardarEdicion}
                       >
                         <Check size={12} />
                       </BtnIcon>
                       <BtnIcon
-                        onClick={cancelarEdicion}
                         className="rounded-[var(--radius-btn)] w-8 h-8 shrink-0 bg-primary/8 text-primary/60 hover:bg-primary/15"
+                        onClick={cancelarEdicion}
                       >
                         <X size={12} />
                       </BtnIcon>
@@ -291,7 +295,6 @@ export const VistaMes = ({ eventos, capitulosRaw, isAddingEvento, onAddEvento, o
               return (
                 <MotionDiv
                   key={item.id}
-                  initial={{ opacity: 0, x: -4 }}
                   animate={{ opacity: 1, x: 0 }}
                   className={cn(
                     "flex items-center gap-2 px-3 py-2 rounded-[var(--radius-btn)] border shrink-0",
@@ -299,10 +302,11 @@ export const VistaMes = ({ eventos, capitulosRaw, isAddingEvento, onAddEvento, o
                       ? "bg-amber-500/10 border-amber-500/20 dark:bg-amber-500/15 dark:border-amber-500/30"
                       : "bg-primary/5 dark:bg-primary/10 border-primary/10"
                   )}
+                  initial={{ opacity: 0, x: -4 }}
                 >
                   <div className="w-5 h-5 bg-[var(--white-custom)] rounded flex items-center justify-center shadow-sm shrink-0 border border-primary/8">
                     {item.esCapitulo
-                      ? <BookOpen size={10} className="text-amber-500" />
+                      ? <BookOpen className="text-amber-500" size={10} />
                       : <span className="text-[8px] font-black text-primary">{diaSeleccionado}</span>
                     }
                   </div>
@@ -318,19 +322,19 @@ export const VistaMes = ({ eventos, capitulosRaw, isAddingEvento, onAddEvento, o
                     <div className="flex items-center gap-1 shrink-0">
                       {onUpdateEvento && (
                         <button
-                          onClick={() => iniciarEdicion(item)}
-                          className="p-1 text-primary/40 hover:text-primary transition-colors"
                           aria-label="Editar evento"
+                          className="p-1 text-primary/40 hover:text-primary transition-colors"
+                          onClick={() => iniciarEdicion(item)}
                         >
                           <Pencil size={10} />
                         </button>
                       )}
                       {onDeleteEvento && (
                         <button
-                          onClick={() => handleDelete(item.id)}
-                          disabled={borrandoId === item.id}
-                          className="p-1 text-primary/40 hover:text-red-500 transition-colors disabled:opacity-40"
                           aria-label="Borrar evento"
+                          className="p-1 text-primary/40 hover:text-red-500 transition-colors disabled:opacity-40"
+                          disabled={borrandoId === item.id}
+                          onClick={() => handleDelete(item.id)}
                         >
                           <Trash2 size={10} />
                         </button>

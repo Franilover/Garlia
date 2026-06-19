@@ -9,6 +9,7 @@
 import React, {
   useState, useEffect, useRef, useCallback, useMemo,
 } from "react";
+
 import { parseSnippetRaw } from "./type";
 
 type SnippetType = "drop" | "choice" | "use" | "gate" | "section" | "imagen" | "sound";
@@ -154,7 +155,7 @@ function flattenTree(nodes: any[]): { name: string; url: string; path: string }[
 function FormHeader({ label, icon, color, onBack }: { label: string; icon: string; color: string; onBack: () => void }) {
   return (
     <div style={S.header}>
-      <button style={S.backBtn} onClick={onBack} title="Volver">‹</button>
+      <button style={S.backBtn} title="Volver" onClick={onBack}>‹</button>
       <span style={{ ...S.iconBox(color), width: 22, height: 22, fontSize: 11, borderRadius: 6 }}>{icon}</span>
       <span style={{ fontSize: 11, fontWeight: 800, color, textTransform: "uppercase" as const, letterSpacing: ".08em" }}>{label}</span>
     </div>
@@ -210,19 +211,19 @@ function FormDrop({ initialRaw, onInsert, onBack, query }: {
     const cfg = TIPO_CFG[selected.tipo];
     return (
       <>
-        <FormHeader label="Drop" icon="⚔" color="#a09af0" onBack={onBack} />
+        <FormHeader color="#a09af0" icon="⚔" label="Drop" onBack={onBack} />
         <div style={{ padding: "10px 12px", display: "flex", flexDirection: "column", gap: 8 }}>
           <div style={S.selectedPill(cfg.color)}>
             {selected.imagen_url
-              ? <img src={selected.imagen_url} alt="" style={{ width: 36, height: 36, objectFit: "cover", borderRadius: 6, flexShrink: 0 }} />
+              ? <img alt="" src={selected.imagen_url} style={{ width: 36, height: 36, objectFit: "cover", borderRadius: 6, flexShrink: 0 }} />
               : <span style={S.iconBox(cfg.color)}>{cfg.icon}</span>
             }
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={S.label}>{selected.nombre}</div>
               <div style={{ ...S.sublabel, color: cfg.color }}>{selected.tipo}{selected.subtipo ? ` · ${selected.subtipo}` : ""}</div>
             </div>
-            <button onClick={() => setSelected(null)}
-              style={{ background: "none", border: "none", cursor: "pointer", color: "color-mix(in srgb,var(--foreground) 35%,transparent)", fontSize: 14 }}>✕</button>
+            <button style={{ background: "none", border: "none", cursor: "pointer", color: "color-mix(in srgb,var(--foreground) 35%,transparent)", fontSize: 14 }}
+              onClick={() => setSelected(null)}>✕</button>
           </div>
           <button style={S.insertBtn("#a09af0")}
             onClick={() => onInsert(`[[drop|${selected.id}|${selected.nombre}|${selected.tipo}]]`)}>
@@ -235,15 +236,15 @@ function FormDrop({ initialRaw, onInsert, onBack, query }: {
 
   return (
     <>
-      <FormHeader label="Drop" icon="⚔" color="#a09af0" onBack={onBack} />
+      <FormHeader color="#a09af0" icon="⚔" label="Drop" onBack={onBack} />
       <div style={{ padding: "10px 12px 6px" }}>
-        <input ref={inputRef} value={q} onChange={e => { setQ(e.target.value); setActive(0); }}
-          onKeyDown={e => {
+        <input ref={inputRef} placeholder="Personaje, criatura o ítem…" style={S.fieldInput}
+          value={q}
+          onChange={e => { setQ(e.target.value); setActive(0); }} onKeyDown={e => {
             if (e.key === "ArrowDown") { e.preventDefault(); setActive(v => Math.min(v+1, filtered.length-1)); }
             if (e.key === "ArrowUp")   { e.preventDefault(); setActive(v => Math.max(v-1, 0)); }
             if (e.key === "Enter" && filtered[active]) setSelected(filtered[active]);
-          }}
-          placeholder="Personaje, criatura o ítem…" style={S.fieldInput} />
+          }} />
       </div>
       <div style={S.list}>
         {loading && <div style={S.empty}>Cargando…</div>}
@@ -254,7 +255,7 @@ function FormDrop({ initialRaw, onInsert, onBack, query }: {
             <div key={e.id} style={S.row(i === active || e.id === initialId)}
               onClick={() => setSelected(e)} onMouseEnter={() => setActive(i)}>
               {e.imagen_url
-                ? <img src={e.imagen_url} alt="" style={{ width: 28, height: 28, objectFit: "cover", borderRadius: 6, flexShrink: 0 }} />
+                ? <img alt="" src={e.imagen_url} style={{ width: 28, height: 28, objectFit: "cover", borderRadius: 6, flexShrink: 0 }} />
                 : <span style={S.iconBox(cfg.color)}>{cfg.icon}</span>
               }
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -285,24 +286,24 @@ function FormChoice({ initialRaw, listaSecciones = [], onInsert, onBack }: {
 
   return (
     <>
-      <FormHeader label="Choice" icon="🔀" color="#5aabf5" onBack={onBack} />
+      <FormHeader color="#5aabf5" icon="🔀" label="Choice" onBack={onBack} />
       <div style={{ padding: "10px 12px", display: "flex", flexDirection: "column", gap: 8, maxHeight: 340, overflowY: "auto" }}>
         <div>
           <div style={S.fieldLabel}>Texto del botón</div>
-          <input ref={inputRef} value={texto} onChange={e => setTexto(e.target.value)}
-            placeholder="ej: Inspeccionar pared…" style={S.fieldInput} />
+          <input ref={inputRef} placeholder="ej: Inspeccionar pared…" style={S.fieldInput}
+            value={texto} onChange={e => setTexto(e.target.value)} />
         </div>
         {listaSecciones.length > 0 ? (
           <div>
             <div style={S.fieldLabel}>Sección destino</div>
             <div style={{ maxHeight: 160, overflowY: "auto" }}>
               {listaSecciones.map(sec => (
-                <div key={sec.id} onClick={() => setTarget(sec.id)} style={{
+                <div key={sec.id} style={{
                   ...S.row(target === sec.id), borderRadius: 6, marginBottom: 2,
                   border: target === sec.id
                     ? "1px solid color-mix(in srgb,#5aabf5 40%,transparent)"
                     : "1px solid transparent",
-                }}>
+                }} onClick={() => setTarget(sec.id)}>
                   <span style={S.iconBox("#5aabf5")}>›</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={S.label}>{sec.label || sec.id}</div>
@@ -316,12 +317,12 @@ function FormChoice({ initialRaw, listaSecciones = [], onInsert, onBack }: {
         ) : (
           <div>
             <div style={S.fieldLabel}>ID de sección destino</div>
-            <input value={target} onChange={e => setTarget(e.target.value)}
-              placeholder="ej: cofre-secreto" style={{ ...S.fieldInput, fontFamily: "var(--font-mono, monospace)" }} />
+            <input placeholder="ej: cofre-secreto" style={{ ...S.fieldInput, fontFamily: "var(--font-mono, monospace)" }}
+              value={target} onChange={e => setTarget(e.target.value)} />
             <div style={{ ...S.sublabel, marginTop: 4 }}>Creá primero una Sección en este capítulo.</div>
           </div>
         )}
-        <button style={S.insertBtn("#5aabf5")} disabled={!snippet} onClick={() => snippet && onInsert(snippet)}>
+        <button disabled={!snippet} style={S.insertBtn("#5aabf5")} onClick={() => snippet && onInsert(snippet)}>
           🔀 Insertar Choice
         </button>
       </div>
@@ -343,19 +344,19 @@ function FormSection({ initialRaw, onInsert, onBack }: { initialRaw?: string; on
 
   return (
     <>
-      <FormHeader label="Sección" icon="›" color="#8b83e8" onBack={onBack} />
+      <FormHeader color="#8b83e8" icon="›" label="Sección" onBack={onBack} />
       <div style={{ padding: "10px 12px", display: "flex", flexDirection: "column", gap: 8 }}>
         <div>
           <div style={S.fieldLabel}>Nombre visible</div>
-          <input ref={inputRef} value={label} onChange={e => setLabel(e.target.value)}
-            placeholder="ej: Abrir el cofre…" style={S.fieldInput} />
+          <input ref={inputRef} placeholder="ej: Abrir el cofre…" style={S.fieldInput}
+            value={label} onChange={e => setLabel(e.target.value)} />
         </div>
         <div>
           <div style={S.fieldLabel}>ID (auto)</div>
-          <input value={id} onChange={e => setId(e.target.value.toLowerCase().replace(/\s+/g, "-"))}
-            placeholder={autoId || "ej: cofre"} style={{ ...S.fieldInput, fontFamily: "var(--font-mono, monospace)", fontSize: 11 }} />
+          <input placeholder={autoId || "ej: cofre"} style={{ ...S.fieldInput, fontFamily: "var(--font-mono, monospace)", fontSize: 11 }}
+            value={id} onChange={e => setId(e.target.value.toLowerCase().replace(/\s+/g, "-"))} />
         </div>
-        <button style={S.insertBtn("#8b83e8")} disabled={!autoId} onClick={() => snippet && onInsert(snippet)}>
+        <button disabled={!autoId} style={S.insertBtn("#8b83e8")} onClick={() => snippet && onInsert(snippet)}>
           › Insertar Sección
         </button>
       </div>
@@ -395,31 +396,31 @@ function FormUse({ initialRaw, listaSecciones = [], onInsert, onBack }: {
 
   const SeccionSelect = ({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder: string }) =>
     listaSecciones.length > 0
-      ? <select value={value} onChange={e => onChange(e.target.value)} style={{ ...S.fieldInput, cursor: "pointer" }}>
+      ? <select style={{ ...S.fieldInput, cursor: "pointer" }} value={value} onChange={e => onChange(e.target.value)}>
           <option value="">{placeholder}</option>
           {listaSecciones.map(s => <option key={s.id} value={s.id}>{s.label || s.id}</option>)}
         </select>
-      : <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} style={S.fieldInput} />;
+      : <input placeholder={placeholder} style={S.fieldInput} value={value} onChange={e => onChange(e.target.value)} />;
 
   return (
     <>
-      <FormHeader label="Use Ítem" icon="👆" color="#f07574" onBack={onBack} />
+      <FormHeader color="#f07574" icon="👆" label="Use Ítem" onBack={onBack} />
       <div style={{ padding: "10px 12px", display: "flex", flexDirection: "column", gap: 8, maxHeight: 380, overflowY: "auto" }}>
         <div>
           <div style={S.fieldLabel}>Palabra en el texto</div>
-          <input ref={inputRef} value={palabra} onChange={e => setPalabra(e.target.value)}
-            placeholder="ej: usar llave…" style={S.fieldInput} />
+          <input ref={inputRef} placeholder="ej: usar llave…" style={S.fieldInput}
+            value={palabra} onChange={e => setPalabra(e.target.value)} />
         </div>
         {!item ? (
           <div>
             <div style={S.fieldLabel}>Ítem a usar</div>
-            <input value={q} onChange={e => { setQ(e.target.value); setActive(0); }}
-              onKeyDown={e => {
+            <input placeholder="Buscar ítem…" style={S.fieldInput}
+              value={q}
+              onChange={e => { setQ(e.target.value); setActive(0); }} onKeyDown={e => {
                 if (e.key === "ArrowDown") { e.preventDefault(); setActive(v => Math.min(v+1, filtered.length-1)); }
                 if (e.key === "ArrowUp")   { e.preventDefault(); setActive(v => Math.max(v-1, 0)); }
                 if (e.key === "Enter" && filtered[active]) setItem(filtered[active]);
-              }}
-              placeholder="Buscar ítem…" style={S.fieldInput} />
+              }} />
             <div style={{ maxHeight: 120, overflowY: "auto", marginTop: 4 }}>
               {loading && <div style={S.empty}>Cargando…</div>}
               {filtered.map((it, i) => (
@@ -434,19 +435,19 @@ function FormUse({ initialRaw, listaSecciones = [], onInsert, onBack }: {
           <div style={S.selectedPill("#f07574")}>
             <span style={S.iconBox("#f07574")}>👆</span>
             <span style={{ ...S.label, flex: 1 }}>{item.nombre}</span>
-            <button onClick={() => setItem(null)}
-              style={{ background: "none", border: "none", cursor: "pointer", color: "color-mix(in srgb,var(--foreground) 35%,transparent)", fontSize: 14 }}>✕</button>
+            <button style={{ background: "none", border: "none", cursor: "pointer", color: "color-mix(in srgb,var(--foreground) 35%,transparent)", fontSize: 14 }}
+              onClick={() => setItem(null)}>✕</button>
           </div>
         )}
         <div>
           <div style={S.fieldLabel}>Sección si TIENE el ítem *</div>
-          <SeccionSelect value={targetOk} onChange={setTargetOk} placeholder="— elegí sección —" />
+          <SeccionSelect placeholder="— elegí sección —" value={targetOk} onChange={setTargetOk} />
         </div>
         <div>
           <div style={S.fieldLabel}>Sección si NO tiene (opcional)</div>
-          <SeccionSelect value={targetFail} onChange={setTargetFail} placeholder="— ninguna —" />
+          <SeccionSelect placeholder="— ninguna —" value={targetFail} onChange={setTargetFail} />
         </div>
-        <button style={S.insertBtn("#f07574")} disabled={!snippet} onClick={() => snippet && onInsert(snippet)}>
+        <button disabled={!snippet} style={S.insertBtn("#f07574")} onClick={() => snippet && onInsert(snippet)}>
           👆 Insertar Use
         </button>
       </div>
@@ -478,18 +479,18 @@ function FormGate({ initialRaw, onInsert, onBack }: { initialRaw?: string; onIns
 
   return (
     <>
-      <FormHeader label="Gate" icon="🚪" color="#e09a2a" onBack={onBack} />
+      <FormHeader color="#e09a2a" icon="🚪" label="Gate" onBack={onBack} />
       <div style={{ padding: "10px 12px", display: "flex", flexDirection: "column", gap: 8, maxHeight: 380, overflowY: "auto" }}>
         {!item ? (
           <div>
             <div style={S.fieldLabel}>Ítem condición</div>
-            <input value={q} onChange={e => { setQ(e.target.value); setActive(0); }}
-              onKeyDown={e => {
+            <input autoFocus placeholder="Buscar ítem…"
+              style={S.fieldInput}
+              value={q} onChange={e => { setQ(e.target.value); setActive(0); }} onKeyDown={e => {
                 if (e.key === "ArrowDown") { e.preventDefault(); setActive(v => Math.min(v+1, filtered.length-1)); }
                 if (e.key === "ArrowUp")   { e.preventDefault(); setActive(v => Math.max(v-1, 0)); }
                 if (e.key === "Enter" && filtered[active]) setItem(filtered[active]);
-              }}
-              placeholder="Buscar ítem…" style={S.fieldInput} autoFocus />
+              }} />
             <div style={{ maxHeight: 140, overflowY: "auto", marginTop: 4 }}>
               {loading && <div style={S.empty}>Cargando…</div>}
               {filtered.map((it, i) => (
@@ -504,23 +505,23 @@ function FormGate({ initialRaw, onInsert, onBack }: { initialRaw?: string; onIns
           <div style={S.selectedPill("#e09a2a")}>
             <span style={S.iconBox("#e09a2a")}>🚪</span>
             <span style={{ ...S.label, flex: 1 }}>{item.nombre}</span>
-            <button onClick={() => setItem(null)}
-              style={{ background: "none", border: "none", cursor: "pointer", color: "color-mix(in srgb,var(--foreground) 35%,transparent)", fontSize: 14 }}>✕</button>
+            <button style={{ background: "none", border: "none", cursor: "pointer", color: "color-mix(in srgb,var(--foreground) 35%,transparent)", fontSize: 14 }}
+              onClick={() => setItem(null)}>✕</button>
           </div>
         )}
         <div>
           <div style={S.fieldLabel}>Texto si TIENE el ítem *</div>
-          <textarea value={tieneTexto} onChange={e => setTiene(e.target.value)} rows={3}
-            placeholder="El personaje usa el objeto…"
-            style={{ ...S.fieldInput, resize: "none" as const, fontFamily: "inherit" }} />
+          <textarea placeholder="El personaje usa el objeto…" rows={3} style={{ ...S.fieldInput, resize: "none" as const, fontFamily: "inherit" }}
+            value={tieneTexto}
+            onChange={e => setTiene(e.target.value)} />
         </div>
         <div>
           <div style={S.fieldLabel}>Texto si NO tiene (opcional)</div>
-          <textarea value={noTieneTexto} onChange={e => setNoTiene(e.target.value)} rows={2}
-            placeholder="No tenés ese ítem…"
-            style={{ ...S.fieldInput, resize: "none" as const, fontFamily: "inherit" }} />
+          <textarea placeholder="No tenés ese ítem…" rows={2} style={{ ...S.fieldInput, resize: "none" as const, fontFamily: "inherit" }}
+            value={noTieneTexto}
+            onChange={e => setNoTiene(e.target.value)} />
         </div>
-        <button style={S.insertBtn("#e09a2a")} disabled={!snippet} onClick={() => snippet && onInsert(snippet)}>
+        <button disabled={!snippet} style={S.insertBtn("#e09a2a")} onClick={() => snippet && onInsert(snippet)}>
           🚪 Insertar Gate
         </button>
       </div>
@@ -566,28 +567,28 @@ function FormImagen({ initialRaw, onInsert, onBack, query }: {
 
   return (
     <>
-      <FormHeader label="Imagen" icon="🖼" color="#2dc896" onBack={onBack} />
+      <FormHeader color="#2dc896" icon="🖼" label="Imagen" onBack={onBack} />
       <div style={{ padding: "10px 12px", display: "flex", flexDirection: "column", gap: 8, maxHeight: 400, overflowY: "auto" }}>
         <div style={{ display: "flex", gap: 6 }}>
           {(["img", "float"] as const).map(m => (
-            <button key={m} onClick={() => setMode(m)} style={{
+            <button key={m} style={{
               flex: 1, padding: "6px", borderRadius: 7, cursor: "pointer",
               border: `1px solid color-mix(in srgb,#2dc896 ${mode === m ? 40 : 15}%,transparent)`,
               fontSize: 10, fontWeight: 800, textTransform: "uppercase" as const,
               background: mode === m ? "color-mix(in srgb,#2dc896 18%,transparent)" : "none",
               color: mode === m ? "#2dc896" : "color-mix(in srgb,var(--foreground) 35%,transparent)",
-            }}>{m === "img" ? "Inline" : "Flotante"}</button>
+            }} onClick={() => setMode(m)}>{m === "img" ? "Inline" : "Flotante"}</button>
           ))}
         </div>
         <div>
           <div style={S.fieldLabel}>Buscar imagen</div>
-          <input ref={inputRef} value={q} onChange={e => setQ(e.target.value)}
-            onKeyDown={e => {
+          <input ref={inputRef} placeholder="Nombre de archivo…" style={S.fieldInput}
+            value={q}
+            onChange={e => setQ(e.target.value)} onKeyDown={e => {
               if (e.key === "ArrowDown") { e.preventDefault(); setActive(v => Math.min(v+1, filtered.length-1)); }
               if (e.key === "ArrowUp")   { e.preventDefault(); setActive(v => Math.max(v-1, 0)); }
               if (e.key === "Enter" && filtered[active]) setSelected(filtered[active].url);
-            }}
-            placeholder="Nombre de archivo…" style={S.fieldInput} />
+            }} />
         </div>
         {!selected ? (
           <div style={{ maxHeight: 180, overflowY: "auto" }}>
@@ -595,7 +596,7 @@ function FormImagen({ initialRaw, onInsert, onBack, query }: {
             {!loading && filtered.length === 0 && <div style={S.empty}>Sin resultados</div>}
             {filtered.map((f, i) => (
               <div key={f.url} style={S.row(i === active)} onClick={() => setSelected(f.url)} onMouseEnter={() => setActive(i)}>
-                <img src={f.url} alt={f.name} style={{ width: 32, height: 32, objectFit: "cover", borderRadius: 5, flexShrink: 0, border: "1px solid color-mix(in srgb,var(--foreground) 10%,transparent)" }} />
+                <img alt={f.name} src={f.url} style={{ width: 32, height: 32, objectFit: "cover", borderRadius: 5, flexShrink: 0, border: "1px solid color-mix(in srgb,var(--foreground) 10%,transparent)" }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={S.label}>{f.name}</div>
                   <div style={S.sublabel}>{f.path}</div>
@@ -605,25 +606,25 @@ function FormImagen({ initialRaw, onInsert, onBack, query }: {
           </div>
         ) : (
           <div style={S.selectedPill("#2dc896")}>
-            <img src={selected} alt="" style={{ width: 36, height: 36, objectFit: "cover", borderRadius: 6, flexShrink: 0 }} />
+            <img alt="" src={selected} style={{ width: 36, height: 36, objectFit: "cover", borderRadius: 6, flexShrink: 0 }} />
             <span style={{ ...S.label, flex: 1, fontSize: 11 }}>{selected.split("/").pop()}</span>
-            <button onClick={() => setSelected(null)}
-              style={{ background: "none", border: "none", cursor: "pointer", color: "color-mix(in srgb,var(--foreground) 35%,transparent)", fontSize: 14 }}>✕</button>
+            <button style={{ background: "none", border: "none", cursor: "pointer", color: "color-mix(in srgb,var(--foreground) 35%,transparent)", fontSize: 14 }}
+              onClick={() => setSelected(null)}>✕</button>
           </div>
         )}
         {selected && mode === "float" && (
           <div>
             <div style={S.fieldLabel}>Palabra en el texto</div>
-            <input value={word} onChange={e => setWord(e.target.value)} placeholder="ej: el castillo…" style={S.fieldInput} />
+            <input placeholder="ej: el castillo…" style={S.fieldInput} value={word} onChange={e => setWord(e.target.value)} />
           </div>
         )}
         {selected && (
           <div>
             <div style={S.fieldLabel}>Caption (opcional)</div>
-            <input value={caption} onChange={e => setCaption(e.target.value)} placeholder="Descripción…" style={S.fieldInput} />
+            <input placeholder="Descripción…" style={S.fieldInput} value={caption} onChange={e => setCaption(e.target.value)} />
           </div>
         )}
-        <button style={S.insertBtn("#2dc896")} disabled={!snippet} onClick={() => snippet && onInsert(snippet)}>
+        <button disabled={!snippet} style={S.insertBtn("#2dc896")} onClick={() => snippet && onInsert(snippet)}>
           🖼 Insertar Imagen
         </button>
       </div>
@@ -669,17 +670,17 @@ function FormSound({ onInsert, onBack, query }: {
 
   return (
     <>
-      <FormHeader label="Sonido" icon="♪" color="#e87aaa" onBack={onBack} />
+      <FormHeader color="#e87aaa" icon="♪" label="Sonido" onBack={onBack} />
       <div style={{ padding: "10px 12px", display: "flex", flexDirection: "column", gap: 8, maxHeight: 380, overflowY: "auto" }}>
         <div>
           <div style={S.fieldLabel}>Buscar sonido</div>
-          <input ref={inputRef} value={q} onChange={e => setQ(e.target.value)}
-            onKeyDown={e => {
+          <input ref={inputRef} placeholder="Nombre del archivo…" style={S.fieldInput}
+            value={q}
+            onChange={e => setQ(e.target.value)} onKeyDown={e => {
               if (e.key === "ArrowDown") { e.preventDefault(); setActive(v => Math.min(v+1, filtered.length-1)); }
               if (e.key === "ArrowUp")   { e.preventDefault(); setActive(v => Math.max(v-1, 0)); }
               if (e.key === "Enter" && filtered[active]) setSelected(filtered[active].url);
-            }}
-            placeholder="Nombre del archivo…" style={S.fieldInput} />
+            }} />
         </div>
         <div style={{ maxHeight: 180, overflowY: "auto" }}>
           {loading && <div style={S.empty}>Cargando…</div>}
@@ -689,8 +690,8 @@ function FormSound({ onInsert, onBack, query }: {
               border: selected === f.url ? "1px solid color-mix(in srgb,#e87aaa 35%,transparent)" : "1px solid transparent",
               borderRadius: 6, marginBottom: 2 }}
               onClick={() => setSelected(f.url)} onMouseEnter={() => setActive(i)}>
-              <button onClick={e => { e.stopPropagation(); togglePlay(f.url); }}
-                style={{ ...S.iconBox("#e87aaa"), cursor: "pointer", border: "none", flexShrink: 0 }}>
+              <button style={{ ...S.iconBox("#e87aaa"), cursor: "pointer", border: "none", flexShrink: 0 }}
+                onClick={e => { e.stopPropagation(); togglePlay(f.url); }}>
                 {selected === f.url && playing ? "⏸" : "▶"}
               </button>
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -707,12 +708,12 @@ function FormSound({ onInsert, onBack, query }: {
               <div style={S.fieldLabel}>Volumen</div>
               <div style={S.sublabel}>{Math.round(volume * 100)}%</div>
             </div>
-            <input type="range" min="0" max="1" step="0.1" value={volume}
-              onChange={e => { const v = parseFloat(e.target.value); setVolume(v); if (audioRef.current) audioRef.current.volume = v; }}
-              style={{ width: "100%", accentColor: "#e87aaa", cursor: "pointer" }} />
+            <input max="1" min="0" step="0.1" style={{ width: "100%", accentColor: "#e87aaa", cursor: "pointer" }} type="range"
+              value={volume}
+              onChange={e => { const v = parseFloat(e.target.value); setVolume(v); if (audioRef.current) audioRef.current.volume = v; }} />
           </div>
         )}
-        <button style={S.insertBtn("#e87aaa")} disabled={!selected}
+        <button disabled={!selected} style={S.insertBtn("#e87aaa")}
           onClick={() => selected && onInsert(`[[sound|${selected}|${volume.toFixed(1)}]]`)}>
           ♪ Insertar Sonido
         </button>
@@ -821,11 +822,11 @@ export function SnippetCommandPalette({
             <span style={{ fontSize: 12, color: "color-mix(in srgb,var(--color-primary,#7c6af7) 60%,transparent)", flexShrink: 0 }}>✦</span>
             <input
               ref={inputRef}
+              placeholder="drop espada · imagen castillo · sonido lluvia…"
+              style={S.mainInput}
               value={q}
               onChange={e => { setQ(e.target.value); setActiveIdx(0); }}
               onKeyDown={handleKeyDown}
-              placeholder="drop espada · imagen castillo · sonido lluvia…"
-              style={S.mainInput}
             />
             <span style={S.kbd}>esc</span>
           </div>
@@ -854,13 +855,13 @@ export function SnippetCommandPalette({
         </>
       )}
 
-      {selectedType === "drop"    && <FormDrop    initialRaw={initialRaw} onInsert={handleInsert} onBack={handleBack} query={childQuery} />}
-      {selectedType === "choice"  && <FormChoice  initialRaw={initialRaw} listaSecciones={listaSecciones} onInsert={handleInsert} onBack={handleBack} />}
-      {selectedType === "section" && <FormSection initialRaw={initialRaw} onInsert={handleInsert} onBack={handleBack} />}
-      {selectedType === "use"     && <FormUse     initialRaw={initialRaw} listaSecciones={listaSecciones} onInsert={handleInsert} onBack={handleBack} />}
-      {selectedType === "gate"    && <FormGate    initialRaw={initialRaw} onInsert={handleInsert} onBack={handleBack} />}
-      {selectedType === "imagen"  && <FormImagen  initialRaw={initialRaw} onInsert={handleInsert} onBack={handleBack} query={childQuery} />}
-      {selectedType === "sound"   && <FormSound   onInsert={handleInsert} onBack={handleBack} query={childQuery} />}
+      {selectedType === "drop"    && <FormDrop    initialRaw={initialRaw} query={childQuery} onBack={handleBack} onInsert={handleInsert} />}
+      {selectedType === "choice"  && <FormChoice  initialRaw={initialRaw} listaSecciones={listaSecciones} onBack={handleBack} onInsert={handleInsert} />}
+      {selectedType === "section" && <FormSection initialRaw={initialRaw} onBack={handleBack} onInsert={handleInsert} />}
+      {selectedType === "use"     && <FormUse     initialRaw={initialRaw} listaSecciones={listaSecciones} onBack={handleBack} onInsert={handleInsert} />}
+      {selectedType === "gate"    && <FormGate    initialRaw={initialRaw} onBack={handleBack} onInsert={handleInsert} />}
+      {selectedType === "imagen"  && <FormImagen  initialRaw={initialRaw} query={childQuery} onBack={handleBack} onInsert={handleInsert} />}
+      {selectedType === "sound"   && <FormSound   query={childQuery} onBack={handleBack} onInsert={handleInsert} />}
     </div>
   );
 }

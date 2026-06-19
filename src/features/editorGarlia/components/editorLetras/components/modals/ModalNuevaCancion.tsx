@@ -1,13 +1,15 @@
 "use client";
 
-import React, { useState } from "react";
 import { Music, X, Loader2, Plus } from "lucide-react";
-import { supabase } from "@/lib/api/client/supabase";
+import React, { useState } from "react";
+
 import { ModalBase, CampoInput, BotonSubmit } from "@/components/layout/EstudioTemplates";
 import { SelectPersonaje, SelectIdioma } from "@/hooks/useEditorShared";
-import { InputConSugerencias } from "../InputConSugerencias";
+import { supabase } from "@/lib/api/client/supabase";
+
 import { ESTADOS } from "../../constants";
 import type { Cancion } from "../../types";
+import { InputConSugerencias } from "../InputConSugerencias";
 
 export const ModalNuevaCancion = ({
   onCreated,
@@ -59,15 +61,15 @@ export const ModalNuevaCancion = ({
         <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50 italic flex items-center gap-2">
           <Music size={12} /> Nueva Canción
         </h3>
-        <button onClick={onClose} className="text-primary/30 hover:text-primary transition-colors"><X size={16} /></button>
+        <button className="text-primary/30 hover:text-primary transition-colors" onClick={onClose}><X size={16} /></button>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <CampoInput label="Título *" value={titulo} onChange={setTitulo} placeholder="NOMBRE DE LA CANCIÓN…" autoFocus />
+      <form className="space-y-4" onSubmit={handleSubmit}>
+        <CampoInput autoFocus label="Título *" placeholder="NOMBRE DE LA CANCIÓN…" value={titulo} onChange={setTitulo} />
         <SelectPersonaje value={personajeId ?? ""} onChange={v => setPersonajeId(v || null)} />
         <div className="grid grid-cols-2 gap-3">
-          <InputConSugerencias label="Cantante"   value={cantante}   onChange={setCantante}   placeholder="Cantante…"   tabla="canciones" columna="cantante" />
-          <InputConSugerencias label="Compositor" value={compositor} onChange={setCompositor} placeholder="Compositor…" tabla="canciones" columna="compositor" />
+          <InputConSugerencias columna="cantante"   label="Cantante"   placeholder="Cantante…"   tabla="canciones"   value={cantante} onChange={setCantante} />
+          <InputConSugerencias columna="compositor" label="Compositor" placeholder="Compositor…" tabla="canciones" value={compositor} onChange={setCompositor} />
         </div>
         <SelectIdioma value={idioma} onChange={setIdioma} />
 
@@ -76,11 +78,11 @@ export const ModalNuevaCancion = ({
           <div className="flex gap-2">
             {ESTADOS.map(e => (
               <button
-                key={e} type="button"
-                onClick={() => setEstado(e)}
-                className={`flex-1 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all ${
+                key={e} className={`flex-1 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all ${
                   estado === e ? "bg-primary text-bg-main border-primary" : "border-primary/15 text-primary/40 hover:border-primary/30"
                 }`}
+                type="button"
+                onClick={() => setEstado(e)}
               >
                 {e === "EN PROCESO" ? "WIP" : e}
               </button>
@@ -91,10 +93,10 @@ export const ModalNuevaCancion = ({
         {error && <p className="text-[9px] font-black uppercase text-red-400 tracking-widest">⚠ {error}</p>}
 
         <BotonSubmit
-          loading={saving}
           disabled={!titulo.trim()}
-          labelLoading={<><Loader2 size={13} className="animate-spin" />Creando…</>}
+          labelLoading={<><Loader2 className="animate-spin" size={13} />Creando…</>}
           labelNormal={<><Plus size={13} />Crear Canción</>}
+          loading={saving}
         />
       </form>
     </ModalBase>

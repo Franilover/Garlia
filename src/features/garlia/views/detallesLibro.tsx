@@ -1,13 +1,13 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { supabase } from "@/lib/api/client/supabase";
-import { db } from "@/lib/api/client/db";
 import { Play, Calendar, Clock, CheckCircle2 } from "lucide-react";
-import { SmartImage } from "@/components/ui/SmartImage";
+import { useParams, useRouter } from "next/navigation";
+import React, { useEffect, useState } from "react";
+
 import { Loading, BackBtn } from "@/components/ui";
-import { toSlug, esUUID } from "@/lib/utils/slugify";
+import { SmartImage } from "@/components/ui/SmartImage";
+import { db } from "@/lib/api/client/db";
+import { supabase } from "@/lib/api/client/supabase";
 import {
   loadCapitulos,
   loadCapituloProximo,
@@ -16,6 +16,7 @@ import {
   loadCiudadesMap,
   collectIds,
 } from "@/lib/api/client/syncEngine";
+import { toSlug, esUUID } from "@/lib/utils/slugify";
 
 // ─── Interfaces ───────────────────────────────────────────────────────────────
 
@@ -265,7 +266,7 @@ export default function LibroDetalle() {
           <div key={p.id} className="flex items-center gap-1">
             <div className={`w-5 h-5 rounded-full overflow-hidden flex-shrink-0 border ${i === 0 && cap.narrador_id === p.id ? "border-primary/30" : "border-primary/10"}`}>
               {p.img_url
-                ? <SmartImage src={p.img_url} alt={p.nombre} className="w-full h-full object-cover" />
+                ? <SmartImage alt={p.nombre} className="w-full h-full object-cover" src={p.img_url} />
                 : <div className="w-full h-full bg-primary/10 flex items-center justify-center text-[7px] font-black text-primary/40">{p.nombre[0]}</div>
               }
             </div>
@@ -319,13 +320,13 @@ export default function LibroDetalle() {
           return (
             <button
               key={cap.id}
-              onClick={() => { router.push(rutaLector(cap.id)); }}
               className={`w-full flex items-center justify-between p-4 transition-all text-left group rounded-btn shadow-card ${esRuta ? "bg-blue-50/60" : leido ? "bg-primary/[0.03]" : "bg-white-custom"}`}
               style={{
                 border: `var(--border-width) solid ${esRuta ? "rgb(219 234 254)" : leido ? "color-mix(in srgb, var(--primary) 5%, transparent)" : "color-mix(in srgb, var(--primary) 8%, transparent)"}`,
                 boxShadow: leido ? "none" : undefined,
                 opacity: leido ? 0.55 : 1,
               }}
+              onClick={() => { router.push(rutaLector(cap.id)); }}
               onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.borderColor = "color-mix(in srgb, var(--primary) 25%, transparent)"; }}
               onMouseLeave={e => { e.currentTarget.style.opacity = leido ? "0.55" : "1"; e.currentTarget.style.borderColor = esRuta ? "rgb(219 234 254)" : leido ? "color-mix(in srgb, var(--primary) 5%, transparent)" : "color-mix(in srgb, var(--primary) 8%, transparent)"; }}
             >
@@ -344,8 +345,8 @@ export default function LibroDetalle() {
               </div>
               <div className="flex-shrink-0 ml-4">
                 {leido
-                  ? <CheckCircle2 size={14} className="text-primary/25" />
-                  : <Play size={14} fill="currentColor" className="text-primary" />
+                  ? <CheckCircle2 className="text-primary/25" size={14} />
+                  : <Play className="text-primary" fill="currentColor" size={14} />
                 }
               </div>
             </button>
@@ -365,7 +366,7 @@ export default function LibroDetalle() {
             className="rounded-[var(--radius-card)] overflow-hidden bg-white-custom md:sticky md:top-8"
             style={{ border: "var(--border-width) solid color-mix(in srgb, var(--primary) 15%, transparent)", boxShadow: "var(--shadow-card)" }}
           >
-            <SmartImage src={libro.portada_url || "/placeholder-cover.jpg"} alt={libro.titulo} className="w-full h-full" />
+            <SmartImage alt={libro.titulo} className="w-full h-full" src={libro.portada_url || "/placeholder-cover.jpg"} />
           </div>
           <main>
             <h1 className="text-4xl font-black text-primary italic tracking-tighter leading-[0.9] mb-10 uppercase text-center">
@@ -388,16 +389,16 @@ export default function LibroDetalle() {
         {/* ── Sidebar ── */}
         <aside className="md:sticky md:top-8 flex flex-col gap-6">
           <div style={{ aspectRatio: "3/4", borderRadius: "var(--radius-card)", overflow: "hidden", border: "var(--border-width) solid color-mix(in srgb, var(--primary) 15%, transparent)", boxShadow: "var(--shadow-card)" }}>
-            <SmartImage src={libro.portada_url || "/placeholder-cover.jpg"} alt={libro.titulo} className="w-full h-full" />
+            <SmartImage alt={libro.titulo} className="w-full h-full" src={libro.portada_url || "/placeholder-cover.jpg"} />
           </div>
 
           <div className="flex flex-col gap-3">
             {capitulos.length > 0 && (
               <button
-                onClick={() => { router.push(rutaLector(capitulos[0].id)); }}
                 className="w-full flex items-center justify-center gap-2 py-3 rounded-[var(--radius-btn)] bg-primary text-[var(--btn-text)] font-black uppercase text-[10px] tracking-widest hover:opacity-90 transition-opacity"
+                onClick={() => { router.push(rutaLector(capitulos[0].id)); }}
               >
-                <Play size={10} fill="currentColor" />
+                <Play fill="currentColor" size={10} />
                 {leidos.size > 0 ? "Continuar leyendo" : "Empezar a leer"}
               </button>
             )}
@@ -408,7 +409,7 @@ export default function LibroDetalle() {
 
             {capituloProximo && (
               <div className="flex items-start gap-2 mt-1 p-3 rounded-[var(--radius-btn)] bg-primary/3 border border-primary/8">
-                <Clock size={10} className="text-primary/30 flex-shrink-0 mt-0.5" />
+                <Clock className="text-primary/30 flex-shrink-0 mt-0.5" size={10} />
                 <div className="flex flex-col gap-0.5">
                   <span className="text-[8px] font-black uppercase tracking-widest text-primary/30">Próximamente</span>
                   <span className="text-[10px] font-bold text-primary/50 italic">{capituloProximo.titulo_capitulo}</span>

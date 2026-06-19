@@ -1,6 +1,7 @@
 "use client";
-import React, { useEffect, useState, useRef } from "react";
 import { motion } from "framer-motion";
+import React, { useEffect, useState, useRef } from "react";
+
 import { CapituloScrollItem } from "@/features/editorGarlia/components/editorCapitulos/snippets/type";
 
 
@@ -95,26 +96,26 @@ export function FinCapituloSeparador({ cap, onVisible, ocultar = false }: {
     <div ref={ref} className="mt-20 mb-4 flex flex-col items-center gap-3" style={{ minHeight: "20px", visibility: ocultar ? "hidden" : undefined, height: ocultar ? 0 : undefined, marginTop: ocultar ? 0 : undefined, overflow: ocultar ? "hidden" : undefined }}>
       <div className="flex items-center gap-4 w-full max-w-xs">
         <motion.div
-          className="flex-1 h-px"
-          style={{ background: "linear-gradient(to right, transparent, color-mix(in srgb, var(--primary) 20%, transparent))" }}
-          initial={{ scaleX: 0, originX: 0 }}
           animate={visible ? { scaleX: 1 } : { scaleX: 0 }}
+          className="flex-1 h-px"
+          initial={{ scaleX: 0, originX: 0 }}
+          style={{ background: "linear-gradient(to right, transparent, color-mix(in srgb, var(--primary) 20%, transparent))" }}
           transition={{ duration: 0.7, ease: "easeOut", delay: 0.1 }}
         />
         <motion.span
-          className="font-serif text-sm select-none"
-          style={{ color: "color-mix(in srgb, var(--accent) 70%, transparent)" }}
-          initial={{ opacity: 0, scale: 0.7 }}
           animate={visible ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.7 }}
+          className="font-serif text-sm select-none"
+          initial={{ opacity: 0, scale: 0.7 }}
+          style={{ color: "color-mix(in srgb, var(--accent) 70%, transparent)" }}
           transition={{ duration: 0.5, ease: "easeOut", delay: 0.35 }}
         >
           ❧
         </motion.span>
         <motion.div
-          className="flex-1 h-px"
-          style={{ background: "linear-gradient(to left, transparent, color-mix(in srgb, var(--primary) 20%, transparent))" }}
-          initial={{ scaleX: 0, originX: 1 }}
           animate={visible ? { scaleX: 1 } : { scaleX: 0 }}
+          className="flex-1 h-px"
+          initial={{ scaleX: 0, originX: 1 }}
+          style={{ background: "linear-gradient(to left, transparent, color-mix(in srgb, var(--primary) 20%, transparent))" }}
           transition={{ duration: 0.7, ease: "easeOut", delay: 0.1 }}
         />
       </div>

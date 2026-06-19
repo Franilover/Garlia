@@ -1,15 +1,17 @@
 "use client";
-import React, { useEffect, useRef, useState, useCallback } from "react";
-import { AlignLeft, Clock } from "lucide-react";
 import { AnimatePresence } from "framer-motion";
-import { CapituloScrollItem } from "@/features/editorGarlia/components/editorCapitulos/snippets/type";
-import { ContenidoInteractivo } from "./ContenidoInteractivo";
-import { supabase } from "@/lib/api/client/supabase";
+import { AlignLeft, Clock } from "lucide-react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 
-import { FinCapituloSeparador } from "./LectorUI";
+import { CapituloScrollItem } from "@/features/editorGarlia/components/editorCapitulos/snippets/type";
+import { useDesbloquearCiudades, CiudadesDesbloqueadasToast } from "@/features/garlia/hooks//useCiudades";
 import { useDesbloquearPersonajes, PersonajesDesbloqueadosToast } from "@/features/garlia/hooks//usePersonajes";
 import { useDesbloquearReinos, ReinosDesbloqueadosToast } from "@/features/garlia/hooks/useReinos";
-import { useDesbloquearCiudades, CiudadesDesbloqueadasToast } from "@/features/garlia/hooks//useCiudades";
+import { supabase } from "@/lib/api/client/supabase";
+
+import { ContenidoInteractivo } from "./ContenidoInteractivo";
+import { FinCapituloSeparador } from "./LectorUI";
+
 
 /**
  * Estilos de fuente fluida para el lector.
@@ -206,11 +208,11 @@ export function CapituloScrollBlock({ cap, onNavigate, esExtra = false, haySegSi
     check();
     container.addEventListener("scroll", check, { passive: true });
     return () => container.removeEventListener("scroll", check);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [cap.id, handleFinCapitulo]);
 
   return (
-    <div id={`cap-${cap.id}`} className="lector-article-wrap scroll-mt-20">
+    <div className="lector-article-wrap scroll-mt-20" id={`cap-${cap.id}`}>
       <style>{FLUID_FONT_STYLES}</style>
       {esExtra && <style>{`
         .lector-article-wrap p::first-letter,
@@ -248,13 +250,13 @@ export function CapituloScrollBlock({ cap, onNavigate, esExtra = false, haySegSi
 
         <div className="min-h-[20vh]">
           <ContenidoInteractivo
+            esExtra={esExtra}
             texto={cap.contenido ?? ""}
             onNavigate={onNavigate}
-            esExtra={esExtra}
           />
         </div>
 
-        <FinCapituloSeparador cap={cap} onVisible={() => {}} ocultar={true} />
+        <FinCapituloSeparador cap={cap} ocultar={true} onVisible={() => {}} />
       </article>
     </div>
   );

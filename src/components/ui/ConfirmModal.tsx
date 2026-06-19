@@ -1,8 +1,9 @@
 "use client";
-import { MotionDiv, MotionMain, MotionH1, MotionH2, MotionButton, MotionLi, MotionSpan, MotionP, MotionSection, MotionArticle, MotionImg } from "@/components/ui/Motion";
-import React, { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AlertTriangle } from "lucide-react";
+import React, { useState, useCallback } from "react";
+
+import { MotionDiv, MotionMain, MotionH1, MotionH2, MotionButton, MotionLi, MotionSpan, MotionP, MotionSection, MotionArticle, MotionImg } from "@/components/ui/Motion";
 
 interface ConfirmOptions {
   title?: string;
@@ -35,18 +36,18 @@ export function useConfirm() {
       {state && (
         <div className="fixed inset-0 z-[9998] flex items-center justify-center p-6">
           <MotionDiv
-            initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
             className="absolute inset-0 bg-primary/20 backdrop-blur-sm"
+            exit={{ opacity: 0 }}
+            initial={{ opacity: 0 }}
             onClick={() => handleResponse(false)}
           />
           <MotionDiv
-            initial={{ scale: 0.92, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.92, opacity: 0 }}
-            transition={{ type: "spring", stiffness: 400, damping: 30 }}
             className="relative bg-white-custom border border-primary/10 rounded-[var(--radius-card)] p-8 w-full max-w-sm shadow-2xl z-10"
+            exit={{ scale: 0.92, opacity: 0 }}
+            initial={{ scale: 0.92, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 400, damping: 30 }}
           >
             {}
             <div className={`w-12 h-12 rounded-[var(--radius-btn)] flex items-center justify-center mb-5 ${
@@ -70,18 +71,18 @@ export function useConfirm() {
             {}
             <div className="flex items-center gap-3">
               <button
-                onClick={() => handleResponse(false)}
                 className="flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-[var(--radius-btn)] border border-primary/15 text-primary/50 hover:text-primary hover:border-primary/30 transition-all"
+                onClick={() => handleResponse(false)}
               >
                 {state.cancelLabel ?? "Cancelar"}
               </button>
               <button
-                onClick={() => handleResponse(true)}
                 className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-[var(--radius-btn)] transition-all ${
                   state.danger
                     ? "bg-red-500 text-white hover:bg-red-600 shadow-lg shadow-red-500/20"
                     : "bg-primary text-btn-text hover:opacity-80"
                 }`}
+                onClick={() => handleResponse(true)}
               >
                 {state.confirmLabel ?? "Confirmar"}
               </button>

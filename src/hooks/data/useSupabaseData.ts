@@ -1,20 +1,21 @@
 "use client";
 import { useState, useEffect, useCallback, useRef } from "react";
-import { supabase } from "@/lib/api/client/supabase";
-import { useDataCache } from "@/providers/DataProvider";
-import { db } from "@/lib/api/client/db";
+
 import { enqueueOperation, isReallyOnline, onSyncDone } from "@/hooks/data/useOfflineSync";
-import { personajesQueries }   from "@/lib/api/queries/garlia/personajes";
+import { db } from "@/lib/api/client/db";
+import { supabase } from "@/lib/api/client/supabase";
+import { cancionesQueries }    from "@/lib/api/queries/garlia/canciones";
 import { criaturasQueries }    from "@/lib/api/queries/garlia/criaturas";
 import { itemsQueries }        from "@/lib/api/queries/garlia/items";
 import { librosQueries }       from "@/lib/api/queries/garlia/libros";
-import { recetasQueries }      from "@/lib/api/queries/personal/cocina/recetas";
-import { tareasQueries }       from "@/lib/api/queries/personal/tareas";
-import { eventosQueries }      from "@/lib/api/queries/personal/eventos";
-import { ingredientesQueries } from "@/lib/api/queries/personal/cocina/ingredientes";
-import { ropaQueries }         from "@/lib/api/queries/personal/ropa";
-import { cancionesQueries }    from "@/lib/api/queries/garlia/canciones";
+import { personajesQueries }   from "@/lib/api/queries/garlia/personajes";
 import { comprasQueries }      from "@/lib/api/queries/personal/cocina/carrito";
+import { ingredientesQueries } from "@/lib/api/queries/personal/cocina/ingredientes";
+import { recetasQueries }      from "@/lib/api/queries/personal/cocina/recetas";
+import { eventosQueries }      from "@/lib/api/queries/personal/eventos";
+import { ropaQueries }         from "@/lib/api/queries/personal/ropa";
+import { tareasQueries }       from "@/lib/api/queries/personal/tareas";
+import { useDataCache } from "@/providers/DataProvider";
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 const FETCH_TIMEOUT_MS       = 12_000;

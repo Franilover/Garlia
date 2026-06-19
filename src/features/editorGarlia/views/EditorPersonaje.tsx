@@ -1,25 +1,29 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
 import {
   Maximize2, UserCircle2, BookOpen, Loader2,
   ChevronDown, X, Save, Trash2, Check,
   Sparkles, Users, Camera, SlidersHorizontal, Music2, Plus, Clock,
 } from "lucide-react";
-import { supabase } from "@/lib/api/client/supabase";
-import { SelectorFechaMundo, FechaMundoBadge } from "../components/EditorLineaTiempo";
-import { db } from "@/lib/api/client/db";
-import { useConfirm } from "@/components/ui/ConfirmModal";
-import { type Personaje, type SaveStatus } from "../components/types";
-import { useNombresDeTabla } from "../components/hooks";
-import { SelectorImagen, SaveIndicator } from "../components/UIComponents";
-import { ComboSelector } from "@/components/ui/ComboSelector";
+import React, { useState, useEffect, useCallback } from "react";
+
 import { MarkdownEditor, WikiEntity } from "@/components/forms/Markdown/MarkdownEditor";
-import { useWikilink } from "../components/WikilinkContext";
-import SimpleImagePicker from "@/features/editorGarlia/components/editorCapitulos/snippets/forms/SimpleImagePicker";
-import { BloqueDones } from "../components/BloqueDones";
+import { ComboSelector } from "@/components/ui/ComboSelector";
+import { useConfirm } from "@/components/ui/ConfirmModal";
 import { SeccionEntidad } from "@/components/ui/SeccionEntidad";
+import SimpleImagePicker from "@/features/editorGarlia/components/editorCapitulos/snippets/forms/SimpleImagePicker";
+import { db } from "@/lib/api/client/db";
+import { supabase } from "@/lib/api/client/supabase";
+
+import { BloqueDones } from "../components/BloqueDones";
 import { BloqueRelaciones } from "../components/BloqueRelaciones";
+import { SelectorFechaMundo, FechaMundoBadge } from "../components/EditorLineaTiempo";
+import { useNombresDeTabla } from "../components/hooks";
+import { type Personaje, type SaveStatus } from "../components/types";
+import { SelectorImagen, SaveIndicator } from "../components/UIComponents";
+import { useWikilink } from "../components/WikilinkContext";
+
+
 
 // ─── Dexie helpers ────────────────────────────────────────────────────────────
 async function dexiePut(tabla: string, row: any): Promise<void> {
@@ -148,7 +152,7 @@ function BloqueCapsAparece({ personajeId }: { personajeId: string }) {
     window.dispatchEvent(new Event("estudio-caps-action"));
   };
 
-  if (loading) return <div className="flex justify-center py-4"><Loader2 size={16} className="animate-spin text-primary/20" /></div>;
+  if (loading) return <div className="flex justify-center py-4"><Loader2 className="animate-spin text-primary/20" size={16} /></div>;
   if (!caps.length) return (
     <p className="text-[10px] font-bold text-primary/25 uppercase tracking-widest text-center py-4 italic">
       Sin apariciones registradas
@@ -159,10 +163,10 @@ function BloqueCapsAparece({ personajeId }: { personajeId: string }) {
       {caps.map(cap => (
         <button
           key={cap.id}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-primary/5 active:bg-primary/10 transition-colors text-left group disabled:opacity-40 disabled:cursor-default cursor-pointer"
+          disabled={!cap.libro_id}
           type="button"
           onClick={() => navigateToCap(cap)}
-          disabled={!cap.libro_id}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-primary/5 active:bg-primary/10 transition-colors text-left group disabled:opacity-40 disabled:cursor-default cursor-pointer"
         >
           <div className="shrink-0 w-6 h-6 rounded-lg flex items-center justify-center text-[9px] font-black bg-accent/10 text-accent group-hover:bg-accent/20 transition-colors">
             {cap.orden}
@@ -263,7 +267,7 @@ function BloqueCanciones({
 
   if (loading) return (
     <div className="flex justify-center py-4">
-      <Loader2 size={16} className="animate-spin text-primary/20" />
+      <Loader2 className="animate-spin text-primary/20" size={16} />
     </div>
   );
   if (!canciones.length) return (
@@ -276,14 +280,14 @@ function BloqueCanciones({
       {canciones.map(c => (
         <button
           key={c.id}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-primary/5 active:bg-primary/10 transition-colors text-left group disabled:cursor-default cursor-pointer"
+          disabled={!onSelect}
           type="button"
           onClick={() => onSelect?.(c.id)}
-          disabled={!onSelect}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-primary/5 active:bg-primary/10 transition-colors text-left group disabled:cursor-default cursor-pointer"
         >
           {c.portada_url ? (
             <div className="shrink-0 w-6 h-6 rounded-lg overflow-hidden border border-primary/15">
-              <img src={c.portada_url} alt={c.titulo} className="w-full h-full object-cover" />
+              <img alt={c.titulo} className="w-full h-full object-cover" src={c.portada_url} />
             </div>
           ) : (
             <div className="shrink-0 w-6 h-6 rounded-lg flex items-center justify-center bg-accent/10 text-accent">
@@ -314,23 +318,23 @@ function PickerCuerpo({ value, onChange }: { value: string; onChange: (url: stri
           <div className="bg-white-custom rounded-2xl shadow-2xl border border-primary/15 w-full max-w-lg p-5" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-2"><Maximize2 size={11} /> Imagen cuerpo</h3>
-              <button onClick={() => setOpen(false)} className="text-primary/30 hover:text-primary transition-colors"><X size={16} /></button>
+              <button className="text-primary/30 hover:text-primary transition-colors" onClick={() => setOpen(false)}><X size={16} /></button>
             </div>
-            <SimpleImagePicker onSelect={url => { onChange(url); setOpen(false); }} onClose={() => setOpen(false)} />
+            <SimpleImagePicker onClose={() => setOpen(false)} onSelect={url => { onChange(url); setOpen(false); }} />
           </div>
         </div>
       )}
       {value ? (
-        <button onClick={() => setOpen(true)}
-          className="flex items-center gap-2 px-3 py-2 rounded-xl border border-primary/15 text-[10px] font-black uppercase tracking-widest text-primary/50 hover:text-primary hover:border-primary/30 transition-all">
+        <button className="flex items-center gap-2 px-3 py-2 rounded-xl border border-primary/15 text-[10px] font-black uppercase tracking-widest text-primary/50 hover:text-primary hover:border-primary/30 transition-all"
+          onClick={() => setOpen(true)}>
           <div className="w-5 h-5 rounded overflow-hidden border border-primary/15 shrink-0">
-            <img src={value} alt="Cuerpo" className="w-full h-full object-cover" />
+            <img alt="Cuerpo" className="w-full h-full object-cover" src={value} />
           </div>
           Cambiar cuerpo
         </button>
       ) : (
-        <button onClick={() => setOpen(true)}
-          className="flex items-center gap-2 px-3 py-2 rounded-xl border border-dashed border-primary/20 text-[10px] font-black uppercase tracking-widest text-primary/30 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all">
+        <button className="flex items-center gap-2 px-3 py-2 rounded-xl border border-dashed border-primary/20 text-[10px] font-black uppercase tracking-widest text-primary/30 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all"
+          onClick={() => setOpen(true)}>
           <Maximize2 size={11} /> + Imagen cuerpo
         </button>
       )}
@@ -348,16 +352,16 @@ function PickerCaraBtn({ value, onChange }: { value: string; onChange: (url: str
           <div className="bg-white-custom rounded-2xl shadow-2xl border border-primary/15 w-full max-w-lg p-5" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-2"><Camera size={11} /> Imagen de perfil</h3>
-              <button onClick={() => setOpen(false)} className="text-primary/30 hover:text-primary transition-colors"><X size={16} /></button>
+              <button className="text-primary/30 hover:text-primary transition-colors" onClick={() => setOpen(false)}><X size={16} /></button>
             </div>
-            <SimpleImagePicker onSelect={url => { onChange(url); setOpen(false); }} onClose={() => setOpen(false)} />
+            <SimpleImagePicker onClose={() => setOpen(false)} onSelect={url => { onChange(url); setOpen(false); }} />
           </div>
         </div>
       )}
       <button
-        onClick={() => setOpen(true)}
         className="flex items-center justify-center w-8 h-8 rounded-full bg-bg-main/80 backdrop-blur-sm border border-primary/20 text-primary/50 hover:text-primary hover:bg-bg-main transition-all shadow-md"
         title="Cambiar imagen"
+        onClick={() => setOpen(true)}
       >
         <Camera size={13} />
       </button>
@@ -585,11 +589,11 @@ function BloqueGruposPersonaje({
   if (loading) return (
     <div className="rounded-xl overflow-hidden border border-primary/10">
       <div className="flex items-center gap-2 px-3 py-2 border-b border-primary/[0.06] bg-primary/[0.03]">
-        <Users size={10} className="text-primary/40" />
+        <Users className="text-primary/40" size={10} />
         <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">Grupos</span>
       </div>
       <div className="flex justify-center py-4">
-        <Loader2 size={14} className="animate-spin text-primary/20" />
+        <Loader2 className="animate-spin text-primary/20" size={14} />
       </div>
     </div>
   );
@@ -599,17 +603,17 @@ function BloqueGruposPersonaje({
   return (
     <div className="rounded-xl overflow-hidden border border-primary/10">
       <div className="flex items-center gap-2 px-3 py-2 border-b border-primary/[0.06] bg-primary/[0.03]">
-        <Users size={10} className="text-primary/40" />
+        <Users className="text-primary/40" size={10} />
         <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">Grupos</span>
       </div>
       <div className="flex flex-wrap gap-1.5 p-2.5">
         {grupos.map(g => (
           <button
             key={g.id}
-            onClick={() => onOpenGrupo?.(g.id)}
             className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-primary/15 bg-primary/[0.03] hover:bg-primary/[0.07] hover:border-primary/30 transition-all group"
+            onClick={() => onOpenGrupo?.(g.id)}
           >
-            <Users size={9} className="text-primary/35 group-hover:text-primary/60 transition-colors" />
+            <Users className="text-primary/35 group-hover:text-primary/60 transition-colors" size={9} />
             <span className="text-[10px] font-black uppercase tracking-widest text-primary/50 group-hover:text-primary/80 transition-colors">
               {g.nombre}
             </span>
@@ -702,14 +706,14 @@ function SeccionHechizos({ personajeId, grupoIds }: { personajeId: string; grupo
   return (
     <div className="rounded-xl overflow-hidden border border-primary/10">
       <SeccionEntidad
-        label="Hechizos"
-        icon={<Sparkles size={10} />}
-        fallbackIcon={<Sparkles size={10} />}
-        emptyLabel="Sin hechizos"
         allEntities={disponibles}
-        selectedIds={selectedIds}
+        emptyLabel="Sin hechizos"
+        fallbackIcon={<Sparkles size={10} />}
+        icon={<Sparkles size={10} />}
+        label="Hechizos"
         loading={loading}
         saving={saving}
+        selectedIds={selectedIds}
         onToggle={toggle}
       />
     </div>
@@ -816,15 +820,15 @@ function BloqueEras({ personajeId }: { personajeId: string }) {
   return (
     <div className="rounded-xl overflow-hidden border border-primary/10">
       <div className="flex items-center gap-2 px-3 py-2 border-b border-primary/[0.06] bg-primary/[0.03]">
-        <Clock size={10} className="text-primary/40" />
+        <Clock className="text-primary/40" size={10} />
         <span className="flex-1 text-[9px] font-black uppercase tracking-widest text-primary/40">Línea de tiempo</span>
-        <button type="button" onClick={() => setAddingNew(v => !v)}
-          className="flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border transition-all"
-          style={{
+        <button className="flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border transition-all" style={{
             borderColor: addingNew ? "color-mix(in srgb, var(--primary) 25%, transparent)" : "color-mix(in srgb, var(--primary) 12%, transparent)",
             background: addingNew ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "transparent",
             color: addingNew ? "var(--primary)" : "color-mix(in srgb, var(--primary) 40%, transparent)",
-          }}>
+          }}
+          type="button"
+          onClick={() => setAddingNew(v => !v)}>
           <Plus size={8} /> Era
         </button>
       </div>
@@ -834,32 +838,32 @@ function BloqueEras({ personajeId }: { personajeId: string }) {
           style={{ background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}>
           <div className="space-y-1.5">
             <SelectorFechaMundo
+              placeholder="Seleccionar fecha…"
               value={newMomento ? parseInt(newMomento, 10) : null}
               onChange={dia => setNewMomento(dia != null ? String(dia) : "")}
-              placeholder="Seleccionar fecha…"
             />
-            <input type="text" value={newLabel} onChange={e => setNewLabel(e.target.value)}
-              onKeyDown={e => { if (e.key === "Enter") handleAddEra(); if (e.key === "Escape") setAddingNew(false); }}
-              placeholder="Etiqueta (opcional)"
-              className="w-full rounded-lg border px-2 py-1 text-[9px] outline-none transition-all"
-              style={{ background: "transparent", borderColor: "color-mix(in srgb, var(--primary) 18%, transparent)", color: "var(--primary)" }} />
+            <input className="w-full rounded-lg border px-2 py-1 text-[9px] outline-none transition-all" placeholder="Etiqueta (opcional)" style={{ background: "transparent", borderColor: "color-mix(in srgb, var(--primary) 18%, transparent)", color: "var(--primary)" }}
+              type="text"
+              value={newLabel}
+              onChange={e => setNewLabel(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter") handleAddEra(); if (e.key === "Escape") setAddingNew(false); }} />
           </div>
           <div className="flex gap-1.5 justify-end">
-            <button type="button" onClick={() => setAddingNew(false)}
-              className="px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border transition-all text-primary/35 border-primary/10 hover:text-primary hover:border-primary/25">
+            <button className="px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border transition-all text-primary/35 border-primary/10 hover:text-primary hover:border-primary/25" type="button"
+              onClick={() => setAddingNew(false)}>
               Cancelar
             </button>
-            <button type="button" onClick={handleAddEra} disabled={!newMomento.trim() || creating}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border transition-all disabled:opacity-30"
-              style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 20%, transparent)", color: "var(--primary)" }}>
-              {creating ? <Loader2 size={8} className="animate-spin" /> : <Check size={8} />} Crear
+            <button className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border transition-all disabled:opacity-30" disabled={!newMomento.trim() || creating} style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 20%, transparent)", color: "var(--primary)" }}
+              type="button"
+              onClick={handleAddEra}>
+              {creating ? <Loader2 className="animate-spin" size={8} /> : <Check size={8} />} Crear
             </button>
           </div>
         </div>
       )}
 
       {loading ? (
-        <div className="flex justify-center py-4"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
+        <div className="flex justify-center py-4"><Loader2 className="animate-spin text-primary/20" size={14} /></div>
       ) : eras.length === 0 ? (
         <p className="text-[9px] text-primary/25 font-black uppercase tracking-widest text-center py-4 italic">
           Sin eras · usa el botón + Era
@@ -868,14 +872,14 @@ function BloqueEras({ personajeId }: { personajeId: string }) {
         <div>
           {eras.map((era, idx) => (
             <EraItem key={era.id} era={era}
-              isOpen={expandedId === era.id}
               isLast={idx === eras.length - 1}
-              onToggle={() => setExpandedId(expandedId === era.id ? null : era.id)}
-              onDelete={() => handleDeleteEra(era.id)}
+              isOpen={expandedId === era.id}
               onAddRasgo={(r) => handleAddRasgo(era, r)}
-              onRemoveRasgo={(r) => handleRemoveRasgo(era, r)}
-              onNotasChange={(v) => handleNotasChange(era, v)}
+              onDelete={() => handleDeleteEra(era.id)}
               onLabelChange={(v) => handleLabelChange(era, v)}
+              onNotasChange={(v) => handleNotasChange(era, v)}
+              onRemoveRasgo={(r) => handleRemoveRasgo(era, r)}
+              onToggle={() => setExpandedId(expandedId === era.id ? null : era.id)}
             />
           ))}
         </div>
@@ -895,8 +899,8 @@ function EraItem({ era, isOpen, isLast, onToggle, onDelete, onAddRasgo, onRemove
 
   return (
     <div className={!isLast ? "border-b border-primary/[0.06]" : ""}>
-      <button type="button" onClick={onToggle}
-        className="w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-primary/[0.03] transition-colors">
+      <button className="w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-primary/[0.03] transition-colors" type="button"
+        onClick={onToggle}>
         {/* Nodo de línea de tiempo */}
         <div className="shrink-0 flex flex-col items-center" style={{ width: 20 }}>
           <div className="w-2 h-2 rounded-full border-2 border-accent bg-bg-main shrink-0" />
@@ -920,8 +924,8 @@ function EraItem({ era, isOpen, isLast, onToggle, onDelete, onAddRasgo, onRemove
           )}
         </div>
         <div className="shrink-0 flex items-center gap-1.5">
-          {era._saving && <Loader2 size={8} className="animate-spin text-primary/30" />}
-          <ChevronDown size={9} className="text-primary/25 transition-transform"
+          {era._saving && <Loader2 className="animate-spin text-primary/30" size={8} />}
+          <ChevronDown className="text-primary/25 transition-transform" size={9}
             style={{ transform: isOpen ? "rotate(180deg)" : "rotate(0deg)" }} />
         </div>
       </button>
@@ -931,17 +935,17 @@ function EraItem({ era, isOpen, isLast, onToggle, onDelete, onAddRasgo, onRemove
           {/* Nombre del período */}
           <div className="pt-1">
             <input
-              type="text"
-              value={era.label}
-              onChange={e => onLabelChange(e.target.value)}
-              placeholder="Nombre del período (ej: Infancia, Exilio…)"
-              maxLength={60}
               className="w-full rounded-lg border px-2 py-1.5 text-[9px] font-bold outline-none transition-all placeholder:font-normal"
+              maxLength={60}
+              placeholder="Nombre del período (ej: Infancia, Exilio…)"
               style={{
                 background: era.label ? "color-mix(in srgb, var(--primary) 4%, transparent)" : "transparent",
                 borderColor: era.label ? "color-mix(in srgb, var(--primary) 20%, transparent)" : "color-mix(in srgb, var(--primary) 12%, transparent)",
                 color: "var(--primary)",
               }}
+              type="text"
+              value={era.label}
+              onChange={e => onLabelChange(e.target.value)}
             />
           </div>
           {/* Chips */}
@@ -953,8 +957,8 @@ function EraItem({ era, isOpen, isLast, onToggle, onDelete, onAddRasgo, onRemove
                     className="group flex items-center gap-1 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wide border transition-all"
                     style={{ background: "color-mix(in srgb, var(--primary) 6%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)", color: "color-mix(in srgb, var(--primary) 60%, transparent)" }}>
                     {rasgo}
-                    <button type="button" onClick={() => onRemoveRasgo(rasgo)}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: "var(--accent)", lineHeight: 1 }}>
+                    <button className="opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: "var(--accent)", lineHeight: 1 }}
+                      type="button" onClick={() => onRemoveRasgo(rasgo)}>
                       <X size={8} />
                     </button>
                   </span>
@@ -962,40 +966,40 @@ function EraItem({ era, isOpen, isLast, onToggle, onDelete, onAddRasgo, onRemove
               </div>
             )}
             <div className="flex items-center gap-1">
-              <input type="text" value={nuevoRasgo}
-                onChange={e => setNuevoRasgo(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key === "Enter") { e.preventDefault(); onAddRasgo(nuevoRasgo); setNuevoRasgo(""); }
-                  if (e.key === "Escape") setNuevoRasgo("");
-                }}
-                placeholder="Añadir rasgo…" maxLength={40}
-                className="flex-1 min-w-0 rounded-lg border px-2 py-1 text-[9px] font-black uppercase outline-none transition-all placeholder:normal-case placeholder:font-normal"
+              <input className="flex-1 min-w-0 rounded-lg border px-2 py-1 text-[9px] font-black uppercase outline-none transition-all placeholder:normal-case placeholder:font-normal" maxLength={40}
+                placeholder="Añadir rasgo…"
                 style={{
                   background: nuevoRasgo ? "color-mix(in srgb, var(--primary) 6%, transparent)" : "transparent",
                   borderColor: nuevoRasgo ? "color-mix(in srgb, var(--primary) 22%, transparent)" : "color-mix(in srgb, var(--primary) 12%, transparent)",
                   color: "var(--primary)",
+                }}
+                type="text" value={nuevoRasgo}
+                onChange={e => setNuevoRasgo(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === "Enter") { e.preventDefault(); onAddRasgo(nuevoRasgo); setNuevoRasgo(""); }
+                  if (e.key === "Escape") setNuevoRasgo("");
                 }} />
-              <button type="button" onClick={() => { onAddRasgo(nuevoRasgo); setNuevoRasgo(""); }} disabled={!nuevoRasgo.trim()}
-                className="shrink-0 flex items-center justify-center rounded-lg border transition-all disabled:opacity-20"
-                style={{ width: 22, height: 22, background: nuevoRasgo.trim() ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent", borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)", color: "var(--primary)" }}>
+              <button className="shrink-0 flex items-center justify-center rounded-lg border transition-all disabled:opacity-20" disabled={!nuevoRasgo.trim()} style={{ width: 22, height: 22, background: nuevoRasgo.trim() ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent", borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)", color: "var(--primary)" }}
+                type="button"
+                onClick={() => { onAddRasgo(nuevoRasgo); setNuevoRasgo(""); }}>
                 <Plus size={9} />
               </button>
             </div>
           </div>
 
-          <textarea value={era.notas} onChange={e => onNotasChange(e.target.value)}
-            placeholder="Notas sobre este momento…" rows={3}
-            className="w-full rounded-lg border px-2 py-1.5 text-[9px] leading-relaxed outline-none transition-all resize-none"
-            style={{
+          <textarea className="w-full rounded-lg border px-2 py-1.5 text-[9px] leading-relaxed outline-none transition-all resize-none" placeholder="Notas sobre este momento…"
+            rows={3} style={{
               background: era.notas ? "color-mix(in srgb, var(--primary) 4%, transparent)" : "transparent",
               borderColor: era.notas ? "color-mix(in srgb, var(--primary) 18%, transparent)" : "color-mix(in srgb, var(--primary) 10%, transparent)",
               color: "var(--primary)",
-            }} />
+            }}
+            value={era.notas}
+            onChange={e => onNotasChange(e.target.value)} />
 
           <div className="flex justify-end">
-            <button type="button" onClick={onDelete}
-              className="flex items-center gap-1 px-2 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-widest border transition-all"
-              style={{ color: "var(--accent)", borderColor: "color-mix(in srgb, var(--accent) 20%, transparent)", background: "transparent" }}>
+            <button className="flex items-center gap-1 px-2 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-widest border transition-all" style={{ color: "var(--accent)", borderColor: "color-mix(in srgb, var(--accent) 20%, transparent)", background: "transparent" }}
+              type="button"
+              onClick={onDelete}>
               <Trash2 size={8} /> Eliminar era
             </button>
           </div>
@@ -1098,39 +1102,39 @@ export function FormularioPersonaje({
       >
         <div className="shrink-0 w-8 h-8 rounded-lg overflow-hidden border border-primary/15 bg-primary/5 flex items-center justify-center">
           {form.img_url
-            ? <img src={form.img_url} alt={form.nombre} className="w-full h-full object-cover" />
-            : <UserCircle2 size={16} className="text-primary/25" />}
+            ? <img alt={form.nombre} className="w-full h-full object-cover" src={form.img_url} />
+            : <UserCircle2 className="text-primary/25" size={16} />}
         </div>
 
         <input
+          className="flex-1 min-w-0 bg-transparent text-sm font-black text-primary outline-none placeholder:text-primary/25"
+          placeholder="Nombre del personaje"
+          style={{ letterSpacing: "0.02em" }}
           value={form.nombre ?? ""}
           onChange={field("nombre")}
-          placeholder="Nombre del personaje"
-          className="flex-1 min-w-0 bg-transparent text-sm font-black text-primary outline-none placeholder:text-primary/25"
-          style={{ letterSpacing: "0.02em" }}
         />
 
         <div className="shrink-0 flex items-center gap-1.5">
           <SaveIndicator status={status} />
           {!compacto && (
             <button
-              onClick={onDelete}
               className="flex items-center gap-1 px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all"
+              onClick={onDelete}
             >
               <Trash2 size={10} />
             </button>
           )}
           <button
-            onClick={onSave}
-            disabled={status === "saving"}
             className="flex items-center gap-1 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50"
+            disabled={status === "saving"}
+            onClick={onSave}
           >
             <Save size={10} /> Guardar
           </button>
           <button
-            onClick={() => setMobileAsideOpen(true)}
             className="sm:hidden flex items-center justify-center p-2 rounded-lg text-primary/30 hover:text-primary hover:bg-primary/8 transition-all border border-primary/10"
             title="Entidades"
+            onClick={() => setMobileAsideOpen(true)}
           >
             <SlidersHorizontal size={13} />
           </button>
@@ -1149,8 +1153,8 @@ export function FormularioPersonaje({
                   {/* Mobile: imagen grande con botón flotante */}
                   <div className="sm:hidden relative w-full rounded-xl overflow-hidden border border-primary/10 bg-primary/3" style={{ aspectRatio: "1 / 1" }}>
                     {form.img_url
-                      ? <img src={form.img_url} alt={form.nombre} className="w-full h-full object-cover" />
-                      : <div className="w-full h-full flex items-center justify-center"><UserCircle2 size={48} className="text-primary/15" /></div>
+                      ? <img alt={form.nombre} className="w-full h-full object-cover" src={form.img_url} />
+                      : <div className="w-full h-full flex items-center justify-center"><UserCircle2 className="text-primary/15" size={48} /></div>
                     }
                     <div className="absolute top-2 right-2 z-10">
                       <PickerCaraBtn
@@ -1163,11 +1167,11 @@ export function FormularioPersonaje({
                   {/* Desktop: selector normal con label */}
                   <div className="hidden sm:block w-full">
                     <SelectorImagen
+                      aspect="square"
                       label="Cara"
+                      placeholder={<UserCircle2 className="opacity-25" size={20} />}
                       value={form.img_url ?? ""}
                       onChange={url => setForm(f => ({ ...f, img_url: url }))}
-                      aspect="square"
-                      placeholder={<UserCircle2 size={20} className="opacity-25" />}
                     />
                   </div>
 
@@ -1181,25 +1185,25 @@ export function FormularioPersonaje({
                       <div className="relative w-full group bg-primary/2" style={{ aspectRatio: "1 / 2" }}>
                         {form.img_cuerpo_url ? (
                           <img
-                            src={form.img_cuerpo_url}
                             alt="Cuerpo completo"
                             className="absolute inset-0 w-full h-full object-contain"
+                            src={form.img_cuerpo_url}
                             style={{ objectPosition: "top center" }}
                           />
                         ) : (
                           <div className="absolute inset-0 flex items-center justify-center">
-                            <Maximize2 size={20} className="opacity-15" />
+                            <Maximize2 className="opacity-15" size={20} />
                           </div>
                         )}
                         <label className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer bg-bg-main/70 backdrop-blur-sm">
-                          <Maximize2 size={14} className="text-primary/50" />
+                          <Maximize2 className="text-primary/50" size={14} />
                           <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">Cambiar</span>
                           <SelectorImagen
+                            aspect="full"
                             label=""
+                            placeholder={null}
                             value={form.img_cuerpo_url ?? ""}
                             onChange={url => setForm(f => ({ ...f, img_cuerpo_url: url }))}
-                            aspect="full"
-                            placeholder={null}
                           />
                         </label>
                       </div>
@@ -1213,26 +1217,26 @@ export function FormularioPersonaje({
                   <div className="sm:hidden grid grid-cols-2 gap-2">
                     <div className="space-y-1">
                       <ComboSelector
-                        mode="single"
+                        allowNone
                         items={especies.map(e => ({ id: e, label: e }))}
+                        label="Especie"
+                        mode="single"
+                        noneLabel="Sin especie"
+                        placeholder="Humano, elfo…"
                         value={form.especie ?? null}
                         onChange={v => setForm(f => ({ ...f, especie: v ?? "", variante_id: null }))}
-                        label="Especie"
-                        placeholder="Humano, elfo…"
-                        allowNone
-                        noneLabel="Sin especie"
                         onNavigate={onNavigate ? (_id, nombre) => onNavigate("criaturas", nombre) : undefined}
                       />
                       {variantes.length > 0 && (
                         <div className="flex flex-wrap items-center gap-1 pt-0.5">
                           <span className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/25 mr-0.5">Variante</span>
-                          <button type="button" onClick={() => setForm(f => ({ ...f, variante_id: null }))}
-                            className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border transition-all ${!form.variante_id ? "bg-primary/10 border-primary/25 text-primary" : "border-primary/10 text-primary/25"}`}>
+                          <button className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border transition-all ${!form.variante_id ? "bg-primary/10 border-primary/25 text-primary" : "border-primary/10 text-primary/25"}`} type="button"
+                            onClick={() => setForm(f => ({ ...f, variante_id: null }))}>
                             Todas
                           </button>
                           {variantes.map(v => (
-                            <button key={v.id} type="button" onClick={() => setForm(f => ({ ...f, variante_id: v.id }))}
-                              className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border transition-all ${form.variante_id === v.id ? "bg-primary/10 border-primary/25 text-primary" : "border-primary/10 text-primary/25"}`}>
+                            <button key={v.id} className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border transition-all ${form.variante_id === v.id ? "bg-primary/10 border-primary/25 text-primary" : "border-primary/10 text-primary/25"}`} type="button"
+                              onClick={() => setForm(f => ({ ...f, variante_id: v.id }))}>
                               {v.tipo}
                             </button>
                           ))}
@@ -1240,15 +1244,15 @@ export function FormularioPersonaje({
                       )}
                     </div>
                     <ComboSelector
-                      mode="single"
-                      items={itemsTerritorioSinReino}
+                      allowNone
                       groups={gruposTerritorio}
+                      items={itemsTerritorioSinReino}
+                      label="Territorio"
+                      mode="single"
+                      noneLabel="Sin territorio"
+                      placeholder="Reino…"
                       value={territorioValue}
                       onChange={onTerritorioChange}
-                      label="Territorio"
-                      placeholder="Reino…"
-                      allowNone
-                      noneLabel="Sin territorio"
                       onNavigate={onNavigate ? (id) => {
                         if (id.startsWith("reino:")) {
                           const r = reinosMin.find(x => x.id === id.replace("reino:", ""));
@@ -1259,15 +1263,15 @@ export function FormularioPersonaje({
                     {(() => {
                       return (
                         <ComboSelector
-                          mode="single"
-                          items={itemsUbicacion}
+                          allowNone
                           groups={gruposUbicacion}
+                          items={itemsUbicacion}
+                          label="Ubicación"
+                          mode="single"
+                          noneLabel="Sin ubicación"
+                          placeholder="Ciudad…"
                           value={ubicacionValue}
                           onChange={onUbicacionChange}
-                          label="Ubicación"
-                          placeholder="Ciudad…"
-                          allowNone
-                          noneLabel="Sin ubicación"
                           onNavigate={onNavigateCiudad ? (id) => {
                             if (id.startsWith("ciudad:")) onNavigateCiudad(id.replace("ciudad:", ""));
                           } : undefined}
@@ -1275,7 +1279,7 @@ export function FormularioPersonaje({
                       );
                     })()}
                     <div className="space-y-1.5">
-                      <BloqueDones personajeId={form.id} grupoIds={grupoIds} />
+                      <BloqueDones grupoIds={grupoIds} personajeId={form.id} />
                     </div>
                   </div>
 
@@ -1284,32 +1288,32 @@ export function FormularioPersonaje({
                     <div className="flex-1 min-w-0 grid grid-cols-3 gap-2">
                       <div className="space-y-1 col-span-1">
                         <ComboSelector
-                          mode="single"
+                          allowNone
                           items={especies.map(e => ({ id: e, label: e }))}
+                          label="Especie"
+                          mode="single"
+                          noneLabel="Sin especie"
+                          placeholder="Humano, elfo…"
                           value={form.especie ?? null}
                           onChange={v => setForm(f => ({ ...f, especie: v ?? "", variante_id: null }))}
-                          label="Especie"
-                          placeholder="Humano, elfo…"
-                          allowNone
-                          noneLabel="Sin especie"
                           onNavigate={onNavigate ? (_id, nombre) => onNavigate("criaturas", nombre) : undefined}
                         />
                         {variantes.length > 0 && (
                           <div className="flex flex-wrap items-center gap-1 pt-0.5">
                             <span className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/25 mr-0.5">Variante</span>
                             <button
+                              className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border transition-all ${!form.variante_id ? "bg-primary/10 border-primary/25 text-primary" : "border-primary/10 text-primary/25"}`}
                               type="button"
                               onClick={() => setForm(f => ({ ...f, variante_id: null }))}
-                              className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border transition-all ${!form.variante_id ? "bg-primary/10 border-primary/25 text-primary" : "border-primary/10 text-primary/25"}`}
                             >
                               Todas
                             </button>
                             {variantes.map(v => (
                               <button
                                 key={v.id}
+                                className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border transition-all ${form.variante_id === v.id ? "bg-primary/10 border-primary/25 text-primary" : "border-primary/10 text-primary/25"}`}
                                 type="button"
                                 onClick={() => setForm(f => ({ ...f, variante_id: v.id }))}
-                                className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border transition-all ${form.variante_id === v.id ? "bg-primary/10 border-primary/25 text-primary" : "border-primary/10 text-primary/25"}`}
                               >
                                 {v.tipo}
                               </button>
@@ -1318,15 +1322,15 @@ export function FormularioPersonaje({
                         )}
                       </div>
                       <ComboSelector
-                        mode="single"
-                        items={itemsTerritorioSinReino}
+                        allowNone
                         groups={gruposTerritorio}
+                        items={itemsTerritorioSinReino}
+                        label="Territorio"
+                        mode="single"
+                        noneLabel="Sin territorio"
+                        placeholder="Reino…"
                         value={territorioValue}
                         onChange={onTerritorioChange}
-                        label="Territorio"
-                        placeholder="Reino…"
-                        allowNone
-                        noneLabel="Sin territorio"
                         onNavigate={onNavigate ? (id) => {
                           if (id.startsWith("reino:")) {
                             const r = reinosMin.find(x => x.id === id.replace("reino:", ""));
@@ -1337,15 +1341,15 @@ export function FormularioPersonaje({
                       {(() => {
                         return (
                           <ComboSelector
-                            mode="single"
-                            items={itemsUbicacion}
+                            allowNone
                             groups={gruposUbicacion}
+                            items={itemsUbicacion}
+                            label="Ubicación"
+                            mode="single"
+                            noneLabel="Sin ubicación"
+                            placeholder="Ciudad…"
                             value={ubicacionValue}
                             onChange={onUbicacionChange}
-                            label="Ubicación"
-                            placeholder="Ciudad…"
-                            allowNone
-                            noneLabel="Sin ubicación"
                             onNavigate={onNavigateCiudad ? (id) => {
                               if (id.startsWith("ciudad:")) onNavigateCiudad(id.replace("ciudad:", ""));
                             } : undefined}
@@ -1356,7 +1360,7 @@ export function FormularioPersonaje({
 
                     {/* Don — mismo estilo que Especie / Reino */}
                     <div className="w-full sm:w-44 sm:shrink-0 space-y-1.5">
-                      <BloqueDones personajeId={form.id} grupoIds={grupoIds} />
+                      <BloqueDones grupoIds={grupoIds} personajeId={form.id} />
                     </div>
                   </div>
 
@@ -1366,27 +1370,27 @@ export function FormularioPersonaje({
                       <div className="flex-1 min-w-0 space-y-1">
                         <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Sobre el personaje</label>
                         <MarkdownEditor
-                          value={form.sobre ?? ""}
-                          onChange={v => setForm(f => ({ ...f, sobre: v }))}
-                          placeholder="Biografía, personalidad…"
-                          rows={8}
                           toolbar
                           defaultMode="edit"
+                          entities={entities}
+                          placeholder="Biografía, personalidad…"
+                          rows={8}
+                          value={form.sobre ?? ""}
+                        onChange={v => setForm(f => ({ ...f, sobre: v }))}
                         onSnippetAction={onSnippetAction}
-                        entities={entities}
                         />
                       </div>
                       <div className="flex-1 min-w-0 space-y-1">
                         <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Características</label>
                         <MarkdownEditor
-                          value={form.caracteristicas ?? ""}
-                          onChange={v => setForm(f => ({ ...f, caracteristicas: v }))}
-                          placeholder="Rasgos físicos, personalidad, habilidades…"
-                          rows={8}
                           toolbar
                           defaultMode="edit"
+                          entities={entities}
+                          placeholder="Rasgos físicos, personalidad, habilidades…"
+                          rows={8}
+                          value={form.caracteristicas ?? ""}
+                        onChange={v => setForm(f => ({ ...f, caracteristicas: v }))}
                         onSnippetAction={onSnippetAction}
-                        entities={entities}
                         />
                       </div>
                     </div>
@@ -1394,14 +1398,14 @@ export function FormularioPersonaje({
                     <div className="space-y-1">
                       <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Sobre el personaje</label>
                       <MarkdownEditor
-                        value={form.sobre ?? ""}
-                        onChange={v => setForm(f => ({ ...f, sobre: v }))}
-                        placeholder="Biografía, personalidad…"
-                        rows={5}
                         toolbar
                         defaultMode="edit"
+                        entities={entities}
+                        placeholder="Biografía, personalidad…"
+                        rows={5}
+                        value={form.sobre ?? ""}
+                      onChange={v => setForm(f => ({ ...f, sobre: v }))}
                       onSnippetAction={onSnippetAction}
-                      entities={entities}
                       />
                     </div>
                   )}
@@ -1416,20 +1420,20 @@ export function FormularioPersonaje({
 
                     <div className="rounded-xl overflow-hidden border border-primary/10">
                       <div className="flex items-center gap-2 px-3 py-2 border-b border-primary/[0.06] bg-primary/[0.03]">
-                        <BookOpen size={10} className="text-primary/40" />
+                        <BookOpen className="text-primary/40" size={10} />
                         <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">Capítulos</span>
                       </div>
                       <BloqueCapsAparece personajeId={form.id} />
                     </div>
 
-                    <SeccionHechizos personajeId={form.id} grupoIds={grupoIds} />
+                    <SeccionHechizos grupoIds={grupoIds} personajeId={form.id} />
 
                     <div className="rounded-xl overflow-hidden border border-primary/10">
                       <div className="flex items-center gap-2 px-3 py-2 border-b border-primary/[0.06] bg-primary/[0.03]">
-                        <Music2 size={10} className="text-primary/40" />
+                        <Music2 className="text-primary/40" size={10} />
                         <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">Canciones</span>
                       </div>
-                      <BloqueCanciones personajeId={form.id} nombrePersonaje={form.nombre ?? ""} onSelect={onSelectCancion} />
+                      <BloqueCanciones nombrePersonaje={form.nombre ?? ""} personajeId={form.id} onSelect={onSelectCancion} />
                     </div>
                   </div>
 
@@ -1462,7 +1466,7 @@ export function FormularioPersonaje({
               <span className="text-[8px] font-black uppercase tracking-[0.2em] flex items-center gap-1.5" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>
                 <SlidersHorizontal size={9} /> Entidades
               </span>
-              <button onClick={() => setMobileAsideOpen(false)} className="p-1 rounded-lg text-primary/30 hover:text-primary hover:bg-primary/8 transition-all">
+              <button className="p-1 rounded-lg text-primary/30 hover:text-primary hover:bg-primary/8 transition-all" onClick={() => setMobileAsideOpen(false)}>
                 <X size={14} />
               </button>
             </div>
@@ -1481,20 +1485,20 @@ export function FormularioPersonaje({
             <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
             <div>
               <div className="flex items-center gap-2 px-3 py-2 border-b border-primary/[0.06] bg-primary/[0.03]">
-                <BookOpen size={10} className="text-primary/40" />
+                <BookOpen className="text-primary/40" size={10} />
                 <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">Capítulos</span>
               </div>
               <BloqueCapsAparece personajeId={form.id} />
             </div>
             <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
-            <SeccionHechizos personajeId={form.id} grupoIds={grupoIds} />
+            <SeccionHechizos grupoIds={grupoIds} personajeId={form.id} />
             <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
             <div>
               <div className="flex items-center gap-2 px-3 py-2 border-b border-primary/[0.06] bg-primary/[0.03]">
-                <Music2 size={10} className="text-primary/40" />
+                <Music2 className="text-primary/40" size={10} />
                 <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">Canciones</span>
               </div>
-              <BloqueCanciones personajeId={form.id} nombrePersonaje={form.nombre ?? ""} onSelect={onSelectCancion} />
+              <BloqueCanciones nombrePersonaje={form.nombre ?? ""} personajeId={form.id} onSelect={onSelectCancion} />
             </div>
           </div>
         </div>
@@ -1553,7 +1557,7 @@ export function EditorPersonaje({
 return (
     <>
       <ConfirmModal />
-      <FormularioPersonaje form={form} setForm={setForm} status={status} onSave={save} onDelete={del} entities={entities} onNavigate={onNavigate} onSelectPersonaje={onSelectPersonaje} onOpenGrupo={onOpenGrupo} onNavigateCiudad={onNavigateCiudad} onSelectCancion={onSelectCancion} />
+      <FormularioPersonaje entities={entities} form={form} setForm={setForm} status={status} onDelete={del} onNavigate={onNavigate} onNavigateCiudad={onNavigateCiudad} onOpenGrupo={onOpenGrupo} onSave={save} onSelectCancion={onSelectCancion} onSelectPersonaje={onSelectPersonaje} />
     </>
   );
 }

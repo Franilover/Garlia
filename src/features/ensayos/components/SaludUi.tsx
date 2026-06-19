@@ -27,14 +27,14 @@ export function FieldInput({
         {label}{required && <span className="text-accent ml-0.5">*</span>}
       </label>
       <input
-        required={required}
-        type={type}
+        className="input-brand text-[11px] font-bold"
         min={min}
-        step={step}
         placeholder={placeholder}
+        required={required}
+        step={step}
+        type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="input-brand text-[11px] font-bold"
       />
     </div>
   );

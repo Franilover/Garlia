@@ -1,7 +1,5 @@
 "use client";
-import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { cn } from "@/lib/utils/index";
 import {
   Plus, Check, X, Loader2, Pencil as PencilIcon,
   Guitar, Palette, BookOpen, PenLine, Brain, Dumbbell, Gamepad2,
@@ -9,6 +7,10 @@ import {
   Clapperboard, Mic, PersonStanding, Mountain, Music2,
   type LucideIcon,
 } from "lucide-react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+
+import { cn } from "@/lib/utils/index";
+
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -149,15 +151,15 @@ const IconSelector = ({ value, onChange }: { value: string; onChange: (v: string
     {HOBBY_ICONS.map(({ name, component: Icon, label }) => (
       <button
         key={name}
-        type="button"
-        title={label}
-        onClick={() => onChange(name)}
         className={cn(
           "w-8 h-8 rounded-[var(--radius-btn)] flex items-center justify-center transition-all border-[length:var(--border-width)]",
           value === name
             ? "bg-primary text-btn-text border-primary"
             : "bg-primary/5 text-primary/50 border-transparent hover:bg-primary/10 hover:text-primary/70"
         )}
+        title={label}
+        type="button"
+        onClick={() => onChange(name)}
       >
         <Icon size={14} />
       </button>
@@ -188,20 +190,20 @@ const FormNuevoHobby = ({ onGuardar, onCancelar, guardando, orden }: FormNuevoHo
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: -6 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -6 }}
       className="bg-white-custom border-[length:var(--border-width)] border-primary/10 rounded-[var(--radius-card)] p-4 shadow-lg shadow-primary/5 mb-3 space-y-3"
+      exit={{ opacity: 0, y: -6 }}
+      initial={{ opacity: 0, y: -6 }}
     >
       <p className="text-[9px] font-black uppercase tracking-widest text-primary/40">Nuevo hobby</p>
 
       <input
+        autoFocus
+        className={inputCls}
+        placeholder="Nombre del hobby..."
         value={nombre}
         onChange={e => setNombre(e.target.value)}
-        placeholder="Nombre del hobby..."
-        className={inputCls}
         onKeyDown={e => e.key === "Enter" && handleGuardar()}
-        autoFocus
       />
 
       <div>
@@ -210,26 +212,26 @@ const FormNuevoHobby = ({ onGuardar, onCancelar, guardando, orden }: FormNuevoHo
       </div>
 
       <div className="grid grid-cols-2 gap-2">
-        <select value={freqDia} onChange={e => setFreqDia(parseInt(e.target.value))} className={selectCls}>
+        <select className={selectCls} value={freqDia} onChange={e => setFreqDia(parseInt(e.target.value))}>
           {[1, 2, 3, 4].map(n => <option key={n} value={n}>{n}x al día</option>)}
         </select>
-        <select value={freqSem} onChange={e => setFreqSem(parseInt(e.target.value))} className={selectCls}>
+        <select className={selectCls} value={freqSem} onChange={e => setFreqSem(parseInt(e.target.value))}>
           {[1, 2, 3, 4, 5, 6, 7].map(n => <option key={n} value={n}>{n}d / sem</option>)}
         </select>
       </div>
 
-      <input value={nota} onChange={e => setNota(e.target.value)} placeholder="Nota opcional..." className={inputCls} />
+      <input className={inputCls} placeholder="Nota opcional..." value={nota} onChange={e => setNota(e.target.value)} />
 
       <div className="flex gap-2">
-        <button onClick={onCancelar} className="flex-1 py-2 rounded-[var(--radius-btn)] border-[length:var(--border-width)] border-primary/15 text-xs font-black text-primary/60 hover:bg-primary/4 transition-all">
+        <button className="flex-1 py-2 rounded-[var(--radius-btn)] border-[length:var(--border-width)] border-primary/15 text-xs font-black text-primary/60 hover:bg-primary/4 transition-all" onClick={onCancelar}>
           Cancelar
         </button>
         <button
-          onClick={handleGuardar}
-          disabled={!nombre.trim() || guardando}
           className="flex-1 py-2 rounded-[var(--radius-btn)] bg-primary text-btn-text text-xs font-black hover:opacity-90 disabled:opacity-40 transition-all flex items-center justify-center gap-1.5"
+          disabled={!nombre.trim() || guardando}
+          onClick={handleGuardar}
         >
-          {guardando ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />}
+          {guardando ? <Loader2 className="animate-spin" size={12} /> : <Plus size={12} />}
           Guardar
         </button>
       </div>
@@ -261,24 +263,24 @@ const FormEditarHobby = ({ hobby, onGuardar, onCancelar, guardando }: FormEditar
   return (
     <div className="px-3 pb-3 border-t border-primary/5 pt-3 space-y-2.5">
       <p className="text-[9px] font-black uppercase tracking-widest text-primary/40">Editar hobby</p>
-      <input value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Nombre..." className={inputCls} onKeyDown={e => e.key === "Enter" && handleGuardar()} autoFocus />
+      <input autoFocus className={inputCls} placeholder="Nombre..." value={nombre} onChange={e => setNombre(e.target.value)} onKeyDown={e => e.key === "Enter" && handleGuardar()} />
       <div>
         <p className="text-[9px] font-black uppercase tracking-widest text-primary/30 mb-1.5">Icono</p>
         <IconSelector value={icon} onChange={setIcon} />
       </div>
       <div className="grid grid-cols-2 gap-2">
-        <select value={freqDia} onChange={e => setFreqDia(parseInt(e.target.value))} className={selectCls}>
+        <select className={selectCls} value={freqDia} onChange={e => setFreqDia(parseInt(e.target.value))}>
           {[1, 2, 3, 4].map(n => <option key={n} value={n}>{n}x al día</option>)}
         </select>
-        <select value={freqSem} onChange={e => setFreqSem(parseInt(e.target.value))} className={selectCls}>
+        <select className={selectCls} value={freqSem} onChange={e => setFreqSem(parseInt(e.target.value))}>
           {[1, 2, 3, 4, 5, 6, 7].map(n => <option key={n} value={n}>{n}d / sem</option>)}
         </select>
       </div>
-      <input value={nota} onChange={e => setNota(e.target.value)} placeholder="Nota opcional..." className={inputCls} />
+      <input className={inputCls} placeholder="Nota opcional..." value={nota} onChange={e => setNota(e.target.value)} />
       <div className="flex gap-2">
-        <button onClick={onCancelar} className="flex-1 py-1.5 rounded-[var(--radius-btn)] border-[length:var(--border-width)] border-primary/15 text-xs font-black text-primary/60 hover:bg-primary/4 transition-all">Cancelar</button>
-        <button onClick={handleGuardar} disabled={!nombre.trim() || guardando} className="flex-1 py-1.5 rounded-[var(--radius-btn)] bg-primary text-btn-text text-xs font-black hover:opacity-90 disabled:opacity-40 transition-all flex items-center justify-center gap-1.5">
-          {guardando ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
+        <button className="flex-1 py-1.5 rounded-[var(--radius-btn)] border-[length:var(--border-width)] border-primary/15 text-xs font-black text-primary/60 hover:bg-primary/4 transition-all" onClick={onCancelar}>Cancelar</button>
+        <button className="flex-1 py-1.5 rounded-[var(--radius-btn)] bg-primary text-btn-text text-xs font-black hover:opacity-90 disabled:opacity-40 transition-all flex items-center justify-center gap-1.5" disabled={!nombre.trim() || guardando} onClick={handleGuardar}>
+          {guardando ? <Loader2 className="animate-spin" size={12} /> : <Check size={12} />}
           Guardar
         </button>
       </div>
@@ -318,7 +320,7 @@ const CardHobby = ({ hobby, registro, onToggleDia, onEliminar, onEditar }: CardH
   return (
     <div className="bg-white-custom border-[length:var(--border-width)] border-primary/10 rounded-[var(--radius-card)] overflow-hidden group">
       {editando ? (
-        <FormEditarHobby hobby={hobby} onGuardar={handleEditar} onCancelar={() => setEditando(false)} guardando={guardando} />
+        <FormEditarHobby guardando={guardando} hobby={hobby} onCancelar={() => setEditando(false)} onGuardar={handleEditar} />
       ) : (
         <div className="p-3">
           {/* Fila principal */}
@@ -335,7 +337,7 @@ const CardHobby = ({ hobby, registro, onToggleDia, onEliminar, onEditar }: CardH
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5">
                 <span className="text-[13px] font-black text-primary tracking-tight truncate leading-none">{hobby.nombre}</span>
-                {completado && <Check size={10} className="text-primary/50 shrink-0" />}
+                {completado && <Check className="text-primary/50 shrink-0" size={10} />}
               </div>
               <span className="text-[10px] font-bold text-primary/35 leading-none mt-0.5 block">
                 {hobby.freq_dia > 1 ? `${hobby.freq_dia}x · ` : ""}{hobby.freq_sem}d/sem{hobby.nota ? ` · ${hobby.nota}` : ""}
@@ -346,16 +348,16 @@ const CardHobby = ({ hobby, registro, onToggleDia, onEliminar, onEditar }: CardH
             <div className="flex items-center gap-1 shrink-0">
               <span className="text-[10px] font-black tabular-nums text-primary/50">{hechos}/{hobby.freq_sem}</span>
               <button
-                onClick={() => setEditando(true)}
                 className="w-6 h-6 flex items-center justify-center rounded text-primary/25 hover:text-primary/60 hover:bg-primary/8 transition-all opacity-0 group-hover:opacity-100"
                 title="Editar"
+                onClick={() => setEditando(true)}
               >
                 <PencilIcon size={11} />
               </button>
               <button
-                onClick={() => onEliminar(hobby.id)}
                 className="w-6 h-6 flex items-center justify-center rounded text-primary/25 hover:text-accent hover:bg-accent/8 transition-all opacity-0 group-hover:opacity-100"
                 title="Eliminar"
+                onClick={() => onEliminar(hobby.id)}
               >
                 <X size={11} />
               </button>
@@ -375,8 +377,6 @@ const CardHobby = ({ hobby, registro, onToggleDia, onEliminar, onEditar }: CardH
               return (
                 <button
                   key={d}
-                  onClick={() => onToggleDia(hobby.id, i)}
-                  title={`${DIAS_FULL[i]}${done ? " · hecho" : ""}`}
                   className={cn(
                     "flex-1 h-6 rounded text-[8px] font-black uppercase tracking-widest transition-all flex items-center justify-center border-[length:var(--border-width)]",
                     done
@@ -385,6 +385,8 @@ const CardHobby = ({ hobby, registro, onToggleDia, onEliminar, onEditar }: CardH
                       ? "bg-primary/8 text-primary border-primary/25"
                       : "bg-primary/3 text-primary/30 border-primary/6 hover:bg-primary/8 hover:text-primary/60"
                   )}
+                  title={`${DIAS_FULL[i]}${done ? " · hecho" : ""}`}
+                  onClick={() => onToggleDia(hobby.id, i)}
                 >
                   {done ? <Check size={8} /> : d}
                 </button>
@@ -520,8 +522,8 @@ export const PaginaHobbys = () => {
       <div className="flex items-center justify-between">
         <span className="text-[10px] font-black uppercase tracking-widest text-primary/30">{semana}</span>
         <button
-          onClick={() => setCreando(v => !v)}
           className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text px-3 py-1.5 rounded-[var(--radius-btn)] hover:opacity-90 transition-opacity"
+          onClick={() => setCreando(v => !v)}
         >
           {creando ? <X size={11} /> : <Plus size={11} />}
           {creando ? "Cancelar" : "Añadir"}
@@ -532,10 +534,10 @@ export const PaginaHobbys = () => {
       <AnimatePresence>
         {creando && (
           <FormNuevoHobby
-            onGuardar={handleGuardar}
-            onCancelar={() => setCreando(false)}
             guardando={guardando}
             orden={hobbys.length}
+            onCancelar={() => setCreando(false)}
+            onGuardar={handleGuardar}
           />
         )}
       </AnimatePresence>
@@ -543,12 +545,12 @@ export const PaginaHobbys = () => {
       {/* Lista */}
       {cargando ? (
         <div className="flex items-center justify-center py-10 gap-2 text-primary/40">
-          <Loader2 size={14} className="animate-spin" />
+          <Loader2 className="animate-spin" size={14} />
           <span className="text-xs font-bold">Cargando…</span>
         </div>
       ) : hobbys.length === 0 && !creando ? (
         <div className="text-center py-12">
-          <Music size={28} className="mx-auto mb-2 text-primary/20" />
+          <Music className="mx-auto mb-2 text-primary/20" size={28} />
           <p className="text-xs font-black text-primary/40 uppercase tracking-widest">Aún no tienes hobbys</p>
           <p className="text-[11px] text-primary/25 font-bold mt-1">Añade uno para empezar a trackear</p>
         </div>
@@ -559,16 +561,16 @@ export const PaginaHobbys = () => {
               <motion.div
                 key={h.id}
                 layout
-                initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.97 }}
+                initial={{ opacity: 0, y: 8 }}
               >
                 <CardHobby
                   hobby={h}
                   registro={registros.find(r => r.hobby_id === h.id && r.semana === semana)}
-                  onToggleDia={handleToggleDia}
-                  onEliminar={handleEliminar}
                   onEditar={handleEditar}
+                  onEliminar={handleEliminar}
+                  onToggleDia={handleToggleDia}
                 />
               </motion.div>
             ))}

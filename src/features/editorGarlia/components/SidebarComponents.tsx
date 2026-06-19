@@ -1,14 +1,16 @@
 "use client";
 
-import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import {
   Loader2, Eye, EyeOff, Plus, Search, X, SlidersHorizontal, Sparkles,
   Wand2, ScrollText, FileText, Zap, Clock, Globe, Check, Layers,
   Users, Bug, Package, Star, Feather, Swords, Gem, Map, BookOpen, Music,
   ChevronLeft,
 } from "lucide-react";
-import { supabase } from "@/lib/api/client/supabase";
+import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
+
 import { db } from "@/lib/api/client/db";
+import { supabase } from "@/lib/api/client/supabase";
+
 import { TAB_CONFIG, MUNDO_SECTIONS, type TabKey, type MundoSectionKey } from "./types";
 
 // ─── Dexie helpers ────────────────────────────────────────────────────────────
@@ -128,8 +130,8 @@ function EntidadCard({
 
   return (
     <button
-      onMouseDown={onClick}
       className="group relative w-full text-left transition-all duration-150"
+      onMouseDown={onClick}
     >
       <div
         className={`flex flex-col items-center gap-1 p-1.5 rounded-xl transition-all duration-150 ${
@@ -149,8 +151,8 @@ function EntidadCard({
           }}
         >
           {img
-            ? <img src={img} alt={item.nombre} className="w-full h-full object-cover" />
-            : <TabIcon size={13} className="text-primary/30" />}
+            ? <img alt={item.nombre} className="w-full h-full object-cover" src={img} />
+            : <TabIcon className="text-primary/30" size={13} />}
         </div>
 
         {/* Name + subtitle */}
@@ -176,15 +178,15 @@ function EntidadCard({
           </span>
           {tab === "reinos" && onToggleOculto && (
             <button
-              onMouseDown={e => e.stopPropagation()}
-              onClick={handleToggle}
               className={`w-4 h-4 rounded-md flex items-center justify-center transition-all border ${
                 item.oculto
                   ? "text-orange-400 bg-orange-400/10 border-orange-400/20"
                   : "text-primary/20 bg-transparent border-transparent group-hover:text-primary/30 group-hover:bg-primary/5 group-hover:border-primary/10"
               } ${toggling ? "opacity-40 pointer-events-none" : ""}`}
+              onClick={handleToggle}
+              onMouseDown={e => e.stopPropagation()}
             >
-              {toggling ? <Loader2 size={8} className="animate-spin" /> : item.oculto ? <EyeOff size={8} /> : <Eye size={8} />}
+              {toggling ? <Loader2 className="animate-spin" size={8} /> : item.oculto ? <EyeOff size={8} /> : <Eye size={8} />}
             </button>
           )}
         </div>
@@ -201,7 +203,7 @@ function MundoSectionCard({
 }) {
   const { label, Icon } = section;
   return (
-    <button onClick={onClick} className="group relative w-full text-left transition-all duration-150">
+    <button className="group relative w-full text-left transition-all duration-150" onClick={onClick}>
       <div className={`flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-150 ${
         selected
           ? "bg-primary/12 border border-primary/20"
@@ -216,7 +218,7 @@ function MundoSectionCard({
               : "color-mix(in srgb, var(--primary) 10%, transparent)",
           }}
         >
-          <Icon size={13} className="text-primary/40" />
+          <Icon className="text-primary/40" size={13} />
         </div>
         <div className="flex-1 min-w-0">
           <p className={`text-[11px] font-bold truncate transition-colors ${
@@ -327,12 +329,12 @@ function AddCommandMenu({
     return (
       <button
         key={entry.key}
-        onClick={handleClick}
         className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left transition-all border border-dashed"
         style={{
           borderColor: `color-mix(in srgb, ${color} 18%, transparent)`,
           color: `color-mix(in srgb, ${color} 50%, transparent)`,
         }}
+        onClick={handleClick}
         onMouseEnter={e => {
           const el = e.currentTarget as HTMLElement;
           el.style.background = `color-mix(in srgb, ${color} 9%, transparent)`;
@@ -353,7 +355,7 @@ function AddCommandMenu({
           <entry.Icon size={11} />
         </span>
         <span className="flex-1 text-[10px] font-black uppercase tracking-widest">{entry.label}</span>
-        <Plus size={8} className="opacity-35" />
+        <Plus className="opacity-35" size={8} />
       </button>
     );
   };
@@ -369,7 +371,6 @@ function AddCommandMenu({
     return (
       <button
         key={entry.key}
-        onClick={handleClick}
         className="flex flex-col items-center justify-center gap-1.5 rounded-xl text-center transition-all border border-dashed"
         style={{
           aspectRatio: "1 / 1",
@@ -377,6 +378,7 @@ function AddCommandMenu({
           color: `color-mix(in srgb, ${color} 50%, transparent)`,
           padding: "8px 4px",
         }}
+        onClick={handleClick}
         onMouseEnter={e => {
           const el = e.currentTarget as HTMLElement;
           el.style.background = `color-mix(in srgb, ${color} 9%, transparent)`;
@@ -421,7 +423,7 @@ function AddCommandMenu({
           borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)",
         }}
       >
-        <Plus size={10} className="text-primary/30" />
+        <Plus className="text-primary/30" size={10} />
         <p className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/30">Añadir nueva entrada</p>
       </div>
 
@@ -583,12 +585,12 @@ export function ModalAcontecimiento({ onClose, onSaved }: {
           style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}>
           <div className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0 border"
             style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 18%, transparent)" }}>
-            <Clock size={12} className="text-primary/50" />
+            <Clock className="text-primary/50" size={12} />
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/40">Añadir acontecimiento</p>
           </div>
-          <button onClick={onClose} className="text-primary/25 hover:text-primary transition-colors"><X size={15} /></button>
+          <button className="text-primary/25 hover:text-primary transition-colors" onClick={onClose}><X size={15} /></button>
         </div>
 
         <div className="p-4 space-y-3">
@@ -599,7 +601,6 @@ export function ModalAcontecimiento({ onClose, onSaved }: {
               {(["global", "reino"] as const).map(s => (
                 <button
                   key={s}
-                  onClick={() => setScope(s)}
                   className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all"
                   style={scope === s ? {
                     background: "color-mix(in srgb, var(--primary) 10%, transparent)",
@@ -609,6 +610,7 @@ export function ModalAcontecimiento({ onClose, onSaved }: {
                     borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
                     color: "color-mix(in srgb, var(--primary) 35%, transparent)",
                   }}
+                  onClick={() => setScope(s)}
                 >
                   {s === "global" ? <Globe size={10} /> : <ScrollText size={10} />}
                   {s === "global" ? "Global" : "Un reino"}
@@ -623,15 +625,15 @@ export function ModalAcontecimiento({ onClose, onSaved }: {
               <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Reino</label>
               {loadingR ? (
                 <div className="flex items-center gap-2 px-3 py-2">
-                  <Loader2 size={11} className="animate-spin text-primary/20" />
+                  <Loader2 className="animate-spin text-primary/20" size={11} />
                   <span className="text-[10px] text-primary/30">Cargando reinos…</span>
                 </div>
               ) : (
                 <select
-                  value={reinoId}
-                  onChange={e => setReinoId(e.target.value)}
                   className={`${INPUT} ${borderNorm} cursor-pointer`}
                   style={{ appearance: "none" }}
+                  value={reinoId}
+                  onChange={e => setReinoId(e.target.value)}
                 >
                   <option value="">Seleccionar reino…</option>
                   {reinos.map(r => <option key={r.id} value={r.id}>{r.nombre}</option>)}
@@ -644,10 +646,10 @@ export function ModalAcontecimiento({ onClose, onSaved }: {
           <div className="space-y-1.5">
             <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Año / Era <span className="text-primary/20 normal-case tracking-normal font-medium">(opcional)</span></label>
             <input
+              className={`${INPUT} ${borderNorm}`}
+              placeholder="Año 342, Era del Fuego, Antes del Caos…"
               value={year}
               onChange={e => setYear(e.target.value)}
-              placeholder="Año 342, Era del Fuego, Antes del Caos…"
-              className={`${INPUT} ${borderNorm}`}
             />
           </div>
 
@@ -655,10 +657,10 @@ export function ModalAcontecimiento({ onClose, onSaved }: {
           <div className="space-y-1.5">
             <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Título</label>
             <input
+              className={`${INPUT} ${borderNorm}`}
+              placeholder="La Gran Batalla, Fundación del Imperio…"
               value={title}
               onChange={e => setTitle(e.target.value)}
-              placeholder="La Gran Batalla, Fundación del Imperio…"
-              className={`${INPUT} ${borderNorm}`}
               onKeyDown={e => { if (e.key === "Enter") handleSave(); }}
             />
           </div>
@@ -667,11 +669,11 @@ export function ModalAcontecimiento({ onClose, onSaved }: {
           <div className="space-y-1.5">
             <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Qué ocurrió <span className="text-primary/20 normal-case tracking-normal font-medium">(opcional)</span></label>
             <textarea
-              value={desc}
-              onChange={e => setDesc(e.target.value)}
+              className={`${INPUT} ${borderNorm} resize-none`}
               placeholder="Describe el acontecimiento, sus causas y consecuencias…"
               rows={3}
-              className={`${INPUT} ${borderNorm} resize-none`}
+              value={desc}
+              onChange={e => setDesc(e.target.value)}
             />
           </div>
 
@@ -683,20 +685,20 @@ export function ModalAcontecimiento({ onClose, onSaved }: {
         {/* Footer */}
         <div className="flex items-center justify-end gap-2 px-4 py-3 border-t"
           style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, transparent)" }}>
-          <button onClick={onClose}
-            className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest text-primary/40 hover:text-primary hover:bg-primary/6 transition-all border border-transparent hover:border-primary/10">
+          <button className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest text-primary/40 hover:text-primary hover:bg-primary/6 transition-all border border-transparent hover:border-primary/10"
+            onClick={onClose}>
             Cancelar
           </button>
           <button
-            onClick={handleSave}
-            disabled={!canSave || saving}
             className="flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all disabled:opacity-40"
+            disabled={!canSave || saving}
             style={{
               background: saved ? "color-mix(in srgb, #22c55e 80%, transparent)" : "var(--primary)",
               color: "var(--btn-text, white)",
             }}
+            onClick={handleSave}
           >
-            {saving ? <Loader2 size={10} className="animate-spin" /> : saved ? <Check size={10} /> : <Clock size={10} />}
+            {saving ? <Loader2 className="animate-spin" size={10} /> : saved ? <Check size={10} /> : <Clock size={10} />}
             {saved ? "Guardado" : saving ? "Guardando…" : "Añadir"}
           </button>
         </div>
@@ -819,7 +821,7 @@ export function ModalMagicNombre({
               Nuevo {cfg.labelSing}
             </p>
           </div>
-          <button onClick={onClose} className="text-primary/25 hover:text-primary transition-colors">
+          <button className="text-primary/25 hover:text-primary transition-colors" onClick={onClose}>
             <X size={15} />
           </button>
         </div>
@@ -831,10 +833,10 @@ export function ModalMagicNombre({
             </label>
             <input
               ref={inputRef}
+              className={`${INPUT} border-primary/15`}
+              placeholder={cfg.placeholder}
               value={nombre}
               onChange={e => setNombre(e.target.value)}
-              placeholder={cfg.placeholder}
-              className={`${INPUT} border-primary/15`}
               onKeyDown={e => { if (e.key === "Enter") handleSave(); }}
             />
           </div>
@@ -853,23 +855,23 @@ export function ModalMagicNombre({
           }}
         >
           <button
-            onClick={onClose}
             className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest text-primary/40 hover:text-primary hover:bg-primary/6 transition-all border border-transparent hover:border-primary/10"
+            onClick={onClose}
           >
             Cancelar
           </button>
           <button
-            onClick={handleSave}
-            disabled={!canSave || saving}
             className="flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all disabled:opacity-40"
+            disabled={!canSave || saving}
             style={{
               background: saved
                 ? "color-mix(in srgb, #22c55e 80%, transparent)"
                 : `color-mix(in srgb, ${cfg.color} 85%, transparent)`,
               color: "var(--btn-text, white)",
             }}
+            onClick={handleSave}
           >
-            {saving ? <Loader2 size={10} className="animate-spin" /> : saved ? <Check size={10} /> : <cfg.Icon size={10} />}
+            {saving ? <Loader2 className="animate-spin" size={10} /> : saved ? <Check size={10} /> : <cfg.Icon size={10} />}
             {saved ? "Creado" : saving ? "Creando…" : `Crear ${cfg.labelSing}`}
           </button>
         </div>
@@ -1001,14 +1003,14 @@ export function ModalNuevoGrupo({
             }}>
             {cfg
               ? <cfg.Icon size={12} style={{ color: cfg.color }} />
-              : <Layers size={12} className="text-primary/40" />}
+              : <Layers className="text-primary/40" size={12} />}
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/40">
               {cfg ? `Nuevo grupo · ${cfg.labelPlural}` : "Nuevo grupo"}
             </p>
           </div>
-          <button onClick={onClose} className="text-primary/25 hover:text-primary transition-colors">
+          <button className="text-primary/25 hover:text-primary transition-colors" onClick={onClose}>
             <X size={15} />
           </button>
         </div>
@@ -1025,7 +1027,6 @@ export function ModalNuevoGrupo({
                 return (
                   <button
                     key={key}
-                    onClick={() => { setTipo(key); setNombre(""); setError(null); }}
                     className="flex flex-col items-center gap-1.5 p-2.5 rounded-xl border transition-all"
                     style={isSelected ? {
                       borderColor: `color-mix(in srgb, ${c.color} 40%, transparent)`,
@@ -1034,6 +1035,7 @@ export function ModalNuevoGrupo({
                       borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
                       background:  "color-mix(in srgb, var(--primary) 3%, transparent)",
                     }}
+                    onClick={() => { setTipo(key); setNombre(""); setError(null); }}
                     onMouseEnter={e => {
                       if (!isSelected) {
                         (e.currentTarget as HTMLElement).style.borderColor = `color-mix(in srgb, ${c.color} 25%, transparent)`;
@@ -1070,10 +1072,10 @@ export function ModalNuevoGrupo({
               </label>
               <input
                 ref={inputRef}
+                className={`${INPUT} border-primary/15`}
+                placeholder={`Nombre del grupo de ${cfg!.labelPlural.toLowerCase()}…`}
                 value={nombre}
                 onChange={e => setNombre(e.target.value)}
-                placeholder={`Nombre del grupo de ${cfg!.labelPlural.toLowerCase()}…`}
-                className={`${INPUT} border-primary/15`}
                 onKeyDown={e => { if (e.key === "Enter") handleSave(); }}
               />
             </div>
@@ -1085,14 +1087,13 @@ export function ModalNuevoGrupo({
         {/* Footer */}
         <div className="flex items-center justify-end gap-2 px-4 py-3 border-t"
           style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, transparent)" }}>
-          <button onClick={onClose}
-            className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest text-primary/40 hover:text-primary hover:bg-primary/6 transition-all border border-transparent hover:border-primary/10">
+          <button className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest text-primary/40 hover:text-primary hover:bg-primary/6 transition-all border border-transparent hover:border-primary/10"
+            onClick={onClose}>
             Cancelar
           </button>
           <button
-            onClick={handleSave}
-            disabled={!canSave || saving}
             className="flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all disabled:opacity-40"
+            disabled={!canSave || saving}
             style={{
               background: saved
                 ? "color-mix(in srgb, #22c55e 80%, transparent)"
@@ -1101,8 +1102,9 @@ export function ModalNuevoGrupo({
                   : "var(--primary)",
               color: "var(--btn-text, white)",
             }}
+            onClick={handleSave}
           >
-            {saving ? <Loader2 size={10} className="animate-spin" />
+            {saving ? <Loader2 className="animate-spin" size={10} />
               : saved ? <Check size={10} />
               : <Layers size={10} />}
             {saved ? "Creado" : saving ? "Creando…" : "Crear grupo"}
@@ -1507,8 +1509,8 @@ export function GlobalSearchBar({
           {/* Icono contextual / botón volver */}
           {onBack ? (
             <button
-              onClick={onBack}
               className="shrink-0 flex items-center gap-1 px-1.5 h-5 rounded-md text-primary/40 hover:text-primary transition-colors"
+              onClick={onBack}
             >
               <ChevronLeft size={14} />
               <span className="text-[10px] font-bold">Volver</span>
@@ -1517,35 +1519,35 @@ export function GlobalSearchBar({
             (() => {
               const sec = MUNDO_SECTIONS.find(s => s.key === activeMundoSection);
               return sec
-                ? <sec.Icon size={11} className="shrink-0 text-primary/40" />
-                : <Search size={11} className="shrink-0 text-primary/30" />;
+                ? <sec.Icon className="shrink-0 text-primary/40" size={11} />
+                : <Search className="shrink-0 text-primary/30" size={11} />;
             })()
           ) : selectedItem && !focused ? (
             <div className="shrink-0 w-5 h-5 rounded-md overflow-hidden border border-primary/15 bg-primary/8 flex items-center justify-center">
               {(selectedItem.img_url || selectedItem.imagen_url)
-                ? <img src={selectedItem.img_url || selectedItem.imagen_url} alt={selectedItem.nombre} className="w-full h-full object-cover" />
+                ? <img alt={selectedItem.nombre} className="w-full h-full object-cover" src={selectedItem.img_url || selectedItem.imagen_url} />
                 : (() => {
                     const tabCfg = TAB_CONFIG[activeTab as Exclude<TabKey, "mundo">];
-                    if (!tabCfg) return <Search size={9} className="text-primary/40" />;
+                    if (!tabCfg) return <Search className="text-primary/40" size={9} />;
                     const Icon = tabCfg.Icon;
-                    return <Icon size={9} className="text-primary/40" />;
+                    return <Icon className="text-primary/40" size={9} />;
                   })()}
             </div>
           ) : (
-            <Search size={11} className="shrink-0 text-primary/30" />
+            <Search className="shrink-0 text-primary/30" size={11} />
           )}
 
           <input
             ref={inputRef}
+            className="flex-1 min-w-0 bg-transparent text-[12px] font-medium text-primary outline-none placeholder:text-primary/40"
+            placeholder={placeholder}
             value={focused ? query : ""}
             onChange={e => { setQuery(e.target.value); setOpen(true); setActiveIndex(-1); }}
             onFocus={() => { setFocused(true); setOpen(true); setQuery(""); }}
-            placeholder={placeholder}
-            className="flex-1 min-w-0 bg-transparent text-[12px] font-medium text-primary outline-none placeholder:text-primary/40"
           />
 
           {focused && query
-            ? <button onClick={() => setQuery("")} className="shrink-0 text-primary/25 hover:text-primary transition-colors"><X size={10} /></button>
+            ? <button className="shrink-0 text-primary/25 hover:text-primary transition-colors" onClick={() => setQuery("")}><X size={10} /></button>
             : !focused
               ? <kbd className="shrink-0 hidden sm:flex items-center px-1 py-0.5 rounded text-[8px] font-black text-primary/20 border border-primary/10 font-mono">⌘K</kbd>
               : null}
@@ -1553,8 +1555,8 @@ export function GlobalSearchBar({
 
         {/* AddCommandMenu — aparece cuando el usuario escribe "add" y presiona Enter */}
         <AddCommandMenu
-          open={addMenuOpen}
           anchorRef={wrapRef}
+          open={addMenuOpen}
           onAdd={(tab) => { onAdd(tab); close(); }}
           onAddMagic={handleAddMagicWithModal}
           onClose={() => { setAddMenuOpen(false); setQuery(""); setFocused(false); inputRef.current?.blur(); }}
@@ -1630,7 +1632,7 @@ export function GlobalSearchBar({
 
               {loadingAll ? (
                 <div className="flex items-center justify-center py-8">
-                  <Loader2 size={16} className="animate-spin text-primary/20" />
+                  <Loader2 className="animate-spin text-primary/20" size={16} />
                 </div>
               ) : isAddCommand ? (
                 <div className="flex flex-col items-center gap-2 py-6 text-primary/25">
@@ -1668,7 +1670,7 @@ export function GlobalSearchBar({
                                     background: "color-mix(in srgb, var(--primary) 7%, transparent)",
                                     borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
                                   }}>
-                                  <TabIcon size={12} className="text-primary/40" />
+                                  <TabIcon className="text-primary/40" size={12} />
                                 </div>
                                 <span className="flex-1 text-[11px] font-bold text-primary/70">{cfg.label}</span>
                                 <span className="text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md"
@@ -1695,22 +1697,22 @@ export function GlobalSearchBar({
                             return (
                               <button
                                 key={section + label}
-                                onMouseDown={() => {
-                                  if (subTab) handleMundoSubTab(section, subTab);
-                                  else handleMundoSection(section);
-                                }}
                                 className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-150 border ${
                                   isMundo && activeMundoSection === section
                                     ? "bg-primary/12 border-primary/20"
                                     : "border-transparent hover:bg-primary/6 hover:border-primary/10"
                                 }`}
+                                onMouseDown={() => {
+                                  if (subTab) handleMundoSubTab(section, subTab);
+                                  else handleMundoSection(section);
+                                }}
                               >
                                 <div className="shrink-0 w-7 h-7 rounded-lg border flex items-center justify-center"
                                   style={{
                                     background: "color-mix(in srgb, var(--primary) 7%, transparent)",
                                     borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
                                   }}>
-                                  {SecIcon && <SecIcon size={12} className="text-primary/40" />}
+                                  {SecIcon && <SecIcon className="text-primary/40" size={12} />}
                                 </div>
                                 <span className="flex-1 text-[11px] font-bold text-primary/70">{label}</span>
                                 <span className="text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md"
@@ -1784,8 +1786,8 @@ export function GlobalSearchBar({
                                 className={props["data-active"] ? "rounded-xl outline-2 outline-primary/30" : ""}
                               >
                                 <EntidadCard
-                                  item={item} tab={tab}
-                                  selected={selectedId === item.id && activeTab === tab}
+                                  item={item} selected={selectedId === item.id && activeTab === tab}
+                                  tab={tab}
                                   onClick={() => handleSelect(item, tab)}
                                   onToggleOculto={tab === "reinos" ? onToggleOculto : undefined}
                                 />
@@ -1859,7 +1861,7 @@ export function GlobalSearchBar({
                                   borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
                                 }}
                               >
-                                <FileText size={12} className="text-primary/35" />
+                                <FileText className="text-primary/35" size={12} />
                               </div>
                               <span className="flex-1 text-[11px] font-bold text-primary/70 truncate">{item.titulo}</span>
                               <span
@@ -1890,7 +1892,7 @@ export function GlobalSearchBar({
                             >
                               <div className="shrink-0 w-7 h-7 rounded-lg border flex items-center justify-center"
                                 style={{ background: "color-mix(in srgb, var(--primary) 7%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
-                                <BookOpen size={12} className="text-primary/40" />
+                                <BookOpen className="text-primary/40" size={12} />
                               </div>
                               <div className="flex-1 min-w-0 text-left">
                                 <p className="text-[11px] font-bold text-primary/70 truncate">{item.titulo_capitulo}</p>
@@ -1922,7 +1924,7 @@ export function GlobalSearchBar({
                             >
                               <div className="shrink-0 w-7 h-7 rounded-lg border flex items-center justify-center"
                                 style={{ background: "color-mix(in srgb, var(--primary) 7%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
-                                <Music size={12} className="text-primary/40" />
+                                <Music className="text-primary/40" size={12} />
                               </div>
                               <div className="flex-1 min-w-0 text-left">
                                 <p className="text-[11px] font-bold text-primary/70 truncate">{item.titulo}</p>
@@ -1954,7 +1956,7 @@ export function GlobalSearchBar({
                             >
                               <div className="shrink-0 w-7 h-7 rounded-lg border flex items-center justify-center"
                                 style={{ background: "color-mix(in srgb, var(--primary) 7%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
-                                <Layers size={12} className="text-primary/35" />
+                                <Layers className="text-primary/35" size={12} />
                               </div>
                               <div className="flex-1 min-w-0 text-left">
                                 <p className="text-[11px] font-bold text-primary/70 truncate">{item.nombre}</p>
@@ -2006,8 +2008,8 @@ export function GlobalSearchBar({
                       .map(({ item, tab }) => (
                         <EntidadCard
                           key={`${tab}-${item.id}`}
-                          item={item} tab={tab}
-                          selected={selectedId === item.id && activeTab === tab}
+                          item={item} selected={selectedId === item.id && activeTab === tab}
+                          tab={tab}
                           onClick={() => handleSelect(item, tab)}
                           onToggleOculto={tab === "reinos" ? onToggleOculto : undefined}
                         />
@@ -2025,10 +2027,10 @@ export function GlobalSearchBar({
                       return (
                         <button
                           key={nav.section + nav.subTab}
-                          onMouseDown={() => handleMundoSubTab(nav.section as MundoSectionKey, nav.subTab)}
                           className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-150 border ${
                             isActive ? "bg-primary/12 border-primary/20" : "border-transparent hover:bg-primary/6 hover:border-primary/10"
                           }`}
+                          onMouseDown={() => handleMundoSubTab(nav.section as MundoSectionKey, nav.subTab)}
                         >
                           <div
                             className="shrink-0 w-7 h-7 rounded-lg border flex items-center justify-center"
@@ -2070,10 +2072,10 @@ export function GlobalSearchBar({
                       return (
                         <button
                           key={subTab}
-                          onMouseDown={() => handleMundoSubTab("geografia", subTab)}
                           className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-150 border ${
                             isActive ? "bg-primary/12 border-primary/20" : "border-transparent hover:bg-primary/6 hover:border-primary/10"
                           }`}
+                          onMouseDown={() => handleMundoSubTab("geografia", subTab)}
                         >
                           <div
                             className="shrink-0 w-7 h-7 rounded-lg border flex items-center justify-center"
@@ -2082,7 +2084,7 @@ export function GlobalSearchBar({
                               borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
                             }}
                           >
-                            <Icon size={12} className="text-primary/40" />
+                            <Icon className="text-primary/40" size={12} />
                           </div>
                           <span className={`flex-1 text-[11px] font-bold truncate transition-colors ${isActive ? "text-primary" : "text-primary/70 hover:text-primary/90"}`}>
                             {label}
@@ -2101,7 +2103,7 @@ export function GlobalSearchBar({
                   {/* Add hint at the bottom */}
                   <div className="mt-2 px-2 py-1.5 rounded-xl border border-dashed flex items-center gap-2"
                     style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)" }}>
-                    <Sparkles size={9} className="text-primary/20 shrink-0" />
+                    <Sparkles className="text-primary/20 shrink-0" size={9} />
                     <p className="text-[8px] font-black uppercase tracking-widest text-primary/20">
                       Escribe <span className="text-primary/40">add</span> + Enter para añadir nueva entrada
                     </p>

@@ -1,19 +1,21 @@
 "use client";
-import { MotionDiv } from "@/components/ui/Motion";
-import React, { useState } from "react";
 import { AnimatePresence } from "framer-motion";
-import { cn } from "@/lib/utils/index";
-import { useSupabaseData } from "@/hooks/data/useSupabaseData";
-import { tareasQueries } from "@/lib/api/queries/personal/tareas";
-import { eventosQueries } from "@/lib/api/queries/personal/eventos";
-import { enqueueOperation, dexiePut, dexieUpdate, dexieDelete } from "@/hooks/data/useOfflineSync";
 import { Calendar as CalendarIcon, Clock } from "lucide-react";
+import React, { useState } from "react";
 
-import { RelojDigital } from "../components/relojDigital";
+import { MotionDiv } from "@/components/ui/Motion";
+import { enqueueOperation, dexiePut, dexieUpdate, dexieDelete } from "@/hooks/data/useOfflineSync";
+import { useSupabaseData } from "@/hooks/data/useSupabaseData";
+import { eventosQueries } from "@/lib/api/queries/personal/eventos";
+import { tareasQueries } from "@/lib/api/queries/personal/tareas";
+import { cn } from "@/lib/utils/index";
+
+
 import { ListaTareas } from "../components/listaTareas";
+import { RelojDigital } from "../components/relojDigital";
+import type { ModoCalendario } from "../components/types";
 import { VistaMes } from "../components/vistaMes";
 import { VistaSemanal } from "../components/vistaSemanal";
-import type { ModoCalendario } from "../components/types";
 
 const USERNAME = "franilover";
 
@@ -107,24 +109,24 @@ export const GestionPersonal = () => {
             </span>
             <div className="flex items-center gap-0.5 bg-primary/5 dark:bg-primary/10 rounded-[var(--radius-btn)] p-0.5">
               <button
-                onClick={() => setModoCalendario("mes")}
                 className={cn(
                   "flex items-center gap-1 text-[8px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-[var(--radius-btn)] transition-all",
                   modoCalendario === "mes"
                     ? "bg-primary text-[var(--btn-text)] shadow-sm"
                     : "text-[var(--text-on-card)]/35 hover:text-primary"
                 )}
+                onClick={() => setModoCalendario("mes")}
               >
                 <CalendarIcon size={9} /> Mes
               </button>
               <button
-                onClick={() => setModoCalendario("semana")}
                 className={cn(
                   "flex items-center gap-1 text-[8px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-[var(--radius-btn)] transition-all",
                   modoCalendario === "semana"
                     ? "bg-primary text-[var(--btn-text)] shadow-sm"
                     : "text-[var(--text-on-card)]/35 hover:text-primary"
                 )}
+                onClick={() => setModoCalendario("semana")}
               >
                 <Clock size={9} /> Semana
               </button>
@@ -137,13 +139,13 @@ export const GestionPersonal = () => {
               {/* Móvil: siempre VistaMes */}
               <MotionDiv
                 key="mes-mobile"
+                animate={{ opacity: 1 }}
                 className="h-full lg:hidden"
                 initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
               >
                 <VistaMes
-                  eventos={eventos}
                   capitulosRaw={capitulosRaw as any[] || []}
+                  eventos={eventos}
                   isAddingEvento={isAddingEvento}
                   onAddEvento={handleAddEvento}
                 />
@@ -152,15 +154,15 @@ export const GestionPersonal = () => {
               {modoCalendario === "mes" ? (
                 <MotionDiv
                   key="mes"
-                  initial={{ opacity: 0, y: 6 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -6 }}
-                  transition={{ duration: 0.16 }}
                   className="hidden lg:block h-full"
+                  exit={{ opacity: 0, y: -6 }}
+                  initial={{ opacity: 0, y: 6 }}
+                  transition={{ duration: 0.16 }}
                 >
                   <VistaMes
-                    eventos={eventos}
                     capitulosRaw={capitulosRaw as any[] || []}
+                    eventos={eventos}
                     isAddingEvento={isAddingEvento}
                     onAddEvento={handleAddEvento}
                   />
@@ -168,15 +170,15 @@ export const GestionPersonal = () => {
               ) : (
                 <MotionDiv
                   key="semana"
-                  initial={{ opacity: 0, y: 6 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -6 }}
-                  transition={{ duration: 0.16 }}
                   className="hidden lg:block h-full p-4"
+                  exit={{ opacity: 0, y: -6 }}
+                  initial={{ opacity: 0, y: 6 }}
+                  transition={{ duration: 0.16 }}
                 >
                   <VistaSemanal
-                    eventos={eventos}
                     capitulosRaw={capitulosRaw as any[] || []}
+                    eventos={eventos}
                     isAddingEvento={isAddingEvento}
                     onAddEvento={handleAddEvento}
                   />
@@ -200,13 +202,13 @@ export const GestionPersonal = () => {
           <div className="h-px bg-primary/8 shrink-0 lg:hidden" />
           <div className="flex-1 min-h-0 overflow-hidden">
             <ListaTareas
-              tareas={tareas}
+              isAddingTarea={isAddingTarea}
               nuevaTarea={nuevaTarea}
               setNuevaTarea={setNuevaTarea}
-              isAddingTarea={isAddingTarea}
+              tareas={tareas}
               onAdd={handleAddTarea}
-              onToggle={handleToggle}
               onDelete={handleDelete}
+              onToggle={handleToggle}
             />
           </div>
         </div>

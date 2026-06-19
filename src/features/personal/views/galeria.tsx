@@ -1,11 +1,13 @@
 "use client";
-import React, { useState, useEffect, useCallback, useRef } from "react";
 import { AnimatePresence } from "framer-motion";
-import { supabase } from "@/lib/api/client/supabase";
-import { db } from "@/lib/api/client/db";
-import SimpleImagePicker from "@/features/editorGarlia/components/editorCapitulos/snippets/forms/SimpleImagePicker";
-import { useAuth } from "@/providers/AuthProvider";
 import { Plus, X, Loader2, Pencil, Trash2, ImageIcon, Save, Pipette } from "lucide-react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
+
+import SimpleImagePicker from "@/features/editorGarlia/components/editorCapitulos/snippets/forms/SimpleImagePicker";
+import { db } from "@/lib/api/client/db";
+import { supabase } from "@/lib/api/client/supabase";
+import { useAuth } from "@/providers/AuthProvider";
+
 
 interface GaleriaItem {
   id:           number;
@@ -210,23 +212,19 @@ function ImageLightbox({ src, alt, bgColor, onClose }: {
       onClick={() => { if (!touchState.current.moved && scaleRef.current <= 1) onClose(); }}
     >
       <button
-        onClick={e => { e.stopPropagation(); onClose(); }}
         className="absolute top-4 right-4 z-10 w-9 h-9 flex items-center justify-center rounded-full transition-all"
         style={{ background: "rgba(0,0,0,0.45)", color: "white", backdropFilter: "blur(6px)" }}
+        onClick={e => { e.stopPropagation(); onClose(); }}
       >
         <X size={16} />
       </button>
 
       <img
         ref={imgRef}
-        src={src}
         alt={alt}
-        onClick={e => e.stopPropagation()}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        draggable={false}
         className="max-w-[92vw] max-h-[85vh] object-contain select-none"
+        draggable={false}
+        src={src}
         style={{
           transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`,
           transition: transform.scale === 1 ? "transform 0.3s ease" : "none",
@@ -236,6 +234,10 @@ function ImageLightbox({ src, alt, bgColor, onClose }: {
           opacity: visible ? 1 : 0,
           transitionProperty: transform.scale === 1 ? "transform, opacity" : "opacity",
         }}
+        onClick={e => e.stopPropagation()}
+        onTouchEnd={handleTouchEnd}
+        onTouchMove={handleTouchMove}
+        onTouchStart={handleTouchStart}
       />
     </div>
   );
@@ -323,7 +325,7 @@ function EditModal({ item, onSave, onClose }: {
           <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50">
             Editar obra
           </h3>
-          <button onClick={onClose} className="text-primary/30 hover:text-primary transition-colors">
+          <button className="text-primary/30 hover:text-primary transition-colors" onClick={onClose}>
             <X size={16} />
           </button>
         </div>
@@ -338,16 +340,16 @@ function EditModal({ item, onSave, onClose }: {
                 className="absolute inset-0 w-full h-full object-contain"
                 style={{ cursor: "crosshair" }}
                 onClick={handleCanvasClick}
-                onMouseMove={handleCanvasMove}
                 onMouseLeave={() => setHoverColor(null)}
+                onMouseMove={handleCanvasMove}
               />
             ) : (
               <img
                 ref={imgElRef}
-                src={item.url_imagen}
                 alt="preview"
-                crossOrigin="anonymous"
                 className="absolute inset-0 w-full h-full object-contain"
+                crossOrigin="anonymous"
+                src={item.url_imagen}
               />
             )}
           </div>
@@ -357,20 +359,20 @@ function EditModal({ item, onSave, onClose }: {
             <div className="w-8 h-8 rounded-lg border flex-shrink-0 transition-colors"
               style={{ background: hoverColor ?? bgColor, borderColor: "color-mix(in srgb, var(--primary) 20%, transparent)" }} />
             <input
+              className="flex-1 h-8 rounded-lg border cursor-pointer"
+              style={{ borderColor: "color-mix(in srgb, var(--primary) 20%, transparent)" }}
               type="color"
               value={bgColor}
               onChange={e => setBgColor(e.target.value)}
-              className="flex-1 h-8 rounded-lg border cursor-pointer"
-              style={{ borderColor: "color-mix(in srgb, var(--primary) 20%, transparent)" }}
             />
-            <button onClick={handlePickColor}
-              className="w-8 h-8 flex items-center justify-center rounded-lg border transition-all hover:opacity-80"
+            <button className="w-8 h-8 flex items-center justify-center rounded-lg border transition-all hover:opacity-80"
               style={{
                 background:   picking ? "var(--primary)" : "transparent",
                 color:        picking ? "var(--btn-text)" : "var(--primary)",
                 borderColor:  "color-mix(in srgb, var(--primary) 20%, transparent)",
               }}
-              title="Seleccionar color de la imagen">
+              title="Seleccionar color de la imagen"
+              onClick={handlePickColor}>
               <Pipette size={13} />
             </button>
           </div>
@@ -379,29 +381,29 @@ function EditModal({ item, onSave, onClose }: {
           <div className="flex gap-2">
             {ratios.map(r => (
               <button key={r.value}
-                onClick={() => setAspectRatio(r.value)}
                 className="flex-1 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all border"
                 style={{
                   background:  aspectRatio === r.value ? "var(--primary)" : "transparent",
                   color:       aspectRatio === r.value ? "var(--btn-text)" : "var(--primary)",
                   borderColor: "color-mix(in srgb, var(--primary) 20%, transparent)",
                   opacity:     aspectRatio === r.value ? 1 : 0.5,
-                }}>
+                }}
+                onClick={() => setAspectRatio(r.value)}>
                 {r.label}
               </button>
             ))}
           </div>
 
           <div className="flex gap-2 pt-1">
-            <button onClick={onClose}
-              className="flex-1 py-2.5 rounded-xl border text-[10px] font-black uppercase tracking-widest text-primary/40 hover:text-primary transition-all"
-              style={{ borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)" }}>
+            <button className="flex-1 py-2.5 rounded-xl border text-[10px] font-black uppercase tracking-widest text-primary/40 hover:text-primary transition-all"
+              style={{ borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)" }}
+              onClick={onClose}>
               Cancelar
             </button>
-            <button onClick={handleSave} disabled={saving}
-              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
-              style={{ background: "var(--primary)", color: "var(--btn-text)" }}>
-              {saving ? <Loader2 size={11} className="animate-spin" /> : <Save size={11} />}
+            <button className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all" disabled={saving}
+              style={{ background: "var(--primary)", color: "var(--btn-text)" }}
+              onClick={handleSave}>
+              {saving ? <Loader2 className="animate-spin" size={11} /> : <Save size={11} />}
               {saving ? "Guardando…" : "Guardar"}
             </button>
           </div>
@@ -446,7 +448,7 @@ function AddModal({ onClose, onSuccess, nextOrden }: {
           <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-2">
             <ImageIcon size={11} /> Nueva Obra
           </h3>
-          <button onClick={onClose} className="text-primary/30 hover:text-primary transition-colors">
+          <button className="text-primary/30 hover:text-primary transition-colors" onClick={onClose}>
             <X size={16} />
           </button>
         </div>
@@ -457,24 +459,24 @@ function AddModal({ onClose, onSuccess, nextOrden }: {
               <p className="text-[10px] font-black uppercase tracking-widest text-primary/30 text-center pb-2">
                 Selecciona la imagen
               </p>
-              <SimpleImagePicker onSelect={u => { setUrl(u); setStep("preview"); }} onClose={onClose} />
+              <SimpleImagePicker onClose={onClose} onSelect={u => { setUrl(u); setStep("preview"); }} />
             </div>
           ) : (
             <div className="space-y-4">
               <div className="w-full rounded-xl overflow-hidden flex items-center justify-center"
                 style={{ aspectRatio: "1/1", background: "#111", border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)" }}>
-                <img src={url} alt="preview" className="max-w-full max-h-full object-contain" />
+                <img alt="preview" className="max-w-full max-h-full object-contain" src={url} />
               </div>
               <div className="flex gap-2">
-                <button onClick={() => setStep("pick")}
-                  className="px-4 py-2.5 rounded-xl border text-[10px] font-black uppercase tracking-widest text-primary/40 hover:text-primary transition-all"
-                  style={{ borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)" }}>
+                <button className="px-4 py-2.5 rounded-xl border text-[10px] font-black uppercase tracking-widest text-primary/40 hover:text-primary transition-all"
+                  style={{ borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)" }}
+                  onClick={() => setStep("pick")}>
                   Atrás
                 </button>
-                <button onClick={save} disabled={saving}
-                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
-                  style={{ background: "var(--primary)", color: "var(--btn-text)" }}>
-                  {saving ? <Loader2 size={11} className="animate-spin" /> : <Plus size={11} />}
+                <button className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all" disabled={saving}
+                  style={{ background: "var(--primary)", color: "var(--btn-text)" }}
+                  onClick={save}>
+                  {saving ? <Loader2 className="animate-spin" size={11} /> : <Plus size={11} />}
                   {saving ? "Guardando…" : "Añadir"}
                 </button>
               </div>
@@ -518,11 +520,11 @@ export default function GaleriaPage() {
         <div className="flex justify-between items-center px-3 pt-4 pb-2">
           {/* Indicador de refresco en background — sutil, no bloquea */}
           <div className="w-5 h-5 flex items-center justify-center">
-            {refreshing && <Loader2 size={12} className="animate-spin text-primary/30" />}
+            {refreshing && <Loader2 className="animate-spin text-primary/30" size={12} />}
           </div>
-          <button onClick={() => setShowAdd(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-dashed transition-all hover:opacity-80"
-            style={{ borderColor: "color-mix(in srgb, var(--primary) 30%, transparent)", color: "color-mix(in srgb, var(--primary) 60%, transparent)" }}>
+          <button className="flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-dashed transition-all hover:opacity-80"
+            style={{ borderColor: "color-mix(in srgb, var(--primary) 30%, transparent)", color: "color-mix(in srgb, var(--primary) 60%, transparent)" }}
+            onClick={() => setShowAdd(true)}>
             <Plus size={12} /> Añadir obra
           </button>
         </div>
@@ -556,26 +558,26 @@ export default function GaleriaPage() {
                   }}
                 >
                   <img
-                    src={item.url_imagen}
                     alt="Obra"
                     className="absolute inset-0 w-full h-full object-contain cursor-zoom-in"
-                    style={{ objectPosition: "50% 50%" }}
                     draggable={false}
+                    src={item.url_imagen}
+                    style={{ objectPosition: "50% 50%" }}
                     onClick={() => setLightbox(item)}
                   />
 
                   {isAdmin && (
                     <div className="absolute top-2 right-2 flex gap-1 z-10">
                       <button
-                        onClick={() => setEditing(item)}
                         className="w-7 h-7 flex items-center justify-center rounded-lg transition-all hover:bg-white/20"
-                        style={{ background: "rgba(0,0,0,0.5)", color: "white", backdropFilter: "blur(4px)" }}>
+                        style={{ background: "rgba(0,0,0,0.5)", color: "white", backdropFilter: "blur(4px)" }}
+                        onClick={() => setEditing(item)}>
                         <Pencil size={11} />
                       </button>
                       <button
-                        onClick={() => handleDelete(item.id)}
                         className="w-7 h-7 flex items-center justify-center rounded-lg transition-all hover:bg-red-600"
-                        style={{ background: "rgba(0,0,0,0.5)", color: "white", backdropFilter: "blur(4px)" }}>
+                        style={{ background: "rgba(0,0,0,0.5)", color: "white", backdropFilter: "blur(4px)" }}
+                        onClick={() => handleDelete(item.id)}>
                         <Trash2 size={11} />
                       </button>
                     </div>
@@ -589,9 +591,9 @@ export default function GaleriaPage() {
 
       {lightbox && (
         <ImageLightbox
-          src={lightbox.url_imagen}
           alt="Obra"
           bgColor={lightbox.bg_color}
+          src={lightbox.url_imagen}
           onClose={() => setLightbox(null)}
         />
       )}
@@ -599,17 +601,17 @@ export default function GaleriaPage() {
       {editing && (
         <EditModal
           item={editing}
-          onSave={updates => handleUpdate(editing.id, updates)}
           onClose={() => setEditing(null)}
+          onSave={updates => handleUpdate(editing.id, updates)}
         />
       )}
 
       <AnimatePresence>
         {showAdd && (
           <AddModal
+            nextOrden={items.length ? Math.min(...items.map(i => i.orden)) - 1 : 0}
             onClose={() => setShowAdd(false)}
             onSuccess={reload}
-            nextOrden={items.length ? Math.min(...items.map(i => i.orden)) - 1 : 0}
           />
         )}
       </AnimatePresence>

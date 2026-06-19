@@ -16,18 +16,19 @@
  *     from "./SegmentRenderers";
  */
 
-import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Music2, Sword, Package, Sparkles, Check, Loader2, User, ChevronRight as ChevronR } from "lucide-react";
-import { supabase } from "@/lib/api/client/supabase";
-import { cn } from "@/lib/utils/index";
+import React, { useState, useEffect, useRef } from "react";
+
+import { BtnIcon } from "@/components/ui";
+import { useConfirm } from "@/components/ui/ConfirmModal";
 import {
   MotionDiv, MotionSpan, MotionButton,
 } from "@/components/ui/Motion";
-import { BtnIcon } from "@/components/ui";
-import { useToast } from "@/hooks/ui/useToast";
-import { useConfirm } from "@/components/ui/ConfirmModal";
 import { ToastContainer } from "@/components/ui/ToastContainer";
+import { useToast } from "@/hooks/ui/useToast";
+import { supabase } from "@/lib/api/client/supabase";
+import { cn } from "@/lib/utils/index";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CitaVisual
@@ -55,17 +56,17 @@ export function CitaVisual({ content }: { content: string }) {
         style={{ background: "linear-gradient(to right, color-mix(in srgb, var(--primary) 5%, transparent), transparent)" }}
       >
         <span
+          aria-hidden
           className="block font-serif leading-none mb-1 select-none"
           style={{ fontSize: "4rem", color: "var(--accent)", opacity: 0.35, fontStyle: "italic", lineHeight: 1 }}
-          aria-hidden
         >"</span>
         <p className="font-serif text-lg md:text-xl italic leading-[1.95] text-primary-dark/80">
           {texto}
         </p>
         <span
+          aria-hidden
           className="block font-serif leading-none mt-1 text-right select-none pr-4"
           style={{ fontSize: "3rem", color: "var(--primary)", opacity: 0.15, fontStyle: "italic", lineHeight: 1 }}
-          aria-hidden
         >"</span>
         {fuente && (
           <div className="flex items-center gap-3 mt-3">
@@ -89,7 +90,7 @@ export function ImgInline({ url, caption }: { url: string; caption?: string }) {
   return (
     <figure className="my-12 -mx-6 md:-mx-12">
       <div className="relative overflow-hidden rounded-[var(--radius-btn)] md:rounded-[var(--radius-card)] shadow-xl shadow-[var(--foreground)]/10">
-        <img src={url} alt={caption ?? ""} className="w-full object-cover" style={{ maxHeight: 520 }} />
+        <img alt={caption ?? ""} className="w-full object-cover" src={url} style={{ maxHeight: 520 }} />
         {caption && (
           <div className="absolute inset-x-0 bottom-0 h-20 bg-linear-to-t from-[var(--bg-menu)]/60 to-transparent" />
         )}
@@ -138,23 +139,23 @@ export function SoundInline({ url, volume }: { url: string; volume: number }) {
   return (
     <span
       className="inline-flex items-center gap-2 mx-1 my-2 px-3 py-1.5 rounded-[var(--radius-btn)] border align-middle transition-all select-none cursor-pointer"
+      role="button"
       style={{
         background:  playing ? "var(--color-primary, var(--primary))" : "rgba(var(--color-primary-rgb, 107,94,112), 0.06)",
         borderColor: playing ? "var(--color-primary, var(--primary))" : "rgba(var(--color-primary-rgb, 107,94,112), 0.15)",
         color:       playing ? "white" : "rgba(107,94,112,0.6)",
       }}
-      onClick={toggle}
-      role="button"
       title={playing ? "Detener ambientación" : "Reproducir ambientación"}
+      onClick={toggle}
     >
       {playing ? (
         <span className="inline-flex items-end gap-px h-3">
           {[0, 1, 2].map(i => (
             <MotionSpan
               key={i}
+              animate={{ height: ["4px", "10px", "5px", "12px", "4px"][i % 5] }}
               className="w-px rounded-full bg-white-custom"
               style={{ display: "inline-block" }}
-              animate={{ height: ["4px", "10px", "5px", "12px", "4px"][i % 5] }}
               transition={{ duration: 0.5 + i * 0.1, repeat: Infinity, repeatType: "reverse", ease: "easeInOut" }}
             />
           ))}
@@ -190,7 +191,7 @@ export function FloatWord({ word, url, caption }: { word: string; url: string; c
 
   return (
     <>
-      <button ref={btnRef} onClick={handleClick} className="relative inline font-serif cursor-pointer group">
+      <button ref={btnRef} className="relative inline font-serif cursor-pointer group" onClick={handleClick}>
         <span style={{
           backgroundImage: "linear-gradient(var(--accent), var(--accent))",
           backgroundRepeat: "no-repeat",
@@ -207,27 +208,27 @@ export function FloatWord({ word, url, caption }: { word: string; url: string; c
         {open && pos && (
           <>
             <MotionDiv
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              animate={{ opacity: 1 }} className="fixed inset-0 z-[55]" exit={{ opacity: 0 }}
+              initial={{ opacity: 0 }}
               onClick={() => setOpen(false)}
-              className="fixed inset-0 z-[55]"
             />
             <MotionDiv
-              initial={{ opacity: 0, scale: 0.85, y: 12 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.88, y: 8 }}
-              transition={{ type: "spring", damping: 24, stiffness: 340 }}
               className="fixed z-[56] pointer-events-auto"
+              exit={{ opacity: 0, scale: 0.88, y: 8 }}
+              initial={{ opacity: 0, scale: 0.85, y: 12 }}
               style={{
                 left: Math.min(Math.max(pos.x - 160, 12), (typeof window !== "undefined" ? window.innerWidth : 800) - 332),
                 // Bug 4 fix: guard SSR para window.scrollY
                 top: Math.max(pos.y - 280 - (typeof window !== "undefined" ? window.scrollY : 0), 12),
                 width: 320,
               }}
+              transition={{ type: "spring", damping: 24, stiffness: 340 }}
             >
               <div className="rounded-[var(--radius-btn)] overflow-hidden shadow-2xl"
                 style={{ boxShadow: "0 24px 64px rgba(44,38,46,0.22), 0 4px 16px rgba(44,38,46,0.12)" }}>
                 <div className="relative">
-                  <img src={url} alt={caption ?? word} className="w-full object-cover" style={{ maxHeight: 260 }} />
+                  <img alt={caption ?? word} className="w-full object-cover" src={url} style={{ maxHeight: 260 }} />
                   <BtnIcon onClick={() => setOpen(false)}><X size={13} /></BtnIcon>
                 </div>
                 {caption && (
@@ -338,8 +339,8 @@ export function DropWord({ word, tipo, entidadId, entidadNombre }: DropWordProps
   return (
     <>
       <button
-        onClick={handleClick}
         className={cn("relative inline font-serif cursor-pointer group", (state === "success" || state === "already") && "cursor-default")}
+        onClick={handleClick}
       >
         <span style={{
           backgroundImage: `linear-gradient(${state === "success" ? "#10b981" : "#C4A882"}, ${state === "success" ? "#10b981" : "#C4A882"})`,
@@ -360,37 +361,37 @@ export function DropWord({ word, tipo, entidadId, entidadNombre }: DropWordProps
         {open && state !== "idle" && (
           <>
             <MotionDiv
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              animate={{ opacity: 1 }} className="fixed inset-0 z-[80] bg-black/5 backdrop-blur-[2px]" exit={{ opacity: 0 }}
+              initial={{ opacity: 0 }}
               onClick={() => { if (state !== "loading") setOpen(false); }}
-              className="fixed inset-0 z-[80] bg-black/5 backdrop-blur-[2px]"
             />
             <MotionDiv
-              initial={{ opacity: 0, scale: 0.85, y: -8 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: -4 }}
-              transition={{ type: "spring", damping: 24, stiffness: 340 }}
               className="fixed z-[81] left-1/2 -translate-x-1/2 top-1/3 w-72 bg-white rounded-3xl shadow-2xl overflow-hidden"
+              exit={{ opacity: 0, scale: 0.9, y: -4 }}
+              initial={{ opacity: 0, scale: 0.85, y: -8 }}
               style={{ boxShadow: "0 24px 64px rgba(44,38,46,0.22)" }}
+              transition={{ type: "spring", damping: 24, stiffness: 340 }}
             >
               <div className="h-1.5 w-full bg-gradient-to-r from-[#C4A882] via-primary to-[#C4A882]" />
               <div className="p-6 flex flex-col items-center text-center gap-4">
                 {state === "loading" ? (
                   <div className="w-14 h-14 rounded-2xl bg-primary/5 flex items-center justify-center">
-                    <Loader2 size={24} className="text-primary/40 animate-spin" />
+                    <Loader2 className="text-primary/40 animate-spin" size={24} />
                   </div>
                 ) : (
                   <>
                     <MotionDiv
-                      initial={{ scale: 0 }} animate={{ scale: 1 }}
-                      transition={{ type: "spring", damping: 16, stiffness: 300, delay: 0.1 }}
-                      className={cn(
+                      animate={{ scale: 1 }} className={cn(
                         "w-14 h-14 rounded-2xl flex items-center justify-center border",
                         state === "success" ? "bg-emerald-50 border-emerald-100" : "bg-primary/5 border-primary/5",
                       )}
+                      initial={{ scale: 0 }}
+                      transition={{ type: "spring", damping: 16, stiffness: 300, delay: 0.1 }}
                     >
                       {state === "already"
-                        ? <Check size={24} className="text-primary/40" />
-                        : <Icon size={24} className={messages[state].color} />}
+                        ? <Check className="text-primary/40" size={24} />
+                        : <Icon className={messages[state].color} size={24} />}
                     </MotionDiv>
                     <div>
                       <p className={cn("font-black uppercase text-[11px] tracking-widest", messages[state].color)}>
@@ -402,18 +403,18 @@ export function DropWord({ word, tipo, entidadId, entidadNombre }: DropWordProps
                     </div>
                     {(state === "success" || state === "already") && (
                       <MotionDiv
-                        initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-                        className="flex items-center gap-2 px-3 py-1.5 bg-primary/5 rounded-full"
+                        animate={{ opacity: 1, y: 0 }} className="flex items-center gap-2 px-3 py-1.5 bg-primary/5 rounded-full" initial={{ opacity: 0, y: 4 }}
+                        transition={{ delay: 0.2 }}
                       >
-                        <Icon size={11} className="text-primary/50" />
+                        <Icon className="text-primary/50" size={11} />
                         <span className="text-[10px] font-black text-primary/60 uppercase tracking-widest">
                           {entidadNombre}
                         </span>
                       </MotionDiv>
                     )}
                     <button
-                      onClick={() => setOpen(false)}
                       className="text-[9px] font-black uppercase tracking-widest text-primary/25 hover:text-primary/50 transition-colors mt-1"
+                      onClick={() => setOpen(false)}
                     >
                       Cerrar
                     </button>
@@ -435,13 +436,13 @@ export function DropWord({ word, tipo, entidadId, entidadNombre }: DropWordProps
 export function ChoiceButton({ label, onSelect }: { label: string; onSelect: () => void }) {
   return (
     <MotionButton
+      className="flex items-center justify-between w-full my-3 p-4 rounded-[var(--radius-btn)] border border-primary/20 bg-primary/5 hover:bg-primary text-primary hover:text-white transition-all group"
       whileHover={{ scale: 1.01 }}
       whileTap={{ scale: 0.98 }}
       onClick={onSelect}
-      className="flex items-center justify-between w-full my-3 p-4 rounded-[var(--radius-btn)] border border-primary/20 bg-primary/5 hover:bg-primary text-primary hover:text-white transition-all group"
     >
       <span className="font-black uppercase text-xs tracking-widest">{label}</span>
-      <ChevronR size={16} className="opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+      <ChevronR className="opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" size={16} />
     </MotionButton>
   );
 }
@@ -511,8 +512,8 @@ export function UseWord({ word, itemId, targetSuccess, targetFail, onNavigate }:
 
   return (
     <button
-      onClick={handleUse}
       className="relative inline font-serif cursor-pointer group text-amber-600 hover:text-amber-700 font-bold transition-colors"
+      onClick={handleUse}
     >
       <span style={{ borderBottom: "2px dotted currentColor" }}>{word}</span>
     </button>

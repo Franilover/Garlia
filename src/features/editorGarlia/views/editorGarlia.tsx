@@ -1,21 +1,24 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { Plus, Loader2, Globe, WifiOff } from "lucide-react";
-import { supabase } from "@/lib/api/client/supabase";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
+
+import { WikilinkProvider } from "@/features/editorGarlia/components/WikilinkContext";
 import { db } from "@/lib/api/client/db";
+import { supabase } from "@/lib/api/client/supabase";
+
+import { EditorGrupoStandalone } from "./EditorGrupo";
+import { EditorHechizos }  from "./EditorHechizos";
+import { EditorMundo }     from "./EditorMundo";
+import { useMundoSecciones } from "../components/hooks";
+import { ModalAcontecimiento, ModalNuevoGrupo, type AllItems, type MagicAddKey } from "../components/SidebarComponents";
 import {
   TAB_CONFIG, MUNDO_SECTIONS,
   type TabKey, type MundoSectionKey,
   type Hechizo, type Don, type Runa, type Nota,
   type Personaje, type Criatura, type Item, type Reino,
 } from "../components/types";
-import { useMundoSecciones } from "../components/hooks";
-import { ModalAcontecimiento, ModalNuevoGrupo, type AllItems, type MagicAddKey } from "../components/SidebarComponents";
-import { EditorMundo }     from "./EditorMundo";
-import { EditorHechizos }  from "./EditorHechizos";
-import { EditorGrupoStandalone } from "./EditorGrupo";
-import { WikilinkProvider } from "@/features/editorGarlia/components/WikilinkContext";
+
 
 
 // ─── Helpers Dexie locales ────────────────────────────────────────────────────
@@ -388,7 +391,7 @@ export default function EditorEntidades() {
       setSelectedId(item.id);
       setRequestedGrupoId(null);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, []);
 
   const handleWikilinkNavigate = useCallback((target: string) => {
@@ -522,16 +525,16 @@ export default function EditorEntidades() {
           <WikilinkProvider onWikilink={handleWikilinkNavigate}>
           {isMundo ? (
             <EditorMundo
-              textos={mundoTextos}
-              onTextoChange={(section, value) => setMundoTextos(t => ({ ...t, [section]: value }))}
-              onSave={(section) => saveMundo(section, mundoTextos[section])}
               initialItemId={requestedItemId}
               openItem={openItem}
+              textos={mundoTextos}
               onItemCreated={onItemCreated}
               onOverlayChange={(active, clearFn) => {
                 setHasOverlay(active);
                 overlayCloseFnRef.current = clearFn;
               }}
+              onSave={(section) => saveMundo(section, mundoTextos[section])}
+              onTextoChange={(section, value) => setMundoTextos(t => ({ ...t, [section]: value }))}
             />
           ) : isGruposTab ? (
             <EditorGrupoStandalone
@@ -560,8 +563,8 @@ export default function EditorEntidades() {
           ) : isMagicTab ? (
             <EditorHechizos
               key={tab}
-              modo={tab as "hechizos" | "dones" | "runas"}
               initialSelectedId={selectedId ?? undefined}
+              modo={tab as "hechizos" | "dones" | "runas"}
               onSelectedIdChange={(id) => setSelectedId(id)}
             />
           ) : (

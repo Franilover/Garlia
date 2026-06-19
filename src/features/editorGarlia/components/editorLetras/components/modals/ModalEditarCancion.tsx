@@ -1,13 +1,15 @@
 "use client";
 
-import React, { useState } from "react";
 import { Pencil, X, Eye, EyeOff, Loader2, Check } from "lucide-react";
-import { supabase } from "@/lib/api/client/supabase";
+import React, { useState } from "react";
+
 import { ModalBase, CampoInput } from "@/components/layout/EstudioTemplates";
 import { SelectPersonaje, SelectIdioma } from "@/hooks/useEditorShared";
-import { InputConSugerencias } from "../InputConSugerencias";
+import { supabase } from "@/lib/api/client/supabase";
+
 import { ESTADOS } from "../../constants";
 import type { Cancion } from "../../types";
+import { InputConSugerencias } from "../InputConSugerencias";
 
 export const ModalEditarCancion = ({
   cancion,
@@ -85,26 +87,26 @@ export const ModalEditarCancion = ({
         <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50 italic flex items-center gap-2">
           <Pencil size={12} /> Editar Canción
         </h3>
-        <button type="button" onClick={onClose} className="text-primary/30 hover:text-primary transition-colors"><X size={16} /></button>
+        <button className="text-primary/30 hover:text-primary transition-colors" type="button" onClick={onClose}><X size={16} /></button>
       </div>
 
       <div className="space-y-4 mt-4">
-        <CampoInput label="Título *" value={titulo} onChange={setTitulo} placeholder="NOMBRE DE LA CANCIÓN…" autoFocus />
+        <CampoInput autoFocus label="Título *" placeholder="NOMBRE DE LA CANCIÓN…" value={titulo} onChange={setTitulo} />
         <SelectPersonaje value={personajeId ?? ""} onChange={v => setPersonajeId(v || null)} />
         <div className="grid grid-cols-2 gap-3">
-          <InputConSugerencias label="Cantante"   value={cantante}   onChange={setCantante}   placeholder="Cantante…"   tabla="canciones" columna="cantante" />
-          <InputConSugerencias label="Compositor" value={compositor} onChange={setCompositor} placeholder="Compositor…" tabla="canciones" columna="compositor" />
+          <InputConSugerencias columna="cantante"   label="Cantante"   placeholder="Cantante…"   tabla="canciones"   value={cantante} onChange={setCantante} />
+          <InputConSugerencias columna="compositor" label="Compositor" placeholder="Compositor…" tabla="canciones" value={compositor} onChange={setCompositor} />
         </div>
         <SelectIdioma value={idioma} onChange={setIdioma} />
 
         <div className="space-y-1.5">
           <label className="text-[9px] font-black uppercase text-primary/30 tracking-widest">Duración (mm:ss)</label>
           <input
+            className="w-full bg-primary/5 border border-primary/15 rounded-xl px-3 py-2 text-[11px] font-bold text-primary outline-none focus:border-primary/30 transition-colors placeholder:text-primary/20"
+            placeholder="3:42"
             type="text"
             value={duracionStr}
             onChange={e => setDuracionStr(e.target.value)}
-            placeholder="3:42"
-            className="w-full bg-primary/5 border border-primary/15 rounded-xl px-3 py-2 text-[11px] font-bold text-primary outline-none focus:border-primary/30 transition-colors placeholder:text-primary/20"
           />
           <p className="text-[8px] text-primary/25 font-bold uppercase tracking-widest">
             Usado para el slider del karaoke · formato min:seg
@@ -117,11 +119,11 @@ export const ModalEditarCancion = ({
             {ESTADOS.map(e => (
               <button
                 key={e}
-                type="button"
-                onClick={() => setEstado(e)}
                 className={`flex-1 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all ${
                   estado === e ? "bg-primary text-bg-main border-primary" : "border-primary/15 text-primary/40 hover:border-primary/30 hover:text-primary"
                 }`}
+                type="button"
+                onClick={() => setEstado(e)}
               >
                 {e === "EN PROCESO" ? "WIP" : e}
               </button>
@@ -132,13 +134,13 @@ export const ModalEditarCancion = ({
         <div className="space-y-1.5">
           <label className="text-[9px] font-black uppercase text-primary/30 tracking-widest">Visibilidad</label>
           <button
-            type="button"
-            onClick={() => setVisible(v => !v)}
             className={`w-full py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border flex items-center justify-center gap-2 transition-all ${
               visible
                 ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
                 : "border-primary/15 text-primary/40 hover:border-primary/30 hover:text-primary"
             }`}
+            type="button"
+            onClick={() => setVisible(v => !v)}
           >
             {visible ? <><Eye size={12} /> Visible para lectores</> : <><EyeOff size={12} /> Oculta</>}
           </button>
@@ -147,13 +149,13 @@ export const ModalEditarCancion = ({
         {error && <p className="text-[9px] font-black uppercase text-red-400 tracking-widest">⚠ {error}</p>}
 
         <button
-          type="button"
-          disabled={saving || !titulo.trim()}
-          onClick={handleSave}
           className="w-full bg-primary text-bg-main py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-40 flex items-center justify-center gap-2"
+          disabled={saving || !titulo.trim()}
+          type="button"
+          onClick={handleSave}
         >
           {saving
-            ? <><Loader2 size={13} className="animate-spin" />Guardando…</>
+            ? <><Loader2 className="animate-spin" size={13} />Guardando…</>
             : <><Check size={13} />Guardar Cambios</>
           }
         </button>

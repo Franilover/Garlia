@@ -1,7 +1,8 @@
 "use client";
-import React from "react";
-import { Loader2 } from "lucide-react";
 import { cva, type VariantProps } from "class-variance-authority";
+import { Loader2 } from "lucide-react";
+import React from "react";
+
 import { cn } from "@/lib/utils/index"; 
 
 const btnVariants = cva(
@@ -43,11 +44,11 @@ export function Btn({
   return (
     <button
       {...props}
-      disabled={disabled || loading}
       className={cn(btnVariants({ variant, size, fullWidth }), "rounded-[var(--radius-btn)]", className)}
+      disabled={disabled || loading}
     >
       {loading ? (
-        <Loader2 size={12} className="animate-spin" />
+        <Loader2 className="animate-spin" size={12} />
       ) : (
         <>
           {icon && <span className="shrink-0">{icon}</span>}
@@ -87,8 +88,8 @@ export function BtnIcon({
   return (
     <button
       {...props}
-      disabled={props.disabled || loading}
       className={cn(btnIconVariants({ variant, size }), className)}
+      disabled={props.disabled || loading}
     >
       {loading ? (
         <span className="w-4 h-4 border-[length:var(--border-width)] border-current border-t-transparent rounded-full animate-spin" />

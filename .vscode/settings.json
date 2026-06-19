@@ -1,7 +1,5 @@
 {
-  "deno.enablePaths": [
-    "supabase/functions"
-  ],
+  "deno.enablePaths": ["supabase/functions"],
   "deno.lint": true,
   "deno.unstable": [
     "bare-node-builtins",
@@ -18,7 +16,14 @@
     "http",
     "net"
   ],
+  "eslint.validate": ["javascript", "javascriptreact", "typescript", "typescriptreact"],
+  "eslint.useFlatConfig": true,
+  "eslint.format.enable": false,
+  "eslint.workingDirectories": [{ "mode": "auto" }],
   "[typescript]": {
-    "editor.defaultFormatter": "denoland.vscode-deno"
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
   }
 }

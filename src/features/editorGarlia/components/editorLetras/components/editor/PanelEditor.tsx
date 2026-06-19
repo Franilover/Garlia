@@ -1,23 +1,25 @@
 "use client";
 
-import React, { useState, useCallback, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Music, Info, Film, Loader2, RefreshCw, FileText,
   Eye, EyeOff, Columns2, Plus, Check, X, Layers,
   User, Globe, Mic2, PenLine, Settings
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import React, { useState, useCallback, useEffect } from "react";
+
 import { BannerOffline } from "@/components/layout/EstudioTemplates";
-import { useCancionEditor } from "../../hooks/useCancionEditor";
-import { secUpdate, secCreate, secDelete, secReorder } from "../../lib/seccionesDb";
-import { IDIOMAS, ESTADO_COLOR } from "../../constants";
+
 import { IdiomaTab } from "./IdiomaTab";
 import { SeccionEditor } from "./SeccionEditor";
-import { ModalLectorLetras } from "../modals/ModalLectorLetras";
-import { PanelLinks } from "../panels/PanelLinks";
-import { PanelInfo } from "../panels/PanelInfo";
-import { PanelGuionMV } from "../panels/PanelGuionMV";
+import { IDIOMAS, ESTADO_COLOR } from "../../constants";
+import { useCancionEditor } from "../../hooks/useCancionEditor";
+import { secUpdate, secCreate, secDelete, secReorder } from "../../lib/seccionesDb";
 import type { Seccion, IdiomaKey, EditorTab } from "../../types";
+import { ModalLectorLetras } from "../modals/ModalLectorLetras";
+import { PanelGuionMV } from "../panels/PanelGuionMV";
+import { PanelInfo } from "../panels/PanelInfo";
+import { PanelLinks } from "../panels/PanelLinks";
 
 export const PanelEditor = ({ cancionId }: { cancionId: string }) => {
   const { cancion, setCancion, loading, isOffline: editorOffline, reload } = useCancionEditor(cancionId);
@@ -133,12 +135,12 @@ export const PanelEditor = ({ cancionId }: { cancionId: string }) => {
       {/* Modal lector / karaoke */}
       {showLector && (
         <ModalLectorLetras
-          isOpen={showLector}
-          onClose={() => setShowLector(false)}
-          secciones={secciones}
-          cancionTitulo={cancion.titulo}
           cancionId={cancionId}
+          cancionTitulo={cancion.titulo}
           duracion={cancion.duracion_segundos}
+          isOpen={showLector}
+          secciones={secciones}
+          onClose={() => setShowLector(false)}
           onSeccionTimingsChange={(seccionId, col, timings) => {
             const idiomaKey   = col.replace("timings_", "") as IdiomaKey;
             const timingField = `timings_${idiomaKey}` as keyof Seccion;
@@ -180,12 +182,12 @@ export const PanelEditor = ({ cancionId }: { cancionId: string }) => {
             {TABS.map(tab => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-[0.15em] transition-all ${
                   activeTab === tab.id
                     ? "bg-primary text-bg-main shadow-sm"
                     : "text-primary/40 hover:text-primary"
                 }`}
+                onClick={() => setActiveTab(tab.id)}
               >
                 {tab.icon} {tab.label}
               </button>
@@ -199,13 +201,13 @@ export const PanelEditor = ({ cancionId }: { cancionId: string }) => {
               <span className="text-[8px] font-bold text-primary/20 uppercase tracking-tighter">Completado</span>
             </div>
             <button
-              onClick={() => setShowLector(true)}
               className="p-2 rounded-lg bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white transition-all"
               title="Karaoke"
+              onClick={() => setShowLector(true)}
             >
               <FileText size={16} />
             </button>
-            <button onClick={reload as any} className="p-2 rounded-lg hover:bg-primary/5 text-primary/30">
+            <button className="p-2 rounded-lg hover:bg-primary/5 text-primary/30" onClick={reload as any}>
               <RefreshCw size={14} />
             </button>
           </div>
@@ -216,19 +218,19 @@ export const PanelEditor = ({ cancionId }: { cancionId: string }) => {
           <div className="px-4 sm:px-6 py-2 border-t border-primary/5 bg-primary/[0.01] flex items-center justify-between overflow-x-auto no-scrollbar">
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-1 bg-bg-main border border-primary/10 p-0.5 rounded-lg shrink-0">
-                <IdiomaTab value={idiomaA} onChange={changeIdiomaA} exclude={splitMode ? idiomaB : undefined} />
+                <IdiomaTab exclude={splitMode ? idiomaB : undefined} value={idiomaA} onChange={changeIdiomaA} />
                 {splitMode && (
                   <>
                     <div className="w-[1px] h-3 bg-primary/10 mx-1" />
-                    <IdiomaTab value={idiomaB} onChange={changeIdiomaB} exclude={idiomaA} />
+                    <IdiomaTab exclude={idiomaA} value={idiomaB} onChange={changeIdiomaB} />
                   </>
                 )}
               </div>
               <button
-                onClick={() => setSplitMode(m => !m)}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase border transition-all shrink-0 ${
                   splitMode ? "bg-primary text-bg-main border-primary shadow-lg shadow-primary/20" : "border-primary/10 text-primary/40 hover:border-primary/30"
                 }`}
+                onClick={() => setSplitMode(m => !m)}
               >
                 <Columns2 size={12} />
                 <span className="hidden sm:inline">{splitMode ? "Simple" : "Split View"}</span>
@@ -240,10 +242,10 @@ export const PanelEditor = ({ cancionId }: { cancionId: string }) => {
                 {(["silabas", "vocales"] as const).map(m => (
                   <button
                     key={m}
-                    onClick={() => setCountMode(m)}
                     className={`px-2 py-1 rounded-md text-[8px] font-black uppercase transition-all ${
                       countMode === m ? "bg-primary text-bg-main" : "text-primary/30 hover:text-primary/60"
                     }`}
+                    onClick={() => setCountMode(m)}
                   >
                     {m === "silabas" ? "Síl" : "Voc"}
                   </button>
@@ -261,10 +263,10 @@ export const PanelEditor = ({ cancionId }: { cancionId: string }) => {
           {TABS.map(tab => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
               className={`flex-1 flex flex-col items-center py-2 gap-1 rounded-lg transition-all ${
                 activeTab === tab.id ? "text-primary bg-primary/5" : "text-primary/30"
               }`}
+              onClick={() => setActiveTab(tab.id)}
             >
               {tab.icon}
               <span className="text-[8px] font-black uppercase tracking-widest">{tab.label}</span>
@@ -282,19 +284,19 @@ export const PanelEditor = ({ cancionId }: { cancionId: string }) => {
                 {secciones.map((sec, i) => (
                   <SeccionEditor
                     key={sec.id}
-                    sec={sec}
+                    countMode={countMode}
                     idiomaA={idiomaA}
                     idiomaB={idiomaB}
-                    splitMode={splitMode}
-                    countMode={countMode}
-                    onSaveField={handleSaveField}
-                    onSaveNombre={handleSaveNombre}
-                    onDelete={handleDelete}
-                    onDuplicate={handleDuplicate}
-                    onMoveUp={() => handleMove(i, "up")}
-                    onMoveDown={() => handleMove(i, "down")}
                     isFirst={i === 0}
                     isLast={i === secciones.length - 1}
+                    sec={sec}
+                    splitMode={splitMode}
+                    onDelete={handleDelete}
+                    onDuplicate={handleDuplicate}
+                    onMoveDown={() => handleMove(i, "down")}
+                    onMoveUp={() => handleMove(i, "up")}
+                    onSaveField={handleSaveField}
+                    onSaveNombre={handleSaveNombre}
                   />
                 ))}
               </div>
@@ -306,26 +308,26 @@ export const PanelEditor = ({ cancionId }: { cancionId: string }) => {
             )}
 
             {addingOpen ? (
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex gap-2">
+              <motion.div animate={{ opacity: 1, y: 0 }} className="flex gap-2" initial={{ opacity: 0, y: 10 }}>
                 <input
                   autoFocus
+                  className="flex-1 bg-bg-main border border-primary/20 rounded-xl px-4 py-3 text-xs font-black uppercase text-primary outline-none focus:border-primary/50 tracking-widest"
+                  placeholder="NOMBRE DE LA SECCIÓN..."
                   value={addingName}
                   onChange={e => setAddingName(e.target.value)}
                   onKeyDown={e => { if (e.key === "Enter") handleAdd(); if (e.key === "Escape") setAddingOpen(false); }}
-                  className="flex-1 bg-bg-main border border-primary/20 rounded-xl px-4 py-3 text-xs font-black uppercase text-primary outline-none focus:border-primary/50 tracking-widest"
-                  placeholder="NOMBRE DE LA SECCIÓN..."
                 />
-                <button onClick={handleAdd} className="bg-primary text-bg-main px-6 rounded-xl font-black transition-transform active:scale-95">
+                <button className="bg-primary text-bg-main px-6 rounded-xl font-black transition-transform active:scale-95" onClick={handleAdd}>
                   <Check size={18} />
                 </button>
-                <button onClick={() => setAddingOpen(false)} className="p-4 rounded-xl border border-primary/10 text-primary/30 hover:text-primary transition-all">
+                <button className="p-4 rounded-xl border border-primary/10 text-primary/30 hover:text-primary transition-all" onClick={() => setAddingOpen(false)}>
                   <X size={18} />
                 </button>
               </motion.div>
             ) : (
               <button
-                onClick={() => setAddingOpen(true)}
                 className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl border border-dashed border-primary/10 text-[10px] font-black uppercase text-primary/30 hover:text-primary hover:border-primary/30 hover:bg-primary/5 transition-all tracking-[0.3em]"
+                onClick={() => setAddingOpen(true)}
               >
                 <Plus size={14} /> Añadir Sección
               </button>
@@ -339,8 +341,8 @@ export const PanelEditor = ({ cancionId }: { cancionId: string }) => {
         {/* Tab: Info */}
         {activeTab === "info" && (
           <PanelInfo
-            cancionId={cancionId}
             cancion={cancion}
+            cancionId={cancionId}
             onCancionUpdate={(updates) =>
               setCancion(prev => prev ? { ...prev, ...updates } : prev)
             }
@@ -349,7 +351,7 @@ export const PanelEditor = ({ cancionId }: { cancionId: string }) => {
 
         {activeTab === "guion" && (
           <div className="max-w-6xl mx-auto py-6 px-4">
-            <PanelGuionMV cancionId={cancionId} secciones={secciones} idiomaActivo={idiomaA} guionInicial={cancion.guion_mv} onGuionChange={(g) => setCancion(prev => prev ? { ...prev, guion_mv: g } : prev)} />
+            <PanelGuionMV cancionId={cancionId} guionInicial={cancion.guion_mv} idiomaActivo={idiomaA} secciones={secciones} onGuionChange={(g) => setCancion(prev => prev ? { ...prev, guion_mv: g } : prev)} />
           </div>
         )}
       </main>

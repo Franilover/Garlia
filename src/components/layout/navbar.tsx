@@ -1,19 +1,20 @@
 "use client";
-import { MotionDiv } from "@/components/ui/Motion";
-import React, { useState, useEffect } from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { AnimatePresence } from "framer-motion";
-import { useAuth } from "@/providers/AuthProvider";
-import { supabase } from "@/lib/api/client/supabase";
-import { useTheme, ThemeSelector } from "@/providers/ThemeProvider";
 import {
   LogOut, CircleUser, Flower2,
   PenTool, Moon, Sun, Star, Palette,
   Compass, BookText, Music,
   ChevronRight, Cat, Search,
 } from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import React, { useState, useEffect } from "react";
+
 import { useCommandPalette } from "@/components/command";
+import { MotionDiv } from "@/components/ui/Motion";
+import { supabase } from "@/lib/api/client/supabase";
+import { useAuth } from "@/providers/AuthProvider";
+import { useTheme, ThemeSelector } from "@/providers/ThemeProvider";
 
 // ── Shared types ─────────────────────────────────────────────────────────────
 
@@ -104,13 +105,13 @@ function SideSubItem({ href, label, icon: Icon, active, onClick }: {
 }) {
   return (
     <Link
-      href={href} onClick={onClick}
-      className="flex items-center gap-3 px-3 py-2 text-[10px] font-black uppercase tracking-widest transition-all"
+      className="flex items-center gap-3 px-3 py-2 text-[10px] font-black uppercase tracking-widest transition-all" href={href}
       style={{
         borderRadius: "var(--radius-btn)",
         background: active ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "transparent",
         color: active ? "var(--primary)" : "color-mix(in srgb, var(--primary) 60%, transparent)",
       }}
+      onClick={onClick}
       onMouseEnter={(e) => {
         const el = e.currentTarget as HTMLElement;
         el.style.background = "color-mix(in srgb, var(--primary) 6%, transparent)";
@@ -148,8 +149,7 @@ function SideNavItem({ href, label, icon: Icon, active, fillActive = false, subL
       onMouseLeave={() => setOpen(false)}
     >
       <Link
-        href={href} onClick={onClose}
-        className="flex items-center gap-3 transition-all duration-200 overflow-hidden"
+        className="flex items-center gap-3 transition-all duration-200 overflow-hidden" href={href}
         style={{
           ...navItemBase,
           paddingRight: "8px",
@@ -159,6 +159,7 @@ function SideNavItem({ href, label, icon: Icon, active, fillActive = false, subL
             ? "var(--border-width) solid var(--primary)"
             : "var(--border-width) solid transparent",
         }}
+        onClick={onClose}
         onMouseEnter={(e) => hoverIn(e, active)}
         onMouseLeave={(e) => hoverOut(e, active)}
       >
@@ -166,7 +167,7 @@ function SideNavItem({ href, label, icon: Icon, active, fillActive = false, subL
           <span className="absolute left-[3px]" style={{ width: "3px", height: "20px", borderRadius: "0 2px 2px 0", background: "var(--primary)" }} />
         )}
         <span className="shrink-0 flex items-center justify-center" style={{ width: "22px" }}>
-          <Icon size={15} fill={active && fillActive ? "currentColor" : "none"} strokeWidth={active ? 2.5 : 2} />
+          <Icon fill={active && fillActive ? "currentColor" : "none"} size={15} strokeWidth={active ? 2.5 : 2} />
         </span>
         {hasSublinks && (
           <ChevronRight size={12} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)", flexShrink: 0 }} />
@@ -176,11 +177,11 @@ function SideNavItem({ href, label, icon: Icon, active, fillActive = false, subL
       <AnimatePresence>
         {open && hasSublinks && (
           <MotionDiv
-            variants={flyoutVariants} initial="hidden" animate="visible" exit="exit"
-            transition={{ duration: 0.15 }}
-            onClick={(e) => e.stopPropagation()}
-            className="absolute top-0 left-full ml-2 z-[1010] p-2 w-44"
+            animate="visible" className="absolute top-0 left-full ml-2 z-[1010] p-2 w-44" exit="exit" initial="hidden"
             style={submenuSurface}
+            transition={{ duration: 0.15 }}
+            variants={flyoutVariants}
+            onClick={(e) => e.stopPropagation()}
           >
             <p className="text-[8px] font-black uppercase tracking-widest px-2 pb-1.5"
               style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
@@ -188,8 +189,8 @@ function SideNavItem({ href, label, icon: Icon, active, fillActive = false, subL
             </p>
             {subLinks!.map(({ href: sub, label: subLabel, icon: SubIcon }) => (
               <SideSubItem
-                key={sub} href={sub} label={subLabel} icon={SubIcon}
-                active={!!currentPath?.includes(sub.split("?")[0])}
+                key={sub} active={!!currentPath?.includes(sub.split("?")[0])} href={sub} icon={SubIcon}
+                label={subLabel}
                 onClick={() => { setOpen(false); onClose(); }}
               />
             ))}
@@ -206,14 +207,14 @@ function MobileSubItem({ href, label, icon: Icon, active, onClose }: {
 }) {
   return (
     <Link
-      href={href}
-      onClick={() => setTimeout(onClose, 150)}
       className="flex items-center gap-2.5 px-3 py-2 text-[10px] font-black uppercase tracking-widest transition-all"
+      href={href}
       style={{
         borderRadius: "var(--radius-btn)",
         background: active ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "transparent",
         color: active ? "var(--primary)" : "color-mix(in srgb, var(--primary) 60%, transparent)",
       }}
+      onClick={() => setTimeout(onClose, 150)}
     >
       <SubItemLabel active={active} icon={Icon} label={label} />
     </Link>
@@ -250,11 +251,11 @@ function MobileNavItem({ href, label, icon: Icon, active, fillActive = false, su
 
   if (!hasSublinks) {
     return (
-      <Link href={href} onClick={onClose}
-        className="flex items-center justify-center transition-all"
+      <Link className="flex items-center justify-center transition-all" href={href}
         style={{ ...btnStyle(active, false), width: 36, height: 36 }}
+        onClick={onClose}
       >
-        <Icon size={16} fill={active && fillActive ? "currentColor" : "none"} strokeWidth={active ? 2.5 : 2} />
+        <Icon fill={active && fillActive ? "currentColor" : "none"} size={16} strokeWidth={active ? 2.5 : 2} />
       </Link>
     );
   }
@@ -262,23 +263,23 @@ function MobileNavItem({ href, label, icon: Icon, active, fillActive = false, su
   return (
     <div className="relative flex items-stretch">
       <button
-        onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggle(); }}
         className="flex items-center justify-center transition-all"
         style={{ ...btnStyle(active, isOpen), width: 36, height: 36 }}
+        onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggle(); }}
       >
-        <Icon size={16} fill={active && fillActive ? "currentColor" : "none"} strokeWidth={active ? 2.5 : 2} />
+        <Icon fill={active && fillActive ? "currentColor" : "none"} size={16} strokeWidth={active ? 2.5 : 2} />
       </button>
 
       <AnimatePresence>
         {isOpen && (
           <MotionDiv
-            initial={{ opacity: 0, y: 8, scale: 0.97, x: "-50%" }}
             animate={{ opacity: 1, y: 0, scale: 1,    x: "-50%" }}
+            className="absolute bottom-full mb-2 left-1/2 z-[2000] p-2 w-44 origin-bottom"
             exit={{ opacity: 0, y: 8, scale: 0.97,    x: "-50%" }}
+            initial={{ opacity: 0, y: 8, scale: 0.97, x: "-50%" }}
+            style={submenuSurface}
             transition={{ type: "spring", stiffness: 420, damping: 34 }}
             onClick={(e) => e.stopPropagation()}
-            className="absolute bottom-full mb-2 left-1/2 z-[2000] p-2 w-44 origin-bottom"
-            style={submenuSurface}
           >
             <p className="text-[8px] font-black uppercase tracking-widest px-2 pb-1.5"
               style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
@@ -286,8 +287,8 @@ function MobileNavItem({ href, label, icon: Icon, active, fillActive = false, su
             </p>
             {subLinks!.map(({ href: sub, label: subLabel, icon: SubIcon }) => (
               <MobileSubItem
-                key={sub} href={sub} label={subLabel} icon={SubIcon}
-                active={!!currentPath?.includes(sub.split("?")[0])}
+                key={sub} active={!!currentPath?.includes(sub.split("?")[0])} href={sub} icon={SubIcon}
+                label={subLabel}
                 onClose={onClose}
               />
             ))}
@@ -381,22 +382,22 @@ const Navbar = () => {
 
         <nav className="flex flex-col gap-1 px-2 pt-3 flex-1">
           {personalLinks.map(({ href, label, icon, active, fillActive }) => (
-            <SideNavItem key={href} href={href} label={label} icon={icon}
-              active={active} fillActive={fillActive} onClose={closeAll} />
+            <SideNavItem key={href} active={active} fillActive={fillActive} href={href}
+              icon={icon} label={label} onClose={closeAll} />
           ))}
           <NavDivider />
           {garliaLinks.map(({ href, label, icon, active, fillActive }) => (
-            <SideNavItem key={href} href={href} label={label} icon={icon}
-              active={active} fillActive={fillActive} onClose={closeAll} />
+            <SideNavItem key={href} active={active} fillActive={fillActive} href={href}
+              icon={icon} label={label} onClose={closeAll} />
           ))}
           {isAdmin && (
             <>
               <NavDivider />
-              <SideNavItem href="/myself/escritorio" label="Escritorio" icon={PenTool}
-                active={isEscritorio} onClose={closeAll} />
+              <SideNavItem active={isEscritorio} href="/myself/escritorio" icon={PenTool}
+                label="Escritorio" onClose={closeAll} />
               {franiLinks.map(({ href, label, icon, active }) => (
-                <SideNavItem key={href} href={href} label={label} icon={icon}
-                  active={active} onClose={closeAll} />
+                <SideNavItem key={href} active={active} href={href} icon={icon}
+                  label={label} onClose={closeAll} />
               ))}
             </>
           )}
@@ -408,13 +409,13 @@ const Navbar = () => {
           {/* Theme button */}
           <div className="relative">
             <button
-              onClick={() => setThemeMenuOpen(!themeMenuOpen)}
               className="flex items-center gap-3 transition-all duration-200 overflow-hidden w-full"
               style={{
                 ...navItemBase,
                 background: themeMenuOpen ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent",
                 color: themeMenuOpen ? "var(--primary)" : "color-mix(in srgb, var(--primary) 40%, transparent)",
               }}
+              onClick={() => setThemeMenuOpen(!themeMenuOpen)}
               onMouseEnter={(e) => hoverIn(e, themeMenuOpen)}
               onMouseLeave={(e) => hoverOut(e, themeMenuOpen)}
             >
@@ -424,16 +425,16 @@ const Navbar = () => {
             <AnimatePresence>
               {themeMenuOpen && (
                 <MotionDiv
-                  initial={{ opacity: 0, x: -8, scale: 0.97 }} animate={{ opacity: 1, x: 0, scale: 1 }}
-                  exit={{ opacity: 0, x: -8, scale: 0.97 }} transition={{ duration: 0.15 }}
-                  onClick={(e) => e.stopPropagation()}
-                  className="absolute left-full ml-2 w-56 z-[1001] overflow-hidden"
+                  animate={{ opacity: 1, x: 0, scale: 1 }} className="absolute left-full ml-2 w-56 z-[1001] overflow-hidden"
+                  exit={{ opacity: 0, x: -8, scale: 0.97 }} initial={{ opacity: 0, x: -8, scale: 0.97 }}
                   style={{ ...submenuSurface, bottom: "0", top: "auto" }}
+                  transition={{ duration: 0.15 }}
+                  onClick={(e) => e.stopPropagation()}
                 >
                   <button
-                    onClick={toggleDark}
                     className="flex items-center gap-2.5 w-full px-4 py-3 transition-all"
                     style={{ color: "color-mix(in srgb, var(--primary) 60%, transparent)", borderBottom: "var(--border-width) solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
+                    onClick={toggleDark}
                     onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 5%, transparent)"; (e.currentTarget as HTMLElement).style.color = "var(--primary)"; }}
                     onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "transparent"; (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--primary) 60%, transparent)"; }}
                   >
@@ -449,21 +450,21 @@ const Navbar = () => {
           {/* Auth buttons */}
           {user ? (
             <div className="flex flex-col gap-1">
-              <Link href="/garlia/personal" title="Mi Personaje" onClick={closeAll}
-                className="flex items-center gap-3 transition-all duration-200 overflow-hidden w-full"
-                style={{
+              <Link className="flex items-center gap-3 transition-all duration-200 overflow-hidden w-full" href="/garlia/personal" style={{
                   ...navItemBase,
                   color: personalIsActive ? "var(--primary)" : "color-mix(in srgb, var(--primary) 50%, transparent)",
                   background: personalIsActive ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent",
                 }}
+                title="Mi Personaje"
+                onClick={closeAll}
                 onMouseEnter={(e) => hoverIn(e, personalIsActive)}
                 onMouseLeave={(e) => hoverOut(e, personalIsActive)}
               >
                 <span className="shrink-0 flex items-center justify-center" style={{ width: "22px" }}><CircleUser size={15} /></span>
               </Link>
-              <button onClick={handleLogout} title="Salir"
-                className="flex items-center gap-3 transition-all duration-200 overflow-hidden w-full"
-                style={{ ...navItemBase, color: "oklch(0.6 0.2 25)" }}
+              <button className="flex items-center gap-3 transition-all duration-200 overflow-hidden w-full" style={{ ...navItemBase, color: "oklch(0.6 0.2 25)" }}
+                title="Salir"
+                onClick={handleLogout}
                 onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "oklch(0.97 0.01 25)"; }}
                 onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
               >
@@ -471,8 +472,8 @@ const Navbar = () => {
               </button>
             </div>
           ) : (
-            <Link href="/auth/login"
-              className="flex items-center gap-3 transition-all duration-200 overflow-hidden"
+            <Link className="flex items-center gap-3 transition-all duration-200 overflow-hidden"
+              href="/auth/login"
               style={{ ...navItemBase, color: "color-mix(in srgb, var(--primary) 50%, transparent)" }}
               onMouseEnter={(e) => hoverIn(e, false)}
               onMouseLeave={(e) => hoverOut(e, false)}
@@ -488,13 +489,13 @@ const Navbar = () => {
         <AnimatePresence>
           {themeMenuOpen && (
             <>
-              <MotionDiv initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[90]" onClick={closeAll} />
+              <MotionDiv animate={{ opacity: 1 }} className="fixed inset-0 z-[90]" exit={{ opacity: 0 }} initial={{ opacity: 0 }} onClick={closeAll} />
               <MotionDiv
-                initial={{ opacity: 0, y: 12, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 12, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }} className="absolute bottom-full left-4 mb-2 w-56 overflow-hidden z-[2000]" exit={{ opacity: 0, y: 12, scale: 0.97 }}
+                initial={{ opacity: 0, y: 12, scale: 0.97 }}
+                style={submenuSurface}
                 transition={{ type: "spring", stiffness: 420, damping: 34 }}
                 onClick={(e) => e.stopPropagation()}
-                className="absolute bottom-full left-4 mb-2 w-56 overflow-hidden z-[2000]"
-                style={submenuSurface}
               >
                 <ThemeSelector />
               </MotionDiv>
@@ -504,7 +505,7 @@ const Navbar = () => {
 
         <AnimatePresence>
           {mobileOpenMenu && (
-            <MotionDiv initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[90]" onClick={closeAll} />
+            <MotionDiv animate={{ opacity: 1 }} className="fixed inset-0 z-[90]" exit={{ opacity: 0 }} initial={{ opacity: 0 }} onClick={closeAll} />
           )}
         </AnimatePresence>
 
@@ -519,23 +520,23 @@ const Navbar = () => {
           {/* Theme toggle + Search */}
           <div className="flex items-center gap-1 z-[101]">
             <button
-              onClick={() => { setThemeMenuOpen(!themeMenuOpen); setMobileOpenMenu(null); }}
               className="flex items-center justify-center transition-all"
               style={{
                 width: 34, height: 34, borderRadius: "var(--radius-btn)",
                 background: themeMenuOpen ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent",
                 color: themeMenuOpen ? "var(--primary)" : "color-mix(in srgb, var(--primary) 40%, transparent)",
               }}
+              onClick={() => { setThemeMenuOpen(!themeMenuOpen); setMobileOpenMenu(null); }}
             >
               <Palette size={16} />
             </button>
             <button
-              onClick={() => { openPalette(true); closeAll(); }}
               className="flex items-center justify-center transition-all"
               style={{
                 width: 34, height: 34, borderRadius: "var(--radius-btn)",
                 color: "color-mix(in srgb, var(--primary) 40%, transparent)",
               }}
+              onClick={() => { openPalette(true); closeAll(); }}
               onMouseEnter={(e) => {
                 (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 10%, transparent)";
                 (e.currentTarget as HTMLElement).style.color = "var(--primary)";
@@ -561,17 +562,16 @@ const Navbar = () => {
               <>
                 {mainLinks.map(({ href, label, icon, active, fillActive }) => (
                   <MobileNavItem
-                    key={href} href={href} label={label} icon={icon}
-                    active={active} fillActive={fillActive}
-                    isOpen={mobileOpenMenu === href}
-                    onToggle={() => mobileToggle(href)}
+                    key={href} active={active} fillActive={fillActive} href={href}
+                    icon={icon} isOpen={mobileOpenMenu === href}
+                    label={label}
                     onClose={closeAll}
+                    onToggle={() => mobileToggle(href)}
                   />
                 ))}
                 <NavVerticalDivider />
                 <Link
-                  href="/myself/escritorio" onClick={closeAll}
-                  className="flex items-center justify-center transition-all"
+                  className="flex items-center justify-center transition-all" href="/myself/escritorio"
                   style={{
                     borderRadius: "var(--radius-btn)",
                     border: useOutline && isEscritorio ? "var(--border-width) solid var(--primary)" : "var(--border-width) solid transparent",
@@ -579,16 +579,17 @@ const Navbar = () => {
                     color: isEscritorio ? "var(--primary)" : "color-mix(in srgb, var(--primary) 40%, transparent)",
                     width: 36, height: 36, touchAction: "manipulation",
                   }}
+                  onClick={closeAll}
                 >
                   <PenTool size={16} strokeWidth={isEscritorio ? 2.5 : 2} />
                 </Link>
                 {franiLinks.map(({ href, label, icon, active }) => (
                   <MobileNavItem
-                    key={href} href={href} label={label} icon={icon}
-                    active={active}
+                    key={href} active={active} href={href} icon={icon}
                     isOpen={mobileOpenMenu === href}
-                    onToggle={() => mobileToggle(href)}
+                    label={label}
                     onClose={closeAll}
+                    onToggle={() => mobileToggle(href)}
                   />
                 ))}
               </>
@@ -596,21 +597,21 @@ const Navbar = () => {
               <>
                 {personalLinks.map(({ href, label, icon, active, fillActive }) => (
                   <MobileNavItem
-                    key={href} href={href} label={label} icon={icon}
-                    active={active} fillActive={fillActive}
-                    isOpen={mobileOpenMenu === href}
-                    onToggle={() => mobileToggle(href)}
+                    key={href} active={active} fillActive={fillActive} href={href}
+                    icon={icon} isOpen={mobileOpenMenu === href}
+                    label={label}
                     onClose={closeAll}
+                    onToggle={() => mobileToggle(href)}
                   />
                 ))}
                 <NavVerticalDivider />
                 {garliaLinks.map(({ href, label, icon, active, fillActive }) => (
                   <MobileNavItem
-                    key={href} href={href} label={label} icon={icon}
-                    active={active} fillActive={fillActive}
-                    isOpen={mobileOpenMenu === href}
-                    onToggle={() => mobileToggle(href)}
+                    key={href} active={active} fillActive={fillActive} href={href}
+                    icon={icon} isOpen={mobileOpenMenu === href}
+                    label={label}
                     onClose={closeAll}
+                    onToggle={() => mobileToggle(href)}
                   />
                 ))}
               </>
@@ -621,26 +622,26 @@ const Navbar = () => {
           <div className="flex items-center gap-1 z-[101]">
             {user ? (
               <>
-                <Link href="/garlia/personal" onClick={closeAll}
-                  className="flex items-center justify-center transition-all"
+                <Link className="flex items-center justify-center transition-all" href="/garlia/personal"
                   style={{
                     width: 34, height: 34, borderRadius: "var(--radius-btn)",
                     background: personalIsActive ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent",
                     color: personalIsActive ? "var(--primary)" : "color-mix(in srgb, var(--primary) 40%, transparent)",
                   }}
+                  onClick={closeAll}
                 >
                   <CircleUser size={16} />
                 </Link>
-                <button onClick={handleLogout}
-                  className="flex items-center justify-center transition-all"
+                <button className="flex items-center justify-center transition-all"
                   style={{ width: 34, height: 34, borderRadius: "var(--radius-btn)", color: "oklch(0.6 0.2 25)" }}
+                  onClick={handleLogout}
                 >
                   <LogOut size={16} />
                 </button>
               </>
             ) : (
-              <Link href="/auth/login"
-                className="flex items-center justify-center transition-all"
+              <Link className="flex items-center justify-center transition-all"
+                href="/auth/login"
                 style={{ width: 34, height: 34, borderRadius: "var(--radius-btn)", color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
               >
                 <CircleUser size={16} />

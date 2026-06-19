@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useEffect, useRef, useState, useCallback } from "react";
-import { X, Loader2, GitFork, UserCircle2 } from "lucide-react";
 import * as d3 from "d3";
+import { X, Loader2, GitFork, UserCircle2 } from "lucide-react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
+
 import { supabase } from "@/lib/api/client/supabase";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
@@ -364,9 +365,9 @@ function GrafoD3({
   return (
     <svg
       ref={svgRef}
-      width={width}
-      height={height}
       className="w-full h-full"
+      height={height}
+      width={width}
     />
   );
 }
@@ -410,9 +411,9 @@ export function GrafoRelaciones({
     <>
       {/* Botón en el header de BloqueRelaciones */}
       <button
-        onClick={abrir}
-        title="Ver árbol de relaciones"
         className="w-5 h-5 flex items-center justify-center rounded text-primary/25 hover:text-primary hover:bg-primary/8 transition-all border border-transparent hover:border-primary/15"
+        title="Ver árbol de relaciones"
+        onClick={abrir}
       >
         <GitFork size={8} />
       </button>
@@ -431,7 +432,7 @@ export function GrafoRelaciones({
             {/* Header */}
             <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-primary/[0.06] bg-primary/[0.03]">
               <div className="flex items-center gap-2">
-                <GitFork size={11} className="text-primary/40" />
+                <GitFork className="text-primary/40" size={11} />
                 <span className="text-[9px] font-black uppercase tracking-widest text-primary/50">
                   Red de relaciones
                 </span>
@@ -440,8 +441,8 @@ export function GrafoRelaciones({
                 )}
               </div>
               <button
-                onClick={() => setAbierto(false)}
                 className="w-6 h-6 flex items-center justify-center rounded-lg text-primary/30 hover:text-primary hover:bg-primary/10 transition-all"
+                onClick={() => setAbierto(false)}
               >
                 <X size={12} />
               </button>
@@ -466,21 +467,21 @@ export function GrafoRelaciones({
             <div ref={contenedorRef} className="flex-1 min-h-0 overflow-hidden">
               {loading ? (
                 <div className="flex items-center justify-center h-full">
-                  <Loader2 size={18} className="animate-spin text-primary/20" />
+                  <Loader2 className="animate-spin text-primary/20" size={18} />
                 </div>
               ) : !datos || datos.nodos.length <= 1 ? (
                 <div className="flex flex-col items-center justify-center h-full gap-2">
-                  <UserCircle2 size={28} className="text-primary/15" />
+                  <UserCircle2 className="text-primary/15" size={28} />
                   <p className="text-[9px] font-bold text-primary/20 uppercase tracking-widest italic">
                     Sin relaciones para mostrar
                   </p>
                 </div>
               ) : (
                 <GrafoD3
-                  datos={datos}
                   centroId={personajeId}
-                  width={size.w}
+                  datos={datos}
                   height={size.h}
+                  width={size.w}
                 />
               )}
             </div>

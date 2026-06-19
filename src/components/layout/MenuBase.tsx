@@ -1,9 +1,10 @@
 "use client";
+import type { LucideProps } from "lucide-react";
 import React, { useEffect, useState } from "react";
+
+import { MenuCard } from "@/components/layout/MenuCard";
 import { MotionDiv } from '@/components/ui/Motion';
 import { supabase } from "@/lib/api/client/supabase";
-import { MenuCard } from "@/components/layout/MenuCard";
-import type { LucideProps } from "lucide-react";
 
 export interface MenuBaseItem {
   href: string;
@@ -52,9 +53,9 @@ export default function MenuBase({ titulo, items }: MenuBaseProps) {
       style={{ height: "calc(100svh - 64px)" }}
     >
       <MotionDiv
-        initial={{ opacity: 0, y: -30 }}
         animate={{ opacity: 1, y: 0 }}
         className="text-center shrink-0 md:pt-10"
+        initial={{ opacity: 0, y: -30 }}
       >
         <h1 className="text-5xl md:text-7xl lg:text-8xl font-black uppercase tracking-tighter text-primary italic">
           {titulo}
@@ -66,11 +67,11 @@ export default function MenuBase({ titulo, items }: MenuBaseProps) {
         {items.map(({ href, title, icon, pageKey, delay = 0 }) => (
           <MenuCard
             key={href}
-            href={href}
-            title={title}
-            icon={icon}
             delay={delay}
             hasNewContent={notifications[pageKey]}
+            href={href}
+            icon={icon}
+            title={title}
             onClick={() => handleVisit(pageKey)}
           />
         ))}
@@ -81,13 +82,13 @@ export default function MenuBase({ titulo, items }: MenuBaseProps) {
         {items.map(({ href, title, icon, pageKey, delay = 0 }) => (
           <MenuCard
             key={href}
-            href={href}
-            title={title}
-            icon={icon}
+            horizontal
             delay={delay}
             hasNewContent={notifications[pageKey]}
+            href={href}
+            icon={icon}
+            title={title}
             onClick={() => handleVisit(pageKey)}
-            horizontal
           />
         ))}
       </div>

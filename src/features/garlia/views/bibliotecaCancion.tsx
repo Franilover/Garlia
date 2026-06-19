@@ -1,13 +1,14 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from "react";
-import { MotionDiv } from '@/components/ui/Motion';
-import Link from "next/link";
-import { supabase } from "@/lib/api/client/supabase";
-import { SmartImage } from "@/components/ui/SmartImage";
-import { Loading } from "@/components/ui";
 import { User, ChevronRight, List, LayoutGrid } from "lucide-react";
+import Link from "next/link";
+import React, { useState, useMemo, useEffect } from "react";
+
+import { Loading } from "@/components/ui";
+import { MotionDiv } from '@/components/ui/Motion';
+import { SmartImage } from "@/components/ui/SmartImage";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
+import { supabase } from "@/lib/api/client/supabase";
 import { toSlug } from "@/lib/utils/slugify";
 
 interface Personaje {
@@ -35,16 +36,16 @@ function normPersonaje(v: Personaje | Personaje[] | null | undefined): Personaje
 
 const CancionCardGrid = ({ cancion, index }: { cancion: Cancion; index: number }) => (
   <MotionDiv
-    initial={{ opacity: 0, y: 20 }}
     animate={{ opacity: 1, y: 0 }}
-    transition={{ delay: index * 0.04 }}
     className="relative group h-full"
+    initial={{ opacity: 0, y: 20 }}
+    transition={{ delay: index * 0.04 }}
   >
     <Link href={`/garlia/canciones/${toSlug(cancion.titulo)}`}>
       <MotionDiv
-        whileHover={{ y: -4, rotate: -0.4 }}
-        transition={{ type: "spring", stiffness: 200, damping: 20 }}
         className="cursor-pointer h-full"
+        transition={{ type: "spring", stiffness: 200, damping: 20 }}
+        whileHover={{ y: -4, rotate: -0.4 }}
       >
         <div
           className="relative aspect-square overflow-hidden"
@@ -56,9 +57,9 @@ const CancionCardGrid = ({ cancion, index }: { cancion: Cancion; index: number }
         >
           <div className="w-full h-full" style={{ filter: "sepia(30%) contrast(0.93) brightness(0.93)" }}>
             <SmartImage
-              src={cancion.portada_url || "/placeholder-cover.jpg"}
               alt={cancion.titulo}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+              src={cancion.portada_url || "/placeholder-cover.jpg"}
             />
           </div>
           <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/15 to-transparent" />
@@ -90,8 +91,8 @@ const CancionCardGrid = ({ cancion, index }: { cancion: Cancion; index: number }
 
 const CancionCardFila = ({ cancion, index }: { cancion: Cancion; index: number }) => (
   <MotionDiv
-    initial={{ opacity: 0, y: 6 }}
     animate={{ opacity: 1, y: 0 }}
+    initial={{ opacity: 0, y: 6 }}
     transition={{ delay: index * 0.03 }}
   >
     <Link href={`/garlia/canciones/${toSlug(cancion.titulo)}`}>
@@ -117,7 +118,7 @@ const CancionCardFila = ({ cancion, index }: { cancion: Cancion; index: number }
             filter: "sepia(20%) contrast(0.95)",
           }}
         >
-          <SmartImage src={cancion.portada_url || "/placeholder-cover.jpg"} alt={cancion.titulo} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+          <SmartImage alt={cancion.titulo} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" src={cancion.portada_url || "/placeholder-cover.jpg"} />
         </div>
         <div className="min-w-0 flex-1">
           <h2 className="text-primary font-black uppercase text-[11px] group-hover:text-accent transition-colors tracking-wide italic truncate">
@@ -129,7 +130,7 @@ const CancionCardFila = ({ cancion, index }: { cancion: Cancion; index: number }
             </p>
           )}
         </div>
-        <ChevronRight size={12} className="text-primary/15 group-hover:text-primary/45 transition-colors shrink-0" />
+        <ChevronRight className="text-primary/15 group-hover:text-primary/45 transition-colors shrink-0" size={12} />
       </div>
     </Link>
   </MotionDiv>
@@ -149,10 +150,10 @@ const PersonajeBloque = ({
   imgUrl?: string;
 }) => (
   <MotionDiv
-    initial={{ opacity: 0, y: 24 }}
     animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.5 }}
     className="mb-24 flex flex-col md:flex-row gap-8 lg:gap-12 items-start"
+    initial={{ opacity: 0, y: 24 }}
+    transition={{ duration: 0.5 }}
   >
     {/* COLUMNA IZQUIERDA: Personaje en Grande */}
     <div className="w-full md:w-1/3 lg:w-1/4 shrink-0 flex flex-col items-center md:items-start text-center md:text-left md:sticky md:top-24">
@@ -167,9 +168,9 @@ const PersonajeBloque = ({
           }}
         >
           <img
-            src={imgUrl}
             alt={personaje}
             className="w-full h-auto object-contain block"
+            src={imgUrl}
           />
         </div>
       ) : (
@@ -182,7 +183,7 @@ const PersonajeBloque = ({
             aspectRatio: "1 / 1",
           }}
         >
-          <User size={64} className="text-primary/20" />
+          <User className="text-primary/20" size={64} />
         </div>
       )}
 
@@ -288,10 +289,10 @@ export default function CancionesPage() {
           </div>
 
           <button
-            onClick={() => setVistaFila(v => !v)}
-            title={vistaFila ? "Vista cuadrícula" : "Vista lista"}
             className="p-2.5 border border-primary/15 hover:bg-primary/5 hover:border-primary/30 text-primary/35 hover:text-primary/70 transition-all shrink-0 mb-1"
             style={{ borderRadius: "var(--radius-btn)" }}
+            title={vistaFila ? "Vista cuadrícula" : "Vista lista"}
+            onClick={() => setVistaFila(v => !v)}
           >
             {vistaFila ? <LayoutGrid size={16} /> : <List size={16} />}
           </button>
@@ -310,11 +311,11 @@ export default function CancionesPage() {
             return (
               <PersonajeBloque
                 key={personaje}
-                personaje={personaje}
                 canciones={cancionesList}
-                vistaFila={vistaFila}
                 globalOffset={currentOffset}
                 imgUrl={imgUrl}
+                personaje={personaje}
+                vistaFila={vistaFila}
               />
             );
           })

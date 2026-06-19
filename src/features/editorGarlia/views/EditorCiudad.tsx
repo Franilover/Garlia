@@ -1,18 +1,20 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   MapPin, Save, Trash2, Users, Bug, Package,
   Loader2, Plus, X, Mountain, ScrollText,
 } from "lucide-react";
-import { SeccionEntidad } from "@/components/ui/SeccionEntidad";
-import { supabase } from "@/lib/api/client/supabase";
-import { db } from "@/lib/api/client/db";
+import React, { useState, useEffect, useCallback, useRef } from "react";
+
+import { MarkdownEditor, WikiEntity } from "@/components/forms/Markdown/MarkdownEditor";
+import { ComboSelector, type ComboItem } from "@/components/ui/ComboSelector";
 import { useConfirm } from "@/components/ui/ConfirmModal";
+import { SeccionEntidad } from "@/components/ui/SeccionEntidad";
+import { db } from "@/lib/api/client/db";
+import { supabase } from "@/lib/api/client/supabase";
+
 import { type SaveStatus } from "../components/types";
 import { SelectorImagen, SaveIndicator } from "../components/UIComponents";
-import { ComboSelector, type ComboItem } from "@/components/ui/ComboSelector";
-import { MarkdownEditor, WikiEntity } from "@/components/forms/Markdown/MarkdownEditor";
 import { useWikilink } from "../components/WikilinkContext";
 
 // ─── Dexie helpers ────────────────────────────────────────────────────────────
@@ -268,18 +270,18 @@ function BloqueEntidades<T extends { id: string; nombre: string }>({
               ? "color-mix(in srgb, var(--primary) 30%, transparent)"
               : "color-mix(in srgb, var(--primary) 12%, transparent)",
           }}>
-          <Plus size={9} className="text-primary/30 shrink-0" />
+          <Plus className="text-primary/30 shrink-0" size={9} />
           <input
             ref={inputRef}
+            className="flex-1 min-w-0 bg-transparent text-[11px] font-medium text-primary/70 placeholder:text-primary/25 outline-none"
+            placeholder="Buscar y añadir…"
             value={query}
             onChange={e => { setQuery(e.target.value); setOpen(true); }}
             onFocus={() => setOpen(true)}
-            placeholder="Buscar y añadir…"
-            className="flex-1 min-w-0 bg-transparent text-[11px] font-medium text-primary/70 placeholder:text-primary/25 outline-none"
           />
           {query && (
             <button type="button" onClick={() => { setQuery(""); setOpen(false); inputRef.current?.blur(); }}>
-              <X size={9} className="text-primary/30 hover:text-primary/60 transition-colors" />
+              <X className="text-primary/30 hover:text-primary/60 transition-colors" size={9} />
             </button>
           )}
         </div>
@@ -297,18 +299,18 @@ function BloqueEntidades<T extends { id: string; nombre: string }>({
             {suggestions.map(s => (
               <button
                 key={s.id}
-                type="button"
-                disabled={addingId === s.id}
-                onClick={() => { onAdd(s); setQuery(""); setOpen(false); }}
                 className="w-full flex items-center gap-2 px-2.5 py-1.5 text-left transition-colors hover:bg-primary/5 disabled:opacity-50"
+                disabled={addingId === s.id}
+                type="button"
+                onClick={() => { onAdd(s); setQuery(""); setOpen(false); }}
               >
                 <div className="w-5 h-5 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center">
                   {renderThumb(s)}
                 </div>
                 <span className="text-[11px] font-semibold text-primary/70 truncate flex-1">{s.nombre}</span>
                 {addingId === s.id
-                  ? <Loader2 size={9} className="animate-spin text-primary/30 shrink-0" />
-                  : <Plus size={9} className="text-primary/30 shrink-0" />}
+                  ? <Loader2 className="animate-spin text-primary/30 shrink-0" size={9} />
+                  : <Plus className="text-primary/30 shrink-0" size={9} />}
               </button>
             ))}
           </div>
@@ -332,7 +334,7 @@ function BloqueEntidades<T extends { id: string; nombre: string }>({
       {/* Lista vinculada */}
       {loading ? (
         <div className="flex justify-center py-3">
-          <Loader2 size={14} className="animate-spin text-primary/20" />
+          <Loader2 className="animate-spin text-primary/20" size={14} />
         </div>
       ) : items.length === 0 ? (
         <p className="text-[10px] font-bold text-primary/20 uppercase tracking-widest text-center py-3 italic">
@@ -350,10 +352,10 @@ function BloqueEntidades<T extends { id: string; nombre: string }>({
               }}
             >
               <button
+                className="flex items-center gap-2 pl-1.5 pr-2.5 py-1 transition-all hover:bg-primary/5 disabled:cursor-default cursor-pointer"
+                disabled={!onSelect}
                 type="button"
                 onClick={() => onSelect?.(item.id)}
-                disabled={!onSelect}
-                className="flex items-center gap-2 pl-1.5 pr-2.5 py-1 transition-all hover:bg-primary/5 disabled:cursor-default cursor-pointer"
               >
                 <div className="w-6 h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 shrink-0 flex items-center justify-center">
                   {renderThumb(item)}
@@ -361,14 +363,14 @@ function BloqueEntidades<T extends { id: string; nombre: string }>({
                 <span className="text-[11px] font-bold text-primary/70 truncate max-w-[110px]">{item.nombre}</span>
               </button>
               <button
-                type="button"
-                disabled={removingId === item.id}
-                onClick={() => onRemove(item.id)}
                 className="flex items-center justify-center w-5 h-full pr-1 opacity-0 group-hover:opacity-100 transition-opacity text-primary/30 hover:text-red-400 disabled:cursor-not-allowed"
+                disabled={removingId === item.id}
                 title="Quitar de la ciudad"
+                type="button"
+                onClick={() => onRemove(item.id)}
               >
                 {removingId === item.id
-                  ? <Loader2 size={9} className="animate-spin" />
+                  ? <Loader2 className="animate-spin" size={9} />
                   : <X size={9} />}
               </button>
             </div>
@@ -475,31 +477,31 @@ export function FormularioCiudad({
         {/* Thumbnail */}
         <div className="shrink-0 w-9 h-9 rounded-xl overflow-hidden border border-primary/15 bg-primary/5 flex items-center justify-center">
           {form.imagen_url
-            ? <img src={form.imagen_url} alt={form.nombre} className="w-full h-full object-cover" />
-            : <MapPin size={16} className="text-primary/25" />}
+            ? <img alt={form.nombre} className="w-full h-full object-cover" src={form.imagen_url} />
+            : <MapPin className="text-primary/25" size={16} />}
         </div>
 
         {/* Nombre editable */}
         <input
+          className="flex-1 min-w-0 bg-transparent text-sm font-black text-primary outline-none placeholder:text-primary/25"
+          placeholder="Nombre de la ciudad"
           value={form.nombre ?? ""}
           onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))}
-          placeholder="Nombre de la ciudad"
-          className="flex-1 min-w-0 bg-transparent text-sm font-black text-primary outline-none placeholder:text-primary/25"
         />
 
         {/* Acciones */}
         <div className="shrink-0 flex items-center gap-2">
           <SaveIndicator status={status} />
           <button
-            onClick={onDelete}
             className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all cursor-pointer"
+            onClick={onDelete}
           >
             <Trash2 size={10} />
           </button>
           <button
-            onClick={onSave}
-            disabled={status === "saving"}
             className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+            disabled={status === "saving"}
+            onClick={onSave}
           >
             <Save size={11} /> Guardar
           </button>
@@ -516,11 +518,11 @@ export function FormularioCiudad({
             {/* Columna izquierda: imagen */}
             <div className="shrink-0 sm:w-52 w-full max-w-xs mx-auto sm:mx-0">
               <SelectorImagen
+                aspect="square"
                 label="Ilustración"
+                placeholder={<MapPin className="opacity-20" size={20} />}
                 value={form.imagen_url ?? ""}
                 onChange={url => setForm(f => ({ ...f, imagen_url: url }))}
-                aspect="square"
-                placeholder={<MapPin size={20} className="opacity-20" />}
               />
             </div>
 
@@ -530,24 +532,24 @@ export function FormularioCiudad({
               {/* Tipo + Reino en fila */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <ComboSelector
-                  mode="single"
-                  label="Tipo"
-                  placeholder="Ciudad, ruinas, bosque…"
+                  allowNone
                   items={TIPOS_CIUDAD.map(t => ({ id: t, label: t }))}
+                  label="Tipo"
+                  mode="single"
+                  noneLabel="Sin tipo"
+                  placeholder="Ciudad, ruinas, bosque…"
                   value={form.tipo ?? null}
                   onChange={v => setForm(f => ({ ...f, tipo: v }))}
-                  allowNone
-                  noneLabel="Sin tipo"
                 />
                 <ComboSelector
-                  mode="single"
-                  label="Reino"
-                  placeholder="Sin reino asignado…"
+                  allowNone
                   items={reinos.map(r => ({ id: r.id, label: r.nombre }))}
+                  label="Reino"
+                  mode="single"
+                  noneLabel="Sin reino"
+                  placeholder="Sin reino asignado…"
                   value={form.reino_id ?? null}
                   onChange={id => setForm(f => ({ ...f, reino_id: id }))}
-                  allowNone
-                  noneLabel="Sin reino"
                   onNavigate={onNavigateReino && reinoActual ? () => onNavigateReino(reinoActual.id) : undefined}
                 />
               </div>
@@ -556,14 +558,14 @@ export function FormularioCiudad({
               <div className="space-y-1.5">
                 <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Descripción</label>
                 <MarkdownEditor
-                  value={form.descripcion ?? ""}
-                  onChange={v => setForm(f => ({ ...f, descripcion: v }))}
-                  placeholder="Aspecto, atmósfera, primeras impresiones…"
-                  rows={6}
                   toolbar
                   defaultMode="edit"
-                  onSnippetAction={onSnippetAction}
                   entities={entities}
+                  placeholder="Aspecto, atmósfera, primeras impresiones…"
+                  rows={6}
+                  value={form.descripcion ?? ""}
+                  onChange={v => setForm(f => ({ ...f, descripcion: v }))}
+                  onSnippetAction={onSnippetAction}
                 />
               </div>
             </div>
@@ -576,14 +578,14 @@ export function FormularioCiudad({
                 <ScrollText size={9} /> Historia
               </label>
               <MarkdownEditor
-                value={form.historia ?? ""}
-                onChange={v => setForm(f => ({ ...f, historia: v }))}
-                placeholder="Origen, eventos importantes, eras pasadas…"
-                rows={8}
                 toolbar
                 defaultMode="edit"
-                onSnippetAction={onSnippetAction}
                 entities={entities}
+                placeholder="Origen, eventos importantes, eras pasadas…"
+                rows={8}
+                value={form.historia ?? ""}
+                onChange={v => setForm(f => ({ ...f, historia: v }))}
+                onSnippetAction={onSnippetAction}
               />
             </div>
             <div className="flex-1 min-w-0 space-y-1.5">
@@ -591,14 +593,14 @@ export function FormularioCiudad({
                 <Mountain size={9} /> Secretos
               </label>
               <MarkdownEditor
-                value={form.secretos ?? ""}
-                onChange={v => setForm(f => ({ ...f, secretos: v }))}
-                placeholder="Lo que pocos saben, pasajes ocultos, maldiciones…"
-                rows={8}
                 toolbar
                 defaultMode="edit"
-                onSnippetAction={onSnippetAction}
                 entities={entities}
+                placeholder="Lo que pocos saben, pasajes ocultos, maldiciones…"
+                rows={8}
+                value={form.secretos ?? ""}
+                onChange={v => setForm(f => ({ ...f, secretos: v }))}
+                onSnippetAction={onSnippetAction}
               />
             </div>
           </div>
@@ -609,48 +611,48 @@ export function FormularioCiudad({
             {/* Personajes */}
             <div className="flex-1 min-w-0 rounded-xl overflow-hidden border border-primary/10">
               <SeccionEntidad
-                label="Personajes"
-                icon={<Users size={10} />}
-                fallbackIcon={<Users size={10} />}
-                emptyLabel="Sin personajes en esta ciudad"
                 allEntities={todosPersonajes.map(p => ({ id: p.id, nombre: p.nombre, imagen_url: p.img_url ?? null }))}
-                selectedIds={personajes.map(p => p.id)}
+                emptyLabel="Sin personajes en esta ciudad"
+                fallbackIcon={<Users size={10} />}
+                icon={<Users size={10} />}
+                label="Personajes"
                 loading={loadingP}
                 saving={!!addingP}
-                onToggle={(id, add) => add ? handleAddPersonaje(todosPersonajes.find(p => p.id === id)!) : handleRemovePersonaje(id)}
+                selectedIds={personajes.map(p => p.id)}
                 onEntityClick={onSelectPersonaje}
+                onToggle={(id, add) => add ? handleAddPersonaje(todosPersonajes.find(p => p.id === id)!) : handleRemovePersonaje(id)}
               />
             </div>
 
             {/* Criaturas */}
             <div className="flex-1 min-w-0 rounded-xl overflow-hidden border border-primary/10">
               <SeccionEntidad
-                label="Criaturas"
-                icon={<Bug size={10} />}
-                fallbackIcon={<Bug size={10} />}
-                emptyLabel="Sin criaturas en esta ciudad"
                 allEntities={todasCriaturas}
-                selectedIds={criaturas.map(c => c.id)}
+                emptyLabel="Sin criaturas en esta ciudad"
+                fallbackIcon={<Bug size={10} />}
+                icon={<Bug size={10} />}
+                label="Criaturas"
                 loading={loadingC}
                 saving={!!addingC}
-                onToggle={(id, add) => add ? handleAddCriatura(todasCriaturas.find(c => c.id === id)!) : handleRemoveCriatura(id)}
+                selectedIds={criaturas.map(c => c.id)}
                 onEntityClick={onSelectCriatura}
+                onToggle={(id, add) => add ? handleAddCriatura(todasCriaturas.find(c => c.id === id)!) : handleRemoveCriatura(id)}
               />
             </div>
 
             {/* Ítems */}
             <div className="flex-1 min-w-0 rounded-xl overflow-hidden border border-primary/10">
               <SeccionEntidad
-                label="Ítems"
-                icon={<Package size={10} />}
-                fallbackIcon={<Package size={10} />}
-                emptyLabel="Sin ítems en esta ciudad"
                 allEntities={todosItems}
-                selectedIds={items.map(i => i.id)}
+                emptyLabel="Sin ítems en esta ciudad"
+                fallbackIcon={<Package size={10} />}
+                icon={<Package size={10} />}
+                label="Ítems"
                 loading={loadingI}
                 saving={!!addingI}
-                onToggle={(id, add) => add ? handleAddItem(todosItems.find(i => i.id === id)!) : handleRemoveItem(id)}
+                selectedIds={items.map(i => i.id)}
                 onEntityClick={onSelectItem}
+                onToggle={(id, add) => add ? handleAddItem(todosItems.find(i => i.id === id)!) : handleRemoveItem(id)}
               />
             </div>
 
@@ -714,16 +716,16 @@ export function EditorCiudad({
     <>
       <ConfirmModal />
       <FormularioCiudad
+        entities={entities}
         form={form}
         setForm={setForm}
         status={status}
-        onSave={save}
         onDelete={del}
-        entities={entities}
-        onSelectPersonaje={onSelectPersonaje}
+        onNavigateReino={onNavigateReino}
+        onSave={save}
         onSelectCriatura={onSelectCriatura}
         onSelectItem={onSelectItem}
-        onNavigateReino={onNavigateReino}
+        onSelectPersonaje={onSelectPersonaje}
       />
     </>
   );

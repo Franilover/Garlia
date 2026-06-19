@@ -16,16 +16,18 @@
  * useSnippetEditHandler y RichBlockEditor.
  */
 
-import React, { useState, useEffect, useCallback } from "react";
 import {
   X, ChevronRight as ChevronR, GitMerge, MousePointerClick,
   Music2, GitFork, Image,
 } from "lucide-react";
+import React, { useState, useEffect, useCallback } from "react";
+
 import { ModalBase, CampoInput } from "@/components/layout/EstudioTemplates";
-import { SoundPicker, EntidadPicker, SimpleImagePicker } from "./SnippetForms";
-import { useEntidades }      from "./useEntidades";
-import { parseSnippetRaw } from "./type";
+
 import type { ModalKind }    from "./snippetDefs";
+import { SoundPicker, EntidadPicker, SimpleImagePicker } from "./SnippetForms";
+import { parseSnippetRaw } from "./type";
+import { useEntidades }      from "./useEntidades";
 
 // ─── Tipos comunes ────────────────────────────────────────────────────────────
 
@@ -59,7 +61,7 @@ function ModalHeader({ icon, label, color, onClose, mode }: {
       <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50 italic flex items-center gap-2">
         <span style={{ color }}>{icon}</span> {label}
       </h3>
-      <button onClick={onClose} className="text-primary/30 hover:text-primary"><X size={16} /></button>
+      <button className="text-primary/30 hover:text-primary" onClick={onClose}><X size={16} /></button>
     </div>
   );
 }
@@ -78,16 +80,16 @@ function ItemPicker({ selected, onSelect }: {
     <div className="space-y-1.5">
       <label className="text-[9px] font-black uppercase tracking-widest text-primary/40">Ítem requerido *</label>
       <input
-        value={busqueda} onChange={e => setBusqueda(e.target.value)}
-        placeholder="Buscar ítem…"
-        className="w-full bg-bg-main border border-primary/15 rounded-btn px-3 py-2 text-[11px] text-primary outline-none focus:border-primary/30"
+        className="w-full bg-bg-main border border-primary/15 rounded-btn px-3 py-2 text-[11px] text-primary outline-none focus:border-primary/30" placeholder="Buscar ítem…"
+        value={busqueda}
+        onChange={e => setBusqueda(e.target.value)}
       />
       <div className="max-h-28 overflow-y-auto space-y-0.5 mt-1">
         {loading
           ? <p className="text-[9px] text-primary/30 p-2">Cargando…</p>
           : filtrados.map(item => (
-            <button key={item.id} type="button" onClick={() => onSelect(item)}
-              className={`w-full text-left px-3 py-2 rounded-btn text-[11px] font-bold transition-all ${selected?.id === item.id ? "bg-primary text-btn-text" : "hover:bg-primary/8 text-primary"}`}>
+            <button key={item.id} className={`w-full text-left px-3 py-2 rounded-btn text-[11px] font-bold transition-all ${selected?.id === item.id ? "bg-primary text-btn-text" : "hover:bg-primary/8 text-primary"}`} type="button"
+              onClick={() => onSelect(item)}>
               {item.nombre}
             </button>
           ))
@@ -104,8 +106,8 @@ function InsertBtn({ onClick, disabled, icon, label }: {
   icon: React.ReactNode; label: string;
 }) {
   return (
-    <button type="button" onClick={onClick} disabled={disabled}
-      className="w-full flex items-center justify-center gap-2 bg-primary text-btn-text py-3 rounded-btn font-black uppercase text-[10px] tracking-widest disabled:opacity-40 transition-all hover:opacity-80">
+    <button className="w-full flex items-center justify-center gap-2 bg-primary text-btn-text py-3 rounded-btn font-black uppercase text-[10px] tracking-widest disabled:opacity-40 transition-all hover:opacity-80" disabled={disabled} type="button"
+      onClick={onClick}>
       {icon} {label}
     </button>
   );
@@ -119,10 +121,10 @@ export function ModalDrop({ onInsert, onClose, initialRaw, mode = "overlay" }: S
   return (
     <EP
       open
-      onClose={onClose}
-      onInsert={onInsert}
       initialEntidadId={init?.kind === "drop" ? init.entidadId : undefined}
       initialEntidadTipo={init?.kind === "drop" ? init.entidadTipo : undefined}
+      onClose={onClose}
+      onInsert={onInsert}
     />
   );
 }
@@ -132,7 +134,7 @@ export function ModalDrop({ onInsert, onClose, initialRaw, mode = "overlay" }: S
 export function ModalSonido({ onInsert, onClose, initialRaw, mode = "overlay" }: SnippetModalProps) {
   const init = parseSnippetRaw(initialRaw);
   const SP = SoundPicker as React.ComponentType<any>;
-  return <SP open onClose={onClose} onInsert={onInsert} initialSrc={init?.kind === "sound" ? init.src : undefined} />;
+  return <SP open initialSrc={init?.kind === "sound" ? init.src : undefined} onClose={onClose} onInsert={onInsert} />;
 }
 
 // ─── Modal Sección ────────────────────────────────────────────────────────────
@@ -148,19 +150,19 @@ export function ModalSection({ onInsert, onClose, initialRaw, mode = "overlay" }
 
   return (
     <Wrap mode={mode} onClose={onClose}>
-      <ModalHeader icon={<ChevronR size={12} />} label="Nueva Sección" color="#8b83e8" onClose={onClose} mode={mode} />
+      <ModalHeader color="#8b83e8" icon={<ChevronR size={12} />} label="Nueva Sección" mode={mode} onClose={onClose} />
       <div className="space-y-4">
-        <CampoInput label="Nombre visible (opcional)" value={label} onChange={setLabel} placeholder="ej: Abrir el cofre" autoFocus />
-        <CampoInput label="ID (debe coincidir con targets)" value={sectionId}
-          onChange={v => setSectionId(v.toLowerCase().replace(/\s+/g, "-"))}
-          placeholder={autoId || "ej: cofre"} />
+        <CampoInput autoFocus label="Nombre visible (opcional)" placeholder="ej: Abrir el cofre" value={label} onChange={setLabel} />
+        <CampoInput label="ID (debe coincidir con targets)" placeholder={autoId || "ej: cofre"}
+          value={sectionId}
+          onChange={v => setSectionId(v.toLowerCase().replace(/\s+/g, "-"))} />
         {snippet && (
           <div className="bg-violet-500/10 border border-violet-500/20 rounded-btn px-3 py-2">
             <code className="text-[10px] text-primary/70 font-mono">{snippet}</code>
           </div>
         )}
-        <InsertBtn onClick={() => { if (!autoId) return; onInsert(snippet); onClose(); }}
-          disabled={!autoId} icon={<ChevronR size={13} />} label="Insertar Sección" />
+        <InsertBtn disabled={!autoId}
+          icon={<ChevronR size={13} />} label="Insertar Sección" onClick={() => { if (!autoId) return; onInsert(snippet); onClose(); }} />
       </div>
     </Wrap>
   );
@@ -178,17 +180,17 @@ export function ModalChoice({ onInsert, onClose, initialRaw, mode = "overlay" }:
 
   return (
     <Wrap mode={mode} onClose={onClose}>
-      <ModalHeader icon={<GitMerge size={12} />} label="Botón de Decisión" color="#5aabf5" onClose={onClose} mode={mode} />
+      <ModalHeader color="#5aabf5" icon={<GitMerge size={12} />} label="Botón de Decisión" mode={mode} onClose={onClose} />
       <div className="space-y-4">
-        <CampoInput label="Texto del botón" value={label} onChange={setLabel} placeholder="ej: Inspeccionar pared, Huir…" autoFocus />
-        <CampoInput label="ID de sección destino" value={target} onChange={setTarget} placeholder="ej: exito-pared" />
+        <CampoInput autoFocus label="Texto del botón" placeholder="ej: Inspeccionar pared, Huir…" value={label} onChange={setLabel} />
+        <CampoInput label="ID de sección destino" placeholder="ej: exito-pared" value={target} onChange={setTarget} />
         {snippet && (
           <div className="bg-primary/8 border border-primary/20 rounded-btn px-3 py-2">
             <code className="text-[10px] text-primary/70 font-mono break-all">{snippet}</code>
           </div>
         )}
-        <InsertBtn onClick={() => { if (!snippet) return; onInsert(snippet); onClose(); }}
-          disabled={!snippet} icon={<GitMerge size={13} />} label="Insertar Choice" />
+        <InsertBtn disabled={!snippet}
+          icon={<GitMerge size={13} />} label="Insertar Choice" onClick={() => { if (!snippet) return; onInsert(snippet); onClose(); }} />
       </div>
     </Wrap>
   );
@@ -218,19 +220,19 @@ export function ModalUseItem({ onInsert, onClose, initialRaw, mode = "overlay" }
 
   return (
     <Wrap mode={mode} onClose={onClose}>
-      <ModalHeader icon={<MousePointerClick size={12} />} label="Usar Ítem" color="#f07574" onClose={onClose} mode={mode} />
+      <ModalHeader color="#f07574" icon={<MousePointerClick size={12} />} label="Usar Ítem" mode={mode} onClose={onClose} />
       <div className="space-y-4 max-h-[65vh] overflow-y-auto pr-1">
-        <CampoInput label="Palabra en el texto" value={palabra} onChange={setPalabra} placeholder="ej: usar llave…" autoFocus />
+        <CampoInput autoFocus label="Palabra en el texto" placeholder="ej: usar llave…" value={palabra} onChange={setPalabra} />
         <ItemPicker selected={selectedItem} onSelect={setSelectedItem} />
-        <CampoInput label="ID Sección si TIENE el ítem *" value={targetOk} onChange={setTargetOk} placeholder="ej: abrir-cofre" />
-        <CampoInput label="ID Sección si NO tiene (opcional)" value={targetFail} onChange={setTargetFail} placeholder="ej: falla-cofre" />
+        <CampoInput label="ID Sección si TIENE el ítem *" placeholder="ej: abrir-cofre" value={targetOk} onChange={setTargetOk} />
+        <CampoInput label="ID Sección si NO tiene (opcional)" placeholder="ej: falla-cofre" value={targetFail} onChange={setTargetFail} />
         {snippet && (
           <div className="bg-primary/8 border border-primary/20 rounded-btn px-3 py-2">
             <code className="text-[10px] text-primary/70 font-mono break-all">{snippet}</code>
           </div>
         )}
-        <InsertBtn onClick={() => { if (!snippet) return; onInsert(snippet); onClose(); }}
-          disabled={!snippet} icon={<MousePointerClick size={13} />} label="Insertar Use" />
+        <InsertBtn disabled={!snippet}
+          icon={<MousePointerClick size={13} />} label="Insertar Use" onClick={() => { if (!snippet) return; onInsert(snippet); onClose(); }} />
       </div>
     </Wrap>
   );
@@ -258,26 +260,26 @@ export function ModalGate({ onInsert, onClose, initialRaw, mode = "overlay" }: S
 
   return (
     <Wrap mode={mode} onClose={onClose}>
-      <ModalHeader icon={<GitFork size={12} />} label="Puerta de Ítem" color="#e09a2a" onClose={onClose} mode={mode} />
+      <ModalHeader color="#e09a2a" icon={<GitFork size={12} />} label="Puerta de Ítem" mode={mode} onClose={onClose} />
       <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
         <ItemPicker selected={selectedItem} onSelect={setSelectedItem} />
         <div className="space-y-1.5">
           <label className="text-[9px] font-black uppercase tracking-widest text-primary/40">
             Texto si <span className="text-emerald-500">TIENE</span> el ítem *
           </label>
-          <textarea value={tieneTexto} onChange={e => setTieneTexto(e.target.value)}
-            placeholder={"El personaje saca la llave...\nPodés usar **markdown**, [[choice|...]] etc."}
+          <textarea className="w-full bg-bg-main border border-primary/15 rounded-btn px-3 py-2 text-[11px] text-primary outline-none focus:border-primary/30 resize-none font-mono" placeholder={"El personaje saca la llave...\nPodés usar **markdown**, [[choice|...]] etc."}
             rows={4}
-            className="w-full bg-bg-main border border-primary/15 rounded-btn px-3 py-2 text-[11px] text-primary outline-none focus:border-primary/30 resize-none font-mono" />
+            value={tieneTexto}
+            onChange={e => setTieneTexto(e.target.value)} />
         </div>
         <div className="space-y-1.5">
           <label className="text-[9px] font-black uppercase tracking-widest text-primary/40">
             Texto si <span className="text-rose-400">NO tiene</span> <span className="opacity-50">(opcional)</span>
           </label>
-          <textarea value={noTieneTexto} onChange={e => setNoTieneTexto(e.target.value)}
-            placeholder={"La puerta no cede...\nDejá vacío para no mostrar nada."}
+          <textarea className="w-full bg-bg-main border border-primary/15 rounded-btn px-3 py-2 text-[11px] text-primary outline-none focus:border-primary/30 resize-none font-mono" placeholder={"La puerta no cede...\nDejá vacío para no mostrar nada."}
             rows={4}
-            className="w-full bg-bg-main border border-primary/15 rounded-btn px-3 py-2 text-[11px] text-primary outline-none focus:border-primary/30 resize-none font-mono" />
+            value={noTieneTexto}
+            onChange={e => setNoTieneTexto(e.target.value)} />
         </div>
         {snippet && (
           <div className="bg-amber-500/10 border border-amber-500/20 rounded-btn px-3 py-2">
@@ -285,8 +287,8 @@ export function ModalGate({ onInsert, onClose, initialRaw, mode = "overlay" }: S
             <pre className="text-[10px] text-primary/70 font-mono whitespace-pre-wrap break-all">{snippet}</pre>
           </div>
         )}
-        <InsertBtn onClick={() => { if (!snippet) return; onInsert(snippet); onClose(); }}
-          disabled={!snippet} icon={<GitFork size={13} />} label="Insertar Gate" />
+        <InsertBtn disabled={!snippet}
+          icon={<GitFork size={13} />} label="Insertar Gate" onClick={() => { if (!snippet) return; onInsert(snippet); onClose(); }} />
       </div>
     </Wrap>
   );
@@ -313,22 +315,22 @@ export function ModalImagen({ onInsert, onClose, initialRaw, mode = "overlay" }:
 
   return (
     <Wrap mode={mode} onClose={onClose}>
-      <ModalHeader icon={<Image size={12} />} label="Imagen" color="#2dc896" onClose={onClose} mode={mode} />
+      <ModalHeader color="#2dc896" icon={<Image size={12} />} label="Imagen" mode={mode} onClose={onClose} />
       <div className="space-y-4">
         <div className="flex gap-2">
           {([{ k: "img", l: "Inline" }, { k: "float", l: "Flotante" }] as const).map(o => (
-            <button key={o.k} type="button" onClick={() => setImgMode(o.k)}
-              className={`flex-1 py-2 rounded-btn text-[9px] font-black uppercase border transition-all ${imgMode === o.k ? "bg-primary text-btn-text border-primary" : "border-primary/15 text-primary/40 hover:border-primary/30"}`}>
+            <button key={o.k} className={`flex-1 py-2 rounded-btn text-[9px] font-black uppercase border transition-all ${imgMode === o.k ? "bg-primary text-btn-text border-primary" : "border-primary/15 text-primary/40 hover:border-primary/30"}`} type="button"
+              onClick={() => setImgMode(o.k)}>
               {o.l}
             </button>
           ))}
         </div>
-        <SimpleImagePicker onSelect={url => setSelected(url)} onClose={onClose} />
+        <SimpleImagePicker onClose={onClose} onSelect={url => setSelected(url)} />
         {selected && (
           <>
-            {imgMode === "float" && <CampoInput label="Palabra en el texto" value={word} onChange={setWord} placeholder="ej: el castillo…" />}
-            <CampoInput label="Caption (opcional)" value={caption} onChange={setCaption} placeholder="Descripción breve…" />
-            <InsertBtn onClick={handleInsert} disabled={!selected} icon={<Image size={13} />} label="Insertar Imagen" />
+            {imgMode === "float" && <CampoInput label="Palabra en el texto" placeholder="ej: el castillo…" value={word} onChange={setWord} />}
+            <CampoInput label="Caption (opcional)" placeholder="Descripción breve…" value={caption} onChange={setCaption} />
+            <InsertBtn disabled={!selected} icon={<Image size={13} />} label="Insertar Imagen" onClick={handleInsert} />
           </>
         )}
       </div>

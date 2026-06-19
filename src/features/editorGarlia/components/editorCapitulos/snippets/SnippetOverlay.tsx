@@ -6,6 +6,7 @@
  * solo reemplaza la copia local de KIND_DEFS por la de snippetDefs.ts.
  */
 import React, { useRef, useState, useEffect, useCallback, useMemo } from "react";
+
 import { KIND_DEFS, KIND_FALLBACK } from "./snippetDefs";
 import type { SnippetKind } from "./snippetDefs";
 
@@ -119,10 +120,6 @@ function SnippetChip({ token, pos, onDelete, onEdit, onReplace }: {
         background:"var(--bg-menu,#1a1730)", pointerEvents:"none", zIndex:1,
       }} />
       <div
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
-        onClick={onEdit ? handleClick : undefined}
-        title={onEdit ? `Editar ${def.label}` : def.label}
         style={{
           position:"absolute", top:pos.top+1, left:pos.left,
           height:(pos.height||20)-2, width:"fit-content", maxWidth:240,
@@ -136,19 +133,23 @@ function SnippetChip({ token, pos, onDelete, onEdit, onReplace }: {
           transition:"background .12s, box-shadow .12s",
           boxShadow:hovered?`0 2px 10px ${def.border}`:"none", zIndex:2,
         }}
+        title={onEdit ? `Editar ${def.label}` : def.label}
+        onClick={onEdit ? handleClick : undefined}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
       >
         <span style={{ width:5, height:5, borderRadius:"50%", background:def.dot, flexShrink:0 }} />
         <span style={{ fontSize:9, lineHeight:1, flexShrink:0 }}>{def.icon}</span>
         <span style={{ opacity:.7, fontSize:9, fontWeight:900, textTransform:"uppercase", letterSpacing:".07em" }}>{def.label}</span>
         {summary && <span style={{ maxWidth:120, overflow:"hidden", textOverflow:"ellipsis", opacity:.9 }}>{summary}</span>}
         {hovered && (
-          <button type="button" onClick={handleDelete} title="Eliminar"
-            style={{
+          <button style={{
               marginLeft:3, background:"none", border:"none", padding:"1px 2px",
               cursor:"pointer", color:"inherit", opacity:.65,
               fontSize:12, lineHeight:1, borderRadius:3,
               display:"inline-flex", alignItems:"center", flexShrink:0,
-            }}>×</button>
+            }} title="Eliminar" type="button"
+            onClick={handleDelete}>×</button>
         )}
       </div>
     </>
@@ -199,7 +200,7 @@ function SnippetOverlayInner({ value, taRef, onChange, onEdit }: {
         if (!pos) return null;
         return (
           <SnippetChip key={`${token.raw}-${token.index}`}
-            token={token} pos={pos}
+            pos={pos} token={token}
             onDelete={handleDelete} onEdit={onEdit} onReplace={handleReplace} />
         );
       })}
@@ -215,6 +216,6 @@ export function makeSnippetOverlay({ taRef, onChange, onEdit }: {
   onEdit?:  (raw: string, replace: (next: string) => void) => void;
 }): (value: string) => React.ReactNode {
   return (value: string) => (
-    <SnippetOverlayInner value={value} taRef={taRef} onChange={onChange} onEdit={onEdit} />
+    <SnippetOverlayInner taRef={taRef} value={value} onChange={onChange} onEdit={onEdit} />
   );
 }

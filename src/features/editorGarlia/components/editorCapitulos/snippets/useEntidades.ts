@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+
 import { supabase } from "@/lib/api/client/supabase";
 
 export type EntidadTipo = "personaje" | "criatura" | "item";

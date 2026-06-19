@@ -1,7 +1,9 @@
 "use client";
-import { useState, useEffect } from 'react';
 import { Edit3, Save, X } from 'lucide-react';
+import { useState, useEffect } from 'react';
+
 import { supabase } from '@/lib/api/client/supabase';
+
 import { useLightbox } from '../LightboxProvider';
 
 export const AdminControls = () => {
@@ -55,17 +57,17 @@ export const AdminControls = () => {
       {editMode ? (
         <>
           <input
+            className="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-[10px] uppercase font-black"
             value={nuevoTitulo}
             onChange={(e) => setNuevoTitulo(e.target.value)}
-            className="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-[10px] uppercase font-black"
           />
-          <button onClick={handleUpdate} disabled={saving} className="text-green-400"><Save size={16}/></button>
-          <button onClick={() => setEditMode(false)} className="text-red-400"><X size={16}/></button>
+          <button className="text-green-400" disabled={saving} onClick={handleUpdate}><Save size={16}/></button>
+          <button className="text-red-400" onClick={() => setEditMode(false)}><X size={16}/></button>
         </>
       ) : (
         <>
           <h2 className="text-white text-[10px] font-black uppercase tracking-[0.4em]">{selectedImg.alt}</h2>
-          <button onClick={() => setEditMode(true)} className="p-1 hover:bg-white/10 rounded"><Edit3 size={14}/></button>
+          <button className="p-1 hover:bg-white/10 rounded" onClick={() => setEditMode(true)}><Edit3 size={14}/></button>
         </>
       )}
     </div>

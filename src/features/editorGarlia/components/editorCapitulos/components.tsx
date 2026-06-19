@@ -1,26 +1,29 @@
 "use client";
-import { FechaMundoBadge, SelectorFechaMundo } from "@/features/editorGarlia/components/EditorLineaTiempo";
-import React, { useState, useEffect, useRef } from "react";
 import {
   ChevronDown, ChevronRight, UserCircle2, Loader2, Trash2,
   X, Check, Clock, Hash, AlignLeft, Calendar, BookMarked, Pencil,
   MoreHorizontal, Globe, Lock, Timer, Mic2, MapPin, Cat, Sword, Plus, SlidersHorizontal
 } from "lucide-react";
-import { useConfirm } from "@/components/ui/ConfirmModal";
+import React, { useState, useEffect, useRef } from "react";
+
 import { SaveIndicator } from "@/components/layout/EstudioTemplates";
+import { ComboSelector } from "@/components/ui/ComboSelector";
+import { useConfirm } from "@/components/ui/ConfirmModal";
+import { SeccionEntidad } from "@/components/ui/SeccionEntidad";
 import SimpleImagePicker from "@/features/editorGarlia/components/editorCapitulos/snippets/forms/SimpleImagePicker";
+import { FechaMundoBadge, SelectorFechaMundo } from "@/features/editorGarlia/components/EditorLineaTiempo";
 import { usePersonajes } from "@/hooks/useEditorShared";
-import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
+import { supabase } from "@/lib/api/client/supabase";
+
+import { useCapitulos, useReinos } from "./hooks/hooks";
 import {
   Libro, Capitulo,
   VISIBILIDAD_CONFIG,
   wordCount, readingTime,
   capUpdateMeta,
 } from "./types";
-import { useCapitulos, useReinos } from "./hooks/hooks";
-import { ComboSelector } from "@/components/ui/ComboSelector";
-import { SeccionEntidad } from "@/components/ui/SeccionEntidad";
+
 
 // ─── EstadisticasEscritura ────────────────────────────────────────────────────
 
@@ -109,11 +112,11 @@ export const CapituloItem = ({
       <span className="shrink-0 flex items-center gap-1">
         {cap.status === "pending" && (
           <span
-            title="Pendiente de sync"
             style={{
               width: 4, height: 4, borderRadius: "50%", flexShrink: 0,
               background: selected ? "color-mix(in srgb, var(--bg-main) 60%, transparent)" : "var(--callout-info-border)",
             }}
+            title="Pendiente de sync"
           />
         )}
         {cap.visibilidad === "oculto" && (
@@ -126,7 +129,6 @@ export const CapituloItem = ({
 
       <div ref={menuRef} style={{ position: "relative", flexShrink: 0 }}>
         <button
-          onClick={e => { e.stopPropagation(); setMenuOpen(m => !m); }}
           className="flex items-center justify-center rounded transition-all"
           style={{
             width: 18, height: 18, border: "none",
@@ -135,6 +137,7 @@ export const CapituloItem = ({
             opacity: hovered || menuOpen ? (selected ? 0.7 : 0.5) : 0,
             cursor: "pointer", transition: "opacity 0.1s, background 0.1s",
           }}
+          onClick={e => { e.stopPropagation(); setMenuOpen(m => !m); }}
           onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.background = "color-mix(in srgb, var(--primary) 14%, transparent)"; }}
           onMouseLeave={e => { e.currentTarget.style.opacity = hovered || menuOpen ? (selected ? "0.7" : "0.5") : "0"; e.currentTarget.style.background = menuOpen ? "color-mix(in srgb, var(--primary) 12%, transparent)" : "transparent"; }}
         >
@@ -150,7 +153,6 @@ export const CapituloItem = ({
             padding: 3, overflow: "hidden",
           }}>
             <button
-              onClick={e => { e.stopPropagation(); setMenuOpen(false); onEdit(cap); }}
               style={{
                 width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 7,
                 padding: "6px 10px", borderRadius: 5, border: "none", background: "transparent",
@@ -158,6 +160,7 @@ export const CapituloItem = ({
                 textTransform: "uppercase" as const, letterSpacing: "0.1em",
                 color: "var(--text-on-card)", opacity: 0.65, cursor: "pointer", transition: "opacity 0.1s, background 0.1s",
               }}
+              onClick={e => { e.stopPropagation(); setMenuOpen(false); onEdit(cap); }}
               onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.background = "color-mix(in srgb, var(--primary) 8%, transparent)"; }}
               onMouseLeave={e => { e.currentTarget.style.opacity = "0.65"; e.currentTarget.style.background = "transparent"; }}
             >
@@ -165,17 +168,17 @@ export const CapituloItem = ({
             </button>
             <div style={{ height: 1, background: "color-mix(in srgb, var(--primary) 10%, transparent)", margin: "2px 6px" }} />
             <button
-              onClick={async e => {
-                e.stopPropagation(); setMenuOpen(false);
-                const ok = await confirm({ message: `¿Eliminar "${cap.titulo_capitulo}"?`, danger: true });
-                if (ok) onDelete(cap.id);
-              }}
               style={{
                 width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 7,
                 padding: "6px 10px", borderRadius: 5, border: "none", background: "transparent",
                 fontSize: 9, fontFamily: "var(--font-mono, monospace)", fontWeight: 900,
                 textTransform: "uppercase" as const, letterSpacing: "0.1em",
                 color: "var(--accent)", opacity: 0.7, cursor: "pointer", transition: "opacity 0.1s, background 0.1s",
+              }}
+              onClick={async e => {
+                e.stopPropagation(); setMenuOpen(false);
+                const ok = await confirm({ message: `¿Eliminar "${cap.titulo_capitulo}"?`, danger: true });
+                if (ok) onDelete(cap.id);
               }}
               onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.background = "color-mix(in srgb, var(--accent) 10%, transparent)"; }}
               onMouseLeave={e => { e.currentTarget.style.opacity = "0.7"; e.currentTarget.style.background = "transparent"; }}
@@ -229,7 +232,6 @@ export const LibroItem = ({
         onMouseLeave={() => setRowHovered(false)}
       >
         <button
-          onClick={onToggle}
           style={{
             flex: 1, display: "flex", alignItems: "center", gap: 8,
             padding: "8px 10px", borderRadius: 7, textAlign: "left",
@@ -238,6 +240,7 @@ export const LibroItem = ({
             borderColor: expanded ? "color-mix(in srgb, var(--primary) 14%, transparent)" : "transparent",
             cursor: "pointer", transition: "background 0.12s, border-color 0.12s",
           }}
+          onClick={onToggle}
           onMouseEnter={e => { if (!expanded) e.currentTarget.style.background = "color-mix(in srgb, var(--primary) 4%, transparent)"; }}
           onMouseLeave={e => { if (!expanded) e.currentTarget.style.background = "transparent"; }}
         >
@@ -272,8 +275,6 @@ export const LibroItem = ({
 
         <div ref={menuRef} style={{ position: "relative", flexShrink: 0 }}>
           <button
-            onClick={(e: React.MouseEvent) => { e.stopPropagation(); setMenuOpen(m => !m); }}
-            title="Opciones del libro"
             style={{
               display: "flex", alignItems: "center", justifyContent: "center",
               width: 26, height: 26, borderRadius: 5, border: "none", flexShrink: 0,
@@ -282,6 +283,8 @@ export const LibroItem = ({
               opacity: rowHovered || menuOpen ? 0.55 : 0, cursor: "pointer",
               transition: "opacity 0.1s, background 0.1s",
             }}
+            title="Opciones del libro"
+            onClick={(e: React.MouseEvent) => { e.stopPropagation(); setMenuOpen(m => !m); }}
             onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.background = "color-mix(in srgb, var(--primary) 10%, transparent)"; }}
             onMouseLeave={e => { e.currentTarget.style.opacity = rowHovered || menuOpen ? "0.55" : "0"; e.currentTarget.style.background = menuOpen ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent"; }}
           >
@@ -296,7 +299,6 @@ export const LibroItem = ({
               padding: 3, overflow: "hidden",
             }}>
               <button
-                onClick={e => { e.stopPropagation(); setMenuOpen(false); onEditLibro(libro); }}
                 style={{
                   width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 7,
                   padding: "6px 10px", borderRadius: 5, border: "none", background: "transparent",
@@ -304,6 +306,7 @@ export const LibroItem = ({
                   textTransform: "uppercase" as const, letterSpacing: "0.1em",
                   color: "var(--text-on-card)", opacity: 0.65, cursor: "pointer",
                 }}
+                onClick={e => { e.stopPropagation(); setMenuOpen(false); onEditLibro(libro); }}
                 onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.background = "color-mix(in srgb, var(--primary) 8%, transparent)"; }}
                 onMouseLeave={e => { e.currentTarget.style.opacity = "0.65"; e.currentTarget.style.background = "transparent"; }}
               >
@@ -311,17 +314,17 @@ export const LibroItem = ({
               </button>
               <div style={{ height: 1, background: "color-mix(in srgb, var(--primary) 10%, transparent)", margin: "2px 6px" }} />
               <button
-                onClick={async e => {
-                  e.stopPropagation(); setMenuOpen(false);
-                  const ok = await confirm({ message: `¿Eliminar "${libro.titulo}" y todos sus capítulos?`, danger: true, confirmLabel: "Eliminar" });
-                  if (ok) onDeleteLibro(libro.id);
-                }}
                 style={{
                   width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 7,
                   padding: "6px 10px", borderRadius: 5, border: "none", background: "transparent",
                   fontSize: 9, fontFamily: "var(--font-mono, monospace)", fontWeight: 900,
                   textTransform: "uppercase" as const, letterSpacing: "0.1em",
                   color: "var(--accent)", opacity: 0.7, cursor: "pointer",
+                }}
+                onClick={async e => {
+                  e.stopPropagation(); setMenuOpen(false);
+                  const ok = await confirm({ message: `¿Eliminar "${libro.titulo}" y todos sus capítulos?`, danger: true, confirmLabel: "Eliminar" });
+                  if (ok) onDeleteLibro(libro.id);
                 }}
                 onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.background = "color-mix(in srgb, var(--accent) 10%, transparent)"; }}
                 onMouseLeave={e => { e.currentTarget.style.opacity = "0.7"; e.currentTarget.style.background = "transparent"; }}
@@ -342,7 +345,7 @@ export const LibroItem = ({
         }}>
           {loading ? (
             <div style={{ display: "flex", justifyContent: "center", padding: "10px 0" }}>
-              <Loader2 size={12} className="animate-spin" style={{ color: "var(--primary)", opacity: 0.2 }} />
+              <Loader2 className="animate-spin" size={12} style={{ color: "var(--primary)", opacity: 0.2 }} />
             </div>
           ) : capitulos.length === 0 ? (
             <p style={{
@@ -356,13 +359,12 @@ export const LibroItem = ({
               cap={cap}
               selected={selectedCapId === cap.id}
               onClick={() => onSelectCap(libro.id, cap.id)}
-              onEdit={onEditCap}
               onDelete={id => onDeleteCap(id, libro.id)}
+              onEdit={onEditCap}
             />
           ))}
           <div style={{ paddingTop: 4, paddingBottom: 2 }}>
             <button
-              onClick={() => onNuevoCap(libro.id)}
               style={{
                 width: "100%", display: "flex", alignItems: "center", justifyContent: "center",
                 gap: 5, padding: "6px 0", borderRadius: 6,
@@ -373,6 +375,7 @@ export const LibroItem = ({
                 color: "var(--primary)", opacity: 0.3, cursor: "pointer",
                 transition: "opacity 0.1s, background 0.1s, border-color 0.1s",
               }}
+              onClick={() => onNuevoCap(libro.id)}
               onMouseEnter={e => { e.currentTarget.style.opacity = "0.7"; e.currentTarget.style.background = "color-mix(in srgb, var(--primary) 4%, transparent)"; e.currentTarget.style.borderColor = "color-mix(in srgb, var(--primary) 30%, transparent)"; }}
               onMouseLeave={e => { e.currentTarget.style.opacity = "0.3"; e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = "color-mix(in srgb, var(--primary) 15%, transparent)"; }}
             >
@@ -430,17 +433,17 @@ export const LibroCard = ({
         style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
       >
         {libro.portada_url ? (
-          <img src={libro.portada_url} alt="" className="w-4 h-4 rounded object-cover shrink-0 border border-primary/10" />
+          <img alt="" className="w-4 h-4 rounded object-cover shrink-0 border border-primary/10" src={libro.portada_url} />
         ) : (
-          <BookMarked size={9} className="text-primary/25 shrink-0" />
+          <BookMarked className="text-primary/25 shrink-0" size={9} />
         )}
         <span className="flex-1 text-[8px] font-black uppercase italic tracking-tight text-primary/70 truncate leading-tight" title={libro.titulo}>
           {libro.titulo}
         </span>
         <div ref={menuRef} className="relative shrink-0">
           <button
-            onClick={() => setMenuOpen(m => !m)}
             className="p-0.5 rounded text-primary/20 hover:text-primary transition-all"
+            onClick={() => setMenuOpen(m => !m)}
           >
             <MoreHorizontal size={9} />
           </button>
@@ -453,7 +456,6 @@ export const LibroCard = ({
               padding: 3, overflow: "hidden",
             }}>
               <button
-                onClick={e => { e.stopPropagation(); setMenuOpen(false); onEditLibro(libro); }}
                 style={{
                   width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 6,
                   padding: "5px 8px", borderRadius: 5, border: "none", background: "transparent",
@@ -461,6 +463,7 @@ export const LibroCard = ({
                   textTransform: "uppercase" as const, letterSpacing: "0.1em",
                   color: "var(--text-on-card)", opacity: 0.65, cursor: "pointer",
                 }}
+                onClick={e => { e.stopPropagation(); setMenuOpen(false); onEditLibro(libro); }}
                 onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.background = "color-mix(in srgb, var(--primary) 8%, transparent)"; }}
                 onMouseLeave={e => { e.currentTarget.style.opacity = "0.65"; e.currentTarget.style.background = "transparent"; }}
               >
@@ -468,17 +471,17 @@ export const LibroCard = ({
               </button>
               <div style={{ height: 1, background: "color-mix(in srgb, var(--primary) 10%, transparent)", margin: "2px 5px" }} />
               <button
-                onClick={async e => {
-                  e.stopPropagation(); setMenuOpen(false);
-                  const ok = await confirm({ message: `¿Eliminar "${libro.titulo}" y todos sus capítulos?`, danger: true, confirmLabel: "Eliminar" });
-                  if (ok) onDeleteLibro(libro.id);
-                }}
                 style={{
                   width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 6,
                   padding: "5px 8px", borderRadius: 5, border: "none", background: "transparent",
                   fontSize: 8, fontFamily: "var(--font-mono, monospace)", fontWeight: 900,
                   textTransform: "uppercase" as const, letterSpacing: "0.1em",
                   color: "var(--accent)", opacity: 0.7, cursor: "pointer",
+                }}
+                onClick={async e => {
+                  e.stopPropagation(); setMenuOpen(false);
+                  const ok = await confirm({ message: `¿Eliminar "${libro.titulo}" y todos sus capítulos?`, danger: true, confirmLabel: "Eliminar" });
+                  if (ok) onDeleteLibro(libro.id);
                 }}
                 onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.background = "color-mix(in srgb, var(--accent) 10%, transparent)"; }}
                 onMouseLeave={e => { e.currentTarget.style.opacity = "0.7"; e.currentTarget.style.background = "transparent"; }}
@@ -493,7 +496,7 @@ export const LibroCard = ({
 
       <div className="px-1 pt-1 pb-0.5 space-y-0.5">
         {loading ? (
-          <div className="flex justify-center py-3"><Loader2 size={11} className="animate-spin text-primary/20" /></div>
+          <div className="flex justify-center py-3"><Loader2 className="animate-spin text-primary/20" size={11} /></div>
         ) : capitulos.length === 0 ? (
           <p className="text-[8px] text-primary/20 font-black uppercase tracking-widest px-1 py-2 text-center">Sin caps</p>
         ) : capitulos.map(cap => (
@@ -502,16 +505,16 @@ export const LibroCard = ({
             cap={cap}
             selected={selectedCapId === cap.id}
             onClick={() => onSelectCap(libro.id, cap.id)}
-            onEdit={onEditCap}
             onDelete={id => onDeleteCap(id, libro.id)}
+            onEdit={onEditCap}
           />
         ))}
       </div>
 
       <div className="shrink-0 p-1 border-t" style={{ borderColor: "color-mix(in srgb, var(--primary) 6%, transparent)" }}>
         <button
-          onClick={() => onNuevoCap(libro.id)}
           className="w-full flex items-center justify-center gap-1 py-1 rounded-lg border border-dashed border-primary/12 text-[8px] font-black uppercase tracking-widest text-primary/20 hover:text-primary/50 hover:border-primary/25 hover:bg-primary/3 transition-all"
+          onClick={() => onNuevoCap(libro.id)}
         >
           <Plus size={8} /> Cap
         </button>
@@ -570,7 +573,7 @@ export const LibroColumna = ({
         onMouseLeave={() => setHdrHovered(false)}
       >
         {libro.portada_url ? (
-          <img src={libro.portada_url} alt="" style={{ width: 22, height: 30, borderRadius: 3, objectFit: "cover", flexShrink: 0, border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)" }} />
+          <img alt="" src={libro.portada_url} style={{ width: 22, height: 30, borderRadius: 3, objectFit: "cover", flexShrink: 0, border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)" }} />
         ) : (
           <div style={{
             width: 22, height: 30, borderRadius: 3, flexShrink: 0, display: "flex",
@@ -608,8 +611,6 @@ export const LibroColumna = ({
 
         <div ref={menuRef} style={{ position: "relative", flexShrink: 0 }}>
           <button
-            onClick={() => setMenuOpen(m => !m)}
-            title="Opciones del libro"
             style={{
               display: "flex", alignItems: "center", justifyContent: "center",
               width: 20, height: 20, borderRadius: 4, border: "none",
@@ -618,6 +619,8 @@ export const LibroColumna = ({
               opacity: hdrHovered || menuOpen ? 0.6 : 0,
               cursor: "pointer", flexShrink: 0, transition: "opacity 0.1s, background 0.1s",
             }}
+            title="Opciones del libro"
+            onClick={() => setMenuOpen(m => !m)}
             onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.background = "color-mix(in srgb, var(--primary) 10%, transparent)"; }}
             onMouseLeave={e => { e.currentTarget.style.opacity = hdrHovered || menuOpen ? "0.6" : "0"; e.currentTarget.style.background = menuOpen ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent"; }}
           >
@@ -632,7 +635,6 @@ export const LibroColumna = ({
               padding: 3, overflow: "hidden",
             }}>
               <button
-                onClick={e => { e.stopPropagation(); setMenuOpen(false); onEditLibro(libro); }}
                 style={{
                   width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 7,
                   padding: "6px 10px", borderRadius: 5, border: "none", background: "transparent",
@@ -640,6 +642,7 @@ export const LibroColumna = ({
                   textTransform: "uppercase" as const, letterSpacing: "0.1em",
                   color: "var(--text-on-card)", opacity: 0.65, cursor: "pointer", transition: "opacity 0.1s, background 0.1s",
                 }}
+                onClick={e => { e.stopPropagation(); setMenuOpen(false); onEditLibro(libro); }}
                 onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.background = "color-mix(in srgb, var(--primary) 8%, transparent)"; }}
                 onMouseLeave={e => { e.currentTarget.style.opacity = "0.65"; e.currentTarget.style.background = "transparent"; }}
               >
@@ -647,17 +650,17 @@ export const LibroColumna = ({
               </button>
               <div style={{ height: 1, background: "color-mix(in srgb, var(--primary) 10%, transparent)", margin: "2px 6px" }} />
               <button
-                onClick={async e => {
-                  e.stopPropagation(); setMenuOpen(false);
-                  const ok = await confirm({ message: `¿Eliminar el libro "${libro.titulo}" y todos sus capítulos?`, danger: true, confirmLabel: "Eliminar" });
-                  if (ok) onDeleteLibro(libro.id);
-                }}
                 style={{
                   width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 7,
                   padding: "6px 10px", borderRadius: 5, border: "none", background: "transparent",
                   fontSize: 9, fontFamily: "var(--font-mono, monospace)", fontWeight: 900,
                   textTransform: "uppercase" as const, letterSpacing: "0.1em",
                   color: "var(--accent)", opacity: 0.7, cursor: "pointer", transition: "opacity 0.1s, background 0.1s",
+                }}
+                onClick={async e => {
+                  e.stopPropagation(); setMenuOpen(false);
+                  const ok = await confirm({ message: `¿Eliminar el libro "${libro.titulo}" y todos sus capítulos?`, danger: true, confirmLabel: "Eliminar" });
+                  if (ok) onDeleteLibro(libro.id);
                 }}
                 onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.background = "color-mix(in srgb, var(--accent) 10%, transparent)"; }}
                 onMouseLeave={e => { e.currentTarget.style.opacity = "0.7"; e.currentTarget.style.background = "transparent"; }}
@@ -673,7 +676,7 @@ export const LibroColumna = ({
       <div style={{ flex: 1, overflowY: "auto", padding: "4px 4px" }}>
         {loading ? (
           <div style={{ display: "flex", justifyContent: "center", padding: "16px 0" }}>
-            <Loader2 size={12} className="animate-spin" style={{ color: "var(--primary)", opacity: 0.2 }} />
+            <Loader2 className="animate-spin" size={12} style={{ color: "var(--primary)", opacity: 0.2 }} />
           </div>
         ) : capitulos.length === 0 ? (
           <p style={{
@@ -687,15 +690,14 @@ export const LibroColumna = ({
             cap={cap}
             selected={selectedCapId === cap.id}
             onClick={() => onSelectCap(libro.id, cap.id)}
-            onEdit={onEditCap}
             onDelete={id => onDeleteCap(id, libro.id)}
+            onEdit={onEditCap}
           />
         ))}
       </div>
 
       <div style={{ flexShrink: 0, padding: "6px", borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
         <button
-          onClick={() => onNuevoCap(libro.id)}
           style={{
             width: "100%", display: "flex", alignItems: "center", justifyContent: "center",
             gap: 5, padding: "6px 0", borderRadius: 6,
@@ -706,6 +708,7 @@ export const LibroColumna = ({
             color: "var(--primary)", opacity: 0.3, cursor: "pointer",
             transition: "opacity 0.1s, background 0.1s, border-color 0.1s",
           }}
+          onClick={() => onNuevoCap(libro.id)}
           onMouseEnter={e => { e.currentTarget.style.opacity = "0.75"; e.currentTarget.style.background = "color-mix(in srgb, var(--primary) 5%, transparent)"; e.currentTarget.style.borderColor = "color-mix(in srgb, var(--primary) 35%, transparent)"; }}
           onMouseLeave={e => { e.currentTarget.style.opacity = "0.3"; e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = "color-mix(in srgb, var(--primary) 18%, transparent)"; }}
         >
@@ -746,12 +749,12 @@ export const VisibilidadCapPicker = ({
         return (
           <button
             key={v}
-            onClick={() => handleChange(v)}
-            title={cfg.label}
-            disabled={saving}
             className={`flex items-center gap-1 px-2 py-0.5 rounded-full border text-[8px] font-black uppercase tracking-wide transition-all disabled:opacity-40 ${
               active ? cfg.color : "border-primary/10 text-primary/25 hover:border-primary/25 hover:text-primary/50"
             }`}
+            disabled={saving}
+            title={cfg.label}
+            onClick={() => handleChange(v)}
           >
             <Icon size={8} />
             {active && <span>{cfg.label}</span>}
@@ -784,11 +787,11 @@ export const SelectorVisibilidad = ({
         const active = value === v;
         return (
           <button
-            key={v} type="button"
-            onClick={() => onChange(v)}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-[var(--radius-btn)] text-[9px] font-black uppercase tracking-wide border transition-all ${
+            key={v} className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-[var(--radius-btn)] text-[9px] font-black uppercase tracking-wide border transition-all ${
               active ? cfg.color + " shadow-sm" : "border-primary/10 text-primary/30 hover:border-primary/25 hover:text-primary/60"
             }`}
+            type="button"
+            onClick={() => onChange(v)}
           >
             <Icon size={11} /> {cfg.label}
           </button>
@@ -799,10 +802,10 @@ export const SelectorVisibilidad = ({
       <div className="mt-2">
         <label className="text-[9px] font-black uppercase tracking-widest text-primary/40">Fecha de publicación</label>
         <input
+          className="mt-1 w-full bg-primary/5 border border-primary/15 rounded-[var(--radius-btn)] px-3 py-2 text-[11px] font-bold text-primary outline-none focus:border-primary/30 transition-colors"
           type="date"
           value={fechaPublicacion || ""}
           onChange={e => onFechaChange?.(e.target.value)}
-          className="mt-1 w-full bg-primary/5 border border-primary/15 rounded-[var(--radius-btn)] px-3 py-2 text-[11px] font-bold text-primary outline-none focus:border-primary/30 transition-colors"
         />
       </div>
     )}
@@ -825,17 +828,17 @@ export const SelectorNarrador = ({
   }));
   return (
     <ComboSelector
-      mode="single"
+      allowNone
+      emptyText="Sin personajes"
+      icon={<Mic2 size={10} />}
       items={items}
+      label="Narrador / Protagonista del capítulo"
+      loading={loading}
+      mode="single"
+      noneLabel="Ninguno"
+      placeholder="Sin narrador asignado"
       value={value}
       onChange={onChange}
-      label="Narrador / Protagonista del capítulo"
-      icon={<Mic2 size={10} />}
-      placeholder="Sin narrador asignado"
-      emptyText="Sin personajes"
-      loading={loading}
-      allowNone
-      noneLabel="Ninguno"
     />
   );
 };
@@ -854,16 +857,16 @@ export const SelectorReino = ({
   }));
   return (
     <ComboSelector
-      mode="multi"
+      emptyText="Sin reinos"
+      hint="(se desbloquean al terminar)"
+      icon={<MapPin size={10} />}
       items={items}
+      label="Reinos / Ubicaciones"
+      loading={loading}
+      mode="multi"
+      placeholder="Añadir reinos…"
       value={value}
       onChange={onChange}
-      label="Reinos / Ubicaciones"
-      icon={<MapPin size={10} />}
-      hint="(se desbloquean al terminar)"
-      placeholder="Añadir reinos…"
-      emptyText="Sin reinos"
-      loading={loading}
     />
   );
 };
@@ -883,16 +886,16 @@ export const SelectorPersonajesCapitulo = ({
   }));
   return (
     <ComboSelector
-      mode="multi"
+      emptyText="Sin personajes"
+      hint="(se desbloquean al terminar)"
+      icon={<UserCircle2 size={10} />}
       items={items}
+      label="Personajes que aparecen"
+      loading={loading}
+      mode="multi"
+      placeholder="Añadir personajes…"
       value={value}
       onChange={onChange}
-      label="Personajes que aparecen"
-      icon={<UserCircle2 size={10} />}
-      hint="(se desbloquean al terminar)"
-      placeholder="Añadir personajes…"
-      emptyText="Sin personajes"
-      loading={loading}
     />
   );
 };
@@ -925,22 +928,22 @@ export function SelectorImagenPortada({ value, onChange }: { value: string; onCh
     <div className="space-y-1.5">
       <label className="text-[9px] font-black uppercase tracking-widest text-primary/40">Portada</label>
       <div
-        onClick={() => setOpen(true)}
         className="relative aspect-[2/3] w-28 rounded-xl overflow-hidden border border-primary/15 bg-primary/5 cursor-pointer group"
+        onClick={() => setOpen(true)}
       >
         {value ? (
           <>
-            <img src={value} alt="portada" className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
+            <img alt="portada" className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" src={value} />
             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1.5">
-              <BookMarked size={16} className="text-white" />
+              <BookMarked className="text-white" size={16} />
               <span className="text-[9px] font-black uppercase text-white tracking-widest">Cambiar</span>
             </div>
             <button
+              className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-black/50 hover:bg-red-500/80 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
               type="button"
               onClick={e => { e.stopPropagation(); onChange(""); }}
-              className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-black/50 hover:bg-red-500/80 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
             >
-              <X size={9} className="text-white" />
+              <X className="text-white" size={9} />
             </button>
           </>
         ) : (
@@ -963,13 +966,13 @@ export function SelectorImagenPortada({ value, onChange }: { value: string; onCh
               <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-2">
                 <BookMarked size={11} /> Portada del libro
               </h3>
-              <button onClick={() => setOpen(false)} className="text-primary/30 hover:text-primary transition-colors">
+              <button className="text-primary/30 hover:text-primary transition-colors" onClick={() => setOpen(false)}>
                 <X size={16} />
               </button>
             </div>
             <SimpleImagePicker
-              onSelect={url => { onChange(url); setOpen(false); }}
               onClose={() => setOpen(false)}
+              onSelect={url => { onChange(url); setOpen(false); }}
             />
           </div>
         </div>
@@ -1344,7 +1347,7 @@ export const PanelPersonajesCapitulo = ({
             Narrador
           </span>
           {savingNarr && (
-            <Loader2 size={8} className="animate-spin shrink-0"
+            <Loader2 className="animate-spin shrink-0" size={8}
               style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
           )}
         </div>
@@ -1359,7 +1362,7 @@ export const PanelPersonajesCapitulo = ({
         >
           {loadingEra ? (
             <div className="flex justify-center py-2">
-              <Loader2 size={10} className="animate-spin text-primary/20" />
+              <Loader2 className="animate-spin text-primary/20" size={10} />
             </div>
           ) : eraActual ? (
             <>
@@ -1432,8 +1435,9 @@ export const PanelPersonajesCapitulo = ({
             const diaActual = ordenLinea.trim() ? parseInt(ordenLinea.trim(), 10) : null;
             return (
               <div className="relative">
-                {savingOrden && <Loader2 size={8} className="animate-spin absolute right-2 top-2 z-10 text-primary/30" />}
+                {savingOrden && <Loader2 className="animate-spin absolute right-2 top-2 z-10 text-primary/30" size={8} />}
                 <SelectorFechaMundo
+                  placeholder="Sin fecha en la línea de tiempo"
                   value={diaActual}
                   onChange={async (dia) => {
                     setOrdenLinea(dia != null ? String(dia) : "");
@@ -1441,7 +1445,6 @@ export const PanelPersonajesCapitulo = ({
                     try { await capUpdateMeta(capId, { dia_absoluto: dia } as any); } catch {}
                     setSavingOrden(false);
                   }}
-                  placeholder="Sin fecha en la línea de tiempo"
                 />
               </div>
             );
@@ -1456,17 +1459,17 @@ export const PanelPersonajesCapitulo = ({
         style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
       >
         <SeccionEntidad
-          label="Territorio"
-          icon={<Globe size={9} />}
-          fallbackIcon={<Globe size={10} />}
-          emptyLabel="Sin territorio"
-          capId={capId}
           allEntities={reinos.map(r => ({ id: r.id, nombre: r.nombre, imagen_url: (r as any).imagen_reino ?? undefined }))}
-          selectedIds={reinosIds}
+          capId={capId}
+          emptyLabel="Sin territorio"
+          fallbackIcon={<Globe size={10} />}
+          icon={<Globe size={9} />}
+          label="Territorio"
           loading={loadingReinos}
           saving={savingReino}
-          onToggle={(id, add) => handleToggleReino(id, add)}
+          selectedIds={reinosIds}
           onEntityClick={(id) => dispatchOpen("reinos", id)}
+          onToggle={(id, add) => handleToggleReino(id, add)}
         />
       </div>
 
@@ -1477,17 +1480,17 @@ export const PanelPersonajesCapitulo = ({
       >
 
         <SeccionEntidad
-          label={reinosIds.length > 0 ? `Ciudades (${reinosIds.length})` : "Ciudades"}
-          icon={<MapPin size={9} />}
-          fallbackIcon={<MapPin size={10} />}
-          emptyLabel={reinosIds.length > 0 ? "Sin ciudades en estos reinos" : "Sin ciudades"}
-          capId={capId}
           allEntities={ciudades.filter(c => !reinosIds.length || reinosIds.includes(c.reino_id!)).map(c => ({ id: c.id, nombre: c.nombre, imagen_url: c.imagen_url ?? undefined }))}
-          selectedIds={ciudadesIds}
+          capId={capId}
+          emptyLabel={reinosIds.length > 0 ? "Sin ciudades en estos reinos" : "Sin ciudades"}
+          fallbackIcon={<MapPin size={10} />}
+          icon={<MapPin size={9} />}
+          label={reinosIds.length > 0 ? `Ciudades (${reinosIds.length})` : "Ciudades"}
           loading={loadingCiudades}
           saving={savingCiudad}
-          onToggle={(id, add) => handleToggleCiudad(id, add)}
+          selectedIds={ciudadesIds}
           onEntityClick={(id) => dispatchOpen("ciudades", id)}
+          onToggle={(id, add) => handleToggleCiudad(id, add)}
         />
       </div>
 
@@ -1510,7 +1513,7 @@ export const PanelPersonajesCapitulo = ({
             Visibilidad
           </span>
           {savingVis && (
-            <Loader2 size={8} className="animate-spin shrink-0"
+            <Loader2 className="animate-spin shrink-0" size={8}
               style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
           )}
         </div>
@@ -1522,11 +1525,8 @@ export const PanelPersonajesCapitulo = ({
             return (
               <button
                 key={v}
-                type="button"
-                onClick={() => handleSaveVisibilidad(v)}
-                title={cfg.label}
-                disabled={savingVis}
                 className="flex-1 flex flex-col items-center justify-center gap-0.5 py-1.5 rounded-lg border transition-all disabled:opacity-40"
+                disabled={savingVis}
                 style={active ? {
                   background: "color-mix(in srgb, var(--primary) 10%, transparent)",
                   borderColor: "color-mix(in srgb, var(--primary) 28%, transparent)",
@@ -1536,6 +1536,9 @@ export const PanelPersonajesCapitulo = ({
                   borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
                   color: "color-mix(in srgb, var(--primary) 28%, transparent)",
                 }}
+                title={cfg.label}
+                type="button"
+                onClick={() => handleSaveVisibilidad(v)}
               >
                 <Icon size={9} />
                 <span className="text-[6px] font-black uppercase tracking-wide leading-none">
@@ -1549,11 +1552,6 @@ export const PanelPersonajesCapitulo = ({
           <div className="mt-2 flex items-center gap-1">
             <Calendar size={8} style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)", flexShrink: 0 }} />
             <input
-              type="date"
-              value={fechaProg}
-              onChange={e => setFechaProg(e.target.value)}
-              onBlur={handleSaveFechaProg}
-              onKeyDown={e => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
               className="flex-1 min-w-0 rounded-lg border px-1.5 py-1 text-[8px] font-black outline-none transition-all"
               style={{
                 background: fechaProg ? "color-mix(in srgb, var(--primary) 6%, transparent)" : "transparent",
@@ -1562,9 +1560,14 @@ export const PanelPersonajesCapitulo = ({
                   : "color-mix(in srgb, var(--primary) 12%, transparent)",
                 color: fechaProg ? "var(--primary)" : "color-mix(in srgb, var(--primary) 30%, transparent)",
               }}
+              type="date"
+              value={fechaProg}
+              onBlur={handleSaveFechaProg}
+              onChange={e => setFechaProg(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
             />
             {savingFecha && (
-              <Loader2 size={8} className="animate-spin shrink-0"
+              <Loader2 className="animate-spin shrink-0" size={8}
                 style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
             )}
           </div>
@@ -1572,51 +1575,51 @@ export const PanelPersonajesCapitulo = ({
       </div>
 
       <SeccionEntidad
-        label="Personajes"
-        icon={<UserCircle2 size={9} />}
-        fallbackIcon={<UserCircle2 size={10} />}
-        emptyLabel="Sin personajes"
-        capId={capId}
         allEntities={personajes}
-        selectedIds={value}
+        capId={capId}
+        emptyLabel="Sin personajes"
+        fallbackIcon={<UserCircle2 size={10} />}
+        icon={<UserCircle2 size={9} />}
+        label="Personajes"
         loading={loadingP}
         saving={savingP}
-        onToggle={handleTogglePersonaje}
-        onEntityClick={(id) => dispatchOpen("personajes", id)} 
+        selectedIds={value}
+        onEntityClick={(id) => dispatchOpen("personajes", id)}
+        onToggle={handleTogglePersonaje} 
       />
 
       {/* Divisor */}
       <div style={{ height: "1px", background: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
 
       <SeccionEntidad
-        label="Criaturas"
-        icon={<Cat size={9} />}
-        fallbackIcon={<Cat size={10} />}
-        emptyLabel="Sin criaturas"
-        capId={capId}
         allEntities={criaturas}
-        selectedIds={criaturas_ids}
+        capId={capId}
+        emptyLabel="Sin criaturas"
+        fallbackIcon={<Cat size={10} />}
+        icon={<Cat size={9} />}
+        label="Criaturas"
         loading={loadingC}
         saving={savingC}
-        onToggle={handleToggleCriatura}
-        onEntityClick={(id) => dispatchOpen("criaturas", id)} 
+        selectedIds={criaturas_ids}
+        onEntityClick={(id) => dispatchOpen("criaturas", id)}
+        onToggle={handleToggleCriatura} 
       />
 
       {/* Divisor */}
       <div style={{ height: "1px", background: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
 
       <SeccionEntidad
-        label="Ítems"
-        icon={<Sword size={9} />}
-        fallbackIcon={<Sword size={10} />}
-        emptyLabel="Sin ítems"
-        capId={capId}
         allEntities={items}
-        selectedIds={items_ids}
+        capId={capId}
+        emptyLabel="Sin ítems"
+        fallbackIcon={<Sword size={10} />}
+        icon={<Sword size={9} />}
+        label="Ítems"
         loading={loadingI}
         saving={savingI}
-        onToggle={handleToggleItem}
-        onEntityClick={(id) => dispatchOpen("items", id)} 
+        selectedIds={items_ids}
+        onEntityClick={(id) => dispatchOpen("items", id)}
+        onToggle={handleToggleItem} 
       />
     </>
   );
@@ -1663,8 +1666,8 @@ export const PanelPersonajesCapitulo = ({
                 Metadatos
               </span>
               <button
-                onClick={onMobileClose}
                 className="p-1 rounded-lg text-primary/30 hover:text-primary hover:bg-primary/8 transition-all"
+                onClick={onMobileClose}
               >
                 <X size={14} />
               </button>
@@ -1725,13 +1728,13 @@ export const DialogSnippets = ({
     {DIALOG_SNIPPETS.map((s) => (
       <button
         key={s.label}
+        className="px-2.5 py-1 rounded-lg border border-primary/10 text-[11px] font-mono text-primary/50 hover:text-primary hover:border-primary/30 hover:bg-primary/5 transition-all select-none"
         title={s.title}
         type="button"
         onMouseDown={(e) => {
           e.preventDefault();
           if (textareaRef.current) insertAtCursor(textareaRef.current, value, onChange, s);
         }}
-        className="px-2.5 py-1 rounded-lg border border-primary/10 text-[11px] font-mono text-primary/50 hover:text-primary hover:border-primary/30 hover:bg-primary/5 transition-all select-none"
       >
         {s.label}
       </button>

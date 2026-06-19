@@ -1,6 +1,6 @@
 "use client";
-import React from "react";
 import { Loader2 } from "lucide-react";
+import React from "react";
 
 interface LoadingProps {
   text?:       string;
@@ -11,7 +11,7 @@ export function Loading({ text = "Cargando...", fullScreen = true }: LoadingProp
   return (
     <div className={`flex items-center justify-center ${fullScreen ? "min-h-[60vh]" : "py-16"}`}>
       <div className="flex flex-col items-center gap-3">
-        <Loader2 size={20} className="animate-spin" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
+        <Loader2 className="animate-spin" size={20} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
         <span className="text-[9px] font-black uppercase tracking-[0.3em]"
           style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
           {text}

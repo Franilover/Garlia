@@ -1,7 +1,7 @@
 "use client";
+import type { HTMLMotionProps } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import type { ComponentType } from 'react';
-import type { HTMLMotionProps } from 'framer-motion';
 
 type HTMLTag = keyof HTMLElementTagNameMap;
 

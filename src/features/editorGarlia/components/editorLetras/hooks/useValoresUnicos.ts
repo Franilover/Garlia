@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+
 import { supabase } from "@/lib/api/client/supabase";
 
 export function useValoresUnicos(tabla: string, columna: string) {

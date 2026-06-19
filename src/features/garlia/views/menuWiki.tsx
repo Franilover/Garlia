@@ -1,5 +1,6 @@
 "use client";
 import { Compass, BookText, Music, UserCircle2 } from "lucide-react";
+
 import MenuBase from "@/components/layout/MenuBase";
 
 const ITEMS = [
@@ -10,5 +11,5 @@ const ITEMS = [
 ];
 
 export default function WikiMenuPage() {
-  return <MenuBase titulo="Jardin" items={ITEMS} />;
+  return <MenuBase items={ITEMS} titulo="Jardin" />;
 }
