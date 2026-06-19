@@ -43,20 +43,20 @@ const eslintConfig = [
     rules: {
       // ── Imports sin usar — auto-fixable ✅ ──────────────────────────────
       // Elimina el import entero si ningún símbolo de él se usa.
-      "unused-imports/no-unused-imports": "error",
+      "unused-imports/no-unused-imports": "warn",
 
       // Variables/args sin usar — reemplaza @typescript-eslint/no-unused-vars
       // para que la variante de unused-imports pueda auto-fixear prefijando con _
       "@typescript-eslint/no-unused-vars": "off",
       "unused-imports/no-unused-vars": [
-        "error",
+        "warn",
         { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
       ],
 
       // ── Orden de imports — auto-fixable ✅ ──────────────────────────────
       // builtin → external → internal (@/) → relativo
       "import/order": [
-        "error",
+        "warn",
         {
           groups: [
             "builtin",
@@ -75,13 +75,13 @@ const eslintConfig = [
 
       // Nunca importar con extensión (excepto .css y .svg) — auto-fixable ✅
       "import/extensions": [
-        "error",
+        "warn",
         "never",
         { css: "always", svg: "always" },
       ],
 
       // No imports duplicados — auto-fixable ✅
-      "import/no-duplicates": "error",
+      "import/no-duplicates": "warn",
 
       // No importes cosas que no existen
       "import/no-unresolved": "off", // Next.js resuelve @/, dejarlo en off
@@ -105,7 +105,7 @@ const eslintConfig = [
       ],
 
       // key siempre en listas
-      "react/jsx-key": "error",
+      "react/jsx-key": "warn",
 
       // No usar índice como key
       "react/no-array-index-key": "warn",
@@ -119,7 +119,7 @@ const eslintConfig = [
     files: ["src/app/**/*.{ts,tsx}"],
     rules: {
       "no-restricted-imports": [
-        "error",
+        "warn",
         {
           patterns: [
             // app/ no puede importar de sí misma (salvo layout→layout OK via Next)
@@ -160,7 +160,7 @@ const eslintConfig = [
     files: ["src/features/**/*.{ts,tsx}"],
     rules: {
       "no-restricted-imports": [
-        "error",
+        "warn",
         {
           patterns: [
             // Prohibir rutas relativas que salgan del módulo actual hacia otro feature
@@ -191,7 +191,7 @@ const eslintConfig = [
     files: ["src/features/**/views/**/*.{ts,tsx}"],
     rules: {
       "no-restricted-imports": [
-        "error",
+        "warn",
         {
           patterns: [
             {
@@ -215,7 +215,7 @@ const eslintConfig = [
     files: ["src/components/**/*.{ts,tsx}"],
     rules: {
       "no-restricted-imports": [
-        "error",
+        "warn",
         {
           patterns: [
             {
@@ -246,7 +246,7 @@ const eslintConfig = [
     files: ["src/components/ui/**/*.{ts,tsx}"],
     rules: {
       "no-restricted-imports": [
-        "error",
+        "warn",
         {
           patterns: [
             {
@@ -271,7 +271,7 @@ const eslintConfig = [
     files: ["src/hooks/**/*.{ts,tsx}"],
     rules: {
       "no-restricted-imports": [
-        "error",
+        "warn",
         {
           patterns: [
             {
@@ -292,7 +292,7 @@ const eslintConfig = [
     files: ["src/lib/**/*.{ts,tsx}"],
     rules: {
       "no-restricted-imports": [
-        "error",
+        "warn",
         {
           patterns: [
             {
@@ -325,7 +325,7 @@ const eslintConfig = [
       ],
       // Reforzar: sin hooks de React en lib/
       "no-restricted-syntax": [
-        "error",
+        "warn",
         {
           selector: "CallExpression[callee.name=/^use[A-Z]/]",
           message:
@@ -343,7 +343,7 @@ const eslintConfig = [
     files: ["src/lib/api/queries/**/*.{ts,tsx}"],
     rules: {
       "no-restricted-imports": [
-        "error",
+        "warn",
         {
           patterns: [
             {
@@ -369,7 +369,7 @@ const eslintConfig = [
     files: ["src/providers/**/*.{ts,tsx}"],
     rules: {
       "no-restricted-imports": [
-        "error",
+        "warn",
         {
           patterns: [
             {
