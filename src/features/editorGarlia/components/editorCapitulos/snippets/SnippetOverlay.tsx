@@ -11,8 +11,8 @@ import { KIND_DEFS, KIND_FALLBACK } from "./snippetDefs";
 import type { SnippetKind } from "./snippetDefs";
 
 interface SnippetToken {
-  raw:   string;
-  kind:  SnippetKind;
+  raw: string;
+  kind: SnippetKind;
   parts: string[];
   index: number;
 }
@@ -26,7 +26,12 @@ function parseTokens(raw: string): SnippetToken[] {
   while ((m = RE.exec(raw)) !== null) {
     const inner = m[0].slice(2, -2);
     const parts = inner.split("|");
-    tokens.push({ raw: m[0], kind: parts[0].trim() as SnippetKind, parts, index: m.index });
+    tokens.push({
+      raw: m[0],
+      kind: parts[0].trim() as SnippetKind,
+      parts,
+      index: m.index,
+    });
   }
   return tokens;
 }
@@ -39,42 +44,74 @@ function measureTokenPositions(
 ): Array<{ top: number; left: number; width: number; height: number }> {
   const cs = window.getComputedStyle(ta);
   const copyProps = [
-    "fontFamily","fontSize","fontWeight","lineHeight","letterSpacing","wordSpacing",
-    "paddingTop","paddingRight","paddingBottom","paddingLeft",
-    "borderTopWidth","borderRightWidth","borderBottomWidth","borderLeftWidth",
-    "boxSizing","overflowWrap","wordBreak","whiteSpace",
+    "fontFamily",
+    "fontSize",
+    "fontWeight",
+    "lineHeight",
+    "letterSpacing",
+    "wordSpacing",
+    "paddingTop",
+    "paddingRight",
+    "paddingBottom",
+    "paddingLeft",
+    "borderTopWidth",
+    "borderRightWidth",
+    "borderBottomWidth",
+    "borderLeftWidth",
+    "boxSizing",
+    "overflowWrap",
+    "wordBreak",
+    "whiteSpace",
   ] as const;
 
   const mirror = document.createElement("div");
-  copyProps.forEach(p => { (mirror.style as any)[p] = cs[p]; });
+  copyProps.forEach((p) => {
+    (mirror.style as any)[p] = cs[p];
+  });
   Object.assign(mirror.style, {
-    position:"absolute", top:"0", left:"0", visibility:"hidden",
-    pointerEvents:"none", zIndex:"-1", width:ta.clientWidth+"px",
-    whiteSpace:"pre-wrap", overflow:"hidden",
+    position: "absolute",
+    top: "0",
+    left: "0",
+    visibility: "hidden",
+    pointerEvents: "none",
+    zIndex: "-1",
+    width: ta.clientWidth + "px",
+    whiteSpace: "pre-wrap",
+    overflow: "hidden",
   });
   ta.parentElement!.appendChild(mirror);
 
-  const raw     = ta.value;
-  const results: Array<{ top:number; left:number; width:number; height:number }> = [];
+  const raw = ta.value;
+  const results: Array<{
+    top: number;
+    left: number;
+    width: number;
+    height: number;
+  }> = [];
 
   for (const token of tokens) {
     const before = raw.slice(0, token.index);
     mirror.innerHTML =
       escapeHtml(before) +
-      `<span id="ts">\u200b</span>` + escapeHtml(token.raw) + `<span id="te">\u200b</span>`;
-    mirror.scrollTop  = ta.scrollTop;
+      `<span id="ts">\u200b</span>` +
+      escapeHtml(token.raw) +
+      `<span id="te">\u200b</span>`;
+    mirror.scrollTop = ta.scrollTop;
     mirror.scrollLeft = ta.scrollLeft;
 
     const spanS = mirror.querySelector("#ts") as HTMLElement;
     const spanE = mirror.querySelector("#te") as HTMLElement;
-    if (!spanS || !spanE) { results.push({ top:0, left:0, width:0, height:0 }); continue; }
+    if (!spanS || !spanE) {
+      results.push({ top: 0, left: 0, width: 0, height: 0 });
+      continue;
+    }
 
     const mRect = mirror.getBoundingClientRect();
     const sRect = spanS.getBoundingClientRect();
     const eRect = spanE.getBoundingClientRect();
     results.push({
-      top:   sRect.top  - mRect.top,
-      left:  sRect.left - mRect.left,
+      top: sRect.top - mRect.top,
+      left: sRect.left - mRect.left,
       width: Math.max(0, eRect.left - sRect.left),
       height: parseFloat(cs.lineHeight) || 18,
     });
@@ -85,71 +122,158 @@ function measureTokenPositions(
 }
 
 function escapeHtml(s: string) {
-  return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\n/g,"<br>");
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\n/g, "<br>");
 }
 
 // ─── Chip ─────────────────────────────────────────────────────────────────────
 
-function SnippetChip({ token, pos, onDelete, onEdit, onReplace }: {
-  token:     SnippetToken;
-  pos:       { top:number; left:number; width:number; height:number };
-  onDelete:  (t: SnippetToken) => void;
-  onEdit?:   (raw: string, replace: (next: string) => void) => void;
+function SnippetChip({
+  token,
+  pos,
+  onDelete,
+  onEdit,
+  onReplace,
+}: {
+  token: SnippetToken;
+  pos: { top: number; left: number; width: number; height: number };
+  onDelete: (t: SnippetToken) => void;
+  onEdit?: (raw: string, replace: (next: string) => void) => void;
   onReplace: (t: SnippetToken, next: string) => void;
 }) {
-  const def     = KIND_DEFS[token.kind] ?? KIND_FALLBACK;
+  const def = KIND_DEFS[token.kind] ?? KIND_FALLBACK;
   const summary = def.summary(token.raw);
   const [hovered, setHovered] = useState(false);
 
-  const handleClick  = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    onEdit?.(token.raw, next => onReplace(token, next));
-  }, [onEdit, onReplace, token]);
+  const handleClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      onEdit?.(token.raw, (next) => onReplace(token, next));
+    },
+    [onEdit, onReplace, token],
+  );
 
-  const handleDelete = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation(); onDelete(token);
-  }, [onDelete, token]);
+  const handleDelete = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      onDelete(token);
+    },
+    [onDelete, token],
+  );
 
-  const bgHov = def.bg.replace(/[\d.]+\)$/, m => String(Math.min(parseFloat(m) * 2.2, 0.35)) + ")");
+  const bgHov = def.bg.replace(
+    /[\d.]+\)$/,
+    (m) => String(Math.min(parseFloat(m) * 2.2, 0.35)) + ")",
+  );
 
   return (
     <>
-      <div style={{
-        position:"absolute", top:pos.top, left:pos.left,
-        width:pos.width||4, height:pos.height||20,
-        background:"var(--bg-menu,#1a1730)", pointerEvents:"none", zIndex:1,
-      }} />
       <div
         style={{
-          position:"absolute", top:pos.top+1, left:pos.left,
-          height:(pos.height||20)-2, width:"fit-content", maxWidth:240,
-          pointerEvents:"all", display:"inline-flex", alignItems:"center",
-          gap:4, padding:"0 6px 0 5px", borderRadius:999,
-          background:hovered ? bgHov : def.bg,
-          border:`1px solid ${def.border}`, color:def.text,
-          fontSize:10, fontWeight:700, fontFamily:"var(--font-sans,system-ui)",
-          whiteSpace:"nowrap", overflow:"hidden",
-          cursor:onEdit?"pointer":"default", userSelect:"none",
-          transition:"background .12s, box-shadow .12s",
-          boxShadow:hovered?`0 2px 10px ${def.border}`:"none", zIndex:2,
+          position: "absolute",
+          top: pos.top,
+          left: pos.left,
+          width: pos.width || 4,
+          height: pos.height || 20,
+          background: "var(--bg-menu,#1a1730)",
+          pointerEvents: "none",
+          zIndex: 1,
+        }}
+      />
+      <div
+        style={{
+          position: "absolute",
+          top: pos.top + 1,
+          left: pos.left,
+          height: (pos.height || 20) - 2,
+          width: "fit-content",
+          maxWidth: 240,
+          pointerEvents: "all",
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 4,
+          padding: "0 6px 0 5px",
+          borderRadius: 999,
+          background: hovered ? bgHov : def.bg,
+          border: `1px solid ${def.border}`,
+          color: def.text,
+          fontSize: 10,
+          fontWeight: 700,
+          fontFamily: "var(--font-sans,system-ui)",
+          whiteSpace: "nowrap",
+          overflow: "hidden",
+          cursor: onEdit ? "pointer" : "default",
+          userSelect: "none",
+          transition: "background .12s, box-shadow .12s",
+          boxShadow: hovered ? `0 2px 10px ${def.border}` : "none",
+          zIndex: 2,
         }}
         title={onEdit ? `Editar ${def.label}` : def.label}
         onClick={onEdit ? handleClick : undefined}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
       >
-        <span style={{ width:5, height:5, borderRadius:"50%", background:def.dot, flexShrink:0 }} />
-        <span style={{ fontSize:9, lineHeight:1, flexShrink:0 }}>{def.icon}</span>
-        <span style={{ opacity:.7, fontSize:9, fontWeight:900, textTransform:"uppercase", letterSpacing:".07em" }}>{def.label}</span>
-        {summary && <span style={{ maxWidth:120, overflow:"hidden", textOverflow:"ellipsis", opacity:.9 }}>{summary}</span>}
+        <span
+          style={{
+            width: 5,
+            height: 5,
+            borderRadius: "50%",
+            background: def.dot,
+            flexShrink: 0,
+          }}
+        />
+        <span style={{ fontSize: 9, lineHeight: 1, flexShrink: 0 }}>
+          {def.icon}
+        </span>
+        <span
+          style={{
+            opacity: 0.7,
+            fontSize: 9,
+            fontWeight: 900,
+            textTransform: "uppercase",
+            letterSpacing: ".07em",
+          }}
+        >
+          {def.label}
+        </span>
+        {summary && (
+          <span
+            style={{
+              maxWidth: 120,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              opacity: 0.9,
+            }}
+          >
+            {summary}
+          </span>
+        )}
         {hovered && (
-          <button style={{
-              marginLeft:3, background:"none", border:"none", padding:"1px 2px",
-              cursor:"pointer", color:"inherit", opacity:.65,
-              fontSize:12, lineHeight:1, borderRadius:3,
-              display:"inline-flex", alignItems:"center", flexShrink:0,
-            }} title="Eliminar" type="button"
-            onClick={handleDelete}>×</button>
+          <button
+            style={{
+              marginLeft: 3,
+              background: "none",
+              border: "none",
+              padding: "1px 2px",
+              cursor: "pointer",
+              color: "inherit",
+              opacity: 0.65,
+              fontSize: 12,
+              lineHeight: 1,
+              borderRadius: 3,
+              display: "inline-flex",
+              alignItems: "center",
+              flexShrink: 0,
+            }}
+            title="Eliminar"
+            type="button"
+            onClick={handleDelete}
+          >
+            ×
+          </button>
         )}
       </div>
     </>
@@ -158,38 +282,65 @@ function SnippetChip({ token, pos, onDelete, onEdit, onReplace }: {
 
 // ─── Overlay interno ─────────────────────────────────────────────────────────
 
-function SnippetOverlayInner({ value, taRef, onChange, onEdit }: {
-  value:    string;
-  taRef:    React.RefObject<HTMLTextAreaElement>;
+function SnippetOverlayInner({
+  value,
+  taRef,
+  onChange,
+  onEdit,
+}: {
+  value: string;
+  taRef: React.RefObject<HTMLTextAreaElement | null>;
   onChange: (next: string) => void;
-  onEdit?:  (raw: string, replace: (next: string) => void) => void;
+  onEdit?: (raw: string, replace: (next: string) => void) => void;
 }) {
-  const [positions, setPositions] = useState<Array<{top:number;left:number;width:number;height:number}>>([]);
+  const [positions, setPositions] = useState<
+    Array<{ top: number; left: number; width: number; height: number }>
+  >([]);
   const tokens = useMemo(() => parseTokens(value), [value]);
 
   const measure = useCallback(() => {
     const ta = taRef.current;
-    if (!ta || tokens.length === 0) { setPositions([]); return; }
-    try { setPositions(measureTokenPositions(ta, tokens)); } catch { setPositions([]); }
+    if (!ta || tokens.length === 0) {
+      setPositions([]);
+      return;
+    }
+    try {
+      setPositions(measureTokenPositions(ta, tokens));
+    } catch {
+      setPositions([]);
+    }
   }, [taRef, tokens]);
 
-  useEffect(() => { measure(); }, [measure]);
+  useEffect(() => {
+    measure();
+  }, [measure]);
   useEffect(() => {
     const ta = taRef.current;
     if (!ta) return;
-    ta.addEventListener("scroll", measure, { passive:true });
+    ta.addEventListener("scroll", measure, { passive: true });
     const ro = new ResizeObserver(measure);
     ro.observe(ta);
-    return () => { ta.removeEventListener("scroll", measure); ro.disconnect(); };
+    return () => {
+      ta.removeEventListener("scroll", measure);
+      ro.disconnect();
+    };
   }, [taRef, measure]);
 
-  const handleDelete  = useCallback((t: SnippetToken) => {
-    onChange(value.slice(0, t.index) + value.slice(t.index + t.raw.length));
-  }, [value, onChange]);
+  const handleDelete = useCallback(
+    (t: SnippetToken) => {
+      onChange(value.slice(0, t.index) + value.slice(t.index + t.raw.length));
+    },
+    [value, onChange],
+  );
 
-  const handleReplace = useCallback((t: SnippetToken, next: string) => {
-    onChange(value.slice(0, t.index) + next + value.slice(t.index + t.raw.length));
-  }, [value, onChange]);
+  const handleReplace = useCallback(
+    (t: SnippetToken, next: string) => {
+      onChange(
+        value.slice(0, t.index) + next + value.slice(t.index + t.raw.length),
+      );
+    },
+    [value, onChange],
+  );
 
   if (tokens.length === 0 || positions.length === 0) return null;
 
@@ -199,9 +350,14 @@ function SnippetOverlayInner({ value, taRef, onChange, onEdit }: {
         const pos = positions[i];
         if (!pos) return null;
         return (
-          <SnippetChip key={`${token.raw}-${token.index}`}
-            pos={pos} token={token}
-            onDelete={handleDelete} onEdit={onEdit} onReplace={handleReplace} />
+          <SnippetChip
+            key={`${token.raw}-${token.index}`}
+            pos={pos}
+            token={token}
+            onDelete={handleDelete}
+            onEdit={onEdit}
+            onReplace={handleReplace}
+          />
         );
       })}
     </>
@@ -210,12 +366,21 @@ function SnippetOverlayInner({ value, taRef, onChange, onEdit }: {
 
 // ─── API pública ──────────────────────────────────────────────────────────────
 
-export function makeSnippetOverlay({ taRef, onChange, onEdit }: {
-  taRef:    React.RefObject<HTMLTextAreaElement>;
+export function makeSnippetOverlay({
+  taRef,
+  onChange,
+  onEdit,
+}: {
+  taRef: React.RefObject<HTMLTextAreaElement | null>;
   onChange: (next: string) => void;
-  onEdit?:  (raw: string, replace: (next: string) => void) => void;
+  onEdit?: (raw: string, replace: (next: string) => void) => void;
 }): (value: string) => React.ReactNode {
   return (value: string) => (
-    <SnippetOverlayInner taRef={taRef} value={value} onChange={onChange} onEdit={onEdit} />
+    <SnippetOverlayInner
+      taRef={taRef}
+      value={value}
+      onChange={onChange}
+      onEdit={onEdit}
+    />
   );
 }

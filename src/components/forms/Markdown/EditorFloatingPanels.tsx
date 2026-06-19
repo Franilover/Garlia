@@ -23,27 +23,119 @@ const PRIMARY = "var(--color-primary, #7c6af7)";
 const mono = { fontFamily: "var(--font-mono)" } as const;
 
 // ── Category config ───────────────────────────────────────────────────────────
-type Category = "todo" | "snippet" | "imagen" | "personaje" | "dialogo" | "formato";
+type Category =
+  | "todo"
+  | "snippet"
+  | "imagen"
+  | "personaje"
+  | "dialogo"
+  | "formato";
 
-const CATEGORIES: { id: Category; label: string; emoji: string; keywords: string[] }[] = [
-  { id: "todo",      label: "Todo",      emoji: "✦",  keywords: [] },
-  { id: "snippet",   label: "Snippet",   emoji: "⚡",  keywords: ["drop","choice","use","section","sound","cita","parrafo","párrafo","snip"] },
-  { id: "imagen",    label: "Imagen",    emoji: "🖼️", keywords: ["imagen","img","foto","imag"] },
-  { id: "personaje", label: "Personaje", emoji: "⚔️", keywords: ["personaj","criatur","item","ítem","enti","drop","use"] },
-  { id: "dialogo",   label: "Diálogo",   emoji: "💬", keywords: ["dial","guion","acot","comi","linea","línea","punt","endash"] },
-  { id: "formato",   label: "Formato",   emoji: "¶",  keywords: ["parr","párr","salto","cita","quote","tabla","head","bold","italic"] },
+const CATEGORIES: {
+  id: Category;
+  label: string;
+  emoji: string;
+  keywords: string[];
+}[] = [
+  { id: "todo", label: "Todo", emoji: "✦", keywords: [] },
+  {
+    id: "snippet",
+    label: "Snippet",
+    emoji: "⚡",
+    keywords: [
+      "drop",
+      "choice",
+      "use",
+      "section",
+      "sound",
+      "cita",
+      "parrafo",
+      "párrafo",
+      "snip",
+    ],
+  },
+  {
+    id: "imagen",
+    label: "Imagen",
+    emoji: "🖼️",
+    keywords: ["imagen", "img", "foto", "imag"],
+  },
+  {
+    id: "personaje",
+    label: "Personaje",
+    emoji: "⚔️",
+    keywords: ["personaj", "criatur", "item", "ítem", "enti", "drop", "use"],
+  },
+  {
+    id: "dialogo",
+    label: "Diálogo",
+    emoji: "💬",
+    keywords: [
+      "dial",
+      "guion",
+      "acot",
+      "comi",
+      "linea",
+      "línea",
+      "punt",
+      "endash",
+    ],
+  },
+  {
+    id: "formato",
+    label: "Formato",
+    emoji: "¶",
+    keywords: [
+      "parr",
+      "párr",
+      "salto",
+      "cita",
+      "quote",
+      "tabla",
+      "head",
+      "bold",
+      "italic",
+    ],
+  },
 ];
 
 function inferCategory(item: CommandItem): Category {
   const kws = item.keywords ?? [];
-  const id   = item.id ?? "";
-  const all  = [...kws, id].map(s => s.toLowerCase());
+  const id = item.id ?? "";
+  const all = [...kws, id].map((s) => s.toLowerCase());
 
-  if (all.some(k => ["img","imagen","foto","imag"].includes(k)))                         return "imagen";
-  if (all.some(k => ["dial","guion","acot","comi","linea","línea","punt","endash"].some(d => k.includes(d)))) return "dialogo";
-  if (all.some(k => ["parr","párr","salto","cita","quote"].some(d => k.includes(d))))   return "formato";
-  if (all.some(k => ["personaj","criatur","enti"].some(d => k.includes(d))))            return "personaje";
-  if (id.startsWith("snip") || all.some(k => ["drop","choice","use","section","sound"].includes(k))) return "snippet";
+  if (all.some((k) => ["img", "imagen", "foto", "imag"].includes(k)))
+    return "imagen";
+  if (
+    all.some((k) =>
+      [
+        "dial",
+        "guion",
+        "acot",
+        "comi",
+        "linea",
+        "línea",
+        "punt",
+        "endash",
+      ].some((d) => k.includes(d)),
+    )
+  )
+    return "dialogo";
+  if (
+    all.some((k) =>
+      ["parr", "párr", "salto", "cita", "quote"].some((d) => k.includes(d)),
+    )
+  )
+    return "formato";
+  if (
+    all.some((k) => ["personaj", "criatur", "enti"].some((d) => k.includes(d)))
+  )
+    return "personaje";
+  if (
+    id.startsWith("snip") ||
+    all.some((k) => ["drop", "choice", "use", "section", "sound"].includes(k))
+  )
+    return "snippet";
   return "formato";
 }
 
@@ -51,7 +143,7 @@ function inferCategory(item: CommandItem): Category {
 // CommandMenu
 // ────────────────────────────────────────────────────────────────────────────
 interface CommandMenuProps {
-  menuRef: React.RefObject<HTMLDivElement>;
+  menuRef: React.RefObject<HTMLDivElement | null>;
   pos: { top: number; left: number };
   query: string;
   selectedIdx: number;
@@ -61,20 +153,30 @@ interface CommandMenuProps {
 }
 
 export function CommandMenu({
-  menuRef, pos, query, selectedIdx, items, onSelect, onHover,
+  menuRef,
+  pos,
+  query,
+  selectedIdx,
+  items,
+  onSelect,
+  onHover,
 }: CommandMenuProps) {
-  const [localQuery, setLocalQuery]     = useState(query);
-  const [activeCategory, setCategory]  = useState<Category>("todo");
+  const [localQuery, setLocalQuery] = useState(query);
+  const [activeCategory, setCategory] = useState<Category>("todo");
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Sync externa query → local (cuando el usuario escribe en el textarea)
-  useEffect(() => { setLocalQuery(query); }, [query]);
+  useEffect(() => {
+    setLocalQuery(query);
+  }, [query]);
   // Focus automático al abrir
-  useEffect(() => { setTimeout(() => inputRef.current?.focus(), 30); }, []);
+  useEffect(() => {
+    setTimeout(() => inputRef.current?.focus(), 30);
+  }, []);
 
   const filtered = useMemo(() => {
     const q = localQuery.toLowerCase().trim();
-    return items.filter(item => {
+    return items.filter((item) => {
       // filtro de categoría
       if (activeCategory !== "todo") {
         const cat = inferCategory(item);
@@ -82,15 +184,26 @@ export function CommandMenu({
       }
       // filtro de texto
       if (!q) return true;
-      const haystack = [item.label, item.description, ...(item.keywords ?? [])].join(" ").toLowerCase();
+      const haystack = [item.label, item.description, ...(item.keywords ?? [])]
+        .join(" ")
+        .toLowerCase();
       return haystack.includes(q);
     });
   }, [items, localQuery, activeCategory]);
 
   // Conteo por categoría para los chips
   const counts = useMemo(() => {
-    const map: Record<Category, number> = { todo: items.length, snippet: 0, imagen: 0, personaje: 0, dialogo: 0, formato: 0 };
-    items.forEach(item => { map[inferCategory(item)]++; });
+    const map: Record<Category, number> = {
+      todo: items.length,
+      snippet: 0,
+      imagen: 0,
+      personaje: 0,
+      dialogo: 0,
+      formato: 0,
+    };
+    items.forEach((item) => {
+      map[inferCategory(item)]++;
+    });
     return map;
   }, [items]);
 
@@ -121,7 +234,13 @@ export function CommandMenu({
           borderBottom: `1px solid color-mix(in srgb, var(--foreground) 6%, transparent)`,
         }}
       >
-        <Search size={13} style={{ color: `color-mix(in srgb, ${PRIMARY} 55%, transparent)`, flexShrink: 0 }} />
+        <Search
+          size={13}
+          style={{
+            color: `color-mix(in srgb, ${PRIMARY} 55%, transparent)`,
+            flexShrink: 0,
+          }}
+        />
         <input
           ref={inputRef}
           placeholder="Buscar…"
@@ -137,18 +256,32 @@ export function CommandMenu({
           }}
           type="text"
           value={localQuery}
-          onChange={e => setLocalQuery(e.target.value)}
+          onChange={(e) => setLocalQuery(e.target.value)}
         />
         {localQuery && (
           <button
-            style={{ background: "none", border: "none", cursor: "pointer", padding: 2, display: "flex", color: `color-mix(in srgb, var(--foreground) 30%, transparent)` }}
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              padding: 2,
+              display: "flex",
+              color: `color-mix(in srgb, var(--foreground) 30%, transparent)`,
+            }}
             type="button"
             onClick={() => setLocalQuery("")}
           >
             <X size={11} />
           </button>
         )}
-        <span style={{ fontSize: 8, ...mono, color: `color-mix(in srgb, ${PRIMARY} 30%, transparent)`, flexShrink: 0 }}>
+        <span
+          style={{
+            fontSize: 8,
+            ...mono,
+            color: `color-mix(in srgb, ${PRIMARY} 30%, transparent)`,
+            flexShrink: 0,
+          }}
+        >
           ↑↓ Tab
         </span>
       </div>
@@ -156,14 +289,22 @@ export function CommandMenu({
       {/* ── Items ── */}
       <div style={{ maxHeight: 260, overflowY: "auto" }}>
         {filtered.length === 0 ? (
-          <div style={{ padding: "18px 12px", fontSize: 11, color: `color-mix(in srgb, var(--foreground) 28%, transparent)`, textAlign: "center", ...mono }}>
+          <div
+            style={{
+              padding: "18px 12px",
+              fontSize: 11,
+              color: `color-mix(in srgb, var(--foreground) 28%, transparent)`,
+              textAlign: "center",
+              ...mono,
+            }}
+          >
             Sin resultados{localQuery ? ` para "${localQuery}"` : ""}
           </div>
         ) : (
           filtered.map((item, idx) => {
             const active = idx === selectedIdx;
-            const cat    = inferCategory(item);
-            const catCfg = CATEGORIES.find(c => c.id === cat)!;
+            const cat = inferCategory(item);
+            const catCfg = CATEGORIES.find((c) => c.id === cat)!;
             return (
               <button
                 key={item.id}
@@ -173,9 +314,13 @@ export function CommandMenu({
                   alignItems: "center",
                   gap: 10,
                   padding: "8px 12px",
-                  background: active ? `color-mix(in srgb, ${PRIMARY} 11%, transparent)` : "transparent",
+                  background: active
+                    ? `color-mix(in srgb, ${PRIMARY} 11%, transparent)`
+                    : "transparent",
                   border: "none",
-                  borderLeft: active ? `2px solid ${PRIMARY}` : "2px solid transparent",
+                  borderLeft: active
+                    ? `2px solid ${PRIMARY}`
+                    : "2px solid transparent",
                   cursor: "pointer",
                   textAlign: "left",
                   transition: "background 0.1s",
@@ -206,42 +351,48 @@ export function CommandMenu({
 
                 {/* Texto */}
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{
-                    fontSize: 12,
-                    fontWeight: 600,
-                    color: active
-                      ? "color-mix(in srgb, var(--foreground) 92%, transparent)"
-                      : "color-mix(in srgb, var(--foreground) 65%, transparent)",
-                    marginBottom: 2,
-                    transition: "color 0.1s",
-                  }}>
+                  <div
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 600,
+                      color: active
+                        ? "color-mix(in srgb, var(--foreground) 92%, transparent)"
+                        : "color-mix(in srgb, var(--foreground) 65%, transparent)",
+                      marginBottom: 2,
+                      transition: "color 0.1s",
+                    }}
+                  >
                     {item.label}
                   </div>
-                  <div style={{
-                    fontSize: 10,
-                    color: `color-mix(in srgb, var(--foreground) 30%, transparent)`,
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}>
+                  <div
+                    style={{
+                      fontSize: 10,
+                      color: `color-mix(in srgb, var(--foreground) 30%, transparent)`,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
                     {item.description}
                   </div>
                 </div>
 
                 {/* Tag de tipo */}
-                <span style={{
-                  flexShrink: 0,
-                  fontSize: 8,
-                  fontWeight: 900,
-                  ...mono,
-                  letterSpacing: "0.08em",
-                  textTransform: "uppercase",
-                  padding: "2px 6px",
-                  borderRadius: 20,
-                  background: `color-mix(in srgb, ${PRIMARY} 9%, transparent)`,
-                  color: `color-mix(in srgb, ${PRIMARY} 55%, transparent)`,
-                  border: `1px solid color-mix(in srgb, ${PRIMARY} 14%, transparent)`,
-                }}>
+                <span
+                  style={{
+                    flexShrink: 0,
+                    fontSize: 8,
+                    fontWeight: 900,
+                    ...mono,
+                    letterSpacing: "0.08em",
+                    textTransform: "uppercase",
+                    padding: "2px 6px",
+                    borderRadius: 20,
+                    background: `color-mix(in srgb, ${PRIMARY} 9%, transparent)`,
+                    color: `color-mix(in srgb, ${PRIMARY} 55%, transparent)`,
+                    border: `1px solid color-mix(in srgb, ${PRIMARY} 14%, transparent)`,
+                  }}
+                >
                   {catCfg.emoji} {catCfg.label}
                 </span>
               </button>
@@ -251,62 +402,70 @@ export function CommandMenu({
       </div>
 
       {/* ── Chips de categoría ── */}
-      <div style={{
-        display: "flex",
-        gap: 4,
-        padding: "7px 10px",
-        borderTop: `1px solid color-mix(in srgb, var(--foreground) 6%, transparent)`,
-        overflowX: "auto",
-        scrollbarWidth: "none",
-      }}>
-        {CATEGORIES.filter(c => c.id === "todo" || counts[c.id] > 0).map(cat => {
-          const active = activeCategory === cat.id;
-          return (
-            <button
-              key={cat.id}
-              style={{
-                flexShrink: 0,
-                display: "flex",
-                alignItems: "center",
-                gap: 4,
-                padding: "3px 8px",
-                borderRadius: 20,
-                border: active
-                  ? `1px solid color-mix(in srgb, ${PRIMARY} 45%, transparent)`
-                  : `1px solid color-mix(in srgb, var(--foreground) 10%, transparent)`,
-                background: active
-                  ? `color-mix(in srgb, ${PRIMARY} 14%, transparent)`
-                  : "transparent",
-                cursor: "pointer",
-                fontSize: 9,
-                fontWeight: 800,
-                ...mono,
-                letterSpacing: "0.06em",
-                textTransform: "uppercase",
-                color: active
-                  ? PRIMARY
-                  : `color-mix(in srgb, var(--foreground) 38%, transparent)`,
-                transition: "all 0.12s",
-              }}
-              type="button"
-              onClick={() => setCategory(cat.id)}
-            >
-              <span style={{ fontSize: 10 }}>{cat.emoji}</span>
-              {cat.label}
-              {cat.id !== "todo" && (
-                <span style={{
-                  fontSize: 8,
-                  opacity: 0.6,
-                  background: active ? `color-mix(in srgb, ${PRIMARY} 20%, transparent)` : `color-mix(in srgb, var(--foreground) 8%, transparent)`,
-                  borderRadius: 10,
-                  padding: "0 4px",
-                }}>
-                  {counts[cat.id]}
-                </span>
-              )}
-            </button>
-          );
-        })}
+      <div
+        style={{
+          display: "flex",
+          gap: 4,
+          padding: "7px 10px",
+          borderTop: `1px solid color-mix(in srgb, var(--foreground) 6%, transparent)`,
+          overflowX: "auto",
+          scrollbarWidth: "none",
+        }}
+      >
+        {CATEGORIES.filter((c) => c.id === "todo" || counts[c.id] > 0).map(
+          (cat) => {
+            const active = activeCategory === cat.id;
+            return (
+              <button
+                key={cat.id}
+                style={{
+                  flexShrink: 0,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 4,
+                  padding: "3px 8px",
+                  borderRadius: 20,
+                  border: active
+                    ? `1px solid color-mix(in srgb, ${PRIMARY} 45%, transparent)`
+                    : `1px solid color-mix(in srgb, var(--foreground) 10%, transparent)`,
+                  background: active
+                    ? `color-mix(in srgb, ${PRIMARY} 14%, transparent)`
+                    : "transparent",
+                  cursor: "pointer",
+                  fontSize: 9,
+                  fontWeight: 800,
+                  ...mono,
+                  letterSpacing: "0.06em",
+                  textTransform: "uppercase",
+                  color: active
+                    ? PRIMARY
+                    : `color-mix(in srgb, var(--foreground) 38%, transparent)`,
+                  transition: "all 0.12s",
+                }}
+                type="button"
+                onClick={() => setCategory(cat.id)}
+              >
+                <span style={{ fontSize: 10 }}>{cat.emoji}</span>
+                {cat.label}
+                {cat.id !== "todo" && (
+                  <span
+                    style={{
+                      fontSize: 8,
+                      opacity: 0.6,
+                      background: active
+                        ? `color-mix(in srgb, ${PRIMARY} 20%, transparent)`
+                        : `color-mix(in srgb, var(--foreground) 8%, transparent)`,
+                      borderRadius: 10,
+                      padding: "0 4px",
+                    }}
+                  >
+                    {counts[cat.id]}
+                  </span>
+                )}
+              </button>
+            );
+          },
+        )}
       </div>
     </div>
   );
@@ -326,7 +485,13 @@ interface WikilinkMenuProps {
 }
 
 export function WikilinkMenu({
-  menuRef, pos, query, selectedIdx, entities, onSelect, onHover,
+  menuRef,
+  pos,
+  query,
+  selectedIdx,
+  entities,
+  onSelect,
+  onHover,
 }: WikilinkMenuProps) {
   return (
     <div
@@ -409,7 +574,13 @@ export function WikilinkMenu({
             Entidades
           </span>
         )}
-        <span style={{ fontSize: 8, ...mono, color: `color-mix(in srgb, ${PRIMARY} 30%, transparent)` }}>
+        <span
+          style={{
+            fontSize: 8,
+            ...mono,
+            color: `color-mix(in srgb, ${PRIMARY} 30%, transparent)`,
+          }}
+        >
           ↑↓ Tab
         </span>
       </div>
@@ -531,7 +702,7 @@ export function WikilinkMenu({
 // FindReplacePanel
 // ────────────────────────────────────────────────────────────────────────────
 interface FindReplacePanelProps {
-  findInputRef: React.RefObject<HTMLInputElement>;
+  findInputRef: React.RefObject<HTMLInputElement | null>;
   find: string;
   replace: string;
   caseSensitive: boolean;
@@ -549,11 +720,21 @@ interface FindReplacePanelProps {
 }
 
 export function FindReplacePanel({
-  findInputRef, find, replace, caseSensitive,
-  currentMatch, totalMatches,
-  onFindChange, onReplaceChange, onCaseSensitiveChange,
-  onFindNext, onFindPrev, onReplaceOne, onReplaceAll,
-  onClose, onFindKeyDown,
+  findInputRef,
+  find,
+  replace,
+  caseSensitive,
+  currentMatch,
+  totalMatches,
+  onFindChange,
+  onReplaceChange,
+  onCaseSensitiveChange,
+  onFindNext,
+  onFindPrev,
+  onReplaceOne,
+  onReplaceAll,
+  onClose,
+  onFindKeyDown,
 }: FindReplacePanelProps) {
   const inputStyle: React.CSSProperties = {
     width: "100%",
@@ -616,7 +797,13 @@ export function FindReplacePanel({
       }}
     >
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
         <span
           style={{
             fontSize: 10,
@@ -653,7 +840,7 @@ export function FindReplacePanel({
             style={inputStyle}
             type="text"
             value={find}
-            onChange={e => onFindChange(e.target.value)}
+            onChange={(e) => onFindChange(e.target.value)}
             onKeyDown={onFindKeyDown}
           />
           {find && (
@@ -673,10 +860,20 @@ export function FindReplacePanel({
             </span>
           )}
         </div>
-        <button style={navBtn} title="Anterior (Shift+Enter)" type="button" onClick={onFindPrev}>
+        <button
+          style={navBtn}
+          title="Anterior (Shift+Enter)"
+          type="button"
+          onClick={onFindPrev}
+        >
           <ChevronUp size={12} />
         </button>
-        <button style={navBtn} title="Siguiente (Enter)" type="button" onClick={onFindNext}>
+        <button
+          style={navBtn}
+          title="Siguiente (Enter)"
+          type="button"
+          onClick={onFindNext}
+        >
           <ChevronDown size={12} />
         </button>
       </div>
@@ -688,13 +885,25 @@ export function FindReplacePanel({
           style={{ ...inputStyle, flex: 1 }}
           type="text"
           value={replace}
-          onChange={e => onReplaceChange(e.target.value)}
-          onKeyDown={e => { if (e.key === "Escape") onClose(); }}
+          onChange={(e) => onReplaceChange(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") onClose();
+          }}
         />
-        <button style={actionBtn(true)} title="Reemplazar este" type="button" onClick={onReplaceOne}>
+        <button
+          style={actionBtn(true)}
+          title="Reemplazar este"
+          type="button"
+          onClick={onReplaceOne}
+        >
           <Replace size={11} />
         </button>
-        <button style={actionBtn(true)} title="Reemplazar todos" type="button" onClick={onReplaceAll}>
+        <button
+          style={actionBtn(true)}
+          title="Reemplazar todos"
+          type="button"
+          onClick={onReplaceAll}
+        >
           All
         </button>
       </div>
@@ -716,7 +925,7 @@ export function FindReplacePanel({
             checked={caseSensitive}
             style={{ accentColor: PRIMARY, width: 11, height: 11 }}
             type="checkbox"
-            onChange={e => onCaseSensitiveChange(e.target.checked)}
+            onChange={(e) => onCaseSensitiveChange(e.target.checked)}
           />
           Aa (mayúsculas)
         </label>
@@ -741,9 +950,14 @@ interface TableEditorPanelProps {
 }
 
 export function TableEditorPanel({
-  anchorEl, rows,
-  onCellChange, onAddRow, onAddCol,
-  onDeleteRow, onDeleteLastRow, onDeleteLastCol,
+  anchorEl,
+  rows,
+  onCellChange,
+  onAddRow,
+  onAddCol,
+  onDeleteRow,
+  onDeleteLastRow,
+  onDeleteLastCol,
   onClose,
 }: TableEditorPanelProps) {
   const top = Math.min(
@@ -752,7 +966,11 @@ export function TableEditorPanel({
   );
   const left = Math.max(8, Math.min(anchorEl.left, window.innerWidth - 540));
 
-  const smallBtn = (label: React.ReactNode, onClick: () => void, title?: string): React.CSSProperties => ({});
+  const smallBtn = (
+    label: React.ReactNode,
+    onClick: () => void,
+    title?: string,
+  ): React.CSSProperties => ({});
 
   return (
     <div
@@ -777,7 +995,8 @@ export function TableEditorPanel({
           alignItems: "center",
           justifyContent: "space-between",
           padding: "7px 12px",
-          borderBottom: "1px solid color-mix(in srgb, var(--foreground) 8%, transparent)",
+          borderBottom:
+            "1px solid color-mix(in srgb, var(--foreground) 8%, transparent)",
         }}
       >
         <span
@@ -794,7 +1013,7 @@ export function TableEditorPanel({
         <div style={{ display: "flex", gap: 6 }}>
           {[
             { label: "+col", title: "Añadir columna", onClick: onAddCol },
-            { label: "+fila", title: "Añadir fila",    onClick: onAddRow },
+            { label: "+fila", title: "Añadir fila", onClick: onAddRow },
           ].map(({ label, title, onClick }) => (
             <button
               key={label}
@@ -834,7 +1053,14 @@ export function TableEditorPanel({
       </div>
 
       {/* Grid */}
-      <div style={{ padding: "10px", overflowX: "auto", maxHeight: 300, overflowY: "auto" }}>
+      <div
+        style={{
+          padding: "10px",
+          overflowX: "auto",
+          maxHeight: 300,
+          overflowY: "auto",
+        }}
+      >
         <table style={{ borderCollapse: "collapse", width: "100%" }}>
           <tbody>
             {rows.map((row, ri) => (
@@ -845,24 +1071,28 @@ export function TableEditorPanel({
                       style={{
                         width: "100%",
                         minWidth: 80,
-                        background: ri === 0
-                          ? `color-mix(in srgb, ${PRIMARY} 10%, transparent)`
-                          : "color-mix(in srgb, var(--foreground) 4%, transparent)",
+                        background:
+                          ri === 0
+                            ? `color-mix(in srgb, ${PRIMARY} 10%, transparent)`
+                            : "color-mix(in srgb, var(--foreground) 4%, transparent)",
                         border: `1px solid color-mix(in srgb, var(--foreground) ${ri === 0 ? 15 : 8}%, transparent)`,
                         borderRadius: 4,
                         padding: "4px 7px",
                         fontSize: 12,
                         fontFamily: ri === 0 ? "var(--font-mono)" : "inherit",
                         fontWeight: ri === 0 ? 700 : 400,
-                        color: "color-mix(in srgb, var(--foreground) 85%, transparent)",
+                        color:
+                          "color-mix(in srgb, var(--foreground) 85%, transparent)",
                         outline: "none",
                         boxSizing: "border-box",
                       }}
                       type="text"
                       value={cell}
-                      onBlur={e => { e.target.style.borderColor = ""; }}
-                      onChange={e => onCellChange(ri, ci, e.target.value)}
-                      onFocus={e => {
+                      onBlur={(e) => {
+                        e.target.style.borderColor = "";
+                      }}
+                      onChange={(e) => onCellChange(ri, ci, e.target.value)}
+                      onFocus={(e) => {
                         e.target.style.borderColor = `color-mix(in srgb, ${PRIMARY} 60%, transparent)`;
                       }}
                     />
@@ -884,7 +1114,11 @@ export function TableEditorPanel({
                       display: "flex",
                       alignItems: "center",
                     }}
-                    title={ri === 0 ? "Fila de encabezado (no eliminable)" : "Eliminar fila"}
+                    title={
+                      ri === 0
+                        ? "Fila de encabezado (no eliminable)"
+                        : "Eliminar fila"
+                    }
                     type="button"
                     onClick={() => onDeleteRow(ri)}
                   >
@@ -903,13 +1137,22 @@ export function TableEditorPanel({
           display: "flex",
           justifyContent: "flex-end",
           padding: "6px 12px",
-          borderTop: "1px solid color-mix(in srgb, var(--foreground) 6%, transparent)",
+          borderTop:
+            "1px solid color-mix(in srgb, var(--foreground) 6%, transparent)",
           gap: 6,
         }}
       >
         {[
-          { label: "−col",  title: "Eliminar última columna", onClick: onDeleteLastCol },
-          { label: "−fila", title: "Eliminar última fila",    onClick: onDeleteLastRow },
+          {
+            label: "−col",
+            title: "Eliminar última columna",
+            onClick: onDeleteLastCol,
+          },
+          {
+            label: "−fila",
+            title: "Eliminar última fila",
+            onClick: onDeleteLastRow,
+          },
         ].map(({ label, title, onClick }) => (
           <button
             key={label}
@@ -917,7 +1160,8 @@ export function TableEditorPanel({
               fontSize: 10,
               ...mono,
               background: "transparent",
-              border: "1px solid color-mix(in srgb, var(--foreground) 12%, transparent)",
+              border:
+                "1px solid color-mix(in srgb, var(--foreground) 12%, transparent)",
               borderRadius: 4,
               color: "color-mix(in srgb, var(--foreground) 40%, transparent)",
               padding: "2px 7px",

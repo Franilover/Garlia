@@ -113,6 +113,26 @@ const eslintConfig = [
   },
 
   // ───────────────────────────────────────────────────────────────────────────
+  // FUERZA DE ERRORES DE TYPESCRIPT
+  // Sobrescribe la configuración por defecto para que las reglas críticas de TS
+  // se marquen estrictamente como "error" (en rojo).
+  // ───────────────────────────────────────────────────────────────────────────
+  {
+    files: ["**/*.{ts,tsx}"],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "error",
+      "@typescript-eslint/no-unsafe-assignment": "error",
+      "@typescript-eslint/no-unsafe-member-access": "error",
+      "@typescript-eslint/no-unsafe-call": "error",
+      "@typescript-eslint/no-unsafe-return": "error",
+      "@typescript-eslint/no-misused-promises": "error",
+      "@typescript-eslint/no-floating-promises": "error",
+      "@typescript-eslint/restrict-template-expressions": "error",
+      "@typescript-eslint/consistent-type-imports": ["error", { prefer: "type-imports" }],
+    },
+  },
+
+  // ───────────────────────────────────────────────────────────────────────────
   // app/ — SOLO puede importar desde features/ (views). NADA más de la app.
   // ───────────────────────────────────────────────────────────────────────────
   {
