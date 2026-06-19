@@ -1,16 +1,24 @@
 "use client";
 import Image from "next/image";
 
-
 import { AnimatePresence } from "framer-motion";
 import {
-  User, Cat, Sword, MapPin, Crown, Plus, Trash2, Loader2, Search, X, AlertTriangle,
+  User,
+  Cat,
+  Sword,
+  MapPin,
+  Crown,
+  Plus,
+  Trash2,
+  Loader2,
+  Search,
+  X,
+  AlertTriangle,
 } from "lucide-react";
 import React, { useEffect, useState, useCallback } from "react";
 
 import { MotionDiv } from "@/components/ui/Motion";
 import { supabase } from "@/lib/api/client/supabase";
-
 
 // ── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -41,49 +49,85 @@ interface Entidad {
 
 // ── Configuración por tab ─────────────────────────────────────────────────────
 
-const TAB_CONFIG: Record<TabId, {
-  label: string;
-  icon: React.ReactNode;
-  tabla: string;             // tabla de descubrimientos / desbloqueos
-  fk: string;               // columna que apunta a la entidad
-  entidadTabla: string;     // tabla maestra
-  entidadSelect: string;    // columna de nombre en la entidad
-  entidadImagen: string;    // columna de imagen en la entidad
-  entidadExtra?: string;    // columna extra opcional
-  perfilCol: string;        // columna del perfil_id / user_id
-  fechaCol: string;         // columna de fecha
-  joinAlias: string;        // alias en la query de join
-  compositePk?: boolean;    // true si la PK es (perfilCol, fk) en vez de id
-}> = {
+const TAB_CONFIG: Record<
+  TabId,
+  {
+    label: string;
+    icon: React.ReactNode;
+    tabla: string; // tabla de descubrimientos / desbloqueos
+    fk: string; // columna que apunta a la entidad
+    entidadTabla: string; // tabla maestra
+    entidadSelect: string; // columna de nombre en la entidad
+    entidadImagen: string; // columna de imagen en la entidad
+    entidadExtra?: string; // columna extra opcional
+    perfilCol: string; // columna del perfil_id / user_id
+    fechaCol: string; // columna de fecha
+    joinAlias: string; // alias en la query de join
+    compositePk?: boolean; // true si la PK es (perfilCol, fk) en vez de id
+  }
+> = {
   personajes: {
-    label: "Personajes", icon: <User size={12} />,
-    tabla: "descubrimientos_personajes", fk: "personaje_id",
-    entidadTabla: "personajes", entidadSelect: "nombre", entidadImagen: "img_url", entidadExtra: "reino",
-    perfilCol: "perfil_id", fechaCol: "fecha_descubrimiento", joinAlias: "personajes",
+    label: "Personajes",
+    icon: <User size={12} />,
+    tabla: "descubrimientos_personajes",
+    fk: "personaje_id",
+    entidadTabla: "personajes",
+    entidadSelect: "nombre",
+    entidadImagen: "img_url",
+    entidadExtra: "reino",
+    perfilCol: "perfil_id",
+    fechaCol: "fecha_descubrimiento",
+    joinAlias: "personajes",
   },
   criaturas: {
-    label: "Criaturas", icon: <Cat size={12} />,
-    tabla: "descubrimientos_criaturas", fk: "criatura_id",
-    entidadTabla: "criaturas", entidadSelect: "nombre", entidadImagen: "imagen_url", entidadExtra: "habitat",
-    perfilCol: "perfil_id", fechaCol: "fecha_descubrimiento", joinAlias: "criaturas",
+    label: "Criaturas",
+    icon: <Cat size={12} />,
+    tabla: "descubrimientos_criaturas",
+    fk: "criatura_id",
+    entidadTabla: "criaturas",
+    entidadSelect: "nombre",
+    entidadImagen: "imagen_url",
+    entidadExtra: "habitat",
+    perfilCol: "perfil_id",
+    fechaCol: "fecha_descubrimiento",
+    joinAlias: "criaturas",
   },
   items: {
-    label: "Items", icon: <Sword size={12} />,
-    tabla: "descubrimientos_items", fk: "item_id",
-    entidadTabla: "items", entidadSelect: "nombre", entidadImagen: "imagen_url", entidadExtra: "categoria",
-    perfilCol: "perfil_id", fechaCol: "fecha_descubrimiento", joinAlias: "items",
+    label: "Items",
+    icon: <Sword size={12} />,
+    tabla: "descubrimientos_items",
+    fk: "item_id",
+    entidadTabla: "items",
+    entidadSelect: "nombre",
+    entidadImagen: "imagen_url",
+    entidadExtra: "categoria",
+    perfilCol: "perfil_id",
+    fechaCol: "fecha_descubrimiento",
+    joinAlias: "items",
   },
   reinos: {
-    label: "Reinos", icon: <Crown size={12} />,
-    tabla: "descubrimientos_reinos", fk: "reino_id",
-    entidadTabla: "reinos", entidadSelect: "nombre", entidadImagen: "mapa_url",
-    perfilCol: "perfil_id", fechaCol: "fecha_descubrimiento", joinAlias: "reino_data",
+    label: "Reinos",
+    icon: <Crown size={12} />,
+    tabla: "descubrimientos_reinos",
+    fk: "reino_id",
+    entidadTabla: "reinos",
+    entidadSelect: "nombre",
+    entidadImagen: "mapa_url",
+    perfilCol: "perfil_id",
+    fechaCol: "fecha_descubrimiento",
+    joinAlias: "reino_data",
   },
   ciudades: {
-    label: "Ciudades", icon: <MapPin size={12} />,
-    tabla: "ciudades_desbloqueadas", fk: "ciudad_id",
-    entidadTabla: "ciudades", entidadSelect: "nombre", entidadImagen: "imagen_url",
-    perfilCol: "user_id", fechaCol: "desbloqueado_en", joinAlias: "ciudades",
+    label: "Ciudades",
+    icon: <MapPin size={12} />,
+    tabla: "ciudades_desbloqueadas",
+    fk: "ciudad_id",
+    entidadTabla: "ciudades",
+    entidadSelect: "nombre",
+    entidadImagen: "imagen_url",
+    perfilCol: "user_id",
+    fechaCol: "desbloqueado_en",
+    joinAlias: "ciudades",
     compositePk: true,
   },
 };
@@ -92,7 +136,11 @@ const TAB_CONFIG: Record<TabId, {
 
 function fmt(fecha?: string | null) {
   if (!fecha) return "—";
-  return new Date(fecha).toLocaleDateString("es-CL", { day: "2-digit", month: "short", year: "numeric" });
+  return new Date(fecha).toLocaleDateString("es-CL", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
 }
 
 // ── Helpers Dexie ─────────────────────────────────────────────────────────────
@@ -104,7 +152,9 @@ async function dexieGetAll<T>(tabla: string): Promise<T[]> {
     const t = (db as any)[tabla];
     if (!t) return [];
     return ((await t.toArray()) as any[]).filter((r: any) => !r.deleted) as T[];
-  } catch { return []; }
+  } catch {
+    return [];
+  }
 }
 
 async function dexieGetOne<T>(tabla: string, id: string): Promise<T | null> {
@@ -112,28 +162,30 @@ async function dexieGetOne<T>(tabla: string, id: string): Promise<T | null> {
     const { db } = await import("@/lib/api/client/db");
     if (!db) return null;
     return (await (db as any)[tabla]?.get(id)) ?? null;
-  } catch { return null; }
+  } catch {
+    return null;
+  }
 }
 
 // ── Componente principal ──────────────────────────────────────────────────────
 
 export default function AdminDescubrimientos() {
-  const [esAdmin, setEsAdmin]           = useState<boolean | null>(null);
-  const [perfiles, setPerfiles]         = useState<Perfil[]>([]);
-  const [perfilSel, setPerfilSel]       = useState<Perfil | null>(null);
-  const [tab, setTab]                   = useState<TabId>("personajes");
+  const [esAdmin, setEsAdmin] = useState<boolean | null>(null);
+  const [perfiles, setPerfiles] = useState<Perfil[]>([]);
+  const [perfilSel, setPerfilSel] = useState<Perfil | null>(null);
+  const [tab, setTab] = useState<TabId>("personajes");
   const [descubrimientos, setDescubrimientos] = useState<DescRow[]>([]);
-  const [cargando, setCargando]         = useState(false);
-  const [eliminando, setEliminando]     = useState<string | null>(null);
+  const [cargando, setCargando] = useState(false);
+  const [eliminando, setEliminando] = useState<string | null>(null);
   const [eliminandoPerfil, setEliminandoPerfil] = useState<string | null>(null);
 
   // Modal agregar
-  const [showAdd, setShowAdd]           = useState(false);
-  const [entidades, setEntidades]       = useState<Entidad[]>([]);
-  const [busquedaEnt, setBusquedaEnt]   = useState("");
-  const [entidadSel, setEntidadSel]     = useState<Entidad | null>(null);
-  const [guardando, setGuardando]       = useState(false);
-  const [toast, setToast]               = useState<{ msg: string; ok: boolean } | null>(null);
+  const [showAdd, setShowAdd] = useState(false);
+  const [entidades, setEntidades] = useState<Entidad[]>([]);
+  const [busquedaEnt, setBusquedaEnt] = useState("");
+  const [entidadSel, setEntidadSel] = useState<Entidad | null>(null);
+  const [guardando, setGuardando] = useState(false);
+  const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
 
   // ── Verificar admin ───────────────────────────────────────────────────────
   // 1. Leer perfil cacheado en Dexie para respuesta inmediata (sin spinner)
@@ -141,7 +193,9 @@ export default function AdminDescubrimientos() {
   useEffect(() => {
     const run = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
         if (user) {
           const cached = await dexieGetOne<any>("perfiles", user.id);
           if (cached?.rol === "admin") setEsAdmin(true);
@@ -189,7 +243,9 @@ export default function AdminDescubrimientos() {
     const extraCol = cfg.entidadExtra ? `, ${cfg.entidadExtra}` : "";
     const q = supabase
       .from(cfg.tabla)
-      .select(`${idCol}${cfg.fechaCol}, ${cfg.fk}, ${cfg.joinAlias}:${cfg.fk}(id, ${cfg.entidadSelect}, ${cfg.entidadImagen}${extraCol})`)
+      .select(
+        `${idCol}${cfg.fechaCol}, ${cfg.fk}, ${cfg.joinAlias}:${cfg.fk}(id, ${cfg.entidadSelect}, ${cfg.entidadImagen}${extraCol})`,
+      )
       .eq(cfg.perfilCol, perfilSel.id)
       .order(cfg.fechaCol, { ascending: false });
 
@@ -199,12 +255,12 @@ export default function AdminDescubrimientos() {
       const rows = data.map((r: any) => {
         const ent = r[cfg.joinAlias];
         return {
-          id:                    cfg.compositePk ? r[cfg.fk] : r.id,
-          fecha_descubrimiento:  r[cfg.fechaCol],
-          entidad_id:            r[cfg.fk],
-          nombre:                ent?.[cfg.entidadSelect] ?? "Sin nombre",
-          imagen_url:            ent?.[cfg.entidadImagen] ?? null,
-          extra:                 cfg.entidadExtra ? ent?.[cfg.entidadExtra] ?? null : null,
+          id: cfg.compositePk ? r[cfg.fk] : r.id,
+          fecha_descubrimiento: r[cfg.fechaCol],
+          entidad_id: r[cfg.fk],
+          nombre: ent?.[cfg.entidadSelect] ?? "Sin nombre",
+          imagen_url: ent?.[cfg.entidadImagen] ?? null,
+          extra: cfg.entidadExtra ? (ent?.[cfg.entidadExtra] ?? null) : null,
         };
       });
 
@@ -213,7 +269,9 @@ export default function AdminDescubrimientos() {
     setCargando(false);
   }, [perfilSel, tab]);
 
-  useEffect(() => { cargarDesc(); }, [cargarDesc]);
+  useEffect(() => {
+    cargarDesc();
+  }, [cargarDesc]);
 
   // ── Cargar entidades disponibles para agregar ─────────────────────────────
   // Dexie primero para que el modal abra con datos de inmediato
@@ -222,10 +280,10 @@ export default function AdminDescubrimientos() {
     const cfg = TAB_CONFIG[tab];
 
     const mapEntidad = (r: any): Entidad => ({
-      id:         r.id,
-      nombre:     r[cfg.entidadSelect] ?? "Sin nombre",
+      id: r.id,
+      nombre: r[cfg.entidadSelect] ?? "Sin nombre",
       imagen_url: r[cfg.entidadImagen] ?? null,
-      extra:      cfg.entidadExtra ? r[cfg.entidadExtra] ?? null : null,
+      extra: cfg.entidadExtra ? (r[cfg.entidadExtra] ?? null) : null,
     });
 
     const run = async () => {
@@ -253,13 +311,17 @@ export default function AdminDescubrimientos() {
     setEliminando(row.id);
     const cfg = TAB_CONFIG[tab];
     const query = cfg.compositePk
-      ? supabase.from(cfg.tabla).delete().eq(cfg.perfilCol, perfilSel!.id).eq(cfg.fk, row.entidad_id)
+      ? supabase
+          .from(cfg.tabla)
+          .delete()
+          .eq(cfg.perfilCol, perfilSel!.id)
+          .eq(cfg.fk, row.entidad_id)
       : supabase.from(cfg.tabla).delete().eq("id", row.id);
     const { error } = await query;
     if (error) {
       showToast("Error al eliminar", false);
     } else {
-      setDescubrimientos(prev => prev.filter(d => d.id !== row.id));
+      setDescubrimientos((prev) => prev.filter((d) => d.id !== row.id));
       showToast("Eliminado correctamente", true);
     }
     setEliminando(null);
@@ -273,11 +335,16 @@ export default function AdminDescubrimientos() {
     const cfg = TAB_CONFIG[tab];
     const payload: Record<string, string> = {
       [cfg.perfilCol]: perfilSel.id,
-      [cfg.fk]:        entidadSel.id,
+      [cfg.fk]: entidadSel.id,
     };
     const { error } = await supabase.from(cfg.tabla).insert(payload);
     if (error) {
-      showToast(error.message.includes("duplicate") || error.code === "23505" ? "Ya tiene ese descubrimiento" : "Error al guardar", false);
+      showToast(
+        error.message.includes("duplicate") || error.code === "23505"
+          ? "Ya tiene ese descubrimiento"
+          : "Error al guardar",
+        false,
+      );
     } else {
       showToast(`"${entidadSel.nombre}" agregado`, true);
       setShowAdd(false);
@@ -296,45 +363,95 @@ export default function AdminDescubrimientos() {
   };
 
   // ── Eliminar perfil ───────────────────────────────────────────────────────
+  // OJO: borrar solo la fila de "perfiles" desde el cliente NUNCA borra la
+  // cuenta real de Supabase Auth (eso requiere la service_role key, que no
+  // puede usarse en el navegador). Por eso antes el usuario "desaparecía" de
+  // la lista pero seguía existiendo en Authentication → Users. Ahora se llama
+  // a una ruta de servidor que sí puede borrar todo correctamente.
 
   const eliminarPerfil = async (p: Perfil) => {
-    if (!confirm(`¿Eliminar el usuario "${p.username}" y todos sus datos? Esta acción no se puede deshacer.`)) return;
+    if (
+      !confirm(
+        `¿Eliminar el usuario "${p.username}" y todos sus datos? Esta acción no se puede deshacer.`,
+      )
+    )
+      return;
     setEliminandoPerfil(p.id);
-    const { error } = await supabase.from("perfiles").delete().eq("id", p.id);
-    if (error) {
-      showToast("Error al eliminar usuario", false);
-    } else {
-      setPerfiles(prev => prev.filter(x => x.id !== p.id));
-      if (perfilSel?.id === p.id) { setPerfilSel(null); setDescubrimientos([]); }
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const res = await fetch("/api/admin/eliminar-usuario", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.access_token ?? ""}`,
+        },
+        body: JSON.stringify({ userId: p.id }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json?.error || "Error al eliminar usuario");
+
+      setPerfiles((prev) => prev.filter((x) => x.id !== p.id));
+      if (perfilSel?.id === p.id) {
+        setPerfilSel(null);
+        setDescubrimientos([]);
+      }
       showToast(`Usuario "${p.username}" eliminado`, true);
+    } catch (e: any) {
+      showToast(e?.message ?? "Error al eliminar usuario", false);
+    } finally {
+      setEliminandoPerfil(null);
     }
-    setEliminandoPerfil(null);
   };
 
-
-
-  if (esAdmin === null) return (
-    <div className="flex items-center justify-center min-h-60">
-      <Loader2 className="animate-spin" size={18} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
-    </div>
-  );
-
-  if (!esAdmin) return (
-    <div className="flex flex-col items-center justify-center min-h-60 gap-3 text-center px-4">
-      <div className="w-12 h-12 flex items-center justify-center rounded-full"
-        style={{ background: "color-mix(in srgb, var(--primary) 6%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)" }}>
-        <AlertTriangle size={20} style={{ color: "color-mix(in srgb, var(--primary) 50%, transparent)" }} />
+  if (esAdmin === null)
+    return (
+      <div className="flex items-center justify-center min-h-60">
+        <Loader2
+          className="animate-spin"
+          size={18}
+          style={{
+            color: "color-mix(in srgb, var(--primary) 30%, transparent)",
+          }}
+        />
       </div>
-      <p className="font-serif italic" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)", fontSize: "0.9rem" }}>
-        Acceso restringido a administradores
-      </p>
-    </div>
-  );
+    );
+
+  if (!esAdmin)
+    return (
+      <div className="flex flex-col items-center justify-center min-h-60 gap-3 text-center px-4">
+        <div
+          className="w-12 h-12 flex items-center justify-center rounded-full"
+          style={{
+            background: "color-mix(in srgb, var(--primary) 6%, transparent)",
+            border:
+              "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
+          }}
+        >
+          <AlertTriangle
+            size={20}
+            style={{
+              color: "color-mix(in srgb, var(--primary) 50%, transparent)",
+            }}
+          />
+        </div>
+        <p
+          className="font-serif italic"
+          style={{
+            color: "color-mix(in srgb, var(--primary) 40%, transparent)",
+            fontSize: "0.9rem",
+          }}
+        >
+          Acceso restringido a administradores
+        </p>
+      </div>
+    );
 
   // ── Entidades filtradas ───────────────────────────────────────────────────
 
-  const entsFiltradas = entidades.filter(e =>
-    e.nombre.toLowerCase().includes(busquedaEnt.toLowerCase())
+  const entsFiltradas = entidades.filter((e) =>
+    e.nombre.toLowerCase().includes(busquedaEnt.toLowerCase()),
   );
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -342,237 +459,385 @@ export default function AdminDescubrimientos() {
   return (
     <div className="w-full px-4 py-6">
       <div className="flex flex-col md:flex-row gap-6 w-full items-start">
-      {/* Selector de perfil */}
-      <div className="md:w-64"
-        style={{
-        background: "var(--white-custom)",
-        border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-        borderRadius: "var(--radius-card)",
-        overflow: "hidden",
-        flexShrink: 0,
-        width: "100%",
-      }}
-      >
-        <div className="px-4 py-3" style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-          <p className="text-[8px] font-black uppercase tracking-[0.25em]"
-            style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
-            Seleccionar explorador
-          </p>
-        </div>
-
-        <div className="p-2 flex flex-col gap-1">
-          {perfiles.map(p => (
-            <div key={p.id} className="group flex items-center gap-1">
-            <button
-              className="flex-1 flex items-center gap-2 px-3 py-2 transition-all text-left"
+        {/* Selector de perfil */}
+        <div
+          className="md:w-64"
+          style={{
+            background: "var(--white-custom)",
+            border:
+              "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+            borderRadius: "var(--radius-card)",
+            overflow: "hidden",
+            flexShrink: 0,
+            width: "100%",
+          }}
+        >
+          <div
+            className="px-4 py-3"
+            style={{
+              borderBottom:
+                "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+            }}
+          >
+            <p
+              className="text-[8px] font-black uppercase tracking-[0.25em]"
               style={{
-                borderRadius: "var(--radius-btn)",
-                border: "1px solid",
-                borderColor: perfilSel?.id === p.id
-                  ? "color-mix(in srgb, var(--primary) 50%, transparent)"
-                  : "color-mix(in srgb, var(--primary) 12%, transparent)",
-                background: perfilSel?.id === p.id
-                  ? "color-mix(in srgb, var(--primary) 8%, transparent)"
-                  : "transparent",
+                color: "color-mix(in srgb, var(--primary) 35%, transparent)",
               }}
-              onClick={() => { setPerfilSel(p); setDescubrimientos([]); }}>
-              <div className="w-6 h-6 shrink-0 overflow-hidden flex items-center justify-center"
-                style={{
-                  borderRadius: "2px",
-                  background: "color-mix(in srgb, var(--primary) 10%, transparent)",
-                }}>
-                {p.avatar_url
-                  ? <Image alt={p.username} className="w-full h-full object-contain" src={p.avatar_url} />
-                  : <User size={10} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />}
-              </div>
-              <span className="text-[10px] font-black uppercase tracking-tight capitalize"
-                style={{ color: "var(--primary)" }}>
-                {p.username}
-              </span>
-              {p.rol === "admin" && (
-                <span className="text-[7px] font-black uppercase tracking-wider px-1 py-0.5"
-                  style={{
-                    background: "color-mix(in srgb, var(--primary) 8%, transparent)",
-                    borderRadius: "2px",
-                    color: "color-mix(in srgb, var(--primary) 45%, transparent)",
-                  }}>
-                  admin
-                </span>
-              )}
-            </button>
-            {/* Botón eliminar usuario */}
-            <button
-              className="opacity-0 group-hover:opacity-100 transition-all w-7 h-7 flex items-center justify-center shrink-0"
-              disabled={eliminandoPerfil === p.id}
-              style={{
-                borderRadius: "var(--radius-btn)",
-                border: "1px solid color-mix(in srgb, #ef4444 25%, transparent)",
-                background: "color-mix(in srgb, #ef4444 6%, transparent)",
-                color: "#ef4444",
-              }}
-              title="Eliminar usuario"
-              onClick={() => eliminarPerfil(p)}>
-              {eliminandoPerfil === p.id
-                ? <Loader2 className="animate-spin" size={10} />
-                : <Trash2 size={10} />}
-            </button>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Panel de descubrimientos */}
-      {perfilSel && (
-        <div className="flex-1 min-w-0" style={{
-          background: "var(--white-custom)",
-          border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-          borderRadius: "var(--radius-card)",
-          overflow: "hidden",
-        }}>
-
-          {/* Tabs + botón agregar */}
-          <div className="flex items-center gap-0 overflow-x-auto"
-            style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-            {(Object.entries(TAB_CONFIG) as [TabId, typeof TAB_CONFIG[TabId]][]).map(([id, cfg]) => (
-              <button
-                key={id}
-                className="flex items-center gap-1.5 px-4 py-3 shrink-0 transition-all"
-                style={{
-                  borderBottom: tab === id
-                    ? "2px solid var(--primary)"
-                    : "2px solid transparent",
-                  color: tab === id
-                    ? "var(--primary)"
-                    : "color-mix(in srgb, var(--primary) 35%, transparent)",
-                  fontSize: "9px",
-                  fontWeight: 900,
-                  letterSpacing: "0.2em",
-                  textTransform: "uppercase",
-                }}
-                onClick={() => { setTab(id); setDescubrimientos([]); }}>
-                {cfg.icon}
-                {cfg.label}
-              </button>
-            ))}
-
-            <div className="flex-1" />
-
-            <div className="px-3 py-2 shrink-0">
-              <button
-                className="flex items-center gap-1.5 px-3 py-1.5 transition-all"
-                style={{
-                  borderRadius: "var(--radius-btn)",
-                  background: "color-mix(in srgb, var(--primary) 8%, transparent)",
-                  border: "1px solid color-mix(in srgb, var(--primary) 16%, transparent)",
-                  color: "var(--primary)",
-                  fontSize: "9px",
-                  fontWeight: 900,
-                  letterSpacing: "0.15em",
-                  textTransform: "uppercase",
-                }}
-                onClick={() => { setShowAdd(true); setEntidadSel(null); setBusquedaEnt(""); }}>
-                <Plus size={10} /> Agregar
-              </button>
-            </div>
+            >
+              Seleccionar explorador
+            </p>
           </div>
 
-          {/* Lista */}
-          <div className="divide-y" style={{ "--divide-color": "color-mix(in srgb, var(--primary) 6%, transparent)" } as any}>
-            {cargando ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="animate-spin" size={16} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
+          <div className="p-2 flex flex-col gap-1">
+            {perfiles.map((p) => (
+              <div key={p.id} className="group flex items-center gap-1">
+                <button
+                  className="flex-1 min-w-0 flex items-center gap-2 px-3 py-2 transition-all text-left"
+                  style={{
+                    borderRadius: "var(--radius-btn)",
+                    border: "1px solid",
+                    borderColor:
+                      perfilSel?.id === p.id
+                        ? "color-mix(in srgb, var(--primary) 50%, transparent)"
+                        : "color-mix(in srgb, var(--primary) 12%, transparent)",
+                    background:
+                      perfilSel?.id === p.id
+                        ? "color-mix(in srgb, var(--primary) 8%, transparent)"
+                        : "transparent",
+                  }}
+                  onClick={() => {
+                    setPerfilSel(p);
+                    setDescubrimientos([]);
+                  }}
+                >
+                  <div
+                    className="w-6 h-6 shrink-0 overflow-hidden flex items-center justify-center"
+                    style={{
+                      borderRadius: "2px",
+                      background:
+                        "color-mix(in srgb, var(--primary) 10%, transparent)",
+                    }}
+                  >
+                    {p.avatar_url ? (
+                      <Image
+                        alt={p.username}
+                        className="w-full h-full object-contain"
+                        src={p.avatar_url}
+                      />
+                    ) : (
+                      <User
+                        size={10}
+                        style={{
+                          color:
+                            "color-mix(in srgb, var(--primary) 30%, transparent)",
+                        }}
+                      />
+                    )}
+                  </div>
+                  <span
+                    className="flex-1 min-w-0 truncate text-[10px] font-black uppercase tracking-tight capitalize"
+                    style={{ color: "var(--primary)" }}
+                  >
+                    {p.username}
+                  </span>
+                  {p.rol === "admin" && (
+                    <span
+                      className="shrink-0 text-[7px] font-black uppercase tracking-wider px-1 py-0.5"
+                      style={{
+                        background:
+                          "color-mix(in srgb, var(--primary) 8%, transparent)",
+                        borderRadius: "2px",
+                        color:
+                          "color-mix(in srgb, var(--primary) 45%, transparent)",
+                      }}
+                    >
+                      admin
+                    </span>
+                  )}
+                </button>
+                {/* Botón eliminar usuario */}
+                <button
+                  className="opacity-0 group-hover:opacity-100 transition-all w-7 h-7 flex items-center justify-center shrink-0"
+                  disabled={eliminandoPerfil === p.id}
+                  style={{
+                    borderRadius: "var(--radius-btn)",
+                    border:
+                      "1px solid color-mix(in srgb, #ef4444 25%, transparent)",
+                    background: "color-mix(in srgb, #ef4444 6%, transparent)",
+                    color: "#ef4444",
+                  }}
+                  title="Eliminar usuario"
+                  onClick={() => eliminarPerfil(p)}
+                >
+                  {eliminandoPerfil === p.id ? (
+                    <Loader2 className="animate-spin" size={10} />
+                  ) : (
+                    <Trash2 size={10} />
+                  )}
+                </button>
               </div>
-            ) : descubrimientos.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 gap-2">
-                <p className="font-serif italic text-[11px]"
-                  style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>
-                  Sin {TAB_CONFIG[tab].label.toLowerCase()} descubiertos
+            ))}
+          </div>
+        </div>
+
+        {/* Panel de descubrimientos */}
+        {perfilSel && (
+          <div
+            className="flex-1 min-w-0"
+            style={{
+              background: "var(--white-custom)",
+              border:
+                "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+              borderRadius: "var(--radius-card)",
+              overflow: "hidden",
+            }}
+          >
+            {/* Tabs + botón agregar */}
+            <div
+              className="flex items-center gap-0 overflow-x-auto"
+              style={{
+                borderBottom:
+                  "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+              }}
+            >
+              {(
+                Object.entries(TAB_CONFIG) as [
+                  TabId,
+                  (typeof TAB_CONFIG)[TabId],
+                ][]
+              ).map(([id, cfg]) => (
+                <button
+                  key={id}
+                  className="flex items-center gap-1.5 px-4 py-3 shrink-0 transition-all"
+                  style={{
+                    borderBottom:
+                      tab === id
+                        ? "2px solid var(--primary)"
+                        : "2px solid transparent",
+                    color:
+                      tab === id
+                        ? "var(--primary)"
+                        : "color-mix(in srgb, var(--primary) 35%, transparent)",
+                    fontSize: "9px",
+                    fontWeight: 900,
+                    letterSpacing: "0.2em",
+                    textTransform: "uppercase",
+                  }}
+                  onClick={() => {
+                    setTab(id);
+                    setDescubrimientos([]);
+                  }}
+                >
+                  {cfg.icon}
+                  {cfg.label}
+                </button>
+              ))}
+
+              <div className="flex-1" />
+
+              <div className="px-3 py-2 shrink-0">
+                <button
+                  className="flex items-center gap-1.5 px-3 py-1.5 transition-all"
+                  style={{
+                    borderRadius: "var(--radius-btn)",
+                    background:
+                      "color-mix(in srgb, var(--primary) 8%, transparent)",
+                    border:
+                      "1px solid color-mix(in srgb, var(--primary) 16%, transparent)",
+                    color: "var(--primary)",
+                    fontSize: "9px",
+                    fontWeight: 900,
+                    letterSpacing: "0.15em",
+                    textTransform: "uppercase",
+                  }}
+                  onClick={() => {
+                    setShowAdd(true);
+                    setEntidadSel(null);
+                    setBusquedaEnt("");
+                  }}
+                >
+                  <Plus size={10} /> Agregar
+                </button>
+              </div>
+            </div>
+
+            {/* Lista */}
+            <div
+              className="divide-y"
+              style={
+                {
+                  "--divide-color":
+                    "color-mix(in srgb, var(--primary) 6%, transparent)",
+                } as any
+              }
+            >
+              {cargando ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2
+                    className="animate-spin"
+                    size={16}
+                    style={{
+                      color:
+                        "color-mix(in srgb, var(--primary) 30%, transparent)",
+                    }}
+                  />
+                </div>
+              ) : descubrimientos.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 gap-2">
+                  <p
+                    className="font-serif italic text-[11px]"
+                    style={{
+                      color:
+                        "color-mix(in srgb, var(--primary) 25%, transparent)",
+                    }}
+                  >
+                    Sin {TAB_CONFIG[tab].label.toLowerCase()} descubiertos
+                  </p>
+                </div>
+              ) : (
+                descubrimientos.map((row) => (
+                  <div
+                    key={row.id}
+                    className="flex items-center gap-3 px-4 py-3 group transition-colors"
+                    style={{
+                      borderBottom:
+                        "1px solid color-mix(in srgb, var(--primary) 6%, transparent)",
+                    }}
+                    onMouseEnter={(e) =>
+                      ((e.currentTarget as HTMLElement).style.background =
+                        "color-mix(in srgb, var(--primary) 2%, transparent)")
+                    }
+                    onMouseLeave={(e) =>
+                      ((e.currentTarget as HTMLElement).style.background =
+                        "transparent")
+                    }
+                  >
+                    {/* Imagen */}
+                    <div
+                      className="w-9 h-9 shrink-0 overflow-hidden flex items-center justify-center"
+                      style={{
+                        borderRadius: "var(--radius-btn)",
+                        background:
+                          "color-mix(in srgb, var(--primary) 6%, transparent)",
+                        border:
+                          "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                      }}
+                    >
+                      {row.imagen_url ? (
+                        <Image
+                          alt={row.nombre}
+                          className="w-full h-full object-contain"
+                          src={row.imagen_url}
+                        />
+                      ) : (
+                        TAB_CONFIG[tab].icon
+                      )}
+                    </div>
+
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <p
+                        className="text-[11px] font-black uppercase tracking-tight capitalize truncate"
+                        style={{ color: "var(--primary)" }}
+                      >
+                        {row.nombre}
+                      </p>
+                      <div className="flex items-center gap-2 mt-0.5 min-w-0">
+                        {row.extra && (
+                          <span
+                            className="min-w-0 truncate text-[8px] font-black uppercase tracking-wider"
+                            style={{
+                              color:
+                                "color-mix(in srgb, var(--primary) 35%, transparent)",
+                            }}
+                          >
+                            {row.extra}
+                          </span>
+                        )}
+                        {row.extra && row.fecha_descubrimiento && (
+                          <span
+                            className="shrink-0"
+                            style={{
+                              color:
+                                "color-mix(in srgb, var(--primary) 18%, transparent)",
+                              fontSize: "8px",
+                            }}
+                          >
+                            ·
+                          </span>
+                        )}
+                        <span
+                          className="shrink-0 text-[8px] font-black tabular-nums"
+                          style={{
+                            color:
+                              "color-mix(in srgb, var(--primary) 25%, transparent)",
+                          }}
+                        >
+                          {fmt(row.fecha_descubrimiento)}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Eliminar */}
+                    <button
+                      className="opacity-0 group-hover:opacity-100 transition-all w-7 h-7 flex items-center justify-center shrink-0"
+                      disabled={eliminando === row.id}
+                      style={{
+                        borderRadius: "var(--radius-btn)",
+                        border:
+                          "1px solid color-mix(in srgb, #ef4444 25%, transparent)",
+                        background:
+                          "color-mix(in srgb, #ef4444 6%, transparent)",
+                        color: "#ef4444",
+                      }}
+                      title="Eliminar descubrimiento"
+                      onClick={() => eliminar(row)}
+                    >
+                      {eliminando === row.id ? (
+                        <Loader2 className="animate-spin" size={10} />
+                      ) : (
+                        <Trash2 size={10} />
+                      )}
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Footer con conteo */}
+            {!cargando && descubrimientos.length > 0 && (
+              <div
+                className="px-4 py-2.5"
+                style={{
+                  borderTop:
+                    "1px solid color-mix(in srgb, var(--primary) 6%, transparent)",
+                }}
+              >
+                <p
+                  className="text-[8px] font-black uppercase tracking-[0.2em]"
+                  style={{
+                    color:
+                      "color-mix(in srgb, var(--primary) 25%, transparent)",
+                  }}
+                >
+                  {descubrimientos.length} {TAB_CONFIG[tab].label.toLowerCase()}
                 </p>
               </div>
-            ) : (
-              descubrimientos.map(row => (
-                <div key={row.id}
-                  className="flex items-center gap-3 px-4 py-3 group transition-colors"
-                  style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" }}
-                  onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 2%, transparent)"}
-                  onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = "transparent"}>
-
-                  {/* Imagen */}
-                  <div className="w-9 h-9 shrink-0 overflow-hidden flex items-center justify-center"
-                    style={{
-                      borderRadius: "var(--radius-btn)",
-                      background: "color-mix(in srgb, var(--primary) 6%, transparent)",
-                      border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-                    }}>
-                    {row.imagen_url
-                      ? <Image alt={row.nombre} className="w-full h-full object-contain" src={row.imagen_url} />
-                      : TAB_CONFIG[tab].icon}
-                  </div>
-
-                  {/* Info */}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[11px] font-black uppercase tracking-tight capitalize truncate"
-                      style={{ color: "var(--primary)" }}>
-                      {row.nombre}
-                    </p>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      {row.extra && (
-                        <span className="text-[8px] font-black uppercase tracking-wider truncate"
-                          style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
-                          {row.extra}
-                        </span>
-                      )}
-                      {row.extra && row.fecha_descubrimiento && (
-                        <span style={{ color: "color-mix(in srgb, var(--primary) 18%, transparent)", fontSize: "8px" }}>·</span>
-                      )}
-                      <span className="text-[8px] font-black tabular-nums"
-                        style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>
-                        {fmt(row.fecha_descubrimiento)}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Eliminar */}
-                  <button
-                    className="opacity-0 group-hover:opacity-100 transition-all w-7 h-7 flex items-center justify-center shrink-0"
-                    disabled={eliminando === row.id}
-                    style={{
-                      borderRadius: "var(--radius-btn)",
-                      border: "1px solid color-mix(in srgb, #ef4444 25%, transparent)",
-                      background: "color-mix(in srgb, #ef4444 6%, transparent)",
-                      color: "#ef4444",
-                    }}
-                    title="Eliminar descubrimiento"
-                    onClick={() => eliminar(row)}>
-                    {eliminando === row.id
-                      ? <Loader2 className="animate-spin" size={10} />
-                      : <Trash2 size={10} />}
-                  </button>
-                </div>
-              ))
             )}
           </div>
-
-          {/* Footer con conteo */}
-          {!cargando && descubrimientos.length > 0 && (
-            <div className="px-4 py-2.5" style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" }}>
-              <p className="text-[8px] font-black uppercase tracking-[0.2em]"
-                style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>
-                {descubrimientos.length} {TAB_CONFIG[tab].label.toLowerCase()}
-              </p>
-            </div>
-          )}
-        </div>
-      )}
-
-      </div>{/* end two-column flex */}
+        )}
+      </div>
+      {/* end two-column flex */}
 
       {/* ── Modal Agregar ─────────────────────────────────────────────────── */}
       <AnimatePresence>
         {showAdd && (
           <>
             <MotionDiv
-              animate={{ opacity: 1 }} className="fixed inset-0 z-40 backdrop-blur-sm" exit={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="fixed inset-0 z-40 backdrop-blur-sm"
+              exit={{ opacity: 0 }}
               initial={{ opacity: 0 }}
               style={{ background: "rgba(0,0,0,0.4)" }}
               onClick={() => setShowAdd(false)}
@@ -585,55 +850,93 @@ export default function AdminDescubrimientos() {
               style={{
                 background: "var(--white-custom)",
                 borderRadius: "var(--radius-card)",
-                border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-                boxShadow: "0 20px 60px color-mix(in srgb, var(--primary) 16%, transparent)",
+                border:
+                  "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+                boxShadow:
+                  "0 20px 60px color-mix(in srgb, var(--primary) 16%, transparent)",
                 maxHeight: "80dvh",
                 display: "flex",
                 flexDirection: "column",
                 overflow: "hidden",
               }}
-              transition={{ type: "spring", stiffness: 360, damping: 30 }}>
-
+              transition={{ type: "spring", stiffness: 360, damping: 30 }}
+            >
               {/* Header modal */}
-              <div className="flex items-center justify-between px-5 py-4 shrink-0"
-                style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+              <div
+                className="flex items-center justify-between px-5 py-4 shrink-0"
+                style={{
+                  borderBottom:
+                    "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+                }}
+              >
                 <div>
-                  <p className="font-serif italic" style={{ fontSize: "1rem", color: "var(--primary)" }}>
+                  <p
+                    className="font-serif italic"
+                    style={{ fontSize: "1rem", color: "var(--primary)" }}
+                  >
                     Agregar {TAB_CONFIG[tab].label.slice(0, -1).toLowerCase()}
                   </p>
-                  <p className="text-[8px] font-black uppercase tracking-wider mt-0.5"
-                    style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
+                  <p
+                    className="text-[8px] font-black uppercase tracking-wider mt-0.5"
+                    style={{
+                      color:
+                        "color-mix(in srgb, var(--primary) 30%, transparent)",
+                    }}
+                  >
                     a {perfilSel?.username}
                   </p>
                 </div>
-                <button className="w-7 h-7 flex items-center justify-center transition-opacity hover:opacity-60"
+                <button
+                  className="w-7 h-7 flex items-center justify-center transition-opacity hover:opacity-60"
                   style={{ color: "var(--primary)" }}
-                  onClick={() => setShowAdd(false)}>
+                  onClick={() => setShowAdd(false)}
+                >
                   <X size={13} />
                 </button>
               </div>
 
               {/* Buscador */}
-              <div className="px-4 py-3 shrink-0"
-                style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" }}>
-                <div className="flex items-center gap-2 px-3 py-2"
+              <div
+                className="px-4 py-3 shrink-0"
+                style={{
+                  borderBottom:
+                    "1px solid color-mix(in srgb, var(--primary) 6%, transparent)",
+                }}
+              >
+                <div
+                  className="flex items-center gap-2 px-3 py-2"
                   style={{
-                    background: "color-mix(in srgb, var(--primary) 4%, transparent)",
-                    border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+                    background:
+                      "color-mix(in srgb, var(--primary) 4%, transparent)",
+                    border:
+                      "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
                     borderRadius: "var(--radius-btn)",
-                  }}>
-                  <Search size={11} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)", flexShrink: 0 }} />
+                  }}
+                >
+                  <Search
+                    size={11}
+                    style={{
+                      color:
+                        "color-mix(in srgb, var(--primary) 30%, transparent)",
+                      flexShrink: 0,
+                    }}
+                  />
                   <input
                     autoFocus
                     className="flex-1 bg-transparent outline-none text-[11px] font-black uppercase tracking-tight"
                     placeholder={`Buscar ${TAB_CONFIG[tab].label.toLowerCase()}…`}
                     style={{ color: "var(--primary)" }}
                     value={busquedaEnt}
-                    onChange={e => setBusquedaEnt(e.target.value)}
+                    onChange={(e) => setBusquedaEnt(e.target.value)}
                   />
                   {busquedaEnt && (
-                    <button style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
-                      onClick={() => setBusquedaEnt("")}>
+                    <button
+                      style={{
+                        color:
+                          "color-mix(in srgb, var(--primary) 30%, transparent)",
+                      }}
+                      onClick={() => setBusquedaEnt("")}
+                    >
                       <X size={10} />
                     </button>
                   )}
@@ -644,14 +947,21 @@ export default function AdminDescubrimientos() {
               <div className="overflow-y-auto flex-1">
                 {entsFiltradas.length === 0 ? (
                   <div className="flex items-center justify-center py-8">
-                    <p className="font-serif italic text-[10px]"
-                      style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>
+                    <p
+                      className="font-serif italic text-[10px]"
+                      style={{
+                        color:
+                          "color-mix(in srgb, var(--primary) 25%, transparent)",
+                      }}
+                    >
                       Sin resultados
                     </p>
                   </div>
                 ) : (
-                  entsFiltradas.map(e => {
-                    const yaTiene = descubrimientos.some(d => d.entidad_id === e.id);
+                  entsFiltradas.map((e) => {
+                    const yaTiene = descubrimientos.some(
+                      (d) => d.entidad_id === e.id,
+                    );
                     const sel = entidadSel?.id === e.id;
                     return (
                       <button
@@ -659,7 +969,8 @@ export default function AdminDescubrimientos() {
                         className="w-full flex items-center gap-3 px-4 py-3 text-left transition-colors"
                         disabled={yaTiene}
                         style={{
-                          borderBottom: "1px solid color-mix(in srgb, var(--primary) 5%, transparent)",
+                          borderBottom:
+                            "1px solid color-mix(in srgb, var(--primary) 5%, transparent)",
                           background: sel
                             ? "color-mix(in srgb, var(--primary) 6%, transparent)"
                             : "transparent",
@@ -667,60 +978,96 @@ export default function AdminDescubrimientos() {
                           cursor: yaTiene ? "not-allowed" : "pointer",
                         }}
                         onClick={() => setEntidadSel(sel ? null : e)}
-                        onMouseEnter={e2 => {
-                          if (!yaTiene) (e2.currentTarget as HTMLElement).style.background =
-                            sel ? "color-mix(in srgb, var(--primary) 8%, transparent)"
+                        onMouseEnter={(e2) => {
+                          if (!yaTiene)
+                            (e2.currentTarget as HTMLElement).style.background =
+                              sel
+                                ? "color-mix(in srgb, var(--primary) 8%, transparent)"
                                 : "color-mix(in srgb, var(--primary) 3%, transparent)";
                         }}
-                        onMouseLeave={e2 => {
-                          (e2.currentTarget as HTMLElement).style.background = sel
-                            ? "color-mix(in srgb, var(--primary) 6%, transparent)"
-                            : "transparent";
-                        }}>
-
-                        <div className="w-8 h-8 shrink-0 overflow-hidden flex items-center justify-center"
+                        onMouseLeave={(e2) => {
+                          (e2.currentTarget as HTMLElement).style.background =
+                            sel
+                              ? "color-mix(in srgb, var(--primary) 6%, transparent)"
+                              : "transparent";
+                        }}
+                      >
+                        <div
+                          className="w-8 h-8 shrink-0 overflow-hidden flex items-center justify-center"
                           style={{
                             borderRadius: "var(--radius-btn)",
-                            background: "color-mix(in srgb, var(--primary) 7%, transparent)",
+                            background:
+                              "color-mix(in srgb, var(--primary) 7%, transparent)",
                             border: `1px solid ${sel ? "color-mix(in srgb, var(--primary) 30%, transparent)" : "color-mix(in srgb, var(--primary) 10%, transparent)"}`,
-                          }}>
-                          {e.imagen_url
-                            ? <Image alt={e.nombre} className="w-full h-full object-contain" src={e.imagen_url} />
-                            : TAB_CONFIG[tab].icon}
+                          }}
+                        >
+                          {e.imagen_url ? (
+                            <Image
+                              alt={e.nombre}
+                              className="w-full h-full object-contain"
+                              src={e.imagen_url}
+                            />
+                          ) : (
+                            TAB_CONFIG[tab].icon
+                          )}
                         </div>
 
                         <div className="flex-1 min-w-0">
-                          <p className="text-[10px] font-black uppercase tracking-tight capitalize truncate"
-                            style={{ color: "var(--primary)" }}>
+                          <p
+                            className="text-[10px] font-black uppercase tracking-tight capitalize truncate"
+                            style={{ color: "var(--primary)" }}
+                          >
                             {e.nombre}
                           </p>
                           {e.extra && (
-                            <p className="text-[8px] font-black uppercase tracking-wider truncate mt-0.5"
-                              style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
+                            <p
+                              className="text-[8px] font-black uppercase tracking-wider truncate mt-0.5"
+                              style={{
+                                color:
+                                  "color-mix(in srgb, var(--primary) 30%, transparent)",
+                              }}
+                            >
                               {e.extra}
                             </p>
                           )}
                         </div>
 
                         {yaTiene && (
-                          <span className="text-[7px] font-black uppercase tracking-wider shrink-0 px-1.5 py-0.5"
+                          <span
+                            className="text-[7px] font-black uppercase tracking-wider shrink-0 px-1.5 py-0.5"
                             style={{
-                              background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+                              background:
+                                "color-mix(in srgb, var(--primary) 8%, transparent)",
                               borderRadius: "2px",
-                              color: "color-mix(in srgb, var(--primary) 40%, transparent)",
-                            }}>
+                              color:
+                                "color-mix(in srgb, var(--primary) 40%, transparent)",
+                            }}
+                          >
                             Ya tiene
                           </span>
                         )}
 
                         {sel && !yaTiene && (
-                          <div className="w-4 h-4 shrink-0 flex items-center justify-center"
+                          <div
+                            className="w-4 h-4 shrink-0 flex items-center justify-center"
                             style={{
                               borderRadius: "50%",
                               background: "var(--primary)",
-                            }}>
-                            <svg fill="none" height="7" viewBox="0 0 7 7" width="7">
-                              <path d="M1 3.5L3 5.5L6 1.5" stroke="white" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.2" />
+                            }}
+                          >
+                            <svg
+                              fill="none"
+                              height="7"
+                              viewBox="0 0 7 7"
+                              width="7"
+                            >
+                              <path
+                                d="M1 3.5L3 5.5L6 1.5"
+                                stroke="white"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="1.2"
+                              />
                             </svg>
                           </div>
                         )}
@@ -731,27 +1078,48 @@ export default function AdminDescubrimientos() {
               </div>
 
               {/* Footer modal */}
-              <div className="px-4 py-3 shrink-0 flex items-center justify-between gap-3"
-                style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-                <p className="text-[8px] font-black uppercase tracking-wider"
-                  style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
-                  {entidadSel ? `Seleccionado: ${entidadSel.nombre}` : "Ninguno seleccionado"}
+              <div
+                className="px-4 py-3 shrink-0 flex items-center justify-between gap-3"
+                style={{
+                  borderTop:
+                    "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+                }}
+              >
+                <p
+                  className="text-[8px] font-black uppercase tracking-wider"
+                  style={{
+                    color:
+                      "color-mix(in srgb, var(--primary) 30%, transparent)",
+                  }}
+                >
+                  {entidadSel
+                    ? `Seleccionado: ${entidadSel.nombre}`
+                    : "Ninguno seleccionado"}
                 </p>
                 <button
                   className="flex items-center gap-1.5 px-4 py-2 transition-all"
                   disabled={!entidadSel || guardando}
                   style={{
                     borderRadius: "var(--radius-btn)",
-                    background: entidadSel ? "var(--primary)" : "color-mix(in srgb, var(--primary) 12%, transparent)",
-                    color: entidadSel ? "var(--white-custom)" : "color-mix(in srgb, var(--primary) 30%, transparent)",
+                    background: entidadSel
+                      ? "var(--primary)"
+                      : "color-mix(in srgb, var(--primary) 12%, transparent)",
+                    color: entidadSel
+                      ? "var(--white-custom)"
+                      : "color-mix(in srgb, var(--primary) 30%, transparent)",
                     fontSize: "9px",
                     fontWeight: 900,
                     letterSpacing: "0.15em",
                     textTransform: "uppercase",
                     cursor: entidadSel ? "pointer" : "not-allowed",
                   }}
-                  onClick={agregar}>
-                  {guardando ? <Loader2 className="animate-spin" size={10} /> : <Plus size={10} />}
+                  onClick={agregar}
+                >
+                  {guardando ? (
+                    <Loader2 className="animate-spin" size={10} />
+                  ) : (
+                    <Plus size={10} />
+                  )}
                   Agregar
                 </button>
               </div>
@@ -770,19 +1138,36 @@ export default function AdminDescubrimientos() {
             initial={{ opacity: 0, y: 8 }}
             style={{
               borderRadius: "var(--radius-btn)",
-              background: toast.ok ? "color-mix(in srgb, #16a34a 12%, var(--white-custom))" : "color-mix(in srgb, #ef4444 10%, var(--white-custom))",
+              background: toast.ok
+                ? "color-mix(in srgb, #16a34a 12%, var(--white-custom))"
+                : "color-mix(in srgb, #ef4444 10%, var(--white-custom))",
               border: `1px solid ${toast.ok ? "color-mix(in srgb, #16a34a 30%, transparent)" : "color-mix(in srgb, #ef4444 25%, transparent)"}`,
               boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
               whiteSpace: "nowrap",
-            }}>
-            <div className="w-4 h-4 rounded-full flex items-center justify-center"
-              style={{ background: toast.ok ? "#16a34a" : "#ef4444" }}>
-              {toast.ok
-                ? <svg fill="none" height="8" viewBox="0 0 8 8" width="8"><path d="M1.5 4L3 5.5L6.5 2" stroke="white" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.2" /></svg>
-                : <X color="white" size={7} />}
+            }}
+          >
+            <div
+              className="w-4 h-4 rounded-full flex items-center justify-center"
+              style={{ background: toast.ok ? "#16a34a" : "#ef4444" }}
+            >
+              {toast.ok ? (
+                <svg fill="none" height="8" viewBox="0 0 8 8" width="8">
+                  <path
+                    d="M1.5 4L3 5.5L6.5 2"
+                    stroke="white"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="1.2"
+                  />
+                </svg>
+              ) : (
+                <X color="white" size={7} />
+              )}
             </div>
-            <span className="text-[10px] font-black uppercase tracking-tight"
-              style={{ color: toast.ok ? "#16a34a" : "#ef4444" }}>
+            <span
+              className="text-[10px] font-black uppercase tracking-tight"
+              style={{ color: toast.ok ? "#16a34a" : "#ef4444" }}
+            >
               {toast.msg}
             </span>
           </MotionDiv>

@@ -600,7 +600,7 @@ function CapituloEventoRow({
               }}
             />
             <span
-              className="text-[8px] font-bold truncate"
+              className="flex-1 min-w-0 text-[8px] font-bold truncate"
               style={{
                 color: "color-mix(in srgb, var(--primary) 65%, transparent)",
               }}
@@ -739,7 +739,7 @@ function CancionMundoRow({
               }}
             />
             <span
-              className="text-[8px] font-bold truncate"
+              className="flex-1 min-w-0 text-[8px] font-bold truncate"
               style={{
                 color: "color-mix(in srgb, var(--accent) 65%, var(--primary))",
               }}
@@ -749,16 +749,16 @@ function CancionMundoRow({
           </button>
           {cancion.cantante && (
             <span
-              className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest truncate self-start"
+              className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest self-start min-w-0 max-w-full"
               style={{
                 background: "color-mix(in srgb, var(--accent) 8%, transparent)",
                 color: "color-mix(in srgb, var(--accent) 50%, transparent)",
                 border:
                   "1px solid color-mix(in srgb, var(--accent) 12%, transparent)",
-                maxWidth: "100%",
               }}
             >
-              <Music size={6} /> {cancion.cantante}
+              <Music className="shrink-0" size={6} />
+              <span className="truncate min-w-0">{cancion.cantante}</span>
             </span>
           )}
         </div>
@@ -845,7 +845,7 @@ function EventoMundoRow({
         />
         {evt.reinoNombre && (
           <span
-            className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest truncate self-start"
+            className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest self-start min-w-0"
             style={{
               background: "color-mix(in srgb, var(--primary) 8%, transparent)",
               color: "color-mix(in srgb, var(--primary) 50%, transparent)",
@@ -854,7 +854,8 @@ function EventoMundoRow({
               maxWidth: "150px",
             }}
           >
-            <Crown size={6} /> {evt.reinoNombre}
+            <Crown className="shrink-0" size={6} />
+            <span className="truncate min-w-0">{evt.reinoNombre}</span>
           </span>
         )}
         {/* Descripción editable */}
@@ -910,10 +911,11 @@ function ModalNuevoEvento({
       />
       <div className="fixed inset-0 z-[1101] flex items-center justify-center p-3 pointer-events-none">
         <div
-          className="w-full max-w-sm rounded-2xl border shadow-lg p-4 space-y-3 pointer-events-auto"
+          className="w-full max-w-sm rounded-2xl border shadow-lg p-4 space-y-3 pointer-events-auto overflow-y-auto"
           style={{
             background: "var(--bg-main)",
             borderColor: "color-mix(in srgb, var(--primary) 14%, transparent)",
+            maxHeight: "90vh",
           }}
         >
           <div className="flex items-center justify-between">
@@ -1298,10 +1300,11 @@ function ModalEra({
       }}
     >
       <div
-        className="w-full max-w-sm rounded-2xl border shadow-2xl p-4 space-y-3"
+        className="w-full max-w-sm rounded-2xl border shadow-2xl p-4 space-y-3 overflow-y-auto"
         style={{
           background: "var(--bg-main)",
           borderColor: "color-mix(in srgb, var(--primary) 14%, transparent)",
+          maxHeight: "90vh",
         }}
       >
         {/* Header */}
@@ -1690,7 +1693,7 @@ function ModalGestionEras({
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span
-                      className="text-[10px] font-black truncate"
+                      className="flex-1 min-w-0 text-[10px] font-black truncate"
                       style={{ color: era.color ?? "var(--primary)" }}
                     >
                       {era.nombre}
@@ -4176,7 +4179,7 @@ function PanelListas({
                           return (
                             <button
                               key={g.id}
-                              className="flex items-center px-3 py-1.5 rounded-xl border transition-all hover:scale-[1.02] active:scale-[0.98]"
+                              className="min-w-0 flex items-center px-3 py-1.5 rounded-xl border transition-all hover:scale-[1.02] active:scale-[0.98]"
                               style={{
                                 background: `color-mix(in srgb, ${cfg?.color ?? "var(--primary)"} 4%, transparent)`,
                                 borderColor: `color-mix(in srgb, ${cfg?.color ?? "var(--primary)"} 12%, transparent)`,
@@ -4200,7 +4203,7 @@ function PanelListas({
                                   } as Grupo);
                               }}
                             >
-                              <span className="text-[11px] font-bold text-primary/70 truncate">
+                              <span className="min-w-0 truncate text-[11px] font-bold text-primary/70">
                                 {g.nombre}
                               </span>
                             </button>
@@ -4222,7 +4225,7 @@ function PanelListas({
                 {notas.map((n) => (
                   <button
                     key={n.id}
-                    className="flex items-center px-3 py-1.5 rounded-xl border transition-all hover:scale-[1.02] active:scale-[0.98]"
+                    className="min-w-0 flex items-center px-3 py-1.5 rounded-xl border transition-all hover:scale-[1.02] active:scale-[0.98]"
                     style={{
                       background:
                         "color-mix(in srgb, var(--primary) 4%, transparent)",
@@ -4232,7 +4235,7 @@ function PanelListas({
                     type="button"
                     onClick={() => setSelectedNota(n)}
                   >
-                    <span className="text-[11px] font-bold text-primary/70 truncate">
+                    <span className="min-w-0 truncate text-[11px] font-bold text-primary/70">
                       {n.titulo || (
                         <span className="italic text-primary/30">
                           Sin título

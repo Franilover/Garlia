@@ -1,6 +1,15 @@
 "use client";
-import { ChevronDown, ChevronUp, Loader2, Check, X } from "lucide-react";
-import React, { useState, useEffect, useRef } from "react";
+import {
+  ChevronDown,
+  ChevronUp,
+  Loader2,
+  Check,
+  X,
+  Cake,
+  SlidersHorizontal,
+  Globe,
+} from "lucide-react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 
 import { supabase } from "@/lib/api/client/supabase";
@@ -756,6 +765,472 @@ function FechaMundoEditor({
           <Check size={9} /> Confirmar
         </button>
       </div>
+    </div>
+  );
+}
+
+// ─── Tipos y hook: personajes con fecha de nacimiento ────────────────────────
+type PersonajeCumple = {
+  id: string;
+  nombre: string;
+  img_url: string | null;
+  reino: string | null;
+  fecha_nacimiento: number; // día absoluto
+};
+
+function usePersonajesCumpleanos(): {
+  personajes: PersonajeCumple[];
+  loading: boolean;
+} {
+  const [personajes, setPersonajes] = useState<PersonajeCumple[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      // 1. Dexie primero (stale-while-revalidate)
+      try {
+        const { db } = await import("@/lib/api/client/db");
+        if (db) {
+          const todos: any[] = (await (db as any).personajes?.toArray()) ?? [];
+          const conFecha = todos.filter(
+            (p: any) => p.fecha_nacimiento != null && !p.deleted,
+          );
+          if (conFecha.length) {
+            setPersonajes(
+              conFecha.map((p: any) => ({
+                id: p.id,
+                nombre: p.nombre ?? "Sin nombre",
+                img_url: p.img_url ?? null,
+                reino: p.reino ?? null,
+                fecha_nacimiento: p.fecha_nacimiento,
+              })),
+            );
+            setLoading(false);
+            if (!navigator.onLine) return;
+          }
+        }
+      } catch {}
+
+      if (!navigator.onLine) {
+        setLoading(false);
+        return;
+      }
+
+      // 2. Supabase
+      const { data } = await supabase
+        .from("personajes")
+        .select("id, nombre, img_url, reino, fecha_nacimiento")
+        .not("fecha_nacimiento", "is", null)
+        .order("fecha_nacimiento");
+      setPersonajes(
+        (data ?? []).map((p: any) => ({
+          id: p.id,
+          nombre: p.nombre ?? "Sin nombre",
+          img_url: p.img_url ?? null,
+          reino: p.reino ?? null,
+          fecha_nacimiento: p.fecha_nacimiento,
+        })),
+      );
+    } catch {}
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  return { personajes, loading };
+}
+
+// ─── Hook: lista de reinos disponibles ───────────────────────────────────────
+function useReinosDisponibles(personajes: PersonajeCumple[]): string[] {
+  return React.useMemo(() => {
+    const set = new Set<string>();
+    for (const p of personajes) {
+      if (p.reino) set.add(p.reino);
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [personajes]);
+}
+
+// ─── Panel de filtros ─────────────────────────────────────────────────────────
+function PanelFiltrosCumpleanos({
+  reinos,
+  reinosActivos,
+  mostrarCumpleanos,
+  onToggleReino,
+  onToggleCumpleanos,
+  onClose,
+}: {
+  reinos: string[];
+  reinosActivos: Set<string>;
+  mostrarCumpleanos: boolean;
+  onToggleReino: (reino: string) => void;
+  onToggleCumpleanos: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <div
+      className="rounded-xl border shadow-xl p-3 space-y-3"
+      style={{
+        minWidth: 220,
+        background: "var(--bg-main)",
+        borderColor: "color-mix(in srgb, var(--primary) 14%, transparent)",
+      }}
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/50 flex items-center gap-1.5">
+          <SlidersHorizontal size={9} /> Filtros
+        </span>
+        <button
+          className="p-1 rounded-lg text-primary/30 hover:text-primary transition-all"
+          onClick={onClose}
+        >
+          <X size={11} />
+        </button>
+      </div>
+
+      {/* Toggle cumpleaños */}
+      <div>
+        <span className="text-[8px] font-black uppercase tracking-widest text-primary/35 mb-1.5 block">
+          Mostrar
+        </span>
+        <button
+          className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg border text-left transition-all"
+          style={{
+            background: mostrarCumpleanos
+              ? "color-mix(in srgb, var(--accent) 10%, transparent)"
+              : "transparent",
+            borderColor: mostrarCumpleanos
+              ? "color-mix(in srgb, var(--accent) 30%, transparent)"
+              : "color-mix(in srgb, var(--primary) 12%, transparent)",
+            color: mostrarCumpleanos
+              ? "var(--accent)"
+              : "color-mix(in srgb, var(--primary) 40%, transparent)",
+          }}
+          type="button"
+          onClick={onToggleCumpleanos}
+        >
+          <Cake size={10} />
+          <span className="text-[9px] font-black uppercase tracking-widest flex-1">
+            Cumpleaños
+          </span>
+          <div
+            className="w-7 h-3.5 rounded-full transition-all relative shrink-0"
+            style={{
+              background: mostrarCumpleanos
+                ? "var(--accent)"
+                : "color-mix(in srgb, var(--primary) 20%, transparent)",
+            }}
+          >
+            <div
+              className="absolute top-0.5 w-2.5 h-2.5 rounded-full bg-white transition-all"
+              style={{ left: mostrarCumpleanos ? "calc(100% - 12px)" : "2px" }}
+            />
+          </div>
+        </button>
+      </div>
+
+      {/* Filtro por reinos */}
+      {reinos.length > 0 && (
+        <div>
+          <span className="text-[8px] font-black uppercase tracking-widest text-primary/35 mb-1.5 block flex items-center gap-1">
+            <Globe size={8} /> Reino
+          </span>
+          <div className="space-y-1">
+            {/* Botón "Todos" */}
+            <button
+              className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg border text-[9px] font-black uppercase tracking-widest transition-all text-left"
+              style={{
+                background:
+                  reinosActivos.size === 0
+                    ? "color-mix(in srgb, var(--primary) 8%, transparent)"
+                    : "transparent",
+                borderColor:
+                  reinosActivos.size === 0
+                    ? "color-mix(in srgb, var(--primary) 25%, transparent)"
+                    : "color-mix(in srgb, var(--primary) 10%, transparent)",
+                color:
+                  reinosActivos.size === 0
+                    ? "var(--primary)"
+                    : "color-mix(in srgb, var(--primary) 40%, transparent)",
+              }}
+              type="button"
+              onClick={() => {
+                // Limpiar todos
+                for (const r of Array.from(reinosActivos)) onToggleReino(r);
+              }}
+            >
+              Todos los reinos
+            </button>
+            {reinos.map((reino) => {
+              const activo = reinosActivos.has(reino);
+              return (
+                <button
+                  key={reino}
+                  className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg border text-[9px] font-black uppercase tracking-widest transition-all text-left"
+                  style={{
+                    background: activo
+                      ? "color-mix(in srgb, var(--accent) 10%, transparent)"
+                      : "transparent",
+                    borderColor: activo
+                      ? "color-mix(in srgb, var(--accent) 30%, transparent)"
+                      : "color-mix(in srgb, var(--primary) 10%, transparent)",
+                    color: activo
+                      ? "var(--accent)"
+                      : "color-mix(in srgb, var(--primary) 40%, transparent)",
+                  }}
+                  type="button"
+                  onClick={() => onToggleReino(reino)}
+                >
+                  {activo && <Check size={8} />}
+                  {reino}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── CumpleanosMarker: una entrada de cumpleaños en la línea de tiempo ────────
+function CumpleanosMarker({
+  personaje,
+  cal,
+}: {
+  personaje: PersonajeCumple;
+  cal: { estaciones: Estacion[]; config: CalendarioConfig; eras: EraMundo[] };
+}) {
+  const fecha = diaAbsolutoAFecha(
+    personaje.fecha_nacimiento,
+    cal.estaciones,
+    cal.config,
+  );
+  const era = eraEnAnio(fecha.anio, cal.eras);
+
+  if (!fecha.estacion) return null;
+
+  return (
+    <div className="flex items-center gap-2.5 py-1.5 px-1 group">
+      {/* Avatar */}
+      <div
+        className="shrink-0 w-6 h-6 rounded-full border overflow-hidden flex items-center justify-center"
+        style={{
+          borderColor: era
+            ? `${era.color ?? "var(--accent)"}55`
+            : "color-mix(in srgb, var(--primary) 15%, transparent)",
+          background: "color-mix(in srgb, var(--primary) 5%, transparent)",
+        }}
+      >
+        {personaje.img_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            alt={personaje.nombre}
+            className="w-full h-full object-cover"
+            src={personaje.img_url}
+          />
+        ) : (
+          <Cake size={10} style={{ color: era?.color ?? "var(--accent)" }} />
+        )}
+      </div>
+
+      {/* Info */}
+      <div className="flex-1 min-w-0">
+        <p className="text-[10px] font-black uppercase italic text-primary truncate">
+          {personaje.nombre}
+        </p>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <FechaMundoBadge diaAbsoluto={personaje.fecha_nacimiento} />
+          {personaje.reino && (
+            <span className="text-[8px] text-primary/30 truncate">
+              · {personaje.reino}
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── BloqueLineaTiempoCumpleanos ──────────────────────────────────────────────
+// Bloque exportable que muestra personajes con fecha de nacimiento + filtros.
+export function BloqueLineaTiempoCumpleanos({
+  onSelectPersonaje,
+}: {
+  onSelectPersonaje?: (id: string) => void;
+}) {
+  const { personajes, loading } = usePersonajesCumpleanos();
+  const { cal, loading: calLoad } = useCalendario();
+  const reinos = useReinosDisponibles(personajes);
+
+  const [mostrarCumpleanos, setMostrarCumpleanos] = useState(true);
+  const [reinosActivos, setReinosActivos] = useState<Set<string>>(new Set());
+  const [filtrosOpen, setFiltrosOpen] = useState(false);
+  const filtroRef = useRef<HTMLDivElement>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const [filtroPos, setFiltroPos] = useState<{
+    top: number;
+    right: number;
+  } | null>(null);
+
+  // Cerrar panel al click fuera
+  useEffect(() => {
+    if (!filtrosOpen) return;
+    const handler = (e: MouseEvent) => {
+      const t = e.target as Node;
+      if (filtroRef.current?.contains(t)) return;
+      if (btnRef.current?.contains(t)) return;
+      setFiltrosOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [filtrosOpen]);
+
+  // Posición del panel flotante
+  useEffect(() => {
+    if (!filtrosOpen) return;
+    const r = btnRef.current?.getBoundingClientRect();
+    if (!r) return;
+    setFiltroPos({ top: r.bottom + 4, right: window.innerWidth - r.right });
+  }, [filtrosOpen]);
+
+  const toggleReino = (reino: string) => {
+    setReinosActivos((prev) => {
+      const next = new Set(prev);
+      if (next.has(reino)) next.delete(reino);
+      else next.add(reino);
+      return next;
+    });
+  };
+
+  // Filtrar personajes
+  const personajesFiltrados = React.useMemo(() => {
+    return personajes.filter((p) => {
+      if (reinosActivos.size > 0 && !reinosActivos.has(p.reino ?? ""))
+        return false;
+      return true;
+    });
+  }, [personajes, reinosActivos]);
+
+  // Ordenar por día del año (estación + día dentro de estación), ignorando el año de nacimiento
+  // para que aparezcan en orden cronológico dentro del año
+  const personajesOrdenados = React.useMemo(() => {
+    if (!cal) return personajesFiltrados;
+    return [...personajesFiltrados].sort((a, b) => {
+      const fa = diaAbsolutoAFecha(
+        a.fecha_nacimiento,
+        cal.estaciones,
+        cal.config,
+      );
+      const fb = diaAbsolutoAFecha(
+        b.fecha_nacimiento,
+        cal.estaciones,
+        cal.config,
+      );
+      const diaAnioA = (fa.estacion?.orden ?? 0) * 10000 + fa.dia_en_estacion;
+      const diaAnioB = (fb.estacion?.orden ?? 0) * 10000 + fb.dia_en_estacion;
+      return diaAnioA - diaAnioB;
+    });
+  }, [personajesFiltrados, cal]);
+
+  const hayFiltrosActivos = reinosActivos.size > 0 || !mostrarCumpleanos;
+
+  return (
+    <div className="rounded-xl overflow-visible border border-primary/10">
+      {/* Header */}
+      <div className="flex items-center gap-2 px-3 py-2 border-b border-primary/[0.06] bg-primary/[0.03]">
+        <Cake className="text-primary/40" size={10} />
+        <span className="flex-1 text-[9px] font-black uppercase tracking-widest text-primary/40">
+          Cumpleaños
+        </span>
+        {/* Indicador de filtros activos */}
+        {hayFiltrosActivos && (
+          <span
+            className="w-1.5 h-1.5 rounded-full shrink-0"
+            style={{ background: "var(--accent)" }}
+          />
+        )}
+        {/* Botón filtros */}
+        <button
+          ref={btnRef}
+          className="flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border transition-all"
+          style={{
+            borderColor: hayFiltrosActivos
+              ? "color-mix(in srgb, var(--accent) 30%, transparent)"
+              : "color-mix(in srgb, var(--primary) 12%, transparent)",
+            background: hayFiltrosActivos
+              ? "color-mix(in srgb, var(--accent) 8%, transparent)"
+              : "transparent",
+            color: hayFiltrosActivos
+              ? "var(--accent)"
+              : "color-mix(in srgb, var(--primary) 40%, transparent)",
+          }}
+          type="button"
+          onClick={() => setFiltrosOpen((v) => !v)}
+        >
+          <SlidersHorizontal size={8} /> Filtros
+        </button>
+      </div>
+
+      {/* Panel flotante de filtros */}
+      {filtrosOpen &&
+        filtroPos &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div
+            ref={filtroRef}
+            className="fixed z-[9999]"
+            style={{ top: filtroPos.top, right: filtroPos.right }}
+          >
+            <PanelFiltrosCumpleanos
+              mostrarCumpleanos={mostrarCumpleanos}
+              reinosActivos={reinosActivos}
+              reinos={reinos}
+              onClose={() => setFiltrosOpen(false)}
+              onToggleCumpleanos={() => setMostrarCumpleanos((v) => !v)}
+              onToggleReino={toggleReino}
+            />
+          </div>,
+          document.body,
+        )}
+
+      {/* Contenido */}
+      {!mostrarCumpleanos ? (
+        <p className="text-[9px] text-primary/25 font-black uppercase tracking-widest text-center py-4 italic">
+          Cumpleaños ocultos
+        </p>
+      ) : loading || calLoad ? (
+        <div className="flex justify-center py-4">
+          <Loader2 className="animate-spin text-primary/20" size={14} />
+        </div>
+      ) : personajesOrdenados.length === 0 ? (
+        <p className="text-[9px] text-primary/25 font-black uppercase tracking-widest text-center py-4 italic">
+          {reinosActivos.size > 0
+            ? "Sin resultados para este filtro"
+            : "Sin fechas de nacimiento registradas"}
+        </p>
+      ) : cal ? (
+        <div
+          className="divide-y"
+          style={{
+            borderColor: "color-mix(in srgb, var(--primary) 6%, transparent)",
+          }}
+        >
+          {personajesOrdenados.map((p) => (
+            <div
+              key={p.id}
+              className={`px-2 transition-colors ${onSelectPersonaje ? "cursor-pointer hover:bg-primary/[0.03] active:bg-primary/[0.06]" : ""}`}
+              onClick={() => onSelectPersonaje?.(p.id)}
+            >
+              <CumpleanosMarker cal={cal} personaje={p} />
+            </div>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }
