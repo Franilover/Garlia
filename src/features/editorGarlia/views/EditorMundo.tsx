@@ -116,9 +116,9 @@ type ObjetoMin = {
 type CiudadMin = {
   id: string;
   nombre: string;
-  imagen_url?: string | null;
-  tipo?: string | null;
-  reino_id?: string | null;
+  imagen_url?: string;
+  tipo?: string;
+  reino_id?: string;
 };
 type EntidadMagicaMin = { id: string; nombre: string };
 type RunaMin = { id: string; nombre: string; imagen_url?: string | null };
@@ -901,97 +901,73 @@ function ModalNuevoEvento({
   const puedeCrear = titulo.trim().length > 0 && diaAbsoluto != null;
 
   return (
-    <div
-      className="fixed inset-0 z-[1100] flex items-center justify-center p-3"
-      style={{ background: "color-mix(in srgb, black 45%, transparent)" }}
-      onMouseDown={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
+    <>
+      {/* Backdrop separado — no bloquea el portal del selector de fecha */}
       <div
-        className="w-full max-w-sm rounded-2xl border shadow-lg p-4 space-y-3"
-        style={{
-          background: "var(--bg-main)",
-          borderColor: "color-mix(in srgb, var(--primary) 14%, transparent)",
-        }}
-      >
-        <div className="flex items-center justify-between">
-          <span
-            className="text-[10px] font-black uppercase tracking-[0.2em]"
-            style={{ color: "var(--primary)" }}
-          >
-            Nuevo evento
-          </span>
-          <button
-            className="flex items-center justify-center w-6 h-6 rounded-lg border transition-all"
-            style={{
-              borderColor:
-                "color-mix(in srgb, var(--primary) 12%, transparent)",
-              color: "color-mix(in srgb, var(--primary) 40%, transparent)",
-            }}
-            type="button"
-            onClick={onClose}
-          >
-            <X size={10} />
-          </button>
-        </div>
-
-        {/* Título */}
-        <div className="space-y-1">
-          <label className="text-[8px] font-black uppercase tracking-[0.18em] text-primary/35">
-            Título
-          </label>
-          <input
-            autoFocus
-            className="w-full rounded-lg border px-2.5 py-1.5 text-[11px] font-bold outline-none transition-all"
-            placeholder="Título del evento…"
-            style={{
-              background: "transparent",
-              borderColor:
-                "color-mix(in srgb, var(--primary) 14%, transparent)",
-              color: "var(--primary)",
-            }}
-            type="text"
-            value={titulo}
-            onChange={(e) => setTitulo(e.target.value)}
-          />
-        </div>
-
-        {/* Selector de reino */}
-        <div className="space-y-1">
-          <label className="text-[8px] font-black uppercase tracking-[0.18em] text-primary/35">
-            Reino
-          </label>
-          <div className="flex flex-wrap gap-1">
-            <button
-              className="px-2.5 py-1 rounded-lg border text-[9px] font-black uppercase tracking-widest transition-all"
-              style={
-                reinoId === null
-                  ? {
-                      background:
-                        "color-mix(in srgb, var(--accent) 15%, transparent)",
-                      borderColor:
-                        "color-mix(in srgb, var(--accent) 35%, transparent)",
-                      color: "var(--accent)",
-                    }
-                  : {
-                      borderColor:
-                        "color-mix(in srgb, var(--primary) 10%, transparent)",
-                      color:
-                        "color-mix(in srgb, var(--primary) 45%, transparent)",
-                    }
-              }
-              type="button"
-              onClick={() => setReinoId(null)}
+        className="fixed inset-0 z-[1100]"
+        style={{ background: "color-mix(in srgb, black 45%, transparent)" }}
+        onMouseDown={onClose}
+      />
+      <div className="fixed inset-0 z-[1101] flex items-center justify-center p-3 pointer-events-none">
+        <div
+          className="w-full max-w-sm rounded-2xl border shadow-lg p-4 space-y-3 pointer-events-auto"
+          style={{
+            background: "var(--bg-main)",
+            borderColor: "color-mix(in srgb, var(--primary) 14%, transparent)",
+          }}
+        >
+          <div className="flex items-center justify-between">
+            <span
+              className="text-[10px] font-black uppercase tracking-[0.2em]"
+              style={{ color: "var(--primary)" }}
             >
-              Mundo (sin reino)
+              Nuevo evento
+            </span>
+            <button
+              className="flex items-center justify-center w-6 h-6 rounded-lg border transition-all"
+              style={{
+                borderColor:
+                  "color-mix(in srgb, var(--primary) 12%, transparent)",
+                color: "color-mix(in srgb, var(--primary) 40%, transparent)",
+              }}
+              type="button"
+              onClick={onClose}
+            >
+              <X size={10} />
             </button>
-            {reinos.map((r) => (
+          </div>
+
+          {/* Título */}
+          <div className="space-y-1">
+            <label className="text-[8px] font-black uppercase tracking-[0.18em] text-primary/35">
+              Título
+            </label>
+            <input
+              autoFocus
+              className="w-full rounded-lg border px-2.5 py-1.5 text-[11px] font-bold outline-none transition-all"
+              placeholder="Título del evento…"
+              style={{
+                background: "transparent",
+                borderColor:
+                  "color-mix(in srgb, var(--primary) 14%, transparent)",
+                color: "var(--primary)",
+              }}
+              type="text"
+              value={titulo}
+              onChange={(e) => setTitulo(e.target.value)}
+            />
+          </div>
+
+          {/* Selector de reino */}
+          <div className="space-y-1">
+            <label className="text-[8px] font-black uppercase tracking-[0.18em] text-primary/35">
+              Reino
+            </label>
+            <div className="flex flex-wrap gap-1">
               <button
-                key={r.id}
                 className="px-2.5 py-1 rounded-lg border text-[9px] font-black uppercase tracking-widest transition-all"
                 style={
-                  reinoId === r.id
+                  reinoId === null
                     ? {
                         background:
                           "color-mix(in srgb, var(--accent) 15%, transparent)",
@@ -1007,72 +983,98 @@ function ModalNuevoEvento({
                       }
                 }
                 type="button"
-                onClick={() => setReinoId(r.id)}
+                onClick={() => setReinoId(null)}
               >
-                {r.nombre}
+                Mundo (sin reino)
               </button>
-            ))}
+              {reinos.map((r) => (
+                <button
+                  key={r.id}
+                  className="px-2.5 py-1 rounded-lg border text-[9px] font-black uppercase tracking-widest transition-all"
+                  style={
+                    reinoId === r.id
+                      ? {
+                          background:
+                            "color-mix(in srgb, var(--accent) 15%, transparent)",
+                          borderColor:
+                            "color-mix(in srgb, var(--accent) 35%, transparent)",
+                          color: "var(--accent)",
+                        }
+                      : {
+                          borderColor:
+                            "color-mix(in srgb, var(--primary) 10%, transparent)",
+                          color:
+                            "color-mix(in srgb, var(--primary) 45%, transparent)",
+                        }
+                  }
+                  type="button"
+                  onClick={() => setReinoId(r.id)}
+                >
+                  {r.nombre}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Selector de fecha */}
+          <div className="space-y-1">
+            <label className="text-[8px] font-black uppercase tracking-[0.18em] text-primary/35">
+              Fecha
+            </label>
+            <SelectorFechaMundo
+              placeholder="Elegir fecha…"
+              value={diaAbsoluto}
+              onChange={setDiaAbsoluto}
+            />
+          </div>
+
+          {/* Acciones */}
+          <div className="flex gap-1.5 pt-1">
+            <button
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-[8px] font-black uppercase tracking-widest transition-all"
+              style={{
+                borderColor:
+                  "color-mix(in srgb, var(--primary) 12%, transparent)",
+                color: "color-mix(in srgb, var(--primary) 35%, transparent)",
+              }}
+              type="button"
+              onClick={onClose}
+            >
+              Cancelar
+            </button>
+            <button
+              className="flex-1 flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all"
+              disabled={!puedeCrear || creando}
+              style={{
+                background: puedeCrear
+                  ? "var(--accent)"
+                  : "color-mix(in srgb, var(--primary) 12%, transparent)",
+                color: puedeCrear
+                  ? "white"
+                  : "color-mix(in srgb, var(--primary) 35%, transparent)",
+                cursor: puedeCrear ? "pointer" : "default",
+              }}
+              type="button"
+              onClick={() => {
+                if (puedeCrear)
+                  onCrear({
+                    titulo: titulo.trim(),
+                    reinoId,
+                    dia_absoluto: diaAbsoluto!,
+                  });
+              }}
+            >
+              {creando ? (
+                <Loader2 className="animate-spin" size={9} />
+              ) : (
+                <Check size={9} />
+              )}{" "}
+              Crear
+            </button>
           </div>
         </div>
-
-        {/* Selector de fecha */}
-        <div className="space-y-1">
-          <label className="text-[8px] font-black uppercase tracking-[0.18em] text-primary/35">
-            Fecha
-          </label>
-          <SelectorFechaMundo
-            placeholder="Elegir fecha…"
-            value={diaAbsoluto}
-            onChange={setDiaAbsoluto}
-          />
-        </div>
-
-        {/* Acciones */}
-        <div className="flex gap-1.5 pt-1">
-          <button
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-[8px] font-black uppercase tracking-widest transition-all"
-            style={{
-              borderColor:
-                "color-mix(in srgb, var(--primary) 12%, transparent)",
-              color: "color-mix(in srgb, var(--primary) 35%, transparent)",
-            }}
-            type="button"
-            onClick={onClose}
-          >
-            Cancelar
-          </button>
-          <button
-            className="flex-1 flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all"
-            disabled={!puedeCrear || creando}
-            style={{
-              background: puedeCrear
-                ? "var(--accent)"
-                : "color-mix(in srgb, var(--primary) 12%, transparent)",
-              color: puedeCrear
-                ? "white"
-                : "color-mix(in srgb, var(--primary) 35%, transparent)",
-              cursor: puedeCrear ? "pointer" : "default",
-            }}
-            type="button"
-            onClick={() => {
-              if (puedeCrear)
-                onCrear({
-                  titulo: titulo.trim(),
-                  reinoId,
-                  dia_absoluto: diaAbsoluto!,
-                });
-            }}
-          >
-            {creando ? (
-              <Loader2 className="animate-spin" size={9} />
-            ) : (
-              <Check size={9} />
-            )}{" "}
-            Crear
-          </button>
-        </div>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -3826,8 +3828,15 @@ function PanelListas({
                   setSelectedReino(r);
                 }}
                 onSaved={(u) => {
+                  const uMin: CiudadMin = {
+                    id: u.id,
+                    nombre: u.nombre,
+                    imagen_url: u.imagen_url ?? undefined,
+                    tipo: u.tipo ?? undefined,
+                    reino_id: u.reino_id ?? undefined,
+                  };
                   setCiudades((p) =>
-                    p.map((l) => (l.id === u.id ? { ...l, ...u } : l)),
+                    p.map((l) => (l.id === u.id ? { ...l, ...uMin } : l)),
                   );
                   setSelectedCiudad({ ...selectedCiudad, ...u });
                 }}
