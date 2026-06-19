@@ -1,5 +1,6 @@
-import Image from "next/image";
 "use client";
+import Image from "next/image";
+
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, List, ChevronRight } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";

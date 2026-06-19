@@ -1,5 +1,6 @@
-import Image from "next/image";
 "use client";
+import Image from "next/image";
+
 
 import {
   Sparkles, Star, Plus, Trash2, Save, Loader2, Search, X, Layers, Check, ScrollText, Camera,

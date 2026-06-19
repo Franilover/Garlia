@@ -1,5 +1,6 @@
-import Image from "next/image";
 "use client";
+import Image from "next/image";
+
 
 import {
   MapPin, Save, Trash2, Users, Bug, Package,

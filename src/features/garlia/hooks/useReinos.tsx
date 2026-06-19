@@ -1,5 +1,6 @@
-import Image from "next/image";
 "use client";
+import Image from "next/image";
+
 import { X, MapPin } from "lucide-react";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 

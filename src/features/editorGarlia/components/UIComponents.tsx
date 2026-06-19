@@ -1,5 +1,6 @@
-import Image from "next/image";
 "use client";
+import Image from "next/image";
+
 
 import {
   Loader2, AlertCircle, CheckCircle2,

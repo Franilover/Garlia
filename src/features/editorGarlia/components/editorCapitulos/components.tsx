@@ -1,5 +1,6 @@
-import Image from "next/image";
 "use client";
+import Image from "next/image";
+
 import {
   ChevronDown, ChevronRight, UserCircle2, Loader2, Trash2,
   X, Clock, Hash, AlignLeft, Calendar, BookMarked, Pencil,
