@@ -1,15 +1,30 @@
 "use client";
 import Image from "next/image";
 
-
 import {
-  Maximize2, UserCircle2, BookOpen, Loader2,
-  ChevronDown, X, Save, Trash2, Check,
-  Sparkles, Users, Camera, SlidersHorizontal, Music2, Plus, Clock,
+  Maximize2,
+  UserCircle2,
+  BookOpen,
+  Loader2,
+  ChevronDown,
+  X,
+  Save,
+  Trash2,
+  Check,
+  Sparkles,
+  Users,
+  Camera,
+  SlidersHorizontal,
+  Music2,
+  Plus,
+  Clock,
 } from "lucide-react";
 import React, { useState, useEffect, useCallback } from "react";
 
-import { MarkdownEditor, WikiEntity } from "@/components/forms/Markdown/MarkdownEditor";
+import {
+  MarkdownEditor,
+  WikiEntity,
+} from "@/components/forms/Markdown/MarkdownEditor";
 import { ComboSelector } from "@/components/ui/ComboSelector";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { SeccionEntidad } from "@/components/ui/SeccionEntidad";
@@ -19,20 +34,25 @@ import { supabase } from "@/lib/api/client/supabase";
 
 import { BloqueDones } from "../components/BloqueDones";
 import { BloqueRelaciones } from "../components/BloqueRelaciones";
-import { SelectorFechaMundo, FechaMundoBadge } from "../components/EditorLineaTiempo";
+import {
+  SelectorFechaMundo,
+  FechaMundoBadge,
+} from "../components/EditorLineaTiempo";
 import { useNombresDeTabla } from "../components/hooks";
 import { type Personaje, type SaveStatus } from "../components/types";
 import { SelectorImagen, SaveIndicator } from "../components/UIComponents";
 import { useWikilink } from "../components/WikilinkContext";
 
-
-
 // ─── Dexie helpers ────────────────────────────────────────────────────────────
 async function dexiePut(tabla: string, row: any): Promise<void> {
-  try { if (db) await (db as any)[tabla]?.put(row); } catch {}
+  try {
+    if (db) await (db as any)[tabla]?.put(row);
+  } catch {}
 }
 async function dexieDel(tabla: string, id: string): Promise<void> {
-  try { if (db) await (db as any)[tabla]?.delete(id); } catch {}
+  try {
+    if (db) await (db as any)[tabla]?.delete(id);
+  } catch {}
 }
 async function dexieReadAll<T>(tabla: string): Promise<T[]> {
   try {
@@ -40,7 +60,9 @@ async function dexieReadAll<T>(tabla: string): Promise<T[]> {
     const t = (db as any)[tabla];
     if (!t) return [];
     return ((await t.toArray()) as any[]).filter((r: any) => !r.deleted) as T[];
-  } catch { return []; }
+  } catch {
+    return [];
+  }
 }
 async function dexieWriteAll(tabla: string, rows: any[]): Promise<void> {
   try {
@@ -50,17 +72,21 @@ async function dexieWriteAll(tabla: string, rows: any[]): Promise<void> {
     if (rows.length > 0) await t.bulkPut(rows);
     const remoteIds = new Set(rows.map((r: any) => r.id));
     const local: any[] = await t.toArray();
-    const toDelete = local.map((r: any) => r.id).filter((id: string) => !remoteIds.has(id));
+    const toDelete = local
+      .map((r: any) => r.id)
+      .filter((id: string) => !remoteIds.has(id));
     if (toDelete.length > 0) await t.bulkDelete(toDelete);
   } catch {}
 }
 
-
-
-
-
 // ─── Bloque capítulos en los que aparece ─────────────────────────────────────
-type CapAparece = { id: string; orden: number; titulo_capitulo: string; libro_titulo?: string | null; libro_id?: string | null };
+type CapAparece = {
+  id: string;
+  orden: number;
+  titulo_capitulo: string;
+  libro_titulo?: string | null;
+  libro_id?: string | null;
+};
 
 // Cache en memoria para no re-escanear Dexie si ya cargamos este personaje
 const _capsCache = new Map<string, CapAparece[]>();
@@ -75,7 +101,10 @@ function mapCap(c: any, libroMap: Record<string, string>): CapAparece {
   };
 }
 
-function useCapitulosConPersonaje(personajeId: string): { caps: CapAparece[]; loading: boolean } {
+function useCapitulosConPersonaje(personajeId: string): {
+  caps: CapAparece[];
+  loading: boolean;
+} {
   const cached = _capsCache.get(personajeId);
   const [caps, setCaps] = useState<CapAparece[]>(cached ?? []);
   // Solo mostramos spinner si no hay nada en caché
@@ -96,12 +125,16 @@ function useCapitulosConPersonaje(personajeId: string): { caps: CapAparece[]; lo
             // bloquear la UI gracias al estado inicial vacío + loading
             const [allCaps, allLibros]: [any[], any[]] = await Promise.all([
               (db as any).capitulos?.toArray() ?? [],
-              (db as any).libros?.toArray()    ?? [],
+              (db as any).libros?.toArray() ?? [],
             ]);
             if (cancelled) return;
-            const libroMap = Object.fromEntries((allLibros as any[]).map((l: any) => [l.id, l.titulo]));
+            const libroMap = Object.fromEntries(
+              (allLibros as any[]).map((l: any) => [l.id, l.titulo]),
+            );
             const filtered = (allCaps as any[])
-              .filter((c: any) => (c.personajes_ids ?? []).includes(personajeId))
+              .filter((c: any) =>
+                (c.personajes_ids ?? []).includes(personajeId),
+              )
               .sort((a: any, b: any) => (a.orden ?? 0) - (b.orden ?? 0))
               .map((c: any) => mapCap(c, libroMap));
             if (filtered.length > 0) {
@@ -111,16 +144,23 @@ function useCapitulosConPersonaje(personajeId: string): { caps: CapAparece[]; lo
             setLoading(false);
             if (!navigator.onLine) return;
           }
-        } catch { setLoading(false); }
+        } catch {
+          setLoading(false);
+        }
       }
 
-      if (!navigator.onLine) { setLoading(false); return; }
+      if (!navigator.onLine) {
+        setLoading(false);
+        return;
+      }
 
       // ── 2. Supabase en background (actualiza sin spinner) ─────────────────
       try {
         const { data } = await supabase
           .from("capitulos")
-          .select("id, orden, titulo_capitulo, libro_id, libros!libro_id(titulo)")
+          .select(
+            "id, orden, titulo_capitulo, libro_id, libros!libro_id(titulo)",
+          )
           .contains("personajes_ids", [personajeId])
           .order("orden");
         if (cancelled) return;
@@ -128,7 +168,10 @@ function useCapitulosConPersonaje(personajeId: string): { caps: CapAparece[]; lo
           id: c.id,
           orden: c.orden ?? 0,
           titulo_capitulo: c.titulo_capitulo ?? "Sin título",
-          libro_titulo: (Array.isArray(c.libros) ? c.libros[0]?.titulo : c.libros?.titulo) ?? null,
+          libro_titulo:
+            (Array.isArray(c.libros)
+              ? c.libros[0]?.titulo
+              : c.libros?.titulo) ?? null,
           libro_id: c.libro_id ?? null,
         }));
         _capsCache.set(personajeId, fresh);
@@ -138,7 +181,9 @@ function useCapitulosConPersonaje(personajeId: string): { caps: CapAparece[]; lo
     };
 
     run();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [personajeId]);
 
   return { caps, loading };
@@ -149,20 +194,26 @@ function BloqueCapsAparece({ personajeId }: { personajeId: string }) {
 
   const navigateToCap = (cap: CapAparece) => {
     if (!cap.libro_id) return;
-    localStorage.setItem("estudio-caps-last-cap",   cap.id);
+    localStorage.setItem("estudio-caps-last-cap", cap.id);
     localStorage.setItem("estudio-caps-last-libro", cap.libro_id);
     window.dispatchEvent(new Event("estudio-caps-action"));
   };
 
-  if (loading) return <div className="flex justify-center py-4"><Loader2 className="animate-spin text-primary/20" size={16} /></div>;
-  if (!caps.length) return (
-    <p className="text-[10px] font-bold text-primary/25 uppercase tracking-widest text-center py-4 italic">
-      Sin apariciones registradas
-    </p>
-  );
+  if (loading)
+    return (
+      <div className="flex justify-center py-4">
+        <Loader2 className="animate-spin text-primary/20" size={16} />
+      </div>
+    );
+  if (!caps.length)
+    return (
+      <p className="text-[10px] font-bold text-primary/25 uppercase tracking-widest text-center py-4 italic">
+        Sin apariciones registradas
+      </p>
+    );
   return (
     <div className="space-y-1">
-      {caps.map(cap => (
+      {caps.map((cap) => (
         <button
           key={cap.id}
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-primary/5 active:bg-primary/10 transition-colors text-left group disabled:opacity-40 disabled:cursor-default cursor-pointer"
@@ -174,7 +225,9 @@ function BloqueCapsAparece({ personajeId }: { personajeId: string }) {
             {cap.orden}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-[11px] font-bold text-primary truncate uppercase italic group-hover:text-primary/80 transition-colors">{cap.titulo_capitulo}</p>
+            <p className="text-[11px] font-bold text-primary truncate uppercase italic group-hover:text-primary/80 transition-colors">
+              {cap.titulo_capitulo}
+            </p>
             {cap.libro_titulo && (
               <p className="text-[9px] text-primary/35 truncate flex items-center gap-1">
                 <BookOpen size={8} /> {cap.libro_titulo}
@@ -188,7 +241,12 @@ function BloqueCapsAparece({ personajeId }: { personajeId: string }) {
 }
 
 // ─── Bloque canciones del personaje ──────────────────────────────────────────
-type CancionMin = { id: string; titulo: string; cantante: string | null; portada_url: string | null };
+type CancionMin = {
+  id: string;
+  titulo: string;
+  cantante: string | null;
+  portada_url: string | null;
+};
 
 function useCancionesPersonaje(
   personajeId: string,
@@ -203,27 +261,33 @@ function useCancionesPersonaje(
     // 1. Dexie primero
     try {
       if (db) {
-        const todas: any[] = await (db as any).canciones?.toArray() ?? [];
+        const todas: any[] = (await (db as any).canciones?.toArray()) ?? [];
         const nombre = nombrePersonaje?.trim().toLowerCase() ?? "";
-        const filtered = todas.filter((c: any) =>
-          c.personaje_id === personajeId ||
-          c.id === personajeId ||
-          (nombre && c.titulo?.toLowerCase().includes(nombre))
+        const filtered = todas.filter(
+          (c: any) =>
+            c.personaje_id === personajeId ||
+            c.id === personajeId ||
+            (nombre && c.titulo?.toLowerCase().includes(nombre)),
         );
         if (filtered.length > 0) {
-          setCanciones(filtered.map((c: any) => ({
-            id: c.id,
-            titulo: c.titulo ?? "Sin título",
-            cantante: c.cantante ?? null,
-            portada_url: c.portada_url ?? null,
-          })));
+          setCanciones(
+            filtered.map((c: any) => ({
+              id: c.id,
+              titulo: c.titulo ?? "Sin título",
+              cantante: c.cantante ?? null,
+              portada_url: c.portada_url ?? null,
+            })),
+          );
           setLoading(false);
           if (!navigator.onLine) return;
         }
       }
     } catch {}
 
-    if (!navigator.onLine) { setLoading(false); return; }
+    if (!navigator.onLine) {
+      setLoading(false);
+      return;
+    }
 
     // 2. Supabase: por personaje_id, por id o por título con nombre del personaje
     try {
@@ -234,24 +298,28 @@ function useCancionesPersonaje(
 
       if (nombre) {
         query = query.or(
-          `personaje_id.eq.${personajeId},id.eq.${personajeId},titulo.ilike.%${nombre}%`
+          `personaje_id.eq.${personajeId},id.eq.${personajeId},titulo.ilike.%${nombre}%`,
         );
       } else {
         query = query.or(`personaje_id.eq.${personajeId},id.eq.${personajeId}`);
       }
 
       const { data } = await query.order("titulo");
-      setCanciones((data ?? []).map((c: any) => ({
-        id: c.id,
-        titulo: c.titulo ?? "Sin título",
-        cantante: c.cantante ?? null,
-        portada_url: c.portada_url ?? null,
-      })));
+      setCanciones(
+        (data ?? []).map((c: any) => ({
+          id: c.id,
+          titulo: c.titulo ?? "Sin título",
+          cantante: c.cantante ?? null,
+          portada_url: c.portada_url ?? null,
+        })),
+      );
     } catch {}
     setLoading(false);
   }, [personajeId, nombrePersonaje]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   return { canciones, loading };
 }
@@ -265,21 +333,26 @@ function BloqueCanciones({
   nombrePersonaje: string;
   onSelect?: (id: string) => void;
 }) {
-  const { canciones, loading } = useCancionesPersonaje(personajeId, nombrePersonaje);
+  const { canciones, loading } = useCancionesPersonaje(
+    personajeId,
+    nombrePersonaje,
+  );
 
-  if (loading) return (
-    <div className="flex justify-center py-4">
-      <Loader2 className="animate-spin text-primary/20" size={16} />
-    </div>
-  );
-  if (!canciones.length) return (
-    <p className="text-[10px] font-bold text-primary/25 uppercase tracking-widest text-center py-4 italic">
-      Sin canciones
-    </p>
-  );
+  if (loading)
+    return (
+      <div className="flex justify-center py-4">
+        <Loader2 className="animate-spin text-primary/20" size={16} />
+      </div>
+    );
+  if (!canciones.length)
+    return (
+      <p className="text-[10px] font-bold text-primary/25 uppercase tracking-widest text-center py-4 italic">
+        Sin canciones
+      </p>
+    );
   return (
     <div className="space-y-1">
-      {canciones.map(c => (
+      {canciones.map((c) => (
         <button
           key={c.id}
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-primary/5 active:bg-primary/10 transition-colors text-left group disabled:cursor-default cursor-pointer"
@@ -289,7 +362,11 @@ function BloqueCanciones({
         >
           {c.portada_url ? (
             <div className="shrink-0 w-6 h-6 rounded-lg overflow-hidden border border-primary/15">
-              <Image alt={c.titulo} className="w-full h-full object-cover" src={c.portada_url} />
+              <Image
+                alt={c.titulo}
+                className="w-full h-full object-cover"
+                src={c.portada_url}
+              />
             </div>
           ) : (
             <div className="shrink-0 w-6 h-6 rounded-lg flex items-center justify-center bg-accent/10 text-accent">
@@ -301,7 +378,9 @@ function BloqueCanciones({
               {c.titulo}
             </p>
             {c.cantante && (
-              <p className="text-[9px] text-primary/35 truncate">{c.cantante}</p>
+              <p className="text-[9px] text-primary/35 truncate">
+                {c.cantante}
+              </p>
             )}
           </div>
         </button>
@@ -311,32 +390,65 @@ function BloqueCanciones({
 }
 
 // ─── Image cuerpo (mobile picker) ─────────────────────────────────────────────
-function PickerCuerpo({ value, onChange }: { value: string; onChange: (url: string) => void }) {
+function PickerCuerpo({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (url: string) => void;
+}) {
   const [open, setOpen] = useState(false);
   return (
     <>
       {open && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setOpen(false)}>
-          <div className="bg-white-custom rounded-2xl shadow-2xl border border-primary/15 w-full max-w-lg p-5" onClick={e => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+          onClick={() => setOpen(false)}
+        >
+          <div
+            className="bg-white-custom rounded-2xl shadow-2xl border border-primary/15 w-full max-w-lg p-5"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-2"><Maximize2 size={11} /> Imagen cuerpo</h3>
-              <button className="text-primary/30 hover:text-primary transition-colors" onClick={() => setOpen(false)}><X size={16} /></button>
+              <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-2">
+                <Maximize2 size={11} /> Imagen cuerpo
+              </h3>
+              <button
+                className="text-primary/30 hover:text-primary transition-colors"
+                onClick={() => setOpen(false)}
+              >
+                <X size={16} />
+              </button>
             </div>
-            <SimpleImagePicker onClose={() => setOpen(false)} onSelect={url => { onChange(url); setOpen(false); }} />
+            <SimpleImagePicker
+              onClose={() => setOpen(false)}
+              onSelect={(url) => {
+                onChange(url);
+                setOpen(false);
+              }}
+            />
           </div>
         </div>
       )}
       {value ? (
-        <button className="flex items-center gap-2 px-3 py-2 rounded-xl border border-primary/15 text-[10px] font-black uppercase tracking-widest text-primary/50 hover:text-primary hover:border-primary/30 transition-all"
-          onClick={() => setOpen(true)}>
+        <button
+          className="flex items-center gap-2 px-3 py-2 rounded-xl border border-primary/15 text-[10px] font-black uppercase tracking-widest text-primary/50 hover:text-primary hover:border-primary/30 transition-all"
+          onClick={() => setOpen(true)}
+        >
           <div className="w-5 h-5 rounded overflow-hidden border border-primary/15 shrink-0">
-            <Image alt="Cuerpo" className="w-full h-full object-cover" src={value} />
+            <Image
+              alt="Cuerpo"
+              className="w-full h-full object-cover"
+              src={value}
+            />
           </div>
           Cambiar cuerpo
         </button>
       ) : (
-        <button className="flex items-center gap-2 px-3 py-2 rounded-xl border border-dashed border-primary/20 text-[10px] font-black uppercase tracking-widest text-primary/30 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all"
-          onClick={() => setOpen(true)}>
+        <button
+          className="flex items-center gap-2 px-3 py-2 rounded-xl border border-dashed border-primary/20 text-[10px] font-black uppercase tracking-widest text-primary/30 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all"
+          onClick={() => setOpen(true)}
+        >
           <Maximize2 size={11} /> + Imagen cuerpo
         </button>
       )}
@@ -345,18 +457,43 @@ function PickerCuerpo({ value, onChange }: { value: string; onChange: (url: stri
 }
 
 // ─── Botón flotante para cambiar imagen cara en mobile ────────────────────────
-function PickerCaraBtn({ value, onChange }: { value: string; onChange: (url: string) => void }) {
+function PickerCaraBtn({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (url: string) => void;
+}) {
   const [open, setOpen] = useState(false);
   return (
     <>
       {open && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setOpen(false)}>
-          <div className="bg-white-custom rounded-2xl shadow-2xl border border-primary/15 w-full max-w-lg p-5" onClick={e => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+          onClick={() => setOpen(false)}
+        >
+          <div
+            className="bg-white-custom rounded-2xl shadow-2xl border border-primary/15 w-full max-w-lg p-5"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-2"><Camera size={11} /> Imagen de perfil</h3>
-              <button className="text-primary/30 hover:text-primary transition-colors" onClick={() => setOpen(false)}><X size={16} /></button>
+              <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-2">
+                <Camera size={11} /> Imagen de perfil
+              </h3>
+              <button
+                className="text-primary/30 hover:text-primary transition-colors"
+                onClick={() => setOpen(false)}
+              >
+                <X size={16} />
+              </button>
             </div>
-            <SimpleImagePicker onClose={() => setOpen(false)} onSelect={url => { onChange(url); setOpen(false); }} />
+            <SimpleImagePicker
+              onClose={() => setOpen(false)}
+              onSelect={(url) => {
+                onChange(url);
+                setOpen(false);
+              }}
+            />
           </div>
         </div>
       )}
@@ -374,27 +511,42 @@ function PickerCaraBtn({ value, onChange }: { value: string; onChange: (url: str
 // ─── Hook: grupos de criaturas a partir del nombre de especie ────────────────
 // Resuelve la criatura por nombre y luego busca en qué grupos está,
 // para pasarlos directamente a BloqueHechizos / BloqueDones.
-function useGruposDeCriaturaPorNombre(nombreEspecie: string | null | undefined): string[] {
+function useGruposDeCriaturaPorNombre(
+  nombreEspecie: string | null | undefined,
+): string[] {
   const [grupoIds, setGrupoIds] = useState<string[]>([]);
 
   const load = useCallback(async () => {
-    if (!nombreEspecie?.trim()) { setGrupoIds([]); return; }
+    if (!nombreEspecie?.trim()) {
+      setGrupoIds([]);
+      return;
+    }
 
     // 1. Dexie: buscar criatura y sus grupos
     let criaturaId: string | null = null;
     try {
       if (db) {
-        const allCriaturas: any[] = await (db as any).criaturas?.toArray() ?? [];
-        const criLocal = allCriaturas.find((c: any) =>
-          c.nombre?.toLowerCase() === nombreEspecie.trim().toLowerCase()
+        const allCriaturas: any[] =
+          (await (db as any).criaturas?.toArray()) ?? [];
+        const criLocal = allCriaturas.find(
+          (c: any) =>
+            c.nombre?.toLowerCase() === nombreEspecie.trim().toLowerCase(),
         );
         if (criLocal) {
           criaturaId = criLocal.id;
-          const allGrupos: any[] = await (db as any).grupos_mundo?.toArray() ?? [];
+          const allGrupos: any[] =
+            (await (db as any).grupos_mundo?.toArray()) ?? [];
           const ids = allGrupos
-            .filter((g: any) => g.tipo === "criaturas" && (g.miembro_ids ?? []).includes(criaturaId))
+            .filter(
+              (g: any) =>
+                g.tipo === "criaturas" &&
+                (g.miembro_ids ?? []).includes(criaturaId),
+            )
             .map((g: any) => g.id);
-          if (ids.length) { setGrupoIds(ids); if (!navigator.onLine) return; }
+          if (ids.length) {
+            setGrupoIds(ids);
+            if (!navigator.onLine) return;
+          }
         }
       }
     } catch {}
@@ -411,7 +563,10 @@ function useGruposDeCriaturaPorNombre(nombreEspecie: string | null | undefined):
         .maybeSingle();
       criaturaId = cri?.id ?? null;
     }
-    if (!criaturaId) { setGrupoIds([]); return; }
+    if (!criaturaId) {
+      setGrupoIds([]);
+      return;
+    }
 
     // 3. Supabase: grupos de criaturas que contienen este ID
     const { data: grupos } = await supabase
@@ -422,7 +577,9 @@ function useGruposDeCriaturaPorNombre(nombreEspecie: string | null | undefined):
     setGrupoIds((grupos ?? []).map((g: any) => g.id));
   }, [nombreEspecie]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   return grupoIds;
 }
@@ -430,23 +587,36 @@ function useGruposDeCriaturaPorNombre(nombreEspecie: string | null | undefined):
 // ─── Hook: variantes de una criatura por nombre ───────────────────────────────
 type VarianteMin = { id: string; tipo: string };
 
-function useCriaturaVariantesPorNombre(nombreEspecie: string | null | undefined) {
+function useCriaturaVariantesPorNombre(
+  nombreEspecie: string | null | undefined,
+) {
   const [variantes, setVariantes] = useState<VarianteMin[]>([]);
 
   const load = useCallback(async () => {
-    if (!nombreEspecie?.trim()) { setVariantes([]); return; }
+    if (!nombreEspecie?.trim()) {
+      setVariantes([]);
+      return;
+    }
 
     // 1. Dexie primero
     try {
       if (db) {
-        const allCriaturas: any[] = await (db as any).criaturas?.toArray() ?? [];
-        const criLocal = allCriaturas.find((c: any) =>
-          c.nombre?.toLowerCase() === nombreEspecie.trim().toLowerCase()
+        const allCriaturas: any[] =
+          (await (db as any).criaturas?.toArray()) ?? [];
+        const criLocal = allCriaturas.find(
+          (c: any) =>
+            c.nombre?.toLowerCase() === nombreEspecie.trim().toLowerCase(),
         );
         if (criLocal) {
-          const vars: any[] = await (db as any).criatura_variantes
-            ?.where("criatura_id").equals(criLocal.id).toArray() ?? [];
-          if (vars.length) { setVariantes(vars); if (!navigator.onLine) return; }
+          const vars: any[] =
+            (await (db as any).criatura_variantes
+              ?.where("criatura_id")
+              .equals(criLocal.id)
+              .toArray()) ?? [];
+          if (vars.length) {
+            setVariantes(vars);
+            if (!navigator.onLine) return;
+          }
         }
       }
     } catch {}
@@ -459,7 +629,10 @@ function useCriaturaVariantesPorNombre(nombreEspecie: string | null | undefined)
       .ilike("nombre", nombreEspecie.trim())
       .limit(1)
       .maybeSingle();
-    if (!criatura) { setVariantes([]); return; }
+    if (!criatura) {
+      setVariantes([]);
+      return;
+    }
     const { data } = await supabase
       .from("criatura_variantes")
       .select("id, tipo")
@@ -468,15 +641,17 @@ function useCriaturaVariantesPorNombre(nombreEspecie: string | null | undefined)
     const result = data ?? [];
     setVariantes(result);
     try {
-      if (db && result.length > 0) await (db as any).criatura_variantes?.bulkPut(result);
+      if (db && result.length > 0)
+        await (db as any).criatura_variantes?.bulkPut(result);
     } catch {}
   }, [nombreEspecie]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   return variantes;
 }
-
 
 // ─── Hook: nombres de ciudades (para el selector) ─────────────────────────────
 type CiudadMin = { id: string; nombre: string; reino_id: string | null };
@@ -487,28 +662,40 @@ function useCiudades(): CiudadMin[] {
     const run = async () => {
       try {
         if (db) {
-          const local: any[] = await (db as any).ciudades?.toArray() ?? [];
+          const local: any[] = (await (db as any).ciudades?.toArray()) ?? [];
           if (local.length) {
             setCiudades(
               local
                 .filter((l: any) => !l.deleted)
-                .map((l: any) => ({ id: l.id, nombre: l.nombre, reino_id: l.reino_id ?? null }))
-                .sort((a, b) => a.nombre.localeCompare(b.nombre))
+                .map((l: any) => ({
+                  id: l.id,
+                  nombre: l.nombre,
+                  reino_id: l.reino_id ?? null,
+                }))
+                .sort((a, b) => a.nombre.localeCompare(b.nombre)),
             );
             if (!navigator.onLine) return;
           }
         }
       } catch {}
       if (!navigator.onLine) return;
-      const { data } = await supabase.from("ciudades").select("id, nombre, reino_id").order("nombre");
-      if (data) setCiudades(data.map((l: any) => ({ id: l.id, nombre: l.nombre, reino_id: l.reino_id ?? null })));
+      const { data } = await supabase
+        .from("ciudades")
+        .select("id, nombre, reino_id")
+        .order("nombre");
+      if (data)
+        setCiudades(
+          data.map((l: any) => ({
+            id: l.id,
+            nombre: l.nombre,
+            reino_id: l.reino_id ?? null,
+          })),
+        );
     };
     run();
   }, []);
   return ciudades;
 }
-
-
 
 // ─── Hook: reinos con id (para filtrar ciudades) ───────────────────────────────
 type ReinoMin = { id: string; nombre: string };
@@ -519,15 +706,22 @@ function useReinosMin(): ReinoMin[] {
     const run = async () => {
       try {
         if (db) {
-          const local: any[] = await (db as any).reinos?.toArray() ?? [];
+          const local: any[] = (await (db as any).reinos?.toArray()) ?? [];
           if (local.length) {
-            setReinos(local.filter((r: any) => !r.deleted).map((r: any) => ({ id: r.id, nombre: r.nombre })));
+            setReinos(
+              local
+                .filter((r: any) => !r.deleted)
+                .map((r: any) => ({ id: r.id, nombre: r.nombre })),
+            );
             if (!navigator.onLine) return;
           }
         }
       } catch {}
       if (!navigator.onLine) return;
-      const { data } = await supabase.from("reinos").select("id, nombre").order("nombre");
+      const { data } = await supabase
+        .from("reinos")
+        .select("id, nombre")
+        .order("nombre");
       if (data) setReinos(data);
     };
     run();
@@ -538,7 +732,10 @@ function useReinosMin(): ReinoMin[] {
 // ─── Hook: grupos a los que pertenece el personaje ───────────────────────────
 type GrupoMin = { id: string; nombre: string; tipo: string };
 
-function useGruposDelPersonaje(personajeId: string): { grupos: GrupoMin[]; loading: boolean } {
+function useGruposDelPersonaje(personajeId: string): {
+  grupos: GrupoMin[];
+  loading: boolean;
+} {
   const [grupos, setGrupos] = useState<GrupoMin[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -547,19 +744,30 @@ function useGruposDelPersonaje(personajeId: string): { grupos: GrupoMin[]; loadi
     try {
       // 1. Dexie primero
       if (db) {
-        const todos: any[] = await (db as any).grupos_mundo?.toArray() ?? [];
-        const local = todos.filter((g: any) =>
-          g.tipo === "personajes" && (g.miembro_ids ?? []).includes(personajeId)
+        const todos: any[] = (await (db as any).grupos_mundo?.toArray()) ?? [];
+        const local = todos.filter(
+          (g: any) =>
+            g.tipo === "personajes" &&
+            (g.miembro_ids ?? []).includes(personajeId),
         );
         if (local.length) {
-          setGrupos(local.map((g: any) => ({ id: g.id, nombre: g.nombre, tipo: g.tipo })));
+          setGrupos(
+            local.map((g: any) => ({
+              id: g.id,
+              nombre: g.nombre,
+              tipo: g.tipo,
+            })),
+          );
           setLoading(false);
           if (!navigator.onLine) return;
         }
       }
     } catch {}
 
-    if (!navigator.onLine) { setLoading(false); return; }
+    if (!navigator.onLine) {
+      setLoading(false);
+      return;
+    }
 
     // 2. Supabase
     try {
@@ -568,12 +776,20 @@ function useGruposDelPersonaje(personajeId: string): { grupos: GrupoMin[]; loadi
         .select("id, nombre, tipo")
         .eq("tipo", "personajes")
         .contains("miembro_ids", [personajeId]);
-      setGrupos((data ?? []).map((g: any) => ({ id: g.id, nombre: g.nombre, tipo: g.tipo })));
+      setGrupos(
+        (data ?? []).map((g: any) => ({
+          id: g.id,
+          nombre: g.nombre,
+          tipo: g.tipo,
+        })),
+      );
     } catch {}
     setLoading(false);
   }, [personajeId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   return { grupos, loading };
 }
@@ -588,17 +804,20 @@ function BloqueGruposPersonaje({
 }) {
   const { grupos, loading } = useGruposDelPersonaje(personajeId);
 
-  if (loading) return (
-    <div className="rounded-xl overflow-hidden border border-primary/10">
-      <div className="flex items-center gap-2 px-3 py-2 border-b border-primary/[0.06] bg-primary/[0.03]">
-        <Users className="text-primary/40" size={10} />
-        <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">Grupos</span>
+  if (loading)
+    return (
+      <div className="rounded-xl overflow-hidden border border-primary/10">
+        <div className="flex items-center gap-2 px-3 py-2 border-b border-primary/[0.06] bg-primary/[0.03]">
+          <Users className="text-primary/40" size={10} />
+          <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">
+            Grupos
+          </span>
+        </div>
+        <div className="flex justify-center py-4">
+          <Loader2 className="animate-spin text-primary/20" size={14} />
+        </div>
       </div>
-      <div className="flex justify-center py-4">
-        <Loader2 className="animate-spin text-primary/20" size={14} />
-      </div>
-    </div>
-  );
+    );
 
   if (!grupos.length) return null;
 
@@ -606,16 +825,21 @@ function BloqueGruposPersonaje({
     <div className="rounded-xl overflow-hidden border border-primary/10">
       <div className="flex items-center gap-2 px-3 py-2 border-b border-primary/[0.06] bg-primary/[0.03]">
         <Users className="text-primary/40" size={10} />
-        <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">Grupos</span>
+        <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">
+          Grupos
+        </span>
       </div>
       <div className="flex flex-wrap gap-1.5 p-2.5">
-        {grupos.map(g => (
+        {grupos.map((g) => (
           <button
             key={g.id}
             className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-primary/15 bg-primary/[0.03] hover:bg-primary/[0.07] hover:border-primary/30 transition-all group"
             onClick={() => onOpenGrupo?.(g.id)}
           >
-            <Users className="text-primary/35 group-hover:text-primary/60 transition-colors" size={9} />
+            <Users
+              className="text-primary/35 group-hover:text-primary/60 transition-colors"
+              size={9}
+            />
             <span className="text-[10px] font-black uppercase tracking-widest text-primary/50 group-hover:text-primary/80 transition-colors">
               {g.nombre}
             </span>
@@ -632,8 +856,8 @@ type HechizMin = { id: string; nombre: string; imagen_url?: string | null };
 function useHechizosPersonaje(personajeId: string, grupoIds: string[]) {
   const [disponibles, setDisponibles] = useState<HechizMin[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [loading, setLoading]         = useState(true);
-  const [saving,  setSaving]          = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -642,21 +866,36 @@ function useHechizosPersonaje(personajeId: string, grupoIds: string[]) {
       let hechizosData: HechizMin[] = [];
       try {
         if (db) {
-          const todos: any[] = await (db as any).hechizos?.toArray() ?? [];
-          hechizosData = todos.filter((h: any) => {
-            if (!grupoIds.length) return true;
-            return (h.grupo_ids ?? []).some((gid: string) => grupoIds.includes(gid));
-          }).map((h: any) => ({ id: h.id, nombre: h.nombre, imagen_url: null }));
+          const todos: any[] = (await (db as any).hechizos?.toArray()) ?? [];
+          hechizosData = todos
+            .filter((h: any) => {
+              if (!grupoIds.length) return true;
+              return (h.grupo_ids ?? []).some((gid: string) =>
+                grupoIds.includes(gid),
+              );
+            })
+            .map((h: any) => ({
+              id: h.id,
+              nombre: h.nombre,
+              imagen_url: null,
+            }));
         }
       } catch {}
 
       if (!hechizosData.length && navigator.onLine) {
-        let query = supabase.from("hechizos").select("id, nombre").order("nombre");
+        let query = supabase
+          .from("hechizos")
+          .select("id, nombre")
+          .order("nombre");
         if (grupoIds.length) {
           query = (query as any).overlaps("grupo_ids", grupoIds);
         }
         const { data } = await query;
-        hechizosData = (data ?? []).map((h: any) => ({ id: h.id, nombre: h.nombre, imagen_url: null }));
+        hechizosData = (data ?? []).map((h: any) => ({
+          id: h.id,
+          nombre: h.nombre,
+          imagen_url: null,
+        }));
       }
       setDisponibles(hechizosData);
 
@@ -664,7 +903,11 @@ function useHechizosPersonaje(personajeId: string, grupoIds: string[]) {
       let selIds: string[] = [];
       try {
         if (db) {
-          const local: any[] = await (db as any).personaje_hechizos?.where("personaje_id").equals(personajeId).toArray() ?? [];
+          const local: any[] =
+            (await (db as any).personaje_hechizos
+              ?.where("personaje_id")
+              .equals(personajeId)
+              .toArray()) ?? [];
           selIds = local.map((r: any) => r.hechizo_id);
         }
       } catch {}
@@ -681,30 +924,64 @@ function useHechizosPersonaje(personajeId: string, grupoIds: string[]) {
     setLoading(false);
   }, [personajeId, grupoIds.join(",")]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
-  const toggle = useCallback(async (hechizId: string, add: boolean) => {
-    setSelectedIds(prev => add ? [...prev, hechizId] : prev.filter(id => id !== hechizId));
-    setSaving(true);
-    try {
-      if (add) {
-        await supabase.from("personaje_hechizos").insert({ personaje_id: personajeId, hechizo_id: hechizId });
-        try { if (db) await (db as any).personaje_hechizos?.put({ id: `${personajeId}_${hechizId}`, personaje_id: personajeId, hechizo_id: hechizId }); } catch {}
-      } else {
-        await supabase.from("personaje_hechizos").delete().eq("personaje_id", personajeId).eq("hechizo_id", hechizId);
-        try { if (db) await (db as any).personaje_hechizos?.delete(`${personajeId}_${hechizId}`); } catch {}
+  const toggle = useCallback(
+    async (hechizId: string, add: boolean) => {
+      setSelectedIds((prev) =>
+        add ? [...prev, hechizId] : prev.filter((id) => id !== hechizId),
+      );
+      setSaving(true);
+      try {
+        if (add) {
+          await supabase
+            .from("personaje_hechizos")
+            .insert({ personaje_id: personajeId, hechizo_id: hechizId });
+          try {
+            if (db)
+              await (db as any).personaje_hechizos?.put({
+                id: `${personajeId}_${hechizId}`,
+                personaje_id: personajeId,
+                hechizo_id: hechizId,
+              });
+          } catch {}
+        } else {
+          await supabase
+            .from("personaje_hechizos")
+            .delete()
+            .eq("personaje_id", personajeId)
+            .eq("hechizo_id", hechizId);
+          try {
+            if (db)
+              await (db as any).personaje_hechizos?.delete(
+                `${personajeId}_${hechizId}`,
+              );
+          } catch {}
+        }
+      } catch {
+        setSelectedIds((prev) =>
+          add ? prev.filter((id) => id !== hechizId) : [...prev, hechizId],
+        );
       }
-    } catch {
-      setSelectedIds(prev => add ? prev.filter(id => id !== hechizId) : [...prev, hechizId]);
-    }
-    setSaving(false);
-  }, [personajeId]);
+      setSaving(false);
+    },
+    [personajeId],
+  );
 
   return { disponibles, selectedIds, loading, saving, toggle };
 }
 
-function SeccionHechizos({ personajeId, grupoIds }: { personajeId: string; grupoIds: string[] }) {
-  const { disponibles, selectedIds, loading, saving, toggle } = useHechizosPersonaje(personajeId, grupoIds);
+function SeccionHechizos({
+  personajeId,
+  grupoIds,
+}: {
+  personajeId: string;
+  grupoIds: string[];
+}) {
+  const { disponibles, selectedIds, loading, saving, toggle } =
+    useHechizosPersonaje(personajeId, grupoIds);
   return (
     <div className="rounded-xl overflow-hidden border border-primary/10">
       <SeccionEntidad
@@ -733,13 +1010,13 @@ type Era = {
 };
 
 function BloqueEras({ personajeId }: { personajeId: string }) {
-  const [eras, setEras]             = useState<Era[]>([]);
-  const [loading, setLoading]       = useState(true);
+  const [eras, setEras] = useState<Era[]>([]);
+  const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [addingNew, setAddingNew]   = useState(false);
+  const [addingNew, setAddingNew] = useState(false);
   const [newMomento, setNewMomento] = useState("");
-  const [newLabel, setNewLabel]     = useState("");
-  const [creating, setCreating]     = useState(false);
+  const [newLabel, setNewLabel] = useState("");
+  const [creating, setCreating] = useState(false);
 
   useEffect(() => {
     if (!personajeId) return;
@@ -750,16 +1027,21 @@ function BloqueEras({ personajeId }: { personajeId: string }) {
       .eq("personaje_id", personajeId)
       .order("momento")
       .then(({ data }: { data: any }) => {
-        setEras((data ?? []).map((e: any) => ({
-          id: e.id, momento: e.momento, label: e.label ?? "",
-          rasgos: e.rasgos ?? [], notas: e.notas ?? "",
-        })));
+        setEras(
+          (data ?? []).map((e: any) => ({
+            id: e.id,
+            momento: e.momento,
+            label: e.label ?? "",
+            rasgos: e.rasgos ?? [],
+            notas: e.notas ?? "",
+          })),
+        );
         setLoading(false);
       });
   }, [personajeId]);
 
   const updateEra = (id: string, patch: Partial<Era>) =>
-    setEras(prev => prev.map(e => e.id === id ? { ...e, ...patch } : e));
+    setEras((prev) => prev.map((e) => (e.id === id ? { ...e, ...patch } : e)));
 
   const handleAddEra = async () => {
     const num = parseInt(newMomento.trim(), 10);
@@ -767,19 +1049,34 @@ function BloqueEras({ personajeId }: { personajeId: string }) {
     setCreating(true);
     const { data, error } = await (supabase as any)
       .from("personaje_eras")
-      .insert({ personaje_id: personajeId, momento: num, label: newLabel.trim() || null, rasgos: [], notas: "" })
+      .insert({
+        personaje_id: personajeId,
+        momento: num,
+        label: newLabel.trim() || null,
+        rasgos: [],
+        notas: "",
+      })
       .select("id, momento, label, rasgos, notas")
       .single();
     if (!error && data) {
-      const era: Era = { id: data.id, momento: data.momento, label: data.label ?? "", rasgos: [], notas: "" };
-      setEras(prev => [...prev, era].sort((a, b) => a.momento - b.momento));
+      const era: Era = {
+        id: data.id,
+        momento: data.momento,
+        label: data.label ?? "",
+        rasgos: [],
+        notas: "",
+      };
+      setEras((prev) => [...prev, era].sort((a, b) => a.momento - b.momento));
       setExpandedId(era.id);
     }
-    setNewMomento(""); setNewLabel(""); setAddingNew(false); setCreating(false);
+    setNewMomento("");
+    setNewLabel("");
+    setAddingNew(false);
+    setCreating(false);
   };
 
   const handleDeleteEra = async (id: string) => {
-    setEras(prev => prev.filter(e => e.id !== id));
+    setEras((prev) => prev.filter((e) => e.id !== id));
     await (supabase as any).from("personaje_eras").delete().eq("id", id);
   };
 
@@ -788,14 +1085,20 @@ function BloqueEras({ personajeId }: { personajeId: string }) {
     if (!trimmed) return;
     const next = [...era.rasgos, trimmed];
     updateEra(era.id, { rasgos: next, _saving: true });
-    await (supabase as any).from("personaje_eras").update({ rasgos: next }).eq("id", era.id);
+    await (supabase as any)
+      .from("personaje_eras")
+      .update({ rasgos: next })
+      .eq("id", era.id);
     updateEra(era.id, { _saving: false });
   };
 
   const handleRemoveRasgo = async (era: Era, rasgo: string) => {
-    const next = era.rasgos.filter(r => r !== rasgo);
+    const next = era.rasgos.filter((r) => r !== rasgo);
     updateEra(era.id, { rasgos: next, _saving: true });
-    await (supabase as any).from("personaje_eras").update({ rasgos: next }).eq("id", era.id);
+    await (supabase as any)
+      .from("personaje_eras")
+      .update({ rasgos: next })
+      .eq("id", era.id);
     updateEra(era.id, { _saving: false });
   };
 
@@ -804,7 +1107,10 @@ function BloqueEras({ personajeId }: { personajeId: string }) {
     updateEra(era.id, { notas: val, _saving: true });
     clearTimeout(notasTimers.current[era.id]);
     notasTimers.current[era.id] = setTimeout(async () => {
-      await (supabase as any).from("personaje_eras").update({ notas: val }).eq("id", era.id);
+      await (supabase as any)
+        .from("personaje_eras")
+        .update({ notas: val })
+        .eq("id", era.id);
       updateEra(era.id, { _saving: false });
     }, 1200);
   };
@@ -814,7 +1120,10 @@ function BloqueEras({ personajeId }: { personajeId: string }) {
     updateEra(era.id, { label: val, _saving: true });
     clearTimeout(labelTimers.current[era.id]);
     labelTimers.current[era.id] = setTimeout(async () => {
-      await (supabase as any).from("personaje_eras").update({ label: val.trim() || null }).eq("id", era.id);
+      await (supabase as any)
+        .from("personaje_eras")
+        .update({ label: val.trim() || null })
+        .eq("id", era.id);
       updateEra(era.id, { _saving: false });
     }, 800);
   };
@@ -823,49 +1132,96 @@ function BloqueEras({ personajeId }: { personajeId: string }) {
     <div className="rounded-xl overflow-hidden border border-primary/10">
       <div className="flex items-center gap-2 px-3 py-2 border-b border-primary/[0.06] bg-primary/[0.03]">
         <Clock className="text-primary/40" size={10} />
-        <span className="flex-1 text-[9px] font-black uppercase tracking-widest text-primary/40">Línea de tiempo</span>
-        <button className="flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border transition-all" style={{
-            borderColor: addingNew ? "color-mix(in srgb, var(--primary) 25%, transparent)" : "color-mix(in srgb, var(--primary) 12%, transparent)",
-            background: addingNew ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "transparent",
-            color: addingNew ? "var(--primary)" : "color-mix(in srgb, var(--primary) 40%, transparent)",
+        <span className="flex-1 text-[9px] font-black uppercase tracking-widest text-primary/40">
+          Línea de tiempo
+        </span>
+        <button
+          className="flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border transition-all"
+          style={{
+            borderColor: addingNew
+              ? "color-mix(in srgb, var(--primary) 25%, transparent)"
+              : "color-mix(in srgb, var(--primary) 12%, transparent)",
+            background: addingNew
+              ? "color-mix(in srgb, var(--primary) 8%, transparent)"
+              : "transparent",
+            color: addingNew
+              ? "var(--primary)"
+              : "color-mix(in srgb, var(--primary) 40%, transparent)",
           }}
           type="button"
-          onClick={() => setAddingNew(v => !v)}>
+          onClick={() => setAddingNew((v) => !v)}
+        >
           <Plus size={8} /> Era
         </button>
       </div>
 
       {addingNew && (
-        <div className="px-3 py-2.5 border-b border-primary/[0.06] space-y-2"
-          style={{ background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}>
+        <div
+          className="px-3 py-2.5 border-b border-primary/[0.06] space-y-2"
+          style={{
+            background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+          }}
+        >
           <div className="space-y-1.5">
             <SelectorFechaMundo
               placeholder="Seleccionar fecha…"
               value={newMomento ? parseInt(newMomento, 10) : null}
-              onChange={dia => setNewMomento(dia != null ? String(dia) : "")}
+              onChange={(dia) => setNewMomento(dia != null ? String(dia) : "")}
             />
-            <input className="w-full rounded-lg border px-2 py-1 text-[9px] outline-none transition-all" placeholder="Etiqueta (opcional)" style={{ background: "transparent", borderColor: "color-mix(in srgb, var(--primary) 18%, transparent)", color: "var(--primary)" }}
+            <input
+              className="w-full rounded-lg border px-2 py-1 text-[9px] outline-none transition-all"
+              placeholder="Etiqueta (opcional)"
+              style={{
+                background: "transparent",
+                borderColor:
+                  "color-mix(in srgb, var(--primary) 18%, transparent)",
+                color: "var(--primary)",
+              }}
               type="text"
               value={newLabel}
-              onChange={e => setNewLabel(e.target.value)}
-              onKeyDown={e => { if (e.key === "Enter") handleAddEra(); if (e.key === "Escape") setAddingNew(false); }} />
+              onChange={(e) => setNewLabel(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleAddEra();
+                if (e.key === "Escape") setAddingNew(false);
+              }}
+            />
           </div>
           <div className="flex gap-1.5 justify-end">
-            <button className="px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border transition-all text-primary/35 border-primary/10 hover:text-primary hover:border-primary/25" type="button"
-              onClick={() => setAddingNew(false)}>
+            <button
+              className="px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border transition-all text-primary/35 border-primary/10 hover:text-primary hover:border-primary/25"
+              type="button"
+              onClick={() => setAddingNew(false)}
+            >
               Cancelar
             </button>
-            <button className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border transition-all disabled:opacity-30" disabled={!newMomento.trim() || creating} style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 20%, transparent)", color: "var(--primary)" }}
+            <button
+              className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border transition-all disabled:opacity-30"
+              disabled={!newMomento.trim() || creating}
+              style={{
+                background:
+                  "color-mix(in srgb, var(--primary) 10%, transparent)",
+                borderColor:
+                  "color-mix(in srgb, var(--primary) 20%, transparent)",
+                color: "var(--primary)",
+              }}
               type="button"
-              onClick={handleAddEra}>
-              {creating ? <Loader2 className="animate-spin" size={8} /> : <Check size={8} />} Crear
+              onClick={handleAddEra}
+            >
+              {creating ? (
+                <Loader2 className="animate-spin" size={8} />
+              ) : (
+                <Check size={8} />
+              )}{" "}
+              Crear
             </button>
           </div>
         </div>
       )}
 
       {loading ? (
-        <div className="flex justify-center py-4"><Loader2 className="animate-spin text-primary/20" size={14} /></div>
+        <div className="flex justify-center py-4">
+          <Loader2 className="animate-spin text-primary/20" size={14} />
+        </div>
       ) : eras.length === 0 ? (
         <p className="text-[9px] text-primary/25 font-black uppercase tracking-widest text-center py-4 italic">
           Sin eras · usa el botón + Era
@@ -873,7 +1229,9 @@ function BloqueEras({ personajeId }: { personajeId: string }) {
       ) : (
         <div>
           {eras.map((era, idx) => (
-            <EraItem key={era.id} era={era}
+            <EraItem
+              key={era.id}
+              era={era}
               isLast={idx === eras.length - 1}
               isOpen={expandedId === era.id}
               onAddRasgo={(r) => handleAddRasgo(era, r)}
@@ -881,7 +1239,9 @@ function BloqueEras({ personajeId }: { personajeId: string }) {
               onLabelChange={(v) => handleLabelChange(era, v)}
               onNotasChange={(v) => handleNotasChange(era, v)}
               onRemoveRasgo={(r) => handleRemoveRasgo(era, r)}
-              onToggle={() => setExpandedId(expandedId === era.id ? null : era.id)}
+              onToggle={() =>
+                setExpandedId(expandedId === era.id ? null : era.id)
+              }
             />
           ))}
         </div>
@@ -890,10 +1250,24 @@ function BloqueEras({ personajeId }: { personajeId: string }) {
   );
 }
 
-function EraItem({ era, isOpen, isLast, onToggle, onDelete, onAddRasgo, onRemoveRasgo, onNotasChange, onLabelChange }: {
-  era: Era; isOpen: boolean; isLast: boolean;
-  onToggle: () => void; onDelete: () => void;
-  onAddRasgo: (r: string) => void; onRemoveRasgo: (r: string) => void;
+function EraItem({
+  era,
+  isOpen,
+  isLast,
+  onToggle,
+  onDelete,
+  onAddRasgo,
+  onRemoveRasgo,
+  onNotasChange,
+  onLabelChange,
+}: {
+  era: Era;
+  isOpen: boolean;
+  isLast: boolean;
+  onToggle: () => void;
+  onDelete: () => void;
+  onAddRasgo: (r: string) => void;
+  onRemoveRasgo: (r: string) => void;
   onNotasChange: (v: string) => void;
   onLabelChange: (v: string) => void;
 }) {
@@ -901,34 +1275,67 @@ function EraItem({ era, isOpen, isLast, onToggle, onDelete, onAddRasgo, onRemove
 
   return (
     <div className={!isLast ? "border-b border-primary/[0.06]" : ""}>
-      <button className="w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-primary/[0.03] transition-colors" type="button"
-        onClick={onToggle}>
+      <button
+        className="w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-primary/[0.03] transition-colors"
+        type="button"
+        onClick={onToggle}
+      >
         {/* Nodo de línea de tiempo */}
-        <div className="shrink-0 flex flex-col items-center" style={{ width: 20 }}>
+        <div
+          className="shrink-0 flex flex-col items-center"
+          style={{ width: 20 }}
+        >
           <div className="w-2 h-2 rounded-full border-2 border-accent bg-bg-main shrink-0" />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 flex-wrap">
             <FechaMundoBadge diaAbsoluto={era.momento} />
-            {era.label && <span className="text-[8px] font-bold text-primary/35 italic truncate">{era.label}</span>}
+            {era.label && (
+              <span className="text-[8px] font-bold text-primary/35 italic truncate">
+                {era.label}
+              </span>
+            )}
           </div>
           {!isOpen && era.rasgos.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-0.5">
-              {era.rasgos.slice(0, 3).map(r => (
-                <span key={r} className="px-1.5 py-0 rounded-full text-[7px] font-black uppercase border"
-                  style={{ background: "color-mix(in srgb, var(--primary) 5%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)", color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}>
+              {era.rasgos.slice(0, 3).map((r) => (
+                <span
+                  key={r}
+                  className="px-1.5 py-0 rounded-full text-[7px] font-black uppercase border"
+                  style={{
+                    background:
+                      "color-mix(in srgb, var(--primary) 5%, transparent)",
+                    borderColor:
+                      "color-mix(in srgb, var(--primary) 12%, transparent)",
+                    color:
+                      "color-mix(in srgb, var(--primary) 45%, transparent)",
+                  }}
+                >
                   {r}
                 </span>
               ))}
-              {era.rasgos.length > 3 && <span className="text-[7px] text-primary/25 font-black">+{era.rasgos.length - 3}</span>}
-              {era.notas && <span className="text-[7px] text-primary/20 italic truncate max-w-[80px]">{era.notas.slice(0, 30)}…</span>}
+              {era.rasgos.length > 3 && (
+                <span className="text-[7px] text-primary/25 font-black">
+                  +{era.rasgos.length - 3}
+                </span>
+              )}
+              {era.notas && (
+                <span className="text-[7px] text-primary/20 italic truncate max-w-[80px]">
+                  {era.notas.slice(0, 30)}…
+                </span>
+              )}
             </div>
           )}
         </div>
         <div className="shrink-0 flex items-center gap-1.5">
-          {era._saving && <Loader2 className="animate-spin text-primary/30" size={8} />}
-          <ChevronDown className="text-primary/25 transition-transform" size={9}
-            style={{ transform: isOpen ? "rotate(180deg)" : "rotate(0deg)" }} />
+          {era._saving && (
+            <Loader2 className="animate-spin text-primary/30" size={8} />
+          )}
+          <ChevronDown
+            className="text-primary/25 transition-transform"
+            size={9}
+            style={{ transform: isOpen ? "rotate(180deg)" : "rotate(0deg)" }}
+          />
         </div>
       </button>
 
@@ -941,26 +1348,43 @@ function EraItem({ era, isOpen, isLast, onToggle, onDelete, onAddRasgo, onRemove
               maxLength={60}
               placeholder="Nombre del período (ej: Infancia, Exilio…)"
               style={{
-                background: era.label ? "color-mix(in srgb, var(--primary) 4%, transparent)" : "transparent",
-                borderColor: era.label ? "color-mix(in srgb, var(--primary) 20%, transparent)" : "color-mix(in srgb, var(--primary) 12%, transparent)",
+                background: era.label
+                  ? "color-mix(in srgb, var(--primary) 4%, transparent)"
+                  : "transparent",
+                borderColor: era.label
+                  ? "color-mix(in srgb, var(--primary) 20%, transparent)"
+                  : "color-mix(in srgb, var(--primary) 12%, transparent)",
                 color: "var(--primary)",
               }}
               type="text"
               value={era.label}
-              onChange={e => onLabelChange(e.target.value)}
+              onChange={(e) => onLabelChange(e.target.value)}
             />
           </div>
           {/* Chips */}
           <div className="space-y-1.5">
             {era.rasgos.length > 0 && (
               <div className="flex flex-wrap gap-1 pt-1">
-                {era.rasgos.map(rasgo => (
-                  <span key={rasgo}
+                {era.rasgos.map((rasgo) => (
+                  <span
+                    key={rasgo}
                     className="group flex items-center gap-1 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wide border transition-all"
-                    style={{ background: "color-mix(in srgb, var(--primary) 6%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)", color: "color-mix(in srgb, var(--primary) 60%, transparent)" }}>
+                    style={{
+                      background:
+                        "color-mix(in srgb, var(--primary) 6%, transparent)",
+                      borderColor:
+                        "color-mix(in srgb, var(--primary) 15%, transparent)",
+                      color:
+                        "color-mix(in srgb, var(--primary) 60%, transparent)",
+                    }}
+                  >
                     {rasgo}
-                    <button className="opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: "var(--accent)", lineHeight: 1 }}
-                      type="button" onClick={() => onRemoveRasgo(rasgo)}>
+                    <button
+                      className="opacity-0 group-hover:opacity-100 transition-opacity"
+                      style={{ color: "var(--accent)", lineHeight: 1 }}
+                      type="button"
+                      onClick={() => onRemoveRasgo(rasgo)}
+                    >
                       <X size={8} />
                     </button>
                   </span>
@@ -968,40 +1392,84 @@ function EraItem({ era, isOpen, isLast, onToggle, onDelete, onAddRasgo, onRemove
               </div>
             )}
             <div className="flex items-center gap-1">
-              <input className="flex-1 min-w-0 rounded-lg border px-2 py-1 text-[9px] font-black uppercase outline-none transition-all placeholder:normal-case placeholder:font-normal" maxLength={40}
+              <input
+                className="flex-1 min-w-0 rounded-lg border px-2 py-1 text-[9px] font-black uppercase outline-none transition-all placeholder:normal-case placeholder:font-normal"
+                maxLength={40}
                 placeholder="Añadir rasgo…"
                 style={{
-                  background: nuevoRasgo ? "color-mix(in srgb, var(--primary) 6%, transparent)" : "transparent",
-                  borderColor: nuevoRasgo ? "color-mix(in srgb, var(--primary) 22%, transparent)" : "color-mix(in srgb, var(--primary) 12%, transparent)",
+                  background: nuevoRasgo
+                    ? "color-mix(in srgb, var(--primary) 6%, transparent)"
+                    : "transparent",
+                  borderColor: nuevoRasgo
+                    ? "color-mix(in srgb, var(--primary) 22%, transparent)"
+                    : "color-mix(in srgb, var(--primary) 12%, transparent)",
                   color: "var(--primary)",
                 }}
-                type="text" value={nuevoRasgo}
-                onChange={e => setNuevoRasgo(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key === "Enter") { e.preventDefault(); onAddRasgo(nuevoRasgo); setNuevoRasgo(""); }
+                type="text"
+                value={nuevoRasgo}
+                onChange={(e) => setNuevoRasgo(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    onAddRasgo(nuevoRasgo);
+                    setNuevoRasgo("");
+                  }
                   if (e.key === "Escape") setNuevoRasgo("");
-                }} />
-              <button className="shrink-0 flex items-center justify-center rounded-lg border transition-all disabled:opacity-20" disabled={!nuevoRasgo.trim()} style={{ width: 22, height: 22, background: nuevoRasgo.trim() ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent", borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)", color: "var(--primary)" }}
+                }}
+              />
+              <button
+                className="shrink-0 flex items-center justify-center rounded-lg border transition-all disabled:opacity-20"
+                disabled={!nuevoRasgo.trim()}
+                style={{
+                  width: 22,
+                  height: 22,
+                  background: nuevoRasgo.trim()
+                    ? "color-mix(in srgb, var(--primary) 10%, transparent)"
+                    : "transparent",
+                  borderColor:
+                    "color-mix(in srgb, var(--primary) 15%, transparent)",
+                  color: "var(--primary)",
+                }}
                 type="button"
-                onClick={() => { onAddRasgo(nuevoRasgo); setNuevoRasgo(""); }}>
+                onClick={() => {
+                  onAddRasgo(nuevoRasgo);
+                  setNuevoRasgo("");
+                }}
+              >
                 <Plus size={9} />
               </button>
             </div>
           </div>
 
-          <textarea className="w-full rounded-lg border px-2 py-1.5 text-[9px] leading-relaxed outline-none transition-all resize-none" placeholder="Notas sobre este momento…"
-            rows={3} style={{
-              background: era.notas ? "color-mix(in srgb, var(--primary) 4%, transparent)" : "transparent",
-              borderColor: era.notas ? "color-mix(in srgb, var(--primary) 18%, transparent)" : "color-mix(in srgb, var(--primary) 10%, transparent)",
+          <textarea
+            className="w-full rounded-lg border px-2 py-1.5 text-[9px] leading-relaxed outline-none transition-all resize-none"
+            placeholder="Notas sobre este momento…"
+            rows={3}
+            style={{
+              background: era.notas
+                ? "color-mix(in srgb, var(--primary) 4%, transparent)"
+                : "transparent",
+              borderColor: era.notas
+                ? "color-mix(in srgb, var(--primary) 18%, transparent)"
+                : "color-mix(in srgb, var(--primary) 10%, transparent)",
               color: "var(--primary)",
             }}
             value={era.notas}
-            onChange={e => onNotasChange(e.target.value)} />
+            onChange={(e) => onNotasChange(e.target.value)}
+          />
 
           <div className="flex justify-end">
-            <button className="flex items-center gap-1 px-2 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-widest border transition-all" style={{ color: "var(--accent)", borderColor: "color-mix(in srgb, var(--accent) 20%, transparent)", background: "transparent" }}
+            <button
+              className="flex items-center gap-1 px-2 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-widest border transition-all"
+              style={{
+                color: "var(--accent)",
+                borderColor:
+                  "color-mix(in srgb, var(--accent) 20%, transparent)",
+                background: "transparent",
+              }}
               type="button"
-              onClick={onDelete}>
+              onClick={onDelete}
+            >
               <Trash2 size={8} /> Eliminar era
             </button>
           </div>
@@ -1011,10 +1479,20 @@ function EraItem({ era, isOpen, isLast, onToggle, onDelete, onAddRasgo, onRemove
   );
 }
 
-
 // ─── FormularioPersonaje ──────────────────────────────────────────────────────
 export function FormularioPersonaje({
-  form, setForm, status, onSave, onDelete, compacto = false, entities = [], onNavigate, onSelectPersonaje, onOpenGrupo, onNavigateCiudad, onSelectCancion,
+  form,
+  setForm,
+  status,
+  onSave,
+  onDelete,
+  compacto = false,
+  entities = [],
+  onNavigate,
+  onSelectPersonaje,
+  onOpenGrupo,
+  onNavigateCiudad,
+  onSelectCancion,
 }: {
   form: Personaje;
   setForm: React.Dispatch<React.SetStateAction<Personaje>>;
@@ -1029,25 +1507,27 @@ export function FormularioPersonaje({
   onNavigateCiudad?: (id: string) => void;
   onSelectCancion?: (id: string) => void;
 }) {
-  const especies   = useNombresDeTabla("criaturas");
-  const reinos     = useNombresDeTabla("reinos");
-  const ciudades    = useCiudades();
-  const reinosMin  = useReinosMin();
-  const variantes  = useCriaturaVariantesPorNombre(form.especie);
-  const grupoIds   = useGruposDeCriaturaPorNombre(form.especie);
+  const especies = useNombresDeTabla("criaturas");
+  const reinos = useNombresDeTabla("reinos");
+  const ciudades = useCiudades();
+  const reinosMin = useReinosMin();
+  const variantes = useCriaturaVariantesPorNombre(form.especie);
+  const grupoIds = useGruposDeCriaturaPorNombre(form.especie);
 
   // ID del reino actualmente seleccionado
-  const reinoSeleccionadoId = reinosMin.find(r => r.nombre === form.reino)?.id ?? null;
+  const reinoSeleccionadoId =
+    reinosMin.find((r) => r.nombre === form.reino)?.id ?? null;
 
   // ── Combo 1: "Territorio" — solo reinos ──────────────────────────────────
   const itemsTerritorioSinReino: import("@/components/ui/ComboSelector").ComboItem[] =
-    reinosMin.map(r => ({ id: `reino:${r.id}`, label: r.nombre }));
-  const gruposTerritorio: import("@/components/ui/ComboSelector").ComboGroup[] = [];
+    reinosMin.map((r) => ({ id: `reino:${r.id}`, label: r.nombre }));
+  const gruposTerritorio: import("@/components/ui/ComboSelector").ComboGroup[] =
+    [];
 
   // Valor actual del combo territorio (prefijado)
   const territorioValue: string | null = (() => {
     if (form.reino) {
-      const r = reinosMin.find(x => x.nombre === form.reino);
+      const r = reinosMin.find((x) => x.nombre === form.reino);
       if (r) return `reino:${r.id}`;
     }
     return null;
@@ -1055,24 +1535,27 @@ export function FormularioPersonaje({
 
   const onTerritorioChange = (val: string | null) => {
     if (!val) {
-      setForm(f => ({ ...f, reino: "", ciudad_id: null } as any));
+      setForm((f) => ({ ...f, reino: "", ciudad_id: null }) as any);
       return;
     }
     if (val.startsWith("reino:")) {
       const reinoId = val.replace("reino:", "");
-      const r = reinosMin.find(x => x.id === reinoId);
-      setForm(f => ({ ...f, reino: r?.nombre ?? "", ciudad_id: null } as any));
+      const r = reinosMin.find((x) => x.id === reinoId);
+      setForm(
+        (f) => ({ ...f, reino: r?.nombre ?? "", ciudad_id: null }) as any,
+      );
     }
   };
 
   // ── Combo 2: "Ubicación" — ciudades del reino ─────────────────────────────
-  const ciudadesFiltradas = ciudades.filter(l =>
-    reinoSeleccionadoId ? l.reino_id === reinoSeleccionadoId : !l.reino_id
+  const ciudadesFiltradas = ciudades.filter((l) =>
+    reinoSeleccionadoId ? l.reino_id === reinoSeleccionadoId : !l.reino_id,
   );
 
   const itemsUbicacion: import("@/components/ui/ComboSelector").ComboItem[] =
-    ciudadesFiltradas.map(l => ({ id: `ciudad:${l.id}`, label: l.nombre }));
-  const gruposUbicacion: import("@/components/ui/ComboSelector").ComboGroup[] = [];
+    ciudadesFiltradas.map((l) => ({ id: `ciudad:${l.id}`, label: l.nombre }));
+  const gruposUbicacion: import("@/components/ui/ComboSelector").ComboGroup[] =
+    [];
 
   // Valor actual del combo ubicación (prefijado)
   const ubicacionValue: string | null = (() => {
@@ -1082,30 +1565,35 @@ export function FormularioPersonaje({
 
   const onUbicacionChange = (val: string | null) => {
     if (!val) {
-      setForm(f => ({ ...f, ciudad_id: null } as any));
+      setForm((f) => ({ ...f, ciudad_id: null }) as any);
       return;
     }
     if (val.startsWith("ciudad:")) {
-      setForm(f => ({ ...f, ciudad_id: val.replace("ciudad:", "") } as any));
+      setForm((f) => ({ ...f, ciudad_id: val.replace("ciudad:", "") }) as any);
     }
   };
   const { onSnippetAction } = useWikilink();
   const [mobileAsideOpen, setMobileAsideOpen] = useState(false);
 
-  const field = (k: keyof Personaje) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-    setForm(f => ({ ...f, [k]: e.target.value }));
+  const field =
+    (k: keyof Personaje) =>
+    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+      setForm((f) => ({ ...f, [k]: e.target.value }));
 
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-
       {/* ── Fixed header ───────────────────────────────────────────────────── */}
-      <div
-        className="shrink-0 flex items-center gap-2 px-3 py-2 border-b border-primary/10 bg-primary/[0.03]"
-      >
+      <div className="shrink-0 flex items-center gap-2 px-3 py-2 border-b border-primary/10 bg-primary/[0.03]">
         <div className="shrink-0 w-8 h-8 rounded-lg overflow-hidden border border-primary/15 bg-primary/5 flex items-center justify-center">
-          {form.img_url
-            ? <Image alt={form.nombre} className="w-full h-full object-cover" src={form.img_url} />
-            : <UserCircle2 className="text-primary/25" size={16} />}
+          {form.img_url ? (
+            <Image
+              alt={form.nombre}
+              className="w-full h-full object-cover"
+              src={form.img_url}
+            />
+          ) : (
+            <UserCircle2 className="text-primary/25" size={16} />
+          )}
         </div>
 
         <input
@@ -1145,310 +1633,490 @@ export function FormularioPersonaje({
 
       {/* ── Tab content ─────────────────────────────────────────────────────── */}
       <div className="flex-1 min-h-0 overflow-y-auto">
+        {/* IDENTIDAD */}
+        <div className="p-3">
+          <div className="flex flex-col sm:flex-row gap-4">
+            {/* Columna izquierda: imagen cara + cuerpo apilados */}
+            <div className="shrink-0 w-full sm:w-52 flex sm:flex-col gap-3 sm:gap-2">
+              {/* Mobile: imagen grande con botón flotante */}
+              <div
+                className="sm:hidden relative w-full rounded-xl overflow-hidden border border-primary/10 bg-primary/3"
+                style={{ aspectRatio: "1 / 1" }}
+              >
+                {form.img_url ? (
+                  <Image
+                    alt={form.nombre}
+                    className="w-full h-full object-cover"
+                    src={form.img_url}
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <UserCircle2 className="text-primary/15" size={48} />
+                  </div>
+                )}
+                <div className="absolute top-2 right-2 z-10">
+                  <PickerCaraBtn
+                    value={form.img_url ?? ""}
+                    onChange={(url) => setForm((f) => ({ ...f, img_url: url }))}
+                  />
+                </div>
+              </div>
 
-          {/* IDENTIDAD */}
-          <div className="p-3">
-              <div className="flex flex-col sm:flex-row gap-4">
-                {/* Columna izquierda: imagen cara + cuerpo apilados */}
-                <div className="shrink-0 w-full sm:w-52 flex sm:flex-col gap-3 sm:gap-2">
+              {/* Desktop: selector normal con label */}
+              <div className="hidden sm:block w-full">
+                <SelectorImagen
+                  aspect="square"
+                  label="Cara"
+                  placeholder={<UserCircle2 className="opacity-25" size={20} />}
+                  value={form.img_url ?? ""}
+                  onChange={(url) => setForm((f) => ({ ...f, img_url: url }))}
+                />
+              </div>
 
-                  {/* Mobile: imagen grande con botón flotante */}
-                  <div className="sm:hidden relative w-full rounded-xl overflow-hidden border border-primary/10 bg-primary/3" style={{ aspectRatio: "1 / 1" }}>
-                    {form.img_url
-                      ? <Image alt={form.nombre} className="w-full h-full object-cover" src={form.img_url} />
-                      : <div className="w-full h-full flex items-center justify-center"><UserCircle2 className="text-primary/15" size={48} /></div>
-                    }
-                    <div className="absolute top-2 right-2 z-10">
-                      <PickerCaraBtn
-                        value={form.img_url ?? ""}
-                        onChange={url => setForm(f => ({ ...f, img_url: url }))}
+              {!compacto && (
+                <div className="hidden sm:block rounded-xl overflow-hidden border border-primary/10">
+                  <div className="px-2 py-1 border-b border-primary/10 bg-primary/[0.02]">
+                    <span className="text-[8px] font-black uppercase tracking-[0.3em] text-primary/25">
+                      Cuerpo
+                    </span>
+                  </div>
+                  <div
+                    className="relative w-full group bg-primary/2"
+                    style={{ aspectRatio: "1 / 2" }}
+                  >
+                    {form.img_cuerpo_url ? (
+                      <img
+                        alt="Cuerpo completo"
+                        className="absolute inset-0 w-full h-full object-contain"
+                        src={form.img_cuerpo_url}
+                        style={{ objectPosition: "top center" }}
                       />
-                    </div>
-                  </div>
-
-                  {/* Desktop: selector normal con label */}
-                  <div className="hidden sm:block w-full">
-                    <SelectorImagen
-                      aspect="square"
-                      label="Cara"
-                      placeholder={<UserCircle2 className="opacity-25" size={20} />}
-                      value={form.img_url ?? ""}
-                      onChange={url => setForm(f => ({ ...f, img_url: url }))}
-                    />
-                  </div>
-
-                  {!compacto && (
-                    <div
-                      className="hidden sm:block rounded-xl overflow-hidden border border-primary/10"
-                    >
-                      <div className="px-2 py-1 border-b border-primary/10 bg-primary/[0.02]">
-                        <span className="text-[8px] font-black uppercase tracking-[0.3em] text-primary/25">Cuerpo</span>
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <Maximize2 className="opacity-15" size={20} />
                       </div>
-                      <div className="relative w-full group bg-primary/2" style={{ aspectRatio: "1 / 2" }}>
-                        {form.img_cuerpo_url ? (
-                          <img
-                            alt="Cuerpo completo"
-                            className="absolute inset-0 w-full h-full object-contain"
-                            src={form.img_cuerpo_url}
-                            style={{ objectPosition: "top center" }}
-                          />
-                        ) : (
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <Maximize2 className="opacity-15" size={20} />
-                          </div>
-                        )}
-                        <label className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer bg-bg-main/70 backdrop-blur-sm">
-                          <Maximize2 className="text-primary/50" size={14} />
-                          <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">Cambiar</span>
-                          <SelectorImagen
-                            aspect="full"
-                            label=""
-                            placeholder={null}
-                            value={form.img_cuerpo_url ?? ""}
-                            onChange={url => setForm(f => ({ ...f, img_cuerpo_url: url }))}
-                          />
-                        </label>
-                      </div>
+                    )}
+                    <label className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer bg-bg-main/70 backdrop-blur-sm">
+                      <Maximize2 className="text-primary/50" size={14} />
+                      <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">
+                        Cambiar
+                      </span>
+                      <SelectorImagen
+                        aspect="full"
+                        label=""
+                        placeholder={null}
+                        value={form.img_cuerpo_url ?? ""}
+                        onChange={(url) =>
+                          setForm((f) => ({ ...f, img_cuerpo_url: url }))
+                        }
+                      />
+                    </label>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Columna derecha: selectores + descripción + resto */}
+            <div className="flex-1 min-w-0 space-y-3">
+              {/* Mobile: grid 2×2 (Especie/Reino · Ciudad/Don) */}
+              <div className="sm:hidden grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <ComboSelector
+                    allowNone
+                    items={especies.map((e) => ({ id: e, label: e }))}
+                    label="Especie"
+                    mode="single"
+                    noneLabel="Sin especie"
+                    placeholder="Humano, elfo…"
+                    value={form.especie ?? null}
+                    onChange={(v) =>
+                      setForm((f) => ({
+                        ...f,
+                        especie: v ?? "",
+                        variante_id: null,
+                      }))
+                    }
+                    onNavigate={
+                      onNavigate
+                        ? (_id, nombre) => onNavigate("criaturas", nombre)
+                        : undefined
+                    }
+                  />
+                  {variantes.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-1 pt-0.5">
+                      <span className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/25 mr-0.5">
+                        Variante
+                      </span>
+                      <button
+                        className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border transition-all ${!form.variante_id ? "bg-primary/10 border-primary/25 text-primary" : "border-primary/10 text-primary/25"}`}
+                        type="button"
+                        onClick={() =>
+                          setForm((f) => ({ ...f, variante_id: null }))
+                        }
+                      >
+                        Todas
+                      </button>
+                      {variantes.map((v) => (
+                        <button
+                          key={v.id}
+                          className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border transition-all ${form.variante_id === v.id ? "bg-primary/10 border-primary/25 text-primary" : "border-primary/10 text-primary/25"}`}
+                          type="button"
+                          onClick={() =>
+                            setForm((f) => ({ ...f, variante_id: v.id }))
+                          }
+                        >
+                          {v.tipo}
+                        </button>
+                      ))}
                     </div>
                   )}
                 </div>
-
-                {/* Columna derecha: selectores + descripción + resto */}
-                <div className="flex-1 min-w-0 space-y-3">
-                  {/* Mobile: grid 2×2 (Especie/Reino · Ciudad/Don) */}
-                  <div className="sm:hidden grid grid-cols-2 gap-2">
-                    <div className="space-y-1">
-                      <ComboSelector
-                        allowNone
-                        items={especies.map(e => ({ id: e, label: e }))}
-                        label="Especie"
-                        mode="single"
-                        noneLabel="Sin especie"
-                        placeholder="Humano, elfo…"
-                        value={form.especie ?? null}
-                        onChange={v => setForm(f => ({ ...f, especie: v ?? "", variante_id: null }))}
-                        onNavigate={onNavigate ? (_id, nombre) => onNavigate("criaturas", nombre) : undefined}
-                      />
-                      {variantes.length > 0 && (
-                        <div className="flex flex-wrap items-center gap-1 pt-0.5">
-                          <span className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/25 mr-0.5">Variante</span>
-                          <button className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border transition-all ${!form.variante_id ? "bg-primary/10 border-primary/25 text-primary" : "border-primary/10 text-primary/25"}`} type="button"
-                            onClick={() => setForm(f => ({ ...f, variante_id: null }))}>
-                            Todas
-                          </button>
-                          {variantes.map(v => (
-                            <button key={v.id} className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border transition-all ${form.variante_id === v.id ? "bg-primary/10 border-primary/25 text-primary" : "border-primary/10 text-primary/25"}`} type="button"
-                              onClick={() => setForm(f => ({ ...f, variante_id: v.id }))}>
-                              {v.tipo}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    <ComboSelector
-                      allowNone
-                      groups={gruposTerritorio}
-                      items={itemsTerritorioSinReino}
-                      label="Territorio"
-                      mode="single"
-                      noneLabel="Sin territorio"
-                      placeholder="Reino…"
-                      value={territorioValue}
-                      onChange={onTerritorioChange}
-                      onNavigate={onNavigate ? (id) => {
-                        if (id.startsWith("reino:")) {
-                          const r = reinosMin.find(x => x.id === id.replace("reino:", ""));
-                          if (r) onNavigate("reinos", r.nombre);
-                        }
-                      } : undefined}
-                    />
-                    {(() => {
-                      return (
-                        <ComboSelector
-                          allowNone
-                          groups={gruposUbicacion}
-                          items={itemsUbicacion}
-                          label="Ubicación"
-                          mode="single"
-                          noneLabel="Sin ubicación"
-                          placeholder="Ciudad…"
-                          value={ubicacionValue}
-                          onChange={onUbicacionChange}
-                          onNavigate={onNavigateCiudad ? (id) => {
-                            if (id.startsWith("ciudad:")) onNavigateCiudad(id.replace("ciudad:", ""));
-                          } : undefined}
-                        />
-                      );
-                    })()}
-                    <div className="space-y-1.5">
-                      <BloqueDones grupoIds={grupoIds} personajeId={form.id} />
-                    </div>
-                  </div>
-
-                  {/* Desktop: layout original (fila de 3 + Don al lado) */}
-                  <div className="hidden sm:flex flex-col sm:flex-row gap-2 items-start">
-                    <div className="flex-1 min-w-0 grid grid-cols-3 gap-2">
-                      <div className="space-y-1 col-span-1">
-                        <ComboSelector
-                          allowNone
-                          items={especies.map(e => ({ id: e, label: e }))}
-                          label="Especie"
-                          mode="single"
-                          noneLabel="Sin especie"
-                          placeholder="Humano, elfo…"
-                          value={form.especie ?? null}
-                          onChange={v => setForm(f => ({ ...f, especie: v ?? "", variante_id: null }))}
-                          onNavigate={onNavigate ? (_id, nombre) => onNavigate("criaturas", nombre) : undefined}
-                        />
-                        {variantes.length > 0 && (
-                          <div className="flex flex-wrap items-center gap-1 pt-0.5">
-                            <span className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/25 mr-0.5">Variante</span>
-                            <button
-                              className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border transition-all ${!form.variante_id ? "bg-primary/10 border-primary/25 text-primary" : "border-primary/10 text-primary/25"}`}
-                              type="button"
-                              onClick={() => setForm(f => ({ ...f, variante_id: null }))}
-                            >
-                              Todas
-                            </button>
-                            {variantes.map(v => (
-                              <button
-                                key={v.id}
-                                className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border transition-all ${form.variante_id === v.id ? "bg-primary/10 border-primary/25 text-primary" : "border-primary/10 text-primary/25"}`}
-                                type="button"
-                                onClick={() => setForm(f => ({ ...f, variante_id: v.id }))}
-                              >
-                                {v.tipo}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                      <ComboSelector
-                        allowNone
-                        groups={gruposTerritorio}
-                        items={itemsTerritorioSinReino}
-                        label="Territorio"
-                        mode="single"
-                        noneLabel="Sin territorio"
-                        placeholder="Reino…"
-                        value={territorioValue}
-                        onChange={onTerritorioChange}
-                        onNavigate={onNavigate ? (id) => {
+                <ComboSelector
+                  allowNone
+                  groups={gruposTerritorio}
+                  items={itemsTerritorioSinReino}
+                  label="Territorio"
+                  mode="single"
+                  noneLabel="Sin territorio"
+                  placeholder="Reino…"
+                  value={territorioValue}
+                  onChange={onTerritorioChange}
+                  onNavigate={
+                    onNavigate
+                      ? (id) => {
                           if (id.startsWith("reino:")) {
-                            const r = reinosMin.find(x => x.id === id.replace("reino:", ""));
+                            const r = reinosMin.find(
+                              (x) => x.id === id.replace("reino:", ""),
+                            );
                             if (r) onNavigate("reinos", r.nombre);
                           }
-                        } : undefined}
+                        }
+                      : undefined
+                  }
+                />
+                {(() => {
+                  return (
+                    <ComboSelector
+                      allowNone
+                      groups={gruposUbicacion}
+                      items={itemsUbicacion}
+                      label="Ubicación"
+                      mode="single"
+                      noneLabel="Sin ubicación"
+                      placeholder="Ciudad…"
+                      value={ubicacionValue}
+                      onChange={onUbicacionChange}
+                      onNavigate={
+                        onNavigateCiudad
+                          ? (id) => {
+                              if (id.startsWith("ciudad:"))
+                                onNavigateCiudad(id.replace("ciudad:", ""));
+                            }
+                          : undefined
+                      }
+                    />
+                  );
+                })()}
+                <div className="space-y-1.5">
+                  <BloqueDones grupoIds={grupoIds} personajeId={form.id} />
+                </div>
+                {/* Fecha de nacimiento — mobile */}
+                <div className="col-span-2 space-y-1">
+                  <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">
+                    Fecha de nacimiento
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 min-w-0">
+                      <SelectorFechaMundo
+                        placeholder="Seleccionar fecha de nacimiento…"
+                        value={(form as any).fecha_nacimiento ?? null}
+                        onChange={(dia) =>
+                          setForm(
+                            (f) =>
+                              ({ ...f, fecha_nacimiento: dia ?? null }) as any,
+                          )
+                        }
                       />
-                      {(() => {
-                        return (
-                          <ComboSelector
-                            allowNone
-                            groups={gruposUbicacion}
-                            items={itemsUbicacion}
-                            label="Ubicación"
-                            mode="single"
-                            noneLabel="Sin ubicación"
-                            placeholder="Ciudad…"
-                            value={ubicacionValue}
-                            onChange={onUbicacionChange}
-                            onNavigate={onNavigateCiudad ? (id) => {
-                              if (id.startsWith("ciudad:")) onNavigateCiudad(id.replace("ciudad:", ""));
-                            } : undefined}
-                          />
-                        );
-                      })()}
                     </div>
-
-                    {/* Don — mismo estilo que Especie / Reino */}
-                    <div className="w-full sm:w-44 sm:shrink-0 space-y-1.5">
-                      <BloqueDones grupoIds={grupoIds} personajeId={form.id} />
-                    </div>
+                    {(form as any).fecha_nacimiento != null && (
+                      <button
+                        className="shrink-0 p-1 rounded-lg text-primary/25 hover:text-accent hover:bg-accent/5 transition-all"
+                        title="Quitar fecha"
+                        type="button"
+                        onClick={() =>
+                          setForm(
+                            (f) => ({ ...f, fecha_nacimiento: null }) as any,
+                          )
+                        }
+                      >
+                        <X size={10} />
+                      </button>
+                    )}
                   </div>
-
-                  {/* Descripción + Características en fila */}
-                  {!compacto ? (
-                    <div className="flex flex-col sm:flex-row gap-3">
-                      <div className="flex-1 min-w-0 space-y-1">
-                        <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Sobre el personaje</label>
-                        <MarkdownEditor
-                          toolbar
-                          defaultMode="edit"
-                          entities={entities}
-                          placeholder="Biografía, personalidad…"
-                          rows={8}
-                          value={form.sobre ?? ""}
-                        onChange={v => setForm(f => ({ ...f, sobre: v }))}
-                        onSnippetAction={onSnippetAction}
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0 space-y-1">
-                        <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Características</label>
-                        <MarkdownEditor
-                          toolbar
-                          defaultMode="edit"
-                          entities={entities}
-                          placeholder="Rasgos físicos, personalidad, habilidades…"
-                          rows={8}
-                          value={form.caracteristicas ?? ""}
-                        onChange={v => setForm(f => ({ ...f, caracteristicas: v }))}
-                        onSnippetAction={onSnippetAction}
-                        />
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-1">
-                      <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Sobre el personaje</label>
-                      <MarkdownEditor
-                        toolbar
-                        defaultMode="edit"
-                        entities={entities}
-                        placeholder="Biografía, personalidad…"
-                        rows={5}
-                        value={form.sobre ?? ""}
-                      onChange={v => setForm(f => ({ ...f, sobre: v }))}
-                      onSnippetAction={onSnippetAction}
+                  {(form as any).fecha_nacimiento != null && (
+                    <div className="pt-0.5">
+                      <FechaMundoBadge
+                        diaAbsoluto={(form as any).fecha_nacimiento}
                       />
                     </div>
                   )}
+                </div>
+              </div>
 
-                  {/* ── Bloques laterales — solo desktop, inline ───────────────── */}
-                  <div className="hidden sm:block mt-4 space-y-3">
-                    <BloqueGruposPersonaje personajeId={form.id} onOpenGrupo={onOpenGrupo} />
-
-                    <BloqueRelaciones personajeId={form.id} onSelectPersonaje={onSelectPersonaje} />
-
-                    <BloqueEras personajeId={form.id} />
-
-                    <div className="rounded-xl overflow-hidden border border-primary/10">
-                      <div className="flex items-center gap-2 px-3 py-2 border-b border-primary/[0.06] bg-primary/[0.03]">
-                        <BookOpen className="text-primary/40" size={10} />
-                        <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">Capítulos</span>
+              {/* Desktop: layout original (fila de 3 + Don al lado) */}
+              <div className="hidden sm:flex flex-col sm:flex-row gap-2 items-start">
+                <div className="flex-1 min-w-0 grid grid-cols-3 gap-2">
+                  <div className="space-y-1 col-span-1">
+                    <ComboSelector
+                      allowNone
+                      items={especies.map((e) => ({ id: e, label: e }))}
+                      label="Especie"
+                      mode="single"
+                      noneLabel="Sin especie"
+                      placeholder="Humano, elfo…"
+                      value={form.especie ?? null}
+                      onChange={(v) =>
+                        setForm((f) => ({
+                          ...f,
+                          especie: v ?? "",
+                          variante_id: null,
+                        }))
+                      }
+                      onNavigate={
+                        onNavigate
+                          ? (_id, nombre) => onNavigate("criaturas", nombre)
+                          : undefined
+                      }
+                    />
+                    {variantes.length > 0 && (
+                      <div className="flex flex-wrap items-center gap-1 pt-0.5">
+                        <span className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/25 mr-0.5">
+                          Variante
+                        </span>
+                        <button
+                          className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border transition-all ${!form.variante_id ? "bg-primary/10 border-primary/25 text-primary" : "border-primary/10 text-primary/25"}`}
+                          type="button"
+                          onClick={() =>
+                            setForm((f) => ({ ...f, variante_id: null }))
+                          }
+                        >
+                          Todas
+                        </button>
+                        {variantes.map((v) => (
+                          <button
+                            key={v.id}
+                            className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border transition-all ${form.variante_id === v.id ? "bg-primary/10 border-primary/25 text-primary" : "border-primary/10 text-primary/25"}`}
+                            type="button"
+                            onClick={() =>
+                              setForm((f) => ({ ...f, variante_id: v.id }))
+                            }
+                          >
+                            {v.tipo}
+                          </button>
+                        ))}
                       </div>
-                      <BloqueCapsAparece personajeId={form.id} />
-                    </div>
-
-                    <SeccionHechizos grupoIds={grupoIds} personajeId={form.id} />
-
-                    <div className="rounded-xl overflow-hidden border border-primary/10">
-                      <div className="flex items-center gap-2 px-3 py-2 border-b border-primary/[0.06] bg-primary/[0.03]">
-                        <Music2 className="text-primary/40" size={10} />
-                        <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">Canciones</span>
-                      </div>
-                      <BloqueCanciones nombrePersonaje={form.nombre ?? ""} personajeId={form.id} onSelect={onSelectCancion} />
-                    </div>
+                    )}
                   </div>
+                  <ComboSelector
+                    allowNone
+                    groups={gruposTerritorio}
+                    items={itemsTerritorioSinReino}
+                    label="Territorio"
+                    mode="single"
+                    noneLabel="Sin territorio"
+                    placeholder="Reino…"
+                    value={territorioValue}
+                    onChange={onTerritorioChange}
+                    onNavigate={
+                      onNavigate
+                        ? (id) => {
+                            if (id.startsWith("reino:")) {
+                              const r = reinosMin.find(
+                                (x) => x.id === id.replace("reino:", ""),
+                              );
+                              if (r) onNavigate("reinos", r.nombre);
+                            }
+                          }
+                        : undefined
+                    }
+                  />
+                  {(() => {
+                    return (
+                      <ComboSelector
+                        allowNone
+                        groups={gruposUbicacion}
+                        items={itemsUbicacion}
+                        label="Ubicación"
+                        mode="single"
+                        noneLabel="Sin ubicación"
+                        placeholder="Ciudad…"
+                        value={ubicacionValue}
+                        onChange={onUbicacionChange}
+                        onNavigate={
+                          onNavigateCiudad
+                            ? (id) => {
+                                if (id.startsWith("ciudad:"))
+                                  onNavigateCiudad(id.replace("ciudad:", ""));
+                              }
+                            : undefined
+                        }
+                      />
+                    );
+                  })()}
+                </div>
 
+                {/* Don — mismo estilo que Especie / Reino */}
+                <div className="w-full sm:w-44 sm:shrink-0 space-y-1.5">
+                  <BloqueDones grupoIds={grupoIds} personajeId={form.id} />
+                </div>
+              </div>
+
+              {/* Fecha de nacimiento — desktop */}
+              <div className="space-y-1">
+                <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">
+                  Fecha de nacimiento
+                </label>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 min-w-0">
+                    <SelectorFechaMundo
+                      placeholder="Seleccionar fecha de nacimiento…"
+                      value={(form as any).fecha_nacimiento ?? null}
+                      onChange={(dia) =>
+                        setForm(
+                          (f) =>
+                            ({ ...f, fecha_nacimiento: dia ?? null }) as any,
+                        )
+                      }
+                    />
+                  </div>
+                  {(form as any).fecha_nacimiento != null && (
+                    <>
+                      <FechaMundoBadge
+                        diaAbsoluto={(form as any).fecha_nacimiento}
+                      />
+                      <button
+                        className="shrink-0 p-1 rounded-lg text-primary/25 hover:text-accent hover:bg-accent/5 transition-all"
+                        title="Quitar fecha"
+                        type="button"
+                        onClick={() =>
+                          setForm(
+                            (f) => ({ ...f, fecha_nacimiento: null }) as any,
+                          )
+                        }
+                      >
+                        <X size={10} />
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Descripción + Características en fila */}
+              {!compacto ? (
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="flex-1 min-w-0 space-y-1">
+                    <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">
+                      Sobre el personaje
+                    </label>
+                    <MarkdownEditor
+                      toolbar
+                      defaultMode="edit"
+                      entities={entities}
+                      placeholder="Biografía, personalidad…"
+                      rows={8}
+                      value={form.sobre ?? ""}
+                      onChange={(v) => setForm((f) => ({ ...f, sobre: v }))}
+                      onSnippetAction={onSnippetAction}
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0 space-y-1">
+                    <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">
+                      Características
+                    </label>
+                    <MarkdownEditor
+                      toolbar
+                      defaultMode="edit"
+                      entities={entities}
+                      placeholder="Rasgos físicos, personalidad, habilidades…"
+                      rows={8}
+                      value={form.caracteristicas ?? ""}
+                      onChange={(v) =>
+                        setForm((f) => ({ ...f, caracteristicas: v }))
+                      }
+                      onSnippetAction={onSnippetAction}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">
+                    Sobre el personaje
+                  </label>
+                  <MarkdownEditor
+                    toolbar
+                    defaultMode="edit"
+                    entities={entities}
+                    placeholder="Biografía, personalidad…"
+                    rows={5}
+                    value={form.sobre ?? ""}
+                    onChange={(v) => setForm((f) => ({ ...f, sobre: v }))}
+                    onSnippetAction={onSnippetAction}
+                  />
+                </div>
+              )}
+
+              {/* ── Bloques laterales — solo desktop, inline ───────────────── */}
+              <div className="hidden sm:block mt-4 space-y-3">
+                <BloqueGruposPersonaje
+                  personajeId={form.id}
+                  onOpenGrupo={onOpenGrupo}
+                />
+
+                <BloqueRelaciones
+                  personajeId={form.id}
+                  onSelectPersonaje={onSelectPersonaje}
+                />
+
+                <BloqueEras personajeId={form.id} />
+
+                <div className="rounded-xl overflow-hidden border border-primary/10">
+                  <div className="flex items-center gap-2 px-3 py-2 border-b border-primary/[0.06] bg-primary/[0.03]">
+                    <BookOpen className="text-primary/40" size={10} />
+                    <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">
+                      Capítulos
+                    </span>
+                  </div>
+                  <BloqueCapsAparece personajeId={form.id} />
+                </div>
+
+                <SeccionHechizos grupoIds={grupoIds} personajeId={form.id} />
+
+                <div className="rounded-xl overflow-hidden border border-primary/10">
+                  <div className="flex items-center gap-2 px-3 py-2 border-b border-primary/[0.06] bg-primary/[0.03]">
+                    <Music2 className="text-primary/40" size={10} />
+                    <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">
+                      Canciones
+                    </span>
+                  </div>
+                  <BloqueCanciones
+                    nombrePersonaje={form.nombre ?? ""}
+                    personajeId={form.id}
+                    onSelect={onSelectCancion}
+                  />
                 </div>
               </div>
             </div>
           </div>
+        </div>
+      </div>
 
       {mobileAsideOpen && (
         <div className="sm:hidden fixed inset-0 z-50 flex justify-end">
           <div
             className="absolute inset-0"
-            style={{ background: "color-mix(in srgb, var(--primary) 20%, transparent)" }}
+            style={{
+              background: "color-mix(in srgb, var(--primary) 20%, transparent)",
+            }}
             onClick={() => setMobileAsideOpen(false)}
           />
           <div
@@ -1456,51 +2124,102 @@ export function FormularioPersonaje({
             style={{
               width: "240px",
               background: "var(--white-custom, var(--bg-main))",
-              borderLeft: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+              borderLeft:
+                "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
               scrollbarWidth: "none",
             }}
           >
             {/* Header del drawer */}
             <div
               className="shrink-0 flex items-center justify-between px-3 py-2.5 border-b"
-              style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
+              style={{
+                borderColor:
+                  "color-mix(in srgb, var(--primary) 10%, transparent)",
+              }}
             >
-              <span className="text-[8px] font-black uppercase tracking-[0.2em] flex items-center gap-1.5" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>
+              <span
+                className="text-[8px] font-black uppercase tracking-[0.2em] flex items-center gap-1.5"
+                style={{
+                  color: "color-mix(in srgb, var(--primary) 40%, transparent)",
+                }}
+              >
                 <SlidersHorizontal size={9} /> Entidades
               </span>
-              <button className="p-1 rounded-lg text-primary/30 hover:text-primary hover:bg-primary/8 transition-all" onClick={() => setMobileAsideOpen(false)}>
+              <button
+                className="p-1 rounded-lg text-primary/30 hover:text-primary hover:bg-primary/8 transition-all"
+                onClick={() => setMobileAsideOpen(false)}
+              >
                 <X size={14} />
               </button>
             </div>
 
             <div className="p-2">
-              <BloqueGruposPersonaje personajeId={form.id} onOpenGrupo={onOpenGrupo} />
+              <BloqueGruposPersonaje
+                personajeId={form.id}
+                onOpenGrupo={onOpenGrupo}
+              />
             </div>
-            <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
+            <div
+              style={{
+                borderTop:
+                  "1px solid color-mix(in srgb, var(--primary) 7%, transparent)",
+              }}
+            />
             <div className="p-2">
-              <BloqueRelaciones personajeId={form.id} onSelectPersonaje={onSelectPersonaje} />
+              <BloqueRelaciones
+                personajeId={form.id}
+                onSelectPersonaje={onSelectPersonaje}
+              />
             </div>
-            <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
+            <div
+              style={{
+                borderTop:
+                  "1px solid color-mix(in srgb, var(--primary) 7%, transparent)",
+              }}
+            />
             <div className="p-2">
               <BloqueEras personajeId={form.id} />
             </div>
-            <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
+            <div
+              style={{
+                borderTop:
+                  "1px solid color-mix(in srgb, var(--primary) 7%, transparent)",
+              }}
+            />
             <div>
               <div className="flex items-center gap-2 px-3 py-2 border-b border-primary/[0.06] bg-primary/[0.03]">
                 <BookOpen className="text-primary/40" size={10} />
-                <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">Capítulos</span>
+                <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">
+                  Capítulos
+                </span>
               </div>
               <BloqueCapsAparece personajeId={form.id} />
             </div>
-            <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
+            <div
+              style={{
+                borderTop:
+                  "1px solid color-mix(in srgb, var(--primary) 7%, transparent)",
+              }}
+            />
             <SeccionHechizos grupoIds={grupoIds} personajeId={form.id} />
-            <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
+            <div
+              style={{
+                borderTop:
+                  "1px solid color-mix(in srgb, var(--primary) 7%, transparent)",
+              }}
+            />
             <div>
               <div className="flex items-center gap-2 px-3 py-2 border-b border-primary/[0.06] bg-primary/[0.03]">
                 <Music2 className="text-primary/40" size={10} />
-                <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">Canciones</span>
+                <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">
+                  Canciones
+                </span>
               </div>
-              <BloqueCanciones nombrePersonaje={form.nombre ?? ""} personajeId={form.id} onSelect={onSelectCancion} />
+              <BloqueCanciones
+                nombrePersonaje={form.nombre ?? ""}
+                personajeId={form.id}
+                onSelect={onSelectCancion}
+              />
             </div>
           </div>
         </div>
@@ -1508,58 +2227,93 @@ export function FormularioPersonaje({
     </div>
   );
 }
- 
+
 // ─── EditorPersonaje ──────────────────────────────────────────────────────────
 export function EditorPersonaje({
-  item, onSaved, onDeleted, entities = [], onNavigate, onSelectPersonaje, onOpenGrupo, onNavigateCiudad, onSelectCancion,
+  item,
+  onSaved,
+  onDeleted,
+  entities = [],
+  onNavigate,
+  onSelectPersonaje,
+  onOpenGrupo,
+  onNavigateCiudad,
+  onSelectCancion,
 }: {
-  item: Personaje; onSaved: (p: Personaje) => void; onDeleted: (id: string) => void; entities?: WikiEntity[];
+  item: Personaje;
+  onSaved: (p: Personaje) => void;
+  onDeleted: (id: string) => void;
+  entities?: WikiEntity[];
   onNavigate?: (tab: "criaturas" | "reinos", nombre: string) => void;
   onSelectPersonaje?: (id: string) => void;
   onOpenGrupo?: (id: string) => void;
   onNavigateCiudad?: (id: string) => void;
   onSelectCancion?: (id: string) => void;
 }) {
-  const [form,   setForm]   = useState<Personaje>(item);
+  const [form, setForm] = useState<Personaje>(item);
   const [status, setStatus] = useState<SaveStatus>("idle");
   const { confirm, ConfirmModal } = useConfirm();
 
-  useEffect(() => { setForm(item); setStatus("idle"); }, [item.id]);
+  useEffect(() => {
+    setForm(item);
+    setStatus("idle");
+  }, [item.id]);
 
   const save = async () => {
     setStatus("saving");
     try {
-      const { error } = await supabase.from("personajes").update({
-        nombre:          form.nombre,
-        img_url:         form.img_url        || null,
-        img_cuerpo_url:  form.img_cuerpo_url || null,
-        sobre:           form.sobre,
-        reino:           form.reino,
-        especie:         form.especie,
-        caracteristicas: form.caracteristicas || null,
-        variante_id:     (form as any).variante_id    || null,
-        ciudad_id:        (form as any).ciudad_id        || null,
-      }).eq("id", form.id);
+      const { error } = await supabase
+        .from("personajes")
+        .update({
+          nombre: form.nombre,
+          img_url: form.img_url || null,
+          img_cuerpo_url: form.img_cuerpo_url || null,
+          sobre: form.sobre,
+          reino: form.reino,
+          especie: form.especie,
+          caracteristicas: form.caracteristicas || null,
+          variante_id: (form as any).variante_id || null,
+          ciudad_id: (form as any).ciudad_id || null,
+          fecha_nacimiento: (form as any).fecha_nacimiento ?? null,
+        })
+        .eq("id", form.id);
       if (error) throw error;
       setStatus("saved");
       onSaved(form);
       void dexiePut("personajes", form);
       setTimeout(() => setStatus("idle"), 2000);
-    } catch { setStatus("error"); }
+    } catch {
+      setStatus("error");
+    }
   };
 
   const del = async () => {
-    const ok = await confirm({ message: `¿Eliminar a "${form.nombre}"?`, danger: true });
+    const ok = await confirm({
+      message: `¿Eliminar a "${form.nombre}"?`,
+      danger: true,
+    });
     if (!ok) return;
     await supabase.from("personajes").delete().eq("id", form.id);
     void dexieDel("personajes", form.id);
     onDeleted(form.id);
   };
 
-return (
+  return (
     <>
       <ConfirmModal />
-      <FormularioPersonaje entities={entities} form={form} setForm={setForm} status={status} onDelete={del} onNavigate={onNavigate} onNavigateCiudad={onNavigateCiudad} onOpenGrupo={onOpenGrupo} onSave={save} onSelectCancion={onSelectCancion} onSelectPersonaje={onSelectPersonaje} />
+      <FormularioPersonaje
+        entities={entities}
+        form={form}
+        setForm={setForm}
+        status={status}
+        onDelete={del}
+        onNavigate={onNavigate}
+        onNavigateCiudad={onNavigateCiudad}
+        onOpenGrupo={onOpenGrupo}
+        onSave={save}
+        onSelectCancion={onSelectCancion}
+        onSelectPersonaje={onSelectPersonaje}
+      />
     </>
   );
 }
