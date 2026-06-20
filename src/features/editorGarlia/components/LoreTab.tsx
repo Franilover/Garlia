@@ -25,7 +25,7 @@ import {
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { SeccionEntidad } from "@/components/ui/SeccionEntidad";
 import { type Ciudad } from "@/features/editorGarlia/views/EditorCiudad";
-import { PanelHistoriaMundo } from "@/features/editorGarlia/views/EditorMundo";
+import { PanelHistoriaMundo } from "@/features/editorGarlia/components/EditorLineaTiempo";
 import { db } from "@/lib/api/client/db";
 import { supabase } from "@/lib/api/client/supabase";
 
@@ -1093,7 +1093,9 @@ export function LoreTab({
                 key={`historia-panel-${form.id}`}
                 initialFilterReino={filtroReinoId ?? form.id}
                 texto={(form as any).historia ?? ""}
-                onChange={(v) => setForm((f) => ({ ...f, historia: v }))}
+                onChange={(v: string) =>
+                  setForm((f) => ({ ...f, historia: v }))
+                }
                 onSave={async () => {}}
               />
             </div>
