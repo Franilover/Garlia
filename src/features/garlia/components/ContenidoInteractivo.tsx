@@ -78,28 +78,23 @@ function TextoMarkdown({
   value: string;
   className?: string;
 }) {
-  // Dividir por párrafos (doble salto de línea)
-  const paragraphs = value.split(/\n\n+/);
+  // El editor separa párrafos con \n simple
+  const paragraphs = value.split("\n");
 
   return (
     <>
       {paragraphs.map((para, pi) => {
         if (para.trim() === "") {
           return (
-            <p key={pi} style={{ margin: 0, minHeight: "1.6em" }} aria-hidden />
+            <p key={pi} style={{ margin: 0, minHeight: "1em" }} aria-hidden />
           );
         }
-        // Dentro de un párrafo, saltos simples se convierten en <br/>
-        const html = para
-          .split("\n")
-          .map((line) => applyInlineMarkdown(line))
-          .join("<br/>");
         return (
           <p
             key={pi}
             className={className}
-            dangerouslySetInnerHTML={{ __html: html }}
-            style={{ margin: "0 0 1em 0" }}
+            dangerouslySetInnerHTML={{ __html: applyInlineMarkdown(para) }}
+            style={{ margin: "0 0 0.6em 0" }}
           />
         );
       })}
@@ -200,7 +195,9 @@ export function RenderSegmentos({
         if (seg.type === "text") {
           if (isFirstText && seg.value.length > 0) {
             const firstChar = seg.value.charAt(0);
-            const restText = seg.value.slice(1);
+            const restText = seg.value.slice(1).startsWith("\n")
+              ? seg.value.slice(2)
+              : seg.value.slice(1);
             return (
               <span key={i}>
                 <AnimatedDropCap char={firstChar} rest={restText} />
