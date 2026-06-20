@@ -378,25 +378,12 @@ function PanelLateral({
       }}
     >
       {/* ── Hero: imagen del narrador con degradado ── */}
-      <div
-        style={{
-          position: "relative",
-          flexShrink: 0,
-          height: "clamp(120px, 16vh, 200px)",
-          overflow: "hidden",
-        }}
-      >
+      <div style={{ position: "relative", flexShrink: 0 }}>
         {narrador?.img_url ? (
           <img
             alt={narrador.nombre}
             src={narrador.img_url}
-            style={{
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-              objectPosition: "top center",
-              display: "block",
-            }}
+            style={{ width: "100%", height: "auto", display: "block" }}
           />
         ) : (
           <div
