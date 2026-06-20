@@ -787,7 +787,8 @@ function CumpleanosTimelineRow({
       <div
         className="mx-1.5 rounded-xl transition-all"
         style={{
-          border: "1px solid color-mix(in srgb, var(--accent) 22%, transparent)",
+          border:
+            "1px solid color-mix(in srgb, var(--accent) 22%, transparent)",
           background: "color-mix(in srgb, var(--accent) 4%, transparent)",
         }}
       >
@@ -802,10 +803,24 @@ function CumpleanosTimelineRow({
           >
             {data.img_url ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img alt={data.nombre} className="w-full h-full object-cover" src={data.img_url} />
+              <img
+                alt={data.nombre}
+                className="w-full h-full object-cover"
+                src={data.img_url}
+              />
             ) : (
-              <svg fill="none" height="12" stroke="var(--accent)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" width="12">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+              <svg
+                fill="none"
+                height="12"
+                stroke="var(--accent)"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                viewBox="0 0 24 24"
+                width="12"
+              >
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                <circle cx="12" cy="7" r="4" />
               </svg>
             )}
           </div>
@@ -827,7 +842,9 @@ function CumpleanosTimelineRow({
             {data.reino && (
               <span
                 className="flex items-center gap-0.5 text-[7px] font-black uppercase tracking-widest truncate mt-0.5"
-                style={{ color: "color-mix(in srgb, var(--accent) 50%, transparent)" }}
+                style={{
+                  color: "color-mix(in srgb, var(--accent) 50%, transparent)",
+                }}
               >
                 <Crown size={6} /> {data.reino}
               </span>
@@ -835,15 +852,32 @@ function CumpleanosTimelineRow({
           </div>
 
           {/* Icono torta */}
-          <svg className="shrink-0 opacity-40" fill="none" height="11" stroke="var(--accent)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" width="11">
-            <path d="M20 21v-8a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8"/><path d="M4 16s.5-1 2-1 2.5 2 4 2 2.5-2 4-2 2 1 2 1"/><path d="M2 21h20"/><path d="M7 8v2"/><path d="M12 8v2"/><path d="M17 8v2"/><path d="M7 4h.01"/><path d="M12 4h.01"/><path d="M17 4h.01"/>
+          <svg
+            className="shrink-0 opacity-40"
+            fill="none"
+            height="11"
+            stroke="var(--accent)"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="2"
+            viewBox="0 0 24 24"
+            width="11"
+          >
+            <path d="M20 21v-8a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8" />
+            <path d="M4 16s.5-1 2-1 2.5 2 4 2 2.5-2 4-2 2 1 2 1" />
+            <path d="M2 21h20" />
+            <path d="M7 8v2" />
+            <path d="M12 8v2" />
+            <path d="M17 8v2" />
+            <path d="M7 4h.01" />
+            <path d="M12 4h.01" />
+            <path d="M17 4h.01" />
           </svg>
         </div>
       </div>
     </div>
   );
 }
-
 
 function EventoMundoRow({
   evt,
@@ -2165,10 +2199,15 @@ export function PanelHistoriaMundo({
   // (Eliminados: handleMundoChange, updateReinoEvent, removeReinoEvent, saveReinoHistory)
 
   // ── Personajes con fecha de nacimiento (cumpleaños) ──────────────────────
-  const [personajesCumple, setPersonajesCumple] = useState<{
-    id: string; nombre: string; img_url: string | null;
-    reino: string | null; fecha_nacimiento: number;
-  }[]>([]);
+  const [personajesCumple, setPersonajesCumple] = useState<
+    {
+      id: string;
+      nombre: string;
+      img_url: string | null;
+      reino: string | null;
+      fecha_nacimiento: number;
+    }[]
+  >([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -2177,13 +2216,19 @@ export function PanelHistoriaMundo({
       try {
         if (db && (db as any).personajes) {
           const local: any[] = await (db as any).personajes.toArray();
-          const conFecha = local.filter((p: any) => p.fecha_nacimiento != null && !p.deleted);
+          const conFecha = local.filter(
+            (p: any) => p.fecha_nacimiento != null && !p.deleted,
+          );
           if (conFecha.length && !cancelled) {
-            setPersonajesCumple(conFecha.map((p: any) => ({
-              id: p.id, nombre: p.nombre ?? "Sin nombre",
-              img_url: p.img_url ?? null, reino: p.reino ?? null,
-              fecha_nacimiento: p.fecha_nacimiento,
-            })));
+            setPersonajesCumple(
+              conFecha.map((p: any) => ({
+                id: p.id,
+                nombre: p.nombre ?? "Sin nombre",
+                img_url: p.img_url ?? null,
+                reino: p.reino ?? null,
+                fecha_nacimiento: p.fecha_nacimiento,
+              })),
+            );
           }
         }
       } catch {}
@@ -2195,17 +2240,26 @@ export function PanelHistoriaMundo({
           .select("id, nombre, img_url, reino, fecha_nacimiento")
           .not("fecha_nacimiento", "is", null);
         if (!data || cancelled) return;
-        setPersonajesCumple(data.map((p: any) => ({
-          id: p.id, nombre: p.nombre ?? "Sin nombre",
-          img_url: p.img_url ?? null, reino: p.reino ?? null,
-          fecha_nacimiento: p.fecha_nacimiento,
-        })));
+        setPersonajesCumple(
+          data.map((p: any) => ({
+            id: p.id,
+            nombre: p.nombre ?? "Sin nombre",
+            img_url: p.img_url ?? null,
+            reino: p.reino ?? null,
+            fecha_nacimiento: p.fecha_nacimiento,
+          })),
+        );
       } catch {}
     };
     cargar();
-    const handleOnline = () => { if (!cancelled) cargar(); };
+    const handleOnline = () => {
+      if (!cancelled) cargar();
+    };
     window.addEventListener("online", handleOnline);
-    return () => { cancelled = true; window.removeEventListener("online", handleOnline); };
+    return () => {
+      cancelled = true;
+      window.removeEventListener("online", handleOnline);
+    };
   }, []);
 
   const { cal } = useCalendario();
@@ -2419,7 +2473,11 @@ export function PanelHistoriaMundo({
     // Cumpleaños — personajes con fecha_nacimiento
     if (showCumpleanos) {
       for (const p of personajesCumple) {
-        if (filterReino && p.reino !== reinos.find(r => r.id === filterReino)?.nombre) continue;
+        if (
+          filterReino &&
+          p.reino !== reinos.find((r) => r.id === filterReino)?.nombre
+        )
+          continue;
         const dia = p.fecha_nacimiento;
         list.push({
           id: `cumple:${p.id}`,
@@ -2436,7 +2494,13 @@ export function PanelHistoriaMundo({
     return list.sort((a, b) => {
       const diff = a.yearNum - b.yearNum;
       if (diff !== 0) return diff;
-      const order: Record<string, number> = { mundo: 0, reino: 1, cancion: 2, capitulo: 3, cumpleanos: 4 };
+      const order: Record<string, number> = {
+        mundo: 0,
+        reino: 1,
+        cancion: 2,
+        capitulo: 3,
+        cumpleanos: 4,
+      };
       return (order[a.source] ?? 1) - (order[b.source] ?? 1);
     });
   }, [
@@ -2554,10 +2618,27 @@ export function PanelHistoriaMundo({
             }}
             title={showCumpleanos ? "Ocultar cumpleaños" : "Mostrar cumpleaños"}
             type="button"
-            onClick={() => setShowCumpleanos(v => !v)}
+            onClick={() => setShowCumpleanos((v) => !v)}
           >
-            <svg fill="none" height="9" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" width="9">
-              <path d="M20 21v-8a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8"/><path d="M4 16s.5-1 2-1 2.5 2 4 2 2.5-2 4-2 2 1 2 1"/><path d="M2 21h20"/><path d="M7 8v2"/><path d="M12 8v2"/><path d="M17 8v2"/><path d="M7 4h.01"/><path d="M12 4h.01"/><path d="M17 4h.01"/>
+            <svg
+              fill="none"
+              height="9"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              viewBox="0 0 24 24"
+              width="9"
+            >
+              <path d="M20 21v-8a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8" />
+              <path d="M4 16s.5-1 2-1 2.5 2 4 2 2.5-2 4-2 2 1 2 1" />
+              <path d="M2 21h20" />
+              <path d="M7 8v2" />
+              <path d="M12 8v2" />
+              <path d="M17 8v2" />
+              <path d="M7 4h.01" />
+              <path d="M12 4h.01" />
+              <path d="M17 4h.01" />
             </svg>
             Cumpleaños
           </button>
@@ -2823,46 +2904,13 @@ export function PanelHistoriaMundo({
                         }}
                         title={`Editar era: ${era.nombre}`}
                       >
-                        {/* Línea superior de color */}
+                        {/* Línea superior de color — clickeable para editar */}
                         <div
-                          className="absolute top-0 left-0 right-0 h-0.5 opacity-50"
+                          className="absolute top-0 left-0 right-0 h-0.5 cursor-pointer pointer-events-auto transition-opacity opacity-50 hover:opacity-100"
                           style={{ background: era.color ?? "var(--accent)" }}
-                        />
-                        {/* Etiqueta con icono de edición al hover (única zona clickeable) */}
-                        <div
-                          className="absolute top-1.5 left-2 flex items-center gap-1 px-1 py-0.5 -mx-1 -my-0.5 rounded cursor-pointer pointer-events-auto transition-colors hover:opacity-90"
-                          style={{ background: "transparent" }}
+                          title={`Editar era: ${era.nombre}`}
                           onClick={() => setEraModal(era)}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.background = era.color
-                              ? `${era.color}1a`
-                              : "color-mix(in srgb, var(--primary) 8%, transparent)";
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.background = "transparent";
-                          }}
-                        >
-                          <span
-                            className="text-[7px] font-black uppercase tracking-widest whitespace-nowrap transition-opacity opacity-50 group-hover/era:opacity-90"
-                            style={{ color: era.color ?? "var(--primary)" }}
-                          >
-                            {era.nombre}
-                          </span>
-                          <svg
-                            className="opacity-0 group-hover/era:opacity-60 transition-opacity shrink-0"
-                            fill="none"
-                            height="7"
-                            stroke={era.color ?? "var(--primary)"}
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2.5"
-                            viewBox="0 0 24 24"
-                            width="7"
-                          >
-                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                          </svg>
-                        </div>
+                        />
                       </div>
                     );
                   });
@@ -2968,7 +3016,9 @@ export function PanelHistoriaMundo({
                     ) : isCumpleanos && evt.cumpleanosData ? (
                       <CumpleanosTimelineRow
                         data={evt.cumpleanosData}
-                        onNavigate={() => onSelectPersonaje?.(evt.cumpleanosData!.id)}
+                        onNavigate={() =>
+                          onSelectPersonaje?.(evt.cumpleanosData!.id)
+                        }
                       />
                     ) : isEventoMundo ? (
                       <EventoMundoRow
@@ -4268,7 +4318,10 @@ function PanelListas({
                 onSelectPersonaje={async (id) => {
                   // Buscar el personaje en la lista local primero
                   const local = personajes.find((p) => p.id === id);
-                  if (local) { selectPersonaje(local); return; }
+                  if (local) {
+                    selectPersonaje(local);
+                    return;
+                  }
                   // Si no está en memoria, buscarlo en Supabase
                   try {
                     const { data } = await supabase
