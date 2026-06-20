@@ -883,6 +883,8 @@ function EventoMundoRow({
   evt,
   onDiaChange,
   onFieldChange,
+  onDelete,
+  showDescripciones = true,
 }: {
   evt: MundoTimelineEvent;
   onDiaChange?: (id: string, dia: number) => void;
@@ -891,8 +893,12 @@ function EventoMundoRow({
     field: "titulo" | "descripcion",
     value: string,
   ) => void;
+  onDelete?: (id: string) => void;
+  showDescripciones?: boolean;
 }) {
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [confirmDel, setConfirmDel] = useState(false);
   const [titulo, setTitulo] = useState(evt.title);
   const [descripcion, setDescripcion] = useState(evt.description);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -918,42 +924,105 @@ function EventoMundoRow({
     }, 800);
   };
 
+  const handleDelete = async () => {
+    setDeleting(true);
+    await onDelete?.(evt.id);
+    setDeleting(false);
+  };
+
   return (
     <div className="group/card" style={{ width: 220 }}>
       <div
-        className="mx-1.5 rounded-xl p-2 flex flex-col gap-1.5"
+        className="mx-1.5 rounded-xl p-2 flex flex-col gap-1.5 transition-all"
         style={{
           border:
             "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
           background: "color-mix(in srgb, var(--primary) 2.5%, transparent)",
         }}
       >
-        {/* Selector de fecha (editable) */}
-        <div className="relative">
-          {saving && (
-            <Loader2
-              className="animate-spin absolute right-2 top-2 z-10 text-primary/30"
-              size={8}
+        {/* Selector de fecha — solo en modo expandido */}
+        {showDescripciones && (
+          <div className="relative">
+            {saving && (
+              <Loader2
+                className="animate-spin absolute right-2 top-2 z-10 text-primary/30"
+                size={8}
+              />
+            )}
+            <SelectorFechaMundo
+              placeholder="Sin fecha…"
+              value={evt.dia_absoluto ?? null}
+              onChange={commitDia}
             />
-          )}
-          <SelectorFechaMundo
-            placeholder="Sin fecha…"
-            value={evt.dia_absoluto ?? null}
-            onChange={commitDia}
+          </div>
+        )}
+
+        {/* Título + botón eliminar */}
+        <div className="flex items-center gap-1">
+          <input
+            className="flex-1 min-w-0 px-1 bg-transparent outline-none rounded transition-all"
+            placeholder="Título del evento…"
+            style={{
+              color: "var(--primary)",
+              fontSize: showDescripciones ? "10px" : "13px",
+              fontWeight: showDescripciones ? 700 : 900,
+            }}
+            value={titulo}
+            onBlur={(e) => onFieldChange?.(evt.id, "titulo", e.target.value)}
+            onChange={(e) => {
+              setTitulo(e.target.value);
+              scheduleSave("titulo", e.target.value);
+            }}
           />
+          {!confirmDel ? (
+            <button
+              className="shrink-0 opacity-0 group-hover/card:opacity-100 transition-opacity p-1 rounded-md"
+              style={{
+                color: "color-mix(in srgb, var(--primary) 25%, transparent)",
+              }}
+              title="Eliminar evento"
+              type="button"
+              onClick={() => setConfirmDel(true)}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLElement).style.color = "#ef4444";
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLElement).style.color =
+                  "color-mix(in srgb, var(--primary) 25%, transparent)";
+              }}
+            >
+              <Trash2 size={9} />
+            </button>
+          ) : (
+            <div className="shrink-0 flex items-center gap-1">
+              <button
+                className="px-1.5 py-0.5 rounded text-[7px] font-black uppercase tracking-widest transition-all"
+                disabled={deleting}
+                style={{ background: "#ef444420", color: "#ef4444" }}
+                type="button"
+                onClick={handleDelete}
+              >
+                {deleting ? (
+                  <Loader2 className="animate-spin" size={7} />
+                ) : (
+                  "Sí"
+                )}
+              </button>
+              <button
+                className="px-1.5 py-0.5 rounded text-[7px] font-black uppercase tracking-widest"
+                style={{
+                  color: "color-mix(in srgb, var(--primary) 35%, transparent)",
+                }}
+                type="button"
+                onClick={() => setConfirmDel(false)}
+              >
+                No
+              </button>
+            </div>
+          )}
         </div>
-        {/* Título editable */}
-        <input
-          className="px-1 text-[10px] font-bold bg-transparent outline-none w-full rounded"
-          placeholder="Título del evento…"
-          style={{ color: "var(--primary)" }}
-          value={titulo}
-          onBlur={(e) => onFieldChange?.(evt.id, "titulo", e.target.value)}
-          onChange={(e) => {
-            setTitulo(e.target.value);
-            scheduleSave("titulo", e.target.value);
-          }}
-        />
+
+        {/* Reino — siempre visible */}
         {evt.reinoNombre && (
           <span
             className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest truncate self-start"
@@ -968,22 +1037,27 @@ function EventoMundoRow({
             <Crown size={6} /> {evt.reinoNombre}
           </span>
         )}
-        {/* Descripción editable */}
-        <textarea
-          className="px-1 text-[11px] leading-relaxed bg-transparent outline-none w-full rounded resize-y"
-          placeholder="Descripción…"
-          rows={6}
-          style={{
-            color: "color-mix(in srgb, var(--primary) 70%, transparent)",
-            minHeight: "90px",
-          }}
-          value={descripcion}
-          onBlur={(e) => onFieldChange?.(evt.id, "descripcion", e.target.value)}
-          onChange={(e) => {
-            setDescripcion(e.target.value);
-            scheduleSave("descripcion", e.target.value);
-          }}
-        />
+
+        {/* Descripción — solo en modo expandido */}
+        {showDescripciones && (
+          <textarea
+            className="px-1 text-[11px] leading-relaxed bg-transparent outline-none w-full rounded resize-y"
+            placeholder="Descripción…"
+            rows={6}
+            style={{
+              color: "color-mix(in srgb, var(--primary) 70%, transparent)",
+              minHeight: "90px",
+            }}
+            value={descripcion}
+            onBlur={(e) =>
+              onFieldChange?.(evt.id, "descripcion", e.target.value)
+            }
+            onChange={(e) => {
+              setDescripcion(e.target.value);
+              scheduleSave("descripcion", e.target.value);
+            }}
+          />
+        )}
       </div>
     </div>
   );
@@ -2267,6 +2341,7 @@ export function PanelHistoriaMundo({
     initialFilterReino ?? null,
   );
   const [showCumpleanos, setShowCumpleanos] = useState(true);
+  const [showDescripciones, setShowDescripciones] = useState(true);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [diaOverrides, setDiaOverrides] = useState<Record<string, number>>({});
   const [showNuevoEvento, setShowNuevoEvento] = useState(false);
@@ -2379,6 +2454,17 @@ export function PanelHistoriaMundo({
     },
     [],
   );
+  const handleEventoMundoDelete = useCallback(async (id: string) => {
+    setEventosMundo((prev) => prev.filter((e) => e.id !== id));
+    try {
+      await supabase.from("eventos_mundo").delete().eq("id", id);
+    } catch {}
+    try {
+      if (db && (db as any).eventos_mundo)
+        await (db as any).eventos_mundo.delete(id);
+    } catch {}
+  }, []);
+
   const debounceHistRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleSave = useCallback(async () => {
@@ -2641,6 +2727,31 @@ export function PanelHistoriaMundo({
               <path d="M17 4h.01" />
             </svg>
             Cumpleaños
+          </button>
+          {/* Toggle descripciones */}
+          <button
+            className="flex items-center gap-1 px-2 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-widest border transition-all"
+            style={{
+              borderColor: !showDescripciones
+                ? "color-mix(in srgb, var(--primary) 22%, transparent)"
+                : "color-mix(in srgb, var(--primary) 12%, transparent)",
+              background: !showDescripciones
+                ? "color-mix(in srgb, var(--primary) 8%, transparent)"
+                : "transparent",
+              color: !showDescripciones
+                ? "var(--primary)"
+                : "color-mix(in srgb, var(--primary) 35%, transparent)",
+            }}
+            title={
+              showDescripciones
+                ? "Modo compacto (solo títulos)"
+                : "Mostrar descripciones"
+            }
+            type="button"
+            onClick={() => setShowDescripciones((v) => !v)}
+          >
+            <Layers size={9} />
+            {showDescripciones ? "Compactar" : "Expandir"}
           </button>
           {/* Botón gestionar eras */}
           <button
@@ -3056,7 +3167,9 @@ export function PanelHistoriaMundo({
                     ) : isEventoMundo ? (
                       <EventoMundoRow
                         evt={evt}
+                        showDescripciones={showDescripciones}
                         onDiaChange={handleEventoMundoDiaChange}
+                        onDelete={handleEventoMundoDelete}
                         onFieldChange={handleEventoMundoFieldChange}
                       />
                     ) : null}
