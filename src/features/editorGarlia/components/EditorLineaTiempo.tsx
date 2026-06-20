@@ -2264,17 +2264,22 @@ function ToggleTipoBtn({
 }) {
   return (
     <button
-      className="flex items-center gap-1 px-2 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-widest border transition-all"
+      className="relative flex items-center justify-center transition-all"
       style={{
-        borderColor: active
-          ? "color-mix(in srgb, var(--accent) 35%, transparent)"
-          : "color-mix(in srgb, var(--primary) 12%, transparent)",
+        width: 22,
+        height: 22,
+        borderRadius: "var(--radius-btn)",
+        border: `1px solid ${
+          active
+            ? "color-mix(in srgb, var(--accent) 30%, transparent)"
+            : "color-mix(in srgb, var(--primary) 10%, transparent)"
+        }`,
         background: active
-          ? "color-mix(in srgb, var(--accent) 8%, transparent)"
+          ? "color-mix(in srgb, var(--accent) 10%, transparent)"
           : "transparent",
         color: active
           ? "var(--accent)"
-          : "color-mix(in srgb, var(--primary) 35%, transparent)",
+          : "color-mix(in srgb, var(--primary) 28%, transparent)",
       }}
       title={
         active
@@ -2285,7 +2290,20 @@ function ToggleTipoBtn({
       onClick={onClick}
     >
       {icon}
-      {label}
+      <span
+        style={{
+          position: "absolute",
+          bottom: 2,
+          right: 2,
+          width: 3,
+          height: 3,
+          borderRadius: "50%",
+          background: active
+            ? "var(--accent)"
+            : "color-mix(in srgb, var(--primary) 18%, transparent)",
+          transition: "background 0.15s",
+        }}
+      />
     </button>
   );
 }
