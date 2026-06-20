@@ -23,51 +23,63 @@ export function slugify(text: string): string {
 }
 
 // ── Callout config ───────────────────────────────────────────────────────────
-export const CALLOUT_MAP: Record<string, { cls: string; icon: string; label: string }> = {
-  NOTE:    { cls: "callout-note",    icon: "📝", label: "Note" },
-  TIP:     { cls: "callout-tip",     icon: "💡", label: "Tip" },
-  WARNING: { cls: "callout-warning", icon: "⚠️",  label: "Warning" },
-  DANGER:  { cls: "callout-danger",  icon: "🔴", label: "Danger" },
-  ERROR:   { cls: "callout-danger",  icon: "❌", label: "Error" },
+export const CALLOUT_MAP: Record<
+  string,
+  { cls: string; icon: string; label: string }
+> = {
+  NOTE: { cls: "callout-note", icon: "📝", label: "Note" },
+  TIP: { cls: "callout-tip", icon: "💡", label: "Tip" },
+  WARNING: { cls: "callout-warning", icon: "⚠️", label: "Warning" },
+  DANGER: { cls: "callout-danger", icon: "🔴", label: "Danger" },
+  ERROR: { cls: "callout-danger", icon: "❌", label: "Error" },
   SUCCESS: { cls: "callout-success", icon: "✅", label: "Success" },
-  INFO:    { cls: "callout-info",    icon: "ℹ️",  label: "Info" },
+  INFO: { cls: "callout-info", icon: "ℹ️", label: "Info" },
 };
 
 // ── Renderer ─────────────────────────────────────────────────────────────────
 export function renderMarkdown(raw: string, isLibro = false): string {
   // ── helpers inline ────────────────────────────────────────────────────────
   const applyInline = (text: string): string => {
-    text = text.replace(/!\[([^\]]*)\]\(([^)]*)\)/g, '<img src="$2" alt="$1" />');
+    text = text.replace(
+      /!\[([^\]]*)\]\(([^)]*)\)/g,
+      '<img src="$2" alt="$1" />',
+    );
     text = text.replace(
       /\[([^\]]+)\]\(([^)]*)\)/g,
       '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>',
     );
-    text = text.replace(/\[\[([^\]|#]+?)(?:\|([^\]]+))?\]\]/g, (_, target, alias) => {
-      const label = alias?.trim() || target.trim();
-      const safeTarget = target.trim().replace(/"/g, "&quot;");
-      return `<a class="wikilink" data-wikilink="${safeTarget}" href="javascript:void(0)" title="Ir a: ${safeTarget}">${label}</a>`;
-    });
+    text = text.replace(
+      /\[\[([^\]|#]+?)(?:\|([^\]]+))?\]\]/g,
+      (_, target, alias) => {
+        const label = alias?.trim() || target.trim();
+        const safeTarget = target.trim().replace(/"/g, "&quot;");
+        return `<a class="wikilink" data-wikilink="${safeTarget}" href="javascript:void(0)" title="Ir a: ${safeTarget}">${label}</a>`;
+      },
+    );
     text = text.replace(/\*\*\*(.+?)\*\*\*/g, "<strong><em>$1</em></strong>");
-    text = text.replace(/\*\*(.+?)\*\*/g,     "<strong>$1</strong>");
-    text = text.replace(/\*(.+?)\*/g,          "<em>$1</em>");
-    text = text.replace(/`([^`]+)`/g,           "<code>$1</code>");
-    text = text.replace(/~~(.+?)~~/g,           "<del>$1</del>");
-    text = text.replace(/==(.+?)==/g,           '<mark class="md-mark">$1</mark>');
-    text = text.replace(/\^([^\^\n]+?)\^/g,     "<sup>$1</sup>");
+    text = text.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+    text = text.replace(/\*(.+?)\*/g, "<em>$1</em>");
+    text = text.replace(/`([^`]+)`/g, "<code>$1</code>");
+    text = text.replace(/~~(.+?)~~/g, "<del>$1</del>");
+    text = text.replace(/==(.+?)==/g, '<mark class="md-mark">$1</mark>');
+    text = text.replace(/\^([^\^\n]+?)\^/g, "<sup>$1</sup>");
     text = text.replace(/(?<!~)~([^~\n]+?)~(?!~)/g, "<sub>$1</sub>");
     if (isLibro) {
       text = text.replace(
         /\[p[aá]gina:\s*(\d+)\]/gi,
-        (_, n) => `<span class="libro-page-tag" data-page="${n}">p.&nbsp;${n}</span>`,
+        (_, n) =>
+          `<span class="libro-page-tag" data-page="${n}">p.&nbsp;${n}</span>`,
       );
     }
     text = text.replace(
       /\$\$([^$]+?)\$\$/g,
-      (_, expr) => `<span class="math-block" data-expr="${expr.trim().replace(/"/g, "&quot;")}"></span>`,
+      (_, expr) =>
+        `<span class="math-block" data-expr="${expr.trim().replace(/"/g, "&quot;")}"></span>`,
     );
     text = text.replace(
       /\$([^$\n]+?)\$/g,
-      (_, expr) => `<span class="math-inline" data-expr="${expr.trim().replace(/"/g, "&quot;")}"></span>`,
+      (_, expr) =>
+        `<span class="math-inline" data-expr="${expr.trim().replace(/"/g, "&quot;")}"></span>`,
     );
     return text;
   };
@@ -81,7 +93,8 @@ export function renderMarkdown(raw: string, isLibro = false): string {
     const text = applyInline(rawText.trim());
     const base = slugify(rawText.trim());
     headingCounter[base] = (headingCounter[base] || 0) + 1;
-    const id = headingCounter[base] > 1 ? `${base}-${headingCounter[base]}` : base;
+    const id =
+      headingCounter[base] > 1 ? `${base}-${headingCounter[base]}` : base;
     if (level <= 4) tocEntries.push({ level, text: rawText.trim(), id });
     return `<h${level} id="${id}">${text}<a class="heading-anchor" href="#${id}" aria-label="Enlace a sección" tabindex="-1">#</a></h${level}>`;
   };
@@ -89,21 +102,34 @@ export function renderMarkdown(raw: string, isLibro = false): string {
   // ── Tabla helper ──────────────────────────────────────────────────────────
   const renderTable = (lines: string[]): string => {
     const isSep = (r: string) => /^\|[-| :]+\|$/.test(r.trim());
-    const parse = (row: string) => row.split("|").slice(1, -1).map((c: string) => applyInline(c.trim()));
-    const headers = parse(lines[0]).map(c => `<th>${c}</th>`).join("");
+    const parse = (row: string) =>
+      row
+        .split("|")
+        .slice(1, -1)
+        .map((c: string) => applyInline(c.trim()));
+    const headers = parse(lines[0])
+      .map((c) => `<th>${c}</th>`)
+      .join("");
     const body = lines
       .slice(1)
-      .filter(r => !isSep(r))
-      .map(r => `<tr>${parse(r).map(c => `<td>${c}</td>`).join("")}</tr>`)
+      .filter((r) => !isSep(r))
+      .map(
+        (r) =>
+          `<tr>${parse(r)
+            .map((c) => `<td>${c}</td>`)
+            .join("")}</tr>`,
+      )
       .join("");
     return `<table><thead><tr>${headers}</tr></thead><tbody>${body}</tbody></table>`;
   };
 
   // ── Callout helper ────────────────────────────────────────────────────────
   const renderCallout = (lines: string[]): string => {
-    const inner = lines.map(l => l.replace(/^>\s?/, ""));
+    const inner = lines.map((l) => l.replace(/^>\s?/, ""));
     const firstLine = inner[0] || "";
-    const calloutMatch = firstLine.match(/^\[!(NOTE|TIP|WARNING|DANGER|ERROR|SUCCESS|INFO)\]\s*(.*)?$/i);
+    const calloutMatch = firstLine.match(
+      /^\[!(NOTE|TIP|WARNING|DANGER|ERROR|SUCCESS|INFO)\]\s*(.*)?$/i,
+    );
     if (calloutMatch) {
       const key = calloutMatch[1].toUpperCase();
       const cfg = CALLOUT_MAP[key];
@@ -118,7 +144,8 @@ export function renderMarkdown(raw: string, isLibro = false): string {
   const renderListItem = (content: string): string => {
     const taskMatch = content.match(/^\[([ xX])\] (.*)/);
     if (taskMatch) {
-      const checked = taskMatch[1].trim().toLowerCase() === "x" ? "checked" : "";
+      const checked =
+        taskMatch[1].trim().toLowerCase() === "x" ? "checked" : "";
       return `<li class="task-list-item"><input type="checkbox" class="task-list-checkbox" disabled ${checked} /><span>${applyInline(taskMatch[2])}</span></li>`;
     }
     return `<li>${applyInline(content)}</li>`;
@@ -137,7 +164,8 @@ export function renderMarkdown(raw: string, isLibro = false): string {
 
     // :::links block
     if (line.trim().startsWith(":::links")) {
-      const customTitle = line.trim().replace(":::links", "").trim() || "ENLACES";
+      const customTitle =
+        line.trim().replace(":::links", "").trim() || "ENLACES";
       const linkLines: string[] = [];
       i++;
       while (i < lines.length && !lines[i].trim().startsWith(":::")) {
@@ -146,7 +174,7 @@ export function renderMarkdown(raw: string, isLibro = false): string {
       }
       i++;
       const linksHtml = linkLines
-        .map(link => {
+        .map((link) => {
           const href = link.startsWith("http") ? link : `https://${link}`;
           return `<li><a href="${href}" target="_blank" rel="noopener noreferrer">${link}</a></li>`;
         })
@@ -159,8 +187,14 @@ export function renderMarkdown(raw: string, isLibro = false): string {
       continue;
     }
 
-    // blank line → skip
-    if (line.trim() === "") { i++; continue; }
+    // blank line → separador de párrafo (preservar espaciado)
+    if (line.trim() === "") {
+      output.push(
+        '<p class="spacer" style="margin:0;line-height:1.65;min-height:1em"> </p>',
+      );
+      i++;
+      continue;
+    }
 
     // fenced code block ```
     if (line.trimStart().startsWith("```")) {
@@ -274,7 +308,16 @@ export function renderMarkdown(raw: string, isLibro = false): string {
       i++;
     }
     if (paraLines.length > 0) {
-      output.push(`<p>${applyInline(paraLines.join("<br/>"))}</p>`);
+      // Cada línea del bloque: si termina en "  " es hard break, si no, espacio normal
+      const joined = paraLines
+        .map((l, idx) => {
+          if (idx === paraLines.length - 1) return applyInline(l);
+          return l.endsWith("  ")
+            ? applyInline(l.trimEnd()) + "<br/>"
+            : applyInline(l) + " ";
+        })
+        .join("");
+      output.push(`<p>${joined}</p>`);
     }
   }
 
@@ -285,7 +328,7 @@ export function renderMarkdown(raw: string, isLibro = false): string {
     if (tocEntries.length > 0) {
       tocHtml = `<nav class="toc"><div class="toc-title">Índice</div><ol>`;
       let prevLevel = tocEntries[0].level;
-      tocEntries.forEach(entry => {
+      tocEntries.forEach((entry) => {
         if (entry.level > prevLevel) tocHtml += "<ol>";
         else if (entry.level < prevLevel) tocHtml += "</ol>";
         tocHtml += `<li><a href="#${entry.id}">${entry.text}</a></li>`;
@@ -308,7 +351,7 @@ export function renderMathInElement(el: HTMLElement | null) {
   if (!mathEls.length) return;
 
   const render = (katex: any) => {
-    mathEls.forEach(span => {
+    mathEls.forEach((span) => {
       const expr = span.getAttribute("data-expr") || "";
       const displayMode = span.classList.contains("math-block");
       try {
@@ -329,10 +372,12 @@ export function renderMathInElement(el: HTMLElement | null) {
   } else {
     const link = document.createElement("link");
     link.rel = "stylesheet";
-    link.href = "https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css";
+    link.href =
+      "https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css";
     document.head.appendChild(link);
     const script = document.createElement("script");
-    script.src = "https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js";
+    script.src =
+      "https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js";
     script.onload = () => render((window as any).katex);
     document.head.appendChild(script);
   }
