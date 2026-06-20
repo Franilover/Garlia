@@ -343,6 +343,7 @@ function PanelLateral({
   esExtra,
   onVolver,
   onSelectCap,
+  isMobile,
 }: {
   libroTitulo?: string;
   capActual: CapituloScrollItem | null;
@@ -352,6 +353,7 @@ function PanelLateral({
   esExtra?: boolean;
   onVolver: () => void;
   onSelectCap?: (capId: string) => void;
+  isMobile?: boolean;
 }) {
   const border =
     "1px solid color-mix(in srgb, var(--primary) 10%, transparent)";
@@ -364,7 +366,7 @@ function PanelLateral({
   return (
     <div
       style={{
-        width: "clamp(220px, 22vw, 300px)",
+        width: isMobile ? "100%" : "clamp(220px, 22vw, 300px)",
         flexShrink: 0,
         height: "100vh",
         borderRight: border,
@@ -1069,6 +1071,7 @@ export default function Lector() {
                 capIdActual={capId}
                 capitulos={capitulos}
                 esExtra={esExtra}
+                isMobile={true}
                 libroTitulo={libroTitulo}
                 loading={loading}
                 onSelectCap={(id) => {
