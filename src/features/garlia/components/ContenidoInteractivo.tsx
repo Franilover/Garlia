@@ -2,7 +2,6 @@
 import { motion } from "framer-motion";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 
-import { renderMarkdown } from "@/components/forms/Markdown/MarkdownEditor";
 import {
   Segment,
   parseContenido,
@@ -58,6 +57,20 @@ function AnimatedDropCap({ char, rest }: { char: string; rest: string }) {
    que devuelve renderMarkdown, pero dentro de
    un <span> para no romper el flujo de texto.
    ───────────────────────────────────────────── */
+function applyInlineMarkdown(text: string): string {
+  // Solo markdown inline: bold, italic, bold+italic, code, del, mark
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\*\*\*(.+?)\*\*\*/g, "<strong><em>$1</em></strong>")
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*(.+?)\*/g, "<em>$1</em>")
+    .replace(/`([^`]+)`/g, "<code>$1</code>")
+    .replace(/~~(.+?)~~/g, "<del>$1</del>")
+    .replace(/==(.+?)==/g, '<mark class="md-mark">$1</mark>');
+}
+
 function TextoMarkdown({
   value,
   className,
@@ -65,23 +78,28 @@ function TextoMarkdown({
   value: string;
   className?: string;
 }) {
-  // Dividir por párrafos (líneas vacías) y renderizar cada uno como <p>
-  // Las líneas dentro de un párrafo se unen con <br/> solo si terminan en "  " (hard break)
+  // Dividir por párrafos (doble salto de línea)
   const paragraphs = value.split(/\n\n+/);
 
   return (
     <>
       {paragraphs.map((para, pi) => {
-        if (para.trim() === "")
-          return <p key={pi} style={{ margin: 0, minHeight: "1.85em" }} />;
-        const html = renderMarkdown(para.trim());
-        // renderMarkdown envuelve en <p>…</p>; lo usamos directamente como bloque
+        if (para.trim() === "") {
+          return (
+            <p key={pi} style={{ margin: 0, minHeight: "1.6em" }} aria-hidden />
+          );
+        }
+        // Dentro de un párrafo, saltos simples se convierten en <br/>
+        const html = para
+          .split("\n")
+          .map((line) => applyInlineMarkdown(line))
+          .join("<br/>");
         return (
-          <div
+          <p
             key={pi}
             className={className}
             dangerouslySetInnerHTML={{ __html: html }}
-            style={{ marginBottom: "1em" }}
+            style={{ margin: "0 0 1em 0" }}
           />
         );
       })}
