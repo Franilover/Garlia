@@ -1,6 +1,7 @@
 "use client";
 import {
   BookOpen,
+  CalendarDays,
   Check,
   ChevronDown,
   ChevronUp,
@@ -2248,6 +2249,47 @@ function ModalGestionEras({
   );
 }
 
+// ── Botón toggle de "mostrar/ocultar tipo" (capítulos, canciones, eventos,
+// cumpleaños) en la cabecera de la línea de tiempo ────────────────────────────
+function ToggleTipoBtn({
+  icon,
+  label,
+  active,
+  onClick,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      className="flex items-center gap-1 px-2 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-widest border transition-all"
+      style={{
+        borderColor: active
+          ? "color-mix(in srgb, var(--accent) 35%, transparent)"
+          : "color-mix(in srgb, var(--primary) 12%, transparent)",
+        background: active
+          ? "color-mix(in srgb, var(--accent) 8%, transparent)"
+          : "transparent",
+        color: active
+          ? "var(--accent)"
+          : "color-mix(in srgb, var(--primary) 35%, transparent)",
+      }}
+      title={
+        active
+          ? `Ocultar ${label.toLowerCase()}`
+          : `Mostrar ${label.toLowerCase()}`
+      }
+      type="button"
+      onClick={onClick}
+    >
+      {icon}
+      {label}
+    </button>
+  );
+}
+
 // ── Panel principal — vista y edición unificadas, ambas pistas editables ──────
 export function PanelHistoriaMundo({
   texto,
@@ -2664,6 +2706,9 @@ export function PanelHistoriaMundo({
   const [filterReino, setFilterReino] = useState<string | null>(
     initialFilterReino ?? null,
   );
+  const [showCapitulos, setShowCapitulos] = useState(true);
+  const [showCanciones, setShowCanciones] = useState(true);
+  const [showEventos, setShowEventos] = useState(true);
   const [showCumpleanos, setShowCumpleanos] = useState(true);
   const [showDescripciones, setShowDescripciones] = useState(true);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
@@ -2825,60 +2870,66 @@ export function PanelHistoriaMundo({
     // Sistema antiguo (mundoEvents / reinoEvents basados en "historia" JSON) eliminado.
     // Solo se usa el sistema nuevo: capítulos y canciones con dia_absoluto.
     // Capítulos — solo los que tienen dia_absoluto
-    for (const cap of capsTimeline) {
-      if (filterReino && !(cap.reinos_ids ?? []).includes(filterReino))
-        continue;
-      const dia = diaOverrides[cap.id] ?? cap.dia_absoluto;
-      if (dia == null) continue; // sin fecha del calendario → no aparece
-      list.push({
-        id: `cap:${cap.id}`,
-        year: String(dia),
-        title: cap.titulo_capitulo,
-        description: "",
-        source: "capitulo",
-        yearNum: dia,
-        dia_absoluto: dia,
-        capData: cap,
-      });
+    if (showCapitulos) {
+      for (const cap of capsTimeline) {
+        if (filterReino && !(cap.reinos_ids ?? []).includes(filterReino))
+          continue;
+        const dia = diaOverrides[cap.id] ?? cap.dia_absoluto;
+        if (dia == null) continue; // sin fecha del calendario → no aparece
+        list.push({
+          id: `cap:${cap.id}`,
+          year: String(dia),
+          title: cap.titulo_capitulo,
+          description: "",
+          source: "capitulo",
+          yearNum: dia,
+          dia_absoluto: dia,
+          capData: cap,
+        });
+      }
     }
     // Eventos de mundo/reino — tabla eventos_mundo (sistema nuevo)
-    for (const e of eventosMundo) {
-      if (filterReino && e.reinoId !== filterReino) continue;
-      const dia = e.dia_absoluto;
-      if (dia == null) continue;
-      list.push({
-        id: e.id,
-        year: String(dia),
-        title: e.titulo,
-        description: e.descripcion,
-        source: e.reinoId ? "reino" : "mundo",
-        reinoId: e.reinoId ?? undefined,
-        reinoNombre: e.reinoNombre ?? undefined,
-        yearNum: dia,
-        dia_absoluto: dia,
-      });
+    if (showEventos) {
+      for (const e of eventosMundo) {
+        if (filterReino && e.reinoId !== filterReino) continue;
+        const dia = e.dia_absoluto;
+        if (dia == null) continue;
+        list.push({
+          id: e.id,
+          year: String(dia),
+          title: e.titulo,
+          description: e.descripcion,
+          source: e.reinoId ? "reino" : "mundo",
+          reinoId: e.reinoId ?? undefined,
+          reinoNombre: e.reinoNombre ?? undefined,
+          yearNum: dia,
+          dia_absoluto: dia,
+        });
+      }
     }
     // Canciones — solo las que tienen dia_absoluto
-    for (const c of cancionesTimeline) {
-      if (filterReino && c.reinoId !== filterReino) continue;
-      const dia = diaOverrides[c.id] ?? c.dia_absoluto;
-      if (dia == null) continue; // sin fecha del calendario → no aparece
-      list.push({
-        id: `cancion:${c.id}`,
-        year: String(dia),
-        title: c.titulo,
-        description: "",
-        source: "cancion",
-        yearNum: dia,
-        dia_absoluto: dia,
-        cancionData: {
-          id: c.id,
-          titulo: c.titulo,
-          cantante: c.cantante,
-          reinoNombre: c.reinoNombre ?? null,
+    if (showCanciones) {
+      for (const c of cancionesTimeline) {
+        if (filterReino && c.reinoId !== filterReino) continue;
+        const dia = diaOverrides[c.id] ?? c.dia_absoluto;
+        if (dia == null) continue; // sin fecha del calendario → no aparece
+        list.push({
+          id: `cancion:${c.id}`,
+          year: String(dia),
+          title: c.titulo,
+          description: "",
+          source: "cancion",
+          yearNum: dia,
           dia_absoluto: dia,
-        },
-      });
+          cancionData: {
+            id: c.id,
+            titulo: c.titulo,
+            cantante: c.cantante,
+            reinoNombre: c.reinoNombre ?? null,
+            dia_absoluto: dia,
+          },
+        });
+      }
     }
     // Cumpleaños — personajes con fecha_nacimiento
     if (showCumpleanos) {
@@ -2919,6 +2970,9 @@ export function PanelHistoriaMundo({
     cancionesTimeline,
     eventosMundo,
     diaOverrides,
+    showCapitulos,
+    showCanciones,
+    showEventos,
     showCumpleanos,
     personajesCumple,
     reinos,
@@ -2927,13 +2981,19 @@ export function PanelHistoriaMundo({
   const reinosConEventos = useMemo(
     () =>
       reinos.filter((r) => {
-        // Solo sistema nuevo: reinos que tienen capítulos asociados
+        // Sistema nuevo: reinos con capítulos, eventos o canciones asociados
+        // (antes solo se consideraban capítulos, así que un reino con eventos
+        // o canciones pero sin capítulos nunca aparecía como filtro).
         const tieneCaps = Object.values(capsReinosIds).some((ids) =>
           ids.includes(r.id),
         );
-        return tieneCaps;
+        const tieneEventos = eventosMundo.some((e) => e.reinoId === r.id);
+        const tieneCanciones = cancionesTimeline.some(
+          (c) => c.reinoId === r.id,
+        );
+        return tieneCaps || tieneEventos || tieneCanciones;
       }),
-    [reinos, capsReinosIds],
+    [reinos, capsReinosIds, eventosMundo, cancionesTimeline],
   );
 
   // (Eliminados: selectedEvt, handleUpdateSelected — panel de edición de eventos "mundo"/"reino")
@@ -3010,48 +3070,63 @@ export function PanelHistoriaMundo({
           </div>
         )}
 
+        {/* Filtro por tipo */}
+        <div className="flex items-center gap-1 flex-wrap">
+          <Filter
+            size={8}
+            style={{
+              color: "color-mix(in srgb, var(--primary) 28%, transparent)",
+            }}
+          />
+          <ToggleTipoBtn
+            active={showCapitulos}
+            icon={<BookOpen size={9} />}
+            label="Capítulos"
+            onClick={() => setShowCapitulos((v) => !v)}
+          />
+          <ToggleTipoBtn
+            active={showCanciones}
+            icon={<Music size={9} />}
+            label="Canciones"
+            onClick={() => setShowCanciones((v) => !v)}
+          />
+          <ToggleTipoBtn
+            active={showEventos}
+            icon={<CalendarDays size={9} />}
+            label="Eventos"
+            onClick={() => setShowEventos((v) => !v)}
+          />
+          <ToggleTipoBtn
+            active={showCumpleanos}
+            icon={
+              <svg
+                fill="none"
+                height="9"
+                stroke="currentColor"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                viewBox="0 0 24 24"
+                width="9"
+              >
+                <path d="M20 21v-8a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8" />
+                <path d="M4 16s.5-1 2-1 2.5 2 4 2 2.5-2 4-2 2 1 2 1" />
+                <path d="M2 21h20" />
+                <path d="M7 8v2" />
+                <path d="M12 8v2" />
+                <path d="M17 8v2" />
+                <path d="M7 4h.01" />
+                <path d="M12 4h.01" />
+                <path d="M17 4h.01" />
+              </svg>
+            }
+            label="Cumpleaños"
+            onClick={() => setShowCumpleanos((v) => !v)}
+          />
+        </div>
+
         <div className="ml-auto flex items-center gap-2">
           <SaveIndicator status={saveStatus} />
-          {/* Toggle cumpleaños */}
-          <button
-            className="flex items-center gap-1 px-2 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-widest border transition-all"
-            style={{
-              borderColor: showCumpleanos
-                ? "color-mix(in srgb, var(--accent) 35%, transparent)"
-                : "color-mix(in srgb, var(--primary) 12%, transparent)",
-              background: showCumpleanos
-                ? "color-mix(in srgb, var(--accent) 8%, transparent)"
-                : "transparent",
-              color: showCumpleanos
-                ? "var(--accent)"
-                : "color-mix(in srgb, var(--primary) 35%, transparent)",
-            }}
-            title={showCumpleanos ? "Ocultar cumpleaños" : "Mostrar cumpleaños"}
-            type="button"
-            onClick={() => setShowCumpleanos((v) => !v)}
-          >
-            <svg
-              fill="none"
-              height="9"
-              stroke="currentColor"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              viewBox="0 0 24 24"
-              width="9"
-            >
-              <path d="M20 21v-8a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8" />
-              <path d="M4 16s.5-1 2-1 2.5 2 4 2 2.5-2 4-2 2 1 2 1" />
-              <path d="M2 21h20" />
-              <path d="M7 8v2" />
-              <path d="M12 8v2" />
-              <path d="M17 8v2" />
-              <path d="M7 4h.01" />
-              <path d="M12 4h.01" />
-              <path d="M17 4h.01" />
-            </svg>
-            Cumpleaños
-          </button>
           {/* Toggle descripciones */}
           <button
             className="flex items-center gap-1 px-2 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-widest border transition-all"
