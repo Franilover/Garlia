@@ -3415,9 +3415,36 @@ export function PanelHistoriaMundo({
                     }
 
                     const PAD = 8; // paddingLeft del contenedor
-                    const left = cardPositions[firstIdx] + PAD;
+
+                    // Si el primer evento de esta era también es el primero de un año
+                    // nuevo, su separador de año (SEP_W px) cae justo antes de él y
+                    // debe quedar dentro de la franja de la era.
+                    const firstEvtAnio =
+                      allEvents[firstIdx].dia_absoluto != null
+                        ? Math.floor(
+                            allEvents[firstIdx].dia_absoluto / diasAnio,
+                          )
+                        : null;
+                    const prevEvtAnio =
+                      firstIdx > 0 &&
+                      allEvents[firstIdx - 1].dia_absoluto != null
+                        ? Math.floor(
+                            allEvents[firstIdx - 1].dia_absoluto / diasAnio,
+                          )
+                        : null;
+                    const hasPrecedingSep =
+                      firstEvtAnio !== null && firstEvtAnio !== prevEvtAnio;
+                    const eraLeft =
+                      cardPositions[firstIdx] -
+                      (hasPrecedingSep ? SEP_W : 0) +
+                      PAD;
+
+                    const left = eraLeft;
                     const width =
-                      cardPositions[lastIdx] + CARD_W - cardPositions[firstIdx];
+                      cardPositions[lastIdx] +
+                      CARD_W -
+                      cardPositions[firstIdx] +
+                      (hasPrecedingSep ? SEP_W : 0);
                     return (
                       <div
                         key={era.id}

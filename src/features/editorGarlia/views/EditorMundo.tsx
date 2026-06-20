@@ -33,6 +33,7 @@ import { ModalNuevaCancion } from "@/features/editorGarlia/components/editorLetr
 import type { Cancion } from "@/features/editorGarlia/components/editorLetras/types";
 import EstudioCapitulos from "@/features/editorGarlia/views/EditorCapitulos";
 import AdminDescubrimientos from "@/features/editorGarlia/views/editorRelaciones";
+import EditorMisiones from "@/features/editorGarlia/components/editorMisiones";
 import { db } from "@/lib/api/client/db";
 import { supabase } from "@/lib/api/client/supabase";
 
@@ -2108,6 +2109,16 @@ function PanelListas({
               style={{ minHeight: "58vh" }}
             >
               <AdminDescubrimientos />
+            </div>
+          </div>
+
+          {/* MISIONES */}
+          <div style={{ minHeight: "60vh" }}>
+            <div
+              className="flex flex-col min-h-0"
+              style={{ minHeight: "58vh" }}
+            >
+              <EditorMisiones />
             </div>
           </div>
         </div>
