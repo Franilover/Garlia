@@ -20,45 +20,9 @@ import {
 } from "./SegmentRenderers";
 
 /* ─────────────────────────────────────────────
-   Drop cap animado — la primera letra "aparece
-   como tinta empapando el papel"
-   ───────────────────────────────────────────── */
-function AnimatedDropCap({ char, rest }: { char: string; rest: string }) {
-  return (
-    <span>
-      <motion.span
-        animate={{ opacity: 1, filter: "blur(0px)", scale: 1 }}
-        className="float-left font-black text-primary leading-none mr-3"
-        initial={{ opacity: 0, filter: "blur(8px)", scale: 1.15 }}
-        style={{
-          fontFamily: "var(--font-literata), Georgia, serif",
-          fontSize: "clamp(4.5rem, 12vw, 6rem)",
-          marginTop: "0.18em",
-          lineHeight: 0.82,
-        }}
-        transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1], delay: 0.15 }}
-      >
-        {char}
-      </motion.span>
-      <motion.span
-        animate={{ opacity: 1 }}
-        initial={{ opacity: 0 }}
-        transition={{ duration: 0.8, delay: 0.4 }}
-      >
-        {rest}
-      </motion.span>
-    </span>
-  );
-}
-
-/* ─────────────────────────────────────────────
-   Texto con markdown inline.
-   Usamos dangerouslySetInnerHTML con el HTML
-   que devuelve renderMarkdown, pero dentro de
-   un <span> para no romper el flujo de texto.
+   Markdown inline — bold, italic, code, etc.
    ───────────────────────────────────────────── */
 function applyInlineMarkdown(text: string): string {
-  // Solo markdown inline: bold, italic, bold+italic, code, del, mark
   return text
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -71,6 +35,7 @@ function applyInlineMarkdown(text: string): string {
     .replace(/==(.+?)==/g, '<mark class="md-mark">$1</mark>');
 }
 
+/* Renderiza texto respetando saltos de línea simples como párrafos */
 function TextoMarkdown({
   value,
   className,
@@ -78,9 +43,7 @@ function TextoMarkdown({
   value: string;
   className?: string;
 }) {
-  // El editor separa párrafos con \n simple
   const paragraphs = value.split("\n");
-
   return (
     <>
       {paragraphs.map((para, pi) => {
@@ -103,10 +66,38 @@ function TextoMarkdown({
 }
 
 /* ─────────────────────────────────────────────
-   GateBlock — consulta el inventario del lector
-   y renderiza inline los segs correctos.
-   Es transparente: el lector ve el texto sin
-   saber que hay una bifurcación.
+   Drop cap animado
+   ───────────────────────────────────────────── */
+function AnimatedDropCap({ char, rest }: { char: string; rest: string }) {
+  return (
+    <>
+      <motion.span
+        animate={{ opacity: 1, filter: "blur(0px)", scale: 1 }}
+        className="float-left font-black text-primary leading-none mr-3"
+        initial={{ opacity: 0, filter: "blur(8px)", scale: 1.15 }}
+        style={{
+          fontFamily: "var(--font-literata), Georgia, serif",
+          fontSize: "clamp(4.5rem, 12vw, 6rem)",
+          marginTop: "0.18em",
+          lineHeight: 0.82,
+        }}
+        transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1], delay: 0.15 }}
+      >
+        {char}
+      </motion.span>
+      <motion.span
+        animate={{ opacity: 1 }}
+        initial={{ opacity: 0 }}
+        transition={{ duration: 0.8, delay: 0.4 }}
+      >
+        <TextoMarkdown value={rest} />
+      </motion.span>
+    </>
+  );
+}
+
+/* ─────────────────────────────────────────────
+   GateBlock
    ───────────────────────────────────────────── */
 function GateBlock({
   itemId,
@@ -142,7 +133,6 @@ function GateBlock({
     };
   }, [itemId]);
 
-  // Mientras carga, no renderizamos nada para evitar flash
   if (tiene === null) return null;
 
   const segs = tiene ? tieneSegs : noTieneSegs;
@@ -150,7 +140,7 @@ function GateBlock({
 }
 
 /* ─────────────────────────────────────────────
-   Separador visual entre secciones reveladas
+   Separador visual entre secciones
    ───────────────────────────────────────────── */
 function SectionDivider({ label }: { label?: string }) {
   return (
@@ -167,13 +157,7 @@ function SectionDivider({ label }: { label?: string }) {
 }
 
 /* ─────────────────────────────────────────────
-   RenderSegmentos — renderiza una lista de
-   segmentos. Ahora:
-   - "text" pasa por renderMarkdown (negritas,
-     cursivas, etc.)
-   - "gate" usa GateBlock transparente
-   - "choice" desaparece al elegir (marca como
-     usado via onReveal)
+   RenderSegmentos
    ───────────────────────────────────────────── */
 export function RenderSegmentos({
   segs,
@@ -195,16 +179,17 @@ export function RenderSegmentos({
         if (seg.type === "text") {
           if (isFirstText && seg.value.length > 0) {
             const firstChar = seg.value.charAt(0);
-            const restText = seg.value.slice(1).startsWith("\n")
-              ? seg.value.slice(2)
-              : seg.value.slice(1);
+            // Si el siguiente char es \n, lo saltamos para no romper el primer párrafo
+            const afterFirst = seg.value.slice(1);
+            const restText = afterFirst.startsWith("\n")
+              ? afterFirst.slice(1)
+              : afterFirst;
             return (
               <span key={i}>
                 <AnimatedDropCap char={firstChar} rest={restText} />
               </span>
             );
           }
-          // Texto normal con soporte markdown
           return <TextoMarkdown key={i} value={seg.value} />;
         }
 
@@ -270,9 +255,7 @@ export function RenderSegmentos({
 }
 
 /* ─────────────────────────────────────────────
-   Bloque de sección revelada con animación de
-   entrada. Una vez revelada no desaparece —
-   el texto se acumula como en un libro real.
+   Sección revelada con animación
    ───────────────────────────────────────────── */
 function RevealedSection({
   id,
@@ -286,7 +269,6 @@ function RevealedSection({
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Scroll suave al aparecer
     setTimeout(
       () => ref.current?.scrollIntoView({ behavior: "smooth", block: "start" }),
       50,
@@ -322,10 +304,8 @@ export function ContenidoInteractivo({
   const allSegs = parseContenido(texto);
   const sectionMap = parseSections(allSegs);
 
-  // Set ordenado de secciones reveladas (en orden de revelación)
   const [revealed, setRevealed] = useState<string[]>([]);
 
-  // Reset al cambiar el capítulo
   useEffect(() => {
     setRevealed([]);
   }, [texto]);
@@ -339,7 +319,6 @@ export function ContenidoInteractivo({
       const isLocalSection = !isUUID && sectionMap[target] !== undefined;
 
       if (isLocalSection) {
-        // Acumular — si ya está revelada no la duplicamos
         setRevealed((prev) =>
           prev.includes(target) ? prev : [...prev, target],
         );
@@ -360,11 +339,8 @@ export function ContenidoInteractivo({
         fontFeatureSettings: '"kern" 1, "liga" 1, "onum" 1',
       }}
     >
-      {/* Bug 6 fix: UseWordPortal montado UNA vez — evita N ToastContainer/ConfirmModal
-          cuando hay múltiples segmentos "use" en el mismo capítulo */}
       <UseWordPortal />
 
-      {/* Contenido raíz — siempre visible */}
       <RenderSegmentos
         isFirst
         esExtra={esExtra}
@@ -372,7 +348,6 @@ export function ContenidoInteractivo({
         onNavigate={handleNavigate}
       />
 
-      {/* Secciones reveladas — se acumulan debajo en orden de elección */}
       {revealed.map((id) => (
         <RevealedSection
           key={id}
