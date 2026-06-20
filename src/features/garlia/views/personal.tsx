@@ -7,6 +7,7 @@ import {
   Loader2,
   MapPin,
   Music2,
+  Scroll,
   Star,
   Sword,
   User,
@@ -1496,42 +1497,67 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                 )`,
               }}
             />
-            <div
-              className="absolute top-4 right-4 md:right-10 flex items-center gap-1.5 px-3 py-1.5"
-              style={{
-                border:
-                  "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
-                borderRadius: "2px",
-                background:
-                  "color-mix(in srgb, var(--white-custom) 75%, transparent)",
-                backdropFilter: "blur(6px)",
-              }}
-            >
-              <Star
-                size={8}
+            <div className="absolute top-4 right-4 md:right-10 flex items-center gap-2">
+              <Link
+                className="flex items-center gap-1.5 px-3 py-1.5 transition-all hover:opacity-80"
+                href="/garlia/personal/misiones"
                 style={{
-                  color: "color-mix(in srgb, var(--primary) 38%, transparent)",
-                }}
-              />
-              <span
-                className="text-[9px] font-black uppercase tracking-[0.22em] tabular-nums"
-                style={{
-                  color: "color-mix(in srgb, var(--primary) 55%, transparent)",
+                  border:
+                    "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
+                  borderRadius: "2px",
+                  background: "var(--primary)",
+                  backdropFilter: "blur(6px)",
                 }}
               >
-                {inventario.length +
-                  misItemsDesc.length +
-                  misCriaturas.length +
-                  misPersonajes.length}
-              </span>
-              <span
-                className="text-[7px] font-black uppercase tracking-[0.2em] hidden sm:inline"
+                <Scroll size={9} style={{ color: "var(--btn-text)" }} />
+                <span
+                  className="text-[9px] font-black uppercase tracking-[0.2em]"
+                  style={{ color: "var(--btn-text)" }}
+                >
+                  Misiones
+                </span>
+              </Link>
+
+              <div
+                className="flex items-center gap-1.5 px-3 py-1.5"
                 style={{
-                  color: "color-mix(in srgb, var(--primary) 36%, transparent)",
+                  border:
+                    "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
+                  borderRadius: "2px",
+                  background:
+                    "color-mix(in srgb, var(--white-custom) 75%, transparent)",
+                  backdropFilter: "blur(6px)",
                 }}
               >
-                descubrimientos
-              </span>
+                <Star
+                  size={8}
+                  style={{
+                    color:
+                      "color-mix(in srgb, var(--primary) 38%, transparent)",
+                  }}
+                />
+                <span
+                  className="text-[9px] font-black uppercase tracking-[0.22em] tabular-nums"
+                  style={{
+                    color:
+                      "color-mix(in srgb, var(--primary) 55%, transparent)",
+                  }}
+                >
+                  {inventario.length +
+                    misItemsDesc.length +
+                    misCriaturas.length +
+                    misPersonajes.length}
+                </span>
+                <span
+                  className="text-[7px] font-black uppercase tracking-[0.2em] hidden sm:inline"
+                  style={{
+                    color:
+                      "color-mix(in srgb, var(--primary) 36%, transparent)",
+                  }}
+                >
+                  descubrimientos
+                </span>
+              </div>
             </div>
           </div>
 
