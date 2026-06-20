@@ -283,20 +283,6 @@ export function SelectorFechaMundo({
           <Loader2 className="animate-spin text-primary/30" size={9} />
         ) : fecha ? (
           <div className="flex-1 min-w-0">
-            {era && (
-              <div className="flex items-center gap-1 mb-0.5">
-                <div
-                  className="w-1.5 h-1.5 rounded-full shrink-0"
-                  style={{ background: era.color ?? "var(--accent)" }}
-                />
-                <span
-                  className="text-[7px] font-black uppercase tracking-widest truncate"
-                  style={{ color: era.color ?? "var(--accent)" }}
-                >
-                  {era.nombre}
-                </span>
-              </div>
-            )}
             <span className="text-[9px] font-bold text-primary truncate block">
               {formatFechaCorta(fecha)}
             </span>
