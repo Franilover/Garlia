@@ -2906,11 +2906,44 @@ export function PanelHistoriaMundo({
                       >
                         {/* Línea superior de color — clickeable para editar */}
                         <div
-                          className="absolute top-0 left-0 right-0 h-0.5 cursor-pointer pointer-events-auto transition-opacity opacity-50 hover:opacity-100"
+                          className="absolute top-0 left-0 right-0 h-0.5 opacity-50"
                           style={{ background: era.color ?? "var(--accent)" }}
-                          title={`Editar era: ${era.nombre}`}
-                          onClick={() => setEraModal(era)}
                         />
+                        {/* Etiqueta con icono de edición al hover (única zona clickeable) */}
+                        <div
+                          className="absolute top-1.5 left-2 flex items-center gap-1 px-1 py-0.5 -mx-1 -my-0.5 rounded cursor-pointer pointer-events-auto transition-colors hover:opacity-90"
+                          style={{ background: "transparent" }}
+                          onClick={() => setEraModal(era)}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = era.color
+                              ? `${era.color}1a`
+                              : "color-mix(in srgb, var(--primary) 8%, transparent)";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = "transparent";
+                          }}
+                        >
+                          <span
+                            className="text-[7px] font-black uppercase tracking-widest whitespace-nowrap transition-opacity opacity-50 group-hover/era:opacity-90"
+                            style={{ color: era.color ?? "var(--primary)" }}
+                          >
+                            {era.nombre}
+                          </span>
+                          <svg
+                            className="opacity-0 group-hover/era:opacity-60 transition-opacity shrink-0"
+                            fill="none"
+                            height="7"
+                            stroke={era.color ?? "var(--primary)"}
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2.5"
+                            viewBox="0 0 24 24"
+                            width="7"
+                          >
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                          </svg>
+                        </div>
                       </div>
                     );
                   });
