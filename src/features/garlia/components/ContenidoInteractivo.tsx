@@ -77,9 +77,9 @@ function AnimatedDropCap({ char, rest }: { char: string; rest: string }) {
         initial={{ opacity: 0, filter: "blur(8px)", scale: 1.15 }}
         style={{
           fontFamily: "var(--font-literata), Georgia, serif",
-          fontSize: "clamp(4.5rem, 12vw, 6rem)",
-          marginTop: "0.18em",
-          lineHeight: 0.82,
+          fontSize: "clamp(2.8rem, 7vw, 3.6rem)",
+          marginTop: "0.12em",
+          lineHeight: 0.85,
         }}
         transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1], delay: 0.15 }}
       >
