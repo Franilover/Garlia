@@ -3425,12 +3425,13 @@ export function PanelHistoriaMundo({
                             allEvents[firstIdx].dia_absoluto / diasAnio,
                           )
                         : null;
+                    const prevDiaAbs =
+                      firstIdx > 0
+                        ? allEvents[firstIdx - 1].dia_absoluto
+                        : undefined;
                     const prevEvtAnio =
-                      firstIdx > 0 &&
-                      allEvents[firstIdx - 1].dia_absoluto != null
-                        ? Math.floor(
-                            allEvents[firstIdx - 1].dia_absoluto / diasAnio,
-                          )
+                      prevDiaAbs != null
+                        ? Math.floor(prevDiaAbs / diasAnio)
                         : null;
                     const hasPrecedingSep =
                       firstEvtAnio !== null && firstEvtAnio !== prevEvtAnio;
