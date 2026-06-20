@@ -2957,6 +2957,7 @@ export function PanelHistoriaMundo({
                     erasLocal.length > 0 ? erasLocal : (cal?.eras ?? []);
                   if (!erasMostrar.length) return null;
                   const CARD_W = 232;
+                  const SEP_W = 64;
 
                   // Días totales por año según el calendario real (suma de días de estaciones).
                   // Fallback 365 si el calendario todavía no cargó.
@@ -2965,6 +2966,23 @@ export function PanelHistoriaMundo({
                       (s: number, e: any) => s + (e.duracion_dias ?? 0),
                       0,
                     ) || 365;
+
+                  // Precalcular posición X de cada tarjeta (incluyendo separadores)
+                  const cardPositions: number[] = [];
+                  let xCursor = 0;
+                  let lastAnioSep: number | null = null;
+                  for (const evt of allEvents) {
+                    const anioEvt =
+                      evt.dia_absoluto != null
+                        ? Math.floor(evt.dia_absoluto / diasAnio)
+                        : null;
+                    if (anioEvt !== null && anioEvt !== lastAnioSep) {
+                      xCursor += SEP_W;
+                      lastAnioSep = anioEvt;
+                    }
+                    cardPositions.push(xCursor);
+                    xCursor += CARD_W;
+                  }
 
                   return erasMostrar.map((era: any) => {
                     // Convertir año → día absoluto usando el calendario real
@@ -2997,8 +3015,9 @@ export function PanelHistoriaMundo({
                       else break;
                     }
 
-                    const left = firstIdx * CARD_W;
-                    const width = (lastIdx - firstIdx + 1) * CARD_W;
+                    const left = cardPositions[firstIdx];
+                    const width =
+                      cardPositions[lastIdx] + CARD_W - cardPositions[firstIdx];
                     return (
                       <div
                         key={era.id}
@@ -3060,122 +3079,215 @@ export function PanelHistoriaMundo({
                   });
                 })()}
 
-              {allEvents.map((evt, idx) => {
-                const isCapitulo = evt.source === "capitulo";
-                const isCancion = evt.source === "cancion";
-                const isCumpleanos = evt.source === "cumpleanos";
-                const isEventoMundo =
-                  evt.source === "mundo" || evt.source === "reino";
-                const totalLen = allEvents.length;
-                const key = evt.id;
-                return (
-                  <div
-                    key={key}
-                    className="flex flex-col shrink-0"
-                    style={{ width: 232 }}
-                  >
-                    {/* Nodo en la línea */}
-                    <div className="flex items-center" style={{ height: 26 }}>
+              {(() => {
+                // Calcular días por año del calendario (fallback 365)
+                const diasAnioLocal =
+                  cal?.estaciones?.reduce(
+                    (s: number, e: any) => s + (e.duracion_dias ?? 0),
+                    0,
+                  ) || 365;
+
+                const items: React.ReactNode[] = [];
+                let lastAnio: number | null = null;
+                let globalIdx = 0; // índice real para la línea (incluye separadores)
+
+                allEvents.forEach((evt, idx) => {
+                  const isCapitulo = evt.source === "capitulo";
+                  const isCancion = evt.source === "cancion";
+                  const isCumpleanos = evt.source === "cumpleanos";
+                  const isEventoMundo =
+                    evt.source === "mundo" || evt.source === "reino";
+                  const totalLen = allEvents.length;
+
+                  const anioEvt =
+                    evt.dia_absoluto != null
+                      ? Math.floor(evt.dia_absoluto / diasAnioLocal)
+                      : null;
+
+                  // ── Separador de año ────────────────────────────────────
+                  if (anioEvt !== null && anioEvt !== lastAnio) {
+                    const eraDesteAnio = (cal?.eras ?? []).find(
+                      (era: any) =>
+                        era.anio_inicio <= anioEvt &&
+                        (era.anio_fin == null || era.anio_fin >= anioEvt),
+                    );
+                    const sepIdx = globalIdx;
+                    items.push(
                       <div
-                        className="flex-1 h-px"
-                        style={{
-                          background:
-                            idx === 0
-                              ? "transparent"
-                              : "color-mix(in srgb, var(--primary) 10%, transparent)",
-                        }}
-                      />
-                      <div
-                        className="shrink-0 rounded-full transition-all"
-                        style={
-                          isCapitulo
-                            ? {
-                                width: 8,
-                                height: 8,
-                                background:
-                                  "color-mix(in srgb, var(--accent) 70%, var(--primary))",
-                                boxShadow:
-                                  "0 0 0 2px color-mix(in srgb, var(--accent) 15%, transparent)",
-                              }
-                            : isCancion
+                        key={`sep-${anioEvt}`}
+                        className="flex flex-col shrink-0 items-center"
+                        style={{ width: 64 }}
+                      >
+                        {/* Línea izquierda hasta el separador */}
+                        <div
+                          className="flex items-center w-full"
+                          style={{ height: 26 }}
+                        >
+                          <div
+                            className="flex-1 h-px"
+                            style={{
+                              background:
+                                sepIdx === 0
+                                  ? "transparent"
+                                  : "color-mix(in srgb, var(--primary) 10%, transparent)",
+                            }}
+                          />
+                          {/* Tick vertical */}
+                          <div
+                            className="shrink-0 w-px"
+                            style={{
+                              height: 14,
+                              background: eraDesteAnio?.color
+                                ? `${eraDesteAnio.color}70`
+                                : "color-mix(in srgb, var(--primary) 20%, transparent)",
+                            }}
+                          />
+                          <div
+                            className="flex-1 h-px"
+                            style={{
+                              background:
+                                "color-mix(in srgb, var(--primary) 10%, transparent)",
+                            }}
+                          />
+                        </div>
+                        {/* Etiqueta del año */}
+                        <div
+                          className="px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest whitespace-nowrap -mt-1"
+                          style={{
+                            background: eraDesteAnio?.color
+                              ? `${eraDesteAnio.color}18`
+                              : "color-mix(in srgb, var(--primary) 7%, transparent)",
+                            color:
+                              eraDesteAnio?.color ??
+                              "color-mix(in srgb, var(--primary) 45%, transparent)",
+                            border: `1px solid ${
+                              eraDesteAnio?.color
+                                ? `${eraDesteAnio.color}30`
+                                : "color-mix(in srgb, var(--primary) 12%, transparent)"
+                            }`,
+                          }}
+                        >
+                          Año {anioEvt}
+                        </div>
+                      </div>,
+                    );
+                    lastAnio = anioEvt;
+                    globalIdx++;
+                  }
+
+                  // ── Tarjeta del evento ───────────────────────────────────
+                  items.push(
+                    <div
+                      key={evt.id}
+                      className="flex flex-col shrink-0"
+                      style={{ width: 232 }}
+                    >
+                      {/* Nodo en la línea */}
+                      <div className="flex items-center" style={{ height: 26 }}>
+                        <div
+                          className="flex-1 h-px"
+                          style={{
+                            background:
+                              globalIdx === 0
+                                ? "transparent"
+                                : "color-mix(in srgb, var(--primary) 10%, transparent)",
+                          }}
+                        />
+                        <div
+                          className="shrink-0 rounded-full transition-all"
+                          style={
+                            isCapitulo
                               ? {
                                   width: 8,
                                   height: 8,
-                                  background: "var(--accent)",
+                                  background:
+                                    "color-mix(in srgb, var(--accent) 70%, var(--primary))",
                                   boxShadow:
-                                    "0 0 0 2px color-mix(in srgb, var(--accent) 20%, transparent)",
+                                    "0 0 0 2px color-mix(in srgb, var(--accent) 15%, transparent)",
                                 }
-                              : isCumpleanos
+                              : isCancion
                                 ? {
                                     width: 8,
                                     height: 8,
                                     background: "var(--accent)",
                                     boxShadow:
-                                      "0 0 0 2px color-mix(in srgb, var(--accent) 22%, transparent)",
+                                      "0 0 0 2px color-mix(in srgb, var(--accent) 20%, transparent)",
                                   }
-                                : {
-                                    width: 10,
-                                    height: 10,
-                                    background: "var(--primary)",
-                                    boxShadow:
-                                      "0 0 0 3px color-mix(in srgb, var(--primary) 15%, transparent)",
-                                  }
-                        }
-                      />
-                      <div
-                        className="flex-1 h-px"
-                        style={{
-                          background:
-                            idx === totalLen - 1
-                              ? "transparent"
-                              : "color-mix(in srgb, var(--primary) 10%, transparent)",
-                        }}
-                      />
-                    </div>
-                    {/* Tarjeta */}
-                    {isCancion && evt.cancionData ? (
-                      <CancionMundoRow
-                        cancion={evt.cancionData}
-                        onDiaChange={handleDiaChange}
-                      />
-                    ) : isCapitulo && evt.capData ? (
-                      <CapituloEventoRow
-                        cap={evt.capData}
-                        reinos={reinos}
-                        onDiaChange={handleDiaChange}
-                        onNavigate={() => {
-                          localStorage.setItem(
-                            "estudio-caps-last-cap",
-                            evt.capData!.id,
-                          );
-                          localStorage.setItem(
-                            "estudio-caps-last-libro",
-                            evt.capData!.libro_id,
-                          );
-                          window.dispatchEvent(
-                            new Event("estudio-caps-action"),
-                          );
-                        }}
-                      />
-                    ) : isCumpleanos && evt.cumpleanosData ? (
-                      <CumpleanosTimelineRow
-                        data={evt.cumpleanosData}
-                        onNavigate={() =>
-                          onSelectPersonaje?.(evt.cumpleanosData!.id)
-                        }
-                      />
-                    ) : isEventoMundo ? (
-                      <EventoMundoRow
-                        evt={evt}
-                        showDescripciones={showDescripciones}
-                        onDiaChange={handleEventoMundoDiaChange}
-                        onDelete={handleEventoMundoDelete}
-                        onFieldChange={handleEventoMundoFieldChange}
-                      />
-                    ) : null}
-                  </div>
-                );
-              })}
+                                : isCumpleanos
+                                  ? {
+                                      width: 8,
+                                      height: 8,
+                                      background: "var(--accent)",
+                                      boxShadow:
+                                        "0 0 0 2px color-mix(in srgb, var(--accent) 22%, transparent)",
+                                    }
+                                  : {
+                                      width: 10,
+                                      height: 10,
+                                      background: "var(--primary)",
+                                      boxShadow:
+                                        "0 0 0 3px color-mix(in srgb, var(--primary) 15%, transparent)",
+                                    }
+                          }
+                        />
+                        <div
+                          className="flex-1 h-px"
+                          style={{
+                            background:
+                              idx === totalLen - 1
+                                ? "transparent"
+                                : "color-mix(in srgb, var(--primary) 10%, transparent)",
+                          }}
+                        />
+                      </div>
+                      {/* Tarjeta */}
+                      {isCancion && evt.cancionData ? (
+                        <CancionMundoRow
+                          cancion={evt.cancionData}
+                          onDiaChange={handleDiaChange}
+                        />
+                      ) : isCapitulo && evt.capData ? (
+                        <CapituloEventoRow
+                          cap={evt.capData}
+                          reinos={reinos}
+                          onDiaChange={handleDiaChange}
+                          onNavigate={() => {
+                            localStorage.setItem(
+                              "estudio-caps-last-cap",
+                              evt.capData!.id,
+                            );
+                            localStorage.setItem(
+                              "estudio-caps-last-libro",
+                              evt.capData!.libro_id,
+                            );
+                            window.dispatchEvent(
+                              new Event("estudio-caps-action"),
+                            );
+                          }}
+                        />
+                      ) : isCumpleanos && evt.cumpleanosData ? (
+                        <CumpleanosTimelineRow
+                          data={evt.cumpleanosData}
+                          onNavigate={() =>
+                            onSelectPersonaje?.(evt.cumpleanosData!.id)
+                          }
+                        />
+                      ) : isEventoMundo ? (
+                        <EventoMundoRow
+                          evt={evt}
+                          showDescripciones={showDescripciones}
+                          onDiaChange={handleEventoMundoDiaChange}
+                          onDelete={handleEventoMundoDelete}
+                          onFieldChange={handleEventoMundoFieldChange}
+                        />
+                      ) : null}
+                    </div>,
+                  );
+                  globalIdx++;
+                });
+
+                return items;
+              })()}
 
               {/* Estado vacío */}
               {allEvents.length === 0 && filterReino && (
