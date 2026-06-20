@@ -3414,7 +3414,8 @@ export function PanelHistoriaMundo({
                       else break;
                     }
 
-                    const left = cardPositions[firstIdx];
+                    const PAD = 8; // paddingLeft del contenedor
+                    const left = cardPositions[firstIdx] + PAD;
                     const width =
                       cardPositions[lastIdx] + CARD_W - cardPositions[firstIdx];
                     return (
@@ -3517,7 +3518,9 @@ export function PanelHistoriaMundo({
                         className="flex flex-col shrink-0 items-center"
                         style={{ width: 64 }}
                       >
-                        {/* Línea izquierda hasta el separador */}
+                        {/* Espacio reservado para la barra de eras (top-0) */}
+                        <div style={{ height: 20 }} />
+                        {/* Línea horizontal con tick vertical */}
                         <div
                           className="flex items-center w-full"
                           style={{ height: 26 }}
@@ -3549,7 +3552,7 @@ export function PanelHistoriaMundo({
                             }}
                           />
                         </div>
-                        {/* Etiqueta del año */}
+                        {/* Etiqueta del año — debajo del tick, nunca encima de la barra de eras */}
                         <div
                           className="px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest whitespace-nowrap -mt-1"
                           style={{
@@ -3581,6 +3584,8 @@ export function PanelHistoriaMundo({
                       className="flex flex-col shrink-0"
                       style={{ width: 232 }}
                     >
+                      {/* Espacio reservado para la barra de eras (top-0) */}
+                      <div style={{ height: 20 }} />
                       {/* Nodo en la línea */}
                       <div className="flex items-center" style={{ height: 26 }}>
                         <div
