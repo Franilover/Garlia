@@ -3931,6 +3931,11 @@ export function PanelHistoriaMundo({
           >
             {(() => {
               const total = allEvents.length;
+              const diasAnio =
+                cal?.estaciones?.reduce(
+                  (s: number, e: any) => s + (e.duracion_dias ?? 0),
+                  0,
+                ) || 365;
               return allEvents.map((evt, i) => {
                 const anioEvt =
                   evt.dia_absoluto != null
