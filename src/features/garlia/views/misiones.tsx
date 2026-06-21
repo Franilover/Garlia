@@ -258,6 +258,10 @@ export default function Misiones({ datos: datosProp }: MisionesProps) {
         setMisionModal(null);
         await invalidateSessionCache(`misiones_usuario:${userId}`);
         await invalidateSessionCache(`perfil_usuario:${userId}`);
+        // El item se entregó en el servidor — invalidar cachés de inventario
+        // para que aparezca en el perfil sin necesitar recargar la página.
+        await invalidateSessionCache(`inventario_usuario:${userId}`);
+        await invalidateSessionCache(`descubrimientos:${userId}`);
       } else if (resultado.reason === "offline") {
         setOffline(true);
         showAviso("Necesitas conexión a internet para reclamar la recompensa.");
