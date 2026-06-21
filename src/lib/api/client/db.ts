@@ -394,6 +394,39 @@ export interface PerfilLocal {
   cached_at: number;    // timestamp para saber cuándo se guardó
 }
 
+// ─── Misiones / desafíos ──────────────────────────────────────────────────────
+export interface MisionLocal {
+  id: string;
+  titulo: string;
+  descripcion?: string | null;
+  dificultad: "facil" | "media" | "dificil" | "epica";
+  categoria?: string | null;
+  imagen_url?: string | null;
+  requisitos?: string | null;
+  vence_en?: string | null;
+  recompensa_xp: number;
+  recompensa_monedas: number;
+  recompensa_item_nombre?: string | null;
+  recompensa_item_imagen_url?: string | null;
+  activa: boolean;
+  creado_en?: string;
+  cached_at?: number;
+}
+
+/** Progreso de un usuario en una misión. Clave local: `${user_id}_${mision_id}`. */
+export interface MisionUsuarioLocal {
+  id: string;            // `${user_id}_${mision_id}`
+  user_id: string;
+  mision_id: string;
+  estado: "en_curso" | "completada" | "reclamada";
+  progreso: number;
+  fecha_aceptada?: string | null;
+  fecha_completada?: string | null;
+  /** Estado de sincronización offline — igual patrón que tareas/eventos/notas. */
+  status?: "pending" | "synced";
+  cached_at?: number;
+}
+
 class AgendaFraniDB extends Dexie {
 
   personajes!: Table<Personaje, string>;
@@ -457,6 +490,10 @@ class AgendaFraniDB extends Dexie {
 
   // Eras de personaje
   personaje_eras!: Table<PersonajeEra, string>;
+
+  // Misiones / desafíos
+  misiones!: Table<MisionLocal, string>;
+  misiones_usuario!: Table<MisionUsuarioLocal, string>;
 
 
   constructor() {
@@ -1091,6 +1128,56 @@ class AgendaFraniDB extends Dexie {
       eras_mundo:              "id, anio_inicio",
       eventos_mundo:           "id, reino_id, dia_absoluto, source",
       personaje_eras:          "id, personaje_id, momento", // ← nueva: arcos vitales del personaje
+    });
+
+    // ─── v20: misiones / desafíos (catálogo + progreso por usuario) ──────────
+    this.version(20).stores({
+      personajes:              "id, nombre, visible",
+      criaturas:               "id, nombre, habitat, alma, pensamiento",
+      criatura_variantes:      "id, criatura_id, tipo",
+      items:                   "id, nombre, categoria",
+      libros:                  "id, created_at",
+      capitulos:               "id, libro_id, orden, fecha_publicacion, orden_linea_tiempo, dia_absoluto",
+      canciones:               "id, titulo, personaje, visible, created_at, dia_absoluto",
+      secciones_cancion:       "id, cancion_id, orden",
+      reinos:                  "id, nombre, orden",
+      relaciones:              "id, personaje_id, personaje_rel_id, tipo",
+      tareas:                  "id, username, completada, created_at, status",
+      eventos:                 "id, username, fecha, tipo, status",
+      recetas:                 "id, autor_id, categoria, created_at",
+      ingredientes:            "id, user_id",
+      ropa:                    "id, user_id, created_at",
+      ropa_outfits:            "id, user_id, created_at",
+      diario_fotos:            "++id, categoria, created_at",
+      dibujos:                 "++id, categoria",
+      notas:                   "id, status, updated_at",
+      ensayos:                 "id, status, updated_at",
+      rutinas:                 "id, status",
+      ejercicios_rutina:       "id, rutina_id, status",
+      offline_queue:           "++id, table, operation, recordId, timestamp",
+      compras:                 "id",
+      reproductor_handles:     "key",
+      session_cache:           "key, updated_at",
+      reino_detalles:          "id, reino_id",
+      hechizos:                "id, nombre",
+      dones:                   "id, nombre",
+      notas_lore:              "id, updated_at",
+      grupos_mundo:            "id, tipo, created_at",
+      personaje_hechizos:      "id, personaje_id, hechizo_id",
+      personaje_dones:         "id, personaje_id, don_id",
+      criatura_drops:          "id, criatura_id, variante_id",
+      item_crafteres:          "id, criatura_id",
+      galeria:                 "++id, orden, creado_en",
+      runas:                   "id, nombre",
+      ciudades:                "id, nombre, tipo, reino_id",
+      perfiles:                "id",
+      calendario_estaciones:   "id, orden",
+      calendario_config:       "id",
+      eras_mundo:              "id, anio_inicio",
+      eventos_mundo:           "id, reino_id, dia_absoluto, source",
+      personaje_eras:          "id, personaje_id, momento",
+      misiones:                "id, dificultad, categoria, activa",          // ← nueva: catálogo de misiones
+      misiones_usuario:        "id, user_id, mision_id, estado, status",     // ← nueva: progreso por usuario
     });
   }
 }
