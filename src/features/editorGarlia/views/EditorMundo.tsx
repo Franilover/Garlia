@@ -1738,6 +1738,44 @@ function PanelListas({
                     if (data) selectPersonaje(data as Personaje);
                   } catch {}
                 }}
+                onSelectCancion={async (id) => {
+                  // Buscar la canción en la lista local primero
+                  const local = canciones.find((c) => c.id === id);
+                  if (local) {
+                    selectCancion(local);
+                    return;
+                  }
+                  // Si no está en memoria, buscarlo en Supabase
+                  try {
+                    const { data } = await supabase
+                      .from("canciones")
+                      .select(
+                        "id, titulo, cantante, compositor, idioma, estado, portada_url, links, visible, created_at, updated_at, personaje_id",
+                      )
+                      .eq("id", id)
+                      .single();
+                    if (data) selectCancion(data as unknown as Cancion);
+                  } catch {}
+                }}
+                onSelectCapitulo={(capituloId, libroId) => {
+                  // Escribir las claves que EditorCapitulosPanel ya sabe leer
+                  try {
+                    localStorage.setItem("estudio-caps-last-cap", capituloId);
+                    localStorage.setItem("estudio-caps-last-libro", libroId);
+                  } catch {}
+                  // Cerrar cualquier overlay abierto y scrollear a la sección
+                  clearAllOverlays();
+                  setTimeout(() => {
+                    capitulosRef.current?.scrollIntoView({
+                      behavior: "smooth",
+                      block: "start",
+                    });
+                    // Disparar el evento que EditorCapitulosPanel escucha
+                    window.dispatchEvent(
+                      new CustomEvent("estudio-caps-action"),
+                    );
+                  }, 80);
+                }}
               />
             </div>
           )}
