@@ -2518,6 +2518,9 @@ function ListaEventosConMinimapa({
   setEvtSeleccionado,
   onFieldChange,
   onDiaChange,
+  onSelectPersonaje,
+  onSelectCapitulo,
+  onSelectCancion,
 }: {
   allEvents: MundoTimelineEvent[];
   cal: CalCache | null;
@@ -2529,6 +2532,9 @@ function ListaEventosConMinimapa({
     value: string,
   ) => void;
   onDiaChange?: (id: string, dia: number) => void;
+  onSelectPersonaje?: (id: string) => void;
+  onSelectCapitulo?: (capituloId: string, libroId: string) => void;
+  onSelectCancion?: (cancionId: string) => void;
 }) {
   const listRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
@@ -2734,7 +2740,21 @@ function ListaEventosConMinimapa({
                       : "transparent"
                   }`,
                 }}
-                onClick={() => setEvtSeleccionado(isSel ? null : evt.id)}
+                onClick={() => {
+                  const willSelect = !isSel;
+                  setEvtSeleccionado(willSelect ? evt.id : null);
+                  if (!willSelect) return;
+                  if (evt.source === "capitulo" && evt.capData) {
+                    onSelectCapitulo?.(evt.capData.id, evt.capData.libro_id);
+                  } else if (evt.source === "cancion" && evt.cancionData) {
+                    onSelectCancion?.(evt.cancionData.id);
+                  } else if (
+                    evt.source === "cumpleanos" &&
+                    evt.cumpleanosData
+                  ) {
+                    onSelectPersonaje?.(evt.cumpleanosData.id);
+                  }
+                }}
               >
                 <div
                   className="shrink-0"
@@ -2790,12 +2810,19 @@ export function PanelHistoriaMundo({
   onSave,
   initialFilterReino,
   onSelectPersonaje,
+  onSelectCapitulo,
+  onSelectCancion,
 }: {
   texto: string;
   onChange: (v: string) => void;
   onSave: () => Promise<void>;
   initialFilterReino?: string | null;
   onSelectPersonaje?: (id: string) => void;
+  // Abren el editor de capítulo/canción en el panel lateral de la app —
+  // PanelHistoriaMundo solo avisa, la navegación real la maneja quien
+  // renderiza este componente.
+  onSelectCapitulo?: (capituloId: string, libroId: string) => void;
+  onSelectCancion?: (cancionId: string) => void;
 }) {
   // Sistema antiguo de eventos "mundo"/"reino" (basado en columna historia JSON) eliminado.
 
@@ -3783,6 +3810,9 @@ export function PanelHistoriaMundo({
             setEvtSeleccionado={setEvtSeleccionado}
             onFieldChange={handleEventoMundoFieldChange}
             onDiaChange={handleEventoMundoDiaChange}
+            onSelectPersonaje={onSelectPersonaje}
+            onSelectCapitulo={onSelectCapitulo}
+            onSelectCancion={onSelectCancion}
           />
         )}
       </div>
