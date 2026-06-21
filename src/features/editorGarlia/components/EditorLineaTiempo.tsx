@@ -18,6 +18,7 @@ import {
 import React, {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -2501,6 +2502,288 @@ function EventoDetallePanel({
   );
 }
 
+// ── Lista vertical de eventos + minimap sincronizado por posición real ──────
+// El bug: el minimap ubicaba cada punto por índice (i / total), asumiendo que
+// todos los items tienen la misma altura. Pero los separadores de año
+// (que no tienen una altura fija/predecible) rompen esa suposición — por eso
+// el primer evento, que casi siempre lleva un separador justo encima, queda
+// visualmente más abajo que su punto (que sí está fijo arriba, en 0%).
+// Fix: medimos la posición real (en píxeles) de cada evento dentro de la
+// lista con refs + getBoundingClientRect, y usamos esa fracción real para
+// ubicar los puntos — así siempre coinciden con su evento, sin importar
+// separadores, distinto alto de fila, o el ancho cambiante de la lista.
+function ListaEventosConMinimapa({
+  allEvents,
+  cal,
+  evtSeleccionado,
+  setEvtSeleccionado,
+  onFieldChange,
+  onDiaChange,
+}: {
+  allEvents: MundoTimelineEvent[];
+  cal: CalCache | null;
+  evtSeleccionado: string | null;
+  setEvtSeleccionado: (id: string | null) => void;
+  onFieldChange?: (
+    id: string,
+    field: "titulo" | "descripcion",
+    value: string,
+  ) => void;
+  onDiaChange?: (id: string, dia: number) => void;
+}) {
+  const listRef = useRef<HTMLDivElement>(null);
+  const itemRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
+  const [dotRatios, setDotRatios] = useState<Record<string, number>>({});
+
+  const diasAnioLista =
+    cal?.estaciones?.reduce(
+      (s: number, e: any) => s + (e.duracion_dias ?? 0),
+      0,
+    ) || 365;
+
+  const getEraEvt = (diaAbs: number | null | undefined) =>
+    diaAbs != null
+      ? ((cal?.eras ?? []).find(
+          (era: any) =>
+            era.anio_inicio <= Math.floor(diaAbs / diasAnioLista) &&
+            (era.anio_fin == null ||
+              era.anio_fin >= Math.floor(diaAbs / diasAnioLista)),
+        ) ?? null)
+      : null;
+
+  const total = allEvents.length;
+  const selEvt = allEvents.find((e) => e.id === evtSeleccionado) ?? null;
+  const selEra = selEvt ? getEraEvt(selEvt.dia_absoluto) : null;
+  const selEraColor = selEra?.color ?? null;
+
+  // Mide, para cada evento, su centro vertical real como fracción (0–1) del
+  // alto total de la lista (scrollHeight), independientemente del scroll
+  // actual. getBoundingClientRect evita problemas con offsetParent.
+  const measure = useCallback(() => {
+    const container = listRef.current;
+    if (!container) return;
+    const totalHeight = container.scrollHeight;
+    if (!totalHeight) return;
+    const containerRect = container.getBoundingClientRect();
+    const next: Record<string, number> = {};
+    itemRefs.current.forEach((el, id) => {
+      const itemRect = el.getBoundingClientRect();
+      const offsetEnContenido =
+        itemRect.top -
+        containerRect.top +
+        container.scrollTop +
+        itemRect.height / 2;
+      next[id] = Math.min(1, Math.max(0, offsetEnContenido / totalHeight));
+    });
+    setDotRatios(next);
+  }, []);
+
+  // Remedir cuando cambia el set de eventos (después de que el DOM se
+  // actualice, antes del paint, para evitar parpadeos de puntos mal ubicados)
+  useLayoutEffect(() => {
+    measure();
+  }, [allEvents, measure]);
+
+  // Remedir ante cambios de tamaño del contenedor (p. ej. al abrir el panel
+  // de detalle, la lista se angosta a 180px y los separadores pueden
+  // envolver distinto, cambiando alturas)
+  useEffect(() => {
+    const container = listRef.current;
+    if (!container || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => measure());
+    ro.observe(container);
+    return () => ro.disconnect();
+  }, [measure]);
+
+  return (
+    <div className="flex gap-0" style={{ minHeight: 120 }}>
+      {/* ── Minimap vertical ── */}
+      {total > 0 && (
+        <div
+          className="relative shrink-0"
+          style={{
+            width: 14,
+            marginRight: 8,
+            background: "color-mix(in srgb, var(--primary) 4%, transparent)",
+            border:
+              "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+            borderRadius: 4,
+            cursor: "pointer",
+          }}
+          title="Minimap vertical — click para saltar"
+          onClick={(e) => {
+            const rect = e.currentTarget.getBoundingClientRect();
+            const ratio = (e.clientY - rect.top) / rect.height;
+            const listEl = listRef.current;
+            if (!listEl) return;
+            listEl.scrollTop =
+              ratio * (listEl.scrollHeight - listEl.clientHeight);
+          }}
+        >
+          {allEvents.map((evt, i) => {
+            const eraC = getEraEvt(evt.dia_absoluto)?.color ?? null;
+            const dotC =
+              eraC ?? "color-mix(in srgb, var(--primary) 40%, transparent)";
+            const isSel = evt.id === evtSeleccionado;
+            // Fallback por índice solo para el primer render, antes de medir
+            const ratio = dotRatios[evt.id] ?? i / (total - 1 || 1);
+            return (
+              <div
+                key={evt.id}
+                style={{
+                  position: "absolute",
+                  top: `${ratio * 100}%`,
+                  left: "50%",
+                  transform: "translate(-50%, -50%)",
+                  width: isSel ? 6 : 4,
+                  height: isSel ? 6 : 4,
+                  borderRadius: "50%",
+                  background: dotC,
+                  opacity: isSel ? 1 : 0.75,
+                  boxShadow: isSel ? `0 0 0 2px ${dotC}40` : "none",
+                  transition: "all 0.15s",
+                }}
+              />
+            );
+          })}
+        </div>
+      )}
+
+      {/* ── Lista compacta ── */}
+      <div
+        ref={listRef}
+        className="flex flex-col gap-0.5 min-w-0"
+        style={{
+          flex: selEvt ? "0 0 auto" : "1",
+          width: selEvt ? 180 : undefined,
+          overflowY: "auto",
+        }}
+      >
+        {allEvents.length === 0 && (
+          <p className="text-[9px] text-primary/20 italic px-2 py-2">
+            Sin eventos con fecha asignada.
+          </p>
+        )}
+        {(() => {
+          const items: React.ReactNode[] = [];
+          let lastAnio: number | null = null;
+          for (const evt of allEvents) {
+            const anio =
+              evt.dia_absoluto != null
+                ? Math.floor(evt.dia_absoluto / diasAnioLista)
+                : null;
+            const eraEvt = getEraEvt(evt.dia_absoluto);
+            const eraColor = eraEvt?.color ?? null;
+            const dotColor =
+              eraColor ?? "color-mix(in srgb, var(--primary) 45%, transparent)";
+            const isSel = evt.id === evtSeleccionado;
+
+            if (anio !== null && anio !== lastAnio) {
+              lastAnio = anio;
+              items.push(
+                <div
+                  key={`list-sep-${anio}`}
+                  className="flex items-center gap-1.5 mt-2 mb-0.5"
+                >
+                  <span
+                    className="text-[7px] font-black uppercase tracking-[0.2em] px-1.5 py-0.5 rounded-full shrink-0"
+                    style={{
+                      background: eraColor
+                        ? `${eraColor}18`
+                        : "color-mix(in srgb, var(--primary) 7%, transparent)",
+                      color:
+                        eraColor ??
+                        "color-mix(in srgb, var(--primary) 45%, transparent)",
+                      border: `1px solid ${eraColor ? `${eraColor}30` : "color-mix(in srgb, var(--primary) 12%, transparent)"}`,
+                    }}
+                  >
+                    {anio}
+                    {eraEvt?.nombre ? ` · ${eraEvt.nombre}` : ""}
+                  </span>
+                  <div
+                    className="flex-1 h-px"
+                    style={{
+                      background: eraColor
+                        ? `${eraColor}25`
+                        : "color-mix(in srgb, var(--primary) 8%, transparent)",
+                    }}
+                  />
+                </div>,
+              );
+            }
+
+            items.push(
+              <button
+                key={`list-${evt.id}`}
+                ref={(el) => {
+                  if (el) itemRefs.current.set(evt.id, el);
+                  else itemRefs.current.delete(evt.id);
+                }}
+                type="button"
+                className="flex items-center gap-2 px-2 py-1 rounded-lg w-full text-left transition-all"
+                style={{
+                  background: isSel
+                    ? eraColor
+                      ? `${eraColor}14`
+                      : "color-mix(in srgb, var(--primary) 6%, transparent)"
+                    : "transparent",
+                  border: `1px solid ${
+                    isSel
+                      ? eraColor
+                        ? `${eraColor}30`
+                        : "color-mix(in srgb, var(--primary) 15%, transparent)"
+                      : "transparent"
+                  }`,
+                }}
+                onClick={() => setEvtSeleccionado(isSel ? null : evt.id)}
+              >
+                <div
+                  className="shrink-0"
+                  style={{
+                    width: 5,
+                    height: 5,
+                    borderRadius: "50%",
+                    background: dotColor,
+                    boxShadow: isSel
+                      ? `0 0 0 2px ${eraColor ? `${eraColor}35` : "color-mix(in srgb, var(--primary) 18%, transparent)"}`
+                      : "none",
+                    transition: "box-shadow 0.15s",
+                  }}
+                />
+                <span
+                  className="text-[10px] font-bold truncate flex-1"
+                  style={{
+                    color: isSel
+                      ? "var(--primary)"
+                      : "color-mix(in srgb, var(--primary) 65%, transparent)",
+                  }}
+                >
+                  {evt.title || (
+                    <span className="italic opacity-40">Sin título</span>
+                  )}
+                </span>
+              </button>,
+            );
+          }
+          return items;
+        })()}
+      </div>
+
+      {/* ── Panel de detalle (editable para mundo/reino) ── */}
+      {selEvt && (
+        <EventoDetallePanel
+          evt={selEvt}
+          era={selEra}
+          eraColor={selEraColor}
+          diasAnioLista={diasAnioLista}
+          onFieldChange={onFieldChange}
+          onDiaChange={onDiaChange}
+        />
+      )}
+    </div>
+  );
+}
+
 // ── Panel principal — vista y edición unificadas, ambas pistas editables ──────
 export function PanelHistoriaMundo({
   texto,
@@ -3517,217 +3800,14 @@ export function PanelHistoriaMundo({
           </div>
         ) : (
           /* ── MODO LISTA VERTICAL (solo en modo compacto) ─────────────────── */
-          (() => {
-            const diasAnioLista =
-              cal?.estaciones?.reduce(
-                (s: number, e: any) => s + (e.duracion_dias ?? 0),
-                0,
-              ) || 365;
-
-            const getEraEvt = (diaAbs: number | null | undefined) =>
-              diaAbs != null
-                ? ((cal?.eras ?? []).find(
-                    (era: any) =>
-                      era.anio_inicio <= Math.floor(diaAbs / diasAnioLista) &&
-                      (era.anio_fin == null ||
-                        era.anio_fin >= Math.floor(diaAbs / diasAnioLista)),
-                  ) ?? null)
-                : null;
-
-            const total = allEvents.length;
-            const selEvt =
-              allEvents.find((e) => e.id === evtSeleccionado) ?? null;
-            const selEra = selEvt ? getEraEvt(selEvt.dia_absoluto) : null;
-            const selEraColor = selEra?.color ?? null;
-
-            return (
-              <div className="flex gap-0" style={{ minHeight: 120 }}>
-                {/* ── Minimap vertical ── */}
-                {total > 0 && (
-                  <div
-                    className="relative shrink-0"
-                    style={{
-                      width: 14,
-                      marginRight: 8,
-                      background:
-                        "color-mix(in srgb, var(--primary) 4%, transparent)",
-                      border:
-                        "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-                      borderRadius: 4,
-                      cursor: "pointer",
-                    }}
-                    title="Minimap vertical — click para saltar"
-                    onClick={(e) => {
-                      const rect = e.currentTarget.getBoundingClientRect();
-                      const ratio = (e.clientY - rect.top) / rect.height;
-                      const listEl = e.currentTarget.nextElementSibling;
-                      if (!listEl) return;
-                      listEl.scrollTop =
-                        ratio * (listEl.scrollHeight - listEl.clientHeight);
-                    }}
-                  >
-                    {allEvents.map((evt, i) => {
-                      const eraC = getEraEvt(evt.dia_absoluto)?.color ?? null;
-                      const dotC =
-                        eraC ??
-                        "color-mix(in srgb, var(--primary) 40%, transparent)";
-                      const isSel = evt.id === evtSeleccionado;
-                      return (
-                        <div
-                          key={evt.id}
-                          style={{
-                            position: "absolute",
-                            top: `${(i / (total - 1 || 1)) * 100}%`,
-                            left: "50%",
-                            transform: "translate(-50%, -50%)",
-                            width: isSel ? 6 : 4,
-                            height: isSel ? 6 : 4,
-                            borderRadius: "50%",
-                            background: dotC,
-                            opacity: isSel ? 1 : 0.75,
-                            boxShadow: isSel ? `0 0 0 2px ${dotC}40` : "none",
-                            transition: "all 0.15s",
-                          }}
-                        />
-                      );
-                    })}
-                  </div>
-                )}
-
-                {/* ── Lista compacta ── */}
-                <div
-                  className="flex flex-col gap-0.5 min-w-0"
-                  style={{
-                    flex: selEvt ? "0 0 auto" : "1",
-                    width: selEvt ? 180 : undefined,
-                    overflowY: "auto",
-                  }}
-                >
-                  {allEvents.length === 0 && (
-                    <p className="text-[9px] text-primary/20 italic px-2 py-2">
-                      Sin eventos con fecha asignada.
-                    </p>
-                  )}
-                  {(() => {
-                    const items: React.ReactNode[] = [];
-                    let lastAnio: number | null = null;
-                    for (const evt of allEvents) {
-                      const anio =
-                        evt.dia_absoluto != null
-                          ? Math.floor(evt.dia_absoluto / diasAnioLista)
-                          : null;
-                      const eraEvt = getEraEvt(evt.dia_absoluto);
-                      const eraColor = eraEvt?.color ?? null;
-                      const dotColor =
-                        eraColor ??
-                        "color-mix(in srgb, var(--primary) 45%, transparent)";
-                      const isSel = evt.id === evtSeleccionado;
-
-                      if (anio !== null && anio !== lastAnio) {
-                        lastAnio = anio;
-                        items.push(
-                          <div
-                            key={`list-sep-${anio}`}
-                            className="flex items-center gap-1.5 mt-2 mb-0.5"
-                          >
-                            <span
-                              className="text-[7px] font-black uppercase tracking-[0.2em] px-1.5 py-0.5 rounded-full shrink-0"
-                              style={{
-                                background: eraColor
-                                  ? `${eraColor}18`
-                                  : "color-mix(in srgb, var(--primary) 7%, transparent)",
-                                color:
-                                  eraColor ??
-                                  "color-mix(in srgb, var(--primary) 45%, transparent)",
-                                border: `1px solid ${eraColor ? `${eraColor}30` : "color-mix(in srgb, var(--primary) 12%, transparent)"}`,
-                              }}
-                            >
-                              {anio}
-                              {eraEvt?.nombre ? ` · ${eraEvt.nombre}` : ""}
-                            </span>
-                            <div
-                              className="flex-1 h-px"
-                              style={{
-                                background: eraColor
-                                  ? `${eraColor}25`
-                                  : "color-mix(in srgb, var(--primary) 8%, transparent)",
-                              }}
-                            />
-                          </div>,
-                        );
-                      }
-
-                      items.push(
-                        <button
-                          key={`list-${evt.id}`}
-                          type="button"
-                          className="flex items-center gap-2 px-2 py-1 rounded-lg w-full text-left transition-all"
-                          style={{
-                            background: isSel
-                              ? eraColor
-                                ? `${eraColor}14`
-                                : "color-mix(in srgb, var(--primary) 6%, transparent)"
-                              : "transparent",
-                            border: `1px solid ${
-                              isSel
-                                ? eraColor
-                                  ? `${eraColor}30`
-                                  : "color-mix(in srgb, var(--primary) 15%, transparent)"
-                                : "transparent"
-                            }`,
-                          }}
-                          onClick={() =>
-                            setEvtSeleccionado(isSel ? null : evt.id)
-                          }
-                        >
-                          <div
-                            className="shrink-0"
-                            style={{
-                              width: 5,
-                              height: 5,
-                              borderRadius: "50%",
-                              background: dotColor,
-                              boxShadow: isSel
-                                ? `0 0 0 2px ${eraColor ? `${eraColor}35` : "color-mix(in srgb, var(--primary) 18%, transparent)"}`
-                                : "none",
-                              transition: "box-shadow 0.15s",
-                            }}
-                          />
-                          <span
-                            className="text-[10px] font-bold truncate flex-1"
-                            style={{
-                              color: isSel
-                                ? "var(--primary)"
-                                : "color-mix(in srgb, var(--primary) 65%, transparent)",
-                            }}
-                          >
-                            {evt.title || (
-                              <span className="italic opacity-40">
-                                Sin título
-                              </span>
-                            )}
-                          </span>
-                        </button>,
-                      );
-                    }
-                    return items;
-                  })()}
-                </div>
-
-                {/* ── Panel de detalle (editable para mundo/reino) ── */}
-                {selEvt && (
-                  <EventoDetallePanel
-                    evt={selEvt}
-                    era={selEra}
-                    eraColor={selEraColor}
-                    diasAnioLista={diasAnioLista}
-                    onFieldChange={handleEventoMundoFieldChange}
-                    onDiaChange={handleEventoMundoDiaChange}
-                  />
-                )}
-              </div>
-            );
-          })()
+          <ListaEventosConMinimapa
+            allEvents={allEvents}
+            cal={cal}
+            evtSeleccionado={evtSeleccionado}
+            setEvtSeleccionado={setEvtSeleccionado}
+            onFieldChange={handleEventoMundoFieldChange}
+            onDiaChange={handleEventoMundoDiaChange}
+          />
         )}
       </div>
     </div>
