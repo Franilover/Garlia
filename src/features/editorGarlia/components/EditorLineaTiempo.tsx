@@ -2308,6 +2308,199 @@ function ToggleTipoBtn({
   );
 }
 
+// ── Panel de detalle de evento (click en la lista) ───────────────────────────
+// Editable para eventos "mundo"/"reino" (tabla eventos_mundo): título,
+// descripción y fecha. Capítulos/canciones/cumpleaños se muestran solo
+// lectura porque no tienen un campo de descripción propio aquí y editar su
+// título cambiaría la entidad real (capítulo, canción o personaje).
+function EventoDetallePanel({
+  evt,
+  era,
+  eraColor,
+  diasAnioLista,
+  onFieldChange,
+  onDiaChange,
+}: {
+  evt: MundoTimelineEvent;
+  era: EraMundo | null;
+  eraColor: string | null;
+  diasAnioLista: number;
+  onFieldChange?: (
+    id: string,
+    field: "titulo" | "descripcion",
+    value: string,
+  ) => void;
+  onDiaChange?: (id: string, dia: number) => void;
+}) {
+  const editable = evt.source === "mundo" || evt.source === "reino";
+
+  const [titulo, setTitulo] = useState(evt.title);
+  const [descripcion, setDescripcion] = useState(evt.description);
+  const [savingFecha, setSavingFecha] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Resincronizar campos locales al cambiar de evento seleccionado
+  useEffect(() => {
+    setTitulo(evt.title);
+    setDescripcion(evt.description);
+  }, [evt.id, evt.title, evt.description]);
+
+  const scheduleSave = (field: "titulo" | "descripcion", value: string) => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      onFieldChange?.(evt.id, field, value);
+    }, 600);
+  };
+
+  const commitDia = async (dia: number | null) => {
+    if (dia == null) return;
+    setSavingFecha(true);
+    await onDiaChange?.(evt.id, dia);
+    setSavingFecha(false);
+  };
+
+  return (
+    <div
+      className="flex-1 min-w-0 ml-2 rounded-xl p-3 flex flex-col gap-2"
+      style={{
+        background: eraColor
+          ? `${eraColor}08`
+          : "color-mix(in srgb, var(--primary) 3%, transparent)",
+        border: `1px solid ${eraColor ? `${eraColor}22` : "color-mix(in srgb, var(--primary) 10%, transparent)"}`,
+      }}
+    >
+      {/* Era badge */}
+      {era && (
+        <span
+          className="text-[7px] font-black uppercase tracking-[0.2em] px-2 py-0.5 rounded-full self-start"
+          style={{
+            background: eraColor
+              ? `${eraColor}18`
+              : "color-mix(in srgb, var(--primary) 7%, transparent)",
+            color:
+              eraColor ?? "color-mix(in srgb, var(--primary) 45%, transparent)",
+            border: `1px solid ${eraColor ? `${eraColor}30` : "color-mix(in srgb, var(--primary) 12%, transparent)"}`,
+          }}
+        >
+          {era.nombre}
+        </span>
+      )}
+
+      {/* Título */}
+      {editable ? (
+        <input
+          className="text-[13px] font-black uppercase leading-tight bg-transparent outline-none w-full rounded px-0.5 -mx-0.5"
+          style={{ color: "var(--primary)" }}
+          placeholder="Sin título"
+          value={titulo}
+          onChange={(e) => {
+            setTitulo(e.target.value);
+            scheduleSave("titulo", e.target.value);
+          }}
+          onBlur={(e) => onFieldChange?.(evt.id, "titulo", e.target.value)}
+        />
+      ) : (
+        <p
+          className="text-[13px] font-black uppercase leading-tight"
+          style={{ color: "var(--primary)" }}
+        >
+          {evt.title || <span className="italic opacity-40">Sin título</span>}
+        </p>
+      )}
+
+      {/* Fecha */}
+      {editable ? (
+        <div className="relative">
+          {savingFecha && (
+            <Loader2
+              className="animate-spin absolute right-2 top-1.5 z-10 text-primary/30"
+              size={9}
+            />
+          )}
+          <SelectorFechaMundo
+            placeholder="Sin fecha…"
+            value={evt.dia_absoluto ?? null}
+            onChange={commitDia}
+          />
+        </div>
+      ) : (
+        evt.dia_absoluto != null && (
+          <p
+            className="text-[8px] font-black uppercase tracking-widest"
+            style={{
+              color:
+                eraColor ??
+                "color-mix(in srgb, var(--primary) 35%, transparent)",
+            }}
+          >
+            Año {Math.floor(evt.dia_absoluto / diasAnioLista)}
+          </p>
+        )
+      )}
+
+      {/* Separador */}
+      <div
+        style={{
+          height: 1,
+          background: eraColor
+            ? `${eraColor}20`
+            : "color-mix(in srgb, var(--primary) 8%, transparent)",
+        }}
+      />
+
+      {/* Descripción */}
+      {editable ? (
+        <textarea
+          className="text-[11px] leading-relaxed bg-transparent outline-none w-full rounded resize-y flex-1 px-0.5 -mx-0.5"
+          style={{
+            color: "color-mix(in srgb, var(--primary) 65%, transparent)",
+            minHeight: 90,
+          }}
+          placeholder="Sin descripción…"
+          rows={5}
+          value={descripcion}
+          onChange={(e) => {
+            setDescripcion(e.target.value);
+            scheduleSave("descripcion", e.target.value);
+          }}
+          onBlur={(e) => onFieldChange?.(evt.id, "descripcion", e.target.value)}
+        />
+      ) : evt.description ? (
+        <p
+          className="text-[11px] leading-relaxed"
+          style={{
+            color: "color-mix(in srgb, var(--primary) 65%, transparent)",
+          }}
+        >
+          {evt.description}
+        </p>
+      ) : (
+        <p
+          className="text-[10px] italic"
+          style={{
+            color: "color-mix(in srgb, var(--primary) 20%, transparent)",
+          }}
+        >
+          Sin descripción.
+        </p>
+      )}
+
+      {/* Source badge */}
+      <span
+        className="text-[7px] font-black uppercase tracking-widest self-start mt-auto px-1.5 py-0.5 rounded"
+        style={{
+          background: "color-mix(in srgb, var(--primary) 5%, transparent)",
+          color: "color-mix(in srgb, var(--primary) 30%, transparent)",
+          border:
+            "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+        }}
+      >
+        {evt.source}
+      </span>
+    </div>
+  );
+}
+
 // ── Panel principal — vista y edición unificadas, ambas pistas editables ──────
 export function PanelHistoriaMundo({
   texto,
@@ -3521,102 +3714,16 @@ export function PanelHistoriaMundo({
                   })()}
                 </div>
 
-                {/* ── Panel de detalle ── */}
+                {/* ── Panel de detalle (editable para mundo/reino) ── */}
                 {selEvt && (
-                  <div
-                    className="flex-1 min-w-0 ml-2 rounded-xl p-3 flex flex-col gap-2"
-                    style={{
-                      background: selEraColor
-                        ? `${selEraColor}08`
-                        : "color-mix(in srgb, var(--primary) 3%, transparent)",
-                      border: `1px solid ${selEraColor ? `${selEraColor}22` : "color-mix(in srgb, var(--primary) 10%, transparent)"}`,
-                    }}
-                  >
-                    {/* Era badge */}
-                    {selEra && (
-                      <span
-                        className="text-[7px] font-black uppercase tracking-[0.2em] px-2 py-0.5 rounded-full self-start"
-                        style={{
-                          background: selEraColor
-                            ? `${selEraColor}18`
-                            : "color-mix(in srgb, var(--primary) 7%, transparent)",
-                          color:
-                            selEraColor ??
-                            "color-mix(in srgb, var(--primary) 45%, transparent)",
-                          border: `1px solid ${selEraColor ? `${selEraColor}30` : "color-mix(in srgb, var(--primary) 12%, transparent)"}`,
-                        }}
-                      >
-                        {selEra.nombre}
-                      </span>
-                    )}
-                    {/* Título */}
-                    <p
-                      className="text-[13px] font-black uppercase leading-tight"
-                      style={{ color: "var(--primary)" }}
-                    >
-                      {selEvt.title || (
-                        <span className="italic opacity-40">Sin título</span>
-                      )}
-                    </p>
-                    {/* Fecha */}
-                    {selEvt.dia_absoluto != null && (
-                      <p
-                        className="text-[8px] font-black uppercase tracking-widest"
-                        style={{
-                          color:
-                            selEraColor ??
-                            "color-mix(in srgb, var(--primary) 35%, transparent)",
-                        }}
-                      >
-                        Año {Math.floor(selEvt.dia_absoluto / diasAnioLista)}
-                      </p>
-                    )}
-                    {/* Separador */}
-                    <div
-                      style={{
-                        height: 1,
-                        background: selEraColor
-                          ? `${selEraColor}20`
-                          : "color-mix(in srgb, var(--primary) 8%, transparent)",
-                      }}
-                    />
-                    {/* Descripción */}
-                    {selEvt.description ? (
-                      <p
-                        className="text-[11px] leading-relaxed"
-                        style={{
-                          color:
-                            "color-mix(in srgb, var(--primary) 65%, transparent)",
-                        }}
-                      >
-                        {selEvt.description}
-                      </p>
-                    ) : (
-                      <p
-                        className="text-[10px] italic"
-                        style={{
-                          color:
-                            "color-mix(in srgb, var(--primary) 20%, transparent)",
-                        }}
-                      >
-                        Sin descripción.
-                      </p>
-                    )}
-                    {/* Source badge */}
-                    <span
-                      className="text-[7px] font-black uppercase tracking-widest self-start mt-auto px-1.5 py-0.5 rounded"
-                      style={{
-                        background:
-                          "color-mix(in srgb, var(--primary) 5%, transparent)",
-                        color:
-                          "color-mix(in srgb, var(--primary) 30%, transparent)",
-                        border:
-                          "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
-                      }}
-                    >
-                      {selEvt.source}
-                    </span>
-                  </div>
+                  <EventoDetallePanel
+                    evt={selEvt}
+                    era={selEra}
+                    eraColor={selEraColor}
+                    diasAnioLista={diasAnioLista}
+                    onFieldChange={handleEventoMundoFieldChange}
+                    onDiaChange={handleEventoMundoDiaChange}
+                  />
                 )}
               </div>
             );
