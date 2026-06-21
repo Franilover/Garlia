@@ -392,6 +392,12 @@ export default function AdminDescubrimientos() {
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json?.error || "Error al eliminar usuario");
 
+      // ✅ Borrar de Dexie para que no reaparezca en la próxima carga
+      try {
+        const { db } = await import("@/lib/api/client/db");
+        if (db) await (db as any).perfiles?.delete(p.id);
+      } catch {}
+
       setPerfiles((prev) => prev.filter((x) => x.id !== p.id));
       if (perfilSel?.id === p.id) {
         setPerfilSel(null);
