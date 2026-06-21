@@ -112,7 +112,7 @@ const ESTADO_LABEL: Record<EstadoUsuario, string> = {
   reclamada: "Reclamada",
 };
 
-// ── Helpers Dexie (cache local, igual que editorRelaciones) ──────────────────
+// ── Helpers Dexie ────────────────────────────────────────────────────────────
 
 async function dexieGetOne<T>(tabla: string, id: string): Promise<T | null> {
   try {
@@ -122,6 +122,49 @@ async function dexieGetOne<T>(tabla: string, id: string): Promise<T | null> {
   } catch {
     return null;
   }
+}
+
+async function dexieGetAll<T>(tabla: string): Promise<T[]> {
+  try {
+    const { db } = await import("@/lib/api/client/db");
+    if (!db) return [];
+    const t = (db as any)[tabla];
+    if (!t) return [];
+    return ((await t.toArray()) as any[]).filter((r: any) => !r.deleted) as T[];
+  } catch {
+    return [];
+  }
+}
+
+async function dexiePutAll(tabla: string, rows: any[]): Promise<void> {
+  try {
+    const { db } = await import("@/lib/api/client/db");
+    if (!db) return;
+    const t = (db as any)[tabla];
+    if (!t || rows.length === 0) return;
+    await t.bulkPut(rows);
+    // Eliminar locales que ya no existen en remoto
+    const remoteIds = new Set(rows.map((r) => r.id));
+    const local: any[] = await t.toArray();
+    const toDelete = local.map((r) => r.id).filter((id) => !remoteIds.has(id));
+    if (toDelete.length > 0) await t.bulkDelete(toDelete);
+  } catch {}
+}
+
+async function dexiePutOne(tabla: string, row: any): Promise<void> {
+  try {
+    const { db } = await import("@/lib/api/client/db");
+    if (!db) return;
+    await (db as any)[tabla]?.put(row);
+  } catch {}
+}
+
+async function dexieDeleteOne(tabla: string, id: string): Promise<void> {
+  try {
+    const { db } = await import("@/lib/api/client/db");
+    if (!db) return;
+    await (db as any)[tabla]?.delete(id);
+  } catch {}
 }
 
 // ── Componente principal ──────────────────────────────────────────────────────
@@ -171,15 +214,36 @@ export default function EditorMisiones() {
     run();
   }, []);
 
-  // ── Cargar catálogo de misiones (offline-first, sincroniza eliminaciones) ──
+  // ── Cargar catálogo de misiones (Dexie primero, Supabase en background) ──
   const cargarMisiones = useCallback(async () => {
     setCargandoMisiones(true);
+
+    // 1️⃣ Dexie inmediato — sin esperar red
+    const local = await dexieGetAll<MisionRow>("misiones");
+    if (local.length > 0) {
+      setMisiones(local);
+      setCargandoMisiones(false); // UI disponible de inmediato
+    }
+
+    // 2️⃣ Verificar conexión
     const online = await isReallyOnline();
     setOffline(!online);
+    if (!online) {
+      if (local.length === 0) setCargandoMisiones(false);
+      return;
+    }
 
-    const data = await loadMisionesAdmin();
-    setMisiones(data as MisionRow[]);
-    setCargandoMisiones(false);
+    // 3️⃣ Fetch remoto en background — sobreescribe con datos frescos
+    try {
+      const data = await loadMisionesAdmin();
+      const rows = data as MisionRow[];
+      setMisiones(rows);
+      await dexiePutAll("misiones", rows);
+    } catch {
+      // Sin red — quedarse con el caché local
+    } finally {
+      setCargandoMisiones(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -191,10 +255,30 @@ export default function EditorMisiones() {
     if (!misionSel) return;
     setCargandoProgreso(true);
 
+    // 1️⃣ Dexie primero: mostrar progreso cacheado al instante
+    const localProg = await dexieGetAll<any>("misiones_usuario");
+    const localDeMision = localProg.filter((r) => r.mision_id === misionSel.id);
+    if (localDeMision.length > 0) {
+      // Resolver nombres desde caché local de perfiles
+      const perfilesCached = await dexieGetAll<any>("perfiles");
+      const perfilesPorId = new Map(perfilesCached.map((p) => [p.id, p]));
+      setProgreso(
+        localDeMision.map((r) => ({
+          user_id: r.user_id,
+          estado: r.estado,
+          progreso: r.progreso,
+          fecha_aceptada: r.fecha_aceptada,
+          fecha_completada: r.fecha_completada,
+          perfil: perfilesPorId.get(r.user_id) ?? null,
+        })),
+      );
+      setCargandoProgreso(false); // UI disponible de inmediato
+    }
+
+    // 2️⃣ Fetch remoto en background (no usa el embed — ver comentario abajo)
     // No usamos el embed "perfil:user_id(...)" porque misiones_usuario.user_id
-    // referencia auth.users, no public.perfiles — sin esa FK declarada hacia
-    // "perfiles", PostgREST no puede resolver el alias de relación y devuelve
-    // 400 Bad Request. En su lugar, dos queries simples + merge en cliente.
+    // referencia auth.users, no public.perfiles — PostgREST no puede resolver
+    // esa FK y devuelve 400. Dos queries + merge en cliente es lo correcto.
     const { data: progresoData, error: progresoError } = await supabase
       .from("misiones_usuario")
       .select("user_id, estado, progreso, fecha_aceptada, fecha_completada")
@@ -217,24 +301,38 @@ export default function EditorMisiones() {
         .from("perfiles")
         .select("id, username, avatar_url")
         .in("id", userIds);
+      const perfilesRows = perfilesData ?? [];
       perfilesPorId = new Map(
-        (perfilesData ?? []).map((p: any) => [
+        perfilesRows.map((p: any) => [
           p.id,
           { username: p.username, avatar_url: p.avatar_url },
         ]),
       );
+      // Actualizar caché de perfiles con lo que llegó
+      await dexiePutAll("perfiles", perfilesRows);
     }
 
-    setProgreso(
+    const progresoFinal = progresoData.map((r: any) => ({
+      user_id: r.user_id,
+      estado: r.estado,
+      progreso: r.progreso,
+      fecha_aceptada: r.fecha_aceptada,
+      fecha_completada: r.fecha_completada,
+      perfil: perfilesPorId.get(r.user_id) ?? null,
+    }));
+
+    setProgreso(progresoFinal);
+
+    // Cachear en Dexie con mision_id para la próxima carga
+    await dexiePutAll(
+      "misiones_usuario",
       progresoData.map((r: any) => ({
-        user_id: r.user_id,
-        estado: r.estado,
-        progreso: r.progreso,
-        fecha_aceptada: r.fecha_aceptada,
-        fecha_completada: r.fecha_completada,
-        perfil: perfilesPorId.get(r.user_id) ?? null,
+        ...r,
+        mision_id: misionSel.id,
+        id: `${misionSel.id}:${r.user_id}`,
       })),
     );
+
     setCargandoProgreso(false);
   }, [misionSel]);
 
@@ -357,6 +455,7 @@ export default function EditorMisiones() {
     } else {
       showToast(form.id ? "Misión actualizada" : "Misión creada", true);
       setShowForm(false);
+      // Refrescar lista (Dexie-first, ya actualiza el caché internamente)
       cargarMisiones();
     }
     setGuardando(false);
@@ -395,10 +494,8 @@ export default function EditorMisiones() {
         // Limpia tanto el estado en memoria como el caché Dexie — si no se
         // borra de Dexie, la misión "eliminada" puede reaparecer la próxima
         // vez que se cargue el catálogo desde caché offline.
-        try {
-          const { db } = await import("@/lib/api/client/db");
-          await db?.misiones?.delete(m.id);
-        } catch {}
+        await dexieDeleteOne("misiones", m.id);
+        await dexieDeleteOne("misiones_usuario", `${m.id}:*`); // limpia progreso cacheado
 
         setMisiones((prev) => prev.filter((x) => x.id !== m.id));
         if (misionSel?.id === m.id) {
@@ -1442,15 +1539,26 @@ function SelectorItemRecompensa({
 
   React.useEffect(() => {
     if (!open) return;
-    setCargando(true);
-    supabase
-      .from("items")
-      .select("id, nombre, imagen_url, categoria")
-      .order("nombre")
-      .then(({ data }) => {
-        setItems(data ?? []);
+    async function cargarItems() {
+      // Dexie primero — aparece al instante sin spinner
+      const local = await dexieGetAll<ItemMin>("items");
+      if (local.length > 0) {
+        setItems(local as any);
         setCargando(false);
-      });
+      } else {
+        setCargando(true);
+      }
+      // Supabase en background
+      supabase
+        .from("items")
+        .select("id, nombre, imagen_url, categoria")
+        .order("nombre")
+        .then(({ data }) => {
+          if (data) setItems(data);
+          setCargando(false);
+        });
+    }
+    cargarItems();
   }, [open]);
 
   const filtrados = items.filter((i) =>
@@ -1790,21 +1898,75 @@ function useMisionEntidades(misionId: string) {
     reino: [],
   });
 
-  // Cargar catálogos de todas las entidades una sola vez
+  // Cargar catálogos — Dexie primero, Supabase en background
   React.useEffect(() => {
-    Promise.all([
-      supabase.from("personajes").select("id, nombre, img_url").order("nombre"),
-      supabase
-        .from("criaturas")
-        .select("id, nombre, imagen_url")
-        .order("nombre"),
-      supabase.from("items").select("id, nombre, imagen_url").order("nombre"),
-      supabase
-        .from("ciudades")
-        .select("id, nombre, imagen_url")
-        .order("nombre"),
-      supabase.from("reinos").select("id, nombre, imagen_url").order("nombre"),
-    ]).then(([p, c, i, ci, r]) => {
+    async function cargarCatalogos() {
+      // 1️⃣ Dexie: datos locales al instante
+      const [localP, localC, localI, localCi, localR] = await Promise.all([
+        dexieGetAll<any>("personajes"),
+        dexieGetAll<any>("criaturas"),
+        dexieGetAll<any>("items"),
+        dexieGetAll<any>("ciudades"),
+        dexieGetAll<any>("reinos"),
+      ]);
+
+      if (
+        localP.length ||
+        localC.length ||
+        localI.length ||
+        localCi.length ||
+        localR.length
+      ) {
+        setCatálogos({
+          personaje: localP.map((x) => ({
+            id: x.id,
+            nombre: x.nombre,
+            imagen_url: x.img_url ?? x.imagen_url ?? null,
+          })),
+          criatura: localC.map((x) => ({
+            id: x.id,
+            nombre: x.nombre,
+            imagen_url: x.imagen_url ?? null,
+          })),
+          item: localI.map((x) => ({
+            id: x.id,
+            nombre: x.nombre,
+            imagen_url: x.imagen_url ?? null,
+          })),
+          ciudad: localCi.map((x) => ({
+            id: x.id,
+            nombre: x.nombre,
+            imagen_url: x.imagen_url ?? null,
+          })),
+          reino: localR.map((x) => ({
+            id: x.id,
+            nombre: x.nombre,
+            imagen_url: x.imagen_url ?? null,
+          })),
+        });
+      }
+
+      // 2️⃣ Supabase en background — actualiza si hay nuevas entidades
+      const [p, c, i, ci, r] = await Promise.all([
+        supabase
+          .from("personajes")
+          .select("id, nombre, img_url")
+          .order("nombre"),
+        supabase
+          .from("criaturas")
+          .select("id, nombre, imagen_url")
+          .order("nombre"),
+        supabase.from("items").select("id, nombre, imagen_url").order("nombre"),
+        supabase
+          .from("ciudades")
+          .select("id, nombre, imagen_url")
+          .order("nombre"),
+        supabase
+          .from("reinos")
+          .select("id, nombre, imagen_url")
+          .order("nombre"),
+      ]);
+
       setCatálogos({
         personaje: (p.data ?? []).map((x: any) => ({
           id: x.id,
@@ -1832,7 +1994,8 @@ function useMisionEntidades(misionId: string) {
           imagen_url: x.imagen_url ?? null,
         })),
       });
-    });
+    }
+    cargarCatalogos();
   }, []);
 
   // Cargar vínculos existentes de esta misión
