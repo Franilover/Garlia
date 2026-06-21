@@ -16,12 +16,15 @@ import {
   Sparkles,
   Trash2,
   User,
+  WifiOff,
   X,
 } from "lucide-react";
 import React, { useCallback, useEffect, useState } from "react";
 
 import { MotionDiv } from "@/components/ui/Motion";
+import { isReallyOnline } from "@/hooks/data/useOfflineSync";
 import { supabase } from "@/lib/api/client/supabase";
+import { loadMisionesAdmin } from "@/lib/api/client/syncEngine";
 
 // ── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -125,15 +128,14 @@ export default function EditorMisiones() {
   );
 
   const [eliminando, setEliminando] = useState<string | null>(null);
+  const [offline, setOffline] = useState(false);
 
   // Modal formulario crear/editar
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<FormState>(FORM_VACIO);
   const [guardando, setGuardando] = useState(false);
 
-  const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(
-    null,
-  );
+  const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
 
   const showToast = (msg: string, ok: boolean) => {
     setToast({ msg, ok });
@@ -157,16 +159,14 @@ export default function EditorMisiones() {
     run();
   }, []);
 
-  // ── Cargar catálogo de misiones ────────────────────────────────────────────
+  // ── Cargar catálogo de misiones (offline-first, sincroniza eliminaciones) ──
   const cargarMisiones = useCallback(async () => {
     setCargandoMisiones(true);
-    const { data, error } = await supabase
-      .from("misiones")
-      .select(
-        "id, titulo, descripcion, dificultad, categoria, imagen_url, requisitos, recompensa_xp, recompensa_monedas, recompensa_item_nombre, recompensa_item_imagen_url, activa",
-      )
-      .order("creado_en", { ascending: false });
-    if (!error && data) setMisiones(data as MisionRow[]);
+    const online = await isReallyOnline();
+    setOffline(!online);
+
+    const data = await loadMisionesAdmin();
+    setMisiones(data as MisionRow[]);
     setCargandoMisiones(false);
   }, []);
 
@@ -211,6 +211,10 @@ export default function EditorMisiones() {
     nuevoEstado: "en_curso" | "completada",
   ) => {
     if (!misionSel) return;
+    if (!(await isReallyOnline())) {
+      showToast("Sin conexión: no se puede actualizar el progreso", false);
+      return;
+    }
     setActualizandoUserId(row.user_id);
     const { error } = await supabase
       .from("misiones_usuario")
@@ -271,6 +275,10 @@ export default function EditorMisiones() {
       showToast("El título es obligatorio", false);
       return;
     }
+    if (!(await isReallyOnline())) {
+      showToast("Sin conexión: no se puede guardar la misión", false);
+      return;
+    }
     setGuardando(true);
 
     const payload = {
@@ -310,11 +318,34 @@ export default function EditorMisiones() {
       )
     )
       return;
+    if (!(await isReallyOnline())) {
+      showToast("Sin conexión: no se puede eliminar la misión", false);
+      return;
+    }
     setEliminando(m.id);
-    const { error } = await supabase.from("misiones").delete().eq("id", m.id);
+    const { error, count } = await supabase
+      .from("misiones")
+      .delete({ count: "exact" })
+      .eq("id", m.id);
+
     if (error) {
       showToast("Error al eliminar", false);
+    } else if (!count) {
+      // Supabase no devolvió error, pero tampoco borró ninguna fila —
+      // típico cuando RLS bloquea la operación silenciosamente (ej. el
+      // usuario perdió el rol admin a mitad de sesión). No actualizamos
+      // el estado local para evitar el bug de "decía eliminado pero
+      // seguía apareciendo" tras refrescar.
+      showToast("No se pudo eliminar (permiso denegado)", false);
     } else {
+      // Limpia tanto el estado en memoria como el caché Dexie — si no se
+      // borra de Dexie, la misión "eliminada" puede reaparecer la próxima
+      // vez que se cargue el catálogo desde caché offline.
+      try {
+        const { db } = await import("@/lib/api/client/db");
+        await db?.misiones?.delete(m.id);
+      } catch {}
+
       setMisiones((prev) => prev.filter((x) => x.id !== m.id));
       if (misionSel?.id === m.id) {
         setMisionSel(null);
@@ -391,16 +422,35 @@ export default function EditorMisiones() {
                 "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
             }}
           >
-            <p
-              className="text-[8px] font-black uppercase tracking-[0.25em]"
-              style={{
-                color: "color-mix(in srgb, var(--primary) 35%, transparent)",
-              }}
-            >
-              Misiones ({misiones.length})
-            </p>
+            <div className="flex items-center gap-2">
+              <p
+                className="text-[8px] font-black uppercase tracking-[0.25em]"
+                style={{
+                  color: "color-mix(in srgb, var(--primary) 35%, transparent)",
+                }}
+              >
+                Misiones ({misiones.length})
+              </p>
+              {offline && (
+                <span
+                  className="flex items-center gap-1 px-1.5 py-0.5"
+                  style={{
+                    borderRadius: "2px",
+                    background: "color-mix(in srgb, #d97706 10%, transparent)",
+                    color: "#d97706",
+                  }}
+                  title="Mostrando datos guardados localmente"
+                >
+                  <WifiOff size={8} />
+                  <span className="text-[7px] font-black uppercase tracking-wider">
+                    offline
+                  </span>
+                </span>
+              )}
+            </div>
             <button
-              className="flex items-center gap-1 px-2 py-1 transition-all"
+              className="flex items-center gap-1 px-2 py-1 transition-all disabled:opacity-40"
+              disabled={offline}
               style={{
                 borderRadius: "var(--radius-btn)",
                 background: "var(--primary)",
@@ -410,6 +460,9 @@ export default function EditorMisiones() {
                 letterSpacing: "0.1em",
                 textTransform: "uppercase",
               }}
+              title={
+                offline ? "Necesitas conexión para crear misiones" : undefined
+              }
               onClick={abrirCrear}
             >
               <Plus size={9} /> Nueva
@@ -762,9 +815,7 @@ export default function EditorMisiones() {
                           letterSpacing: "0.1em",
                           textTransform: "uppercase",
                         }}
-                        onClick={() =>
-                          cambiarEstadoUsuario(row, "completada")
-                        }
+                        onClick={() => cambiarEstadoUsuario(row, "completada")}
                       >
                         {actualizandoUserId === row.user_id ? (
                           <Loader2 className="animate-spin" size={10} />
@@ -1047,9 +1098,7 @@ export default function EditorMisiones() {
 
                 <button
                   className="flex items-center gap-2 mt-1"
-                  onClick={() =>
-                    setForm((f) => ({ ...f, activa: !f.activa }))
-                  }
+                  onClick={() => setForm((f) => ({ ...f, activa: !f.activa }))}
                 >
                   <div
                     className="w-4 h-4 flex items-center justify-center shrink-0"
@@ -1101,7 +1150,8 @@ export default function EditorMisiones() {
                   className="px-4 py-2 transition-all"
                   style={{
                     borderRadius: "var(--radius-btn)",
-                    color: "color-mix(in srgb, var(--primary) 45%, transparent)",
+                    color:
+                      "color-mix(in srgb, var(--primary) 45%, transparent)",
                     fontSize: "9px",
                     fontWeight: 900,
                     letterSpacing: "0.15em",

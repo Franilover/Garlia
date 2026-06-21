@@ -3898,19 +3898,29 @@ export function PanelHistoriaMundo({
             </div>
           </div>
         )}
+      </div>
 
-        {/* ── MINIMAP ────────────────────────────────────────────────────── */}
-        {!modoLista && !loadingReinos && allEvents.length > 8 && (
+      {/* ── MINIMAP ─────────────────────────────────────────────────────────── */}
+      {!modoLista && !loadingReinos && allEvents.length > 8 && (
+        <div
+          style={{
+            padding: "4px 8px 6px",
+            borderTop:
+              "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+            background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+          }}
+        >
           <div
-            className="relative mt-1 mx-1 rounded"
+            className="relative"
             style={{
-              height: 10,
-              background: "color-mix(in srgb, var(--primary) 4%, transparent)",
+              height: 14,
+              background: "color-mix(in srgb, var(--primary) 6%, transparent)",
               border:
-                "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
-              cursor: "pointer",
+                "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
+              borderRadius: 4,
+              cursor: "crosshair",
             }}
-            title="Minimap — click para saltar"
+            title="Minimap — click para saltar a esa posición"
             onClick={(e) => {
               const rect = e.currentTarget.getBoundingClientRect();
               const ratio = (e.clientX - rect.left) / rect.width;
@@ -3935,22 +3945,23 @@ export function PanelHistoriaMundo({
                     key={evt.id}
                     style={{
                       position: "absolute",
-                      left: `${(i / total) * 100}%`,
+                      left: `${(i / (total - 1 || 1)) * 100}%`,
                       top: "50%",
                       transform: "translate(-50%, -50%)",
-                      width: 3,
-                      height: 3,
+                      width: 4,
+                      height: 4,
                       borderRadius: "50%",
                       background: srcColor[evt.source] ?? "var(--primary)",
-                      opacity: 0.6,
+                      opacity: 0.8,
+                      flexShrink: 0,
                     }}
                   />
                 );
               });
             })()}
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
