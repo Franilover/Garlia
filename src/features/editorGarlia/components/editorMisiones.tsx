@@ -1102,6 +1102,38 @@ export default function EditorMisiones() {
                   />
                 </Campo>
 
+                {/* ── Entidades vinculadas — visible de inmediato ── */}
+                {form.id ? (
+                  <PanelEntidadesMision misionId={form.id} />
+                ) : (
+                  <div
+                    className="rounded-xl flex items-center justify-center py-2.5 gap-2"
+                    style={{
+                      border:
+                        "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+                      background:
+                        "color-mix(in srgb, var(--primary) 2%, transparent)",
+                    }}
+                  >
+                    <Swords
+                      size={9}
+                      style={{
+                        color:
+                          "color-mix(in srgb, var(--primary) 25%, transparent)",
+                      }}
+                    />
+                    <span
+                      className="text-[8px] font-black uppercase tracking-widest"
+                      style={{
+                        color:
+                          "color-mix(in srgb, var(--primary) 25%, transparent)",
+                      }}
+                    >
+                      Guarda la misión para vincular entidades
+                    </span>
+                  </div>
+                )}
+
                 <Campo label="Descripción">
                   <textarea
                     className="campo-input"
@@ -1258,38 +1290,6 @@ export default function EditorMisiones() {
                     />
                   </Campo>
                 </div>
-
-                {/* ── Entidades vinculadas ── */}
-                {form.id ? (
-                  <PanelEntidadesMision misionId={form.id} />
-                ) : (
-                  <div
-                    className="rounded-xl flex items-center justify-center py-3 gap-2"
-                    style={{
-                      border:
-                        "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
-                      background:
-                        "color-mix(in srgb, var(--primary) 2%, transparent)",
-                    }}
-                  >
-                    <Swords
-                      size={9}
-                      style={{
-                        color:
-                          "color-mix(in srgb, var(--primary) 25%, transparent)",
-                      }}
-                    />
-                    <span
-                      className="text-[8px] font-black uppercase tracking-widest"
-                      style={{
-                        color:
-                          "color-mix(in srgb, var(--primary) 25%, transparent)",
-                      }}
-                    >
-                      Guarda la misión para vincular entidades
-                    </span>
-                  </div>
-                )}
 
                 <SelectorItemRecompensa
                   itemId={form.recompensa_item_id}

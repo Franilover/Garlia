@@ -417,6 +417,7 @@ export interface MisionLocal {
   recompensa_monedas: number;
   recompensa_item_nombre?: string | null;
   recompensa_item_imagen_url?: string | null;
+  recompensa_item_id?: string | null;
   activa: boolean;
   creado_en?: string;
   cached_at?: number;
