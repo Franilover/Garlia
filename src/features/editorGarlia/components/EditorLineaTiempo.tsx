@@ -3695,6 +3695,16 @@ export function PanelHistoriaMundo({
                       ? Math.floor(evt.dia_absoluto / diasAnioLocal)
                       : null;
 
+                  const eraDelEvento =
+                    anioEvt !== null
+                      ? (cal?.eras ?? []).find(
+                          (era: any) =>
+                            era.anio_inicio <= anioEvt &&
+                            (era.anio_fin == null || era.anio_fin >= anioEvt),
+                        )
+                      : null;
+                  const eraNodeColor = eraDelEvento?.color ?? null;
+
                   // ── Separador de año ────────────────────────────────────
                   if (anioEvt !== null && anioEvt !== lastAnio) {
                     const eraDesteAnio = (cal?.eras ?? []).find(
@@ -3790,40 +3800,20 @@ export function PanelHistoriaMundo({
                         />
                         <div
                           className="shrink-0 rounded-full transition-all"
-                          style={
-                            isCapitulo
-                              ? {
-                                  width: 8,
-                                  height: 8,
-                                  background:
-                                    "color-mix(in srgb, var(--accent) 70%, var(--primary))",
-                                  boxShadow:
-                                    "0 0 0 2px color-mix(in srgb, var(--accent) 15%, transparent)",
-                                }
-                              : isCancion
-                                ? {
-                                    width: 8,
-                                    height: 8,
-                                    background: "var(--accent)",
-                                    boxShadow:
-                                      "0 0 0 2px color-mix(in srgb, var(--accent) 20%, transparent)",
-                                  }
-                                : isCumpleanos
-                                  ? {
-                                      width: 8,
-                                      height: 8,
-                                      background: "var(--accent)",
-                                      boxShadow:
-                                        "0 0 0 2px color-mix(in srgb, var(--accent) 22%, transparent)",
-                                    }
-                                  : {
-                                      width: 10,
-                                      height: 10,
-                                      background: "var(--primary)",
-                                      boxShadow:
-                                        "0 0 0 3px color-mix(in srgb, var(--primary) 15%, transparent)",
-                                    }
-                          }
+                          style={{
+                            width: isEventoMundo ? 10 : 8,
+                            height: isEventoMundo ? 10 : 8,
+                            background: eraNodeColor
+                              ? eraNodeColor
+                              : isCapitulo || isCancion || isCumpleanos
+                                ? "var(--accent)"
+                                : "var(--primary)",
+                            boxShadow: eraNodeColor
+                              ? `0 0 0 ${isEventoMundo ? 3 : 2}px ${eraNodeColor}28`
+                              : isCapitulo || isCancion || isCumpleanos
+                                ? "0 0 0 2px color-mix(in srgb, var(--accent) 18%, transparent)"
+                                : "0 0 0 3px color-mix(in srgb, var(--primary) 15%, transparent)",
+                          }}
                         />
                         <div
                           className="flex-1 h-px"
@@ -3918,7 +3908,7 @@ export function PanelHistoriaMundo({
               border:
                 "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
               borderRadius: 4,
-              cursor: "crosshair",
+              cursor: "pointer",
             }}
             title="Minimap — click para saltar a esa posición"
             onClick={(e) => {
