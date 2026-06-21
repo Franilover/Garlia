@@ -29,7 +29,6 @@ import {
 import React, { useCallback, useEffect, useState } from "react";
 
 import { MotionDiv } from "@/components/ui/Motion";
-import { SeccionEntidad } from "@/components/ui/SeccionEntidad";
 import { isReallyOnline } from "@/hooks/data/useOfflineSync";
 import SimpleImagePicker from "@/features/editorGarlia/components/editorCapitulos/snippets/forms/SimpleImagePicker";
 import { supabase } from "@/lib/api/client/supabase";
@@ -2238,15 +2237,12 @@ function PanelEntidadesMision({ misionId }: { misionId: string }) {
         )}
 
         {/* Selector de entidades del catálogo */}
-        <SeccionEntidad
-          allEntities={catalogo}
-          emptyLabel={`Sin ${TIPO_CONFIG[tipoActivo].label.toLowerCase()} en el catálogo`}
-          fallbackIcon={TIPO_CONFIG[tipoActivo].icon}
-          icon={TIPO_CONFIG[tipoActivo].icon}
-          label={TIPO_CONFIG[tipoActivo].label}
+        <SelectorCatalogo
+          catalogo={catalogo}
           loading={loadingCat}
           saving={saving}
           selectedIds={selectedIds}
+          tipo={tipoActivo}
           onToggle={handleToggle}
         />
       </div>
@@ -2306,4 +2302,139 @@ async function resolverNombres(
     nombre: nombreMap.get(r.entidad_id)?.nombre ?? "—",
     imagen_url: nombreMap.get(r.entidad_id)?.imagen_url ?? null,
   }));
+}
+
+// ── Selector de catálogo (reemplaza SeccionEntidad — siempre muestra el buscador) ──
+
+function SelectorCatalogo({
+  catalogo,
+  loading,
+  saving,
+  selectedIds,
+  tipo,
+  onToggle,
+}: {
+  catalogo: EntidadMin[];
+  loading: boolean;
+  saving: boolean;
+  selectedIds: string[];
+  tipo: TipoEntidad;
+  onToggle: (id: string, add: boolean) => void;
+}) {
+  const [busqueda, setBusqueda] = React.useState("");
+
+  const filtrados = catalogo.filter((e) =>
+    e.nombre.toLowerCase().includes(busqueda.toLowerCase()),
+  );
+
+  const divider =
+    "1px solid color-mix(in srgb, var(--primary) 6%, transparent)";
+  const subtle = {
+    color: "color-mix(in srgb, var(--primary) 30%, transparent)",
+  };
+
+  return (
+    <div className="mt-1">
+      {/* Input búsqueda — siempre visible */}
+      <div
+        className="flex items-center gap-2 px-2.5 py-1.5 mb-1.5 rounded-lg"
+        style={{
+          background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+          border: divider,
+        }}
+      >
+        <Search size={10} style={subtle} />
+        <input
+          className="flex-1 bg-transparent outline-none text-[10px]"
+          placeholder={`Buscar ${TIPO_CONFIG[tipo].label.toLowerCase()}…`}
+          style={{ color: "var(--primary)" }}
+          value={busqueda}
+          onChange={(e) => setBusqueda(e.target.value)}
+        />
+        {(saving || loading) && (
+          <Loader2 className="animate-spin shrink-0" size={9} style={subtle} />
+        )}
+      </div>
+
+      {/* Lista */}
+      {loading && catalogo.length === 0 ? (
+        <div className="flex items-center justify-center py-4">
+          <Loader2 className="animate-spin" size={12} style={subtle} />
+        </div>
+      ) : filtrados.length === 0 ? (
+        <p
+          className="text-center text-[8px] py-3 font-black uppercase tracking-wider"
+          style={subtle}
+        >
+          {busqueda
+            ? "Sin resultados"
+            : `Sin ${TIPO_CONFIG[tipo].label.toLowerCase()} disponibles`}
+        </p>
+      ) : (
+        <div
+          className="flex flex-col overflow-y-auto"
+          style={{ maxHeight: "160px" }}
+        >
+          {filtrados.map((e) => {
+            const sel = selectedIds.includes(e.id);
+            return (
+              <button
+                key={e.id}
+                className="flex items-center gap-2 px-2 py-1.5 w-full text-left transition-all"
+                style={{
+                  background: sel
+                    ? "color-mix(in srgb, var(--primary) 8%, transparent)"
+                    : "transparent",
+                  borderBottom: divider,
+                  opacity: saving ? 0.6 : 1,
+                }}
+                type="button"
+                onClick={() => !saving && onToggle(e.id, !sel)}
+              >
+                <div
+                  className="w-5 h-5 shrink-0 overflow-hidden flex items-center justify-center rounded"
+                  style={{
+                    background:
+                      "color-mix(in srgb, var(--primary) 8%, transparent)",
+                  }}
+                >
+                  {e.imagen_url ? (
+                    <img
+                      alt={e.nombre}
+                      className="w-full h-full object-cover"
+                      src={e.imagen_url}
+                    />
+                  ) : (
+                    <span style={subtle}>{TIPO_CONFIG[tipo].icon}</span>
+                  )}
+                </div>
+                <span
+                  className="flex-1 min-w-0 truncate text-[10px] font-bold capitalize"
+                  style={{ color: "var(--primary)" }}
+                >
+                  {e.nombre}
+                </span>
+                {sel && (
+                  <div
+                    className="w-3.5 h-3.5 shrink-0 rounded-full flex items-center justify-center"
+                    style={{ background: "var(--primary)" }}
+                  >
+                    <svg fill="none" height="6" viewBox="0 0 7 7" width="6">
+                      <path
+                        d="M1 3.5L3 5.5L6 1.5"
+                        stroke="white"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="1.3"
+                      />
+                    </svg>
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
 }

@@ -2730,6 +2730,7 @@ export function PanelHistoriaMundo({
   const [showCanciones, setShowCanciones] = useState(true);
   const [showEventos, setShowEventos] = useState(true);
   const [modoLista, setModoLista] = useState(false);
+  const [evtSeleccionado, setEvtSeleccionado] = useState<string | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [showCumpleanos, setShowCumpleanos] = useState(true);
   const [showDescripciones, setShowDescripciones] = useState(true);
@@ -3149,22 +3150,32 @@ export function PanelHistoriaMundo({
 
         <div className="ml-auto flex items-center gap-2">
           <SaveIndicator status={saveStatus} />
-          {/* Toggle modo lista */}
+          {/* Toggle modo lista — solo disponible en modo compacto */}
           <button
             className="flex items-center gap-1 px-2 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-widest border transition-all"
             style={{
               borderColor: modoLista
                 ? "color-mix(in srgb, var(--primary) 22%, transparent)"
-                : "color-mix(in srgb, var(--primary) 12%, transparent)",
+                : "color-mix(in srgb, var(--primary) 10%, transparent)",
               background: modoLista
                 ? "color-mix(in srgb, var(--primary) 8%, transparent)"
                 : "transparent",
               color: modoLista
                 ? "var(--primary)"
-                : "color-mix(in srgb, var(--primary) 35%, transparent)",
+                : "color-mix(in srgb, var(--primary) 25%, transparent)",
+              opacity: showDescripciones && !modoLista ? 0.35 : 1,
+              cursor:
+                showDescripciones && !modoLista ? "not-allowed" : "pointer",
             }}
-            title={modoLista ? "Vista horizontal" : "Vista lista vertical"}
+            title={
+              showDescripciones && !modoLista
+                ? "Activa modo compacto primero"
+                : modoLista
+                  ? "Vista horizontal"
+                  : "Vista lista vertical"
+            }
             type="button"
+            disabled={showDescripciones && !modoLista}
             onClick={() => setModoLista((v) => !v)}
           >
             {modoLista ? <AlignLeft size={9} /> : <List size={9} />}
@@ -3190,7 +3201,12 @@ export function PanelHistoriaMundo({
                 : "Mostrar descripciones"
             }
             type="button"
-            onClick={() => setShowDescripciones((v) => !v)}
+            onClick={() => {
+              const next = !showDescripciones;
+              setShowDescripciones(next);
+              // Al expandir descripciones, salir del modo lista automáticamente
+              if (next) setModoLista(false);
+            }}
           >
             <Layers size={9} />
             {showDescripciones ? "Compactar" : "Expandir"}
@@ -3376,124 +3392,304 @@ export function PanelHistoriaMundo({
             <Loader2 className="animate-spin text-primary/20" size={14} />
           </div>
         ) : modoLista ? (
-          /* ── MODO LISTA VERTICAL ─────────────────────────────────────────── */
-          <div className="flex flex-col gap-1 max-w-2xl">
-            {allEvents.length === 0 && (
-              <p className="text-[9px] text-primary/20 italic px-2 py-2">
-                Sin eventos con fecha asignada.
-              </p>
-            )}
-            {(() => {
-              const items: React.ReactNode[] = [];
-              let lastAnio: number | null = null;
-              for (const evt of allEvents) {
-                const anio =
-                  evt.dia_absoluto != null
-                    ? Math.floor(
-                        evt.dia_absoluto /
-                          (cal?.estaciones?.reduce(
-                            (s: number, e: any) => s + (e.duracion_dias ?? 0),
-                            0,
-                          ) || 365),
-                      )
-                    : null;
-                if (anio !== null && anio !== lastAnio) {
-                  lastAnio = anio;
-                  items.push(
-                    <div
-                      key={`list-sep-${anio}`}
-                      className="flex items-center gap-2 mt-2 mb-0.5"
-                    >
-                      <span
-                        className="text-[7px] font-black uppercase tracking-[0.2em] px-2 py-0.5 rounded-full"
-                        style={{
-                          background:
-                            "color-mix(in srgb, var(--primary) 7%, transparent)",
-                          color:
-                            "color-mix(in srgb, var(--primary) 45%, transparent)",
-                          border:
-                            "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-                        }}
-                      >
-                        Año {anio}
-                      </span>
-                      <div
-                        className="flex-1 h-px"
-                        style={{
-                          background:
-                            "color-mix(in srgb, var(--primary) 8%, transparent)",
-                        }}
-                      />
-                    </div>,
-                  );
-                }
-                const srcColor: Record<string, string> = {
-                  mundo: "var(--primary)",
-                  reino: "var(--primary)",
-                  cancion: "var(--accent)",
-                  capitulo:
-                    "color-mix(in srgb, var(--primary) 60%, var(--accent))",
-                  cumpleanos: "var(--accent)",
-                };
-                const dotColor = srcColor[evt.source] ?? "var(--primary)";
-                items.push(
+          /* ── MODO LISTA VERTICAL (solo en modo compacto) ─────────────────── */
+          (() => {
+            const diasAnioLista =
+              cal?.estaciones?.reduce(
+                (s: number, e: any) => s + (e.duracion_dias ?? 0),
+                0,
+              ) || 365;
+
+            const getEraEvt = (diaAbs: number | null | undefined) =>
+              diaAbs != null
+                ? ((cal?.eras ?? []).find(
+                    (era: any) =>
+                      era.anio_inicio <= Math.floor(diaAbs / diasAnioLista) &&
+                      (era.anio_fin == null ||
+                        era.anio_fin >= Math.floor(diaAbs / diasAnioLista)),
+                  ) ?? null)
+                : null;
+
+            const total = allEvents.length;
+            const selEvt =
+              allEvents.find((e) => e.id === evtSeleccionado) ?? null;
+            const selEra = selEvt ? getEraEvt(selEvt.dia_absoluto) : null;
+            const selEraColor = selEra?.color ?? null;
+
+            return (
+              <div className="flex gap-0" style={{ minHeight: 120 }}>
+                {/* ── Minimap vertical ── */}
+                {total > 0 && (
                   <div
-                    key={`list-${evt.id}`}
-                    className="flex items-start gap-2 px-2 py-1.5 rounded-lg transition-all"
+                    className="relative shrink-0"
                     style={{
+                      width: 14,
+                      marginRight: 8,
                       background:
-                        "color-mix(in srgb, var(--primary) 2%, transparent)",
+                        "color-mix(in srgb, var(--primary) 4%, transparent)",
                       border:
-                        "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+                        "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                      borderRadius: 4,
+                      cursor: "pointer",
+                    }}
+                    title="Minimap vertical — click para saltar"
+                    onClick={(e) => {
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      const ratio = (e.clientY - rect.top) / rect.height;
+                      const listEl = e.currentTarget.nextElementSibling;
+                      if (!listEl) return;
+                      listEl.scrollTop =
+                        ratio * (listEl.scrollHeight - listEl.clientHeight);
                     }}
                   >
-                    {/* dot */}
+                    {allEvents.map((evt, i) => {
+                      const eraC = getEraEvt(evt.dia_absoluto)?.color ?? null;
+                      const dotC =
+                        eraC ??
+                        "color-mix(in srgb, var(--primary) 40%, transparent)";
+                      const isSel = evt.id === evtSeleccionado;
+                      return (
+                        <div
+                          key={evt.id}
+                          style={{
+                            position: "absolute",
+                            top: `${(i / (total - 1 || 1)) * 100}%`,
+                            left: "50%",
+                            transform: "translate(-50%, -50%)",
+                            width: isSel ? 6 : 4,
+                            height: isSel ? 6 : 4,
+                            borderRadius: "50%",
+                            background: dotC,
+                            opacity: isSel ? 1 : 0.75,
+                            boxShadow: isSel ? `0 0 0 2px ${dotC}40` : "none",
+                            transition: "all 0.15s",
+                          }}
+                        />
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* ── Lista compacta ── */}
+                <div
+                  className="flex flex-col gap-0.5 min-w-0"
+                  style={{
+                    flex: selEvt ? "0 0 auto" : "1",
+                    width: selEvt ? 180 : undefined,
+                    overflowY: "auto",
+                  }}
+                >
+                  {allEvents.length === 0 && (
+                    <p className="text-[9px] text-primary/20 italic px-2 py-2">
+                      Sin eventos con fecha asignada.
+                    </p>
+                  )}
+                  {(() => {
+                    const items: React.ReactNode[] = [];
+                    let lastAnio: number | null = null;
+                    for (const evt of allEvents) {
+                      const anio =
+                        evt.dia_absoluto != null
+                          ? Math.floor(evt.dia_absoluto / diasAnioLista)
+                          : null;
+                      const eraEvt = getEraEvt(evt.dia_absoluto);
+                      const eraColor = eraEvt?.color ?? null;
+                      const dotColor =
+                        eraColor ??
+                        "color-mix(in srgb, var(--primary) 45%, transparent)";
+                      const isSel = evt.id === evtSeleccionado;
+
+                      if (anio !== null && anio !== lastAnio) {
+                        lastAnio = anio;
+                        items.push(
+                          <div
+                            key={`list-sep-${anio}`}
+                            className="flex items-center gap-1.5 mt-2 mb-0.5"
+                          >
+                            <span
+                              className="text-[7px] font-black uppercase tracking-[0.2em] px-1.5 py-0.5 rounded-full shrink-0"
+                              style={{
+                                background: eraColor
+                                  ? `${eraColor}18`
+                                  : "color-mix(in srgb, var(--primary) 7%, transparent)",
+                                color:
+                                  eraColor ??
+                                  "color-mix(in srgb, var(--primary) 45%, transparent)",
+                                border: `1px solid ${eraColor ? `${eraColor}30` : "color-mix(in srgb, var(--primary) 12%, transparent)"}`,
+                              }}
+                            >
+                              {anio}
+                              {eraEvt?.nombre ? ` · ${eraEvt.nombre}` : ""}
+                            </span>
+                            <div
+                              className="flex-1 h-px"
+                              style={{
+                                background: eraColor
+                                  ? `${eraColor}25`
+                                  : "color-mix(in srgb, var(--primary) 8%, transparent)",
+                              }}
+                            />
+                          </div>,
+                        );
+                      }
+
+                      items.push(
+                        <button
+                          key={`list-${evt.id}`}
+                          type="button"
+                          className="flex items-center gap-2 px-2 py-1 rounded-lg w-full text-left transition-all"
+                          style={{
+                            background: isSel
+                              ? eraColor
+                                ? `${eraColor}14`
+                                : "color-mix(in srgb, var(--primary) 6%, transparent)"
+                              : "transparent",
+                            border: `1px solid ${
+                              isSel
+                                ? eraColor
+                                  ? `${eraColor}30`
+                                  : "color-mix(in srgb, var(--primary) 15%, transparent)"
+                                : "transparent"
+                            }`,
+                          }}
+                          onClick={() =>
+                            setEvtSeleccionado(isSel ? null : evt.id)
+                          }
+                        >
+                          <div
+                            className="shrink-0"
+                            style={{
+                              width: 5,
+                              height: 5,
+                              borderRadius: "50%",
+                              background: dotColor,
+                              boxShadow: isSel
+                                ? `0 0 0 2px ${eraColor ? `${eraColor}35` : "color-mix(in srgb, var(--primary) 18%, transparent)"}`
+                                : "none",
+                              transition: "box-shadow 0.15s",
+                            }}
+                          />
+                          <span
+                            className="text-[10px] font-bold truncate flex-1"
+                            style={{
+                              color: isSel
+                                ? "var(--primary)"
+                                : "color-mix(in srgb, var(--primary) 65%, transparent)",
+                            }}
+                          >
+                            {evt.title || (
+                              <span className="italic opacity-40">
+                                Sin título
+                              </span>
+                            )}
+                          </span>
+                        </button>,
+                      );
+                    }
+                    return items;
+                  })()}
+                </div>
+
+                {/* ── Panel de detalle ── */}
+                {selEvt && (
+                  <div
+                    className="flex-1 min-w-0 ml-2 rounded-xl p-3 flex flex-col gap-2"
+                    style={{
+                      background: selEraColor
+                        ? `${selEraColor}08`
+                        : "color-mix(in srgb, var(--primary) 3%, transparent)",
+                      border: `1px solid ${selEraColor ? `${selEraColor}22` : "color-mix(in srgb, var(--primary) 10%, transparent)"}`,
+                    }}
+                  >
+                    {/* Era badge */}
+                    {selEra && (
+                      <span
+                        className="text-[7px] font-black uppercase tracking-[0.2em] px-2 py-0.5 rounded-full self-start"
+                        style={{
+                          background: selEraColor
+                            ? `${selEraColor}18`
+                            : "color-mix(in srgb, var(--primary) 7%, transparent)",
+                          color:
+                            selEraColor ??
+                            "color-mix(in srgb, var(--primary) 45%, transparent)",
+                          border: `1px solid ${selEraColor ? `${selEraColor}30` : "color-mix(in srgb, var(--primary) 12%, transparent)"}`,
+                        }}
+                      >
+                        {selEra.nombre}
+                      </span>
+                    )}
+                    {/* Título */}
+                    <p
+                      className="text-[13px] font-black uppercase leading-tight"
+                      style={{ color: "var(--primary)" }}
+                    >
+                      {selEvt.title || (
+                        <span className="italic opacity-40">Sin título</span>
+                      )}
+                    </p>
+                    {/* Fecha */}
+                    {selEvt.dia_absoluto != null && (
+                      <p
+                        className="text-[8px] font-black uppercase tracking-widest"
+                        style={{
+                          color:
+                            selEraColor ??
+                            "color-mix(in srgb, var(--primary) 35%, transparent)",
+                        }}
+                      >
+                        Año {Math.floor(selEvt.dia_absoluto / diasAnioLista)}
+                      </p>
+                    )}
+                    {/* Separador */}
                     <div
-                      className="shrink-0 mt-1"
                       style={{
-                        width: 6,
-                        height: 6,
-                        borderRadius: "50%",
-                        background: dotColor,
-                        boxShadow: `0 0 0 2px color-mix(in srgb, ${dotColor} 20%, transparent)`,
+                        height: 1,
+                        background: selEraColor
+                          ? `${selEraColor}20`
+                          : "color-mix(in srgb, var(--primary) 8%, transparent)",
                       }}
                     />
-                    <div className="flex-1 min-w-0">
+                    {/* Descripción */}
+                    {selEvt.description ? (
                       <p
-                        className="text-[10px] font-bold truncate"
-                        style={{ color: "var(--primary)" }}
+                        className="text-[11px] leading-relaxed"
+                        style={{
+                          color:
+                            "color-mix(in srgb, var(--primary) 65%, transparent)",
+                        }}
                       >
-                        {evt.title || (
-                          <span className="italic opacity-40">Sin título</span>
-                        )}
+                        {selEvt.description}
                       </p>
-                      {evt.description && showDescripciones && (
-                        <p
-                          className="text-[9px] mt-0.5 leading-relaxed"
-                          style={{
-                            color:
-                              "color-mix(in srgb, var(--primary) 55%, transparent)",
-                          }}
-                        >
-                          {evt.description}
-                        </p>
-                      )}
-                    </div>
+                    ) : (
+                      <p
+                        className="text-[10px] italic"
+                        style={{
+                          color:
+                            "color-mix(in srgb, var(--primary) 20%, transparent)",
+                        }}
+                      >
+                        Sin descripción.
+                      </p>
+                    )}
+                    {/* Source badge */}
                     <span
-                      className="shrink-0 text-[7px] font-black uppercase tracking-widest"
+                      className="text-[7px] font-black uppercase tracking-widest self-start mt-auto px-1.5 py-0.5 rounded"
                       style={{
+                        background:
+                          "color-mix(in srgb, var(--primary) 5%, transparent)",
                         color:
-                          "color-mix(in srgb, var(--primary) 25%, transparent)",
+                          "color-mix(in srgb, var(--primary) 30%, transparent)",
+                        border:
+                          "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
                       }}
                     >
-                      {evt.source}
+                      {selEvt.source}
                     </span>
-                  </div>,
-                );
-              }
-              return items;
-            })()}
-          </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()
         ) : (
           <div
             ref={scrollContainerRef}
