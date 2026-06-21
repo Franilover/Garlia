@@ -399,8 +399,10 @@ export default function EditorMisiones() {
 
   // ── Form: abrir para editar ────────────────────────────────────────────────
   const abrirEditar = (m: MisionRow) => {
+    // m.id debe existir siempre — si es undefined hay un bug en el select de syncEngine
+    const misionId = m.id ?? null;
     setForm({
-      id: m.id,
+      id: misionId,
       titulo: m.titulo,
       descripcion: m.descripcion ?? "",
       dificultad: m.dificultad,
@@ -1258,7 +1260,36 @@ export default function EditorMisiones() {
                 </div>
 
                 {/* ── Entidades vinculadas ── */}
-                {form.id && <PanelEntidadesMision misionId={form.id} />}
+                {form.id ? (
+                  <PanelEntidadesMision misionId={form.id} />
+                ) : (
+                  <div
+                    className="rounded-xl flex items-center justify-center py-3 gap-2"
+                    style={{
+                      border:
+                        "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+                      background:
+                        "color-mix(in srgb, var(--primary) 2%, transparent)",
+                    }}
+                  >
+                    <Swords
+                      size={9}
+                      style={{
+                        color:
+                          "color-mix(in srgb, var(--primary) 25%, transparent)",
+                      }}
+                    />
+                    <span
+                      className="text-[8px] font-black uppercase tracking-widest"
+                      style={{
+                        color:
+                          "color-mix(in srgb, var(--primary) 25%, transparent)",
+                      }}
+                    >
+                      Guarda la misión para vincular entidades
+                    </span>
+                  </div>
+                )}
 
                 <SelectorItemRecompensa
                   itemId={form.recompensa_item_id}

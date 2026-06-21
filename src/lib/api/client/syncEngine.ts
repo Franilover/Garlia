@@ -932,7 +932,7 @@ export async function loadMisiones(
         const { data } = await supabase
           .from("misiones")
           .select(
-            "id, titulo, descripcion, dificultad, categoria, imagen_url, requisitos, vence_en, recompensa_xp, recompensa_monedas, recompensa_item_nombre, recompensa_item_imagen_url, activa, creado_en",
+            "id, titulo, descripcion, dificultad, categoria, imagen_url, requisitos, vence_en, recompensa_xp, recompensa_monedas, recompensa_item_nombre, recompensa_item_imagen_url, recompensa_item_id, activa, creado_en",
           )
           .eq("activa", true)
           .order("creado_en", { ascending: false });
@@ -963,7 +963,7 @@ export async function loadMisionesAdmin(): Promise<any[]> {
   const { data, error } = await supabase
     .from("misiones")
     .select(
-      "id, titulo, descripcion, dificultad, categoria, imagen_url, requisitos, vence_en, recompensa_xp, recompensa_monedas, recompensa_item_nombre, recompensa_item_imagen_url, activa, creado_en",
+      "id, titulo, descripcion, dificultad, categoria, imagen_url, requisitos, vence_en, recompensa_xp, recompensa_monedas, recompensa_item_nombre, recompensa_item_imagen_url, recompensa_item_id, activa, creado_en",
     )
     .order("creado_en", { ascending: false });
 
