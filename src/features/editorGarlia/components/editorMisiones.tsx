@@ -291,7 +291,10 @@ export default function EditorMisiones() {
     }
 
     const userIds = progresoData.map((r: any) => r.user_id);
-    let perfilesPorId = new Map<string, { username: string; avatar_url: string | null }>();
+    let perfilesPorId = new Map<
+      string,
+      { username: string; avatar_url: string | null }
+    >();
 
     if (userIds.length > 0) {
       const { data: perfilesData } = await supabase
@@ -299,7 +302,12 @@ export default function EditorMisiones() {
         .select("id, username, avatar_url")
         .in("id", userIds);
       const perfilesRows = perfilesData ?? [];
-      perfilesPorId = new Map(perfilesRows.map((p: any) => [p.id, { username: p.username, avatar_url: p.avatar_url }]));
+      perfilesPorId = new Map(
+        perfilesRows.map((p: any) => [
+          p.id,
+          { username: p.username, avatar_url: p.avatar_url },
+        ]),
+      );
       // Actualizar caché de perfiles con lo que llegó
       await dexiePutAll("perfiles", perfilesRows);
     }
@@ -318,7 +326,11 @@ export default function EditorMisiones() {
     // Cachear en Dexie con mision_id para la próxima carga
     await dexiePutAll(
       "misiones_usuario",
-      progresoData.map((r: any) => ({ ...r, mision_id: misionSel.id, id: `${misionSel.id}:${r.user_id}` })),
+      progresoData.map((r: any) => ({
+        ...r,
+        mision_id: misionSel.id,
+        id: `${misionSel.id}:${r.user_id}`,
+      })),
     );
 
     setCargandoProgreso(false);
@@ -1141,14 +1153,26 @@ export default function EditorMisiones() {
                       className="w-10 h-10 shrink-0 overflow-hidden flex items-center justify-center"
                       style={{
                         borderRadius: "var(--radius-btn)",
-                        background: "color-mix(in srgb, var(--primary) 6%, transparent)",
-                        border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+                        background:
+                          "color-mix(in srgb, var(--primary) 6%, transparent)",
+                        border:
+                          "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
                       }}
                     >
                       {form.imagen_url ? (
-                        <img alt="" className="w-full h-full object-cover" src={form.imagen_url} />
+                        <img
+                          alt=""
+                          className="w-full h-full object-cover"
+                          src={form.imagen_url}
+                        />
                       ) : (
-                        <Scroll size={14} style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }} />
+                        <Scroll
+                          size={14}
+                          style={{
+                            color:
+                              "color-mix(in srgb, var(--primary) 25%, transparent)",
+                          }}
+                        />
                       )}
                     </div>
                     <input
@@ -1162,7 +1186,9 @@ export default function EditorMisiones() {
                     />
                     <PickerImagenMisionBtn
                       value={form.imagen_url}
-                      onChange={(url) => setForm((f) => ({ ...f, imagen_url: url }))}
+                      onChange={(url) =>
+                        setForm((f) => ({ ...f, imagen_url: url }))
+                      }
                     />
                   </div>
                 </Campo>
@@ -1233,9 +1259,7 @@ export default function EditorMisiones() {
                 </div>
 
                 {/* ── Entidades vinculadas ── */}
-                {form.id && (
-                  <PanelEntidadesMision misionId={form.id} />
-                )}
+                {form.id && <PanelEntidadesMision misionId={form.id} />}
 
                 <SelectorItemRecompensa
                   itemId={form.recompensa_item_id}
@@ -1558,17 +1582,29 @@ function SelectorItemRecompensa({
           className="flex items-center gap-2 px-3 py-2 rounded-lg"
           style={{
             background: "color-mix(in srgb, var(--primary) 5%, transparent)",
-            border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
+            border:
+              "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
           }}
         >
           <div
             className="w-7 h-7 shrink-0 overflow-hidden flex items-center justify-center rounded"
-            style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
+            style={{
+              background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+            }}
           >
             {itemImagenUrl ? (
-              <img alt={itemNombre} className="w-full h-full object-cover" src={itemImagenUrl} />
+              <img
+                alt={itemNombre}
+                className="w-full h-full object-cover"
+                src={itemImagenUrl}
+              />
             ) : (
-              <Package size={11} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
+              <Package
+                size={11}
+                style={{
+                  color: "color-mix(in srgb, var(--primary) 30%, transparent)",
+                }}
+              />
             )}
           </div>
           <span
@@ -1579,7 +1615,9 @@ function SelectorItemRecompensa({
           </span>
           <button
             className="shrink-0 transition-opacity hover:opacity-70"
-            style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
+            style={{
+              color: "color-mix(in srgb, var(--primary) 35%, transparent)",
+            }}
             title="Quitar item"
             type="button"
             onClick={limpiar}
@@ -1592,7 +1630,8 @@ function SelectorItemRecompensa({
           className="flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-left"
           style={{
             background: "color-mix(in srgb, var(--primary) 3%, transparent)",
-            border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+            border:
+              "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
             color: "color-mix(in srgb, var(--primary) 30%, transparent)",
             fontSize: "11px",
             fontWeight: 600,
@@ -1608,7 +1647,9 @@ function SelectorItemRecompensa({
       {itemId && (
         <button
           className="text-[9px] font-black uppercase tracking-wider text-left transition-opacity hover:opacity-70 pl-0.5"
-          style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
+          style={{
+            color: "color-mix(in srgb, var(--primary) 35%, transparent)",
+          }}
           type="button"
           onClick={() => setOpen(true)}
         >
@@ -1643,11 +1684,22 @@ function SelectorItemRecompensa({
 
             {/* Búsqueda */}
             <div className="px-3 py-2 shrink-0 border-b border-primary/8">
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg" style={{
-                background: "color-mix(in srgb, var(--primary) 4%, transparent)",
-                border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-              }}>
-                <Search size={11} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
+              <div
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg"
+                style={{
+                  background:
+                    "color-mix(in srgb, var(--primary) 4%, transparent)",
+                  border:
+                    "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                }}
+              >
+                <Search
+                  size={11}
+                  style={{
+                    color:
+                      "color-mix(in srgb, var(--primary) 30%, transparent)",
+                  }}
+                />
                 <input
                   autoFocus
                   className="flex-1 bg-transparent outline-none text-[11px]"
@@ -1663,11 +1715,24 @@ function SelectorItemRecompensa({
             <div className="overflow-y-auto flex-1">
               {cargando ? (
                 <div className="flex items-center justify-center py-10">
-                  <Loader2 className="animate-spin" size={16} style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }} />
+                  <Loader2
+                    className="animate-spin"
+                    size={16}
+                    style={{
+                      color:
+                        "color-mix(in srgb, var(--primary) 25%, transparent)",
+                    }}
+                  />
                 </div>
               ) : filtrados.length === 0 ? (
                 <div className="flex items-center justify-center py-10">
-                  <p className="font-serif italic text-[11px]" style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>
+                  <p
+                    className="font-serif italic text-[11px]"
+                    style={{
+                      color:
+                        "color-mix(in srgb, var(--primary) 25%, transparent)",
+                    }}
+                  >
                     Sin resultados
                   </p>
                 </div>
@@ -1677,10 +1742,12 @@ function SelectorItemRecompensa({
                     key={item.id}
                     className="w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors"
                     style={{
-                      borderBottom: "1px solid color-mix(in srgb, var(--primary) 5%, transparent)",
-                      background: itemId === item.id
-                        ? "color-mix(in srgb, var(--primary) 6%, transparent)"
-                        : "transparent",
+                      borderBottom:
+                        "1px solid color-mix(in srgb, var(--primary) 5%, transparent)",
+                      background:
+                        itemId === item.id
+                          ? "color-mix(in srgb, var(--primary) 6%, transparent)"
+                          : "transparent",
                     }}
                     type="button"
                     onClick={() => {
@@ -1691,20 +1758,42 @@ function SelectorItemRecompensa({
                   >
                     <div
                       className="w-7 h-7 shrink-0 overflow-hidden flex items-center justify-center rounded"
-                      style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
+                      style={{
+                        background:
+                          "color-mix(in srgb, var(--primary) 8%, transparent)",
+                      }}
                     >
                       {item.imagen_url ? (
-                        <img alt={item.nombre} className="w-full h-full object-cover" src={item.imagen_url} />
+                        <img
+                          alt={item.nombre}
+                          className="w-full h-full object-cover"
+                          src={item.imagen_url}
+                        />
                       ) : (
-                        <Package size={10} style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }} />
+                        <Package
+                          size={10}
+                          style={{
+                            color:
+                              "color-mix(in srgb, var(--primary) 25%, transparent)",
+                          }}
+                        />
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[11px] font-bold capitalize truncate" style={{ color: "var(--primary)" }}>
+                      <p
+                        className="text-[11px] font-bold capitalize truncate"
+                        style={{ color: "var(--primary)" }}
+                      >
                         {item.nombre}
                       </p>
                       {item.categoria && (
-                        <p className="text-[9px] uppercase tracking-wider truncate" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
+                        <p
+                          className="text-[9px] uppercase tracking-wider truncate"
+                          style={{
+                            color:
+                              "color-mix(in srgb, var(--primary) 30%, transparent)",
+                          }}
+                        >
                           {item.categoria}
                         </p>
                       )}
@@ -1715,7 +1804,13 @@ function SelectorItemRecompensa({
                         style={{ background: "var(--primary)" }}
                       >
                         <svg fill="none" height="7" viewBox="0 0 7 7" width="7">
-                          <path d="M1 3.5L3 5.5L6 1.5" stroke="white" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.2" />
+                          <path
+                            d="M1 3.5L3 5.5L6 1.5"
+                            stroke="white"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="1.2"
+                          />
                         </svg>
                       </div>
                     )}
@@ -1746,18 +1841,46 @@ type EntidadVinculo = {
 
 type EntidadMin = { id: string; nombre: string; imagen_url?: string | null };
 
-const TIPO_CONFIG: Record<TipoEntidad, { label: string; icon: React.ReactNode; tabla: string; imgCol: string }> = {
-  personaje: { label: "Personajes", icon: <User size={9} />,   tabla: "personajes", imgCol: "img_url" },
-  criatura:  { label: "Criaturas",  icon: <Bug size={9} />,    tabla: "criaturas",  imgCol: "imagen_url" },
-  item:      { label: "Objetos",    icon: <Swords size={9} />, tabla: "items",      imgCol: "imagen_url" },
-  ciudad:    { label: "Ciudades",   icon: <MapPin size={9} />, tabla: "ciudades",   imgCol: "imagen_url" },
-  reino:     { label: "Reinos",     icon: <Globe size={9} />,  tabla: "reinos",     imgCol: "imagen_url" },
+const TIPO_CONFIG: Record<
+  TipoEntidad,
+  { label: string; icon: React.ReactNode; tabla: string; imgCol: string }
+> = {
+  personaje: {
+    label: "Personajes",
+    icon: <User size={9} />,
+    tabla: "personajes",
+    imgCol: "img_url",
+  },
+  criatura: {
+    label: "Criaturas",
+    icon: <Bug size={9} />,
+    tabla: "criaturas",
+    imgCol: "imagen_url",
+  },
+  item: {
+    label: "Objetos",
+    icon: <Swords size={9} />,
+    tabla: "items",
+    imgCol: "imagen_url",
+  },
+  ciudad: {
+    label: "Ciudades",
+    icon: <MapPin size={9} />,
+    tabla: "ciudades",
+    imgCol: "imagen_url",
+  },
+  reino: {
+    label: "Reinos",
+    icon: <Globe size={9} />,
+    tabla: "reinos",
+    imgCol: "imagen_url",
+  },
 };
 
 const ROL_LABELS: Record<RolEntidad, string> = {
   relacionado: "Relacionado",
-  objetivo:    "Objetivo",
-  recompensa:  "Recompensa",
+  objetivo: "Objetivo",
+  recompensa: "Recompensa",
 };
 
 // ── Panel de entidades vinculadas ─────────────────────────────────────────────
@@ -1783,7 +1906,9 @@ function PanelEntidadesMision({ misionId }: { misionId: string }) {
         const { db } = await import("@/lib/api/client/db");
         if (db?.mision_entidades) {
           const local = await db.mision_entidades
-            .where("mision_id").equals(misionId).toArray();
+            .where("mision_id")
+            .equals(misionId)
+            .toArray();
           if (!cancelled && local.length > 0) {
             // Necesitamos nombres — los buscamos en los catálogos locales
             const resueltos = await resolverNombres(local as any[]);
@@ -1807,7 +1932,7 @@ function PanelEntidadesMision({ misionId }: { misionId: string }) {
             const { db } = await import("@/lib/api/client/db");
             if (db?.mision_entidades)
               await db.mision_entidades.bulkPut(
-                resueltos.map((v) => ({ ...v, mision_id: misionId }))
+                resueltos.map((v) => ({ ...v, mision_id: misionId })),
               );
           } catch {}
         }
@@ -1815,7 +1940,9 @@ function PanelEntidadesMision({ misionId }: { misionId: string }) {
       if (!cancelled) setLoadingVinculos(false);
     }
     cargarVinculos();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [misionId]);
 
   // Cargar catálogo del tab activo bajo demanda
@@ -1825,40 +1952,49 @@ function PanelEntidadesMision({ misionId }: { misionId: string }) {
       setLoadingCat(true);
       const cfg = TIPO_CONFIG[tipoActivo];
 
-      // Dexie primero
+      // Dexie primero — solo muestra si tiene datos, sino espera Supabase
+      let dexieTeniaData = false;
       try {
         const { db } = await import("@/lib/api/client/db");
         if (db) {
-          const local: any[] = await (db as any)[cfg.tabla]?.toArray() ?? [];
+          const local: any[] = (await (db as any)[cfg.tabla]?.toArray()) ?? [];
           if (!cancelled && local.length > 0) {
-            setCatalogo(local.map((x) => ({
-              id: x.id,
-              nombre: x.nombre,
-              imagen_url: x[cfg.imgCol] ?? x.imagen_url ?? null,
-            })));
-            setLoadingCat(false);
+            dexieTeniaData = true;
+            setCatalogo(
+              local.map((x) => ({
+                id: x.id,
+                nombre: x.nombre,
+                imagen_url: x[cfg.imgCol] ?? x.imagen_url ?? null,
+              })),
+            );
+            setLoadingCat(false); // mostrar inmediatamente solo si hay datos
           }
         }
       } catch {}
 
-      // Supabase
+      // Supabase — siempre se consulta para tener datos frescos
       try {
         const { data } = await supabase
           .from(cfg.tabla)
           .select(`id, nombre, ${cfg.imgCol}`)
           .order("nombre");
         if (!cancelled && data) {
-          setCatalogo(data.map((x: any) => ({
-            id: x.id,
-            nombre: x.nombre,
-            imagen_url: x[cfg.imgCol] ?? null,
-          })));
+          setCatalogo(
+            data.map((x: any) => ({
+              id: x.id,
+              nombre: x.nombre,
+              imagen_url: x[cfg.imgCol] ?? null,
+            })),
+          );
         }
       } catch {}
+      // Quitar el spinner siempre al final (cubre el caso de Dexie vacío)
       if (!cancelled) setLoadingCat(false);
     }
     cargarCatalogo();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [tipoActivo]);
 
   const vincActivos = vinculos.filter((v) => v.tipo === tipoActivo);
@@ -1868,15 +2004,28 @@ function PanelEntidadesMision({ misionId }: { misionId: string }) {
     setSaving(true);
     if (add) {
       const entidad = catalogo.find((e) => e.id === entidadId);
-      if (!entidad) { setSaving(false); return; }
+      if (!entidad) {
+        setSaving(false);
+        return;
+      }
       const { data, error } = await supabase
         .from("mision_entidades")
-        .insert({ mision_id: misionId, tipo: tipoActivo, entidad_id: entidadId, rol: "relacionado" })
-        .select().single();
+        .insert({
+          mision_id: misionId,
+          tipo: tipoActivo,
+          entidad_id: entidadId,
+          rol: "relacionado",
+        })
+        .select()
+        .single();
       if (!error && data) {
         const nuevo: EntidadVinculo = {
-          id: data.id, entidad_id: entidadId, tipo: tipoActivo,
-          rol: "relacionado", nombre: entidad.nombre, imagen_url: entidad.imagen_url ?? null,
+          id: data.id,
+          entidad_id: entidadId,
+          tipo: tipoActivo,
+          rol: "relacionado",
+          nombre: entidad.nombre,
+          imagen_url: entidad.imagen_url ?? null,
         };
         setVinculos((prev) => [...prev, nuevo]);
         try {
@@ -1886,8 +2035,13 @@ function PanelEntidadesMision({ misionId }: { misionId: string }) {
         } catch {}
       }
     } else {
-      const vinculo = vinculos.find((v) => v.tipo === tipoActivo && v.entidad_id === entidadId);
-      if (!vinculo) { setSaving(false); return; }
+      const vinculo = vinculos.find(
+        (v) => v.tipo === tipoActivo && v.entidad_id === entidadId,
+      );
+      if (!vinculo) {
+        setSaving(false);
+        return;
+      }
       await supabase.from("mision_entidades").delete().eq("id", vinculo.id);
       setVinculos((prev) => prev.filter((v) => v.id !== vinculo.id));
       try {
@@ -1899,8 +2053,13 @@ function PanelEntidadesMision({ misionId }: { misionId: string }) {
   };
 
   const cambiarRol = async (vinculoId: string, nuevoRol: RolEntidad) => {
-    await supabase.from("mision_entidades").update({ rol: nuevoRol }).eq("id", vinculoId);
-    setVinculos((prev) => prev.map((v) => v.id === vinculoId ? { ...v, rol: nuevoRol } : v));
+    await supabase
+      .from("mision_entidades")
+      .update({ rol: nuevoRol })
+      .eq("id", vinculoId);
+    setVinculos((prev) =>
+      prev.map((v) => (v.id === vinculoId ? { ...v, rol: nuevoRol } : v)),
+    );
     try {
       const { db } = await import("@/lib/api/client/db");
       if (db?.mision_entidades) {
@@ -1910,23 +2069,46 @@ function PanelEntidadesMision({ misionId }: { misionId: string }) {
     } catch {}
   };
 
-  const divider = "1px solid color-mix(in srgb, var(--primary) 8%, transparent)";
-  const subtle = { color: "color-mix(in srgb, var(--primary) 35%, transparent)" };
-  const tiposTabs: TipoEntidad[] = ["personaje", "criatura", "item", "ciudad", "reino"];
+  const divider =
+    "1px solid color-mix(in srgb, var(--primary) 8%, transparent)";
+  const subtle = {
+    color: "color-mix(in srgb, var(--primary) 35%, transparent)",
+  };
+  const tiposTabs: TipoEntidad[] = [
+    "personaje",
+    "criatura",
+    "item",
+    "ciudad",
+    "reino",
+  ];
 
   return (
     <div className="rounded-xl overflow-hidden" style={{ border: divider }}>
       {/* Cabecera */}
-      <div className="flex items-center gap-1.5 px-3 py-2"
-        style={{ borderBottom: divider, background: "color-mix(in srgb, var(--primary) 2%, transparent)" }}>
+      <div
+        className="flex items-center gap-1.5 px-3 py-2"
+        style={{
+          borderBottom: divider,
+          background: "color-mix(in srgb, var(--primary) 2%, transparent)",
+        }}
+      >
         <Swords size={9} style={subtle} />
-        <span className="text-[8px] font-black uppercase tracking-widest" style={subtle}>
+        <span
+          className="text-[8px] font-black uppercase tracking-widest"
+          style={subtle}
+        >
           Entidades vinculadas
         </span>
-        {loadingVinculos
-          ? <Loader2 className="animate-spin ml-auto" size={9} style={subtle} />
-          : <span className="ml-auto text-[8px] font-black tabular-nums" style={subtle}>{vinculos.length}</span>
-        }
+        {loadingVinculos ? (
+          <Loader2 className="animate-spin ml-auto" size={9} style={subtle} />
+        ) : (
+          <span
+            className="ml-auto text-[8px] font-black tabular-nums"
+            style={subtle}
+          >
+            {vinculos.length}
+          </span>
+        )}
       </div>
 
       {/* Tabs */}
@@ -1936,20 +2118,33 @@ function PanelEntidadesMision({ misionId }: { misionId: string }) {
           const count = vinculos.filter((v) => v.tipo === tipo).length;
           const active = tipoActivo === tipo;
           return (
-            <button key={tipo} type="button"
+            <button
+              key={tipo}
+              type="button"
               className="flex-1 flex flex-col items-center gap-0.5 py-2 transition-all"
               style={{
-                background: active ? "color-mix(in srgb, var(--primary) 6%, transparent)" : "transparent",
+                background: active
+                  ? "color-mix(in srgb, var(--primary) 6%, transparent)"
+                  : "transparent",
                 borderRight: tipo !== "reino" ? divider : undefined,
-                color: active ? "var(--primary)" : "color-mix(in srgb, var(--primary) 30%, transparent)",
+                color: active
+                  ? "var(--primary)"
+                  : "color-mix(in srgb, var(--primary) 30%, transparent)",
               }}
               onClick={() => setTipoActivo(tipo)}
             >
               {cfg.icon}
-              <span className="text-[7px] font-black uppercase tracking-wider">{cfg.label}</span>
+              <span className="text-[7px] font-black uppercase tracking-wider">
+                {cfg.label}
+              </span>
               {count > 0 && (
-                <span className="text-[7px] font-black tabular-nums px-1 rounded"
-                  style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }}>
+                <span
+                  className="text-[7px] font-black tabular-nums px-1 rounded"
+                  style={{
+                    background:
+                      "color-mix(in srgb, var(--primary) 10%, transparent)",
+                  }}
+                >
                   {count}
                 </span>
               )}
@@ -1964,37 +2159,76 @@ function PanelEntidadesMision({ misionId }: { misionId: string }) {
         {vincActivos.length > 0 && (
           <div className="mb-2 flex flex-col gap-1">
             {vincActivos.map((v) => (
-              <div key={v.id} className="flex items-center gap-2 px-2 py-1.5 rounded-lg"
-                style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)" }}>
-                <div className="w-5 h-5 shrink-0 overflow-hidden flex items-center justify-center rounded"
-                  style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-                  {v.imagen_url
-                    ? <img alt={v.nombre} className="w-full h-full object-cover" src={v.imagen_url} />
-                    : <span className="text-[8px]">{TIPO_CONFIG[v.tipo].icon}</span>
-                  }
+              <div
+                key={v.id}
+                className="flex items-center gap-2 px-2 py-1.5 rounded-lg"
+                style={{
+                  background:
+                    "color-mix(in srgb, var(--primary) 4%, transparent)",
+                }}
+              >
+                <div
+                  className="w-5 h-5 shrink-0 overflow-hidden flex items-center justify-center rounded"
+                  style={{
+                    background:
+                      "color-mix(in srgb, var(--primary) 8%, transparent)",
+                  }}
+                >
+                  {v.imagen_url ? (
+                    <img
+                      alt={v.nombre}
+                      className="w-full h-full object-cover"
+                      src={v.imagen_url}
+                    />
+                  ) : (
+                    <span className="text-[8px]">
+                      {TIPO_CONFIG[v.tipo].icon}
+                    </span>
+                  )}
                 </div>
-                <span className="flex-1 min-w-0 truncate text-[10px] font-bold capitalize"
-                  style={{ color: "var(--primary)" }}>{v.nombre}</span>
+                <span
+                  className="flex-1 min-w-0 truncate text-[10px] font-bold capitalize"
+                  style={{ color: "var(--primary)" }}
+                >
+                  {v.nombre}
+                </span>
                 <div className="flex gap-0.5 shrink-0">
-                  {(["relacionado", "objetivo", "recompensa"] as RolEntidad[]).map((rol) => (
-                    <button key={rol} type="button"
+                  {(
+                    ["relacionado", "objetivo", "recompensa"] as RolEntidad[]
+                  ).map((rol) => (
+                    <button
+                      key={rol}
+                      type="button"
                       className="px-1.5 py-0.5 transition-all"
                       style={{
-                        borderRadius: "3px", fontSize: "7px", fontWeight: 900,
-                        letterSpacing: "0.05em", textTransform: "uppercase",
-                        background: v.rol === rol
-                          ? rol === "recompensa" ? "#16a34a"
-                          : rol === "objetivo" ? "var(--primary)"
-                          : "color-mix(in srgb, var(--primary) 20%, transparent)"
-                          : "transparent",
-                        color: v.rol === rol
-                          ? rol === "relacionado" ? "var(--primary)" : "white"
-                          : "color-mix(in srgb, var(--primary) 30%, transparent)",
+                        borderRadius: "3px",
+                        fontSize: "7px",
+                        fontWeight: 900,
+                        letterSpacing: "0.05em",
+                        textTransform: "uppercase",
+                        background:
+                          v.rol === rol
+                            ? rol === "recompensa"
+                              ? "#16a34a"
+                              : rol === "objetivo"
+                                ? "var(--primary)"
+                                : "color-mix(in srgb, var(--primary) 20%, transparent)"
+                            : "transparent",
+                        color:
+                          v.rol === rol
+                            ? rol === "relacionado"
+                              ? "var(--primary)"
+                              : "white"
+                            : "color-mix(in srgb, var(--primary) 30%, transparent)",
                       }}
                       title={ROL_LABELS[rol]}
                       onClick={() => cambiarRol(v.id, rol)}
                     >
-                      {rol === "relacionado" ? "Rel" : rol === "objetivo" ? "Obj" : "Rec"}
+                      {rol === "relacionado"
+                        ? "Rel"
+                        : rol === "objetivo"
+                          ? "Obj"
+                          : "Rec"}
                     </button>
                   ))}
                 </div>
@@ -2021,13 +2255,18 @@ function PanelEntidadesMision({ misionId }: { misionId: string }) {
 }
 
 // ── Resolver nombres de entidades desde Dexie/Supabase ────────────────────────
-async function resolverNombres(rows: Array<{ id: string; tipo: string; entidad_id: string; rol: string }>): Promise<EntidadVinculo[]> {
+async function resolverNombres(
+  rows: Array<{ id: string; tipo: string; entidad_id: string; rol: string }>,
+): Promise<EntidadVinculo[]> {
   const porTipo: Record<string, string[]> = {};
   for (const r of rows) {
     if (!porTipo[r.tipo]) porTipo[r.tipo] = [];
     porTipo[r.tipo].push(r.entidad_id);
   }
-  const nombreMap = new Map<string, { nombre: string; imagen_url: string | null }>();
+  const nombreMap = new Map<
+    string,
+    { nombre: string; imagen_url: string | null }
+  >();
   await Promise.all(
     Object.entries(porTipo).map(async ([tipo, ids]) => {
       const cfg = TIPO_CONFIG[tipo as TipoEntidad];
@@ -2035,17 +2274,26 @@ async function resolverNombres(rows: Array<{ id: string; tipo: string; entidad_i
       // Intentar Dexie primero
       try {
         const { db } = await import("@/lib/api/client/db");
-        const local: any[] = await (db as any)?.[cfg.tabla]?.bulkGet(ids) ?? [];
+        const local: any[] =
+          (await (db as any)?.[cfg.tabla]?.bulkGet(ids)) ?? [];
         for (const e of local.filter(Boolean)) {
-          nombreMap.set(e.id, { nombre: e.nombre, imagen_url: e[cfg.imgCol] ?? e.imagen_url ?? null });
+          nombreMap.set(e.id, {
+            nombre: e.nombre,
+            imagen_url: e[cfg.imgCol] ?? e.imagen_url ?? null,
+          });
         }
       } catch {}
       // Los que no encontramos en Dexie, ir a Supabase
       const faltantes = ids.filter((id) => !nombreMap.has(id));
       if (faltantes.length > 0) {
-        const { data } = await (supabase.from(cfg.tabla) as any).select(`id, nombre, ${cfg.imgCol}`).in("id", faltantes);
+        const { data } = await (supabase.from(cfg.tabla) as any)
+          .select(`id, nombre, ${cfg.imgCol}`)
+          .in("id", faltantes);
         for (const e of (data ?? []) as any[]) {
-          nombreMap.set(e.id, { nombre: e.nombre, imagen_url: e[cfg.imgCol] ?? null });
+          nombreMap.set(e.id, {
+            nombre: e.nombre,
+            imagen_url: e[cfg.imgCol] ?? null,
+          });
         }
       }
     }),
