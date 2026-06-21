@@ -5,14 +5,17 @@ import { AnimatePresence } from "framer-motion";
 import {
   AlertTriangle,
   Award,
+  Camera,
   CheckCircle2,
   Clock,
   Coins,
   Loader2,
   Lock,
+  Package,
   Plus,
   RotateCcw,
   Scroll,
+  Search,
   Sparkles,
   Trash2,
   User,
@@ -23,6 +26,7 @@ import React, { useCallback, useEffect, useState } from "react";
 
 import { MotionDiv } from "@/components/ui/Motion";
 import { isReallyOnline } from "@/hooks/data/useOfflineSync";
+import SimpleImagePicker from "@/features/editorGarlia/components/editorCapitulos/snippets/forms/SimpleImagePicker";
 import { supabase } from "@/lib/api/client/supabase";
 import { loadMisionesAdmin } from "@/lib/api/client/syncEngine";
 
@@ -43,6 +47,7 @@ interface MisionRow {
   recompensa_monedas: number;
   recompensa_item_nombre: string | null;
   recompensa_item_imagen_url: string | null;
+  recompensa_item_id: string | null;
   activa: boolean;
 }
 
@@ -67,6 +72,7 @@ interface FormState {
   recompensa_monedas: string;
   recompensa_item_nombre: string;
   recompensa_item_imagen_url: string;
+  recompensa_item_id: string | null;
   activa: boolean;
 }
 
@@ -82,6 +88,7 @@ const FORM_VACIO: FormState = {
   recompensa_monedas: "0",
   recompensa_item_nombre: "",
   recompensa_item_imagen_url: "",
+  recompensa_item_id: null,
   activa: true,
 };
 
@@ -254,6 +261,17 @@ export default function EditorMisiones() {
     if (error) {
       showToast("Error al actualizar el estado", false);
     } else {
+      // Si se completa y hay item real (con id), entregarlo al usuario
+      if (nuevoEstado === "completada" && misionSel.recompensa_item_id) {
+        await supabase.from("descubrimientos_items").upsert(
+          {
+            perfil_id: row.user_id,
+            item_id: misionSel.recompensa_item_id,
+            fecha_descubrimiento: new Date().toISOString(),
+          },
+          { onConflict: "perfil_id,item_id", ignoreDuplicates: true },
+        );
+      }
       setProgreso((prev) =>
         prev.map((p) =>
           p.user_id === row.user_id ? { ...p, estado: nuevoEstado } : p,
@@ -261,7 +279,9 @@ export default function EditorMisiones() {
       );
       showToast(
         nuevoEstado === "completada"
-          ? "Marcada como completada"
+          ? misionSel.recompensa_item_id
+            ? "¡Completada! Item entregado al usuario"
+            : "Marcada como completada"
           : "Devuelta a en curso",
         true,
       );
@@ -289,6 +309,7 @@ export default function EditorMisiones() {
       recompensa_monedas: String(m.recompensa_monedas ?? 0),
       recompensa_item_nombre: m.recompensa_item_nombre ?? "",
       recompensa_item_imagen_url: m.recompensa_item_imagen_url ?? "",
+      recompensa_item_id: m.recompensa_item_id ?? null,
       activa: m.activa,
     });
     setShowForm(true);
@@ -318,6 +339,7 @@ export default function EditorMisiones() {
       recompensa_item_nombre: form.recompensa_item_nombre.trim() || null,
       recompensa_item_imagen_url:
         form.recompensa_item_imagen_url.trim() || null,
+      recompensa_item_id: form.recompensa_item_id || null,
       activa: form.activa,
     };
 
@@ -1023,16 +1045,36 @@ export default function EditorMisiones() {
                   </Campo>
                 </div>
 
-                <Campo label="URL de imagen">
-                  <input
-                    className="campo-input"
-                    placeholder="https://…"
-                    style={inputStyle}
-                    value={form.imagen_url}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, imagen_url: e.target.value }))
-                    }
-                  />
+                <Campo label="Imagen de la misión">
+                  <div className="flex gap-2 items-center">
+                    <div
+                      className="w-10 h-10 shrink-0 overflow-hidden flex items-center justify-center"
+                      style={{
+                        borderRadius: "var(--radius-btn)",
+                        background: "color-mix(in srgb, var(--primary) 6%, transparent)",
+                        border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+                      }}
+                    >
+                      {form.imagen_url ? (
+                        <img alt="" className="w-full h-full object-cover" src={form.imagen_url} />
+                      ) : (
+                        <Scroll size={14} style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }} />
+                      )}
+                    </div>
+                    <input
+                      className="campo-input flex-1"
+                      placeholder="https://… o usa el selector"
+                      style={inputStyle}
+                      value={form.imagen_url}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, imagen_url: e.target.value }))
+                      }
+                    />
+                    <PickerImagenMisionBtn
+                      value={form.imagen_url}
+                      onChange={(url) => setForm((f) => ({ ...f, imagen_url: url }))}
+                    />
+                  </div>
                 </Campo>
 
                 <Campo label="Requisitos (opcional)">
@@ -1100,36 +1142,19 @@ export default function EditorMisiones() {
                   </Campo>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <Campo label="Nombre del item (opcional)">
-                    <input
-                      className="campo-input"
-                      placeholder="Ej. Espada del alba"
-                      style={inputStyle}
-                      value={form.recompensa_item_nombre}
-                      onChange={(e) =>
-                        setForm((f) => ({
-                          ...f,
-                          recompensa_item_nombre: e.target.value,
-                        }))
-                      }
-                    />
-                  </Campo>
-                  <Campo label="Imagen del item (opcional)">
-                    <input
-                      className="campo-input"
-                      placeholder="https://…"
-                      style={inputStyle}
-                      value={form.recompensa_item_imagen_url}
-                      onChange={(e) =>
-                        setForm((f) => ({
-                          ...f,
-                          recompensa_item_imagen_url: e.target.value,
-                        }))
-                      }
-                    />
-                  </Campo>
-                </div>
+                <SelectorItemRecompensa
+                  itemId={form.recompensa_item_id}
+                  itemNombre={form.recompensa_item_nombre}
+                  itemImagenUrl={form.recompensa_item_imagen_url}
+                  onChange={(id, nombre, imagenUrl) =>
+                    setForm((f) => ({
+                      ...f,
+                      recompensa_item_id: id,
+                      recompensa_item_nombre: nombre,
+                      recompensa_item_imagen_url: imagenUrl,
+                    }))
+                  }
+                />
 
                 <button
                   className="flex items-center gap-2 mt-1"
@@ -1306,5 +1331,295 @@ function Campo({
       </span>
       {children}
     </label>
+  );
+}
+
+// ── Selector de imagen para misión (igual que PickerImagenItemBtn en EditorItem) ──
+
+function PickerImagenMisionBtn({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (url: string) => void;
+}) {
+  const [open, setOpen] = React.useState(false);
+  return (
+    <>
+      {open && (
+        <div
+          className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+          onClick={() => setOpen(false)}
+        >
+          <div
+            className="bg-white-custom rounded-2xl shadow-2xl border border-primary/15 w-full max-w-lg p-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-2">
+                <Camera size={11} /> Imagen de la misión
+              </h3>
+              <button
+                className="text-primary/30 hover:text-primary transition-colors"
+                onClick={() => setOpen(false)}
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <SimpleImagePicker
+              onClose={() => setOpen(false)}
+              onSelect={(url) => {
+                onChange(url);
+                setOpen(false);
+              }}
+            />
+          </div>
+        </div>
+      )}
+      <button
+        className="flex items-center justify-center w-8 h-8 shrink-0 rounded-lg border transition-all"
+        style={{
+          background: "color-mix(in srgb, var(--primary) 5%, transparent)",
+          borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)",
+          color: "color-mix(in srgb, var(--primary) 45%, transparent)",
+        }}
+        title="Seleccionar imagen"
+        type="button"
+        onClick={() => setOpen(true)}
+      >
+        <Camera size={13} />
+      </button>
+    </>
+  );
+}
+
+// ── Selector de item de recompensa ────────────────────────────────────────────
+
+type ItemMin = {
+  id: string;
+  nombre: string;
+  imagen_url?: string | null;
+  categoria?: string | null;
+};
+
+function SelectorItemRecompensa({
+  itemId,
+  itemNombre,
+  itemImagenUrl,
+  onChange,
+}: {
+  itemId: string | null;
+  itemNombre: string;
+  itemImagenUrl: string;
+  onChange: (id: string | null, nombre: string, imagenUrl: string) => void;
+}) {
+  const [open, setOpen] = React.useState(false);
+  const [items, setItems] = React.useState<ItemMin[]>([]);
+  const [busqueda, setBusqueda] = React.useState("");
+  const [cargando, setCargando] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!open) return;
+    setCargando(true);
+    supabase
+      .from("items")
+      .select("id, nombre, imagen_url, categoria")
+      .order("nombre")
+      .then(({ data }) => {
+        setItems(data ?? []);
+        setCargando(false);
+      });
+  }, [open]);
+
+  const filtrados = items.filter((i) =>
+    i.nombre.toLowerCase().includes(busqueda.toLowerCase()),
+  );
+
+  const limpiar = () => onChange(null, "", "");
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <span
+        className="text-[8px] font-black uppercase tracking-wider"
+        style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
+      >
+        Item de recompensa (opcional)
+      </span>
+
+      {/* Preview del item seleccionado */}
+      {itemId ? (
+        <div
+          className="flex items-center gap-2 px-3 py-2 rounded-lg"
+          style={{
+            background: "color-mix(in srgb, var(--primary) 5%, transparent)",
+            border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
+          }}
+        >
+          <div
+            className="w-7 h-7 shrink-0 overflow-hidden flex items-center justify-center rounded"
+            style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
+          >
+            {itemImagenUrl ? (
+              <img alt={itemNombre} className="w-full h-full object-cover" src={itemImagenUrl} />
+            ) : (
+              <Package size={11} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
+            )}
+          </div>
+          <span
+            className="flex-1 min-w-0 truncate text-[11px] font-bold capitalize"
+            style={{ color: "var(--primary)" }}
+          >
+            {itemNombre}
+          </span>
+          <button
+            className="shrink-0 transition-opacity hover:opacity-70"
+            style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
+            title="Quitar item"
+            type="button"
+            onClick={limpiar}
+          >
+            <X size={12} />
+          </button>
+        </div>
+      ) : (
+        <button
+          className="flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-left"
+          style={{
+            background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+            border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+            color: "color-mix(in srgb, var(--primary) 30%, transparent)",
+            fontSize: "11px",
+            fontWeight: 600,
+          }}
+          type="button"
+          onClick={() => setOpen(true)}
+        >
+          <Package size={12} />
+          Seleccionar item del catálogo…
+        </button>
+      )}
+
+      {itemId && (
+        <button
+          className="text-[9px] font-black uppercase tracking-wider text-left transition-opacity hover:opacity-70 pl-0.5"
+          style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
+          type="button"
+          onClick={() => setOpen(true)}
+        >
+          Cambiar item
+        </button>
+      )}
+
+      {/* Modal selector */}
+      {open && (
+        <div
+          className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+          onClick={() => setOpen(false)}
+        >
+          <div
+            className="bg-white-custom rounded-2xl shadow-2xl border border-primary/15 w-full max-w-md flex flex-col"
+            style={{ maxHeight: "70dvh" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header modal */}
+            <div className="flex items-center justify-between px-4 py-3 shrink-0 border-b border-primary/8">
+              <span className="text-[10px] font-black uppercase tracking-[0.25em] text-primary/40 flex items-center gap-1.5">
+                <Package size={10} /> Seleccionar item
+              </span>
+              <button
+                className="text-primary/30 hover:text-primary transition-colors"
+                type="button"
+                onClick={() => setOpen(false)}
+              >
+                <X size={14} />
+              </button>
+            </div>
+
+            {/* Búsqueda */}
+            <div className="px-3 py-2 shrink-0 border-b border-primary/8">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg" style={{
+                background: "color-mix(in srgb, var(--primary) 4%, transparent)",
+                border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+              }}>
+                <Search size={11} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
+                <input
+                  autoFocus
+                  className="flex-1 bg-transparent outline-none text-[11px]"
+                  placeholder="Buscar item…"
+                  style={{ color: "var(--primary)" }}
+                  value={busqueda}
+                  onChange={(e) => setBusqueda(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* Lista */}
+            <div className="overflow-y-auto flex-1">
+              {cargando ? (
+                <div className="flex items-center justify-center py-10">
+                  <Loader2 className="animate-spin" size={16} style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }} />
+                </div>
+              ) : filtrados.length === 0 ? (
+                <div className="flex items-center justify-center py-10">
+                  <p className="font-serif italic text-[11px]" style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>
+                    Sin resultados
+                  </p>
+                </div>
+              ) : (
+                filtrados.map((item) => (
+                  <button
+                    key={item.id}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors"
+                    style={{
+                      borderBottom: "1px solid color-mix(in srgb, var(--primary) 5%, transparent)",
+                      background: itemId === item.id
+                        ? "color-mix(in srgb, var(--primary) 6%, transparent)"
+                        : "transparent",
+                    }}
+                    type="button"
+                    onClick={() => {
+                      onChange(item.id, item.nombre, item.imagen_url ?? "");
+                      setOpen(false);
+                      setBusqueda("");
+                    }}
+                  >
+                    <div
+                      className="w-7 h-7 shrink-0 overflow-hidden flex items-center justify-center rounded"
+                      style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
+                    >
+                      {item.imagen_url ? (
+                        <img alt={item.nombre} className="w-full h-full object-cover" src={item.imagen_url} />
+                      ) : (
+                        <Package size={10} style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }} />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[11px] font-bold capitalize truncate" style={{ color: "var(--primary)" }}>
+                        {item.nombre}
+                      </p>
+                      {item.categoria && (
+                        <p className="text-[9px] uppercase tracking-wider truncate" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
+                          {item.categoria}
+                        </p>
+                      )}
+                    </div>
+                    {itemId === item.id && (
+                      <div
+                        className="w-4 h-4 shrink-0 rounded-full flex items-center justify-center"
+                        style={{ background: "var(--primary)" }}
+                      >
+                        <svg fill="none" height="7" viewBox="0 0 7 7" width="7">
+                          <path d="M1 3.5L3 5.5L6 1.5" stroke="white" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.2" />
+                        </svg>
+                      </div>
+                    )}
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

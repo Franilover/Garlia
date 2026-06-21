@@ -467,7 +467,7 @@ export default function AdminDescubrimientos() {
       <div className="flex flex-col md:flex-row gap-6 w-full items-start">
         {/* Selector de perfil */}
         <div
-          className="md:w-64"
+          className="w-full md:w-64"
           style={{
             background: "var(--white-custom)",
             border:
@@ -475,7 +475,6 @@ export default function AdminDescubrimientos() {
             borderRadius: "var(--radius-card)",
             overflow: "hidden",
             flexShrink: 0,
-            width: "100%",
           }}
         >
           <div
