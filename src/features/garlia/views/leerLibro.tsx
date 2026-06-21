@@ -245,7 +245,7 @@ function LugaresPanel({
               >
                 <span
                   style={{
-                    fontSize: 9,
+                    fontSize: 14,
                     color: "var(--primary)",
                     opacity: 0.2,
                     lineHeight: 1,
@@ -296,7 +296,7 @@ function LugaresPanel({
               >
                 <span
                   style={{
-                    fontSize: 9,
+                    fontSize: 14,
                     color: "var(--primary)",
                     opacity: 0.2,
                     lineHeight: 1,
