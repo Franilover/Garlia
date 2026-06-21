@@ -8,7 +8,6 @@ import {
   Clock,
   Crown,
   Filter,
-  Layers,
   Loader2,
   Music,
   Plus,
@@ -3205,7 +3204,6 @@ export function PanelHistoriaMundo({
   const [showEventos, setShowEventos] = useState(true);
   const [evtSeleccionado, setEvtSeleccionado] = useState<string | null>(null);
   const [showCumpleanos, setShowCumpleanos] = useState(true);
-  const [showDescripciones, setShowDescripciones] = useState(true);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [diaOverrides, setDiaOverrides] = useState<Record<string, number>>({});
   const [showNuevoEvento, setShowNuevoEvento] = useState(false);
@@ -3438,7 +3436,7 @@ export function PanelHistoriaMundo({
         list.push({
           id: `cumple:${p.id}`,
           year: String(dia),
-          title: p.nombre,
+          title: `Cumpleaños ${p.nombre}`,
           description: "",
           source: "cumpleanos",
           yearNum: dia,
@@ -3620,28 +3618,6 @@ export function PanelHistoriaMundo({
           {/* ── Acciones (derecha) ── */}
           <div className="ml-auto flex items-center gap-1.5">
             <SaveIndicator status={saveStatus} />
-
-            {/* Compactar */}
-            <button
-              className="flex items-center gap-1 px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all"
-              style={{
-                background: !showDescripciones
-                  ? "color-mix(in srgb, var(--primary) 10%, transparent)"
-                  : "transparent",
-                border: `1px solid ${!showDescripciones ? "color-mix(in srgb, var(--primary) 20%, transparent)" : "color-mix(in srgb, var(--primary) 10%, transparent)"}`,
-                color: !showDescripciones
-                  ? "var(--primary)"
-                  : "color-mix(in srgb, var(--primary) 35%, transparent)",
-              }}
-              title={
-                showDescripciones ? "Modo compacto" : "Mostrar descripciones"
-              }
-              type="button"
-              onClick={() => setShowDescripciones((v) => !v)}
-            >
-              <Layers size={9} />
-              {showDescripciones ? "Compactar" : "Expandir"}
-            </button>
 
             {/* Eras: botón principal + botón + pegados */}
             <div
