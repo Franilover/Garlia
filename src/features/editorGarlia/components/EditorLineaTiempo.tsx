@@ -1,6 +1,8 @@
 "use client";
 import {
   BookOpen,
+  List,
+  AlignLeft,
   CalendarDays,
   Check,
   ChevronDown,
@@ -2727,6 +2729,8 @@ export function PanelHistoriaMundo({
   const [showCapitulos, setShowCapitulos] = useState(true);
   const [showCanciones, setShowCanciones] = useState(true);
   const [showEventos, setShowEventos] = useState(true);
+  const [modoLista, setModoLista] = useState(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [showCumpleanos, setShowCumpleanos] = useState(true);
   const [showDescripciones, setShowDescripciones] = useState(true);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
@@ -3145,6 +3149,27 @@ export function PanelHistoriaMundo({
 
         <div className="ml-auto flex items-center gap-2">
           <SaveIndicator status={saveStatus} />
+          {/* Toggle modo lista */}
+          <button
+            className="flex items-center gap-1 px-2 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-widest border transition-all"
+            style={{
+              borderColor: modoLista
+                ? "color-mix(in srgb, var(--primary) 22%, transparent)"
+                : "color-mix(in srgb, var(--primary) 12%, transparent)",
+              background: modoLista
+                ? "color-mix(in srgb, var(--primary) 8%, transparent)"
+                : "transparent",
+              color: modoLista
+                ? "var(--primary)"
+                : "color-mix(in srgb, var(--primary) 35%, transparent)",
+            }}
+            title={modoLista ? "Vista horizontal" : "Vista lista vertical"}
+            type="button"
+            onClick={() => setModoLista((v) => !v)}
+          >
+            {modoLista ? <AlignLeft size={9} /> : <List size={9} />}
+            {modoLista ? "Pista" : "Lista"}
+          </button>
           {/* Toggle descripciones */}
           <button
             className="flex items-center gap-1 px-2 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-widest border transition-all"
@@ -3350,8 +3375,128 @@ export function PanelHistoriaMundo({
           <div className="flex justify-center py-4">
             <Loader2 className="animate-spin text-primary/20" size={14} />
           </div>
+        ) : modoLista ? (
+          /* ── MODO LISTA VERTICAL ─────────────────────────────────────────── */
+          <div className="flex flex-col gap-1 max-w-2xl">
+            {allEvents.length === 0 && (
+              <p className="text-[9px] text-primary/20 italic px-2 py-2">
+                Sin eventos con fecha asignada.
+              </p>
+            )}
+            {(() => {
+              const items: React.ReactNode[] = [];
+              let lastAnio: number | null = null;
+              for (const evt of allEvents) {
+                const anio =
+                  evt.dia_absoluto != null
+                    ? Math.floor(
+                        evt.dia_absoluto /
+                          (cal?.estaciones?.reduce(
+                            (s: number, e: any) => s + (e.duracion_dias ?? 0),
+                            0,
+                          ) || 365),
+                      )
+                    : null;
+                if (anio !== null && anio !== lastAnio) {
+                  lastAnio = anio;
+                  items.push(
+                    <div
+                      key={`list-sep-${anio}`}
+                      className="flex items-center gap-2 mt-2 mb-0.5"
+                    >
+                      <span
+                        className="text-[7px] font-black uppercase tracking-[0.2em] px-2 py-0.5 rounded-full"
+                        style={{
+                          background:
+                            "color-mix(in srgb, var(--primary) 7%, transparent)",
+                          color:
+                            "color-mix(in srgb, var(--primary) 45%, transparent)",
+                          border:
+                            "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+                        }}
+                      >
+                        Año {anio}
+                      </span>
+                      <div
+                        className="flex-1 h-px"
+                        style={{
+                          background:
+                            "color-mix(in srgb, var(--primary) 8%, transparent)",
+                        }}
+                      />
+                    </div>,
+                  );
+                }
+                const srcColor: Record<string, string> = {
+                  mundo: "var(--primary)",
+                  reino: "var(--primary)",
+                  cancion: "var(--accent)",
+                  capitulo:
+                    "color-mix(in srgb, var(--primary) 60%, var(--accent))",
+                  cumpleanos: "var(--accent)",
+                };
+                const dotColor = srcColor[evt.source] ?? "var(--primary)";
+                items.push(
+                  <div
+                    key={`list-${evt.id}`}
+                    className="flex items-start gap-2 px-2 py-1.5 rounded-lg transition-all"
+                    style={{
+                      background:
+                        "color-mix(in srgb, var(--primary) 2%, transparent)",
+                      border:
+                        "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+                    }}
+                  >
+                    {/* dot */}
+                    <div
+                      className="shrink-0 mt-1"
+                      style={{
+                        width: 6,
+                        height: 6,
+                        borderRadius: "50%",
+                        background: dotColor,
+                        boxShadow: `0 0 0 2px color-mix(in srgb, ${dotColor} 20%, transparent)`,
+                      }}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p
+                        className="text-[10px] font-bold truncate"
+                        style={{ color: "var(--primary)" }}
+                      >
+                        {evt.title || (
+                          <span className="italic opacity-40">Sin título</span>
+                        )}
+                      </p>
+                      {evt.description && showDescripciones && (
+                        <p
+                          className="text-[9px] mt-0.5 leading-relaxed"
+                          style={{
+                            color:
+                              "color-mix(in srgb, var(--primary) 55%, transparent)",
+                          }}
+                        >
+                          {evt.description}
+                        </p>
+                      )}
+                    </div>
+                    <span
+                      className="shrink-0 text-[7px] font-black uppercase tracking-widest"
+                      style={{
+                        color:
+                          "color-mix(in srgb, var(--primary) 25%, transparent)",
+                      }}
+                    >
+                      {evt.source}
+                    </span>
+                  </div>,
+                );
+              }
+              return items;
+            })()}
+          </div>
         ) : (
           <div
+            ref={scrollContainerRef}
             className="overflow-x-auto pb-1"
             style={{
               scrollbarWidth: "thin",
@@ -3751,6 +3896,58 @@ export function PanelHistoriaMundo({
                 </p>
               )}
             </div>
+          </div>
+        )}
+
+        {/* ── MINIMAP ────────────────────────────────────────────────────── */}
+        {!modoLista && !loadingReinos && allEvents.length > 8 && (
+          <div
+            className="relative mt-1 mx-1 rounded"
+            style={{
+              height: 10,
+              background: "color-mix(in srgb, var(--primary) 4%, transparent)",
+              border:
+                "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+              cursor: "pointer",
+            }}
+            title="Minimap — click para saltar"
+            onClick={(e) => {
+              const rect = e.currentTarget.getBoundingClientRect();
+              const ratio = (e.clientX - rect.left) / rect.width;
+              const sc = scrollContainerRef.current;
+              if (!sc) return;
+              sc.scrollLeft = ratio * (sc.scrollWidth - sc.clientWidth);
+            }}
+          >
+            {(() => {
+              const total = allEvents.length;
+              return allEvents.map((evt, i) => {
+                const srcColor: Record<string, string> = {
+                  mundo: "var(--primary)",
+                  reino: "var(--primary)",
+                  cancion: "var(--accent)",
+                  capitulo:
+                    "color-mix(in srgb, var(--primary) 60%, var(--accent))",
+                  cumpleanos: "var(--accent)",
+                };
+                return (
+                  <div
+                    key={evt.id}
+                    style={{
+                      position: "absolute",
+                      left: `${(i / total) * 100}%`,
+                      top: "50%",
+                      transform: "translate(-50%, -50%)",
+                      width: 3,
+                      height: 3,
+                      borderRadius: "50%",
+                      background: srcColor[evt.source] ?? "var(--primary)",
+                      opacity: 0.6,
+                    }}
+                  />
+                );
+              });
+            })()}
           </div>
         )}
       </div>
