@@ -18,6 +18,13 @@ import {
 import { Vignette } from "@/features/garlia/components/LectorUI";
 import { db } from "@/lib/api/client/db";
 import { supabase } from "@/lib/api/client/supabase";
+// ⚠️ Ajustar esta ruta si syncEngine.ts vive en otra carpeta del proyecto.
+import {
+  collectIds,
+  loadCiudadesMap,
+  loadPersonajesMap,
+  loadReinosMap,
+} from "@/lib/api/client/syncEngine";
 import { toSlug, esUUID } from "@/lib/utils/slugify";
 
 /* ─────────────────────────────────────────────
@@ -91,22 +98,27 @@ function BarraProgresoVertical({ capId }: { capId: string }) {
 
 /* ─────────────────────────────────────────────
    Personajes del capítulo activo
+   — Lookup puro sobre el mapa precargado para todo el libro
+   (ver cargarEntidades en el efecto principal). Sin fetch propio:
+   así cambiar de capítulo no dispara red/IO y no parpadea.
    ───────────────────────────────────────────── */
-function PersonajesPanel({ ids, border }: { ids: string[]; border: string }) {
-  const [personajes, setPersonajes] = useState<
-    { id: string; nombre: string; img_url?: string | null }[]
-  >([]);
-
-  useEffect(() => {
-    if (ids.length === 0) return;
-    supabase
-      .from("personajes")
-      .select("id, nombre, img_url")
-      .in("id", ids)
-      .then(({ data }) => {
-        if (data) setPersonajes(data);
-      });
-  }, [ids.join(",")]);
+function PersonajesPanel({
+  ids,
+  border,
+  personajesMap,
+}: {
+  ids: string[];
+  border: string;
+  personajesMap: Record<
+    string,
+    { id: string; nombre: string; img_url?: string | null }
+  >;
+}) {
+  const personajes = ids.map((id) => personajesMap[id]).filter(Boolean) as {
+    id: string;
+    nombre: string;
+    img_url?: string | null;
+  }[];
 
   if (personajes.length === 0) return null;
 
@@ -186,48 +198,30 @@ function PersonajesPanel({ ids, border }: { ids: string[]; border: string }) {
 
 /* ─────────────────────────────────────────────
    Reinos y ciudades del capítulo activo
+   — Igual que PersonajesPanel: lookup puro sobre los mapas
+   precargados para todo el libro, sin fetch propio por capítulo.
    ───────────────────────────────────────────── */
 function LugaresPanel({
   reinosIds,
   ciudadesIds,
   border,
+  reinosMap,
+  ciudadesMap,
 }: {
   reinosIds: string[];
   ciudadesIds: string[];
   border: string;
+  reinosMap: Record<string, { id: string; nombre: string }>;
+  ciudadesMap: Record<string, { id: string; nombre: string }>;
 }) {
-  const [reinos, setReinos] = useState<{ id: string; nombre: string }[]>([]);
-  const [ciudades, setCiudades] = useState<{ id: string; nombre: string }[]>(
-    [],
-  );
-
-  useEffect(() => {
-    if (reinosIds.length === 0) {
-      setReinos([]);
-      return;
-    }
-    supabase
-      .from("reinos")
-      .select("id, nombre")
-      .in("id", reinosIds)
-      .then(({ data }) => {
-        if (data) setReinos(data);
-      });
-  }, [reinosIds.join(",")]);
-
-  useEffect(() => {
-    if (ciudadesIds.length === 0) {
-      setCiudades([]);
-      return;
-    }
-    supabase
-      .from("ciudades")
-      .select("id, nombre")
-      .in("id", ciudadesIds)
-      .then(({ data }) => {
-        if (data) setCiudades(data);
-      });
-  }, [ciudadesIds.join(",")]);
+  const reinos = reinosIds.map((id) => reinosMap[id]).filter(Boolean) as {
+    id: string;
+    nombre: string;
+  }[];
+  const ciudades = ciudadesIds.map((id) => ciudadesMap[id]).filter(Boolean) as {
+    id: string;
+    nombre: string;
+  }[];
 
   if (reinos.length === 0 && ciudades.length === 0) return null;
 
@@ -344,6 +338,9 @@ function PanelLateral({
   onVolver,
   onSelectCap,
   isMobile,
+  personajesMap,
+  reinosMap,
+  ciudadesMap,
 }: {
   libroTitulo?: string;
   capActual: CapituloScrollItem | null;
@@ -354,6 +351,9 @@ function PanelLateral({
   onVolver: () => void;
   onSelectCap?: (capId: string) => void;
   isMobile?: boolean;
+  personajesMap: Record<string, any>;
+  reinosMap: Record<string, any>;
+  ciudadesMap: Record<string, any>;
 }) {
   const border =
     "1px solid color-mix(in srgb, var(--primary) 10%, transparent)";
@@ -467,12 +467,18 @@ function PanelLateral({
           <LugaresPanel
             border={border}
             ciudadesIds={(capActual as any).ciudades_ids ?? []}
+            ciudadesMap={ciudadesMap}
             reinosIds={(capActual as any).reinos_ids ?? []}
+            reinosMap={reinosMap}
           />
         )}
         {!loading && !esExtra && personajesIds.length > 0 && (
           <div style={{ padding: "10px 16px 0" }}>
-            <PersonajesPanel border={border} ids={personajesIds} />
+            <PersonajesPanel
+              border={border}
+              ids={personajesIds}
+              personajesMap={personajesMap}
+            />
           </div>
         )}
 
@@ -605,13 +611,28 @@ export default function Lector() {
   const [esExtra, setEsExtra] = useState(false); // poemario / sin grupo
   const [activeCapTitle, setActiveCapTitle] = useState<string | null>(null);
   const [showSidebar, setShowSidebar] = useState(false); // móvil: drawer lateral
+  // Slug canónico del libro (puede diferir de slugParam si llegó un UUID legacy).
+  const [slugCanonico, setSlugCanonico] = useState(slugParam);
+  // Mapas de entidades (reino / ciudad / personaje) cacheados vía Dexie,
+  // precargados una sola vez para TODO el libro. Cambiar de capítulo es
+  // luego un simple lookup sincrónico sobre estos mapas — sin red, sin
+  // parpadeo. Se rellenan en el efecto de carga del libro (ver más abajo).
+  const [personajesMap, setPersonajesMap] = useState<Record<string, any>>({});
+  const [reinosMap, setReinosMap] = useState<Record<string, any>>({});
+  const [ciudadesMap, setCiudadesMap] = useState<Record<string, any>>({});
   const hasScrolled = useRef(false);
 
-  // ── Flujo único: resolver libro + cargar caps ──────────────────────────────
+  // ── Efecto A: resolver libro + cargar TODOS los capítulos ──────────────────
+  // Depende solo de slugParam (no de ordenParam): cambiar de capítulo NO debe
+  // re-disparar esta carga pesada (Dexie+Supabase) ni el setLoading(true) que
+  // hace parpadear el skeleton del índice y ocultar Personajes/Lugares. Eso es
+  // justamente lo que causaba el parpadeo al cambiar de capítulo.
   useEffect(() => {
-    if (!slugParam || !ordenParam) return;
+    if (!slugParam) return;
+    let cancelled = false;
+    let resolvedLibroId: string | null = null;
     setLoading(true);
-    hasScrolled.current = false;
+    setError(null);
 
     const getDexieTable = async () => {
       try {
@@ -644,49 +665,43 @@ export default function Lector() {
     };
 
     /**
-     * Dado un ordenParam (número como string, o UUID legacy),
-     * devuelve el capId activo y canonicaliza la URL si hace falta.
+     * Precarga (Dexie-first, con fallback a Supabase para lo que falte) los
+     * reinos / ciudades / personajes referenciados por TODO el libro, no por
+     * capítulo individual. Así, cambiar de capítulo es luego un simple
+     * lookup sincrónico sobre el mapa ya en memoria — sin red, sin Dexie,
+     * sin parpadeo.
      */
-    const resolverCapActivo = (
-      caps: any[],
-      libroId: string,
-      esExtraLocal: boolean,
-      canonicalizarURL: boolean,
-      actualSlug: string,
-    ): string => {
-      let capActivo: any | null = null;
+    const cargarEntidades = (caps: any[]) => {
+      const personajesIds = collectIds(caps, "personajes_ids");
+      const reinosIds = collectIds(caps, "reinos_ids");
+      const ciudadesIds = collectIds(caps, "ciudades_ids");
 
-      if (esUUID(ordenParam)) {
-        // URL legacy con UUID → encontrar el cap por ID
-        capActivo = caps.find((c) => c.id === ordenParam) ?? caps[0] ?? null;
-      } else {
-        // URL numérica normal → buscar por número de orden
-        const n = parseInt(ordenParam, 10);
-        capActivo =
-          (!isNaN(n) ? caps.find((c) => c.orden === n) : null) ??
-          caps[0] ??
-          null;
-      }
+      loadPersonajesMap(personajesIds, (m) => {
+        if (!cancelled) setPersonajesMap((prev) => ({ ...prev, ...m }));
+      }).then((m) => {
+        if (!cancelled) setPersonajesMap((prev) => ({ ...prev, ...m }));
+      });
 
-      if (!capActivo) return caps[0]?.id ?? "";
+      loadReinosMap(reinosIds, (m) => {
+        if (!cancelled) setReinosMap((prev) => ({ ...prev, ...m }));
+      }).then((m) => {
+        if (!cancelled) setReinosMap((prev) => ({ ...prev, ...m }));
+      });
 
-      // Canonicalizar URL: siempre debe ser /leer/{orden}
-      if (canonicalizarURL) {
-        const nuevaURL = `/garlia/libros/${actualSlug}/leer/${capActivo.orden}`;
-        router.replace(nuevaURL, { scroll: false });
-      }
-
-      setActiveCapTitle(`${capActivo.orden}. ${capActivo.titulo_capitulo}`);
-      return capActivo.id;
+      loadCiudadesMap(ciudadesIds, (m) => {
+        if (!cancelled) setCiudadesMap((prev) => ({ ...prev, ...m }));
+      }).then((m) => {
+        if (!cancelled) setCiudadesMap((prev) => ({ ...prev, ...m }));
+      });
     };
 
     const aplicarCaps = (
       capsValidas: any[],
       libroId: string,
       esExtraLocal: boolean,
-      canonicalizarURL: boolean,
       actualSlug: string,
     ) => {
+      if (cancelled) return;
       // ── Filtro de seguridad en cliente ────────────────────────────────────
       // Descarta caps que no sean públicos o que tengan fecha futura,
       // independientemente de la fuente (Supabase, Dexie, caché).
@@ -708,18 +723,15 @@ export default function Lector() {
         titulo_capitulo: c.titulo_capitulo,
         fecha_publicacion: c.fecha_publicacion,
       }));
-      const capIdActivo = resolverCapActivo(
-        caps,
-        libroId,
-        esExtraLocal,
-        canonicalizarURL,
-        actualSlug,
-      );
 
       setId(libroId);
+      setEsExtra(esExtraLocal);
+      setSlugCanonico(actualSlug);
       setListaCapitulos(lista);
       setCapitulos(caps as unknown as CapituloScrollItem[]);
-      setCapId(capIdActivo);
+      cargarEntidades(caps);
+      // La resolución de capId a partir de ordenParam queda a cargo del
+      // Efecto B (más abajo), que reacciona a este nuevo `capitulos`.
     };
 
     const run = async () => {
@@ -737,7 +749,7 @@ export default function Lector() {
           .eq("id", slugParam)
           .single();
         if (!data) {
-          setError("Libro no encontrado");
+          if (!cancelled) setError("Libro no encontrado");
           return;
         }
         libroId = data.id;
@@ -754,8 +766,14 @@ export default function Lector() {
             grupo?.nombre?.toLowerCase().includes("extra")
           ) {
             esExtraLocal = true;
-            setEsExtra(true);
           }
+        }
+        // Canonicalizamos el slug del libro en la URL de inmediato (link
+        // legacy con UUID), conservando el segmento de capítulo actual.
+        if (!cancelled) {
+          router.replace(`/garlia/libros/${actualSlug}/leer/${ordenParam}`, {
+            scroll: false,
+          });
         }
       } else {
         let encontrado: {
@@ -778,7 +796,7 @@ export default function Lector() {
             .from("libros")
             .select("id, titulo, categoria");
           if (!todos) {
-            setError("Libro no encontrado");
+            if (!cancelled) setError("Libro no encontrado");
             return;
           }
           try {
@@ -788,7 +806,7 @@ export default function Lector() {
             todos.find((l) => toSlug(l.titulo) === slugParam) ?? null;
         }
         if (!encontrado) {
-          setError("Libro no encontrado");
+          if (!cancelled) setError("Libro no encontrado");
           return;
         }
         libroId = encontrado.id;
@@ -805,10 +823,18 @@ export default function Lector() {
             grupo?.nombre?.toLowerCase().includes("extra")
           ) {
             esExtraLocal = true;
-            setEsExtra(true);
           }
         }
+        // El slug pudo venir con formato distinto al canónico (mayúsculas,
+        // acentos, etc.) — lo normalizamos sin tocar el capítulo actual.
+        if (actualSlug !== slugParam && !cancelled) {
+          router.replace(`/garlia/libros/${actualSlug}/leer/${ordenParam}`, {
+            scroll: false,
+          });
+        }
       }
+
+      resolvedLibroId = libroId;
 
       // ── 2. Dexie-first: render instantáneo si hay caché ───────────────────
       let yaRenderizoDesdeCache = false;
@@ -821,9 +847,8 @@ export default function Lector() {
             .toArray()) as any[];
           const capsCached = cached.filter((c) => c.contenido && !c.deleted);
           if (capsCached.length > 0) {
-            // Pasamos el actualSlug correspondiente
-            aplicarCaps(capsCached, libroId, esExtraLocal, false, actualSlug);
-            setLoading(false);
+            aplicarCaps(capsCached, libroId, esExtraLocal, actualSlug);
+            if (!cancelled) setLoading(false);
             yaRenderizoDesdeCache = true;
           }
         }
@@ -856,7 +881,7 @@ export default function Lector() {
         .order("orden", { ascending: true });
 
       if (capsError) {
-        if (!yaRenderizoDesdeCache) setError(capsError.message);
+        if (!yaRenderizoDesdeCache && !cancelled) setError(capsError.message);
         return;
       }
 
@@ -881,31 +906,74 @@ export default function Lector() {
       }));
 
       cachearEnDexie(capsValidas);
-
-      // canonicalizarURL=true: pasa el actualSlug correcto para limpiar la barra de direcciones de inmediato
-      aplicarCaps(capsValidas, libroId, esExtraLocal, true, actualSlug);
+      aplicarCaps(capsValidas, libroId, esExtraLocal, actualSlug);
     };
+
     run()
       .catch(async (err) => {
         console.error("Error crítico en Lector:", err);
         try {
           const table = await getDexieTable();
-          if (table) {
+          if (table && resolvedLibroId) {
             const todos = (await table.toArray()) as any[];
             const cached = todos.filter(
-              (c) => !c.deleted && c.libro_id === id && c.contenido,
+              (c) =>
+                !c.deleted && c.libro_id === resolvedLibroId && c.contenido,
             );
             if (cached.length > 0) {
-              aplicarCaps(cached, id, esExtra, false, slugParam);
+              aplicarCaps(cached, resolvedLibroId, esExtra, slugCanonico);
               return;
             }
           }
         } catch {}
-        setError("Error al abrir el pergamino");
+        if (!cancelled) setError("Error al abrir el pergamino");
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [slugParam, ordenParam]);
+  }, [slugParam]);
+
+  // ── Efecto B: resolver capId a partir de ordenParam ─────────────────────────
+  // Se dispara al navegar entre capítulos (ordenParam cambia) o cuando los
+  // capítulos terminan de cargar. A propósito NO toca `loading`: por eso
+  // cambiar de capítulo no muestra de nuevo el skeleton ni hace desaparecer
+  // los paneles de Personajes/Lugares — solo actualiza qué capítulo está
+  // activo, de forma sincrónica.
+  useEffect(() => {
+    if (!ordenParam || capitulos.length === 0) return;
+
+    let capActivo: CapituloScrollItem | null = null;
+    if (esUUID(ordenParam)) {
+      // URL legacy con UUID → encontrar el cap por ID
+      capActivo =
+        capitulos.find((c) => c.id === ordenParam) ?? capitulos[0] ?? null;
+    } else {
+      // URL numérica normal → buscar por número de orden
+      const n = parseInt(ordenParam, 10);
+      capActivo =
+        (!isNaN(n) ? capitulos.find((c) => c.orden === n) : null) ??
+        capitulos[0] ??
+        null;
+    }
+    if (!capActivo) return;
+
+    // Canonicalizar URL si el parámetro no era el número de orden correcto
+    // (link legacy con UUID, o número fuera de rango).
+    if (ordenParam !== String(capActivo.orden)) {
+      router.replace(`/garlia/libros/${slugCanonico}/leer/${capActivo.orden}`, {
+        scroll: false,
+      });
+    }
+
+    hasScrolled.current = false;
+    setCapId(capActivo.id);
+    setActiveCapTitle(`${capActivo.orden}. ${capActivo.titulo_capitulo}`);
+  }, [ordenParam, capitulos, slugCanonico, router]);
 
   // ── Navegación entre capítulos ─────────────────────────────────────────────
   /** Navegar a un cap por su ID (desde selector de índice, botones, etc.) */
@@ -1057,10 +1125,13 @@ export default function Lector() {
                 capActual={capActual}
                 capIdActual={capId}
                 capitulos={capitulos}
+                ciudadesMap={ciudadesMap}
                 esExtra={esExtra}
                 isMobile={true}
                 libroTitulo={libroTitulo}
                 loading={loading}
+                personajesMap={personajesMap}
+                reinosMap={reinosMap}
                 onSelectCap={(id) => {
                   handleNavigate(id);
                   setShowSidebar(false);
@@ -1078,9 +1149,12 @@ export default function Lector() {
           capActual={capActual}
           capIdActual={capId}
           capitulos={capitulos}
+          ciudadesMap={ciudadesMap}
           esExtra={esExtra}
           libroTitulo={libroTitulo}
           loading={loading}
+          personajesMap={personajesMap}
+          reinosMap={reinosMap}
           onSelectCap={handleNavigate}
           onVolver={() => router.push(`/garlia/libros/${slugParam}`)}
         />
