@@ -302,7 +302,7 @@ function LugaresPanel({
                     lineHeight: 1,
                   }}
                 >
-                  ◈
+                  ♖
                 </span>
                 <span
                   style={{
