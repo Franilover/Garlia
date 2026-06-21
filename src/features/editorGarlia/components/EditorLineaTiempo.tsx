@@ -3932,14 +3932,17 @@ export function PanelHistoriaMundo({
             {(() => {
               const total = allEvents.length;
               return allEvents.map((evt, i) => {
-                const srcColor: Record<string, string> = {
-                  mundo: "var(--primary)",
-                  reino: "var(--primary)",
-                  cancion: "var(--accent)",
-                  capitulo:
-                    "color-mix(in srgb, var(--primary) 60%, var(--accent))",
-                  cumpleanos: "var(--accent)",
-                };
+                const anioEvt =
+                  evt.dia_absoluto != null
+                    ? Math.floor(evt.dia_absoluto / diasAnio)
+                    : null;
+                const eraColor =
+                  anioEvt !== null && cal
+                    ? (eraEnAnio(anioEvt, cal.eras)?.color ?? null)
+                    : null;
+                const dotColor =
+                  eraColor ??
+                  "color-mix(in srgb, var(--primary) 45%, transparent)";
                 return (
                   <div
                     key={evt.id}
@@ -3951,8 +3954,8 @@ export function PanelHistoriaMundo({
                       width: 4,
                       height: 4,
                       borderRadius: "50%",
-                      background: srcColor[evt.source] ?? "var(--primary)",
-                      opacity: 0.8,
+                      background: dotColor,
+                      opacity: 0.85,
                       flexShrink: 0,
                     }}
                   />
