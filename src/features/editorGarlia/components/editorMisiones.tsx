@@ -178,26 +178,51 @@ export default function EditorMisiones() {
   const cargarProgreso = useCallback(async () => {
     if (!misionSel) return;
     setCargandoProgreso(true);
-    const { data, error } = await supabase
+
+    // No usamos el embed "perfil:user_id(...)" porque misiones_usuario.user_id
+    // referencia auth.users, no public.perfiles — sin esa FK declarada hacia
+    // "perfiles", PostgREST no puede resolver el alias de relación y devuelve
+    // 400 Bad Request. En su lugar, dos queries simples + merge en cliente.
+    const { data: progresoData, error: progresoError } = await supabase
       .from("misiones_usuario")
-      .select(
-        "user_id, estado, progreso, fecha_aceptada, fecha_completada, perfil:user_id(username, avatar_url)",
-      )
+      .select("user_id, estado, progreso, fecha_aceptada, fecha_completada")
       .eq("mision_id", misionSel.id)
       .order("fecha_aceptada", { ascending: false });
 
-    if (!error && data) {
-      setProgreso(
-        (data as any[]).map((r) => ({
-          user_id: r.user_id,
-          estado: r.estado,
-          progreso: r.progreso,
-          fecha_aceptada: r.fecha_aceptada,
-          fecha_completada: r.fecha_completada,
-          perfil: r.perfil ?? null,
-        })),
+    if (progresoError || !progresoData) {
+      setCargandoProgreso(false);
+      return;
+    }
+
+    const userIds = progresoData.map((r: any) => r.user_id);
+    let perfilesPorId = new Map<
+      string,
+      { username: string; avatar_url: string | null }
+    >();
+
+    if (userIds.length > 0) {
+      const { data: perfilesData } = await supabase
+        .from("perfiles")
+        .select("id, username, avatar_url")
+        .in("id", userIds);
+      perfilesPorId = new Map(
+        (perfilesData ?? []).map((p: any) => [
+          p.id,
+          { username: p.username, avatar_url: p.avatar_url },
+        ]),
       );
     }
+
+    setProgreso(
+      progresoData.map((r: any) => ({
+        user_id: r.user_id,
+        estado: r.estado,
+        progreso: r.progreso,
+        fecha_aceptada: r.fecha_aceptada,
+        fecha_completada: r.fecha_completada,
+        perfil: perfilesPorId.get(r.user_id) ?? null,
+      })),
+    );
     setCargandoProgreso(false);
   }, [misionSel]);
 
@@ -318,41 +343,52 @@ export default function EditorMisiones() {
       )
     )
       return;
-    if (!(await isReallyOnline())) {
-      showToast("Sin conexión: no se puede eliminar la misión", false);
-      return;
-    }
+
     setEliminando(m.id);
-    const { error, count } = await supabase
-      .from("misiones")
-      .delete({ count: "exact" })
-      .eq("id", m.id);
-
-    if (error) {
-      showToast("Error al eliminar", false);
-    } else if (count === 0) {
-      // count === 0 explícito significa que RLS bloqueó la operación sin
-      // lanzar error (0 filas afectadas). Si count es null en cambio, el
-      // servidor simplemente no informó el conteo — no es lo mismo que un
-      // bloqueo, así que ese caso cae al branch de éxito de abajo.
-      showToast("No se pudo eliminar (permiso denegado)", false);
-    } else {
-      // Limpia tanto el estado en memoria como el caché Dexie — si no se
-      // borra de Dexie, la misión "eliminada" puede reaparecer la próxima
-      // vez que se cargue el catálogo desde caché offline.
-      try {
-        const { db } = await import("@/lib/api/client/db");
-        await db?.misiones?.delete(m.id);
-      } catch {}
-
-      setMisiones((prev) => prev.filter((x) => x.id !== m.id));
-      if (misionSel?.id === m.id) {
-        setMisionSel(null);
-        setProgreso([]);
+    try {
+      if (!(await isReallyOnline())) {
+        showToast("Sin conexión: no se puede eliminar la misión", false);
+        return;
       }
-      showToast("Misión eliminada", true);
+
+      const { error, count } = await supabase
+        .from("misiones")
+        .delete({ count: "exact" })
+        .eq("id", m.id);
+
+      if (error) {
+        showToast("Error al eliminar", false);
+      } else if (count === 0) {
+        // count === 0 explícito significa que RLS bloqueó la operación sin
+        // lanzar error (0 filas afectadas). Si count es null en cambio, el
+        // servidor simplemente no informó el conteo — no es lo mismo que un
+        // bloqueo, así que ese caso cae al branch de éxito de abajo.
+        showToast("No se pudo eliminar (permiso denegado)", false);
+      } else {
+        // Limpia tanto el estado en memoria como el caché Dexie — si no se
+        // borra de Dexie, la misión "eliminada" puede reaparecer la próxima
+        // vez que se cargue el catálogo desde caché offline.
+        try {
+          const { db } = await import("@/lib/api/client/db");
+          await db?.misiones?.delete(m.id);
+        } catch {}
+
+        setMisiones((prev) => prev.filter((x) => x.id !== m.id));
+        if (misionSel?.id === m.id) {
+          setMisionSel(null);
+          setProgreso([]);
+        }
+        showToast("Misión eliminada", true);
+      }
+    } catch (err) {
+      // Cualquier excepción inesperada (red, parsing, etc.) ahora muestra
+      // un toast en vez de fallar en silencio — antes esto podía dejar la
+      // pantalla "sin hacer nada" sin ningún aviso visible.
+      console.error("[EditorMisiones] Error al eliminar:", err);
+      showToast("Error inesperado al eliminar", false);
+    } finally {
+      setEliminando(null);
     }
-    setEliminando(null);
   };
 
   // ── Guards de acceso ────────────────────────────────────────────────────────
