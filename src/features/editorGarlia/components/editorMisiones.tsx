@@ -330,12 +330,11 @@ export default function EditorMisiones() {
 
     if (error) {
       showToast("Error al eliminar", false);
-    } else if (!count) {
-      // Supabase no devolvió error, pero tampoco borró ninguna fila —
-      // típico cuando RLS bloquea la operación silenciosamente (ej. el
-      // usuario perdió el rol admin a mitad de sesión). No actualizamos
-      // el estado local para evitar el bug de "decía eliminado pero
-      // seguía apareciendo" tras refrescar.
+    } else if (count === 0) {
+      // count === 0 explícito significa que RLS bloqueó la operación sin
+      // lanzar error (0 filas afectadas). Si count es null en cambio, el
+      // servidor simplemente no informó el conteo — no es lo mismo que un
+      // bloqueo, así que ese caso cae al branch de éxito de abajo.
       showToast("No se pudo eliminar (permiso denegado)", false);
     } else {
       // Limpia tanto el estado en memoria como el caché Dexie — si no se

@@ -37,6 +37,7 @@ import { BloqueRelaciones } from "../components/BloqueRelaciones";
 import {
   SelectorFechaMundo,
   FechaMundoBadge,
+  useCalendario,
 } from "../components/EditorLineaTiempo";
 import { useNombresDeTabla } from "../components/hooks";
 import { type Personaje, type SaveStatus } from "../components/types";
@@ -1009,7 +1010,29 @@ type Era = {
   _saving?: boolean;
 };
 
-function BloqueEras({ personajeId }: { personajeId: string }) {
+function calcularEdad(
+  diaAbsolutoEra: number,
+  diaAbsolutoNacimiento: number,
+  diasPorAnio: number,
+): number {
+  if (diasPorAnio <= 0) return 0;
+  return Math.floor((diaAbsolutoEra - diaAbsolutoNacimiento) / diasPorAnio);
+}
+
+function BloqueEras({
+  personajeId,
+  fechaNacimiento,
+}: {
+  personajeId: string;
+  fechaNacimiento?: number | null;
+}) {
+  const { cal } = useCalendario();
+  // Días por año del mundo según el calendario real (suma de duracion_dias de todas las estaciones)
+  const diasPorAnio = React.useMemo(() => {
+    if (!cal?.estaciones?.length) return 0;
+    return cal.estaciones.reduce((sum, e) => sum + (e.duracion_dias ?? 0), 0);
+  }, [cal]);
+
   const [eras, setEras] = useState<Era[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -1046,6 +1069,8 @@ function BloqueEras({ personajeId }: { personajeId: string }) {
   const handleAddEra = async () => {
     const num = parseInt(newMomento.trim(), 10);
     if (isNaN(num)) return;
+    // La era debe ser posterior al nacimiento
+    if (fechaNacimiento != null && num <= fechaNacimiento) return;
     setCreating(true);
     const { data, error } = await (supabase as any)
       .from("personaje_eras")
@@ -1168,6 +1193,14 @@ function BloqueEras({ personajeId }: { personajeId: string }) {
               value={newMomento ? parseInt(newMomento, 10) : null}
               onChange={(dia) => setNewMomento(dia != null ? String(dia) : "")}
             />
+            {/* Aviso si la fecha elegida no es posterior al nacimiento */}
+            {fechaNacimiento != null &&
+              newMomento &&
+              parseInt(newMomento, 10) <= fechaNacimiento && (
+                <p className="text-[8px] font-black uppercase tracking-widest text-accent/70 italic">
+                  La era debe ser posterior al cumpleaños
+                </p>
+              )}
             <input
               className="w-full rounded-lg border px-2 py-1 text-[9px] outline-none transition-all"
               placeholder="Etiqueta (opcional)"
@@ -1196,7 +1229,12 @@ function BloqueEras({ personajeId }: { personajeId: string }) {
             </button>
             <button
               className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border transition-all disabled:opacity-30"
-              disabled={!newMomento.trim() || creating}
+              disabled={
+                !newMomento.trim() ||
+                creating ||
+                (fechaNacimiento != null &&
+                  parseInt(newMomento, 10) <= fechaNacimiento)
+              }
               style={{
                 background:
                   "color-mix(in srgb, var(--primary) 10%, transparent)",
@@ -1222,15 +1260,61 @@ function BloqueEras({ personajeId }: { personajeId: string }) {
         <div className="flex justify-center py-4">
           <Loader2 className="animate-spin text-primary/20" size={14} />
         </div>
-      ) : eras.length === 0 ? (
-        <p className="text-[9px] text-primary/25 font-black uppercase tracking-widest text-center py-4 italic">
-          Sin eras · usa el botón + Era
-        </p>
       ) : (
         <div>
+          {/* Nodo fijo: cumpleaños */}
+          {fechaNacimiento != null && (
+            <div className="border-b border-primary/[0.06]">
+              <div className="w-full flex items-center gap-2 px-3 py-2.5 text-left">
+                <div
+                  className="shrink-0 flex flex-col items-center"
+                  style={{ width: 20 }}
+                >
+                  <div
+                    className="w-2.5 h-2.5 rounded-full border-2 shrink-0"
+                    style={{
+                      borderColor: "var(--accent)",
+                      background: "var(--accent)",
+                      boxShadow:
+                        "0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent)",
+                    }}
+                  />
+                </div>
+                <div className="flex-1 min-w-0 flex items-center gap-2 flex-wrap">
+                  <FechaMundoBadge diaAbsoluto={fechaNacimiento} />
+                  <span
+                    className="text-[8px] font-black uppercase tracking-widest"
+                    style={{
+                      color: "var(--accent)",
+                    }}
+                  >
+                    ✦ Nacimiento
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {eras.length === 0 && fechaNacimiento == null && (
+            <p className="text-[9px] text-primary/25 font-black uppercase tracking-widest text-center py-4 italic">
+              Sin eras · usa el botón + Era
+            </p>
+          )}
+          {eras.length === 0 && fechaNacimiento != null && (
+            <p className="text-[9px] text-primary/25 font-black uppercase tracking-widest text-center py-3 italic">
+              Agrega una era para continuar la historia
+            </p>
+          )}
+
           {eras.map((era, idx) => (
             <EraItem
               key={era.id}
+              diasPorAnio={diasPorAnio}
+              edad={
+                fechaNacimiento != null && diasPorAnio > 0
+                  ? calcularEdad(era.momento, fechaNacimiento, diasPorAnio)
+                  : null
+              }
               era={era}
               isLast={idx === eras.length - 1}
               isOpen={expandedId === era.id}
@@ -1260,6 +1344,7 @@ function EraItem({
   onRemoveRasgo,
   onNotasChange,
   onLabelChange,
+  edad,
 }: {
   era: Era;
   isOpen: boolean;
@@ -1270,6 +1355,8 @@ function EraItem({
   onRemoveRasgo: (r: string) => void;
   onNotasChange: (v: string) => void;
   onLabelChange: (v: string) => void;
+  edad: number | null;
+  diasPorAnio: number;
 }) {
   const [nuevoRasgo, setNuevoRasgo] = useState("");
 
@@ -1290,6 +1377,20 @@ function EraItem({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 flex-wrap">
             <FechaMundoBadge diaAbsoluto={era.momento} />
+            {edad !== null && edad >= 0 && (
+              <span
+                className="px-1.5 py-0 rounded-full text-[7px] font-black uppercase border tracking-widest"
+                style={{
+                  background:
+                    "color-mix(in srgb, var(--accent) 8%, transparent)",
+                  borderColor:
+                    "color-mix(in srgb, var(--accent) 20%, transparent)",
+                  color: "var(--accent)",
+                }}
+              >
+                {edad} {edad === 1 ? "año" : "años"}
+              </span>
+            )}
             {era.label && (
               <span className="text-[8px] font-bold text-primary/35 italic truncate">
                 {era.label}
@@ -2077,7 +2178,10 @@ export function FormularioPersonaje({
                   onSelectPersonaje={onSelectPersonaje}
                 />
 
-                <BloqueEras personajeId={form.id} />
+                <BloqueEras
+                  fechaNacimiento={(form as any).fecha_nacimiento ?? null}
+                  personajeId={form.id}
+                />
 
                 <div className="rounded-xl overflow-hidden border border-primary/10">
                   <div className="flex items-center gap-2 px-3 py-2 border-b border-primary/[0.06] bg-primary/[0.03]">
@@ -2178,7 +2282,10 @@ export function FormularioPersonaje({
               }}
             />
             <div className="p-2">
-              <BloqueEras personajeId={form.id} />
+              <BloqueEras
+                fechaNacimiento={(form as any).fecha_nacimiento ?? null}
+                personajeId={form.id}
+              />
             </div>
             <div
               style={{

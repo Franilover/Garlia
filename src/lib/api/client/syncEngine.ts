@@ -13,50 +13,33 @@
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
-
-
-
-
 import { isReallyOnline } from "@/hooks/data/useOfflineSync";
 import { db } from "@/lib/api/client/db";
 import { supabase } from "@/lib/api/client/supabase";
 
 // ─── TTL por tabla (ms) ───────────────────────────────────────────────────────
 
-
-
-
 const TTL: Record<string, number> = {
-  personajes:           10 * 60_000,  // 10 min
-  reinos:               30 * 60_000,  // 30 min — muy estables
-  ciudades:             30 * 60_000,  // 30 min — muy estables
-  capitulos:             5 * 60_000,  //  5 min — pueden publicarse nuevos
-  libros:                5 * 60_000,
+  personajes: 10 * 60_000, // 10 min
+  reinos: 30 * 60_000, // 30 min — muy estables
+  ciudades: 30 * 60_000, // 30 min — muy estables
+  capitulos: 5 * 60_000, //  5 min — pueden publicarse nuevos
+  libros: 5 * 60_000,
   // datos de usuario — más cortos para reflejar desbloqueos recientes
-  descubrimientos:       3 * 60_000,  //  3 min
-  inventario_usuario:    3 * 60_000,  //  3 min
-  perfil_usuario:        5 * 60_000,  //  5 min
-  perfiles_resumen:     10 * 60_000,  // 10 min — sidebar de exploradores
-  canciones_personaje:  10 * 60_000,  // 10 min — raramente cambia
-  misiones:             10 * 60_000,  // 10 min — catálogo, cambia poco
-  misiones_usuario:      2 * 60_000,  //  2 min — progreso, refrescar seguido
+  descubrimientos: 3 * 60_000, //  3 min
+  inventario_usuario: 3 * 60_000, //  3 min
+  perfil_usuario: 5 * 60_000, //  5 min
+  perfiles_resumen: 10 * 60_000, // 10 min — sidebar de exploradores
+  canciones_personaje: 10 * 60_000, // 10 min — raramente cambia
+  misiones: 10 * 60_000, // 10 min — catálogo, cambia poco
+  misiones_usuario: 2 * 60_000, //  2 min — progreso, refrescar seguido
 };
-
-
-
 
 const DEFAULT_TTL = 5 * 60_000;
 
 // ─── Caché en memoria ─────────────────────────────────────────────────────────
 
-
-
-
 const _memCache = new Map<string, { data: any; ts: number }>();
-
-
-
-
 
 function memGet<T>(key: string, ttlOverride?: number): T | null {
   const entry = _memCache.get(key);
@@ -65,18 +48,11 @@ function memGet<T>(key: string, ttlOverride?: number): T | null {
   return Date.now() - entry.ts < ttl ? (entry.data as T) : null;
 }
 
-
-
-
-
 function memSet<T>(key: string, data: T): void {
   _memCache.set(key, { data, ts: Date.now() });
 }
 
 /** Invalida la caché en memoria de una tabla (fuerza refetch la próxima vez). */
-
-
-
 
 export function invalidateCache(tablePrefix: string): void {
   for (const key of _memCache.keys()) {
@@ -92,7 +68,9 @@ async function sessionGet<T>(key: string, ttlMs: number): Promise<T | null> {
     if (!row) return null;
     if (Date.now() - row.updated_at > ttlMs) return null;
     return row.value as T;
-  } catch { return null; }
+  } catch {
+    return null;
+  }
 }
 
 async function sessionSet(key: string, value: any): Promise<void> {
@@ -102,18 +80,19 @@ async function sessionSet(key: string, value: any): Promise<void> {
 }
 
 async function sessionDelete(key: string): Promise<void> {
-  try { await db?.session_cache?.delete(key); } catch {}
+  try {
+    await db?.session_cache?.delete(key);
+  } catch {}
 }
 
 /** Invalida session_cache para todas las claves que empiecen con un prefijo. */
 
-
-
-
 export async function invalidateSessionCache(prefix: string): Promise<void> {
   try {
     const all = await db?.session_cache?.toArray();
-    const keys = (all ?? []).filter(r => r.key.startsWith(prefix)).map(r => r.key);
+    const keys = (all ?? [])
+      .filter((r) => r.key.startsWith(prefix))
+      .map((r) => r.key);
     if (keys.length) await db?.session_cache?.bulkDelete(keys);
   } catch {}
   invalidateCache(prefix);
@@ -122,17 +101,29 @@ export async function invalidateSessionCache(prefix: string): Promise<void> {
 // ─── Helpers internos ─────────────────────────────────────────────────────────
 
 async function dexieAll<T>(table: any): Promise<T[]> {
-  try { return ((await table?.toArray()) as T[]) ?? []; }
-  catch { return []; }
+  try {
+    return ((await table?.toArray()) as T[]) ?? [];
+  } catch {
+    return [];
+  }
 }
 
-async function dexieWhere<T>(table: any, field: string, value: any): Promise<T[]> {
-  try { return ((await table?.where(field).equals(value).toArray()) as T[]) ?? []; }
-  catch { return []; }
+async function dexieWhere<T>(
+  table: any,
+  field: string,
+  value: any,
+): Promise<T[]> {
+  try {
+    return ((await table?.where(field).equals(value).toArray()) as T[]) ?? [];
+  } catch {
+    return [];
+  }
 }
 
 async function persist(tableName: string, rows: any[]): Promise<void> {
-  try { await (db as any)[tableName]?.bulkPut(rows); } catch {}
+  try {
+    await (db as any)[tableName]?.bulkPut(rows);
+  } catch {}
 }
 
 /**
@@ -177,7 +168,7 @@ async function loadWithCache<T>(
     return local;
   }
 
-  return await fetchAndStore(config, onUpdate) ?? [];
+  return (await fetchAndStore(config, onUpdate)) ?? [];
 }
 
 async function refreshInBackground<T>(
@@ -207,25 +198,25 @@ async function fetchAndStore<T>(
 
 // ─── Personajes ───────────────────────────────────────────────────────────────
 
-
-
-
-
-export async function loadPersonajes(onUpdate?: (data: any[]) => void): Promise<any[]> {
-  return loadWithCache({
-    cacheKey: "personajes:all",
-    dexieSource: () => dexieAll(db?.personajes),
-    supabaseFetch: async () => {
-      const { data } = await supabase.from("personajes").select("*").eq("visible", true);
-      return data ?? null;
+export async function loadPersonajes(
+  onUpdate?: (data: any[]) => void,
+): Promise<any[]> {
+  return loadWithCache(
+    {
+      cacheKey: "personajes:all",
+      dexieSource: () => dexieAll(db?.personajes),
+      supabaseFetch: async () => {
+        const { data } = await supabase
+          .from("personajes")
+          .select("*")
+          .eq("visible", true);
+        return data ?? null;
+      },
+      persist: (rows) => persist("personajes", rows),
     },
-    persist: (rows) => persist("personajes", rows),
-  }, onUpdate);
+    onUpdate,
+  );
 }
-
-
-
-
 
 export async function loadPersonajesMap(
   ids: string[],
@@ -237,19 +228,32 @@ export async function loadPersonajesMap(
 
   for (const id of ids) {
     const mem = memGet<any[]>(`personajes:${id}`);
-    if (mem?.[0]) { map[id] = mem[0]; continue; }
+    if (mem?.[0]) {
+      map[id] = mem[0];
+      continue;
+    }
     try {
       const local = await db?.personajes?.get(id);
-      if (local) { map[id] = local; memSet(`personajes:${id}`, [local]); }
-      else missing.push(id);
-    } catch { missing.push(id); }
+      if (local) {
+        map[id] = local;
+        memSet(`personajes:${id}`, [local]);
+      } else missing.push(id);
+    } catch {
+      missing.push(id);
+    }
   }
 
-  if (missing.length > 0 && await isReallyOnline()) {
+  if (missing.length > 0 && (await isReallyOnline())) {
     try {
-      const { data } = await supabase.from("personajes").select("id, nombre, img_url").in("id", missing);
+      const { data } = await supabase
+        .from("personajes")
+        .select("id, nombre, img_url")
+        .in("id", missing);
       if (data) {
-        for (const p of data) { map[p.id] = p; memSet(`personajes:${p.id}`, [p]); }
+        for (const p of data) {
+          map[p.id] = p;
+          memSet(`personajes:${p.id}`, [p]);
+        }
         await persist("personajes", data);
         onUpdate?.(map);
       }
@@ -261,25 +265,25 @@ export async function loadPersonajesMap(
 
 // ─── Reinos ───────────────────────────────────────────────────────────────────
 
-
-
-
-
-export async function loadReinos(onUpdate?: (data: any[]) => void): Promise<any[]> {
-  return loadWithCache({
-    cacheKey: "reinos:all",
-    dexieSource: () => dexieAll(db?.reinos),
-    supabaseFetch: async () => {
-      const { data } = await supabase.from("reinos").select("*").order("orden");
-      return data ?? null;
+export async function loadReinos(
+  onUpdate?: (data: any[]) => void,
+): Promise<any[]> {
+  return loadWithCache(
+    {
+      cacheKey: "reinos:all",
+      dexieSource: () => dexieAll(db?.reinos),
+      supabaseFetch: async () => {
+        const { data } = await supabase
+          .from("reinos")
+          .select("*")
+          .order("orden");
+        return data ?? null;
+      },
+      persist: (rows) => persist("reinos", rows),
     },
-    persist: (rows) => persist("reinos", rows),
-  }, onUpdate);
+    onUpdate,
+  );
 }
-
-
-
-
 
 export async function loadReinosMap(
   ids: string[],
@@ -294,12 +298,17 @@ export async function loadReinosMap(
       const local = await db?.reinos?.get(id);
       if (local) map[id] = local;
       else missing.push(id);
-    } catch { missing.push(id); }
+    } catch {
+      missing.push(id);
+    }
   }
 
-  if (missing.length > 0 && await isReallyOnline()) {
+  if (missing.length > 0 && (await isReallyOnline())) {
     try {
-      const { data } = await supabase.from("reinos").select("*").in("id", missing);
+      const { data } = await supabase
+        .from("reinos")
+        .select("*")
+        .in("id", missing);
       if (data) {
         for (const r of data) map[r.id] = r;
         await persist("reinos", data);
@@ -313,25 +322,22 @@ export async function loadReinosMap(
 
 // ─── Ciudades ─────────────────────────────────────────────────────────────────
 
-
-
-
-
-export async function loadCiudades(onUpdate?: (data: any[]) => void): Promise<any[]> {
-  return loadWithCache({
-    cacheKey: "ciudades:all",
-    dexieSource: () => dexieAll(db?.ciudades),
-    supabaseFetch: async () => {
-      const { data } = await supabase.from("ciudades").select("*");
-      return data ?? null;
+export async function loadCiudades(
+  onUpdate?: (data: any[]) => void,
+): Promise<any[]> {
+  return loadWithCache(
+    {
+      cacheKey: "ciudades:all",
+      dexieSource: () => dexieAll(db?.ciudades),
+      supabaseFetch: async () => {
+        const { data } = await supabase.from("ciudades").select("*");
+        return data ?? null;
+      },
+      persist: (rows) => persist("ciudades", rows),
     },
-    persist: (rows) => persist("ciudades", rows),
-  }, onUpdate);
+    onUpdate,
+  );
 }
-
-
-
-
 
 export async function loadCiudadesMap(
   ids: string[],
@@ -346,10 +352,12 @@ export async function loadCiudadesMap(
       const local = await db?.ciudades?.get(id);
       if (local) map[id] = local;
       else missing.push(id);
-    } catch { missing.push(id); }
+    } catch {
+      missing.push(id);
+    }
   }
 
-  if (missing.length > 0 && await isReallyOnline()) {
+  if (missing.length > 0 && (await isReallyOnline())) {
     try {
       const { data } = await supabase
         .from("ciudades")
@@ -368,24 +376,12 @@ export async function loadCiudadesMap(
 
 // ─── Capítulos de un libro ────────────────────────────────────────────────────
 
-
-
-
-
 const _capsMemCache: Record<string, { data: any[]; ts: number }> = {};
-
-
-
-
 
 export function capsCacheados(libroId: string): any[] | null {
   const c = _capsMemCache[libroId];
   return c && Date.now() - c.ts < TTL["capitulos"] ? c.data : null;
 }
-
-
-
-
 
 export async function loadCapitulos(
   libroId: string,
@@ -400,18 +396,25 @@ export async function loadCapitulos(
 
   if (local.length > 0) {
     _capsMemCache[libroId] = { data: local, ts: Date.now() };
-    isReallyOnline().then((online) => { if (online) refreshCapitulos(libroId, onUpdate); });
+    isReallyOnline().then((online) => {
+      if (online) refreshCapitulos(libroId, onUpdate);
+    });
     return local;
   }
 
-  return await refreshCapitulos(libroId, onUpdate) ?? [];
+  return (await refreshCapitulos(libroId, onUpdate)) ?? [];
 }
 
-async function refreshCapitulos(libroId: string, onUpdate?: (caps: any[]) => void): Promise<any[]> {
+async function refreshCapitulos(
+  libroId: string,
+  onUpdate?: (caps: any[]) => void,
+): Promise<any[]> {
   try {
     const { data } = await supabase
       .from("capitulos")
-      .select("id, titulo_capitulo, orden, fecha_publicacion, libro_id, narrador_id, personajes_ids, reinos_ids, ciudades_ids, visibilidad, orden_linea_tiempo, dia_absoluto")
+      .select(
+        "id, titulo_capitulo, orden, fecha_publicacion, libro_id, narrador_id, personajes_ids, reinos_ids, ciudades_ids, visibilidad, orden_linea_tiempo, dia_absoluto",
+      )
       .eq("libro_id", libroId)
       .eq("visibilidad", "publico")
       .not("titulo_capitulo", "like", "[Ruta]%")
@@ -421,14 +424,12 @@ async function refreshCapitulos(libroId: string, onUpdate?: (caps: any[]) => voi
     await persist("capitulos", data);
     onUpdate?.(data);
     return data;
-  } catch { return []; }
+  } catch {
+    return [];
+  }
 }
 
 // ─── Capítulo próximo (siempre Supabase, tiempo-sensitivo) ───────────────────
-
-
-
-
 
 export async function loadCapituloProximo(
   libroId: string,
@@ -444,28 +445,31 @@ export async function loadCapituloProximo(
       .limit(1)
       .maybeSingle();
     return data ?? null;
-  } catch { return null; }
+  } catch {
+    return null;
+  }
 }
 
 // ─── Libros ───────────────────────────────────────────────────────────────────
 
-
-
-
-
-export async function loadLibros(onUpdate?: (data: any[]) => void): Promise<any[]> {
-  return loadWithCache({
-    cacheKey: "libros:all",
-    dexieSource: () => dexieAll(db?.libros),
-    supabaseFetch: async () => {
-      const { data } = await supabase
-        .from("libros")
-        .select("id, titulo, sinopsis, portada_url, categoria")
-        .eq("visibilidad", "publico");
-      return data ?? null;
+export async function loadLibros(
+  onUpdate?: (data: any[]) => void,
+): Promise<any[]> {
+  return loadWithCache(
+    {
+      cacheKey: "libros:all",
+      dexieSource: () => dexieAll(db?.libros),
+      supabaseFetch: async () => {
+        const { data } = await supabase
+          .from("libros")
+          .select("id, titulo, sinopsis, portada_url, categoria")
+          .eq("visibilidad", "publico");
+        return data ?? null;
+      },
+      persist: (rows) => persist("libros", rows),
     },
-    persist: (rows) => persist("libros", rows),
-  }, onUpdate);
+    onUpdate,
+  );
 }
 
 // ─── Descubrimientos de usuario (con caché Dexie via session_cache) ──────────
@@ -474,10 +478,6 @@ export async function loadLibros(onUpdate?: (data: any[]) => void): Promise<any[
 //  lee un capítulo nuevo que desbloquea algo. TTL corto (3 min) + invalidación
 //  manual al volver a la pestaña.
 
-
-
-
-
 export interface DescubrimientoRaw {
   tipo: "item" | "criatura" | "personaje";
   fecha_descubrimiento: string;
@@ -485,9 +485,6 @@ export interface DescubrimientoRaw {
 }
 
 /** Carga los descubrimientos del usuario (items + criaturas + personajes) en una sola llamada. */
-
-
-
 
 export async function loadDescubrimientos(
   userId: string,
@@ -505,12 +502,14 @@ export async function loadDescubrimientos(
   if (cached) {
     memSet(cacheKey, cached);
     // Refrescar en background
-    isReallyOnline().then(online => { if (online) fetchDescubrimientos(userId, cacheKey, onUpdate); });
+    isReallyOnline().then((online) => {
+      if (online) fetchDescubrimientos(userId, cacheKey, onUpdate);
+    });
     return cached;
   }
 
   // 3. Supabase
-  return await fetchDescubrimientos(userId, cacheKey, onUpdate) ?? [];
+  return (await fetchDescubrimientos(userId, cacheKey, onUpdate)) ?? [];
 }
 
 async function fetchDescubrimientos(
@@ -522,15 +521,21 @@ async function fetchDescubrimientos(
     const [itemsRes, criaturasRes, personajesRes] = await Promise.all([
       supabase
         .from("descubrimientos_items")
-        .select("fecha_descubrimiento, items:item_id(id, nombre, categoria, imagen_url, descripcion)")
+        .select(
+          "fecha_descubrimiento, items:item_id(id, nombre, categoria, imagen_url, descripcion)",
+        )
         .eq("perfil_id", userId),
       supabase
         .from("descubrimientos_criaturas")
-        .select("fecha_descubrimiento, criaturas:criatura_id(id, nombre, habitat, alma, imagen_url, descripcion)")
+        .select(
+          "fecha_descubrimiento, criaturas:criatura_id(id, nombre, habitat, alma, imagen_url, descripcion)",
+        )
         .eq("perfil_id", userId),
       supabase
         .from("descubrimientos_personajes")
-        .select("fecha_descubrimiento, personajes:personaje_id(id, nombre, reino, especie, img_url, sobre)")
+        .select(
+          "fecha_descubrimiento, personajes:personaje_id(id, nombre, reino, especie, img_url, sobre)",
+        )
         .eq("perfil_id", userId),
     ]);
 
@@ -538,31 +543,31 @@ async function fetchDescubrimientos(
       ...(itemsRes.data ?? []).map((r: any) => ({
         tipo: "item" as const,
         fecha_descubrimiento: r.fecha_descubrimiento,
-        entidad_id:   r.items?.id,
-        nombre:       r.items?.nombre,
-        descripcion:  r.items?.descripcion,
-        imagen_url:   r.items?.imagen_url,
-        categoria:    r.items?.categoria,
+        entidad_id: r.items?.id,
+        nombre: r.items?.nombre,
+        descripcion: r.items?.descripcion,
+        imagen_url: r.items?.imagen_url,
+        categoria: r.items?.categoria,
       })),
       ...(criaturasRes.data ?? []).map((r: any) => ({
         tipo: "criatura" as const,
         fecha_descubrimiento: r.fecha_descubrimiento,
-        entidad_id:   r.criaturas?.id,
-        nombre:       r.criaturas?.nombre,
-        descripcion:  r.criaturas?.descripcion,
-        imagen_url:   r.criaturas?.imagen_url,
-        habitat:      r.criaturas?.habitat,
-        alma:         r.criaturas?.alma,
+        entidad_id: r.criaturas?.id,
+        nombre: r.criaturas?.nombre,
+        descripcion: r.criaturas?.descripcion,
+        imagen_url: r.criaturas?.imagen_url,
+        habitat: r.criaturas?.habitat,
+        alma: r.criaturas?.alma,
       })),
       ...(personajesRes.data ?? []).map((r: any) => ({
         tipo: "personaje" as const,
         fecha_descubrimiento: r.fecha_descubrimiento,
-        entidad_id:   r.personajes?.id,
-        nombre:       r.personajes?.nombre,
-        imagen_url:   r.personajes?.img_url,
-        descripcion:  r.personajes?.sobre,
-        reino:        r.personajes?.reino,
-        especie:      r.personajes?.especie,
+        entidad_id: r.personajes?.id,
+        nombre: r.personajes?.nombre,
+        imagen_url: r.personajes?.img_url,
+        descripcion: r.personajes?.sobre,
+        reino: r.personajes?.reino,
+        especie: r.personajes?.especie,
       })),
     ];
 
@@ -570,14 +575,12 @@ async function fetchDescubrimientos(
     await sessionSet(cacheKey, merged);
     onUpdate?.(merged);
     return merged;
-  } catch { return []; }
+  } catch {
+    return [];
+  }
 }
 
 // ─── Reinos + ciudades desbloqueadas por usuario ─────────────────────────────
-
-
-
-
 
 export interface ReinoDesbloqueado {
   id: string;
@@ -587,10 +590,6 @@ export interface ReinoDesbloqueado {
   descripcion?: string | null;
 }
 
-
-
-
-
 export interface CiudadDesbloqueada {
   id: string;
   nombre: string;
@@ -599,68 +598,86 @@ export interface CiudadDesbloqueada {
   reino_id?: string | null;
 }
 
-
-
-
-
 export async function loadReinosCiudadesUsuario(
   userId: string,
-  onUpdate?: (reinos: ReinoDesbloqueado[], ciudades: CiudadDesbloqueada[]) => void,
+  onUpdate?: (
+    reinos: ReinoDesbloqueado[],
+    ciudades: CiudadDesbloqueada[],
+  ) => void,
 ): Promise<{ reinos: ReinoDesbloqueado[]; ciudades: CiudadDesbloqueada[] }> {
   const cacheKey = `reinos_ciudades_usuario:${userId}`;
   const ttl = TTL["descubrimientos"];
 
   // 1. Memoria
-  const mem = memGet<{ reinos: ReinoDesbloqueado[]; ciudades: CiudadDesbloqueada[] }>(cacheKey, ttl);
+  const mem = memGet<{
+    reinos: ReinoDesbloqueado[];
+    ciudades: CiudadDesbloqueada[];
+  }>(cacheKey, ttl);
   if (mem) return mem;
 
   // 2. Dexie session_cache
-  const cached = await sessionGet<{ reinos: ReinoDesbloqueado[]; ciudades: CiudadDesbloqueada[] }>(cacheKey, ttl);
+  const cached = await sessionGet<{
+    reinos: ReinoDesbloqueado[];
+    ciudades: CiudadDesbloqueada[];
+  }>(cacheKey, ttl);
   if (cached) {
     memSet(cacheKey, cached);
-    isReallyOnline().then(online => { if (online) fetchReinosCiudadesUsuario(userId, cacheKey, onUpdate); });
+    isReallyOnline().then((online) => {
+      if (online) fetchReinosCiudadesUsuario(userId, cacheKey, onUpdate);
+    });
     return cached;
   }
 
   // 3. Supabase
-  return await fetchReinosCiudadesUsuario(userId, cacheKey, onUpdate)
-    ?? { reinos: [], ciudades: [] };
+  return (
+    (await fetchReinosCiudadesUsuario(userId, cacheKey, onUpdate)) ?? {
+      reinos: [],
+      ciudades: [],
+    }
+  );
 }
 
 async function fetchReinosCiudadesUsuario(
   userId: string,
   cacheKey: string,
-  onUpdate?: (reinos: ReinoDesbloqueado[], ciudades: CiudadDesbloqueada[]) => void,
+  onUpdate?: (
+    reinos: ReinoDesbloqueado[],
+    ciudades: CiudadDesbloqueada[],
+  ) => void,
 ): Promise<{ reinos: ReinoDesbloqueado[]; ciudades: CiudadDesbloqueada[] }> {
   try {
     const [reinosRes, ciudadesRes] = await Promise.all([
       supabase
         .from("descubrimientos_reinos")
-        .select("fecha_descubrimiento, reino_data:reino_id(id, nombre, mapa_url, logo_url, descripcion)")
+        .select(
+          "fecha_descubrimiento, reino_data:reino_id(id, nombre, mapa_url, logo_url, descripcion)",
+        )
         .eq("perfil_id", userId),
       supabase
         .from("ciudades_desbloqueadas")
-        .select("ciudades:ciudad_id(id, nombre, imagen_url, descripcion, reino_id)")
+        .select(
+          "ciudades:ciudad_id(id, nombre, imagen_url, descripcion, reino_id)",
+        )
         .eq("user_id", userId),
     ]);
 
     const reinos = (reinosRes.data ?? [])
       .map((r: any) => ({
-        id:          r.reino_data?.id,
-        nombre:      r.reino_data?.nombre,
-        mapa_url:    r.reino_data?.mapa_url,
-        logo_url:    r.reino_data?.logo_url,
+        id: r.reino_data?.id,
+        nombre: r.reino_data?.nombre,
+        mapa_url: r.reino_data?.mapa_url,
+        logo_url: r.reino_data?.logo_url,
         descripcion: r.reino_data?.descripcion,
       }))
       .filter((r: any) => r.id) as ReinoDesbloqueado[];
 
     const ciudades = (ciudadesRes.data ?? [])
       .map((r: any) => ({
-        id:          r.ciudades?.id,
-        nombre:      r.ciudades?.nombre,
-        imagen_url:  r.ciudades?.imagen_url,
+        id: r.ciudades?.id,
+        nombre: r.ciudades?.nombre,
+        imagen_url: r.ciudades?.imagen_url,
         descripcion: r.ciudades?.descripcion,
-        reino_id:    r.ciudades?.reino_id ?? null,
+        reino_id: r.ciudades?.reino_id ?? null,
       }))
       .filter((c: any) => c.id) as CiudadDesbloqueada[];
 
@@ -669,14 +686,12 @@ async function fetchReinosCiudadesUsuario(
     await sessionSet(cacheKey, result);
     onUpdate?.(reinos, ciudades);
     return result;
-  } catch { return { reinos: [], ciudades: [] }; }
+  } catch {
+    return { reinos: [], ciudades: [] };
+  }
 }
 
 // ─── Inventario de usuario ────────────────────────────────────────────────────
-
-
-
-
 
 export async function loadInventarioUsuario(
   userId: string,
@@ -691,11 +706,13 @@ export async function loadInventarioUsuario(
   const cached = await sessionGet<any[]>(cacheKey, ttl);
   if (cached) {
     memSet(cacheKey, cached);
-    isReallyOnline().then(online => { if (online) fetchInventario(userId, cacheKey, onUpdate); });
+    isReallyOnline().then((online) => {
+      if (online) fetchInventario(userId, cacheKey, onUpdate);
+    });
     return cached;
   }
 
-  return await fetchInventario(userId, cacheKey, onUpdate) ?? [];
+  return (await fetchInventario(userId, cacheKey, onUpdate)) ?? [];
 }
 
 async function fetchInventario(
@@ -713,14 +730,12 @@ async function fetchInventario(
     await sessionSet(cacheKey, data);
     onUpdate?.(data);
     return data;
-  } catch { return []; }
+  } catch {
+    return [];
+  }
 }
 
 // ─── Perfil de usuario (con caché) ───────────────────────────────────────────
-
-
-
-
 
 export async function loadPerfilUsuario(
   userId: string,
@@ -737,7 +752,9 @@ export async function loadPerfilUsuario(
     const local = await db?.perfiles?.get(userId);
     if (local && Date.now() - (local.cached_at ?? 0) < ttl) {
       memSet(cacheKey, local);
-      isReallyOnline().then(online => { if (online) fetchPerfilUsuario(userId, cacheKey, onUpdate); });
+      isReallyOnline().then((online) => {
+        if (online) fetchPerfilUsuario(userId, cacheKey, onUpdate);
+      });
       return local;
     }
   } catch {}
@@ -753,26 +770,28 @@ async function fetchPerfilUsuario(
   try {
     const { data, error } = await supabase
       .from("perfiles")
-      .select("username, status, rol, avatar_url, descripcion, titulo, personaje_favorito_id, mascota_id, personajes:personaje_favorito_id(id, nombre, img_url), mascota:mascota_id(id, nombre, imagen_url)")
+      .select(
+        "username, status, rol, avatar_url, descripcion, titulo, personaje_favorito_id, mascota_id, personajes:personaje_favorito_id(id, nombre, img_url), mascota:mascota_id(id, nombre, imagen_url)",
+      )
       .eq("id", userId)
       .maybeSingle();
     if (error || !data) return null;
     const toStore = { ...data, id: userId, cached_at: Date.now() };
     memSet(cacheKey, data);
-    try { await db?.perfiles?.put(toStore); } catch {}
+    try {
+      await db?.perfiles?.put(toStore);
+    } catch {}
     onUpdate?.(data);
     return data;
-  } catch { return null; }
+  } catch {
+    return null;
+  }
 }
 
 // ─── Sidebar de exploradores (conteos en una sola RPC/query) ─────────────────
 //
 //  ANTES: N perfiles × 3 queries COUNT = potencialmente 30+ round-trips.
 //  AHORA: 1 query por tabla con GROUP BY perfil_id, cacheado en session_cache.
-
-
-
-
 
 export interface PerfilResumen {
   id: string;
@@ -784,10 +803,6 @@ export interface PerfilResumen {
   personajes_count: number;
 }
 
-
-
-
-
 export async function loadPerfilesResumen(
   excludeId: string,
   onUpdate?: (data: PerfilResumen[]) => void,
@@ -796,16 +811,18 @@ export async function loadPerfilesResumen(
   const ttl = TTL["perfiles_resumen"];
 
   const mem = memGet<PerfilResumen[]>(cacheKey, ttl);
-  if (mem) return mem.filter(p => p.id !== excludeId);
+  if (mem) return mem.filter((p) => p.id !== excludeId);
 
   const cached = await sessionGet<PerfilResumen[]>(cacheKey, ttl);
   if (cached) {
     memSet(cacheKey, cached);
-    isReallyOnline().then(online => { if (online) fetchPerfilesResumen(excludeId, cacheKey, onUpdate); });
-    return cached.filter(p => p.id !== excludeId);
+    isReallyOnline().then((online) => {
+      if (online) fetchPerfilesResumen(excludeId, cacheKey, onUpdate);
+    });
+    return cached.filter((p) => p.id !== excludeId);
   }
 
-  return await fetchPerfilesResumen(excludeId, cacheKey, onUpdate) ?? [];
+  return (await fetchPerfilesResumen(excludeId, cacheKey, onUpdate)) ?? [];
 }
 
 async function fetchPerfilesResumen(
@@ -815,12 +832,17 @@ async function fetchPerfilesResumen(
 ): Promise<PerfilResumen[]> {
   try {
     // 4 queries paralelas en lugar de N×3
-    const [perfilesRes, itemsRes, criaturasRes, personajesRes] = await Promise.all([
-      supabase.from("perfiles").select("id, username, status, avatar_url").neq("id", excludeId).order("username"),
-      supabase.from("descubrimientos_items").select("perfil_id"),
-      supabase.from("descubrimientos_criaturas").select("perfil_id"),
-      supabase.from("descubrimientos_personajes").select("perfil_id"),
-    ]);
+    const [perfilesRes, itemsRes, criaturasRes, personajesRes] =
+      await Promise.all([
+        supabase
+          .from("perfiles")
+          .select("id, username, status, avatar_url")
+          .neq("id", excludeId)
+          .order("username"),
+        supabase.from("descubrimientos_items").select("perfil_id"),
+        supabase.from("descubrimientos_criaturas").select("perfil_id"),
+        supabase.from("descubrimientos_personajes").select("perfil_id"),
+      ]);
 
     if (!perfilesRes.data?.length) return [];
 
@@ -831,33 +853,31 @@ async function fetchPerfilesResumen(
         return acc;
       }, {});
 
-    const itemCounts     = countMap(itemsRes.data);
+    const itemCounts = countMap(itemsRes.data);
     const criaturaCounts = countMap(criaturasRes.data);
-    const personajeCounts= countMap(personajesRes.data);
+    const personajeCounts = countMap(personajesRes.data);
 
     const result: PerfilResumen[] = perfilesRes.data.map((p: any) => ({
-      id:               p.id,
-      username:         p.username,
-      status:           p.status,
-      avatar_url:       p.avatar_url,
-      items_count:      itemCounts[p.id]      ?? 0,
-      criaturas_count:  criaturaCounts[p.id]  ?? 0,
+      id: p.id,
+      username: p.username,
+      status: p.status,
+      avatar_url: p.avatar_url,
+      items_count: itemCounts[p.id] ?? 0,
+      criaturas_count: criaturaCounts[p.id] ?? 0,
       personajes_count: personajeCounts[p.id] ?? 0,
     }));
 
     memSet(cacheKey, result);
     await sessionSet(cacheKey, result);
-    const filtered = result.filter(p => p.id !== excludeId);
+    const filtered = result.filter((p) => p.id !== excludeId);
     onUpdate?.(filtered);
     return filtered;
-  } catch { return []; }
+  } catch {
+    return [];
+  }
 }
 
 // ─── Canciones de personaje (con caché) ──────────────────────────────────────
-
-
-
-
 
 export async function loadCancionesPersonaje(
   personajeId: string,
@@ -886,7 +906,9 @@ export async function loadCancionesPersonaje(
     await sessionSet(cacheKey, data);
     onUpdate?.(data);
     return data;
-  } catch { return []; }
+  } catch {
+    return [];
+  }
 }
 
 // ─── Misiones / desafíos ──────────────────────────────────────────────────────
@@ -898,9 +920,6 @@ export async function loadCancionesPersonaje(
 // loadInventarioUsuario): se guarda también en la tabla Dexie nativa
 // (no solo session_cache) para poder LEER y ESCRIBIR offline de forma
 // optimista — ver aceptarMisionOffline/reclamarMisionOffline más abajo.
-
-
-
 
 export async function loadMisiones(
   onUpdate?: (data: any[]) => void,
@@ -954,9 +973,6 @@ export async function loadMisionesAdmin(): Promise<any[]> {
   await persistReplace("misiones", rows);
   return rows;
 }
-
-
-
 
 export async function loadMisionesUsuario(
   userId: string,
@@ -1165,19 +1181,11 @@ async function enqueueOffline(
 
 // ─── Utilidades ───────────────────────────────────────────────────────────────
 
-
-
-
-
 export function toMap<T extends { id: string }>(arr: T[]): Record<string, T> {
   const map: Record<string, T> = {};
   for (const item of arr) map[item.id] = item;
   return map;
 }
-
-
-
-
 
 export function collectIds(caps: any[], field: string): string[] {
   const set = new Set<string>();

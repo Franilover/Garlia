@@ -1,5 +1,12 @@
 "use client";
-import { createContext, useContext, useEffect, useState, useRef } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import type { User } from "@supabase/supabase-js";
 import React from "react";
 
@@ -67,7 +74,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setPerfil_user] = useState<User | null>(null);
   const [perfil, setPerfil] = useState<PerfilLocal | null>(null);
   const [loading, setLoading] = useState(true);
-  const isAdmin = perfil?.rol === "admin";
+
+  // isAdmin combina dos fuentes a propósito:
+  // 1. perfil?.rol === "admin" — instantáneo, viene de Dexie/caché, así la
+  //    UI no parpadea mientras carga. Puede estar desactualizado unos
+  //    minutos (mismo TTL que el resto del perfil).
+  // 2. adminVerificado — confirmación real contra la función is_admin() en
+  //    Supabase (RLS), que corre en segundo plano tras el fetch de perfil.
+  //    Cuando llega, sobreescribe el valor de caché si discrepan.
+  // Nunca es la barrera de seguridad real (eso lo hace RLS en el server),
+  // solo decide qué mostrar/ocultar en la UI.
+  const [adminVerificado, setAdminVerificado] = useState<boolean | null>(null);
+  const isAdmin = adminVerificado ?? perfil?.rol === "admin";
 
   // Ref para evitar actualizaciones de estado en componente desmontado
   const mountedRef = useRef(true);
@@ -96,6 +114,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  // ── Confirmar admin contra el servidor (RLS) ──────────────────────────────
+  // Llama a la función is_admin() real en Supabase, que es la que de verdad
+  // protege las operaciones sensibles (la única fuente de verdad). Si
+  // discrepa con el valor de caché (perfil.rol), corrige adminVerificado
+  // para que la UI deje de mostrar/ocultar cosas de admin con datos viejos.
+  // No bloquea nada mientras tanto: isAdmin sigue usando el valor de caché
+  // hasta que esta confirmación llega.
+  const verificarAdminReal = useCallback(async () => {
+    try {
+      const { data, error } = await supabase.rpc("is_admin");
+      if (!mountedRef.current) return;
+      if (!error) setAdminVerificado(!!data);
+      // Si hay error (sin red, función no encontrada, etc.) no tocamos
+      // adminVerificado — se mantiene el valor de caché como fallback.
+    } catch {
+      // silencioso a propósito: sin conexión es un caso normal, no un bug
+    }
+  }, []);
+
   const fetchPerfil = async (userId: string, userEmail: string) => {
     try {
       // 1️⃣ Dexie primero — mostrar inmediatamente aunque no haya red
@@ -103,6 +140,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (dexiePerfil && mountedRef.current) {
         setPerfil(dexiePerfil);
         setLoading(false);
+
+        // La verificación de admin es liviana (un solo rpc) y vale la pena
+        // confirmarla siempre al iniciar sesión, incluso si el caché del
+        // perfil completo todavía está "fresco" y se evita el fetch grande
+        // de abajo — son cosas independientes.
+        verificarAdminReal();
 
         // Si el caché es reciente, no hacer fetch a Supabase todavía
         const edad = Date.now() - (dexiePerfil.cached_at ?? 0);
@@ -132,6 +175,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setPerfil(data);
         setPerfilCached(data);
         await guardarPerfilDexie(data);
+        verificarAdminReal();
       } else if (error?.code === "PGRST116") {
         // PGRST116 = "no rows found" — el perfil realmente no existe, crearlo
         const nombreAuto = userEmail ? userEmail.split("@")[0] : "Usuario";
@@ -187,6 +231,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       } else {
         setPerfil_user(null);
         setPerfil(null);
+        setAdminVerificado(null);
         clearPerfilCached();
         setLoading(false);
       }
