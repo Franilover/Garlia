@@ -3021,278 +3021,246 @@ export function PanelHistoriaMundo({
     <div className="flex flex-col">
       {/* ── Cabecera ──────────────────────────────────────────────────────── */}
       <div
-        className="shrink-0 flex items-center gap-2 px-3 py-2 border-b flex-wrap"
+        className="shrink-0 flex flex-col border-b"
         style={{
           borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
         }}
       >
-        {/* Filtro por reino */}
-        {reinosConEventos.length > 0 && (
-          <div className="flex items-center gap-1 flex-wrap">
-            <Filter
-              size={8}
-              style={{
-                color: "color-mix(in srgb, var(--primary) 28%, transparent)",
-              }}
+        {/* Fila 1: filtros + acciones */}
+        <div className="flex items-center gap-2 px-3 py-1.5 flex-wrap">
+          {/* ── Filtros de tipo ── */}
+          <div
+            className="flex items-center gap-0.5 p-0.5 rounded-lg"
+            style={{
+              background: "color-mix(in srgb, var(--primary) 4%, transparent)",
+              border:
+                "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+            }}
+          >
+            <ToggleTipoBtn
+              active={showCapitulos}
+              icon={<BookOpen size={9} />}
+              label="Capítulos"
+              onClick={() => setShowCapitulos((v) => !v)}
             />
-            <button
-              className="px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border transition-all"
-              style={
-                filterReino === null
-                  ? {
-                      background:
-                        "color-mix(in srgb, var(--primary) 10%, transparent)",
-                      borderColor:
-                        "color-mix(in srgb, var(--primary) 22%, transparent)",
-                      color: "var(--primary)",
-                    }
-                  : {
-                      borderColor:
-                        "color-mix(in srgb, var(--primary) 10%, transparent)",
-                      color:
-                        "color-mix(in srgb, var(--primary) 28%, transparent)",
-                    }
+            <ToggleTipoBtn
+              active={showCanciones}
+              icon={<Music size={9} />}
+              label="Canciones"
+              onClick={() => setShowCanciones((v) => !v)}
+            />
+            <ToggleTipoBtn
+              active={showEventos}
+              icon={<CalendarDays size={9} />}
+              label="Eventos"
+              onClick={() => setShowEventos((v) => !v)}
+            />
+            <ToggleTipoBtn
+              active={showCumpleanos}
+              label="Cumpleaños"
+              onClick={() => setShowCumpleanos((v) => !v)}
+              icon={
+                <svg
+                  fill="none"
+                  height="9"
+                  stroke="currentColor"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  viewBox="0 0 24 24"
+                  width="9"
+                >
+                  <path d="M20 21v-8a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8" />
+                  <path d="M4 16s.5-1 2-1 2.5 2 4 2 2.5-2 4-2 2 1 2 1" />
+                  <path d="M2 21h20" />
+                  <path d="M7 8v2" />
+                  <path d="M12 8v2" />
+                  <path d="M17 8v2" />
+                  <path d="M7 4h.01" />
+                  <path d="M12 4h.01" />
+                  <path d="M17 4h.01" />
+                </svg>
               }
-              type="button"
-              onClick={() => setFilterReino(null)}
+            />
+          </div>
+
+          {/* ── Filtro por reino ── */}
+          {reinosConEventos.length > 0 && (
+            <div
+              className="flex items-center gap-0.5 p-0.5 rounded-lg flex-wrap"
+              style={{
+                background:
+                  "color-mix(in srgb, var(--primary) 4%, transparent)",
+                border:
+                  "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+              }}
             >
-              Todos
-            </button>
-            {reinosConEventos.map((r) => (
               <button
-                key={r.id}
-                className="px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border transition-all"
+                className="px-2 py-1 rounded-md text-[8px] font-black uppercase tracking-widest transition-all"
                 style={
-                  filterReino === r.id
+                  filterReino === null
                     ? {
                         background:
-                          "color-mix(in srgb, var(--primary) 10%, transparent)",
-                        borderColor:
-                          "color-mix(in srgb, var(--primary) 22%, transparent)",
+                          "color-mix(in srgb, var(--primary) 12%, transparent)",
                         color: "var(--primary)",
                       }
                     : {
-                        borderColor:
-                          "color-mix(in srgb, var(--primary) 10%, transparent)",
                         color:
-                          "color-mix(in srgb, var(--primary) 28%, transparent)",
+                          "color-mix(in srgb, var(--primary) 30%, transparent)",
                       }
                 }
                 type="button"
-                onClick={() =>
-                  setFilterReino((prev) => (prev === r.id ? null : r.id))
-                }
+                onClick={() => setFilterReino(null)}
               >
-                {r.nombre}
+                Todos
               </button>
-            ))}
+              {reinosConEventos.map((r) => (
+                <button
+                  key={r.id}
+                  className="px-2 py-1 rounded-md text-[8px] font-black uppercase tracking-widest transition-all"
+                  style={
+                    filterReino === r.id
+                      ? {
+                          background:
+                            "color-mix(in srgb, var(--primary) 12%, transparent)",
+                          color: "var(--primary)",
+                        }
+                      : {
+                          color:
+                            "color-mix(in srgb, var(--primary) 28%, transparent)",
+                        }
+                  }
+                  type="button"
+                  onClick={() =>
+                    setFilterReino((prev) => (prev === r.id ? null : r.id))
+                  }
+                >
+                  {r.nombre}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* ── Acciones (derecha) ── */}
+          <div className="ml-auto flex items-center gap-1.5">
+            <SaveIndicator status={saveStatus} />
+
+            {/* Compactar */}
+            <button
+              className="flex items-center gap-1 px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all"
+              style={{
+                background: !showDescripciones
+                  ? "color-mix(in srgb, var(--primary) 10%, transparent)"
+                  : "transparent",
+                border: `1px solid ${!showDescripciones ? "color-mix(in srgb, var(--primary) 20%, transparent)" : "color-mix(in srgb, var(--primary) 10%, transparent)"}`,
+                color: !showDescripciones
+                  ? "var(--primary)"
+                  : "color-mix(in srgb, var(--primary) 35%, transparent)",
+              }}
+              title={
+                showDescripciones ? "Modo compacto" : "Mostrar descripciones"
+              }
+              type="button"
+              onClick={() => setShowDescripciones((v) => !v)}
+            >
+              <Layers size={9} />
+              {showDescripciones ? "Compactar" : "Expandir"}
+            </button>
+
+            {/* Eras: botón principal + botón + pegados */}
+            <div
+              className="flex items-stretch rounded-lg overflow-hidden"
+              style={{
+                border:
+                  "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
+              }}
+            >
+              <button
+                className="flex items-center gap-1 px-2 py-1 text-[8px] font-black uppercase tracking-widest transition-all"
+                style={{
+                  color: "color-mix(in srgb, var(--primary) 50%, transparent)",
+                  background: "transparent",
+                }}
+                title="Ver y editar eras"
+                type="button"
+                onClick={() => setShowGestionEras(true)}
+              >
+                <Clock size={9} /> Eras
+              </button>
+              <div
+                style={{
+                  width: 1,
+                  background:
+                    "color-mix(in srgb, var(--primary) 10%, transparent)",
+                  margin: "4px 0",
+                }}
+              />
+              <button
+                className="flex items-center px-1.5 py-1 transition-all"
+                style={{
+                  color: "color-mix(in srgb, var(--primary) 40%, transparent)",
+                  background: "transparent",
+                }}
+                title="Nueva era"
+                type="button"
+                onClick={() => setEraModal("new")}
+              >
+                <Plus size={9} />
+              </button>
+            </div>
+
+            {/* + Evento */}
+            <button
+              className="flex items-center gap-1 px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all"
+              style={{
+                background: "color-mix(in srgb, var(--accent) 8%, transparent)",
+                border:
+                  "1px solid color-mix(in srgb, var(--accent) 22%, transparent)",
+                color: "var(--accent)",
+              }}
+              title="Añadir evento"
+              type="button"
+              onClick={() => setShowNuevoEvento(true)}
+            >
+              <Plus size={9} /> Evento
+            </button>
+
+            {/* Recargar */}
+            <button
+              className="flex items-center justify-center transition-all rounded-lg"
+              style={{
+                width: 24,
+                height: 24,
+                border:
+                  "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                color: "color-mix(in srgb, var(--primary) 30%, transparent)",
+                background: "transparent",
+              }}
+              title="Recargar"
+              type="button"
+              onClick={() => recargar()}
+            >
+              {loadingReinos ? (
+                <Loader2 className="animate-spin" size={9} />
+              ) : (
+                <svg
+                  fill="none"
+                  height="9"
+                  stroke="currentColor"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2.5"
+                  viewBox="0 0 24 24"
+                  width="9"
+                >
+                  <path d="M21 2v6h-6" />
+                  <path d="M3 12a9 9 0 0 1 15-6.7L21 8" />
+                  <path d="M3 22v-6h6" />
+                  <path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
+                </svg>
+              )}
+            </button>
           </div>
-        )}
-
-        {/* Filtro por tipo */}
-        <div className="flex items-center gap-1 flex-wrap">
-          <Filter
-            size={8}
-            style={{
-              color: "color-mix(in srgb, var(--primary) 28%, transparent)",
-            }}
-          />
-          <ToggleTipoBtn
-            active={showCapitulos}
-            icon={<BookOpen size={9} />}
-            label="Capítulos"
-            onClick={() => setShowCapitulos((v) => !v)}
-          />
-          <ToggleTipoBtn
-            active={showCanciones}
-            icon={<Music size={9} />}
-            label="Canciones"
-            onClick={() => setShowCanciones((v) => !v)}
-          />
-          <ToggleTipoBtn
-            active={showEventos}
-            icon={<CalendarDays size={9} />}
-            label="Eventos"
-            onClick={() => setShowEventos((v) => !v)}
-          />
-          <ToggleTipoBtn
-            active={showCumpleanos}
-            icon={
-              <svg
-                fill="none"
-                height="9"
-                stroke="currentColor"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                viewBox="0 0 24 24"
-                width="9"
-              >
-                <path d="M20 21v-8a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8" />
-                <path d="M4 16s.5-1 2-1 2.5 2 4 2 2.5-2 4-2 2 1 2 1" />
-                <path d="M2 21h20" />
-                <path d="M7 8v2" />
-                <path d="M12 8v2" />
-                <path d="M17 8v2" />
-                <path d="M7 4h.01" />
-                <path d="M12 4h.01" />
-                <path d="M17 4h.01" />
-              </svg>
-            }
-            label="Cumpleaños"
-            onClick={() => setShowCumpleanos((v) => !v)}
-          />
-        </div>
-
-        <div className="ml-auto flex items-center gap-2">
-          <SaveIndicator status={saveStatus} />
-          {/* Toggle descripciones */}
-          <button
-            className="flex items-center gap-1 px-2 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-widest border transition-all"
-            style={{
-              borderColor: !showDescripciones
-                ? "color-mix(in srgb, var(--primary) 22%, transparent)"
-                : "color-mix(in srgb, var(--primary) 12%, transparent)",
-              background: !showDescripciones
-                ? "color-mix(in srgb, var(--primary) 8%, transparent)"
-                : "transparent",
-              color: !showDescripciones
-                ? "var(--primary)"
-                : "color-mix(in srgb, var(--primary) 35%, transparent)",
-            }}
-            title={
-              showDescripciones
-                ? "Modo compacto (solo títulos)"
-                : "Mostrar descripciones"
-            }
-            type="button"
-            onClick={() => {
-              const next = !showDescripciones;
-              setShowDescripciones(next);
-            }}
-          >
-            <Layers size={9} />
-            {showDescripciones ? "Compactar" : "Expandir"}
-          </button>
-          {/* Botón gestionar eras */}
-          <button
-            className="flex items-center gap-1 px-2 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-widest border transition-all"
-            style={{
-              borderColor:
-                "color-mix(in srgb, var(--primary) 18%, transparent)",
-              color: "color-mix(in srgb, var(--primary) 50%, transparent)",
-            }}
-            title="Ver y editar todas las eras"
-            type="button"
-            onClick={() => setShowGestionEras(true)}
-            onMouseEnter={(e) => {
-              const el = e.currentTarget as HTMLElement;
-              el.style.background =
-                "color-mix(in srgb, var(--primary) 5%, transparent)";
-              el.style.color = "var(--primary)";
-            }}
-            onMouseLeave={(e) => {
-              const el = e.currentTarget as HTMLElement;
-              el.style.background = "transparent";
-              el.style.color =
-                "color-mix(in srgb, var(--primary) 50%, transparent)";
-            }}
-          >
-            <Clock size={9} /> Eras
-          </button>
-          {/* Botón nueva era */}
-          <button
-            className="flex items-center gap-1 px-2 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-widest border transition-all"
-            style={{
-              borderColor:
-                "color-mix(in srgb, var(--primary) 18%, transparent)",
-              color: "color-mix(in srgb, var(--primary) 50%, transparent)",
-            }}
-            title="Crear nueva era"
-            type="button"
-            onClick={() => setEraModal("new")}
-            onMouseEnter={(e) => {
-              const el = e.currentTarget as HTMLElement;
-              el.style.background =
-                "color-mix(in srgb, var(--primary) 5%, transparent)";
-              el.style.color = "var(--primary)";
-            }}
-            onMouseLeave={(e) => {
-              const el = e.currentTarget as HTMLElement;
-              el.style.background = "transparent";
-              el.style.color =
-                "color-mix(in srgb, var(--primary) 50%, transparent)";
-            }}
-          >
-            <Plus size={9} /> Era
-          </button>
-          <button
-            className="flex items-center gap-1 px-2 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-widest border transition-all"
-            style={{
-              borderColor: "color-mix(in srgb, var(--accent) 25%, transparent)",
-              color: "var(--accent)",
-            }}
-            title="Añadir evento"
-            type="button"
-            onClick={() => setShowNuevoEvento(true)}
-            onMouseEnter={(e) => {
-              const el = e.currentTarget as HTMLElement;
-              el.style.background =
-                "color-mix(in srgb, var(--accent) 8%, transparent)";
-            }}
-            onMouseLeave={(e) => {
-              const el = e.currentTarget as HTMLElement;
-              el.style.background = "transparent";
-            }}
-          >
-            <Plus size={9} /> Evento
-          </button>
-          <button
-            className="flex items-center gap-1 px-2 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-widest border transition-all"
-            style={{
-              borderColor:
-                "color-mix(in srgb, var(--primary) 12%, transparent)",
-              color: "color-mix(in srgb, var(--primary) 35%, transparent)",
-            }}
-            title="Recargar línea de tiempo"
-            type="button"
-            onClick={() => {
-              recargar();
-            }}
-            onMouseEnter={(e) => {
-              const el = e.currentTarget as HTMLElement;
-              el.style.color = "var(--primary)";
-              el.style.borderColor =
-                "color-mix(in srgb, var(--primary) 28%, transparent)";
-            }}
-            onMouseLeave={(e) => {
-              const el = e.currentTarget as HTMLElement;
-              el.style.color =
-                "color-mix(in srgb, var(--primary) 35%, transparent)";
-              el.style.borderColor =
-                "color-mix(in srgb, var(--primary) 12%, transparent)";
-            }}
-          >
-            {loadingReinos ? (
-              <Loader2 className="animate-spin" size={9} />
-            ) : (
-              <svg
-                fill="none"
-                height="9"
-                stroke="currentColor"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2.5"
-                viewBox="0 0 24 24"
-                width="9"
-              >
-                <path d="M21 2v6h-6" />
-                <path d="M3 12a9 9 0 0 1 15-6.7L21 8" />
-                <path d="M3 22v-6h6" />
-                <path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
-              </svg>
-            )}
-          </button>
         </div>
       </div>
 
