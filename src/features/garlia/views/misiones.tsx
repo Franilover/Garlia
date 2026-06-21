@@ -99,6 +99,7 @@ export default function Misiones({ datos: datosProp }: MisionesProps) {
             item_nombre: m.recompensa_item_nombre ?? undefined,
             item_imagen_url: m.recompensa_item_imagen_url ?? undefined,
           },
+          recompensa_item_id: m.recompensa_item_id ?? null,
           user_estado: prog?.estado ?? null,
           progreso: prog?.progreso ?? 0,
         };
@@ -159,6 +160,7 @@ export default function Misiones({ datos: datosProp }: MisionesProps) {
                   recompensa_monedas: m.recompensa.monedas,
                   recompensa_item_nombre: m.recompensa.item_nombre,
                   recompensa_item_imagen_url: m.recompensa.item_imagen_url,
+                  recompensa_item_id: m.recompensa_item_id ?? null,
                 }));
                 return combinarMisiones(catalogoActual, progresoActualizado);
               });
