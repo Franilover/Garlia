@@ -342,22 +342,13 @@ export default function CancionesPage() {
               </h1>
             </div>
           </div>
-
-          <button
-            className="p-2.5 border border-primary/15 hover:bg-primary/5 hover:border-primary/30 text-primary/35 hover:text-primary/70 transition-all shrink-0 mb-1"
-            style={{ borderRadius: "var(--radius-btn)" }}
-            title={vistaFila ? "Vista cuadrícula" : "Vista lista"}
-            onClick={() => setVistaFila((v) => !v)}
-          >
-            {vistaFila ? <LayoutGrid size={16} /> : <List size={16} />}
-          </button>
         </div>
       </div>
 
       <div className="max-w-6xl mx-auto px-6">
         {grupos.length === 0 ? (
           <p className="text-center text-primary/30 font-bold text-xs uppercase tracking-widest py-24 italic">
-            No hay canciones disponibles
+            No has descubierto canciones
           </p>
         ) : (
           grupos.map(([personaje, { canciones: cancionesList, imgUrl }]) => {
