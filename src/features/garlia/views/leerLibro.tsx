@@ -338,10 +338,8 @@ function TriggerWarningPanel({ warnings }: { warnings: string[] }) {
       style={{
         margin: "12px 16px 0",
         borderRadius: 8,
-        border:
-          "1px solid color-mix(in srgb, var(--callout-warning-border) 35%, transparent)",
-        background:
-          "color-mix(in srgb, var(--callout-warning-border) 8%, transparent)",
+        border: "1px solid color-mix(in srgb, var(--callout-warning-border) 35%, transparent)",
+        background: "color-mix(in srgb, var(--callout-warning-border) 8%, transparent)",
         overflow: "hidden",
         flexShrink: 0,
       }}
@@ -358,7 +356,7 @@ function TriggerWarningPanel({ warnings }: { warnings: string[] }) {
           cursor: "pointer",
           textAlign: "left",
         }}
-        onClick={() => setExpanded((e) => !e)}
+        onClick={() => setExpanded(e => !e)}
       >
         <span style={{ fontSize: 11, lineHeight: 1, flexShrink: 0 }}>⚠️</span>
         <span
@@ -381,8 +379,7 @@ function TriggerWarningPanel({ warnings }: { warnings: string[] }) {
             fontWeight: 900,
             textTransform: "uppercase",
             letterSpacing: "0.1em",
-            color:
-              "color-mix(in srgb, var(--callout-warning-title) 55%, transparent)",
+            color: "color-mix(in srgb, var(--callout-warning-title) 55%, transparent)",
             transition: "transform 0.15s",
             transform: expanded ? "rotate(180deg)" : "rotate(0deg)",
             display: "inline-block",
@@ -401,7 +398,7 @@ function TriggerWarningPanel({ warnings }: { warnings: string[] }) {
             gap: 4,
           }}
         >
-          {warnings.map((tw) => (
+          {warnings.map(tw => (
             <span
               key={tw}
               style={{
@@ -412,11 +409,9 @@ function TriggerWarningPanel({ warnings }: { warnings: string[] }) {
                 letterSpacing: "0.08em",
                 padding: "2px 7px",
                 borderRadius: 99,
-                border:
-                  "1px solid color-mix(in srgb, var(--callout-warning-border) 45%, transparent)",
+                border: "1px solid color-mix(in srgb, var(--callout-warning-border) 45%, transparent)",
                 color: "var(--callout-warning-title)",
-                background:
-                  "color-mix(in srgb, var(--callout-warning-border) 10%, transparent)",
+                background: "color-mix(in srgb, var(--callout-warning-border) 10%, transparent)",
               }}
             >
               {tw}
@@ -464,7 +459,7 @@ function PanelLateral({
     | NarradorInfo
     | null
     | undefined;
-  const personajesIds = Array.from(new Set(capActual?.personajes_ids ?? []));
+  const personajesIds = Array.from(new Set((capActual?.personajes_ids ?? []) as string[]));
   const triggerWarnings: string[] = (capActual as any)?.trigger_warnings ?? [];
 
   return (
