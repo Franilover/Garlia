@@ -1913,24 +1913,27 @@ const ROL_LABELS: Record<RolEntidad, string> = {
   recompensa: "Recompensa",
 };
 
-// ── Panel de entidades vinculadas ─────────────────────────────────────────────
-// Cada tab carga su catálogo bajo demanda (no todos a la vez) — evita la
-// race condition de tener catálogos vacíos mientras loading ya es false.
+const ROL_COLORS: Record<RolEntidad, string> = {
+  relacionado: "color-mix(in srgb, var(--primary) 20%, transparent)",
+  objetivo: "var(--primary)",
+  recompensa: "#16a34a",
+};
 
 function PanelEntidadesMision({ misionId }: { misionId: string }) {
-  const [tipoActivo, setTipoActivo] = React.useState<TipoEntidad>("personaje");
+  const [open, setOpen] = React.useState(false);
   const [vinculos, setVinculos] = React.useState<EntidadVinculo[]>([]);
   const [catalogo, setCatalogo] = React.useState<EntidadMin[]>([]);
+  const [tipoActivo, setTipoActivo] = React.useState<TipoEntidad>("personaje");
+  const [busqueda, setBusqueda] = React.useState("");
   const [loadingVinculos, setLoadingVinculos] = React.useState(true);
   const [loadingCat, setLoadingCat] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
 
-  // Cargar todos los vínculos una sola vez al montar
+  // Cargar vínculos existentes al montar
   React.useEffect(() => {
     let cancelled = false;
-    async function cargarVinculos() {
+    async function load() {
       setLoadingVinculos(true);
-
       // Dexie primero
       try {
         const { db } = await import("@/lib/api/client/db");
@@ -1940,72 +1943,61 @@ function PanelEntidadesMision({ misionId }: { misionId: string }) {
             .equals(misionId)
             .toArray();
           if (!cancelled && local.length > 0) {
-            // Necesitamos nombres — los buscamos en los catálogos locales
-            const resueltos = await resolverNombres(local as any[]);
-            if (!cancelled) setVinculos(resueltos);
+            setVinculos(await resolverNombres(local as any[]));
           }
         }
       } catch {}
-
       // Supabase
       try {
         const { data } = await supabase
           .from("mision_entidades")
           .select("id, tipo, entidad_id, rol")
           .eq("mision_id", misionId);
-        if (cancelled || !data) return;
-        const resueltos = await resolverNombres(data);
-        if (!cancelled) {
-          setVinculos(resueltos);
-          // Cachear en Dexie
+        if (!cancelled && data) {
+          const resolved = await resolverNombres(data);
+          setVinculos(resolved);
           try {
             const { db } = await import("@/lib/api/client/db");
             if (db?.mision_entidades)
               await db.mision_entidades.bulkPut(
-                resueltos.map((v) => ({ ...v, mision_id: misionId })),
+                resolved.map((v) => ({ ...v, mision_id: misionId })),
               );
           } catch {}
         }
       } catch {}
       if (!cancelled) setLoadingVinculos(false);
     }
-    cargarVinculos();
+    load();
     return () => {
       cancelled = true;
     };
   }, [misionId]);
 
-  // Cargar catálogo del tab activo bajo demanda
+  // Cargar catálogo del tab activo al abrir el modal
   React.useEffect(() => {
+    if (!open) return;
     let cancelled = false;
-    async function cargarCatalogo() {
+    async function loadCat() {
       setLoadingCat(true);
       const cfg = TIPO_CONFIG[tipoActivo];
-
-      // Dexie primero — solo muestra si tiene datos, sino espera Supabase
-      let dexieTeniaData = false;
+      // Dexie primero
       try {
         const { db } = await import("@/lib/api/client/db");
-        if (db) {
-          const local: any[] = (await (db as any)[cfg.tabla]?.toArray()) ?? [];
-          if (!cancelled && local.length > 0) {
-            dexieTeniaData = true;
-            setCatalogo(
-              local.map((x) => ({
-                id: x.id,
-                nombre: x.nombre,
-                imagen_url: x[cfg.imgCol] ?? x.imagen_url ?? null,
-              })),
-            );
-            setLoadingCat(false); // mostrar inmediatamente solo si hay datos
-          }
+        const local: any[] = (await (db as any)?.[cfg.tabla]?.toArray()) ?? [];
+        if (!cancelled && local.length > 0) {
+          setCatalogo(
+            local.map((x) => ({
+              id: x.id,
+              nombre: x.nombre,
+              imagen_url: x[cfg.imgCol] ?? x.imagen_url ?? null,
+            })),
+          );
+          setLoadingCat(false);
         }
       } catch {}
-
-      // Supabase — siempre se consulta para tener datos frescos
+      // Supabase
       try {
-        const { data } = await supabase
-          .from(cfg.tabla)
+        const { data } = await (supabase.from(cfg.tabla) as any)
           .select(`id, nombre, ${cfg.imgCol}`)
           .order("nombre");
         if (!cancelled && data) {
@@ -2018,17 +2010,19 @@ function PanelEntidadesMision({ misionId }: { misionId: string }) {
           );
         }
       } catch {}
-      // Quitar el spinner siempre al final (cubre el caso de Dexie vacío)
       if (!cancelled) setLoadingCat(false);
     }
-    cargarCatalogo();
+    loadCat();
     return () => {
       cancelled = true;
     };
-  }, [tipoActivo]);
+  }, [open, tipoActivo]);
 
   const vincActivos = vinculos.filter((v) => v.tipo === tipoActivo);
   const selectedIds = vincActivos.map((v) => v.entidad_id);
+  const filtrados = catalogo.filter((e) =>
+    e.nombre.toLowerCase().includes(busqueda.toLowerCase()),
+  );
 
   const handleToggle = async (entidadId: string, add: boolean) => {
     setSaving(true);
@@ -2102,7 +2096,7 @@ function PanelEntidadesMision({ misionId }: { misionId: string }) {
   const divider =
     "1px solid color-mix(in srgb, var(--primary) 8%, transparent)";
   const subtle = {
-    color: "color-mix(in srgb, var(--primary) 35%, transparent)",
+    color: "color-mix(in srgb, var(--primary) 30%, transparent)",
   };
   const tiposTabs: TipoEntidad[] = [
     "personaje",
@@ -2113,175 +2107,326 @@ function PanelEntidadesMision({ misionId }: { misionId: string }) {
   ];
 
   return (
-    <div className="rounded-xl overflow-hidden" style={{ border: divider }}>
-      {/* Cabecera */}
-      <div
-        className="flex items-center gap-1.5 px-3 py-2"
-        style={{
-          borderBottom: divider,
-          background: "color-mix(in srgb, var(--primary) 2%, transparent)",
-        }}
+    <div className="flex flex-col gap-1.5">
+      <span
+        className="text-[8px] font-black uppercase tracking-wider"
+        style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
       >
-        <Swords size={9} style={subtle} />
-        <span
-          className="text-[8px] font-black uppercase tracking-widest"
-          style={subtle}
-        >
-          Entidades vinculadas
-        </span>
-        {loadingVinculos ? (
-          <Loader2 className="animate-spin ml-auto" size={9} style={subtle} />
-        ) : (
-          <span
-            className="ml-auto text-[8px] font-black tabular-nums"
-            style={subtle}
-          >
-            {vinculos.length}
-          </span>
-        )}
-      </div>
+        Entidades vinculadas ({loadingVinculos ? "…" : vinculos.length})
+      </span>
 
-      {/* Tabs */}
-      <div className="flex" style={{ borderBottom: divider }}>
-        {tiposTabs.map((tipo) => {
-          const cfg = TIPO_CONFIG[tipo];
-          const count = vinculos.filter((v) => v.tipo === tipo).length;
-          const active = tipoActivo === tipo;
-          return (
-            <button
-              key={tipo}
-              type="button"
-              className="flex-1 flex flex-col items-center gap-0.5 py-2 transition-all"
+      {/* Vista previa de vínculos existentes — igual que el preview del item */}
+      {vinculos.length > 0 ? (
+        <div className="flex flex-col gap-1">
+          {vinculos.map((v) => (
+            <div
+              key={v.id}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg"
               style={{
-                background: active
-                  ? "color-mix(in srgb, var(--primary) 6%, transparent)"
-                  : "transparent",
-                borderRight: tipo !== "reino" ? divider : undefined,
-                color: active
-                  ? "var(--primary)"
-                  : "color-mix(in srgb, var(--primary) 30%, transparent)",
+                background:
+                  "color-mix(in srgb, var(--primary) 4%, transparent)",
+                border: divider,
               }}
-              onClick={() => setTipoActivo(tipo)}
             >
-              {cfg.icon}
-              <span className="text-[7px] font-black uppercase tracking-wider">
-                {cfg.label}
-              </span>
-              {count > 0 && (
-                <span
-                  className="text-[7px] font-black tabular-nums px-1 rounded"
-                  style={{
-                    background:
-                      "color-mix(in srgb, var(--primary) 10%, transparent)",
-                  }}
-                >
-                  {count}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Contenido del tab activo */}
-      <div className="p-2">
-        {/* Vínculos existentes con selector de rol */}
-        {vincActivos.length > 0 && (
-          <div className="mb-2 flex flex-col gap-1">
-            {vincActivos.map((v) => (
               <div
-                key={v.id}
-                className="flex items-center gap-2 px-2 py-1.5 rounded-lg"
+                className="w-6 h-6 shrink-0 overflow-hidden flex items-center justify-center rounded"
+                style={{
+                  background:
+                    "color-mix(in srgb, var(--primary) 8%, transparent)",
+                }}
+              >
+                {v.imagen_url ? (
+                  <img
+                    alt={v.nombre}
+                    className="w-full h-full object-cover"
+                    src={v.imagen_url}
+                  />
+                ) : (
+                  <span style={subtle}>{TIPO_CONFIG[v.tipo].icon}</span>
+                )}
+              </div>
+              <span
+                className="flex-1 min-w-0 truncate text-[10px] font-bold capitalize"
+                style={{ color: "var(--primary)" }}
+              >
+                {v.nombre}
+              </span>
+              {/* Rol inline */}
+              <div className="flex gap-0.5 shrink-0">
+                {(
+                  ["relacionado", "objetivo", "recompensa"] as RolEntidad[]
+                ).map((rol) => (
+                  <button
+                    key={rol}
+                    type="button"
+                    className="px-1.5 py-0.5 transition-all"
+                    style={{
+                      borderRadius: "3px",
+                      fontSize: "7px",
+                      fontWeight: 900,
+                      letterSpacing: "0.05em",
+                      textTransform: "uppercase",
+                      background:
+                        v.rol === rol ? ROL_COLORS[rol] : "transparent",
+                      color:
+                        v.rol === rol
+                          ? rol === "relacionado"
+                            ? "var(--primary)"
+                            : "white"
+                          : "color-mix(in srgb, var(--primary) 25%, transparent)",
+                    }}
+                    title={ROL_LABELS[rol]}
+                    onClick={() => cambiarRol(v.id, rol)}
+                  >
+                    {rol === "relacionado"
+                      ? "Rel"
+                      : rol === "objetivo"
+                        ? "Obj"
+                        : "Rec"}
+                  </button>
+                ))}
+              </div>
+              <button
+                type="button"
+                className="shrink-0 transition-opacity hover:opacity-70"
+                style={subtle}
+                onClick={() => handleToggle(v.entidad_id, false)}
+              >
+                <X size={11} />
+              </button>
+            </div>
+          ))}
+          <button
+            className="flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-left mt-0.5"
+            type="button"
+            style={{
+              background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+              border: divider,
+              color: "color-mix(in srgb, var(--primary) 35%, transparent)",
+              fontSize: "11px",
+              fontWeight: 600,
+            }}
+            onClick={() => setOpen(true)}
+          >
+            <Plus size={11} />
+            Añadir más entidades…
+          </button>
+        </div>
+      ) : (
+        <button
+          className="flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-left"
+          type="button"
+          style={{
+            background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+            border: divider,
+            color: "color-mix(in srgb, var(--primary) 30%, transparent)",
+            fontSize: "11px",
+            fontWeight: 600,
+          }}
+          onClick={() => setOpen(true)}
+        >
+          <Swords size={12} />
+          Vincular personajes, criaturas, objetos…
+        </button>
+      )}
+
+      {/* Modal selector — igual que el modal de SelectorItemRecompensa */}
+      {open && (
+        <div
+          className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+          onClick={() => setOpen(false)}
+        >
+          <div
+            className="bg-white-custom rounded-2xl shadow-2xl border border-primary/15 w-full max-w-md flex flex-col"
+            style={{ maxHeight: "75dvh" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div
+              className="flex items-center justify-between px-4 py-3 shrink-0"
+              style={{ borderBottom: divider }}
+            >
+              <span
+                className="text-[10px] font-black uppercase tracking-[0.25em] flex items-center gap-1.5"
+                style={subtle}
+              >
+                <Swords size={10} /> Vincular entidades
+              </span>
+              <button
+                type="button"
+                className="transition-colors"
+                style={subtle}
+                onClick={() => setOpen(false)}
+              >
+                <X size={14} />
+              </button>
+            </div>
+
+            {/* Tabs por tipo */}
+            <div className="flex shrink-0" style={{ borderBottom: divider }}>
+              {tiposTabs.map((tipo) => {
+                const cfg = TIPO_CONFIG[tipo];
+                const count = vinculos.filter((v) => v.tipo === tipo).length;
+                const active = tipoActivo === tipo;
+                return (
+                  <button
+                    key={tipo}
+                    type="button"
+                    className="flex-1 flex flex-col items-center gap-0.5 py-2 transition-all"
+                    style={{
+                      background: active
+                        ? "color-mix(in srgb, var(--primary) 6%, transparent)"
+                        : "transparent",
+                      borderRight: tipo !== "reino" ? divider : undefined,
+                      color: active
+                        ? "var(--primary)"
+                        : "color-mix(in srgb, var(--primary) 30%, transparent)",
+                    }}
+                    onClick={() => {
+                      setTipoActivo(tipo);
+                      setBusqueda("");
+                    }}
+                  >
+                    {cfg.icon}
+                    <span className="text-[7px] font-black uppercase tracking-wider">
+                      {cfg.label}
+                    </span>
+                    {count > 0 && (
+                      <span
+                        className="text-[7px] font-black tabular-nums px-1 rounded"
+                        style={{
+                          background:
+                            "color-mix(in srgb, var(--primary) 10%, transparent)",
+                        }}
+                      >
+                        {count}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Búsqueda */}
+            <div
+              className="px-3 py-2 shrink-0"
+              style={{ borderBottom: divider }}
+            >
+              <div
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg"
                 style={{
                   background:
                     "color-mix(in srgb, var(--primary) 4%, transparent)",
+                  border: divider,
                 }}
               >
-                <div
-                  className="w-5 h-5 shrink-0 overflow-hidden flex items-center justify-center rounded"
-                  style={{
-                    background:
-                      "color-mix(in srgb, var(--primary) 8%, transparent)",
-                  }}
-                >
-                  {v.imagen_url ? (
-                    <img
-                      alt={v.nombre}
-                      className="w-full h-full object-cover"
-                      src={v.imagen_url}
-                    />
-                  ) : (
-                    <span className="text-[8px]">
-                      {TIPO_CONFIG[v.tipo].icon}
-                    </span>
-                  )}
-                </div>
-                <span
-                  className="flex-1 min-w-0 truncate text-[10px] font-bold capitalize"
+                <Search size={11} style={subtle} />
+                <input
+                  autoFocus
+                  className="flex-1 bg-transparent outline-none text-[11px]"
+                  placeholder={`Buscar ${TIPO_CONFIG[tipoActivo].label.toLowerCase()}…`}
                   style={{ color: "var(--primary)" }}
-                >
-                  {v.nombre}
-                </span>
-                <div className="flex gap-0.5 shrink-0">
-                  {(
-                    ["relacionado", "objetivo", "recompensa"] as RolEntidad[]
-                  ).map((rol) => (
-                    <button
-                      key={rol}
-                      type="button"
-                      className="px-1.5 py-0.5 transition-all"
-                      style={{
-                        borderRadius: "3px",
-                        fontSize: "7px",
-                        fontWeight: 900,
-                        letterSpacing: "0.05em",
-                        textTransform: "uppercase",
-                        background:
-                          v.rol === rol
-                            ? rol === "recompensa"
-                              ? "#16a34a"
-                              : rol === "objetivo"
-                                ? "var(--primary)"
-                                : "color-mix(in srgb, var(--primary) 20%, transparent)"
-                            : "transparent",
-                        color:
-                          v.rol === rol
-                            ? rol === "relacionado"
-                              ? "var(--primary)"
-                              : "white"
-                            : "color-mix(in srgb, var(--primary) 30%, transparent)",
-                      }}
-                      title={ROL_LABELS[rol]}
-                      onClick={() => cambiarRol(v.id, rol)}
-                    >
-                      {rol === "relacionado"
-                        ? "Rel"
-                        : rol === "objetivo"
-                          ? "Obj"
-                          : "Rec"}
-                    </button>
-                  ))}
-                </div>
+                  value={busqueda}
+                  onChange={(e) => setBusqueda(e.target.value)}
+                />
+                {(loadingCat || saving) && (
+                  <Loader2
+                    className="animate-spin shrink-0"
+                    size={11}
+                    style={subtle}
+                  />
+                )}
               </div>
-            ))}
-          </div>
-        )}
+            </div>
 
-        {/* Selector de entidades del catálogo */}
-        <SelectorCatalogo
-          catalogo={catalogo}
-          loading={loadingCat}
-          saving={saving}
-          selectedIds={selectedIds}
-          tipo={tipoActivo}
-          onToggle={handleToggle}
-        />
-      </div>
+            {/* Lista */}
+            <div className="overflow-y-auto flex-1">
+              {loadingCat && catalogo.length === 0 ? (
+                <div className="flex items-center justify-center py-10">
+                  <Loader2 className="animate-spin" size={16} style={subtle} />
+                </div>
+              ) : filtrados.length === 0 ? (
+                <p
+                  className="text-center text-[10px] py-10 font-serif italic"
+                  style={subtle}
+                >
+                  Sin resultados
+                </p>
+              ) : (
+                filtrados.map((entidad) => {
+                  const sel = selectedIds.includes(entidad.id);
+                  return (
+                    <button
+                      key={entidad.id}
+                      type="button"
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors"
+                      style={{
+                        borderBottom: divider,
+                        background: sel
+                          ? "color-mix(in srgb, var(--primary) 6%, transparent)"
+                          : "transparent",
+                        opacity: saving ? 0.6 : 1,
+                      }}
+                      onClick={() => !saving && handleToggle(entidad.id, !sel)}
+                    >
+                      <div
+                        className="w-7 h-7 shrink-0 overflow-hidden flex items-center justify-center rounded"
+                        style={{
+                          background:
+                            "color-mix(in srgb, var(--primary) 8%, transparent)",
+                        }}
+                      >
+                        {entidad.imagen_url ? (
+                          <img
+                            alt={entidad.nombre}
+                            className="w-full h-full object-cover"
+                            src={entidad.imagen_url}
+                          />
+                        ) : (
+                          <span style={subtle}>
+                            {TIPO_CONFIG[tipoActivo].icon}
+                          </span>
+                        )}
+                      </div>
+                      <span
+                        className="flex-1 min-w-0 truncate text-[11px] font-bold capitalize"
+                        style={{ color: "var(--primary)" }}
+                      >
+                        {entidad.nombre}
+                      </span>
+                      {sel && (
+                        <div
+                          className="w-4 h-4 shrink-0 rounded-full flex items-center justify-center"
+                          style={{ background: "var(--primary)" }}
+                        >
+                          <svg
+                            fill="none"
+                            height="7"
+                            viewBox="0 0 7 7"
+                            width="7"
+                          >
+                            <path
+                              d="M1 3.5L3 5.5L6 1.5"
+                              stroke="white"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="1.2"
+                            />
+                          </svg>
+                        </div>
+                      )}
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-// ── Resolver nombres de entidades desde Dexie/Supabase ────────────────────────
 async function resolverNombres(
   rows: Array<{ id: string; tipo: string; entidad_id: string; rol: string }>,
 ): Promise<EntidadVinculo[]> {
@@ -2298,30 +2443,26 @@ async function resolverNombres(
     Object.entries(porTipo).map(async ([tipo, ids]) => {
       const cfg = TIPO_CONFIG[tipo as TipoEntidad];
       if (!cfg) return;
-      // Intentar Dexie primero
       try {
         const { db } = await import("@/lib/api/client/db");
         const local: any[] =
           (await (db as any)?.[cfg.tabla]?.bulkGet(ids)) ?? [];
-        for (const e of local.filter(Boolean)) {
+        for (const e of local.filter(Boolean))
           nombreMap.set(e.id, {
             nombre: e.nombre,
             imagen_url: e[cfg.imgCol] ?? e.imagen_url ?? null,
           });
-        }
       } catch {}
-      // Los que no encontramos en Dexie, ir a Supabase
       const faltantes = ids.filter((id) => !nombreMap.has(id));
       if (faltantes.length > 0) {
         const { data } = await (supabase.from(cfg.tabla) as any)
           .select(`id, nombre, ${cfg.imgCol}`)
           .in("id", faltantes);
-        for (const e of (data ?? []) as any[]) {
+        for (const e of data ?? [])
           nombreMap.set(e.id, {
             nombre: e.nombre,
-            imagen_url: e[cfg.imgCol] ?? null,
+            imagen_url: (e as any)[cfg.imgCol] ?? null,
           });
-        }
       }
     }),
   );
@@ -2333,139 +2474,4 @@ async function resolverNombres(
     nombre: nombreMap.get(r.entidad_id)?.nombre ?? "—",
     imagen_url: nombreMap.get(r.entidad_id)?.imagen_url ?? null,
   }));
-}
-
-// ── Selector de catálogo (reemplaza SeccionEntidad — siempre muestra el buscador) ──
-
-function SelectorCatalogo({
-  catalogo,
-  loading,
-  saving,
-  selectedIds,
-  tipo,
-  onToggle,
-}: {
-  catalogo: EntidadMin[];
-  loading: boolean;
-  saving: boolean;
-  selectedIds: string[];
-  tipo: TipoEntidad;
-  onToggle: (id: string, add: boolean) => void;
-}) {
-  const [busqueda, setBusqueda] = React.useState("");
-
-  const filtrados = catalogo.filter((e) =>
-    e.nombre.toLowerCase().includes(busqueda.toLowerCase()),
-  );
-
-  const divider =
-    "1px solid color-mix(in srgb, var(--primary) 6%, transparent)";
-  const subtle = {
-    color: "color-mix(in srgb, var(--primary) 30%, transparent)",
-  };
-
-  return (
-    <div className="mt-1">
-      {/* Input búsqueda — siempre visible */}
-      <div
-        className="flex items-center gap-2 px-2.5 py-1.5 mb-1.5 rounded-lg"
-        style={{
-          background: "color-mix(in srgb, var(--primary) 3%, transparent)",
-          border: divider,
-        }}
-      >
-        <Search size={10} style={subtle} />
-        <input
-          className="flex-1 bg-transparent outline-none text-[10px]"
-          placeholder={`Buscar ${TIPO_CONFIG[tipo].label.toLowerCase()}…`}
-          style={{ color: "var(--primary)" }}
-          value={busqueda}
-          onChange={(e) => setBusqueda(e.target.value)}
-        />
-        {(saving || loading) && (
-          <Loader2 className="animate-spin shrink-0" size={9} style={subtle} />
-        )}
-      </div>
-
-      {/* Lista */}
-      {loading && catalogo.length === 0 ? (
-        <div className="flex items-center justify-center py-4">
-          <Loader2 className="animate-spin" size={12} style={subtle} />
-        </div>
-      ) : filtrados.length === 0 ? (
-        <p
-          className="text-center text-[8px] py-3 font-black uppercase tracking-wider"
-          style={subtle}
-        >
-          {busqueda
-            ? "Sin resultados"
-            : `Sin ${TIPO_CONFIG[tipo].label.toLowerCase()} disponibles`}
-        </p>
-      ) : (
-        <div
-          className="flex flex-col overflow-y-auto"
-          style={{ maxHeight: "160px" }}
-        >
-          {filtrados.map((e) => {
-            const sel = selectedIds.includes(e.id);
-            return (
-              <button
-                key={e.id}
-                className="flex items-center gap-2 px-2 py-1.5 w-full text-left transition-all"
-                style={{
-                  background: sel
-                    ? "color-mix(in srgb, var(--primary) 8%, transparent)"
-                    : "transparent",
-                  borderBottom: divider,
-                  opacity: saving ? 0.6 : 1,
-                }}
-                type="button"
-                onClick={() => !saving && onToggle(e.id, !sel)}
-              >
-                <div
-                  className="w-5 h-5 shrink-0 overflow-hidden flex items-center justify-center rounded"
-                  style={{
-                    background:
-                      "color-mix(in srgb, var(--primary) 8%, transparent)",
-                  }}
-                >
-                  {e.imagen_url ? (
-                    <img
-                      alt={e.nombre}
-                      className="w-full h-full object-cover"
-                      src={e.imagen_url}
-                    />
-                  ) : (
-                    <span style={subtle}>{TIPO_CONFIG[tipo].icon}</span>
-                  )}
-                </div>
-                <span
-                  className="flex-1 min-w-0 truncate text-[10px] font-bold capitalize"
-                  style={{ color: "var(--primary)" }}
-                >
-                  {e.nombre}
-                </span>
-                {sel && (
-                  <div
-                    className="w-3.5 h-3.5 shrink-0 rounded-full flex items-center justify-center"
-                    style={{ background: "var(--primary)" }}
-                  >
-                    <svg fill="none" height="6" viewBox="0 0 7 7" width="6">
-                      <path
-                        d="M1 3.5L3 5.5L6 1.5"
-                        stroke="white"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="1.3"
-                      />
-                    </svg>
-                  </div>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
 }
