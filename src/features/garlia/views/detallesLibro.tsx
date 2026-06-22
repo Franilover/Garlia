@@ -62,7 +62,10 @@ async function resolverLibroPorSlug(slugParam: string): Promise<Libro | null> {
           (l: any) =>
             toSlug(l.titulo ?? "") === slugParam && l.visibilidad === "publico",
         );
-        if (encontrado) return encontrado as Libro;
+        // Solo usar caché si ya tiene trigger_warnings (campo nuevo)
+        if (encontrado && Array.isArray(encontrado.trigger_warnings)) {
+          return encontrado as Libro;
+        }
       }
     }
   } catch {}
