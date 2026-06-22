@@ -18,6 +18,7 @@ export type Libro = {
   fecha_proximo_capitulo?: string;
   reino_id?: string | null;
   categoria?: string | null;
+  trigger_warnings?: string[];
 };
 
 export type Capitulo = {
