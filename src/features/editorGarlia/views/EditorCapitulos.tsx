@@ -1101,11 +1101,40 @@ const ModalEditarLibro = ({
   const [grupoId, setGrupoId] = useState<string | null>(
     libro.categoria ?? null,
   );
+  const [triggerWarnings, setTriggerWarnings] = useState<string[]>(
+    (libro as any).trigger_warnings ?? [],
+  );
+  const [twCustom, setTwCustom] = useState("");
+  const [twAdding, setTwAdding] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const { items: gruposItems, loading: loadingGrupos } = useGruposLibros();
 
   const ESTADOS = ["BORRADOR", "EN PROCESO", "FINALIZADO", "PAUSADO"];
+
+  const TW_PREDEFINIDOS = [
+    "Suicidio",
+    "Trastornos Alimenticios",
+    "Violencia",
+    "Abuso Sexual",
+    "Autolesiones",
+    "Abuso de Sustancias",
+    "Muerte",
+    "Trauma",
+  ];
+
+  const toggleTw = (tw: string) =>
+    setTriggerWarnings((prev) =>
+      prev.includes(tw) ? prev.filter((x) => x !== tw) : [...prev, tw],
+    );
+
+  const addCustomTw = () => {
+    const v = twCustom.trim();
+    if (v && !triggerWarnings.includes(v))
+      setTriggerWarnings((prev) => [...prev, v]);
+    setTwCustom("");
+    setTwAdding(false);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1122,7 +1151,8 @@ const ModalEditarLibro = ({
         categoria: grupoId ?? null,
         fecha_publicacion:
           visibilidad === "programado" ? fechaLibro || undefined : undefined,
-      };
+        trigger_warnings: triggerWarnings,
+      } as any;
       await libroUpdateMeta(libro.id, fields);
       onSaved({ ...libro, ...fields });
       onClose();
@@ -1212,6 +1242,142 @@ const ModalEditarLibro = ({
           value={grupoId}
           onChange={setGrupoId}
         />
+
+        {/* ── Trigger Warnings ─────────────────────────────────────────── */}
+        <div className="space-y-2">
+          <label className="text-[9px] font-black uppercase tracking-widest text-primary/40 flex items-center gap-1.5">
+            <span>⚠️</span> Trigger Warnings
+          </label>
+          <div className="flex flex-col gap-0.5">
+            {TW_PREDEFINIDOS.map((tw) => {
+              const on = triggerWarnings.includes(tw);
+              return (
+                <button
+                  key={tw}
+                  type="button"
+                  className="flex items-center gap-2 w-full text-left px-2 py-1 rounded transition-all"
+                  style={{
+                    background: on
+                      ? "color-mix(in srgb, var(--callout-warning-border) 10%, transparent)"
+                      : "transparent",
+                  }}
+                  onClick={() => toggleTw(tw)}
+                >
+                  <div
+                    className="shrink-0 flex items-center justify-center rounded"
+                    style={{
+                      width: 13,
+                      height: 13,
+                      border: `1px solid ${on ? "var(--callout-warning-border)" : "color-mix(in srgb, var(--primary) 20%, transparent)"}`,
+                      background: on
+                        ? "var(--callout-warning-border)"
+                        : "transparent",
+                      transition: "all 0.12s",
+                    }}
+                  >
+                    {on && (
+                      <Check size={8} style={{ color: "var(--bg-main)" }} />
+                    )}
+                  </div>
+                  <span
+                    className="text-[10px] font-bold"
+                    style={{
+                      color: on
+                        ? "var(--callout-warning-title)"
+                        : "color-mix(in srgb, var(--primary) 45%, transparent)",
+                    }}
+                  >
+                    {tw}
+                  </span>
+                </button>
+              );
+            })}
+
+            {/* TW custom no-predefinidos */}
+            {triggerWarnings
+              .filter((tw) => !TW_PREDEFINIDOS.includes(tw))
+              .map((tw) => (
+                <button
+                  key={tw}
+                  type="button"
+                  className="flex items-center gap-2 w-full text-left px-2 py-1 rounded transition-all"
+                  style={{
+                    background:
+                      "color-mix(in srgb, var(--callout-warning-border) 10%, transparent)",
+                  }}
+                  onClick={() => toggleTw(tw)}
+                >
+                  <div
+                    className="shrink-0 flex items-center justify-center rounded"
+                    style={{
+                      width: 13,
+                      height: 13,
+                      border: "1px solid var(--callout-warning-border)",
+                      background: "var(--callout-warning-border)",
+                    }}
+                  >
+                    <Check size={8} style={{ color: "var(--bg-main)" }} />
+                  </div>
+                  <span
+                    className="text-[10px] font-bold flex-1 truncate"
+                    style={{ color: "var(--callout-warning-title)" }}
+                  >
+                    {tw}
+                  </span>
+                  <X size={10} className="shrink-0 text-primary/30" />
+                </button>
+              ))}
+          </div>
+
+          {/* Input custom */}
+          {twAdding ? (
+            <div className="flex items-center gap-1.5 mt-1">
+              <input
+                autoFocus
+                className="flex-1 min-w-0 rounded-[var(--radius-btn)] px-2.5 py-1.5 text-[10px] font-bold outline-none border transition-all bg-bg-main border-primary/15 focus:border-primary/30 text-primary"
+                placeholder="Ej: Acoso…"
+                value={twCustom}
+                onChange={(e) => setTwCustom(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    addCustomTw();
+                  }
+                  if (e.key === "Escape") {
+                    setTwCustom("");
+                    setTwAdding(false);
+                  }
+                }}
+              />
+              <button
+                type="button"
+                className="p-1.5 rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                onClick={addCustomTw}
+              >
+                <Check size={11} />
+              </button>
+              <button
+                type="button"
+                className="p-1.5 rounded text-primary/30 hover:text-primary transition-colors"
+                onClick={() => {
+                  setTwCustom("");
+                  setTwAdding(false);
+                }}
+              >
+                <X size={11} />
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              className="mt-1 w-full flex items-center justify-center gap-1.5 py-1.5 rounded-[var(--radius-btn)] border border-dashed border-primary/15 text-[9px] font-black uppercase tracking-widest text-primary/30 hover:text-primary hover:border-primary/30 transition-all"
+              onClick={() => setTwAdding(true)}
+            >
+              <Plus size={10} /> Añadir otro
+            </button>
+          )}
+        </div>
+
         <div className="pt-2">
           <BotonSubmit
             disabled={!titulo.trim()}
