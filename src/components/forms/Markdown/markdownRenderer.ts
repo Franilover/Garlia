@@ -308,13 +308,12 @@ export function renderMarkdown(raw: string, isLibro = false): string {
       i++;
     }
     if (paraLines.length > 0) {
-      // Cada línea del bloque: si termina en "  " es hard break, si no, espacio normal
+      // Cada salto de línea dentro del bloque se respeta como salto visual (<br/>),
+      // en vez de colapsarse a un espacio (que es el comportamiento Markdown "estricto").
       const joined = paraLines
         .map((l, idx) => {
           if (idx === paraLines.length - 1) return applyInline(l);
-          return l.endsWith("  ")
-            ? applyInline(l.trimEnd()) + "<br/>"
-            : applyInline(l) + " ";
+          return applyInline(l.trimEnd()) + "<br/>";
         })
         .join("");
       output.push(`<p>${joined}</p>`);
