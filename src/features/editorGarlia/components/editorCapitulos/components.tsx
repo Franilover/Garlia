@@ -4,7 +4,8 @@ import Image from "next/image";
 import {
   ChevronDown, ChevronRight, UserCircle2, Loader2, Trash2,
   X, Clock, Hash, AlignLeft, Calendar, BookMarked, Pencil,
-  MoreHorizontal, Globe, Lock, Timer, Mic2, MapPin, Cat, Sword, Plus, SlidersHorizontal
+  MoreHorizontal, Globe, Lock, Timer, Mic2, MapPin, Cat, Sword, Plus, SlidersHorizontal,
+  Check,
 } from "lucide-react";
 import React, { useState, useEffect, useRef } from "react";
 
