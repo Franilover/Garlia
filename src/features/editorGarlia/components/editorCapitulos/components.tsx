@@ -1088,6 +1088,192 @@ function useCiudades() {
 
 // ─── PanelPersonajesCapitulo (Personajes + Criaturas + Items en vertical) ─────
 
+// ─── TW predefinidos ─────────────────────────────────────────────────────────
+const TW_PREDEFINIDOS = [
+  "Suicidio",
+  "Trastornos Alimenticios",
+  "Violencia",
+  "Abuso Sexual",
+  "Autolesiones",
+  "Abuso de Sustancias",
+  "Muerte",
+  "Trauma",
+];
+
+// ─── SeccionTriggerWarnings ───────────────────────────────────────────────────
+const SeccionTriggerWarnings = ({
+  capId,
+  initialValues,
+}: {
+  capId: string;
+  initialValues: string[];
+}) => {
+  const [activos, setActivos] = useState<string[]>(initialValues);
+  const [saving,  setSaving]  = useState(false);
+  const [custom,  setCustom]  = useState("");
+  const [adding,  setAdding]  = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Sync cuando cambia de capítulo
+  useEffect(() => { setActivos(initialValues); }, [initialValues.join(",")]);
+
+  const save = async (next: string[]) => {
+    setActivos(next);
+    setSaving(true);
+    try { await capUpdateMeta(capId, { trigger_warnings: next } as any); } catch {}
+    setSaving(false);
+  };
+
+  const toggle = (tw: string) => {
+    const next = activos.includes(tw)
+      ? activos.filter(x => x !== tw)
+      : [...activos, tw];
+    save(next);
+  };
+
+  const addCustom = () => {
+    const v = custom.trim();
+    if (!v || activos.includes(v)) { setCustom(""); setAdding(false); return; }
+    save([...activos, v]);
+    setCustom("");
+    setAdding(false);
+  };
+
+  return (
+    <div
+      className="shrink-0 px-3 py-2.5 border-b"
+      style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
+    >
+      {/* Header */}
+      <div className="flex items-center gap-1 mb-2">
+        <span style={{ fontSize: 11, lineHeight: 1 }}>⚠️</span>
+        <span
+          className="text-[8px] font-black uppercase tracking-[0.2em] flex-1"
+          style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
+        >
+          Trigger Warnings
+        </span>
+        {saving && <Loader2 className="animate-spin shrink-0" size={8} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />}
+      </div>
+
+      {/* Lista de predefinidos */}
+      <div className="flex flex-col gap-0.5">
+        {TW_PREDEFINIDOS.map(tw => {
+          const on = activos.includes(tw);
+          return (
+            <button
+              key={tw}
+              className="flex items-center gap-1.5 w-full text-left py-0.5 px-1 rounded transition-all"
+              style={{
+                background: on ? "color-mix(in srgb, var(--callout-warning-border) 12%, transparent)" : "transparent",
+              }}
+              onClick={() => toggle(tw)}
+            >
+              <div
+                className="shrink-0 flex items-center justify-center rounded"
+                style={{
+                  width: 11, height: 11,
+                  border: `1px solid ${on ? "var(--callout-warning-border)" : "color-mix(in srgb, var(--primary) 20%, transparent)"}`,
+                  background: on ? "var(--callout-warning-border)" : "transparent",
+                  transition: "all 0.12s",
+                }}
+              >
+                {on && <Check size={7} style={{ color: "var(--bg-main)" }} />}
+              </div>
+              <span
+                className="text-[9px] font-bold"
+                style={{
+                  color: on
+                    ? "var(--callout-warning-title)"
+                    : "color-mix(in srgb, var(--primary) 45%, transparent)",
+                }}
+              >
+                {tw}
+              </span>
+            </button>
+          );
+        })}
+
+        {/* TW custom que no son predefinidos */}
+        {activos.filter(tw => !TW_PREDEFINIDOS.includes(tw)).map(tw => (
+          <button
+            key={tw}
+            className="flex items-center gap-1.5 w-full text-left py-0.5 px-1 rounded transition-all"
+            style={{ background: "color-mix(in srgb, var(--callout-warning-border) 12%, transparent)" }}
+            onClick={() => toggle(tw)}
+          >
+            <div
+              className="shrink-0 flex items-center justify-center rounded"
+              style={{
+                width: 11, height: 11,
+                border: "1px solid var(--callout-warning-border)",
+                background: "var(--callout-warning-border)",
+                transition: "all 0.12s",
+              }}
+            >
+              <Check size={7} style={{ color: "var(--bg-main)" }} />
+            </div>
+            <span className="text-[9px] font-bold flex-1 truncate" style={{ color: "var(--callout-warning-title)" }}>
+              {tw}
+            </span>
+            <X size={8} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)", flexShrink: 0 }} />
+          </button>
+        ))}
+      </div>
+
+      {/* Añadir personalizado */}
+      {adding ? (
+        <div className="flex items-center gap-1 mt-1.5">
+          <input
+            ref={inputRef}
+            autoFocus
+            className="flex-1 min-w-0 rounded px-1.5 py-0.5 text-[9px] font-bold outline-none border transition-all"
+            placeholder="Ej: Acoso…"
+            style={{
+              background: "color-mix(in srgb, var(--primary) 4%, transparent)",
+              borderColor: "color-mix(in srgb, var(--primary) 20%, transparent)",
+              color: "var(--primary)",
+            }}
+            value={custom}
+            onChange={e => setCustom(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === "Enter") addCustom();
+              if (e.key === "Escape") { setCustom(""); setAdding(false); }
+            }}
+          />
+          <button
+            className="p-1 rounded"
+            style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)", color: "var(--primary)" }}
+            onClick={addCustom}
+          >
+            <Check size={9} />
+          </button>
+          <button
+            className="p-1 rounded"
+            style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
+            onClick={() => { setCustom(""); setAdding(false); }}
+          >
+            <X size={9} />
+          </button>
+        </div>
+      ) : (
+        <button
+          className="mt-1.5 w-full flex items-center justify-center gap-1 py-1 rounded border border-dashed text-[8px] font-black uppercase tracking-widest transition-all"
+          style={{
+            borderColor: "color-mix(in srgb, var(--primary) 14%, transparent)",
+            color: "color-mix(in srgb, var(--primary) 30%, transparent)",
+          }}
+          onClick={() => setAdding(true)}
+          onMouseEnter={e => { e.currentTarget.style.color = "var(--primary)"; e.currentTarget.style.borderColor = "color-mix(in srgb, var(--primary) 30%, transparent)"; }}
+          onMouseLeave={e => { e.currentTarget.style.color = "color-mix(in srgb, var(--primary) 30%, transparent)"; e.currentTarget.style.borderColor = "color-mix(in srgb, var(--primary) 14%, transparent)"; }}
+        >
+          <Plus size={8} /> Añadir
+        </button>
+      )}
+    </div>
+  );
+};
+
 export const PanelPersonajesCapitulo = ({
   capId,
   value,
@@ -1139,6 +1325,9 @@ export const PanelPersonajesCapitulo = ({
   const [fechaProg,     setFechaProg]     = useState<string>("");
   const [savingFecha,   setSavingFecha]   = useState(false);
 
+  // ── Trigger Warnings del capítulo ────────────────────────────────────────
+  const [triggerWarnings, setTriggerWarnings] = useState<string[]>([]);
+
   // ── Narrador del capítulo ─────────────────────────────────────────────────
   const [narradorId,  setNarradorId]  = useState<string | null>(null);
   const [savingNarr,  setSavingNarr]  = useState(false);
@@ -1161,6 +1350,7 @@ export const PanelPersonajesCapitulo = ({
         setVisibilidad(data.visibilidad ?? "oculto");
         setFechaProg(data.fecha_publicacion ? data.fecha_publicacion.slice(0, 10) : "");
         setNarradorId(data.narrador_id ?? null);
+        setTriggerWarnings(data.trigger_warnings ?? []);
       };
 
       // 1. Dexie primero — respuesta instantánea
@@ -1174,7 +1364,7 @@ export const PanelPersonajesCapitulo = ({
       try {
         const { data } = await supabase
           .from("capitulos")
-          .select("dia_absoluto, reinos_ids, visibilidad, fecha_publicacion, ciudades_ids, narrador_id")
+          .select("dia_absoluto, reinos_ids, visibilidad, fecha_publicacion, ciudades_ids, narrador_id, trigger_warnings")
           .eq("id", capId)
           .single();
         apply(data);
@@ -1494,6 +1684,12 @@ export const PanelPersonajesCapitulo = ({
           onToggle={(id, add) => handleToggleCiudad(id, add)}
         />
       </div>
+
+      {/* ── Trigger Warnings ────────────────────────────────────────────── */}
+      <SeccionTriggerWarnings
+        capId={capId}
+        initialValues={triggerWarnings}
+      />
 
       {/* ── Visibilidad ─────────────────────────────────────────────────── */}
       <div

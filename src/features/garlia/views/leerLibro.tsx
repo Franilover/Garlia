@@ -326,6 +326,109 @@ function LugaresPanel({
 }
 
 /* ─────────────────────────────────────────────
+   Panel de Trigger Warnings en el lector
+   ───────────────────────────────────────────── */
+function TriggerWarningPanel({ warnings }: { warnings: string[] }) {
+  const [expanded, setExpanded] = useState(false);
+
+  if (!warnings || warnings.length === 0) return null;
+
+  return (
+    <div
+      style={{
+        margin: "12px 16px 0",
+        borderRadius: 8,
+        border:
+          "1px solid color-mix(in srgb, var(--callout-warning-border) 35%, transparent)",
+        background:
+          "color-mix(in srgb, var(--callout-warning-border) 8%, transparent)",
+        overflow: "hidden",
+        flexShrink: 0,
+      }}
+    >
+      <button
+        style={{
+          width: "100%",
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
+          padding: "7px 10px",
+          border: "none",
+          background: "transparent",
+          cursor: "pointer",
+          textAlign: "left",
+        }}
+        onClick={() => setExpanded((e) => !e)}
+      >
+        <span style={{ fontSize: 11, lineHeight: 1, flexShrink: 0 }}>⚠️</span>
+        <span
+          style={{
+            flex: 1,
+            fontSize: 8,
+            fontFamily: "var(--font-mono)",
+            fontWeight: 900,
+            textTransform: "uppercase",
+            letterSpacing: "0.18em",
+            color: "var(--callout-warning-title)",
+          }}
+        >
+          Trigger Warning{warnings.length > 1 ? "s" : ""}
+        </span>
+        <span
+          style={{
+            fontSize: 8,
+            fontFamily: "var(--font-mono)",
+            fontWeight: 900,
+            textTransform: "uppercase",
+            letterSpacing: "0.1em",
+            color:
+              "color-mix(in srgb, var(--callout-warning-title) 55%, transparent)",
+            transition: "transform 0.15s",
+            transform: expanded ? "rotate(180deg)" : "rotate(0deg)",
+            display: "inline-block",
+          }}
+        >
+          ▾
+        </span>
+      </button>
+
+      {expanded && (
+        <div
+          style={{
+            padding: "0 10px 9px",
+            display: "flex",
+            flexWrap: "wrap",
+            gap: 4,
+          }}
+        >
+          {warnings.map((tw) => (
+            <span
+              key={tw}
+              style={{
+                fontSize: 8,
+                fontFamily: "var(--font-mono)",
+                fontWeight: 800,
+                textTransform: "uppercase",
+                letterSpacing: "0.08em",
+                padding: "2px 7px",
+                borderRadius: 99,
+                border:
+                  "1px solid color-mix(in srgb, var(--callout-warning-border) 45%, transparent)",
+                color: "var(--callout-warning-title)",
+                background:
+                  "color-mix(in srgb, var(--callout-warning-border) 10%, transparent)",
+              }}
+            >
+              {tw}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────
    Panel lateral izquierdo
    ───────────────────────────────────────────── */
 function PanelLateral({
@@ -362,6 +465,7 @@ function PanelLateral({
     | null
     | undefined;
   const personajesIds = Array.from(new Set(capActual?.personajes_ids ?? []));
+  const triggerWarnings: string[] = (capActual as any)?.trigger_warnings ?? [];
 
   return (
     <div
@@ -462,6 +566,11 @@ function PanelLateral({
           overflowX: "hidden",
         }}
       >
+        {/* Trigger Warnings */}
+        {!loading && capActual && !esExtra && triggerWarnings.length > 0 && (
+          <TriggerWarningPanel warnings={triggerWarnings} />
+        )}
+
         {/* Metadata */}
         {!loading && capActual && !esExtra && (
           <LugaresPanel
@@ -871,7 +980,7 @@ export default function Lector() {
       const { data: contenidos, error: capsError } = await supabase
         .from("capitulos")
         .select(
-          `id, orden, titulo_capitulo, contenido, fecha_publicacion, visibilidad, personajes_ids, reinos_ids, ciudades_ids, libros(titulo), narrador:personajes!narrador_id(id, nombre, img_url)`,
+          `id, orden, titulo_capitulo, contenido, fecha_publicacion, visibilidad, personajes_ids, reinos_ids, ciudades_ids, trigger_warnings, libros(titulo), narrador:personajes!narrador_id(id, nombre, img_url)`,
         )
         .eq("libro_id", libroId)
         .or(
@@ -900,6 +1009,7 @@ export default function Lector() {
         personajes_ids: c.personajes_ids,
         reinos_ids: c.reinos_ids ?? [],
         ciudades_ids: c.ciudades_ids ?? [],
+        trigger_warnings: (c as any).trigger_warnings ?? [],
         libro_id: libroId,
         libros: normOne(c.libros) ?? undefined,
         _narrador: normOne(c.narrador),

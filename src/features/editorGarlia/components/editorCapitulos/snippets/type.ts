@@ -1,217 +1,264 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// type.ts
-// ─────────────────────────────────────────────────────────────────────────────
-// Incluye parseSnippetRaw (antes en parseSnippetRaw.ts) al final del archivo.
-// Ya no es necesario importar desde "./parseSnippetRaw" — importar desde "./type".
+import { Globe, Timer, Lock } from "lucide-react";
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Tipos de listas / capítulos
-// ─────────────────────────────────────────────────────────────────────────────
+import { enqueueOperation, isReallyOnline } from "@/hooks/data/useOfflineSync";
+import { db } from "@/lib/api/client/db";
+import { supabase } from "@/lib/api/client/supabase";
+import { librosQueries } from "@/lib/api/queries/garlia/libros";
 
-export interface CapituloLista {
-  id:                 string;
-  orden:              number;
-  fecha_publicacion:  string;
-  titulo_capitulo?:   string;
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+export type Libro = {
+  id: string;
+  titulo: string;
+  sinopsis?: string;
+  portada_url?: string;
+  estado?: string;
+  visibilidad?: "publico" | "programado" | "oculto";
+  fecha_publicacion?: string;
+  fecha_proximo_capitulo?: string;
+  reino_id?: string | null;
+  categoria?: string | null;
+};
+
+export type Capitulo = {
+  id: string;
+  libro_id: string;
+  titulo_capitulo: string;
+  contenido: string;
+  orden: number;
+  fecha_publicacion: string;
+  visibilidad?: "publico" | "programado" | "oculto";
+  personajes_ids?: string[];
+  reino_id?: string | null;
+  narrador_id?: string | null;
+  trigger_warnings?: string[];
+  status?: "pending" | "synced";
+  deleted?: boolean;
+};
+
+export type SaveStatus = "idle" | "saving" | "saved" | "pending" | "error";
+
+export type Reino = { id: string; nombre: string };
+
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+export const TABLA_CAPS = "capitulos";
+
+export const ESTADO_COLOR: Record<string, string> = {
+  "EN PROCESO":
+    "border border-[color-mix(in_srgb,var(--callout-warning-border)_40%,transparent)] text-[var(--callout-warning-title)] bg-[color-mix(in_srgb,var(--callout-warning-border)_12%,transparent)]",
+  FINALIZADO:
+    "border border-[color-mix(in_srgb,var(--callout-success-border)_40%,transparent)] text-[var(--callout-success-title)] bg-[color-mix(in_srgb,var(--callout-success-border)_12%,transparent)]",
+  BORRADOR: "border border-primary/20 text-primary/40 bg-primary/10",
+  PAUSADO: "border border-primary/20 text-primary/40 bg-primary/10",
+};
+
+export const VISIBILIDAD_CONFIG = {
+  publico: {
+    label: "Público",
+    icon: Globe,
+    color: "bg-primary/15 text-primary border-primary/30",
+  },
+  programado: {
+    label: "Programado",
+    icon: Timer,
+    color: "bg-primary/8  text-primary/70 border-primary/20",
+  },
+  oculto: {
+    label: "Borrador",
+    icon: Lock,
+    color: "bg-primary/5  text-primary/40 border-primary/10",
+  },
+} as const;
+
+export const SAVE_TIMEOUT_MS = 10_000;
+
+// ─── Utils ────────────────────────────────────────────────────────────────────
+
+export function wordCount(text: string) {
+  return text.trim() ? text.trim().split(/\s+/).length : 0;
 }
 
-export interface CapituloScrollItem {
-  id:                 string;
-  orden:              number;
-  titulo_capitulo:    string;
-  contenido:          string;
-  fecha_publicacion:  string;
-  libros?:            { titulo?: string };
-  personajes_ids?:    string[];
-  reinos_ids?:        string[];
+export function readingTime(words: number) {
+  const mins = Math.ceil(words / 200);
+  return mins < 1 ? "<1 min" : `${mins} min`;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Árbol de archivos
-// ─────────────────────────────────────────────────────────────────────────────
+export function toDateInput(iso: string) {
+  return iso ? iso.split("T")[0] : new Date().toISOString().split("T")[0];
+}
 
-export interface FileEntry   { name: string; url: string; type: "image" }
-export interface FolderEntry { name: string; type: "folder"; children: TreeNode[] }
-export type TreeNode = FileEntry | FolderEntry;
+// ─── Dexie helpers ────────────────────────────────────────────────────────────
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Segmentos de contenido
-// ─────────────────────────────────────────────────────────────────────────────
-
-export type Segment =
-  | { type: "text";    value: string }
-  | { type: "cita";    content: string }
-  | { type: "img";     url: string; caption?: string }
-  | { type: "float";   word: string; url: string; caption?: string }
-  | { type: "sound";   url: string; volume: number }
-  | { type: "drop";    word: string; entidadTipo: "item" | "criatura" | "personaje"; entidadId: string; entidadNombre: string }
-  | { type: "choice";  label: string; target: string }
-  | { type: "use";     word: string; itemId: string; targetSuccess: string; targetFail?: string }
-  | { type: "section"; id: string; label?: string }
-  | { type: "gate";    itemId: string; tieneSegs: Segment[]; noTieneSegs: Segment[] };
-
-export type SectionMap = Record<string, Segment[]>;
-
-// ─────────────────────────────────────────────────────────────────────────────
-// parseSections
-// ─────────────────────────────────────────────────────────────────────────────
-
-export function parseSections(segs: Segment[]): SectionMap {
-  const map: SectionMap = { "": [] };
-  let current = "";
-  for (const seg of segs) {
-    if (seg.type === "section") {
-      current = seg.id;
-      if (!map[current]) map[current] = [];
-    } else {
-      map[current].push(seg);
-    }
+export async function dexieCapRead(libroId: string): Promise<Capitulo[]> {
+  try {
+    const table = (db as any)[TABLA_CAPS];
+    if (!table) return [];
+    const rows = (await table.toArray()) as Capitulo[];
+    return rows
+      .filter((r) => r.libro_id === libroId && !r.deleted)
+      .sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0));
+  } catch {
+    return [];
   }
-  return map;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// extractGateBlocks — pre-extrae bloques [[gate|...]] multilinea
-// ─────────────────────────────────────────────────────────────────────────────
-//
-// Formato:
-//   [[gate|itemId|
-//   Texto si TIENE el ítem. Puede tener **markdown**, [[choice|...]] etc.
-//   ===
-//   Texto si NO tiene el ítem.
-//   ]]
-
-function extractGateBlocks(texto: string): {
-  resultado: string;
-  gates: Map<string, { tieneTexto: string; noTieneTexto: string; itemId: string }>;
-} {
-  const gates = new Map<string, { tieneTexto: string; noTieneTexto: string; itemId: string }>();
-  const gateRegex = /\[\[gate\|([^\|]+)\|([\s\S]+?)\]\]/g;
-  let counter = 0;
-
-  const resultado = texto.replace(gateRegex, (_, itemId, contenido) => {
-    const separatorIdx = contenido.indexOf("===");
-    const tieneTexto   = separatorIdx >= 0 ? contenido.slice(0, separatorIdx).trim() : contenido.trim();
-    const noTieneTexto = separatorIdx >= 0 ? contenido.slice(separatorIdx + 3).trim() : "";
-    const placeholder  = `\x00GATE_${counter}\x00`;
-    gates.set(placeholder, { itemId: itemId.trim(), tieneTexto, noTieneTexto });
-    counter++;
-    return placeholder;
-  });
-
-  return { resultado, gates };
+export async function dexieCapGet(id: string): Promise<Capitulo | null> {
+  try {
+    return (await (db as any)[TABLA_CAPS]?.get(id)) ?? null;
+  } catch {
+    return null;
+  }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// parseContenido
-// ─────────────────────────────────────────────────────────────────────────────
-
-export function parseContenido(texto: string): Segment[] {
-  const { resultado, gates } = extractGateBlocks(texto);
-
-  const regex = /\[\[(\w+)\|([\s\S]+?)\]\]|\x00GATE_\d+\x00/g;
-  const segs: Segment[] = [];
-  let lastIndex = 0;
-  let match: RegExpExecArray | null;
-
-  while ((match = regex.exec(resultado)) !== null) {
-    if (match.index > lastIndex) {
-      segs.push({ type: "text", value: resultado.slice(lastIndex, match.index) });
-    }
-
-    const raw = match[0];
-
-    if (raw.startsWith("\x00GATE_")) {
-      const gate = gates.get(raw);
-      if (gate) {
-        segs.push({
-          type:        "gate",
-          itemId:      gate.itemId,
-          tieneSegs:   parseContenido(gate.tieneTexto),
-          noTieneSegs: parseContenido(gate.noTieneTexto),
-        });
-      }
-      lastIndex = match.index + raw.length;
-      continue;
-    }
-
-    const [, kind, rest] = match;
-    const parts = rest.split("|").map((p: string) => p.trim());
-
-    if      (kind === "cita")    segs.push({ type: "cita",    content: parts[0] });
-    else if (kind === "img")     segs.push({ type: "img",     url: parts[0], caption: parts[1] });
-    else if (kind === "float")   segs.push({ type: "float",   word: parts[0], url: parts[1], caption: parts[2] });
-    else if (kind === "sound")   segs.push({ type: "sound",   url: parts[0], volume: parseFloat(parts[1] ?? "0.5") });
-    else if (kind === "drop")    segs.push({
-      type:          "drop",
-      word:          parts[0] ?? "",
-      entidadTipo:   (parts[1] ?? "personaje") as "item" | "criatura" | "personaje",
-      entidadId:     parts[2] ?? "",
-      entidadNombre: parts[3] ?? parts[0] ?? "",
-    });
-    else if (kind === "choice")  segs.push({ type: "choice",  label: parts[0], target: parts[1] });
-    else if (kind === "section") segs.push({ type: "section", id: parts[0], label: parts[1] });
-    else if (kind === "use")     segs.push({ type: "use",     word: parts[0], itemId: parts[1], targetSuccess: parts[2], targetFail: parts[3] });
-    else segs.push({ type: "text", value: raw });
-
-    lastIndex = match.index + raw.length;
+export async function dexieCapWrite(rows: Capitulo[]): Promise<void> {
+  try {
+    const table = (db as any)[TABLA_CAPS];
+    if (!table || !rows.length) return;
+    await table.bulkPut(rows);
+  } catch (e) {
+    console.warn("[Dexie] capitulos:", e);
   }
-
-  if (lastIndex < resultado.length) {
-    segs.push({ type: "text", value: resultado.slice(lastIndex) });
-  }
-
-  return segs;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// parseSnippetRaw  (antes en parseSnippetRaw.ts)
-// ─────────────────────────────────────────────────────────────────────────────
-// Extrae los valores iniciales de un snippet raw `[[kind|…]]`
-// para pre-poblar los modales cuando el usuario hace clic en ✎.
+// ─── Async operations ─────────────────────────────────────────────────────────
 
-export type ParsedSnippet =
-  | { kind: "drop";    entidadId: string; entidadTipo: string; label: string }
-  | { kind: "img";     url: string; alt: string; float: boolean }
-  | { kind: "float";   url: string; alt: string; float: true }
-  | { kind: "choice";  texto: string; target: string }
-  | { kind: "use";     itemId: string; label: string; sectionOk: string; sectionFail: string }
-  | { kind: "gate";    itemId: string; tieneTexto: string; noTieneTexto: string }
-  | { kind: "section"; id: string; label: string }
-  | { kind: "sound";   src: string; label: string }
-  | { kind: "unknown"; parts: string[] };
-
-export function parseSnippetRaw(raw: string | undefined): ParsedSnippet | null {
-  if (!raw) return null;
-
-  const inner = raw.startsWith("[[") && raw.endsWith("]]")
-    ? raw.slice(2, -2)
-    : raw;
-
-  const parts = inner.split("|").map(p => p.trim());
-  const kind  = parts[0];
-
-  switch (kind) {
-    case "drop":
-      // [[drop|palabra|tipo|id|nombre]]
-      return { kind: "drop", label: parts[1] ?? "", entidadTipo: parts[2] ?? "", entidadId: parts[3] ?? "" };
-    case "img":
-      return { kind: "img", url: parts[1] ?? "", alt: parts[2] ?? "", float: false };
-    case "float":
-      return { kind: "float", url: parts[1] ?? "", alt: parts[2] ?? "", float: true };
-    case "choice":
-      // [[choice|Texto del botón|sectionId]]
-      return { kind: "choice", texto: parts[1] ?? "", target: parts[2] ?? "" };
-    case "use":
-      // [[use|Palabra|itemId|sectionOk|sectionFail]]
-      return { kind: "use", itemId: parts[2] ?? "", label: parts[1] ?? "", sectionOk: parts[3] ?? "", sectionFail: parts[4] ?? "" };
-    case "gate":
-      return { kind: "gate", itemId: parts[1] ?? "", tieneTexto: parts[2] ?? "", noTieneTexto: parts[3] ?? "" };
-    case "section":
-      return { kind: "section", id: parts[1] ?? "", label: parts[2] ?? "" };
-    case "sound":
-      return { kind: "sound", src: parts[1] ?? "", label: parts[2] ?? "" };
-    default:
-      return { kind: "unknown", parts };
+export async function capUpdateContenido(
+  id: string,
+  contenido: string,
+): Promise<void> {
+  const existing = await dexieCapGet(id);
+  if (!(await isReallyOnline())) {
+    await dexieCapWrite([
+      { ...existing, id, contenido, status: "pending" } as Capitulo,
+    ]);
+    await enqueueOperation(TABLA_CAPS, "update", id, { contenido });
+    return;
   }
+  try {
+    const updatePromise = librosQueries.updateContenido(id, contenido);
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("save timeout")), SAVE_TIMEOUT_MS),
+    );
+    const res = (await Promise.race([updatePromise, timeoutPromise])) as any;
+    if (res?.error) throw res.error;
+    if (existing)
+      await dexieCapWrite([{ ...existing, contenido, status: "synced" }]);
+  } catch {
+    await dexieCapWrite([
+      { ...existing, id, contenido, status: "pending" } as Capitulo,
+    ]);
+    await enqueueOperation(TABLA_CAPS, "update", id, { contenido });
+    throw new Error("offline");
+  }
+}
+
+export async function capUpdateMeta(
+  id: string,
+  fields: Partial<Capitulo>,
+): Promise<void> {
+  const existing = await dexieCapGet(id);
+  if (!(await isReallyOnline())) {
+    await dexieCapWrite([
+      { ...existing, id, ...fields, status: "pending" } as Capitulo,
+    ]);
+    await enqueueOperation(TABLA_CAPS, "update", id, fields);
+    return;
+  }
+  try {
+    const updatePromise = supabase.from(TABLA_CAPS).update(fields).eq("id", id);
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("save timeout")), SAVE_TIMEOUT_MS),
+    );
+    const { error } = (await Promise.race([
+      updatePromise,
+      timeoutPromise,
+    ])) as any;
+    if (error) throw error;
+    if (existing)
+      await dexieCapWrite([{ ...existing, ...fields, status: "synced" }]);
+  } catch {
+    await dexieCapWrite([
+      { ...existing, id, ...fields, status: "pending" } as Capitulo,
+    ]);
+    await enqueueOperation(TABLA_CAPS, "update", id, fields);
+    throw new Error("offline");
+  }
+}
+
+export async function capCreate(
+  libroId: string,
+  titulo: string,
+  orden: number,
+  visibilidad: "publico" | "programado" | "oculto" = "oculto",
+  fecha?: string,
+  narradorId?: string | null,
+): Promise<Capitulo> {
+  const base: any = {
+    libro_id: libroId,
+    titulo_capitulo: titulo.toUpperCase(),
+    contenido: "",
+    orden,
+    visibilidad,
+    fecha_publicacion: visibilidad === "programado" ? (fecha ?? null) : null,
+    narrador_id: narradorId ?? null,
+  };
+  if (!(await isReallyOnline())) {
+    const tmpId = crypto.randomUUID();
+    const row = { ...base, id: tmpId, status: "pending" as const };
+    await dexieCapWrite([row]);
+    await enqueueOperation(TABLA_CAPS, "upsert", tmpId, row);
+    return row;
+  }
+  try {
+    const { data, error } = await supabase
+      .from(TABLA_CAPS)
+      .insert([base])
+      .select()
+      .single();
+    if (error) throw error;
+    await dexieCapWrite([{ ...data, status: "synced" }]);
+    return data as Capitulo;
+  } catch {
+    const tmpId = crypto.randomUUID();
+    const row = { ...base, id: tmpId, status: "pending" as const };
+    await dexieCapWrite([row]);
+    await enqueueOperation(TABLA_CAPS, "upsert", tmpId, row);
+    return row;
+  }
+}
+
+export async function capDelete(id: string): Promise<void> {
+  const existing = await dexieCapGet(id);
+  if (!(await isReallyOnline())) {
+    if (existing)
+      await dexieCapWrite([{ ...existing, deleted: true, status: "pending" }]);
+    await enqueueOperation(TABLA_CAPS, "delete", id);
+    return;
+  }
+  try {
+    const { error } = await supabase.from(TABLA_CAPS).delete().eq("id", id);
+    if (error) throw error;
+    try {
+      await (db as any)[TABLA_CAPS]?.delete(id);
+    } catch {}
+  } catch {
+    if (existing)
+      await dexieCapWrite([{ ...existing, deleted: true, status: "pending" }]);
+    await enqueueOperation(TABLA_CAPS, "delete", id);
+    throw new Error("offline");
+  }
+}
+
+export async function libroUpdateMeta(
+  id: string,
+  fields: Partial<Libro>,
+): Promise<void> {
+  const { error } = await supabase.from("libros").update(fields).eq("id", id);
+  if (error) throw error;
+}
+
+export async function libroDelete(id: string): Promise<void> {
+  const { error } = await supabase.from("libros").delete().eq("id", id);
+  if (error) throw error;
 }
