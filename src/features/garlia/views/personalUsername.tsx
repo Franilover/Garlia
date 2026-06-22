@@ -11,6 +11,7 @@ import {
   ChevronRight,
   Star,
   MapPin,
+  Users,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -1053,130 +1054,12 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
             }}
           />
         </div>
-
-        {/* Info rápida: descripción + fav + mascota */}
-        <div className="px-6 md:px-10 pb-6 flex flex-wrap gap-6 items-start">
-          {perfil?.descripcion && (
-            <p
-              className="font-serif italic leading-relaxed flex-1 min-w-[160px]"
-              style={{
-                fontSize: "0.85rem",
-                color: "color-mix(in srgb, var(--foreground) 62%, transparent)",
-                maxWidth: 480,
-              }}
-            >
-              {perfil.descripcion}
-            </p>
-          )}
-
-          {perfil?.personaje_favorito && (
-            <div className="flex items-center gap-2.5">
-              <div className="flex flex-col gap-0.5">
-                <p
-                  className="text-[7px] font-black uppercase tracking-[0.22em]"
-                  style={{
-                    color:
-                      "color-mix(in srgb, var(--primary) 30%, transparent)",
-                  }}
-                >
-                  Personaje favorito
-                </p>
-                <div className="flex items-center gap-2">
-                  <div
-                    className="w-8 h-8 overflow-hidden shrink-0"
-                    style={{
-                      borderRadius: "var(--radius-btn)",
-                      background:
-                        "color-mix(in srgb, var(--primary) 5%, transparent)",
-                      border:
-                        "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-                    }}
-                  >
-                    {perfil.personaje_favorito.img_url ? (
-                      <Image
-                        alt={perfil.personaje_favorito.nombre}
-                        className="w-full h-full object-contain"
-                        src={perfil.personaje_favorito.img_url}
-                      />
-                    ) : (
-                      <User
-                        className="m-auto mt-1"
-                        size={14}
-                        style={{
-                          color:
-                            "color-mix(in srgb, var(--primary) 25%, transparent)",
-                        }}
-                      />
-                    )}
-                  </div>
-                  <p
-                    className="font-serif italic text-[11px] capitalize"
-                    style={{ color: "var(--primary)" }}
-                  >
-                    {perfil.personaje_favorito.nombre}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {perfil?.mascota && (
-            <div className="flex items-center gap-2.5">
-              <div className="flex flex-col gap-0.5">
-                <p
-                  className="text-[7px] font-black uppercase tracking-[0.22em]"
-                  style={{
-                    color:
-                      "color-mix(in srgb, var(--primary) 30%, transparent)",
-                  }}
-                >
-                  Mascota
-                </p>
-                <div className="flex items-center gap-2">
-                  <div
-                    className="w-8 h-8 overflow-hidden shrink-0"
-                    style={{
-                      borderRadius: "var(--radius-btn)",
-                      background:
-                        "color-mix(in srgb, var(--primary) 5%, transparent)",
-                      border:
-                        "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-                    }}
-                  >
-                    {perfil.mascota.imagen_url ? (
-                      <Image
-                        alt={perfil.mascota.nombre}
-                        className="w-full h-full object-contain"
-                        src={perfil.mascota.imagen_url}
-                      />
-                    ) : (
-                      <Cat
-                        className="m-auto mt-1"
-                        size={14}
-                        style={{
-                          color:
-                            "color-mix(in srgb, var(--primary) 25%, transparent)",
-                        }}
-                      />
-                    )}
-                  </div>
-                  <p
-                    className="font-serif italic text-[11px] capitalize"
-                    style={{ color: "var(--primary)" }}
-                  >
-                    {perfil.mascota.nombre}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
       </div>
 
       {/* ═══════════════════════
           CONTENIDO PRINCIPAL
       ═══════════════════════ */}
-      <div className="w-full max-w-7xl mx-auto px-4 md:px-8 pb-20">
+      <div className="w-full max-w-7xl mx-auto pb-20">
         <div className="flex items-center gap-4 py-3 px-2">
           <div
             className="flex-1 h-px"
@@ -1204,392 +1087,9 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
           />
         </div>
 
-        <div className="flex flex-col md:flex-row gap-5 mb-6">
-          {/* ── Colección: tabs + grid ── */}
-          <div className="flex-1 min-w-0 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
-            {/* Mobile tabs */}
-            <div
-              className="flex md:hidden w-full"
-              style={{
-                borderBottom:
-                  "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-              }}
-            >
-              {tabs.map((t) => {
-                const isActive = tab === t.id;
-                return (
-                  <button
-                    key={t.id}
-                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 transition-all duration-200"
-                    style={{
-                      background: isActive
-                        ? "color-mix(in srgb, var(--primary) 2%, var(--bg-main))"
-                        : "transparent",
-                      color: isActive
-                        ? "var(--primary)"
-                        : "color-mix(in srgb, var(--primary) 35%, transparent)",
-                      borderTop: isActive
-                        ? "1px solid color-mix(in srgb, var(--primary) 14%, transparent)"
-                        : "1px solid transparent",
-                      borderLeft: isActive
-                        ? "1px solid color-mix(in srgb, var(--primary) 14%, transparent)"
-                        : "1px solid transparent",
-                      borderRight: isActive
-                        ? "1px solid color-mix(in srgb, var(--primary) 14%, transparent)"
-                        : "1px solid transparent",
-                      borderBottom: isActive
-                        ? "1px solid color-mix(in srgb, var(--primary) 2%, var(--bg-main))"
-                        : "1px solid transparent",
-                      borderRadius: "4px 4px 0 0",
-                      marginBottom: isActive ? "-1px" : "0",
-                      zIndex: isActive ? 2 : 1,
-                      position: "relative",
-                    }}
-                    onClick={() => setTab(t.id)}
-                  >
-                    <t.icon size={11} />
-                    <span className="text-[9px] font-black uppercase tracking-widest">
-                      {t.label}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Desktop tabs */}
-            <div className="hidden md:flex items-center justify-between mb-0">
-              <div
-                className="flex items-end gap-0 w-full"
-                style={{
-                  borderBottom:
-                    "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-                }}
-              >
-                {tabs.map((t) => {
-                  const isActive = tab === t.id;
-                  return (
-                    <button
-                      key={t.id}
-                      className="relative flex flex-1 items-center justify-center gap-2 px-5 py-2.5 transition-all duration-200"
-                      style={{
-                        background: isActive
-                          ? "var(--white-custom)"
-                          : "transparent",
-                        color: isActive
-                          ? "var(--primary)"
-                          : "color-mix(in srgb, var(--primary) 35%, transparent)",
-                        borderTop: isActive
-                          ? "1px solid color-mix(in srgb, var(--primary) 14%, transparent)"
-                          : "1px solid transparent",
-                        borderLeft: isActive
-                          ? "1px solid color-mix(in srgb, var(--primary) 14%, transparent)"
-                          : "1px solid transparent",
-                        borderRight: isActive
-                          ? "1px solid color-mix(in srgb, var(--primary) 14%, transparent)"
-                          : "1px solid transparent",
-                        borderBottom: isActive
-                          ? "1px solid var(--white-custom)"
-                          : "1px solid transparent",
-                        borderRadius: "4px 4px 0 0",
-                        marginBottom: isActive ? "-1px" : "0",
-                      }}
-                      onClick={() => setTab(t.id)}
-                    >
-                      <t.icon size={11} />
-                      <span className="text-[10px] font-black uppercase tracking-widest">
-                        {t.label}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-              <div
-                className="flex items-center gap-1.5 px-3 py-1.5"
-                style={{
-                  border:
-                    "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-                  borderRadius: "2px",
-                  background:
-                    "color-mix(in srgb, var(--primary) 3%, transparent)",
-                }}
-              >
-                <Star
-                  size={8}
-                  style={{
-                    color:
-                      "color-mix(in srgb, var(--primary) 30%, transparent)",
-                  }}
-                />
-                <span
-                  className="text-[8px] font-black uppercase tracking-[0.22em] tabular-nums"
-                  style={{
-                    color:
-                      "color-mix(in srgb, var(--primary) 38%, transparent)",
-                  }}
-                >
-                  {tab === "items"
-                    ? inventario.length + misItemsDesc.length
-                    : tab === "criaturas"
-                      ? misCriaturas.length
-                      : tab === "reinos"
-                        ? reinos.length
-                        : misPersonajes.length}{" "}
-                  entradas
-                </span>
-              </div>
-            </div>
-
-            {/* Panel colección */}
-            <div
-              style={{
-                border:
-                  "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-                borderTop: "none",
-                borderRadius: "0 0 var(--radius-card) var(--radius-card)",
-                background:
-                  tab === "items"
-                    ? "color-mix(in srgb, var(--primary) 3%, var(--bg-main))"
-                    : tab === "criaturas"
-                      ? "color-mix(in srgb, var(--primary) 4%, var(--bg-main))"
-                      : "color-mix(in srgb, var(--primary) 2%, var(--bg-main))",
-                transition: "background 0.25s ease",
-                padding: "16px",
-              }}
-            >
-              <AnimatePresence mode="wait">
-                <MotionDiv
-                  key={tab}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3"
-                  exit={{ opacity: 0, y: -6 }}
-                  initial={{ opacity: 0, y: 6 }}
-                  transition={{ duration: 0.16 }}
-                >
-                  {tab === "items" && (
-                    <>
-                      {inventario.map((item, i) => (
-                        <EntidadCard
-                          key={`inv-${i}`}
-                          icono={<Sword size={20} />}
-                          imagen={item.items.imagen_url}
-                          nombre={item.items.nombre}
-                          sub={item.items.categoria}
-                          onClick={() =>
-                            setModalD({ tipo: "item_inv", data: item })
-                          }
-                        />
-                      ))}
-                      {misItemsDesc.map((d, i) => (
-                        <EntidadCard
-                          key={`desc-${i}`}
-                          icono={<Sword size={20} />}
-                          imagen={d.imagen_url}
-                          nombre={d.nombre ?? "Objeto"}
-                          sub={d.categoria ?? "Item"}
-                          onClick={() => setModalD({ tipo: "item", data: d })}
-                        />
-                      ))}
-                      {inventario.length === 0 && misItemsDesc.length === 0 && (
-                        <EmptyTab label="Sin items registrados aún" />
-                      )}
-                    </>
-                  )}
-
-                  {tab === "criaturas" &&
-                    (misCriaturas.length > 0 ? (
-                      misCriaturas.map((d, i) => (
-                        <EntidadCard
-                          key={i}
-                          icono={<Cat size={20} />}
-                          imagen={d.imagen_url}
-                          nombre={d.nombre ?? "Criatura"}
-                          sub={d.habitat}
-                          onClick={() =>
-                            setModalD({ tipo: "criatura", data: d })
-                          }
-                        />
-                      ))
-                    ) : (
-                      <EmptyTab label="Sin criaturas descubiertas" />
-                    ))}
-
-                  {tab === "personajes" &&
-                    (misPersonajes.length > 0 ? (
-                      misPersonajes.map((d, i) => (
-                        <button
-                          key={i}
-                          className="group relative flex flex-col overflow-hidden transition-all duration-200 hover:shadow-md"
-                          style={{
-                            background: "var(--white-custom)",
-                            border:
-                              "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-                            borderRadius: "var(--radius-btn)",
-                            aspectRatio: "3/4",
-                          }}
-                          onClick={() => handleOpenPersonajeModal(d)}
-                          onMouseEnter={(e) => {
-                            (e.currentTarget as HTMLElement).style.borderColor =
-                              "color-mix(in srgb, var(--primary) 22%, transparent)";
-                          }}
-                          onMouseLeave={(e) => {
-                            (e.currentTarget as HTMLElement).style.borderColor =
-                              "color-mix(in srgb, var(--primary) 10%, transparent)";
-                          }}
-                        >
-                          <div className="flex-1 relative overflow-hidden flex items-center justify-center p-2">
-                            {d.imagen_url ? (
-                              <img
-                                alt={d.nombre}
-                                className="w-full h-full object-contain transition-transform duration-300"
-                                src={d.imagen_url}
-                                style={{
-                                  objectPosition: "center",
-                                  transform: "scale(3)",
-                                }}
-                                onMouseEnter={(e) => {
-                                  (
-                                    e.currentTarget as HTMLImageElement
-                                  ).style.transform = "scale(3.3)";
-                                }}
-                                onMouseLeave={(e) => {
-                                  (
-                                    e.currentTarget as HTMLImageElement
-                                  ).style.transform = "scale(3)";
-                                }}
-                              />
-                            ) : (
-                              <User
-                                size={22}
-                                style={{
-                                  color:
-                                    "color-mix(in srgb, var(--primary) 14%, transparent)",
-                                }}
-                              />
-                            )}
-                          </div>
-                          <div
-                            className="px-1.5 py-1.5"
-                            style={{
-                              borderTop:
-                                "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
-                              background:
-                                "color-mix(in srgb, var(--primary) 4%, transparent)",
-                            }}
-                          >
-                            <p
-                              className="font-serif italic text-[12px] leading-tight capitalize truncate text-center"
-                              style={{ color: "var(--primary)" }}
-                            >
-                              {d.nombre ?? "Contacto"}
-                            </p>
-                          </div>
-                        </button>
-                      ))
-                    ) : (
-                      <EmptyTab label="Sin registros en la agenda" />
-                    ))}
-
-                  {tab === "reinos" &&
-                    (reinos.length > 0 ? (
-                      reinos.map((r, i) => (
-                        <button
-                          key={i}
-                          className="group relative overflow-hidden text-left transition-all duration-150"
-                          style={{
-                            background:
-                              "color-mix(in srgb, var(--primary) 3%, var(--white-custom))",
-                            border:
-                              "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
-                            borderRadius: "4px",
-                            boxShadow:
-                              "inset 0 1px 0 color-mix(in srgb, var(--primary) 6%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--primary) 10%, transparent)",
-                            aspectRatio: "1 / 1",
-                            display: "flex",
-                            flexDirection: "column",
-                            minHeight: "80px",
-                          }}
-                          onClick={() => {
-                            setCiudadesReino(
-                              ciudades.filter((l) => l.reino_id === r.id),
-                            );
-                            setModalD({
-                              tipo: "reino",
-                              data: {
-                                tipo: "item",
-                                entidad_id: r.id,
-                                nombre: r.nombre,
-                                imagen_url: r.mapa_url ?? undefined,
-                                descripcion: r.descripcion ?? undefined,
-                                fecha_descubrimiento: "",
-                              },
-                            });
-                          }}
-                          onMouseEnter={(e) => {
-                            (e.currentTarget as HTMLElement).style.borderColor =
-                              "color-mix(in srgb, var(--primary) 35%, transparent)";
-                            (e.currentTarget as HTMLElement).style.background =
-                              "color-mix(in srgb, var(--primary) 7%, var(--white-custom))";
-                            (e.currentTarget as HTMLElement).style.boxShadow =
-                              "inset 0 1px 0 color-mix(in srgb, var(--primary) 12%, transparent), 0 0 0 1px color-mix(in srgb, var(--primary) 20%, transparent)";
-                          }}
-                          onMouseLeave={(e) => {
-                            (e.currentTarget as HTMLElement).style.borderColor =
-                              "color-mix(in srgb, var(--primary) 14%, transparent)";
-                            (e.currentTarget as HTMLElement).style.background =
-                              "color-mix(in srgb, var(--primary) 3%, var(--white-custom))";
-                            (e.currentTarget as HTMLElement).style.boxShadow =
-                              "inset 0 1px 0 color-mix(in srgb, var(--primary) 6%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--primary) 10%, transparent)";
-                          }}
-                        >
-                          <div
-                            className="flex-1 relative overflow-hidden flex items-center justify-center p-2"
-                            style={{ minHeight: "64px", width: "100%" }}
-                          >
-                            {r.mapa_url ? (
-                              <img
-                                alt={r.nombre}
-                                className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-110"
-                                src={r.mapa_url}
-                              />
-                            ) : (
-                              <MapPin
-                                size={22}
-                                style={{
-                                  color:
-                                    "color-mix(in srgb, var(--primary) 14%, transparent)",
-                                }}
-                              />
-                            )}
-                          </div>
-                          <div
-                            className="px-1.5 py-1"
-                            style={{
-                              borderTop:
-                                "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
-                              background:
-                                "color-mix(in srgb, var(--primary) 4%, transparent)",
-                            }}
-                          >
-                            <p
-                              className="font-serif italic text-[9px] leading-tight capitalize truncate text-center"
-                              style={{ color: "var(--primary)" }}
-                            >
-                              {r.nombre}
-                            </p>
-                          </div>
-                        </button>
-                      ))
-                    ) : (
-                      <EmptyTab label="Ningún reino descubierto aún" />
-                    ))}
-                </MotionDiv>
-              </AnimatePresence>
-            </div>
-          </div>
-
-          {/* ── Sidebar: Registro + Exploradores ── */}
-          <aside className="w-full md:w-44 xl:w-52 shrink-0 md:sticky md:top-16 self-start animate-in fade-in duration-500 delay-200 flex flex-col gap-4">
-            {/* Stats HUD — Registro */}
+        <div className="flex flex-col md:flex-row gap-6 items-start mt-2 px-4 md:px-8">
+          {/* ── LEFT SIDEBAR ── */}
+          <div className="w-full md:w-64 xl:w-72 shrink-0 md:sticky md:top-16 self-start flex flex-col gap-4 animate-in fade-in duration-500">
             <div
               className="overflow-hidden"
               style={{
@@ -1599,7 +1099,8 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                   "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
               }}
             >
-              <div className="px-5 pt-5 pb-5">
+              {/* Stats HUD — Registro */}
+              <div className="px-5 pt-5 pb-4">
                 <div className="flex items-center gap-2 mb-4">
                   <div
                     className="flex-1 h-px"
@@ -1692,11 +1193,700 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                   ))}
                 </div>
               </div>
+
+              <div
+                style={{
+                  height: "1px",
+                  background:
+                    "color-mix(in srgb, var(--primary) 8%, transparent)",
+                }}
+              />
+
+              {/* Sobre mí */}
+              <div>
+                <div className="flex items-center gap-2 px-5 pt-4 pb-2">
+                  <Star
+                    size={8}
+                    style={{
+                      color:
+                        "color-mix(in srgb, var(--primary) 30%, transparent)",
+                    }}
+                  />
+                  <p
+                    className="text-[8px] font-black uppercase tracking-[0.22em]"
+                    style={{
+                      color:
+                        "color-mix(in srgb, var(--primary) 40%, transparent)",
+                    }}
+                  >
+                    Sobre mí
+                  </p>
+                </div>
+                <div className="px-5 pb-5">
+                  {perfil?.descripcion ? (
+                    <p
+                      className="font-serif italic leading-relaxed"
+                      style={{
+                        fontSize: "0.85rem",
+                        color:
+                          "color-mix(in srgb, var(--foreground) 70%, transparent)",
+                        lineHeight: 1.65,
+                      }}
+                    >
+                      {perfil.descripcion}
+                    </p>
+                  ) : (
+                    <p
+                      className="font-serif italic"
+                      style={{
+                        fontSize: "0.82rem",
+                        color:
+                          "color-mix(in srgb, var(--primary) 20%, transparent)",
+                      }}
+                    >
+                      "Sin descripción aún…"
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div
+                style={{
+                  height: "1px",
+                  background:
+                    "color-mix(in srgb, var(--primary) 8%, transparent)",
+                }}
+              />
+
+              {/* Favoritos */}
+              <div className="grid grid-cols-2">
+                <div className="text-left px-4 py-4">
+                  <div className="flex items-center gap-1 mb-2.5">
+                    <Star
+                      size={7}
+                      style={{
+                        color:
+                          "color-mix(in srgb, var(--primary) 25%, transparent)",
+                      }}
+                    />
+                    <p
+                      className="text-[7px] font-black uppercase tracking-[0.18em]"
+                      style={{
+                        color:
+                          "color-mix(in srgb, var(--primary) 32%, transparent)",
+                      }}
+                    >
+                      Fav. personaje
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2.5">
+                    {perfil?.personaje_favorito ? (
+                      <>
+                        <div
+                          className="w-10 h-10 shrink-0 overflow-hidden"
+                          style={{
+                            borderRadius: "var(--radius-btn)",
+                            background:
+                              "color-mix(in srgb, var(--primary) 4%, transparent)",
+                            border:
+                              "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+                          }}
+                        >
+                          {perfil.personaje_favorito.img_url ? (
+                            <Image
+                              alt={perfil.personaje_favorito.nombre}
+                              className="w-full h-full object-contain"
+                              src={perfil.personaje_favorito.img_url}
+                            />
+                          ) : (
+                            <User
+                              className="m-auto mt-1.5"
+                              size={16}
+                              style={{
+                                color:
+                                  "color-mix(in srgb, var(--primary) 22%, transparent)",
+                              }}
+                            />
+                          )}
+                        </div>
+                        <p
+                          className="font-serif italic text-[11px] leading-tight capitalize"
+                          style={{ color: "var(--primary)" }}
+                        >
+                          {perfil.personaje_favorito.nombre}
+                        </p>
+                      </>
+                    ) : (
+                      <p
+                        className="font-serif italic text-[9px]"
+                        style={{
+                          color:
+                            "color-mix(in srgb, var(--primary) 18%, transparent)",
+                        }}
+                      >
+                        Ninguno…
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div
+                  className="text-left px-4 py-4"
+                  style={{
+                    borderLeft:
+                      "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+                  }}
+                >
+                  <div className="flex items-center gap-1 mb-2.5">
+                    <Star
+                      size={7}
+                      style={{
+                        color:
+                          "color-mix(in srgb, var(--primary) 25%, transparent)",
+                      }}
+                    />
+                    <p
+                      className="text-[7px] font-black uppercase tracking-[0.18em]"
+                      style={{
+                        color:
+                          "color-mix(in srgb, var(--primary) 32%, transparent)",
+                      }}
+                    >
+                      Mascota
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2.5">
+                    {perfil?.mascota ? (
+                      <>
+                        <div
+                          className="w-10 h-10 shrink-0 overflow-hidden"
+                          style={{
+                            borderRadius: "var(--radius-btn)",
+                            background:
+                              "color-mix(in srgb, var(--primary) 4%, transparent)",
+                            border:
+                              "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+                          }}
+                        >
+                          {perfil.mascota.imagen_url ? (
+                            <Image
+                              alt={perfil.mascota.nombre}
+                              className="w-full h-full object-contain"
+                              src={perfil.mascota.imagen_url}
+                            />
+                          ) : (
+                            <Cat
+                              className="m-auto mt-1.5"
+                              size={16}
+                              style={{
+                                color:
+                                  "color-mix(in srgb, var(--primary) 22%, transparent)",
+                              }}
+                            />
+                          )}
+                        </div>
+                        <p
+                          className="font-serif italic text-[11px] leading-tight capitalize"
+                          style={{ color: "var(--primary)" }}
+                        >
+                          {perfil.mascota.nombre}
+                        </p>
+                      </>
+                    ) : (
+                      <p
+                        className="font-serif italic text-[9px]"
+                        style={{
+                          color:
+                            "color-mix(in srgb, var(--primary) 18%, transparent)",
+                        }}
+                      >
+                        Ninguna…
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
 
-            {/* Exploradores */}
+            {/* Mobile explorers */}
             {otrosPerfiles.length > 0 && (
-              <div>
+              <div className="lg:hidden">
+                <div className="flex items-center gap-3 mb-3">
+                  <div
+                    className="flex-1 h-px"
+                    style={{
+                      background:
+                        "color-mix(in srgb, var(--primary) 8%, transparent)",
+                    }}
+                  />
+                  <p
+                    className="text-[7px] font-black uppercase tracking-[0.25em] flex items-center gap-1.5"
+                    style={{
+                      color:
+                        "color-mix(in srgb, var(--primary) 30%, transparent)",
+                    }}
+                  >
+                    <Users size={8} /> Exploradores
+                  </p>
+                  <div
+                    className="flex-1 h-px"
+                    style={{
+                      background:
+                        "color-mix(in srgb, var(--primary) 8%, transparent)",
+                    }}
+                  />
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {otrosPerfiles.map((p) => (
+                    <Link key={p.id} href={`/garlia/personal/${p.username}`}>
+                      <div
+                        className="flex items-center gap-2 px-3 py-2 transition-all hover:opacity-80"
+                        style={{
+                          background:
+                            "color-mix(in srgb, var(--primary) 4%, var(--white-custom))",
+                          border:
+                            "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+                          borderRadius: "2px",
+                        }}
+                      >
+                        <div
+                          className="w-5 h-5 shrink-0 overflow-hidden flex items-center justify-center"
+                          style={{
+                            borderRadius: "50%",
+                            background:
+                              "color-mix(in srgb, var(--primary) 8%, transparent)",
+                          }}
+                        >
+                          {p.avatar_url ? (
+                            <Image
+                              alt={p.username}
+                              className="w-full h-full object-contain"
+                              src={p.avatar_url}
+                            />
+                          ) : (
+                            <User
+                              size={9}
+                              style={{
+                                color:
+                                  "color-mix(in srgb, var(--primary) 22%, transparent)",
+                              }}
+                            />
+                          )}
+                        </div>
+                        <span
+                          className="text-[9px] font-black uppercase tracking-wide capitalize"
+                          style={{ color: "var(--primary)" }}
+                        >
+                          {p.username}
+                        </span>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* ── MAIN CONTENT ── */}
+          <div className="flex flex-col md:flex-row gap-6 w-full min-w-0 items-start">
+            {/* ── Colección: tabs + grid ── */}
+            <div className="w-full md:flex-1 md:min-w-0 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
+              {/* Mobile tabs */}
+              <div
+                className="flex md:hidden w-full"
+                style={{
+                  borderBottom:
+                    "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+                }}
+              >
+                {tabs.map((t) => {
+                  const isActive = tab === t.id;
+                  return (
+                    <button
+                      key={t.id}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2.5 transition-all duration-200"
+                      style={{
+                        background: isActive
+                          ? "color-mix(in srgb, var(--primary) 2%, var(--bg-main))"
+                          : "transparent",
+                        color: isActive
+                          ? "var(--primary)"
+                          : "color-mix(in srgb, var(--primary) 35%, transparent)",
+                        borderTop: isActive
+                          ? "1px solid color-mix(in srgb, var(--primary) 14%, transparent)"
+                          : "1px solid transparent",
+                        borderLeft: isActive
+                          ? "1px solid color-mix(in srgb, var(--primary) 14%, transparent)"
+                          : "1px solid transparent",
+                        borderRight: isActive
+                          ? "1px solid color-mix(in srgb, var(--primary) 14%, transparent)"
+                          : "1px solid transparent",
+                        borderBottom: isActive
+                          ? "1px solid color-mix(in srgb, var(--primary) 2%, var(--bg-main))"
+                          : "1px solid transparent",
+                        borderRadius: "4px 4px 0 0",
+                        marginBottom: isActive ? "-1px" : "0",
+                        zIndex: isActive ? 2 : 1,
+                        position: "relative",
+                      }}
+                      onClick={() => setTab(t.id)}
+                    >
+                      <t.icon size={11} />
+                      <span className="text-[9px] font-black uppercase tracking-widest">
+                        {t.label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Desktop tabs */}
+              <div className="hidden md:flex items-center justify-between mb-0">
+                <div
+                  className="flex items-end gap-0 w-full"
+                  style={{
+                    borderBottom:
+                      "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+                  }}
+                >
+                  {tabs.map((t) => {
+                    const isActive = tab === t.id;
+                    return (
+                      <button
+                        key={t.id}
+                        className="relative flex flex-1 items-center justify-center gap-2 px-5 py-2.5 transition-all duration-200"
+                        style={{
+                          background: isActive
+                            ? "var(--white-custom)"
+                            : "transparent",
+                          color: isActive
+                            ? "var(--primary)"
+                            : "color-mix(in srgb, var(--primary) 35%, transparent)",
+                          borderTop: isActive
+                            ? "1px solid color-mix(in srgb, var(--primary) 14%, transparent)"
+                            : "1px solid transparent",
+                          borderLeft: isActive
+                            ? "1px solid color-mix(in srgb, var(--primary) 14%, transparent)"
+                            : "1px solid transparent",
+                          borderRight: isActive
+                            ? "1px solid color-mix(in srgb, var(--primary) 14%, transparent)"
+                            : "1px solid transparent",
+                          borderBottom: isActive
+                            ? "1px solid var(--white-custom)"
+                            : "1px solid transparent",
+                          borderRadius: "4px 4px 0 0",
+                          marginBottom: isActive ? "-1px" : "0",
+                        }}
+                        onClick={() => setTab(t.id)}
+                      >
+                        <t.icon size={11} />
+                        <span className="text-[10px] font-black uppercase tracking-widest">
+                          {t.label}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <div
+                  className="flex items-center gap-1.5 px-3 py-1.5"
+                  style={{
+                    border:
+                      "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                    borderRadius: "2px",
+                    background:
+                      "color-mix(in srgb, var(--primary) 3%, transparent)",
+                  }}
+                >
+                  <Star
+                    size={8}
+                    style={{
+                      color:
+                        "color-mix(in srgb, var(--primary) 30%, transparent)",
+                    }}
+                  />
+                  <span
+                    className="text-[8px] font-black uppercase tracking-[0.22em] tabular-nums"
+                    style={{
+                      color:
+                        "color-mix(in srgb, var(--primary) 38%, transparent)",
+                    }}
+                  >
+                    {tab === "items"
+                      ? inventario.length + misItemsDesc.length
+                      : tab === "criaturas"
+                        ? misCriaturas.length
+                        : tab === "reinos"
+                          ? reinos.length
+                          : misPersonajes.length}{" "}
+                    entradas
+                  </span>
+                </div>
+              </div>
+
+              {/* Panel colección */}
+              <div
+                style={{
+                  border:
+                    "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                  borderTop: "none",
+                  borderRadius: "0 0 var(--radius-card) var(--radius-card)",
+                  background:
+                    tab === "items"
+                      ? "color-mix(in srgb, var(--primary) 3%, var(--bg-main))"
+                      : tab === "criaturas"
+                        ? "color-mix(in srgb, var(--primary) 4%, var(--bg-main))"
+                        : "color-mix(in srgb, var(--primary) 2%, var(--bg-main))",
+                  transition: "background 0.25s ease",
+                  padding: "16px",
+                }}
+              >
+                <AnimatePresence mode="wait">
+                  <MotionDiv
+                    key={tab}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3"
+                    exit={{ opacity: 0, y: -6 }}
+                    initial={{ opacity: 0, y: 6 }}
+                    transition={{ duration: 0.16 }}
+                  >
+                    {tab === "items" && (
+                      <>
+                        {inventario.map((item, i) => (
+                          <EntidadCard
+                            key={`inv-${i}`}
+                            icono={<Sword size={20} />}
+                            imagen={item.items.imagen_url}
+                            nombre={item.items.nombre}
+                            sub={item.items.categoria}
+                            onClick={() =>
+                              setModalD({ tipo: "item_inv", data: item })
+                            }
+                          />
+                        ))}
+                        {misItemsDesc.map((d, i) => (
+                          <EntidadCard
+                            key={`desc-${i}`}
+                            icono={<Sword size={20} />}
+                            imagen={d.imagen_url}
+                            nombre={d.nombre ?? "Objeto"}
+                            sub={d.categoria ?? "Item"}
+                            onClick={() => setModalD({ tipo: "item", data: d })}
+                          />
+                        ))}
+                        {inventario.length === 0 &&
+                          misItemsDesc.length === 0 && (
+                            <EmptyTab label="Sin items registrados aún" />
+                          )}
+                      </>
+                    )}
+
+                    {tab === "criaturas" &&
+                      (misCriaturas.length > 0 ? (
+                        misCriaturas.map((d, i) => (
+                          <EntidadCard
+                            key={i}
+                            icono={<Cat size={20} />}
+                            imagen={d.imagen_url}
+                            nombre={d.nombre ?? "Criatura"}
+                            sub={d.habitat}
+                            onClick={() =>
+                              setModalD({ tipo: "criatura", data: d })
+                            }
+                          />
+                        ))
+                      ) : (
+                        <EmptyTab label="Sin criaturas descubiertas" />
+                      ))}
+
+                    {tab === "personajes" &&
+                      (misPersonajes.length > 0 ? (
+                        misPersonajes.map((d, i) => (
+                          <button
+                            key={i}
+                            className="group relative flex flex-col overflow-hidden transition-all duration-200 hover:shadow-md"
+                            style={{
+                              background: "var(--white-custom)",
+                              border:
+                                "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                              borderRadius: "var(--radius-btn)",
+                              aspectRatio: "3/4",
+                            }}
+                            onClick={() => handleOpenPersonajeModal(d)}
+                            onMouseEnter={(e) => {
+                              (
+                                e.currentTarget as HTMLElement
+                              ).style.borderColor =
+                                "color-mix(in srgb, var(--primary) 22%, transparent)";
+                            }}
+                            onMouseLeave={(e) => {
+                              (
+                                e.currentTarget as HTMLElement
+                              ).style.borderColor =
+                                "color-mix(in srgb, var(--primary) 10%, transparent)";
+                            }}
+                          >
+                            <div className="flex-1 relative overflow-hidden flex items-center justify-center p-2">
+                              {d.imagen_url ? (
+                                <img
+                                  alt={d.nombre}
+                                  className="w-full h-full object-contain transition-transform duration-300"
+                                  src={d.imagen_url}
+                                  style={{
+                                    objectPosition: "center",
+                                    transform: "scale(3)",
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    (
+                                      e.currentTarget as HTMLImageElement
+                                    ).style.transform = "scale(3.3)";
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    (
+                                      e.currentTarget as HTMLImageElement
+                                    ).style.transform = "scale(3)";
+                                  }}
+                                />
+                              ) : (
+                                <User
+                                  size={22}
+                                  style={{
+                                    color:
+                                      "color-mix(in srgb, var(--primary) 14%, transparent)",
+                                  }}
+                                />
+                              )}
+                            </div>
+                            <div
+                              className="px-1.5 py-1.5"
+                              style={{
+                                borderTop:
+                                  "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+                                background:
+                                  "color-mix(in srgb, var(--primary) 4%, transparent)",
+                              }}
+                            >
+                              <p
+                                className="font-serif italic text-[12px] leading-tight capitalize truncate text-center"
+                                style={{ color: "var(--primary)" }}
+                              >
+                                {d.nombre ?? "Contacto"}
+                              </p>
+                            </div>
+                          </button>
+                        ))
+                      ) : (
+                        <EmptyTab label="Sin registros en la agenda" />
+                      ))}
+
+                    {tab === "reinos" &&
+                      (reinos.length > 0 ? (
+                        reinos.map((r, i) => (
+                          <button
+                            key={i}
+                            className="group relative overflow-hidden text-left transition-all duration-150"
+                            style={{
+                              background:
+                                "color-mix(in srgb, var(--primary) 3%, var(--white-custom))",
+                              border:
+                                "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
+                              borderRadius: "4px",
+                              boxShadow:
+                                "inset 0 1px 0 color-mix(in srgb, var(--primary) 6%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--primary) 10%, transparent)",
+                              aspectRatio: "1 / 1",
+                              display: "flex",
+                              flexDirection: "column",
+                              minHeight: "80px",
+                            }}
+                            onClick={() => {
+                              setCiudadesReino(
+                                ciudades.filter((l) => l.reino_id === r.id),
+                              );
+                              setModalD({
+                                tipo: "reino",
+                                data: {
+                                  tipo: "item",
+                                  entidad_id: r.id,
+                                  nombre: r.nombre,
+                                  imagen_url: r.mapa_url ?? undefined,
+                                  descripcion: r.descripcion ?? undefined,
+                                  fecha_descubrimiento: "",
+                                },
+                              });
+                            }}
+                            onMouseEnter={(e) => {
+                              (
+                                e.currentTarget as HTMLElement
+                              ).style.borderColor =
+                                "color-mix(in srgb, var(--primary) 35%, transparent)";
+                              (
+                                e.currentTarget as HTMLElement
+                              ).style.background =
+                                "color-mix(in srgb, var(--primary) 7%, var(--white-custom))";
+                              (e.currentTarget as HTMLElement).style.boxShadow =
+                                "inset 0 1px 0 color-mix(in srgb, var(--primary) 12%, transparent), 0 0 0 1px color-mix(in srgb, var(--primary) 20%, transparent)";
+                            }}
+                            onMouseLeave={(e) => {
+                              (
+                                e.currentTarget as HTMLElement
+                              ).style.borderColor =
+                                "color-mix(in srgb, var(--primary) 14%, transparent)";
+                              (
+                                e.currentTarget as HTMLElement
+                              ).style.background =
+                                "color-mix(in srgb, var(--primary) 3%, var(--white-custom))";
+                              (e.currentTarget as HTMLElement).style.boxShadow =
+                                "inset 0 1px 0 color-mix(in srgb, var(--primary) 6%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--primary) 10%, transparent)";
+                            }}
+                          >
+                            <div
+                              className="flex-1 relative overflow-hidden flex items-center justify-center p-2"
+                              style={{ minHeight: "64px", width: "100%" }}
+                            >
+                              {r.mapa_url ? (
+                                <img
+                                  alt={r.nombre}
+                                  className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-110"
+                                  src={r.mapa_url}
+                                />
+                              ) : (
+                                <MapPin
+                                  size={22}
+                                  style={{
+                                    color:
+                                      "color-mix(in srgb, var(--primary) 14%, transparent)",
+                                  }}
+                                />
+                              )}
+                            </div>
+                            <div
+                              className="px-1.5 py-1"
+                              style={{
+                                borderTop:
+                                  "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+                                background:
+                                  "color-mix(in srgb, var(--primary) 4%, transparent)",
+                              }}
+                            >
+                              <p
+                                className="font-serif italic text-[9px] leading-tight capitalize truncate text-center"
+                                style={{ color: "var(--primary)" }}
+                              >
+                                {r.nombre}
+                              </p>
+                            </div>
+                          </button>
+                        ))
+                      ) : (
+                        <EmptyTab label="Ningún reino descubierto aún" />
+                      ))}
+                  </MotionDiv>
+                </AnimatePresence>
+              </div>
+            </div>
+
+            {/* Desktop sidebar - Exploradores */}
+            {otrosPerfiles.length > 0 && (
+              <aside className="hidden lg:flex flex-col gap-0 w-44 xl:w-52 shrink-0 sticky top-24 pt-0">
                 <div className="flex items-center gap-2 mb-3 px-1">
                   <div
                     className="flex-1 h-px"
@@ -1829,9 +2019,9 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                     </Link>
                   ))}
                 </div>
-              </div>
+              </aside>
             )}
-          </aside>
+          </div>
         </div>
       </div>
     </>

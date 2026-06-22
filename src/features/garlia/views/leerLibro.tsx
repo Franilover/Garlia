@@ -326,154 +326,6 @@ function LugaresPanel({
 }
 
 /* ─────────────────────────────────────────────
-   Modal flotante de Trigger Warning
-   — aparece al cambiar de capítulo si tiene TW,
-     bloquea el contenido hasta que el lector acepta.
-   ───────────────────────────────────────────── */
-function ModalTriggerWarning({
-  warnings,
-  onAceptar,
-}: {
-  warnings: string[];
-  onAceptar: () => void;
-}) {
-  return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 100,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        background: "color-mix(in srgb, var(--bg-main) 75%, transparent)",
-        backdropFilter: "blur(6px)",
-        WebkitBackdropFilter: "blur(6px)",
-        padding: "24px",
-      }}
-    >
-      <div
-        style={{
-          width: "100%",
-          maxWidth: 360,
-          background: "var(--bg-main)",
-          border:
-            "1px solid color-mix(in srgb, var(--callout-warning-border) 40%, transparent)",
-          borderRadius: 14,
-          boxShadow:
-            "0 24px 64px color-mix(in srgb, var(--primary) 18%, transparent)",
-          overflow: "hidden",
-        }}
-      >
-        {/* Header */}
-        <div
-          style={{
-            padding: "18px 20px 14px",
-            borderBottom:
-              "1px solid color-mix(in srgb, var(--callout-warning-border) 20%, transparent)",
-            background:
-              "color-mix(in srgb, var(--callout-warning-border) 6%, transparent)",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              marginBottom: 6,
-            }}
-          >
-            <span style={{ fontSize: 18, lineHeight: 1 }}>⚠️</span>
-            <span
-              style={{
-                fontSize: 10,
-                fontFamily: "var(--font-mono)",
-                fontWeight: 900,
-                textTransform: "uppercase",
-                letterSpacing: "0.2em",
-                color: "var(--callout-warning-title)",
-              }}
-            >
-              Trigger Warning
-            </span>
-          </div>
-          <p
-            style={{
-              fontSize: 12,
-              color: "color-mix(in srgb, var(--primary) 55%, transparent)",
-              lineHeight: 1.5,
-              margin: 0,
-            }}
-          >
-            Este capítulo contiene contenido sensible. Por favor, verifica que
-            estás en condiciones de leerlo.
-          </p>
-        </div>
-
-        {/* Lista de warnings */}
-        <div
-          style={{
-            padding: "14px 20px",
-            display: "flex",
-            flexWrap: "wrap",
-            gap: 6,
-          }}
-        >
-          {warnings.map((tw) => (
-            <span
-              key={tw}
-              style={{
-                fontSize: 9,
-                fontFamily: "var(--font-mono)",
-                fontWeight: 900,
-                textTransform: "uppercase",
-                letterSpacing: "0.1em",
-                padding: "4px 10px",
-                borderRadius: 99,
-                border:
-                  "1px solid color-mix(in srgb, var(--callout-warning-border) 50%, transparent)",
-                color: "var(--callout-warning-title)",
-                background:
-                  "color-mix(in srgb, var(--callout-warning-border) 10%, transparent)",
-              }}
-            >
-              {tw}
-            </span>
-          ))}
-        </div>
-
-        {/* Botón */}
-        <div style={{ padding: "0 20px 20px" }}>
-          <button
-            style={{
-              width: "100%",
-              padding: "11px 16px",
-              borderRadius: 8,
-              border:
-                "1px solid color-mix(in srgb, var(--primary) 20%, transparent)",
-              background: "var(--primary)",
-              color: "var(--bg-main)",
-              fontSize: 10,
-              fontFamily: "var(--font-mono)",
-              fontWeight: 900,
-              textTransform: "uppercase",
-              letterSpacing: "0.15em",
-              cursor: "pointer",
-              transition: "opacity 0.15s",
-            }}
-            onClick={onAceptar}
-            onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.85")}
-            onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
-          >
-            Soy consciente · Continuar
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ─────────────────────────────────────────────
    Panel lateral izquierdo
    ───────────────────────────────────────────── */
 function PanelLateral({
@@ -509,10 +361,7 @@ function PanelLateral({
     | NarradorInfo
     | null
     | undefined;
-  const personajesIds = Array.from(
-    new Set((capActual?.personajes_ids ?? []) as string[]),
-  );
-  const triggerWarnings: string[] = (capActual as any)?.trigger_warnings ?? [];
+  const personajesIds = Array.from(new Set(capActual?.personajes_ids ?? []));
 
   return (
     <div
@@ -772,12 +621,6 @@ export default function Lector() {
   const [reinosMap, setReinosMap] = useState<Record<string, any>>({});
   const [ciudadesMap, setCiudadesMap] = useState<Record<string, any>>({});
   const hasScrolled = useRef(false);
-  // Set de capIds cuyo TW ya fue aceptado en esta sesión
-  const twAceptadosRef = useRef<Set<string>>(new Set());
-  const [twPendiente, setTwPendiente] = useState<{
-    capId: string;
-    warnings: string[];
-  } | null>(null);
 
   // ── Efecto A: resolver libro + cargar TODOS los capítulos ──────────────────
   // Depende solo de slugParam (no de ordenParam): cambiar de capítulo NO debe
@@ -1028,7 +871,7 @@ export default function Lector() {
       const { data: contenidos, error: capsError } = await supabase
         .from("capitulos")
         .select(
-          `id, orden, titulo_capitulo, contenido, fecha_publicacion, visibilidad, personajes_ids, reinos_ids, ciudades_ids, trigger_warnings, libros(titulo), narrador:personajes!narrador_id(id, nombre, img_url)`,
+          `id, orden, titulo_capitulo, contenido, fecha_publicacion, visibilidad, personajes_ids, reinos_ids, ciudades_ids, libros(titulo), narrador:personajes!narrador_id(id, nombre, img_url)`,
         )
         .eq("libro_id", libroId)
         .or(
@@ -1057,7 +900,6 @@ export default function Lector() {
         personajes_ids: c.personajes_ids,
         reinos_ids: c.reinos_ids ?? [],
         ciudades_ids: c.ciudades_ids ?? [],
-        trigger_warnings: (c as any).trigger_warnings ?? [],
         libro_id: libroId,
         libros: normOne(c.libros) ?? undefined,
         _narrador: normOne(c.narrador),
@@ -1173,15 +1015,6 @@ export default function Lector() {
         ?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 180);
   }, [loading, capId]);
-
-  // Mostrar modal de TW cuando el cap activo tiene warnings no aceptados
-  useEffect(() => {
-    if (!capActual) return;
-    const warnings: string[] = (capActual as any).trigger_warnings ?? [];
-    if (warnings.length === 0) return;
-    if (twAceptadosRef.current.has(capActual.id)) return;
-    setTwPendiente({ capId: capActual.id, warnings });
-  }, [capActual?.id]);
 
   // Observar qué capítulo es visible para actualizar el título
   useEffect(() => {
@@ -1360,35 +1193,12 @@ export default function Lector() {
 
         {/* Capítulo activo — uno solo a la vez */}
         {!loading && capActual && (
-          <div style={{ position: "relative" }}>
-            {/* Blur del contenido mientras no se acepta el TW */}
-            <div
-              style={{
-                filter: twPendiente ? "blur(6px)" : "none",
-                pointerEvents: twPendiente ? "none" : "auto",
-                userSelect: twPendiente ? "none" : "auto",
-                transition: "filter 0.2s",
-              }}
-            >
-              <CapituloScrollBlock
-                key={capActual.id}
-                cap={capActual}
-                esExtra={esExtra}
-                haySegSiguiente={!!capSiguiente}
-                onNavigate={handleNavigate}
-              />
-            </div>
-          </div>
-        )}
-
-        {/* Modal de Trigger Warning */}
-        {twPendiente && (
-          <ModalTriggerWarning
-            warnings={twPendiente.warnings}
-            onAceptar={() => {
-              twAceptadosRef.current.add(twPendiente.capId);
-              setTwPendiente(null);
-            }}
+          <CapituloScrollBlock
+            key={capActual.id}
+            cap={capActual}
+            esExtra={esExtra}
+            haySegSiguiente={!!capSiguiente}
+            onNavigate={handleNavigate}
           />
         )}
 
