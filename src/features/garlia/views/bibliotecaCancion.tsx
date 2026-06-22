@@ -5,7 +5,7 @@ import Link from "next/link";
 import React, { useState, useMemo, useEffect } from "react";
 
 import { Loading } from "@/components/ui";
-import { MotionDiv } from '@/components/ui/Motion';
+import { MotionDiv } from "@/components/ui/Motion";
 import { SmartImage } from "@/components/ui/SmartImage";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import { supabase } from "@/lib/api/client/supabase";
@@ -29,12 +29,20 @@ interface Cancion {
   visible?: boolean;
 }
 
-function normPersonaje(v: Personaje | Personaje[] | null | undefined): Personaje | null {
+function normPersonaje(
+  v: Personaje | Personaje[] | null | undefined,
+): Personaje | null {
   if (!v) return null;
   return Array.isArray(v) ? (v[0] ?? null) : v;
 }
 
-const CancionCardGrid = ({ cancion, index }: { cancion: Cancion; index: number }) => (
+const CancionCardGrid = ({
+  cancion,
+  index,
+}: {
+  cancion: Cancion;
+  index: number;
+}) => (
   <MotionDiv
     animate={{ opacity: 1, y: 0 }}
     className="relative group h-full"
@@ -51,11 +59,16 @@ const CancionCardGrid = ({ cancion, index }: { cancion: Cancion; index: number }
           className="relative aspect-square overflow-hidden"
           style={{
             borderRadius: "2px",
-            border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)",
-            boxShadow: "3px 3px 0 color-mix(in srgb, var(--primary) 8%, transparent), var(--shadow-card)",
+            border:
+              "1px solid color-mix(in srgb, var(--primary) 20%, transparent)",
+            boxShadow:
+              "3px 3px 0 color-mix(in srgb, var(--primary) 8%, transparent), var(--shadow-card)",
           }}
         >
-          <div className="w-full h-full" style={{ filter: "sepia(30%) contrast(0.93) brightness(0.93)" }}>
+          <div
+            className="w-full h-full"
+            style={{ filter: "sepia(30%) contrast(0.93) brightness(0.93)" }}
+          >
             <SmartImage
               alt={cancion.titulo}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
@@ -66,7 +79,10 @@ const CancionCardGrid = ({ cancion, index }: { cancion: Cancion; index: number }
           {/* Esquina doblada estilo papel */}
           <div
             className="absolute top-0 right-0 w-5 h-5 opacity-70"
-            style={{ background: "var(--bg-main)", clipPath: "polygon(100% 0, 0 0, 100% 100%)" }}
+            style={{
+              background: "var(--bg-main)",
+              clipPath: "polygon(100% 0, 0 0, 100% 100%)",
+            }}
           />
           <div className="absolute bottom-0 left-0 right-0 p-3">
             <div className="flex items-center gap-1 mb-1.5 opacity-40">
@@ -89,7 +105,13 @@ const CancionCardGrid = ({ cancion, index }: { cancion: Cancion; index: number }
   </MotionDiv>
 );
 
-const CancionCardFila = ({ cancion, index }: { cancion: Cancion; index: number }) => (
+const CancionCardFila = ({
+  cancion,
+  index,
+}: {
+  cancion: Cancion;
+  index: number;
+}) => (
   <MotionDiv
     animate={{ opacity: 1, y: 0 }}
     initial={{ opacity: 0, y: 6 }}
@@ -100,11 +122,19 @@ const CancionCardFila = ({ cancion, index }: { cancion: Cancion; index: number }
         className="group flex items-center gap-3 bg-primary/[0.03] hover:bg-primary/[0.06] px-3 py-2 transition-all duration-300 cursor-pointer"
         style={{
           borderRadius: "2px",
-          border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-          boxShadow: "1px 1px 0 color-mix(in srgb, var(--primary) 5%, transparent)",
+          border:
+            "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+          boxShadow:
+            "1px 1px 0 color-mix(in srgb, var(--primary) 5%, transparent)",
         }}
-        onMouseEnter={e => { e.currentTarget.style.borderColor = "color-mix(in srgb, var(--primary) 22%, transparent)"; }}
-        onMouseLeave={e => { e.currentTarget.style.borderColor = "color-mix(in srgb, var(--primary) 10%, transparent)"; }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.borderColor =
+            "color-mix(in srgb, var(--primary) 22%, transparent)";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.borderColor =
+            "color-mix(in srgb, var(--primary) 10%, transparent)";
+        }}
       >
         <span className="font-mono text-[8px] font-black text-primary/15 w-6 text-right shrink-0 select-none group-hover:text-primary/35 transition-colors tracking-wider">
           {String(index + 1).padStart(3, "0")}
@@ -114,11 +144,16 @@ const CancionCardFila = ({ cancion, index }: { cancion: Cancion; index: number }
           className="w-10 h-10 overflow-hidden shrink-0"
           style={{
             borderRadius: "1px",
-            border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+            border:
+              "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
             filter: "sepia(20%) contrast(0.95)",
           }}
         >
-          <SmartImage alt={cancion.titulo} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" src={cancion.portada_url || "/placeholder-cover.jpg"} />
+          <SmartImage
+            alt={cancion.titulo}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            src={cancion.portada_url || "/placeholder-cover.jpg"}
+          />
         </div>
         <div className="min-w-0 flex-1">
           <h2 className="text-primary font-black uppercase text-[11px] group-hover:text-accent transition-colors tracking-wide italic truncate">
@@ -130,7 +165,10 @@ const CancionCardFila = ({ cancion, index }: { cancion: Cancion; index: number }
             </p>
           )}
         </div>
-        <ChevronRight className="text-primary/15 group-hover:text-primary/45 transition-colors shrink-0" size={12} />
+        <ChevronRight
+          className="text-primary/15 group-hover:text-primary/45 transition-colors shrink-0"
+          size={12}
+        />
       </div>
     </Link>
   </MotionDiv>
@@ -158,12 +196,14 @@ const PersonajeBloque = ({
     {/* COLUMNA IZQUIERDA: Personaje en Grande */}
     <div className="w-full md:w-1/3 lg:w-1/4 shrink-0 flex flex-col items-center md:items-start text-center md:text-left md:sticky md:top-24">
       {imgUrl ? (
-        <div 
+        <div
           className="w-48 h-48 md:w-full mb-5 overflow-hidden bg-primary/5"
           style={{
             borderRadius: "2px",
-            border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)",
-            boxShadow: "4px 4px 0 color-mix(in srgb, var(--primary) 8%, transparent)",
+            border:
+              "1px solid color-mix(in srgb, var(--primary) 20%, transparent)",
+            boxShadow:
+              "4px 4px 0 color-mix(in srgb, var(--primary) 8%, transparent)",
             filter: "sepia(15%)",
           }}
         >
@@ -178,8 +218,10 @@ const PersonajeBloque = ({
           className="w-48 h-48 md:w-full mb-5 flex items-center justify-center bg-primary/5"
           style={{
             borderRadius: "2px",
-            border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)",
-            boxShadow: "4px 4px 0 color-mix(in srgb, var(--primary) 8%, transparent)",
+            border:
+              "1px solid color-mix(in srgb, var(--primary) 20%, transparent)",
+            boxShadow:
+              "4px 4px 0 color-mix(in srgb, var(--primary) 8%, transparent)",
             aspectRatio: "1 / 1",
           }}
         >
@@ -191,11 +233,22 @@ const PersonajeBloque = ({
         {personaje}
       </h2>
       <div className="flex items-center gap-2 mb-4 w-full justify-center md:justify-start">
-        <div className="h-px w-8" style={{ background: "color-mix(in srgb, var(--primary) 20%, transparent)" }} />
+        <div
+          className="h-px w-8"
+          style={{
+            background: "color-mix(in srgb, var(--primary) 20%, transparent)",
+          }}
+        />
         <p className="text-[10px] font-mono font-bold text-primary/40 tracking-widest uppercase whitespace-nowrap">
           {canciones.length} {canciones.length !== 1 ? "canciones" : "canción"}
         </p>
-        <div className="h-px flex-1" style={{ background: "linear-gradient(to right, color-mix(in srgb, var(--primary) 20%, transparent), transparent)" }} />
+        <div
+          className="h-px flex-1"
+          style={{
+            background:
+              "linear-gradient(to right, color-mix(in srgb, var(--primary) 20%, transparent), transparent)",
+          }}
+        />
       </div>
     </div>
 
@@ -220,7 +273,8 @@ const PersonajeBloque = ({
 );
 
 export default function CancionesPage() {
-  const { data: cancionesCacheadas, loading } = useSupabaseData<Cancion>("canciones");
+  const { data: cancionesCacheadas, loading } =
+    useSupabaseData<Cancion>("canciones");
   const [canciones, setCanciones] = useState<Cancion[]>([]);
   const [vistaFila, setVistaFila] = useState(false);
 
@@ -240,9 +294,9 @@ export default function CancionesPage() {
       });
   }, []);
 
-  const filtradas = useMemo(() =>
-    canciones.filter(c => c.visible !== false),
-    [canciones]
+  const filtradas = useMemo(
+    () => canciones.filter((c) => c.visible !== false),
+    [canciones],
   );
 
   const grupos = useMemo(() => {
@@ -271,19 +325,20 @@ export default function CancionesPage() {
   let offsetAccumulator = 0;
 
   return (
-    <div className="min-h-screen bg-bg-main pb-20" style={{ backgroundImage: "radial-gradient(ellipse at 20% 50%, color-mix(in srgb, var(--primary) 2%, transparent) 0%, transparent 60%), radial-gradient(ellipse at 80% 20%, color-mix(in srgb, var(--primary) 1.5%, transparent) 0%, transparent 50%)" }}>
+    <div
+      className="min-h-screen bg-bg-main pb-20"
+      style={{
+        backgroundImage:
+          "radial-gradient(ellipse at 20% 50%, color-mix(in srgb, var(--primary) 2%, transparent) 0%, transparent 60%), radial-gradient(ellipse at 80% 20%, color-mix(in srgb, var(--primary) 1.5%, transparent) 0%, transparent 50%)",
+      }}
+    >
       <div className="max-w-6xl mx-auto pt-16 px-6">
         {/* Header corregido: sin PageHeader wrapper que duplica el flex layout */}
         <div className="flex items-end justify-between mb-10 gap-4">
           <div className="flex items-end gap-3">
-            {/* Línea decorativa vertical estilo antiguo */}
-            <div className="flex flex-col items-center gap-1 pb-1 opacity-30">
-              <div className="w-px h-6 bg-primary" />
-              <div className="w-1 h-1 rounded-full bg-primary" />
-            </div>
             <div>
               <h1 className="text-4xl font-black italic tracking-tighter text-primary leading-none">
-                Registro musical
+                Soliloquios
               </h1>
             </div>
           </div>
@@ -292,7 +347,7 @@ export default function CancionesPage() {
             className="p-2.5 border border-primary/15 hover:bg-primary/5 hover:border-primary/30 text-primary/35 hover:text-primary/70 transition-all shrink-0 mb-1"
             style={{ borderRadius: "var(--radius-btn)" }}
             title={vistaFila ? "Vista cuadrícula" : "Vista lista"}
-            onClick={() => setVistaFila(v => !v)}
+            onClick={() => setVistaFila((v) => !v)}
           >
             {vistaFila ? <LayoutGrid size={16} /> : <List size={16} />}
           </button>
