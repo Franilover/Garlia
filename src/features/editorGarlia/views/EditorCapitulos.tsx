@@ -65,6 +65,7 @@ import {
 import {
   useCapitulos,
   useCapituloEditor,
+  useReinos,
 } from "@/features/editorGarlia/components/editorCapitulos/hooks/hooks";
 import { SnippetCommandPalette } from "@/features/editorGarlia/components/editorCapitulos/snippets/SnippetCommandPalette";
 import { makeSnippetOverlay } from "@/features/editorGarlia/components/editorCapitulos/snippets/SnippetOverlay";
@@ -89,6 +90,7 @@ import {
   DraftRestoreBanner,
 } from "@/hooks/useEditorShared";
 import { supabase } from "@/lib/api/client/supabase";
+import { db } from "@/lib/api/client/db";
 
 // ─── Dialog commands ──────────────────────────────────────────────────────────
 
@@ -1373,6 +1375,43 @@ function BibliotecaPortadas({
 // Barra superior + panel de configuración expandible del libro.
 // Reemplaza ModalEditarLibro: todo editable inline.
 
+// ─── useCiudades (local) ─────────────────────────────────────────────────────
+function useCiudades() {
+  const [ciudades, setCiudades] = useState<
+    { id: string; nombre: string; reino_id?: string | null }[]
+  >([]);
+  useEffect(() => {
+    (async () => {
+      try {
+        const table = (db as any)["ciudades"];
+        if (table) {
+          const local = await table.orderBy("nombre").toArray();
+          if (local.length > 0) {
+            setCiudades(local);
+            return;
+          }
+        }
+      } catch {}
+      if (!navigator.onLine) return;
+      try {
+        const { data } = await supabase
+          .from("ciudades")
+          .select("id, nombre, reino_id")
+          .order("nombre");
+        if (data) {
+          setCiudades(data as any[]);
+          try {
+            const t = (db as any)["ciudades"];
+            if (t) await t.bulkPut(data);
+          } catch {}
+        }
+      } catch {}
+    })();
+  }, []);
+  return { ciudades };
+}
+
+// ─── BarraLibro constants ─────────────────────────────────────────────────────
 const ESTADOS_LIBRO = ["BORRADOR", "EN PROCESO", "FINALIZADO", "PAUSADO"];
 const TW_PREDEFINIDOS_BARRA = [
   "Suicidio",
@@ -1387,6 +1426,7 @@ const TW_PREDEFINIDOS_BARRA = [
 
 function BarraLibro({
   libro,
+  capitulos,
   sidebarOpen,
   onVolver,
   onLibroChange,
@@ -1394,6 +1434,7 @@ function BarraLibro({
   onNuevoCap,
 }: {
   libro: Libro | undefined;
+  capitulos: Capitulo[];
   sidebarOpen: boolean;
   onVolver: () => void;
   onLibroChange: (l: Libro) => void;
@@ -1411,9 +1452,6 @@ function BarraLibro({
     "publico" | "programado" | "oculto"
   >(libro?.visibilidad ?? "oculto");
   const [fechaLibro, setFechaLibro] = useState(libro?.fecha_publicacion ?? "");
-  const [reinoId, setReinoId] = useState<string | null>(
-    libro?.reino_id ?? null,
-  );
   const [grupoId, setGrupoId] = useState<string | null>(
     libro?.categoria ?? null,
   );
@@ -1427,6 +1465,22 @@ function BarraLibro({
   const titRef = useRef<HTMLInputElement>(null);
 
   const { items: gruposItems, loading: loadingGrupos } = useGruposLibros();
+  const { reinos } = useReinos();
+  const { ciudades } = useCiudades();
+
+  // Reinos y ciudades únicos de todos los capítulos del libro
+  const reinosIdsUnicos = Array.from(
+    new Set(capitulos.flatMap((c) => (c as any).reinos_ids ?? [])),
+  ) as string[];
+  const ciudadesIdsUnicas = Array.from(
+    new Set(capitulos.flatMap((c) => (c as any).ciudades_ids ?? [])),
+  ) as string[];
+  const reinosDelLibro = reinos.filter((r: any) =>
+    reinosIdsUnicos.includes(r.id),
+  );
+  const ciudadesDelLibro = ciudades.filter((c: any) =>
+    ciudadesIdsUnicas.includes(c.id),
+  );
 
   // Re-sync cuando cambia el libro activo
   useEffect(() => {
@@ -1437,7 +1491,6 @@ function BarraLibro({
     setEstado(libro.estado ?? "BORRADOR");
     setVisibilidad(libro.visibilidad ?? "oculto");
     setFechaLibro(libro.fecha_publicacion ?? "");
-    setReinoId(libro.reino_id ?? null);
     setGrupoId(libro.categoria ?? null);
     setTws((libro as any).trigger_warnings ?? []);
   }, [libro?.id]);
@@ -1803,15 +1856,61 @@ function BarraLibro({
               }}
             />
 
-            {/* Reino */}
-            <SelectorReino
-              value={reinoId ? [reinoId] : []}
-              onChange={(ids) => {
-                const id = ids[0] ?? null;
-                setReinoId(id);
-                save({ reino_id: id });
-              }}
-            />
+            {/* Reinos y Ciudades (solo lectura, inferidos de los caps) */}
+            {(reinosDelLibro.length > 0 || ciudadesDelLibro.length > 0) && (
+              <div className="space-y-1.5">
+                {reinosDelLibro.length > 0 && (
+                  <div className="space-y-1">
+                    <label className="text-[8px] font-black uppercase tracking-widest text-primary/35">
+                      Reinos
+                    </label>
+                    <div className="flex flex-wrap gap-1">
+                      {reinosDelLibro.map((r: any) => (
+                        <span
+                          key={r.id}
+                          className="px-2 py-0.5 rounded text-[8px] font-bold border"
+                          style={{
+                            borderColor:
+                              "color-mix(in srgb, var(--primary) 15%, transparent)",
+                            color:
+                              "color-mix(in srgb, var(--primary) 55%, transparent)",
+                            background:
+                              "color-mix(in srgb, var(--primary) 4%, transparent)",
+                          }}
+                        >
+                          {r.nombre}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {ciudadesDelLibro.length > 0 && (
+                  <div className="space-y-1">
+                    <label className="text-[8px] font-black uppercase tracking-widest text-primary/35">
+                      Ciudades
+                    </label>
+                    <div className="flex flex-wrap gap-1">
+                      {ciudadesDelLibro.map((c: any) => (
+                        <span
+                          key={c.id}
+                          className="px-2 py-0.5 rounded text-[8px] font-bold border"
+                          style={{
+                            borderColor:
+                              "color-mix(in srgb, var(--primary) 15%, transparent)",
+                            color:
+                              "color-mix(in srgb, var(--primary) 55%, transparent)",
+                            background:
+                              "color-mix(in srgb, var(--primary) 4%, transparent)",
+                          }}
+                        >
+                          {c.nombre}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Grupo */}
             <ComboSelector
@@ -2247,6 +2346,7 @@ export function EditorCapitulosPanel() {
         {enEditor && (
           <BarraLibro
             libro={libroActivo}
+            capitulos={capitulos}
             sidebarOpen={sidebarOpen}
             onLibroChange={handleLibroEditado}
             onNuevoCap={() => setShowNuevoCap(true)}
