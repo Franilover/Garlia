@@ -1238,122 +1238,6 @@ const ModalEditarLibro = ({
   );
 };
 
-const ModalEditarCapitulo = ({
-  cap,
-  onSaved,
-  onClose,
-}: {
-  cap: Capitulo;
-  onSaved: (c: Capitulo) => void;
-  onClose: () => void;
-}) => {
-  const [titulo, setTitulo] = useState(cap.titulo_capitulo);
-  const [orden, setOrden] = useState(String(cap.orden));
-  const [fecha, setFecha] = useState(toDateInput(cap.fecha_publicacion));
-  const [visibilidad, setVisibilidad] = useState<
-    "publico" | "programado" | "oculto"
-  >(cap.visibilidad ?? "oculto");
-  const [personajesIds, setPersonajesIds] = useState<string[]>(
-    cap.personajes_ids ?? [],
-  );
-  const [narradorId, setNarradorId] = useState<string | null>(
-    cap.narrador_id ?? null,
-  );
-  const [reinoId, setReinoId] = useState<string | null>(cap.reino_id ?? null);
-  const [saving, setSaving] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!titulo.trim()) return;
-    setSaving(true);
-    try {
-      const fields: Partial<Capitulo> = {
-        titulo_capitulo: titulo.trim().toUpperCase(),
-        orden: parseInt(orden) || cap.orden,
-        fecha_publicacion: visibilidad === "programado" ? fecha : (null as any),
-        visibilidad,
-        personajes_ids: personajesIds,
-        narrador_id: narradorId,
-        reino_id: reinoId,
-      };
-      await capUpdateMeta(cap.id, fields);
-      onSaved({ ...cap, ...fields });
-      onClose();
-    } catch {}
-    setSaving(false);
-  };
-
-  return (
-    <ModalBase onClose={onClose}>
-      <div className="flex items-center justify-between mb-5">
-        <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50 italic flex items-center gap-2">
-          <Pencil size={12} /> Editar Capítulo
-        </h3>
-        <button
-          className="text-primary/30 hover:text-primary transition-colors"
-          onClick={onClose}
-        >
-          <X size={16} />
-        </button>
-      </div>
-      <form
-        className="space-y-4 max-h-[72vh] overflow-y-auto pr-1"
-        onSubmit={handleSubmit}
-      >
-        <CampoInput
-          autoFocus
-          label="Título"
-          placeholder="NOMBRE DEL CAPÍTULO…"
-          value={titulo}
-          onChange={setTitulo}
-        />
-        <CampoInput
-          label="Orden"
-          placeholder="1"
-          type="number"
-          value={orden}
-          onChange={setOrden}
-        />
-        <SelectorVisibilidad
-          fechaPublicacion={fecha}
-          label="Visibilidad del Capítulo"
-          value={visibilidad}
-          onChange={(v) => {
-            setVisibilidad(v);
-            if (v !== "programado") setFecha("");
-          }}
-          onFechaChange={setFecha}
-        />
-        <SelectorNarrador value={narradorId} onChange={setNarradorId} />
-        <SelectorReino
-          value={reinoId ? [reinoId] : []}
-          onChange={(ids) => setReinoId(ids[0] ?? null)}
-        />
-        <SelectorPersonajesCapitulo
-          value={personajesIds}
-          onChange={setPersonajesIds}
-        />
-        <BotonSubmit
-          disabled={!titulo.trim()}
-          labelLoading={
-            <>
-              <Loader2 className="animate-spin" size={13} />
-              Guardando…
-            </>
-          }
-          labelNormal={
-            <>
-              <Check size={13} />
-              Guardar Cambios
-            </>
-          }
-          loading={saving}
-        />
-      </form>
-    </ModalBase>
-  );
-};
-
 const ModalNuevoCapitulo = ({
   libroId,
   ordenSiguiente,
@@ -1833,7 +1717,6 @@ function SidebarCapitulos({
   libroId,
   open,
   onSelectCap,
-  onEditCap,
   onDeleteCap,
   onNuevoCap,
 }: {
@@ -1842,7 +1725,6 @@ function SidebarCapitulos({
   libroId: string;
   open: boolean;
   onSelectCap: (capId: string) => void;
-  onEditCap: (cap: Capitulo) => void;
   onDeleteCap: (id: string, libroId: string) => void;
   onNuevoCap: () => void;
 }) {
@@ -1937,15 +1819,6 @@ function SidebarCapitulos({
                 {/* Acciones hover */}
                 <div className="absolute right-1.5 top-1/2 -translate-y-1/2 hidden group-hover:flex items-center gap-0.5 bg-bg-main border border-primary/10 rounded px-0.5 py-0.5 shadow-sm">
                   <button
-                    className="p-0.5 rounded hover:bg-primary/10 text-primary/40 hover:text-primary transition-colors"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onEditCap(cap);
-                    }}
-                  >
-                    <Pencil size={9} />
-                  </button>
-                  <button
                     className="p-0.5 rounded hover:bg-red-500/10 text-primary/25 hover:text-red-400 transition-colors"
                     onClick={(e) => {
                       e.stopPropagation();
@@ -2000,7 +1873,6 @@ export function EditorCapitulosPanel() {
   const [focusMode, setFocusMode] = useState(false);
   const [showNuevoCap, setShowNuevoCap] = useState(false);
   const [showNuevoLibro, setShowNuevoLibro] = useState(false);
-  const [editandoCap, setEditandoCap] = useState<Capitulo | null>(null);
   const [capRefreshKey, setCapRefreshKey] = useState(0);
   const [editandoLibro, setEditandoLibro] = useState<Libro | null>(null);
 
@@ -2057,12 +1929,6 @@ export function EditorCapitulosPanel() {
     setCapitulos((prev) => [...prev, cap]);
     setSelectedCapId(cap.id);
     setCapRefreshKey((k) => k + 1);
-  };
-
-  const handleCapEditada = (cap: Capitulo) => {
-    setCapitulos((prev) => prev.map((c) => (c.id === cap.id ? cap : c)));
-    setCapRefreshKey((k) => k + 1);
-    setEditandoCap(null);
   };
 
   const handleLibroEditado = (libro: Libro) => {
@@ -2141,6 +2007,19 @@ export function EditorCapitulosPanel() {
             />
           )}
 
+          {/* Sidebar caps (izquierda del editor) */}
+          {enEditor && (
+            <SidebarCapitulos
+              capitulos={capitulos}
+              libroId={selectedLibroId!}
+              open={sidebarOpen}
+              selectedCapId={selectedCapId}
+              onDeleteCap={handleCapEliminada}
+              onNuevoCap={() => setShowNuevoCap(true)}
+              onSelectCap={(capId) => handleSelectCap(selectedLibroId!, capId)}
+            />
+          )}
+
           {/* Editor */}
           {enEditor && selectedCapId && selectedLibroId && (
             <div className="flex-1 min-h-0 flex overflow-hidden">
@@ -2158,26 +2037,12 @@ export function EditorCapitulosPanel() {
               />
             </div>
           )}
-
-          {/* Sidebar caps (solo en editor) */}
-          {enEditor && (
-            <SidebarCapitulos
-              capitulos={capitulos}
-              libroId={selectedLibroId!}
-              open={sidebarOpen}
-              selectedCapId={selectedCapId}
-              onDeleteCap={handleCapEliminada}
-              onEditCap={setEditandoCap}
-              onNuevoCap={() => setShowNuevoCap(true)}
-              onSelectCap={(capId) => handleSelectCap(selectedLibroId!, capId)}
-            />
-          )}
         </div>
 
         {/* Sidebar de caps cuando estamos en biblioteca con libro seleccionado */}
         {enBiblioteca && vistaLibroId && (
           <div
-            className="fixed right-0 top-0 h-full z-30 flex flex-col border-r shadow-xl"
+            className="fixed right-0 top-0 h-full z-30 flex flex-col border-l shadow-xl"
             style={{
               width: "clamp(200px, 22vw, 280px)",
               borderColor:
@@ -2228,7 +2093,7 @@ export function EditorCapitulosPanel() {
                 capitulos.map((cap) => (
                   <div
                     key={cap.id}
-                    className="group relative flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-primary/5 transition-all border-r-2 border-transparent hover:border-primary/30"
+                    className="group relative flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-primary/5 transition-all border-l-2 border-transparent hover:border-primary/30"
                     onClick={() => handleSelectCap(vistaLibroId!, cap.id)}
                   >
                     <span
@@ -2252,15 +2117,6 @@ export function EditorCapitulosPanel() {
                       }}
                     />
                     <div className="absolute right-2 top-1/2 -translate-y-1/2 hidden group-hover:flex items-center gap-0.5 bg-bg-main border border-primary/10 rounded px-0.5 py-0.5 shadow-sm">
-                      <button
-                        className="p-0.5 rounded hover:bg-primary/10 text-primary/40 hover:text-primary transition-colors"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setEditandoCap(cap);
-                        }}
-                      >
-                        <Pencil size={9} />
-                      </button>
                       <button
                         className="p-0.5 rounded hover:bg-red-500/10 text-primary/25 hover:text-red-400 transition-colors"
                         onClick={(e) => {
@@ -2314,13 +2170,6 @@ export function EditorCapitulosPanel() {
           libro={editandoLibro}
           onClose={() => setEditandoLibro(null)}
           onSaved={handleLibroEditado}
-        />
-      )}
-      {editandoCap && (
-        <ModalEditarCapitulo
-          cap={editandoCap}
-          onClose={() => setEditandoCap(null)}
-          onSaved={handleCapEditada}
         />
       )}
     </>

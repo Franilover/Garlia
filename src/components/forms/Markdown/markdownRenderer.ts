@@ -384,11 +384,12 @@ export function renderMathInElement(el: HTMLElement | null) {
 
 // ── Estilos de vista previa ──────────────────────────────────────────────────
 export const PROSE_STYLES = `
-  .prose-mundo h1 { font-size:1.2rem;font-weight:800;margin:.8rem 0 .3rem;letter-spacing:.02em;color:color-mix(in srgb,var(--color-primary,#7c6af7) 90%,white);padding-bottom:.2rem;border-bottom:1px solid color-mix(in srgb,var(--color-primary,#7c6af7) 18%,transparent) }
-  .prose-mundo h2 { font-size:.95rem;font-weight:800;margin:.7rem 0 .25rem;letter-spacing:.03em;color:color-mix(in srgb,var(--color-primary,#7c6af7) 80%,white) }
-  .prose-mundo h3 { font-size:.82rem;font-weight:700;margin:.55rem 0 .2rem;letter-spacing:.02em;color:color-mix(in srgb,var(--color-primary,#7c6af7) 65%,white) }
-  .prose-mundo h4 { font-size:.76rem;font-weight:700;margin:.5rem 0 .15rem;color:color-mix(in srgb,var(--color-primary,#7c6af7) 55%,white) }
-  .prose-mundo h5 { font-size:.72rem;font-weight:600;margin:.45rem 0 .12rem;color:color-mix(in srgb,var(--color-primary,#7c6af7) 45%,white) }
+  .prose-mundo h1 { font-size:1.35rem;font-weight:800;margin:1rem 0 .35rem;letter-spacing:-.01em;color:color-mix(in srgb,var(--color-primary,#7c6af7) 92%,white);padding-bottom:.3rem;border-bottom:1px solid color-mix(in srgb,var(--color-primary,#7c6af7) 22%,transparent) }
+  .prose-mundo h2 { font-size:1.08rem;font-weight:800;margin:.85rem 0 .3rem;letter-spacing:-.003em;color:color-mix(in srgb,var(--color-primary,#7c6af7) 82%,white);padding-bottom:.22rem;border-bottom:1px solid color-mix(in srgb,var(--color-primary,#7c6af7) 10%,transparent) }
+  .prose-mundo h3 { font-size:.94rem;font-weight:700;margin:.7rem 0 .25rem;letter-spacing:0;color:color-mix(in srgb,var(--color-primary,#7c6af7) 70%,white) }
+  .prose-mundo h4 { font-size:.85rem;font-weight:700;margin:.6rem 0 .2rem;letter-spacing:.005em;color:color-mix(in srgb,var(--color-primary,#7c6af7) 60%,white) }
+  .prose-mundo h5 { font-size:.72rem;font-weight:800;margin:.55rem 0 .15rem;letter-spacing:.08em;text-transform:uppercase;color:color-mix(in srgb,var(--color-primary,#7c6af7) 55%,white) }
+  .prose-mundo h6 { font-size:.68rem;font-weight:700;margin:.5rem 0 .12rem;letter-spacing:.1em;text-transform:uppercase;color:color-mix(in srgb,var(--color-primary,#7c6af7) 45%,white) }
   .prose-mundo p  { font-size:.82rem;margin:.3rem 0;line-height:1.65;color:color-mix(in srgb,var(--color-input-text,#d1c9ff) 85%,transparent) }
   .prose-mundo p.placeholder { color:color-mix(in srgb,var(--foreground) 20%,transparent);font-style:italic }
   .prose-mundo ul,
@@ -451,8 +452,8 @@ export const PROSE_STYLES = `
   .prose-mundo .toc ol ol { padding-left:1.2rem;list-style:lower-alpha }
   .prose-mundo .toc a { color:color-mix(in srgb,var(--color-primary,#7c6af7) 75%,white);text-decoration:none;transition:color .15s }
   .prose-mundo .toc a:hover { color:var(--color-primary,#7c6af7) }
-  .prose-mundo h1[id], .prose-mundo h2[id],
-  .prose-mundo h3[id], .prose-mundo h4[id] { scroll-margin-top:1rem }
+  .prose-mundo h1[id], .prose-mundo h2[id], .prose-mundo h3[id],
+  .prose-mundo h4[id], .prose-mundo h5[id], .prose-mundo h6[id] { scroll-margin-top:1rem }
   /* ── Heading anchors ────────────────────────────────────────────────────── */
   .prose-mundo h1,.prose-mundo h2,.prose-mundo h3,
   .prose-mundo h4,.prose-mundo h5,.prose-mundo h6 { position:relative }
@@ -460,7 +461,9 @@ export const PROSE_STYLES = `
   .prose-mundo h1:hover .heading-anchor,
   .prose-mundo h2:hover .heading-anchor,
   .prose-mundo h3:hover .heading-anchor,
-  .prose-mundo h4:hover .heading-anchor { opacity:1 }
+  .prose-mundo h4:hover .heading-anchor,
+  .prose-mundo h5:hover .heading-anchor,
+  .prose-mundo h6:hover .heading-anchor { opacity:1 }
   .prose-mundo .heading-anchor:hover { color:var(--color-primary,#7c6af7) }
   /* ── Table editor hint ──────────────────────────────────────────────────── */
   .prose-mundo table { cursor:pointer;transition:outline 0.12s }
