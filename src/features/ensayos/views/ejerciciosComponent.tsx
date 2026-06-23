@@ -7,7 +7,6 @@ import {
   X,
   Plus,
   ChevronDown,
-  Loader2,
   Dumbbell,
   HeartPulse,
   PersonStanding,
@@ -55,286 +54,6 @@ const TAG_ICONS: Record<string, LucideIcon> = {
   Flexibilidad: PersonStanding,
   Movilidad: RotateCcw,
 };
-const PLAN_DIARIO: {
-  tipo: string;
-  subtitulo: string;
-  duracion: string;
-  freqSem: number;
-  icon: LucideIcon;
-}[] = [
-  {
-    tipo: "Fuerza",
-    subtitulo: "Calistenia",
-    duracion: "40 – 50 min",
-    freqSem: 3,
-    icon: Dumbbell,
-  },
-  {
-    tipo: "Cardio",
-    subtitulo: "Caminata o Baile",
-    duracion: "20 – 30 min",
-    freqSem: 2,
-    icon: HeartPulse,
-  },
-  {
-    tipo: "Flexibilidad",
-    subtitulo: "Yoga",
-    duracion: "10 – 15 min",
-    freqSem: 7,
-    icon: PersonStanding,
-  },
-  {
-    tipo: "Movilidad",
-    subtitulo: "Movilidad articular",
-    duracion: "5 min",
-    freqSem: 7,
-    icon: RotateCcw,
-  },
-];
-const DIAS = ["L", "M", "X", "J", "V", "S", "D"];
-const DIAS_FULL = [
-  "Lunes",
-  "Martes",
-  "Miércoles",
-  "Jueves",
-  "Viernes",
-  "Sábado",
-  "Domingo",
-];
-
-const getSemanaKey = () => {
-  const now = new Date();
-  const startOfYear = new Date(now.getFullYear(), 0, 1);
-  const week = Math.ceil(
-    ((now.getTime() - startOfYear.getTime()) / 86400000 +
-      startOfYear.getDay() +
-      1) /
-      7,
-  );
-  return `${now.getFullYear()}-W${String(week).padStart(2, "0")}`;
-};
-
-const getTodayIdx = () => (new Date().getDay() + 6) % 7;
-
-interface PlanItem {
-  tipo: string;
-  subtitulo: string;
-  duracion: string;
-  freqSem: number;
-  icon: LucideIcon;
-}
-
-const CardPlanDiario = ({
-  plan,
-  dias,
-  today,
-  onToggleDia,
-}: {
-  plan: PlanItem;
-  dias: boolean[];
-  today: number;
-  onToggleDia: (diaIdx: number) => void;
-}) => {
-  const hechos = dias.filter(Boolean).length;
-  const pct = Math.min(100, Math.round((hechos / plan.freqSem) * 100));
-  const completado = hechos >= plan.freqSem;
-  const Icon = plan.icon;
-
-  return (
-    <div className="bg-white-custom border-[length:var(--border-width)] border-primary/10 rounded-[var(--radius-card)] overflow-hidden">
-      <div className="p-3">
-        {/* Fila principal */}
-        <div className="flex items-center gap-2.5 mb-2.5">
-          {/* Icono */}
-          <div
-            className={cn(
-              "w-8 h-8 rounded-[var(--radius-btn)] flex items-center justify-center shrink-0 transition-colors",
-              completado
-                ? "bg-primary/15 text-primary/80"
-                : "bg-primary/8 text-primary/50",
-            )}
-          >
-            <Icon size={15} />
-          </div>
-
-          {/* Nombre + meta */}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5">
-              <span className="text-[13px] font-black text-primary tracking-tight truncate leading-none">
-                {plan.tipo}
-              </span>
-              {completado && (
-                <Check className="text-primary/50 shrink-0" size={10} />
-              )}
-            </div>
-            <span className="text-[10px] font-bold text-primary/35 leading-none mt-0.5 block">
-              {plan.freqSem}d/sem · {plan.duracion} · {plan.subtitulo}
-            </span>
-          </div>
-
-          {/* Contador */}
-          <div className="flex items-center gap-1 shrink-0">
-            <span className="text-[10px] font-black tabular-nums text-primary/50">
-              {hechos}/{plan.freqSem}
-            </span>
-          </div>
-        </div>
-
-        {/* Barra de progreso */}
-        <div className="h-0.5 bg-primary/8 rounded-full overflow-hidden mb-2">
-          <div
-            className="h-full rounded-full transition-all duration-500 bg-primary/35"
-            style={{ width: `${pct}%` }}
-          />
-        </div>
-
-        {/* Días */}
-        <div className="flex gap-1">
-          {DIAS.map((d, i) => {
-            const done = dias[i];
-            const isToday = i === today;
-            return (
-              <button
-                key={d}
-                className={cn(
-                  "flex-1 h-6 rounded text-[8px] font-black uppercase tracking-widest transition-all flex items-center justify-center border-[length:var(--border-width)]",
-                  done
-                    ? "bg-primary text-btn-text border-primary"
-                    : isToday
-                      ? "bg-primary/8 text-primary border-primary/25"
-                      : "bg-primary/3 text-primary/30 border-primary/6 hover:bg-primary/8 hover:text-primary/60",
-                )}
-                title={`${DIAS_FULL[i]}${done ? " · hecho" : ""}`}
-                onClick={() => onToggleDia(i)}
-              >
-                {done ? <Check size={8} /> : d}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const PlanDiario = () => {
-  const [registros, setRegistros] = useState<Record<string, boolean[]>>({});
-  const [cargando, setCargando] = useState(true);
-  const semana = useMemo(() => getSemanaKey(), []);
-  const today = getTodayIdx();
-
-  useEffect(() => {
-    const cargar = async () => {
-      setCargando(true);
-      try {
-        const { supabase } = await import("@/lib/api/client/supabase");
-        const { data } = await supabase
-          .from("plan_diario_registro")
-          .select("tipo, dias")
-          .eq("semana", semana);
-        if (data) {
-          const map: Record<string, boolean[]> = {};
-          data.forEach((row: { tipo: string; dias: boolean[] }) => {
-            map[row.tipo] = row.dias;
-          });
-          setRegistros(map);
-        }
-      } catch (err) {
-        console.error("[PlanDiario] cargar:", err);
-      } finally {
-        setCargando(false);
-      }
-    };
-    cargar();
-  }, [semana]);
-
-  const toggleDia = async (tipo: string, diaIdx: number) => {
-    const diasActuales = registros[tipo] ?? Array(7).fill(false);
-    const nuevosDias = diasActuales.map((v: boolean, i: number) =>
-      i === diaIdx ? !v : v,
-    );
-    setRegistros((prev) => ({ ...prev, [tipo]: nuevosDias }));
-    try {
-      const { supabase } = await import("@/lib/api/client/supabase");
-      await supabase
-        .from("plan_diario_registro")
-        .upsert(
-          { semana, tipo, dias: nuevosDias },
-          { onConflict: "semana,tipo" },
-        );
-    } catch (err) {
-      console.error("[PlanDiario] toggle día:", err);
-    }
-  };
-
-  const stats = useMemo(() => {
-    const totalHoy = PLAN_DIARIO.reduce((acc, p) => {
-      const dias = registros[p.tipo] ?? Array(7).fill(false);
-      return acc + (dias[today] ? 1 : 0);
-    }, 0);
-    const totalHechosSem = PLAN_DIARIO.reduce((acc, p) => {
-      const dias = registros[p.tipo] ?? Array(7).fill(false);
-      return acc + dias.filter(Boolean).length;
-    }, 0);
-    const totalObjSem = PLAN_DIARIO.reduce((acc, p) => acc + p.freqSem, 0);
-    const pctSem =
-      totalObjSem > 0 ? Math.round((totalHechosSem / totalObjSem) * 100) : 0;
-    return { totalHoy, pctSem };
-  }, [registros, today]);
-
-  return (
-    <div className="space-y-3">
-      {/* Stats compactos */}
-      <div className="flex items-center gap-4 px-1">
-        {[
-          { label: "categorías", value: PLAN_DIARIO.length },
-          { label: "hoy", value: `${stats.totalHoy}/${PLAN_DIARIO.length}` },
-          { label: "semana", value: `${stats.pctSem}%` },
-        ].map((s) => (
-          <div key={s.label} className="flex items-baseline gap-1.5">
-            <span className="text-lg font-black text-primary tracking-tight leading-none">
-              {s.value}
-            </span>
-            <span className="text-[9px] font-black uppercase tracking-widest text-primary/35">
-              {s.label}
-            </span>
-          </div>
-        ))}
-      </div>
-
-      {/* Header */}
-      <div className="flex items-center justify-between px-1">
-        <h3 className="text-base font-black text-primary tracking-tight">
-          Plan semanal
-        </h3>
-        <span className="text-[10px] font-black uppercase tracking-widest text-primary/30">
-          {semana}
-        </span>
-      </div>
-
-      {/* Lista */}
-      {cargando ? (
-        <div className="flex items-center justify-center py-10 gap-2 text-primary/40">
-          <Loader2 className="animate-spin" size={14} />
-          <span className="text-xs font-bold">Cargando…</span>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {PLAN_DIARIO.map((plan) => (
-            <CardPlanDiario
-              key={plan.tipo}
-              dias={registros[plan.tipo] ?? Array(7).fill(false)}
-              plan={plan}
-              today={today}
-              onToggleDia={(i) => toggleDia(plan.tipo, i)}
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
-
 const beep = (freq = 880, dur = 0.15) => {
   try {
     const ctx = new (
@@ -1034,85 +753,73 @@ export const PaginaEjercicios = () => {
           />
         )}
       </AnimatePresence>
-      <div className="max-w-7xl mx-auto">
-        <div className="flex flex-col lg:flex-row gap-6 items-start">
-          {/* Columna izquierda — Plan semanal (fija en desktop) */}
-          <div className="w-full lg:flex-1 lg:sticky lg:top-6">
-            <PlanDiario />
-          </div>
-
-          {/* Columna derecha — Rutinas */}
-          <div className="flex-1 min-w-0 space-y-3">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-              <div className="flex items-center gap-1 bg-white-custom border-[length:var(--border-width)] border-primary/10 rounded-[var(--radius-btn)] p-1 flex-wrap shadow-sm">
-                {TAGS.map((t) => (
-                  <Badge
-                    key={t}
-                    active={filtroTag === t}
-                    onClick={() => setFiltroTag(t)}
-                  >
-                    {t}
-                  </Badge>
-                ))}
-              </div>
-              <Btn
-                className="ml-auto shrink-0"
-                icon={creando ? <X size={11} /> : <Plus size={11} />}
-                size="sm"
-                onClick={() => setCreando((v) => !v)}
+      <div className="max-w-3xl mx-auto space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+          <div className="flex items-center gap-1 bg-white-custom border-[length:var(--border-width)] border-primary/10 rounded-[var(--radius-btn)] p-1 flex-wrap shadow-sm">
+            {TAGS.map((t) => (
+              <Badge
+                key={t}
+                active={filtroTag === t}
+                onClick={() => setFiltroTag(t)}
               >
-                {creando ? "Cancelar" : "Añadir"}
-              </Btn>
-            </div>
-            <AnimatePresence>
-              {creando && (
-                <FormNuevaRutina
-                  guardando={guardando}
-                  onCancelar={() => setCreando(false)}
-                  onGuardar={handleGuardar}
-                />
-              )}
-            </AnimatePresence>
-            {cargando ? (
-              <Loading fullScreen={false} text="Cargando rutinas..." />
-            ) : (
-              <div className="space-y-2">
-                <AnimatePresence mode="popLayout">
-                  {rutinasFiltradas.map((rutina) => (
-                    <MotionDiv
-                      key={rutina.id}
-                      layout
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.97 }}
-                      initial={{ opacity: 0, y: 8 }}
-                    >
-                      <CardRutina
-                        expandida={expandida === rutina.id}
-                        rutina={rutina}
-                        onEliminar={() => handleEliminar(rutina.id)}
-                        onIniciar={() => setRutinaActiva(rutina)}
-                        onToggle={() =>
-                          setExpandida(
-                            expandida === rutina.id ? null : rutina.id,
-                          )
-                        }
-                      />
-                    </MotionDiv>
-                  ))}
-                </AnimatePresence>
-                {rutinasFiltradas.length === 0 && (
-                  <EmptyState
-                    label={
-                      filtroTag === "Todas"
-                        ? "Aún no tienes rutinas"
-                        : `No hay rutinas de ${filtroTag}`
+                {t}
+              </Badge>
+            ))}
+          </div>
+          <Btn
+            className="ml-auto shrink-0"
+            icon={creando ? <X size={11} /> : <Plus size={11} />}
+            size="sm"
+            onClick={() => setCreando((v) => !v)}
+          >
+            {creando ? "Cancelar" : "Añadir"}
+          </Btn>
+        </div>
+        <AnimatePresence>
+          {creando && (
+            <FormNuevaRutina
+              guardando={guardando}
+              onCancelar={() => setCreando(false)}
+              onGuardar={handleGuardar}
+            />
+          )}
+        </AnimatePresence>
+        {cargando ? (
+          <Loading fullScreen={false} text="Cargando rutinas..." />
+        ) : (
+          <div className="space-y-2">
+            <AnimatePresence mode="popLayout">
+              {rutinasFiltradas.map((rutina) => (
+                <MotionDiv
+                  key={rutina.id}
+                  layout
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.97 }}
+                  initial={{ opacity: 0, y: 8 }}
+                >
+                  <CardRutina
+                    expandida={expandida === rutina.id}
+                    rutina={rutina}
+                    onEliminar={() => handleEliminar(rutina.id)}
+                    onIniciar={() => setRutinaActiva(rutina)}
+                    onToggle={() =>
+                      setExpandida(expandida === rutina.id ? null : rutina.id)
                     }
                   />
-                )}
-              </div>
+                </MotionDiv>
+              ))}
+            </AnimatePresence>
+            {rutinasFiltradas.length === 0 && (
+              <EmptyState
+                label={
+                  filtroTag === "Todas"
+                    ? "Aún no tienes rutinas"
+                    : `No hay rutinas de ${filtroTag}`
+                }
+              />
             )}
           </div>
-        </div>
+        )}
       </div>
     </>
   );
