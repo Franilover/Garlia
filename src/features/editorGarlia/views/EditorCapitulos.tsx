@@ -1083,161 +1083,6 @@ function useGruposLibros() {
   return { items, loading };
 }
 
-const ModalEditarLibro = ({
-  libro,
-  onSaved,
-  onClose,
-}: {
-  libro: Libro;
-  onSaved: (l: Libro) => void;
-  onClose: () => void;
-}) => {
-  const [titulo, setTitulo] = useState(libro.titulo);
-  const [sinopsis, setSinopsis] = useState(libro.sinopsis ?? "");
-  const [portada, setPortada] = useState(libro.portada_url ?? "");
-  const [estado, setEstado] = useState(libro.estado ?? "BORRADOR");
-  const [visibilidad, setVisibilidad] = useState<
-    "publico" | "programado" | "oculto"
-  >(libro.visibilidad ?? "oculto");
-  const [fechaLibro, setFechaLibro] = useState(libro.fecha_publicacion ?? "");
-  const [reinoId, setReinoId] = useState<string | null>(libro.reino_id ?? null);
-  const [grupoId, setGrupoId] = useState<string | null>(
-    libro.categoria ?? null,
-  );
-  const [saving, setSaving] = useState(false);
-
-  const { items: gruposItems, loading: loadingGrupos } = useGruposLibros();
-
-  const ESTADOS = ["BORRADOR", "EN PROCESO", "FINALIZADO", "PAUSADO"];
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!titulo.trim()) return;
-    setSaving(true);
-    try {
-      const fields: Partial<Libro> = {
-        titulo: titulo.trim().toUpperCase(),
-        sinopsis: sinopsis.trim(),
-        portada_url: portada.trim(),
-        estado,
-        visibilidad,
-        reino_id: reinoId,
-        categoria: grupoId ?? null,
-        fecha_publicacion:
-          visibilidad === "programado" ? fechaLibro || undefined : undefined,
-      };
-      await libroUpdateMeta(libro.id, fields);
-      onSaved({ ...libro, ...fields });
-      onClose();
-    } catch {}
-    setSaving(false);
-  };
-
-  return (
-    <ModalBase onClose={onClose}>
-      <div className="flex items-center justify-between mb-5">
-        <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50 italic flex items-center gap-2">
-          <BookMarked size={12} /> Editar Libro
-        </h3>
-        <button
-          className="text-primary/30 hover:text-primary transition-colors"
-          onClick={onClose}
-        >
-          <X size={16} />
-        </button>
-      </div>
-      <form
-        className="space-y-4 max-h-[70vh] overflow-y-auto pr-1"
-        onSubmit={handleSubmit}
-      >
-        <CampoInput
-          autoFocus
-          label="Título"
-          placeholder="TÍTULO DEL LIBRO…"
-          value={titulo}
-          onChange={setTitulo}
-        />
-        <div className="space-y-1.5">
-          <label className="text-[9px] font-black uppercase tracking-widest text-primary/40">
-            Sinopsis
-          </label>
-          <textarea
-            className="w-full bg-bg-main border border-primary/15 rounded-[var(--radius-btn)] px-3 py-2.5 text-[12px] text-primary outline-none focus:border-primary/30 resize-none transition-colors"
-            placeholder="Descripción del libro…"
-            rows={4}
-            value={sinopsis}
-            onChange={(e) => setSinopsis(e.target.value)}
-          />
-        </div>
-        <SelectorImagenPortada value={portada} onChange={setPortada} />
-        <div className="space-y-1.5">
-          <label className="text-[9px] font-black uppercase tracking-widest text-primary/40">
-            Estado
-          </label>
-          <div className="flex gap-1.5 flex-wrap">
-            {ESTADOS.map((est) => (
-              <button
-                key={est}
-                className={`px-3 py-1.5 rounded-[var(--radius-btn)] text-[9px] font-black uppercase tracking-wide border transition-all ${
-                  estado === est
-                    ? "bg-primary text-btn-text border-primary shadow-sm"
-                    : "border-primary/15 text-primary/40 hover:border-primary/30 hover:text-primary/70"
-                }`}
-                type="button"
-                onClick={() => setEstado(est)}
-              >
-                {est}
-              </button>
-            ))}
-          </div>
-        </div>
-        <SelectorVisibilidad
-          fechaPublicacion={fechaLibro}
-          label="Visibilidad del Libro"
-          value={visibilidad}
-          onChange={setVisibilidad}
-          onFechaChange={setFechaLibro}
-        />
-        <SelectorReino
-          value={reinoId ? [reinoId] : []}
-          onChange={(ids) => setReinoId(ids[0] ?? null)}
-        />
-        <ComboSelector
-          emptyText="Sin grupos de tipo «libros» aún"
-          hint="grupos creados en EditorGrupo con tipo «libros»"
-          icon={<BookMarked size={10} />}
-          items={gruposItems}
-          label="Grupo"
-          loading={loadingGrupos}
-          mode="single"
-          noneLabel="Sin grupo"
-          placeholder="Sin grupo…"
-          value={grupoId}
-          onChange={setGrupoId}
-        />
-        <div className="pt-2">
-          <BotonSubmit
-            disabled={!titulo.trim()}
-            labelLoading={
-              <>
-                <Loader2 className="animate-spin" size={13} />
-                Guardando…
-              </>
-            }
-            labelNormal={
-              <>
-                <Check size={13} />
-                Guardar Cambios
-              </>
-            }
-            loading={saving}
-          />
-        </div>
-      </form>
-    </ModalBase>
-  );
-};
-
 const ModalNuevoCapitulo = ({
   libroId,
   ordenSiguiente,
@@ -1525,26 +1370,133 @@ function BibliotecaPortadas({
 }
 
 // ─── BarraLibro ───────────────────────────────────────────────────────────────
-// Barra horizontal superior cuando hay un cap seleccionado.
-// Muestra: [← Biblioteca] [Título libro] [visibilidad] [TW] [editar] [toggle sidebar]
+// Barra superior + panel de configuración expandible del libro.
+// Reemplaza ModalEditarLibro: todo editable inline.
+
+const ESTADOS_LIBRO = ["BORRADOR", "EN PROCESO", "FINALIZADO", "PAUSADO"];
+const TW_PREDEFINIDOS_BARRA = [
+  "Suicidio",
+  "Trastornos Alimenticios",
+  "Violencia",
+  "Abuso Sexual",
+  "Autolesiones",
+  "Abuso de Sustancias",
+  "Muerte",
+  "Trauma",
+];
 
 function BarraLibro({
   libro,
   sidebarOpen,
   onVolver,
-  onEditLibro,
+  onLibroChange,
   onToggleSidebar,
   onNuevoCap,
 }: {
   libro: Libro | undefined;
   sidebarOpen: boolean;
   onVolver: () => void;
-  onEditLibro: () => void;
+  onLibroChange: (l: Libro) => void;
   onToggleSidebar: () => void;
   onNuevoCap: () => void;
 }) {
-  const tws: string[] = (libro as any)?.trigger_warnings ?? [];
-  const vis = libro?.visibilidad ?? "oculto";
+  const [panelOpen, setPanelOpen] = useState(false);
+
+  // ── Estado local sincronizado con el libro ────────────────────────────────
+  const [titulo, setTitulo] = useState(libro?.titulo ?? "");
+  const [sinopsis, setSinopsis] = useState(libro?.sinopsis ?? "");
+  const [portada, setPortada] = useState(libro?.portada_url ?? "");
+  const [estado, setEstado] = useState(libro?.estado ?? "BORRADOR");
+  const [visibilidad, setVisibilidad] = useState<
+    "publico" | "programado" | "oculto"
+  >(libro?.visibilidad ?? "oculto");
+  const [fechaLibro, setFechaLibro] = useState(libro?.fecha_publicacion ?? "");
+  const [reinoId, setReinoId] = useState<string | null>(
+    libro?.reino_id ?? null,
+  );
+  const [grupoId, setGrupoId] = useState<string | null>(
+    libro?.categoria ?? null,
+  );
+  const [tws, setTws] = useState<string[]>(
+    (libro as any)?.trigger_warnings ?? [],
+  );
+  const [twCustom, setTwCustom] = useState("");
+  const [twAdding, setTwAdding] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [editTitulo, setEditTitulo] = useState(false);
+  const titRef = useRef<HTMLInputElement>(null);
+
+  const { items: gruposItems, loading: loadingGrupos } = useGruposLibros();
+
+  // Re-sync cuando cambia el libro activo
+  useEffect(() => {
+    if (!libro) return;
+    setTitulo(libro.titulo ?? "");
+    setSinopsis(libro.sinopsis ?? "");
+    setPortada(libro.portada_url ?? "");
+    setEstado(libro.estado ?? "BORRADOR");
+    setVisibilidad(libro.visibilidad ?? "oculto");
+    setFechaLibro(libro.fecha_publicacion ?? "");
+    setReinoId(libro.reino_id ?? null);
+    setGrupoId(libro.categoria ?? null);
+    setTws((libro as any).trigger_warnings ?? []);
+  }, [libro?.id]);
+
+  useEffect(() => {
+    if (editTitulo) titRef.current?.focus();
+  }, [editTitulo]);
+
+  const save = async (fields: Partial<Libro>) => {
+    if (!libro) return;
+    setSaving(true);
+    try {
+      await libroUpdateMeta(libro.id, fields as any);
+      onLibroChange({ ...libro, ...fields } as Libro);
+    } catch {}
+    setSaving(false);
+  };
+
+  const saveTitulo = () => {
+    const t = titulo.trim().toUpperCase();
+    if (t && t !== libro?.titulo) save({ titulo: t });
+    setEditTitulo(false);
+  };
+
+  const toggleVis = () => {
+    const orden: Array<"publico" | "programado" | "oculto"> = [
+      "oculto",
+      "programado",
+      "publico",
+    ];
+    const next = orden[(orden.indexOf(visibilidad) + 1) % 3];
+    setVisibilidad(next);
+    save({ visibilidad: next });
+  };
+
+  const toggleEstado = () => {
+    const next =
+      ESTADOS_LIBRO[(ESTADOS_LIBRO.indexOf(estado) + 1) % ESTADOS_LIBRO.length];
+    setEstado(next);
+    save({ estado: next });
+  };
+
+  const toggleTw = (tw: string) => {
+    const next = tws.includes(tw) ? tws.filter((x) => x !== tw) : [...tws, tw];
+    setTws(next);
+    save({ trigger_warnings: next } as any);
+  };
+
+  const addCustomTw = () => {
+    const v = twCustom.trim();
+    if (v && !tws.includes(v)) {
+      const next = [...tws, v];
+      setTws(next);
+      save({ trigger_warnings: next } as any);
+    }
+    setTwCustom("");
+    setTwAdding(false);
+  };
+
   const VISIBILIDAD_LABEL: Record<string, string> = {
     publico: "Público",
     programado: "Programado",
@@ -1555,155 +1507,470 @@ function BarraLibro({
     programado: <Timer size={9} />,
     oculto: <Lock size={9} />,
   };
+  const vis = visibilidad;
+
+  const sep = (
+    <div
+      className="w-px h-3 shrink-0"
+      style={{
+        background: "color-mix(in srgb, var(--primary) 10%, transparent)",
+      }}
+    />
+  );
 
   return (
     <div
-      className="shrink-0 flex items-center gap-2 px-3 py-2 border-b"
+      className="shrink-0 flex flex-col"
       style={{
-        borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
-        background: "color-mix(in srgb, var(--primary) 2%, var(--bg-main))",
+        borderBottom: panelOpen
+          ? "none"
+          : "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
       }}
     >
-      {/* Volver */}
-      <button
-        className="flex items-center gap-1 text-[8px] font-black uppercase tracking-widest text-primary/30 hover:text-primary transition-colors shrink-0 group"
-        onClick={onVolver}
-      >
-        <ChevronRight
-          className="rotate-180 group-hover:-translate-x-0.5 transition-transform"
-          size={9}
-        />
-        Biblioteca
-      </button>
-
+      {/* ── Fila principal ── */}
       <div
-        className="w-px h-3 shrink-0"
+        className="flex items-center gap-2 px-3 py-2"
         style={{
-          background: "color-mix(in srgb, var(--primary) 10%, transparent)",
+          borderBottom:
+            "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+          background: "color-mix(in srgb, var(--primary) 2%, var(--bg-main))",
         }}
-      />
-
-      {/* Portada mini */}
-      {libro?.portada_url && (
-        <div className="w-5 h-7 rounded overflow-hidden shrink-0 border border-primary/10">
-          <img
-            alt=""
-            className="w-full h-full object-cover"
-            src={libro.portada_url}
-          />
-        </div>
-      )}
-
-      {/* Título del libro */}
-      <span className="text-[10px] font-black uppercase italic tracking-tight text-primary/70 truncate flex-1 min-w-0">
-        {libro?.titulo ?? "…"}
-      </span>
-
-      {/* Chips de info */}
-      <div className="flex items-center gap-1.5 shrink-0">
-        {/* Visibilidad */}
-        <div
-          className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wide border"
-          style={{
-            borderColor:
-              vis === "publico"
-                ? "color-mix(in srgb, var(--callout-success-border) 40%, transparent)"
-                : "color-mix(in srgb, var(--primary) 15%, transparent)",
-            color:
-              vis === "publico"
-                ? "var(--callout-success-title)"
-                : "color-mix(in srgb, var(--primary) 40%, transparent)",
-            background:
-              vis === "publico"
-                ? "color-mix(in srgb, var(--callout-success-border) 8%, transparent)"
-                : "transparent",
-          }}
+      >
+        {/* Volver */}
+        <button
+          className="flex items-center gap-1 text-[8px] font-black uppercase tracking-widest text-primary/30 hover:text-primary transition-colors shrink-0 group"
+          onClick={onVolver}
         >
-          {VISIBILIDAD_ICON[vis]}
-          {VISIBILIDAD_LABEL[vis]}
-        </div>
+          <ChevronRight
+            className="rotate-180 group-hover:-translate-x-0.5 transition-transform"
+            size={9}
+          />
+          Biblioteca
+        </button>
 
-        {/* TW badge */}
-        {tws.length > 0 && (
-          <div
-            className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wide border"
-            style={{
-              borderColor:
-                "color-mix(in srgb, var(--callout-warning-border) 40%, transparent)",
-              color: "var(--callout-warning-title)",
-              background:
-                "color-mix(in srgb, var(--callout-warning-border) 8%, transparent)",
-            }}
-            title={tws.join(", ")}
-          >
-            <span style={{ fontSize: 9 }}>⚠️</span>
-            {tws.length} TW
+        {sep}
+
+        {/* Portada mini */}
+        {libro?.portada_url && (
+          <div className="w-5 h-7 rounded overflow-hidden shrink-0 border border-primary/10">
+            <img
+              alt=""
+              className="w-full h-full object-cover"
+              src={libro.portada_url}
+            />
           </div>
         )}
 
-        {/* Estado */}
-        {libro?.estado && (
-          <div
-            className="px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wide border"
+        {/* Título editable inline */}
+        {editTitulo ? (
+          <input
+            ref={titRef}
+            className="flex-1 min-w-0 bg-transparent outline-none border-b text-[10px] font-black uppercase italic tracking-tight text-primary"
+            style={{
+              borderColor:
+                "color-mix(in srgb, var(--primary) 30%, transparent)",
+            }}
+            value={titulo}
+            onBlur={saveTitulo}
+            onChange={(e) => setTitulo(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") saveTitulo();
+              if (e.key === "Escape") {
+                setTitulo(libro?.titulo ?? "");
+                setEditTitulo(false);
+              }
+            }}
+          />
+        ) : (
+          <button
+            className="flex-1 min-w-0 text-left text-[10px] font-black uppercase italic tracking-tight text-primary/70 hover:text-primary truncate transition-colors"
+            title="Click para editar título"
+            onClick={() => setEditTitulo(true)}
+          >
+            {titulo || "…"}
+          </button>
+        )}
+
+        {/* Chips clickeables */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          {/* Visibilidad */}
+          <button
+            className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wide border transition-all"
+            style={{
+              borderColor:
+                vis === "publico"
+                  ? "color-mix(in srgb, var(--callout-success-border) 40%, transparent)"
+                  : "color-mix(in srgb, var(--primary) 15%, transparent)",
+              color:
+                vis === "publico"
+                  ? "var(--callout-success-title)"
+                  : "color-mix(in srgb, var(--primary) 40%, transparent)",
+              background:
+                vis === "publico"
+                  ? "color-mix(in srgb, var(--callout-success-border) 8%, transparent)"
+                  : "transparent",
+            }}
+            title="Click para cambiar visibilidad"
+            onClick={toggleVis}
+          >
+            {VISIBILIDAD_ICON[vis]}
+            {VISIBILIDAD_LABEL[vis]}
+          </button>
+
+          {/* Estado */}
+          <button
+            className="px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wide border transition-all hover:border-primary/25 hover:text-primary/60"
             style={{
               borderColor:
                 "color-mix(in srgb, var(--primary) 12%, transparent)",
               color: "color-mix(in srgb, var(--primary) 35%, transparent)",
             }}
+            title="Click para cambiar estado"
+            onClick={toggleEstado}
           >
-            {libro.estado}
-          </div>
-        )}
+            {estado}
+          </button>
 
-        <div
-          className="w-px h-3"
-          style={{
-            background: "color-mix(in srgb, var(--primary) 10%, transparent)",
-          }}
-        />
+          {/* TW badge */}
+          {tws.length > 0 && (
+            <div
+              className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wide border"
+              style={{
+                borderColor:
+                  "color-mix(in srgb, var(--callout-warning-border) 40%, transparent)",
+                color: "var(--callout-warning-title)",
+                background:
+                  "color-mix(in srgb, var(--callout-warning-border) 8%, transparent)",
+              }}
+              title={tws.join(", ")}
+            >
+              <span style={{ fontSize: 9 }}>⚠️</span>
+              {tws.length} TW
+            </div>
+          )}
 
-        {/* Editar libro */}
-        <button
-          className="p-1.5 rounded hover:bg-primary/8 text-primary/30 hover:text-primary transition-all"
-          title="Editar libro"
-          onClick={onEditLibro}
-        >
-          <Pencil size={11} />
-        </button>
+          {saving && (
+            <Loader2 className="animate-spin text-primary/30" size={10} />
+          )}
 
-        {/* Nuevo cap */}
-        <button
-          className="flex items-center gap-1 px-2 py-1 rounded-[var(--radius-btn)] bg-primary/8 hover:bg-primary/15 text-primary/50 hover:text-primary text-[8px] font-black uppercase tracking-widest transition-all"
-          onClick={onNuevoCap}
-        >
-          <Plus size={9} /> Cap
-        </button>
+          {sep}
 
-        <div
-          className="w-px h-3"
-          style={{
-            background: "color-mix(in srgb, var(--primary) 10%, transparent)",
-          }}
-        />
+          {/* Toggle panel config */}
+          <button
+            className="p-1.5 rounded hover:bg-primary/8 transition-all"
+            style={{
+              color: panelOpen
+                ? "var(--primary)"
+                : "color-mix(in srgb, var(--primary) 30%, transparent)",
+            }}
+            title={
+              panelOpen ? "Cerrar configuración" : "Configuración del libro"
+            }
+            onClick={() => setPanelOpen((o) => !o)}
+          >
+            <SlidersHorizontal size={11} />
+          </button>
 
-        {/* Toggle sidebar caps */}
-        <button
-          className="p-1.5 rounded hover:bg-primary/8 transition-all"
-          style={{
-            color: sidebarOpen
-              ? "var(--primary)"
-              : "color-mix(in srgb, var(--primary) 30%, transparent)",
-          }}
-          title={
-            sidebarOpen
-              ? "Cerrar panel de capítulos"
-              : "Abrir panel de capítulos"
-          }
-          onClick={onToggleSidebar}
-        >
-          <PanelRight size={12} />
-        </button>
+          {/* Nuevo cap */}
+          <button
+            className="flex items-center gap-1 px-2 py-1 rounded-[var(--radius-btn)] bg-primary/8 hover:bg-primary/15 text-primary/50 hover:text-primary text-[8px] font-black uppercase tracking-widest transition-all"
+            onClick={onNuevoCap}
+          >
+            <Plus size={9} /> Cap
+          </button>
+
+          {sep}
+
+          {/* Toggle sidebar caps */}
+          <button
+            className="p-1.5 rounded hover:bg-primary/8 transition-all"
+            style={{
+              color: sidebarOpen
+                ? "var(--primary)"
+                : "color-mix(in srgb, var(--primary) 30%, transparent)",
+            }}
+            title={
+              sidebarOpen
+                ? "Cerrar panel de capítulos"
+                : "Abrir panel de capítulos"
+            }
+            onClick={onToggleSidebar}
+          >
+            <PanelRight size={12} />
+          </button>
+        </div>
       </div>
+
+      {/* ── Panel de configuración expandible ── */}
+      {panelOpen && (
+        <div
+          className="flex gap-0 border-b overflow-y-auto"
+          style={{
+            borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
+            background:
+              "color-mix(in srgb, var(--primary) 1.5%, var(--bg-main))",
+            maxHeight: 340,
+          }}
+        >
+          {/* Col 1: Portada + Sinopsis */}
+          <div
+            className="flex flex-col gap-3 p-4 border-r"
+            style={{
+              minWidth: 220,
+              borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
+            }}
+          >
+            <SelectorImagenPortada
+              value={portada}
+              onChange={(v) => {
+                setPortada(v);
+                save({ portada_url: v });
+              }}
+            />
+            <div className="space-y-1">
+              <label className="text-[8px] font-black uppercase tracking-widest text-primary/35">
+                Sinopsis
+              </label>
+              <textarea
+                className="w-full bg-transparent border rounded px-2 py-1.5 text-[11px] text-primary outline-none focus:border-primary/30 resize-none transition-colors"
+                placeholder="Descripción…"
+                rows={4}
+                style={{
+                  borderColor:
+                    "color-mix(in srgb, var(--primary) 15%, transparent)",
+                }}
+                value={sinopsis}
+                onBlur={() => save({ sinopsis: sinopsis.trim() })}
+                onChange={(e) => setSinopsis(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* Col 2: Estado + Visibilidad + Reino + Grupo */}
+          <div
+            className="flex flex-col gap-3 p-4 border-r"
+            style={{
+              minWidth: 200,
+              borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
+            }}
+          >
+            {/* Estado */}
+            <div className="space-y-1.5">
+              <label className="text-[8px] font-black uppercase tracking-widest text-primary/35">
+                Estado
+              </label>
+              <div className="flex flex-wrap gap-1">
+                {ESTADOS_LIBRO.map((est) => (
+                  <button
+                    key={est}
+                    className="px-2 py-1 rounded text-[8px] font-black uppercase tracking-wide border transition-all"
+                    style={{
+                      background:
+                        estado === est ? "var(--primary)" : "transparent",
+                      color:
+                        estado === est
+                          ? "var(--bg-main)"
+                          : "color-mix(in srgb, var(--primary) 40%, transparent)",
+                      borderColor:
+                        estado === est
+                          ? "var(--primary)"
+                          : "color-mix(in srgb, var(--primary) 15%, transparent)",
+                    }}
+                    type="button"
+                    onClick={() => {
+                      setEstado(est);
+                      save({ estado: est });
+                    }}
+                  >
+                    {est}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Visibilidad */}
+            <SelectorVisibilidad
+              fechaPublicacion={fechaLibro}
+              label="Visibilidad"
+              value={visibilidad}
+              onChange={(v) => {
+                setVisibilidad(v);
+                save({ visibilidad: v });
+              }}
+              onFechaChange={(v) => {
+                setFechaLibro(v);
+                save({ fecha_publicacion: v });
+              }}
+            />
+
+            {/* Reino */}
+            <SelectorReino
+              value={reinoId ? [reinoId] : []}
+              onChange={(ids) => {
+                const id = ids[0] ?? null;
+                setReinoId(id);
+                save({ reino_id: id });
+              }}
+            />
+
+            {/* Grupo */}
+            <ComboSelector
+              emptyText="Sin grupos"
+              hint="grupos de tipo «libros»"
+              icon={<BookMarked size={10} />}
+              items={gruposItems}
+              label="Grupo"
+              loading={loadingGrupos}
+              mode="single"
+              noneLabel="Sin grupo"
+              placeholder="Sin grupo…"
+              value={grupoId}
+              onChange={(v) => {
+                setGrupoId(v);
+                save({ categoria: v ?? null });
+              }}
+            />
+          </div>
+
+          {/* Col 3: Trigger Warnings */}
+          <div className="flex flex-col gap-2 p-4" style={{ minWidth: 200 }}>
+            <label className="text-[8px] font-black uppercase tracking-widest text-primary/35 flex items-center gap-1">
+              <span>⚠️</span> Trigger Warnings
+            </label>
+            <div className="flex flex-col gap-0.5">
+              {TW_PREDEFINIDOS_BARRA.map((tw) => {
+                const on = tws.includes(tw);
+                return (
+                  <button
+                    key={tw}
+                    className="flex items-center gap-2 w-full text-left px-1.5 py-1 rounded transition-all"
+                    style={{
+                      background: on
+                        ? "color-mix(in srgb, var(--callout-warning-border) 10%, transparent)"
+                        : "transparent",
+                    }}
+                    type="button"
+                    onClick={() => toggleTw(tw)}
+                  >
+                    <div
+                      className="shrink-0 flex items-center justify-center rounded"
+                      style={{
+                        width: 11,
+                        height: 11,
+                        border: `1px solid ${on ? "var(--callout-warning-border)" : "color-mix(in srgb, var(--primary) 20%, transparent)"}`,
+                        background: on
+                          ? "var(--callout-warning-border)"
+                          : "transparent",
+                        transition: "all 0.12s",
+                      }}
+                    >
+                      {on && (
+                        <Check size={7} style={{ color: "var(--bg-main)" }} />
+                      )}
+                    </div>
+                    <span
+                      className="text-[9px] font-bold"
+                      style={{
+                        color: on
+                          ? "var(--callout-warning-title)"
+                          : "color-mix(in srgb, var(--primary) 45%, transparent)",
+                      }}
+                    >
+                      {tw}
+                    </span>
+                  </button>
+                );
+              })}
+              {/* TW custom */}
+              {tws
+                .filter((tw) => !TW_PREDEFINIDOS_BARRA.includes(tw))
+                .map((tw) => (
+                  <button
+                    key={tw}
+                    className="flex items-center gap-2 w-full text-left px-1.5 py-1 rounded transition-all"
+                    style={{
+                      background:
+                        "color-mix(in srgb, var(--callout-warning-border) 10%, transparent)",
+                    }}
+                    type="button"
+                    onClick={() => toggleTw(tw)}
+                  >
+                    <div
+                      className="shrink-0 flex items-center justify-center rounded"
+                      style={{
+                        width: 11,
+                        height: 11,
+                        border: "1px solid var(--callout-warning-border)",
+                        background: "var(--callout-warning-border)",
+                      }}
+                    >
+                      <Check size={7} style={{ color: "var(--bg-main)" }} />
+                    </div>
+                    <span
+                      className="text-[9px] font-bold flex-1 truncate"
+                      style={{ color: "var(--callout-warning-title)" }}
+                    >
+                      {tw}
+                    </span>
+                    <X size={8} className="shrink-0 text-primary/30" />
+                  </button>
+                ))}
+            </div>
+            {/* Añadir custom */}
+            {twAdding ? (
+              <div className="flex items-center gap-1 mt-1">
+                <input
+                  autoFocus
+                  className="flex-1 min-w-0 rounded px-2 py-1 text-[9px] font-bold outline-none border text-primary bg-transparent"
+                  placeholder="Ej: Acoso…"
+                  style={{
+                    borderColor:
+                      "color-mix(in srgb, var(--primary) 20%, transparent)",
+                  }}
+                  value={twCustom}
+                  onChange={(e) => setTwCustom(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") addCustomTw();
+                    if (e.key === "Escape") {
+                      setTwCustom("");
+                      setTwAdding(false);
+                    }
+                  }}
+                />
+                <button
+                  className="p-1 rounded bg-primary/10 text-primary"
+                  type="button"
+                  onClick={addCustomTw}
+                >
+                  <Check size={9} />
+                </button>
+                <button
+                  className="p-1 rounded text-primary/30"
+                  type="button"
+                  onClick={() => {
+                    setTwCustom("");
+                    setTwAdding(false);
+                  }}
+                >
+                  <X size={9} />
+                </button>
+              </div>
+            ) : (
+              <button
+                className="mt-1 w-full flex items-center justify-center gap-1 py-1 rounded border border-dashed text-[8px] font-black uppercase tracking-widest text-primary/25 hover:text-primary hover:border-primary/25 transition-all"
+                style={{
+                  borderColor:
+                    "color-mix(in srgb, var(--primary) 12%, transparent)",
+                }}
+                type="button"
+                onClick={() => setTwAdding(true)}
+              >
+                <Plus size={8} /> Añadir
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1874,7 +2141,11 @@ export function EditorCapitulosPanel() {
   const [showNuevoCap, setShowNuevoCap] = useState(false);
   const [showNuevoLibro, setShowNuevoLibro] = useState(false);
   const [capRefreshKey, setCapRefreshKey] = useState(0);
-  const [editandoLibro, setEditandoLibro] = useState<Libro | null>(null);
+  const handleLibroEditado = (libro: Libro) => {
+    setLibros((prev: Libro[]) =>
+      prev.map((l) => (l.id === libro.id ? libro : l)),
+    );
+  };
 
   // Vista: "biblioteca" | "editor"
   // Si hay cap seleccionado → editor; si hay libro pero no cap → biblioteca con sidebar abierto
@@ -1931,11 +2202,6 @@ export function EditorCapitulosPanel() {
     setCapRefreshKey((k) => k + 1);
   };
 
-  const handleLibroEditado = (libro: Libro) => {
-    setLibros((prev) => prev.map((l) => (l.id === libro.id ? libro : l)));
-    setEditandoLibro(null);
-  };
-
   const handleLibroCreado = async (titulo: string) => {
     const { data, error } = await addLibro({
       titulo: titulo.trim().toUpperCase(),
@@ -1982,7 +2248,7 @@ export function EditorCapitulosPanel() {
           <BarraLibro
             libro={libroActivo}
             sidebarOpen={sidebarOpen}
-            onEditLibro={() => libroActivo && setEditandoLibro(libroActivo)}
+            onLibroChange={handleLibroEditado}
             onNuevoCap={() => setShowNuevoCap(true)}
             onToggleSidebar={() => setSidebarOpen((o) => !o)}
             onVolver={() => {
@@ -2001,7 +2267,7 @@ export function EditorCapitulosPanel() {
               loading={loadingLibros}
               selectedLibroId={vistaLibroId}
               onDeleteLibro={handleLibroEliminado}
-              onEditLibro={setEditandoLibro}
+              onEditLibro={() => {}}
               onNuevoLibro={() => setShowNuevoLibro(true)}
               onSelectLibro={handleSelectLibro}
             />
@@ -2131,22 +2397,6 @@ export function EditorCapitulosPanel() {
                 ))
               )}
             </div>
-
-            {/* Botón editar libro */}
-            <div
-              className="shrink-0 border-t p-3"
-              style={{
-                borderColor:
-                  "color-mix(in srgb, var(--primary) 8%, transparent)",
-              }}
-            >
-              <button
-                className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-[var(--radius-btn)] border border-primary/10 text-[8px] font-black uppercase tracking-widest text-primary/35 hover:text-primary hover:border-primary/25 transition-all"
-                onClick={() => libroActivo && setEditandoLibro(libroActivo)}
-              >
-                <Pencil size={9} /> Editar libro
-              </button>
-            </div>
           </div>
         )}
       </div>
@@ -2163,13 +2413,6 @@ export function EditorCapitulosPanel() {
           ordenSiguiente={capitulos.length + 1}
           onClose={() => setShowNuevoCap(false)}
           onCreated={handleCapCreada}
-        />
-      )}
-      {editandoLibro && (
-        <ModalEditarLibro
-          libro={editandoLibro}
-          onClose={() => setEditandoLibro(null)}
-          onSaved={handleLibroEditado}
         />
       )}
     </>
