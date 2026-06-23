@@ -2225,6 +2225,7 @@ function SidebarCapitulos({
   onSelectCap,
   onDeleteCap,
   onNuevoCap,
+  onToggleSidebar,
 }: {
   capitulos: Capitulo[];
   selectedCapId: string | null;
@@ -2233,6 +2234,7 @@ function SidebarCapitulos({
   onSelectCap: (capId: string) => void;
   onDeleteCap: (id: string, libroId: string) => void;
   onNuevoCap: () => void;
+  onToggleSidebar: () => void;
 }) {
   if (!open) return null;
 
@@ -2247,14 +2249,28 @@ function SidebarCapitulos({
     >
       {/* Header sidebar */}
       <div
-        className="shrink-0 flex items-center justify-between px-3 py-2 border-b"
+        className="shrink-0 flex items-center gap-1.5 px-3 py-2 border-b"
         style={{
           borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
         }}
       >
-        <span className="text-[8px] font-black uppercase tracking-[0.2em] text-primary/35">
+        <span className="text-[8px] font-black uppercase tracking-[0.2em] text-primary/35 flex-1">
           Capítulos · {capitulos.length}
         </span>
+        <button
+          className="p-1 rounded hover:bg-primary/8 text-primary/30 hover:text-primary transition-all"
+          title="Nuevo capítulo"
+          onClick={onNuevoCap}
+        >
+          <Plus size={10} />
+        </button>
+        <button
+          className="p-1 rounded hover:bg-primary/8 text-primary/30 hover:text-primary transition-all"
+          title="Cerrar panel"
+          onClick={onToggleSidebar}
+        >
+          <X size={10} />
+        </button>
       </div>
 
       {/* Lista de caps — sin scroll fijo, se expande */}
@@ -2523,6 +2539,7 @@ export function EditorCapitulosPanel() {
               onDeleteCap={handleCapEliminada}
               onNuevoCap={() => setShowNuevoCap(true)}
               onSelectCap={(capId) => handleSelectCap(selectedLibroId!, capId)}
+              onToggleSidebar={() => setSidebarOpen((o) => !o)}
             />
           )}
 
