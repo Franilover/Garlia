@@ -49,11 +49,11 @@ interface Rutina {
 }
 
 const TAGS = ["Todas", "Fuerza", "Cardio", "Flexibilidad", "Movilidad"];
-const TAG_COLORES: Record<string, string> = {
-  Fuerza: "bg-primary/10 text-primary border-primary/20",
-  Cardio: "bg-accent/20 text-accent border-accent/30",
-  Flexibilidad: "bg-primary/15 text-primary border-primary/25",
-  Movilidad: "bg-accent/10 text-primary border-accent/20",
+const TAG_ICONS: Record<string, LucideIcon> = {
+  Fuerza: Dumbbell,
+  Cardio: HeartPulse,
+  Flexibilidad: PersonStanding,
+  Movilidad: RotateCcw,
 };
 const PLAN_DIARIO: {
   tipo: string;
@@ -657,74 +657,59 @@ const CardRutina = ({
 }) => {
   const ejercicios = rutina.ejercicios ?? [];
   const totalSeries = ejercicios.reduce((a, e) => a + e.series, 0);
-  const tagColor =
-    TAG_COLORES[rutina.tag] ?? "bg-primary/10 text-primary border-primary/20";
+  const Icon = TAG_ICONS[rutina.tag] ?? Dumbbell;
+
   return (
-    <div
-      className={cn(
-        "bg-white-custom border-[length:var(--border-width)] border-primary/10 rounded-[var(--radius-card)] overflow-hidden shadow-lg shadow-primary/5 transition-all",
-        expandida && "shadow-xl shadow-primary/10",
-      )}
-    >
-      <div className="p-5 cursor-pointer" onClick={onToggle}>
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-2">
-              <span
-                className={cn(
-                  "text-[8px] font-black uppercase tracking-widest px-2.5 py-1 rounded-[var(--radius-btn)] border-[length:var(--border-width)]",
-                  tagColor,
-                )}
-              >
-                {rutina.tag}
-              </span>
-            </div>
-            <h3 className="text-lg font-black text-primary italic tracking-tight leading-none mb-1">
-              {rutina.nombre}
-            </h3>
-            <p className="text-[10px] font-bold text-primary/40 uppercase tracking-wide">
-              {rutina.descripcion}
-            </p>
+    <div className="bg-white-custom border-[length:var(--border-width)] border-primary/10 rounded-[var(--radius-card)] overflow-hidden group">
+      <div className="p-3 cursor-pointer" onClick={onToggle}>
+        <div className="flex items-center gap-2.5">
+          {/* Icono */}
+          <div className="w-8 h-8 rounded-[var(--radius-btn)] flex items-center justify-center shrink-0 bg-primary/8 text-primary/50">
+            <Icon size={15} />
           </div>
-          <MotionDiv
-            animate={{ rotate: expandida ? 180 : 0 }}
-            transition={{ duration: 0.25 }}
-          >
-            <ChevronDown className="text-primary/30 shrink-0 mt-1" size={18} />
-          </MotionDiv>
-        </div>
-        <div className="flex items-center gap-4 mt-4 pt-4 border-t border-primary/5">
-          <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">
-            {ejercicios.length} ejercicios
-          </span>
-          <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">
-            {totalSeries} series
-          </span>
-          <div className="ml-auto flex items-center gap-2">
-            <BtnIcon
-              className="text-accent hover:text-primary hover:bg-accent/10 border-none"
-              size="sm"
-              variant="ghost"
+
+          {/* Nombre + meta */}
+          <div className="flex-1 min-w-0" title={rutina.descripcion}>
+            <span className="text-[13px] font-black text-primary tracking-tight truncate leading-none block">
+              {rutina.nombre}
+            </span>
+            <span className="text-[10px] font-bold text-primary/35 leading-none mt-0.5 block truncate">
+              {rutina.tag} · {ejercicios.length} ejerc. · {totalSeries} series
+            </span>
+          </div>
+
+          {/* Acciones */}
+          <div className="flex items-center gap-1 shrink-0">
+            <button
+              className="w-6 h-6 flex items-center justify-center rounded text-primary/25 hover:text-accent hover:bg-accent/8 transition-all opacity-0 group-hover:opacity-100"
+              title="Eliminar"
               onClick={(e) => {
                 e.stopPropagation();
                 onEliminar();
               }}
             >
-              <X size={14} />
-            </BtnIcon>
-            <Btn
-              icon={<Play fill="white" size={11} />}
-              size="sm"
+              <X size={12} />
+            </button>
+            <button
+              className="w-7 h-7 flex items-center justify-center rounded-[var(--radius-btn)] bg-primary text-btn-text hover:opacity-90 transition-all shrink-0"
+              title="Iniciar rutina"
               onClick={(e) => {
                 e.stopPropagation();
                 onIniciar();
               }}
             >
-              Iniciar
-            </Btn>
+              <Play fill="currentColor" size={11} />
+            </button>
+            <MotionDiv
+              animate={{ rotate: expandida ? 180 : 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <ChevronDown className="text-primary/30" size={14} />
+            </MotionDiv>
           </div>
         </div>
       </div>
+
       <AnimatePresence>
         {expandida && (
           <MotionDiv
@@ -732,39 +717,35 @@ const CardRutina = ({
             className="overflow-hidden"
             exit={{ height: 0, opacity: 0 }}
             initial={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.25 }}
+            transition={{ duration: 0.2 }}
           >
-            <div className="px-5 pb-5 border-t border-primary/5">
-              <div className="pt-4 space-y-2">
+            <div className="px-3 pb-3 border-t border-primary/5">
+              <div className="pt-2.5 space-y-1.5">
                 {ejercicios.map((ej, i) => (
                   <MotionDiv
                     key={ej.id}
                     animate={{ opacity: 1, x: 0 }}
-                    className="flex items-center gap-3 p-3 bg-primary/3 rounded-[var(--radius-btn)] border-[length:var(--border-width)] border-primary/5"
+                    className="flex items-center gap-2 p-2 bg-primary/3 rounded-[var(--radius-btn)] border-[length:var(--border-width)] border-primary/5"
                     initial={{ opacity: 0, x: -8 }}
-                    transition={{ delay: i * 0.04 }}
+                    transition={{ delay: i * 0.03 }}
                   >
-                    <div className="w-6 h-6 rounded-[var(--radius-btn)] bg-primary/10 flex items-center justify-center shrink-0">
-                      <span className="text-[8px] font-black text-primary">
-                        {i + 1}
-                      </span>
-                    </div>
+                    <span className="text-[8px] font-black text-primary/30 w-3.5 shrink-0">
+                      {i + 1}
+                    </span>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[11px] font-black text-primary uppercase tracking-tight truncate">
+                      <p className="text-[10px] font-black text-primary truncate leading-tight">
                         {ej.nombre}
                       </p>
-                      <p className="text-[8px] font-bold text-primary/35 uppercase tracking-widest">
+                      <p className="text-[8px] font-bold text-primary/35 uppercase tracking-wide leading-tight">
                         {ej.musculo}
                       </p>
                     </div>
-                    <div className="flex items-center gap-3 shrink-0">
-                      <span className="text-[9px] font-black text-primary/50">
-                        {ej.series}×{ej.reps}
-                      </span>
-                      <span className="text-[8px] font-bold text-primary/25 border-[length:var(--border-width)] border-primary/10 px-1.5 py-0.5 rounded-[var(--radius-btn)]">
-                        {ej.descanso}s
-                      </span>
-                    </div>
+                    <span className="text-[9px] font-black text-primary/50 shrink-0">
+                      {ej.series}×{ej.reps}
+                    </span>
+                    <span className="text-[8px] font-bold text-primary/25 shrink-0">
+                      {ej.descanso}s
+                    </span>
                   </MotionDiv>
                 ))}
               </div>
@@ -827,29 +808,26 @@ const FormNuevaRutina = ({
   return (
     <MotionDiv
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white-custom border-[length:var(--border-width)] border-primary/10 rounded-[var(--radius-card)] p-6 shadow-xl shadow-primary/5"
-      initial={{ opacity: 0, y: 20 }}
+      className="bg-white-custom border-[length:var(--border-width)] border-primary/10 rounded-[var(--radius-card)] p-4 shadow-lg shadow-primary/5"
+      initial={{ opacity: 0, y: 12 }}
     >
-      <div className="flex items-center gap-3 mb-6">
-        <Plus className="text-primary" size={18} />
-        <h3 className="text-[12px] font-black uppercase tracking-widest text-primary/60">
-          Nueva Rutina
-        </h3>
-      </div>
-      <div className="space-y-3 mb-6">
+      <p className="text-[9px] font-black uppercase tracking-widest text-primary/40 mb-3">
+        Nueva rutina
+      </p>
+      <div className="space-y-2 mb-3">
         <input
-          className="w-full bg-primary/5 border-[length:var(--border-width)] border-transparent focus:border-primary/15 focus:bg-white-custom rounded-[var(--radius-btn)] py-3 px-5 text-sm font-bold text-primary outline-none placeholder:text-primary/25 transition-all"
+          className="w-full bg-primary/5 border-[length:var(--border-width)] border-transparent focus:border-primary/15 focus:bg-white-custom rounded-[var(--radius-btn)] py-2 px-3 text-sm font-bold text-primary outline-none placeholder:text-primary/25 transition-all"
           placeholder="Nombre de la rutina..."
           value={nombre}
           onChange={(e) => setNombre(e.target.value)}
         />
         <input
-          className="w-full bg-primary/5 border-[length:var(--border-width)] border-transparent focus:border-primary/15 focus:bg-white-custom rounded-[var(--radius-btn)] py-3 px-5 text-sm font-bold text-primary outline-none placeholder:text-primary/25 transition-all"
+          className="w-full bg-primary/5 border-[length:var(--border-width)] border-transparent focus:border-primary/15 focus:bg-white-custom rounded-[var(--radius-btn)] py-2 px-3 text-sm font-bold text-primary outline-none placeholder:text-primary/25 transition-all"
           placeholder="Descripción..."
           value={descripcion}
           onChange={(e) => setDescripcion(e.target.value)}
         />
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-1.5 flex-wrap">
           {TAGS.filter((t) => t !== "Todas").map((t) => (
             <Badge key={t} active={tag === t} onClick={() => setTag(t)}>
               {t}
@@ -858,40 +836,38 @@ const FormNuevaRutina = ({
         </div>
       </div>
       {ejercicios.length > 0 && (
-        <div className="space-y-2 mb-4">
+        <div className="space-y-1.5 mb-3">
           {ejercicios.map((ej, i) => (
             <div
               key={i}
-              className="flex items-center gap-3 p-3 bg-primary/4 rounded-[var(--radius-btn)]"
+              className="flex items-center gap-2 p-2 bg-primary/4 rounded-[var(--radius-btn)]"
             >
-              <span className="text-[8px] font-black text-primary/30 w-4">
+              <span className="text-[8px] font-black text-primary/30 w-3.5 shrink-0">
                 {i + 1}
               </span>
               <span className="text-[11px] font-black text-primary flex-1 truncate">
                 {ej.nombre}
               </span>
-              <span className="text-[9px] text-primary/40 font-bold">
+              <span className="text-[9px] text-primary/40 font-bold shrink-0">
                 {ej.series}×{ej.reps}
               </span>
-              <BtnIcon
-                className="text-accent hover:text-primary border-none w-6 h-6"
-                size="sm"
-                variant="ghost"
+              <button
+                className="w-5 h-5 flex items-center justify-center rounded text-primary/30 hover:text-accent hover:bg-accent/8 transition-all shrink-0"
                 onClick={() =>
                   setEjercicios((p) => p.filter((_, j) => j !== i))
                 }
               >
-                <X size={14} />
-              </BtnIcon>
+                <X size={12} />
+              </button>
             </div>
           ))}
         </div>
       )}
-      <div className="bg-primary/4 rounded-[var(--radius-btn)] p-4 mb-6 border-[length:var(--border-width)] border-primary/8">
-        <p className="text-[9px] font-black uppercase tracking-widest text-primary/30 mb-3">
+      <div className="bg-primary/4 rounded-[var(--radius-btn)] p-3 mb-3 border-[length:var(--border-width)] border-primary/8">
+        <p className="text-[9px] font-black uppercase tracking-widest text-primary/30 mb-2">
           Añadir ejercicio
         </p>
-        <div className="grid grid-cols-2 gap-2 mb-2">
+        <div className="grid grid-cols-2 gap-1.5 mb-1.5">
           <input
             className={`col-span-2 ${inputCls}`}
             placeholder="Nombre..."
@@ -946,10 +922,11 @@ const FormNuevaRutina = ({
           + Añadir ejercicio
         </Btn>
       </div>
-      <div className="flex gap-3">
+      <div className="flex gap-2">
         <Btn
           className="flex-1"
           disabled={guardando}
+          size="sm"
           variant="outline"
           onClick={onCancelar}
         >
@@ -959,6 +936,7 @@ const FormNuevaRutina = ({
           className="flex-1"
           disabled={!nombre.trim() || ejercicios.length === 0 || guardando}
           loading={guardando}
+          size="sm"
           onClick={() => onGuardar({ nombre, descripcion, tag }, ejercicios)}
         >
           Guardar rutina
@@ -1064,9 +1042,9 @@ export const PaginaEjercicios = () => {
           </div>
 
           {/* Columna derecha — Rutinas */}
-          <div className="flex-1 min-w-0 space-y-5">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-              <div className="flex items-center gap-1.5 bg-white-custom border-[length:var(--border-width)] border-primary/10 rounded-[var(--radius-btn)] p-1.5 flex-wrap shadow-sm">
+          <div className="flex-1 min-w-0 space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+              <div className="flex items-center gap-1 bg-white-custom border-[length:var(--border-width)] border-primary/10 rounded-[var(--radius-btn)] p-1 flex-wrap shadow-sm">
                 {TAGS.map((t) => (
                   <Badge
                     key={t}
@@ -1079,10 +1057,11 @@ export const PaginaEjercicios = () => {
               </div>
               <Btn
                 className="ml-auto shrink-0"
-                icon={<Plus size={14} />}
-                onClick={() => setCreando(true)}
+                icon={creando ? <X size={11} /> : <Plus size={11} />}
+                size="sm"
+                onClick={() => setCreando((v) => !v)}
               >
-                Nueva rutina
+                {creando ? "Cancelar" : "Añadir"}
               </Btn>
             </div>
             <AnimatePresence>
@@ -1097,7 +1076,7 @@ export const PaginaEjercicios = () => {
             {cargando ? (
               <Loading fullScreen={false} text="Cargando rutinas..." />
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-2">
                 <AnimatePresence mode="popLayout">
                   {rutinasFiltradas.map((rutina) => (
                     <MotionDiv
@@ -1105,7 +1084,7 @@ export const PaginaEjercicios = () => {
                       layout
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.97 }}
-                      initial={{ opacity: 0, y: 12 }}
+                      initial={{ opacity: 0, y: 8 }}
                     >
                       <CardRutina
                         expandida={expandida === rutina.id}
