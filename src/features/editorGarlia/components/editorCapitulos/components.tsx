@@ -2117,6 +2117,10 @@ export const PanelPersonajesCapitulo = ({
   const [savingC, setSavingC] = useState(false);
   const [savingI, setSavingI] = useState(false);
 
+  // ── Orden del capítulo ───────────────────────────────────────────────────
+  const [ordenCap, setOrdenCap] = useState<string>("");
+  const [savingOrdenCap, setSavingOrdenCap] = useState(false);
+
   // ── Posición en línea de tiempo ───────────────────────────────────────────
   const [ordenLinea, setOrdenLinea] = useState<string>("");
   const [savingOrden, setSavingOrden] = useState(false);
@@ -2162,6 +2166,7 @@ export const PanelPersonajesCapitulo = ({
     const cargar = async () => {
       const apply = (data: any) => {
         if (!data || cancelled) return;
+        if (data.orden != null) setOrdenCap(String(data.orden));
         setOrdenLinea(
           data.dia_absoluto != null ? String(data.dia_absoluto) : "",
         );
@@ -2186,7 +2191,7 @@ export const PanelPersonajesCapitulo = ({
         const { data } = await supabase
           .from("capitulos")
           .select(
-            "dia_absoluto, reinos_ids, visibilidad, fecha_publicacion, ciudades_ids, narrador_id",
+            "orden, dia_absoluto, reinos_ids, visibilidad, fecha_publicacion, ciudades_ids, narrador_id",
           )
           .eq("id", capId)
           .single();
@@ -2340,6 +2345,16 @@ export const PanelPersonajesCapitulo = ({
     };
   }, [narradorId, ordenLinea]);
 
+  const handleSaveOrdenCap = async () => {
+    const num = parseInt(ordenCap.trim(), 10);
+    if (isNaN(num) || num < 1) return;
+    setSavingOrdenCap(true);
+    try {
+      await capUpdateMeta(capId, { orden: num });
+    } catch {}
+    setSavingOrdenCap(false);
+  };
+
   const handleSaveOrden = async () => {
     const val = ordenLinea.trim();
     const num = val === "" ? null : parseInt(val, 10);
@@ -2392,6 +2407,59 @@ export const PanelPersonajesCapitulo = ({
   // Contenido compartido entre desktop y drawer mobile
   const innerContent = (
     <>
+      {/* ── Orden ───────────────────────────────────────────────────────── */}
+      <div
+        className="shrink-0 px-3 py-2.5 border-b"
+        style={{
+          borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
+        }}
+      >
+        <div className="flex items-center gap-1 mb-1.5">
+          <Hash
+            size={8}
+            style={{
+              color: "color-mix(in srgb, var(--primary) 35%, transparent)",
+            }}
+          />
+          <span
+            className="text-[8px] font-black uppercase tracking-[0.2em] flex-1"
+            style={{
+              color: "color-mix(in srgb, var(--primary) 35%, transparent)",
+            }}
+          >
+            Orden
+          </span>
+          {savingOrdenCap && (
+            <Loader2
+              className="animate-spin shrink-0"
+              size={8}
+              style={{
+                color: "color-mix(in srgb, var(--primary) 30%, transparent)",
+              }}
+            />
+          )}
+        </div>
+        <input
+          className="w-full rounded px-2 py-1 text-[10px] font-bold outline-none border transition-all"
+          min={1}
+          placeholder="1"
+          style={{
+            background: "color-mix(in srgb, var(--primary) 4%, transparent)",
+            borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)",
+            color: "var(--primary)",
+          }}
+          type="number"
+          value={ordenCap}
+          onBlur={handleSaveOrdenCap}
+          onChange={(e) => setOrdenCap(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.currentTarget.blur();
+            }
+          }}
+        />
+      </div>
+
       {/* ── Narrador ────────────────────────────────────────────────────── */}
       <div
         className="shrink-0 px-3 py-2.5 border-b"
