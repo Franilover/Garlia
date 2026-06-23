@@ -3,6 +3,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronRight,
+  ChevronDown,
   Loader2,
   Plus,
   Save,
@@ -1442,6 +1443,10 @@ function BarraLibro({
   onNuevoCap: () => void;
 }) {
   const [panelOpen, setPanelOpen] = useState(false);
+  const [dropVis, setDropVis] = useState(false);
+  const [dropEstado, setDropEstado] = useState(false);
+  const dropVisRef = useRef<HTMLDivElement>(null);
+  const dropEstRef = useRef<HTMLDivElement>(null);
 
   // ── Estado local sincronizado con el libro ────────────────────────────────
   const [titulo, setTitulo] = useState(libro?.titulo ?? "");
@@ -1499,6 +1504,18 @@ function BarraLibro({
     if (editTitulo) titRef.current?.focus();
   }, [editTitulo]);
 
+  // Cerrar dropdowns al hacer click fuera
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (dropVisRef.current && !dropVisRef.current.contains(e.target as Node))
+        setDropVis(false);
+      if (dropEstRef.current && !dropEstRef.current.contains(e.target as Node))
+        setDropEstado(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
   const save = async (fields: Partial<Libro>) => {
     if (!libro) return;
     setSaving(true);
@@ -1515,22 +1532,16 @@ function BarraLibro({
     setEditTitulo(false);
   };
 
-  const toggleVis = () => {
-    const orden: Array<"publico" | "programado" | "oculto"> = [
-      "oculto",
-      "programado",
-      "publico",
-    ];
-    const next = orden[(orden.indexOf(visibilidad) + 1) % 3];
-    setVisibilidad(next);
-    save({ visibilidad: next });
+  const selectVis = (v: "publico" | "programado" | "oculto") => {
+    setVisibilidad(v);
+    save({ visibilidad: v });
+    setDropVis(false);
   };
 
-  const toggleEstado = () => {
-    const next =
-      ESTADOS_LIBRO[(ESTADOS_LIBRO.indexOf(estado) + 1) % ESTADOS_LIBRO.length];
-    setEstado(next);
-    save({ estado: next });
+  const selectEstado = (e: string) => {
+    setEstado(e);
+    save({ estado: e });
+    setDropEstado(false);
   };
 
   const toggleTw = (tw: string) => {
@@ -1644,47 +1655,152 @@ function BarraLibro({
           </button>
         )}
 
-        {/* Chips clickeables */}
+        {/* Chips con dropdown */}
         <div className="flex items-center gap-1.5 shrink-0">
-          {/* Visibilidad */}
-          <button
-            className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wide border transition-all"
-            style={{
-              borderColor:
-                vis === "publico"
-                  ? "color-mix(in srgb, var(--callout-success-border) 40%, transparent)"
-                  : "color-mix(in srgb, var(--primary) 15%, transparent)",
-              color:
-                vis === "publico"
-                  ? "var(--callout-success-title)"
-                  : "color-mix(in srgb, var(--primary) 40%, transparent)",
-              background:
-                vis === "publico"
-                  ? "color-mix(in srgb, var(--callout-success-border) 8%, transparent)"
-                  : "transparent",
-            }}
-            title="Click para cambiar visibilidad"
-            onClick={toggleVis}
-          >
-            {VISIBILIDAD_ICON[vis]}
-            {VISIBILIDAD_LABEL[vis]}
-          </button>
-
-          {/* Estado */}
-          <button
-            className="px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wide border transition-all hover:border-primary/25 hover:text-primary/60"
-            style={{
-              borderColor:
-                "color-mix(in srgb, var(--primary) 12%, transparent)",
-              color: "color-mix(in srgb, var(--primary) 35%, transparent)",
-            }}
-            title="Click para cambiar estado"
-            onClick={toggleEstado}
-          >
-            {estado}
-          </button>
-
-          {/* TW badge */}
+          {/* ── Visibilidad dropdown ── */}
+          <div ref={dropVisRef} className="relative">
+            <button
+              className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wide border transition-all"
+              style={{
+                borderColor:
+                  vis === "publico"
+                    ? "color-mix(in srgb, var(--callout-success-border) 40%, transparent)"
+                    : "color-mix(in srgb, var(--primary) 15%, transparent)",
+                color:
+                  vis === "publico"
+                    ? "var(--callout-success-title)"
+                    : "color-mix(in srgb, var(--primary) 40%, transparent)",
+                background:
+                  vis === "publico"
+                    ? "color-mix(in srgb, var(--callout-success-border) 8%, transparent)"
+                    : "transparent",
+              }}
+              onClick={() => {
+                setDropVis((o) => !o);
+                setDropEstado(false);
+              }}
+            >
+              {VISIBILIDAD_ICON[vis]}
+              {VISIBILIDAD_LABEL[vis]}
+              <ChevronDown size={7} style={{ opacity: 0.5, marginLeft: 1 }} />
+            </button>
+            {dropVis && (
+              <div
+                className="absolute left-0 top-full mt-1 z-50 rounded-lg border shadow-xl overflow-hidden"
+                style={{
+                  background: "var(--bg-main)",
+                  borderColor:
+                    "color-mix(in srgb, var(--primary) 12%, transparent)",
+                  minWidth: 130,
+                }}
+              >
+                {(["publico", "programado", "oculto"] as const).map((v) => (
+                  <button
+                    key={v}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-[9px] font-black uppercase tracking-wide transition-all text-left"
+                    style={{
+                      background:
+                        visibilidad === v
+                          ? "color-mix(in srgb, var(--primary) 6%, transparent)"
+                          : "transparent",
+                      color:
+                        visibilidad === v
+                          ? "var(--primary)"
+                          : "color-mix(in srgb, var(--primary) 45%, transparent)",
+                    }}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.background =
+                        "color-mix(in srgb, var(--primary) 6%, transparent)")
+                    }
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.background =
+                        visibilidad === v
+                          ? "color-mix(in srgb, var(--primary) 6%, transparent)"
+                          : "transparent")
+                    }
+                    onClick={() => selectVis(v)}
+                  >
+                    {VISIBILIDAD_ICON[v]}
+                    {VISIBILIDAD_LABEL[v]}
+                    {visibilidad === v && (
+                      <Check
+                        size={8}
+                        className="ml-auto"
+                        style={{ color: "var(--primary)" }}
+                      />
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          {/* ── Estado dropdown ── */}
+          <div ref={dropEstRef} className="relative">
+            <button
+              className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wide border transition-all hover:border-primary/25 hover:text-primary/60"
+              style={{
+                borderColor:
+                  "color-mix(in srgb, var(--primary) 12%, transparent)",
+                color: "color-mix(in srgb, var(--primary) 35%, transparent)",
+              }}
+              onClick={() => {
+                setDropEstado((o) => !o);
+                setDropVis(false);
+              }}
+            >
+              {estado}
+              <ChevronDown size={7} style={{ opacity: 0.5, marginLeft: 1 }} />
+            </button>
+            {dropEstado && (
+              <div
+                className="absolute left-0 top-full mt-1 z-50 rounded-lg border shadow-xl overflow-hidden"
+                style={{
+                  background: "var(--bg-main)",
+                  borderColor:
+                    "color-mix(in srgb, var(--primary) 12%, transparent)",
+                  minWidth: 130,
+                }}
+              >
+                {ESTADOS_LIBRO.map((est) => (
+                  <button
+                    key={est}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-[9px] font-black uppercase tracking-wide transition-all text-left"
+                    style={{
+                      background:
+                        estado === est
+                          ? "color-mix(in srgb, var(--primary) 6%, transparent)"
+                          : "transparent",
+                      color:
+                        estado === est
+                          ? "var(--primary)"
+                          : "color-mix(in srgb, var(--primary) 45%, transparent)",
+                    }}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.background =
+                        "color-mix(in srgb, var(--primary) 6%, transparent)")
+                    }
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.background =
+                        estado === est
+                          ? "color-mix(in srgb, var(--primary) 6%, transparent)"
+                          : "transparent")
+                    }
+                    onClick={() => selectEstado(est)}
+                  >
+                    {est}
+                    {estado === est && (
+                      <Check
+                        size={8}
+                        className="ml-auto"
+                        style={{ color: "var(--primary)" }}
+                      />
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          {/* TW badge */} {/* TW badge */}
           {tws.length > 0 && (
             <div
               className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wide border"
@@ -1701,13 +1817,10 @@ function BarraLibro({
               {tws.length} TW
             </div>
           )}
-
           {saving && (
             <Loader2 className="animate-spin text-primary/30" size={10} />
           )}
-
           {sep}
-
           {/* Toggle panel config */}
           <button
             className="p-1.5 rounded hover:bg-primary/8 transition-all"
@@ -1723,7 +1836,6 @@ function BarraLibro({
           >
             <SlidersHorizontal size={11} />
           </button>
-
           {/* Nuevo cap */}
           <button
             className="flex items-center gap-1 px-2 py-1 rounded-[var(--radius-btn)] bg-primary/8 hover:bg-primary/15 text-primary/50 hover:text-primary text-[8px] font-black uppercase tracking-widest transition-all"
@@ -1731,9 +1843,7 @@ function BarraLibro({
           >
             <Plus size={9} /> Cap
           </button>
-
           {sep}
-
           {/* Toggle sidebar caps */}
           <button
             className="p-1.5 rounded hover:bg-primary/8 transition-all"
@@ -1799,7 +1909,7 @@ function BarraLibro({
             </div>
           </div>
 
-          {/* Col 2: Estado + Visibilidad + Reino + Grupo */}
+          {/* Col 2: Grupo + Reinos/Ciudades */}
           <div
             className="flex flex-col gap-3 p-4 border-r"
             style={{
@@ -1807,55 +1917,6 @@ function BarraLibro({
               borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
             }}
           >
-            {/* Estado */}
-            <div className="space-y-1.5">
-              <label className="text-[8px] font-black uppercase tracking-widest text-primary/35">
-                Estado
-              </label>
-              <div className="flex flex-wrap gap-1">
-                {ESTADOS_LIBRO.map((est) => (
-                  <button
-                    key={est}
-                    className="px-2 py-1 rounded text-[8px] font-black uppercase tracking-wide border transition-all"
-                    style={{
-                      background:
-                        estado === est ? "var(--primary)" : "transparent",
-                      color:
-                        estado === est
-                          ? "var(--bg-main)"
-                          : "color-mix(in srgb, var(--primary) 40%, transparent)",
-                      borderColor:
-                        estado === est
-                          ? "var(--primary)"
-                          : "color-mix(in srgb, var(--primary) 15%, transparent)",
-                    }}
-                    type="button"
-                    onClick={() => {
-                      setEstado(est);
-                      save({ estado: est });
-                    }}
-                  >
-                    {est}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Visibilidad */}
-            <SelectorVisibilidad
-              fechaPublicacion={fechaLibro}
-              label="Visibilidad"
-              value={visibilidad}
-              onChange={(v) => {
-                setVisibilidad(v);
-                save({ visibilidad: v });
-              }}
-              onFechaChange={(v) => {
-                setFechaLibro(v);
-                save({ fecha_publicacion: v });
-              }}
-            />
-
             {/* Reinos y Ciudades (solo lectura, inferidos de los caps) */}
             {(reinosDelLibro.length > 0 || ciudadesDelLibro.length > 0) && (
               <div className="space-y-1.5">
