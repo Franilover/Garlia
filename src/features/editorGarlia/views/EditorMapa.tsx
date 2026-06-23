@@ -1,0 +1,581 @@
+"use client";
+
+/**
+ * EditorMapa
+ * ──────────
+ * Panel admin para gestionar los tiles del mapa global.
+ * Se importa en EditorMundo como una sección más.
+ *
+ * Funcionalidades:
+ *   - Ver todos los tiles en grilla (posición col/row real)
+ *   - Subir / cambiar imagen de cada tile
+ *   - Añadir nuevos tiles (expandir el mapa)
+ *   - Eliminar tiles
+ *   - Reordenar via drag & drop (actualiza col/row)
+ *   - Editar label de cada tile
+ */
+
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  AlertCircle,
+  CheckCircle2,
+  GripVertical,
+  ImagePlus,
+  Loader2,
+  Map,
+  Plus,
+  Save,
+  Trash2,
+  X,
+} from "lucide-react";
+
+import { supabase } from "@/lib/api/client/supabase";
+import type { MapTile } from "./TileCanvas";
+
+// ─── Toast local ──────────────────────────────────────────────────────────────
+function Toast({ msg, ok, onClose }: { msg: string; ok: boolean; onClose: () => void }) {
+  useEffect(() => { const t = setTimeout(onClose, 3000); return () => clearTimeout(t); }, [onClose]);
+  return (
+    <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[300] flex items-center gap-3 px-5 py-3 shadow-lg text-[10px] font-bold uppercase tracking-widest"
+      style={{
+        background: ok ? "rgba(5,150,105,0.95)" : "rgba(185,28,28,0.95)",
+        color: "#fff",
+        border: `1px solid ${ok ? "rgba(52,211,153,0.3)" : "rgba(248,113,113,0.3)"}`,
+        borderRadius: "1px",
+      }}>
+      {ok ? <CheckCircle2 size={14} /> : <AlertCircle size={14} />}
+      {msg}
+    </div>
+  );
+}
+
+// ─── Hourglass ────────────────────────────────────────────────────────────────
+function Hourglass({ size = 14 }: { size?: number }) {
+  return (
+    <svg fill="none" height={size * 1.45} style={{ animation: "hg-flip 2.4s ease-in-out infinite", transformOrigin: "center", flexShrink: 0 }}
+      viewBox="0 0 22 32" width={size} xmlns="http://www.w3.org/2000/svg">
+      <style>{`@keyframes hg-flip{0%,40%{transform:rotate(0deg)}50%,90%{transform:rotate(180deg)}100%{transform:rotate(180deg)}}`}</style>
+      <rect fill="currentColor" height="2.5" opacity="0.7" rx="0" width="20" x="1" y="0" />
+      <rect fill="currentColor" height="2.5" opacity="0.7" rx="0" width="20" x="1" y="29.5" />
+      <path d="M2 2.5 L11 16 L20 2.5 Z" fill="currentColor" fillOpacity="0.2" stroke="currentColor" strokeOpacity="0.6" strokeWidth="0.8" />
+      <path d="M2 29.5 L11 16 L20 29.5 Z" fill="currentColor" fillOpacity="0.5" stroke="currentColor" strokeOpacity="0.6" strokeWidth="0.8" />
+    </svg>
+  );
+}
+
+// ─── Modal para añadir tile ───────────────────────────────────────────────────
+function ModalNuevoTile({
+  existingPositions,
+  onClose,
+  onCreated,
+}: {
+  existingPositions: { col: number; row: number }[];
+  onClose: () => void;
+  onCreated: (tile: MapTile) => void;
+}) {
+  const [col, setCol] = useState(0);
+  const [row, setRow] = useState(0);
+  const [label, setLabel] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const isOccupied = existingPositions.some(p => p.col === col && p.row === row);
+
+  const handleCreate = async () => {
+    if (isOccupied) { setError("Ya existe un tile en esa posición"); return; }
+    setSaving(true);
+    setError("");
+    try {
+      const maxOrder = existingPositions.length;
+      const { data, error: err } = await supabase
+        .from("map_tiles")
+        .insert({ world_id: "garlia", col, row, label: label || null, order: maxOrder })
+        .select()
+        .single();
+      if (err) throw err;
+      onCreated(data as MapTile);
+    } catch (e: any) {
+      setError(e.message || "Error al crear el tile");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[200] flex items-center justify-center"
+      style={{ background: "rgba(0,0,0,0.6)" }}
+      onClick={onClose}>
+      <div className="relative w-80 p-6 flex flex-col gap-4"
+        style={{ background: "var(--white-custom)", border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)", borderRadius: "2px" }}
+        onClick={e => e.stopPropagation()}>
+
+        <button className="absolute top-3 right-3 opacity-50 hover:opacity-100" onClick={onClose}>
+          <X size={14} />
+        </button>
+
+        <h3 className="font-black uppercase text-sm tracking-[0.15em]" style={{ fontFamily: "'Cinzel', serif", color: "var(--foreground)" }}>
+          Nuevo Tile
+        </h3>
+
+        <div className="grid grid-cols-2 gap-3">
+          {[["Columna (col)", col, setCol], ["Fila (row)", row, setRow]].map(([lbl, val, setter]: any) => (
+            <div key={lbl as string} className="flex flex-col gap-1">
+              <label className="text-[9px] font-bold uppercase tracking-widest" style={{ color: "color-mix(in srgb, var(--foreground) 50%, transparent)" }}>
+                {lbl as string}
+              </label>
+              <input
+                className="input-brand text-center font-black text-lg py-2"
+                min={0}
+                style={{ borderRadius: "1px" }}
+                type="number"
+                value={val as number}
+                onChange={e => setter(Math.max(0, parseInt(e.target.value) || 0))}
+              />
+            </div>
+          ))}
+        </div>
+
+        <div className="flex flex-col gap-1">
+          <label className="text-[9px] font-bold uppercase tracking-widest" style={{ color: "color-mix(in srgb, var(--foreground) 50%, transparent)" }}>
+            Etiqueta (opcional)
+          </label>
+          <input
+            className="input-brand px-3 py-2 text-sm"
+            placeholder="Ej: Noreste del continente"
+            style={{ borderRadius: "1px" }}
+            type="text"
+            value={label}
+            onChange={e => setLabel(e.target.value)}
+          />
+        </div>
+
+        {isOccupied && (
+          <p className="text-[10px] font-bold text-red-400">⚠ Ya existe un tile en [{col},{row}]</p>
+        )}
+        {error && (
+          <p className="text-[10px] font-bold text-red-400">{error}</p>
+        )}
+
+        {/* Preview de dónde quedará en la grilla */}
+        <div className="text-[9px] uppercase tracking-widest text-center font-bold"
+          style={{ color: "color-mix(in srgb, var(--accent) 60%, transparent)" }}>
+          Posición en grilla: columna {col}, fila {row}
+        </div>
+
+        <button
+          className="btn-brand w-full justify-center py-3 text-[11px] uppercase disabled:opacity-50"
+          disabled={saving || isOccupied}
+          style={{ letterSpacing: "0.12em" }}
+          onClick={handleCreate}
+        >
+          {saving ? <Hourglass size={12} /> : <Plus size={12} />}
+          Crear tile
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Tarjeta de tile ──────────────────────────────────────────────────────────
+function TileCard({
+  tile,
+  onImageUpload,
+  onLabelChange,
+  onDelete,
+  uploading,
+  dragHandleProps,
+}: {
+  tile: MapTile & { label?: string | null };
+  onImageUpload: (file: File) => void;
+  onLabelChange: (label: string) => void;
+  onDelete: () => void;
+  uploading: boolean;
+  dragHandleProps?: React.HTMLAttributes<HTMLDivElement>;
+}) {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [localLabel, setLocalLabel] = useState(tile.label || "");
+
+  return (
+    <div className="relative flex flex-col gap-0 border overflow-hidden"
+      style={{
+        background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+        borderColor: "color-mix(in srgb, var(--primary) 18%, transparent)",
+        borderRadius: "2px",
+        minHeight: 180,
+      }}>
+
+      {/* Header con drag handle y posición */}
+      <div className="flex items-center gap-2 px-3 py-2 border-b"
+        style={{ borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)", background: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
+        <div {...dragHandleProps} className="cursor-grab active:cursor-grabbing opacity-40 hover:opacity-80 transition-opacity">
+          <GripVertical size={12} />
+        </div>
+        <span className="text-[9px] font-black uppercase tracking-widest flex-1"
+          style={{ color: "var(--accent)", fontFamily: "'Cinzel', serif" }}>
+          [{tile.col}, {tile.row}]
+        </span>
+        <button
+          className="opacity-30 hover:opacity-80 hover:text-red-400 transition-all"
+          title="Eliminar tile"
+          onClick={onDelete}
+        >
+          <Trash2 size={11} />
+        </button>
+      </div>
+
+      {/* Thumbnail */}
+      <div
+        className="relative flex-1 flex items-center justify-center cursor-pointer group"
+        style={{ minHeight: 100, background: "color-mix(in srgb, var(--bg-main) 60%, transparent)" }}
+        onClick={() => fileRef.current?.click()}
+      >
+        {tile.image_url ? (
+          <>
+            <img
+              alt={`Tile ${tile.col},${tile.row}`}
+              className="absolute inset-0 w-full h-full object-cover"
+              src={tile.image_url}
+              style={{ opacity: 0.85 }}
+            />
+            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+              style={{ background: "rgba(0,0,0,0.5)" }}>
+              {uploading
+                ? <Hourglass size={16} />
+                : <ImagePlus size={18} style={{ color: "var(--accent)" }} />}
+            </div>
+          </>
+        ) : (
+          <div className="flex flex-col items-center gap-2 p-4">
+            {uploading
+              ? <Hourglass size={18} />
+              : <>
+                  <ImagePlus size={20} style={{ color: "color-mix(in srgb, var(--accent) 40%, transparent)" }} />
+                  <span className="text-[9px] font-bold uppercase tracking-widest text-center"
+                    style={{ color: "color-mix(in srgb, var(--accent) 40%, transparent)" }}>
+                    Subir imagen
+                  </span>
+                </>}
+          </div>
+        )}
+        <input
+          ref={fileRef}
+          accept="image/*"
+          className="hidden"
+          type="file"
+          onChange={e => { const f = e.target.files?.[0]; if (f) onImageUpload(f); e.target.value = ""; }}
+        />
+      </div>
+
+      {/* Label */}
+      <div className="px-3 py-2 border-t"
+        style={{ borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
+        <input
+          className="w-full text-[10px] font-semibold bg-transparent outline-none"
+          placeholder="Etiqueta del tile..."
+          style={{ color: "color-mix(in srgb, var(--foreground) 70%, transparent)" }}
+          value={localLabel}
+          onBlur={() => { if (localLabel !== (tile.label || "")) onLabelChange(localLabel); }}
+          onChange={e => setLocalLabel(e.target.value)}
+          onKeyDown={e => { if (e.key === "Enter") { onLabelChange(localLabel); (e.target as HTMLInputElement).blur(); } }}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ─── Editor principal ─────────────────────────────────────────────────────────
+export function EditorMapa() {
+  const [tiles, setTiles] = useState<(MapTile & { label?: string | null })[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
+  const [uploadingId, setUploadingId] = useState<string | null>(null);
+  const [showModal, setShowModal] = useState(false);
+
+  // Drag state
+  const draggedIdx = useRef<number | null>(null);
+  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
+
+  const showToast = useCallback((msg: string, ok: boolean) => setToast({ msg, ok }), []);
+
+  // ── Cargar tiles ──────────────────────────────────────────────────────────
+  const loadTiles = useCallback(async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("map_tiles")
+        .select("id, col, row, image_url, label, order")
+        .eq("world_id", "garlia")
+        .order("row")
+        .order("col");
+      if (error) throw error;
+      setTiles((data ?? []) as (MapTile & { label?: string | null })[]);
+    } catch {
+      showToast("Error al cargar los tiles", false);
+    } finally {
+      setLoading(false);
+    }
+  }, [showToast]);
+
+  useEffect(() => { loadTiles(); }, [loadTiles]);
+
+  // ── Subir imagen ──────────────────────────────────────────────────────────
+  const handleImageUpload = async (tileId: string, file: File) => {
+    setUploadingId(tileId);
+    try {
+      const ext = file.name.split(".").pop() || "png";
+      const path = `tiles/tile_${tileId}_${Date.now()}.${ext}`;
+      const { error: uploadErr } = await supabase.storage.from("wiki").upload(path, file, { upsert: true });
+      if (uploadErr) throw uploadErr;
+      const { data: urlData } = supabase.storage.from("wiki").getPublicUrl(path);
+      const image_url = urlData.publicUrl;
+      const { error: updateErr } = await supabase.from("map_tiles").update({ image_url }).eq("id", tileId);
+      if (updateErr) throw updateErr;
+      setTiles(prev => prev.map(t => t.id === tileId ? { ...t, image_url } : t));
+      showToast("Imagen subida", true);
+    } catch {
+      showToast("Error al subir la imagen", false);
+    } finally {
+      setUploadingId(null);
+    }
+  };
+
+  // ── Editar label ──────────────────────────────────────────────────────────
+  const handleLabelChange = async (tileId: string, label: string) => {
+    setTiles(prev => prev.map(t => t.id === tileId ? { ...t, label } : t));
+    try {
+      await supabase.from("map_tiles").update({ label: label || null }).eq("id", tileId);
+    } catch {
+      showToast("Error al guardar la etiqueta", false);
+    }
+  };
+
+  // ── Eliminar tile ─────────────────────────────────────────────────────────
+  const handleDelete = async (tileId: string) => {
+    if (!confirm("¿Eliminar este tile? Se perderá la referencia a la imagen.")) return;
+    try {
+      await supabase.from("map_tiles").delete().eq("id", tileId);
+      setTiles(prev => prev.filter(t => t.id !== tileId));
+      showToast("Tile eliminado", true);
+    } catch {
+      showToast("Error al eliminar", false);
+    }
+  };
+
+  // ── Drag & drop (reordenar col/row) ───────────────────────────────────────
+  const handleDragStart = (idx: number) => { draggedIdx.current = idx; };
+  const handleDragOver = (e: React.DragEvent, idx: number) => {
+    e.preventDefault();
+    setDragOverIdx(idx);
+  };
+  const handleDrop = async (targetIdx: number) => {
+    const srcIdx = draggedIdx.current;
+    if (srcIdx === null || srcIdx === targetIdx) {
+      setDragOverIdx(null);
+      draggedIdx.current = null;
+      return;
+    }
+    // Intercambiar col/row entre los dos tiles
+    const newTiles = [...tiles];
+    const src = { ...newTiles[srcIdx] };
+    const tgt = { ...newTiles[targetIdx] };
+    // Swap positions
+    [src.col, src.row, tgt.col, tgt.row] = [tgt.col, tgt.row, src.col, src.row];
+    newTiles[srcIdx] = src;
+    newTiles[targetIdx] = tgt;
+    setTiles(newTiles);
+    setDragOverIdx(null);
+    draggedIdx.current = null;
+    // Persistir en Supabase
+    try {
+      await Promise.all([
+        supabase.from("map_tiles").update({ col: src.col, row: src.row }).eq("id", src.id),
+        supabase.from("map_tiles").update({ col: tgt.col, row: tgt.row }).eq("id", tgt.id),
+      ]);
+      showToast("Posiciones actualizadas", true);
+    } catch {
+      showToast("Error al guardar posiciones", false);
+      loadTiles(); // recargar para consistencia
+    }
+  };
+
+  // ── Organizar en grilla visual ────────────────────────────────────────────
+  const maxCol = tiles.length > 0 ? Math.max(...tiles.map(t => t.col)) : 0;
+  const maxRow = tiles.length > 0 ? Math.max(...tiles.map(t => t.row)) : 0;
+
+  const getTileAt = (col: number, row: number) =>
+    tiles.find(t => t.col === col && t.row === row) ?? null;
+
+  const existingPositions = tiles.map(t => ({ col: t.col, row: t.row }));
+
+  return (
+    <div className="flex flex-col min-h-0 h-full">
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&display=swap');`}</style>
+
+      {toast && <Toast msg={toast.msg} ok={toast.ok} onClose={() => setToast(null)} />}
+      {showModal && (
+        <ModalNuevoTile
+          existingPositions={existingPositions}
+          onClose={() => setShowModal(false)}
+          onCreated={tile => { setTiles(prev => [...prev, tile as any]); setShowModal(false); showToast("Tile creado", true); }}
+        />
+      )}
+
+      {/* Header */}
+      <div className="flex items-center gap-3 px-5 py-4 border-b shrink-0"
+        style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)" }}>
+        <Map size={16} style={{ color: "var(--accent)" }} />
+        <h2 className="font-black uppercase text-sm tracking-[0.18em] flex-1"
+          style={{ fontFamily: "'Cinzel', serif", color: "var(--foreground)" }}>
+          Editor de Mapa
+        </h2>
+        <span className="text-[9px] font-bold uppercase tracking-widest"
+          style={{ color: "color-mix(in srgb, var(--accent) 50%, transparent)" }}>
+          {tiles.length} tiles · {tileGridDimensions(maxCol, maxRow)}
+        </span>
+        <button
+          className="btn-brand flex items-center gap-1.5 px-3 py-2 text-[10px] uppercase"
+          style={{ letterSpacing: "0.1em" }}
+          onClick={() => setShowModal(true)}
+        >
+          <Plus size={11} /> Nuevo tile
+        </button>
+      </div>
+
+      {/* Info */}
+      <div className="px-5 py-3 text-[10px] shrink-0"
+        style={{ color: "color-mix(in srgb, var(--foreground) 45%, transparent)", background: "color-mix(in srgb, var(--primary) 5%, transparent)" }}>
+        <span className="font-bold" style={{ color: "var(--accent)" }}>Grilla real:</span>{" "}
+        cada celda representa una posición [col, row] en el mapa.{" "}
+        Arrastra las tarjetas para intercambiar posiciones. Haz click en la imagen para cambiarla.
+      </div>
+
+      {/* Contenido */}
+      <div className="flex-1 overflow-y-auto p-5">
+        {loading ? (
+          <div className="flex items-center justify-center h-40 gap-2" style={{ color: "color-mix(in srgb, var(--accent) 50%, transparent)" }}>
+            <Hourglass size={16} /> Cargando tiles...
+          </div>
+        ) : tiles.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-60 gap-4">
+            <Map size={32} style={{ color: "color-mix(in srgb, var(--accent) 25%, transparent)" }} />
+            <p className="text-[11px] font-black uppercase tracking-widest text-center"
+              style={{ color: "color-mix(in srgb, var(--foreground) 30%, transparent)" }}>
+              No hay tiles aún
+            </p>
+            <button className="btn-brand flex items-center gap-2 px-4 py-3 text-[11px] uppercase"
+              style={{ letterSpacing: "0.12em" }}
+              onClick={() => setShowModal(true)}>
+              <Plus size={13} /> Añadir primer tile
+            </button>
+          </div>
+        ) : (
+          <>
+            {/* Vista de grilla: col × row */}
+            <div className="mb-6">
+              <p className="text-[9px] font-bold uppercase tracking-widest mb-3"
+                style={{ color: "color-mix(in srgb, var(--accent) 50%, transparent)" }}>
+                Vista de grilla — {maxCol + 1} col × {maxRow + 1} filas
+              </p>
+              <div
+                className="grid gap-2"
+                style={{ gridTemplateColumns: `repeat(${maxCol + 1}, minmax(140px, 1fr))` }}
+              >
+                {Array.from({ length: maxRow + 1 }, (_, row) =>
+                  Array.from({ length: maxCol + 1 }, (_, col) => {
+                    const tile = getTileAt(col, row);
+                    const idx = tile ? tiles.findIndex(t => t.id === tile.id) : -1;
+                    return (
+                      <div
+                        key={`${col}-${row}`}
+                        draggable={!!tile}
+                        style={{
+                          outline: dragOverIdx === idx ? `2px solid var(--accent)` : undefined,
+                          opacity: draggedIdx.current === idx ? 0.5 : 1,
+                          transition: "outline 0.1s",
+                        }}
+                        onDragOver={e => tile && handleDragOver(e, idx)}
+                        onDragStart={() => tile && handleDragStart(idx)}
+                        onDrop={() => tile && handleDrop(idx)}
+                        onDragEnd={() => { draggedIdx.current = null; setDragOverIdx(null); }}
+                      >
+                        {tile ? (
+                          <TileCard
+                            tile={tile}
+                            uploading={uploadingId === tile.id}
+                            dragHandleProps={{ draggable: false }}
+                            onDelete={() => handleDelete(tile.id)}
+                            onImageUpload={file => handleImageUpload(tile.id, file)}
+                            onLabelChange={label => handleLabelChange(tile.id, label)}
+                          />
+                        ) : (
+                          // Celda vacía
+                          <button
+                            className="w-full border border-dashed flex flex-col items-center justify-center gap-1.5 transition-all hover:border-accent/40"
+                            style={{
+                              minHeight: 120,
+                              borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)",
+                              background: "color-mix(in srgb, var(--primary) 4%, transparent)",
+                              borderRadius: "2px",
+                            }}
+                            onClick={() => setShowModal(true)}
+                          >
+                            <Plus size={14} style={{ color: "color-mix(in srgb, var(--accent) 30%, transparent)" }} />
+                            <span className="text-[8px] font-bold uppercase tracking-wider"
+                              style={{ color: "color-mix(in srgb, var(--accent) 25%, transparent)" }}>
+                              [{col},{row}]
+                            </span>
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+
+            {/* Botón para expandir */}
+            <div className="flex gap-2 flex-wrap">
+              {[
+                { label: "+ Columna a la derecha", col: maxCol + 1, row: 0 },
+                { label: "+ Fila abajo", col: 0, row: maxRow + 1 },
+              ].map(({ label, col, row }) => (
+                <button
+                  key={label}
+                  className="flex items-center gap-1.5 px-3 py-2 border border-dashed text-[10px] font-black uppercase transition-all hover:opacity-80"
+                  style={{
+                    borderColor: "color-mix(in srgb, var(--accent) 25%, transparent)",
+                    color: "color-mix(in srgb, var(--accent) 60%, transparent)",
+                    background: "color-mix(in srgb, var(--primary) 6%, transparent)",
+                    borderRadius: "1px",
+                    letterSpacing: "0.1em",
+                  }}
+                  onClick={async () => {
+                    try {
+                      const { data, error } = await supabase
+                        .from("map_tiles")
+                        .insert({ world_id: "garlia", col, row, order: tiles.length })
+                        .select()
+                        .single();
+                      if (error) throw error;
+                      setTiles(prev => [...prev, data as any]);
+                      showToast("Tile creado", true);
+                    } catch {
+                      showToast("Error al crear tile", false);
+                    }
+                  }}
+                >
+                  <Plus size={11} /> {label}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Helper ───────────────────────────────────────────────────────────────────
+function tileGridDimensions(maxCol: number, maxRow: number) {
+  return `${maxCol + 1}×${maxRow + 1}`;
+}

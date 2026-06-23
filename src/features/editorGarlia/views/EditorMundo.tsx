@@ -49,6 +49,7 @@ import { EditorHechizos } from "./EditorHechizos";
 import { EditorItem } from "./EditorItem";
 import { EditorNota } from "./EditorNota";
 import { EditorPersonaje } from "./EditorPersonaje";
+import { EditorMapa } from "./EditorMapa";
 import { EditorReino } from "./EditorReino";
 import { PanelHistoriaMundo } from "../components/EditorLineaTiempo";
 import {
@@ -2147,6 +2148,22 @@ function PanelListas({
               style={{ minHeight: "58vh" }}
             >
               <AdminDescubrimientos />
+            </div>
+          </div>
+
+          {/* MAPA */}
+          <div
+            className="border-b"
+            style={{
+              borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
+              minHeight: "70vh",
+            }}
+          >
+            <div
+              className="flex flex-col min-h-0"
+              style={{ minHeight: "68vh" }}
+            >
+              <EditorMapa />
             </div>
           </div>
 

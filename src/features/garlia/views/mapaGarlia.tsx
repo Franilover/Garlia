@@ -18,6 +18,7 @@ import { useIsAdmin } from "@/hooks/auth/useIsAdmin";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import { db } from "@/lib/api/client/db";
 import { supabase } from "@/lib/api/client/supabase";
+import { TileCanvas, type MapTile } from "@/features/garlia/views/TileCanvas";
 
 // ─── Hourglass — reemplaza Loader2 en todos los indicadores de carga ──────────
 function Hourglass({ size = 14 }: { size?: number }) {
@@ -1519,6 +1520,19 @@ export default function MapaInteractivo() {
   const currentReinoIdRef = useRef<string | null>(null);
   const showToast = (message: string, type: ToastType) => setToast({ message, type });
 
+  // ── Tiles del mapa global ────────────────────────────────────────────────────
+  const [mapTiles, setMapTiles] = useState<MapTile[]>([]);
+
+  useEffect(() => {
+    supabase
+      .from("map_tiles")
+      .select("id, col, row, image_url, label")
+      .eq("world_id", "garlia")
+      .order("row")
+      .order("col")
+      .then(({ data }) => { if (data) setMapTiles(data as MapTile[]); });
+  }, []);
+
   // ── Fondo color (color del mar) ──────────────────────────────────────────────
   // fondoColorGlobal: color del mapa del continente (guardado en config_mapa)
   // fondoColorReino: color del mapa del reino activo (guardado en reinos.fondo_color)
@@ -2104,28 +2118,41 @@ export default function MapaInteractivo() {
           </div>
         )}
 
-        <CanvasMap
-          editMode={editMode}
-          eyedropperActive={eyedropperActive}
-          fondoColor={fondoColor}
-          hiddenMarkers={hiddenMarkers}
-          imageSrc={currentImage}
-          isFirstOpen={isFirstOpen}
-          markers={editMode ? [...visibleMarkers, ...hiddenMarkers] : visibleMarkers}
-          selectedMarkerId={puntoSeleccionado?.id ?? reinoSeleccionado?.id ?? null}
-          tipo={vistaActual}
-          onEyedropperPick={handleFondoColorChange}
-          onMapClick={handleMapClick}
-          onMarkerClick={(m) => {
-            if (vistaActual === "global") {
-              handleReinoClick(m);
-            } else {
+        {vistaActual === "global" ? (
+          <TileCanvas
+            editMode={editMode}
+            eyedropperActive={eyedropperActive}
+            fondoColor={fondoColor}
+            hiddenMarkers={hiddenMarkers}
+            isFirstOpen={isFirstOpen}
+            markers={editMode ? [...visibleMarkers, ...hiddenMarkers] : visibleMarkers}
+            selectedMarkerId={reinoSeleccionado?.id ?? null}
+            tiles={mapTiles}
+            onEyedropperPick={handleFondoColorChange}
+            onMapClick={handleMapClick}
+            onMarkerClick={handleReinoClick}
+            onOpenPanel={isMobile && reinoSeleccionado ? () => setPanelOpen(true) : undefined}
+          />
+        ) : (
+          <CanvasMap
+            editMode={editMode}
+            eyedropperActive={eyedropperActive}
+            fondoColor={fondoColor}
+            hiddenMarkers={hiddenMarkers}
+            imageSrc={currentImage}
+            isFirstOpen={isFirstOpen}
+            markers={editMode ? [...visibleMarkers, ...hiddenMarkers] : visibleMarkers}
+            selectedMarkerId={puntoSeleccionado?.id ?? reinoSeleccionado?.id ?? null}
+            tipo={vistaActual}
+            onEyedropperPick={handleFondoColorChange}
+            onMapClick={handleMapClick}
+            onMarkerClick={(m) => {
               setPuntoSeleccionado(m);
               setPanelOpen(true);
-            }
-          }}
-          onOpenPanel={isMobile && (reinoSeleccionado || puntoSeleccionado) ? () => setPanelOpen(true) : undefined}
-        />
+            }}
+            onOpenPanel={isMobile && (reinoSeleccionado || puntoSeleccionado) ? () => setPanelOpen(true) : undefined}
+          />
+        )}
       </div>
 
       {/* ── SIDE PANEL (desktop) ── */}
