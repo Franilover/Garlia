@@ -1850,7 +1850,7 @@ function SidebarCapitulos({
 
   return (
     <div
-      className="shrink-0 flex flex-col border-l overflow-hidden"
+      className="shrink-0 flex flex-col border-r overflow-hidden"
       style={{
         width: "clamp(180px, 18vw, 240px)",
         borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
@@ -2177,7 +2177,7 @@ export function EditorCapitulosPanel() {
         {/* Sidebar de caps cuando estamos en biblioteca con libro seleccionado */}
         {enBiblioteca && vistaLibroId && (
           <div
-            className="fixed right-0 top-0 h-full z-30 flex flex-col border-l shadow-xl"
+            className="fixed right-0 top-0 h-full z-30 flex flex-col border-r shadow-xl"
             style={{
               width: "clamp(200px, 22vw, 280px)",
               borderColor:
@@ -2228,7 +2228,7 @@ export function EditorCapitulosPanel() {
                 capitulos.map((cap) => (
                   <div
                     key={cap.id}
-                    className="group relative flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-primary/5 transition-all border-l-2 border-transparent hover:border-primary/30"
+                    className="group relative flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-primary/5 transition-all border-r-2 border-transparent hover:border-primary/30"
                     onClick={() => handleSelectCap(vistaLibroId!, cap.id)}
                   >
                     <span
