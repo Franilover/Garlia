@@ -41,19 +41,19 @@ function ImagePickerModal({
 }) {
   const [Picker, setPicker] = useState<React.ComponentType<any> | null>(null);
   useEffect(() => {
-    import(
-      "@/features/editorGarlia/components/editorCapitulos/snippets/forms/SimpleImagePicker"
-    ).then(m => setPicker(() => m.default));
+    import("@/features/editorGarlia/components/editorCapitulos/snippets/forms/SimpleImagePicker").then(
+      (m) => setPicker(() => m.default),
+    );
   }, []);
 
   return (
     <div
-      className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4"
+      className="fixed inset-0 z-80 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4"
       onClick={onClose}
     >
       <div
         className="bg-white-custom rounded-t-2xl sm:rounded-2xl shadow-2xl border border-primary/15 w-full sm:max-w-lg p-5 max-h-[90dvh] overflow-y-auto"
-        onClick={e => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-2">
@@ -95,7 +95,9 @@ export function useReinoTiles(reinoId: string) {
     setLoading(false);
   }, [reinoId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const addTile = async (col: number, row: number) => {
     const { data, error } = await supabase
@@ -103,17 +105,19 @@ export function useReinoTiles(reinoId: string) {
       .insert({ reino_id: reinoId, col, row, order: tiles.length })
       .select()
       .single();
-    if (!error && data) setTiles(prev => [...prev, data as ReinoTile]);
+    if (!error && data) setTiles((prev) => [...prev, data as ReinoTile]);
     return !error;
   };
 
   const updateTileImage = async (tileId: string, image_url: string) => {
-    setTiles(prev => prev.map(t => t.id === tileId ? { ...t, image_url } : t));
+    setTiles((prev) =>
+      prev.map((t) => (t.id === tileId ? { ...t, image_url } : t)),
+    );
     await supabase.from("reino_tiles").update({ image_url }).eq("id", tileId);
   };
 
   const deleteTile = async (tileId: string) => {
-    setTiles(prev => prev.filter(t => t.id !== tileId));
+    setTiles((prev) => prev.filter((t) => t.id !== tileId));
     await supabase.from("reino_tiles").delete().eq("id", tileId);
   };
 
@@ -136,7 +140,8 @@ export function ReinoTileCanvas({
   editMode = false,
   tileSize = 1024,
 }: ReinoTileCanvasProps) {
-  const { tiles, loading, addTile, updateTileImage, deleteTile } = useReinoTiles(reinoId);
+  const { tiles, loading, addTile, updateTileImage, deleteTile } =
+    useReinoTiles(reinoId);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -156,11 +161,13 @@ export function ReinoTileCanvas({
   const [showAddMenu, setShowAddMenu] = useState(false);
 
   // ── Dimensiones ─────────────────────────────────────────────────────────────
-  const tilesWithImage = tiles.filter(t => t.image_url);
-  const minCol = tiles.length > 0 ? Math.min(...tiles.map(t => t.col)) : 0;
-  const minRow = tiles.length > 0 ? Math.min(...tiles.map(t => t.row)) : 0;
-  const totalCols = tiles.length > 0 ? Math.max(...tiles.map(t => t.col)) - minCol + 1 : 1;
-  const totalRows = tiles.length > 0 ? Math.max(...tiles.map(t => t.row)) - minRow + 1 : 1;
+  const tilesWithImage = tiles.filter((t) => t.image_url);
+  const minCol = tiles.length > 0 ? Math.min(...tiles.map((t) => t.col)) : 0;
+  const minRow = tiles.length > 0 ? Math.min(...tiles.map((t) => t.row)) : 0;
+  const totalCols =
+    tiles.length > 0 ? Math.max(...tiles.map((t) => t.col)) - minCol + 1 : 1;
+  const totalRows =
+    tiles.length > 0 ? Math.max(...tiles.map((t) => t.row)) - minRow + 1 : 1;
   const totalW = totalCols * tileSize;
   const totalH = totalRows * tileSize;
 
@@ -180,7 +187,7 @@ export function ReinoTileCanvas({
     const octx = oc.getContext("2d")!;
     let loaded = 0;
 
-    tilesWithImage.forEach(tile => {
+    tilesWithImage.forEach((tile) => {
       const img = new window.Image();
       if (tile.image_url!.startsWith("http")) img.crossOrigin = "anonymous";
       img.src = tile.image_url!;
@@ -204,14 +211,20 @@ export function ReinoTileCanvas({
         }
       };
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tiles.map(t => `${t.col}:${t.row}:${t.image_url}`).join("|"), tileSize, totalW, totalH]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    tiles.map((t) => `${t.col}:${t.row}:${t.image_url}`).join("|"),
+    tileSize,
+    totalW,
+    totalH,
+  ]);
 
   // ── Centrar ──────────────────────────────────────────────────────────────────
   const centerImage = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const scale = Math.min(canvas.width / totalW, canvas.height / totalH) * 0.95;
+    const scale =
+      Math.min(canvas.width / totalW, canvas.height / totalH) * 0.95;
     camRef.current = {
       x: (canvas.width - totalW * scale) / 2,
       y: (canvas.height - totalH * scale) / 2,
@@ -252,7 +265,10 @@ export function ReinoTileCanvas({
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       // Fondo
-      const bg = getComputedStyle(document.documentElement).getPropertyValue("--bg-main").trim() || "#f0e6d0";
+      const bg =
+        getComputedStyle(document.documentElement)
+          .getPropertyValue("--bg-main")
+          .trim() || "#f0e6d0";
       ctx.fillStyle = bg;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -268,7 +284,7 @@ export function ReinoTileCanvas({
         ctx.drawImage(compositeRef.current, 0, 0, iw, ih);
       } else if (compositeReadyRef.current && tiles.length > 0) {
         // tiles sin imagen: mostrar placeholder por cada tile
-        tiles.forEach(tile => {
+        tiles.forEach((tile) => {
           const tx = (tile.col - minCol) * tileSize * scale;
           const ty = (tile.row - minRow) * tileSize * scale;
           ctx.fillStyle = "rgba(0,0,0,0.06)";
@@ -299,12 +315,15 @@ export function ReinoTileCanvas({
 
       // Pins de ciudades
       const pulse = (Math.sin(t / 600) + 1) / 2;
-      const accent = getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || "#c08040";
+      const accent =
+        getComputedStyle(document.documentElement)
+          .getPropertyValue("--accent")
+          .trim() || "#c08040";
       const isDark = false;
 
       for (const d of detalles) {
-        const mx = (d.coord_x / 100) * iw;
-        const my = (d.coord_y / 100) * ih;
+        const mx = ((d.coord_x ?? 50) / 100) * iw;
+        const my = ((d.coord_y ?? 50) / 100) * ih;
         const isSelected = d.id === selectedPinId;
 
         if (isSelected) {
@@ -351,7 +370,11 @@ export function ReinoTileCanvas({
         ctx.fillStyle = "#fff";
         ctx.font = "700 10px sans-serif";
         ctx.textAlign = "center";
-        ctx.fillText("Tocá el mapa para mover el punto", canvas.width / 2, canvas.height - 16);
+        ctx.fillText(
+          "Tocá el mapa para mover el punto",
+          canvas.width / 2,
+          canvas.height - 16,
+        );
         ctx.textAlign = "left";
       }
 
@@ -360,8 +383,20 @@ export function ReinoTileCanvas({
 
     animFrameRef.current = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(animFrameRef.current);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [compositeReady, detalles, selectedPinId, totalW, totalH, tileSize, tiles, minCol, minRow, totalCols, totalRows]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    compositeReady,
+    detalles,
+    selectedPinId,
+    totalW,
+    totalH,
+    tileSize,
+    tiles,
+    minCol,
+    minRow,
+    totalCols,
+    totalRows,
+  ]);
 
   // ── Helpers coord ─────────────────────────────────────────────────────────────
   const canvasToPct = (clientX: number, clientY: number) => {
@@ -372,8 +407,14 @@ export function ReinoTileCanvas({
     const px = clientX - rect.left;
     const py = clientY - rect.top;
     return {
-      x: Math.max(0, Math.min(100, Math.round(((px - cx) / (totalW * scale)) * 100))),
-      y: Math.max(0, Math.min(100, Math.round(((py - cy) / (totalH * scale)) * 100))),
+      x: Math.max(
+        0,
+        Math.min(100, Math.round(((px - cx) / (totalW * scale)) * 100)),
+      ),
+      y: Math.max(
+        0,
+        Math.min(100, Math.round(((py - cy) / (totalH * scale)) * 100)),
+      ),
     };
   };
 
@@ -387,8 +428,8 @@ export function ReinoTileCanvas({
     const px = clientX - rect.left;
     const py = clientY - rect.top;
     for (const d of [...detalles].reverse()) {
-      const mx = (d.coord_x / 100) * iw + cx;
-      const my = (d.coord_y / 100) * ih + cy;
+      const mx = ((d.coord_x ?? 50) / 100) * iw + cx;
+      const my = ((d.coord_y ?? 50) / 100) * ih + cy;
       if (Math.hypot(px - mx, py - my) < 14) return d;
     }
     return null;
@@ -402,9 +443,16 @@ export function ReinoTileCanvas({
     const ox = clientX - rect.left;
     const oy = clientY - rect.top;
     const cam = camRef.current;
-    const newScale = Math.max(0.1, Math.min(10, cam.scale * (1 - delta * 0.001)));
+    const newScale = Math.max(
+      0.1,
+      Math.min(10, cam.scale * (1 - delta * 0.001)),
+    );
     const ratio = newScale / cam.scale;
-    camRef.current = { scale: newScale, x: ox - (ox - cam.x) * ratio, y: oy - (oy - cam.y) * ratio };
+    camRef.current = {
+      scale: newScale,
+      x: ox - (ox - cam.x) * ratio,
+      y: oy - (oy - cam.y) * ratio,
+    };
   };
 
   // ── Eventos ───────────────────────────────────────────────────────────────────
@@ -412,12 +460,20 @@ export function ReinoTileCanvas({
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const onWheel = (e: WheelEvent) => { e.preventDefault(); zoomAt(e.clientX, e.clientY, e.deltaY); };
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      zoomAt(e.clientX, e.clientY, e.deltaY);
+    };
 
     const onPointerDown = (e: PointerEvent) => {
       if (e.button !== 0 && e.pointerType !== "touch") return;
       isDragging.current = false;
-      dragStart.current = { x: e.clientX, y: e.clientY, camX: camRef.current.x, camY: camRef.current.y };
+      dragStart.current = {
+        x: e.clientX,
+        y: e.clientY,
+        camX: camRef.current.x,
+        camY: camRef.current.y,
+      };
       canvas.setPointerCapture(e.pointerId);
     };
 
@@ -426,7 +482,11 @@ export function ReinoTileCanvas({
       const dy = e.clientY - dragStart.current.y;
       if (Math.hypot(dx, dy) > 4) isDragging.current = true;
       if (isDragging.current) {
-        camRef.current = { ...camRef.current, x: dragStart.current.camX + dx, y: dragStart.current.camY + dy };
+        camRef.current = {
+          ...camRef.current,
+          x: dragStart.current.camX + dx,
+          y: dragStart.current.camY + dy,
+        };
       }
     };
 
@@ -437,14 +497,20 @@ export function ReinoTileCanvas({
 
         if (selectedPinId) {
           // Mover pin seleccionado
-          onDetallesChange(detalles.map(d => d.id === selectedPinId ? { ...d, coord_x: pct.x, coord_y: pct.y } : d));
+          onDetallesChange(
+            detalles.map((d) =>
+              d.id === selectedPinId
+                ? { ...d, coord_x: pct.x, coord_y: pct.y }
+                : d,
+            ),
+          );
           setSelectedPinId(null);
           return;
         }
 
         const pin = findPinAt(e.clientX, e.clientY);
         if (pin) {
-          setSelectedPinId(prev => prev === pin.id ? null : pin.id);
+          setSelectedPinId((prev) => (prev === pin.id ? null : pin.id));
         }
       }
       isDragging.current = false;
@@ -461,8 +527,14 @@ export function ReinoTileCanvas({
 
     const onTouchMove = (e: TouchEvent) => {
       if (e.touches.length === 2 && lastPinchDist.current !== null) {
-        const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
-        const mid = { x: (e.touches[0].clientX + e.touches[1].clientX) / 2, y: (e.touches[0].clientY + e.touches[1].clientY) / 2 };
+        const dist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY,
+        );
+        const mid = {
+          x: (e.touches[0].clientX + e.touches[1].clientX) / 2,
+          y: (e.touches[0].clientY + e.touches[1].clientY) / 2,
+        };
         zoomAt(mid.x, mid.y, (lastPinchDist.current - dist) * 3);
         lastPinchDist.current = dist;
       }
@@ -474,7 +546,9 @@ export function ReinoTileCanvas({
     canvas.addEventListener("pointerup", onPointerUp);
     canvas.addEventListener("touchstart", onTouchStart, { passive: true });
     canvas.addEventListener("touchmove", onTouchMove, { passive: true });
-    canvas.addEventListener("touchend", () => { lastPinchDist.current = null; });
+    canvas.addEventListener("touchend", () => {
+      lastPinchDist.current = null;
+    });
 
     return () => {
       canvas.removeEventListener("wheel", onWheel);
@@ -482,24 +556,39 @@ export function ReinoTileCanvas({
       canvas.removeEventListener("pointermove", onPointerMove);
       canvas.removeEventListener("pointerup", onPointerUp);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedPinId, detalles, totalW, totalH]);
 
   // ── Zoom buttons ──────────────────────────────────────────────────────────────
-  const zoomIn = () => { const c = canvasRef.current; if (c) zoomAt(c.width / 2, c.height / 2, -300); };
-  const zoomOut = () => { const c = canvasRef.current; if (c) zoomAt(c.width / 2, c.height / 2, 300); };
+  const zoomIn = () => {
+    const c = canvasRef.current;
+    if (c) zoomAt(c.width / 2, c.height / 2, -300);
+  };
+  const zoomOut = () => {
+    const c = canvasRef.current;
+    if (c) zoomAt(c.width / 2, c.height / 2, 300);
+  };
 
   // ── Estado vacío ──────────────────────────────────────────────────────────────
   if (!loading && tiles.length === 0) {
     return (
       <div
         className="relative w-full flex flex-col items-center justify-center gap-3 py-14 rounded-xl border border-dashed"
-        style={{ borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)", background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}
+        style={{
+          borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)",
+          background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+        }}
       >
         <Map className="text-primary/20" size={28} strokeWidth={1} />
-        <p className="text-[9px] font-black uppercase tracking-widest text-primary/30">Sin tiles de mapa</p>
+        <p className="text-[9px] font-black uppercase tracking-widest text-primary/30">
+          Sin tiles de mapa
+        </p>
         <div className="flex gap-2">
-          {[[0,0],[1,0],[0,1]].map(([c,r]) => (
+          {[
+            [0, 0],
+            [1, 0],
+            [0, 1],
+          ].map(([c, r]) => (
             <button
               key={`${c}-${r}`}
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border border-primary/15 text-primary/40 hover:text-primary hover:border-primary/30 transition-all"
@@ -527,17 +616,29 @@ export function ReinoTileCanvas({
           cursor: selectedPinId ? "crosshair" : "grab",
         }}
       >
-        <canvas ref={canvasRef} className="absolute inset-0 touch-none w-full h-full" />
+        <canvas
+          ref={canvasRef}
+          className="absolute inset-0 touch-none w-full h-full"
+        />
 
         {/* Zoom controls */}
         <div className="absolute bottom-3 right-3 z-10 flex flex-col gap-1">
-          {[{ l: "+", fn: zoomIn }, { l: "−", fn: zoomOut }].map(({ l, fn }) => (
+          {[
+            { l: "+", fn: zoomIn },
+            { l: "−", fn: zoomOut },
+          ].map(({ l, fn }) => (
             <button
               key={l}
               className="w-7 h-7 flex items-center justify-center rounded-lg text-sm font-black shadow transition-all"
-              style={{ background: "color-mix(in srgb, var(--primary) 80%, transparent)", color: "#fff" }}
+              style={{
+                background:
+                  "color-mix(in srgb, var(--primary) 80%, transparent)",
+                color: "#fff",
+              }}
               onClick={fn}
-            >{l}</button>
+            >
+              {l}
+            </button>
           ))}
         </div>
 
@@ -545,7 +646,11 @@ export function ReinoTileCanvas({
         {selectedPinId && (
           <button
             className="absolute top-2 right-2 z-10 flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase"
-            style={{ background: "color-mix(in srgb, var(--foreground) 70%, transparent)", color: "#fff" }}
+            style={{
+              background:
+                "color-mix(in srgb, var(--foreground) 70%, transparent)",
+              color: "#fff",
+            }}
             onClick={() => setSelectedPinId(null)}
           >
             <X size={10} /> Cancelar
@@ -570,24 +675,46 @@ export function ReinoTileCanvas({
             <div className="relative">
               <button
                 className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-primary/15 text-primary/50 hover:text-primary hover:border-primary/30 transition-all"
-                onClick={() => setShowAddMenu(v => !v)}
+                onClick={() => setShowAddMenu((v) => !v)}
               >
                 <Plus size={10} /> Añadir tile
               </button>
               {showAddMenu && (
                 <div
                   className="absolute right-0 top-full mt-1 z-30 rounded-xl shadow-xl border overflow-hidden"
-                  style={{ background: "var(--white-custom)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)", minWidth: 160 }}
+                  style={{
+                    background: "var(--white-custom)",
+                    borderColor:
+                      "color-mix(in srgb, var(--primary) 12%, transparent)",
+                    minWidth: 160,
+                  }}
                 >
                   {[
-                    { label: "→ Columna derecha", col: (tiles.length > 0 ? Math.max(...tiles.map(t=>t.col)) : -1) + 1, row: minRow },
-                    { label: "↓ Fila abajo",      col: minCol, row: (tiles.length > 0 ? Math.max(...tiles.map(t=>t.row)) : -1) + 1 },
+                    {
+                      label: "→ Columna derecha",
+                      col:
+                        (tiles.length > 0
+                          ? Math.max(...tiles.map((t) => t.col))
+                          : -1) + 1,
+                      row: minRow,
+                    },
+                    {
+                      label: "↓ Fila abajo",
+                      col: minCol,
+                      row:
+                        (tiles.length > 0
+                          ? Math.max(...tiles.map((t) => t.row))
+                          : -1) + 1,
+                    },
                   ].map(({ label, col, row }) => (
                     <button
                       key={label}
                       className="w-full text-left px-3 py-2.5 text-[10px] font-black uppercase tracking-widest hover:bg-primary/5 transition-colors"
                       style={{ color: "var(--foreground)" }}
-                      onClick={async () => { await addTile(col, row); setShowAddMenu(false); }}
+                      onClick={async () => {
+                        await addTile(col, row);
+                        setShowAddMenu(false);
+                      }}
                     >
                       {label}
                     </button>
@@ -599,13 +726,15 @@ export function ReinoTileCanvas({
 
           {/* Lista de tiles */}
           <div className="grid grid-cols-2 gap-2">
-            {tiles.map(tile => (
+            {tiles.map((tile) => (
               <div
                 key={tile.id}
                 className="relative rounded-lg overflow-hidden border group/tile"
                 style={{
-                  borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
-                  background: "color-mix(in srgb, var(--primary) 5%, transparent)",
+                  borderColor:
+                    "color-mix(in srgb, var(--primary) 12%, transparent)",
+                  background:
+                    "color-mix(in srgb, var(--primary) 5%, transparent)",
                 }}
               >
                 {/* Thumbnail */}
@@ -665,7 +794,10 @@ export function ReinoTileCanvas({
         <ImagePickerModal
           title={`Imagen tile [${pickerTile.col}, ${pickerTile.row}]`}
           onClose={() => setPickerTile(null)}
-          onSelect={url => { updateTileImage(pickerTile.id, url); setPickerTile(null); }}
+          onSelect={(url) => {
+            updateTileImage(pickerTile.id, url);
+            setPickerTile(null);
+          }}
         />
       )}
     </div>
