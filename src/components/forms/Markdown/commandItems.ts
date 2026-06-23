@@ -29,21 +29,29 @@ export interface CommandItem {
 }
 
 export type SnippetAction =
-  | { type: "choice";   target: string }
-  | { type: "section";  id: string; label?: string }
-  | { type: "use";      word: string; itemId: string; targetOk: string; targetFail?: string }
-  | { type: "gate";     itemId: string }
-  | { type: "drop";     raw: string }
-  | { type: "sound";    raw: string }
-  | { type: "img";      url: string; caption?: string }
-  | { type: "float";    word: string; url: string; caption?: string }
+  | { type: "choice"; target: string }
+  | { type: "section"; id: string; label?: string }
+  | {
+      type: "use";
+      word: string;
+      itemId: string;
+      targetOk: string;
+      targetFail?: string;
+    }
+  | { type: "gate"; itemId: string }
+  | { type: "drop"; raw: string }
+  | { type: "sound"; raw: string }
+  | { type: "img"; url: string; caption?: string }
+  | { type: "float"; word: string; url: string; caption?: string }
   | { type: "wikilink"; target: string };
 
 export type WikiEntity = { name: string; type: string };
 
 /** Normaliza string[] | WikiEntity[] → WikiEntity[] */
-export function toWikiEntities(entities: (string | WikiEntity)[]): WikiEntity[] {
-  return entities.map(e =>
+export function toWikiEntities(
+  entities: (string | WikiEntity)[],
+): WikiEntity[] {
+  return entities.map((e) =>
     typeof e === "string" ? { name: e, type: "nota" } : e,
   );
 }
@@ -84,12 +92,21 @@ export const COMMAND_ITEMS: CommandItem[] = [
     snippet: "\n### ",
   },
   {
+    id: "heading4",
+    label: "Título H4",
+    description: "#### Encabezado, incluido en el TOC",
+    keywords: ["h4", "tit", "titulo", "título", "head"],
+    icon: "H4",
+    snippet: "\n#### ",
+  },
+  {
     id: "table",
     label: "Tabla",
     description: "Inserta una tabla markdown",
     keywords: ["tab", "table", "tabla", "grid"],
     icon: "⊞",
-    snippet: "\n| Col 1 | Col 2 | Col 3 |\n|---|---|---|\n| dato | dato | dato |\n",
+    snippet:
+      "\n| Col 1 | Col 2 | Col 3 |\n|---|---|---|\n| dato | dato | dato |\n",
   },
   {
     id: "list",
@@ -308,7 +325,15 @@ export const COMMAND_ITEMS: CommandItem[] = [
     id: "template-report",
     label: "Plantilla: Reporte",
     description: "Reporte técnico / ejecutivo",
-    keywords: ["tem", "template", "plan", "repo", "report", "reporte", "ejecut"],
+    keywords: [
+      "tem",
+      "template",
+      "plan",
+      "repo",
+      "report",
+      "reporte",
+      "ejecut",
+    ],
     icon: "📊",
     snippet:
       "\n# Reporte: {{título}}\n\n> [!NOTE]\n> Resumen ejecutivo del reporte.\n\n[[TOC]]\n\n## Contexto\n\nDescripción del contexto o problema.\n\n## Análisis\n\n| Métrica | Valor | Objetivo |\n|---|---|---|\n| KPI 1 | - | - |\n| KPI 2 | - | - |\n\n## Conclusiones\n\n> [!SUCCESS]\n> Escribe aquí los resultados positivos.\n\n## Próximos pasos\n\n- [ ] Acción 1\n- [ ] Acción 2\n",
@@ -316,9 +341,48 @@ export const COMMAND_ITEMS: CommandItem[] = [
   {
     id: "link-list",
     label: "Lista de Enlaces",
-    description: "Bloque de links con título personalizado",
-    keywords: ["link", "lista", "url", "enlace", "web"],
-    icon: "",
-    snippet: "",
+    description: ":::links bloque con título personalizado",
+    keywords: [
+      "link",
+      "links",
+      "lista",
+      "url",
+      "urls",
+      "enlace",
+      "enlaces",
+      "web",
+      "coleccion",
+      "colección",
+    ],
+    icon: "🌐",
+    snippet:
+      "\n:::links Mis enlaces\nhttps://ejemplo.com\nhttps://otro-sitio.com\n:::\n",
+  },
+  {
+    id: "strikethrough",
+    label: "Tachado",
+    description: "~~texto tachado~~",
+    keywords: ["tac", "tach", "tachado", "strike", "del", "elimin"],
+    icon: "S̶",
+    snippet: "~~texto~~",
+    cursorOffset: 7,
+  },
+  {
+    id: "inline-code",
+    label: "Código en línea",
+    description: "`código` en línea, dentro de un párrafo",
+    keywords: ["cod", "code", "inline", "linea", "línea", "snippet", "mono"],
+    icon: "`",
+    snippet: "`código`",
+    cursorOffset: 7,
+  },
+  {
+    id: "callout-error",
+    label: "Callout Error",
+    description: "> [!ERROR] rojo error",
+    keywords: ["cal", "callout", "error", "err", "fail", "rojo"],
+    icon: "❌",
+    snippet: "\n> [!ERROR]\n> Describe el error aquí.\n",
+    cursorOffset: 1,
   },
 ];
