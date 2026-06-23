@@ -82,15 +82,27 @@ export function TileCanvas({
   } | null>(null);
 
   const cssColorsRef = useRef({
-    primary: "#6b4423", accent: "#c08040", bg: "#f0e6d0",
-    fg: "#2a1304", bgMenu: "#3d2010", parchBg: "#3d2010",
-    parchText: "#2a1304", whiteCustom: "#fdf6ee",
-    isDark: false, labelBg: "#fdf6ee", labelText: "#2a1304",
+    primary: "#6b4423",
+    accent: "#c08040",
+    bg: "#f0e6d0",
+    fg: "#2a1304",
+    bgMenu: "#3d2010",
+    parchBg: "#3d2010",
+    parchText: "#2a1304",
+    whiteCustom: "#fdf6ee",
+    isDark: false,
+    labelBg: "#fdf6ee",
+    labelText: "#2a1304",
   });
 
   // ── Calcular dimensiones totales del canvas virtual ──────────────────────
-  const totalCols = tiles.length > 0 ? Math.max(...tiles.map(t => t.col)) + 1 : 1;
-  const totalRows = tiles.length > 0 ? Math.max(...tiles.map(t => t.row)) + 1 : 1;
+  // Usar rango real (max - min) para no generar espacio vacío si la grilla no empieza en 0
+  const minCol = tiles.length > 0 ? Math.min(...tiles.map((t) => t.col)) : 0;
+  const minRow = tiles.length > 0 ? Math.min(...tiles.map((t) => t.row)) : 0;
+  const totalCols =
+    tiles.length > 0 ? Math.max(...tiles.map((t) => t.col)) - minCol + 1 : 1;
+  const totalRows =
+    tiles.length > 0 ? Math.max(...tiles.map((t) => t.row)) - minRow + 1 : 1;
   const totalW = totalCols * tileSize;
   const totalH = totalRows * tileSize;
 
@@ -106,23 +118,32 @@ export function TileCanvas({
       const hexToLuma = (hex: string) => {
         const h = hex.replace("#", "");
         if (h.length < 6) return 0.5;
-        const r = parseInt(h.slice(0,2),16)/255;
-        const g = parseInt(h.slice(2,4),16)/255;
-        const b = parseInt(h.slice(4,6),16)/255;
-        return 0.2126*r + 0.7152*g + 0.0722*b;
+        const r = parseInt(h.slice(0, 2), 16) / 255;
+        const g = parseInt(h.slice(2, 4), 16) / 255;
+        const b = parseInt(h.slice(4, 6), 16) / 255;
+        return 0.2126 * r + 0.7152 * g + 0.0722 * b;
       };
       const dark = hexToLuma(bgMain) < 0.35;
       cssColorsRef.current = {
         primary: get("--primary") || "#6b4423",
         accent: get("--accent") || "#c08040",
-        bg: bgMain, fg: fgColor, bgMenu: bgMenuColor,
-        parchBg: bgMenuColor, parchText: fgColor, whiteCustom: wc,
-        isDark: dark, labelBg: dark ? bgMenuColor : wc, labelText: fgColor,
+        bg: bgMain,
+        fg: fgColor,
+        bgMenu: bgMenuColor,
+        parchBg: bgMenuColor,
+        parchText: fgColor,
+        whiteCustom: wc,
+        isDark: dark,
+        labelBg: dark ? bgMenuColor : wc,
+        labelText: fgColor,
       };
     };
     read();
     const obs = new MutationObserver(read);
-    obs.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme", "class"] });
+    obs.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme", "class"],
+    });
     return () => obs.disconnect();
   }, []);
 
@@ -132,7 +153,7 @@ export function TileCanvas({
     setCompositeReady(false);
     fogCacheRef.current = null;
 
-    const tilesWithImage = tiles.filter(t => t.image_url);
+    const tilesWithImage = tiles.filter((t) => t.image_url);
     if (tilesWithImage.length === 0) {
       // Sin imágenes: crear canvas vacío para que el fondo funcione
       const oc = new OffscreenCanvas(tileSize, tileSize);
@@ -142,16 +163,26 @@ export function TileCanvas({
       return;
     }
 
+    // Normalizar: el tile con menor col/row arranca en 0,0
+    // Esto permite empezar desde col=1 sin dejar espacio vacío a la izquierda
+    const minCol = Math.min(...tilesWithImage.map((t) => t.col));
+    const minRow = Math.min(...tilesWithImage.map((t) => t.row));
+
     const oc = new OffscreenCanvas(totalW, totalH);
     const octx = oc.getContext("2d")!;
     let loaded = 0;
 
-    tilesWithImage.forEach(tile => {
+    tilesWithImage.forEach((tile) => {
       const img = new window.Image();
-      img.crossOrigin = "anonymous";
+      // crossOrigin solo para URLs externas — las rutas relativas (/dibujos/...) no lo necesitan
+      if (tile.image_url!.startsWith("http")) {
+        img.crossOrigin = "anonymous";
+      }
       img.src = tile.image_url!;
+      const drawX = (tile.col - minCol) * tileSize;
+      const drawY = (tile.row - minRow) * tileSize;
       img.onload = () => {
-        octx.drawImage(img, tile.col * tileSize, tile.row * tileSize, tileSize, tileSize);
+        octx.drawImage(img, drawX, drawY, tileSize, tileSize);
         loaded++;
         if (loaded === tilesWithImage.length) {
           compositeRef.current = oc;
@@ -168,8 +199,13 @@ export function TileCanvas({
         }
       };
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tiles.map(t => `${t.col}:${t.row}:${t.image_url}`).join("|"), tileSize, totalW, totalH]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    tiles.map((t) => `${t.col}:${t.row}:${t.image_url}`).join("|"),
+    tileSize,
+    totalW,
+    totalH,
+  ]);
 
   // ── Centrar imagen al cargar ──────────────────────────────────────────────
   const centerImage = useCallback(() => {
@@ -205,7 +241,9 @@ export function TileCanvas({
     if (shouldShowCompass) {
       compassTimerRef.current = setTimeout(() => setShowCompass(false), 5000);
     }
-    return () => { if (compassTimerRef.current) clearTimeout(compassTimerRef.current); };
+    return () => {
+      if (compassTimerRef.current) clearTimeout(compassTimerRef.current);
+    };
   }, [compositeReady, centerImage, isFirstOpen]);
 
   // ── Resize observer ───────────────────────────────────────────────────────
@@ -230,7 +268,10 @@ export function TileCanvas({
     centerImage();
     const ro = new ResizeObserver(resize);
     ro.observe(container);
-    return () => { ro.disconnect(); if (debounceTimer) clearTimeout(debounceTimer); };
+    return () => {
+      ro.disconnect();
+      if (debounceTimer) clearTimeout(debounceTimer);
+    };
   }, [centerImage]);
 
   // ── Render loop ───────────────────────────────────────────────────────────
@@ -240,7 +281,9 @@ export function TileCanvas({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const isMobileDevice = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+    const isMobileDevice = /Mobi|Android|iPhone|iPad/i.test(
+      navigator.userAgent,
+    );
     const FRAME_MS = isMobileDevice ? 34 : 16;
     let lastFrameTime = 0;
 
@@ -253,7 +296,8 @@ export function TileCanvas({
       pulseRef.current = t;
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      const { primary, accent, bg, fg, labelBg, labelText, isDark, bgMenu } = cssColorsRef.current;
+      const { primary, accent, bg, fg, labelBg, labelText, isDark, bgMenu } =
+        cssColorsRef.current;
 
       ctx.fillStyle = fondoColor || bg;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -293,7 +337,11 @@ export function TileCanvas({
           const FOG_W = Math.min(totalW, 1200);
           const FOG_H = Math.round(FOG_W * (totalH / totalW));
           const fogBg = fondoColor || bg;
-          const needsRebuild = !cache || cache.iw !== FOG_W || cache.ih !== FOG_H || cache.bg !== fogBg;
+          const needsRebuild =
+            !cache ||
+            cache.iw !== FOG_W ||
+            cache.ih !== FOG_H ||
+            cache.bg !== fogBg;
           if (needsRebuild) {
             const maxDim = Math.max(FOG_W, FOG_H);
             const clearRadius = maxDim * 0.05;
@@ -308,7 +356,14 @@ export function TileCanvas({
             for (const m of markers) {
               const mx = (m.coord_x / 100) * FOG_W;
               const my = (m.coord_y / 100) * FOG_H;
-              const grad = fogCtx.createRadialGradient(mx, my, clearRadius * 0.2, mx, my, fadeRadius);
+              const grad = fogCtx.createRadialGradient(
+                mx,
+                my,
+                clearRadius * 0.2,
+                mx,
+                my,
+                fadeRadius,
+              );
               grad.addColorStop(0, "rgba(0,0,0,1)");
               grad.addColorStop(0.45, "rgba(0,0,0,0.98)");
               grad.addColorStop(0.72, "rgba(0,0,0,0.7)");
@@ -325,7 +380,13 @@ export function TileCanvas({
             deepCtx.fillStyle = fogBg;
             deepCtx.globalAlpha = 0.55;
             deepCtx.fillRect(0, 0, FOG_W, FOG_H);
-            fogCacheRef.current = { canvas: fogCanvas, deep: deepCanvas, iw: FOG_W, ih: FOG_H, bg: fogBg };
+            fogCacheRef.current = {
+              canvas: fogCanvas,
+              deep: deepCanvas,
+              iw: FOG_W,
+              ih: FOG_H,
+              bg: fogBg,
+            };
           }
           const fc = fogCacheRef.current!;
           ctx.drawImage(fc.deep, 0, 0, iw, ih);
@@ -340,7 +401,7 @@ export function TileCanvas({
           const mx = (m.coord_x / 100) * iw;
           const my = (m.coord_y / 100) * ih;
           const isSelected = m.id === selectedMarkerId;
-          const isHidden = hiddenMarkers.some(h => h.id === m.id);
+          const isHidden = hiddenMarkers.some((h) => h.id === m.id);
           const markerColor = isHidden ? `rgba(120,120,120,0.5)` : accent;
 
           if (isSelected) {
@@ -359,7 +420,9 @@ export function TileCanvas({
           ctx.arc(mx, my, isSelected ? 6 : 5, 0, Math.PI * 2);
           ctx.fillStyle = markerColor;
           ctx.fill();
-          ctx.strokeStyle = isDark ? `rgba(0,0,0,0.6)` : `rgba(255,255,255,0.8)`;
+          ctx.strokeStyle = isDark
+            ? `rgba(0,0,0,0.6)`
+            : `rgba(255,255,255,0.8)`;
           ctx.lineWidth = 1.5;
           ctx.stroke();
 
@@ -435,8 +498,22 @@ export function TileCanvas({
 
     animFrameRef.current = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(animFrameRef.current);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [compositeReady, showCompass, mapFading, editMode, fondoColor, selectedMarkerId, markers, hiddenMarkers, totalW, totalH, tileSize, totalCols, totalRows]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    compositeReady,
+    showCompass,
+    mapFading,
+    editMode,
+    fondoColor,
+    selectedMarkerId,
+    markers,
+    hiddenMarkers,
+    totalW,
+    totalH,
+    tileSize,
+    totalCols,
+    totalRows,
+  ]);
 
   // ── Helpers de coordenadas ────────────────────────────────────────────────
   const canvasToMapPct = (clientX: number, clientY: number) => {
@@ -477,7 +554,10 @@ export function TileCanvas({
     const ox = clientX - rect.left;
     const oy = clientY - rect.top;
     const cam = camRef.current;
-    const newScale = Math.max(0.15, Math.min(8, cam.scale * (1 - delta * 0.001)));
+    const newScale = Math.max(
+      0.15,
+      Math.min(8, cam.scale * (1 - delta * 0.001)),
+    );
     const ratio = newScale / cam.scale;
     camRef.current = {
       scale: newScale,
@@ -499,7 +579,12 @@ export function TileCanvas({
     const onPointerDown = (e: PointerEvent) => {
       if (e.button !== 0 && e.pointerType !== "touch") return;
       isDragging.current = false;
-      dragStart.current = { x: e.clientX, y: e.clientY, camX: camRef.current.x, camY: camRef.current.y };
+      dragStart.current = {
+        x: e.clientX,
+        y: e.clientY,
+        camX: camRef.current.x,
+        camY: camRef.current.y,
+      };
       canvas.setPointerCapture(e.pointerId);
     };
 
@@ -508,7 +593,11 @@ export function TileCanvas({
       const dy = e.clientY - dragStart.current.y;
       if (Math.hypot(dx, dy) > 4) isDragging.current = true;
       if (isDragging.current) {
-        camRef.current = { ...camRef.current, x: dragStart.current.camX + dx, y: dragStart.current.camY + dy };
+        camRef.current = {
+          ...camRef.current,
+          x: dragStart.current.camX + dx,
+          y: dragStart.current.camY + dy,
+        };
       }
     };
 
@@ -523,7 +612,9 @@ export function TileCanvas({
           const px = Math.round(e.clientX - rect.left);
           const py = Math.round(e.clientY - rect.top);
           const [r, g, b] = ctx2.getImageData(px, py, 1, 1).data;
-          const hex = "#" + [r, g, b].map(v => v.toString(16).padStart(2, "0")).join("");
+          const hex =
+            "#" +
+            [r, g, b].map((v) => v.toString(16).padStart(2, "0")).join("");
           onEyedropperPick?.(hex);
           return;
         }
@@ -561,7 +652,9 @@ export function TileCanvas({
       }
     };
 
-    const onTouchEnd = () => { lastPinchDist.current = null; };
+    const onTouchEnd = () => {
+      lastPinchDist.current = null;
+    };
 
     canvas.addEventListener("wheel", onWheel, { passive: false });
     canvas.addEventListener("pointerdown", onPointerDown);
@@ -580,7 +673,7 @@ export function TileCanvas({
       canvas.removeEventListener("touchmove", onTouchMove);
       canvas.removeEventListener("touchend", onTouchEnd);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [eyedropperActive, editMode, markers, hiddenMarkers, totalW, totalH]);
 
   // ── Zoom buttons ──────────────────────────────────────────────────────────
@@ -596,13 +689,25 @@ export function TileCanvas({
   };
 
   return (
-    <div ref={containerRef} className="relative flex-1 overflow-hidden"
-      style={{ cursor: eyedropperActive ? "crosshair" : isDragging.current ? "grabbing" : "grab" }}>
+    <div
+      ref={containerRef}
+      className="relative flex-1 overflow-hidden"
+      style={{
+        cursor: eyedropperActive
+          ? "crosshair"
+          : isDragging.current
+            ? "grabbing"
+            : "grab",
+      }}
+    >
       <canvas ref={canvasRef} className="absolute inset-0 touch-none" />
 
       {/* Zoom controls */}
       <div className="absolute bottom-4 right-4 z-10 flex flex-col gap-1">
-        {[{ label: "+", fn: zoomIn }, { label: "−", fn: zoomOut }].map(({ label, fn }) => (
+        {[
+          { label: "+", fn: zoomIn },
+          { label: "−", fn: zoomOut },
+        ].map(({ label, fn }) => (
           <button
             key={label}
             className="w-8 h-8 flex items-center justify-center border text-sm font-black transition-all"
@@ -633,8 +738,18 @@ export function TileCanvas({
           }}
           onClick={onOpenPanel}
         >
-          <svg fill="none" height="14" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" width="14">
-            <circle cx="12" cy="8" r="4" /><path d="M20 21a8 8 0 1 0-16 0" />
+          <svg
+            fill="none"
+            height="14"
+            stroke="currentColor"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="2"
+            viewBox="0 0 24 24"
+            width="14"
+          >
+            <circle cx="12" cy="8" r="4" />
+            <path d="M20 21a8 8 0 1 0-16 0" />
           </svg>
         </button>
       )}
@@ -642,8 +757,10 @@ export function TileCanvas({
       {/* No tiles warning */}
       {tiles.length === 0 && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <p className="text-[11px] font-black uppercase tracking-widest opacity-30"
-            style={{ color: "var(--foreground)" }}>
+          <p
+            className="text-[11px] font-black uppercase tracking-widest opacity-30"
+            style={{ color: "var(--foreground)" }}
+          >
             Sin tiles configurados
           </p>
         </div>

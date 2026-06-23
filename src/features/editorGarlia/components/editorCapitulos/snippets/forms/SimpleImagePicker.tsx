@@ -10,26 +10,31 @@ interface SimpleImagePickerProps {
   onClose: () => void;
 }
 
-type FileEntry   = { name: string; url: string; type: "image" };
+type FileEntry = { name: string; url: string; type: "image" };
 type FolderEntry = { name: string; type: "folder"; children: TreeNode[] };
-type TreeNode    = FileEntry | FolderEntry;
+type TreeNode = FileEntry | FolderEntry;
 
 function flattenImages(nodes: TreeNode[]): FileEntry[] {
-  return nodes.flatMap(n =>
-    n.type === "image" ? [n] : flattenImages(n.children)
+  return nodes.flatMap((n) =>
+    n.type === "image" ? [n] : flattenImages(n.children),
   );
 }
 
-export default function SimpleImagePicker({ onSelect, onClose }: SimpleImagePickerProps) {
-  const [tree, setTree]         = useState<TreeNode[]>([]);
-  const [loading, setLoading]   = useState(true);
+export default function SimpleImagePicker({
+  onSelect,
+  onClose,
+}: SimpleImagePickerProps) {
+  const [tree, setTree] = useState<TreeNode[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<string | null>(null);
-  const [stack, setStack]       = useState<{ name: string; nodes: TreeNode[] }[]>([]);
+  const [stack, setStack] = useState<{ name: string; nodes: TreeNode[] }[]>([]);
 
   useEffect(() => {
     fetch("/api/dibujos")
-      .then(r => r.json())
-      .then(d => { if (d.ok) setTree(d.tree); })
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.ok) setTree(d.tree);
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -37,24 +42,26 @@ export default function SimpleImagePicker({ onSelect, onClose }: SimpleImagePick
 
   const folders = useMemo(
     () => currentNodes.filter((n): n is FolderEntry => n.type === "folder"),
-    [currentNodes]
+    [currentNodes],
   );
   const images = useMemo(
     () => currentNodes.filter((n): n is FileEntry => n.type === "image"),
-    [currentNodes]
+    [currentNodes],
   );
 
   const openFolder = (folder: FolderEntry) => {
-    setStack(prev => [...prev, { name: folder.name, nodes: folder.children }]);
+    setStack((prev) => [
+      ...prev,
+      { name: folder.name, nodes: folder.children },
+    ]);
   };
 
   const goBack = (index: number) => {
-    setStack(prev => prev.slice(0, index));
+    setStack((prev) => prev.slice(0, index));
   };
 
   return (
     <div className="flex flex-col" style={{ maxHeight: "60vh" }}>
-
       {/* Breadcrumb */}
       <div className="flex items-center gap-1 px-1 pb-3 flex-wrap">
         <button
@@ -66,7 +73,10 @@ export default function SimpleImagePicker({ onSelect, onClose }: SimpleImagePick
         </button>
         {stack.map((s, i) => (
           <React.Fragment key={i}>
-            <ChevronRight className="text-muted-on-surface opacity-40" size={10} />
+            <ChevronRight
+              className="text-muted-on-surface opacity-40"
+              size={10}
+            />
             <button
               className="text-[10px] font-black uppercase tracking-widest text-muted-on-surface hover:text-on-surface transition-colors"
               type="button"
@@ -97,7 +107,10 @@ export default function SimpleImagePicker({ onSelect, onClose }: SimpleImagePick
                     type="button"
                     onClick={() => openFolder(folder)}
                   >
-                    <FolderOpen className="text-primary/40 group-hover:text-primary/70 transition-colors shrink-0" size={16} />
+                    <FolderOpen
+                      className="text-primary/40 group-hover:text-primary/70 transition-colors shrink-0"
+                      size={16}
+                    />
                     <div className="min-w-0">
                       <p className="text-[10px] font-black uppercase tracking-widest text-on-surface truncate">
                         {folder.name}
@@ -106,7 +119,10 @@ export default function SimpleImagePicker({ onSelect, onClose }: SimpleImagePick
                         {flattenImages(folder.children).length} imágenes
                       </p>
                     </div>
-                    <ChevronRight className="text-muted-on-surface opacity-40 ml-auto shrink-0" size={12} />
+                    <ChevronRight
+                      className="text-muted-on-surface opacity-40 ml-auto shrink-0"
+                      size={12}
+                    />
                   </button>
                 ))}
               </div>
@@ -122,7 +138,7 @@ export default function SimpleImagePicker({ onSelect, onClose }: SimpleImagePick
                       "relative aspect-square overflow-hidden border-2 transition-all",
                       selected === img.url
                         ? "border-primary shadow-lg scale-[0.97]"
-                        : "border-transparent hover:border-primary/30"
+                        : "border-transparent hover:border-primary/30",
                     )}
                     style={{ borderRadius: "var(--radius-btn)" }}
                     type="button"
@@ -137,7 +153,10 @@ export default function SimpleImagePicker({ onSelect, onClose }: SimpleImagePick
                     {selected === img.url && (
                       <div className="absolute inset-0 bg-primary/30 flex items-center justify-center">
                         <div className="bg-primary rounded-full p-1 shadow">
-                          <Check className="text-btn-text drop-shadow" size={16} />
+                          <Check
+                            className="text-btn-text drop-shadow"
+                            size={16}
+                          />
                         </div>
                       </div>
                     )}

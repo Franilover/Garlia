@@ -21,6 +21,7 @@ import {
   Globe,
   Timer,
   PanelRight,
+  AlignLeft,
 } from "lucide-react";
 import React, {
   useState,
@@ -1445,8 +1446,22 @@ function BarraLibro({
   const [panelOpen, setPanelOpen] = useState(false);
   const [dropVis, setDropVis] = useState(false);
   const [dropEstado, setDropEstado] = useState(false);
+  const [dropPortada, setDropPortada] = useState(false);
+  const [dropGrupo, setDropGrupo] = useState(false);
+  const [dropTW, setDropTW] = useState(false);
   const dropVisRef = useRef<HTMLDivElement>(null);
   const dropEstRef = useRef<HTMLDivElement>(null);
+  const dropPortadaRef = useRef<HTMLDivElement>(null);
+  const dropGrupoRef = useRef<HTMLDivElement>(null);
+  const dropTWRef = useRef<HTMLDivElement>(null);
+
+  const closeAll = (except?: string) => {
+    if (except !== "vis") setDropVis(false);
+    if (except !== "estado") setDropEstado(false);
+    if (except !== "portada") setDropPortada(false);
+    if (except !== "grupo") setDropGrupo(false);
+    if (except !== "tw") setDropTW(false);
+  };
 
   // ── Estado local sincronizado con el libro ────────────────────────────────
   const [titulo, setTitulo] = useState(libro?.titulo ?? "");
@@ -1511,6 +1526,18 @@ function BarraLibro({
         setDropVis(false);
       if (dropEstRef.current && !dropEstRef.current.contains(e.target as Node))
         setDropEstado(false);
+      if (
+        dropPortadaRef.current &&
+        !dropPortadaRef.current.contains(e.target as Node)
+      )
+        setDropPortada(false);
+      if (
+        dropGrupoRef.current &&
+        !dropGrupoRef.current.contains(e.target as Node)
+      )
+        setDropGrupo(false);
+      if (dropTWRef.current && !dropTWRef.current.contains(e.target as Node))
+        setDropTW(false);
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
@@ -1586,9 +1613,8 @@ function BarraLibro({
     <div
       className="shrink-0 flex flex-col"
       style={{
-        borderBottom: panelOpen
-          ? "none"
-          : "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+        borderBottom:
+          "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
       }}
     >
       {/* ── Fila principal ── */}
@@ -1596,7 +1622,9 @@ function BarraLibro({
         className="flex items-center gap-2 px-3 py-2"
         style={{
           borderBottom:
-            "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+            reinosDelLibro.length > 0 || ciudadesDelLibro.length > 0
+              ? "1px solid color-mix(in srgb, var(--primary) 6%, transparent)"
+              : "none",
           background: "color-mix(in srgb, var(--primary) 2%, var(--bg-main))",
         }}
       >
@@ -1614,16 +1642,53 @@ function BarraLibro({
 
         {sep}
 
-        {/* Portada mini */}
-        {libro?.portada_url && (
-          <div className="w-5 h-7 rounded overflow-hidden shrink-0 border border-primary/10">
-            <img
-              alt=""
-              className="w-full h-full object-cover"
-              src={libro.portada_url}
-            />
-          </div>
-        )}
+        {/* Portada — click abre selector */}
+        <div ref={dropPortadaRef} className="relative shrink-0">
+          <button
+            className="w-6 h-8 rounded overflow-hidden border border-primary/10 hover:border-primary/40 transition-all group flex items-center justify-center"
+            style={{
+              background: "color-mix(in srgb, var(--primary) 5%, transparent)",
+            }}
+            title="Cambiar portada"
+            onClick={() => {
+              setDropPortada((o) => !o);
+              closeAll("portada");
+            }}
+          >
+            {portada ? (
+              <img
+                alt=""
+                className="w-full h-full object-cover"
+                src={portada}
+              />
+            ) : (
+              <BookMarked
+                size={9}
+                className="text-primary/20 group-hover:text-primary/50 transition-colors"
+              />
+            )}
+          </button>
+          {dropPortada && (
+            <div
+              className="absolute left-0 top-full mt-1 z-50 rounded-lg border shadow-xl p-3"
+              style={{
+                background: "var(--bg-main)",
+                borderColor:
+                  "color-mix(in srgb, var(--primary) 12%, transparent)",
+                width: 240,
+              }}
+            >
+              <SelectorImagenPortada
+                value={portada}
+                onChange={(v) => {
+                  setPortada(v);
+                  save({ portada_url: v });
+                  setDropPortada(false);
+                }}
+              />
+            </div>
+          )}
+        </div>
 
         {/* Título editable inline */}
         {editTitulo ? (
@@ -1655,9 +1720,8 @@ function BarraLibro({
           </button>
         )}
 
-        {/* Chips con dropdown */}
         <div className="flex items-center gap-1.5 shrink-0">
-          {/* ── Visibilidad dropdown ── */}
+          {/* Visibilidad dropdown */}
           <div ref={dropVisRef} className="relative">
             <button
               className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wide border transition-all"
@@ -1677,7 +1741,7 @@ function BarraLibro({
               }}
               onClick={() => {
                 setDropVis((o) => !o);
-                setDropEstado(false);
+                closeAll("vis");
               }}
             >
               {VISIBILIDAD_ICON[vis]}
@@ -1697,27 +1761,13 @@ function BarraLibro({
                 {(["publico", "programado", "oculto"] as const).map((v) => (
                   <button
                     key={v}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-[9px] font-black uppercase tracking-wide transition-all text-left"
+                    className="w-full flex items-center gap-2 px-3 py-2 text-[9px] font-black uppercase tracking-wide text-left hover:bg-primary/6 transition-all"
                     style={{
-                      background:
-                        visibilidad === v
-                          ? "color-mix(in srgb, var(--primary) 6%, transparent)"
-                          : "transparent",
                       color:
                         visibilidad === v
                           ? "var(--primary)"
                           : "color-mix(in srgb, var(--primary) 45%, transparent)",
                     }}
-                    onMouseEnter={(e) =>
-                      (e.currentTarget.style.background =
-                        "color-mix(in srgb, var(--primary) 6%, transparent)")
-                    }
-                    onMouseLeave={(e) =>
-                      (e.currentTarget.style.background =
-                        visibilidad === v
-                          ? "color-mix(in srgb, var(--primary) 6%, transparent)"
-                          : "transparent")
-                    }
                     onClick={() => selectVis(v)}
                   >
                     {VISIBILIDAD_ICON[v]}
@@ -1734,7 +1784,8 @@ function BarraLibro({
               </div>
             )}
           </div>
-          {/* ── Estado dropdown ── */}
+
+          {/* Estado dropdown */}
           <div ref={dropEstRef} className="relative">
             <button
               className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wide border transition-all hover:border-primary/25 hover:text-primary/60"
@@ -1745,7 +1796,7 @@ function BarraLibro({
               }}
               onClick={() => {
                 setDropEstado((o) => !o);
-                setDropVis(false);
+                closeAll("estado");
               }}
             >
               {estado}
@@ -1764,27 +1815,13 @@ function BarraLibro({
                 {ESTADOS_LIBRO.map((est) => (
                   <button
                     key={est}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-[9px] font-black uppercase tracking-wide transition-all text-left"
+                    className="w-full flex items-center gap-2 px-3 py-2 text-[9px] font-black uppercase tracking-wide text-left hover:bg-primary/6 transition-all"
                     style={{
-                      background:
-                        estado === est
-                          ? "color-mix(in srgb, var(--primary) 6%, transparent)"
-                          : "transparent",
                       color:
                         estado === est
                           ? "var(--primary)"
                           : "color-mix(in srgb, var(--primary) 45%, transparent)",
                     }}
-                    onMouseEnter={(e) =>
-                      (e.currentTarget.style.background =
-                        "color-mix(in srgb, var(--primary) 6%, transparent)")
-                    }
-                    onMouseLeave={(e) =>
-                      (e.currentTarget.style.background =
-                        estado === est
-                          ? "color-mix(in srgb, var(--primary) 6%, transparent)"
-                          : "transparent")
-                    }
                     onClick={() => selectEstado(est)}
                   >
                     {est}
@@ -1800,28 +1837,257 @@ function BarraLibro({
               </div>
             )}
           </div>
-          {/* TW badge */} {/* TW badge */}
-          {tws.length > 0 && (
-            <div
-              className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wide border"
+
+          {/* Grupo dropdown */}
+          <div ref={dropGrupoRef} className="relative">
+            <button
+              className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wide border transition-all hover:border-primary/25 hover:text-primary/60"
               style={{
                 borderColor:
-                  "color-mix(in srgb, var(--callout-warning-border) 40%, transparent)",
-                color: "var(--callout-warning-title)",
-                background:
-                  "color-mix(in srgb, var(--callout-warning-border) 8%, transparent)",
+                  "color-mix(in srgb, var(--primary) 12%, transparent)",
+                color: "color-mix(in srgb, var(--primary) 35%, transparent)",
               }}
-              title={tws.join(", ")}
+              onClick={() => {
+                setDropGrupo((o) => !o);
+                closeAll("grupo");
+              }}
             >
-              <span style={{ fontSize: 9 }}>⚠️</span>
-              {tws.length} TW
-            </div>
-          )}
+              <BookMarked size={8} />
+              {gruposItems.find((g) => g.id === grupoId)?.label ?? "Sin grupo"}
+              <ChevronDown size={7} style={{ opacity: 0.5, marginLeft: 1 }} />
+            </button>
+            {dropGrupo && (
+              <div
+                className="absolute left-0 top-full mt-1 z-50 rounded-lg border shadow-xl overflow-hidden"
+                style={{
+                  background: "var(--bg-main)",
+                  borderColor:
+                    "color-mix(in srgb, var(--primary) 12%, transparent)",
+                  minWidth: 150,
+                }}
+              >
+                <button
+                  className="w-full flex items-center gap-2 px-3 py-2 text-[9px] font-black uppercase tracking-wide text-left hover:bg-primary/6 transition-all"
+                  style={{
+                    color: !grupoId
+                      ? "var(--primary)"
+                      : "color-mix(in srgb, var(--primary) 45%, transparent)",
+                  }}
+                  onClick={() => {
+                    setGrupoId(null);
+                    save({ categoria: null });
+                    setDropGrupo(false);
+                  }}
+                >
+                  Sin grupo{" "}
+                  {!grupoId && (
+                    <Check
+                      size={8}
+                      className="ml-auto"
+                      style={{ color: "var(--primary)" }}
+                    />
+                  )}
+                </button>
+                {gruposItems.map((g: any) => (
+                  <button
+                    key={g.id}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-[9px] font-black uppercase tracking-wide text-left hover:bg-primary/6 transition-all"
+                    style={{
+                      color:
+                        grupoId === g.id
+                          ? "var(--primary)"
+                          : "color-mix(in srgb, var(--primary) 45%, transparent)",
+                    }}
+                    onClick={() => {
+                      setGrupoId(g.id);
+                      save({ categoria: g.id });
+                      setDropGrupo(false);
+                    }}
+                  >
+                    {g.label}
+                    {grupoId === g.id && (
+                      <Check
+                        size={8}
+                        className="ml-auto"
+                        style={{ color: "var(--primary)" }}
+                      />
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* TW — siempre visible, opaco si no tiene */}
+          <div ref={dropTWRef} className="relative">
+            <button
+              className="flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[11px] border transition-all"
+              style={{
+                opacity: tws.length > 0 ? 1 : 0.3,
+                borderColor:
+                  tws.length > 0
+                    ? "color-mix(in srgb, var(--callout-warning-border) 40%, transparent)"
+                    : "color-mix(in srgb, var(--primary) 15%, transparent)",
+                background:
+                  tws.length > 0
+                    ? "color-mix(in srgb, var(--callout-warning-border) 8%, transparent)"
+                    : "transparent",
+              }}
+              title="Trigger Warnings"
+              onClick={() => {
+                setDropTW((o) => !o);
+                closeAll("tw");
+              }}
+            >
+              ⚠️
+            </button>
+            {dropTW && (
+              <div
+                className="absolute right-0 top-full mt-1 z-50 rounded-lg border shadow-xl p-2"
+                style={{
+                  background: "var(--bg-main)",
+                  borderColor:
+                    "color-mix(in srgb, var(--primary) 12%, transparent)",
+                  minWidth: 190,
+                }}
+              >
+                <div className="flex flex-col gap-0.5 mb-1">
+                  {TW_PREDEFINIDOS_BARRA.map((tw) => {
+                    const on = tws.includes(tw);
+                    return (
+                      <button
+                        key={tw}
+                        className="flex items-center gap-2 w-full text-left px-2 py-1 rounded transition-all"
+                        style={{
+                          background: on
+                            ? "color-mix(in srgb, var(--callout-warning-border) 10%, transparent)"
+                            : "transparent",
+                        }}
+                        onClick={() => toggleTw(tw)}
+                      >
+                        <div
+                          className="shrink-0 flex items-center justify-center rounded"
+                          style={{
+                            width: 11,
+                            height: 11,
+                            border: `1px solid ${on ? "var(--callout-warning-border)" : "color-mix(in srgb, var(--primary) 20%, transparent)"}`,
+                            background: on
+                              ? "var(--callout-warning-border)"
+                              : "transparent",
+                          }}
+                        >
+                          {on && (
+                            <Check
+                              size={7}
+                              style={{ color: "var(--bg-main)" }}
+                            />
+                          )}
+                        </div>
+                        <span
+                          className="text-[9px] font-bold"
+                          style={{
+                            color: on
+                              ? "var(--callout-warning-title)"
+                              : "color-mix(in srgb, var(--primary) 45%, transparent)",
+                          }}
+                        >
+                          {tw}
+                        </span>
+                      </button>
+                    );
+                  })}
+                  {tws
+                    .filter((tw) => !TW_PREDEFINIDOS_BARRA.includes(tw))
+                    .map((tw) => (
+                      <button
+                        key={tw}
+                        className="flex items-center gap-2 w-full text-left px-2 py-1 rounded"
+                        style={{
+                          background:
+                            "color-mix(in srgb, var(--callout-warning-border) 10%, transparent)",
+                        }}
+                        onClick={() => toggleTw(tw)}
+                      >
+                        <div
+                          className="shrink-0 flex items-center justify-center rounded"
+                          style={{
+                            width: 11,
+                            height: 11,
+                            border: "1px solid var(--callout-warning-border)",
+                            background: "var(--callout-warning-border)",
+                          }}
+                        >
+                          <Check size={7} style={{ color: "var(--bg-main)" }} />
+                        </div>
+                        <span
+                          className="text-[9px] font-bold flex-1 truncate"
+                          style={{ color: "var(--callout-warning-title)" }}
+                        >
+                          {tw}
+                        </span>
+                        <X size={8} className="text-primary/30" />
+                      </button>
+                    ))}
+                </div>
+                {twAdding ? (
+                  <div className="flex items-center gap-1">
+                    <input
+                      autoFocus
+                      className="flex-1 min-w-0 rounded px-2 py-1 text-[9px] font-bold outline-none border text-primary bg-transparent"
+                      placeholder="Ej: Acoso…"
+                      style={{
+                        borderColor:
+                          "color-mix(in srgb, var(--primary) 20%, transparent)",
+                      }}
+                      value={twCustom}
+                      onChange={(e) => setTwCustom(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") addCustomTw();
+                        if (e.key === "Escape") {
+                          setTwCustom("");
+                          setTwAdding(false);
+                        }
+                      }}
+                    />
+                    <button
+                      className="p-1 rounded bg-primary/10 text-primary"
+                      onClick={addCustomTw}
+                    >
+                      <Check size={9} />
+                    </button>
+                    <button
+                      className="p-1 rounded text-primary/30"
+                      onClick={() => {
+                        setTwCustom("");
+                        setTwAdding(false);
+                      }}
+                    >
+                      <X size={9} />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    className="w-full flex items-center justify-center gap-1 py-1 rounded border border-dashed text-[8px] font-black uppercase tracking-widest text-primary/25 hover:text-primary hover:border-primary/25 transition-all"
+                    style={{
+                      borderColor:
+                        "color-mix(in srgb, var(--primary) 12%, transparent)",
+                    }}
+                    onClick={() => setTwAdding(true)}
+                  >
+                    <Plus size={8} /> Añadir
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
           {saving && (
             <Loader2 className="animate-spin text-primary/30" size={10} />
           )}
+
           {sep}
-          {/* Toggle panel config */}
+
+          {/* Sinopsis toggle */}
           <button
             className="p-1.5 rounded hover:bg-primary/8 transition-all"
             style={{
@@ -1829,13 +2095,12 @@ function BarraLibro({
                 ? "var(--primary)"
                 : "color-mix(in srgb, var(--primary) 30%, transparent)",
             }}
-            title={
-              panelOpen ? "Cerrar configuración" : "Configuración del libro"
-            }
+            title="Sinopsis"
             onClick={() => setPanelOpen((o) => !o)}
           >
-            <SlidersHorizontal size={11} />
+            <AlignLeft size={11} />
           </button>
+
           {/* Nuevo cap */}
           <button
             className="flex items-center gap-1 px-2 py-1 rounded-[var(--radius-btn)] bg-primary/8 hover:bg-primary/15 text-primary/50 hover:text-primary text-[8px] font-black uppercase tracking-widest transition-all"
@@ -1843,7 +2108,9 @@ function BarraLibro({
           >
             <Plus size={9} /> Cap
           </button>
+
           {sep}
+
           {/* Toggle sidebar caps */}
           <button
             className="p-1.5 rounded hover:bg-primary/8 transition-all"
@@ -1864,271 +2131,83 @@ function BarraLibro({
         </div>
       </div>
 
-      {/* ── Panel de configuración expandible ── */}
+      {/* ── Fila de pills: Reinos y Ciudades ── */}
+      {(reinosDelLibro.length > 0 || ciudadesDelLibro.length > 0) && (
+        <div
+          className="flex items-center gap-1.5 px-3 py-1.5 overflow-x-auto"
+          style={{
+            borderBottom:
+              "1px solid color-mix(in srgb, var(--primary) 6%, transparent)",
+            background: "color-mix(in srgb, var(--primary) 1%, var(--bg-main))",
+          }}
+        >
+          {reinosDelLibro.map((r: any) => (
+            <span
+              key={r.id}
+              className="shrink-0 flex items-center gap-1 px-2 py-0.5 rounded-full text-[7px] font-black uppercase tracking-wide border"
+              style={{
+                borderColor:
+                  "color-mix(in srgb, var(--primary) 12%, transparent)",
+                color: "color-mix(in srgb, var(--primary) 45%, transparent)",
+                background:
+                  "color-mix(in srgb, var(--primary) 3%, transparent)",
+              }}
+            >
+              🏰 {r.nombre}
+            </span>
+          ))}
+          {reinosDelLibro.length > 0 && ciudadesDelLibro.length > 0 && (
+            <div
+              className="w-px h-3 shrink-0"
+              style={{
+                background:
+                  "color-mix(in srgb, var(--primary) 10%, transparent)",
+              }}
+            />
+          )}
+          {ciudadesDelLibro.map((c: any) => (
+            <span
+              key={c.id}
+              className="shrink-0 flex items-center gap-1 px-2 py-0.5 rounded-full text-[7px] font-black uppercase tracking-wide border"
+              style={{
+                borderColor:
+                  "color-mix(in srgb, var(--primary) 10%, transparent)",
+                color: "color-mix(in srgb, var(--primary) 35%, transparent)",
+                background:
+                  "color-mix(in srgb, var(--primary) 2%, transparent)",
+              }}
+            >
+              🏛 {c.nombre}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* ── Panel sinopsis expandible ── */}
       {panelOpen && (
         <div
-          className="flex gap-0 border-b overflow-y-auto"
+          className="px-4 py-3 border-b"
           style={{
             borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
             background:
               "color-mix(in srgb, var(--primary) 1.5%, var(--bg-main))",
-            maxHeight: 340,
           }}
         >
-          {/* Col 1: Portada + Sinopsis */}
-          <div
-            className="flex flex-col gap-3 p-4 border-r"
+          <label className="text-[8px] font-black uppercase tracking-widest text-primary/35 block mb-1.5">
+            Sinopsis
+          </label>
+          <textarea
+            className="w-full bg-transparent border rounded px-2 py-1.5 text-[11px] text-primary outline-none focus:border-primary/30 resize-none transition-colors"
+            placeholder="Descripción del libro…"
+            rows={3}
             style={{
-              minWidth: 220,
-              borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
+              borderColor:
+                "color-mix(in srgb, var(--primary) 15%, transparent)",
             }}
-          >
-            <SelectorImagenPortada
-              value={portada}
-              onChange={(v) => {
-                setPortada(v);
-                save({ portada_url: v });
-              }}
-            />
-            <div className="space-y-1">
-              <label className="text-[8px] font-black uppercase tracking-widest text-primary/35">
-                Sinopsis
-              </label>
-              <textarea
-                className="w-full bg-transparent border rounded px-2 py-1.5 text-[11px] text-primary outline-none focus:border-primary/30 resize-none transition-colors"
-                placeholder="Descripción…"
-                rows={4}
-                style={{
-                  borderColor:
-                    "color-mix(in srgb, var(--primary) 15%, transparent)",
-                }}
-                value={sinopsis}
-                onBlur={() => save({ sinopsis: sinopsis.trim() })}
-                onChange={(e) => setSinopsis(e.target.value)}
-              />
-            </div>
-          </div>
-
-          {/* Col 2: Grupo + Reinos/Ciudades */}
-          <div
-            className="flex flex-col gap-3 p-4 border-r"
-            style={{
-              minWidth: 200,
-              borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
-            }}
-          >
-            {/* Reinos y Ciudades (solo lectura, inferidos de los caps) */}
-            {(reinosDelLibro.length > 0 || ciudadesDelLibro.length > 0) && (
-              <div className="space-y-1.5">
-                {reinosDelLibro.length > 0 && (
-                  <div className="space-y-1">
-                    <label className="text-[8px] font-black uppercase tracking-widest text-primary/35">
-                      Reinos
-                    </label>
-                    <div className="flex flex-wrap gap-1">
-                      {reinosDelLibro.map((r: any) => (
-                        <span
-                          key={r.id}
-                          className="px-2 py-0.5 rounded text-[8px] font-bold border"
-                          style={{
-                            borderColor:
-                              "color-mix(in srgb, var(--primary) 15%, transparent)",
-                            color:
-                              "color-mix(in srgb, var(--primary) 55%, transparent)",
-                            background:
-                              "color-mix(in srgb, var(--primary) 4%, transparent)",
-                          }}
-                        >
-                          {r.nombre}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {ciudadesDelLibro.length > 0 && (
-                  <div className="space-y-1">
-                    <label className="text-[8px] font-black uppercase tracking-widest text-primary/35">
-                      Ciudades
-                    </label>
-                    <div className="flex flex-wrap gap-1">
-                      {ciudadesDelLibro.map((c: any) => (
-                        <span
-                          key={c.id}
-                          className="px-2 py-0.5 rounded text-[8px] font-bold border"
-                          style={{
-                            borderColor:
-                              "color-mix(in srgb, var(--primary) 15%, transparent)",
-                            color:
-                              "color-mix(in srgb, var(--primary) 55%, transparent)",
-                            background:
-                              "color-mix(in srgb, var(--primary) 4%, transparent)",
-                          }}
-                        >
-                          {c.nombre}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Grupo */}
-            <ComboSelector
-              emptyText="Sin grupos"
-              hint="grupos de tipo «libros»"
-              icon={<BookMarked size={10} />}
-              items={gruposItems}
-              label="Grupo"
-              loading={loadingGrupos}
-              mode="single"
-              noneLabel="Sin grupo"
-              placeholder="Sin grupo…"
-              value={grupoId}
-              onChange={(v) => {
-                setGrupoId(v);
-                save({ categoria: v ?? null });
-              }}
-            />
-          </div>
-
-          {/* Col 3: Trigger Warnings */}
-          <div className="flex flex-col gap-2 p-4" style={{ minWidth: 200 }}>
-            <label className="text-[8px] font-black uppercase tracking-widest text-primary/35 flex items-center gap-1">
-              <span>⚠️</span> Trigger Warnings
-            </label>
-            <div className="flex flex-col gap-0.5">
-              {TW_PREDEFINIDOS_BARRA.map((tw) => {
-                const on = tws.includes(tw);
-                return (
-                  <button
-                    key={tw}
-                    className="flex items-center gap-2 w-full text-left px-1.5 py-1 rounded transition-all"
-                    style={{
-                      background: on
-                        ? "color-mix(in srgb, var(--callout-warning-border) 10%, transparent)"
-                        : "transparent",
-                    }}
-                    type="button"
-                    onClick={() => toggleTw(tw)}
-                  >
-                    <div
-                      className="shrink-0 flex items-center justify-center rounded"
-                      style={{
-                        width: 11,
-                        height: 11,
-                        border: `1px solid ${on ? "var(--callout-warning-border)" : "color-mix(in srgb, var(--primary) 20%, transparent)"}`,
-                        background: on
-                          ? "var(--callout-warning-border)"
-                          : "transparent",
-                        transition: "all 0.12s",
-                      }}
-                    >
-                      {on && (
-                        <Check size={7} style={{ color: "var(--bg-main)" }} />
-                      )}
-                    </div>
-                    <span
-                      className="text-[9px] font-bold"
-                      style={{
-                        color: on
-                          ? "var(--callout-warning-title)"
-                          : "color-mix(in srgb, var(--primary) 45%, transparent)",
-                      }}
-                    >
-                      {tw}
-                    </span>
-                  </button>
-                );
-              })}
-              {/* TW custom */}
-              {tws
-                .filter((tw) => !TW_PREDEFINIDOS_BARRA.includes(tw))
-                .map((tw) => (
-                  <button
-                    key={tw}
-                    className="flex items-center gap-2 w-full text-left px-1.5 py-1 rounded transition-all"
-                    style={{
-                      background:
-                        "color-mix(in srgb, var(--callout-warning-border) 10%, transparent)",
-                    }}
-                    type="button"
-                    onClick={() => toggleTw(tw)}
-                  >
-                    <div
-                      className="shrink-0 flex items-center justify-center rounded"
-                      style={{
-                        width: 11,
-                        height: 11,
-                        border: "1px solid var(--callout-warning-border)",
-                        background: "var(--callout-warning-border)",
-                      }}
-                    >
-                      <Check size={7} style={{ color: "var(--bg-main)" }} />
-                    </div>
-                    <span
-                      className="text-[9px] font-bold flex-1 truncate"
-                      style={{ color: "var(--callout-warning-title)" }}
-                    >
-                      {tw}
-                    </span>
-                    <X size={8} className="shrink-0 text-primary/30" />
-                  </button>
-                ))}
-            </div>
-            {/* Añadir custom */}
-            {twAdding ? (
-              <div className="flex items-center gap-1 mt-1">
-                <input
-                  autoFocus
-                  className="flex-1 min-w-0 rounded px-2 py-1 text-[9px] font-bold outline-none border text-primary bg-transparent"
-                  placeholder="Ej: Acoso…"
-                  style={{
-                    borderColor:
-                      "color-mix(in srgb, var(--primary) 20%, transparent)",
-                  }}
-                  value={twCustom}
-                  onChange={(e) => setTwCustom(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") addCustomTw();
-                    if (e.key === "Escape") {
-                      setTwCustom("");
-                      setTwAdding(false);
-                    }
-                  }}
-                />
-                <button
-                  className="p-1 rounded bg-primary/10 text-primary"
-                  type="button"
-                  onClick={addCustomTw}
-                >
-                  <Check size={9} />
-                </button>
-                <button
-                  className="p-1 rounded text-primary/30"
-                  type="button"
-                  onClick={() => {
-                    setTwCustom("");
-                    setTwAdding(false);
-                  }}
-                >
-                  <X size={9} />
-                </button>
-              </div>
-            ) : (
-              <button
-                className="mt-1 w-full flex items-center justify-center gap-1 py-1 rounded border border-dashed text-[8px] font-black uppercase tracking-widest text-primary/25 hover:text-primary hover:border-primary/25 transition-all"
-                style={{
-                  borderColor:
-                    "color-mix(in srgb, var(--primary) 12%, transparent)",
-                }}
-                type="button"
-                onClick={() => setTwAdding(true)}
-              >
-                <Plus size={8} /> Añadir
-              </button>
-            )}
-          </div>
+            value={sinopsis}
+            onBlur={() => save({ sinopsis: sinopsis.trim() })}
+            onChange={(e) => setSinopsis(e.target.value)}
+          />
         </div>
       )}
     </div>
