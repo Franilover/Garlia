@@ -17,6 +17,9 @@ import {
   Pencil,
   Lock,
   SlidersHorizontal,
+  Globe,
+  Timer,
+  PanelRight,
 } from "lucide-react";
 import React, {
   useState,
@@ -1101,40 +1104,11 @@ const ModalEditarLibro = ({
   const [grupoId, setGrupoId] = useState<string | null>(
     libro.categoria ?? null,
   );
-  const [triggerWarnings, setTriggerWarnings] = useState<string[]>(
-    (libro as any).trigger_warnings ?? [],
-  );
-  const [twCustom, setTwCustom] = useState("");
-  const [twAdding, setTwAdding] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const { items: gruposItems, loading: loadingGrupos } = useGruposLibros();
 
   const ESTADOS = ["BORRADOR", "EN PROCESO", "FINALIZADO", "PAUSADO"];
-
-  const TW_PREDEFINIDOS = [
-    "Suicidio",
-    "Trastornos Alimenticios",
-    "Violencia",
-    "Abuso Sexual",
-    "Autolesiones",
-    "Abuso de Sustancias",
-    "Muerte",
-    "Trauma",
-  ];
-
-  const toggleTw = (tw: string) =>
-    setTriggerWarnings((prev) =>
-      prev.includes(tw) ? prev.filter((x) => x !== tw) : [...prev, tw],
-    );
-
-  const addCustomTw = () => {
-    const v = twCustom.trim();
-    if (v && !triggerWarnings.includes(v))
-      setTriggerWarnings((prev) => [...prev, v]);
-    setTwCustom("");
-    setTwAdding(false);
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1151,8 +1125,7 @@ const ModalEditarLibro = ({
         categoria: grupoId ?? null,
         fecha_publicacion:
           visibilidad === "programado" ? fechaLibro || undefined : undefined,
-        trigger_warnings: triggerWarnings,
-      } as any;
+      };
       await libroUpdateMeta(libro.id, fields);
       onSaved({ ...libro, ...fields });
       onClose();
@@ -1242,142 +1215,6 @@ const ModalEditarLibro = ({
           value={grupoId}
           onChange={setGrupoId}
         />
-
-        {/* ── Trigger Warnings ─────────────────────────────────────────── */}
-        <div className="space-y-2">
-          <label className="text-[9px] font-black uppercase tracking-widest text-primary/40 flex items-center gap-1.5">
-            <span>⚠️</span> Trigger Warnings
-          </label>
-          <div className="flex flex-col gap-0.5">
-            {TW_PREDEFINIDOS.map((tw) => {
-              const on = triggerWarnings.includes(tw);
-              return (
-                <button
-                  key={tw}
-                  type="button"
-                  className="flex items-center gap-2 w-full text-left px-2 py-1 rounded transition-all"
-                  style={{
-                    background: on
-                      ? "color-mix(in srgb, var(--callout-warning-border) 10%, transparent)"
-                      : "transparent",
-                  }}
-                  onClick={() => toggleTw(tw)}
-                >
-                  <div
-                    className="shrink-0 flex items-center justify-center rounded"
-                    style={{
-                      width: 13,
-                      height: 13,
-                      border: `1px solid ${on ? "var(--callout-warning-border)" : "color-mix(in srgb, var(--primary) 20%, transparent)"}`,
-                      background: on
-                        ? "var(--callout-warning-border)"
-                        : "transparent",
-                      transition: "all 0.12s",
-                    }}
-                  >
-                    {on && (
-                      <Check size={8} style={{ color: "var(--bg-main)" }} />
-                    )}
-                  </div>
-                  <span
-                    className="text-[10px] font-bold"
-                    style={{
-                      color: on
-                        ? "var(--callout-warning-title)"
-                        : "color-mix(in srgb, var(--primary) 45%, transparent)",
-                    }}
-                  >
-                    {tw}
-                  </span>
-                </button>
-              );
-            })}
-
-            {/* TW custom no-predefinidos */}
-            {triggerWarnings
-              .filter((tw) => !TW_PREDEFINIDOS.includes(tw))
-              .map((tw) => (
-                <button
-                  key={tw}
-                  type="button"
-                  className="flex items-center gap-2 w-full text-left px-2 py-1 rounded transition-all"
-                  style={{
-                    background:
-                      "color-mix(in srgb, var(--callout-warning-border) 10%, transparent)",
-                  }}
-                  onClick={() => toggleTw(tw)}
-                >
-                  <div
-                    className="shrink-0 flex items-center justify-center rounded"
-                    style={{
-                      width: 13,
-                      height: 13,
-                      border: "1px solid var(--callout-warning-border)",
-                      background: "var(--callout-warning-border)",
-                    }}
-                  >
-                    <Check size={8} style={{ color: "var(--bg-main)" }} />
-                  </div>
-                  <span
-                    className="text-[10px] font-bold flex-1 truncate"
-                    style={{ color: "var(--callout-warning-title)" }}
-                  >
-                    {tw}
-                  </span>
-                  <X size={10} className="shrink-0 text-primary/30" />
-                </button>
-              ))}
-          </div>
-
-          {/* Input custom */}
-          {twAdding ? (
-            <div className="flex items-center gap-1.5 mt-1">
-              <input
-                autoFocus
-                className="flex-1 min-w-0 rounded-[var(--radius-btn)] px-2.5 py-1.5 text-[10px] font-bold outline-none border transition-all bg-bg-main border-primary/15 focus:border-primary/30 text-primary"
-                placeholder="Ej: Acoso…"
-                value={twCustom}
-                onChange={(e) => setTwCustom(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    addCustomTw();
-                  }
-                  if (e.key === "Escape") {
-                    setTwCustom("");
-                    setTwAdding(false);
-                  }
-                }}
-              />
-              <button
-                type="button"
-                className="p-1.5 rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
-                onClick={addCustomTw}
-              >
-                <Check size={11} />
-              </button>
-              <button
-                type="button"
-                className="p-1.5 rounded text-primary/30 hover:text-primary transition-colors"
-                onClick={() => {
-                  setTwCustom("");
-                  setTwAdding(false);
-                }}
-              >
-                <X size={11} />
-              </button>
-            </div>
-          ) : (
-            <button
-              type="button"
-              className="mt-1 w-full flex items-center justify-center gap-1.5 py-1.5 rounded-[var(--radius-btn)] border border-dashed border-primary/15 text-[9px] font-black uppercase tracking-widest text-primary/30 hover:text-primary hover:border-primary/30 transition-all"
-              onClick={() => setTwAdding(true)}
-            >
-              <Plus size={10} /> Añadir otro
-            </button>
-          )}
-        </div>
-
         <div className="pt-2">
           <BotonSubmit
             disabled={!titulo.trim()}
@@ -1628,6 +1465,505 @@ const ModalNuevoCapitulo = ({
   );
 };
 
+// ─── BibliotecaPortadas ───────────────────────────────────────────────────────
+// Panel inicial: grid de portadas de libros. Click → abre sidebar de caps.
+
+function BibliotecaPortadas({
+  libros,
+  loading,
+  selectedLibroId,
+  onSelectLibro,
+  onNuevoLibro,
+  onEditLibro,
+  onDeleteLibro,
+}: {
+  libros: Libro[];
+  loading: boolean;
+  selectedLibroId: string | null;
+  onSelectLibro: (id: string) => void;
+  onNuevoLibro: () => void;
+  onEditLibro: (l: Libro) => void;
+  onDeleteLibro: (id: string) => void;
+}) {
+  const VISIBILIDAD_ICON: Record<string, React.ReactNode> = {
+    publico: <Globe size={9} />,
+    programado: <Timer size={9} />,
+    oculto: <Lock size={9} />,
+  };
+
+  return (
+    <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+      {/* Header */}
+      <div
+        className="shrink-0 flex items-center justify-between px-6 py-3 border-b"
+        style={{
+          borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
+        }}
+      >
+        <span className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/40 italic flex items-center gap-1.5">
+          <BookMarked size={11} /> Biblioteca
+        </span>
+        <button
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-btn)] bg-primary/8 hover:bg-primary/15 text-primary/50 hover:text-primary text-[9px] font-black uppercase tracking-widest transition-all"
+          onClick={onNuevoLibro}
+        >
+          <Plus size={10} /> Nuevo Libro
+        </button>
+      </div>
+
+      {/* Grid de portadas */}
+      <div className="flex-1 overflow-y-auto p-6">
+        {loading ? (
+          <div className="flex items-center justify-center py-20 text-primary/20">
+            <Loader2 className="animate-spin" size={20} />
+          </div>
+        ) : libros.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 gap-3 text-primary/20">
+            <BookMarked size={28} />
+            <p className="text-[9px] font-black uppercase tracking-widest">
+              Sin libros · crea el primero
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+            {libros.map((libro) => (
+              <div
+                key={libro.id}
+                className="group relative flex flex-col gap-2 cursor-pointer"
+                onClick={() => onSelectLibro(libro.id)}
+              >
+                {/* Portada */}
+                <div
+                  className="relative aspect-[2/3] rounded-lg overflow-hidden border transition-all"
+                  style={{
+                    borderColor:
+                      selectedLibroId === libro.id
+                        ? "var(--primary)"
+                        : "color-mix(in srgb, var(--primary) 10%, transparent)",
+                    boxShadow:
+                      selectedLibroId === libro.id
+                        ? "0 0 0 2px var(--primary)"
+                        : "none",
+                  }}
+                >
+                  {libro.portada_url ? (
+                    <img
+                      alt={libro.titulo}
+                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      src={libro.portada_url}
+                    />
+                  ) : (
+                    <div
+                      className="w-full h-full flex items-center justify-center"
+                      style={{
+                        background:
+                          "color-mix(in srgb, var(--primary) 6%, transparent)",
+                      }}
+                    >
+                      <BookMarked size={24} className="text-primary/15" />
+                    </div>
+                  )}
+
+                  {/* Overlay acciones */}
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-end gap-1 p-1.5">
+                    <button
+                      className="p-1.5 rounded bg-white/10 hover:bg-white/25 text-white transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onEditLibro(libro);
+                      }}
+                    >
+                      <Pencil size={10} />
+                    </button>
+                    <button
+                      className="p-1.5 rounded bg-white/10 hover:bg-red-500/60 text-white transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDeleteLibro(libro.id);
+                      }}
+                    >
+                      <Trash2 size={10} />
+                    </button>
+                  </div>
+
+                  {/* Badge visibilidad */}
+                  <div
+                    className="absolute top-1.5 left-1.5 flex items-center gap-1 px-1.5 py-0.5 rounded text-[7px] font-black uppercase tracking-wide backdrop-blur-sm"
+                    style={{
+                      background:
+                        "color-mix(in srgb, var(--bg-main) 70%, transparent)",
+                      color:
+                        "color-mix(in srgb, var(--primary) 55%, transparent)",
+                    }}
+                  >
+                    {VISIBILIDAD_ICON[libro.visibilidad ?? "oculto"]}
+                  </div>
+
+                  {/* Badge TW */}
+                  {(libro as any).trigger_warnings?.length > 0 && (
+                    <div
+                      className="absolute top-1.5 right-1.5 w-5 h-5 rounded flex items-center justify-center text-[10px] backdrop-blur-sm"
+                      style={{
+                        background:
+                          "color-mix(in srgb, var(--bg-main) 70%, transparent)",
+                      }}
+                      title="Tiene Trigger Warnings"
+                    >
+                      ⚠️
+                    </div>
+                  )}
+                </div>
+
+                {/* Título */}
+                <p
+                  className="text-[9px] font-black uppercase tracking-wide leading-tight text-center px-0.5 truncate"
+                  style={{
+                    color:
+                      "color-mix(in srgb, var(--primary) 65%, transparent)",
+                  }}
+                >
+                  {libro.titulo}
+                </p>
+
+                {/* Estado */}
+                {libro.estado && (
+                  <p className="text-[7px] font-black uppercase tracking-widest text-center text-primary/25 -mt-1">
+                    {libro.estado}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── BarraLibro ───────────────────────────────────────────────────────────────
+// Barra horizontal superior cuando hay un cap seleccionado.
+// Muestra: [← Biblioteca] [Título libro] [visibilidad] [TW] [editar] [toggle sidebar]
+
+function BarraLibro({
+  libro,
+  sidebarOpen,
+  onVolver,
+  onEditLibro,
+  onToggleSidebar,
+  onNuevoCap,
+}: {
+  libro: Libro | undefined;
+  sidebarOpen: boolean;
+  onVolver: () => void;
+  onEditLibro: () => void;
+  onToggleSidebar: () => void;
+  onNuevoCap: () => void;
+}) {
+  const tws: string[] = (libro as any)?.trigger_warnings ?? [];
+  const vis = libro?.visibilidad ?? "oculto";
+  const VISIBILIDAD_LABEL: Record<string, string> = {
+    publico: "Público",
+    programado: "Programado",
+    oculto: "Borrador",
+  };
+  const VISIBILIDAD_ICON: Record<string, React.ReactNode> = {
+    publico: <Globe size={9} />,
+    programado: <Timer size={9} />,
+    oculto: <Lock size={9} />,
+  };
+
+  return (
+    <div
+      className="shrink-0 flex items-center gap-2 px-3 py-2 border-b"
+      style={{
+        borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
+        background: "color-mix(in srgb, var(--primary) 2%, var(--bg-main))",
+      }}
+    >
+      {/* Volver */}
+      <button
+        className="flex items-center gap-1 text-[8px] font-black uppercase tracking-widest text-primary/30 hover:text-primary transition-colors shrink-0 group"
+        onClick={onVolver}
+      >
+        <ChevronRight
+          className="rotate-180 group-hover:-translate-x-0.5 transition-transform"
+          size={9}
+        />
+        Biblioteca
+      </button>
+
+      <div
+        className="w-px h-3 shrink-0"
+        style={{
+          background: "color-mix(in srgb, var(--primary) 10%, transparent)",
+        }}
+      />
+
+      {/* Portada mini */}
+      {libro?.portada_url && (
+        <div className="w-5 h-7 rounded overflow-hidden shrink-0 border border-primary/10">
+          <img
+            alt=""
+            className="w-full h-full object-cover"
+            src={libro.portada_url}
+          />
+        </div>
+      )}
+
+      {/* Título del libro */}
+      <span className="text-[10px] font-black uppercase italic tracking-tight text-primary/70 truncate flex-1 min-w-0">
+        {libro?.titulo ?? "…"}
+      </span>
+
+      {/* Chips de info */}
+      <div className="flex items-center gap-1.5 shrink-0">
+        {/* Visibilidad */}
+        <div
+          className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wide border"
+          style={{
+            borderColor:
+              vis === "publico"
+                ? "color-mix(in srgb, var(--callout-success-border) 40%, transparent)"
+                : "color-mix(in srgb, var(--primary) 15%, transparent)",
+            color:
+              vis === "publico"
+                ? "var(--callout-success-title)"
+                : "color-mix(in srgb, var(--primary) 40%, transparent)",
+            background:
+              vis === "publico"
+                ? "color-mix(in srgb, var(--callout-success-border) 8%, transparent)"
+                : "transparent",
+          }}
+        >
+          {VISIBILIDAD_ICON[vis]}
+          {VISIBILIDAD_LABEL[vis]}
+        </div>
+
+        {/* TW badge */}
+        {tws.length > 0 && (
+          <div
+            className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wide border"
+            style={{
+              borderColor:
+                "color-mix(in srgb, var(--callout-warning-border) 40%, transparent)",
+              color: "var(--callout-warning-title)",
+              background:
+                "color-mix(in srgb, var(--callout-warning-border) 8%, transparent)",
+            }}
+            title={tws.join(", ")}
+          >
+            <span style={{ fontSize: 9 }}>⚠️</span>
+            {tws.length} TW
+          </div>
+        )}
+
+        {/* Estado */}
+        {libro?.estado && (
+          <div
+            className="px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wide border"
+            style={{
+              borderColor:
+                "color-mix(in srgb, var(--primary) 12%, transparent)",
+              color: "color-mix(in srgb, var(--primary) 35%, transparent)",
+            }}
+          >
+            {libro.estado}
+          </div>
+        )}
+
+        <div
+          className="w-px h-3"
+          style={{
+            background: "color-mix(in srgb, var(--primary) 10%, transparent)",
+          }}
+        />
+
+        {/* Editar libro */}
+        <button
+          className="p-1.5 rounded hover:bg-primary/8 text-primary/30 hover:text-primary transition-all"
+          title="Editar libro"
+          onClick={onEditLibro}
+        >
+          <Pencil size={11} />
+        </button>
+
+        {/* Nuevo cap */}
+        <button
+          className="flex items-center gap-1 px-2 py-1 rounded-[var(--radius-btn)] bg-primary/8 hover:bg-primary/15 text-primary/50 hover:text-primary text-[8px] font-black uppercase tracking-widest transition-all"
+          onClick={onNuevoCap}
+        >
+          <Plus size={9} /> Cap
+        </button>
+
+        <div
+          className="w-px h-3"
+          style={{
+            background: "color-mix(in srgb, var(--primary) 10%, transparent)",
+          }}
+        />
+
+        {/* Toggle sidebar caps */}
+        <button
+          className="p-1.5 rounded hover:bg-primary/8 transition-all"
+          style={{
+            color: sidebarOpen
+              ? "var(--primary)"
+              : "color-mix(in srgb, var(--primary) 30%, transparent)",
+          }}
+          title={
+            sidebarOpen
+              ? "Cerrar panel de capítulos"
+              : "Abrir panel de capítulos"
+          }
+          onClick={onToggleSidebar}
+        >
+          <PanelRight size={12} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── SidebarCapitulos ─────────────────────────────────────────────────────────
+// Barra vertical derecha con la lista de capítulos del libro activo.
+
+function SidebarCapitulos({
+  capitulos,
+  selectedCapId,
+  libroId,
+  open,
+  onSelectCap,
+  onEditCap,
+  onDeleteCap,
+  onNuevoCap,
+}: {
+  capitulos: Capitulo[];
+  selectedCapId: string | null;
+  libroId: string;
+  open: boolean;
+  onSelectCap: (capId: string) => void;
+  onEditCap: (cap: Capitulo) => void;
+  onDeleteCap: (id: string, libroId: string) => void;
+  onNuevoCap: () => void;
+}) {
+  if (!open) return null;
+
+  return (
+    <div
+      className="shrink-0 flex flex-col border-l overflow-hidden"
+      style={{
+        width: "clamp(180px, 18vw, 240px)",
+        borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
+        background: "color-mix(in srgb, var(--primary) 1.5%, var(--bg-main))",
+      }}
+    >
+      {/* Header sidebar */}
+      <div
+        className="shrink-0 flex items-center justify-between px-3 py-2 border-b"
+        style={{
+          borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
+        }}
+      >
+        <span className="text-[8px] font-black uppercase tracking-[0.2em] text-primary/35">
+          Capítulos · {capitulos.length}
+        </span>
+      </div>
+
+      {/* Lista de caps — sin scroll fijo, se expande */}
+      <div className="flex-1 overflow-y-auto py-1">
+        {capitulos.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-8 gap-2 text-primary/20">
+            <BookMarked size={16} />
+            <p className="text-[7px] font-black uppercase tracking-widest text-center px-2">
+              Sin capítulos
+            </p>
+          </div>
+        ) : (
+          capitulos.map((cap) => {
+            const activo = cap.id === selectedCapId;
+            return (
+              <div
+                key={cap.id}
+                className="group relative flex items-center gap-1.5 px-2.5 py-1.5 cursor-pointer transition-all"
+                style={{
+                  background: activo
+                    ? "color-mix(in srgb, var(--primary) 8%, transparent)"
+                    : "transparent",
+                  borderLeft: activo
+                    ? "2px solid var(--primary)"
+                    : "2px solid transparent",
+                }}
+                onClick={() => onSelectCap(cap.id)}
+              >
+                {/* Número de orden */}
+                <span
+                  className="shrink-0 text-[7px] font-black tabular-nums"
+                  style={{
+                    color: activo
+                      ? "var(--primary)"
+                      : "color-mix(in srgb, var(--primary) 25%, transparent)",
+                    width: 16,
+                    textAlign: "right",
+                  }}
+                >
+                  {cap.orden}
+                </span>
+
+                {/* Título */}
+                <span
+                  className="flex-1 min-w-0 text-[9px] font-bold uppercase tracking-wide leading-tight truncate"
+                  style={{
+                    color: activo
+                      ? "var(--primary)"
+                      : "color-mix(in srgb, var(--primary) 55%, transparent)",
+                  }}
+                >
+                  {cap.titulo_capitulo}
+                </span>
+
+                {/* Visibilidad dot */}
+                <div
+                  className="shrink-0 w-1.5 h-1.5 rounded-full"
+                  style={{
+                    background:
+                      cap.visibilidad === "publico"
+                        ? "var(--callout-success-border)"
+                        : cap.visibilidad === "programado"
+                          ? "var(--callout-warning-border)"
+                          : "color-mix(in srgb, var(--primary) 15%, transparent)",
+                  }}
+                />
+
+                {/* Acciones hover */}
+                <div className="absolute right-1.5 top-1/2 -translate-y-1/2 hidden group-hover:flex items-center gap-0.5 bg-bg-main border border-primary/10 rounded px-0.5 py-0.5 shadow-sm">
+                  <button
+                    className="p-0.5 rounded hover:bg-primary/10 text-primary/40 hover:text-primary transition-colors"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEditCap(cap);
+                    }}
+                  >
+                    <Pencil size={9} />
+                  </button>
+                  <button
+                    className="p-0.5 rounded hover:bg-red-500/10 text-primary/25 hover:text-red-400 transition-colors"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDeleteCap(cap.id, libroId);
+                    }}
+                  >
+                    <Trash2 size={9} />
+                  </button>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── EditorCapitulosPanel ─────────────────────────────────────────────────────
 
 export function EditorCapitulosPanel() {
@@ -1668,6 +2004,10 @@ export function EditorCapitulosPanel() {
   const [capRefreshKey, setCapRefreshKey] = useState(0);
   const [editandoLibro, setEditandoLibro] = useState<Libro | null>(null);
 
+  // Vista: "biblioteca" | "editor"
+  // Si hay cap seleccionado → editor; si hay libro pero no cap → biblioteca con sidebar abierto
+  const [vistaLibroId, setVistaLibroId] = useState<string | null>(lastLibroId);
+
   const {
     capitulos,
     setCapitulos,
@@ -1677,15 +2017,14 @@ export function EditorCapitulosPanel() {
   useEffect(() => {
     const check = () => {
       const action = localStorage.getItem("estudio-caps-action");
-      // Intentar abrir un capítulo concreto aunque no haya action string
-      // (puede venir de onNavigateToCapitulo en editorGarlia que solo guarda ids)
       const capId = localStorage.getItem("estudio-caps-last-cap");
       const libroId = localStorage.getItem("estudio-caps-last-libro");
       if (capId && libroId) {
         setSelectedLibroId(libroId);
         setSelectedCapId(capId);
+        setVistaLibroId(libroId);
         setFocusMode(false);
-        setSidebarOpen(false);
+        setSidebarOpen(true);
       }
       if (!action) return;
       localStorage.removeItem("estudio-caps-action");
@@ -1698,15 +2037,22 @@ export function EditorCapitulosPanel() {
     return () => window.removeEventListener("estudio-caps-action", check);
   }, []);
 
-  const handleSelectCap = (libroId: string, capId: string) => {
+  const handleSelectLibro = (libroId: string) => {
+    setVistaLibroId(libroId);
     setSelectedLibroId(libroId);
-    setSelectedCapId(capId);
-    setFocusMode(false);
-    setSidebarOpen(false);
+    // No seleccionamos cap aún — mostramos biblioteca con sidebar
+    setSelectedCapId(null);
+    setSidebarOpen(true);
   };
 
-  // FIX 5: capCreate (types.ts) ya persistió el cap en Dexie con status
-  // "synced" o "pending". Aquí solo actualizamos el estado React.
+  const handleSelectCap = (libroId: string, capId: string) => {
+    setSelectedLibroId(libroId);
+    setVistaLibroId(libroId);
+    setSelectedCapId(capId);
+    setFocusMode(false);
+    setSidebarOpen(true);
+  };
+
   const handleCapCreada = (cap: Capitulo) => {
     setCapitulos((prev) => [...prev, cap]);
     setSelectedCapId(cap.id);
@@ -1732,11 +2078,10 @@ export function EditorCapitulosPanel() {
     });
     if (error || !data) throw new Error(error ?? "Error al crear libro");
     setSelectedLibroId(data.id);
+    setVistaLibroId(data.id);
     setShowNuevoLibro(false);
   };
 
-  // FIX 5: capDelete (types.ts) ya eliminó de Dexie (o marcó deleted: true
-  // si offline + encoló para sync). Aquí solo actualizamos el estado React.
   const handleCapEliminada = async (id: string, libroId: string) => {
     try {
       await capDelete(id);
@@ -1753,123 +2098,201 @@ export function EditorCapitulosPanel() {
       if (selectedLibroId === libroId) {
         setSelectedLibroId(null);
         setSelectedCapId(null);
+        setVistaLibroId(null);
       }
       setCapRefreshKey((k) => k + 1);
     } catch {}
   };
 
-  const bibliotecaAbierta = !selectedCapId;
+  const libroActivo = libros.find((l) => l.id === vistaLibroId);
+  const enEditor = !!selectedCapId && !!selectedLibroId;
+  const enBiblioteca = !enEditor;
 
   return (
     <>
-      <div className="flex flex-col flex-1 min-h-0">
-        {/* ── Biblioteca ── */}
-        <AnimatePresence initial={false}>
-          {bibliotecaAbierta && (
-            <motion.div
-              key="biblioteca"
-              animate={{ height: "auto", opacity: 1 }}
-              className="overflow-hidden border-b shrink-0"
-              exit={{ height: 0, opacity: 0 }}
-              initial={{ height: 0, opacity: 0 }}
+      <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+        {/* ── Barra superior del libro (solo en editor) ── */}
+        {enEditor && (
+          <BarraLibro
+            libro={libroActivo}
+            sidebarOpen={sidebarOpen}
+            onEditLibro={() => libroActivo && setEditandoLibro(libroActivo)}
+            onNuevoCap={() => setShowNuevoCap(true)}
+            onToggleSidebar={() => setSidebarOpen((o) => !o)}
+            onVolver={() => {
+              setSelectedCapId(null);
+              setVistaLibroId(selectedLibroId);
+            }}
+          />
+        )}
+
+        {/* ── Contenido principal ── */}
+        <div className="flex-1 min-h-0 flex overflow-hidden">
+          {/* Biblioteca */}
+          {enBiblioteca && (
+            <BibliotecaPortadas
+              libros={libros}
+              loading={loadingLibros}
+              selectedLibroId={vistaLibroId}
+              onDeleteLibro={handleLibroEliminado}
+              onEditLibro={setEditandoLibro}
+              onNuevoLibro={() => setShowNuevoLibro(true)}
+              onSelectLibro={handleSelectLibro}
+            />
+          )}
+
+          {/* Editor */}
+          {enEditor && selectedCapId && selectedLibroId && (
+            <div className="flex-1 min-h-0 flex overflow-hidden">
+              <PanelEditor
+                key={selectedCapId}
+                capId={selectedCapId}
+                focusMode={focusMode}
+                libroId={selectedLibroId}
+                onCapitulosChange={() => setCapRefreshKey((k) => k + 1)}
+                onToggleFocus={() => setFocusMode((m) => !m)}
+                onVolver={() => {
+                  setSelectedCapId(null);
+                  setVistaLibroId(selectedLibroId);
+                }}
+              />
+            </div>
+          )}
+
+          {/* Sidebar caps (solo en editor) */}
+          {enEditor && (
+            <SidebarCapitulos
+              capitulos={capitulos}
+              libroId={selectedLibroId!}
+              open={sidebarOpen}
+              selectedCapId={selectedCapId}
+              onDeleteCap={handleCapEliminada}
+              onEditCap={setEditandoCap}
+              onNuevoCap={() => setShowNuevoCap(true)}
+              onSelectCap={(capId) => handleSelectCap(selectedLibroId!, capId)}
+            />
+          )}
+        </div>
+
+        {/* Sidebar de caps cuando estamos en biblioteca con libro seleccionado */}
+        {enBiblioteca && vistaLibroId && (
+          <div
+            className="fixed right-0 top-0 h-full z-30 flex flex-col border-l shadow-xl"
+            style={{
+              width: "clamp(200px, 22vw, 280px)",
+              borderColor:
+                "color-mix(in srgb, var(--primary) 10%, transparent)",
+              background: "var(--bg-main)",
+            }}
+          >
+            <div
+              className="shrink-0 flex items-center justify-between px-4 py-3 border-b"
               style={{
                 borderColor:
                   "color-mix(in srgb, var(--primary) 8%, transparent)",
               }}
-              transition={{ duration: 0.22, ease: "easeInOut" }}
             >
-              {/* Mobile: grid 2 columnas */}
-              <div
-                className="sm:hidden overflow-y-auto p-2"
-                style={{ height: selectedCapId ? "380px" : "420px" }}
-              >
-                <div className="grid grid-cols-2 gap-2">
-                  {loadingLibros ? (
-                    <div className="col-span-2 flex items-center justify-center py-8 text-primary/25">
-                      <Loader2 className="animate-spin" size={16} />
-                    </div>
-                  ) : libros.length === 0 ? (
-                    <div className="col-span-2 flex items-center justify-center py-8 text-primary/20">
-                      <p className="text-[8px] font-black uppercase tracking-widest">
-                        Sin resultados · escribe «add» para crear
-                      </p>
-                    </div>
-                  ) : (
-                    libros.map((libro) => (
-                      <LibroCard
-                        key={libro.id + capRefreshKey}
-                        libro={libro}
-                        selectedCapId={selectedCapId}
-                        onDeleteCap={handleCapEliminada}
-                        onDeleteLibro={handleLibroEliminado}
-                        onEditCap={setEditandoCap}
-                        onEditLibro={setEditandoLibro}
-                        onNuevoCap={(libroId) => {
-                          setSelectedLibroId(libroId);
-                          setShowNuevoCap(true);
-                        }}
-                        onSelectCap={handleSelectCap}
-                      />
-                    ))
-                  )}
+              <div className="flex flex-col gap-0.5">
+                <span className="text-[8px] font-black uppercase tracking-[0.2em] text-primary/35">
+                  Capítulos
+                </span>
+                <span className="text-[10px] font-black uppercase italic tracking-tight text-primary/60 truncate max-w-[140px]">
+                  {libroActivo?.titulo ?? "…"}
+                </span>
+              </div>
+              <div className="flex items-center gap-1">
+                <button
+                  className="flex items-center gap-1 px-2 py-1 rounded-[var(--radius-btn)] bg-primary/8 hover:bg-primary/15 text-primary/50 hover:text-primary text-[8px] font-black uppercase tracking-widest transition-all"
+                  onClick={() => setShowNuevoCap(true)}
+                >
+                  <Plus size={9} />
+                </button>
+                <button
+                  className="p-1.5 rounded hover:bg-primary/8 text-primary/30 hover:text-primary transition-all"
+                  onClick={() => setVistaLibroId(null)}
+                >
+                  <X size={11} />
+                </button>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto py-1">
+              {capitulos.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-10 gap-2 text-primary/20">
+                  <BookMarked size={16} />
+                  <p className="text-[7px] font-black uppercase tracking-widest text-center px-3">
+                    Sin capítulos · crea el primero
+                  </p>
                 </div>
-              </div>
-
-              {/* Desktop: scroll horizontal */}
-              <div
-                className="hidden sm:flex overflow-x-auto"
-                style={{ maxHeight: selectedCapId ? "360px" : "480px" }}
-              >
-                {loadingLibros ? (
-                  <div className="flex items-center justify-center px-12 py-8 text-primary/25">
-                    <Loader2 className="animate-spin" size={18} />
-                  </div>
-                ) : libros.length === 0 ? (
-                  <div className="flex items-center justify-center px-12 py-8 text-primary/20">
-                    <p className="text-[9px] font-black uppercase tracking-widest">
-                      Sin resultados
-                    </p>
-                  </div>
-                ) : (
-                  libros.map((libro) => (
-                    <LibroColumna
-                      key={libro.id + capRefreshKey}
-                      libro={libro}
-                      selectedCapId={selectedCapId}
-                      onDeleteCap={handleCapEliminada}
-                      onDeleteLibro={handleLibroEliminado}
-                      onEditCap={setEditandoCap}
-                      onEditLibro={setEditandoLibro}
-                      onNuevoCap={(libroId) => {
-                        setSelectedLibroId(libroId);
-                        setShowNuevoCap(true);
+              ) : (
+                capitulos.map((cap) => (
+                  <div
+                    key={cap.id}
+                    className="group relative flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-primary/5 transition-all border-l-2 border-transparent hover:border-primary/30"
+                    onClick={() => handleSelectCap(vistaLibroId!, cap.id)}
+                  >
+                    <span
+                      className="shrink-0 text-[7px] font-black tabular-nums text-primary/25"
+                      style={{ width: 18, textAlign: "right" }}
+                    >
+                      {cap.orden}
+                    </span>
+                    <span className="flex-1 min-w-0 text-[10px] font-bold uppercase tracking-wide truncate text-primary/60">
+                      {cap.titulo_capitulo}
+                    </span>
+                    <div
+                      className="shrink-0 w-1.5 h-1.5 rounded-full"
+                      style={{
+                        background:
+                          cap.visibilidad === "publico"
+                            ? "var(--callout-success-border)"
+                            : cap.visibilidad === "programado"
+                              ? "var(--callout-warning-border)"
+                              : "color-mix(in srgb, var(--primary) 12%, transparent)",
                       }}
-                      onSelectCap={handleSelectCap}
                     />
-                  ))
-                )}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2 hidden group-hover:flex items-center gap-0.5 bg-bg-main border border-primary/10 rounded px-0.5 py-0.5 shadow-sm">
+                      <button
+                        className="p-0.5 rounded hover:bg-primary/10 text-primary/40 hover:text-primary transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditandoCap(cap);
+                        }}
+                      >
+                        <Pencil size={9} />
+                      </button>
+                      <button
+                        className="p-0.5 rounded hover:bg-red-500/10 text-primary/25 hover:text-red-400 transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCapEliminada(cap.id, vistaLibroId!);
+                        }}
+                      >
+                        <Trash2 size={9} />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
 
-        {/* ── Editor ── */}
-        {selectedCapId && selectedLibroId ? (
-          <div className="flex-1 min-h-0 flex flex-col">
-            <PanelEditor
-              key={selectedCapId}
-              capId={selectedCapId}
-              focusMode={focusMode}
-              libroId={selectedLibroId}
-              onCapitulosChange={() => setCapRefreshKey((k) => k + 1)}
-              onToggleFocus={() => setFocusMode((m) => !m)}
-              onVolver={() => {
-                setSelectedCapId(null);
-                setSidebarOpen(false);
+            {/* Botón editar libro */}
+            <div
+              className="shrink-0 border-t p-3"
+              style={{
+                borderColor:
+                  "color-mix(in srgb, var(--primary) 8%, transparent)",
               }}
-            />
+            >
+              <button
+                className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-[var(--radius-btn)] border border-primary/10 text-[8px] font-black uppercase tracking-widest text-primary/35 hover:text-primary hover:border-primary/25 transition-all"
+                onClick={() => libroActivo && setEditandoLibro(libroActivo)}
+              >
+                <Pencil size={9} /> Editar libro
+              </button>
+            </div>
           </div>
-        ) : null}
+        )}
       </div>
 
       {showNuevoLibro && (
