@@ -3,29 +3,50 @@ import Image from "next/image";
 
 import { AnimatePresence } from "framer-motion";
 import {
-  X, ArrowLeft,
-  Save, Edit3, ImagePlus, Move, CheckCircle2, AlertCircle, UserX, ZoomIn, ZoomOut, User,
-  BookOpen, BookMarked, Bug, Package,
+  X,
+  ArrowLeft,
+  Save,
+  Edit3,
+  ImagePlus,
+  Move,
+  CheckCircle2,
+  AlertCircle,
+  UserX,
+  ZoomIn,
+  ZoomOut,
+  User,
+  BookOpen,
+  BookMarked,
+  Bug,
+  Package,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useCallback, useRef } from "react";
 
-import {
-  MotionDiv, MotionButton,
-} from "@/components/ui/Motion";
+import { MotionDiv, MotionButton } from "@/components/ui/Motion";
 import { ModalDetalle } from "@/features/garlia/views/PersonalComponents";
 import { useIsAdmin } from "@/hooks/auth/useIsAdmin";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import { db } from "@/lib/api/client/db";
 import { supabase } from "@/lib/api/client/supabase";
-import { TileCanvas, type MapTile } from "@/features/garlia/views/TileCanvas";
+import {
+  TileCanvas,
+  type MapTile,
+} from "@/features/editorGarlia/views/TileCanvas";
 
 // ─── Hourglass — reemplaza Loader2 en todos los indicadores de carga ──────────
 function Hourglass({ size = 14 }: { size?: number }) {
   return (
     <svg
-      fill="none" height={size * 1.45}
-      style={{ animation: "hg-flip 2.4s ease-in-out infinite", transformOrigin: "center", flexShrink: 0 }} viewBox="0 0 22 32" width={size}
+      fill="none"
+      height={size * 1.45}
+      style={{
+        animation: "hg-flip 2.4s ease-in-out infinite",
+        transformOrigin: "center",
+        flexShrink: 0,
+      }}
+      viewBox="0 0 22 32"
+      width={size}
       xmlns="http://www.w3.org/2000/svg"
     >
       <style>{`
@@ -35,10 +56,40 @@ function Hourglass({ size = 14 }: { size?: number }) {
           100%    { transform: rotate(180deg); }
         }
       `}</style>
-      <rect fill="currentColor" height="2.5"  opacity="0.7" rx="0" width="20" x="1" y="0"/>
-      <rect fill="currentColor" height="2.5" opacity="0.7" rx="0" width="20" x="1" y="29.5"/>
-      <path d="M2 2.5 L11 16 L20 2.5 Z"  fill="currentColor" fillOpacity="0.2" stroke="currentColor" strokeOpacity="0.6" strokeWidth="0.8"/>
-      <path d="M2 29.5 L11 16 L20 29.5 Z" fill="currentColor" fillOpacity="0.5" stroke="currentColor" strokeOpacity="0.6" strokeWidth="0.8"/>
+      <rect
+        fill="currentColor"
+        height="2.5"
+        opacity="0.7"
+        rx="0"
+        width="20"
+        x="1"
+        y="0"
+      />
+      <rect
+        fill="currentColor"
+        height="2.5"
+        opacity="0.7"
+        rx="0"
+        width="20"
+        x="1"
+        y="29.5"
+      />
+      <path
+        d="M2 2.5 L11 16 L20 2.5 Z"
+        fill="currentColor"
+        fillOpacity="0.2"
+        stroke="currentColor"
+        strokeOpacity="0.6"
+        strokeWidth="0.8"
+      />
+      <path
+        d="M2 29.5 L11 16 L20 29.5 Z"
+        fill="currentColor"
+        fillOpacity="0.5"
+        stroke="currentColor"
+        strokeOpacity="0.6"
+        strokeWidth="0.8"
+      />
     </svg>
   );
 }
@@ -46,27 +97,45 @@ function Hourglass({ size = 14 }: { size?: number }) {
 // ─── Types ────────────────────────────────────────────────────────────────────
 type EntidadModal =
   | { tipo: "personaje"; data: any }
-  | { tipo: "criatura";  data: any }
-  | { tipo: "item";      data: any }
-  | { tipo: "item_inv";  data: any };
+  | { tipo: "criatura"; data: any }
+  | { tipo: "item"; data: any }
+  | { tipo: "item_inv"; data: any };
 type ToastType = "success" | "error";
 
 // ─── Toast ────────────────────────────────────────────────────────────────────
-function Toast({ message, type, onClose }: { message: string; type: ToastType; onClose: () => void }) {
-  useEffect(() => { const t = setTimeout(onClose, 3000); return () => clearTimeout(t); }, [onClose]);
+function Toast({
+  message,
+  type,
+  onClose,
+}: {
+  message: string;
+  type: ToastType;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    const t = setTimeout(onClose, 3000);
+    return () => clearTimeout(t);
+  }, [onClose]);
   return (
     <MotionDiv
-      animate={{ opacity: 1, y: 0 }} className="fixed bottom-24 left-1/2 -translate-x-1/2 z-300 flex items-center gap-3 px-5 py-3 shadow-lg text-[10px] font-bold uppercase tracking-widest" exit={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="fixed bottom-24 left-1/2 -translate-x-1/2 z-300 flex items-center gap-3 px-5 py-3 shadow-lg text-[10px] font-bold uppercase tracking-widest"
+      exit={{ opacity: 0, y: 20 }}
       initial={{ opacity: 0, y: 20 }}
       style={{
-        background: type === "success" ? "rgba(5,150,105,0.92)" : "rgba(185,28,28,0.92)",
+        background:
+          type === "success" ? "rgba(5,150,105,0.92)" : "rgba(185,28,28,0.92)",
         color: "var(--btn-text, #fff)",
         border: `1px solid ${type === "success" ? "rgba(52,211,153,0.3)" : "rgba(248,113,113,0.3)"}`,
         borderRadius: "1px",
         letterSpacing: "0.15em",
       }}
     >
-      {type === "success" ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
+      {type === "success" ? (
+        <CheckCircle2 size={16} />
+      ) : (
+        <AlertCircle size={16} />
+      )}
       {message}
     </MotionDiv>
   );
@@ -74,90 +143,239 @@ function Toast({ message, type, onClose }: { message: string; type: ToastType; o
 
 // ─── Panel Contenido ──────────────────────────────────────────────────────────
 function PanelContenido({
-  editMode, reinoSeleccionado, puntoSeleccionado,
-  setPuntoSeleccionado, setDetallesReino, setModifiedDetalles,
-  setReinoSeleccionado, personajesReino, personajesDesbloqueados,
-  handlePersonajeClick, modifiedDetalles, isSaving, handleSaveChanges,
-  isUploadingImg, handleImageUpload, imgInputRef,
-  librosReino, librosColeccion, capitulosReino, loadingLibros,
-  personajesCiudad, criaturasCiudad, itemsCiudad, capitulosCiudad, loadingCiudad,
+  editMode,
+  reinoSeleccionado,
+  puntoSeleccionado,
+  setPuntoSeleccionado,
+  setDetallesReino,
+  setModifiedDetalles,
+  setReinoSeleccionado,
+  personajesReino,
+  personajesDesbloqueados,
+  handlePersonajeClick,
+  modifiedDetalles,
+  isSaving,
+  handleSaveChanges,
+  isUploadingImg,
+  handleImageUpload,
+  imgInputRef,
+  librosReino,
+  librosColeccion,
+  capitulosReino,
+  loadingLibros,
+  personajesCiudad,
+  criaturasCiudad,
+  itemsCiudad,
+  capitulosCiudad,
+  loadingCiudad,
 }: any) {
   const router = useRouter();
   if (editMode) {
     return (
       <div className="flex flex-col gap-4 grow">
         <div className="flex flex-col gap-1">
-          <label className="text-[9px] font-bold uppercase tracking-widest ml-1" style={{ color: "color-mix(in srgb, var(--foreground) 60%, transparent)" }}>Nombre</label>
+          <label
+            className="text-[9px] font-bold uppercase tracking-widest ml-1"
+            style={{
+              color: "color-mix(in srgb, var(--foreground) 60%, transparent)",
+            }}
+          >
+            Nombre
+          </label>
           <input
             className="input-brand font-bold uppercase text-xl outline-none px-4 py-3"
             style={{ borderRadius: "1px", letterSpacing: "0.08em" }}
             type="text"
-            value={puntoSeleccionado ? puntoSeleccionado.nombre : reinoSeleccionado.nombre}
+            value={
+              puntoSeleccionado
+                ? puntoSeleccionado.nombre
+                : reinoSeleccionado.nombre
+            }
             onChange={(e) => {
               if (puntoSeleccionado) {
-                setPuntoSeleccionado({ ...puntoSeleccionado, nombre: e.target.value });
-                setDetallesReino((prev: any[]) => prev.map(p => p.id === puntoSeleccionado.id ? { ...p, nombre: e.target.value } : p));
-                setModifiedDetalles((prev: Set<string>) => new Set(prev).add(puntoSeleccionado.id));
-              } else setReinoSeleccionado({ ...reinoSeleccionado, nombre: e.target.value });
+                setPuntoSeleccionado({
+                  ...puntoSeleccionado,
+                  nombre: e.target.value,
+                });
+                setDetallesReino((prev: any[]) =>
+                  prev.map((p) =>
+                    p.id === puntoSeleccionado.id
+                      ? { ...p, nombre: e.target.value }
+                      : p,
+                  ),
+                );
+                setModifiedDetalles((prev: Set<string>) =>
+                  new Set(prev).add(puntoSeleccionado.id),
+                );
+              } else
+                setReinoSeleccionado({
+                  ...reinoSeleccionado,
+                  nombre: e.target.value,
+                });
             }}
           />
         </div>
         <div className="flex flex-col gap-1 grow">
-          <label className="text-[9px] font-bold uppercase tracking-widest ml-1" style={{ color: "color-mix(in srgb, var(--foreground) 60%, transparent)" }}>Descripción / Lore</label>
+          <label
+            className="text-[9px] font-bold uppercase tracking-widest ml-1"
+            style={{
+              color: "color-mix(in srgb, var(--foreground) 60%, transparent)",
+            }}
+          >
+            Descripción / Lore
+          </label>
           <textarea
             className="input-brand text-sm italic leading-relaxed h-36 resize-none outline-none px-4 py-3"
-            value={puntoSeleccionado ? puntoSeleccionado.descripcion : reinoSeleccionado.descripcion}
+            value={
+              puntoSeleccionado
+                ? puntoSeleccionado.descripcion
+                : reinoSeleccionado.descripcion
+            }
             onChange={(e) => {
               if (puntoSeleccionado) {
-                setPuntoSeleccionado({ ...puntoSeleccionado, descripcion: e.target.value });
-                setDetallesReino((prev: any[]) => prev.map(p => p.id === puntoSeleccionado.id ? { ...p, descripcion: e.target.value } : p));
-                setModifiedDetalles((prev: Set<string>) => new Set(prev).add(puntoSeleccionado.id));
-              } else setReinoSeleccionado({ ...reinoSeleccionado, descripcion: e.target.value });
+                setPuntoSeleccionado({
+                  ...puntoSeleccionado,
+                  descripcion: e.target.value,
+                });
+                setDetallesReino((prev: any[]) =>
+                  prev.map((p) =>
+                    p.id === puntoSeleccionado.id
+                      ? { ...p, descripcion: e.target.value }
+                      : p,
+                  ),
+                );
+                setModifiedDetalles((prev: Set<string>) =>
+                  new Set(prev).add(puntoSeleccionado.id),
+                );
+              } else
+                setReinoSeleccionado({
+                  ...reinoSeleccionado,
+                  descripcion: e.target.value,
+                });
             }}
           />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-[9px] font-bold uppercase tracking-widest ml-1 flex items-center gap-1" style={{ color: "color-mix(in srgb, var(--foreground) 60%, transparent)" }}>
+          <label
+            className="text-[9px] font-bold uppercase tracking-widest ml-1 flex items-center gap-1"
+            style={{
+              color: "color-mix(in srgb, var(--foreground) 60%, transparent)",
+            }}
+          >
             <Move size={9} /> Coordenadas
           </label>
           <div className="grid grid-cols-2 gap-2">
-            {[["X", puntoSeleccionado ? puntoSeleccionado.coord_x : reinoSeleccionado.coord_x],
-              ["Y", puntoSeleccionado ? puntoSeleccionado.coord_y : reinoSeleccionado.coord_y]].map(([label, val]) => (
-              <div key={label} className="p-3 text-center border"
-                style={{ background: "color-mix(in srgb, var(--bg-main) 70%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 20%, transparent)" }}>
-                <span className="block text-[8px] font-bold uppercase" style={{ color: "color-mix(in srgb, var(--foreground) 40%, transparent)" }}>{label}</span>
-                <span className="text-sm font-black" style={{ color: "var(--accent)" }}>{val}</span>
+            {[
+              [
+                "X",
+                puntoSeleccionado
+                  ? puntoSeleccionado.coord_x
+                  : reinoSeleccionado.coord_x,
+              ],
+              [
+                "Y",
+                puntoSeleccionado
+                  ? puntoSeleccionado.coord_y
+                  : reinoSeleccionado.coord_y,
+              ],
+            ].map(([label, val]) => (
+              <div
+                key={label}
+                className="p-3 text-center border"
+                style={{
+                  background:
+                    "color-mix(in srgb, var(--bg-main) 70%, transparent)",
+                  borderColor:
+                    "color-mix(in srgb, var(--primary) 20%, transparent)",
+                }}
+              >
+                <span
+                  className="block text-[8px] font-bold uppercase"
+                  style={{
+                    color:
+                      "color-mix(in srgb, var(--foreground) 40%, transparent)",
+                  }}
+                >
+                  {label}
+                </span>
+                <span
+                  className="text-sm font-black"
+                  style={{ color: "var(--accent)" }}
+                >
+                  {val}
+                </span>
               </div>
             ))}
           </div>
         </div>
 
-
         {!puntoSeleccionado && (
           <div className="flex flex-col gap-1">
-            <label className="text-[9px] font-bold uppercase tracking-widest ml-1 flex items-center gap-1"
-              style={{ color: "color-mix(in srgb, var(--foreground) 60%, transparent)" }}>
+            <label
+              className="text-[9px] font-bold uppercase tracking-widest ml-1 flex items-center gap-1"
+              style={{
+                color: "color-mix(in srgb, var(--foreground) 60%, transparent)",
+              }}
+            >
               <ImagePlus size={9} /> Imagen del Mapa
             </label>
             {reinoSeleccionado.mapa_url && (
-              <div className="relative w-full h-20 overflow-hidden border mb-1"
-                style={{ borderColor: "color-mix(in srgb, var(--primary) 20%, transparent)" }}>
-                <Image alt="Mapa actual" className="w-full h-full object-cover" src={reinoSeleccionado.mapa_url} />
-                <div className="absolute inset-0 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.4)" }}>
-                  <span className="text-[8px] font-black uppercase tracking-widest" style={{ color: "var(--accent)" }}>Imagen actual</span>
+              <div
+                className="relative w-full h-20 overflow-hidden border mb-1"
+                style={{
+                  borderColor:
+                    "color-mix(in srgb, var(--primary) 20%, transparent)",
+                }}
+              >
+                <Image
+                  alt="Mapa actual"
+                  className="w-full h-full object-cover"
+                  src={reinoSeleccionado.mapa_url}
+                />
+                <div
+                  className="absolute inset-0 flex items-center justify-center"
+                  style={{ background: "rgba(0,0,0,0.4)" }}
+                >
+                  <span
+                    className="text-[8px] font-black uppercase tracking-widest"
+                    style={{ color: "var(--accent)" }}
+                  >
+                    Imagen actual
+                  </span>
                 </div>
               </div>
             )}
-            <input ref={imgInputRef} accept="image/*" className="hidden" type="file" onChange={handleImageUpload} />
+            <input
+              ref={imgInputRef}
+              accept="image/*"
+              className="hidden"
+              type="file"
+              onChange={handleImageUpload}
+            />
             <button
               className="w-full flex items-center justify-center gap-2 border border-dashed text-[10px] font-black uppercase py-3 transition-all disabled:opacity-50"
               disabled={isUploadingImg}
-              style={{ borderColor: "color-mix(in srgb, var(--primary) 30%, transparent)", color: "var(--accent)", background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
+              style={{
+                borderColor:
+                  "color-mix(in srgb, var(--primary) 30%, transparent)",
+                color: "var(--accent)",
+                background:
+                  "color-mix(in srgb, var(--primary) 8%, transparent)",
+              }}
               onClick={() => imgInputRef.current?.click()}
             >
-              {isUploadingImg
-                ? <><Hourglass size={12} /> Subiendo...</>
-                : <><ImagePlus size={12} /> {reinoSeleccionado.mapa_url ? "Cambiar imagen" : "Subir imagen"}</>}
+              {isUploadingImg ? (
+                <>
+                  <Hourglass size={12} /> Subiendo...
+                </>
+              ) : (
+                <>
+                  <ImagePlus size={12} />{" "}
+                  {reinoSeleccionado.mapa_url
+                    ? "Cambiar imagen"
+                    : "Subir imagen"}
+                </>
+              )}
             </button>
           </div>
         )}
@@ -179,38 +397,107 @@ function PanelContenido({
       {/* Title with decorative line */}
       <div className="relative mb-6">
         <div className="flex items-center gap-3 mb-2">
-          <div className="h-px flex-1" style={{ background: `linear-gradient(to right, transparent, color-mix(in srgb, var(--accent) 40%, transparent))` }} />
-          <div className="w-1.5 h-1.5 rotate-45" style={{ background: "var(--accent)" }} />
-          <div className="h-px flex-1" style={{ background: `linear-gradient(to left, transparent, color-mix(in srgb, var(--accent) 40%, transparent))` }} />
+          <div
+            className="h-px flex-1"
+            style={{
+              background: `linear-gradient(to right, transparent, color-mix(in srgb, var(--accent) 40%, transparent))`,
+            }}
+          />
+          <div
+            className="w-1.5 h-1.5 rotate-45"
+            style={{ background: "var(--accent)" }}
+          />
+          <div
+            className="h-px flex-1"
+            style={{
+              background: `linear-gradient(to left, transparent, color-mix(in srgb, var(--accent) 40%, transparent))`,
+            }}
+          />
         </div>
-        <h2 className="font-bold text-2xl uppercase tracking-[0.18em] leading-none text-center"
-          style={{ fontFamily: "'Cinzel', serif", color: "var(--foreground)" }}>
-          {puntoSeleccionado ? puntoSeleccionado.nombre : reinoSeleccionado.nombre}
+        <h2
+          className="font-bold text-2xl uppercase tracking-[0.18em] leading-none text-center"
+          style={{ fontFamily: "'Cinzel', serif", color: "var(--foreground)" }}
+        >
+          {puntoSeleccionado
+            ? puntoSeleccionado.nombre
+            : reinoSeleccionado.nombre}
         </h2>
         <div className="flex items-center gap-3 mt-2">
-          <div className="h-px flex-1" style={{ background: `linear-gradient(to right, transparent, color-mix(in srgb, var(--accent) 40%, transparent))` }} />
-          <div className="w-1.5 h-1.5 rotate-45" style={{ background: "var(--accent)" }} />
-          <div className="h-px flex-1" style={{ background: `linear-gradient(to left, transparent, color-mix(in srgb, var(--accent) 40%, transparent))` }} />
+          <div
+            className="h-px flex-1"
+            style={{
+              background: `linear-gradient(to right, transparent, color-mix(in srgb, var(--accent) 40%, transparent))`,
+            }}
+          />
+          <div
+            className="w-1.5 h-1.5 rotate-45"
+            style={{ background: "var(--accent)" }}
+          />
+          <div
+            className="h-px flex-1"
+            style={{
+              background: `linear-gradient(to left, transparent, color-mix(in srgb, var(--accent) 40%, transparent))`,
+            }}
+          />
         </div>
       </div>
 
       <div className="space-y-6 grow overflow-y-auto pr-1 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-accent/20">
         {/* Lore text */}
-        <div className="relative p-5 border"
-          style={{ borderColor: "color-mix(in srgb, var(--accent) 15%, transparent)", background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-          <div className="absolute top-0 left-0 w-3 h-3 border-t border-l" style={{ borderColor: "color-mix(in srgb, var(--accent) 50%, transparent)" }} />
-          <div className="absolute top-0 right-0 w-3 h-3 border-t border-r" style={{ borderColor: "color-mix(in srgb, var(--accent) 50%, transparent)" }} />
-          <div className="absolute bottom-0 left-0 w-3 h-3 border-b border-l" style={{ borderColor: "color-mix(in srgb, var(--accent) 50%, transparent)" }} />
-          <div className="absolute bottom-0 right-0 w-3 h-3 border-b border-r" style={{ borderColor: "color-mix(in srgb, var(--accent) 50%, transparent)" }} />
-          <p className="text-sm italic leading-relaxed" style={{ color: "color-mix(in srgb, var(--foreground) 70%, transparent)" }}>
-            &ldquo;{puntoSeleccionado ? puntoSeleccionado.descripcion : reinoSeleccionado.descripcion}&rdquo;
+        <div
+          className="relative p-5 border"
+          style={{
+            borderColor: "color-mix(in srgb, var(--accent) 15%, transparent)",
+            background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+          }}
+        >
+          <div
+            className="absolute top-0 left-0 w-3 h-3 border-t border-l"
+            style={{
+              borderColor: "color-mix(in srgb, var(--accent) 50%, transparent)",
+            }}
+          />
+          <div
+            className="absolute top-0 right-0 w-3 h-3 border-t border-r"
+            style={{
+              borderColor: "color-mix(in srgb, var(--accent) 50%, transparent)",
+            }}
+          />
+          <div
+            className="absolute bottom-0 left-0 w-3 h-3 border-b border-l"
+            style={{
+              borderColor: "color-mix(in srgb, var(--accent) 50%, transparent)",
+            }}
+          />
+          <div
+            className="absolute bottom-0 right-0 w-3 h-3 border-b border-r"
+            style={{
+              borderColor: "color-mix(in srgb, var(--accent) 50%, transparent)",
+            }}
+          />
+          <p
+            className="text-sm italic leading-relaxed"
+            style={{
+              color: "color-mix(in srgb, var(--foreground) 70%, transparent)",
+            }}
+          >
+            &ldquo;
+            {puntoSeleccionado
+              ? puntoSeleccionado.descripcion
+              : reinoSeleccionado.descripcion}
+            &rdquo;
           </p>
         </div>
 
         {/* ── Habitantes de la ciudad seleccionada ── */}
-        {puntoSeleccionado && (
-          loadingCiudad ? (
-            <div className="flex justify-center py-6" style={{ color: "color-mix(in srgb, var(--accent) 50%, transparent)" }}>
+        {puntoSeleccionado &&
+          (loadingCiudad ? (
+            <div
+              className="flex justify-center py-6"
+              style={{
+                color: "color-mix(in srgb, var(--accent) 50%, transparent)",
+              }}
+            >
               <Hourglass size={14} />
             </div>
           ) : (
@@ -219,11 +506,30 @@ function PanelContenido({
               {personajesCiudad.length > 0 && (
                 <div>
                   <div className="flex items-center gap-2 mb-3">
-                    <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }} />
-                    <span className="text-[8px] font-black uppercase tracking-[0.3em]" style={{ color: "color-mix(in srgb, var(--accent) 60%, transparent)" }}>
-                      <User className="inline mr-1" size={8} />Habitantes
+                    <div
+                      className="h-px flex-1"
+                      style={{
+                        background:
+                          "color-mix(in srgb, var(--accent) 20%, transparent)",
+                      }}
+                    />
+                    <span
+                      className="text-[8px] font-black uppercase tracking-[0.3em]"
+                      style={{
+                        color:
+                          "color-mix(in srgb, var(--accent) 60%, transparent)",
+                      }}
+                    >
+                      <User className="inline mr-1" size={8} />
+                      Habitantes
                     </span>
-                    <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }} />
+                    <div
+                      className="h-px flex-1"
+                      style={{
+                        background:
+                          "color-mix(in srgb, var(--accent) 20%, transparent)",
+                      }}
+                    />
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     {personajesCiudad.map((p: any) => {
@@ -240,26 +546,61 @@ function PanelContenido({
                             opacity: desbloqueado ? 1 : 0.5,
                             cursor: desbloqueado ? "pointer" : "default",
                           }}
-                          onClick={desbloqueado ? () => handlePersonajeClick(p) : undefined}
+                          onClick={
+                            desbloqueado
+                              ? () => handlePersonajeClick(p)
+                              : undefined
+                          }
                         >
-                          <div className="shrink-0 w-9 h-9 overflow-hidden flex items-center justify-center border"
+                          <div
+                            className="shrink-0 w-9 h-9 overflow-hidden flex items-center justify-center border"
                             style={{
-                              borderColor: desbloqueado ? "color-mix(in srgb, var(--accent) 25%, transparent)" : "color-mix(in srgb, var(--accent) 8%, transparent)",
-                              background: "color-mix(in srgb, var(--bg-main) 80%, transparent)",
-                              filter: desbloqueado ? "none" : "grayscale(100%) blur(2px)",
+                              borderColor: desbloqueado
+                                ? "color-mix(in srgb, var(--accent) 25%, transparent)"
+                                : "color-mix(in srgb, var(--accent) 8%, transparent)",
+                              background:
+                                "color-mix(in srgb, var(--bg-main) 80%, transparent)",
+                              filter: desbloqueado
+                                ? "none"
+                                : "grayscale(100%) blur(2px)",
                               borderRadius: "1px",
-                            }}>
-                            {desbloqueado && p.img_url
-                              ? <Image alt={p.nombre} className="w-full h-full object-cover" src={p.img_url} />
-                              : <UserX size={14} style={{ color: "color-mix(in srgb, var(--accent) 30%, transparent)" }} />}
+                            }}
+                          >
+                            {desbloqueado && p.img_url ? (
+                              <Image
+                                alt={p.nombre}
+                                className="w-full h-full object-cover"
+                                src={p.img_url}
+                              />
+                            ) : (
+                              <UserX
+                                size={14}
+                                style={{
+                                  color:
+                                    "color-mix(in srgb, var(--accent) 30%, transparent)",
+                                }}
+                              />
+                            )}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-[10px] font-semibold uppercase leading-tight truncate"
-                              style={{ color: desbloqueado ? "var(--foreground)" : "color-mix(in srgb, var(--accent) 30%, transparent)" }}>
+                            <p
+                              className="text-[10px] font-semibold uppercase leading-tight truncate"
+                              style={{
+                                color: desbloqueado
+                                  ? "var(--foreground)"
+                                  : "color-mix(in srgb, var(--accent) 30%, transparent)",
+                              }}
+                            >
                               {desbloqueado ? p.nombre : "???"}
                             </p>
                             {p.especie && (
-                              <p className="text-[8px] mt-0.5 truncate" style={{ color: "color-mix(in srgb, var(--accent) 55%, transparent)" }}>
+                              <p
+                                className="text-[8px] mt-0.5 truncate"
+                                style={{
+                                  color:
+                                    "color-mix(in srgb, var(--accent) 55%, transparent)",
+                                }}
+                              >
                                 {desbloqueado ? p.especie : "Desconocido"}
                               </p>
                             )}
@@ -275,31 +616,75 @@ function PanelContenido({
               {criaturasCiudad.length > 0 && (
                 <div>
                   <div className="flex items-center gap-2 mb-3">
-                    <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }} />
-                    <span className="text-[8px] font-black uppercase tracking-[0.3em]" style={{ color: "color-mix(in srgb, var(--accent) 60%, transparent)" }}>
-                      <Bug className="inline mr-1" size={8} />Criaturas avistadas
+                    <div
+                      className="h-px flex-1"
+                      style={{
+                        background:
+                          "color-mix(in srgb, var(--accent) 20%, transparent)",
+                      }}
+                    />
+                    <span
+                      className="text-[8px] font-black uppercase tracking-[0.3em]"
+                      style={{
+                        color:
+                          "color-mix(in srgb, var(--accent) 60%, transparent)",
+                      }}
+                    >
+                      <Bug className="inline mr-1" size={8} />
+                      Criaturas avistadas
                     </span>
-                    <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }} />
+                    <div
+                      className="h-px flex-1"
+                      style={{
+                        background:
+                          "color-mix(in srgb, var(--accent) 20%, transparent)",
+                      }}
+                    />
                   </div>
                   <div className="flex flex-col gap-1.5">
                     {criaturasCiudad.map((c: any) => (
-                      <div key={c.id} className="flex items-center gap-2.5 px-3 py-2 border"
+                      <div
+                        key={c.id}
+                        className="flex items-center gap-2.5 px-3 py-2 border"
                         style={{
-                          background: "color-mix(in srgb, var(--primary) 10%, transparent)",
-                          borderColor: "color-mix(in srgb, var(--accent) 12%, transparent)",
+                          background:
+                            "color-mix(in srgb, var(--primary) 10%, transparent)",
+                          borderColor:
+                            "color-mix(in srgb, var(--accent) 12%, transparent)",
                           borderRadius: "1px",
-                        }}>
-                        <div className="shrink-0 w-8 h-8 overflow-hidden border"
+                        }}
+                      >
+                        <div
+                          className="shrink-0 w-8 h-8 overflow-hidden border"
                           style={{
-                            borderColor: "color-mix(in srgb, var(--accent) 20%, transparent)",
-                            background: "color-mix(in srgb, var(--bg-main) 80%, transparent)",
+                            borderColor:
+                              "color-mix(in srgb, var(--accent) 20%, transparent)",
+                            background:
+                              "color-mix(in srgb, var(--bg-main) 80%, transparent)",
                             borderRadius: "1px",
-                          }}>
-                          {c.imagen_url
-                            ? <Image alt={c.nombre} className="w-full h-full object-cover" src={c.imagen_url} />
-                            : <Bug className="m-auto mt-1" size={14} style={{ color: "color-mix(in srgb, var(--accent) 40%, transparent)" }} />}
+                          }}
+                        >
+                          {c.imagen_url ? (
+                            <Image
+                              alt={c.nombre}
+                              className="w-full h-full object-cover"
+                              src={c.imagen_url}
+                            />
+                          ) : (
+                            <Bug
+                              className="m-auto mt-1"
+                              size={14}
+                              style={{
+                                color:
+                                  "color-mix(in srgb, var(--accent) 40%, transparent)",
+                              }}
+                            />
+                          )}
                         </div>
-                        <p className="text-[10px] font-semibold uppercase truncate" style={{ color: "var(--foreground)" }}>
+                        <p
+                          className="text-[10px] font-semibold uppercase truncate"
+                          style={{ color: "var(--foreground)" }}
+                        >
                           {c.nombre}
                         </p>
                       </div>
@@ -312,31 +697,75 @@ function PanelContenido({
               {itemsCiudad.length > 0 && (
                 <div>
                   <div className="flex items-center gap-2 mb-3">
-                    <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }} />
-                    <span className="text-[8px] font-black uppercase tracking-[0.3em]" style={{ color: "color-mix(in srgb, var(--accent) 60%, transparent)" }}>
-                      <Package className="inline mr-1" size={8} />Objetos encontrables
+                    <div
+                      className="h-px flex-1"
+                      style={{
+                        background:
+                          "color-mix(in srgb, var(--accent) 20%, transparent)",
+                      }}
+                    />
+                    <span
+                      className="text-[8px] font-black uppercase tracking-[0.3em]"
+                      style={{
+                        color:
+                          "color-mix(in srgb, var(--accent) 60%, transparent)",
+                      }}
+                    >
+                      <Package className="inline mr-1" size={8} />
+                      Objetos encontrables
                     </span>
-                    <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }} />
+                    <div
+                      className="h-px flex-1"
+                      style={{
+                        background:
+                          "color-mix(in srgb, var(--accent) 20%, transparent)",
+                      }}
+                    />
                   </div>
                   <div className="flex flex-col gap-1.5">
                     {itemsCiudad.map((item: any) => (
-                      <div key={item.id} className="flex items-center gap-2.5 px-3 py-2 border"
+                      <div
+                        key={item.id}
+                        className="flex items-center gap-2.5 px-3 py-2 border"
                         style={{
-                          background: "color-mix(in srgb, var(--primary) 10%, transparent)",
-                          borderColor: "color-mix(in srgb, var(--accent) 12%, transparent)",
+                          background:
+                            "color-mix(in srgb, var(--primary) 10%, transparent)",
+                          borderColor:
+                            "color-mix(in srgb, var(--accent) 12%, transparent)",
                           borderRadius: "1px",
-                        }}>
-                        <div className="shrink-0 w-8 h-8 overflow-hidden border"
+                        }}
+                      >
+                        <div
+                          className="shrink-0 w-8 h-8 overflow-hidden border"
                           style={{
-                            borderColor: "color-mix(in srgb, var(--accent) 20%, transparent)",
-                            background: "color-mix(in srgb, var(--bg-main) 80%, transparent)",
+                            borderColor:
+                              "color-mix(in srgb, var(--accent) 20%, transparent)",
+                            background:
+                              "color-mix(in srgb, var(--bg-main) 80%, transparent)",
                             borderRadius: "1px",
-                          }}>
-                          {item.imagen_url
-                            ? <Image alt={item.nombre} className="w-full h-full object-cover" src={item.imagen_url} />
-                            : <Package className="m-auto mt-1" size={14} style={{ color: "color-mix(in srgb, var(--accent) 40%, transparent)" }} />}
+                          }}
+                        >
+                          {item.imagen_url ? (
+                            <Image
+                              alt={item.nombre}
+                              className="w-full h-full object-cover"
+                              src={item.imagen_url}
+                            />
+                          ) : (
+                            <Package
+                              className="m-auto mt-1"
+                              size={14}
+                              style={{
+                                color:
+                                  "color-mix(in srgb, var(--accent) 40%, transparent)",
+                              }}
+                            />
+                          )}
                         </div>
-                        <p className="text-[10px] font-semibold uppercase truncate" style={{ color: "var(--foreground)" }}>
+                        <p
+                          className="text-[10px] font-semibold uppercase truncate"
+                          style={{ color: "var(--foreground)" }}
+                        >
                           {item.nombre}
                         </p>
                       </div>
@@ -349,11 +778,30 @@ function PanelContenido({
               {capitulosCiudad.length > 0 && (
                 <div>
                   <div className="flex items-center gap-2 mb-3">
-                    <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }} />
-                    <span className="text-[8px] font-black uppercase tracking-[0.3em]" style={{ color: "color-mix(in srgb, var(--accent) 60%, transparent)" }}>
-                      <BookOpen className="inline mr-1" size={8} />Capítulos aquí
+                    <div
+                      className="h-px flex-1"
+                      style={{
+                        background:
+                          "color-mix(in srgb, var(--accent) 20%, transparent)",
+                      }}
+                    />
+                    <span
+                      className="text-[8px] font-black uppercase tracking-[0.3em]"
+                      style={{
+                        color:
+                          "color-mix(in srgb, var(--accent) 60%, transparent)",
+                      }}
+                    >
+                      <BookOpen className="inline mr-1" size={8} />
+                      Capítulos aquí
                     </span>
-                    <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }} />
+                    <div
+                      className="h-px flex-1"
+                      style={{
+                        background:
+                          "color-mix(in srgb, var(--accent) 20%, transparent)",
+                      }}
+                    />
                   </div>
                   <div className="flex flex-col gap-1.5">
                     {capitulosCiudad.map((cap: any) => (
@@ -361,20 +809,44 @@ function PanelContenido({
                         key={cap.id}
                         className="flex items-center gap-2.5 px-3 py-2.5 border w-full text-left transition-all hover:opacity-80 active:scale-[0.98]"
                         style={{
-                          background: "color-mix(in srgb, var(--primary) 10%, transparent)",
-                          borderColor: "color-mix(in srgb, var(--accent) 12%, transparent)",
+                          background:
+                            "color-mix(in srgb, var(--primary) 10%, transparent)",
+                          borderColor:
+                            "color-mix(in srgb, var(--accent) 12%, transparent)",
                           borderRadius: "1px",
                           cursor: "pointer",
                         }}
-                        onClick={() => router.push(`/garlia/libros/${cap.libro_id}/leer/${cap.id}`)}>
-                        <BookMarked size={12} style={{ color: "color-mix(in srgb, var(--accent) 55%, transparent)", flexShrink: 0 }} />
+                        onClick={() =>
+                          router.push(
+                            `/garlia/libros/${cap.libro_id}/leer/${cap.id}`,
+                          )
+                        }
+                      >
+                        <BookMarked
+                          size={12}
+                          style={{
+                            color:
+                              "color-mix(in srgb, var(--accent) 55%, transparent)",
+                            flexShrink: 0,
+                          }}
+                        />
                         <div className="flex-1 min-w-0">
-                          <p className="text-[10px] font-semibold uppercase truncate" style={{ color: "var(--foreground)" }}>
+                          <p
+                            className="text-[10px] font-semibold uppercase truncate"
+                            style={{ color: "var(--foreground)" }}
+                          >
                             {cap.titulo_capitulo ?? `Capítulo ${cap.orden}`}
                           </p>
                           {cap.libro_titulo && (
-                            <p className="text-[8px] mt-0.5 truncate" style={{ color: "color-mix(in srgb, var(--accent) 50%, transparent)" }}>
-                              {cap.libro_categoria && cap.libro_categoria !== cap.libro_titulo
+                            <p
+                              className="text-[8px] mt-0.5 truncate"
+                              style={{
+                                color:
+                                  "color-mix(in srgb, var(--accent) 50%, transparent)",
+                              }}
+                            >
+                              {cap.libro_categoria &&
+                              cap.libro_categoria !== cap.libro_titulo
                                 ? `${cap.libro_categoria} — ${cap.libro_titulo}`
                                 : cap.libro_titulo}
                             </p>
@@ -387,23 +859,49 @@ function PanelContenido({
               )}
 
               {/* Vacío */}
-              {personajesCiudad.length === 0 && criaturasCiudad.length === 0 && itemsCiudad.length === 0 && capitulosCiudad.length === 0 && (
-                <p className="text-center text-[9px] font-black uppercase tracking-widest py-4"
-                  style={{ color: "color-mix(in srgb, var(--accent) 25%, transparent)" }}>
-                  Sin habitantes registrados
-                </p>
-              )}
+              {personajesCiudad.length === 0 &&
+                criaturasCiudad.length === 0 &&
+                itemsCiudad.length === 0 &&
+                capitulosCiudad.length === 0 && (
+                  <p
+                    className="text-center text-[9px] font-black uppercase tracking-widest py-4"
+                    style={{
+                      color:
+                        "color-mix(in srgb, var(--accent) 25%, transparent)",
+                    }}
+                  >
+                    Sin habitantes registrados
+                  </p>
+                )}
             </>
-          )
-        )}
+          ))}
 
         {/* Characters grid — 2 per row, no "ver" button */}
         {!puntoSeleccionado && personajesReino.length > 0 && (
           <div>
             <div className="flex items-center gap-2 mb-4">
-              <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }} />
-              <span className="text-[8px] font-black uppercase tracking-[0.3em]" style={{ color: "color-mix(in srgb, var(--accent) 60%, transparent)" }}>Habitantes conocidos</span>
-              <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }} />
+              <div
+                className="h-px flex-1"
+                style={{
+                  background:
+                    "color-mix(in srgb, var(--accent) 20%, transparent)",
+                }}
+              />
+              <span
+                className="text-[8px] font-black uppercase tracking-[0.3em]"
+                style={{
+                  color: "color-mix(in srgb, var(--accent) 60%, transparent)",
+                }}
+              >
+                Habitantes conocidos
+              </span>
+              <div
+                className="h-px flex-1"
+                style={{
+                  background:
+                    "color-mix(in srgb, var(--accent) 20%, transparent)",
+                }}
+              />
             </div>
             <div className="grid grid-cols-2 gap-2">
               {personajesReino.map((p: any) => {
@@ -420,34 +918,66 @@ function PanelContenido({
                       opacity: desbloqueado ? 1 : 0.5,
                       cursor: desbloqueado ? "pointer" : "default",
                     }}
-                    onClick={desbloqueado ? () => handlePersonajeClick(p) : undefined}
+                    onClick={
+                      desbloqueado ? () => handlePersonajeClick(p) : undefined
+                    }
                   >
                     {/* Avatar — izquierda */}
                     <div
                       className="shrink-0 w-10 h-10 overflow-hidden flex items-center justify-center border"
                       style={{
-                        borderColor: desbloqueado ? "color-mix(in srgb, var(--accent) 25%, transparent)" : "color-mix(in srgb, var(--accent) 8%, transparent)",
-                        background: "color-mix(in srgb, var(--bg-main) 80%, transparent)",
-                        filter: desbloqueado ? "none" : "grayscale(100%) blur(2px)",
+                        borderColor: desbloqueado
+                          ? "color-mix(in srgb, var(--accent) 25%, transparent)"
+                          : "color-mix(in srgb, var(--accent) 8%, transparent)",
+                        background:
+                          "color-mix(in srgb, var(--bg-main) 80%, transparent)",
+                        filter: desbloqueado
+                          ? "none"
+                          : "grayscale(100%) blur(2px)",
                         borderRadius: "1px",
                       }}
                     >
-                      {desbloqueado && p.img_url
-                        ? <Image alt={p.nombre} className="w-full h-full object-cover" src={p.img_url} />
-                        : <UserX size={16} style={{ color: "color-mix(in srgb, var(--accent) 30%, transparent)" }} />}
+                      {desbloqueado && p.img_url ? (
+                        <Image
+                          alt={p.nombre}
+                          className="w-full h-full object-cover"
+                          src={p.img_url}
+                        />
+                      ) : (
+                        <UserX
+                          size={16}
+                          style={{
+                            color:
+                              "color-mix(in srgb, var(--accent) 30%, transparent)",
+                          }}
+                        />
+                      )}
                     </div>
                     {/* Nombre + especie — derecha */}
                     <div className="flex-1 min-w-0">
-                      <p className="text-[11px] font-semibold uppercase leading-tight truncate"
+                      <p
+                        className="text-[11px] font-semibold uppercase leading-tight truncate"
                         style={{
-                          color: desbloqueado ? "var(--foreground)" : "color-mix(in srgb, var(--accent) 30%, transparent)",
-                          textDecoration: desbloqueado ? "none" : "line-through",
-                          textDecorationColor: "color-mix(in srgb, var(--accent) 30%, transparent)",
-                        }}>
+                          color: desbloqueado
+                            ? "var(--foreground)"
+                            : "color-mix(in srgb, var(--accent) 30%, transparent)",
+                          textDecoration: desbloqueado
+                            ? "none"
+                            : "line-through",
+                          textDecorationColor:
+                            "color-mix(in srgb, var(--accent) 30%, transparent)",
+                        }}
+                      >
                         {desbloqueado ? p.nombre : "???"}
                       </p>
                       {p.especie && (
-                        <p className="text-[9px] font-medium mt-0.5 truncate" style={{ color: "color-mix(in srgb, var(--accent) 55%, transparent)" }}>
+                        <p
+                          className="text-[9px] font-medium mt-0.5 truncate"
+                          style={{
+                            color:
+                              "color-mix(in srgb, var(--accent) 55%, transparent)",
+                          }}
+                        >
                           {desbloqueado ? p.especie : "Desconocido"}
                         </p>
                       )}
@@ -460,9 +990,14 @@ function PanelContenido({
         )}
 
         {/* Books of this kingdom */}
-        {!puntoSeleccionado && (
-          loadingLibros ? (
-            <div className="flex justify-center py-6" style={{ color: "color-mix(in srgb, var(--accent) 50%, transparent)" }}>
+        {!puntoSeleccionado &&
+          (loadingLibros ? (
+            <div
+              className="flex justify-center py-6"
+              style={{
+                color: "color-mix(in srgb, var(--accent) 50%, transparent)",
+              }}
+            >
               <Hourglass size={14} />
             </div>
           ) : (
@@ -471,11 +1006,29 @@ function PanelContenido({
               {librosReino && librosReino.length > 0 && (
                 <div>
                   <div className="flex items-center gap-2 mb-3">
-                    <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }} />
-                    <span className="text-[8px] font-black uppercase tracking-[0.3em] flex items-center gap-1.5" style={{ color: "color-mix(in srgb, var(--accent) 60%, transparent)" }}>
+                    <div
+                      className="h-px flex-1"
+                      style={{
+                        background:
+                          "color-mix(in srgb, var(--accent) 20%, transparent)",
+                      }}
+                    />
+                    <span
+                      className="text-[8px] font-black uppercase tracking-[0.3em] flex items-center gap-1.5"
+                      style={{
+                        color:
+                          "color-mix(in srgb, var(--accent) 60%, transparent)",
+                      }}
+                    >
                       <BookOpen size={9} /> Libros de este reino
                     </span>
-                    <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }} />
+                    <div
+                      className="h-px flex-1"
+                      style={{
+                        background:
+                          "color-mix(in srgb, var(--accent) 20%, transparent)",
+                      }}
+                    />
                   </div>
                   <div className="flex flex-col gap-3">
                     {librosReino.map((libro: any) => (
@@ -483,26 +1036,54 @@ function PanelContenido({
                         key={libro.id}
                         className="flex gap-3 p-3 border w-full text-left transition-all hover:opacity-80 active:scale-[0.98]"
                         style={{
-                          background: "color-mix(in srgb, var(--primary) 10%, transparent)",
-                          borderColor: "color-mix(in srgb, var(--accent) 15%, transparent)",
+                          background:
+                            "color-mix(in srgb, var(--primary) 10%, transparent)",
+                          borderColor:
+                            "color-mix(in srgb, var(--accent) 15%, transparent)",
                           cursor: "pointer",
                         }}
-                        onClick={() => router.push(`/garlia/libros/${libro.id}`)}>
+                        onClick={() =>
+                          router.push(`/garlia/libros/${libro.id}`)
+                        }
+                      >
                         {libro.portada_url && (
-                          <img alt={libro.titulo} className="w-14 h-20 object-cover shrink-0" src={libro.portada_url}
-                            style={{ filter: "brightness(0.92)" }} />
+                          <img
+                            alt={libro.titulo}
+                            className="w-14 h-20 object-cover shrink-0"
+                            src={libro.portada_url}
+                            style={{ filter: "brightness(0.92)" }}
+                          />
                         )}
                         <div className="flex-1 min-w-0 flex flex-col justify-center gap-1.5">
-                          <p className="text-[12px] font-bold uppercase leading-tight" style={{ color: "var(--foreground)", fontFamily: "'Cinzel', serif" }}>
+                          <p
+                            className="text-[12px] font-bold uppercase leading-tight"
+                            style={{
+                              color: "var(--foreground)",
+                              fontFamily: "'Cinzel', serif",
+                            }}
+                          >
                             {libro.titulo}
                           </p>
                           {libro.estado && (
-                            <p className="text-[8px] font-black uppercase" style={{ color: "color-mix(in srgb, var(--accent) 60%, transparent)", letterSpacing: "0.12em" }}>
+                            <p
+                              className="text-[8px] font-black uppercase"
+                              style={{
+                                color:
+                                  "color-mix(in srgb, var(--accent) 60%, transparent)",
+                                letterSpacing: "0.12em",
+                              }}
+                            >
                               {libro.estado}
                             </p>
                           )}
                           {libro.sinopsis && (
-                            <p className="text-[10px] italic leading-snug line-clamp-3" style={{ color: "color-mix(in srgb, var(--foreground) 60%, transparent)" }}>
+                            <p
+                              className="text-[10px] italic leading-snug line-clamp-3"
+                              style={{
+                                color:
+                                  "color-mix(in srgb, var(--foreground) 60%, transparent)",
+                              }}
+                            >
                               {libro.sinopsis}
                             </p>
                           )}
@@ -514,54 +1095,101 @@ function PanelContenido({
               )}
 
               {/* ── Capítulos de colecciones (One Shot / Poemario), agrupados por libro ── */}
-              {capitulosReino && capitulosReino.length > 0 && (() => {
-                // Agrupar por libro_id
-                const grupos: Record<string, { titulo: string; categoria: string; caps: any[] }> = {};
-                for (const cap of capitulosReino) {
-                  const lid = cap.libro_id ?? "sin_libro";
-                  if (!grupos[lid]) grupos[lid] = { titulo: cap.libro_titulo ?? "Sin título", categoria: cap.libro_categoria ?? "", caps: [] };
-                  grupos[lid].caps.push(cap);
-                }
-                return Object.entries(grupos).map(([libroId, grupo]) => (
-                  <div key={libroId}>
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }} />
-                      <span className="text-[8px] font-black uppercase tracking-[0.3em] flex items-center gap-1.5" style={{ color: "color-mix(in srgb, var(--accent) 60%, transparent)" }}>
-                        <BookMarked size={9} />
-                        {grupo.categoria && grupo.categoria !== "Libro" ? grupo.categoria : grupo.titulo}
-                        {grupo.categoria && grupo.categoria !== "Libro" && (
-                          <span className="font-normal opacity-70">— {grupo.titulo}</span>
-                        )}
-                      </span>
-                      <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }} />
-                    </div>
-                    <div className="flex flex-col gap-1.5">
-                      {grupo.caps.map((cap: any) => (
-                        <button
-                          key={cap.id}
-                          className="flex items-center gap-2 px-3 py-2.5 border w-full text-left transition-all hover:opacity-80 active:scale-[0.98]"
+              {capitulosReino &&
+                capitulosReino.length > 0 &&
+                (() => {
+                  // Agrupar por libro_id
+                  const grupos: Record<
+                    string,
+                    { titulo: string; categoria: string; caps: any[] }
+                  > = {};
+                  for (const cap of capitulosReino) {
+                    const lid = cap.libro_id ?? "sin_libro";
+                    if (!grupos[lid])
+                      grupos[lid] = {
+                        titulo: cap.libro_titulo ?? "Sin título",
+                        categoria: cap.libro_categoria ?? "",
+                        caps: [],
+                      };
+                    grupos[lid].caps.push(cap);
+                  }
+                  return Object.entries(grupos).map(([libroId, grupo]) => (
+                    <div key={libroId}>
+                      <div className="flex items-center gap-2 mb-2">
+                        <div
+                          className="h-px flex-1"
                           style={{
-                            background: "color-mix(in srgb, var(--primary) 8%, transparent)",
-                            borderColor: "color-mix(in srgb, var(--accent) 10%, transparent)",
-                            cursor: "pointer",
+                            background:
+                              "color-mix(in srgb, var(--accent) 20%, transparent)",
                           }}
-                          onClick={() => router.push(`/garlia/libros/${cap.libro_id}/leer/${cap.id}`)}>
-                          <span className="text-[8px] font-black shrink-0 px-1.5 py-0.5"
-                            style={{ background: "color-mix(in srgb, var(--accent) 12%, transparent)", color: "var(--accent)" }}>
-                            {cap.orden}
-                          </span>
-                          <p className="text-[10px] font-semibold uppercase truncate flex-1 min-w-0" style={{ color: "var(--foreground)" }}>
-                            {cap.titulo_capitulo ?? `Capítulo ${cap.orden}`}
-                          </p>
-                        </button>
-                      ))}
+                        />
+                        <span
+                          className="text-[8px] font-black uppercase tracking-[0.3em] flex items-center gap-1.5"
+                          style={{
+                            color:
+                              "color-mix(in srgb, var(--accent) 60%, transparent)",
+                          }}
+                        >
+                          <BookMarked size={9} />
+                          {grupo.categoria && grupo.categoria !== "Libro"
+                            ? grupo.categoria
+                            : grupo.titulo}
+                          {grupo.categoria && grupo.categoria !== "Libro" && (
+                            <span className="font-normal opacity-70">
+                              — {grupo.titulo}
+                            </span>
+                          )}
+                        </span>
+                        <div
+                          className="h-px flex-1"
+                          style={{
+                            background:
+                              "color-mix(in srgb, var(--accent) 20%, transparent)",
+                          }}
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        {grupo.caps.map((cap: any) => (
+                          <button
+                            key={cap.id}
+                            className="flex items-center gap-2 px-3 py-2.5 border w-full text-left transition-all hover:opacity-80 active:scale-[0.98]"
+                            style={{
+                              background:
+                                "color-mix(in srgb, var(--primary) 8%, transparent)",
+                              borderColor:
+                                "color-mix(in srgb, var(--accent) 10%, transparent)",
+                              cursor: "pointer",
+                            }}
+                            onClick={() =>
+                              router.push(
+                                `/garlia/libros/${cap.libro_id}/leer/${cap.id}`,
+                              )
+                            }
+                          >
+                            <span
+                              className="text-[8px] font-black shrink-0 px-1.5 py-0.5"
+                              style={{
+                                background:
+                                  "color-mix(in srgb, var(--accent) 12%, transparent)",
+                                color: "var(--accent)",
+                              }}
+                            >
+                              {cap.orden}
+                            </span>
+                            <p
+                              className="text-[10px] font-semibold uppercase truncate flex-1 min-w-0"
+                              style={{ color: "var(--foreground)" }}
+                            >
+                              {cap.titulo_capitulo ?? `Capítulo ${cap.orden}`}
+                            </p>
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ));
-              })()}
+                  ));
+                })()}
             </>
-          )
-        )}
+          ))}
       </div>
     </>
   );
@@ -578,12 +1206,26 @@ interface CanvasMapProps {
   selectedMarkerId?: string | null;
   tipo: "global" | "reino";
   isFirstOpen?: boolean; // true only the very first time the map opens in a session
-  fondoColor?: string | null;      // color de fondo del mar (guardado en Supabase)
-  eyedropperActive?: boolean;      // cuando está activo, el siguiente click samplea el color
+  fondoColor?: string | null; // color de fondo del mar (guardado en Supabase)
+  eyedropperActive?: boolean; // cuando está activo, el siguiente click samplea el color
   onEyedropperPick?: (color: string) => void; // devuelve el hex del pixel clickeado
 }
 
-function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, onMapClick, selectedMarkerId, tipo, onOpenPanel, isFirstOpen, fondoColor, eyedropperActive, onEyedropperPick }: CanvasMapProps & { onOpenPanel?: () => void }) {
+function CanvasMap({
+  imageSrc,
+  markers,
+  hiddenMarkers,
+  editMode,
+  onMarkerClick,
+  onMapClick,
+  selectedMarkerId,
+  tipo,
+  onOpenPanel,
+  isFirstOpen,
+  fondoColor,
+  eyedropperActive,
+  onEyedropperPick,
+}: CanvasMapProps & { onOpenPanel?: () => void }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [imgLoaded, setImgLoaded] = useState(false);
@@ -606,9 +1248,27 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
   const pulseRef = useRef(0);
   const compassStartRef = useRef<number | null>(null); // timestamp when compass started spinning
   // Theme CSS vars read at draw time
-  const cssColorsRef = useRef({ primary: "#6b4423", accent: "#c08040", bg: "#f0e6d0", fg: "#2a1304", bgMenu: "#3d2010", parchBg: "#3d2010", parchText: "#2a1304", whiteCustom: "#fdf6ee", isDark: false, labelBg: "#fdf6ee", labelText: "#2a1304" });
+  const cssColorsRef = useRef({
+    primary: "#6b4423",
+    accent: "#c08040",
+    bg: "#f0e6d0",
+    fg: "#2a1304",
+    bgMenu: "#3d2010",
+    parchBg: "#3d2010",
+    parchText: "#2a1304",
+    whiteCustom: "#fdf6ee",
+    isDark: false,
+    labelBg: "#fdf6ee",
+    labelText: "#2a1304",
+  });
   // Fog cache — rebuilt only when markers/size change, not every frame
-  const fogCacheRef = useRef<{ canvas: OffscreenCanvas; deep: OffscreenCanvas; iw: number; ih: number; bg: string } | null>(null);
+  const fogCacheRef = useRef<{
+    canvas: OffscreenCanvas;
+    deep: OffscreenCanvas;
+    iw: number;
+    ih: number;
+    bg: string;
+  } | null>(null);
 
   useEffect(() => {
     const read = () => {
@@ -622,31 +1282,34 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
       const hexToLuma = (hex: string) => {
         const h = hex.replace("#", "");
         if (h.length < 6) return 0.5;
-        const r = parseInt(h.slice(0,2),16)/255;
-        const g = parseInt(h.slice(2,4),16)/255;
-        const b = parseInt(h.slice(4,6),16)/255;
-        return 0.2126*r + 0.7152*g + 0.0722*b;
+        const r = parseInt(h.slice(0, 2), 16) / 255;
+        const g = parseInt(h.slice(2, 4), 16) / 255;
+        const b = parseInt(h.slice(4, 6), 16) / 255;
+        return 0.2126 * r + 0.7152 * g + 0.0722 * b;
       };
       const dark = hexToLuma(bgMain) < 0.35;
       // In light themes: label bg = white-custom (light), text = foreground (dark)
       // In dark themes:  label bg = bg-menu (dark), text = foreground (light)
       cssColorsRef.current = {
-        primary:     get("--primary")      || "#6b4423",
-        accent:      get("--accent")       || "#c08040",
-        bg:          bgMain,
-        fg:          fgColor,
-        bgMenu:      bgMenuColor,
-        parchBg:     bgMenuColor,
-        parchText:   fgColor,
+        primary: get("--primary") || "#6b4423",
+        accent: get("--accent") || "#c08040",
+        bg: bgMain,
+        fg: fgColor,
+        bgMenu: bgMenuColor,
+        parchBg: bgMenuColor,
+        parchText: fgColor,
         whiteCustom: wc,
-        isDark:      dark,
-        labelBg:     dark ? bgMenuColor : wc,
-        labelText:   fgColor,
+        isDark: dark,
+        labelBg: dark ? bgMenuColor : wc,
+        labelText: fgColor,
       };
     };
     read();
     const obs = new MutationObserver(read);
-    obs.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme", "class"] });
+    obs.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme", "class"],
+    });
     return () => obs.disconnect();
   }, []);
 
@@ -654,7 +1317,8 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
     const canvas = canvasRef.current;
     const img = imgRef.current;
     if (!canvas || !img) return;
-    const scale = Math.min(canvas.width / img.width, canvas.height / img.height) * 0.95;
+    const scale =
+      Math.min(canvas.width / img.width, canvas.height / img.height) * 0.95;
     camRef.current = {
       x: (canvas.width - img.width * scale) / 2,
       y: (canvas.height - img.height * scale) / 2,
@@ -705,13 +1369,17 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
       setTimeout(() => {
         const retry = new window.Image();
         retry.crossOrigin = "anonymous";
-        retry.src = imageSrc + (imageSrc.includes("?") ? "&" : "?") + "_r=" + Date.now();
+        retry.src =
+          imageSrc + (imageSrc.includes("?") ? "&" : "?") + "_r=" + Date.now();
         retry.onload = () => {
           imgRef.current = retry;
           centerImage();
           setImgLoaded(true);
           if (shouldShowCompass) {
-            compassTimerRef.current = setTimeout(() => setShowCompass(false), 5000);
+            compassTimerRef.current = setTimeout(
+              () => setShowCompass(false),
+              5000,
+            );
           } else {
             setShowCompass(false);
           }
@@ -721,7 +1389,6 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
     return () => {
       if (compassTimerRef.current) clearTimeout(compassTimerRef.current);
     };
-   
   }, [imageSrc, centerImage, isFirstOpen]);
 
   useEffect(() => {
@@ -743,14 +1410,14 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
         const finalW = container.clientWidth;
         const finalH = container.clientHeight;
         if (canvas.width === finalW && canvas.height === finalH) return;
-        canvas.width  = finalW;
+        canvas.width = finalW;
         canvas.height = finalH;
         if (imgRef.current) centerImage();
       }, 150); // 150ms — más que un frame, menos que la animación del panel (350ms)
     };
 
     // Primera llamada inmediata (sin debounce, el panel no está animando todavía)
-    canvas.width  = container.clientWidth;
+    canvas.width = container.clientWidth;
     canvas.height = container.clientHeight;
     if (imgRef.current) centerImage();
 
@@ -770,7 +1437,9 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
     if (!ctx) return;
 
     // Cap to ~30fps on mobile to avoid lag and battery drain
-    const isMobileDevice = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+    const isMobileDevice = /Mobi|Android|iPhone|iPad/i.test(
+      navigator.userAgent,
+    );
     const FRAME_MS = isMobileDevice ? 34 : 16;
     let lastFrameTime = 0;
 
@@ -790,7 +1459,18 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
 
       pulseRef.current = t;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      const { primary, accent, bg, fg, parchBg, parchText, whiteCustom, isDark, labelBg, labelText } = cssColorsRef.current;
+      const {
+        primary,
+        accent,
+        bg,
+        fg,
+        parchBg,
+        parchText,
+        whiteCustom,
+        isDark,
+        labelBg,
+        labelText,
+      } = cssColorsRef.current;
 
       ctx.fillStyle = fondoColor || bg;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -824,7 +1504,7 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
           if (needsRebuild) {
             const maxDim = Math.max(FOG_W, FOG_H);
             const clearRadius = maxDim * 0.05;
-            const fadeRadius  = maxDim * 0.12;
+            const fadeRadius = maxDim * 0.12;
 
             // ── Layer 1: main opaque fog with reveal holes ────────────────
             const fogCanvas = new OffscreenCanvas(FOG_W, FOG_H);
@@ -839,12 +1519,19 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
             for (const m of markers) {
               const mx = (m.coord_x / 100) * FOG_W;
               const my = (m.coord_y / 100) * FOG_H;
-              const grad = fogCtx.createRadialGradient(mx, my, clearRadius * 0.2, mx, my, fadeRadius);
-              grad.addColorStop(0,    "rgba(0,0,0,1)");
+              const grad = fogCtx.createRadialGradient(
+                mx,
+                my,
+                clearRadius * 0.2,
+                mx,
+                my,
+                fadeRadius,
+              );
+              grad.addColorStop(0, "rgba(0,0,0,1)");
               grad.addColorStop(0.45, "rgba(0,0,0,0.98)");
               grad.addColorStop(0.72, "rgba(0,0,0,0.7)");
               grad.addColorStop(0.88, "rgba(0,0,0,0.25)");
-              grad.addColorStop(1,    "rgba(0,0,0,0)");
+              grad.addColorStop(1, "rgba(0,0,0,0)");
               fogCtx.fillStyle = grad;
               fogCtx.beginPath();
               fogCtx.arc(mx, my, fadeRadius, 0, Math.PI * 2);
@@ -863,10 +1550,17 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
             for (const m of markers) {
               const mx = (m.coord_x / 100) * FOG_W;
               const my = (m.coord_y / 100) * FOG_H;
-              const grad2 = deepCtx.createRadialGradient(mx, my, clearRadius * 0.5, mx, my, fadeRadius * 0.7);
-              grad2.addColorStop(0,   "rgba(0,0,0,1)");
+              const grad2 = deepCtx.createRadialGradient(
+                mx,
+                my,
+                clearRadius * 0.5,
+                mx,
+                my,
+                fadeRadius * 0.7,
+              );
+              grad2.addColorStop(0, "rgba(0,0,0,1)");
               grad2.addColorStop(0.6, "rgba(0,0,0,0.85)");
-              grad2.addColorStop(1,   "rgba(0,0,0,0)");
+              grad2.addColorStop(1, "rgba(0,0,0,0)");
               deepCtx.fillStyle = grad2;
               deepCtx.beginPath();
               deepCtx.arc(mx, my, fadeRadius * 0.7, 0, Math.PI * 2);
@@ -874,12 +1568,18 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
             }
             deepCtx.globalCompositeOperation = "source-over";
 
-            fogCacheRef.current = { canvas: fogCanvas, deep: deepCanvas, iw: FOG_W, ih: FOG_H, bg: fogBg };
+            fogCacheRef.current = {
+              canvas: fogCanvas,
+              deep: deepCanvas,
+              iw: FOG_W,
+              ih: FOG_H,
+              bg: fogBg,
+            };
           }
 
           const fc = fogCacheRef.current!;
           ctx.drawImage(fc.canvas, 0, 0, iw, ih);
-          ctx.drawImage(fc.deep,   0, 0, iw, ih);
+          ctx.drawImage(fc.deep, 0, 0, iw, ih);
         }
 
         // No internal map vignette — edge fog handles blending instead
@@ -898,14 +1598,14 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
 
           // ── Antique map pin — teardrop with body ─────────────────────────
           // Pin body uses --white-custom, same as panel surfaces
-          const pinBody   = whiteCustom;
+          const pinBody = whiteCustom;
           const pinBorder = isSelected ? primary : `${primary}88`;
-          const pinRing   = isSelected ? `${accent}99` : `${primary}55`;
-          const pinDot    = accent;
+          const pinRing = isSelected ? `${accent}99` : `${primary}55`;
+          const pinDot = accent;
 
           // Pin dimensions
-          const headR = isSelected ? 9 : 7;       // circle head radius
-          const tailH = isSelected ? 14 : 11;     // tail length below head
+          const headR = isSelected ? 9 : 7; // circle head radius
+          const tailH = isSelected ? 14 : 11; // tail length below head
 
           // Drop shadow (offset, no blur on canvas so fake with alpha)
           ctx.save();
@@ -928,7 +1628,12 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
           ctx.beginPath();
           ctx.moveTo(-headR * 0.42, -tailH * 0.18);
           ctx.quadraticCurveTo(-headR * 0.15, tailH * 0.55, 0, tailH);
-          ctx.quadraticCurveTo(headR * 0.15, tailH * 0.55, headR * 0.42, -tailH * 0.18);
+          ctx.quadraticCurveTo(
+            headR * 0.15,
+            tailH * 0.55,
+            headR * 0.42,
+            -tailH * 0.18,
+          );
           ctx.fillStyle = pinBody;
           ctx.fill();
           ctx.strokeStyle = pinBorder;
@@ -963,8 +1668,12 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
             ctx.beginPath();
             ctx.arc(0, -tailH * 0.4, haloR, 0, Math.PI * 2);
             ctx.strokeStyle = isSelected
-              ? `${accent}${Math.round(0.22 * (1 - pulse) * 255).toString(16).padStart(2,"0")}`
-              : `${primary}${Math.round(0.15 * (1 - pulse) * 255).toString(16).padStart(2,"0")}`;
+              ? `${accent}${Math.round(0.22 * (1 - pulse) * 255)
+                  .toString(16)
+                  .padStart(2, "0")}`
+              : `${primary}${Math.round(0.15 * (1 - pulse) * 255)
+                  .toString(16)
+                  .padStart(2, "0")}`;
             ctx.lineWidth = 0.7;
             ctx.stroke();
           }
@@ -993,17 +1702,13 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
           const labelY = -(tailH * 0.4 + headR + lh + 5);
 
           // Background from theme — smart light/dark
-          ctx.fillStyle = isSelected
-            ? `${labelBg}f0`
-            : `${labelBg}d8`;
+          ctx.fillStyle = isSelected ? `${labelBg}f0` : `${labelBg}d8`;
           ctx.beginPath();
           ctx.rect(-lw / 2, labelY, lw, lh);
           ctx.fill();
 
           // Border from primary
-          ctx.strokeStyle = isSelected
-            ? `${primary}88`
-            : `${primary}44`;
+          ctx.strokeStyle = isSelected ? `${primary}88` : `${primary}44`;
           ctx.lineWidth = 0.6;
           ctx.stroke();
 
@@ -1024,7 +1729,8 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
             ctx.translate(mx, my);
             ctx.save();
             // Small teardrop, orange-tinted for hidden
-            const hR = 5; const hT = 8;
+            const hR = 5;
+            const hT = 8;
             ctx.beginPath();
             ctx.moveTo(-hR * 0.4, -hT * 0.18);
             ctx.quadraticCurveTo(-hR * 0.1, hT * 0.5, 0, hT);
@@ -1053,11 +1759,10 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
             ctx.restore();
           }
         }
-
       } else if (!img || !imgLoaded || showCompass) {
         // ── Antique compass rose — shown on first open for ≥5s, or while image loads ──
         const { accent, primary, isDark: _isDark } = cssColorsRef.current;
-        const cx2 = canvas.width  / 2;
+        const cx2 = canvas.width / 2;
         const cy2 = canvas.height / 2;
 
         // Track when the compass first appeared
@@ -1069,16 +1774,15 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
         const eased = 1 - Math.pow(1 - progress, 5);
 
         // Outer ring: 1 full rotation; inner rose: 1.5 rotations (opposite)
-        const angleOuter =  eased * Math.PI * 2;
+        const angleOuter = eased * Math.PI * 2;
         const angleInner = -eased * Math.PI * 3;
 
         // Pulse fades in, then settles once stopped
         // When image is loaded but still in 5s hold window, fade the compass out
         // compassStartRef tracks when compass first appeared; 5s hold starts at load
         // We fade out in the last 1.2s of the 5s window via imgLoaded flag
-        const basePulse = progress < 1
-          ? 0.55 + 0.2 * Math.sin(t * 0.0018)
-          : 0.65;
+        const basePulse =
+          progress < 1 ? 0.55 + 0.2 * Math.sin(t * 0.0018) : 0.65;
         const pulse = basePulse;
 
         ctx.save();
@@ -1103,10 +1807,10 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
           const long = i % 4 === 0;
           const r1 = long ? R * 0.84 : R * 0.9;
           ctx.beginPath();
-          ctx.moveTo(Math.cos(a) * r1,          Math.sin(a) * r1);
-          ctx.lineTo(Math.cos(a) * R,            Math.sin(a) * R);
+          ctx.moveTo(Math.cos(a) * r1, Math.sin(a) * r1);
+          ctx.lineTo(Math.cos(a) * R, Math.sin(a) * R);
           ctx.strokeStyle = long ? `${accent}77` : `${accent}40`;
-          ctx.lineWidth   = long ? 1.2 : 0.6;
+          ctx.lineWidth = long ? 1.2 : 0.6;
           ctx.stroke();
         }
         // Second inner ring
@@ -1127,7 +1831,11 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
           ctx.lineTo(0, len * 0.18);
           ctx.lineTo(width, 0);
           ctx.closePath();
-          ctx.fillStyle = accent + Math.round(alpha * 255).toString(16).padStart(2, "0");
+          ctx.fillStyle =
+            accent +
+            Math.round(alpha * 255)
+              .toString(16)
+              .padStart(2, "0");
           ctx.fill();
         };
         // 4 cardinal points
@@ -1179,30 +1887,35 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
         const eS = vignetteW * 0.18;
 
         const topFog = vc.createLinearGradient(0, 0, 0, eT);
-        topFog.addColorStop(0,   `${vigBg}cc`);
+        topFog.addColorStop(0, `${vigBg}cc`);
         topFog.addColorStop(0.4, `${vigBg}55`);
-        topFog.addColorStop(1,   `${vigBg}00`);
+        topFog.addColorStop(1, `${vigBg}00`);
         vc.fillStyle = topFog;
         vc.fillRect(0, 0, vignetteW, eT);
 
         const botFog = vc.createLinearGradient(0, vignetteH - eT, 0, vignetteH);
-        botFog.addColorStop(0,   `${vigBg}00`);
+        botFog.addColorStop(0, `${vigBg}00`);
         botFog.addColorStop(0.6, `${vigBg}55`);
-        botFog.addColorStop(1,   `${vigBg}cc`);
+        botFog.addColorStop(1, `${vigBg}cc`);
         vc.fillStyle = botFog;
         vc.fillRect(0, vignetteH - eT, vignetteW, eT);
 
         const leftFog = vc.createLinearGradient(0, 0, eS, 0);
-        leftFog.addColorStop(0,   `${vigBg}cc`);
+        leftFog.addColorStop(0, `${vigBg}cc`);
         leftFog.addColorStop(0.4, `${vigBg}44`);
-        leftFog.addColorStop(1,   `${vigBg}00`);
+        leftFog.addColorStop(1, `${vigBg}00`);
         vc.fillStyle = leftFog;
         vc.fillRect(0, 0, eS, vignetteH);
 
-        const rightFog = vc.createLinearGradient(vignetteW - eS, 0, vignetteW, 0);
-        rightFog.addColorStop(0,   `${vigBg}00`);
+        const rightFog = vc.createLinearGradient(
+          vignetteW - eS,
+          0,
+          vignetteW,
+          0,
+        );
+        rightFog.addColorStop(0, `${vigBg}00`);
         rightFog.addColorStop(0.6, `${vigBg}44`);
-        rightFog.addColorStop(1,   `${vigBg}cc`);
+        rightFog.addColorStop(1, `${vigBg}cc`);
         vc.fillStyle = rightFog;
         vc.fillRect(vignetteW - eS, 0, eS, vignetteH);
       }
@@ -1212,60 +1925,85 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
     };
     animFrameRef.current = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(animFrameRef.current);
-  }, [imgLoaded, showCompass, markers, hiddenMarkers, editMode, selectedMarkerId, tipo, fondoColor]);
+  }, [
+    imgLoaded,
+    showCompass,
+    markers,
+    hiddenMarkers,
+    editMode,
+    selectedMarkerId,
+    tipo,
+    fondoColor,
+  ]);
 
   // Invalidate fog cache when markers, edit mode, or fondoColor changes
-  useEffect(() => { fogCacheRef.current = null; }, [markers, editMode, tipo, fondoColor]);
+  useEffect(() => {
+    fogCacheRef.current = null;
+  }, [markers, editMode, tipo, fondoColor]);
 
-  const hitTest = useCallback((clientX: number, clientY: number): any | null => {
-    const canvas = canvasRef.current;
-    if (!canvas || !imgRef.current) return null;
-    const rect = canvas.getBoundingClientRect();
-    const px = clientX - rect.left;
-    const py = clientY - rect.top;
-    const { x: cx, y: cy, scale } = camRef.current;
-    const iw = imgRef.current.width * scale;
-    const ih = imgRef.current.height * scale;
-    for (const m of [...markers].reverse()) {
-      const mx = cx + (m.coord_x / 100) * iw;
-      const my = cy + (m.coord_y / 100) * ih;
-      const dist = Math.hypot(px - mx, py - my);
-      if (dist < 16) return m;
-    }
-    return null;
-  }, [markers]);
+  const hitTest = useCallback(
+    (clientX: number, clientY: number): any | null => {
+      const canvas = canvasRef.current;
+      if (!canvas || !imgRef.current) return null;
+      const rect = canvas.getBoundingClientRect();
+      const px = clientX - rect.left;
+      const py = clientY - rect.top;
+      const { x: cx, y: cy, scale } = camRef.current;
+      const iw = imgRef.current.width * scale;
+      const ih = imgRef.current.height * scale;
+      for (const m of [...markers].reverse()) {
+        const mx = cx + (m.coord_x / 100) * iw;
+        const my = cy + (m.coord_y / 100) * ih;
+        const dist = Math.hypot(px - mx, py - my);
+        if (dist < 16) return m;
+      }
+      return null;
+    },
+    [markers],
+  );
 
-  const canvasToMapPct = useCallback((clientX: number, clientY: number): [number, number] => {
-    const canvas = canvasRef.current;
-    if (!canvas || !imgRef.current) return [0, 0];
-    const rect = canvas.getBoundingClientRect();
-    const px = clientX - rect.left;
-    const py = clientY - rect.top;
-    const { x: cx, y: cy, scale } = camRef.current;
-    const iw = imgRef.current.width * scale;
-    const ih = imgRef.current.height * scale;
-    const x = parseFloat(((px - cx) / iw * 100).toFixed(2));
-    const y = parseFloat(((py - cy) / ih * 100).toFixed(2));
-    return [x, y];
-  }, []);
+  const canvasToMapPct = useCallback(
+    (clientX: number, clientY: number): [number, number] => {
+      const canvas = canvasRef.current;
+      if (!canvas || !imgRef.current) return [0, 0];
+      const rect = canvas.getBoundingClientRect();
+      const px = clientX - rect.left;
+      const py = clientY - rect.top;
+      const { x: cx, y: cy, scale } = camRef.current;
+      const iw = imgRef.current.width * scale;
+      const ih = imgRef.current.height * scale;
+      const x = parseFloat((((px - cx) / iw) * 100).toFixed(2));
+      const y = parseFloat((((py - cy) / ih) * 100).toFixed(2));
+      return [x, y];
+    },
+    [],
+  );
 
-  const zoom = useCallback((factor: number, pivotX?: number, pivotY?: number) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const px = pivotX ?? canvas.width / 2;
-    const py = pivotY ?? canvas.height / 2;
-    const cam = camRef.current;
-    const newScale = Math.min(8, Math.max(0.2, cam.scale * factor));
-    const sf = newScale / cam.scale;
-    cam.x = px - sf * (px - cam.x);
-    cam.y = py - sf * (py - cam.y);
-    cam.scale = newScale;
-  }, []);
+  const zoom = useCallback(
+    (factor: number, pivotX?: number, pivotY?: number) => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const px = pivotX ?? canvas.width / 2;
+      const py = pivotY ?? canvas.height / 2;
+      const cam = camRef.current;
+      const newScale = Math.min(8, Math.max(0.2, cam.scale * factor));
+      const sf = newScale / cam.scale;
+      cam.x = px - sf * (px - cam.x);
+      cam.y = py - sf * (py - cam.y);
+      cam.scale = newScale;
+    },
+    [],
+  );
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (e.button !== 0) return;
     isDragging.current = false;
-    dragStart.current = { x: e.clientX, y: e.clientY, camX: camRef.current.x, camY: camRef.current.y };
+    dragStart.current = {
+      x: e.clientX,
+      y: e.clientY,
+      camX: camRef.current.x,
+      camY: camRef.current.y,
+    };
   };
   const handleMouseMove = (e: React.MouseEvent) => {
     if (e.buttons !== 1) return;
@@ -1298,16 +2036,24 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
           const pixel = tmpCtx.getImageData(
             Math.max(0, Math.min(imgX, img.width - 1)),
             Math.max(0, Math.min(imgY, img.height - 1)),
-            1, 1
+            1,
+            1,
           ).data;
-          const hex = "#" + [pixel[0], pixel[1], pixel[2]].map(v => v.toString(16).padStart(2, "0")).join("");
+          const hex =
+            "#" +
+            [pixel[0], pixel[1], pixel[2]]
+              .map((v) => v.toString(16).padStart(2, "0"))
+              .join("");
           onEyedropperPick(hex);
         }
         return;
       }
       if (editMode) {
         const hit = hitTest(e.clientX, e.clientY);
-        if (hit) { onMarkerClick(hit); return; }
+        if (hit) {
+          onMarkerClick(hit);
+          return;
+        }
         const [x, y] = canvasToMapPct(e.clientX, e.clientY);
         onMapClick(x, y);
       } else {
@@ -1344,48 +2090,63 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
     }
   }, []);
 
-  const touchMoveHandler = useCallback((e: TouchEvent) => {
-    e.preventDefault();
-    if (e.touches.length === 1) {
-      const dx = e.touches[0].clientX - dragStart.current.x;
-      const dy = e.touches[0].clientY - dragStart.current.y;
-      if (Math.hypot(dx, dy) > 3) isDragging.current = true;
-      if (isDragging.current) {
-        camRef.current.x = dragStart.current.camX + dx;
-        camRef.current.y = dragStart.current.camY + dy;
+  const touchMoveHandler = useCallback(
+    (e: TouchEvent) => {
+      e.preventDefault();
+      if (e.touches.length === 1) {
+        const dx = e.touches[0].clientX - dragStart.current.x;
+        const dy = e.touches[0].clientY - dragStart.current.y;
+        if (Math.hypot(dx, dy) > 3) isDragging.current = true;
+        if (isDragging.current) {
+          camRef.current.x = dragStart.current.camX + dx;
+          camRef.current.y = dragStart.current.camY + dy;
+        }
+      } else if (e.touches.length === 2 && lastPinchDist.current !== null) {
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        const dist = Math.hypot(dx, dy);
+        const pivotX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+        const pivotY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+        const rect = canvasRef.current?.getBoundingClientRect();
+        if (rect)
+          zoom(
+            dist / lastPinchDist.current,
+            pivotX - rect.left,
+            pivotY - rect.top,
+          );
+        lastPinchDist.current = dist;
       }
-    } else if (e.touches.length === 2 && lastPinchDist.current !== null) {
-      const dx = e.touches[0].clientX - e.touches[1].clientX;
-      const dy = e.touches[0].clientY - e.touches[1].clientY;
-      const dist = Math.hypot(dx, dy);
-      const pivotX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
-      const pivotY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
-      const rect = canvasRef.current?.getBoundingClientRect();
-      if (rect) zoom(dist / lastPinchDist.current, pivotX - rect.left, pivotY - rect.top);
-      lastPinchDist.current = dist;
-    }
-  }, [zoom]);
+    },
+    [zoom],
+  );
 
-  const touchEndHandler = useCallback((e: TouchEvent) => {
-    if (e.touches.length === 1) {
-      dragStart.current = {
-        x: e.touches[0].clientX,
-        y: e.touches[0].clientY,
-        camX: camRef.current.x,
-        camY: camRef.current.y,
-      };
+  const touchEndHandler = useCallback(
+    (e: TouchEvent) => {
+      if (e.touches.length === 1) {
+        dragStart.current = {
+          x: e.touches[0].clientX,
+          y: e.touches[0].clientY,
+          camX: camRef.current.x,
+          camY: camRef.current.y,
+        };
+        isDragging.current = false;
+        lastPinchDist.current = null;
+        return;
+      }
+      if (
+        !isDragging.current &&
+        e.changedTouches.length === 1 &&
+        e.touches.length === 0
+      ) {
+        const t = e.changedTouches[0];
+        const hit = hitTest(t.clientX, t.clientY);
+        if (hit) onMarkerClick(hit);
+      }
       isDragging.current = false;
       lastPinchDist.current = null;
-      return;
-    }
-    if (!isDragging.current && e.changedTouches.length === 1 && e.touches.length === 0) {
-      const t = e.changedTouches[0];
-      const hit = hitTest(t.clientX, t.clientY);
-      if (hit) onMarkerClick(hit);
-    }
-    isDragging.current = false;
-    lastPinchDist.current = null;
-  }, [hitTest, onMarkerClick]);
+    },
+    [hitTest, onMarkerClick],
+  );
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -1437,15 +2198,19 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
           { icon: <ZoomIn size={14} />, fn: () => zoom(1.25) },
           { icon: <ZoomOut size={14} />, fn: () => zoom(0.8) },
         ].map((btn, i) => (
-          <button key={i} className="w-9 h-9 flex items-center justify-center transition-all border"
+          <button
+            key={i}
+            className="w-9 h-9 flex items-center justify-center transition-all border"
             style={{
               background: "color-mix(in srgb, var(--bg-menu) 88%, transparent)",
-              borderColor: "color-mix(in srgb, var(--primary) 30%, transparent)",
+              borderColor:
+                "color-mix(in srgb, var(--primary) 30%, transparent)",
               color: "var(--accent)",
               borderRadius: "2px",
               boxShadow: "0 1px 4px rgba(0,0,0,0.3)",
             }}
-            onClick={btn.fn}>
+            onClick={btn.fn}
+          >
             {btn.icon}
           </button>
         ))}
@@ -1459,7 +2224,8 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
               borderRadius: "2px",
               boxShadow: "0 1px 4px rgba(0,0,0,0.3)",
             }}
-            onClick={onOpenPanel}>
+            onClick={onOpenPanel}
+          >
             <User size={14} />
           </button>
         )}
@@ -1473,7 +2239,11 @@ export default function MapaInteractivo() {
   const isAdmin = useIsAdmin();
 
   // reinos con caché Dexie automático — instantáneo en visitas posteriores
-  const { data: reinos, setData: setReinos, loading } = useSupabaseData<any>("reinos");
+  const {
+    data: reinos,
+    setData: setReinos,
+    loading,
+  } = useSupabaseData<any>("reinos");
 
   // isFirstOpen: true only the very first time the map is visited in this session
   const [isFirstOpen] = useState<boolean>(() => {
@@ -1492,15 +2262,26 @@ export default function MapaInteractivo() {
   const [puntoSeleccionado, setPuntoSeleccionado] = useState<any>(null);
   const [editMode, setEditMode] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [modifiedDetalles, setModifiedDetalles] = useState<Set<string>>(new Set());
+  const [modifiedDetalles, setModifiedDetalles] = useState<Set<string>>(
+    new Set(),
+  );
   const [isUploadingImg, setIsUploadingImg] = useState(false);
-  const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
+  const [toast, setToast] = useState<{
+    message: string;
+    type: ToastType;
+  } | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [personajesReino, setPersonajesReino] = useState<any[]>([]);
-  const [personajesDesbloqueados, setPersonajesDesbloqueados] = useState<Set<string>>(new Set());
-  const [reinosDesbloqueados, setReinosDesbloqueados] = useState<Set<string>>(new Set());
-  const [ciudadesDesbloqueadas, setCiudadesDesbloqueadas] = useState<Set<string>>(new Set());
+  const [personajesDesbloqueados, setPersonajesDesbloqueados] = useState<
+    Set<string>
+  >(new Set());
+  const [reinosDesbloqueados, setReinosDesbloqueados] = useState<Set<string>>(
+    new Set(),
+  );
+  const [ciudadesDesbloqueadas, setCiudadesDesbloqueadas] = useState<
+    Set<string>
+  >(new Set());
   const [modalEntidad, setModalEntidad] = useState<EntidadModal | null>(null);
   const [cancionesPersonaje, setCancionesPersonaje] = useState<any[]>([]);
   const [cargandoCanciones, setCargandoCanciones] = useState(false);
@@ -1518,7 +2299,8 @@ export default function MapaInteractivo() {
 
   const imgInputRef = useRef<HTMLInputElement>(null);
   const currentReinoIdRef = useRef<string | null>(null);
-  const showToast = (message: string, type: ToastType) => setToast({ message, type });
+  const showToast = (message: string, type: ToastType) =>
+    setToast({ message, type });
 
   // ── Tiles del mapa global ────────────────────────────────────────────────────
   const [mapTiles, setMapTiles] = useState<MapTile[]>([]);
@@ -1530,7 +2312,9 @@ export default function MapaInteractivo() {
       .eq("world_id", "garlia")
       .order("row")
       .order("col")
-      .then(({ data }) => { if (data) setMapTiles(data as MapTile[]); });
+      .then(({ data }) => {
+        if (data) setMapTiles(data as MapTile[]);
+      });
   }, []);
 
   // ── Fondo color (color del mar) ──────────────────────────────────────────────
@@ -1541,24 +2325,43 @@ export default function MapaInteractivo() {
   const fondoColorInputRef = useRef<HTMLInputElement>(null);
 
   // Color activo según la vista actual
-  const fondoColor = vistaActual === "reino"
-    ? (reinoSeleccionado?.fondo_color ?? null)
-    : fondoColorGlobal;
+  const fondoColor =
+    vistaActual === "reino"
+      ? (reinoSeleccionado?.fondo_color ?? null)
+      : fondoColorGlobal;
 
   // Cargar color de fondo global desde Supabase al montar
   useEffect(() => {
-    supabase.from("config_mapa").select("value").eq("key", "fondo_color").single()
-      .then(({ data }) => { if (data?.value) setFondoColorGlobal(data.value); });
+    supabase
+      .from("config_mapa")
+      .select("value")
+      .eq("key", "fondo_color")
+      .single()
+      .then(({ data }) => {
+        if (data?.value) setFondoColorGlobal(data.value);
+      });
   }, []);
 
   const handleFondoColorChange = async (color: string) => {
     setEyedropperActive(false);
     if (vistaActual === "reino" && reinoSeleccionado) {
       // Guardar en la columna fondo_color del reino activo
-      setReinoSeleccionado((prev: any) => ({ ...prev, fondo_color: color || null }));
-      setReinos(prev => prev.map(r => r.id === reinoSeleccionado.id ? { ...r, fondo_color: color || null } : r));
+      setReinoSeleccionado((prev: any) => ({
+        ...prev,
+        fondo_color: color || null,
+      }));
+      setReinos((prev) =>
+        prev.map((r) =>
+          r.id === reinoSeleccionado.id
+            ? { ...r, fondo_color: color || null }
+            : r,
+        ),
+      );
       try {
-        await supabase.from("reinos").update({ fondo_color: color || null }).eq("id", reinoSeleccionado.id);
+        await supabase
+          .from("reinos")
+          .update({ fondo_color: color || null })
+          .eq("id", reinoSeleccionado.id);
         showToast("Color del reino guardado", "success");
       } catch {
         showToast("Error al guardar el color", "error");
@@ -1567,7 +2370,9 @@ export default function MapaInteractivo() {
       // Guardar en config_mapa (mapa global)
       setFondoColorGlobal(color || null);
       try {
-        await supabase.from("config_mapa").upsert({ key: "fondo_color", value: color }, { onConflict: "key" });
+        await supabase
+          .from("config_mapa")
+          .upsert({ key: "fondo_color", value: color }, { onConflict: "key" });
         showToast("Color del mar guardado", "success");
       } catch {
         showToast("Error al guardar el color", "error");
@@ -1587,13 +2392,31 @@ export default function MapaInteractivo() {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) return;
       Promise.all([
-        supabase.from("descubrimientos_personajes").select("personaje_id").eq("perfil_id", user.id),
-        supabase.from("descubrimientos_reinos").select("reino_id").eq("perfil_id", user.id),
-        supabase.from("ciudades_desbloqueadas").select("ciudad_id").eq("user_id", user.id),
+        supabase
+          .from("descubrimientos_personajes")
+          .select("personaje_id")
+          .eq("perfil_id", user.id),
+        supabase
+          .from("descubrimientos_reinos")
+          .select("reino_id")
+          .eq("perfil_id", user.id),
+        supabase
+          .from("ciudades_desbloqueadas")
+          .select("ciudad_id")
+          .eq("user_id", user.id),
       ]).then(([pRes, rRes, lRes]) => {
-        if (pRes.data) setPersonajesDesbloqueados(new Set(pRes.data.map((r: any) => r.personaje_id)));
-        if (rRes.data) setReinosDesbloqueados(new Set(rRes.data.map((r: any) => r.reino_id)));
-        if (lRes.data) setCiudadesDesbloqueadas(new Set(lRes.data.map((r: any) => r.ciudad_id)));
+        if (pRes.data)
+          setPersonajesDesbloqueados(
+            new Set(pRes.data.map((r: any) => r.personaje_id)),
+          );
+        if (rRes.data)
+          setReinosDesbloqueados(
+            new Set(rRes.data.map((r: any) => r.reino_id)),
+          );
+        if (lRes.data)
+          setCiudadesDesbloqueadas(
+            new Set(lRes.data.map((r: any) => r.ciudad_id)),
+          );
       });
     });
   }, []);
@@ -1616,25 +2439,52 @@ export default function MapaInteractivo() {
       if (db) {
         try {
           const [cachedP, cachedC, cachedI] = await Promise.all([
-            (db as any).personajes?.filter((p: any) => p.ciudad_id === ciudadId && !p.deleted).toArray().catch(() => []) ?? [],
-            (db as any).criaturas?.filter((c: any) => c.ciudad_id === ciudadId && !c.deleted).toArray().catch(() => []) ?? [],
-            (db as any).items?.filter((i: any) => i.ciudad_id === ciudadId && !i.deleted).toArray().catch(() => []) ?? [],
+            (db as any).personajes
+              ?.filter((p: any) => p.ciudad_id === ciudadId && !p.deleted)
+              .toArray()
+              .catch(() => []) ?? [],
+            (db as any).criaturas
+              ?.filter((c: any) => c.ciudad_id === ciudadId && !c.deleted)
+              .toArray()
+              .catch(() => []) ?? [],
+            (db as any).items
+              ?.filter((i: any) => i.ciudad_id === ciudadId && !i.deleted)
+              .toArray()
+              .catch(() => []) ?? [],
           ]);
           if (currentId !== ciudadId) return;
           if (cachedP.length) setPersonajesCiudad(cachedP);
           if (cachedC.length) setCriaturasCiudad(cachedC);
           if (cachedI.length) setItemsCiudad(cachedI);
-          if (!navigator.onLine) { setLoadingCiudad(false); return; }
+          if (!navigator.onLine) {
+            setLoadingCiudad(false);
+            return;
+          }
         } catch {}
       }
 
       // 2. Supabase
       const [pRes, cRes, iRes, capRes] = await Promise.all([
-        supabase.from("personajes").select("id, nombre, img_url, especie").eq("ciudad_id", ciudadId).order("nombre"),
-        supabase.from("criaturas").select("id, nombre, imagen_url").eq("ciudad_id", ciudadId).order("nombre"),
-        supabase.from("items").select("id, nombre, imagen_url").eq("ciudad_id", ciudadId).order("nombre"),
-        supabase.from("capitulos")
-          .select("id, titulo_capitulo, orden, libro_id, libros(titulo, categoria)")
+        supabase
+          .from("personajes")
+          .select("id, nombre, img_url, especie")
+          .eq("ciudad_id", ciudadId)
+          .order("nombre"),
+        supabase
+          .from("criaturas")
+          .select("id, nombre, imagen_url")
+          .eq("ciudad_id", ciudadId)
+          .order("nombre"),
+        supabase
+          .from("items")
+          .select("id, nombre, imagen_url")
+          .eq("ciudad_id", ciudadId)
+          .order("nombre"),
+        supabase
+          .from("capitulos")
+          .select(
+            "id, titulo_capitulo, orden, libro_id, libros(titulo, categoria)",
+          )
           .contains("ciudades_ids", [ciudadId])
           .eq("visibilidad", "publico")
           .order("orden", { ascending: true }),
@@ -1662,7 +2512,11 @@ export default function MapaInteractivo() {
   // Ref para detectar si el usuario cambió de reino antes de que lleguen los datos
 
   const handleReinoClick = async (reino: any) => {
-    if (editMode) { setReinoSeleccionado(reino); setPanelOpen(true); return; }
+    if (editMode) {
+      setReinoSeleccionado(reino);
+      setPanelOpen(true);
+      return;
+    }
 
     // Marcar qué reino estamos cargando — cualquier respuesta async va a chequear esto
     currentReinoIdRef.current = reino.id;
@@ -1686,32 +2540,64 @@ export default function MapaInteractivo() {
     // ── 1. Caché Dexie — mostrar lo que ya tenemos guardado ──────────────
     if (db) {
       try {
-        const [cachedDetalles, cachedPersonajes, cachedLibros, cachedCaps] = await Promise.all([
-          (db as any).ciudades.where("reino_id").equals(reino.id).toArray().catch(() => []) ?? [],
-          db.personajes.filter((p: any) => p.reino === reino.nombre).toArray().catch(() => []),
-          db.libros.filter((l: any) => l.reino_id === reino.id).toArray().catch(() => []),
-          db.capitulos.filter((c: any) => Array.isArray(c.reinos_ids) && c.reinos_ids.includes(reino.id)).toArray().catch(() => []),
-        ]);
+        const [cachedDetalles, cachedPersonajes, cachedLibros, cachedCaps] =
+          await Promise.all([
+            (db as any).ciudades
+              .where("reino_id")
+              .equals(reino.id)
+              .toArray()
+              .catch(() => []) ?? [],
+            db.personajes
+              .filter((p: any) => p.reino === reino.nombre)
+              .toArray()
+              .catch(() => []),
+            db.libros
+              .filter((l: any) => l.reino_id === reino.id)
+              .toArray()
+              .catch(() => []),
+            db.capitulos
+              .filter(
+                (c: any) =>
+                  Array.isArray(c.reinos_ids) &&
+                  c.reinos_ids.includes(reino.id),
+              )
+              .toArray()
+              .catch(() => []),
+          ]);
         apply(() => {
-          if (cachedDetalles.length > 0) setDetallesReino(cachedDetalles.filter((d: any) => !d.deleted));
+          if (cachedDetalles.length > 0)
+            setDetallesReino(cachedDetalles.filter((d: any) => !d.deleted));
           if (cachedPersonajes.length > 0) setPersonajesReino(cachedPersonajes);
           // libros y capítulos NO se aplican desde caché para evitar spoilers —
           // se esperan los datos frescos de Supabase antes de mostrarlos
         });
-      } catch { /* caché falló — no importa, el fetch de abajo lo cubre */ }
+      } catch {
+        /* caché falló — no importa, el fetch de abajo lo cubre */
+      }
     }
 
     // ── 2. Fetch Supabase — siempre pisa el caché con datos frescos ──────
-    const [detallesRes, personajesRes, librosRes, capitulosRes] = await Promise.all([
-      supabase.from("ciudades").select("*").eq("reino_id", reino.id),
-      supabase.from("personajes").select("id, nombre, img_url, especie, reino, sobre").eq("reino", reino.nombre),
-      supabase.from("libros").select("id, titulo, portada_url, estado, categoria, sinopsis").eq("reino_id", reino.id).eq("visibilidad", "publico"),
-      supabase.from("capitulos")
-        .select("id, titulo_capitulo, orden, libro_id, libros(titulo, tags, categoria)")
-        .contains("reinos_ids", [reino.id])
-        .eq("visibilidad", "publico")
-        .order("orden", { ascending: true }),
-    ]);
+    const [detallesRes, personajesRes, librosRes, capitulosRes] =
+      await Promise.all([
+        supabase.from("ciudades").select("*").eq("reino_id", reino.id),
+        supabase
+          .from("personajes")
+          .select("id, nombre, img_url, especie, reino, sobre")
+          .eq("reino", reino.nombre),
+        supabase
+          .from("libros")
+          .select("id, titulo, portada_url, estado, categoria, sinopsis")
+          .eq("reino_id", reino.id)
+          .eq("visibilidad", "publico"),
+        supabase
+          .from("capitulos")
+          .select(
+            "id, titulo_capitulo, orden, libro_id, libros(titulo, tags, categoria)",
+          )
+          .contains("reinos_ids", [reino.id])
+          .eq("visibilidad", "publico")
+          .order("orden", { ascending: true }),
+      ]);
 
     // Si el usuario ya clickeó otro reino, descartar todo
     if (currentReinoIdRef.current !== reino.id) return;
@@ -1719,12 +2605,18 @@ export default function MapaInteractivo() {
     // Aplicar resultados — siempre setear aunque sea array vacío, para no dejar datos stale
     if (!detallesRes.error) {
       setDetallesReino(detallesRes.data ?? []);
-      try { if (db && detallesRes.data?.length) await (db as any).ciudades.bulkPut(detallesRes.data); } catch {}
+      try {
+        if (db && detallesRes.data?.length)
+          await (db as any).ciudades.bulkPut(detallesRes.data);
+      } catch {}
     }
 
     if (!personajesRes.error) {
       setPersonajesReino(personajesRes.data ?? []);
-      try { if (db && personajesRes.data?.length) await db.personajes.bulkPut(personajesRes.data); } catch {}
+      try {
+        if (db && personajesRes.data?.length)
+          await db.personajes.bulkPut(personajesRes.data);
+      } catch {}
     }
 
     if (!librosRes.error) {
@@ -1733,7 +2625,9 @@ export default function MapaInteractivo() {
       setLibrosReino(todos.filter((l: any) => l.categoria === "Libro"));
       // Colecciones (One Shot, Poemario, etc.) → sus capítulos se muestran en el mapa
       setLibrosColeccion(todos.filter((l: any) => l.categoria !== "Libro"));
-      try { if (db && todos.length) await db.libros.bulkPut(todos); } catch {}
+      try {
+        if (db && todos.length) await db.libros.bulkPut(todos);
+      } catch {}
     }
 
     if (!capitulosRes.error) {
@@ -1749,7 +2643,9 @@ export default function MapaInteractivo() {
           libro_categoria: c.libros?.categoria ?? null,
         }));
       setCapitulosReino(caps);
-      try { if (db && caps.length) await db.capitulos.bulkPut(caps); } catch {}
+      try {
+        if (db && caps.length) await db.capitulos.bulkPut(caps);
+      } catch {}
     }
 
     // Libros y capítulos ya están seteados — ocultar spinner
@@ -1791,11 +2687,19 @@ export default function MapaInteractivo() {
     if (!editMode) return;
     if (puntoSeleccionado) {
       setPuntoSeleccionado({ ...puntoSeleccionado, coord_x: x, coord_y: y });
-      setDetallesReino(prev => prev.map(p => p.id === puntoSeleccionado.id ? { ...p, coord_x: x, coord_y: y } : p));
-      setModifiedDetalles(prev => new Set(prev).add(puntoSeleccionado.id));
+      setDetallesReino((prev) =>
+        prev.map((p) =>
+          p.id === puntoSeleccionado.id ? { ...p, coord_x: x, coord_y: y } : p,
+        ),
+      );
+      setModifiedDetalles((prev) => new Set(prev).add(puntoSeleccionado.id));
     } else if (reinoSeleccionado && vistaActual === "global") {
       setReinoSeleccionado({ ...reinoSeleccionado, coord_x: x, coord_y: y });
-      setReinos(prev => prev.map(r => r.id === reinoSeleccionado.id ? { ...r, coord_x: x, coord_y: y } : r));
+      setReinos((prev) =>
+        prev.map((r) =>
+          r.id === reinoSeleccionado.id ? { ...r, coord_x: x, coord_y: y } : r,
+        ),
+      );
     }
   };
 
@@ -1806,14 +2710,25 @@ export default function MapaInteractivo() {
     try {
       const ext = file.name.split(".").pop();
       const path = `mapas/reino_${reinoSeleccionado.id}_${Date.now()}.${ext}`;
-      const { error: uploadError } = await supabase.storage.from("wiki").upload(path, file, { upsert: true });
+      const { error: uploadError } = await supabase.storage
+        .from("wiki")
+        .upload(path, file, { upsert: true });
       if (uploadError) throw uploadError;
-      const { data: urlData } = supabase.storage.from("wiki").getPublicUrl(path);
+      const { data: urlData } = supabase.storage
+        .from("wiki")
+        .getPublicUrl(path);
       const mapa_url = urlData.publicUrl;
-      const { error: updateError } = await supabase.from("reinos").update({ mapa_url }).eq("id", reinoSeleccionado.id);
+      const { error: updateError } = await supabase
+        .from("reinos")
+        .update({ mapa_url })
+        .eq("id", reinoSeleccionado.id);
       if (updateError) throw updateError;
       setReinoSeleccionado({ ...reinoSeleccionado, mapa_url });
-      setReinos(prev => prev.map(r => r.id === reinoSeleccionado.id ? { ...r, mapa_url } : r));
+      setReinos((prev) =>
+        prev.map((r) =>
+          r.id === reinoSeleccionado.id ? { ...r, mapa_url } : r,
+        ),
+      );
       showToast("Imagen actualizada", "success");
     } catch {
       showToast("Error al subir la imagen", "error");
@@ -1827,21 +2742,37 @@ export default function MapaInteractivo() {
     setIsSaving(true);
     try {
       if (vistaActual === "reino" && modifiedDetalles.size > 0) {
-        const toSave = detallesReino.filter(p => modifiedDetalles.has(p.id));
-        await Promise.all(toSave.map(p =>
-          supabase.from("ciudades").update({
-            nombre: p.nombre, descripcion: p.descripcion,
-            coord_x: p.coord_x, coord_y: p.coord_y,
-          }).eq("id", p.id)
-        ));
+        const toSave = detallesReino.filter((p) => modifiedDetalles.has(p.id));
+        await Promise.all(
+          toSave.map((p) =>
+            supabase
+              .from("ciudades")
+              .update({
+                nombre: p.nombre,
+                descripcion: p.descripcion,
+                coord_x: p.coord_x,
+                coord_y: p.coord_y,
+              })
+              .eq("id", p.id),
+          ),
+        );
         setModifiedDetalles(new Set());
       } else if (reinoSeleccionado && vistaActual === "global") {
-        const { error } = await supabase.from("reinos").update({
-          nombre: reinoSeleccionado.nombre, descripcion: reinoSeleccionado.descripcion,
-          coord_x: reinoSeleccionado.coord_x, coord_y: reinoSeleccionado.coord_y,
-        }).eq("id", reinoSeleccionado.id);
+        const { error } = await supabase
+          .from("reinos")
+          .update({
+            nombre: reinoSeleccionado.nombre,
+            descripcion: reinoSeleccionado.descripcion,
+            coord_x: reinoSeleccionado.coord_x,
+            coord_y: reinoSeleccionado.coord_y,
+          })
+          .eq("id", reinoSeleccionado.id);
         if (error) throw error;
-        setReinos(prev => prev.map(r => r.id === reinoSeleccionado.id ? reinoSeleccionado : r));
+        setReinos((prev) =>
+          prev.map((r) =>
+            r.id === reinoSeleccionado.id ? reinoSeleccionado : r,
+          ),
+        );
       }
       showToast("Cambios guardados", "success");
       setEditMode(false);
@@ -1868,36 +2799,73 @@ export default function MapaInteractivo() {
   };
 
   // Visible markers: admins ven todos los reinos; usuarios solo los que desbloquearon
-  const visibleMarkers = vistaActual === "global"
-    ? reinos.filter(r => isAdmin ? true : reinosDesbloqueados.has(r.id))
-    : detallesReino.filter(l => isAdmin ? true : ciudadesDesbloqueadas.has(l.id));
+  const visibleMarkers =
+    vistaActual === "global"
+      ? reinos.filter((r) => (isAdmin ? true : reinosDesbloqueados.has(r.id)))
+      : detallesReino.filter((l) =>
+          isAdmin ? true : ciudadesDesbloqueadas.has(l.id),
+        );
 
   // hiddenMarkers: para usuarios son los marcadores no desbloqueados (se muestran en niebla)
-  const hiddenMarkers = vistaActual === "global"
-    ? (isAdmin ? [] : reinos.filter(r => !reinosDesbloqueados.has(r.id)))
-    : (isAdmin ? [] : detallesReino.filter(l => !ciudadesDesbloqueadas.has(l.id)));
+  const hiddenMarkers =
+    vistaActual === "global"
+      ? isAdmin
+        ? []
+        : reinos.filter((r) => !reinosDesbloqueados.has(r.id))
+      : isAdmin
+        ? []
+        : detallesReino.filter((l) => !ciudadesDesbloqueadas.has(l.id));
 
-  const currentImage = vistaActual === "reino" && reinoSeleccionado?.mapa_url
-    ? reinoSeleccionado.mapa_url
-    : "/dibujos/reinos/mapa.png";
+  const currentImage =
+    vistaActual === "reino" && reinoSeleccionado?.mapa_url
+      ? reinoSeleccionado.mapa_url
+      : "/dibujos/reinos/mapa.png";
 
   const panelProps = {
-    editMode, reinoSeleccionado, puntoSeleccionado,
-    setPuntoSeleccionado, setDetallesReino, setModifiedDetalles,
-    setReinoSeleccionado, personajesReino, personajesDesbloqueados,
-    handlePersonajeClick, modifiedDetalles, isSaving, handleSaveChanges,
-    isUploadingImg, handleImageUpload, imgInputRef,
-    librosReino, librosColeccion, capitulosReino, loadingLibros,
-    personajesCiudad, criaturasCiudad, itemsCiudad, capitulosCiudad, loadingCiudad,
+    editMode,
+    reinoSeleccionado,
+    puntoSeleccionado,
+    setPuntoSeleccionado,
+    setDetallesReino,
+    setModifiedDetalles,
+    setReinoSeleccionado,
+    personajesReino,
+    personajesDesbloqueados,
+    handlePersonajeClick,
+    modifiedDetalles,
+    isSaving,
+    handleSaveChanges,
+    isUploadingImg,
+    handleImageUpload,
+    imgInputRef,
+    librosReino,
+    librosColeccion,
+    capitulosReino,
+    loadingLibros,
+    personajesCiudad,
+    criaturasCiudad,
+    itemsCiudad,
+    capitulosCiudad,
+    loadingCiudad,
   };
 
   // Solo bloquea la UI si no hay absolutamente ningún dato todavía (primera carga ever)
-  if (loading && reinos.length === 0) return (
-    <div className="fixed inset-0 md:left-[68px]" style={{ background: fondoColor || "var(--bg-main)" }} />
-  );
+  if (loading && reinos.length === 0)
+    return (
+      <div
+        className="fixed inset-0 md:left-[68px]"
+        style={{ background: fondoColor || "var(--bg-main)" }}
+      />
+    );
 
   return (
-    <div className="fixed inset-0 flex overflow-hidden md:left-[68px]" style={{ background: fondoColor || "var(--bg-main)", transition: "background 0.5s ease" }}>
+    <div
+      className="fixed inset-0 flex overflow-hidden md:left-[68px]"
+      style={{
+        background: fondoColor || "var(--bg-main)",
+        transition: "background 0.5s ease",
+      }}
+    >
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&display=swap');`}</style>
 
       {modalEntidad && (
@@ -1905,20 +2873,39 @@ export default function MapaInteractivo() {
           canciones={cancionesPersonaje}
           cargandoCanciones={cargandoCanciones}
           entidad={modalEntidad}
-          onClose={() => { setModalEntidad(null); setCancionesPersonaje([]); }}
+          onClose={() => {
+            setModalEntidad(null);
+            setCancionesPersonaje([]);
+          }}
         />
       )}
 
       <AnimatePresence>
-        {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+        {toast && (
+          <Toast
+            message={toast.message}
+            type={toast.type}
+            onClose={() => setToast(null)}
+          />
+        )}
       </AnimatePresence>
 
       {/* ── MAP AREA ── */}
-      <div className={`relative flex-1 transition-all duration-500 pb-14 md:pb-0 ${panelOpen && !isMobile ? "" : "w-full"}`}>
-
+      <div
+        className={`relative flex-1 transition-all duration-500 pb-14 md:pb-0 ${panelOpen && !isMobile ? "" : "w-full"}`}
+      >
         {isAdmin && (
-          <div className="absolute z-70 flex gap-2"
-            style={{ top: (!panelOpen && (reinoSeleccionado || puntoSeleccionado)) ? "3rem" : "1rem", right: "1rem", transition: "top 0.2s ease" }}>
+          <div
+            className="absolute z-70 flex gap-2"
+            style={{
+              top:
+                !panelOpen && (reinoSeleccionado || puntoSeleccionado)
+                  ? "3rem"
+                  : "1rem",
+              right: "1rem",
+              transition: "top 0.2s ease",
+            }}
+          >
             <button
               className="flex items-center gap-2 px-4 py-2 text-[10px] font-semibold uppercase tracking-widest transition-all border"
               style={{
@@ -1939,16 +2926,20 @@ export default function MapaInteractivo() {
               {editMode ? "Cancelar" : "Editar Mapa"}
             </button>
             {editMode && (
-              <button className="flex items-center gap-2 px-4 py-2 text-[10px] font-semibold uppercase tracking-widest disabled:opacity-50 transition-all" disabled={isSaving}
+              <button
+                className="flex items-center gap-2 px-4 py-2 text-[10px] font-semibold uppercase tracking-widest disabled:opacity-50 transition-all"
+                disabled={isSaving}
                 style={{
                   background: "color-mix(in srgb, var(--accent) 70%, #1a5c30)",
                   color: "var(--btn-text, #fff)",
-                  border: "1px solid color-mix(in srgb, var(--accent) 40%, #1a5c30)",
+                  border:
+                    "1px solid color-mix(in srgb, var(--accent) 40%, #1a5c30)",
                   borderRadius: "2px",
                   letterSpacing: "0.12em",
                   boxShadow: "0 1px 4px rgba(0,0,0,0.3)",
                 }}
-                onClick={handleSaveChanges}>
+                onClick={handleSaveChanges}
+              >
                 {isSaving ? <Hourglass size={14} /> : <Save size={14} />}
                 Guardar
               </button>
@@ -1958,19 +2949,33 @@ export default function MapaInteractivo() {
 
         <AnimatePresence>
           {editMode && (reinoSeleccionado || puntoSeleccionado) && (
-            <MotionDiv animate={{ opacity: 1, y: 0 }} className="absolute left-1/2 -translate-x-1/2 z-50 text-[10px] font-semibold uppercase px-4 py-2 shadow-md flex items-center gap-2 bottom-[calc(56px+1rem)] md:bottom-16" exit={{ opacity: 0, y: 10 }}
+            <MotionDiv
+              animate={{ opacity: 1, y: 0 }}
+              className="absolute left-1/2 -translate-x-1/2 z-50 text-[10px] font-semibold uppercase px-4 py-2 shadow-md flex items-center gap-2 bottom-[calc(56px+1rem)] md:bottom-16"
+              exit={{ opacity: 0, y: 10 }}
               initial={{ opacity: 0, y: 10 }}
               style={{
-                background: "color-mix(in srgb, var(--bg-menu) 92%, transparent)",
+                background:
+                  "color-mix(in srgb, var(--bg-menu) 92%, transparent)",
                 color: "var(--accent)",
-                border: "1px solid color-mix(in srgb, var(--primary) 30%, transparent)",
+                border:
+                  "1px solid color-mix(in srgb, var(--primary) 30%, transparent)",
                 borderRadius: "2px",
                 letterSpacing: "0.1em",
                 boxShadow: "0 1px 4px rgba(0,0,0,0.3)",
-              }}>
+              }}
+            >
               <Move size={12} /> Clickeá para mover el marcador
               {modifiedDetalles.size > 1 && (
-                <span className="px-1.5 py-0.5 text-[9px]" style={{ background: "color-mix(in srgb, var(--bg-main) 20%, transparent)" }}>{modifiedDetalles.size} pendientes</span>
+                <span
+                  className="px-1.5 py-0.5 text-[9px]"
+                  style={{
+                    background:
+                      "color-mix(in srgb, var(--bg-main) 20%, transparent)",
+                  }}
+                >
+                  {modifiedDetalles.size} pendientes
+                </span>
               )}
             </MotionDiv>
           )}
@@ -1978,17 +2983,23 @@ export default function MapaInteractivo() {
 
         <AnimatePresence>
           {vistaActual === "reino" && (
-            <MotionButton animate={{ opacity: 1, x: 0 }} className="absolute top-4 left-4 z-50 flex items-center gap-2 px-4 py-2 text-[10px] font-semibold uppercase tracking-widest transition-colors" exit={{ opacity: 0, x: -20 }}
+            <MotionButton
+              animate={{ opacity: 1, x: 0 }}
+              className="absolute top-4 left-4 z-50 flex items-center gap-2 px-4 py-2 text-[10px] font-semibold uppercase tracking-widest transition-colors"
+              exit={{ opacity: 0, x: -20 }}
               initial={{ opacity: 0, x: -20 }}
               style={{
-                background: "color-mix(in srgb, var(--bg-menu) 88%, transparent)",
-                border: "1px solid color-mix(in srgb, var(--primary) 30%, transparent)",
+                background:
+                  "color-mix(in srgb, var(--bg-menu) 88%, transparent)",
+                border:
+                  "1px solid color-mix(in srgb, var(--primary) 30%, transparent)",
                 color: "var(--accent)",
                 borderRadius: "2px",
                 letterSpacing: "0.12em",
                 boxShadow: "0 1px 4px rgba(0,0,0,0.3)",
               }}
-              onClick={volverAlGlobal}>
+              onClick={volverAlGlobal}
+            >
               <ArrowLeft size={14} /> Volver
             </MotionButton>
           )}
@@ -2003,8 +3014,10 @@ export default function MapaInteractivo() {
               initial={{ opacity: 0, x: 20 }}
               style={{
                 right: "1rem",
-                background: "color-mix(in srgb, var(--bg-menu) 92%, transparent)",
-                border: "1px solid color-mix(in srgb, var(--primary) 30%, transparent)",
+                background:
+                  "color-mix(in srgb, var(--bg-menu) 92%, transparent)",
+                border:
+                  "1px solid color-mix(in srgb, var(--primary) 30%, transparent)",
                 color: "var(--accent)",
                 borderRadius: "2px",
                 letterSpacing: "0.12em",
@@ -2013,7 +3026,10 @@ export default function MapaInteractivo() {
               onClick={() => setPanelOpen(true)}
             >
               <BookOpen size={13} />
-              <span className="max-w-[120px] truncate" style={{ fontFamily: "'Cinzel', serif" }}>
+              <span
+                className="max-w-[120px] truncate"
+                style={{ fontFamily: "'Cinzel', serif" }}
+              >
                 {puntoSeleccionado?.nombre ?? reinoSeleccionado?.nombre}
               </span>
             </MotionButton>
@@ -2026,14 +3042,18 @@ export default function MapaInteractivo() {
             className="absolute bottom-[calc(56px+0.75rem)] md:bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-3 py-2"
             style={{
               background: "color-mix(in srgb, var(--bg-menu) 94%, transparent)",
-              border: "1px solid color-mix(in srgb, var(--primary) 30%, transparent)",
+              border:
+                "1px solid color-mix(in srgb, var(--primary) 30%, transparent)",
               borderRadius: "2px",
               boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
               backdropFilter: "blur(4px)",
             }}
           >
             {/* Label */}
-            <span className="text-[9px] font-black uppercase tracking-widest whitespace-nowrap" style={{ color: "var(--accent)", letterSpacing: "0.15em" }}>
+            <span
+              className="text-[9px] font-black uppercase tracking-widest whitespace-nowrap"
+              style={{ color: "var(--accent)", letterSpacing: "0.15em" }}
+            >
               {vistaActual === "reino" ? "Color Fondo Reino" : "Color Mar"}
             </span>
 
@@ -2043,7 +3063,8 @@ export default function MapaInteractivo() {
                 className="w-7 h-7 border-2 transition-all"
                 style={{
                   background: fondoColor || "var(--bg-main)",
-                  borderColor: "color-mix(in srgb, var(--accent) 50%, transparent)",
+                  borderColor:
+                    "color-mix(in srgb, var(--accent) 50%, transparent)",
                   borderRadius: "1px",
                   boxShadow: "inset 0 0 0 1px rgba(0,0,0,0.2)",
                 }}
@@ -2059,8 +3080,17 @@ export default function MapaInteractivo() {
                 onChange={(e) => {
                   // Preview en tiempo real sin guardar en Supabase todavía
                   if (vistaActual === "reino" && reinoSeleccionado) {
-                    setReinoSeleccionado((prev: any) => ({ ...prev, fondo_color: e.target.value }));
-                    setReinos(prev => prev.map(r => r.id === reinoSeleccionado.id ? { ...r, fondo_color: e.target.value } : r));
+                    setReinoSeleccionado((prev: any) => ({
+                      ...prev,
+                      fondo_color: e.target.value,
+                    }));
+                    setReinos((prev) =>
+                      prev.map((r) =>
+                        r.id === reinoSeleccionado.id
+                          ? { ...r, fondo_color: e.target.value }
+                          : r,
+                      ),
+                    );
                   } else {
                     setFondoColorGlobal(e.target.value);
                   }
@@ -2078,17 +3108,28 @@ export default function MapaInteractivo() {
                 borderColor: eyedropperActive
                   ? "var(--accent)"
                   : "color-mix(in srgb, var(--primary) 30%, transparent)",
-                color: eyedropperActive ? "var(--accent)" : "color-mix(in srgb, var(--foreground) 60%, transparent)",
+                color: eyedropperActive
+                  ? "var(--accent)"
+                  : "color-mix(in srgb, var(--foreground) 60%, transparent)",
                 borderRadius: "1px",
               }}
               title="Cuentagotas — click en el mapa para samplear"
-              onClick={() => setEyedropperActive(v => !v)}
+              onClick={() => setEyedropperActive((v) => !v)}
             >
               {/* Eyedropper SVG icon */}
-              <svg fill="none" height="13" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" width="13">
-                <path d="m2 22 1-1h3l9-9"/>
-                <path d="M3 21v-3l9-9"/>
-                <path d="m15 6 3.4-3.4a2.1 2.1 0 1 1 3 3L18 9l.4.4a2.1 2.1 0 1 1-3 3l-3.8-3.8-1.6 1.6"/>
+              <svg
+                fill="none"
+                height="13"
+                stroke="currentColor"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                viewBox="0 0 24 24"
+                width="13"
+              >
+                <path d="m2 22 1-1h3l9-9" />
+                <path d="M3 21v-3l9-9" />
+                <path d="m15 6 3.4-3.4a2.1 2.1 0 1 1 3 3L18 9l.4.4a2.1 2.1 0 1 1-3 3l-3.8-3.8-1.6 1.6" />
               </svg>
             </button>
 
@@ -2097,9 +3138,12 @@ export default function MapaInteractivo() {
               <button
                 className="w-7 h-7 flex items-center justify-center border transition-all"
                 style={{
-                  background: "color-mix(in srgb, var(--primary) 10%, transparent)",
-                  borderColor: "color-mix(in srgb, var(--primary) 25%, transparent)",
-                  color: "color-mix(in srgb, var(--foreground) 45%, transparent)",
+                  background:
+                    "color-mix(in srgb, var(--primary) 10%, transparent)",
+                  borderColor:
+                    "color-mix(in srgb, var(--primary) 25%, transparent)",
+                  color:
+                    "color-mix(in srgb, var(--foreground) 45%, transparent)",
                   borderRadius: "1px",
                 }}
                 title="Resetear a color del tema"
@@ -2111,7 +3155,10 @@ export default function MapaInteractivo() {
 
             {/* Eyedropper hint */}
             {eyedropperActive && (
-              <span className="text-[9px] font-semibold uppercase animate-pulse whitespace-nowrap" style={{ color: "var(--accent)", letterSpacing: "0.1em" }}>
+              <span
+                className="text-[9px] font-semibold uppercase animate-pulse whitespace-nowrap"
+                style={{ color: "var(--accent)", letterSpacing: "0.1em" }}
+              >
                 Clickeá el mapa
               </span>
             )}
@@ -2125,13 +3172,19 @@ export default function MapaInteractivo() {
             fondoColor={fondoColor}
             hiddenMarkers={hiddenMarkers}
             isFirstOpen={isFirstOpen}
-            markers={editMode ? [...visibleMarkers, ...hiddenMarkers] : visibleMarkers}
+            markers={
+              editMode ? [...visibleMarkers, ...hiddenMarkers] : visibleMarkers
+            }
             selectedMarkerId={reinoSeleccionado?.id ?? null}
             tiles={mapTiles}
             onEyedropperPick={handleFondoColorChange}
             onMapClick={handleMapClick}
             onMarkerClick={handleReinoClick}
-            onOpenPanel={isMobile && reinoSeleccionado ? () => setPanelOpen(true) : undefined}
+            onOpenPanel={
+              isMobile && reinoSeleccionado
+                ? () => setPanelOpen(true)
+                : undefined
+            }
           />
         ) : (
           <CanvasMap
@@ -2141,8 +3194,12 @@ export default function MapaInteractivo() {
             hiddenMarkers={hiddenMarkers}
             imageSrc={currentImage}
             isFirstOpen={isFirstOpen}
-            markers={editMode ? [...visibleMarkers, ...hiddenMarkers] : visibleMarkers}
-            selectedMarkerId={puntoSeleccionado?.id ?? reinoSeleccionado?.id ?? null}
+            markers={
+              editMode ? [...visibleMarkers, ...hiddenMarkers] : visibleMarkers
+            }
+            selectedMarkerId={
+              puntoSeleccionado?.id ?? reinoSeleccionado?.id ?? null
+            }
             tipo={vistaActual}
             onEyedropperPick={handleFondoColorChange}
             onMapClick={handleMapClick}
@@ -2150,7 +3207,11 @@ export default function MapaInteractivo() {
               setPuntoSeleccionado(m);
               setPanelOpen(true);
             }}
-            onOpenPanel={isMobile && (reinoSeleccionado || puntoSeleccionado) ? () => setPanelOpen(true) : undefined}
+            onOpenPanel={
+              isMobile && (reinoSeleccionado || puntoSeleccionado)
+                ? () => setPanelOpen(true)
+                : undefined
+            }
           />
         )}
       </div>
@@ -2165,22 +3226,33 @@ export default function MapaInteractivo() {
             initial={{ width: 0, opacity: 0 }}
             style={{
               background: "var(--white-custom)",
-              borderLeft: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
+              borderLeft:
+                "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
               boxShadow: "-20px 0 60px rgba(0,0,0,0.4)",
             }}
             transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
           >
-            <div className="absolute top-0 left-0 right-0 h-px"
-              style={{ background: "linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 50%, transparent), transparent)" }} />
+            <div
+              className="absolute top-0 left-0 right-0 h-px"
+              style={{
+                background:
+                  "linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 50%, transparent), transparent)",
+              }}
+            />
             <button
               className="absolute top-4 right-4 z-10 w-7 h-7 flex items-center justify-center transition-colors border"
               style={{
-                background: "color-mix(in srgb, var(--bg-main) 80%, transparent)",
-                borderColor: "color-mix(in srgb, var(--primary) 20%, transparent)",
+                background:
+                  "color-mix(in srgb, var(--bg-main) 80%, transparent)",
+                borderColor:
+                  "color-mix(in srgb, var(--primary) 20%, transparent)",
                 color: "color-mix(in srgb, var(--foreground) 50%, transparent)",
                 borderRadius: "1px",
               }}
-              onClick={() => { setPanelOpen(false); setPuntoSeleccionado(null); }}
+              onClick={() => {
+                setPanelOpen(false);
+                setPuntoSeleccionado(null);
+              }}
             >
               <X size={12} />
             </button>
@@ -2202,25 +3274,45 @@ export default function MapaInteractivo() {
             style={{
               bottom: "56px",
               background: "var(--white-custom)",
-              borderTop: "1px solid color-mix(in srgb, var(--accent) 20%, transparent)",
+              borderTop:
+                "1px solid color-mix(in srgb, var(--accent) 20%, transparent)",
               maxHeight: "60dvh",
               boxShadow: "0 -20px 60px rgba(0,0,0,0.5)",
             }}
             transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
           >
-            <div className="absolute top-0 left-0 right-0 h-px"
-              style={{ background: "linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 60%, transparent), transparent)" }} />
+            <div
+              className="absolute top-0 left-0 right-0 h-px"
+              style={{
+                background:
+                  "linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 60%, transparent), transparent)",
+              }}
+            />
             <div className="flex justify-center pt-3 pb-1">
-              <div className="w-10 h-0.5" style={{ background: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
+              <div
+                className="w-10 h-0.5"
+                style={{
+                  background:
+                    "color-mix(in srgb, var(--primary) 30%, transparent)",
+                }}
+              />
             </div>
             <button
               className="absolute top-3 right-4 w-7 h-7 flex items-center justify-center transition-colors"
-              style={{ color: "color-mix(in srgb, var(--foreground) 50%, transparent)" }}
-              onClick={() => { setPanelOpen(false); setPuntoSeleccionado(null); }}
+              style={{
+                color: "color-mix(in srgb, var(--foreground) 50%, transparent)",
+              }}
+              onClick={() => {
+                setPanelOpen(false);
+                setPuntoSeleccionado(null);
+              }}
             >
               <X size={14} />
             </button>
-            <div className="px-6 pb-8 pt-2 overflow-y-auto flex flex-col gap-4" style={{ maxHeight: "calc(65dvh - 40px)" }}>
+            <div
+              className="px-6 pb-8 pt-2 overflow-y-auto flex flex-col gap-4"
+              style={{ maxHeight: "calc(65dvh - 40px)" }}
+            >
               <PanelContenido {...panelProps} />
             </div>
           </MotionDiv>
