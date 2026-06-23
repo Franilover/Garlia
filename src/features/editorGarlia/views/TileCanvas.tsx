@@ -69,7 +69,7 @@ export function TileCanvas({
   const animFrameRef = useRef<number>(0);
   const hasShownCompassRef = useRef(false);
   const compassTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [showCompass, setShowCompass] = useState(true);
+  const [showCompass, setShowCompass] = useState(false);
   const [mapFading, setMapFading] = useState(false);
   const compassStartRef = useRef<number | null>(null);
 
@@ -155,9 +155,8 @@ export function TileCanvas({
 
     const tilesWithImage = tiles.filter((t) => t.image_url);
     if (tilesWithImage.length === 0) {
-      // Sin imágenes: crear canvas vacío para que el fondo funcione
-      const oc = new OffscreenCanvas(tileSize, tileSize);
-      compositeRef.current = oc;
+      // Sin tiles con imagen: marcar como listo para mostrar el fondo
+      compositeRef.current = null;
       compositeReadyRef.current = true;
       setCompositeReady(true);
       return;
@@ -231,10 +230,7 @@ export function TileCanvas({
       setMapFading(false);
     } else {
       setShowCompass(false);
-      if (hasShownCompassRef.current) {
-        setMapFading(true);
-        setTimeout(() => setMapFading(false), 600);
-      }
+      setMapFading(false);
     }
     compassStartRef.current = null;
     centerImage();
@@ -305,7 +301,7 @@ export function TileCanvas({
       const { x: cx, y: cy, scale } = camRef.current;
       const composite = compositeRef.current;
 
-      if (composite && compositeReadyRef.current && !showCompass) {
+      if (composite && compositeReadyRef.current) {
         const iw = totalW * scale;
         const ih = totalH * scale;
 
