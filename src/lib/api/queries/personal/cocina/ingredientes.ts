@@ -1,15 +1,26 @@
 import { supabase } from "@/lib/api/client/supabase";
-import { ingredienteFullQuery, Ingrediente, Inserts, Updates } from "@/lib/types/queries";
+import {
+  ingredienteFullQuery,
+  Ingrediente,
+  Inserts,
+  Updates,
+} from "@/lib/types/queries";
 
 export const ingredientesQueries = {
-  getAll: async (opciones: { campo?: string; asc?: boolean } = {}): Promise<Ingrediente[]> => {
-    const { data: { user } } = await supabase.auth.getUser();
+  getAll: async (
+    opciones: { campo?: string; asc?: boolean } = {},
+  ): Promise<Ingrediente[]> => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) throw new Error("No autenticado");
 
     let query = ingredienteFullQuery().eq("user_id", user.id);
 
     if (opciones.campo) {
-      query = query.order(opciones.campo as any, { ascending: opciones.asc ?? true });
+      query = query.order(opciones.campo as any, {
+        ascending: opciones.asc ?? true,
+      });
     }
 
     const { data, error } = await query;
@@ -18,20 +29,24 @@ export const ingredientesQueries = {
   },
 
   getById: async (id: string): Promise<Ingrediente | null> => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) throw new Error("No autenticado");
 
-  const { data, error } = await ingredienteFullQuery()
+    const { data, error } = await ingredienteFullQuery()
       .eq("id", id)
       .eq("user_id", user.id)
       .single();
-      
+
     if (error) throw error;
     return data;
   },
 
-  create: async (nuevo: Inserts<'ingredientes'>): Promise<Ingrediente> => {
-    const { data: { user } } = await supabase.auth.getUser();
+  create: async (nuevo: Inserts<"ingredientes">): Promise<Ingrediente> => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) throw new Error("No autenticado");
 
     const { data, error } = await supabase
@@ -43,8 +58,13 @@ export const ingredientesQueries = {
     return data;
   },
 
-  update: async (id: string, updates: Updates<'ingredientes'>): Promise<Ingrediente> => {
-    const { data: { user } } = await supabase.auth.getUser();
+  update: async (
+    id: string,
+    updates: Updates<"ingredientes">,
+  ): Promise<Ingrediente> => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) throw new Error("No autenticado");
 
     const { data, error } = await supabase
@@ -59,7 +79,9 @@ export const ingredientesQueries = {
   },
 
   delete: async (id: string): Promise<true> => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) throw new Error("No autenticado");
 
     const { error } = await supabase
