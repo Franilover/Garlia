@@ -1,10 +1,16 @@
 "use client";
 import Image from "next/image";
 
-
 import {
-  Map, MapPin, Check, X, Trash2, Save,
-  Loader2, Image as ImageIcon, SlidersHorizontal,
+  Map,
+  MapPin,
+  Check,
+  X,
+  Trash2,
+  Save,
+  Loader2,
+  Image as ImageIcon,
+  SlidersHorizontal,
 } from "lucide-react";
 import React, { useState, useEffect, useRef } from "react";
 
@@ -12,21 +18,28 @@ import { WikiEntity } from "@/components/forms/Markdown/MarkdownEditor";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { usePersonajesDelReino } from "@/features/editorGarlia/components/hooks";
 import { LoreTab } from "@/features/editorGarlia/components/LoreTab";
-import { type Reino, type SaveStatus } from "@/features/editorGarlia/components/types";
+import {
+  type Reino,
+  type SaveStatus,
+} from "@/features/editorGarlia/components/types";
 import { SaveIndicator } from "@/features/editorGarlia/components/UIComponents";
 import { type Ciudad } from "@/features/editorGarlia/views/EditorCiudad";
+import { ReinoTileCanvas } from "@/features/editorGarlia/views/ReinoTileCanvas";
 import { db } from "@/lib/api/client/db";
 import { supabase } from "@/lib/api/client/supabase";
 
 import { useWikilink } from "../components/WikilinkContext";
 
-
 // ─── Dexie helpers ────────────────────────────────────────────────────────────
 async function dexiePut(tabla: string, row: any): Promise<void> {
-  try { if (db) await (db as any)[tabla]?.put(row); } catch {}
+  try {
+    if (db) await (db as any)[tabla]?.put(row);
+  } catch {}
 }
 async function dexieDel(tabla: string, id: string): Promise<void> {
-  try { if (db) await (db as any)[tabla]?.delete(id); } catch {}
+  try {
+    if (db) await (db as any)[tabla]?.delete(id);
+  } catch {}
 }
 async function dexieReadAll<T>(tabla: string): Promise<T[]> {
   try {
@@ -34,7 +47,9 @@ async function dexieReadAll<T>(tabla: string): Promise<T[]> {
     const t = (db as any)[tabla];
     if (!t) return [];
     return ((await t.toArray()) as any[]).filter((r: any) => !r.deleted) as T[];
-  } catch { return []; }
+  } catch {
+    return [];
+  }
 }
 async function dexieWriteAll(tabla: string, rows: any[]): Promise<void> {
   try {
@@ -44,7 +59,9 @@ async function dexieWriteAll(tabla: string, rows: any[]): Promise<void> {
     if (rows.length > 0) await t.bulkPut(rows);
     const remoteIds = new Set(rows.map((r: any) => r.id));
     const local: any[] = await t.toArray();
-    const toDelete = local.map((r: any) => r.id).filter((id: string) => !remoteIds.has(id));
+    const toDelete = local
+      .map((r: any) => r.id)
+      .filter((id: string) => !remoteIds.has(id));
     if (toDelete.length > 0) await t.bulkDelete(toDelete);
   } catch {}
 }
@@ -59,15 +76,19 @@ function useCiudadesDelReino(reinoId: string) {
       // Dexie primero
       try {
         if (db) {
-          const local: any[] = await (db as any).ciudades?.toArray() ?? [];
-          const filtrados = local.filter((l: any) => l.reino_id === reinoId && !l.deleted);
+          const local: any[] = (await (db as any).ciudades?.toArray()) ?? [];
+          const filtrados = local.filter(
+            (l: any) => l.reino_id === reinoId && !l.deleted,
+          );
           if (filtrados.length && !cancelled) setCiudades(filtrados);
         }
       } catch {}
       if (!navigator.onLine) return;
       const { data } = await supabase
         .from("ciudades")
-        .select("id, nombre, descripcion, coord_x, coord_y, imagen_url, tipo, historia, secretos, reino_id")
+        .select(
+          "id, nombre, descripcion, coord_x, coord_y, imagen_url, tipo, historia, secretos, reino_id",
+        )
         .eq("reino_id", reinoId)
         .order("nombre");
       if (!cancelled && data) {
@@ -76,14 +97,20 @@ function useCiudadesDelReino(reinoId: string) {
       }
     };
     run();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [reinoId]);
 
   return { ciudades, setCiudades };
 }
 
-
-function MapaConPuntos({ mapaUrl, onMapaChange, detalles, onDetallesChange }: {
+function MapaConPuntos({
+  mapaUrl,
+  onMapaChange,
+  detalles,
+  onDetallesChange,
+}: {
   mapaUrl: string;
   onMapaChange: (url: string) => void;
   detalles: Ciudad[];
@@ -95,9 +122,17 @@ function MapaConPuntos({ mapaUrl, onMapaChange, detalles, onDetallesChange }: {
   const handleMapClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!selectedId) return;
     const rect = e.currentTarget.getBoundingClientRect();
-    const x = parseFloat(((e.clientX - rect.left) / rect.width * 100).toFixed(2));
-    const y = parseFloat(((e.clientY - rect.top) / rect.height * 100).toFixed(2));
-    onDetallesChange(detalles.map(d => d.id === selectedId ? { ...d, coord_x: x, coord_y: y } : d));
+    const x = parseFloat(
+      (((e.clientX - rect.left) / rect.width) * 100).toFixed(2),
+    );
+    const y = parseFloat(
+      (((e.clientY - rect.top) / rect.height) * 100).toFixed(2),
+    );
+    onDetallesChange(
+      detalles.map((d) =>
+        d.id === selectedId ? { ...d, coord_x: x, coord_y: y } : d,
+      ),
+    );
     setSelectedId(null);
   };
 
@@ -109,7 +144,9 @@ function MapaConPuntos({ mapaUrl, onMapaChange, detalles, onDetallesChange }: {
             ? "cursor-crosshair border-primary/40"
             : "cursor-default border-primary/10"
         }`}
-        style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)" }}
+        style={{
+          background: "color-mix(in srgb, var(--primary) 4%, transparent)",
+        }}
         onClick={handleMapClick}
       >
         {mapaUrl ? (
@@ -122,10 +159,15 @@ function MapaConPuntos({ mapaUrl, onMapaChange, detalles, onDetallesChange }: {
         ) : (
           <div className="flex flex-col items-center justify-center gap-2 py-12 text-primary/20">
             <Map size={24} strokeWidth={1} />
-            <span className="text-[9px] font-black uppercase tracking-widest">Sin imagen de mapa</span>
+            <span className="text-[9px] font-black uppercase tracking-widest">
+              Sin imagen de mapa
+            </span>
             <button
               className="mt-1 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-primary/20 text-primary/40 hover:text-primary hover:border-primary/40 transition-all"
-              onClick={e => { e.stopPropagation(); setPickerOpen(true); }}
+              onClick={(e) => {
+                e.stopPropagation();
+                setPickerOpen(true);
+              }}
             >
               <ImageIcon size={10} /> Elegir imagen
             </button>
@@ -133,38 +175,66 @@ function MapaConPuntos({ mapaUrl, onMapaChange, detalles, onDetallesChange }: {
         )}
 
         {/* Puntos sobre el mapa */}
-        {mapaUrl && detalles.map(d => {
-          const isSelected = selectedId === d.id;
-          return (
-            <div
-              key={d.id}
-              className="absolute z-10 flex flex-col items-center pointer-events-none"
-              style={{ top: `${d.coord_y ?? 50}%`, left: `${d.coord_x ?? 50}%`, transform: "translate(-50%, -100%)" }}
-            >
-              <div className={`mb-1 text-[8px] font-black uppercase px-1.5 py-0.5 rounded-md whitespace-nowrap shadow-md transition-all ${
-                isSelected ? "bg-primary text-btn-text scale-110" : "bg-black/60 text-white/90 backdrop-blur-sm"
-              }`}>{d.nombre}</div>
-              <button
-                className={`pointer-events-auto w-3 h-3 rounded-full border-2 border-white shadow-md transition-all ${
-                  isSelected ? "bg-yellow-400 scale-125 ring-2 ring-yellow-400/50" : "bg-primary hover:scale-110"
-                }`}
-                onClick={e => { e.stopPropagation(); setSelectedId(prev => prev === d.id ? null : d.id); }}
-              />
-              <div className={`w-px h-2 ${isSelected ? "bg-yellow-400" : "bg-white/60"}`} />
-            </div>
-          );
-        })}
+        {mapaUrl &&
+          detalles.map((d) => {
+            const isSelected = selectedId === d.id;
+            return (
+              <div
+                key={d.id}
+                className="absolute z-10 flex flex-col items-center pointer-events-none"
+                style={{
+                  top: `${d.coord_y ?? 50}%`,
+                  left: `${d.coord_x ?? 50}%`,
+                  transform: "translate(-50%, -100%)",
+                }}
+              >
+                <div
+                  className={`mb-1 text-[8px] font-black uppercase px-1.5 py-0.5 rounded-md whitespace-nowrap shadow-md transition-all ${
+                    isSelected
+                      ? "bg-primary text-btn-text scale-110"
+                      : "bg-black/60 text-white/90 backdrop-blur-sm"
+                  }`}
+                >
+                  {d.nombre}
+                </div>
+                <button
+                  className={`pointer-events-auto w-3 h-3 rounded-full border-2 border-white shadow-md transition-all ${
+                    isSelected
+                      ? "bg-yellow-400 scale-125 ring-2 ring-yellow-400/50"
+                      : "bg-primary hover:scale-110"
+                  }`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedId((prev) => (prev === d.id ? null : d.id));
+                  }}
+                />
+                <div
+                  className={`w-px h-2 ${isSelected ? "bg-yellow-400" : "bg-white/60"}`}
+                />
+              </div>
+            );
+          })}
 
         {/* Hint overlay */}
         {selectedId && (
           <div className="absolute inset-0 bg-primary/5 pointer-events-none flex items-end justify-center pb-3 px-3">
             <div
               className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-white pointer-events-auto max-w-full"
-              style={{ background: "color-mix(in srgb, var(--foreground) 70%, transparent)", backdropFilter: "blur(8px)" }}
+              style={{
+                background:
+                  "color-mix(in srgb, var(--foreground) 70%, transparent)",
+                backdropFilter: "blur(8px)",
+              }}
             >
               <MapPin className="shrink-0" size={10} />
               <span className="truncate">Tocá para mover el punto</span>
-              <button className="shrink-0 ml-1 opacity-60 hover:opacity-100 transition-opacity" onClick={e => { e.stopPropagation(); setSelectedId(null); }}>
+              <button
+                className="shrink-0 ml-1 opacity-60 hover:opacity-100 transition-opacity"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedId(null);
+                }}
+              >
                 <X size={10} />
               </button>
             </div>
@@ -176,27 +246,48 @@ function MapaConPuntos({ mapaUrl, onMapaChange, detalles, onDetallesChange }: {
           <button
             className="absolute top-2 right-2 z-20 flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all sm:opacity-0 sm:group-hover:opacity-100"
             style={{
-              background: "color-mix(in srgb, var(--foreground) 65%, transparent)",
+              background:
+                "color-mix(in srgb, var(--foreground) 65%, transparent)",
               color: "white",
               backdropFilter: "blur(8px)",
             }}
-            onClick={e => { e.stopPropagation(); setPickerOpen(true); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              setPickerOpen(true);
+            }}
           >
             <ImageIcon size={10} /> Cambiar
           </button>
         )}
       </div>
 
-      {pickerOpen && <ImagePickerModal onClose={() => setPickerOpen(false)} onSelect={url => { onMapaChange(url); setPickerOpen(false); }} />}
+      {pickerOpen && (
+        <ImagePickerModal
+          onClose={() => setPickerOpen(false)}
+          onSelect={(url) => {
+            onMapaChange(url);
+            setPickerOpen(false);
+          }}
+        />
+      )}
     </>
   );
 }
 
 // ─── Mini modal de imagen ─────────────────────────────────────────────────────
-function ImagePickerModal({ onSelect, onClose }: { onSelect: (url: string) => void; onClose: () => void }) {
-  const [SimpleImagePicker, setComponent] = useState<React.ComponentType<any> | null>(null);
+function ImagePickerModal({
+  onSelect,
+  onClose,
+}: {
+  onSelect: (url: string) => void;
+  onClose: () => void;
+}) {
+  const [SimpleImagePicker, setComponent] =
+    useState<React.ComponentType<any> | null>(null);
   useEffect(() => {
-    import("@/features/editorGarlia/components/editorCapitulos/snippets/forms/SimpleImagePicker").then(m => setComponent(() => m.default));
+    import("@/features/editorGarlia/components/editorCapitulos/snippets/forms/SimpleImagePicker").then(
+      (m) => setComponent(() => m.default),
+    );
   }, []);
 
   return (
@@ -206,26 +297,42 @@ function ImagePickerModal({ onSelect, onClose }: { onSelect: (url: string) => vo
     >
       <div
         className="bg-white-custom rounded-t-2xl sm:rounded-2xl shadow-2xl border border-primary/15 w-full sm:max-w-lg p-5 max-h-[90dvh] overflow-y-auto"
-        onClick={e => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-2">
             <ImageIcon size={11} /> Imagen del mapa
           </h3>
-          <button className="text-primary/30 hover:text-primary transition-colors" onClick={onClose}><X size={16} /></button>
+          <button
+            className="text-primary/30 hover:text-primary transition-colors"
+            onClick={onClose}
+          >
+            <X size={16} />
+          </button>
         </div>
-        {SimpleImagePicker
-          ? <SimpleImagePicker onClose={onClose} onSelect={onSelect} />
-          : <div className="flex items-center justify-center py-12"><Loader2 className="animate-spin text-primary/20" size={16} /></div>
-        }
+        {SimpleImagePicker ? (
+          <SimpleImagePicker onClose={onClose} onSelect={onSelect} />
+        ) : (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="animate-spin text-primary/20" size={16} />
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
 // ─── DetalleEditor ─────────────────────────────────────────────────────────────
-function DetalleEditor({ detalle, onSaved, onDeleted, onOpenEditor, entities = [] }: {
-  detalle: Ciudad; onSaved: (d: Ciudad) => void; onDeleted: (id: string) => void;
+function DetalleEditor({
+  detalle,
+  onSaved,
+  onDeleted,
+  onOpenEditor,
+  entities = [],
+}: {
+  detalle: Ciudad;
+  onSaved: (d: Ciudad) => void;
+  onDeleted: (id: string) => void;
   onOpenEditor?: (id: string) => void;
   entities?: WikiEntity[];
 }) {
@@ -237,24 +344,39 @@ function DetalleEditor({ detalle, onSaved, onDeleted, onOpenEditor, entities = [
 
   const prevCoords = useRef({ x: detalle.coord_x, y: detalle.coord_y });
   useEffect(() => {
-    if (detalle.coord_x !== prevCoords.current.x || detalle.coord_y !== prevCoords.current.y) {
+    if (
+      detalle.coord_x !== prevCoords.current.x ||
+      detalle.coord_y !== prevCoords.current.y
+    ) {
       prevCoords.current = { x: detalle.coord_x, y: detalle.coord_y };
-      setForm(f => ({ ...f, coord_x: detalle.coord_x, coord_y: detalle.coord_y }));
+      setForm((f) => ({
+        ...f,
+        coord_x: detalle.coord_x,
+        coord_y: detalle.coord_y,
+      }));
     }
   }, [detalle.coord_x, detalle.coord_y]);
 
   const saveDetalle = async (data: Ciudad) => {
     setStatus("saving");
     try {
-      const { error } = await supabase.from("ciudades").update({
-        nombre: data.nombre, descripcion: data.descripcion,
-        coord_x: data.coord_x, coord_y: data.coord_y,
-      }).eq("id", data.id);
+      const { error } = await supabase
+        .from("ciudades")
+        .update({
+          nombre: data.nombre,
+          descripcion: data.descripcion,
+          coord_x: data.coord_x,
+          coord_y: data.coord_y,
+        })
+        .eq("id", data.id);
       if (error) throw error;
-      setStatus("saved"); onSaved(data);
+      setStatus("saved");
+      onSaved(data);
       void dexiePut("ciudades", data);
       setTimeout(() => setStatus("idle"), 2000);
-    } catch { setStatus("error"); }
+    } catch {
+      setStatus("error");
+    }
   };
 
   const handleSave = () => {
@@ -263,7 +385,10 @@ function DetalleEditor({ detalle, onSaved, onDeleted, onOpenEditor, entities = [
   };
 
   const handleDelete = async () => {
-    const ok = await confirm({ message: `¿Eliminar "${form.nombre}"?`, danger: true });
+    const ok = await confirm({
+      message: `¿Eliminar "${form.nombre}"?`,
+      danger: true,
+    });
     if (!ok) return;
     await supabase.from("ciudades").delete().eq("id", form.id);
     void dexieDel("ciudades", form.id);
@@ -273,7 +398,10 @@ function DetalleEditor({ detalle, onSaved, onDeleted, onOpenEditor, entities = [
   return (
     <div
       className="rounded-lg overflow-hidden transition-all group/ciudad"
-      style={{ border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, transparent)" }}
+      style={{
+        border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+        background: "color-mix(in srgb, var(--primary) 2%, transparent)",
+      }}
     >
       <ConfirmModal />
 
@@ -287,14 +415,24 @@ function DetalleEditor({ detalle, onSaved, onDeleted, onOpenEditor, entities = [
           className="flex-1 min-w-0 bg-transparent text-[11px] font-black uppercase tracking-widest text-primary outline-none placeholder:text-primary/25 truncate"
           placeholder="Nombre de la ciudad"
           value={form.nombre}
-          onBlur={() => { if (!form.descripcion?.trim()) handleSave(); }}
-          onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))}
+          onBlur={() => {
+            if (!form.descripcion?.trim()) handleSave();
+          }}
+          onChange={(e) => setForm((f) => ({ ...f, nombre: e.target.value }))}
           onFocus={() => setEditing(true)}
-          onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleSave(); nameRef.current?.blur(); } }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              handleSave();
+              nameRef.current?.blur();
+            }
+          }}
         />
 
         {/* Acciones — visibles al hacer hover o al editar */}
-        <div className={`flex items-center gap-1 transition-opacity ${editing ? "opacity-100" : "opacity-0 group-hover/ciudad:opacity-100"}`}>
+        <div
+          className={`flex items-center gap-1 transition-opacity ${editing ? "opacity-100" : "opacity-0 group-hover/ciudad:opacity-100"}`}
+        >
           <SaveIndicator status={status} />
           {editing && (
             <button
@@ -328,14 +466,18 @@ function DetalleEditor({ detalle, onSaved, onDeleted, onOpenEditor, entities = [
       {editing && (
         <div
           className="px-2.5 pb-2.5 border-t"
-          style={{ borderColor: "color-mix(in srgb, var(--primary) 6%, transparent)" }}
+          style={{
+            borderColor: "color-mix(in srgb, var(--primary) 6%, transparent)",
+          }}
         >
           <textarea
             className="mt-2 w-full bg-transparent text-[11px] text-primary/80 placeholder:text-primary/25 outline-none resize-none leading-relaxed"
             placeholder="Descripción breve…"
             rows={3}
             value={form.descripcion ?? ""}
-            onChange={e => setForm(f => ({ ...f, descripcion: e.target.value }))}
+            onChange={(e) =>
+              setForm((f) => ({ ...f, descripcion: e.target.value }))
+            }
           />
         </div>
       )}
@@ -344,42 +486,78 @@ function DetalleEditor({ detalle, onSaved, onDeleted, onOpenEditor, entities = [
 }
 
 // ─── EditorReino ───────────────────────────────────────────────────────────────
-export function EditorReino({ item, onSaved, onDeleted, entities = [], onSelectPersonaje, onSelectCiudad, onSelectCriatura, onSelectItem }: {
-  item: Reino; onSaved: (r: Reino) => void; onDeleted: (id: string) => void; entities?: WikiEntity[];
+export function EditorReino({
+  item,
+  onSaved,
+  onDeleted,
+  entities = [],
+  onSelectPersonaje,
+  onSelectCiudad,
+  onSelectCriatura,
+  onSelectItem,
+}: {
+  item: Reino;
+  onSaved: (r: Reino) => void;
+  onDeleted: (id: string) => void;
+  entities?: WikiEntity[];
   onSelectPersonaje?: (personaje: any) => void;
   onSelectCiudad?: (id: string) => void;
   onSelectCriatura?: (id: string) => void;
   onSelectItem?: (id: string) => void;
 }) {
-  const [form,   setForm]   = useState<Reino>(item);
+  const [form, setForm] = useState<Reino>(item);
   const [status, setStatus] = useState<SaveStatus>("idle");
   const [addingPoint, setAddingPoint] = useState(false);
   const [mobileAsideOpen, setMobileAsideOpen] = useState(false);
   const [newPointName, setNewPointName] = useState("");
-  const { ciudades: detalles, setCiudades: setDetalles } = useCiudadesDelReino(item.id);
+  const { ciudades: detalles, setCiudades: setDetalles } = useCiudadesDelReino(
+    item.id,
+  );
   const { confirm, ConfirmModal } = useConfirm();
   const { onSnippetAction } = useWikilink();
-  const { personajes, setPersonajes, loading: loadingPersonajes } = usePersonajesDelReino(form.nombre);
+  const {
+    personajes,
+    setPersonajes,
+    loading: loadingPersonajes,
+  } = usePersonajesDelReino(form.nombre);
 
-  useEffect(() => { setForm(item); setStatus("idle"); }, [item.id]);
+  useEffect(() => {
+    setForm(item);
+    setStatus("idle");
+  }, [item.id]);
 
   const save = async () => {
     setStatus("saving");
     try {
-      const { error } = await supabase.from("reinos").update({
-        nombre: form.nombre, historia: form.historia, politica: form.politica,
-        economia: form.economia, geografia: form.geografia, cultura: form.cultura,
-        mapa_url: form.mapa_url, coord_x: form.coord_x, coord_y: form.coord_y,
-      }).eq("id", form.id);
+      const { error } = await supabase
+        .from("reinos")
+        .update({
+          nombre: form.nombre,
+          historia: form.historia,
+          politica: form.politica,
+          economia: form.economia,
+          geografia: form.geografia,
+          cultura: form.cultura,
+          mapa_url: form.mapa_url,
+          coord_x: form.coord_x,
+          coord_y: form.coord_y,
+        })
+        .eq("id", form.id);
       if (error) throw error;
-      setStatus("saved"); onSaved(form);
+      setStatus("saved");
+      onSaved(form);
       void dexiePut("reinos", form);
       setTimeout(() => setStatus("idle"), 2000);
-    } catch { setStatus("error"); }
+    } catch {
+      setStatus("error");
+    }
   };
 
   const del = async () => {
-    const ok = await confirm({ message: `¿Eliminar el reino "${form.nombre}"?`, danger: true });
+    const ok = await confirm({
+      message: `¿Eliminar el reino "${form.nombre}"?`,
+      danger: true,
+    });
     if (!ok) return;
     await supabase.from("reinos").delete().eq("id", form.id);
     void dexieDel("reinos", form.id);
@@ -388,16 +566,36 @@ export function EditorReino({ item, onSaved, onDeleted, entities = [], onSelectP
 
   const handleAddPoint = async () => {
     if (!newPointName.trim()) return;
-    const { data, error } = await supabase.from("ciudades")
-      .insert([{ reino_id: form.id, nombre: newPointName.trim(), coord_x: 50, coord_y: 50 }]).select().single();
-    if (!error && data) { setDetalles(prev => [...prev, data as Ciudad]); void dexiePut("ciudades", data); setAddingPoint(false); setNewPointName(""); }
+    const { data, error } = await supabase
+      .from("ciudades")
+      .insert([
+        {
+          reino_id: form.id,
+          nombre: newPointName.trim(),
+          coord_x: 50,
+          coord_y: 50,
+        },
+      ])
+      .select()
+      .single();
+    if (!error && data) {
+      setDetalles((prev) => [...prev, data as Ciudad]);
+      void dexiePut("ciudades", data);
+      setAddingPoint(false);
+      setNewPointName("");
+    }
   };
 
   const handleDetallesMapChange = async (updated: Ciudad[]) => {
     setDetalles(updated);
-    await Promise.all(updated.map(d =>
-      supabase.from("ciudades").update({ coord_x: d.coord_x, coord_y: d.coord_y }).eq("id", d.id)
-    ));
+    await Promise.all(
+      updated.map((d) =>
+        supabase
+          .from("ciudades")
+          .update({ coord_x: d.coord_x, coord_y: d.coord_y })
+          .eq("id", d.id),
+      ),
+    );
   };
 
   return (
@@ -405,13 +603,12 @@ export function EditorReino({ item, onSaved, onDeleted, entities = [], onSelectP
       <ConfirmModal />
 
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-
         {/* Header — dos filas en mobile, una fila en desktop */}
         <div
           className="shrink-0 border-b"
           style={{
             borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
-            background:  "color-mix(in srgb, var(--primary) 2%, transparent)",
+            background: "color-mix(in srgb, var(--primary) 2%, transparent)",
           }}
         >
           {/* Fila 1: thumbnail + nombre + guardar (siempre visible) */}
@@ -420,13 +617,21 @@ export function EditorReino({ item, onSaved, onDeleted, entities = [], onSelectP
             <div
               className="shrink-0 w-8 h-8 rounded-lg overflow-hidden border flex items-center justify-center"
               style={{
-                borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)",
-                background:  "color-mix(in srgb, var(--primary) 6%, transparent)",
+                borderColor:
+                  "color-mix(in srgb, var(--primary) 15%, transparent)",
+                background:
+                  "color-mix(in srgb, var(--primary) 6%, transparent)",
               }}
             >
-              {form.mapa_url
-                ? <Image alt={form.nombre} className="w-full h-full object-cover" src={form.mapa_url} />
-                : <Map className="text-primary/25" size={14} />}
+              {form.mapa_url ? (
+                <Image
+                  alt={form.nombre}
+                  className="w-full h-full object-cover"
+                  src={form.mapa_url}
+                />
+              ) : (
+                <Map className="text-primary/25" size={14} />
+              )}
             </div>
 
             {/* Nombre editable */}
@@ -434,7 +639,9 @@ export function EditorReino({ item, onSaved, onDeleted, entities = [], onSelectP
               className="flex-1 min-w-0 bg-transparent text-sm font-black text-primary outline-none placeholder:text-primary/25"
               placeholder="Nombre del reino"
               value={form.nombre ?? ""}
-              onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, nombre: e.target.value }))
+              }
             />
 
             <SaveIndicator status={status} />
@@ -470,9 +677,19 @@ export function EditorReino({ item, onSaved, onDeleted, entities = [], onSelectP
         </div>
 
         {/* Lore — ocupa todo el espacio restante */}
-        <div className="flex-1 min-h-0 overflow-hidden" style={{ minHeight: "0" }}>
+        <div
+          className="flex-1 min-h-0 overflow-hidden"
+          style={{ minHeight: "0" }}
+        >
           <LoreTab
-            MapaConPuntosComponent={MapaConPuntos}
+            MapaConPuntosComponent={(props) => (
+              <ReinoTileCanvas
+                detalles={props.detalles}
+                editMode={true}
+                reinoId={form.id}
+                onDetallesChange={props.onDetallesChange}
+              />
+            )}
             addingPoint={addingPoint}
             detalles={detalles}
             entities={entities}
@@ -487,10 +704,14 @@ export function EditorReino({ item, onSaved, onDeleted, entities = [], onSelectP
             setMobileAsideOpen={setMobileAsideOpen}
             setNewPointName={setNewPointName}
             onAddPoint={handleAddPoint}
-            onDetalleDelete={id => setDetalles(prev => prev.filter(x => x.id !== id))}
-            onDetalleUpdate={d => setDetalles(prev => prev.map(x => x.id === d.id ? d : x))}
+            onDetalleDelete={(id) =>
+              setDetalles((prev) => prev.filter((x) => x.id !== id))
+            }
+            onDetalleUpdate={(d) =>
+              setDetalles((prev) => prev.map((x) => (x.id === d.id ? d : x)))
+            }
             onDetallesArrayChange={handleDetallesMapChange}
-            onMapaChange={url => setForm(f => ({ ...f, mapa_url: url }))}
+            onMapaChange={(url) => setForm((f) => ({ ...f, mapa_url: url }))}
             onOpenDetalleEditor={onSelectCiudad}
             onSelectCriatura={onSelectCriatura}
             onSelectItem={onSelectItem}
