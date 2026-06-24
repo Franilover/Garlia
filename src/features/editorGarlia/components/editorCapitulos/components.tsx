@@ -1405,9 +1405,21 @@ export const VisibilidadCapPicker = ({
   onChanged: (v: "publico" | "programado" | "oculto") => void;
 }) => {
   const [saving, setSaving] = useState(false);
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node))
+        setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   const handleChange = async (v: "publico" | "programado" | "oculto") => {
     if (v === current || saving) return;
+    setOpen(false);
     setSaving(true);
     try {
       await capUpdateMeta(capId, { visibilidad: v });
@@ -1416,30 +1428,63 @@ export const VisibilidadCapPicker = ({
     setSaving(false);
   };
 
+  const cfg = VISIBILIDAD_CONFIG[current];
+  const Icon = cfg.icon;
+
   return (
-    <span className="flex items-center gap-1">
-      {(["oculto", "programado", "publico"] as const).map((v) => {
-        const cfg = VISIBILIDAD_CONFIG[v];
-        const Icon = cfg.icon;
-        const active = current === v;
-        return (
-          <button
-            key={v}
-            className={`flex items-center gap-1 px-2 py-0.5 rounded-full border text-[8px] font-black uppercase tracking-wide transition-all disabled:opacity-40 ${
-              active
-                ? cfg.color
-                : "border-primary/10 text-primary/25 hover:border-primary/25 hover:text-primary/50"
-            }`}
-            disabled={saving}
-            title={cfg.label}
-            onClick={() => handleChange(v)}
-          >
-            <Icon size={8} />
-            {active && <span>{cfg.label}</span>}
-          </button>
-        );
-      })}
-    </span>
+    <div ref={ref} className="relative">
+      <button
+        className={`flex items-center gap-1 px-2 py-0.5 rounded-full border text-[8px] font-black uppercase tracking-wide transition-all disabled:opacity-40 ${cfg.color}`}
+        disabled={saving}
+        onClick={() => setOpen((o) => !o)}
+      >
+        {saving ? (
+          <Loader2 size={8} className="animate-spin" />
+        ) : (
+          <Icon size={8} />
+        )}
+        {cfg.label}
+        <ChevronDown size={7} style={{ opacity: 0.5 }} />
+      </button>
+      {open && (
+        <div
+          className="absolute left-0 top-full mt-1 z-50 rounded-lg border shadow-xl overflow-hidden"
+          style={{
+            background: "var(--bg-main)",
+            borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
+            minWidth: 120,
+          }}
+        >
+          {(["oculto", "programado", "publico"] as const).map((v) => {
+            const c = VISIBILIDAD_CONFIG[v];
+            const I = c.icon;
+            return (
+              <button
+                key={v}
+                className="w-full flex items-center gap-2 px-3 py-1.5 text-[9px] font-black uppercase tracking-wide text-left transition-all hover:bg-primary/6"
+                style={{
+                  color:
+                    current === v
+                      ? "var(--primary)"
+                      : "color-mix(in srgb, var(--primary) 45%, transparent)",
+                }}
+                onClick={() => handleChange(v)}
+              >
+                <I size={9} />
+                {c.label}
+                {current === v && (
+                  <Check
+                    size={8}
+                    className="ml-auto"
+                    style={{ color: "var(--primary)" }}
+                  />
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 };
 
@@ -2703,154 +2748,6 @@ export const PanelPersonajesCapitulo = ({
           onEntityClick={(id) => dispatchOpen("ciudades", id)}
           onToggle={(id, add) => handleToggleCiudad(id, add)}
         />
-      </div>
-
-      {/* ── Visibilidad ─────────────────────────────────────────────────── */}
-      <div
-        className="shrink-0 px-3 py-2 border-b"
-        style={{
-          borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
-        }}
-      >
-        <div className="flex items-center gap-1 mb-1.5">
-          <Lock
-            size={8}
-            style={{
-              color: "color-mix(in srgb, var(--primary) 35%, transparent)",
-            }}
-          />
-          <span
-            className="text-[8px] font-black uppercase tracking-[0.2em] flex-1"
-            style={{
-              color: "color-mix(in srgb, var(--primary) 35%, transparent)",
-            }}
-          >
-            Visibilidad
-          </span>
-          {savingVis && (
-            <Loader2
-              className="animate-spin shrink-0"
-              size={8}
-              style={{
-                color: "color-mix(in srgb, var(--primary) 30%, transparent)",
-              }}
-            />
-          )}
-        </div>
-
-        {/* Dropdown */}
-        <div ref={dropVisRef} className="relative">
-          <button
-            className="w-full flex items-center gap-1.5 px-2 py-1 rounded border text-[9px] font-black uppercase tracking-wide transition-all"
-            style={{
-              borderColor:
-                "color-mix(in srgb, var(--primary) 15%, transparent)",
-              background: "color-mix(in srgb, var(--primary) 4%, transparent)",
-              color: "var(--primary)",
-            }}
-            onClick={() => setDropVis((o) => !o)}
-          >
-            {visibilidad === "publico" ? (
-              <Globe size={9} />
-            ) : visibilidad === "programado" ? (
-              <Timer size={9} />
-            ) : (
-              <Lock size={9} />
-            )}
-            {VISIBILIDAD_CONFIG[visibilidad].label}
-            <ChevronDown
-              size={8}
-              className="ml-auto"
-              style={{ opacity: 0.4 }}
-            />
-          </button>
-          {dropVis && (
-            <div
-              className="absolute left-0 top-full mt-1 z-50 w-full rounded-lg border shadow-xl overflow-hidden"
-              style={{
-                background: "var(--bg-main)",
-                borderColor:
-                  "color-mix(in srgb, var(--primary) 12%, transparent)",
-              }}
-            >
-              {(["oculto", "programado", "publico"] as const).map((v) => {
-                const cfg = VISIBILIDAD_CONFIG[v];
-                const Icon = cfg.icon;
-                const active = visibilidad === v;
-                return (
-                  <button
-                    key={v}
-                    className="w-full flex items-center gap-2 px-2.5 py-2 text-[9px] font-black uppercase tracking-wide text-left transition-all"
-                    style={{
-                      background: active
-                        ? "color-mix(in srgb, var(--primary) 6%, transparent)"
-                        : "transparent",
-                      color: active
-                        ? "var(--primary)"
-                        : "color-mix(in srgb, var(--primary) 45%, transparent)",
-                    }}
-                    onClick={() => {
-                      handleSaveVisibilidad(v);
-                      setDropVis(false);
-                    }}
-                  >
-                    <Icon size={9} />
-                    {cfg.label}
-                    {active && (
-                      <Check
-                        size={8}
-                        className="ml-auto"
-                        style={{ color: "var(--primary)" }}
-                      />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Fecha si programado */}
-        {visibilidad === "programado" && (
-          <div className="mt-1.5 flex items-center gap-1">
-            <Calendar
-              size={8}
-              style={{
-                color: "color-mix(in srgb, var(--primary) 35%, transparent)",
-                flexShrink: 0,
-              }}
-            />
-            <input
-              className="flex-1 min-w-0 rounded border px-1.5 py-1 text-[8px] font-black outline-none transition-all"
-              style={{
-                background: fechaProg
-                  ? "color-mix(in srgb, var(--primary) 6%, transparent)"
-                  : "transparent",
-                borderColor:
-                  "color-mix(in srgb, var(--primary) 15%, transparent)",
-                color: fechaProg
-                  ? "var(--primary)"
-                  : "color-mix(in srgb, var(--primary) 30%, transparent)",
-              }}
-              type="date"
-              value={fechaProg}
-              onBlur={handleSaveFechaProg}
-              onChange={(e) => setFechaProg(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-              }}
-            />
-            {savingFecha && (
-              <Loader2
-                className="animate-spin shrink-0"
-                size={8}
-                style={{
-                  color: "color-mix(in srgb, var(--primary) 30%, transparent)",
-                }}
-              />
-            )}
-          </div>
-        )}
       </div>
 
       <SeccionEntidad
