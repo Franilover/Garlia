@@ -735,8 +735,6 @@ const PanelEditor = ({
                 <Hash size={8} /> {cap.orden}
               </span>
 
-              {cap.narrador_id && <NarradorPill narradorId={cap.narrador_id} />}
-
               <VisibilidadCapPicker
                 capId={capId}
                 current={capVisibilidad}

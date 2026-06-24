@@ -1520,11 +1520,10 @@ export const SelectorNarrador = ({
       emptyText="Sin personajes"
       icon={<Mic2 size={10} />}
       items={items}
-      label="Narrador / Protagonista del capítulo"
       loading={loading}
       mode="single"
       noneLabel="Ninguno"
-      placeholder="Sin narrador asignado"
+      placeholder="Sin narrador…"
       value={value}
       onChange={onChange}
     />
@@ -2142,6 +2141,8 @@ export const PanelPersonajesCapitulo = ({
     "publico" | "programado" | "oculto"
   >("oculto");
   const [savingVis, setSavingVis] = useState(false);
+  const [dropVis, setDropVis] = useState(false);
+  const dropVisRef = useRef<HTMLDivElement>(null);
   const [fechaProg, setFechaProg] = useState<string>("");
   const [savingFecha, setSavingFecha] = useState(false);
 
@@ -2232,6 +2233,16 @@ export const PanelPersonajesCapitulo = ({
     } catch {}
     setSavingCiudad(false);
   };
+
+  // Cerrar dropdown al hacer click fuera
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (dropVisRef.current && !dropVisRef.current.contains(e.target as Node))
+        setDropVis(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   const handleSaveVisibilidad = async (
     v: "publico" | "programado" | "oculto",
@@ -2696,34 +2707,18 @@ export const PanelPersonajesCapitulo = ({
 
       {/* ── Visibilidad ─────────────────────────────────────────────────── */}
       <div
-        className="shrink-0 px-3 py-2.5 border-b"
+        className="shrink-0 px-3 py-2 border-b"
         style={{
           borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
         }}
       >
         <div className="flex items-center gap-1 mb-1.5">
-          {visibilidad === "publico" ? (
-            <Globe
-              size={8}
-              style={{
-                color: "color-mix(in srgb, var(--primary) 35%, transparent)",
-              }}
-            />
-          ) : visibilidad === "programado" ? (
-            <Timer
-              size={8}
-              style={{
-                color: "color-mix(in srgb, var(--primary) 35%, transparent)",
-              }}
-            />
-          ) : (
-            <Lock
-              size={8}
-              style={{
-                color: "color-mix(in srgb, var(--primary) 35%, transparent)",
-              }}
-            />
-          )}
+          <Lock
+            size={8}
+            style={{
+              color: "color-mix(in srgb, var(--primary) 35%, transparent)",
+            }}
+          />
           <span
             className="text-[8px] font-black uppercase tracking-[0.2em] flex-1"
             style={{
@@ -2742,47 +2737,82 @@ export const PanelPersonajesCapitulo = ({
             />
           )}
         </div>
-        <div className="flex gap-1">
-          {(["oculto", "programado", "publico"] as const).map((v) => {
-            const cfg = VISIBILIDAD_CONFIG[v];
-            const Icon = cfg.icon;
-            const active = visibilidad === v;
-            return (
-              <button
-                key={v}
-                className="flex-1 flex flex-col items-center justify-center gap-0.5 py-1.5 rounded-lg border transition-all disabled:opacity-40"
-                disabled={savingVis}
-                style={
-                  active
-                    ? {
-                        background:
-                          "color-mix(in srgb, var(--primary) 10%, transparent)",
-                        borderColor:
-                          "color-mix(in srgb, var(--primary) 28%, transparent)",
-                        color: "var(--primary)",
-                      }
-                    : {
-                        background: "transparent",
-                        borderColor:
-                          "color-mix(in srgb, var(--primary) 10%, transparent)",
-                        color:
-                          "color-mix(in srgb, var(--primary) 28%, transparent)",
-                      }
-                }
-                title={cfg.label}
-                type="button"
-                onClick={() => handleSaveVisibilidad(v)}
-              >
-                <Icon size={9} />
-                <span className="text-[6px] font-black uppercase tracking-wide leading-none">
-                  {cfg.label}
-                </span>
-              </button>
-            );
-          })}
+
+        {/* Dropdown */}
+        <div ref={dropVisRef} className="relative">
+          <button
+            className="w-full flex items-center gap-1.5 px-2 py-1 rounded border text-[9px] font-black uppercase tracking-wide transition-all"
+            style={{
+              borderColor:
+                "color-mix(in srgb, var(--primary) 15%, transparent)",
+              background: "color-mix(in srgb, var(--primary) 4%, transparent)",
+              color: "var(--primary)",
+            }}
+            onClick={() => setDropVis((o) => !o)}
+          >
+            {visibilidad === "publico" ? (
+              <Globe size={9} />
+            ) : visibilidad === "programado" ? (
+              <Timer size={9} />
+            ) : (
+              <Lock size={9} />
+            )}
+            {VISIBILIDAD_CONFIG[visibilidad].label}
+            <ChevronDown
+              size={8}
+              className="ml-auto"
+              style={{ opacity: 0.4 }}
+            />
+          </button>
+          {dropVis && (
+            <div
+              className="absolute left-0 top-full mt-1 z-50 w-full rounded-lg border shadow-xl overflow-hidden"
+              style={{
+                background: "var(--bg-main)",
+                borderColor:
+                  "color-mix(in srgb, var(--primary) 12%, transparent)",
+              }}
+            >
+              {(["oculto", "programado", "publico"] as const).map((v) => {
+                const cfg = VISIBILIDAD_CONFIG[v];
+                const Icon = cfg.icon;
+                const active = visibilidad === v;
+                return (
+                  <button
+                    key={v}
+                    className="w-full flex items-center gap-2 px-2.5 py-2 text-[9px] font-black uppercase tracking-wide text-left transition-all"
+                    style={{
+                      background: active
+                        ? "color-mix(in srgb, var(--primary) 6%, transparent)"
+                        : "transparent",
+                      color: active
+                        ? "var(--primary)"
+                        : "color-mix(in srgb, var(--primary) 45%, transparent)",
+                    }}
+                    onClick={() => {
+                      handleSaveVisibilidad(v);
+                      setDropVis(false);
+                    }}
+                  >
+                    <Icon size={9} />
+                    {cfg.label}
+                    {active && (
+                      <Check
+                        size={8}
+                        className="ml-auto"
+                        style={{ color: "var(--primary)" }}
+                      />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
+
+        {/* Fecha si programado */}
         {visibilidad === "programado" && (
-          <div className="mt-2 flex items-center gap-1">
+          <div className="mt-1.5 flex items-center gap-1">
             <Calendar
               size={8}
               style={{
@@ -2791,14 +2821,13 @@ export const PanelPersonajesCapitulo = ({
               }}
             />
             <input
-              className="flex-1 min-w-0 rounded-lg border px-1.5 py-1 text-[8px] font-black outline-none transition-all"
+              className="flex-1 min-w-0 rounded border px-1.5 py-1 text-[8px] font-black outline-none transition-all"
               style={{
                 background: fechaProg
                   ? "color-mix(in srgb, var(--primary) 6%, transparent)"
                   : "transparent",
-                borderColor: fechaProg
-                  ? "color-mix(in srgb, var(--primary) 22%, transparent)"
-                  : "color-mix(in srgb, var(--primary) 12%, transparent)",
+                borderColor:
+                  "color-mix(in srgb, var(--primary) 15%, transparent)",
                 color: fechaProg
                   ? "var(--primary)"
                   : "color-mix(in srgb, var(--primary) 30%, transparent)",
