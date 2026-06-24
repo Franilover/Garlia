@@ -432,16 +432,24 @@ export function TileCanvas({
           ctx.lineWidth = 1.5;
           ctx.stroke();
         }
-        // ── Segunda pasada: labels en coordenadas de pantalla (tamaño fijo al zoom) ──
-        ctx.save();
+        ctx.restore(); // ← cierra el translate(cx,cy)
+      }
+
+      // ── Segunda pasada: labels en coordenadas de pantalla (sin translate activo) ──
+      if (compositeReadyRef.current) {
+        const iw2 = totalW * camRef.current.scale;
+        const ih2 = totalH * camRef.current.scale;
+        const cx2label = camRef.current.x;
+        const cy2label = camRef.current.y;
+        const allMarkers2 = editMode ? [...markers, ...hiddenMarkers] : markers;
         ctx.font = "700 11px 'Cinzel', serif";
-        for (const m of allMarkers) {
+        for (const m of allMarkers2) {
           const isHidden2 = hiddenMarkers.some((h) => h.id === m.id);
           if (isHidden2) continue;
           const label = m.nombre || m.name || "";
           if (!label) continue;
-          const mx2 = (m.coord_x / 100) * iw + cx;
-          const my2 = (m.coord_y / 100) * ih + cy;
+          const mx2 = (m.coord_x / 100) * iw2 + cx2label;
+          const my2 = (m.coord_y / 100) * ih2 + cy2label;
           const tw = ctx.measureText(label).width;
           const pad = 5;
           const lx = mx2 - tw / 2 - pad;
@@ -454,7 +462,6 @@ export function TileCanvas({
           ctx.fillStyle = labelText;
           ctx.fillText(label, mx2 - tw / 2, ly + 12);
         }
-        ctx.restore();
       }
 
       // ── Compass ───────────────────────────────────────────────────────────
