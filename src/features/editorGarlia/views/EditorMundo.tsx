@@ -1243,11 +1243,11 @@ function PanelListas({
   };
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+    <div className="flex-1 flex flex-col min-h-0 overflow-hidden relative">
       {/* ── Editor overlay ──────────────────────────────────────────────── */}
       {overlay && (
         <div
-          className="flex-1 flex flex-col min-h-0 overflow-hidden"
+          className="absolute inset-0 flex flex-col min-h-0 overflow-hidden z-10"
           style={{ background: "var(--bg-main)" }}
         >
           {/* Botón volver al menú */}
@@ -1277,7 +1277,7 @@ function PanelListas({
             >
               <ChevronLeft size={13} />
               <span className="text-[10px] font-black uppercase tracking-widest">
-                Menú
+                Volver
               </span>
             </button>
           </div>
