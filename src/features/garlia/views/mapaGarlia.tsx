@@ -1202,7 +1202,12 @@ interface CanvasMapProps {
   hiddenMarkers: any[]; // markers that are hidden (fog covered)
   editMode: boolean;
   onMarkerClick: (marker: any) => void;
-  onMapClick: (x: number, y: number) => void;
+  onMapClick: (
+    x: number,
+    y: number,
+    tile_col?: number,
+    tile_row?: number,
+  ) => void;
   selectedMarkerId?: string | null;
   tipo: "global" | "reino";
   isFirstOpen?: boolean; // true only the very first time the map opens in a session
@@ -2709,7 +2714,12 @@ export default function MapaInteractivo() {
     }
   };
 
-  const handleMapClick = (x: number, y: number) => {
+  const handleMapClick = (
+    x: number,
+    y: number,
+    tile_col?: number,
+    tile_row?: number,
+  ) => {
     if (!editMode) return;
     if (puntoSeleccionado) {
       setPuntoSeleccionado({ ...puntoSeleccionado, coord_x: x, coord_y: y });
@@ -2720,10 +2730,24 @@ export default function MapaInteractivo() {
       );
       setModifiedDetalles((prev) => new Set(prev).add(puntoSeleccionado.id));
     } else if (reinoSeleccionado && vistaActual === "global") {
-      setReinoSeleccionado({ ...reinoSeleccionado, coord_x: x, coord_y: y });
+      setReinoSeleccionado({
+        ...reinoSeleccionado,
+        coord_x: x,
+        coord_y: y,
+        tile_col: tile_col ?? reinoSeleccionado.tile_col ?? null,
+        tile_row: tile_row ?? reinoSeleccionado.tile_row ?? null,
+      });
       setReinos((prev) =>
         prev.map((r) =>
-          r.id === reinoSeleccionado.id ? { ...r, coord_x: x, coord_y: y } : r,
+          r.id === reinoSeleccionado.id
+            ? {
+                ...r,
+                coord_x: x,
+                coord_y: y,
+                tile_col: tile_col ?? r.tile_col ?? null,
+                tile_row: tile_row ?? r.tile_row ?? null,
+              }
+            : r,
         ),
       );
     }
@@ -2778,6 +2802,8 @@ export default function MapaInteractivo() {
                 descripcion: p.descripcion,
                 coord_x: p.coord_x,
                 coord_y: p.coord_y,
+                tile_col: p.tile_col ?? null,
+                tile_row: p.tile_row ?? null,
               })
               .eq("id", p.id),
           ),
@@ -2791,6 +2817,8 @@ export default function MapaInteractivo() {
             descripcion: reinoSeleccionado.descripcion,
             coord_x: reinoSeleccionado.coord_x,
             coord_y: reinoSeleccionado.coord_y,
+            tile_col: reinoSeleccionado.tile_col ?? null,
+            tile_row: reinoSeleccionado.tile_row ?? null,
           })
           .eq("id", reinoSeleccionado.id);
         if (error) throw error;

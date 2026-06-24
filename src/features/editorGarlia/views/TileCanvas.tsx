@@ -29,7 +29,12 @@ interface TileCanvasProps {
   hiddenMarkers: any[];
   editMode: boolean;
   onMarkerClick: (marker: any) => void;
-  onMapClick: (x: number, y: number) => void;
+  onMapClick: (
+    x: number,
+    y: number,
+    tile_col?: number,
+    tile_row?: number,
+  ) => void;
   selectedMarkerId?: string | null;
   isFirstOpen?: boolean;
   fondoColor?: string | null;
@@ -404,8 +409,17 @@ export function TileCanvas({
         const allMarkers = editMode ? [...markers, ...hiddenMarkers] : markers;
 
         for (const m of allMarkers) {
-          const mx = (m.coord_x / 100) * iw;
-          const my = (m.coord_y / 100) * ih;
+          // Posición: tile-based si tiene tile_col/row, si no % del total
+          let mx: number, my: number;
+          if (m.tile_col != null && m.tile_row != null) {
+            const tOx = (m.tile_col - minCol) * tileSize * scale;
+            const tOy = (m.tile_row - minRow) * tileSize * scale;
+            mx = tOx + ((m.coord_x ?? 50) / 100) * tileSize * scale;
+            my = tOy + ((m.coord_y ?? 50) / 100) * tileSize * scale;
+          } else {
+            mx = (m.coord_x / 100) * iw;
+            my = (m.coord_y / 100) * ih;
+          }
           const isSelected = m.id === selectedMarkerId;
           const isHidden = hiddenMarkers.some((h) => h.id === m.id);
           const markerColor = isHidden ? `rgba(120,120,120,0.5)` : accent;
@@ -541,9 +555,22 @@ export function TileCanvas({
     const px = clientX - rect.left;
     const py = clientY - rect.top;
     const { x: cx, y: cy, scale } = camRef.current;
-    const mx = (px - cx) / (totalW * scale);
-    const my = (py - cy) / (totalH * scale);
-    return { x: Math.round(mx * 100), y: Math.round(my * 100) };
+    // Posición en canvas virtual (px)
+    const canvasX = (px - cx) / scale;
+    const canvasY = (py - cy) / scale;
+    // Tile en el que cayó el click
+    const clickedCol = minCol + Math.floor(canvasX / tileSize);
+    const clickedRow = minRow + Math.floor(canvasY / tileSize);
+    // Coord local dentro del tile (%)
+    const localX = Math.max(
+      0,
+      Math.min(100, Math.round(((canvasX % tileSize) / tileSize) * 100)),
+    );
+    const localY = Math.max(
+      0,
+      Math.min(100, Math.round(((canvasY % tileSize) / tileSize) * 100)),
+    );
+    return { x: localX, y: localY, tile_col: clickedCol, tile_row: clickedRow };
   };
 
   const findMarkerAt = (clientX: number, clientY: number) => {
@@ -557,8 +584,16 @@ export function TileCanvas({
     const ih = totalH * scale;
     const allMarkers = editMode ? [...markers, ...hiddenMarkers] : markers;
     for (const m of [...allMarkers].reverse()) {
-      const mx = (m.coord_x / 100) * iw + cx;
-      const my = (m.coord_y / 100) * ih + cy;
+      let mx: number, my: number;
+      if (m.tile_col != null && m.tile_row != null) {
+        const tOx = (m.tile_col - minCol) * tileSize * scale;
+        const tOy = (m.tile_row - minRow) * tileSize * scale;
+        mx = tOx + ((m.coord_x ?? 50) / 100) * tileSize * scale + cx;
+        my = tOy + ((m.coord_y ?? 50) / 100) * tileSize * scale + cy;
+      } else {
+        mx = (m.coord_x / 100) * iw + cx;
+        my = (m.coord_y / 100) * ih + cy;
+      }
       if (Math.hypot(px - mx, py - my) < 12) return m;
     }
     return null;
@@ -646,7 +681,7 @@ export function TileCanvas({
           onMarkerClick(marker);
         } else {
           const pct = canvasToMapPct(e.clientX, e.clientY);
-          if (pct) onMapClick(pct.x, pct.y);
+          if (pct) onMapClick(pct.x, pct.y, pct.tile_col, pct.tile_row);
         }
       }
       isDragging.current = false;
