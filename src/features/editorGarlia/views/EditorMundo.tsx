@@ -1791,6 +1791,22 @@ function PanelListas({
             </div>
           </div>
 
+          {/* MAPA */}
+          <div
+            className="border-b"
+            style={{
+              borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
+              minHeight: "70vh",
+            }}
+          >
+            <div
+              className="flex flex-col min-h-0"
+              style={{ minHeight: "68vh" }}
+            >
+              <EditorMapa />
+            </div>
+          </div>
+
           {/* ENTIDADES */}
           <div
             className="px-3 sm:px-3 pb-4 border-b"
@@ -2148,22 +2164,6 @@ function PanelListas({
               style={{ minHeight: "58vh" }}
             >
               <AdminDescubrimientos />
-            </div>
-          </div>
-
-          {/* MAPA */}
-          <div
-            className="border-b"
-            style={{
-              borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
-              minHeight: "70vh",
-            }}
-          >
-            <div
-              className="flex flex-col min-h-0"
-              style={{ minHeight: "68vh" }}
-            >
-              <EditorMapa />
             </div>
           </div>
 

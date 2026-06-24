@@ -442,7 +442,16 @@ export function EditorMapa() {
   // ── Desplazar todos los tiles (para añadir fila/col arriba/izquierda) ────
   const shiftTiles = async (dCol: number, dRow: number) => {
     try {
-      // Actualizar en Supabase todos los tiles
+      // 1. Desplazar todos los tiles existentes en Supabase (uno a uno para evitar conflictos de unique)
+      //    Primero mover a valores temporales negativos para liberar posiciones
+      await Promise.all(
+        tiles.map((t) =>
+          supabase
+            .from("map_tiles")
+            .update({ col: t.col + dCol + 1000, row: t.row + dRow + 1000 })
+            .eq("id", t.id),
+        ),
+      );
       await Promise.all(
         tiles.map((t) =>
           supabase
@@ -451,29 +460,47 @@ export function EditorMapa() {
             .eq("id", t.id),
         ),
       );
-      // Actualizar estado local
-      setTiles((prev) =>
-        prev.map((t) => ({ ...t, col: t.col + dCol, row: t.row + dRow })),
-      );
-      // Insertar el nuevo tile vacío en la posición 0
-      const newCol = dCol > 0 ? 0 : undefined;
-      const newRow = dRow > 0 ? 0 : undefined;
-      if (newCol !== undefined || newRow !== undefined) {
+
+      // 2. Calcular qué fila/columna de tiles vacíos hay que insertar
+      //    ← col: insertar col=0 para cada fila existente
+      //    ↑ fila: insertar row=0 para cada col existente
+      const shiftedTiles = tiles.map((t) => ({
+        ...t,
+        col: t.col + dCol,
+        row: t.row + dRow,
+      }));
+      const newTiles: { col: number; row: number }[] = [];
+
+      if (dCol > 0) {
+        // Nueva columna a la izquierda (col=0) para cada row único
+        const rows = [...new Set(tiles.map((t) => t.row + dRow))];
+        rows.forEach((r) => newTiles.push({ col: 0, row: r }));
+      }
+      if (dRow > 0) {
+        // Nueva fila arriba (row=0) para cada col único
+        const cols = [...new Set(tiles.map((t) => t.col + dCol))];
+        cols.forEach((c) => newTiles.push({ col: c, row: 0 }));
+      }
+
+      // 3. Insertar los tiles vacíos nuevos
+      const inserted: any[] = [];
+      for (const pos of newTiles) {
         const { data, error } = await supabase
           .from("map_tiles")
-          .insert({
-            world_id: "garlia",
-            col: newCol ?? 0,
-            row: newRow ?? 0,
-            order: 0,
-          })
+          .insert({ world_id: "garlia", col: pos.col, row: pos.row, order: 0 })
           .select()
           .single();
-        if (!error && data) setTiles((prev) => [...prev, data as any]);
+        if (!error && data) inserted.push(data);
       }
+
+      // 4. Actualizar estado local de una sola vez
+      setTiles([...shiftedTiles, ...inserted] as any[]);
       await invalidateMapTiles("garlia");
-    } catch {
+    } catch (e) {
+      console.error(e);
       showToast("Error al desplazar tiles", false);
+      // Recargar para consistencia
+      loadTiles();
     }
   };
 
