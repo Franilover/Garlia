@@ -780,33 +780,35 @@ export function EditorMapa() {
               )}
             </div>
 
-            {/* ── Canvas siempre visible ── */}
-            <div style={{ height: 320, position: "relative", flexShrink: 0 }}>
-              <TileCanvas
-                editMode={true}
-                eyedropperActive={false}
-                fondoColor={null}
-                hiddenMarkers={[]}
-                isFirstOpen={false}
-                markers={reinos.filter(
-                  (r) => r.coord_x != null && r.tile_col != null,
-                )}
-                selectedMarkerId={mode === "mover" ? selectedReinoId : null}
-                tiles={tiles}
-                onEyedropperPick={() => {}}
-                onMapClick={mode === "mover" ? handleMapClick : () => {}}
-                onMarkerClick={
-                  mode === "mover"
-                    ? (m) =>
-                        setSelectedReinoId((prev) =>
-                          prev === m.id ? null : m.id,
-                        )
-                    : () => {}
-                }
-              />
-            </div>
+            {/* ── Canvas — solo en modo mover ── */}
+            {mode === "mover" && (
+              <div style={{ height: 320, position: "relative", flexShrink: 0 }}>
+                <TileCanvas
+                  editMode={true}
+                  eyedropperActive={false}
+                  fondoColor={null}
+                  hiddenMarkers={[]}
+                  isFirstOpen={false}
+                  markers={reinos.filter(
+                    (r) => r.coord_x != null && r.tile_col != null,
+                  )}
+                  selectedMarkerId={mode === "mover" ? selectedReinoId : null}
+                  tiles={tiles}
+                  onEyedropperPick={() => {}}
+                  onMapClick={mode === "mover" ? handleMapClick : () => {}}
+                  onMarkerClick={
+                    mode === "mover"
+                      ? (m) =>
+                          setSelectedReinoId((prev) =>
+                            prev === m.id ? null : m.id,
+                          )
+                      : () => {}
+                  }
+                />
+              </div>
+            )}
 
-            {/* ── Panel inferior: grilla de tiles (solo en modo tiles) ── */}
+            {/* ── Grilla de tiles (solo en modo tiles) ── */}
             {mode === "tiles" && (
               <div className="flex-1 overflow-y-auto p-3">
                 <div
