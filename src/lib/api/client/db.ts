@@ -1194,6 +1194,12 @@ class AgendaFraniDB extends Dexie {
     this.version(21).stores({
       mision_entidades: "id, mision_id, tipo, entidad_id, rol", // ← nueva: relaciones misión ↔ entidades
     });
+
+    // ─── v22: tiles de mapa global y de reinos ────────────────────────────────
+    this.version(22).stores({
+      map_tiles: "id, world_id, col, row", // ← tiles del mapa global
+      reino_tiles: "id, reino_id, col, row", // ← tiles del mapa de cada reino
+    });
   }
 }
 

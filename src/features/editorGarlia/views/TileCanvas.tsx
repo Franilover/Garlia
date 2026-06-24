@@ -248,19 +248,29 @@ export function TileCanvas({
     const container = containerRef.current;
     if (!canvas || !container) return;
     let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+    const getSize = () => ({
+      w:
+        container.offsetWidth ||
+        container.clientWidth ||
+        container.getBoundingClientRect().width,
+      h:
+        container.offsetHeight ||
+        container.clientHeight ||
+        container.getBoundingClientRect().height,
+    });
     const resize = () => {
       if (debounceTimer) clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => {
-        const finalW = container.clientWidth;
-        const finalH = container.clientHeight;
-        if (canvas.width === finalW && canvas.height === finalH) return;
-        canvas.width = finalW;
-        canvas.height = finalH;
+        const { w, h } = getSize();
+        if (canvas.width === w && canvas.height === h) return;
+        canvas.width = w;
+        canvas.height = h;
         centerImage();
       }, 150);
     };
-    canvas.width = container.clientWidth;
-    canvas.height = container.clientHeight;
+    const { w, h } = getSize();
+    canvas.width = w;
+    canvas.height = h;
     centerImage();
     const ro = new ResizeObserver(resize);
     ro.observe(container);
@@ -687,8 +697,9 @@ export function TileCanvas({
   return (
     <div
       ref={containerRef}
-      className="relative flex-1 overflow-hidden"
+      className="relative flex-1 overflow-hidden min-h-0"
       style={{
+        minHeight: "100%",
         cursor: eyedropperActive
           ? "crosshair"
           : isDragging.current

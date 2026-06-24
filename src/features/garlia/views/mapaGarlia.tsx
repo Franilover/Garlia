@@ -2306,15 +2306,41 @@ export default function MapaInteractivo() {
   const [mapTiles, setMapTiles] = useState<MapTile[]>([]);
 
   useEffect(() => {
-    supabase
-      .from("map_tiles")
-      .select("id, col, row, image_url, label")
-      .eq("world_id", "garlia")
-      .order("row")
-      .order("col")
-      .then(({ data }) => {
-        if (data) setMapTiles(data as MapTile[]);
-      });
+    let cancelled = false;
+    const run = async () => {
+      // Dexie primero — render instantáneo en visitas posteriores
+      try {
+        if (db) {
+          const local: any[] = (await (db as any).map_tiles?.toArray()) ?? [];
+          const filtrados = local.filter((t: any) => t.world_id === "garlia");
+          if (filtrados.length && !cancelled) {
+            setMapTiles(
+              filtrados.sort(
+                (a: any, b: any) => a.row - b.row || a.col - b.col,
+              ) as MapTile[],
+            );
+          }
+        }
+      } catch {}
+      if (!navigator.onLine) return;
+      // Luego Supabase — fuente de verdad
+      const { data } = await supabase
+        .from("map_tiles")
+        .select("id, col, row, image_url, label, world_id")
+        .eq("world_id", "garlia")
+        .order("row")
+        .order("col");
+      if (!cancelled && data) {
+        setMapTiles(data as MapTile[]);
+        try {
+          if (db) await (db as any).map_tiles?.bulkPut(data);
+        } catch {}
+      }
+    };
+    run();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // ── Fondo color (color del mar) ──────────────────────────────────────────────

@@ -2435,12 +2435,33 @@ export function EditorCapitulosPanel() {
     return () => window.removeEventListener("estudio-caps-action", check);
   }, []);
 
-  const handleSelectLibro = (libroId: string) => {
-    setVistaLibroId(libroId);
+  const handleSelectLibro = async (libroId: string) => {
     setSelectedLibroId(libroId);
-    // No seleccionamos cap aún — mostramos biblioteca con sidebar
-    setSelectedCapId(null);
+    setVistaLibroId(libroId);
     setSidebarOpen(true);
+
+    // Si ya hay un cap guardado para este libro, ir directo
+    const savedCapId = lastCapId;
+    const savedLibroId = lastLibroId;
+    if (savedCapId && savedLibroId === libroId) {
+      setSelectedCapId(savedCapId);
+      return;
+    }
+
+    // Si no, cargar caps y abrir el primero
+    try {
+      const { data } = await supabase
+        .from("capitulos")
+        .select("id, orden")
+        .eq("libro_id", libroId)
+        .order("orden", { ascending: true })
+        .limit(1)
+        .single();
+      if (data) {
+        setSelectedCapId(data.id);
+        setLastCapId(data.id);
+      }
+    } catch {}
   };
 
   const handleSelectCap = (libroId: string, capId: string) => {
@@ -2561,101 +2582,6 @@ export function EditorCapitulosPanel() {
             </div>
           )}
         </div>
-
-        {/* Sidebar de caps cuando estamos en biblioteca con libro seleccionado */}
-        {enBiblioteca && vistaLibroId && (
-          <div
-            className="fixed right-0 top-0 h-full z-30 flex flex-col border-l shadow-xl"
-            style={{
-              width: "clamp(200px, 22vw, 280px)",
-              borderColor:
-                "color-mix(in srgb, var(--primary) 10%, transparent)",
-              background: "var(--bg-main)",
-            }}
-          >
-            <div
-              className="shrink-0 flex items-center justify-between px-4 py-3 border-b"
-              style={{
-                borderColor:
-                  "color-mix(in srgb, var(--primary) 8%, transparent)",
-              }}
-            >
-              <div className="flex flex-col gap-0.5">
-                <span className="text-[8px] font-black uppercase tracking-[0.2em] text-primary/35">
-                  Capítulos
-                </span>
-                <span className="text-[10px] font-black uppercase italic tracking-tight text-primary/60 truncate max-w-[140px]">
-                  {libroActivo?.titulo ?? "…"}
-                </span>
-              </div>
-              <div className="flex items-center gap-1">
-                <button
-                  className="flex items-center gap-1 px-2 py-1 rounded-[var(--radius-btn)] bg-primary/8 hover:bg-primary/15 text-primary/50 hover:text-primary text-[8px] font-black uppercase tracking-widest transition-all"
-                  onClick={() => setShowNuevoCap(true)}
-                >
-                  <Plus size={9} />
-                </button>
-                <button
-                  className="p-1.5 rounded hover:bg-primary/8 text-primary/30 hover:text-primary transition-all"
-                  onClick={() => setVistaLibroId(null)}
-                >
-                  <X size={11} />
-                </button>
-              </div>
-            </div>
-
-            <div className="flex-1 overflow-y-auto py-1">
-              {capitulos.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-10 gap-2 text-primary/20">
-                  <BookMarked size={16} />
-                  <p className="text-[7px] font-black uppercase tracking-widest text-center px-3">
-                    Sin capítulos · crea el primero
-                  </p>
-                </div>
-              ) : (
-                capitulos.map((cap) => (
-                  <div
-                    key={cap.id}
-                    className="group relative flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-primary/5 transition-all border-l-2 border-transparent hover:border-primary/30"
-                    onClick={() => handleSelectCap(vistaLibroId!, cap.id)}
-                  >
-                    <span
-                      className="shrink-0 text-[7px] font-black tabular-nums text-primary/25"
-                      style={{ width: 18, textAlign: "right" }}
-                    >
-                      {cap.orden}
-                    </span>
-                    <span className="flex-1 min-w-0 text-[10px] font-bold uppercase tracking-wide truncate text-primary/60">
-                      {cap.titulo_capitulo}
-                    </span>
-                    <div
-                      className="shrink-0 w-1.5 h-1.5 rounded-full"
-                      style={{
-                        background:
-                          cap.visibilidad === "publico"
-                            ? "var(--callout-success-border)"
-                            : cap.visibilidad === "programado"
-                              ? "var(--callout-warning-border)"
-                              : "color-mix(in srgb, var(--primary) 12%, transparent)",
-                      }}
-                    />
-                    <div className="absolute right-2 top-1/2 -translate-y-1/2 hidden group-hover:flex items-center gap-0.5 bg-bg-main border border-primary/10 rounded px-0.5 py-0.5 shadow-sm">
-                      <button
-                        className="p-0.5 rounded hover:bg-red-500/10 text-primary/25 hover:text-red-400 transition-colors"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleCapEliminada(cap.id, vistaLibroId!);
-                        }}
-                      >
-                        <Trash2 size={9} />
-                      </button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        )}
       </div>
 
       {showNuevoLibro && (
