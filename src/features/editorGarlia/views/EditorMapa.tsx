@@ -30,8 +30,23 @@ import {
 
 import SimpleImagePicker from "@/features/editorGarlia/components/editorCapitulos/snippets/forms/SimpleImagePicker";
 import { supabase } from "@/lib/api/client/supabase";
-import { invalidateMapTiles, loadMapTiles } from "@/lib/api/client/syncEngine";
+import {
+  invalidateMapTiles,
+  loadMapTiles,
+  loadReinos,
+} from "@/lib/api/client/syncEngine";
+import { TileCanvas } from "./TileCanvas";
 import type { MapTile } from "./TileCanvas";
+
+type ReinoConTile = {
+  id: string;
+  nombre: string;
+  coord_x?: number | null;
+  coord_y?: number | null;
+  tile_col?: number | null;
+  tile_row?: number | null;
+  [key: string]: any;
+};
 
 // ─── Toast local ──────────────────────────────────────────────────────────────
 function Toast({
@@ -417,6 +432,12 @@ export function EditorMapa() {
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [reinos, setReinos] = useState<ReinoConTile[]>([]);
+  const [selectedReinoId, setSelectedReinoId] = useState<string | null>(null);
+  const [savingReino, setSavingReino] = useState(false);
+  const [pendingReinos, setPendingReinos] = useState<Map<string, ReinoConTile>>(
+    new Map(),
+  );
 
   // Drag state
   const draggedIdx = useRef<number | null>(null);
@@ -446,6 +467,67 @@ export function EditorMapa() {
   useEffect(() => {
     loadTiles();
   }, [loadTiles]);
+
+  // ── Cargar reinos ─────────────────────────────────────────────────────────
+  useEffect(() => {
+    loadReinos((fresh) => setReinos(fresh as ReinoConTile[])).then((data) =>
+      setReinos(data as ReinoConTile[]),
+    );
+  }, []);
+
+  // ── Mover reino en el canvas ──────────────────────────────────────────────
+  const handleMapClick = (
+    x: number,
+    y: number,
+    tile_col?: number,
+    tile_row?: number,
+  ) => {
+    if (!selectedReinoId) return;
+    const updated = {
+      tile_col: tile_col ?? null,
+      tile_row: tile_row ?? null,
+      coord_x: x,
+      coord_y: y,
+    };
+    setReinos((prev) =>
+      prev.map((r) => (r.id === selectedReinoId ? { ...r, ...updated } : r)),
+    );
+    setPendingReinos((prev) => {
+      const next = new Map(prev);
+      const existing = next.get(selectedReinoId) ??
+        reinos.find((r) => r.id === selectedReinoId) ?? { id: selectedReinoId };
+      next.set(selectedReinoId, { ...existing, ...updated });
+      return next;
+    });
+    setSelectedReinoId(null);
+  };
+
+  // ── Guardar posiciones de reinos ──────────────────────────────────────────
+  const handleSaveReinos = async () => {
+    if (pendingReinos.size === 0) return;
+    setSavingReino(true);
+    try {
+      await Promise.all(
+        [...pendingReinos.values()].map((r) =>
+          supabase
+            .from("reinos")
+            .update({
+              coord_x: r.coord_x,
+              coord_y: r.coord_y,
+              tile_col: r.tile_col ?? null,
+              tile_row: r.tile_row ?? null,
+            })
+            .eq("id", r.id),
+        ),
+      );
+      setPendingReinos(new Map());
+      showToast("Posiciones guardadas", true);
+    } catch {
+      showToast("Error al guardar posiciones", false);
+    } finally {
+      setSavingReino(false);
+    }
+  };
 
   // ── Seleccionar imagen del picker ────────────────────────────────────────
   const handleImageSelect = async (tileId: string, image_url: string) => {
@@ -651,6 +733,67 @@ export function EditorMapa() {
           </div>
         ) : (
           <>
+            {/* ── Canvas interactivo con reinos posicionables ── */}
+            <div className="mb-6">
+              <div className="flex items-center gap-2 mb-2">
+                <p
+                  className="text-[9px] font-bold uppercase tracking-widest flex-1"
+                  style={{
+                    color: "color-mix(in srgb, var(--accent) 50%, transparent)",
+                  }}
+                >
+                  {selectedReinoId
+                    ? `Click en el mapa para mover "${reinos.find((r) => r.id === selectedReinoId)?.nombre}"`
+                    : "Click en un reino para moverlo"}
+                </p>
+                {selectedReinoId && (
+                  <button
+                    className="text-[9px] font-black uppercase tracking-widest px-2 py-1 border"
+                    style={{
+                      borderColor:
+                        "color-mix(in srgb, var(--primary) 20%, transparent)",
+                      borderRadius: "2px",
+                      color:
+                        "color-mix(in srgb, var(--foreground) 50%, transparent)",
+                    }}
+                    onClick={() => setSelectedReinoId(null)}
+                  >
+                    Cancelar
+                  </button>
+                )}
+                {pendingReinos.size > 0 && (
+                  <button
+                    className="btn-brand flex items-center gap-1.5 px-3 py-1.5 text-[9px] uppercase disabled:opacity-50"
+                    disabled={savingReino}
+                    onClick={handleSaveReinos}
+                  >
+                    {savingReino ? <Hourglass size={10} /> : null}
+                    Guardar {pendingReinos.size} cambio
+                    {pendingReinos.size > 1 ? "s" : ""}
+                  </button>
+                )}
+              </div>
+              <div style={{ height: 360, position: "relative" }}>
+                <TileCanvas
+                  editMode={true}
+                  eyedropperActive={false}
+                  fondoColor={null}
+                  hiddenMarkers={[]}
+                  isFirstOpen={false}
+                  markers={reinos.filter(
+                    (r) => r.coord_x != null && r.tile_col != null,
+                  )}
+                  selectedMarkerId={selectedReinoId}
+                  tiles={tiles}
+                  onEyedropperPick={() => {}}
+                  onMapClick={handleMapClick}
+                  onMarkerClick={(m) =>
+                    setSelectedReinoId((prev) => (prev === m.id ? null : m.id))
+                  }
+                />
+              </div>
+            </div>
+
             {/* Vista de grilla: col × row */}
             <div className="mb-6">
               <p
