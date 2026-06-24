@@ -465,8 +465,11 @@ export function ReinoTileCanvas({
       zoomAt(e.clientX, e.clientY, e.deltaY);
     };
 
+    let isPointerDown = false;
+
     const onPointerDown = (e: PointerEvent) => {
       if (e.button !== 0 && e.pointerType !== "touch") return;
+      isPointerDown = true;
       isDragging.current = false;
       dragStart.current = {
         x: e.clientX,
@@ -478,9 +481,10 @@ export function ReinoTileCanvas({
     };
 
     const onPointerMove = (e: PointerEvent) => {
+      if (!isPointerDown) return;
       const dx = e.clientX - dragStart.current.x;
       const dy = e.clientY - dragStart.current.y;
-      if (Math.hypot(dx, dy) > 8) isDragging.current = true;
+      if (Math.hypot(dx, dy) > 6) isDragging.current = true;
       if (isDragging.current) {
         camRef.current = {
           ...camRef.current,
@@ -491,6 +495,7 @@ export function ReinoTileCanvas({
     };
 
     const onPointerUp = (e: PointerEvent) => {
+      isPointerDown = false;
       if (!isDragging.current) {
         const pct = canvasToPct(e.clientX, e.clientY);
         if (!pct) return;
