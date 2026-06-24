@@ -191,6 +191,7 @@ export type Database = {
           personajes_ids: string[] | null
           reinos_ids: string[] | null
           titulo_capitulo: string | null
+          trigger_warnings: string[]
           visibilidad: string
         }
         Insert: {
@@ -209,6 +210,7 @@ export type Database = {
           personajes_ids?: string[] | null
           reinos_ids?: string[] | null
           titulo_capitulo?: string | null
+          trigger_warnings?: string[]
           visibilidad?: string
         }
         Update: {
@@ -227,6 +229,7 @@ export type Database = {
           personajes_ids?: string[] | null
           reinos_ids?: string[] | null
           titulo_capitulo?: string | null
+          trigger_warnings?: string[]
           visibilidad?: string
         }
         Relationships: [
@@ -249,6 +252,52 @@ export type Database = {
             columns: ["narrador_id"]
             isOneToOne: false
             referencedRelation: "personajes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      capitulos_leidos: {
+        Row: {
+          capitulo_id: string
+          id: string
+          leido_at: string
+          libro_id: string
+          perfil_id: string
+        }
+        Insert: {
+          capitulo_id: string
+          id?: string
+          leido_at?: string
+          libro_id: string
+          perfil_id: string
+        }
+        Update: {
+          capitulo_id?: string
+          id?: string
+          leido_at?: string
+          libro_id?: string
+          perfil_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "capitulos_leidos_capitulo_id_fkey"
+            columns: ["capitulo_id"]
+            isOneToOne: false
+            referencedRelation: "capitulos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "capitulos_leidos_libro_id_fkey"
+            columns: ["libro_id"]
+            isOneToOne: false
+            referencedRelation: "libros"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "capitulos_leidos_libro_id_fkey"
+            columns: ["libro_id"]
+            isOneToOne: false
+            referencedRelation: "libros_con_reino"
             referencedColumns: ["id"]
           },
         ]
@@ -286,6 +335,8 @@ export type Database = {
           nombre: string
           reino_id: string | null
           secretos: string | null
+          tile_col: number | null
+          tile_row: number | null
           tipo: string | null
           updated_at: string
         }
@@ -300,6 +351,8 @@ export type Database = {
           nombre?: string
           reino_id?: string | null
           secretos?: string | null
+          tile_col?: number | null
+          tile_row?: number | null
           tipo?: string | null
           updated_at?: string
         }
@@ -314,6 +367,8 @@ export type Database = {
           nombre?: string
           reino_id?: string | null
           secretos?: string | null
+          tile_col?: number | null
+          tile_row?: number | null
           tipo?: string | null
           updated_at?: string
         }
@@ -1700,6 +1755,7 @@ export type Database = {
           reino_id: string | null
           sinopsis: string | null
           titulo: string
+          trigger_warnings: string[]
           visibilidad: string
         }
         Insert: {
@@ -1713,6 +1769,7 @@ export type Database = {
           reino_id?: string | null
           sinopsis?: string | null
           titulo: string
+          trigger_warnings?: string[]
           visibilidad?: string
         }
         Update: {
@@ -1726,6 +1783,7 @@ export type Database = {
           reino_id?: string | null
           sinopsis?: string | null
           titulo?: string
+          trigger_warnings?: string[]
           visibilidad?: string
         }
         Relationships: [
@@ -1807,6 +1865,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      map_tiles: {
+        Row: {
+          col: number
+          created_at: string
+          id: string
+          image_url: string | null
+          label: string | null
+          order: number
+          row: number
+          updated_at: string
+          world_id: string
+        }
+        Insert: {
+          col: number
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          label?: string | null
+          order?: number
+          row: number
+          updated_at?: string
+          world_id?: string
+        }
+        Update: {
+          col?: number
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          label?: string | null
+          order?: number
+          row?: number
+          updated_at?: string
+          world_id?: string
+        }
+        Relationships: []
       }
       mineral_ciudades: {
         Row: {
@@ -1906,6 +2000,138 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      mision_entidades: {
+        Row: {
+          entidad_id: string
+          id: string
+          mision_id: string
+          rol: string
+          tipo: string
+        }
+        Insert: {
+          entidad_id: string
+          id?: string
+          mision_id: string
+          rol?: string
+          tipo: string
+        }
+        Update: {
+          entidad_id?: string
+          id?: string
+          mision_id?: string
+          rol?: string
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mision_entidades_mision_id_fkey"
+            columns: ["mision_id"]
+            isOneToOne: false
+            referencedRelation: "misiones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      misiones: {
+        Row: {
+          activa: boolean
+          categoria: string | null
+          creado_en: string
+          descripcion: string | null
+          dificultad: string
+          id: string
+          imagen_url: string | null
+          recompensa_item_id: string | null
+          recompensa_item_imagen_url: string | null
+          recompensa_item_nombre: string | null
+          recompensa_monedas: number
+          recompensa_xp: number
+          requisitos: string | null
+          titulo: string
+          vence_en: string | null
+        }
+        Insert: {
+          activa?: boolean
+          categoria?: string | null
+          creado_en?: string
+          descripcion?: string | null
+          dificultad?: string
+          id?: string
+          imagen_url?: string | null
+          recompensa_item_id?: string | null
+          recompensa_item_imagen_url?: string | null
+          recompensa_item_nombre?: string | null
+          recompensa_monedas?: number
+          recompensa_xp?: number
+          requisitos?: string | null
+          titulo: string
+          vence_en?: string | null
+        }
+        Update: {
+          activa?: boolean
+          categoria?: string | null
+          creado_en?: string
+          descripcion?: string | null
+          dificultad?: string
+          id?: string
+          imagen_url?: string | null
+          recompensa_item_id?: string | null
+          recompensa_item_imagen_url?: string | null
+          recompensa_item_nombre?: string | null
+          recompensa_monedas?: number
+          recompensa_xp?: number
+          requisitos?: string | null
+          titulo?: string
+          vence_en?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "misiones_recompensa_item_id_fkey"
+            columns: ["recompensa_item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      misiones_usuario: {
+        Row: {
+          estado: string
+          fecha_aceptada: string
+          fecha_completada: string | null
+          id: string
+          mision_id: string
+          progreso: number
+          user_id: string
+        }
+        Insert: {
+          estado?: string
+          fecha_aceptada?: string
+          fecha_completada?: string | null
+          id?: string
+          mision_id: string
+          progreso?: number
+          user_id: string
+        }
+        Update: {
+          estado?: string
+          fecha_aceptada?: string
+          fecha_completada?: string | null
+          id?: string
+          mision_id?: string
+          progreso?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "misiones_usuario_mision_id_fkey"
+            columns: ["mision_id"]
+            isOneToOne: false
+            referencedRelation: "misiones"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       mundo_secciones: {
         Row: {
@@ -2030,11 +2256,14 @@ export type Database = {
           email: string | null
           id: string
           mascota_id: string | null
+          monedas: number
+          nivel: number
           personaje_favorito_id: string | null
           rol: string | null
           status: string | null
           titulo: string | null
           username: string | null
+          xp_total: number
         }
         Insert: {
           avatar_url?: string | null
@@ -2042,11 +2271,14 @@ export type Database = {
           email?: string | null
           id: string
           mascota_id?: string | null
+          monedas?: number
+          nivel?: number
           personaje_favorito_id?: string | null
           rol?: string | null
           status?: string | null
           titulo?: string | null
           username?: string | null
+          xp_total?: number
         }
         Update: {
           avatar_url?: string | null
@@ -2054,11 +2286,14 @@ export type Database = {
           email?: string | null
           id?: string
           mascota_id?: string | null
+          monedas?: number
+          nivel?: number
           personaje_favorito_id?: string | null
           rol?: string | null
           status?: string | null
           titulo?: string | null
           username?: string | null
+          xp_total?: number
         }
         Relationships: [
           {
@@ -2187,6 +2422,7 @@ export type Database = {
           ciudad_id: string | null
           don: string | null
           especie: string | null
+          fecha_nacimiento: number | null
           id: string
           img_cuerpo_url: string | null
           img_url: string | null
@@ -2201,6 +2437,7 @@ export type Database = {
           ciudad_id?: string | null
           don?: string | null
           especie?: string | null
+          fecha_nacimiento?: number | null
           id?: string
           img_cuerpo_url?: string | null
           img_url?: string | null
@@ -2215,6 +2452,7 @@ export type Database = {
           ciudad_id?: string | null
           don?: string | null
           especie?: string | null
+          fecha_nacimiento?: number | null
           id?: string
           img_cuerpo_url?: string | null
           img_url?: string | null
@@ -2439,6 +2677,50 @@ export type Database = {
         }
         Relationships: []
       }
+      reino_tiles: {
+        Row: {
+          col: number
+          created_at: string
+          id: string
+          image_url: string | null
+          label: string | null
+          order: number
+          reino_id: string
+          row: number
+          updated_at: string
+        }
+        Insert: {
+          col: number
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          label?: string | null
+          order?: number
+          reino_id: string
+          row: number
+          updated_at?: string
+        }
+        Update: {
+          col?: number
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          label?: string | null
+          order?: number
+          reino_id?: string
+          row?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reino_tiles_reino_id_fkey"
+            columns: ["reino_id"]
+            isOneToOne: false
+            referencedRelation: "reinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reinos: {
         Row: {
           coord_x: number | null
@@ -2484,27 +2766,6 @@ export type Database = {
           nombre?: string
           orden?: number | null
           politica?: string | null
-        }
-        Relationships: []
-      }
-      reinos_historia_backup: {
-        Row: {
-          backup_date: string | null
-          historia: string | null
-          id: string | null
-          nombre: string | null
-        }
-        Insert: {
-          backup_date?: string | null
-          historia?: string | null
-          id?: string | null
-          nombre?: string | null
-        }
-        Update: {
-          backup_date?: string | null
-          historia?: string | null
-          id?: string | null
-          nombre?: string | null
         }
         Relationships: []
       }
@@ -2858,6 +3119,13 @@ export type Database = {
     Functions: {
       es_admin: { Args: never; Returns: boolean }
       is_admin: { Args: never; Returns: boolean }
+      reclamar_mision: {
+        Args: { p_mision_id: string }
+        Returns: {
+          monedas: number
+          xp_total: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

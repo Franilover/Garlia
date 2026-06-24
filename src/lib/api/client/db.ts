@@ -299,6 +299,10 @@ export interface Ciudad {
   tipo?: string | null;
   imagen_url?: string | null;
   reino_id?: string | null;
+  coord_x?: number | null;
+  coord_y?: number | null;
+  tile_col?: number | null;
+  tile_row?: number | null;
   [key: string]: any;
 }
 

@@ -322,11 +322,21 @@ export function ReinoTileCanvas({
         getComputedStyle(document.documentElement)
           .getPropertyValue("--accent")
           .trim() || "#c08040";
-      const isDark = false;
 
       for (const d of detalles) {
-        const mx = ((d.coord_x ?? 50) / 100) * iw;
-        const my = ((d.coord_y ?? 50) / 100) * ih;
+        // Si tiene tile_col/row, posicionar dentro de ese tile
+        // Si no (puntos sin tile asignado), usar coord como % del total
+        let mx: number;
+        let my: number;
+        if (d.tile_col != null && d.tile_row != null) {
+          const tileOffsetX = (d.tile_col - minCol) * tileSize * scale;
+          const tileOffsetY = (d.tile_row - minRow) * tileSize * scale;
+          mx = tileOffsetX + ((d.coord_x ?? 50) / 100) * tileSize * scale;
+          my = tileOffsetY + ((d.coord_y ?? 50) / 100) * tileSize * scale;
+        } else {
+          mx = ((d.coord_x ?? 50) / 100) * iw;
+          my = ((d.coord_y ?? 50) / 100) * ih;
+        }
         const isSelected = d.id === selectedPinId;
 
         if (isSelected) {
@@ -431,8 +441,17 @@ export function ReinoTileCanvas({
     const px = clientX - rect.left;
     const py = clientY - rect.top;
     for (const d of [...detalles].reverse()) {
-      const mx = ((d.coord_x ?? 50) / 100) * iw + cx;
-      const my = ((d.coord_y ?? 50) / 100) * ih + cy;
+      let mx: number;
+      let my: number;
+      if (d.tile_col != null && d.tile_row != null) {
+        const tileOffsetX = (d.tile_col - minCol) * tileSize * scale;
+        const tileOffsetY = (d.tile_row - minRow) * tileSize * scale;
+        mx = tileOffsetX + ((d.coord_x ?? 50) / 100) * tileSize * scale + cx;
+        my = tileOffsetY + ((d.coord_y ?? 50) / 100) * tileSize * scale + cy;
+      } else {
+        mx = ((d.coord_x ?? 50) / 100) * iw + cx;
+        my = ((d.coord_y ?? 50) / 100) * ih + cy;
+      }
       if (Math.hypot(px - mx, py - my) < 14) return d;
     }
     return null;
@@ -504,11 +523,40 @@ export function ReinoTileCanvas({
         if (!pct) return;
 
         if (selectedPinId) {
-          // Mover pin seleccionado
+          // Mover pin: calcular tile_col/row + coord local dentro del tile
+          const cam = camRef.current;
+          const rect2 = canvas.getBoundingClientRect();
+          const rawX = e.clientX - rect2.left;
+          const rawY = e.clientY - rect2.top;
+          // Posición en el canvas virtual (px)
+          const canvasX = (rawX - cam.x) / cam.scale;
+          const canvasY = (rawY - cam.y) / cam.scale;
+          // Determinar qué tile
+          const clickedCol = minCol + Math.floor(canvasX / tileSize);
+          const clickedRow = minRow + Math.floor(canvasY / tileSize);
+          // Coord local dentro del tile (%)
+          const localX = Math.max(
+            0,
+            Math.min(100, Math.round(((canvasX % tileSize) / tileSize) * 100)),
+          );
+          const localY = Math.max(
+            0,
+            Math.min(100, Math.round(((canvasY % tileSize) / tileSize) * 100)),
+          );
+          // Verificar que el tile existe
+          const tileExists = tiles.some(
+            (t) => t.col === clickedCol && t.row === clickedRow,
+          );
           onDetallesChange(
             detalles.map((d) =>
               d.id === selectedPinId
-                ? { ...d, coord_x: pct.x, coord_y: pct.y }
+                ? {
+                    ...d,
+                    coord_x: localX,
+                    coord_y: localY,
+                    tile_col: tileExists ? clickedCol : (d.tile_col ?? null),
+                    tile_row: tileExists ? clickedRow : (d.tile_row ?? null),
+                  }
                 : d,
             ),
           );
