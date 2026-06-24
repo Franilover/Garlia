@@ -388,7 +388,12 @@ function TileCard({
 }
 
 // ─── Editor principal ─────────────────────────────────────────────────────────
-export function EditorMapa() {
+export function EditorMapa({
+  onSelectReino,
+}: {
+  /** Se llama con el id del reino al hacer click en su punto en el mapa (modo "Reinos") */
+  onSelectReino?: (reinoId: string) => void;
+} = {}) {
   const [tiles, setTiles] = useState<(MapTile & { label?: string | null })[]>(
     [],
   );
@@ -850,8 +855,8 @@ export function EditorMapa() {
               >
                 {mode === "mover"
                   ? selectedReinoId
-                    ? `→ click para mover "${reinos.find((r) => r.id === selectedReinoId)?.nombre}"`
-                    : "click un reino para reubicarlo"
+                    ? `→ "${reinos.find((r) => r.id === selectedReinoId)?.nombre}" seleccionado · click vacío para reubicarlo`
+                    : "click un reino para editarlo (panel derecho) o reubicarlo"
                   : "click imagen para cambiarla · click vacío crea tile · arrastra para reordenar"}
               </span>
 
@@ -894,10 +899,12 @@ export function EditorMapa() {
                   onMapClick={mode === "mover" ? handleMapClick : () => {}}
                   onMarkerClick={
                     mode === "mover"
-                      ? (m) =>
+                      ? (m) => {
                           setSelectedReinoId((prev) =>
                             prev === m.id ? null : m.id,
-                          )
+                          );
+                          onSelectReino?.(m.id);
+                        }
                       : () => {}
                   }
                 />
