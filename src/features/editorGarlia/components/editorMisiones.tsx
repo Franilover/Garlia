@@ -549,10 +549,9 @@ export default function EditorMisiones() {
           />
         </div>
         <p
-          className="font-serif italic"
+          className="text-[10px] font-black uppercase tracking-widest"
           style={{
             color: "color-mix(in srgb, var(--primary) 40%, transparent)",
-            fontSize: "0.9rem",
           }}
         >
           Acceso restringido a administradores
@@ -562,42 +561,40 @@ export default function EditorMisiones() {
 
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
-    <div className="w-full px-4 py-6">
-      <div className="flex flex-col md:flex-row gap-6 w-full items-start">
+    <div className="w-full px-3 sm:px-4 py-4">
+      <div className="flex flex-col md:flex-row w-full items-stretch">
         {/* ── Lista de misiones ── */}
         <div
-          className="md:w-72 shrink-0 w-full"
+          className="md:w-72 shrink-0 w-full flex flex-col border-b md:border-b-0 md:border-r"
           style={{
-            background: "var(--white-custom)",
-            border:
-              "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-            borderRadius: "var(--radius-card)",
-            overflow: "hidden",
+            borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
+            background:
+              "color-mix(in srgb, var(--primary) 1.5%, var(--bg-main))",
           }}
         >
           <div
-            className="flex items-center justify-between px-4 py-3"
+            className="shrink-0 flex items-center justify-between gap-2 px-3 py-2 border-b"
             style={{
-              borderBottom:
-                "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+              borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
             }}
           >
-            <div className="flex items-center gap-2">
-              <p
-                className="text-[8px] font-black uppercase tracking-[0.25em]"
+            <div className="flex items-center gap-1.5 min-w-0">
+              <Scroll
+                size={10}
                 style={{
                   color: "color-mix(in srgb, var(--primary) 35%, transparent)",
                 }}
-              >
-                Misiones ({misiones.length})
-              </p>
+              />
+              <span className="text-[8px] font-black uppercase tracking-[0.2em] text-primary/35 truncate">
+                Misiones · {misiones.length}
+              </span>
               {offline && (
                 <span
-                  className="flex items-center gap-1 px-1.5 py-0.5"
+                  className="flex items-center gap-1 px-1.5 py-0.5 rounded shrink-0"
                   style={{
-                    borderRadius: "2px",
-                    background: "color-mix(in srgb, #d97706 10%, transparent)",
-                    color: "#d97706",
+                    background:
+                      "color-mix(in srgb, var(--callout-warning-border) 12%, transparent)",
+                    color: "var(--callout-warning-title)",
                   }}
                   title="Mostrando datos guardados localmente"
                 >
@@ -609,17 +606,8 @@ export default function EditorMisiones() {
               )}
             </div>
             <button
-              className="flex items-center gap-1 px-2 py-1 transition-all disabled:opacity-40"
+              className="flex items-center gap-1 px-2 py-1 rounded-[var(--radius-btn)] bg-primary/8 hover:bg-primary/15 text-primary/50 hover:text-primary text-[8px] font-black uppercase tracking-widest transition-all disabled:opacity-40 shrink-0"
               disabled={offline}
-              style={{
-                borderRadius: "var(--radius-btn)",
-                background: "var(--primary)",
-                color: "var(--btn-text)",
-                fontSize: "8px",
-                fontWeight: 900,
-                letterSpacing: "0.1em",
-                textTransform: "uppercase",
-              }}
               title={
                 offline ? "Necesitas conexión para crear misiones" : undefined
               }
@@ -629,7 +617,7 @@ export default function EditorMisiones() {
             </button>
           </div>
 
-          <div className="p-2 flex flex-col gap-1 max-h-[70vh] overflow-y-auto">
+          <div className="p-1.5 flex flex-col gap-0.5 max-h-[70vh] overflow-y-auto">
             {cargandoMisiones ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2
@@ -642,41 +630,33 @@ export default function EditorMisiones() {
                 />
               </div>
             ) : misiones.length === 0 ? (
-              <div className="flex items-center justify-center py-8">
-                <p
-                  className="font-serif italic text-[11px]"
-                  style={{
-                    color:
-                      "color-mix(in srgb, var(--primary) 25%, transparent)",
-                  }}
-                >
+              <div className="flex flex-col items-center justify-center py-8 gap-2 text-primary/20">
+                <Scroll size={16} />
+                <p className="text-[9px] font-black uppercase tracking-widest">
                   Sin misiones todavía
                 </p>
               </div>
             ) : (
-              misiones.map((m) => (
-                <div key={m.id} className="group flex items-center gap-1">
-                  <button
-                    className="flex-1 min-w-0 flex items-center gap-2 px-3 py-2 transition-all text-left"
+              misiones.map((m) => {
+                const activa = misionSel?.id === m.id;
+                return (
+                  <div
+                    key={m.id}
+                    className="group relative flex items-center gap-2 pl-2.5 pr-1.5 py-1.5 cursor-pointer transition-all"
                     style={{
-                      borderRadius: "var(--radius-btn)",
-                      border: "1px solid",
-                      borderColor:
-                        misionSel?.id === m.id
-                          ? "color-mix(in srgb, var(--primary) 50%, transparent)"
-                          : "color-mix(in srgb, var(--primary) 12%, transparent)",
-                      background:
-                        misionSel?.id === m.id
-                          ? "color-mix(in srgb, var(--primary) 8%, transparent)"
-                          : "transparent",
+                      background: activa
+                        ? "color-mix(in srgb, var(--primary) 8%, transparent)"
+                        : "transparent",
+                      borderLeft: activa
+                        ? "2px solid var(--primary)"
+                        : "2px solid transparent",
                       opacity: m.activa ? 1 : 0.5,
                     }}
                     onClick={() => setMisionSel(m)}
                   >
                     <div
-                      className="w-6 h-6 shrink-0 overflow-hidden flex items-center justify-center"
+                      className="w-6 h-6 shrink-0 overflow-hidden flex items-center justify-center rounded"
                       style={{
-                        borderRadius: "2px",
                         background:
                           "color-mix(in srgb, var(--primary) 10%, transparent)",
                       }}
@@ -691,25 +671,29 @@ export default function EditorMisiones() {
                         <Scroll
                           size={10}
                           style={{
-                            color:
-                              "color-mix(in srgb, var(--primary) 30%, transparent)",
+                            color: activa
+                              ? "var(--primary)"
+                              : "color-mix(in srgb, var(--primary) 30%, transparent)",
                           }}
                         />
                       )}
                     </div>
                     <span
-                      className="flex-1 min-w-0 truncate text-[10px] font-black uppercase tracking-tight capitalize"
-                      style={{ color: "var(--primary)" }}
+                      className="flex-1 min-w-0 truncate text-[10px] font-bold uppercase tracking-wide"
+                      style={{
+                        color: activa
+                          ? "var(--primary)"
+                          : "color-mix(in srgb, var(--primary) 55%, transparent)",
+                      }}
                     >
                       {m.titulo}
                     </span>
                     {!m.activa && (
                       <span
-                        className="shrink-0 text-[7px] font-black uppercase tracking-wider px-1 py-0.5"
+                        className="shrink-0 rounded text-[7px] font-black uppercase tracking-wider px-1 py-0.5"
                         style={{
                           background:
                             "color-mix(in srgb, var(--primary) 8%, transparent)",
-                          borderRadius: "2px",
                           color:
                             "color-mix(in srgb, var(--primary) 45%, transparent)",
                         }}
@@ -717,28 +701,24 @@ export default function EditorMisiones() {
                         inactiva
                       </span>
                     )}
-                  </button>
-                  <button
-                    className="opacity-0 group-hover:opacity-100 transition-all w-7 h-7 flex items-center justify-center shrink-0"
-                    disabled={eliminando === m.id}
-                    style={{
-                      borderRadius: "var(--radius-btn)",
-                      border:
-                        "1px solid color-mix(in srgb, #ef4444 25%, transparent)",
-                      background: "color-mix(in srgb, #ef4444 6%, transparent)",
-                      color: "#ef4444",
-                    }}
-                    title="Eliminar misión"
-                    onClick={() => eliminar(m)}
-                  >
-                    {eliminando === m.id ? (
-                      <Loader2 className="animate-spin" size={10} />
-                    ) : (
-                      <Trash2 size={10} />
-                    )}
-                  </button>
-                </div>
-              ))
+                    <button
+                      className="shrink-0 opacity-0 group-hover:opacity-100 disabled:opacity-40 transition-all p-1 rounded hover:bg-red-500/10 text-primary/25 hover:text-red-400"
+                      disabled={eliminando === m.id}
+                      title="Eliminar misión"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        eliminar(m);
+                      }}
+                    >
+                      {eliminando === m.id ? (
+                        <Loader2 className="animate-spin" size={10} />
+                      ) : (
+                        <Trash2 size={10} />
+                      )}
+                    </button>
+                  </div>
+                );
+              })
             )}
           </div>
         </div>
@@ -747,7 +727,7 @@ export default function EditorMisiones() {
         {!misionSel ? (
           <div className="flex-1 w-full flex items-center justify-center min-h-60">
             <p
-              className="font-serif italic text-[12px]"
+              className="text-[10px] font-black uppercase tracking-widest"
               style={{
                 color: "color-mix(in srgb, var(--primary) 25%, transparent)",
               }}
@@ -756,15 +736,13 @@ export default function EditorMisiones() {
             </p>
           </div>
         ) : (
-          <div className="flex-1 w-full flex flex-col gap-4 min-w-0">
+          <div className="flex-1 w-full flex flex-col min-w-0">
             {/* Resumen de la misión */}
             <div
-              className="flex items-center gap-4 px-5 py-4"
+              className="flex items-center gap-4 px-4 sm:px-6 py-4 border-b"
               style={{
-                background: "var(--white-custom)",
-                border:
-                  "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-                borderRadius: "var(--radius-card)",
+                borderColor:
+                  "color-mix(in srgb, var(--primary) 8%, transparent)",
               }}
             >
               <div
@@ -793,7 +771,7 @@ export default function EditorMisiones() {
               </div>
               <div className="flex-1 min-w-0">
                 <h2
-                  className="font-serif italic text-[16px] capitalize truncate"
+                  className="font-black uppercase italic tracking-tight text-[15px] capitalize truncate"
                   style={{ color: "var(--primary)" }}
                 >
                   {misionSel.titulo}
@@ -831,17 +809,7 @@ export default function EditorMisiones() {
                 </div>
               </div>
               <button
-                className="px-3 py-2 shrink-0 transition-all"
-                style={{
-                  borderRadius: "var(--radius-btn)",
-                  border:
-                    "1px solid color-mix(in srgb, var(--primary) 16%, transparent)",
-                  color: "var(--primary)",
-                  fontSize: "9px",
-                  fontWeight: 900,
-                  letterSpacing: "0.1em",
-                  textTransform: "uppercase",
-                }}
+                className="px-3 py-1.5 shrink-0 rounded-[var(--radius-btn)] bg-primary/8 hover:bg-primary/15 text-primary/50 hover:text-primary text-[9px] font-black uppercase tracking-widest transition-all"
                 onClick={() => abrirEditar(misionSel)}
               >
                 Editar
@@ -849,20 +817,12 @@ export default function EditorMisiones() {
             </div>
 
             {/* Tabla de progreso de usuarios */}
-            <div
-              style={{
-                background: "var(--white-custom)",
-                border:
-                  "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-                borderRadius: "var(--radius-card)",
-                overflow: "hidden",
-              }}
-            >
+            <div className="flex flex-col flex-1 min-h-0">
               <div
-                className="px-4 py-3"
+                className="px-4 sm:px-6 py-3 border-b shrink-0"
                 style={{
-                  borderBottom:
-                    "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+                  borderColor:
+                    "color-mix(in srgb, var(--primary) 8%, transparent)",
                 }}
               >
                 <p
@@ -888,14 +848,9 @@ export default function EditorMisiones() {
                   />
                 </div>
               ) : progreso.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 gap-2">
-                  <p
-                    className="font-serif italic text-[11px]"
-                    style={{
-                      color:
-                        "color-mix(in srgb, var(--primary) 25%, transparent)",
-                    }}
-                  >
+                <div className="flex flex-col items-center justify-center py-12 gap-2 text-primary/20">
+                  <User size={16} />
+                  <p className="text-[9px] font-black uppercase tracking-widest">
                     Nadie ha aceptado esta misión aún
                   </p>
                 </div>
@@ -903,10 +858,10 @@ export default function EditorMisiones() {
                 progreso.map((row) => (
                   <div
                     key={row.user_id}
-                    className="flex items-center gap-3 px-4 py-3"
+                    className="flex items-center gap-3 px-4 sm:px-6 py-3 border-b"
                     style={{
-                      borderBottom:
-                        "1px solid color-mix(in srgb, var(--primary) 6%, transparent)",
+                      borderColor:
+                        "color-mix(in srgb, var(--primary) 6%, transparent)",
                     }}
                   >
                     <div
@@ -948,7 +903,7 @@ export default function EditorMisiones() {
                             row.estado === "reclamada"
                               ? "color-mix(in srgb, var(--primary) 35%, transparent)"
                               : row.estado === "completada"
-                                ? "#16a34a"
+                                ? "var(--callout-success-title)"
                                 : "color-mix(in srgb, var(--primary) 45%, transparent)",
                         }}
                       >
@@ -1074,8 +1029,8 @@ export default function EditorMisiones() {
                 }}
               >
                 <p
-                  className="font-serif italic"
-                  style={{ fontSize: "1rem", color: "var(--primary)" }}
+                  className="text-[12px] font-black uppercase italic tracking-tight"
+                  style={{ color: "var(--primary)" }}
                 >
                   {form.id ? "Editar misión" : "Nueva misión"}
                 </p>
@@ -1402,17 +1357,16 @@ export default function EditorMisiones() {
         {toast && (
           <MotionDiv
             animate={{ opacity: 1, y: 0 }}
-            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-3 flex items-center gap-2"
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-3 flex items-center gap-2 rounded-[var(--radius-btn)]"
             exit={{ opacity: 0, y: 8 }}
             initial={{ opacity: 0, y: 8 }}
             style={{
-              borderRadius: "var(--radius-btn)",
               background: toast.ok
-                ? "color-mix(in srgb, #16a34a 12%, var(--white-custom))"
+                ? "color-mix(in srgb, var(--callout-success-border) 12%, var(--white-custom))"
                 : "color-mix(in srgb, #ef4444 10%, var(--white-custom))",
               border: `1px solid ${
                 toast.ok
-                  ? "color-mix(in srgb, #16a34a 30%, transparent)"
+                  ? "color-mix(in srgb, var(--callout-success-border) 30%, transparent)"
                   : "color-mix(in srgb, #ef4444 25%, transparent)"
               }`,
               boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
@@ -1421,7 +1375,11 @@ export default function EditorMisiones() {
           >
             <div
               className="w-4 h-4 rounded-full flex items-center justify-center"
-              style={{ background: toast.ok ? "#16a34a" : "#ef4444" }}
+              style={{
+                background: toast.ok
+                  ? "var(--callout-success-border)"
+                  : "#ef4444",
+              }}
             >
               {toast.ok ? (
                 <svg fill="none" height="8" viewBox="0 0 8 8" width="8">
@@ -1439,7 +1397,9 @@ export default function EditorMisiones() {
             </div>
             <span
               className="text-[10px] font-black uppercase tracking-tight"
-              style={{ color: toast.ok ? "#16a34a" : "#ef4444" }}
+              style={{
+                color: toast.ok ? "var(--callout-success-title)" : "#ef4444",
+              }}
             >
               {toast.msg}
             </span>
@@ -1757,7 +1717,7 @@ function SelectorItemRecompensa({
               ) : filtrados.length === 0 ? (
                 <div className="flex items-center justify-center py-10">
                   <p
-                    className="font-serif italic text-[11px]"
+                    className="text-[9px] font-black uppercase tracking-widest"
                     style={{
                       color:
                         "color-mix(in srgb, var(--primary) 25%, transparent)",
@@ -1916,7 +1876,7 @@ const ROL_LABELS: Record<RolEntidad, string> = {
 const ROL_COLORS: Record<RolEntidad, string> = {
   relacionado: "color-mix(in srgb, var(--primary) 20%, transparent)",
   objetivo: "var(--primary)",
-  recompensa: "#16a34a",
+  recompensa: "var(--callout-success-border)",
 };
 
 function PanelEntidadesMision({ misionId }: { misionId: string }) {
@@ -2347,7 +2307,7 @@ function PanelEntidadesMision({ misionId }: { misionId: string }) {
                 </div>
               ) : filtrados.length === 0 ? (
                 <p
-                  className="text-center text-[10px] py-10 font-serif italic"
+                  className="text-center text-[9px] font-black uppercase tracking-widest py-10"
                   style={subtle}
                 >
                   Sin resultados

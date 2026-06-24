@@ -443,10 +443,9 @@ export default function AdminDescubrimientos() {
           />
         </div>
         <p
-          className="font-serif italic"
+          className="text-[10px] font-black uppercase tracking-widest"
           style={{
             color: "color-mix(in srgb, var(--primary) 40%, transparent)",
-            fontSize: "0.9rem",
           }}
         >
           Acceso restringido a administradores
@@ -463,53 +462,48 @@ export default function AdminDescubrimientos() {
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="w-full px-4 py-6">
-      <div className="flex flex-col md:flex-row gap-6 w-full items-start">
+    <div className="w-full px-3 sm:px-4 py-4">
+      <div className="flex flex-col md:flex-row w-full items-stretch">
         {/* Selector de perfil */}
         <div
-          className="w-full md:w-64"
+          className="w-full md:w-64 shrink-0 flex flex-col border-b md:border-b-0 md:border-r"
           style={{
-            background: "var(--white-custom)",
-            border:
-              "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-            borderRadius: "var(--radius-card)",
-            overflow: "hidden",
-            flexShrink: 0,
+            borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
+            background:
+              "color-mix(in srgb, var(--primary) 1.5%, var(--bg-main))",
           }}
         >
           <div
-            className="px-4 py-3"
+            className="shrink-0 flex items-center gap-1.5 px-3 py-2 border-b"
             style={{
-              borderBottom:
-                "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+              borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
             }}
           >
-            <p
-              className="text-[8px] font-black uppercase tracking-[0.25em]"
+            <User
+              size={10}
               style={{
                 color: "color-mix(in srgb, var(--primary) 35%, transparent)",
               }}
-            >
-              Seleccionar explorador
-            </p>
+            />
+            <span className="text-[8px] font-black uppercase tracking-[0.2em] text-primary/35 flex-1">
+              Exploradores · {perfiles.length}
+            </span>
           </div>
 
-          <div className="p-2 flex flex-col gap-1">
-            {perfiles.map((p) => (
-              <div key={p.id} className="group flex items-center gap-1">
-                <button
-                  className="flex-1 min-w-0 flex items-center gap-2 px-3 py-2 transition-all text-left"
+          <div className="p-1.5 flex flex-col gap-0.5 max-h-[70vh] overflow-y-auto">
+            {perfiles.map((p) => {
+              const activo = perfilSel?.id === p.id;
+              return (
+                <div
+                  key={p.id}
+                  className="group relative flex items-center gap-2 pl-2.5 pr-1.5 py-1.5 cursor-pointer transition-all"
                   style={{
-                    borderRadius: "var(--radius-btn)",
-                    border: "1px solid",
-                    borderColor:
-                      perfilSel?.id === p.id
-                        ? "color-mix(in srgb, var(--primary) 50%, transparent)"
-                        : "color-mix(in srgb, var(--primary) 12%, transparent)",
-                    background:
-                      perfilSel?.id === p.id
-                        ? "color-mix(in srgb, var(--primary) 8%, transparent)"
-                        : "transparent",
+                    background: activo
+                      ? "color-mix(in srgb, var(--primary) 8%, transparent)"
+                      : "transparent",
+                    borderLeft: activo
+                      ? "2px solid var(--primary)"
+                      : "2px solid transparent",
                   }}
                   onClick={() => {
                     setPerfilSel(p);
@@ -517,9 +511,8 @@ export default function AdminDescubrimientos() {
                   }}
                 >
                   <div
-                    className="w-6 h-6 shrink-0 overflow-hidden flex items-center justify-center"
+                    className="w-6 h-6 shrink-0 overflow-hidden flex items-center justify-center rounded"
                     style={{
-                      borderRadius: "2px",
                       background:
                         "color-mix(in srgb, var(--primary) 10%, transparent)",
                     }}
@@ -534,25 +527,29 @@ export default function AdminDescubrimientos() {
                       <User
                         size={10}
                         style={{
-                          color:
-                            "color-mix(in srgb, var(--primary) 30%, transparent)",
+                          color: activo
+                            ? "var(--primary)"
+                            : "color-mix(in srgb, var(--primary) 30%, transparent)",
                         }}
                       />
                     )}
                   </div>
                   <span
-                    className="flex-1 min-w-0 truncate text-[10px] font-black uppercase tracking-tight capitalize"
-                    style={{ color: "var(--primary)" }}
+                    className="flex-1 min-w-0 truncate text-[10px] font-bold uppercase tracking-wide"
+                    style={{
+                      color: activo
+                        ? "var(--primary)"
+                        : "color-mix(in srgb, var(--primary) 55%, transparent)",
+                    }}
                   >
                     {p.username}
                   </span>
                   {p.rol === "admin" && (
                     <span
-                      className="shrink-0 text-[7px] font-black uppercase tracking-wider px-1 py-0.5"
+                      className="shrink-0 rounded text-[7px] font-black uppercase tracking-wider px-1 py-0.5"
                       style={{
                         background:
                           "color-mix(in srgb, var(--primary) 8%, transparent)",
-                        borderRadius: "2px",
                         color:
                           "color-mix(in srgb, var(--primary) 45%, transparent)",
                       }}
@@ -560,50 +557,37 @@ export default function AdminDescubrimientos() {
                       admin
                     </span>
                   )}
-                </button>
-                {/* Botón eliminar usuario */}
-                <button
-                  className="opacity-0 group-hover:opacity-100 transition-all w-7 h-7 flex items-center justify-center shrink-0"
-                  disabled={eliminandoPerfil === p.id}
-                  style={{
-                    borderRadius: "var(--radius-btn)",
-                    border:
-                      "1px solid color-mix(in srgb, #ef4444 25%, transparent)",
-                    background: "color-mix(in srgb, #ef4444 6%, transparent)",
-                    color: "#ef4444",
-                  }}
-                  title="Eliminar usuario"
-                  onClick={() => eliminarPerfil(p)}
-                >
-                  {eliminandoPerfil === p.id ? (
-                    <Loader2 className="animate-spin" size={10} />
-                  ) : (
-                    <Trash2 size={10} />
-                  )}
-                </button>
-              </div>
-            ))}
+                  {/* Eliminar usuario */}
+                  <button
+                    className="shrink-0 opacity-0 group-hover:opacity-100 disabled:opacity-40 transition-all p-1 rounded hover:bg-red-500/10 text-primary/25 hover:text-red-400"
+                    disabled={eliminandoPerfil === p.id}
+                    title="Eliminar usuario"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      eliminarPerfil(p);
+                    }}
+                  >
+                    {eliminandoPerfil === p.id ? (
+                      <Loader2 className="animate-spin" size={10} />
+                    ) : (
+                      <Trash2 size={10} />
+                    )}
+                  </button>
+                </div>
+              );
+            })}
           </div>
         </div>
 
         {/* Panel de descubrimientos */}
         {perfilSel && (
-          <div
-            className="flex-1 min-w-0"
-            style={{
-              background: "var(--white-custom)",
-              border:
-                "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-              borderRadius: "var(--radius-card)",
-              overflow: "hidden",
-            }}
-          >
+          <div className="flex-1 min-w-0 flex flex-col">
             {/* Tabs + botón agregar */}
             <div
-              className="flex items-center gap-0 overflow-x-auto"
+              className="flex items-center gap-0 overflow-x-auto border-b"
               style={{
-                borderBottom:
-                  "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+                borderColor:
+                  "color-mix(in srgb, var(--primary) 8%, transparent)",
               }}
             >
               {(
@@ -643,19 +627,7 @@ export default function AdminDescubrimientos() {
 
               <div className="px-3 py-2 shrink-0">
                 <button
-                  className="flex items-center gap-1.5 px-3 py-1.5 transition-all"
-                  style={{
-                    borderRadius: "var(--radius-btn)",
-                    background:
-                      "color-mix(in srgb, var(--primary) 8%, transparent)",
-                    border:
-                      "1px solid color-mix(in srgb, var(--primary) 16%, transparent)",
-                    color: "var(--primary)",
-                    fontSize: "9px",
-                    fontWeight: 900,
-                    letterSpacing: "0.15em",
-                    textTransform: "uppercase",
-                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-btn)] bg-primary/8 hover:bg-primary/15 text-primary/50 hover:text-primary text-[9px] font-black uppercase tracking-widest transition-all"
                   onClick={() => {
                     setShowAdd(true);
                     setEntidadSel(null);
@@ -689,14 +661,9 @@ export default function AdminDescubrimientos() {
                   />
                 </div>
               ) : descubrimientos.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 gap-2">
-                  <p
-                    className="font-serif italic text-[11px]"
-                    style={{
-                      color:
-                        "color-mix(in srgb, var(--primary) 25%, transparent)",
-                    }}
-                  >
+                <div className="flex flex-col items-center justify-center py-12 gap-2 text-primary/20">
+                  {TAB_CONFIG[tab].icon}
+                  <p className="text-[9px] font-black uppercase tracking-widest">
                     Sin {TAB_CONFIG[tab].label.toLowerCase()} descubiertos
                   </p>
                 </div>
@@ -704,19 +671,11 @@ export default function AdminDescubrimientos() {
                 descubrimientos.map((row) => (
                   <div
                     key={row.id}
-                    className="flex items-center gap-3 px-4 py-3 group transition-colors"
+                    className="flex items-center gap-3 px-4 py-3 group transition-colors hover:bg-[color-mix(in_srgb,var(--primary)_2%,transparent)]"
                     style={{
                       borderBottom:
                         "1px solid color-mix(in srgb, var(--primary) 6%, transparent)",
                     }}
-                    onMouseEnter={(e) =>
-                      ((e.currentTarget as HTMLElement).style.background =
-                        "color-mix(in srgb, var(--primary) 2%, transparent)")
-                    }
-                    onMouseLeave={(e) =>
-                      ((e.currentTarget as HTMLElement).style.background =
-                        "transparent")
-                    }
                   >
                     {/* Imagen */}
                     <div
@@ -786,16 +745,8 @@ export default function AdminDescubrimientos() {
 
                     {/* Eliminar */}
                     <button
-                      className="opacity-0 group-hover:opacity-100 transition-all w-7 h-7 flex items-center justify-center shrink-0"
+                      className="opacity-0 group-hover:opacity-100 disabled:opacity-40 transition-all w-7 h-7 flex items-center justify-center shrink-0 rounded hover:bg-red-500/10 text-primary/30 hover:text-red-400"
                       disabled={eliminando === row.id}
-                      style={{
-                        borderRadius: "var(--radius-btn)",
-                        border:
-                          "1px solid color-mix(in srgb, #ef4444 25%, transparent)",
-                        background:
-                          "color-mix(in srgb, #ef4444 6%, transparent)",
-                        color: "#ef4444",
-                      }}
                       title="Eliminar descubrimiento"
                       onClick={() => eliminar(row)}
                     >
@@ -813,10 +764,10 @@ export default function AdminDescubrimientos() {
             {/* Footer con conteo */}
             {!cargando && descubrimientos.length > 0 && (
               <div
-                className="px-4 py-2.5"
+                className="px-4 py-2.5 border-t"
                 style={{
-                  borderTop:
-                    "1px solid color-mix(in srgb, var(--primary) 6%, transparent)",
+                  borderColor:
+                    "color-mix(in srgb, var(--primary) 6%, transparent)",
                 }}
               >
                 <p
@@ -876,8 +827,8 @@ export default function AdminDescubrimientos() {
               >
                 <div>
                   <p
-                    className="font-serif italic"
-                    style={{ fontSize: "1rem", color: "var(--primary)" }}
+                    className="text-[12px] font-black uppercase italic tracking-tight"
+                    style={{ color: "var(--primary)" }}
                   >
                     Agregar {TAB_CONFIG[tab].label.slice(0, -1).toLowerCase()}
                   </p>
@@ -953,7 +904,7 @@ export default function AdminDescubrimientos() {
                 {entsFiltradas.length === 0 ? (
                   <div className="flex items-center justify-center py-8">
                     <p
-                      className="font-serif italic text-[10px]"
+                      className="text-[9px] font-black uppercase tracking-widest"
                       style={{
                         color:
                           "color-mix(in srgb, var(--primary) 25%, transparent)",
@@ -971,7 +922,11 @@ export default function AdminDescubrimientos() {
                     return (
                       <button
                         key={e.id}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-left transition-colors"
+                        className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${
+                          yaTiene
+                            ? "cursor-not-allowed"
+                            : "cursor-pointer hover:bg-[color-mix(in_srgb,var(--primary)_3%,transparent)]"
+                        }`}
                         disabled={yaTiene}
                         style={{
                           borderBottom:
@@ -980,22 +935,8 @@ export default function AdminDescubrimientos() {
                             ? "color-mix(in srgb, var(--primary) 6%, transparent)"
                             : "transparent",
                           opacity: yaTiene ? 0.35 : 1,
-                          cursor: yaTiene ? "not-allowed" : "pointer",
                         }}
                         onClick={() => setEntidadSel(sel ? null : e)}
-                        onMouseEnter={(e2) => {
-                          if (!yaTiene)
-                            (e2.currentTarget as HTMLElement).style.background =
-                              sel
-                                ? "color-mix(in srgb, var(--primary) 8%, transparent)"
-                                : "color-mix(in srgb, var(--primary) 3%, transparent)";
-                        }}
-                        onMouseLeave={(e2) => {
-                          (e2.currentTarget as HTMLElement).style.background =
-                            sel
-                              ? "color-mix(in srgb, var(--primary) 6%, transparent)"
-                              : "transparent";
-                        }}
                       >
                         <div
                           className="w-8 h-8 shrink-0 overflow-hidden flex items-center justify-center"
@@ -1102,15 +1043,14 @@ export default function AdminDescubrimientos() {
                     : "Ninguno seleccionado"}
                 </p>
                 <button
-                  className="flex items-center gap-1.5 px-4 py-2 transition-all"
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-[var(--radius-btn)] transition-all"
                   disabled={!entidadSel || guardando}
                   style={{
-                    borderRadius: "var(--radius-btn)",
                     background: entidadSel
                       ? "var(--primary)"
                       : "color-mix(in srgb, var(--primary) 12%, transparent)",
                     color: entidadSel
-                      ? "var(--white-custom)"
+                      ? "var(--btn-text)"
                       : "color-mix(in srgb, var(--primary) 30%, transparent)",
                     fontSize: "9px",
                     fontWeight: 900,
@@ -1138,22 +1078,29 @@ export default function AdminDescubrimientos() {
         {toast && (
           <MotionDiv
             animate={{ opacity: 1, y: 0 }}
-            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-3 flex items-center gap-2"
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-3 flex items-center gap-2 rounded-[var(--radius-btn)]"
             exit={{ opacity: 0, y: 8 }}
             initial={{ opacity: 0, y: 8 }}
             style={{
-              borderRadius: "var(--radius-btn)",
               background: toast.ok
-                ? "color-mix(in srgb, #16a34a 12%, var(--white-custom))"
+                ? "color-mix(in srgb, var(--callout-success-border) 12%, var(--white-custom))"
                 : "color-mix(in srgb, #ef4444 10%, var(--white-custom))",
-              border: `1px solid ${toast.ok ? "color-mix(in srgb, #16a34a 30%, transparent)" : "color-mix(in srgb, #ef4444 25%, transparent)"}`,
+              border: `1px solid ${
+                toast.ok
+                  ? "color-mix(in srgb, var(--callout-success-border) 30%, transparent)"
+                  : "color-mix(in srgb, #ef4444 25%, transparent)"
+              }`,
               boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
               whiteSpace: "nowrap",
             }}
           >
             <div
               className="w-4 h-4 rounded-full flex items-center justify-center"
-              style={{ background: toast.ok ? "#16a34a" : "#ef4444" }}
+              style={{
+                background: toast.ok
+                  ? "var(--callout-success-border)"
+                  : "#ef4444",
+              }}
             >
               {toast.ok ? (
                 <svg fill="none" height="8" viewBox="0 0 8 8" width="8">
@@ -1171,7 +1118,9 @@ export default function AdminDescubrimientos() {
             </div>
             <span
               className="text-[10px] font-black uppercase tracking-tight"
-              style={{ color: toast.ok ? "#16a34a" : "#ef4444" }}
+              style={{
+                color: toast.ok ? "var(--callout-success-title)" : "#ef4444",
+              }}
             >
               {toast.msg}
             </span>
