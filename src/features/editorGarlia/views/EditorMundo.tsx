@@ -1243,11 +1243,11 @@ function PanelListas({
   };
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 overflow-hidden relative">
+    <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
       {/* ── Editor overlay ──────────────────────────────────────────────── */}
       {overlay && (
         <div
-          className="absolute inset-0 flex flex-col min-h-0 overflow-hidden z-10"
+          className="flex-1 flex flex-col min-h-0 overflow-hidden"
           style={{ background: "var(--bg-main)" }}
         >
           {/* Botón volver al menú */}
