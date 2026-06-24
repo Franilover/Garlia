@@ -22,6 +22,8 @@ import {
   Timer,
   PanelRight,
   AlignLeft,
+  TriangleAlert,
+  MapPin,
 } from "lucide-react";
 import React, {
   useState,
@@ -448,7 +450,7 @@ const PanelEditor = ({
         label: "Drop (entidad)",
         description: "Inserta personaje, criatura o ítem interactivo",
         keywords: ["drop", "enti", "personaj", "criatur", "item", "add"],
-        icon: "⚔️",
+        icon: "drop",
         action: () => openPalette("[[drop||]]"),
       },
       {
@@ -456,7 +458,7 @@ const PanelEditor = ({
         label: "Imagen",
         description: "Inserta imagen inline o flotante",
         keywords: ["img", "imagen", "foto", "imag", "add"],
-        icon: "🖼️",
+        icon: "img",
         action: () => openPalette("[[imagen||]]"),
       },
       {
@@ -464,7 +466,7 @@ const PanelEditor = ({
         label: "Choice (decisión)",
         description: "Botón de decisión",
         keywords: ["choi", "choice", "decis", "boton", "botón", "add"],
-        icon: "🔀",
+        icon: "choice",
         action: () => openPalette("[[choice||]]"),
       },
       {
@@ -472,7 +474,7 @@ const PanelEditor = ({
         label: "Use Ítem",
         description: "Interacción con ítem del inventario",
         keywords: ["use", "item", "ítem", "inven", "add"],
-        icon: "🖱️",
+        icon: "use",
         action: () => openPalette("[[use||]]"),
       },
       {
@@ -480,7 +482,7 @@ const PanelEditor = ({
         label: "Sección",
         description: "Marca de sección para choices",
         keywords: ["secc", "section", "ancora", "add"],
-        icon: "📌",
+        icon: "sec",
         action: () => openPalette("[[section||]]"),
       },
       {
@@ -488,7 +490,7 @@ const PanelEditor = ({
         label: "Sonido",
         description: "Inserta un efecto de sonido o música",
         keywords: ["son", "sound", "music", "audio", "add"],
-        icon: "🎵",
+        icon: "snd",
         action: () => openPalette("[[sound||]]"),
       },
       {
@@ -1318,14 +1320,15 @@ function BibliotecaPortadas({
                   {/* Badge TW */}
                   {(libro as any).trigger_warnings?.length > 0 && (
                     <div
-                      className="absolute top-1.5 right-1.5 w-5 h-5 rounded flex items-center justify-center text-[10px] backdrop-blur-sm"
+                      className="absolute top-1.5 right-1.5 w-5 h-5 rounded flex items-center justify-center backdrop-blur-sm"
                       style={{
                         background:
                           "color-mix(in srgb, var(--bg-main) 70%, transparent)",
+                        color: "var(--callout-warning-title)",
                       }}
                       title="Tiene Trigger Warnings"
                     >
-                      ⚠️
+                      <TriangleAlert size={10} />
                     </div>
                   )}
                 </div>
@@ -1922,7 +1925,13 @@ function BarraLibro({
                 closeAll("tw");
               }}
             >
-              ⚠️
+              <TriangleAlert
+                size={10}
+                style={{
+                  color:
+                    tws.length > 0 ? "var(--callout-warning-title)" : undefined,
+                }}
+              />
             </button>
             {dropTW && (
               <div
@@ -2136,7 +2145,7 @@ function BarraLibro({
                   "color-mix(in srgb, var(--primary) 3%, transparent)",
               }}
             >
-              🏰 {r.nombre}
+              <Globe size={8} /> {r.nombre}
             </span>
           ))}
           {reinosDelLibro.length > 0 && ciudadesDelLibro.length > 0 && (
@@ -2160,7 +2169,7 @@ function BarraLibro({
                   "color-mix(in srgb, var(--primary) 2%, transparent)",
               }}
             >
-              🏛 {c.nombre}
+              <MapPin size={8} /> {c.nombre}
             </span>
           ))}
         </div>
