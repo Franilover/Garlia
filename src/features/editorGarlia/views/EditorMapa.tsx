@@ -278,18 +278,15 @@ function ModalNuevoTile({
 function TileCard({
   tile,
   onImageSelect,
-  onLabelChange,
   onDelete,
   dragHandleProps,
 }: {
   tile: MapTile & { label?: string | null };
   onImageSelect: (url: string) => void;
-  onLabelChange: (label: string) => void;
   onDelete: () => void;
   dragHandleProps?: React.HTMLAttributes<HTMLDivElement>;
 }) {
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [localLabel, setLocalLabel] = useState(tile.label || "");
 
   return (
     <>
@@ -363,11 +360,11 @@ function TileCard({
           </button>
         </div>
 
-        {/* Thumbnail — click abre el picker */}
+        {/* Imagen completa sin recorte — click abre el picker */}
         <div
           className="relative flex-1 flex items-center justify-center cursor-pointer group"
           style={{
-            minHeight: 100,
+            minHeight: 140,
             background: "color-mix(in srgb, var(--bg-main) 60%, transparent)",
           }}
           onClick={() => setPickerOpen(true)}
@@ -376,13 +373,13 @@ function TileCard({
             <>
               <img
                 alt={`Tile ${tile.col},${tile.row}`}
-                className="absolute inset-0 w-full h-full object-cover"
+                className="w-full h-full object-contain"
                 src={tile.image_url}
-                style={{ opacity: 0.85 }}
+                style={{ maxHeight: 240 }}
               />
               <div
                 className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                style={{ background: "rgba(0,0,0,0.5)" }}
+                style={{ background: "rgba(0,0,0,0.45)" }}
               >
                 <Camera size={18} style={{ color: "var(--accent)" }} />
               </div>
@@ -405,33 +402,6 @@ function TileCard({
               </span>
             </div>
           )}
-        </div>
-
-        {/* Label */}
-        <div
-          className="px-3 py-2 border-t"
-          style={{
-            borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
-          }}
-        >
-          <input
-            className="w-full text-[10px] font-semibold bg-transparent outline-none"
-            placeholder="Etiqueta del tile..."
-            style={{
-              color: "color-mix(in srgb, var(--foreground) 70%, transparent)",
-            }}
-            value={localLabel}
-            onBlur={() => {
-              if (localLabel !== (tile.label || "")) onLabelChange(localLabel);
-            }}
-            onChange={(e) => setLocalLabel(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                onLabelChange(localLabel);
-                (e.target as HTMLInputElement).blur();
-              }
-            }}
-          />
         </div>
       </div>
     </>
@@ -730,9 +700,6 @@ export function EditorMapa() {
                             onDelete={() => handleDelete(tile.id)}
                             onImageSelect={(url) =>
                               handleImageSelect(tile.id, url)
-                            }
-                            onLabelChange={(label) =>
-                              handleLabelChange(tile.id, label)
                             }
                           />
                         ) : (
