@@ -1818,7 +1818,7 @@ function PanelListas({
             {/* Panel flotante — se superpone sobre el mapa, no le quita ancho */}
             {mapaReino && (
               <div
-                className="absolute top-0 right-0 bottom-0 w-full sm:w-[400px] z-20 flex flex-col min-h-0"
+                className="absolute top-0 right-0 bottom-0 w-full sm:w-[min(680px,65%)] z-20 flex flex-col min-h-0"
                 style={{
                   borderLeft:
                     "var(--border-width) solid color-mix(in srgb, var(--primary) 15%, transparent)",
