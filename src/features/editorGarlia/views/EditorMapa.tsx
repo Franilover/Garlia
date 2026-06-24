@@ -64,7 +64,7 @@ function Toast({
   }, [onClose]);
   return (
     <div
-      className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[300] flex items-center gap-3 px-5 py-3 shadow-lg text-[10px] font-bold uppercase tracking-widest"
+      className="fixed bottom-20 left-1/2 -translate-x-1/2 z-300 flex items-center gap-3 px-5 py-3 shadow-lg text-[10px] font-bold uppercase tracking-widest"
       style={{
         background: ok ? "rgba(5,150,105,0.95)" : "rgba(185,28,28,0.95)",
         color: "#fff",
@@ -183,7 +183,7 @@ function ModalNuevoTile({
 
   return (
     <div
-      className="fixed inset-0 z-[200] flex items-center justify-center"
+      className="fixed inset-0 z-200 flex items-center justify-center"
       style={{ background: "rgba(0,0,0,0.6)" }}
       onClick={onClose}
     >
@@ -309,7 +309,7 @@ function TileCard({
       {/* Modal picker de imagen */}
       {pickerOpen && (
         <div
-          className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+          className="fixed inset-0 z-200 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
           onClick={() => setPickerOpen(false)}
         >
           <div
@@ -435,9 +435,9 @@ export function EditorMapa() {
   const [reinos, setReinos] = useState<ReinoConTile[]>([]);
   const [selectedReinoId, setSelectedReinoId] = useState<string | null>(null);
   const [savingReino, setSavingReino] = useState(false);
-  const [pendingReinos, setPendingReinos] = useState<Map<string, ReinoConTile>>(
-    new Map(),
-  );
+  const [pendingReinos, setPendingReinos] = useState<
+    Record<string, ReinoConTile>
+  >({});
 
   // Drag state
   const draggedIdx = useRef<number | null>(null);
@@ -493,22 +493,20 @@ export function EditorMapa() {
       prev.map((r) => (r.id === selectedReinoId ? { ...r, ...updated } : r)),
     );
     setPendingReinos((prev) => {
-      const next = new Map(prev);
-      const existing = next.get(selectedReinoId) ??
+      const existing = prev[selectedReinoId] ??
         reinos.find((r) => r.id === selectedReinoId) ?? { id: selectedReinoId };
-      next.set(selectedReinoId, { ...existing, ...updated });
-      return next;
+      return { ...prev, [selectedReinoId]: { ...existing, ...updated } };
     });
     setSelectedReinoId(null);
   };
 
   // ── Guardar posiciones de reinos ──────────────────────────────────────────
   const handleSaveReinos = async () => {
-    if (pendingReinos.size === 0) return;
+    if (Object.keys(pendingReinos).length === 0) return;
     setSavingReino(true);
     try {
       await Promise.all(
-        [...pendingReinos.values()].map((r) =>
+        Object.values(pendingReinos).map((r) =>
           supabase
             .from("reinos")
             .update({
@@ -520,7 +518,7 @@ export function EditorMapa() {
             .eq("id", r.id),
         ),
       );
-      setPendingReinos(new Map());
+      setPendingReinos({});
       showToast("Posiciones guardadas", true);
     } catch {
       showToast("Error al guardar posiciones", false);
@@ -761,15 +759,15 @@ export function EditorMapa() {
                     Cancelar
                   </button>
                 )}
-                {pendingReinos.size > 0 && (
+                {Object.keys(pendingReinos).length > 0 && (
                   <button
                     className="btn-brand flex items-center gap-1.5 px-3 py-1.5 text-[9px] uppercase disabled:opacity-50"
                     disabled={savingReino}
                     onClick={handleSaveReinos}
                   >
                     {savingReino ? <Hourglass size={10} /> : null}
-                    Guardar {pendingReinos.size} cambio
-                    {pendingReinos.size > 1 ? "s" : ""}
+                    Guardar {Object.keys(pendingReinos).length} cambio
+                    {Object.keys(pendingReinos).length > 1 ? "s" : ""}
                   </button>
                 )}
               </div>
