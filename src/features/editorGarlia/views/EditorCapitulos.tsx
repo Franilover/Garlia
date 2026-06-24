@@ -173,14 +173,12 @@ const PanelEditor = ({
   onCapitulosChange,
   focusMode,
   onToggleFocus,
-  onVolver,
 }: {
   capId: string;
   libroId: string;
   onCapitulosChange: () => void;
   focusMode: boolean;
   onToggleFocus: () => void;
-  onVolver: () => void;
 }) => {
   const { cap, setCap, loading, isOffline, reload } = useCapituloEditor(capId);
 
@@ -682,183 +680,62 @@ const PanelEditor = ({
       )}
 
       {!focusMode && (
-        <div className="shrink-0 px-4 sm:px-8 pt-4 sm:pt-6 pb-3 sm:pb-4 border-b border-primary/8 space-y-3">
-          {/* Botón volver */}
-          <div className="flex items-center">
-            <button
-              className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-primary/30 hover:text-primary transition-colors group"
-              onClick={onVolver}
-            >
-              <ChevronRight
-                className="rotate-180 transition-transform group-hover:-translate-x-0.5"
-                size={10}
-              />
-              Biblioteca
-            </button>
-          </div>
-
+        <div className="shrink-0 px-5 pt-4 pb-2 border-b border-primary/8 space-y-1.5">
           {/* Título editable */}
-          <div className="flex items-start gap-2">
-            {editingTitle ? (
-              <div className="flex-1 flex items-center gap-2">
-                <input
-                  autoFocus
-                  className="flex-1 bg-transparent text-lg sm:text-2xl font-black uppercase italic tracking-tight text-primary outline-none border-b-2 border-primary/30 focus:border-primary pb-1"
-                  value={titulo}
-                  onChange={(e) => setTitulo(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handleSaveTitle();
-                    if (e.key === "Escape") {
-                      setEditingTitle(false);
-                      setTitulo(cap.titulo_capitulo);
-                    }
-                  }}
-                />
-                <button
-                  className="p-2 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-all disabled:opacity-40"
-                  disabled={savingMeta}
-                  onClick={handleSaveTitle}
-                >
-                  {savingMeta ? (
-                    <Loader2 className="animate-spin" size={14} />
-                  ) : (
-                    <Check size={14} />
-                  )}
-                </button>
-                <button
-                  className="p-2 rounded-lg hover:bg-primary/5 text-primary/30 hover:text-primary transition-all"
-                  onClick={() => {
+          {editingTitle ? (
+            <div className="flex items-center gap-1.5">
+              <input
+                autoFocus
+                className="flex-1 bg-transparent text-base font-black uppercase italic tracking-tight text-primary outline-none border-b border-primary/30 focus:border-primary pb-0.5"
+                value={titulo}
+                onChange={(e) => setTitulo(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleSaveTitle();
+                  if (e.key === "Escape") {
                     setEditingTitle(false);
                     setTitulo(cap.titulo_capitulo);
-                  }}
-                >
-                  <X size={14} />
-                </button>
-              </div>
-            ) : (
-              <div className="flex items-start gap-2 flex-1 min-w-0">
-                <h1
-                  className="flex-1 text-lg sm:text-2xl font-black uppercase italic tracking-tight text-primary leading-tight cursor-pointer hover:text-primary/70 transition-colors"
-                  onClick={() => setEditingTitle(true)}
-                >
-                  {cap.titulo_capitulo}
-                </h1>
-                <button
-                  className="shrink-0 p-1.5 rounded-lg hover:bg-primary/8 text-primary/25 hover:text-primary transition-all mt-0.5"
-                  onClick={() => setEditingTitle(true)}
-                >
-                  <Pencil size={12} />
-                </button>
-              </div>
-            )}
-
-            {/* Acciones: guardar + eliminar */}
-            <div className="flex items-center gap-1 shrink-0">
-              <SaveIndicator status={saveStatus} />
+                  }
+                }}
+              />
               <button
-                className="p-2 rounded-lg hover:bg-primary/8 text-primary/30 hover:text-primary transition-all disabled:opacity-30"
-                disabled={saveStatus === "saving"}
-                title="Guardar (Ctrl+S)"
-                onClick={() => doSave(contenido)}
+                className="p-1 rounded hover:bg-primary/10 text-primary transition-all disabled:opacity-40"
+                disabled={savingMeta}
+                onClick={handleSaveTitle}
               >
-                <Save size={14} />
+                {savingMeta ? (
+                  <Loader2 className="animate-spin" size={11} />
+                ) : (
+                  <Check size={11} />
+                )}
               </button>
               <button
-                className="p-2 rounded-lg hover:bg-red-500/10 text-primary/20 hover:text-red-400 transition-all"
-                title="Eliminar capítulo"
-                onClick={handleDelete}
+                className="p-1 rounded text-primary/30 hover:text-primary transition-all"
+                onClick={() => {
+                  setEditingTitle(false);
+                  setTitulo(cap.titulo_capitulo);
+                }}
               >
-                <Trash2 size={13} />
-              </button>
-              <button
-                className="lg:hidden p-2 rounded-lg hover:bg-primary/8 text-primary/30 hover:text-primary transition-all"
-                title="Metadatos"
-                onClick={() => setMobileSidebarOpen(true)}
-              >
-                <SlidersHorizontal size={13} />
+                <X size={11} />
               </button>
             </div>
-          </div>
+          ) : (
+            <h1
+              className="text-base font-black uppercase italic tracking-tight text-primary leading-tight cursor-pointer hover:text-primary/60 transition-colors"
+              onClick={() => setEditingTitle(true)}
+            >
+              {cap.titulo_capitulo}
+            </h1>
+          )}
 
-          {/* Meta row */}
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-1 text-[9px] font-black uppercase text-primary/30 tracking-widest flex-wrap min-w-0 overflow-x-auto">
-              <span className="flex items-center gap-1 shrink-0">
-                <Hash size={9} /> {cap.orden}
+          {/* Meta row compacta */}
+          <div className="flex items-center gap-2">
+            {/* Info pills */}
+            <div className="flex items-center gap-1.5 flex-1 min-w-0 flex-wrap text-[8px] font-black uppercase tracking-widest text-primary/30">
+              <span className="flex items-center gap-0.5 shrink-0">
+                <Hash size={8} /> {cap.orden}
               </span>
 
               {cap.narrador_id && <NarradorPill narradorId={cap.narrador_id} />}
-
-              {capVisibilidad === "programado" &&
-                (editingFecha ? (
-                  <span className="flex items-center gap-1.5">
-                    <Calendar size={9} />
-                    <input
-                      autoFocus
-                      className="bg-primary/5 border border-primary/20 rounded-lg px-2 py-0.5 text-[9px] font-bold text-primary outline-none focus:border-primary/40 transition-colors"
-                      type="date"
-                      value={fecha}
-                      onChange={(e) => setFecha(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") handleSaveFecha();
-                        if (e.key === "Escape") {
-                          setEditingFecha(false);
-                          setFecha(toDateInput(cap.fecha_publicacion));
-                        }
-                      }}
-                    />
-                    <button
-                      className="p-1 rounded bg-primary/10 text-primary hover:bg-primary/20 transition-all disabled:opacity-40"
-                      disabled={savingMeta}
-                      onClick={handleSaveFecha}
-                    >
-                      {savingMeta ? (
-                        <Loader2 className="animate-spin" size={10} />
-                      ) : (
-                        <Check size={10} />
-                      )}
-                    </button>
-                    <button
-                      className="p-1 rounded hover:bg-primary/5 text-primary/30 hover:text-primary transition-all"
-                      onClick={() => {
-                        setEditingFecha(false);
-                        setFecha(toDateInput(cap.fecha_publicacion));
-                      }}
-                    >
-                      <X size={10} />
-                    </button>
-                  </span>
-                ) : (
-                  <button
-                    className="flex items-center gap-1 hover:text-primary transition-colors group/fecha"
-                    title="Editar fecha"
-                    onClick={() => setEditingFecha(true)}
-                  >
-                    <Calendar size={9} />
-                    <span className="hidden sm:inline">
-                      {fecha
-                        ? new Date(fecha) > new Date()
-                          ? `Prog. · ${new Date(fecha).toLocaleDateString("es-ES", { day: "numeric", month: "short" })}`
-                          : new Date(fecha).toLocaleDateString("es-ES", {
-                              day: "numeric",
-                              month: "short",
-                            })
-                        : "Sin fecha"}
-                    </span>
-                    <span className="sm:hidden">
-                      {fecha
-                        ? new Date(fecha).toLocaleDateString("es-ES", {
-                            day: "numeric",
-                            month: "short",
-                          })
-                        : "Fecha"}
-                    </span>
-                    <Pencil
-                      className="opacity-0 group-hover/fecha:opacity-60 transition-opacity ml-0.5"
-                      size={8}
-                    />
-                  </button>
-                ))}
 
               <VisibilidadCapPicker
                 capId={capId}
@@ -872,28 +749,120 @@ const PanelEditor = ({
                   }
                 }}
               />
+
+              {capVisibilidad === "programado" &&
+                (editingFecha ? (
+                  <span className="flex items-center gap-1">
+                    <input
+                      autoFocus
+                      className="bg-primary/5 border border-primary/20 rounded px-1.5 py-0.5 text-[8px] font-bold text-primary outline-none"
+                      type="date"
+                      value={fecha}
+                      onChange={(e) => setFecha(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleSaveFecha();
+                        if (e.key === "Escape") {
+                          setEditingFecha(false);
+                          setFecha(toDateInput(cap.fecha_publicacion));
+                        }
+                      }}
+                    />
+                    <button
+                      className="p-0.5 rounded bg-primary/10 text-primary disabled:opacity-40"
+                      disabled={savingMeta}
+                      onClick={handleSaveFecha}
+                    >
+                      {savingMeta ? (
+                        <Loader2 className="animate-spin" size={8} />
+                      ) : (
+                        <Check size={8} />
+                      )}
+                    </button>
+                    <button
+                      className="p-0.5 rounded text-primary/30"
+                      onClick={() => {
+                        setEditingFecha(false);
+                        setFecha(toDateInput(cap.fecha_publicacion));
+                      }}
+                    >
+                      <X size={8} />
+                    </button>
+                  </span>
+                ) : (
+                  <button
+                    className="flex items-center gap-0.5 hover:text-primary transition-colors"
+                    onClick={() => setEditingFecha(true)}
+                  >
+                    <Calendar size={8} />
+                    {fecha
+                      ? new Date(fecha).toLocaleDateString("es-ES", {
+                          day: "numeric",
+                          month: "short",
+                        })
+                      : "Sin fecha"}
+                  </button>
+                ))}
+
+              <EstadisticasEscritura compact={true} texto={contenido} />
             </div>
 
-            <div className="flex items-center gap-2 shrink-0">
-              <EstadisticasEscritura compact={true} texto={contenido} />
+            {/* Acciones */}
+            <div className="flex items-center gap-0.5 shrink-0">
+              <SaveIndicator status={saveStatus} />
+              <button
+                className="p-1.5 rounded hover:bg-primary/8 text-primary/25 hover:text-primary transition-all disabled:opacity-30"
+                disabled={saveStatus === "saving"}
+                title="Guardar (Ctrl+S)"
+                onClick={() => doSave(contenido)}
+              >
+                <Save size={11} />
+              </button>
+              <button
+                className="p-1.5 rounded hover:bg-primary/8 text-primary/25 hover:text-primary transition-all"
+                title="Vista previa"
+                onClick={() => setPreviewOpen(true)}
+              >
+                <Eye size={11} />
+              </button>
+              <button
+                className="p-1.5 rounded hover:bg-primary/8 text-primary/25 hover:text-primary transition-all"
+                title="Modo foco"
+                onClick={onToggleFocus}
+              >
+                <Minimize2 size={11} />
+              </button>
+              <button
+                className="p-1.5 rounded hover:bg-red-500/10 text-primary/20 hover:text-red-400 transition-all"
+                title="Eliminar capítulo"
+                onClick={handleDelete}
+              >
+                <Trash2 size={11} />
+              </button>
+              <button
+                className="lg:hidden p-1.5 rounded hover:bg-primary/8 text-primary/25 hover:text-primary transition-all"
+                title="Metadatos"
+                onClick={() => setMobileSidebarOpen(true)}
+              >
+                <SlidersHorizontal size={11} />
+              </button>
             </div>
           </div>
         </div>
       )}
 
       {focusMode && (
-        <div className="shrink-0 flex items-center justify-between px-3 sm:px-8 py-2 sm:py-3 border-b border-primary/5">
-          <span className="text-xs font-black uppercase italic tracking-tight text-primary/40 truncate max-w-[180px] sm:max-w-xs">
+        <div className="shrink-0 flex items-center justify-between px-4 py-1.5 border-b border-primary/5">
+          <span className="text-[9px] font-black uppercase italic tracking-tight text-primary/35 truncate max-w-xs">
             {cap.titulo_capitulo}
           </span>
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-1.5">
             <EstadisticasEscritura compact={true} texto={contenido} />
             <SaveIndicator status={saveStatus} />
             <button
-              className="p-1.5 rounded-lg hover:bg-primary/8 text-primary/25 hover:text-primary transition-all"
+              className="p-1.5 rounded hover:bg-primary/8 text-primary/25 hover:text-primary transition-all"
               onClick={onToggleFocus}
             >
-              <Minimize2 size={13} />
+              <Minimize2 size={11} />
             </button>
           </div>
         </div>
@@ -2574,10 +2543,6 @@ export function EditorCapitulosPanel() {
                 libroId={selectedLibroId}
                 onCapitulosChange={() => setCapRefreshKey((k) => k + 1)}
                 onToggleFocus={() => setFocusMode((m) => !m)}
-                onVolver={() => {
-                  setSelectedCapId(null);
-                  setVistaLibroId(selectedLibroId);
-                }}
               />
             </div>
           )}
