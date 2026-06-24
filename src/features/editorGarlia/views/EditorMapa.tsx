@@ -397,6 +397,7 @@ export function EditorMapa() {
   const [showModal, setShowModal] = useState(false);
   const [reinos, setReinos] = useState<ReinoConTile[]>([]);
   const [selectedReinoId, setSelectedReinoId] = useState<string | null>(null);
+  const [mode, setMode] = useState<"mover" | "tiles">("mover");
   const [savingReino, setSavingReino] = useState(false);
   const [pendingReinos, setPendingReinos] = useState<
     Record<string, ReinoConTile>
@@ -677,19 +678,20 @@ export function EditorMapa() {
         </button>
       </div>
 
-      {/* Contenido */}
-      <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
+      {/* Contenido unificado */}
+      <div className="flex-1 overflow-y-auto flex flex-col min-h-0">
         {loading ? (
-          <div
-            className="flex items-center justify-center h-40 gap-2"
-            style={{
-              color: "color-mix(in srgb, var(--accent) 40%, transparent)",
-            }}
-          >
-            <Hourglass size={14} />
+          <div className="flex items-center justify-center flex-1">
+            <span
+              style={{
+                color: "color-mix(in srgb, var(--accent) 40%, transparent)",
+              }}
+            >
+              <Hourglass size={14} />
+            </span>
           </div>
         ) : tiles.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-60 gap-3">
+          <div className="flex flex-col items-center justify-center flex-1 gap-3">
             <Map
               size={24}
               style={{
@@ -704,132 +706,180 @@ export function EditorMapa() {
             </button>
           </div>
         ) : (
-          <>
-            {/* Canvas: mover reinos */}
-            <div className="flex flex-col gap-1.5">
-              <div className="flex items-center gap-2 h-6">
-                <span
-                  className="text-[9px] font-bold uppercase tracking-widest flex-1"
-                  style={{
-                    color: selectedReinoId
-                      ? "var(--accent)"
-                      : "color-mix(in srgb, var(--foreground) 30%, transparent)",
-                  }}
-                >
-                  {selectedReinoId
-                    ? `→ click para mover "${reinos.find((r) => r.id === selectedReinoId)?.nombre}"`
-                    : "click un reino para reubicarlo"}
-                </span>
-                {selectedReinoId && (
-                  <button
-                    className="w-5 h-5 flex items-center justify-center opacity-40 hover:opacity-80 transition-opacity"
-                    onClick={() => setSelectedReinoId(null)}
-                  >
-                    <X size={11} />
-                  </button>
-                )}
-                {Object.keys(pendingReinos).length > 0 && (
-                  <button
-                    className="btn-brand flex items-center gap-1 px-2 py-1 text-[9px] uppercase disabled:opacity-50"
-                    disabled={savingReino}
-                    onClick={handleSaveReinos}
-                  >
-                    {savingReino ? <Hourglass size={9} /> : null}
-                    Guardar {Object.keys(pendingReinos).length}
-                  </button>
-                )}
-              </div>
-              <div style={{ height: 340, position: "relative" }}>
-                <TileCanvas
-                  editMode={true}
-                  eyedropperActive={false}
-                  fondoColor={null}
-                  hiddenMarkers={[]}
-                  isFirstOpen={false}
-                  markers={reinos.filter(
-                    (r) => r.coord_x != null && r.tile_col != null,
-                  )}
-                  selectedMarkerId={selectedReinoId}
-                  tiles={tiles}
-                  onEyedropperPick={() => {}}
-                  onMapClick={handleMapClick}
-                  onMarkerClick={(m) =>
-                    setSelectedReinoId((prev) => (prev === m.id ? null : m.id))
-                  }
-                />
-              </div>
-            </div>
-
-            {/* Grilla de tiles */}
+          <div className="flex flex-col flex-1 min-h-0">
+            {/* ── Toggle de modo + estado contextual ── */}
             <div
-              className="grid gap-2"
+              className="flex items-center gap-2 px-4 py-2 border-b shrink-0"
               style={{
-                gridTemplateColumns: `repeat(${maxCol + 1}, minmax(120px, 1fr))`,
+                borderColor:
+                  "color-mix(in srgb, var(--primary) 8%, transparent)",
               }}
             >
-              {Array.from({ length: maxRow + 1 }, (_, row) =>
-                Array.from({ length: maxCol + 1 }, (_, col) => {
-                  const tile = getTileAt(col, row);
-                  const idx = tile
-                    ? tiles.findIndex((t) => t.id === tile.id)
-                    : -1;
-                  return (
-                    <div
-                      key={`${col}-${row}`}
-                      draggable={!!tile}
-                      style={{
-                        outline:
-                          dragOverIdx === idx
-                            ? `2px solid var(--accent)`
-                            : undefined,
-                        opacity: draggedIdx.current === idx ? 0.4 : 1,
-                        transition: "outline 0.1s, opacity 0.1s",
-                      }}
-                      onDragOver={(e) => tile && handleDragOver(e, idx)}
-                      onDragStart={() => tile && handleDragStart(idx)}
-                      onDrop={() => tile && handleDrop(idx)}
-                      onDragEnd={() => {
-                        draggedIdx.current = null;
-                        setDragOverIdx(null);
-                      }}
-                    >
-                      {tile ? (
-                        <TileCard
-                          tile={tile}
-                          dragHandleProps={{ draggable: false }}
-                          onDelete={() => handleDelete(tile.id)}
-                          onImageSelect={(url) =>
-                            handleImageSelect(tile.id, url)
-                          }
-                        />
-                      ) : (
-                        <button
-                          className="w-full border border-dashed flex items-center justify-center transition-all hover:opacity-60"
-                          style={{
-                            minHeight: 90,
-                            borderColor:
-                              "color-mix(in srgb, var(--primary) 12%, transparent)",
-                            background:
-                              "color-mix(in srgb, var(--primary) 3%, transparent)",
-                            borderRadius: "2px",
-                          }}
-                          onClick={() => setShowModal(true)}
-                        >
-                          <Plus
-                            size={12}
-                            style={{
-                              color:
-                                "color-mix(in srgb, var(--accent) 25%, transparent)",
-                            }}
-                          />
-                        </button>
-                      )}
-                    </div>
-                  );
-                }),
+              {/* Toggle */}
+              <div
+                className="flex rounded overflow-hidden border shrink-0"
+                style={{
+                  borderColor:
+                    "color-mix(in srgb, var(--primary) 15%, transparent)",
+                }}
+              >
+                {(["mover", "tiles"] as const).map((m) => (
+                  <button
+                    key={m}
+                    className="px-3 py-1.5 text-[9px] font-black uppercase tracking-widest transition-all"
+                    style={{
+                      background: mode === m ? "var(--primary)" : "transparent",
+                      color:
+                        mode === m
+                          ? "var(--btn-text, #fff)"
+                          : "color-mix(in srgb, var(--foreground) 40%, transparent)",
+                    }}
+                    onClick={() => {
+                      setMode(m);
+                      setSelectedReinoId(null);
+                    }}
+                  >
+                    {m === "mover" ? "Reinos" : "Tiles"}
+                  </button>
+                ))}
+              </div>
+
+              {/* Estado contextual */}
+              <span
+                className="text-[9px] uppercase tracking-widest flex-1 truncate"
+                style={{
+                  color:
+                    "color-mix(in srgb, var(--foreground) 30%, transparent)",
+                }}
+              >
+                {mode === "mover"
+                  ? selectedReinoId
+                    ? `→ click para mover "${reinos.find((r) => r.id === selectedReinoId)?.nombre}"`
+                    : "click un reino para reubicarlo"
+                  : "click imagen para cambiarla · arrastra para reordenar"}
+              </span>
+
+              {/* Acciones contextuales */}
+              {mode === "mover" && selectedReinoId && (
+                <button
+                  className="w-5 h-5 flex items-center justify-center opacity-40 hover:opacity-80 transition-opacity"
+                  onClick={() => setSelectedReinoId(null)}
+                >
+                  <X size={10} />
+                </button>
+              )}
+              {mode === "mover" && Object.keys(pendingReinos).length > 0 && (
+                <button
+                  className="btn-brand flex items-center gap-1 px-2 py-1 text-[9px] uppercase disabled:opacity-50 shrink-0"
+                  disabled={savingReino}
+                  onClick={handleSaveReinos}
+                >
+                  {savingReino ? <Hourglass size={9} /> : null}
+                  Guardar {Object.keys(pendingReinos).length}
+                </button>
               )}
             </div>
-          </>
+
+            {/* ── Canvas siempre visible ── */}
+            <div style={{ height: 320, position: "relative", flexShrink: 0 }}>
+              <TileCanvas
+                editMode={true}
+                eyedropperActive={false}
+                fondoColor={null}
+                hiddenMarkers={[]}
+                isFirstOpen={false}
+                markers={reinos.filter(
+                  (r) => r.coord_x != null && r.tile_col != null,
+                )}
+                selectedMarkerId={mode === "mover" ? selectedReinoId : null}
+                tiles={tiles}
+                onEyedropperPick={() => {}}
+                onMapClick={mode === "mover" ? handleMapClick : () => {}}
+                onMarkerClick={
+                  mode === "mover"
+                    ? (m) =>
+                        setSelectedReinoId((prev) =>
+                          prev === m.id ? null : m.id,
+                        )
+                    : () => {}
+                }
+              />
+            </div>
+
+            {/* ── Panel inferior: grilla de tiles (solo en modo tiles) ── */}
+            {mode === "tiles" && (
+              <div className="flex-1 overflow-y-auto p-3">
+                <div
+                  className="grid gap-2"
+                  style={{
+                    gridTemplateColumns: `repeat(${maxCol + 1}, minmax(110px, 1fr))`,
+                  }}
+                >
+                  {Array.from({ length: maxRow + 1 }, (_, row) =>
+                    Array.from({ length: maxCol + 1 }, (_, col) => {
+                      const tile = getTileAt(col, row);
+                      const idx = tile
+                        ? tiles.findIndex((t) => t.id === tile.id)
+                        : -1;
+                      return (
+                        <div
+                          key={`${col}-${row}`}
+                          draggable={!!tile}
+                          style={{
+                            outline:
+                              dragOverIdx === idx
+                                ? `2px solid var(--accent)`
+                                : undefined,
+                            opacity: draggedIdx.current === idx ? 0.4 : 1,
+                            transition: "outline 0.1s, opacity 0.1s",
+                          }}
+                          onDragOver={(e) => tile && handleDragOver(e, idx)}
+                          onDragStart={() => tile && handleDragStart(idx)}
+                          onDrop={() => tile && handleDrop(idx)}
+                          onDragEnd={() => {
+                            draggedIdx.current = null;
+                            setDragOverIdx(null);
+                          }}
+                        >
+                          {tile ? (
+                            <TileCard
+                              tile={tile}
+                              dragHandleProps={{ draggable: false }}
+                              onDelete={() => handleDelete(tile.id)}
+                              onImageSelect={(url) =>
+                                handleImageSelect(tile.id, url)
+                              }
+                            />
+                          ) : (
+                            <button
+                              className="w-full border border-dashed flex items-center justify-center transition-all hover:opacity-60"
+                              style={{
+                                minHeight: 80,
+                                borderColor:
+                                  "color-mix(in srgb, var(--primary) 12%, transparent)",
+                                background:
+                                  "color-mix(in srgb, var(--primary) 3%, transparent)",
+                                borderRadius: "2px",
+                              }}
+                              onClick={() => setShowModal(true)}
+                            >
+                              <Plus
+                                size={11}
+                                style={{
+                                  color:
+                                    "color-mix(in srgb, var(--accent) 25%, transparent)",
+                                }}
+                              />
+                            </button>
+                          )}
+                        </div>
+                      );
+                    }),
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
         )}
       </div>
     </div>
