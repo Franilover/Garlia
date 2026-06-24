@@ -1247,155 +1247,139 @@ function PanelListas({
       {/* ── Editor overlay (now rendered inline inside the scroll, see ENTIDADES section) ── */}
       {/* ── Scroll vertical ─────────────────────────────────────────────── */}
       <div
-          ref={scrollRef}
-          className="flex-1 overflow-y-auto min-h-0"
-          onScroll={handleScroll}
-        >
-          {/* HISTORIA */}
-          {textos && onTextoChange && onSave && (
-            <div
-              className="border-b"
-              style={{
-                borderColor:
-                  "color-mix(in srgb, var(--primary) 8%, transparent)",
-              }}
-            >
-              <PanelHistoriaMundo
-                texto={textos.historia}
-                onChange={(v) => onTextoChange("historia", v)}
-                onSave={() => onSave("historia")}
-                onSelectPersonaje={async (id) => {
-                  // Buscar el personaje en la lista local primero
-                  const local = personajes.find((p) => p.id === id);
-                  if (local) {
-                    selectPersonaje(local);
-                    return;
-                  }
-                  // Si no está en memoria, buscarlo en Supabase
-                  try {
-                    const { data } = await supabase
-                      .from("personajes")
-                      .select("id, nombre, img_url, especie, sobre, reino")
-                      .eq("id", id)
-                      .single();
-                    if (data) selectPersonaje(data as Personaje);
-                  } catch {}
-                }}
-                onSelectCancion={async (id) => {
-                  // Buscar la canción en la lista local primero
-                  const local = canciones.find((c) => c.id === id);
-                  if (local) {
-                    selectCancion(local);
-                    return;
-                  }
-                  // Si no está en memoria, buscarlo en Supabase
-                  try {
-                    const { data } = await supabase
-                      .from("canciones")
-                      .select(
-                        "id, titulo, cantante, compositor, idioma, estado, portada_url, links, visible, created_at, updated_at, personaje_id",
-                      )
-                      .eq("id", id)
-                      .single();
-                    if (data) selectCancion(data as unknown as Cancion);
-                  } catch {}
-                }}
-                onSelectCapitulo={(capituloId, libroId) => {
-                  // Escribir las claves que EditorCapitulosPanel ya sabe leer
-                  try {
-                    localStorage.setItem("estudio-caps-last-cap", capituloId);
-                    localStorage.setItem("estudio-caps-last-libro", libroId);
-                  } catch {}
-                  // Cerrar cualquier overlay abierto y scrollear a la sección
-                  clearAllOverlays();
-                  setTimeout(() => {
-                    capitulosRef.current?.scrollIntoView({
-                      behavior: "smooth",
-                      block: "start",
-                    });
-                    // Disparar el evento que EditorCapitulosPanel escucha
-                    window.dispatchEvent(
-                      new CustomEvent("estudio-caps-action"),
-                    );
-                  }, 80);
-                }}
-              />
-            </div>
-          )}
-
-          {/* CAPÍTULOS */}
-          <div ref={capitulosRef} style={{ minHeight: "60vh" }}>
-            <div
-              className="flex flex-col min-h-0"
-              style={{ minHeight: "58vh" }}
-            >
-              <EstudioCapitulos />
-            </div>
-          </div>
-
-          {/* MAPA */}
+        ref={scrollRef}
+        className="flex-1 overflow-y-auto min-h-0"
+        onScroll={handleScroll}
+      >
+        {/* HISTORIA */}
+        {textos && onTextoChange && onSave && (
           <div
             className="border-b"
             style={{
               borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
-              minHeight: "70vh",
-              position: "relative",
             }}
           >
-            {/* Mapa — ocupa todo el ancho siempre */}
+            <PanelHistoriaMundo
+              texto={textos.historia}
+              onChange={(v) => onTextoChange("historia", v)}
+              onSave={() => onSave("historia")}
+              onSelectPersonaje={async (id) => {
+                // Buscar el personaje en la lista local primero
+                const local = personajes.find((p) => p.id === id);
+                if (local) {
+                  selectPersonaje(local);
+                  return;
+                }
+                // Si no está en memoria, buscarlo en Supabase
+                try {
+                  const { data } = await supabase
+                    .from("personajes")
+                    .select("id, nombre, img_url, especie, sobre, reino")
+                    .eq("id", id)
+                    .single();
+                  if (data) selectPersonaje(data as Personaje);
+                } catch {}
+              }}
+              onSelectCancion={async (id) => {
+                // Buscar la canción en la lista local primero
+                const local = canciones.find((c) => c.id === id);
+                if (local) {
+                  selectCancion(local);
+                  return;
+                }
+                // Si no está en memoria, buscarlo en Supabase
+                try {
+                  const { data } = await supabase
+                    .from("canciones")
+                    .select(
+                      "id, titulo, cantante, compositor, idioma, estado, portada_url, links, visible, created_at, updated_at, personaje_id",
+                    )
+                    .eq("id", id)
+                    .single();
+                  if (data) selectCancion(data as unknown as Cancion);
+                } catch {}
+              }}
+              onSelectCapitulo={(capituloId, libroId) => {
+                // Escribir las claves que EditorCapitulosPanel ya sabe leer
+                try {
+                  localStorage.setItem("estudio-caps-last-cap", capituloId);
+                  localStorage.setItem("estudio-caps-last-libro", libroId);
+                } catch {}
+                // Cerrar cualquier overlay abierto y scrollear a la sección
+                clearAllOverlays();
+                setTimeout(() => {
+                  capitulosRef.current?.scrollIntoView({
+                    behavior: "smooth",
+                    block: "start",
+                  });
+                  // Disparar el evento que EditorCapitulosPanel escucha
+                  window.dispatchEvent(new CustomEvent("estudio-caps-action"));
+                }, 80);
+              }}
+            />
+          </div>
+        )}
+
+        {/* CAPÍTULOS */}
+        <div ref={capitulosRef} style={{ minHeight: "60vh" }}>
+          <div className="flex flex-col min-h-0" style={{ minHeight: "58vh" }}>
+            <EstudioCapitulos />
+          </div>
+        </div>
+
+        {/* ENTIDADES */}
+        <div
+          className="border-b"
+          style={{
+            borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
+            position: "relative",
+          }}
+        >
+          {/* ── Overlay inline: reemplaza solo el bloque de entidades ── */}
+          {overlay && (
             <div
               className="flex flex-col min-h-0"
-              style={{ minHeight: "68vh" }}
+              style={{ background: "var(--bg-main)", minHeight: 400 }}
             >
-              <EditorMapa onSelectReino={(id) => setMapaReinoId(id)} />
-            </div>
-
-            {/* Panel flotante — se superpone sobre el mapa, no le quita ancho */}
-            {mapaReino && (
+              {/* Botón volver al menú */}
               <div
-                className="absolute top-0 right-0 bottom-0 w-full sm:w-[min(680px,65%)] z-20 flex flex-col min-h-0"
+                className="shrink-0 flex items-center px-3"
                 style={{
-                  borderLeft:
-                    "var(--border-width) solid color-mix(in srgb, var(--primary) 15%, transparent)",
-                  background: "var(--bg-main)",
-                  boxShadow: "-8px 0 24px -4px rgba(0,0,0,0.25)",
+                  height: 40,
+                  borderBottom:
+                    "var(--border-width) solid color-mix(in srgb, var(--primary) 8%, transparent)",
                 }}
               >
-                <div
-                  className="shrink-0 flex items-center justify-between px-3"
-                  style={{
-                    height: 40,
-                    borderBottom:
-                      "var(--border-width) solid color-mix(in srgb, var(--primary) 8%, transparent)",
-                    background: "var(--bg-main)",
-                  }}
+                <button
+                  className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-primary/40 hover:text-primary/70 transition-colors"
+                  onClick={clearAllOverlays}
+                  type="button"
                 >
-                  <span className="text-[10px] font-black uppercase tracking-widest text-primary/50 truncate">
-                    {mapaReino.nombre}
-                  </span>
-                  <button
-                    className="opacity-50 hover:opacity-100 transition-opacity shrink-0"
-                    title="Cerrar"
-                    onClick={() => setMapaReinoId(null)}
-                  >
-                    <X size={14} />
-                  </button>
-                </div>
-                <div className="flex-1 flex min-h-0 overflow-hidden">
+                  <ChevronLeft size={12} />
+                  Volver
+                </button>
+              </div>
+
+              {/* Contenido del editor activo */}
+              <div
+                className="flex-1 flex flex-col min-h-0 overflow-hidden"
+                style={{ minHeight: 360 }}
+              >
+                {overlay === "reino" && selectedReino && (
                   <EditorReino
-                    key={mapaReino.id}
+                    key={selectedReino.id}
                     entities={allEntityNames}
-                    item={mapaReino}
+                    item={selectedReino}
                     onDeleted={(id) => {
                       setReinos((p) => p.filter((r) => r.id !== id));
-                      setMapaReinoId(null);
+                      setSelectedReino(null);
                     }}
                     onSaved={(u) => {
                       setReinos((p) => p.map((r) => (r.id === u.id ? u : r)));
+                      setSelectedReino(u);
                     }}
                     onSelectCiudad={async (id: string) => {
                       const local = ciudades.find((x) => x.id === id);
-                      setMapaReinoId(null);
                       clearAllOverlays();
                       if (local) {
                         setSelectedCiudad(local as Ciudad);
@@ -1411,14 +1395,12 @@ function PanelListas({
                     onSelectCriatura={(id) => {
                       const c = criaturas.find((x) => x.id === id);
                       if (!c) return;
-                      setMapaReinoId(null);
                       clearAllOverlays();
                       setSelectedCriatura(c);
                     }}
                     onSelectItem={(id) => {
                       const o = objetos.find((x) => x.id === id);
                       if (!o) return;
-                      setMapaReinoId(null);
                       clearAllOverlays();
                       setSelectedObjeto(o);
                     }}
@@ -1427,747 +1409,857 @@ function PanelListas({
                         (x) => x.id === p?.id || x.nombre === p?.nombre,
                       );
                       if (!found) return;
-                      setMapaReinoId(null);
                       clearAllOverlays();
                       setSelectedPersonaje(found);
                     }}
                   />
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* ENTIDADES */}
-          <div
-            className="border-b"
-            style={{
-              borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
-              position: "relative",
-            }}
-          >
-            {/* ── Overlay inline: reemplaza solo el bloque de entidades ── */}
-            {overlay && (
-              <div
-                className="flex flex-col min-h-0"
-                style={{ background: "var(--bg-main)", minHeight: 400 }}
-              >
-                {/* Botón volver al menú */}
-                <div
-                  className="shrink-0 flex items-center px-3"
-                  style={{
-                    height: 40,
-                    borderBottom:
-                      "var(--border-width) solid color-mix(in srgb, var(--primary) 8%, transparent)",
-                  }}
-                >
-                  <button
-                    className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-primary/40 hover:text-primary/70 transition-colors"
-                    onClick={clearAllOverlays}
-                    type="button"
-                  >
-                    <ChevronLeft size={12} />
-                    Volver
-                  </button>
-                </div>
-
-                {/* Contenido del editor activo */}
-                <div className="flex-1 flex flex-col min-h-0 overflow-hidden" style={{ minHeight: 360 }}>
-                  {overlay === "reino" && selectedReino && (
-                    <EditorReino
-                      key={selectedReino.id}
-                      entities={allEntityNames}
-                      item={selectedReino}
-                      onDeleted={(id) => {
-                        setReinos((p) => p.filter((r) => r.id !== id));
-                        setSelectedReino(null);
-                      }}
-                      onSaved={(u) => {
-                        setReinos((p) => p.map((r) => (r.id === u.id ? u : r)));
-                        setSelectedReino(u);
-                      }}
-                      onSelectCiudad={async (id: string) => {
-                        const local = ciudades.find((x) => x.id === id);
-                        clearAllOverlays();
-                        if (local) { setSelectedCiudad(local as Ciudad); return; }
-                        const { data } = await supabase.from("ciudades").select("*").eq("id", id).single();
-                        if (data) setSelectedCiudad(data as Ciudad);
-                      }}
-                      onSelectCriatura={(id) => {
-                        const c = criaturas.find((x) => x.id === id);
+                )}
+                {overlay === "criatura" && selectedCriatura && (
+                  <EditorCriatura
+                    key={selectedCriatura.id}
+                    entities={allEntityNames}
+                    item={selectedCriatura as any}
+                    onDeleted={(id) => {
+                      setCriaturas((p) => p.filter((c) => c.id !== id));
+                      setSelectedCriatura(null);
+                    }}
+                    onNavigateCiudad={async (id) => {
+                      const local = ciudades.find((x) => x.id === id);
+                      clearAllOverlays();
+                      if (local) {
+                        selectCiudad(local);
+                        return;
+                      }
+                      const { data } = await supabase
+                        .from("ciudades")
+                        .select("*")
+                        .eq("id", id)
+                        .single();
+                      if (data) selectCiudad(data as Ciudad);
+                    }}
+                    onNavigateReino={async (id) => {
+                      const local = reinos.find((x) => x.id === id);
+                      clearAllOverlays();
+                      if (local) {
+                        selectReino(local);
+                        return;
+                      }
+                      const { data } = await supabase
+                        .from("reinos")
+                        .select("*")
+                        .eq("id", id)
+                        .single();
+                      if (data) selectReino(data as Reino);
+                    }}
+                    onSaved={(u) => {
+                      setCriaturas((p) =>
+                        p.map((c) => (c.id === u.id ? { ...c, ...u } : c)),
+                      );
+                      setSelectedCriatura({ ...selectedCriatura, ...u });
+                    }}
+                    onSelectGrupo={async (id) => {
+                      const local = grupos.find((x) => x.id === id);
+                      clearAllOverlays();
+                      if (local) {
+                        selectGrupo(local);
+                        return;
+                      }
+                      const { data } = await supabase
+                        .from("grupos_mundo")
+                        .select("*")
+                        .eq("id", id)
+                        .single();
+                      if (data)
+                        selectGrupo({
+                          ...data,
+                          miembro_ids: data.miembro_ids ?? [],
+                        } as Grupo);
+                    }}
+                    onSelectItem={(id) => {
+                      const o = objetos.find((x) => x.id === id);
+                      if (!o) return;
+                      clearAllOverlays();
+                      setSelectedObjeto(o);
+                    }}
+                    onSelectPersonaje={(id) => {
+                      const p = personajes.find((x) => x.id === id);
+                      if (!p) return;
+                      clearAllOverlays();
+                      setSelectedPersonaje(p);
+                    }}
+                  />
+                )}
+                {overlay === "objeto" && selectedObjeto && (
+                  <EditorItem
+                    key={selectedObjeto.id}
+                    entities={allEntityNames}
+                    item={selectedObjeto as any}
+                    onDeleted={(id) => {
+                      setObjetos((p) => p.filter((o) => o.id !== id));
+                      setSelectedObjeto(null);
+                    }}
+                    onNavigateCiudad={async (id) => {
+                      const local = ciudades.find((x) => x.id === id);
+                      clearAllOverlays();
+                      if (local) {
+                        selectCiudad(local);
+                        return;
+                      }
+                      const { data } = await supabase
+                        .from("ciudades")
+                        .select("*")
+                        .eq("id", id)
+                        .single();
+                      if (data) selectCiudad(data as Ciudad);
+                    }}
+                    onNavigateReino={async (id) => {
+                      const local = reinos.find((x) => x.id === id);
+                      clearAllOverlays();
+                      if (local) {
+                        selectReino(local);
+                        return;
+                      }
+                      const { data } = await supabase
+                        .from("reinos")
+                        .select("*")
+                        .eq("id", id)
+                        .single();
+                      if (data) selectReino(data as Reino);
+                    }}
+                    onSaved={(u) => {
+                      setObjetos((p) =>
+                        p.map((o) => (o.id === u.id ? { ...o, ...u } : o)),
+                      );
+                      setSelectedObjeto({ ...selectedObjeto, ...u });
+                    }}
+                    onSelectCriatura={(id) => {
+                      const c = criaturas.find((x) => x.id === id);
+                      if (!c) return;
+                      clearAllOverlays();
+                      setSelectedCriatura(c);
+                    }}
+                  />
+                )}
+                {overlay === "ciudad" && selectedCiudad && (
+                  <EditorCiudad
+                    key={selectedCiudad.id}
+                    entities={allEntityNames}
+                    item={selectedCiudad as Ciudad}
+                    onDeleted={(id) => {
+                      setCiudades((p) => p.filter((l) => l.id !== id));
+                      setSelectedCiudad(null);
+                    }}
+                    onNavigateReino={(id) => {
+                      const r = reinos.find((x) => x.id === id);
+                      if (!r) return;
+                      clearAllOverlays();
+                      setSelectedReino(r);
+                    }}
+                    onSaved={(u) => {
+                      const uMin: CiudadMin = {
+                        id: u.id,
+                        nombre: u.nombre,
+                        imagen_url: u.imagen_url ?? undefined,
+                        tipo: u.tipo ?? undefined,
+                        reino_id: u.reino_id ?? undefined,
+                      };
+                      setCiudades((p) =>
+                        p.map((l) => (l.id === u.id ? { ...l, ...uMin } : l)),
+                      );
+                      setSelectedCiudad({ ...selectedCiudad, ...u });
+                    }}
+                    onSelectCriatura={(id) => {
+                      const c = criaturas.find((x) => x.id === id);
+                      if (!c) return;
+                      clearAllOverlays();
+                      setSelectedCriatura(c);
+                    }}
+                    onSelectItem={(id) => {
+                      const o = objetos.find((x) => x.id === id);
+                      if (!o) return;
+                      clearAllOverlays();
+                      setSelectedObjeto(o);
+                    }}
+                    onSelectPersonaje={(id) => {
+                      const p = personajes.find((x) => x.id === id);
+                      if (!p) return;
+                      clearAllOverlays();
+                      setSelectedPersonaje(p);
+                    }}
+                  />
+                )}
+                {overlay === "personaje" && selectedPersonaje && (
+                  <EditorPersonaje
+                    key={selectedPersonaje.id}
+                    entities={allEntityNames}
+                    item={selectedPersonaje}
+                    onDeleted={(id) => {
+                      setPersonajes((p) => p.filter((x) => x.id !== id));
+                      setSelectedPersonaje(null);
+                    }}
+                    onNavigate={(tab, nombre) => {
+                      if (tab === "criaturas") {
+                        const c = criaturas.find(
+                          (x) =>
+                            x.nombre.toLowerCase() === nombre.toLowerCase(),
+                        );
                         if (!c) return;
                         clearAllOverlays();
                         setSelectedCriatura(c);
-                      }}
-                      onSelectItem={(id) => {
-                        const o = objetos.find((x) => x.id === id);
-                        if (!o) return;
+                      } else if (tab === "reinos") {
+                        const r = reinos.find(
+                          (x) =>
+                            x.nombre.toLowerCase() === nombre.toLowerCase(),
+                        );
+                        if (!r) return;
                         clearAllOverlays();
-                        setSelectedObjeto(o);
-                      }}
-                      onSelectPersonaje={(p) => {
-                        const found = personajes.find((x) => x.id === p?.id || x.nombre === p?.nombre);
-                        if (!found) return;
-                        clearAllOverlays();
-                        setSelectedPersonaje(found);
-                      }}
-                    />
-                  )}
-                  {overlay === "criatura" && selectedCriatura && (
-                    <EditorCriatura
-                      key={selectedCriatura.id}
-                      entities={allEntityNames}
-                      item={selectedCriatura as any}
-                      onDeleted={(id) => {
-                        setCriaturas((p) => p.filter((c) => c.id !== id));
-                        setSelectedCriatura(null);
-                      }}
-                      onNavigateCiudad={async (id) => {
-                        const local = ciudades.find((x) => x.id === id);
-                        clearAllOverlays();
-                        if (local) { selectCiudad(local); return; }
-                        const { data } = await supabase.from("ciudades").select("*").eq("id", id).single();
-                        if (data) selectCiudad(data as Ciudad);
-                      }}
-                      onNavigateReino={async (id) => {
-                        const local = reinos.find((x) => x.id === id);
-                        clearAllOverlays();
-                        if (local) { selectReino(local); return; }
-                        const { data } = await supabase.from("reinos").select("*").eq("id", id).single();
-                        if (data) selectReino(data as Reino);
-                      }}
-                      onSaved={(u) => {
-                        setCriaturas((p) => p.map((c) => (c.id === u.id ? { ...c, ...u } : c)));
-                        setSelectedCriatura({ ...selectedCriatura, ...u });
-                      }}
-                      onSelectGrupo={async (id) => {
-                        const local = grupos.find((x) => x.id === id);
-                        clearAllOverlays();
-                        if (local) { selectGrupo(local); return; }
-                        const { data } = await supabase.from("grupos_mundo").select("*").eq("id", id).single();
-                        if (data) selectGrupo({ ...data, miembro_ids: data.miembro_ids ?? [] } as Grupo);
-                      }}
-                      onSelectItem={(id) => {
-                        const o = objetos.find((x) => x.id === id);
-                        if (!o) return;
-                        clearAllOverlays();
-                        setSelectedObjeto(o);
-                      }}
-                      onSelectPersonaje={(id) => {
+                        setSelectedReino(r);
+                      }
+                    }}
+                    onOpenGrupo={async (id) => {
+                      const local = grupos.find((x) => x.id === id);
+                      clearAllOverlays();
+                      if (local) {
+                        selectGrupo(local);
+                        return;
+                      }
+                      const { data } = await supabase
+                        .from("grupos_mundo")
+                        .select("*")
+                        .eq("id", id)
+                        .single();
+                      if (data)
+                        selectGrupo({
+                          ...data,
+                          miembro_ids: data.miembro_ids ?? [],
+                        } as Grupo);
+                    }}
+                    onSaved={(u) => {
+                      setPersonajes((p) =>
+                        p.map((x) => (x.id === u.id ? u : x)),
+                      );
+                      setSelectedPersonaje(u);
+                    }}
+                    onSelectCancion={async (id) => {
+                      const local = canciones.find((x) => x.id === id);
+                      clearAllOverlays();
+                      if (local) {
+                        selectCancion(local as unknown as Cancion);
+                        return;
+                      }
+                      const { data } = await supabase
+                        .from("canciones")
+                        .select("*")
+                        .eq("id", id)
+                        .single();
+                      if (data) selectCancion(data as unknown as Cancion);
+                    }}
+                    onSelectPersonaje={(id) => {
+                      const p = personajes.find((x) => x.id === id);
+                      if (!p) return;
+                      clearAllOverlays();
+                      setSelectedPersonaje(p);
+                    }}
+                  />
+                )}
+                {overlay === "hechizo" && selectedHechizo && (
+                  <EditorHechizos
+                    initialSelectedId={selectedHechizo.id}
+                    modo="hechizos"
+                    onItemDeleted={(id) => {
+                      setHechizos((p) => p.filter((h) => h.id !== id));
+                      setSelectedHechizo(null);
+                    }}
+                    onItemSaved={(updated) =>
+                      setHechizos((p) =>
+                        p.map((h) =>
+                          h.id === updated.id
+                            ? { id: updated.id, nombre: updated.nombre }
+                            : h,
+                        ),
+                      )
+                    }
+                    onSelectedIdChange={(id) => {
+                      if (!id) setSelectedHechizo(null);
+                    }}
+                  />
+                )}
+                {overlay === "don" && selectedDon && (
+                  <EditorHechizos
+                    initialSelectedId={selectedDon.id}
+                    modo="dones"
+                    onItemDeleted={(id) => {
+                      setDones((p) => p.filter((d) => d.id !== id));
+                      setSelectedDon(null);
+                    }}
+                    onItemSaved={(updated) =>
+                      setDones((p) =>
+                        p.map((d) =>
+                          d.id === updated.id
+                            ? { id: updated.id, nombre: updated.nombre }
+                            : d,
+                        ),
+                      )
+                    }
+                    onSelectedIdChange={(id) => {
+                      if (!id) setSelectedDon(null);
+                    }}
+                  />
+                )}
+                {overlay === "runa" && selectedRuna && (
+                  <EditorHechizos
+                    initialSelectedId={selectedRuna.id}
+                    modo="runas"
+                    onItemDeleted={(id) => {
+                      setRunas((p) => p.filter((r) => r.id !== id));
+                      setSelectedRuna(null);
+                    }}
+                    onItemSaved={(updated) =>
+                      setRunas((p) =>
+                        p.map((r) =>
+                          r.id === updated.id
+                            ? {
+                                id: updated.id,
+                                nombre: updated.nombre,
+                                imagen_url: (updated as any).imagen_url,
+                              }
+                            : r,
+                        ),
+                      )
+                    }
+                    onSelectedIdChange={(id) => {
+                      if (!id) setSelectedRuna(null);
+                    }}
+                  />
+                )}
+                {overlay === "nota" && selectedNota && (
+                  <EditorNota
+                    key={selectedNota.id}
+                    nota={selectedNota}
+                    onDeleted={(id) => {
+                      eliminarNota(id);
+                      setSelectedNota(null);
+                    }}
+                    onSaved={async (updated) => {
+                      await actualizarNota(updated);
+                      setSelectedNota(updated);
+                    }}
+                  />
+                )}
+                {overlay === "grupo" && selectedGrupo && (
+                  <EditorGrupo
+                    key={selectedGrupo.id}
+                    grupo={selectedGrupo}
+                    onClickMiembro={(id, tabla) => {
+                      if (tabla === "personajes") {
                         const p = personajes.find((x) => x.id === id);
                         if (!p) return;
                         clearAllOverlays();
                         setSelectedPersonaje(p);
-                      }}
-                    />
-                  )}
-                  {overlay === "objeto" && selectedObjeto && (
-                    <EditorItem
-                      key={selectedObjeto.id}
-                      entities={allEntityNames}
-                      item={selectedObjeto as any}
-                      onDeleted={(id) => {
-                        setObjetos((p) => p.filter((o) => o.id !== id));
-                        setSelectedObjeto(null);
-                      }}
-                      onNavigateCiudad={async (id) => {
-                        const local = ciudades.find((x) => x.id === id);
-                        clearAllOverlays();
-                        if (local) { selectCiudad(local); return; }
-                        const { data } = await supabase.from("ciudades").select("*").eq("id", id).single();
-                        if (data) selectCiudad(data as Ciudad);
-                      }}
-                      onNavigateReino={async (id) => {
-                        const local = reinos.find((x) => x.id === id);
-                        clearAllOverlays();
-                        if (local) { selectReino(local); return; }
-                        const { data } = await supabase.from("reinos").select("*").eq("id", id).single();
-                        if (data) selectReino(data as Reino);
-                      }}
-                      onSaved={(u) => {
-                        setObjetos((p) => p.map((o) => (o.id === u.id ? { ...o, ...u } : o)));
-                        setSelectedObjeto({ ...selectedObjeto, ...u });
-                      }}
-                      onSelectCriatura={(id) => {
+                      } else if (tabla === "criaturas") {
                         const c = criaturas.find((x) => x.id === id);
                         if (!c) return;
                         clearAllOverlays();
                         setSelectedCriatura(c);
-                      }}
-                    />
-                  )}
-                  {overlay === "ciudad" && selectedCiudad && (
-                    <EditorCiudad
-                      key={selectedCiudad.id}
-                      entities={allEntityNames}
-                      item={selectedCiudad as Ciudad}
-                      onDeleted={(id) => {
-                        setCiudades((p) => p.filter((l) => l.id !== id));
-                        setSelectedCiudad(null);
-                      }}
-                      onNavigateReino={(id) => {
+                      } else if (tabla === "items") {
+                        const o = objetos.find((x) => x.id === id);
+                        if (!o) return;
+                        clearAllOverlays();
+                        setSelectedObjeto(o);
+                      } else if (tabla === "reinos") {
                         const r = reinos.find((x) => x.id === id);
                         if (!r) return;
                         clearAllOverlays();
                         setSelectedReino(r);
-                      }}
-                      onSaved={(u) => {
-                        const uMin: CiudadMin = {
-                          id: u.id,
-                          nombre: u.nombre,
-                          imagen_url: u.imagen_url ?? undefined,
-                          tipo: u.tipo ?? undefined,
-                          reino_id: u.reino_id ?? undefined,
-                        };
-                        setCiudades((p) => p.map((l) => (l.id === u.id ? { ...l, ...uMin } : l)));
-                        setSelectedCiudad({ ...selectedCiudad, ...u });
-                      }}
-                      onSelectCriatura={(id) => {
-                        const c = criaturas.find((x) => x.id === id);
-                        if (!c) return;
-                        clearAllOverlays();
-                        setSelectedCriatura(c);
-                      }}
-                      onSelectItem={(id) => {
-                        const o = objetos.find((x) => x.id === id);
-                        if (!o) return;
-                        clearAllOverlays();
-                        setSelectedObjeto(o);
-                      }}
-                      onSelectPersonaje={(id) => {
-                        const p = personajes.find((x) => x.id === id);
-                        if (!p) return;
-                        clearAllOverlays();
-                        setSelectedPersonaje(p);
-                      }}
-                    />
-                  )}
-                  {overlay === "personaje" && selectedPersonaje && (
-                    <EditorPersonaje
-                      key={selectedPersonaje.id}
-                      entities={allEntityNames}
-                      item={selectedPersonaje}
-                      onDeleted={(id) => {
-                        setPersonajes((p) => p.filter((x) => x.id !== id));
-                        setSelectedPersonaje(null);
-                      }}
-                      onNavigate={(tab, nombre) => {
-                        if (tab === "criaturas") {
-                          const c = criaturas.find((x) => x.nombre.toLowerCase() === nombre.toLowerCase());
-                          if (!c) return;
-                          clearAllOverlays();
-                          setSelectedCriatura(c);
-                        } else if (tab === "reinos") {
-                          const r = reinos.find((x) => x.nombre.toLowerCase() === nombre.toLowerCase());
-                          if (!r) return;
-                          clearAllOverlays();
-                          setSelectedReino(r);
-                        }
-                      }}
-                      onOpenGrupo={async (id) => {
-                        const local = grupos.find((x) => x.id === id);
-                        clearAllOverlays();
-                        if (local) { selectGrupo(local); return; }
-                        const { data } = await supabase.from("grupos_mundo").select("*").eq("id", id).single();
-                        if (data) selectGrupo({ ...data, miembro_ids: data.miembro_ids ?? [] } as Grupo);
-                      }}
-                      onSaved={(u) => {
-                        setPersonajes((p) => p.map((x) => (x.id === u.id ? u : x)));
-                        setSelectedPersonaje(u);
-                      }}
-                      onSelectCancion={async (id) => {
-                        const local = canciones.find((x) => x.id === id);
-                        clearAllOverlays();
-                        if (local) { selectCancion(local as unknown as Cancion); return; }
-                        const { data } = await supabase.from("canciones").select("*").eq("id", id).single();
-                        if (data) selectCancion(data as unknown as Cancion);
-                      }}
-                      onSelectPersonaje={(id) => {
-                        const p = personajes.find((x) => x.id === id);
-                        if (!p) return;
-                        clearAllOverlays();
-                        setSelectedPersonaje(p);
-                      }}
-                    />
-                  )}
-                  {overlay === "hechizo" && selectedHechizo && (
-                    <EditorHechizos
-                      initialSelectedId={selectedHechizo.id}
-                      modo="hechizos"
-                      onItemDeleted={(id) => {
-                        setHechizos((p) => p.filter((h) => h.id !== id));
-                        setSelectedHechizo(null);
-                      }}
-                      onItemSaved={(updated) =>
-                        setHechizos((p) =>
-                          p.map((h) => h.id === updated.id ? { id: updated.id, nombre: updated.nombre } : h)
-                        )
                       }
-                      onSelectedIdChange={(id) => { if (!id) setSelectedHechizo(null); }}
-                    />
-                  )}
-                  {overlay === "don" && selectedDon && (
-                    <EditorHechizos
-                      initialSelectedId={selectedDon.id}
-                      modo="dones"
-                      onItemDeleted={(id) => {
-                        setDones((p) => p.filter((d) => d.id !== id));
-                        setSelectedDon(null);
-                      }}
-                      onItemSaved={(updated) =>
-                        setDones((p) =>
-                          p.map((d) => d.id === updated.id ? { id: updated.id, nombre: updated.nombre } : d)
-                        )
-                      }
-                      onSelectedIdChange={(id) => { if (!id) setSelectedDon(null); }}
-                    />
-                  )}
-                  {overlay === "runa" && selectedRuna && (
-                    <EditorHechizos
-                      initialSelectedId={selectedRuna.id}
-                      modo="runas"
-                      onItemDeleted={(id) => {
-                        setRunas((p) => p.filter((r) => r.id !== id));
-                        setSelectedRuna(null);
-                      }}
-                      onItemSaved={(updated) =>
-                        setRunas((p) =>
-                          p.map((r) => r.id === updated.id ? { id: updated.id, nombre: updated.nombre, imagen_url: (updated as any).imagen_url } : r)
-                        )
-                      }
-                      onSelectedIdChange={(id) => { if (!id) setSelectedRuna(null); }}
-                    />
-                  )}
-                  {overlay === "nota" && selectedNota && (
-                    <EditorNota
-                      key={selectedNota.id}
-                      nota={selectedNota}
-                      onDeleted={(id) => {
-                        eliminarNota(id);
-                        setSelectedNota(null);
-                      }}
-                      onSaved={async (updated) => {
-                        await actualizarNota(updated);
-                        setSelectedNota(updated);
-                      }}
-                    />
-                  )}
-                  {overlay === "grupo" && selectedGrupo && (
-                    <EditorGrupo
-                      key={selectedGrupo.id}
-                      grupo={selectedGrupo}
-                      onClickMiembro={(id, tabla) => {
-                        if (tabla === "personajes") {
-                          const p = personajes.find((x) => x.id === id);
-                          if (!p) return;
-                          clearAllOverlays();
-                          setSelectedPersonaje(p);
-                        } else if (tabla === "criaturas") {
-                          const c = criaturas.find((x) => x.id === id);
-                          if (!c) return;
-                          clearAllOverlays();
-                          setSelectedCriatura(c);
-                        } else if (tabla === "items") {
-                          const o = objetos.find((x) => x.id === id);
-                          if (!o) return;
-                          clearAllOverlays();
-                          setSelectedObjeto(o);
-                        } else if (tabla === "reinos") {
-                          const r = reinos.find((x) => x.id === id);
-                          if (!r) return;
-                          clearAllOverlays();
-                          setSelectedReino(r);
-                        }
-                      }}
-                      onDeleted={async (id) => {
-                        await eliminarGrupo(id);
-                        setSelectedGrupo(null);
-                      }}
-                      onSaved={async (updated) => {
-                        await actualizarGrupo(updated);
-                        setSelectedGrupo(updated);
-                      }}
-                    />
-                  )}
-                  {overlay === "cancion" && selectedCancion && (
-                    <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-                      <PanelEditor
-                        key={selectedCancion.id}
-                        cancionId={selectedCancion.id}
-                      />
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* ── Listas visibles cuando no hay overlay ── */}
-            {!overlay && (
-            <div className="px-3 sm:px-3 pb-4">
-            {/* ── Fila 1 desktop: Personajes · Grupos · Notas ── */}
-            <div className="sm:grid sm:grid-cols-3 sm:gap-x-4">
-              <SeccionEntidades
-                count={personajes.length}
-                icon={Users}
-                label={el.personajes}
-                loading={loadingPersonajes}
-              >
-                {[...personajes]
-                  .sort(
-                    (a, b) =>
-                      (!!b.img_url ? 1 : 0) - (!!a.img_url ? 1 : 0) ||
-                      a.nombre.localeCompare(b.nombre),
-                  )
-                  .map((p) => (
-                    <Chip
-                      key={p.id}
-                      icon={UserCircle2}
-                      imgUrl={p.img_url}
-                      nombre={p.nombre}
-                      onClick={() => selectPersonaje(p)}
-                    />
-                  ))}
-              </SeccionEntidades>
-              <div className={`${div} sm:hidden`} style={divStyle} />
-
-              <SeccionEntidades
-                count={grupos.length}
-                icon={Layers}
-                label={el.grupos}
-                loading={!loadedGrupos}
-              >
-                {(() => {
-                  const porTipo = grupos.reduce(
-                    (acc, g) => {
-                      const t = g.tipo || "otro";
-                      if (!acc[t]) acc[t] = [];
-                      acc[t].push(g);
-                      return acc;
-                    },
-                    {} as Record<string, typeof grupos>,
-                  );
-                  return Object.entries(porTipo).map(([tipo, lista]) => (
-                    <div
-                      key={tipo}
-                      className="col-span-full flex flex-col gap-1"
-                    >
-                      <span
-                        className="text-[7px] font-black uppercase tracking-[0.2em] px-1"
-                        style={{
-                          color:
-                            "color-mix(in srgb, var(--primary) 25%, transparent)",
-                        }}
-                      >
-                        {tipo}
-                      </span>
-                      <div
-                        className="grid gap-1.5"
-                        style={{
-                          gridTemplateColumns:
-                            "repeat(auto-fill, minmax(60px, 1fr))",
-                        }}
-                      >
-                        {lista.map((g) => {
-                          const cfg =
-                            GRUPO_TIPO_CONFIG[
-                              g.tipo as keyof typeof GRUPO_TIPO_CONFIG
-                            ];
-                          return (
-                            <button
-                              key={g.id}
-                              className="flex items-center px-3 py-1.5 rounded-xl border transition-all hover:scale-[1.02] active:scale-[0.98]"
-                              style={{
-                                background: `color-mix(in srgb, ${cfg?.color ?? "var(--primary)"} 4%, transparent)`,
-                                borderColor: `color-mix(in srgb, ${cfg?.color ?? "var(--primary)"} 12%, transparent)`,
-                              }}
-                              type="button"
-                              onClick={async () => {
-                                const full = grupos.find((x) => x.id === g.id);
-                                if (full) {
-                                  selectGrupo(full);
-                                  return;
-                                }
-                                const { data } = await supabase
-                                  .from("grupos_mundo")
-                                  .select("*")
-                                  .eq("id", g.id)
-                                  .single();
-                                if (data)
-                                  selectGrupo({
-                                    ...data,
-                                    miembro_ids: data.miembro_ids ?? [],
-                                  } as Grupo);
-                              }}
-                            >
-                              <span className="text-[11px] font-bold text-primary/70 truncate">
-                                {g.nombre}
-                              </span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ));
-                })()}
-              </SeccionEntidades>
-              <div className={`${div} sm:hidden`} style={divStyle} />
-
-              <SeccionEntidades
-                count={notas.length}
-                icon={FileText}
-                label={el.notas}
-                loading={loadingNotas}
-              >
-                {notas.map((n) => (
-                  <button
-                    key={n.id}
-                    className="flex items-center px-3 py-1.5 rounded-xl border transition-all hover:scale-[1.02] active:scale-[0.98]"
-                    style={{
-                      background:
-                        "color-mix(in srgb, var(--primary) 4%, transparent)",
-                      borderColor:
-                        "color-mix(in srgb, var(--primary) 12%, transparent)",
                     }}
-                    type="button"
-                    onClick={() => setSelectedNota(n)}
-                  >
-                    <span className="text-[11px] font-bold text-primary/70 truncate">
-                      {n.titulo || (
-                        <span className="italic text-primary/30">
-                          Sin título
-                        </span>
-                      )}
-                    </span>
-                  </button>
-                ))}
-              </SeccionEntidades>
-            </div>
-            <div className={div} style={divStyle} />
-
-            {/* ── Fila 2 desktop: Criaturas · Objetos ── */}
-            <div className="sm:grid sm:grid-cols-2 sm:gap-x-4">
-              <SeccionEntidades
-                count={criaturas.length}
-                icon={Bug}
-                label={el.criaturas}
-                loading={loadingCriaturas}
-              >
-                {[...criaturas]
-                  .sort(
-                    (a, b) =>
-                      (!!b.imagen_url ? 1 : 0) - (!!a.imagen_url ? 1 : 0) ||
-                      a.nombre.localeCompare(b.nombre),
-                  )
-                  .map((c) => (
-                    <Chip
-                      key={c.id}
-                      icon={Bug}
-                      imgUrl={c.imagen_url}
-                      nombre={c.nombre}
-                      onClick={() => selectCriatura(c)}
-                    />
-                  ))}
-              </SeccionEntidades>
-              <div className={`${div} sm:hidden`} style={divStyle} />
-
-              <SeccionEntidades
-                count={objetos.length}
-                icon={Package}
-                label="Objetos"
-                loading={loadingObjetos}
-              >
-                {[...objetos]
-                  .sort(
-                    (a, b) =>
-                      (!!b.imagen_url ? 1 : 0) - (!!a.imagen_url ? 1 : 0) ||
-                      a.nombre.localeCompare(b.nombre),
-                  )
-                  .map((o) => (
-                    <Chip
-                      key={o.id}
-                      icon={Package}
-                      imgUrl={o.imagen_url}
-                      nombre={o.nombre}
-                      onClick={() => selectObjeto(o)}
-                    />
-                  ))}
-              </SeccionEntidades>
-            </div>
-            <div className={div} style={divStyle} />
-
-            {/* ── Extra desktop: Reinos · Ciudades ── */}
-            <div className="sm:grid sm:grid-cols-2 sm:gap-x-4">
-              <SeccionEntidades
-                count={reinos.length}
-                icon={Map}
-                label={el.reinos}
-                loading={loadingReinos}
-              >
-                {[...reinos]
-                  .sort(
-                    (a, b) =>
-                      (!!b.mapa_url ? 1 : 0) - (!!a.mapa_url ? 1 : 0) ||
-                      a.nombre.localeCompare(b.nombre),
-                  )
-                  .map((r) => (
-                    <Chip
-                      key={r.id}
-                      icon={Map}
-                      imgUrl={r.mapa_url}
-                      nombre={r.nombre}
-                      onClick={() => selectReino(r)}
-                    />
-                  ))}
-              </SeccionEntidades>
-              <div className={`${div} sm:hidden`} style={divStyle} />
-
-              <SeccionEntidades
-                count={ciudades.length}
-                icon={MapPin}
-                label={el.ciudades}
-                loading={loadingCiudades}
-              >
-                {[...ciudades]
-                  .sort(
-                    (a, b) =>
-                      (!!b.imagen_url ? 1 : 0) - (!!a.imagen_url ? 1 : 0) ||
-                      a.nombre.localeCompare(b.nombre),
-                  )
-                  .map((l) => (
-                    <Chip
-                      key={l.id}
-                      icon={MapPin}
-                      imgUrl={l.imagen_url}
-                      nombre={l.nombre}
-                      onClick={async () => {
-                        try {
-                          const { data } = await supabase
-                            .from("ciudades")
-                            .select("*")
-                            .eq("id", l.id)
-                            .single();
-                          if (data) {
-                            selectCiudad(data as Ciudad);
-                            return;
-                          }
-                        } catch {}
-                        selectCiudad(l as Ciudad);
-                      }}
-                    />
-                  ))}
-              </SeccionEntidades>
-            </div>
-            <div className={div} style={divStyle} />
-
-            {/* ── Fila 3 desktop: Hechizos · Dones · Runas ── */}
-            <div className="sm:grid sm:grid-cols-3 sm:gap-x-4">
-              <SeccionEntidades
-                count={hechizos.length}
-                icon={Sparkles}
-                label={el.hechizos}
-                loading={loadingHechizos}
-              >
-                {hechizos.map((h) => (
-                  <Chip
-                    key={h.id}
-                    accentBg="color-mix(in srgb, var(--accent) 5%, transparent)"
-                    accentBorder="color-mix(in srgb, var(--accent) 15%, transparent)"
-                    accentText="color-mix(in srgb, var(--accent) 80%, var(--primary))"
-                    icon={Sparkles}
-                    nombre={h.nombre}
-                    onClick={() => selectHechizo(h)}
+                    onDeleted={async (id) => {
+                      await eliminarGrupo(id);
+                      setSelectedGrupo(null);
+                    }}
+                    onSaved={async (updated) => {
+                      await actualizarGrupo(updated);
+                      setSelectedGrupo(updated);
+                    }}
                   />
-                ))}
-              </SeccionEntidades>
-              <div className={`${div} sm:hidden`} style={divStyle} />
-
-              <SeccionEntidades
-                count={dones.length}
-                icon={Star}
-                label={el.dones}
-                loading={loadingDones}
-              >
-                {dones.map((d) => (
-                  <Chip
-                    key={d.id}
-                    accentBg="color-mix(in srgb, var(--accent) 4%, transparent)"
-                    accentBorder="color-mix(in srgb, var(--accent) 13%, transparent)"
-                    accentText="color-mix(in srgb, var(--accent) 75%, var(--primary))"
-                    icon={Star}
-                    nombre={d.nombre}
-                    onClick={() => selectDon(d)}
-                  />
-                ))}
-              </SeccionEntidades>
-              <div className={`${div} sm:hidden`} style={divStyle} />
-
-              <SeccionEntidades
-                count={runas.length}
-                icon={ScrollText}
-                label={el.runas}
-                loading={loadingRunas}
-              >
-                {[...runas]
-                  .sort(
-                    (a, b) =>
-                      (!!b.imagen_url ? 1 : 0) - (!!a.imagen_url ? 1 : 0) ||
-                      a.nombre.localeCompare(b.nombre),
-                  )
-                  .map((r) => (
-                    <Chip
-                      key={r.id}
-                      icon={ScrollText}
-                      imgUrl={r.imagen_url}
-                      nombre={r.nombre}
-                      onClick={() => selectRuna(r)}
+                )}
+                {overlay === "cancion" && selectedCancion && (
+                  <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                    <PanelEditor
+                      key={selectedCancion.id}
+                      cancionId={selectedCancion.id}
                     />
-                  ))}
-              </SeccionEntidades>
+                  </div>
+                )}
+              </div>
             </div>
-            <div className={div} style={divStyle} />
-
-            {/* ── Fila 4 desktop: Canciones (ancho completo) ── */}
-            <SeccionEntidades
-              cols={1}
-              count={canciones.length}
-              icon={Music}
-              label={el.canciones}
-              loading={loadingCanciones}
-              minColWidth="160px"
-            >
-              {canciones.map((c) => (
-                <Chip
-                  key={c.id}
-                  noMaxW
-                  icon={Music}
-                  nombre={c.titulo}
-                  onClick={() => selectCancion(c as unknown as Cancion)}
-                />
-              ))}
-            </SeccionEntidades>
-          </div>
           )}
+
+          {/* ── Listas visibles cuando no hay overlay ── */}
+          {!overlay && (
+            <div className="px-3 sm:px-3 pb-4">
+              {/* ── Fila 1 desktop: Personajes · Grupos · Notas ── */}
+              <div className="sm:grid sm:grid-cols-3 sm:gap-x-4">
+                <SeccionEntidades
+                  count={personajes.length}
+                  icon={Users}
+                  label={el.personajes}
+                  loading={loadingPersonajes}
+                >
+                  {[...personajes]
+                    .sort(
+                      (a, b) =>
+                        (!!b.img_url ? 1 : 0) - (!!a.img_url ? 1 : 0) ||
+                        a.nombre.localeCompare(b.nombre),
+                    )
+                    .map((p) => (
+                      <Chip
+                        key={p.id}
+                        icon={UserCircle2}
+                        imgUrl={p.img_url}
+                        nombre={p.nombre}
+                        onClick={() => selectPersonaje(p)}
+                      />
+                    ))}
+                </SeccionEntidades>
+                <div className={`${div} sm:hidden`} style={divStyle} />
+
+                <SeccionEntidades
+                  count={grupos.length}
+                  icon={Layers}
+                  label={el.grupos}
+                  loading={!loadedGrupos}
+                >
+                  {(() => {
+                    const porTipo = grupos.reduce(
+                      (acc, g) => {
+                        const t = g.tipo || "otro";
+                        if (!acc[t]) acc[t] = [];
+                        acc[t].push(g);
+                        return acc;
+                      },
+                      {} as Record<string, typeof grupos>,
+                    );
+                    return Object.entries(porTipo).map(([tipo, lista]) => (
+                      <div
+                        key={tipo}
+                        className="col-span-full flex flex-col gap-1"
+                      >
+                        <span
+                          className="text-[7px] font-black uppercase tracking-[0.2em] px-1"
+                          style={{
+                            color:
+                              "color-mix(in srgb, var(--primary) 25%, transparent)",
+                          }}
+                        >
+                          {tipo}
+                        </span>
+                        <div
+                          className="grid gap-1.5"
+                          style={{
+                            gridTemplateColumns:
+                              "repeat(auto-fill, minmax(60px, 1fr))",
+                          }}
+                        >
+                          {lista.map((g) => {
+                            const cfg =
+                              GRUPO_TIPO_CONFIG[
+                                g.tipo as keyof typeof GRUPO_TIPO_CONFIG
+                              ];
+                            return (
+                              <button
+                                key={g.id}
+                                className="flex items-center px-3 py-1.5 rounded-xl border transition-all hover:scale-[1.02] active:scale-[0.98]"
+                                style={{
+                                  background: `color-mix(in srgb, ${cfg?.color ?? "var(--primary)"} 4%, transparent)`,
+                                  borderColor: `color-mix(in srgb, ${cfg?.color ?? "var(--primary)"} 12%, transparent)`,
+                                }}
+                                type="button"
+                                onClick={async () => {
+                                  const full = grupos.find(
+                                    (x) => x.id === g.id,
+                                  );
+                                  if (full) {
+                                    selectGrupo(full);
+                                    return;
+                                  }
+                                  const { data } = await supabase
+                                    .from("grupos_mundo")
+                                    .select("*")
+                                    .eq("id", g.id)
+                                    .single();
+                                  if (data)
+                                    selectGrupo({
+                                      ...data,
+                                      miembro_ids: data.miembro_ids ?? [],
+                                    } as Grupo);
+                                }}
+                              >
+                                <span className="text-[11px] font-bold text-primary/70 truncate">
+                                  {g.nombre}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ));
+                  })()}
+                </SeccionEntidades>
+                <div className={`${div} sm:hidden`} style={divStyle} />
+
+                <SeccionEntidades
+                  count={notas.length}
+                  icon={FileText}
+                  label={el.notas}
+                  loading={loadingNotas}
+                >
+                  {notas.map((n) => (
+                    <button
+                      key={n.id}
+                      className="flex items-center px-3 py-1.5 rounded-xl border transition-all hover:scale-[1.02] active:scale-[0.98]"
+                      style={{
+                        background:
+                          "color-mix(in srgb, var(--primary) 4%, transparent)",
+                        borderColor:
+                          "color-mix(in srgb, var(--primary) 12%, transparent)",
+                      }}
+                      type="button"
+                      onClick={() => setSelectedNota(n)}
+                    >
+                      <span className="text-[11px] font-bold text-primary/70 truncate">
+                        {n.titulo || (
+                          <span className="italic text-primary/30">
+                            Sin título
+                          </span>
+                        )}
+                      </span>
+                    </button>
+                  ))}
+                </SeccionEntidades>
+              </div>
+              <div className={div} style={divStyle} />
+
+              {/* ── Fila 2 desktop: Criaturas · Objetos ── */}
+              <div className="sm:grid sm:grid-cols-2 sm:gap-x-4">
+                <SeccionEntidades
+                  count={criaturas.length}
+                  icon={Bug}
+                  label={el.criaturas}
+                  loading={loadingCriaturas}
+                >
+                  {[...criaturas]
+                    .sort(
+                      (a, b) =>
+                        (!!b.imagen_url ? 1 : 0) - (!!a.imagen_url ? 1 : 0) ||
+                        a.nombre.localeCompare(b.nombre),
+                    )
+                    .map((c) => (
+                      <Chip
+                        key={c.id}
+                        icon={Bug}
+                        imgUrl={c.imagen_url}
+                        nombre={c.nombre}
+                        onClick={() => selectCriatura(c)}
+                      />
+                    ))}
+                </SeccionEntidades>
+                <div className={`${div} sm:hidden`} style={divStyle} />
+
+                <SeccionEntidades
+                  count={objetos.length}
+                  icon={Package}
+                  label="Objetos"
+                  loading={loadingObjetos}
+                >
+                  {[...objetos]
+                    .sort(
+                      (a, b) =>
+                        (!!b.imagen_url ? 1 : 0) - (!!a.imagen_url ? 1 : 0) ||
+                        a.nombre.localeCompare(b.nombre),
+                    )
+                    .map((o) => (
+                      <Chip
+                        key={o.id}
+                        icon={Package}
+                        imgUrl={o.imagen_url}
+                        nombre={o.nombre}
+                        onClick={() => selectObjeto(o)}
+                      />
+                    ))}
+                </SeccionEntidades>
+              </div>
+              <div className={div} style={divStyle} />
+
+              {/* ── Extra desktop: Reinos · Ciudades ── */}
+              <div className="sm:grid sm:grid-cols-2 sm:gap-x-4">
+                <SeccionEntidades
+                  count={reinos.length}
+                  icon={Map}
+                  label={el.reinos}
+                  loading={loadingReinos}
+                >
+                  {[...reinos]
+                    .sort(
+                      (a, b) =>
+                        (!!b.mapa_url ? 1 : 0) - (!!a.mapa_url ? 1 : 0) ||
+                        a.nombre.localeCompare(b.nombre),
+                    )
+                    .map((r) => (
+                      <Chip
+                        key={r.id}
+                        icon={Map}
+                        imgUrl={r.mapa_url}
+                        nombre={r.nombre}
+                        onClick={() => selectReino(r)}
+                      />
+                    ))}
+                </SeccionEntidades>
+                <div className={`${div} sm:hidden`} style={divStyle} />
+
+                <SeccionEntidades
+                  count={ciudades.length}
+                  icon={MapPin}
+                  label={el.ciudades}
+                  loading={loadingCiudades}
+                >
+                  {[...ciudades]
+                    .sort(
+                      (a, b) =>
+                        (!!b.imagen_url ? 1 : 0) - (!!a.imagen_url ? 1 : 0) ||
+                        a.nombre.localeCompare(b.nombre),
+                    )
+                    .map((l) => (
+                      <Chip
+                        key={l.id}
+                        icon={MapPin}
+                        imgUrl={l.imagen_url}
+                        nombre={l.nombre}
+                        onClick={async () => {
+                          try {
+                            const { data } = await supabase
+                              .from("ciudades")
+                              .select("*")
+                              .eq("id", l.id)
+                              .single();
+                            if (data) {
+                              selectCiudad(data as Ciudad);
+                              return;
+                            }
+                          } catch {}
+                          selectCiudad(l as Ciudad);
+                        }}
+                      />
+                    ))}
+                </SeccionEntidades>
+              </div>
+              <div className={div} style={divStyle} />
+
+              {/* ── Fila 3 desktop: Hechizos · Dones · Runas ── */}
+              <div className="sm:grid sm:grid-cols-3 sm:gap-x-4">
+                <SeccionEntidades
+                  count={hechizos.length}
+                  icon={Sparkles}
+                  label={el.hechizos}
+                  loading={loadingHechizos}
+                >
+                  {hechizos.map((h) => (
+                    <Chip
+                      key={h.id}
+                      accentBg="color-mix(in srgb, var(--accent) 5%, transparent)"
+                      accentBorder="color-mix(in srgb, var(--accent) 15%, transparent)"
+                      accentText="color-mix(in srgb, var(--accent) 80%, var(--primary))"
+                      icon={Sparkles}
+                      nombre={h.nombre}
+                      onClick={() => selectHechizo(h)}
+                    />
+                  ))}
+                </SeccionEntidades>
+                <div className={`${div} sm:hidden`} style={divStyle} />
+
+                <SeccionEntidades
+                  count={dones.length}
+                  icon={Star}
+                  label={el.dones}
+                  loading={loadingDones}
+                >
+                  {dones.map((d) => (
+                    <Chip
+                      key={d.id}
+                      accentBg="color-mix(in srgb, var(--accent) 4%, transparent)"
+                      accentBorder="color-mix(in srgb, var(--accent) 13%, transparent)"
+                      accentText="color-mix(in srgb, var(--accent) 75%, var(--primary))"
+                      icon={Star}
+                      nombre={d.nombre}
+                      onClick={() => selectDon(d)}
+                    />
+                  ))}
+                </SeccionEntidades>
+                <div className={`${div} sm:hidden`} style={divStyle} />
+
+                <SeccionEntidades
+                  count={runas.length}
+                  icon={ScrollText}
+                  label={el.runas}
+                  loading={loadingRunas}
+                >
+                  {[...runas]
+                    .sort(
+                      (a, b) =>
+                        (!!b.imagen_url ? 1 : 0) - (!!a.imagen_url ? 1 : 0) ||
+                        a.nombre.localeCompare(b.nombre),
+                    )
+                    .map((r) => (
+                      <Chip
+                        key={r.id}
+                        icon={ScrollText}
+                        imgUrl={r.imagen_url}
+                        nombre={r.nombre}
+                        onClick={() => selectRuna(r)}
+                      />
+                    ))}
+                </SeccionEntidades>
+              </div>
+              <div className={div} style={divStyle} />
+
+              {/* ── Fila 4 desktop: Canciones (ancho completo) ── */}
+              <SeccionEntidades
+                cols={1}
+                count={canciones.length}
+                icon={Music}
+                label={el.canciones}
+                loading={loadingCanciones}
+                minColWidth="160px"
+              >
+                {canciones.map((c) => (
+                  <Chip
+                    key={c.id}
+                    noMaxW
+                    icon={Music}
+                    nombre={c.titulo}
+                    onClick={() => selectCancion(c as unknown as Cancion)}
+                  />
+                ))}
+              </SeccionEntidades>
+            </div>
+          )}
+        </div>
+
+        {/* MAPA */}
+        <div
+          className="border-b"
+          style={{
+            borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
+            minHeight: "70vh",
+            position: "relative",
+          }}
+        >
+          {/* Mapa — ocupa todo el ancho siempre */}
+          <div className="flex flex-col min-h-0" style={{ minHeight: "68vh" }}>
+            <EditorMapa onSelectReino={(id) => setMapaReinoId(id)} />
           </div>
 
-          {/* RELACIONES */}
-          <div style={{ minHeight: "60vh" }}>
+          {/* Panel flotante — se superpone sobre el mapa, no le quita ancho */}
+          {mapaReino && (
             <div
-              className="flex flex-col min-h-0"
-              style={{ minHeight: "58vh" }}
+              className="absolute top-0 right-0 bottom-0 w-full sm:w-[min(680px,65%)] z-20 flex flex-col min-h-0"
+              style={{
+                borderLeft:
+                  "var(--border-width) solid color-mix(in srgb, var(--primary) 15%, transparent)",
+                background: "var(--bg-main)",
+                boxShadow: "-8px 0 24px -4px rgba(0,0,0,0.25)",
+              }}
             >
-              <AdminDescubrimientos />
+              <div
+                className="shrink-0 flex items-center justify-between px-3"
+                style={{
+                  height: 40,
+                  borderBottom:
+                    "var(--border-width) solid color-mix(in srgb, var(--primary) 8%, transparent)",
+                  background: "var(--bg-main)",
+                }}
+              >
+                <span className="text-[10px] font-black uppercase tracking-widest text-primary/50 truncate">
+                  {mapaReino.nombre}
+                </span>
+                <button
+                  className="opacity-50 hover:opacity-100 transition-opacity shrink-0"
+                  title="Cerrar"
+                  onClick={() => setMapaReinoId(null)}
+                >
+                  <X size={14} />
+                </button>
+              </div>
+              <div className="flex-1 flex min-h-0 overflow-hidden">
+                <EditorReino
+                  key={mapaReino.id}
+                  entities={allEntityNames}
+                  item={mapaReino}
+                  onDeleted={(id) => {
+                    setReinos((p) => p.filter((r) => r.id !== id));
+                    setMapaReinoId(null);
+                  }}
+                  onSaved={(u) => {
+                    setReinos((p) => p.map((r) => (r.id === u.id ? u : r)));
+                  }}
+                  onSelectCiudad={async (id: string) => {
+                    const local = ciudades.find((x) => x.id === id);
+                    setMapaReinoId(null);
+                    clearAllOverlays();
+                    if (local) {
+                      setSelectedCiudad(local as Ciudad);
+                      return;
+                    }
+                    const { data } = await supabase
+                      .from("ciudades")
+                      .select("*")
+                      .eq("id", id)
+                      .single();
+                    if (data) setSelectedCiudad(data as Ciudad);
+                  }}
+                  onSelectCriatura={(id) => {
+                    const c = criaturas.find((x) => x.id === id);
+                    if (!c) return;
+                    setMapaReinoId(null);
+                    clearAllOverlays();
+                    setSelectedCriatura(c);
+                  }}
+                  onSelectItem={(id) => {
+                    const o = objetos.find((x) => x.id === id);
+                    if (!o) return;
+                    setMapaReinoId(null);
+                    clearAllOverlays();
+                    setSelectedObjeto(o);
+                  }}
+                  onSelectPersonaje={(p) => {
+                    const found = personajes.find(
+                      (x) => x.id === p?.id || x.nombre === p?.nombre,
+                    );
+                    if (!found) return;
+                    setMapaReinoId(null);
+                    clearAllOverlays();
+                    setSelectedPersonaje(found);
+                  }}
+                />
+              </div>
             </div>
-          </div>
+          )}
+        </div>
 
-          {/* MISIONES */}
-          <div style={{ minHeight: "60vh" }}>
-            <div
-              className="flex flex-col min-h-0"
-              style={{ minHeight: "58vh" }}
-            >
-              <EditorMisiones />
-            </div>
+        {/* RELACIONES */}
+        <div style={{ minHeight: "60vh" }}>
+          <div className="flex flex-col min-h-0" style={{ minHeight: "58vh" }}>
+            <AdminDescubrimientos />
           </div>
         </div>
+
+        {/* MISIONES */}
+        <div style={{ minHeight: "60vh" }}>
+          <div className="flex flex-col min-h-0" style={{ minHeight: "58vh" }}>
+            <EditorMisiones />
+          </div>
+        </div>
+      </div>
 
       {/* Modal nueva canción */}
       {showModalCancion && (
