@@ -1196,3 +1196,63 @@ export function collectIds(caps: any[], field: string): string[] {
   }
   return [...set];
 }
+
+// ─── Tiles de mapa global ─────────────────────────────────────────────────────
+
+export async function loadMapTiles(
+  worldId: string = "garlia",
+  onUpdate?: (data: any[]) => void,
+): Promise<any[]> {
+  return loadWithCache(
+    {
+      cacheKey: `map_tiles:${worldId}`,
+      dexieSource: () => dexieWhere(db?.map_tiles, "world_id", worldId),
+      supabaseFetch: async () => {
+        const { data } = await supabase
+          .from("map_tiles")
+          .select("id, world_id, col, row, image_url, label, order")
+          .eq("world_id", worldId)
+          .order("row")
+          .order("col");
+        return data ?? null;
+      },
+      persist: (rows) => persistReplace("map_tiles", rows),
+    },
+    onUpdate,
+  );
+}
+
+export async function invalidateMapTiles(
+  worldId: string = "garlia",
+): Promise<void> {
+  await invalidateSessionCache(`map_tiles:${worldId}`);
+}
+
+// ─── Tiles de reinos ──────────────────────────────────────────────────────────
+
+export async function loadReinoTiles(
+  reinoId: string,
+  onUpdate?: (data: any[]) => void,
+): Promise<any[]> {
+  return loadWithCache(
+    {
+      cacheKey: `reino_tiles:${reinoId}`,
+      dexieSource: () => dexieWhere(db?.reino_tiles, "reino_id", reinoId),
+      supabaseFetch: async () => {
+        const { data } = await supabase
+          .from("reino_tiles")
+          .select("id, reino_id, col, row, image_url, label, order")
+          .eq("reino_id", reinoId)
+          .order("row")
+          .order("col");
+        return data ?? null;
+      },
+      persist: (rows) => persistReplace("reino_tiles", rows),
+    },
+    onUpdate,
+  );
+}
+
+export async function invalidateReinoTiles(reinoId: string): Promise<void> {
+  await invalidateSessionCache(`reino_tiles:${reinoId}`);
+}

@@ -312,6 +312,27 @@ export interface GrupoMundo {
   updated_at?: string;
 }
 
+// ─── Tiles de mapa ───────────────────────────────────────────────────────────
+export interface MapTileLocal {
+  id: string;
+  world_id: string;
+  col: number;
+  row: number;
+  image_url?: string | null;
+  label?: string | null;
+  order?: number;
+}
+
+export interface ReinoTileLocal {
+  id: string;
+  reino_id: string;
+  col: number;
+  row: number;
+  image_url?: string | null;
+  label?: string | null;
+  order?: number;
+}
+
 // ─── Nuevas interfaces para relaciones lore ───────────────────────────────────
 export interface PersonajeHechizo {
   id: string; // compuesto: `${personaje_id}_${hechizo_id}`
@@ -503,6 +524,10 @@ class AgendaFraniDB extends Dexie {
   misiones!: Table<MisionLocal, string>;
   misiones_usuario!: Table<MisionUsuarioLocal, string>;
   mision_entidades!: Table<MisionEntidad, string>;
+
+  // Tiles de mapa global y de reinos
+  map_tiles!: Table<MapTileLocal, string>;
+  reino_tiles!: Table<ReinoTileLocal, string>;
 
   constructor() {
     super("AgendaFranilover");

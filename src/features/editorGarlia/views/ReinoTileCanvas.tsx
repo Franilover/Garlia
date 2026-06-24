@@ -17,6 +17,10 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { ImageIcon, Map, MapPin, Plus, Trash2, X } from "lucide-react";
 
 import { supabase } from "@/lib/api/client/supabase";
+import {
+  invalidateReinoTiles,
+  loadReinoTiles,
+} from "@/lib/api/client/syncEngine";
 import type { Ciudad } from "@/features/editorGarlia/views/EditorCiudad";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
@@ -85,13 +89,10 @@ export function useReinoTiles(reinoId: string) {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from("reino_tiles")
-      .select("id, reino_id, col, row, image_url, label")
-      .eq("reino_id", reinoId)
-      .order("row")
-      .order("col");
-    if (data) setTiles(data as ReinoTile[]);
+    const data = await loadReinoTiles(reinoId, (fresh) => {
+      setTiles(fresh as ReinoTile[]);
+    });
+    setTiles(data as ReinoTile[]);
     setLoading(false);
   }, [reinoId]);
 
@@ -114,11 +115,13 @@ export function useReinoTiles(reinoId: string) {
       prev.map((t) => (t.id === tileId ? { ...t, image_url } : t)),
     );
     await supabase.from("reino_tiles").update({ image_url }).eq("id", tileId);
+    await invalidateReinoTiles(reinoId);
   };
 
   const deleteTile = async (tileId: string) => {
     setTiles((prev) => prev.filter((t) => t.id !== tileId));
     await supabase.from("reino_tiles").delete().eq("id", tileId);
+    await invalidateReinoTiles(reinoId);
   };
 
   return { tiles, loading, addTile, updateTileImage, deleteTile, reload: load };

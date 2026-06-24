@@ -30,6 +30,7 @@ import {
 
 import SimpleImagePicker from "@/features/editorGarlia/components/editorCapitulos/snippets/forms/SimpleImagePicker";
 import { supabase } from "@/lib/api/client/supabase";
+import { invalidateMapTiles, loadMapTiles } from "@/lib/api/client/syncEngine";
 import type { MapTile } from "./TileCanvas";
 
 // ─── Toast local ──────────────────────────────────────────────────────────────
@@ -426,18 +427,15 @@ export function EditorMapa() {
     [],
   );
 
-  // ── Cargar tiles ──────────────────────────────────────────────────────────
+  // ── Cargar tiles — Dexie-first via syncEngine ────────────────────────────
   const loadTiles = useCallback(async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("map_tiles")
-        .select("id, col, row, image_url, label, order")
-        .eq("world_id", "garlia")
-        .order("row")
-        .order("col");
-      if (error) throw error;
-      setTiles((data ?? []) as (MapTile & { label?: string | null })[]);
+      const data = await loadMapTiles("garlia", (fresh) => {
+        // callback: llega cuando Supabase refresca en background
+        setTiles(fresh as (MapTile & { label?: string | null })[]);
+      });
+      setTiles(data as (MapTile & { label?: string | null })[]);
     } catch {
       showToast("Error al cargar los tiles", false);
     } finally {
@@ -460,6 +458,7 @@ export function EditorMapa() {
         .update({ image_url })
         .eq("id", tileId);
       if (error) throw error;
+      await invalidateMapTiles("garlia");
       showToast("Imagen actualizada", true);
     } catch {
       showToast("Error al guardar la imagen", false);
@@ -488,6 +487,7 @@ export function EditorMapa() {
     try {
       await supabase.from("map_tiles").delete().eq("id", tileId);
       setTiles((prev) => prev.filter((t) => t.id !== tileId));
+      await invalidateMapTiles("garlia");
       showToast("Tile eliminado", true);
     } catch {
       showToast("Error al eliminar", false);
