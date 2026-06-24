@@ -144,7 +144,6 @@ function ModalNuevoTile({
 }) {
   const [col, setCol] = useState(0);
   const [row, setRow] = useState(0);
-  const [label, setLabel] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -163,13 +162,7 @@ function ModalNuevoTile({
       const maxOrder = existingPositions.length;
       const { data, error: err } = await supabase
         .from("map_tiles")
-        .insert({
-          world_id: "garlia",
-          col,
-          row,
-          label: label || null,
-          order: maxOrder,
-        })
+        .insert({ world_id: "garlia", col, row, order: maxOrder })
         .select()
         .single();
       if (err) throw err;
@@ -240,50 +233,20 @@ function ModalNuevoTile({
           ))}
         </div>
 
-        <div className="flex flex-col gap-1">
-          <label
-            className="text-[9px] font-bold uppercase tracking-widest"
-            style={{
-              color: "color-mix(in srgb, var(--foreground) 50%, transparent)",
-            }}
-          >
-            Etiqueta (opcional)
-          </label>
-          <input
-            className="input-brand px-3 py-2 text-sm"
-            placeholder="Ej: Noreste del continente"
-            style={{ borderRadius: "1px" }}
-            type="text"
-            value={label}
-            onChange={(e) => setLabel(e.target.value)}
-          />
-        </div>
-
         {isOccupied && (
           <p className="text-[10px] font-bold text-red-400">
-            ⚠ Ya existe un tile en [{col},{row}]
+            ⚠ [{col},{row}] ya existe
           </p>
         )}
         {error && <p className="text-[10px] font-bold text-red-400">{error}</p>}
 
-        {/* Preview de dónde quedará en la grilla */}
-        <div
-          className="text-[9px] uppercase tracking-widest text-center font-bold"
-          style={{
-            color: "color-mix(in srgb, var(--accent) 60%, transparent)",
-          }}
-        >
-          Posición en grilla: columna {col}, fila {row}
-        </div>
-
         <button
-          className="btn-brand w-full justify-center py-3 text-[11px] uppercase disabled:opacity-50"
+          className="btn-brand w-full justify-center py-2.5 text-[10px] uppercase disabled:opacity-50"
           disabled={saving || isOccupied}
-          style={{ letterSpacing: "0.12em" }}
           onClick={handleCreate}
         >
-          {saving ? <Hourglass size={12} /> : <Plus size={12} />}
-          Crear tile
+          {saving ? <Hourglass size={11} /> : <Plus size={11} />}
+          Crear
         </button>
       </div>
     </div>
@@ -647,131 +610,136 @@ export function EditorMapa() {
         />
       )}
 
-      {/* Header */}
+      {/* Header — minimalista */}
       <div
-        className="flex items-center gap-3 px-5 py-4 border-b shrink-0"
+        className="flex items-center gap-2 px-4 py-3 border-b shrink-0"
         style={{
           borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
         }}
       >
-        <Map size={16} style={{ color: "var(--accent)" }} />
-        <h2
-          className="font-black uppercase text-sm tracking-[0.18em] flex-1"
+        <Map size={13} style={{ color: "var(--accent)", flexShrink: 0 }} />
+        <span
+          className="font-black uppercase text-[10px] tracking-[0.2em] flex-1"
           style={{ fontFamily: "'Cinzel', serif", color: "var(--foreground)" }}
         >
-          Editor de Mapa
-        </h2>
-        <span
-          className="text-[9px] font-bold uppercase tracking-widest"
-          style={{
-            color: "color-mix(in srgb, var(--accent) 50%, transparent)",
-          }}
-        >
-          {tiles.length} tiles · {tileGridDimensions(maxCol, maxRow)}
+          Mapa ·{" "}
+          {tiles.length > 0 ? `${maxCol + 1}×${maxRow + 1}` : "sin tiles"}
         </span>
+        {/* Expandir */}
+        {tiles.length > 0 && (
+          <div className="flex gap-1">
+            {[
+              { title: "+ col →", col: maxCol + 1, row: 0 },
+              { title: "+ fila ↓", col: 0, row: maxRow + 1 },
+            ].map(({ title, col, row }) => (
+              <button
+                key={title}
+                className="px-2 py-1 text-[9px] font-black uppercase border transition-opacity hover:opacity-70"
+                style={{
+                  borderColor:
+                    "color-mix(in srgb, var(--primary) 15%, transparent)",
+                  color:
+                    "color-mix(in srgb, var(--foreground) 40%, transparent)",
+                  borderRadius: "2px",
+                }}
+                title={title}
+                onClick={async () => {
+                  try {
+                    const { data, error } = await supabase
+                      .from("map_tiles")
+                      .insert({
+                        world_id: "garlia",
+                        col,
+                        row,
+                        order: tiles.length,
+                      })
+                      .select()
+                      .single();
+                    if (error) throw error;
+                    setTiles((prev) => [...prev, data as any]);
+                  } catch {
+                    showToast("Error al crear tile", false);
+                  }
+                }}
+              >
+                {title}
+              </button>
+            ))}
+          </div>
+        )}
         <button
-          className="btn-brand flex items-center gap-1.5 px-3 py-2 text-[10px] uppercase"
-          style={{ letterSpacing: "0.1em" }}
+          className="w-7 h-7 flex items-center justify-center btn-brand"
+          style={{ borderRadius: "2px", flexShrink: 0 }}
+          title="Nuevo tile en posición personalizada"
           onClick={() => setShowModal(true)}
         >
-          <Plus size={11} /> Nuevo tile
+          <Plus size={12} />
         </button>
       </div>
 
-      {/* Info */}
-      <div
-        className="px-5 py-3 text-[10px] shrink-0"
-        style={{
-          color: "color-mix(in srgb, var(--foreground) 45%, transparent)",
-          background: "color-mix(in srgb, var(--primary) 5%, transparent)",
-        }}
-      >
-        <span className="font-bold" style={{ color: "var(--accent)" }}>
-          Grilla real:
-        </span>{" "}
-        cada celda representa una posición [col, row] en el mapa. Arrastra las
-        tarjetas para intercambiar posiciones. Haz click en la imagen para
-        cambiarla.
-      </div>
-
       {/* Contenido */}
-      <div className="flex-1 overflow-y-auto p-5">
+      <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
         {loading ? (
           <div
             className="flex items-center justify-center h-40 gap-2"
             style={{
-              color: "color-mix(in srgb, var(--accent) 50%, transparent)",
+              color: "color-mix(in srgb, var(--accent) 40%, transparent)",
             }}
           >
-            <Hourglass size={16} /> Cargando tiles...
+            <Hourglass size={14} />
           </div>
         ) : tiles.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-60 gap-4">
+          <div className="flex flex-col items-center justify-center h-60 gap-3">
             <Map
-              size={32}
+              size={24}
               style={{
-                color: "color-mix(in srgb, var(--accent) 25%, transparent)",
+                color: "color-mix(in srgb, var(--accent) 20%, transparent)",
               }}
             />
-            <p
-              className="text-[11px] font-black uppercase tracking-widest text-center"
-              style={{
-                color: "color-mix(in srgb, var(--foreground) 30%, transparent)",
-              }}
-            >
-              No hay tiles aún
-            </p>
             <button
-              className="btn-brand flex items-center gap-2 px-4 py-3 text-[11px] uppercase"
-              style={{ letterSpacing: "0.12em" }}
+              className="btn-brand flex items-center gap-1.5 px-3 py-2 text-[10px] uppercase"
               onClick={() => setShowModal(true)}
             >
-              <Plus size={13} /> Añadir primer tile
+              <Plus size={11} /> Primer tile
             </button>
           </div>
         ) : (
           <>
-            {/* ── Canvas interactivo con reinos posicionables ── */}
-            <div className="mb-6">
-              <div className="flex items-center gap-2 mb-2">
-                <p
+            {/* Canvas: mover reinos */}
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center gap-2 h-6">
+                <span
                   className="text-[9px] font-bold uppercase tracking-widest flex-1"
                   style={{
-                    color: "color-mix(in srgb, var(--accent) 50%, transparent)",
+                    color: selectedReinoId
+                      ? "var(--accent)"
+                      : "color-mix(in srgb, var(--foreground) 30%, transparent)",
                   }}
                 >
                   {selectedReinoId
-                    ? `Click en el mapa para mover "${reinos.find((r) => r.id === selectedReinoId)?.nombre}"`
-                    : "Click en un reino para moverlo"}
-                </p>
+                    ? `→ click para mover "${reinos.find((r) => r.id === selectedReinoId)?.nombre}"`
+                    : "click un reino para reubicarlo"}
+                </span>
                 {selectedReinoId && (
                   <button
-                    className="text-[9px] font-black uppercase tracking-widest px-2 py-1 border"
-                    style={{
-                      borderColor:
-                        "color-mix(in srgb, var(--primary) 20%, transparent)",
-                      borderRadius: "2px",
-                      color:
-                        "color-mix(in srgb, var(--foreground) 50%, transparent)",
-                    }}
+                    className="w-5 h-5 flex items-center justify-center opacity-40 hover:opacity-80 transition-opacity"
                     onClick={() => setSelectedReinoId(null)}
                   >
-                    Cancelar
+                    <X size={11} />
                   </button>
                 )}
                 {Object.keys(pendingReinos).length > 0 && (
                   <button
-                    className="btn-brand flex items-center gap-1.5 px-3 py-1.5 text-[9px] uppercase disabled:opacity-50"
+                    className="btn-brand flex items-center gap-1 px-2 py-1 text-[9px] uppercase disabled:opacity-50"
                     disabled={savingReino}
                     onClick={handleSaveReinos}
                   >
-                    {savingReino ? <Hourglass size={10} /> : null}
-                    Guardar {Object.keys(pendingReinos).length} cambio
-                    {Object.keys(pendingReinos).length > 1 ? "s" : ""}
+                    {savingReino ? <Hourglass size={9} /> : null}
+                    Guardar {Object.keys(pendingReinos).length}
                   </button>
                 )}
               </div>
-              <div style={{ height: 360, position: "relative" }}>
+              <div style={{ height: 340, position: "relative" }}>
                 <TileCanvas
                   editMode={true}
                   eyedropperActive={false}
@@ -792,146 +760,78 @@ export function EditorMapa() {
               </div>
             </div>
 
-            {/* Vista de grilla: col × row */}
-            <div className="mb-6">
-              <p
-                className="text-[9px] font-bold uppercase tracking-widest mb-3"
-                style={{
-                  color: "color-mix(in srgb, var(--accent) 50%, transparent)",
-                }}
-              >
-                Vista de grilla — {maxCol + 1} col × {maxRow + 1} filas
-              </p>
-              <div
-                className="grid gap-2"
-                style={{
-                  gridTemplateColumns: `repeat(${maxCol + 1}, minmax(140px, 1fr))`,
-                }}
-              >
-                {Array.from({ length: maxRow + 1 }, (_, row) =>
-                  Array.from({ length: maxCol + 1 }, (_, col) => {
-                    const tile = getTileAt(col, row);
-                    const idx = tile
-                      ? tiles.findIndex((t) => t.id === tile.id)
-                      : -1;
-                    return (
-                      <div
-                        key={`${col}-${row}`}
-                        draggable={!!tile}
-                        style={{
-                          outline:
-                            dragOverIdx === idx
-                              ? `2px solid var(--accent)`
-                              : undefined,
-                          opacity: draggedIdx.current === idx ? 0.5 : 1,
-                          transition: "outline 0.1s",
-                        }}
-                        onDragOver={(e) => tile && handleDragOver(e, idx)}
-                        onDragStart={() => tile && handleDragStart(idx)}
-                        onDrop={() => tile && handleDrop(idx)}
-                        onDragEnd={() => {
-                          draggedIdx.current = null;
-                          setDragOverIdx(null);
-                        }}
-                      >
-                        {tile ? (
-                          <TileCard
-                            tile={tile}
-                            dragHandleProps={{ draggable: false }}
-                            onDelete={() => handleDelete(tile.id)}
-                            onImageSelect={(url) =>
-                              handleImageSelect(tile.id, url)
-                            }
-                          />
-                        ) : (
-                          // Celda vacía
-                          <button
-                            className="w-full border border-dashed flex flex-col items-center justify-center gap-1.5 transition-all hover:border-accent/40"
+            {/* Grilla de tiles */}
+            <div
+              className="grid gap-2"
+              style={{
+                gridTemplateColumns: `repeat(${maxCol + 1}, minmax(120px, 1fr))`,
+              }}
+            >
+              {Array.from({ length: maxRow + 1 }, (_, row) =>
+                Array.from({ length: maxCol + 1 }, (_, col) => {
+                  const tile = getTileAt(col, row);
+                  const idx = tile
+                    ? tiles.findIndex((t) => t.id === tile.id)
+                    : -1;
+                  return (
+                    <div
+                      key={`${col}-${row}`}
+                      draggable={!!tile}
+                      style={{
+                        outline:
+                          dragOverIdx === idx
+                            ? `2px solid var(--accent)`
+                            : undefined,
+                        opacity: draggedIdx.current === idx ? 0.4 : 1,
+                        transition: "outline 0.1s, opacity 0.1s",
+                      }}
+                      onDragOver={(e) => tile && handleDragOver(e, idx)}
+                      onDragStart={() => tile && handleDragStart(idx)}
+                      onDrop={() => tile && handleDrop(idx)}
+                      onDragEnd={() => {
+                        draggedIdx.current = null;
+                        setDragOverIdx(null);
+                      }}
+                    >
+                      {tile ? (
+                        <TileCard
+                          tile={tile}
+                          dragHandleProps={{ draggable: false }}
+                          onDelete={() => handleDelete(tile.id)}
+                          onImageSelect={(url) =>
+                            handleImageSelect(tile.id, url)
+                          }
+                        />
+                      ) : (
+                        <button
+                          className="w-full border border-dashed flex items-center justify-center transition-all hover:opacity-60"
+                          style={{
+                            minHeight: 90,
+                            borderColor:
+                              "color-mix(in srgb, var(--primary) 12%, transparent)",
+                            background:
+                              "color-mix(in srgb, var(--primary) 3%, transparent)",
+                            borderRadius: "2px",
+                          }}
+                          onClick={() => setShowModal(true)}
+                        >
+                          <Plus
+                            size={12}
                             style={{
-                              minHeight: 120,
-                              borderColor:
-                                "color-mix(in srgb, var(--primary) 15%, transparent)",
-                              background:
-                                "color-mix(in srgb, var(--primary) 4%, transparent)",
-                              borderRadius: "2px",
+                              color:
+                                "color-mix(in srgb, var(--accent) 25%, transparent)",
                             }}
-                            onClick={() => setShowModal(true)}
-                          >
-                            <Plus
-                              size={14}
-                              style={{
-                                color:
-                                  "color-mix(in srgb, var(--accent) 30%, transparent)",
-                              }}
-                            />
-                            <span
-                              className="text-[8px] font-bold uppercase tracking-wider"
-                              style={{
-                                color:
-                                  "color-mix(in srgb, var(--accent) 25%, transparent)",
-                              }}
-                            >
-                              [{col},{row}]
-                            </span>
-                          </button>
-                        )}
-                      </div>
-                    );
-                  }),
-                )}
-              </div>
-            </div>
-
-            {/* Botón para expandir */}
-            <div className="flex gap-2 flex-wrap">
-              {[
-                { label: "+ Columna a la derecha", col: maxCol + 1, row: 0 },
-                { label: "+ Fila abajo", col: 0, row: maxRow + 1 },
-              ].map(({ label, col, row }) => (
-                <button
-                  key={label}
-                  className="flex items-center gap-1.5 px-3 py-2 border border-dashed text-[10px] font-black uppercase transition-all hover:opacity-80"
-                  style={{
-                    borderColor:
-                      "color-mix(in srgb, var(--accent) 25%, transparent)",
-                    color: "color-mix(in srgb, var(--accent) 60%, transparent)",
-                    background:
-                      "color-mix(in srgb, var(--primary) 6%, transparent)",
-                    borderRadius: "1px",
-                    letterSpacing: "0.1em",
-                  }}
-                  onClick={async () => {
-                    try {
-                      const { data, error } = await supabase
-                        .from("map_tiles")
-                        .insert({
-                          world_id: "garlia",
-                          col,
-                          row,
-                          order: tiles.length,
-                        })
-                        .select()
-                        .single();
-                      if (error) throw error;
-                      setTiles((prev) => [...prev, data as any]);
-                      showToast("Tile creado", true);
-                    } catch {
-                      showToast("Error al crear tile", false);
-                    }
-                  }}
-                >
-                  <Plus size={11} /> {label}
-                </button>
-              ))}
+                          />
+                        </button>
+                      )}
+                    </div>
+                  );
+                }),
+              )}
             </div>
           </>
         )}
       </div>
     </div>
   );
-}
-
-// ─── Helper ───────────────────────────────────────────────────────────────────
-function tileGridDimensions(maxCol: number, maxRow: number) {
-  return `${maxCol + 1}×${maxRow + 1}`;
 }
