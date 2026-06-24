@@ -597,7 +597,7 @@ export function TileCanvas({
     const onPointerMove = (e: PointerEvent) => {
       const dx = e.clientX - dragStart.current.x;
       const dy = e.clientY - dragStart.current.y;
-      if (Math.hypot(dx, dy) > 4) isDragging.current = true;
+      if (Math.hypot(dx, dy) > 8) isDragging.current = true;
       if (isDragging.current) {
         camRef.current = {
           ...camRef.current,
@@ -700,11 +700,7 @@ export function TileCanvas({
       className="relative flex-1 overflow-hidden min-h-0"
       style={{
         minHeight: "100%",
-        cursor: eyedropperActive
-          ? "crosshair"
-          : isDragging.current
-            ? "grabbing"
-            : "grab",
+        cursor: eyedropperActive ? "crosshair" : "grab",
       }}
     >
       <canvas ref={canvasRef} className="absolute inset-0 touch-none" />
