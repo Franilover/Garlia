@@ -480,7 +480,7 @@ export function ReinoTileCanvas({
     const onPointerMove = (e: PointerEvent) => {
       const dx = e.clientX - dragStart.current.x;
       const dy = e.clientY - dragStart.current.y;
-      if (Math.hypot(dx, dy) > 4) isDragging.current = true;
+      if (Math.hypot(dx, dy) > 8) isDragging.current = true;
       if (isDragging.current) {
         camRef.current = {
           ...camRef.current,
