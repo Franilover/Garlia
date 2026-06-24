@@ -23,6 +23,12 @@ import {
 } from "@/lib/api/client/syncEngine";
 import type { Ciudad } from "@/features/editorGarlia/views/EditorCiudad";
 
+// Extiende Ciudad con las coordenadas de tile añadidas en la migración
+type CiudadConTile = Ciudad & {
+  tile_col?: number | null;
+  tile_row?: number | null;
+};
+
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 export type ReinoTile = {
   id: string;
@@ -130,8 +136,8 @@ export function useReinoTiles(reinoId: string) {
 // ─── ReinoTileCanvas ──────────────────────────────────────────────────────────
 interface ReinoTileCanvasProps {
   reinoId: string;
-  detalles: Ciudad[];
-  onDetallesChange: (d: Ciudad[]) => void;
+  detalles: CiudadConTile[];
+  onDetallesChange: (d: CiudadConTile[]) => void;
   editMode?: boolean;
   tileSize?: number;
 }
