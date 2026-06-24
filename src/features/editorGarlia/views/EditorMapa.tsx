@@ -439,6 +439,44 @@ export function EditorMapa() {
     );
   }, []);
 
+  // ── Desplazar todos los tiles (para añadir fila/col arriba/izquierda) ────
+  const shiftTiles = async (dCol: number, dRow: number) => {
+    try {
+      // Actualizar en Supabase todos los tiles
+      await Promise.all(
+        tiles.map((t) =>
+          supabase
+            .from("map_tiles")
+            .update({ col: t.col + dCol, row: t.row + dRow })
+            .eq("id", t.id),
+        ),
+      );
+      // Actualizar estado local
+      setTiles((prev) =>
+        prev.map((t) => ({ ...t, col: t.col + dCol, row: t.row + dRow })),
+      );
+      // Insertar el nuevo tile vacío en la posición 0
+      const newCol = dCol > 0 ? 0 : undefined;
+      const newRow = dRow > 0 ? 0 : undefined;
+      if (newCol !== undefined || newRow !== undefined) {
+        const { data, error } = await supabase
+          .from("map_tiles")
+          .insert({
+            world_id: "garlia",
+            col: newCol ?? 0,
+            row: newRow ?? 0,
+            order: 0,
+          })
+          .select()
+          .single();
+        if (!error && data) setTiles((prev) => [...prev, data as any]);
+      }
+      await invalidateMapTiles("garlia");
+    } catch {
+      showToast("Error al desplazar tiles", false);
+    }
+  };
+
   // ── Mover reino en el canvas ──────────────────────────────────────────────
   const handleMapClick = (
     x: number,
@@ -626,13 +664,15 @@ export function EditorMapa() {
           Mapa ·{" "}
           {tiles.length > 0 ? `${maxCol + 1}×${maxRow + 1}` : "sin tiles"}
         </span>
-        {/* Expandir */}
+        {/* Expandir en las 4 direcciones */}
         {tiles.length > 0 && (
           <div className="flex gap-1">
             {[
-              { title: "+ col →", col: maxCol + 1, row: 0 },
-              { title: "+ fila ↓", col: 0, row: maxRow + 1 },
-            ].map(({ title, col, row }) => (
+              { title: "← col", dCol: 1, dRow: 0 },
+              { title: "↑ fila", dCol: 0, dRow: 1 },
+              { title: "↓ fila", dCol: 0, dRow: 0, newRow: maxRow + 1 },
+              { title: "→ col", dCol: 0, dRow: 0, newCol: maxCol + 1 },
+            ].map(({ title, dCol, dRow, newCol, newRow }) => (
               <button
                 key={title}
                 className="px-2 py-1 text-[9px] font-black uppercase border transition-opacity hover:opacity-70"
@@ -645,21 +685,27 @@ export function EditorMapa() {
                 }}
                 title={title}
                 onClick={async () => {
-                  try {
-                    const { data, error } = await supabase
-                      .from("map_tiles")
-                      .insert({
-                        world_id: "garlia",
-                        col,
-                        row,
-                        order: tiles.length,
-                      })
-                      .select()
-                      .single();
-                    if (error) throw error;
-                    setTiles((prev) => [...prev, data as any]);
-                  } catch {
-                    showToast("Error al crear tile", false);
+                  if (dCol > 0 || dRow > 0) {
+                    // Desplaza todos + añade vacío al inicio
+                    await shiftTiles(dCol, dRow);
+                  } else {
+                    // Añade al final (derecha o abajo)
+                    try {
+                      const { data, error } = await supabase
+                        .from("map_tiles")
+                        .insert({
+                          world_id: "garlia",
+                          col: newCol ?? 0,
+                          row: newRow ?? 0,
+                          order: tiles.length,
+                        })
+                        .select()
+                        .single();
+                      if (error) throw error;
+                      setTiles((prev) => [...prev, data as any]);
+                    } catch {
+                      showToast("Error al crear tile", false);
+                    }
                   }
                 }}
               >
