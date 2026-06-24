@@ -731,8 +731,24 @@ const PanelEditor = ({
           <div className="flex items-center gap-2">
             {/* Info pills */}
             <div className="flex items-center gap-1.5 flex-1 min-w-0 flex-wrap text-[8px] font-black uppercase tracking-widest text-primary/30">
-              <span className="flex items-center gap-0.5 shrink-0">
-                <Hash size={8} /> {cap.orden}
+              {/* Orden editable */}
+              <span className="flex items-center gap-0.5 shrink-0 group/orden">
+                <Hash size={8} />
+                <input
+                  className="w-6 bg-transparent outline-none text-[8px] font-black tabular-nums text-center border-b border-transparent focus:border-primary/30 transition-all"
+                  min={1}
+                  title="Orden del capítulo"
+                  type="number"
+                  value={cap.orden}
+                  onChange={async (e) => {
+                    const n = parseInt(e.target.value, 10);
+                    if (!isNaN(n) && n > 0) {
+                      try {
+                        await capUpdateMeta(capId, { orden: n });
+                      } catch {}
+                    }
+                  }}
+                />
               </span>
 
               <VisibilidadCapPicker
