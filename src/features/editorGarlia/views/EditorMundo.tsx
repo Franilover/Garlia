@@ -1804,102 +1804,102 @@ function PanelListas({
             style={{
               borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
               minHeight: "70vh",
+              position: "relative",
             }}
           >
+            {/* Mapa — ocupa todo el ancho siempre */}
             <div
-              className="flex flex-col sm:flex-row min-h-0"
+              className="flex flex-col min-h-0"
               style={{ minHeight: "68vh" }}
             >
-              {/* Mapa */}
-              <div className="flex-1 min-w-0 flex flex-col min-h-0">
-                <EditorMapa onSelectReino={(id) => setMapaReinoId(id)} />
-              </div>
+              <EditorMapa onSelectReino={(id) => setMapaReinoId(id)} />
+            </div>
 
-              {/* Panel lateral — editar el reino clickeado en el mapa */}
-              {mapaReino && (
+            {/* Panel flotante — se superpone sobre el mapa, no le quita ancho */}
+            {mapaReino && (
+              <div
+                className="absolute top-0 right-0 bottom-0 w-full sm:w-[400px] z-20 flex flex-col min-h-0"
+                style={{
+                  borderLeft:
+                    "var(--border-width) solid color-mix(in srgb, var(--primary) 15%, transparent)",
+                  background: "var(--bg-main)",
+                  boxShadow: "-8px 0 24px -4px rgba(0,0,0,0.25)",
+                }}
+              >
                 <div
-                  className="w-full sm:w-[400px] shrink-0 flex flex-col min-h-0 border-t sm:border-t-0 sm:border-l"
+                  className="shrink-0 flex items-center justify-between px-3"
                   style={{
-                    borderColor:
-                      "color-mix(in srgb, var(--primary) 8%, transparent)",
+                    height: 40,
+                    borderBottom:
+                      "var(--border-width) solid color-mix(in srgb, var(--primary) 8%, transparent)",
                     background: "var(--bg-main)",
-                    minHeight: 640,
                   }}
                 >
-                  <div
-                    className="shrink-0 flex items-center justify-between px-3"
-                    style={{
-                      height: 40,
-                      borderBottom:
-                        "var(--border-width) solid color-mix(in srgb, var(--primary) 8%, transparent)",
-                    }}
+                  <span className="text-[10px] font-black uppercase tracking-widest text-primary/50 truncate">
+                    {mapaReino.nombre}
+                  </span>
+                  <button
+                    className="opacity-50 hover:opacity-100 transition-opacity shrink-0"
+                    title="Cerrar"
+                    onClick={() => setMapaReinoId(null)}
                   >
-                    <span className="text-[10px] font-black uppercase tracking-widest text-primary/50 truncate">
-                      {mapaReino.nombre}
-                    </span>
-                    <button
-                      className="opacity-50 hover:opacity-100 transition-opacity shrink-0"
-                      title="Cerrar"
-                      onClick={() => setMapaReinoId(null)}
-                    >
-                      <X size={14} />
-                    </button>
-                  </div>
-                  <div className="flex-1 flex min-h-0 overflow-hidden">
-                    <EditorReino
-                      key={mapaReino.id}
-                      entities={allEntityNames}
-                      item={mapaReino}
-                      onDeleted={(id) => {
-                        setReinos((p) => p.filter((r) => r.id !== id));
-                        setMapaReinoId(null);
-                      }}
-                      onSaved={(u) => {
-                        setReinos((p) => p.map((r) => (r.id === u.id ? u : r)));
-                      }}
-                      onSelectCiudad={async (id: string) => {
-                        const local = ciudades.find((x) => x.id === id);
-                        setMapaReinoId(null);
-                        clearAllOverlays();
-                        if (local) {
-                          setSelectedCiudad(local as Ciudad);
-                          return;
-                        }
-                        const { data } = await supabase
-                          .from("ciudades")
-                          .select("*")
-                          .eq("id", id)
-                          .single();
-                        if (data) setSelectedCiudad(data as Ciudad);
-                      }}
-                      onSelectCriatura={(id) => {
-                        const c = criaturas.find((x) => x.id === id);
-                        if (!c) return;
-                        setMapaReinoId(null);
-                        clearAllOverlays();
-                        setSelectedCriatura(c);
-                      }}
-                      onSelectItem={(id) => {
-                        const o = objetos.find((x) => x.id === id);
-                        if (!o) return;
-                        setMapaReinoId(null);
-                        clearAllOverlays();
-                        setSelectedObjeto(o);
-                      }}
-                      onSelectPersonaje={(p) => {
-                        const found = personajes.find(
-                          (x) => x.id === p?.id || x.nombre === p?.nombre,
-                        );
-                        if (!found) return;
-                        setMapaReinoId(null);
-                        clearAllOverlays();
-                        setSelectedPersonaje(found);
-                      }}
-                    />
-                  </div>
+                    <X size={14} />
+                  </button>
                 </div>
-              )}
-            </div>
+                <div className="flex-1 flex min-h-0 overflow-hidden">
+                  <EditorReino
+                    key={mapaReino.id}
+                    entities={allEntityNames}
+                    item={mapaReino}
+                    onDeleted={(id) => {
+                      setReinos((p) => p.filter((r) => r.id !== id));
+                      setMapaReinoId(null);
+                    }}
+                    onSaved={(u) => {
+                      setReinos((p) => p.map((r) => (r.id === u.id ? u : r)));
+                    }}
+                    onSelectCiudad={async (id: string) => {
+                      const local = ciudades.find((x) => x.id === id);
+                      setMapaReinoId(null);
+                      clearAllOverlays();
+                      if (local) {
+                        setSelectedCiudad(local as Ciudad);
+                        return;
+                      }
+                      const { data } = await supabase
+                        .from("ciudades")
+                        .select("*")
+                        .eq("id", id)
+                        .single();
+                      if (data) setSelectedCiudad(data as Ciudad);
+                    }}
+                    onSelectCriatura={(id) => {
+                      const c = criaturas.find((x) => x.id === id);
+                      if (!c) return;
+                      setMapaReinoId(null);
+                      clearAllOverlays();
+                      setSelectedCriatura(c);
+                    }}
+                    onSelectItem={(id) => {
+                      const o = objetos.find((x) => x.id === id);
+                      if (!o) return;
+                      setMapaReinoId(null);
+                      clearAllOverlays();
+                      setSelectedObjeto(o);
+                    }}
+                    onSelectPersonaje={(p) => {
+                      const found = personajes.find(
+                        (x) => x.id === p?.id || x.nombre === p?.nombre,
+                      );
+                      if (!found) return;
+                      setMapaReinoId(null);
+                      clearAllOverlays();
+                      setSelectedPersonaje(found);
+                    }}
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* ENTIDADES */}
