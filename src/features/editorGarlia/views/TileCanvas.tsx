@@ -462,8 +462,25 @@ export function TileCanvas({
           if (isHidden2) continue;
           const label = m.nombre || m.name || "";
           if (!label) continue;
-          const mx2 = (m.coord_x / 100) * iw2 + cx2label;
-          const my2 = (m.coord_y / 100) * ih2 + cy2label;
+          // Misma lógica tile-based que el draw loop
+          let mx2: number, my2: number;
+          if ((m as any).tile_col != null && (m as any).tile_row != null) {
+            const tOx =
+              ((m as any).tile_col - minCol) * tileSize * camRef.current.scale;
+            const tOy =
+              ((m as any).tile_row - minRow) * tileSize * camRef.current.scale;
+            mx2 =
+              cx2label +
+              tOx +
+              ((m.coord_x ?? 50) / 100) * tileSize * camRef.current.scale;
+            my2 =
+              cy2label +
+              tOy +
+              ((m.coord_y ?? 50) / 100) * tileSize * camRef.current.scale;
+          } else {
+            mx2 = cx2label + ((m.coord_x ?? 50) / 100) * iw2;
+            my2 = cy2label + ((m.coord_y ?? 50) / 100) * ih2;
+          }
           const tw = ctx.measureText(label).width;
           const pad = 5;
           const lx = mx2 - tw / 2 - pad;
