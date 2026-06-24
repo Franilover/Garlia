@@ -876,12 +876,9 @@ export function EditorMapa() {
               )}
             </div>
 
-            {/* ── Canvas — solo en modo mover (ocupa todo el espacio disponible) ── */}
+            {/* ── Canvas — solo en modo mover (más grande que antes) ── */}
             {mode === "mover" && (
-              <div
-                className="flex-1 min-h-0"
-                style={{ position: "relative", minHeight: 480 }}
-              >
+              <div style={{ height: 640, position: "relative", flexShrink: 0 }}>
                 <TileCanvas
                   editMode={true}
                   eyedropperActive={false}
