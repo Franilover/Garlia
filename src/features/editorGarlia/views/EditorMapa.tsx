@@ -402,6 +402,7 @@ export function EditorMapa() {
   const [pendingReinos, setPendingReinos] = useState<
     Record<string, ReinoConTile>
   >({});
+  const [creatingAt, setCreatingAt] = useState<string | null>(null);
 
   // Drag state
   const draggedIdx = useRef<number | null>(null);
@@ -600,6 +601,28 @@ export function EditorMapa() {
       showToast("Tile eliminado", true);
     } catch {
       showToast("Error al eliminar", false);
+    }
+  };
+
+  // ── Crear tile al instante al hacer click en una celda vacía de la grilla ──
+  const handleCreateTileAt = async (col: number, row: number) => {
+    const key = `${col}-${row}`;
+    if (creatingAt) return; // evita doble-click mientras se está creando
+    setCreatingAt(key);
+    try {
+      const { data, error } = await supabase
+        .from("map_tiles")
+        .insert({ world_id: "garlia", col, row, order: tiles.length })
+        .select()
+        .single();
+      if (error) throw error;
+      setTiles((prev) => [...prev, data as any]);
+      await invalidateMapTiles("garlia");
+      showToast("Tile creado", true);
+    } catch {
+      showToast("Error al crear tile", false);
+    } finally {
+      setCreatingAt(null);
     }
   };
 
@@ -829,7 +852,7 @@ export function EditorMapa() {
                   ? selectedReinoId
                     ? `→ click para mover "${reinos.find((r) => r.id === selectedReinoId)?.nombre}"`
                     : "click un reino para reubicarlo"
-                  : "click imagen para cambiarla · arrastra para reordenar"}
+                  : "click imagen para cambiarla · click vacío crea tile · arrastra para reordenar"}
               </span>
 
               {/* Acciones contextuales */}
@@ -853,9 +876,12 @@ export function EditorMapa() {
               )}
             </div>
 
-            {/* ── Canvas — solo en modo mover ── */}
+            {/* ── Canvas — solo en modo mover (ocupa todo el espacio disponible) ── */}
             {mode === "mover" && (
-              <div style={{ height: 320, position: "relative", flexShrink: 0 }}>
+              <div
+                className="flex-1 min-h-0"
+                style={{ position: "relative", minHeight: 480 }}
+              >
                 <TileCanvas
                   editMode={true}
                   eyedropperActive={false}
@@ -927,7 +953,8 @@ export function EditorMapa() {
                             />
                           ) : (
                             <button
-                              className="w-full border border-dashed flex items-center justify-center transition-all hover:opacity-60"
+                              className="w-full border border-dashed flex items-center justify-center transition-all hover:opacity-60 disabled:opacity-40"
+                              disabled={creatingAt === `${col}-${row}`}
                               style={{
                                 minHeight: 80,
                                 borderColor:
@@ -936,15 +963,20 @@ export function EditorMapa() {
                                   "color-mix(in srgb, var(--primary) 3%, transparent)",
                                 borderRadius: "2px",
                               }}
-                              onClick={() => setShowModal(true)}
+                              title="Crear tile aquí"
+                              onClick={() => handleCreateTileAt(col, row)}
                             >
-                              <Plus
-                                size={11}
-                                style={{
-                                  color:
-                                    "color-mix(in srgb, var(--accent) 25%, transparent)",
-                                }}
-                              />
+                              {creatingAt === `${col}-${row}` ? (
+                                <Hourglass size={11} />
+                              ) : (
+                                <Plus
+                                  size={11}
+                                  style={{
+                                    color:
+                                      "color-mix(in srgb, var(--accent) 25%, transparent)",
+                                  }}
+                                />
+                              )}
                             </button>
                           )}
                         </div>
