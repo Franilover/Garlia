@@ -1193,6 +1193,8 @@ function PanelListas({
     children,
     cols = 3,
     minColWidth = "60px",
+    defaultCollapsed = false,
+    storageKey,
   }: {
     icon: React.ElementType;
     label: string;
@@ -1201,38 +1203,76 @@ function PanelListas({
     children: React.ReactNode;
     cols?: 1 | 3;
     minColWidth?: string;
+    defaultCollapsed?: boolean;
+    storageKey?: string;
   }) {
+    const lsKey = storageKey ? `garlia-section-collapsed-${storageKey}` : null;
+    const [collapsed, setCollapsed] = useState<boolean>(() => {
+      if (lsKey) {
+        try {
+          const stored = localStorage.getItem(lsKey);
+          if (stored !== null) return stored === "true";
+        } catch {}
+      }
+      return defaultCollapsed;
+    });
+
+    const toggle = () => {
+      setCollapsed((prev) => {
+        const next = !prev;
+        if (lsKey) {
+          try {
+            localStorage.setItem(lsKey, String(next));
+          } catch {}
+        }
+        return next;
+      });
+    };
+
     return (
       <div className="pb-1">
-        <div className="flex items-center gap-1.5 mb-2">
+        <button
+          type="button"
+          className="flex items-center gap-1.5 mb-2 w-full group cursor-pointer select-none"
+          onClick={toggle}
+        >
           <Icon className="text-primary/30 shrink-0" size={10} />
           <span
-            className="text-[8px] font-black uppercase tracking-[0.25em]"
+            className="text-[8px] font-black uppercase tracking-[0.25em] flex-1 text-left"
             style={{
               color: "color-mix(in srgb, var(--primary) 30%, transparent)",
             }}
           >
             {label} · {count}
           </span>
-        </div>
-        {loading ? (
-          <div className="flex justify-center py-3">
-            <Loader2 className="animate-spin text-primary/20" size={14} />
-          </div>
-        ) : count === 0 ? (
-          <p className="text-[9px] text-primary/20 italic px-1 pb-2">
-            Sin {label.toLowerCase()} aún
-          </p>
-        ) : (
-          <div
-            className="grid gap-1.5"
+          <ChevronLeft
+            size={10}
+            className="text-primary/20 group-hover:text-primary/40 transition-all shrink-0"
             style={{
-              gridTemplateColumns: `repeat(auto-fill, minmax(${minColWidth}, 1fr))`,
+              transform: collapsed ? "rotate(-90deg)" : "rotate(-270deg)",
+              transition: "transform 0.2s ease",
             }}
-          >
-            {children}
-          </div>
-        )}
+          />
+        </button>
+        {!collapsed &&
+          (loading ? (
+            <div className="flex justify-center py-3">
+              <Loader2 className="animate-spin text-primary/20" size={14} />
+            </div>
+          ) : count === 0 ? (
+            <p className="text-[9px] text-primary/20 italic px-1 pb-2">
+              Sin {label.toLowerCase()} aún
+            </p>
+          ) : (
+            <div
+              className="grid gap-1.5"
+              style={{
+                gridTemplateColumns: `repeat(auto-fill, minmax(${minColWidth}, 1fr))`,
+              }}
+            >
+              {children}
+            </div>
+          ))}
       </div>
     );
   }
@@ -1798,13 +1838,15 @@ function PanelListas({
           {/* ── Listas visibles cuando no hay overlay ── */}
           {!overlay && (
             <div className="px-3 sm:px-3 pb-4">
-              {/* ── Fila 1 desktop: Personajes · Grupos · Notas ── */}
+              {/* ── Fila 1: Personajes · Criaturas · Reinos (siempre expandidos) ── */}
               <div className="sm:grid sm:grid-cols-3 sm:gap-x-4">
                 <SeccionEntidades
                   count={personajes.length}
                   icon={Users}
                   label={el.personajes}
                   loading={loadingPersonajes}
+                  defaultCollapsed={false}
+                  storageKey="personajes"
                 >
                   {[...personajes]
                     .sort(
@@ -1825,10 +1867,208 @@ function PanelListas({
                 <div className={`${div} sm:hidden`} style={divStyle} />
 
                 <SeccionEntidades
+                  count={criaturas.length}
+                  icon={Bug}
+                  label={el.criaturas}
+                  loading={loadingCriaturas}
+                  defaultCollapsed={false}
+                  storageKey="criaturas"
+                >
+                  {[...criaturas]
+                    .sort(
+                      (a, b) =>
+                        (!!b.imagen_url ? 1 : 0) - (!!a.imagen_url ? 1 : 0) ||
+                        a.nombre.localeCompare(b.nombre),
+                    )
+                    .map((c) => (
+                      <Chip
+                        key={c.id}
+                        icon={Bug}
+                        imgUrl={c.imagen_url}
+                        nombre={c.nombre}
+                        onClick={() => selectCriatura(c)}
+                      />
+                    ))}
+                </SeccionEntidades>
+                <div className={`${div} sm:hidden`} style={divStyle} />
+
+                <SeccionEntidades
+                  count={reinos.length}
+                  icon={Map}
+                  label={el.reinos}
+                  loading={loadingReinos}
+                  defaultCollapsed={false}
+                  storageKey="reinos"
+                >
+                  {[...reinos]
+                    .sort(
+                      (a, b) =>
+                        (!!b.mapa_url ? 1 : 0) - (!!a.mapa_url ? 1 : 0) ||
+                        a.nombre.localeCompare(b.nombre),
+                    )
+                    .map((r) => (
+                      <Chip
+                        key={r.id}
+                        icon={Map}
+                        imgUrl={r.mapa_url}
+                        nombre={r.nombre}
+                        onClick={() => selectReino(r)}
+                      />
+                    ))}
+                </SeccionEntidades>
+              </div>
+              <div className={div} style={divStyle} />
+
+              {/* ── Fila 2: Objetos · Ciudades (colapsados por defecto) ── */}
+              <div className="sm:grid sm:grid-cols-2 sm:gap-x-4">
+                <SeccionEntidades
+                  count={objetos.length}
+                  icon={Package}
+                  label="Objetos"
+                  loading={loadingObjetos}
+                  defaultCollapsed={true}
+                  storageKey="objetos"
+                >
+                  {[...objetos]
+                    .sort(
+                      (a, b) =>
+                        (!!b.imagen_url ? 1 : 0) - (!!a.imagen_url ? 1 : 0) ||
+                        a.nombre.localeCompare(b.nombre),
+                    )
+                    .map((o) => (
+                      <Chip
+                        key={o.id}
+                        icon={Package}
+                        imgUrl={o.imagen_url}
+                        nombre={o.nombre}
+                        onClick={() => selectObjeto(o)}
+                      />
+                    ))}
+                </SeccionEntidades>
+                <div className={`${div} sm:hidden`} style={divStyle} />
+
+                <SeccionEntidades
+                  count={ciudades.length}
+                  icon={MapPin}
+                  label={el.ciudades}
+                  loading={loadingCiudades}
+                  defaultCollapsed={true}
+                  storageKey="ciudades"
+                >
+                  {[...ciudades]
+                    .sort(
+                      (a, b) =>
+                        (!!b.imagen_url ? 1 : 0) - (!!a.imagen_url ? 1 : 0) ||
+                        a.nombre.localeCompare(b.nombre),
+                    )
+                    .map((l) => (
+                      <Chip
+                        key={l.id}
+                        icon={MapPin}
+                        imgUrl={l.imagen_url}
+                        nombre={l.nombre}
+                        onClick={async () => {
+                          try {
+                            const { data } = await supabase
+                              .from("ciudades")
+                              .select("*")
+                              .eq("id", l.id)
+                              .single();
+                            if (data) {
+                              selectCiudad(data as Ciudad);
+                              return;
+                            }
+                          } catch {}
+                          selectCiudad(l as Ciudad);
+                        }}
+                      />
+                    ))}
+                </SeccionEntidades>
+              </div>
+              <div className={div} style={divStyle} />
+
+              {/* ── Fila 3: Sección Mágica — Dones · Hechizos · Runas (colapsados) ── */}
+              <div className="sm:grid sm:grid-cols-3 sm:gap-x-4">
+                <SeccionEntidades
+                  count={dones.length}
+                  icon={Star}
+                  label={el.dones}
+                  loading={loadingDones}
+                  defaultCollapsed={true}
+                  storageKey="dones"
+                >
+                  {dones.map((d) => (
+                    <Chip
+                      key={d.id}
+                      accentBg="color-mix(in srgb, var(--accent) 4%, transparent)"
+                      accentBorder="color-mix(in srgb, var(--accent) 13%, transparent)"
+                      accentText="color-mix(in srgb, var(--accent) 75%, var(--primary))"
+                      icon={Star}
+                      nombre={d.nombre}
+                      onClick={() => selectDon(d)}
+                    />
+                  ))}
+                </SeccionEntidades>
+                <div className={`${div} sm:hidden`} style={divStyle} />
+
+                <SeccionEntidades
+                  count={hechizos.length}
+                  icon={Sparkles}
+                  label={el.hechizos}
+                  loading={loadingHechizos}
+                  defaultCollapsed={true}
+                  storageKey="hechizos"
+                >
+                  {hechizos.map((h) => (
+                    <Chip
+                      key={h.id}
+                      accentBg="color-mix(in srgb, var(--accent) 5%, transparent)"
+                      accentBorder="color-mix(in srgb, var(--accent) 15%, transparent)"
+                      accentText="color-mix(in srgb, var(--accent) 80%, var(--primary))"
+                      icon={Sparkles}
+                      nombre={h.nombre}
+                      onClick={() => selectHechizo(h)}
+                    />
+                  ))}
+                </SeccionEntidades>
+                <div className={`${div} sm:hidden`} style={divStyle} />
+
+                <SeccionEntidades
+                  count={runas.length}
+                  icon={ScrollText}
+                  label={el.runas}
+                  loading={loadingRunas}
+                  defaultCollapsed={true}
+                  storageKey="runas"
+                >
+                  {[...runas]
+                    .sort(
+                      (a, b) =>
+                        (!!b.imagen_url ? 1 : 0) - (!!a.imagen_url ? 1 : 0) ||
+                        a.nombre.localeCompare(b.nombre),
+                    )
+                    .map((r) => (
+                      <Chip
+                        key={r.id}
+                        icon={ScrollText}
+                        imgUrl={r.imagen_url}
+                        nombre={r.nombre}
+                        onClick={() => selectRuna(r)}
+                      />
+                    ))}
+                </SeccionEntidades>
+              </div>
+              <div className={div} style={divStyle} />
+
+              {/* ── Fila 4: Grupos · Notas (colapsados) ── */}
+              <div className="sm:grid sm:grid-cols-2 sm:gap-x-4">
+                <SeccionEntidades
                   count={grupos.length}
                   icon={Layers}
                   label={el.grupos}
                   loading={!loadedGrupos}
+                  defaultCollapsed={true}
+                  storageKey="grupos"
                 >
                   {(() => {
                     const porTipo = grupos.reduce(
@@ -1913,6 +2153,8 @@ function PanelListas({
                   icon={FileText}
                   label={el.notas}
                   loading={loadingNotas}
+                  defaultCollapsed={true}
+                  storageKey="notas"
                 >
                   {notas.map((n) => (
                     <button
@@ -1940,189 +2182,7 @@ function PanelListas({
               </div>
               <div className={div} style={divStyle} />
 
-              {/* ── Fila 2 desktop: Criaturas · Objetos ── */}
-              <div className="sm:grid sm:grid-cols-2 sm:gap-x-4">
-                <SeccionEntidades
-                  count={criaturas.length}
-                  icon={Bug}
-                  label={el.criaturas}
-                  loading={loadingCriaturas}
-                >
-                  {[...criaturas]
-                    .sort(
-                      (a, b) =>
-                        (!!b.imagen_url ? 1 : 0) - (!!a.imagen_url ? 1 : 0) ||
-                        a.nombre.localeCompare(b.nombre),
-                    )
-                    .map((c) => (
-                      <Chip
-                        key={c.id}
-                        icon={Bug}
-                        imgUrl={c.imagen_url}
-                        nombre={c.nombre}
-                        onClick={() => selectCriatura(c)}
-                      />
-                    ))}
-                </SeccionEntidades>
-                <div className={`${div} sm:hidden`} style={divStyle} />
-
-                <SeccionEntidades
-                  count={objetos.length}
-                  icon={Package}
-                  label="Objetos"
-                  loading={loadingObjetos}
-                >
-                  {[...objetos]
-                    .sort(
-                      (a, b) =>
-                        (!!b.imagen_url ? 1 : 0) - (!!a.imagen_url ? 1 : 0) ||
-                        a.nombre.localeCompare(b.nombre),
-                    )
-                    .map((o) => (
-                      <Chip
-                        key={o.id}
-                        icon={Package}
-                        imgUrl={o.imagen_url}
-                        nombre={o.nombre}
-                        onClick={() => selectObjeto(o)}
-                      />
-                    ))}
-                </SeccionEntidades>
-              </div>
-              <div className={div} style={divStyle} />
-
-              {/* ── Extra desktop: Reinos · Ciudades ── */}
-              <div className="sm:grid sm:grid-cols-2 sm:gap-x-4">
-                <SeccionEntidades
-                  count={reinos.length}
-                  icon={Map}
-                  label={el.reinos}
-                  loading={loadingReinos}
-                >
-                  {[...reinos]
-                    .sort(
-                      (a, b) =>
-                        (!!b.mapa_url ? 1 : 0) - (!!a.mapa_url ? 1 : 0) ||
-                        a.nombre.localeCompare(b.nombre),
-                    )
-                    .map((r) => (
-                      <Chip
-                        key={r.id}
-                        icon={Map}
-                        imgUrl={r.mapa_url}
-                        nombre={r.nombre}
-                        onClick={() => selectReino(r)}
-                      />
-                    ))}
-                </SeccionEntidades>
-                <div className={`${div} sm:hidden`} style={divStyle} />
-
-                <SeccionEntidades
-                  count={ciudades.length}
-                  icon={MapPin}
-                  label={el.ciudades}
-                  loading={loadingCiudades}
-                >
-                  {[...ciudades]
-                    .sort(
-                      (a, b) =>
-                        (!!b.imagen_url ? 1 : 0) - (!!a.imagen_url ? 1 : 0) ||
-                        a.nombre.localeCompare(b.nombre),
-                    )
-                    .map((l) => (
-                      <Chip
-                        key={l.id}
-                        icon={MapPin}
-                        imgUrl={l.imagen_url}
-                        nombre={l.nombre}
-                        onClick={async () => {
-                          try {
-                            const { data } = await supabase
-                              .from("ciudades")
-                              .select("*")
-                              .eq("id", l.id)
-                              .single();
-                            if (data) {
-                              selectCiudad(data as Ciudad);
-                              return;
-                            }
-                          } catch {}
-                          selectCiudad(l as Ciudad);
-                        }}
-                      />
-                    ))}
-                </SeccionEntidades>
-              </div>
-              <div className={div} style={divStyle} />
-
-              {/* ── Fila 3 desktop: Hechizos · Dones · Runas ── */}
-              <div className="sm:grid sm:grid-cols-3 sm:gap-x-4">
-                <SeccionEntidades
-                  count={hechizos.length}
-                  icon={Sparkles}
-                  label={el.hechizos}
-                  loading={loadingHechizos}
-                >
-                  {hechizos.map((h) => (
-                    <Chip
-                      key={h.id}
-                      accentBg="color-mix(in srgb, var(--accent) 5%, transparent)"
-                      accentBorder="color-mix(in srgb, var(--accent) 15%, transparent)"
-                      accentText="color-mix(in srgb, var(--accent) 80%, var(--primary))"
-                      icon={Sparkles}
-                      nombre={h.nombre}
-                      onClick={() => selectHechizo(h)}
-                    />
-                  ))}
-                </SeccionEntidades>
-                <div className={`${div} sm:hidden`} style={divStyle} />
-
-                <SeccionEntidades
-                  count={dones.length}
-                  icon={Star}
-                  label={el.dones}
-                  loading={loadingDones}
-                >
-                  {dones.map((d) => (
-                    <Chip
-                      key={d.id}
-                      accentBg="color-mix(in srgb, var(--accent) 4%, transparent)"
-                      accentBorder="color-mix(in srgb, var(--accent) 13%, transparent)"
-                      accentText="color-mix(in srgb, var(--accent) 75%, var(--primary))"
-                      icon={Star}
-                      nombre={d.nombre}
-                      onClick={() => selectDon(d)}
-                    />
-                  ))}
-                </SeccionEntidades>
-                <div className={`${div} sm:hidden`} style={divStyle} />
-
-                <SeccionEntidades
-                  count={runas.length}
-                  icon={ScrollText}
-                  label={el.runas}
-                  loading={loadingRunas}
-                >
-                  {[...runas]
-                    .sort(
-                      (a, b) =>
-                        (!!b.imagen_url ? 1 : 0) - (!!a.imagen_url ? 1 : 0) ||
-                        a.nombre.localeCompare(b.nombre),
-                    )
-                    .map((r) => (
-                      <Chip
-                        key={r.id}
-                        icon={ScrollText}
-                        imgUrl={r.imagen_url}
-                        nombre={r.nombre}
-                        onClick={() => selectRuna(r)}
-                      />
-                    ))}
-                </SeccionEntidades>
-              </div>
-              <div className={div} style={divStyle} />
-
-              {/* ── Fila 4 desktop: Canciones (ancho completo) ── */}
+              {/* ── Fila 5: Canciones (colapsado, ancho completo) ── */}
               <SeccionEntidades
                 cols={1}
                 count={canciones.length}
@@ -2130,6 +2190,8 @@ function PanelListas({
                 label={el.canciones}
                 loading={loadingCanciones}
                 minColWidth="160px"
+                defaultCollapsed={true}
+                storageKey="canciones"
               >
                 {canciones.map((c) => (
                   <Chip
