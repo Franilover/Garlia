@@ -1091,7 +1091,7 @@ export function LoreTab({
             >
               <PanelHistoriaMundo
                 key={`historia-panel-${form.id}`}
-                initialFilterReino={filtroReinoId ?? form.id}
+                reinoFijo={filtroReinoId ?? form.id}
                 texto={(form as any).historia ?? ""}
                 onChange={(v: string) =>
                   setForm((f) => ({ ...f, historia: v }))

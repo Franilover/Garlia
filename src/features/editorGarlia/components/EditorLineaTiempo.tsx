@@ -1388,6 +1388,7 @@ function ModalNuevoEvento({
   onClose,
   onCrear,
   creando,
+  reinoFijoId,
 }: {
   reinos: { id: string; nombre: string }[];
   onClose: () => void;
@@ -1397,9 +1398,11 @@ function ModalNuevoEvento({
     dia_absoluto: number;
   }) => void;
   creando: boolean;
+  /** Cuando se pasa, el reino queda pre-seleccionado y no se puede cambiar */
+  reinoFijoId?: string | null;
 }) {
   const [titulo, setTitulo] = useState("");
-  const [reinoId, setReinoId] = useState<string | null>(null);
+  const [reinoId, setReinoId] = useState<string | null>(reinoFijoId ?? null);
   const [diaAbsoluto, setDiaAbsoluto] = useState<number | null>(null);
 
   const puedeCrear = titulo.trim().length > 0 && diaAbsoluto != null;
@@ -1462,41 +1465,17 @@ function ModalNuevoEvento({
             />
           </div>
 
-          {/* Selector de reino */}
-          <div className="space-y-1">
-            <label className="text-[8px] font-black uppercase tracking-[0.18em] text-primary/35">
-              Reino
-            </label>
-            <div className="flex flex-wrap gap-1">
-              <button
-                className="px-2.5 py-1 rounded-lg border text-[9px] font-black uppercase tracking-widest transition-all"
-                style={
-                  reinoId === null
-                    ? {
-                        background:
-                          "color-mix(in srgb, var(--accent) 15%, transparent)",
-                        borderColor:
-                          "color-mix(in srgb, var(--accent) 35%, transparent)",
-                        color: "var(--accent)",
-                      }
-                    : {
-                        borderColor:
-                          "color-mix(in srgb, var(--primary) 10%, transparent)",
-                        color:
-                          "color-mix(in srgb, var(--primary) 45%, transparent)",
-                      }
-                }
-                type="button"
-                onClick={() => setReinoId(null)}
-              >
-                Mundo (sin reino)
-              </button>
-              {reinos.map((r) => (
+          {/* Selector de reino — oculto cuando hay un reinoFijoId */}
+          {reinoFijoId == null && (
+            <div className="space-y-1">
+              <label className="text-[8px] font-black uppercase tracking-[0.18em] text-primary/35">
+                Reino
+              </label>
+              <div className="flex flex-wrap gap-1">
                 <button
-                  key={r.id}
                   className="px-2.5 py-1 rounded-lg border text-[9px] font-black uppercase tracking-widest transition-all"
                   style={
-                    reinoId === r.id
+                    reinoId === null
                       ? {
                           background:
                             "color-mix(in srgb, var(--accent) 15%, transparent)",
@@ -1512,13 +1491,39 @@ function ModalNuevoEvento({
                         }
                   }
                   type="button"
-                  onClick={() => setReinoId(r.id)}
+                  onClick={() => setReinoId(null)}
                 >
-                  {r.nombre}
+                  Mundo (sin reino)
                 </button>
-              ))}
+                {reinos.map((r) => (
+                  <button
+                    key={r.id}
+                    className="px-2.5 py-1 rounded-lg border text-[9px] font-black uppercase tracking-widest transition-all"
+                    style={
+                      reinoId === r.id
+                        ? {
+                            background:
+                              "color-mix(in srgb, var(--accent) 15%, transparent)",
+                            borderColor:
+                              "color-mix(in srgb, var(--accent) 35%, transparent)",
+                            color: "var(--accent)",
+                          }
+                        : {
+                            borderColor:
+                              "color-mix(in srgb, var(--primary) 10%, transparent)",
+                            color:
+                              "color-mix(in srgb, var(--primary) 45%, transparent)",
+                          }
+                    }
+                    type="button"
+                    onClick={() => setReinoId(r.id)}
+                  >
+                    {r.nombre}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Selector de fecha */}
           <div className="space-y-1">
@@ -2809,6 +2814,7 @@ export function PanelHistoriaMundo({
   onChange,
   onSave,
   initialFilterReino,
+  reinoFijo,
   onSelectPersonaje,
   onSelectCapitulo,
   onSelectCancion,
@@ -2817,6 +2823,12 @@ export function PanelHistoriaMundo({
   onChange: (v: string) => void;
   onSave: () => Promise<void>;
   initialFilterReino?: string | null;
+  /**
+   * Cuando se pasa, el filtro de reino queda fijado a este ID y los
+   * botones de selección de reino se ocultan. Usar cuando el panel se
+   * abre dentro del editor de un reino concreto.
+   */
+  reinoFijo?: string | null;
   onSelectPersonaje?: (id: string) => void;
   // Abren el editor de capítulo/canción en el panel lateral de la app —
   // PanelHistoriaMundo solo avisa, la navegación real la maneja quien
@@ -3223,9 +3235,17 @@ export function PanelHistoriaMundo({
   }, []);
 
   const { cal } = useCalendario();
+  // reinoFijo tiene prioridad sobre initialFilterReino.
+  // Cuando reinoFijo está activo el filtro no puede cambiarse.
   const [filterReino, setFilterReino] = useState<string | null>(
-    initialFilterReino ?? null,
+    reinoFijo ?? initialFilterReino ?? null,
   );
+
+  // Si reinoFijo cambia en tiempo de ejecución (cambio de reino sin desmontar),
+  // sincronizamos el filtro.
+  useEffect(() => {
+    if (reinoFijo !== undefined) setFilterReino(reinoFijo ?? null);
+  }, [reinoFijo]);
   const [showCapitulos, setShowCapitulos] = useState(true);
   const [showCanciones, setShowCanciones] = useState(true);
   const [showEventos, setShowEventos] = useState(true);
@@ -3585,8 +3605,8 @@ export function PanelHistoriaMundo({
             />
           </div>
 
-          {/* ── Filtro por reino ── */}
-          {reinosConEventos.length > 0 && (
+          {/* ── Filtro por reino ── (oculto cuando hay un reinoFijo) */}
+          {reinoFijo == null && reinosConEventos.length > 0 && (
             <div
               className="flex items-center gap-0.5 p-0.5 rounded-lg flex-wrap"
               style={{
@@ -3748,6 +3768,7 @@ export function PanelHistoriaMundo({
         <ModalNuevoEvento
           creando={creandoEvento}
           reinos={reinos}
+          reinoFijoId={reinoFijo}
           onClose={() => setShowNuevoEvento(false)}
           onCrear={handleCrearEvento}
         />
