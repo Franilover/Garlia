@@ -704,81 +704,6 @@ export function EditorMapa({
         />
       )}
 
-      {/* Header — minimalista */}
-      <div
-        className="flex items-center gap-2 px-4 py-3 border-b shrink-0"
-        style={{
-          borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
-        }}
-      >
-        <Map size={13} style={{ color: "var(--accent)", flexShrink: 0 }} />
-        <span
-          className="font-black uppercase text-[10px] tracking-[0.2em] flex-1"
-          style={{ fontFamily: "'Cinzel', serif", color: "var(--foreground)" }}
-        >
-          Mapa ·{" "}
-          {tiles.length > 0 ? `${maxCol + 1}×${maxRow + 1}` : "sin tiles"}
-        </span>
-        {/* Expandir en las 4 direcciones */}
-        {tiles.length > 0 && (
-          <div className="flex gap-1">
-            {[
-              { title: "← col", dCol: 1, dRow: 0 },
-              { title: "↑ fila", dCol: 0, dRow: 1 },
-              { title: "↓ fila", dCol: 0, dRow: 0, newRow: maxRow + 1 },
-              { title: "→ col", dCol: 0, dRow: 0, newCol: maxCol + 1 },
-            ].map(({ title, dCol, dRow, newCol, newRow }) => (
-              <button
-                key={title}
-                className="px-2 py-1 text-[9px] font-black uppercase border transition-opacity hover:opacity-70"
-                style={{
-                  borderColor:
-                    "color-mix(in srgb, var(--primary) 15%, transparent)",
-                  color:
-                    "color-mix(in srgb, var(--foreground) 40%, transparent)",
-                  borderRadius: "2px",
-                }}
-                title={title}
-                onClick={async () => {
-                  if (dCol > 0 || dRow > 0) {
-                    // Desplaza todos + añade vacío al inicio
-                    await shiftTiles(dCol, dRow);
-                  } else {
-                    // Añade al final (derecha o abajo)
-                    try {
-                      const { data, error } = await supabase
-                        .from("map_tiles")
-                        .insert({
-                          world_id: "garlia",
-                          col: newCol ?? 0,
-                          row: newRow ?? 0,
-                          order: tiles.length,
-                        })
-                        .select()
-                        .single();
-                      if (error) throw error;
-                      setTiles((prev) => [...prev, data as any]);
-                    } catch {
-                      showToast("Error al crear tile", false);
-                    }
-                  }
-                }}
-              >
-                {title}
-              </button>
-            ))}
-          </div>
-        )}
-        <button
-          className="w-7 h-7 flex items-center justify-center btn-brand"
-          style={{ borderRadius: "2px", flexShrink: 0 }}
-          title="Nuevo tile en posición personalizada"
-          onClick={() => setShowModal(true)}
-        >
-          <Plus size={12} />
-        </button>
-      </div>
-
       {/* Contenido unificado */}
       <div className="flex-1 overflow-y-auto flex flex-col min-h-0">
         {loading ? (
@@ -856,7 +781,7 @@ export function EditorMapa({
                 {mode === "mover"
                   ? selectedReinoId
                     ? `→ "${reinos.find((r) => r.id === selectedReinoId)?.nombre}" seleccionado · click vacío para reubicarlo`
-                    : "click un reino para abrirlo en la lista · mantén seleccionado para reubicarlo"
+                    : ""
                   : "click imagen para cambiarla · click vacío crea tile · arrastra para reordenar"}
               </span>
 
@@ -914,6 +839,62 @@ export function EditorMapa({
             {/* ── Grilla de tiles (solo en modo tiles) ── */}
             {mode === "tiles" && (
               <div className="flex-1 overflow-y-auto p-3">
+                {/* Botones de expandir + nuevo tile */}
+                {tiles.length > 0 && (
+                  <div className="flex items-center gap-1 mb-3">
+                    {[
+                      { title: "← col", dCol: 1, dRow: 0 },
+                      { title: "↑ fila", dCol: 0, dRow: 1 },
+                      { title: "↓ fila", dCol: 0, dRow: 0, newRow: maxRow + 1 },
+                      { title: "→ col", dCol: 0, dRow: 0, newCol: maxCol + 1 },
+                    ].map(({ title, dCol, dRow, newCol, newRow }) => (
+                      <button
+                        key={title}
+                        className="px-2 py-1 text-[9px] font-black uppercase border transition-opacity hover:opacity-70"
+                        style={{
+                          borderColor:
+                            "color-mix(in srgb, var(--primary) 15%, transparent)",
+                          color:
+                            "color-mix(in srgb, var(--foreground) 40%, transparent)",
+                          borderRadius: "2px",
+                        }}
+                        title={title}
+                        onClick={async () => {
+                          if (dCol > 0 || dRow > 0) {
+                            await shiftTiles(dCol, dRow);
+                          } else {
+                            try {
+                              const { data, error } = await supabase
+                                .from("map_tiles")
+                                .insert({
+                                  world_id: "garlia",
+                                  col: newCol ?? 0,
+                                  row: newRow ?? 0,
+                                  order: tiles.length,
+                                })
+                                .select()
+                                .single();
+                              if (error) throw error;
+                              setTiles((prev) => [...prev, data as any]);
+                            } catch {
+                              showToast("Error al crear tile", false);
+                            }
+                          }
+                        }}
+                      >
+                        {title}
+                      </button>
+                    ))}
+                    <button
+                      className="w-7 h-7 flex items-center justify-center btn-brand"
+                      style={{ borderRadius: "2px", flexShrink: 0 }}
+                      title="Nuevo tile en posición personalizada"
+                      onClick={() => setShowModal(true)}
+                    >
+                      <Plus size={12} />
+                    </button>
+                  </div>
+                )}
                 <div
                   className="grid gap-2"
                   style={{
