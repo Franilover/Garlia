@@ -2438,17 +2438,30 @@ function PanelListas({
           </div>
         </div>
 
-        {/* RELACIONES */}
-        <div style={{ minHeight: "60vh" }}>
-          <div className="flex flex-col min-h-0" style={{ minHeight: "58vh" }}>
-            <AdminDescubrimientos />
+        {/* RELACIONES · MISIONES — lado a lado en computadora (≥1024px) */}
+        <div className="lg:grid lg:grid-cols-2">
+          <div
+            className="border-b lg:border-b-0 lg:border-r"
+            style={{
+              borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
+              minHeight: "60vh",
+            }}
+          >
+            <div
+              className="flex flex-col min-h-0"
+              style={{ minHeight: "58vh" }}
+            >
+              <AdminDescubrimientos />
+            </div>
           </div>
-        </div>
 
-        {/* MISIONES */}
-        <div style={{ minHeight: "60vh" }}>
-          <div className="flex flex-col min-h-0" style={{ minHeight: "58vh" }}>
-            <EditorMisiones />
+          <div style={{ minHeight: "60vh" }}>
+            <div
+              className="flex flex-col min-h-0"
+              style={{ minHeight: "58vh" }}
+            >
+              <EditorMisiones />
+            </div>
           </div>
         </div>
       </div>

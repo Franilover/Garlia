@@ -561,11 +561,11 @@ export default function EditorMisiones() {
 
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
-    <div className="w-full px-3 sm:px-4 py-4">
+    <div className="w-full px-2 sm:px-3 py-3">
       <div className="flex flex-col md:flex-row w-full items-stretch">
         {/* ── Lista de misiones ── */}
         <div
-          className="md:w-72 shrink-0 w-full flex flex-col border-b md:border-b-0 md:border-r"
+          className="md:w-48 shrink-0 w-full flex flex-col border-b md:border-b-0 md:border-r"
           style={{
             borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
             background:
@@ -573,19 +573,19 @@ export default function EditorMisiones() {
           }}
         >
           <div
-            className="shrink-0 flex items-center justify-between gap-2 px-3 py-2 border-b"
+            className="shrink-0 flex items-center justify-between gap-1.5 px-2 py-1.5 border-b"
             style={{
               borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
             }}
           >
-            <div className="flex items-center gap-1.5 min-w-0">
+            <div className="flex items-center gap-1 min-w-0">
               <Scroll
-                size={10}
+                size={9}
                 style={{
                   color: "color-mix(in srgb, var(--primary) 35%, transparent)",
                 }}
               />
-              <span className="text-[8px] font-black uppercase tracking-[0.2em] text-primary/35 truncate">
+              <span className="text-[7px] font-black uppercase tracking-[0.15em] text-primary/35 truncate">
                 Misiones · {misiones.length}
               </span>
               {offline && (
@@ -598,26 +598,26 @@ export default function EditorMisiones() {
                   }}
                   title="Mostrando datos guardados localmente"
                 >
-                  <WifiOff size={8} />
-                  <span className="text-[7px] font-black uppercase tracking-wider">
+                  <WifiOff size={7} />
+                  <span className="text-[6px] font-black uppercase tracking-wider">
                     offline
                   </span>
                 </span>
               )}
             </div>
             <button
-              className="flex items-center gap-1 px-2 py-1 rounded-[var(--radius-btn)] bg-primary/8 hover:bg-primary/15 text-primary/50 hover:text-primary text-[8px] font-black uppercase tracking-widest transition-all disabled:opacity-40 shrink-0"
+              className="flex items-center gap-1 px-1.5 py-1 rounded-[var(--radius-btn)] bg-primary/8 hover:bg-primary/15 text-primary/50 hover:text-primary text-[7px] font-black uppercase tracking-widest transition-all disabled:opacity-40 shrink-0"
               disabled={offline}
               title={
                 offline ? "Necesitas conexión para crear misiones" : undefined
               }
               onClick={abrirCrear}
             >
-              <Plus size={9} /> Nueva
+              <Plus size={8} /> Nueva
             </button>
           </div>
 
-          <div className="p-1.5 flex flex-col gap-0.5 max-h-[70vh] overflow-y-auto">
+          <div className="p-1 flex flex-col gap-0.5 max-h-[70vh] overflow-y-auto">
             {cargandoMisiones ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2
@@ -642,7 +642,7 @@ export default function EditorMisiones() {
                 return (
                   <div
                     key={m.id}
-                    className="group relative flex items-center gap-2 pl-2.5 pr-1.5 py-1.5 cursor-pointer transition-all"
+                    className="group relative flex items-center gap-1.5 pl-2 pr-1 py-1 cursor-pointer transition-all"
                     style={{
                       background: activa
                         ? "color-mix(in srgb, var(--primary) 8%, transparent)"
@@ -655,7 +655,7 @@ export default function EditorMisiones() {
                     onClick={() => setMisionSel(m)}
                   >
                     <div
-                      className="w-6 h-6 shrink-0 overflow-hidden flex items-center justify-center rounded"
+                      className="w-5 h-5 shrink-0 overflow-hidden flex items-center justify-center rounded"
                       style={{
                         background:
                           "color-mix(in srgb, var(--primary) 10%, transparent)",
@@ -669,7 +669,7 @@ export default function EditorMisiones() {
                         />
                       ) : (
                         <Scroll
-                          size={10}
+                          size={9}
                           style={{
                             color: activa
                               ? "var(--primary)"
@@ -679,7 +679,7 @@ export default function EditorMisiones() {
                       )}
                     </div>
                     <span
-                      className="flex-1 min-w-0 truncate text-[10px] font-bold uppercase tracking-wide"
+                      className="flex-1 min-w-0 truncate text-[9px] font-bold uppercase tracking-wide"
                       style={{
                         color: activa
                           ? "var(--primary)"
@@ -690,7 +690,7 @@ export default function EditorMisiones() {
                     </span>
                     {!m.activa && (
                       <span
-                        className="shrink-0 rounded text-[7px] font-black uppercase tracking-wider px-1 py-0.5"
+                        className="shrink-0 rounded text-[6px] font-black uppercase tracking-wider px-1 py-0.5"
                         style={{
                           background:
                             "color-mix(in srgb, var(--primary) 8%, transparent)",
@@ -711,9 +711,9 @@ export default function EditorMisiones() {
                       }}
                     >
                       {eliminando === m.id ? (
-                        <Loader2 className="animate-spin" size={10} />
+                        <Loader2 className="animate-spin" size={9} />
                       ) : (
-                        <Trash2 size={10} />
+                        <Trash2 size={9} />
                       )}
                     </button>
                   </div>
@@ -739,14 +739,14 @@ export default function EditorMisiones() {
           <div className="flex-1 w-full flex flex-col min-w-0">
             {/* Resumen de la misión */}
             <div
-              className="flex items-center gap-4 px-4 sm:px-6 py-4 border-b"
+              className="flex items-center gap-2.5 px-3 sm:px-4 py-2.5 border-b"
               style={{
                 borderColor:
                   "color-mix(in srgb, var(--primary) 8%, transparent)",
               }}
             >
               <div
-                className="w-14 h-14 shrink-0 overflow-hidden flex items-center justify-center"
+                className="w-10 h-10 shrink-0 overflow-hidden flex items-center justify-center"
                 style={{
                   borderRadius: "var(--radius-btn)",
                   background:
@@ -761,7 +761,7 @@ export default function EditorMisiones() {
                   />
                 ) : (
                   <Scroll
-                    size={20}
+                    size={15}
                     style={{
                       color:
                         "color-mix(in srgb, var(--primary) 25%, transparent)",
@@ -771,14 +771,14 @@ export default function EditorMisiones() {
               </div>
               <div className="flex-1 min-w-0">
                 <h2
-                  className="font-black uppercase italic tracking-tight text-[15px] capitalize truncate"
+                  className="font-black uppercase italic tracking-tight text-[12px] capitalize truncate"
                   style={{ color: "var(--primary)" }}
                 >
                   {misionSel.titulo}
                 </h2>
-                <div className="flex items-center gap-3 mt-1">
+                <div className="flex items-center gap-2 mt-0.5">
                   <span
-                    className="text-[8px] font-black uppercase tracking-wider"
+                    className="text-[7px] font-black uppercase tracking-wider"
                     style={{
                       color:
                         "color-mix(in srgb, var(--primary) 40%, transparent)",
@@ -787,29 +787,29 @@ export default function EditorMisiones() {
                     {DIFICULTAD_LABEL[misionSel.dificultad]}
                   </span>
                   <span
-                    className="flex items-center gap-1 text-[8px] font-black tabular-nums"
+                    className="flex items-center gap-1 text-[7px] font-black tabular-nums"
                     style={{
                       color:
                         "color-mix(in srgb, var(--primary) 40%, transparent)",
                     }}
                   >
-                    <Sparkles size={9} /> {misionSel.recompensa_xp} XP
+                    <Sparkles size={8} /> {misionSel.recompensa_xp} XP
                   </span>
                   {!!misionSel.recompensa_monedas && (
                     <span
-                      className="flex items-center gap-1 text-[8px] font-black tabular-nums"
+                      className="flex items-center gap-1 text-[7px] font-black tabular-nums"
                       style={{
                         color:
                           "color-mix(in srgb, var(--primary) 40%, transparent)",
                       }}
                     >
-                      <Coins size={9} /> {misionSel.recompensa_monedas}
+                      <Coins size={8} /> {misionSel.recompensa_monedas}
                     </span>
                   )}
                 </div>
               </div>
               <button
-                className="px-3 py-1.5 shrink-0 rounded-[var(--radius-btn)] bg-primary/8 hover:bg-primary/15 text-primary/50 hover:text-primary text-[9px] font-black uppercase tracking-widest transition-all"
+                className="px-2 py-1 shrink-0 rounded-[var(--radius-btn)] bg-primary/8 hover:bg-primary/15 text-primary/50 hover:text-primary text-[7px] font-black uppercase tracking-widest transition-all"
                 onClick={() => abrirEditar(misionSel)}
               >
                 Editar
@@ -819,14 +819,14 @@ export default function EditorMisiones() {
             {/* Tabla de progreso de usuarios */}
             <div className="flex flex-col flex-1 min-h-0">
               <div
-                className="px-4 sm:px-6 py-3 border-b shrink-0"
+                className="px-3 sm:px-4 py-2 border-b shrink-0"
                 style={{
                   borderColor:
                     "color-mix(in srgb, var(--primary) 8%, transparent)",
                 }}
               >
                 <p
-                  className="text-[8px] font-black uppercase tracking-[0.25em]"
+                  className="text-[7px] font-black uppercase tracking-[0.2em]"
                   style={{
                     color:
                       "color-mix(in srgb, var(--primary) 35%, transparent)",
@@ -837,10 +837,10 @@ export default function EditorMisiones() {
               </div>
 
               {cargandoProgreso ? (
-                <div className="flex items-center justify-center py-12">
+                <div className="flex items-center justify-center py-10">
                   <Loader2
                     className="animate-spin"
-                    size={16}
+                    size={14}
                     style={{
                       color:
                         "color-mix(in srgb, var(--primary) 30%, transparent)",
@@ -848,9 +848,9 @@ export default function EditorMisiones() {
                   />
                 </div>
               ) : progreso.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 gap-2 text-primary/20">
-                  <User size={16} />
-                  <p className="text-[9px] font-black uppercase tracking-widest">
+                <div className="flex flex-col items-center justify-center py-10 gap-2 text-primary/20">
+                  <User size={14} />
+                  <p className="text-[8px] font-black uppercase tracking-widest">
                     Nadie ha aceptado esta misión aún
                   </p>
                 </div>
@@ -858,14 +858,14 @@ export default function EditorMisiones() {
                 progreso.map((row) => (
                   <div
                     key={row.user_id}
-                    className="flex items-center gap-3 px-4 sm:px-6 py-3 border-b"
+                    className="flex items-center gap-2 px-3 sm:px-4 py-2 border-b"
                     style={{
                       borderColor:
                         "color-mix(in srgb, var(--primary) 6%, transparent)",
                     }}
                   >
                     <div
-                      className="w-8 h-8 shrink-0 overflow-hidden flex items-center justify-center"
+                      className="w-6 h-6 shrink-0 overflow-hidden flex items-center justify-center"
                       style={{
                         borderRadius: "2px",
                         background:
@@ -880,7 +880,7 @@ export default function EditorMisiones() {
                         />
                       ) : (
                         <User
-                          size={12}
+                          size={10}
                           style={{
                             color:
                               "color-mix(in srgb, var(--primary) 30%, transparent)",
@@ -891,13 +891,13 @@ export default function EditorMisiones() {
 
                     <div className="flex-1 min-w-0">
                       <p
-                        className="text-[11px] font-black uppercase tracking-tight capitalize truncate"
+                        className="text-[10px] font-black uppercase tracking-tight capitalize truncate"
                         style={{ color: "var(--primary)" }}
                       >
                         {row.perfil?.username ?? "Usuario"}
                       </p>
                       <span
-                        className="inline-flex items-center gap-1 text-[8px] font-black uppercase tracking-wider mt-0.5"
+                        className="inline-flex items-center gap-1 text-[7px] font-black uppercase tracking-wider mt-0.5"
                         style={{
                           color:
                             row.estado === "reclamada"
@@ -907,11 +907,11 @@ export default function EditorMisiones() {
                                 : "color-mix(in srgb, var(--primary) 45%, transparent)",
                         }}
                       >
-                        {row.estado === "en_curso" && <Clock size={9} />}
+                        {row.estado === "en_curso" && <Clock size={8} />}
                         {row.estado === "completada" && (
-                          <CheckCircle2 size={9} />
+                          <CheckCircle2 size={8} />
                         )}
-                        {row.estado === "reclamada" && <Lock size={9} />}
+                        {row.estado === "reclamada" && <Lock size={8} />}
                         {ESTADO_LABEL[row.estado]}
                       </span>
                     </div>
@@ -919,57 +919,58 @@ export default function EditorMisiones() {
                     {/* Acción según estado */}
                     {row.estado === "en_curso" && (
                       <button
-                        className="flex items-center gap-1.5 px-3 py-1.5 transition-all shrink-0"
+                        className="flex items-center gap-1 px-2 py-1 transition-all shrink-0"
                         disabled={actualizandoUserId === row.user_id}
                         style={{
                           borderRadius: "var(--radius-btn)",
                           background: "var(--primary)",
                           color: "var(--btn-text)",
-                          fontSize: "8px",
+                          fontSize: "7px",
                           fontWeight: 900,
-                          letterSpacing: "0.1em",
+                          letterSpacing: "0.08em",
                           textTransform: "uppercase",
                         }}
+                        title="Marcar completada"
                         onClick={() => cambiarEstadoUsuario(row, "completada")}
                       >
                         {actualizandoUserId === row.user_id ? (
-                          <Loader2 className="animate-spin" size={10} />
+                          <Loader2 className="animate-spin" size={9} />
                         ) : (
-                          <CheckCircle2 size={10} />
+                          <CheckCircle2 size={9} />
                         )}
-                        Marcar completada
+                        <span className="hidden sm:inline">Completar</span>
                       </button>
                     )}
 
                     {row.estado === "completada" && (
                       <button
-                        className="flex items-center gap-1.5 px-3 py-1.5 transition-all shrink-0"
+                        className="flex items-center gap-1 px-2 py-1 transition-all shrink-0"
                         disabled={actualizandoUserId === row.user_id}
                         style={{
                           borderRadius: "var(--radius-btn)",
                           border:
                             "1px solid color-mix(in srgb, var(--primary) 16%, transparent)",
                           color: "var(--primary)",
-                          fontSize: "8px",
+                          fontSize: "7px",
                           fontWeight: 900,
-                          letterSpacing: "0.1em",
+                          letterSpacing: "0.08em",
                           textTransform: "uppercase",
                         }}
                         title="Devolver a en curso"
                         onClick={() => cambiarEstadoUsuario(row, "en_curso")}
                       >
                         {actualizandoUserId === row.user_id ? (
-                          <Loader2 className="animate-spin" size={10} />
+                          <Loader2 className="animate-spin" size={9} />
                         ) : (
-                          <RotateCcw size={10} />
+                          <RotateCcw size={9} />
                         )}
-                        Deshacer
+                        <span className="hidden sm:inline">Deshacer</span>
                       </button>
                     )}
 
                     {row.estado === "reclamada" && (
                       <span
-                        className="text-[8px] font-black uppercase tracking-wider px-2 py-1 shrink-0"
+                        className="text-[7px] font-black uppercase tracking-wider px-1.5 py-1 shrink-0"
                         style={{
                           background:
                             "color-mix(in srgb, var(--primary) 6%, transparent)",
@@ -978,7 +979,7 @@ export default function EditorMisiones() {
                             "color-mix(in srgb, var(--primary) 35%, transparent)",
                         }}
                       >
-                        Recompensa entregada
+                        Entregada
                       </span>
                     )}
                   </div>

@@ -68,7 +68,7 @@ const TAB_CONFIG: Record<
 > = {
   personajes: {
     label: "Personajes",
-    icon: <User size={12} />,
+    icon: <User size={10} />,
     tabla: "descubrimientos_personajes",
     fk: "personaje_id",
     entidadTabla: "personajes",
@@ -81,7 +81,7 @@ const TAB_CONFIG: Record<
   },
   criaturas: {
     label: "Criaturas",
-    icon: <Cat size={12} />,
+    icon: <Cat size={10} />,
     tabla: "descubrimientos_criaturas",
     fk: "criatura_id",
     entidadTabla: "criaturas",
@@ -94,7 +94,7 @@ const TAB_CONFIG: Record<
   },
   items: {
     label: "Items",
-    icon: <Sword size={12} />,
+    icon: <Sword size={10} />,
     tabla: "descubrimientos_items",
     fk: "item_id",
     entidadTabla: "items",
@@ -107,7 +107,7 @@ const TAB_CONFIG: Record<
   },
   reinos: {
     label: "Reinos",
-    icon: <Crown size={12} />,
+    icon: <Crown size={10} />,
     tabla: "descubrimientos_reinos",
     fk: "reino_id",
     entidadTabla: "reinos",
@@ -119,7 +119,7 @@ const TAB_CONFIG: Record<
   },
   ciudades: {
     label: "Ciudades",
-    icon: <MapPin size={12} />,
+    icon: <MapPin size={10} />,
     tabla: "ciudades_desbloqueadas",
     fk: "ciudad_id",
     entidadTabla: "ciudades",
@@ -462,11 +462,11 @@ export default function AdminDescubrimientos() {
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="w-full px-3 sm:px-4 py-4">
+    <div className="w-full px-2 sm:px-3 py-3">
       <div className="flex flex-col md:flex-row w-full items-stretch">
         {/* Selector de perfil */}
         <div
-          className="w-full md:w-64 shrink-0 flex flex-col border-b md:border-b-0 md:border-r"
+          className="w-full md:w-44 shrink-0 flex flex-col border-b md:border-b-0 md:border-r"
           style={{
             borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
             background:
@@ -474,29 +474,29 @@ export default function AdminDescubrimientos() {
           }}
         >
           <div
-            className="shrink-0 flex items-center gap-1.5 px-3 py-2 border-b"
+            className="shrink-0 flex items-center gap-1.5 px-2 py-1.5 border-b"
             style={{
               borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
             }}
           >
             <User
-              size={10}
+              size={9}
               style={{
                 color: "color-mix(in srgb, var(--primary) 35%, transparent)",
               }}
             />
-            <span className="text-[8px] font-black uppercase tracking-[0.2em] text-primary/35 flex-1">
+            <span className="text-[7px] font-black uppercase tracking-[0.15em] text-primary/35 flex-1">
               Exploradores · {perfiles.length}
             </span>
           </div>
 
-          <div className="p-1.5 flex flex-col gap-0.5 max-h-[70vh] overflow-y-auto">
+          <div className="p-1 flex flex-col gap-0.5 max-h-[70vh] overflow-y-auto">
             {perfiles.map((p) => {
               const activo = perfilSel?.id === p.id;
               return (
                 <div
                   key={p.id}
-                  className="group relative flex items-center gap-2 pl-2.5 pr-1.5 py-1.5 cursor-pointer transition-all"
+                  className="group relative flex items-center gap-1.5 pl-2 pr-1 py-1 cursor-pointer transition-all"
                   style={{
                     background: activo
                       ? "color-mix(in srgb, var(--primary) 8%, transparent)"
@@ -511,7 +511,7 @@ export default function AdminDescubrimientos() {
                   }}
                 >
                   <div
-                    className="w-6 h-6 shrink-0 overflow-hidden flex items-center justify-center rounded"
+                    className="w-5 h-5 shrink-0 overflow-hidden flex items-center justify-center rounded"
                     style={{
                       background:
                         "color-mix(in srgb, var(--primary) 10%, transparent)",
@@ -525,7 +525,7 @@ export default function AdminDescubrimientos() {
                       />
                     ) : (
                       <User
-                        size={10}
+                        size={9}
                         style={{
                           color: activo
                             ? "var(--primary)"
@@ -535,7 +535,7 @@ export default function AdminDescubrimientos() {
                     )}
                   </div>
                   <span
-                    className="flex-1 min-w-0 truncate text-[10px] font-bold uppercase tracking-wide"
+                    className="flex-1 min-w-0 truncate text-[9px] font-bold uppercase tracking-wide"
                     style={{
                       color: activo
                         ? "var(--primary)"
@@ -546,7 +546,7 @@ export default function AdminDescubrimientos() {
                   </span>
                   {p.rol === "admin" && (
                     <span
-                      className="shrink-0 rounded text-[7px] font-black uppercase tracking-wider px-1 py-0.5"
+                      className="shrink-0 rounded text-[6px] font-black uppercase tracking-wider px-1 py-0.5"
                       style={{
                         background:
                           "color-mix(in srgb, var(--primary) 8%, transparent)",
@@ -568,9 +568,9 @@ export default function AdminDescubrimientos() {
                     }}
                   >
                     {eliminandoPerfil === p.id ? (
-                      <Loader2 className="animate-spin" size={10} />
+                      <Loader2 className="animate-spin" size={9} />
                     ) : (
-                      <Trash2 size={10} />
+                      <Trash2 size={9} />
                     )}
                   </button>
                 </div>
@@ -598,7 +598,7 @@ export default function AdminDescubrimientos() {
               ).map(([id, cfg]) => (
                 <button
                   key={id}
-                  className="flex items-center gap-1.5 px-4 py-3 shrink-0 transition-all"
+                  className="flex items-center gap-1 px-2.5 py-2 shrink-0 transition-all"
                   style={{
                     borderBottom:
                       tab === id
@@ -608,9 +608,9 @@ export default function AdminDescubrimientos() {
                       tab === id
                         ? "var(--primary)"
                         : "color-mix(in srgb, var(--primary) 35%, transparent)",
-                    fontSize: "9px",
+                    fontSize: "8px",
                     fontWeight: 900,
-                    letterSpacing: "0.2em",
+                    letterSpacing: "0.15em",
                     textTransform: "uppercase",
                   }}
                   onClick={() => {
@@ -625,16 +625,16 @@ export default function AdminDescubrimientos() {
 
               <div className="flex-1" />
 
-              <div className="px-3 py-2 shrink-0">
+              <div className="px-2 py-1.5 shrink-0">
                 <button
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-btn)] bg-primary/8 hover:bg-primary/15 text-primary/50 hover:text-primary text-[9px] font-black uppercase tracking-widest transition-all"
+                  className="flex items-center gap-1 px-2 py-1 rounded-[var(--radius-btn)] bg-primary/8 hover:bg-primary/15 text-primary/50 hover:text-primary text-[8px] font-black uppercase tracking-widest transition-all"
                   onClick={() => {
                     setShowAdd(true);
                     setEntidadSel(null);
                     setBusquedaEnt("");
                   }}
                 >
-                  <Plus size={10} /> Agregar
+                  <Plus size={9} /> Agregar
                 </button>
               </div>
             </div>
@@ -671,7 +671,7 @@ export default function AdminDescubrimientos() {
                 descubrimientos.map((row) => (
                   <div
                     key={row.id}
-                    className="flex items-center gap-3 px-4 py-3 group transition-colors hover:bg-[color-mix(in_srgb,var(--primary)_2%,transparent)]"
+                    className="flex items-center gap-2 px-3 py-2 group transition-colors hover:bg-[color-mix(in_srgb,var(--primary)_2%,transparent)]"
                     style={{
                       borderBottom:
                         "1px solid color-mix(in srgb, var(--primary) 6%, transparent)",
@@ -679,7 +679,7 @@ export default function AdminDescubrimientos() {
                   >
                     {/* Imagen */}
                     <div
-                      className="w-9 h-9 shrink-0 overflow-hidden flex items-center justify-center"
+                      className="w-7 h-7 shrink-0 overflow-hidden flex items-center justify-center"
                       style={{
                         borderRadius: "var(--radius-btn)",
                         background:
@@ -702,15 +702,15 @@ export default function AdminDescubrimientos() {
                     {/* Info */}
                     <div className="flex-1 min-w-0">
                       <p
-                        className="text-[11px] font-black uppercase tracking-tight capitalize truncate"
+                        className="text-[10px] font-black uppercase tracking-tight capitalize truncate"
                         style={{ color: "var(--primary)" }}
                       >
                         {row.nombre}
                       </p>
-                      <div className="flex items-center gap-2 mt-0.5 min-w-0">
+                      <div className="flex items-center gap-1.5 mt-0.5 min-w-0">
                         {row.extra && (
                           <span
-                            className="min-w-0 truncate text-[8px] font-black uppercase tracking-wider"
+                            className="min-w-0 truncate text-[7px] font-black uppercase tracking-wider"
                             style={{
                               color:
                                 "color-mix(in srgb, var(--primary) 35%, transparent)",
@@ -725,14 +725,14 @@ export default function AdminDescubrimientos() {
                             style={{
                               color:
                                 "color-mix(in srgb, var(--primary) 18%, transparent)",
-                              fontSize: "8px",
+                              fontSize: "7px",
                             }}
                           >
                             ·
                           </span>
                         )}
                         <span
-                          className="shrink-0 text-[8px] font-black tabular-nums"
+                          className="shrink-0 text-[7px] font-black tabular-nums"
                           style={{
                             color:
                               "color-mix(in srgb, var(--primary) 25%, transparent)",
@@ -745,15 +745,15 @@ export default function AdminDescubrimientos() {
 
                     {/* Eliminar */}
                     <button
-                      className="opacity-0 group-hover:opacity-100 disabled:opacity-40 transition-all w-7 h-7 flex items-center justify-center shrink-0 rounded hover:bg-red-500/10 text-primary/30 hover:text-red-400"
+                      className="opacity-0 group-hover:opacity-100 disabled:opacity-40 transition-all w-6 h-6 flex items-center justify-center shrink-0 rounded hover:bg-red-500/10 text-primary/30 hover:text-red-400"
                       disabled={eliminando === row.id}
                       title="Eliminar descubrimiento"
                       onClick={() => eliminar(row)}
                     >
                       {eliminando === row.id ? (
-                        <Loader2 className="animate-spin" size={10} />
+                        <Loader2 className="animate-spin" size={9} />
                       ) : (
-                        <Trash2 size={10} />
+                        <Trash2 size={9} />
                       )}
                     </button>
                   </div>
@@ -764,14 +764,14 @@ export default function AdminDescubrimientos() {
             {/* Footer con conteo */}
             {!cargando && descubrimientos.length > 0 && (
               <div
-                className="px-4 py-2.5 border-t"
+                className="px-3 py-2 border-t"
                 style={{
                   borderColor:
                     "color-mix(in srgb, var(--primary) 6%, transparent)",
                 }}
               >
                 <p
-                  className="text-[8px] font-black uppercase tracking-[0.2em]"
+                  className="text-[7px] font-black uppercase tracking-[0.15em]"
                   style={{
                     color:
                       "color-mix(in srgb, var(--primary) 25%, transparent)",
