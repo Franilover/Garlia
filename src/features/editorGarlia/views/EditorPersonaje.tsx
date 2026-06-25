@@ -805,9 +805,9 @@ function BloqueGruposPersonaje({
   if (loading)
     return (
       <div className="rounded-xl overflow-hidden border border-primary/10">
-        <div className="flex items-center gap-2 px-3 py-2 border-b border-primary/[0.06] bg-primary/[0.03]">
-          <Users className="text-primary/40" size={10} />
-          <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">
+        <div className="flex items-center gap-1.5 px-2 py-1 border-b border-primary/[0.06]">
+          <Users className="text-primary/25 shrink-0" size={8} />
+          <span className="text-[7px] font-black uppercase tracking-[0.2em] text-primary/30 leading-none">
             Grupos
           </span>
         </div>
@@ -821,9 +821,9 @@ function BloqueGruposPersonaje({
 
   return (
     <div className="rounded-xl overflow-hidden border border-primary/10">
-      <div className="flex items-center gap-2 px-3 py-2 border-b border-primary/[0.06] bg-primary/[0.03]">
-        <Users className="text-primary/40" size={10} />
-        <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">
+      <div className="flex items-center gap-1.5 px-2 py-1 border-b border-primary/[0.06]">
+        <Users className="text-primary/25 shrink-0" size={8} />
+        <span className="text-[7px] font-black uppercase tracking-[0.2em] text-primary/30 leading-none">
           Grupos
         </span>
       </div>
@@ -1184,9 +1184,9 @@ function BloqueEras({
 
   return (
     <div className="rounded-xl overflow-hidden border border-primary/10">
-      <div className="flex items-center gap-2 px-3 py-2 border-b border-primary/[0.06] bg-primary/[0.03]">
-        <Clock className="text-primary/40" size={10} />
-        <span className="flex-1 text-[9px] font-black uppercase tracking-widest text-primary/40">
+      <div className="flex items-center gap-1.5 px-2 py-1 border-b border-primary/[0.06]">
+        <Clock className="text-primary/25 shrink-0" size={8} />
+        <span className="flex-1 text-[7px] font-black uppercase tracking-[0.2em] text-primary/30 leading-none">
           Línea de tiempo
         </span>
         <button
@@ -1973,7 +1973,7 @@ export function FormularioPersonaje({
                     )}
                     <label className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer bg-bg-main/70 backdrop-blur-sm">
                       <Maximize2 className="text-primary/50" size={14} />
-                      <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">
+                      <span className="text-[7px] font-black uppercase tracking-[0.2em] text-primary/30 leading-none">
                         Cambiar
                       </span>
                       <SelectorImagen
@@ -2236,9 +2236,9 @@ export function FormularioPersonaje({
                 {/* Capítulos + Canciones en fila en desktop */}
                 <div className="flex gap-3 items-start">
                   <div className="flex-1 min-w-0 rounded-xl overflow-hidden border border-primary/10">
-                    <div className="flex items-center gap-2 px-3 py-2 border-b border-primary/[0.06] bg-primary/[0.03]">
-                      <BookOpen className="text-primary/40" size={10} />
-                      <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">
+                    <div className="flex items-center gap-1.5 px-2 py-1 border-b border-primary/[0.06]">
+                      <BookOpen className="text-primary/25 shrink-0" size={8} />
+                      <span className="text-[7px] font-black uppercase tracking-[0.2em] text-primary/30 leading-none">
                         Capítulos
                       </span>
                     </div>
@@ -2246,9 +2246,9 @@ export function FormularioPersonaje({
                   </div>
 
                   <div className="flex-1 min-w-0 rounded-xl overflow-hidden border border-primary/10">
-                    <div className="flex items-center gap-2 px-3 py-2 border-b border-primary/[0.06] bg-primary/[0.03]">
-                      <Music2 className="text-primary/40" size={10} />
-                      <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">
+                    <div className="flex items-center gap-1.5 px-2 py-1 border-b border-primary/[0.06]">
+                      <Music2 className="text-primary/25 shrink-0" size={8} />
+                      <span className="text-[7px] font-black uppercase tracking-[0.2em] text-primary/30 leading-none">
                         Canciones
                       </span>
                     </div>
@@ -2353,9 +2353,9 @@ export function FormularioPersonaje({
               }}
             />
             <div>
-              <div className="flex items-center gap-2 px-3 py-2 border-b border-primary/[0.06] bg-primary/[0.03]">
-                <BookOpen className="text-primary/40" size={10} />
-                <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">
+              <div className="flex items-center gap-1.5 px-2 py-1 border-b border-primary/[0.06]">
+                <BookOpen className="text-primary/25 shrink-0" size={8} />
+                <span className="text-[7px] font-black uppercase tracking-[0.2em] text-primary/30 leading-none">
                   Capítulos
                 </span>
               </div>
@@ -2375,9 +2375,9 @@ export function FormularioPersonaje({
               }}
             />
             <div>
-              <div className="flex items-center gap-2 px-3 py-2 border-b border-primary/[0.06] bg-primary/[0.03]">
-                <Music2 className="text-primary/40" size={10} />
-                <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">
+              <div className="flex items-center gap-1.5 px-2 py-1 border-b border-primary/[0.06]">
+                <Music2 className="text-primary/25 shrink-0" size={8} />
+                <span className="text-[7px] font-black uppercase tracking-[0.2em] text-primary/30 leading-none">
                   Canciones
                 </span>
               </div>
