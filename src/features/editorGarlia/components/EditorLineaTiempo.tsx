@@ -3240,6 +3240,7 @@ export function PanelHistoriaMundo({
   const [filterReino, setFilterReino] = useState<string | null>(
     reinoFijo ?? initialFilterReino ?? null,
   );
+  const [filterEra, setFilterEra] = useState<string | null>(null);
 
   // Si reinoFijo cambia en tiempo de ejecución (cambio de reino sin desmontar),
   // sincronizamos el filtro.
@@ -3416,6 +3417,12 @@ export function PanelHistoriaMundo({
           continue;
         const dia = diaOverrides[cap.id] ?? cap.dia_absoluto;
         if (dia == null) continue; // sin fecha del calendario → no aparece
+        if (filterEra && cal) {
+          const fechaCap = diaAbsolutoAFecha(dia, cal.estaciones, cal.config);
+          if (!fechaCap?.estacion) continue;
+          const era = eraEnAnio(fechaCap.anio, cal.eras);
+          if (!era || era.id !== filterEra) continue;
+        }
         list.push({
           id: `cap:${cap.id}`,
           year: String(dia),
@@ -3434,6 +3441,12 @@ export function PanelHistoriaMundo({
         if (filterReino && e.reinoId !== filterReino) continue;
         const dia = e.dia_absoluto;
         if (dia == null) continue;
+        if (filterEra && cal) {
+          const fechaEvt = diaAbsolutoAFecha(dia, cal.estaciones, cal.config);
+          if (!fechaEvt?.estacion) continue;
+          const era = eraEnAnio(fechaEvt.anio, cal.eras);
+          if (!era || era.id !== filterEra) continue;
+        }
         list.push({
           id: e.id,
           year: String(dia),
@@ -3453,6 +3466,12 @@ export function PanelHistoriaMundo({
         if (filterReino && c.reinoId !== filterReino) continue;
         const dia = diaOverrides[c.id] ?? c.dia_absoluto;
         if (dia == null) continue; // sin fecha del calendario → no aparece
+        if (filterEra && cal) {
+          const fechaCan = diaAbsolutoAFecha(dia, cal.estaciones, cal.config);
+          if (!fechaCan?.estacion) continue;
+          const era = eraEnAnio(fechaCan.anio, cal.eras);
+          if (!era || era.id !== filterEra) continue;
+        }
         list.push({
           id: `cancion:${c.id}`,
           year: String(dia),
@@ -3480,6 +3499,16 @@ export function PanelHistoriaMundo({
         )
           continue;
         const dia = p.fecha_nacimiento;
+        if (filterEra && cal) {
+          const fechaCumple = diaAbsolutoAFecha(
+            dia,
+            cal.estaciones,
+            cal.config,
+          );
+          if (!fechaCumple?.estacion) continue;
+          const era = eraEnAnio(fechaCumple.anio, cal.eras);
+          if (!era || era.id !== filterEra) continue;
+        }
         list.push({
           id: `cumple:${p.id}`,
           year: String(dia),
@@ -3506,6 +3535,8 @@ export function PanelHistoriaMundo({
     });
   }, [
     filterReino,
+    filterEra,
+    cal,
     capsTimeline,
     cancionesTimeline,
     eventosMundo,
@@ -3659,6 +3690,44 @@ export function PanelHistoriaMundo({
                   {r.nombre}
                 </button>
               ))}
+            </div>
+          )}
+
+          {/* ── Filtro por era ── */}
+          {(erasLocal.length > 0 || (cal?.eras?.length ?? 0) > 0) && (
+            <div className="relative">
+              <select
+                className="appearance-none px-2 py-1 pr-5 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all outline-none cursor-pointer"
+                style={{
+                  background: filterEra
+                    ? "color-mix(in srgb, var(--primary) 12%, transparent)"
+                    : "color-mix(in srgb, var(--primary) 4%, transparent)",
+                  border: `1px solid color-mix(in srgb, var(--primary) ${filterEra ? "22" : "8"}%, transparent)`,
+                  color: filterEra
+                    ? "var(--primary)"
+                    : "color-mix(in srgb, var(--primary) 40%, transparent)",
+                }}
+                value={filterEra ?? ""}
+                onChange={(e) => setFilterEra(e.target.value || null)}
+              >
+                <option value="">Todas las eras</option>
+                {(erasLocal.length > 0 ? erasLocal : (cal?.eras ?? [])).map(
+                  (era: any) => (
+                    <option key={era.id} value={era.id}>
+                      {era.nombre}
+                    </option>
+                  ),
+                )}
+              </select>
+              <ChevronDown
+                className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2"
+                size={7}
+                style={{
+                  color: filterEra
+                    ? "var(--primary)"
+                    : "color-mix(in srgb, var(--primary) 35%, transparent)",
+                }}
+              />
             </div>
           )}
 
