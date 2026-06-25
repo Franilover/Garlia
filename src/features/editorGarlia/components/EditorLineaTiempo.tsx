@@ -2808,6 +2808,215 @@ function ListaEventosConMinimapa({
   );
 }
 
+// ─── EraDropdown ─────────────────────────────────────────────────────────────
+// Selector compacto de era con diseño consistente con el resto del panel.
+
+function EraDropdown({
+  eras,
+  value,
+  eraActiva,
+  onChange,
+}: {
+  eras: any[];
+  value: string | null;
+  eraActiva: any | null;
+  onChange: (id: string | null) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<{
+    top: number;
+    left: number;
+    width: number;
+  } | null>(null);
+
+  // Cerrar al click fuera
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (triggerRef.current?.contains(target)) return;
+      if (dropdownRef.current?.contains(target)) return;
+      setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  // Posición del panel
+  useEffect(() => {
+    if (!open) return;
+    const update = () => {
+      const r = triggerRef.current?.getBoundingClientRect();
+      if (!r) return;
+      const w = Math.max(r.width, 160);
+      let left = r.left;
+      if (left + w > window.innerWidth - 8)
+        left = Math.max(8, window.innerWidth - w - 8);
+      const spaceBelow = window.innerHeight - r.bottom;
+      const estimatedH = eras.length * 28 + 36;
+      const top =
+        spaceBelow < estimatedH && r.top > estimatedH
+          ? r.top - estimatedH - 4
+          : r.bottom + 4;
+      setPos({ top, left, width: w });
+    };
+    update();
+    window.addEventListener("scroll", update, true);
+    window.addEventListener("resize", update);
+    return () => {
+      window.removeEventListener("scroll", update, true);
+      window.removeEventListener("resize", update);
+    };
+  }, [open, eras.length]);
+
+  return (
+    <div className="relative">
+      {/* Trigger */}
+      <button
+        ref={triggerRef}
+        className="flex items-center gap-1 px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all"
+        style={{
+          background:
+            open || value
+              ? "color-mix(in srgb, var(--primary) 10%, transparent)"
+              : "color-mix(in srgb, var(--primary) 4%, transparent)",
+          border: `1px solid color-mix(in srgb, var(--primary) ${open || value ? "20" : "8"}%, transparent)`,
+          color:
+            open || value
+              ? "var(--primary)"
+              : "color-mix(in srgb, var(--primary) 40%, transparent)",
+        }}
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+      >
+        <Clock size={8} />
+        <span>{eraActiva ? eraActiva.nombre : "Era"}</span>
+        <ChevronDown
+          size={7}
+          style={{
+            transform: open ? "rotate(180deg)" : undefined,
+            transition: "transform 0.15s",
+          }}
+        />
+      </button>
+
+      {/* Panel — portal para no quedar cortado */}
+      {open &&
+        pos &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div
+            ref={dropdownRef}
+            className="fixed z-[9999] rounded-xl border shadow-lg overflow-hidden py-1"
+            style={{
+              top: pos.top,
+              left: pos.left,
+              minWidth: pos.width,
+              background: "var(--bg-main)",
+              borderColor:
+                "color-mix(in srgb, var(--primary) 12%, transparent)",
+            }}
+          >
+            {/* Opción "Todas" */}
+            <button
+              className="w-full flex items-center gap-2 px-3 py-1.5 text-left transition-all"
+              style={{
+                color:
+                  value === null
+                    ? "var(--primary)"
+                    : "color-mix(in srgb, var(--primary) 45%, transparent)",
+                background:
+                  value === null
+                    ? "color-mix(in srgb, var(--primary) 7%, transparent)"
+                    : "transparent",
+                fontSize: "8px",
+                fontWeight: 900,
+                letterSpacing: "0.12em",
+                textTransform: "uppercase",
+              }}
+              type="button"
+              onClick={() => {
+                onChange(null);
+                setOpen(false);
+              }}
+            >
+              {value === null && <Check size={8} className="shrink-0" />}
+              <span className={value === null ? "" : "pl-4"}>
+                Todas las eras
+              </span>
+            </button>
+
+            {/* Separador */}
+            <div
+              style={{
+                height: 1,
+                margin: "2px 8px",
+                background:
+                  "color-mix(in srgb, var(--primary) 8%, transparent)",
+              }}
+            />
+
+            {/* Opciones de era */}
+            {eras.map((era: any) => {
+              const activo = value === era.id;
+              return (
+                <button
+                  key={era.id}
+                  className="w-full flex items-center gap-2 px-3 py-1.5 text-left transition-all"
+                  style={{
+                    color: activo
+                      ? "var(--primary)"
+                      : "color-mix(in srgb, var(--primary) 45%, transparent)",
+                    background: activo
+                      ? "color-mix(in srgb, var(--primary) 7%, transparent)"
+                      : "transparent",
+                    fontSize: "8px",
+                    fontWeight: 900,
+                    letterSpacing: "0.12em",
+                    textTransform: "uppercase",
+                  }}
+                  type="button"
+                  onClick={() => {
+                    onChange(activo ? null : era.id);
+                    setOpen(false);
+                  }}
+                >
+                  {activo ? (
+                    <Check size={8} className="shrink-0" />
+                  ) : (
+                    <span
+                      style={{
+                        width: 8,
+                        display: "inline-block",
+                        flexShrink: 0,
+                      }}
+                    />
+                  )}
+                  <span>{era.nombre}</span>
+                  {era.anio_inicio != null && (
+                    <span
+                      style={{
+                        marginLeft: "auto",
+                        opacity: 0.4,
+                        fontSize: "7px",
+                        fontWeight: 700,
+                      }}
+                    >
+                      {era.anio_inicio}
+                      {era.anio_fin != null ? `–${era.anio_fin}` : "+"}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>,
+          document.body,
+        )}
+    </div>
+  );
+}
+
 // ── Panel principal — vista y edición unificadas, ambas pistas editables ──────
 export function PanelHistoriaMundo({
   texto,
@@ -3694,42 +3903,20 @@ export function PanelHistoriaMundo({
           )}
 
           {/* ── Filtro por era ── */}
-          {(erasLocal.length > 0 || (cal?.eras?.length ?? 0) > 0) && (
-            <div className="relative">
-              <select
-                className="appearance-none px-2 py-1 pr-5 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all outline-none cursor-pointer"
-                style={{
-                  background: filterEra
-                    ? "color-mix(in srgb, var(--primary) 12%, transparent)"
-                    : "color-mix(in srgb, var(--primary) 4%, transparent)",
-                  border: `1px solid color-mix(in srgb, var(--primary) ${filterEra ? "22" : "8"}%, transparent)`,
-                  color: filterEra
-                    ? "var(--primary)"
-                    : "color-mix(in srgb, var(--primary) 40%, transparent)",
-                }}
-                value={filterEra ?? ""}
-                onChange={(e) => setFilterEra(e.target.value || null)}
-              >
-                <option value="">Todas las eras</option>
-                {(erasLocal.length > 0 ? erasLocal : (cal?.eras ?? [])).map(
-                  (era: any) => (
-                    <option key={era.id} value={era.id}>
-                      {era.nombre}
-                    </option>
-                  ),
-                )}
-              </select>
-              <ChevronDown
-                className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2"
-                size={7}
-                style={{
-                  color: filterEra
-                    ? "var(--primary)"
-                    : "color-mix(in srgb, var(--primary) 35%, transparent)",
-                }}
-              />
-            </div>
-          )}
+          {(erasLocal.length > 0 || (cal?.eras?.length ?? 0) > 0) &&
+            (() => {
+              const eras = erasLocal.length > 0 ? erasLocal : (cal?.eras ?? []);
+              const eraActiva =
+                eras.find((e: any) => e.id === filterEra) ?? null;
+              return (
+                <EraDropdown
+                  eras={eras}
+                  value={filterEra}
+                  eraActiva={eraActiva}
+                  onChange={setFilterEra}
+                />
+              );
+            })()}
 
           {/* ── Acciones (derecha) ── */}
           <div className="ml-auto flex items-center gap-1.5">
