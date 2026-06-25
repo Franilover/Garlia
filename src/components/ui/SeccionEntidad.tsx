@@ -177,14 +177,14 @@ export const SeccionEntidad = ({
     <div ref={containerRef} className="shrink-0 flex flex-col">
       {/* ── Cabecera ── */}
       <div
-        className="flex items-center justify-between px-3 py-2"
+        className="flex items-center justify-between px-2 py-1"
         style={{
           borderBottom:
             "1px solid color-mix(in srgb, var(--primary) 6%, transparent)",
         }}
       >
         <span
-          className="flex items-center gap-1.5 text-[8px] font-black uppercase tracking-widest"
+          className="flex items-center gap-1.5 text-[7px] font-black uppercase tracking-[0.2em] leading-none"
           style={{
             color: "color-mix(in srgb, var(--primary) 38%, transparent)",
           }}
@@ -288,7 +288,7 @@ export const SeccionEntidad = ({
                 <Loader2 className="animate-spin" size={11} />
               </div>
             ) : filtered.length === 0 ? (
-              <p className="text-[8px] font-black uppercase text-primary/25 px-3 py-2.5 text-center tracking-widest">
+              <p className="text-[7px] font-black uppercase text-primary/20 px-2.5 py-2 text-center tracking-[0.2em] italic">
                 {query ? `Sin resultados` : emptyLabel}
               </p>
             ) : groups && groups.length > 0 ? (
@@ -354,7 +354,7 @@ export const SeccionEntidad = ({
                           {e.nombre.charAt(0)}
                         </div>
                       )}
-                      <span className="flex-1 min-w-0 text-[9px] font-black uppercase tracking-wide truncate">
+                      <span className="flex-1 min-w-0 text-[8px] font-black uppercase tracking-wide truncate leading-tight">
                         {e.nombre}
                       </span>
                       {sel && (
@@ -460,7 +460,7 @@ export const SeccionEntidad = ({
                       </div>
                     )}
 
-                    <span className="flex-1 min-w-0 text-[9px] font-black uppercase tracking-wide truncate">
+                    <span className="flex-1 min-w-0 text-[8px] font-black uppercase tracking-wide truncate leading-tight">
                       {e.nombre}
                     </span>
 
@@ -523,7 +523,7 @@ export const SeccionEntidad = ({
       {/* ── Entidades seleccionadas ── */}
       {selected.length === 0 ? (
         <div
-          className="flex items-center gap-2 px-3 py-2"
+          className="flex items-center gap-2 px-2.5 py-1.5"
           style={{ opacity: 0.35 }}
         >
           <span
@@ -534,7 +534,7 @@ export const SeccionEntidad = ({
             {fallbackIcon}
           </span>
           <p
-            className="text-[8px] font-black uppercase tracking-widest"
+            className="text-[7px] font-black uppercase tracking-[0.2em] leading-none"
             style={{
               color: "color-mix(in srgb, var(--primary) 30%, transparent)",
             }}
@@ -614,7 +614,7 @@ export const SeccionEntidad = ({
           const renderSelItem = (e: EntidadBase) => (
             <div
               key={e.id}
-              className="group flex items-center gap-2 px-3 py-1.5 transition-all hover:bg-primary/5"
+              className="group flex items-center gap-2 px-2.5 py-1.5 transition-all hover:bg-primary/[0.04] border-b border-primary/[0.04] last:border-0"
               style={{ cursor: onEntityClick ? "pointer" : "default" }}
               onClick={() => onEntityClick?.(e.id)}
             >
@@ -630,7 +630,7 @@ export const SeccionEntidad = ({
                 />
               ) : (
                 <div
-                  className="w-5 h-5 rounded-full shrink-0 flex items-center justify-center text-[7px] font-black uppercase"
+                  className="w-4 h-4 rounded-full shrink-0 flex items-center justify-center text-[6px] font-black uppercase"
                   style={{
                     background:
                       "color-mix(in srgb, var(--primary) 12%, transparent)",
@@ -642,7 +642,7 @@ export const SeccionEntidad = ({
                 </div>
               )}
               <span
-                className="flex-1 min-w-0 text-[10px] font-black uppercase tracking-wide truncate"
+                className="flex-1 min-w-0 text-[8px] font-black uppercase tracking-wide truncate leading-tight"
                 style={{
                   color: "color-mix(in srgb, var(--primary) 65%, transparent)",
                 }}
@@ -711,14 +711,14 @@ export const SeccionEntidad = ({
         selected.map((e) => (
           <div
             key={e.id}
-            className="group flex items-center gap-2 px-3 py-1.5 transition-all hover:bg-primary/5"
+            className="group flex items-center gap-2 px-2.5 py-1.5 transition-all hover:bg-primary/[0.04] border-b border-primary/[0.04] last:border-0"
             style={{ cursor: onEntityClick ? "pointer" : "default" }}
             onClick={() => onEntityClick?.(e.id)}
           >
             {e.imagen_url ? (
               <img
                 alt={e.nombre}
-                className="w-5 h-5 rounded-full shrink-0 object-cover"
+                className="w-4 h-4 rounded-full shrink-0 object-cover"
                 src={e.imagen_url}
                 style={{
                   background:
@@ -727,7 +727,7 @@ export const SeccionEntidad = ({
               />
             ) : (
               <div
-                className="w-5 h-5 rounded-full shrink-0 flex items-center justify-center text-[7px] font-black uppercase"
+                className="w-4 h-4 rounded-full shrink-0 flex items-center justify-center text-[6px] font-black uppercase"
                 style={{
                   background:
                     "color-mix(in srgb, var(--primary) 12%, transparent)",
@@ -738,7 +738,7 @@ export const SeccionEntidad = ({
               </div>
             )}
             <span
-              className="flex-1 min-w-0 text-[10px] font-black uppercase tracking-wide truncate"
+              className="flex-1 min-w-0 text-[8px] font-black uppercase tracking-wide truncate leading-tight"
               style={{
                 color: "color-mix(in srgb, var(--primary) 65%, transparent)",
               }}

@@ -23,6 +23,7 @@ import {
 import React, { useState, useEffect, useCallback } from "react";
 
 import { WikiEntity } from "@/components/forms/Markdown/MarkdownEditor";
+import { SeccionEntidad } from "@/components/ui/SeccionEntidad";
 import { ComboSelector } from "@/components/ui/ComboSelector";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import SimpleImagePicker from "@/features/editorGarlia/components/editorCapitulos/snippets/forms/SimpleImagePicker";
@@ -992,71 +993,19 @@ function SeccionHechizos({
 }) {
   const { disponibles, selectedIds, loading, saving, toggle } =
     useHechizosPersonaje(personajeId, grupoIds);
-
-  if (!loading && !disponibles.length) return null;
-
   return (
     <div className="rounded-xl overflow-hidden border border-primary/10">
-      {/* Header */}
-      <div className="flex items-center gap-1.5 px-2 py-1 border-b border-primary/[0.06]">
-        <Sparkles className="text-primary/25 shrink-0" size={8} />
-        <span className="flex-1 text-[7px] font-black uppercase tracking-[0.2em] text-primary/30 leading-none">
-          Hechizos
-        </span>
-        {saving && (
-          <Loader2 className="animate-spin text-primary/20" size={8} />
-        )}
-      </div>
-
-      {/* Body */}
-      {loading ? (
-        <div className="flex justify-center py-3">
-          <Loader2 className="animate-spin text-primary/15" size={12} />
-        </div>
-      ) : (
-        <div>
-          {disponibles.map((h) => {
-            const active = selectedIds.includes(h.id);
-            return (
-              <button
-                key={h.id}
-                className="w-full flex items-center gap-2 px-2.5 py-1.5 hover:bg-primary/[0.04] transition-colors text-left group border-b border-primary/[0.04] last:border-0"
-                type="button"
-                onClick={() => toggle(h.id, !active)}
-              >
-                <div
-                  className="shrink-0 w-3 h-3 rounded-sm border transition-all"
-                  style={{
-                    background: active
-                      ? "color-mix(in srgb, var(--accent) 20%, transparent)"
-                      : "transparent",
-                    borderColor: active
-                      ? "color-mix(in srgb, var(--accent) 50%, transparent)"
-                      : "color-mix(in srgb, var(--primary) 18%, transparent)",
-                  }}
-                >
-                  {active && (
-                    <Check
-                      className="w-full h-full"
-                      style={{ color: "var(--accent)", padding: "1px" }}
-                    />
-                  )}
-                </div>
-                <span
-                  className="text-[8px] font-black uppercase tracking-wide leading-tight truncate transition-colors"
-                  style={{
-                    color: active
-                      ? "var(--primary)"
-                      : "color-mix(in srgb, var(--primary) 40%, transparent)",
-                  }}
-                >
-                  {h.nombre}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      )}
+      <SeccionEntidad
+        allEntities={disponibles}
+        emptyLabel="Sin hechizos"
+        fallbackIcon={<Sparkles size={10} />}
+        icon={<Sparkles size={10} />}
+        label="Hechizos"
+        loading={loading}
+        saving={saving}
+        selectedIds={selectedIds}
+        onToggle={toggle}
+      />
     </div>
   );
 }
