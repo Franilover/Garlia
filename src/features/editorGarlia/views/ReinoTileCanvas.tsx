@@ -140,6 +140,7 @@ interface ReinoTileCanvasProps {
   onDetallesChange: (d: CiudadConTile[]) => void;
   editMode?: boolean;
   tileSize?: number;
+  onPinClick?: (ciudad: CiudadConTile) => void;
 }
 
 export function ReinoTileCanvas({
@@ -148,6 +149,7 @@ export function ReinoTileCanvas({
   onDetallesChange,
   editMode = false,
   tileSize = 1024,
+  onPinClick,
 }: ReinoTileCanvasProps) {
   const { tiles, loading, addTile, updateTileImage, deleteTile } =
     useReinoTiles(reinoId);
@@ -573,6 +575,7 @@ export function ReinoTileCanvas({
         const pin = findPinAt(e.clientX, e.clientY);
         if (pin) {
           setSelectedPinId((prev) => (prev === pin.id ? null : pin.id));
+          if (onPinClick) onPinClick(pin);
         }
       }
       isDragging.current = false;
@@ -665,13 +668,12 @@ export function ReinoTileCanvas({
   }
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col h-full w-full">
       {/* Canvas principal */}
       <div
         ref={containerRef}
-        className="relative w-full overflow-hidden rounded-xl border"
+        className="relative w-full h-full overflow-hidden"
         style={{
-          height: "min(60vh, 480px)",
           borderColor: selectedPinId
             ? "color-mix(in srgb, var(--primary) 40%, transparent)"
             : "color-mix(in srgb, var(--primary) 10%, transparent)",
