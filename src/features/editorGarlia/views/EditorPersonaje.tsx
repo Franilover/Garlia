@@ -18,6 +18,7 @@ import {
   Music2,
   Plus,
   Clock,
+  CalendarDays,
 } from "lucide-react";
 import React, { useState, useEffect, useCallback } from "react";
 
@@ -1022,9 +1023,11 @@ function calcularEdad(
 function BloqueEras({
   personajeId,
   fechaNacimiento,
+  onFechaNacimientoChange,
 }: {
   personajeId: string;
   fechaNacimiento?: number | null;
+  onFechaNacimientoChange?: (dia: number | null) => void;
 }) {
   const { cal } = useCalendario();
   // Días por año del mundo según el calendario real (suma de duracion_dias de todas las estaciones)
@@ -1040,6 +1043,26 @@ function BloqueEras({
   const [newMomento, setNewMomento] = useState("");
   const [newLabel, setNewLabel] = useState("");
   const [creating, setCreating] = useState(false);
+
+  // ── Selector de cumpleaños inline (cuando el personaje aún no tiene fecha) ──
+  const [cumpleSelectorOpen, setCumpleSelectorOpen] = useState(false);
+  const [cumpleDraft, setCumpleDraft] = useState<number | null>(null);
+  const [savingCumple, setSavingCumple] = useState(false);
+
+  const handleGuardarCumple = async () => {
+    if (cumpleDraft == null) return;
+    setSavingCumple(true);
+    try {
+      await (supabase as any)
+        .from("personajes")
+        .update({ fecha_nacimiento: cumpleDraft })
+        .eq("id", personajeId);
+      onFechaNacimientoChange?.(cumpleDraft);
+      setCumpleSelectorOpen(false);
+      setCumpleDraft(null);
+    } catch {}
+    setSavingCumple(false);
+  };
 
   useEffect(() => {
     if (!personajeId) return;
@@ -1296,14 +1319,160 @@ function BloqueEras({
           )}
 
           {eras.length === 0 && fechaNacimiento == null && (
-            <p className="text-[9px] text-primary/25 font-black uppercase tracking-widest text-center py-4 italic">
-              Sin eras · usa el botón + Era
-            </p>
+            <div className="px-3 py-3 space-y-2">
+              {!cumpleSelectorOpen ? (
+                <button
+                  className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-dashed text-[8px] font-black uppercase tracking-widest transition-all"
+                  style={{
+                    borderColor:
+                      "color-mix(in srgb, var(--accent) 30%, transparent)",
+                    color: "color-mix(in srgb, var(--accent) 60%, transparent)",
+                    background:
+                      "color-mix(in srgb, var(--accent) 4%, transparent)",
+                  }}
+                  type="button"
+                  onClick={() => setCumpleSelectorOpen(true)}
+                >
+                  <CalendarDays size={9} /> Asignar fecha de nacimiento
+                </button>
+              ) : (
+                <div
+                  className="space-y-2 p-2.5 rounded-xl border"
+                  style={{
+                    borderColor:
+                      "color-mix(in srgb, var(--accent) 20%, transparent)",
+                    background:
+                      "color-mix(in srgb, var(--accent) 4%, transparent)",
+                  }}
+                >
+                  <p
+                    className="text-[8px] font-black uppercase tracking-widest"
+                    style={{
+                      color:
+                        "color-mix(in srgb, var(--accent) 60%, transparent)",
+                    }}
+                  >
+                    ✦ Fecha de nacimiento
+                  </p>
+                  <SelectorFechaMundo
+                    placeholder="Seleccionar cumpleaños…"
+                    value={cumpleDraft}
+                    onChange={(dia) => setCumpleDraft(dia)}
+                  />
+                  <div className="flex gap-1.5 justify-end">
+                    <button
+                      className="px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border transition-all text-primary/35 border-primary/10 hover:text-primary hover:border-primary/25"
+                      type="button"
+                      onClick={() => {
+                        setCumpleSelectorOpen(false);
+                        setCumpleDraft(null);
+                      }}
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border transition-all disabled:opacity-30"
+                      disabled={cumpleDraft == null || savingCumple}
+                      style={{
+                        background:
+                          "color-mix(in srgb, var(--accent) 12%, transparent)",
+                        borderColor:
+                          "color-mix(in srgb, var(--accent) 25%, transparent)",
+                        color: "var(--accent)",
+                      }}
+                      type="button"
+                      onClick={handleGuardarCumple}
+                    >
+                      {savingCumple ? (
+                        <Loader2 className="animate-spin" size={8} />
+                      ) : (
+                        <Check size={8} />
+                      )}{" "}
+                      Guardar
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           )}
           {eras.length === 0 && fechaNacimiento != null && (
             <p className="text-[9px] text-primary/25 font-black uppercase tracking-widest text-center py-3 italic">
               Agrega una era para continuar la historia
             </p>
+          )}
+
+          {/* Banner de cumpleaños cuando hay eras pero aún no se asignó fecha */}
+          {eras.length > 0 && fechaNacimiento == null && (
+            <div
+              className="mx-3 my-2 px-2.5 py-2 rounded-xl border border-dashed space-y-1.5"
+              style={{
+                borderColor:
+                  "color-mix(in srgb, var(--accent) 25%, transparent)",
+                background: "color-mix(in srgb, var(--accent) 3%, transparent)",
+              }}
+            >
+              {!cumpleSelectorOpen ? (
+                <button
+                  className="w-full flex items-center justify-center gap-1.5 text-[8px] font-black uppercase tracking-widest transition-all py-1"
+                  style={{
+                    color: "color-mix(in srgb, var(--accent) 55%, transparent)",
+                  }}
+                  type="button"
+                  onClick={() => setCumpleSelectorOpen(true)}
+                >
+                  <CalendarDays size={9} /> Asignar fecha de nacimiento
+                </button>
+              ) : (
+                <div className="space-y-2">
+                  <p
+                    className="text-[8px] font-black uppercase tracking-widest"
+                    style={{
+                      color:
+                        "color-mix(in srgb, var(--accent) 60%, transparent)",
+                    }}
+                  >
+                    ✦ Fecha de nacimiento
+                  </p>
+                  <SelectorFechaMundo
+                    placeholder="Seleccionar cumpleaños…"
+                    value={cumpleDraft}
+                    onChange={(dia) => setCumpleDraft(dia)}
+                  />
+                  <div className="flex gap-1.5 justify-end">
+                    <button
+                      className="px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border transition-all text-primary/35 border-primary/10 hover:text-primary hover:border-primary/25"
+                      type="button"
+                      onClick={() => {
+                        setCumpleSelectorOpen(false);
+                        setCumpleDraft(null);
+                      }}
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border transition-all disabled:opacity-30"
+                      disabled={cumpleDraft == null || savingCumple}
+                      style={{
+                        background:
+                          "color-mix(in srgb, var(--accent) 12%, transparent)",
+                        borderColor:
+                          "color-mix(in srgb, var(--accent) 25%, transparent)",
+                        color: "var(--accent)",
+                      }}
+                      type="button"
+                      onClick={handleGuardarCumple}
+                    >
+                      {savingCumple ? (
+                        <Loader2 className="animate-spin" size={8} />
+                      ) : (
+                        <Check size={8} />
+                      )}{" "}
+                      Guardar
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           )}
 
           {eras.map((era, idx) => (
@@ -2181,6 +2350,11 @@ export function FormularioPersonaje({
                 <BloqueEras
                   fechaNacimiento={(form as any).fecha_nacimiento ?? null}
                   personajeId={form.id}
+                  onFechaNacimientoChange={(dia) =>
+                    setForm(
+                      (f) => ({ ...f, fecha_nacimiento: dia ?? null }) as any,
+                    )
+                  }
                 />
 
                 <div className="rounded-xl overflow-hidden border border-primary/10">
@@ -2285,6 +2459,11 @@ export function FormularioPersonaje({
               <BloqueEras
                 fechaNacimiento={(form as any).fecha_nacimiento ?? null}
                 personajeId={form.id}
+                onFechaNacimientoChange={(dia) =>
+                  setForm(
+                    (f) => ({ ...f, fecha_nacimiento: dia ?? null }) as any,
+                  )
+                }
               />
             </div>
             <div
