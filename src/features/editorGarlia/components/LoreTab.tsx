@@ -2,7 +2,6 @@ import Image from "next/image";
 import {
   Mountain,
   Users,
-  Plus,
   Trash2,
   UserCircle2,
   Loader2,
@@ -290,11 +289,6 @@ function MapaNuevo({
   onDetalleUpdate,
   onDetalleDelete,
   onOpenDetalleEditor,
-  addingPoint,
-  setAddingPoint,
-  newPointName,
-  setNewPointName,
-  onAddPoint,
   form,
   setForm,
   onSnippetAction,
@@ -306,17 +300,11 @@ function MapaNuevo({
   onDetalleUpdate?: (d: Ciudad) => void;
   onDetalleDelete?: (id: string) => void;
   onOpenDetalleEditor?: (id: string) => void;
-  addingPoint?: boolean;
-  setAddingPoint?: (v: boolean) => void;
-  newPointName?: string;
-  setNewPointName?: (v: string) => void;
-  onAddPoint?: () => void;
   form: Reino;
   setForm: React.Dispatch<React.SetStateAction<Reino>>;
   onSnippetAction: any;
   onDetallesArrayChange?: (d: Ciudad[]) => void;
 }) {
-  const [puntosOpen, setPuntosOpen] = useState(false);
   const [geoOpen, setGeoOpen] = useState(false);
 
   return (
@@ -340,42 +328,6 @@ function MapaNuevo({
 
       {/* ── Botones flotantes bottom-right ── */}
       <div className="absolute bottom-3 right-3 z-10 flex gap-1.5">
-        {/* Puntos */}
-        <button
-          className="flex items-center gap-1.5 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-widest transition-opacity hover:opacity-80"
-          style={{
-            background: puntosOpen
-              ? "color-mix(in srgb, var(--accent) 18%, transparent)"
-              : "color-mix(in srgb, var(--bg-main) 85%, transparent)",
-            backdropFilter: "blur(10px)",
-            border: puntosOpen
-              ? "1px solid color-mix(in srgb, var(--accent) 28%, transparent)"
-              : "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-            borderRadius: "6px",
-            color: puntosOpen
-              ? "color-mix(in srgb, var(--accent) 80%, transparent)"
-              : "color-mix(in srgb, var(--foreground) 45%, transparent)",
-          }}
-          onClick={() => {
-            setPuntosOpen((v) => !v);
-            setGeoOpen(false);
-          }}
-        >
-          <MapPin size={9} />
-          Puntos
-          {detalles.length > 0 && (
-            <span
-              className="text-[7px] font-black px-1 py-0.5 rounded-md"
-              style={{
-                background:
-                  "color-mix(in srgb, var(--primary) 12%, transparent)",
-              }}
-            >
-              {detalles.length}
-            </span>
-          )}
-        </button>
-
         {/* Geografía */}
         <button
           className="flex items-center gap-1.5 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-widest transition-opacity hover:opacity-80"
@@ -394,114 +346,11 @@ function MapaNuevo({
           }}
           onClick={() => {
             setGeoOpen((v) => !v);
-            setPuntosOpen(false);
           }}
         >
           <Mountain size={9} /> Geografía
         </button>
       </div>
-
-      {/* ── Drawer de Puntos ── */}
-      {puntosOpen && (
-        <div
-          className="absolute top-0 right-0 bottom-0 z-20 flex flex-col w-64 shadow-2xl"
-          style={{
-            background: "color-mix(in srgb, var(--bg-main) 95%, transparent)",
-            backdropFilter: "blur(16px)",
-            borderLeft:
-              "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-          }}
-        >
-          <div
-            className="flex items-center gap-2 px-3 py-2.5 border-b shrink-0"
-            style={{
-              borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
-            }}
-          >
-            <MapPin size={10} style={{ color: "var(--accent)" }} />
-            <span
-              className="flex-1 text-[9px] font-black uppercase tracking-[0.2em]"
-              style={{
-                color: "color-mix(in srgb, var(--foreground) 40%, transparent)",
-              }}
-            >
-              Puntos · {detalles.length}
-            </span>
-            <button
-              className="text-primary/25 hover:text-primary/60 transition-colors"
-              onClick={() => setPuntosOpen(false)}
-            >
-              <X size={12} />
-            </button>
-          </div>
-          <div
-            className="flex-1 overflow-y-auto p-2 space-y-1.5"
-            style={{ scrollbarWidth: "none" }}
-          >
-            {detalles.length === 0 && !addingPoint && (
-              <div className="flex flex-col items-center gap-2 py-8 text-primary/20">
-                <MapPin size={18} strokeWidth={1} />
-                <p className="text-[8px] font-black uppercase tracking-widest text-center">
-                  Sin puntos
-                </p>
-              </div>
-            )}
-            {detalles.map((det) => (
-              <DetalleEditor
-                key={det.id}
-                detalle={det}
-                entities={entities}
-                onDeleted={(id) => onDetalleDelete?.(id)}
-                onOpenEditor={onOpenDetalleEditor}
-                onSaved={(d) => onDetalleUpdate?.(d)}
-              />
-            ))}
-            {addingPoint ? (
-              <div
-                className="flex flex-col gap-1.5 p-2 rounded-xl border border-primary/15"
-                style={{
-                  background:
-                    "color-mix(in srgb, var(--primary) 4%, transparent)",
-                }}
-              >
-                <input
-                  autoFocus
-                  className="w-full bg-bg-main border border-primary/20 rounded-lg px-2.5 py-1.5 text-[10px] font-black uppercase text-primary outline-none focus:border-primary/50 tracking-widest"
-                  placeholder="NOMBRE..."
-                  value={newPointName ?? ""}
-                  onChange={(e) => setNewPointName?.(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") onAddPoint?.();
-                    if (e.key === "Escape") setAddingPoint?.(false);
-                  }}
-                />
-                <div className="flex gap-1">
-                  <button
-                    className="flex-1 bg-primary text-btn-text py-1.5 rounded-lg text-[9px] font-black hover:bg-primary/90 transition-all disabled:opacity-40 flex items-center justify-center"
-                    disabled={!newPointName?.trim()}
-                    onClick={onAddPoint}
-                  >
-                    <Check size={11} />
-                  </button>
-                  <button
-                    className="px-2 py-1.5 rounded-lg text-primary/40 hover:text-primary transition-all"
-                    onClick={() => setAddingPoint?.(false)}
-                  >
-                    <X size={11} />
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <button
-                className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl border border-dashed border-primary/15 text-[9px] font-black uppercase text-primary/30 hover:text-primary hover:border-primary/30 transition-all tracking-widest"
-                onClick={() => setAddingPoint?.(true)}
-              >
-                <Plus size={9} /> Añadir
-              </button>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* ── Drawer de Geografía ── */}
       {geoOpen && (
@@ -985,11 +834,6 @@ export function LoreTab({
   filtroReinoId,
   detalles = [],
   onDetallesChange,
-  onAddPoint,
-  addingPoint,
-  setAddingPoint,
-  newPointName,
-  setNewPointName,
   onDetalleUpdate,
   onDetalleDelete,
   onOpenDetalleEditor,
@@ -1014,11 +858,6 @@ export function LoreTab({
   detalles?: Ciudad[];
   onDetallesChange?: (updated: Ciudad) => void;
   onDeleteDetalle?: (id: string) => void;
-  onAddPoint?: () => void;
-  addingPoint?: boolean;
-  setAddingPoint?: (v: boolean) => void;
-  newPointName?: string;
-  setNewPointName?: (v: string) => void;
   onDetalleUpdate?: (d: Ciudad) => void;
   onDetalleDelete?: (id: string) => void;
   onOpenDetalleEditor?: (id: string) => void;
@@ -1154,15 +993,10 @@ export function LoreTab({
           <div className="flex-1 min-h-0 overflow-hidden">
             <MapaNuevo
               MapaConPuntosComponent={MapaConPuntosComponent}
-              addingPoint={addingPoint}
               detalles={detalles}
               entities={entities}
               form={form}
-              newPointName={newPointName}
-              setAddingPoint={setAddingPoint}
               setForm={setForm}
-              setNewPointName={setNewPointName}
-              onAddPoint={onAddPoint}
               onDetalleDelete={onDetalleDelete}
               onDetalleUpdate={onDetalleUpdate}
               onDetallesArrayChange={onDetallesArrayChange}

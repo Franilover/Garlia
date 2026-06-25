@@ -148,9 +148,7 @@ export function EditorReino({
 }) {
   const [form, setForm] = useState<Reino>(item);
   const [status, setStatus] = useState<SaveStatus>("idle");
-  const [addingPoint, setAddingPoint] = useState(false);
   const [mobileAsideOpen, setMobileAsideOpen] = useState(false);
-  const [newPointName, setNewPointName] = useState("");
   const { ciudades: detalles, setCiudades: setDetalles } = useCiudadesDelReino(
     item.id,
   );
@@ -203,28 +201,6 @@ export function EditorReino({
     await supabase.from("reinos").delete().eq("id", form.id);
     void dexieDel("reinos", form.id);
     onDeleted(form.id);
-  };
-
-  const handleAddPoint = async () => {
-    if (!newPointName.trim()) return;
-    const { data, error } = await supabase
-      .from("ciudades")
-      .insert([
-        {
-          reino_id: form.id,
-          nombre: newPointName.trim(),
-          coord_x: 50,
-          coord_y: 50,
-        },
-      ])
-      .select()
-      .single();
-    if (!error && data) {
-      setDetalles((prev) => [...prev, data as Ciudad]);
-      void dexiePut("ciudades", data);
-      setAddingPoint(false);
-      setNewPointName("");
-    }
   };
 
   const handleDetallesMapChange = async (updated: Ciudad[]) => {
@@ -326,20 +302,15 @@ export function EditorReino({
                 onPinClick={(ciudad) => onSelectCiudad?.(ciudad.id)}
               />
             )}
-            addingPoint={addingPoint}
             detalles={detalles}
             entities={entities}
             form={form}
             loadingPersonajes={loadingPersonajes}
             mapaUrl={form.mapa_url ?? ""}
             mobileAsideOpen={mobileAsideOpen}
-            newPointName={newPointName}
             personajes={personajes}
-            setAddingPoint={setAddingPoint}
             setForm={setForm}
             setMobileAsideOpen={setMobileAsideOpen}
-            setNewPointName={setNewPointName}
-            onAddPoint={handleAddPoint}
             onDetalleDelete={(id) =>
               setDetalles((prev) => prev.filter((x) => x.id !== id))
             }
