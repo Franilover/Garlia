@@ -2371,30 +2371,33 @@ export function FormularioPersonaje({
                   }}
                 />
 
-                <div className="rounded-xl overflow-hidden border border-primary/10">
-                  <div className="flex items-center gap-2 px-3 py-2 border-b border-primary/[0.06] bg-primary/[0.03]">
-                    <BookOpen className="text-primary/40" size={10} />
-                    <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">
-                      Capítulos
-                    </span>
-                  </div>
-                  <BloqueCapsAparece personajeId={form.id} />
-                </div>
-
                 <SeccionHechizos grupoIds={grupoIds} personajeId={form.id} />
 
-                <div className="rounded-xl overflow-hidden border border-primary/10">
-                  <div className="flex items-center gap-2 px-3 py-2 border-b border-primary/[0.06] bg-primary/[0.03]">
-                    <Music2 className="text-primary/40" size={10} />
-                    <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">
-                      Canciones
-                    </span>
+                {/* Capítulos + Canciones en fila en desktop */}
+                <div className="flex gap-3 items-start">
+                  <div className="flex-1 min-w-0 rounded-xl overflow-hidden border border-primary/10">
+                    <div className="flex items-center gap-2 px-3 py-2 border-b border-primary/[0.06] bg-primary/[0.03]">
+                      <BookOpen className="text-primary/40" size={10} />
+                      <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">
+                        Capítulos
+                      </span>
+                    </div>
+                    <BloqueCapsAparece personajeId={form.id} />
                   </div>
-                  <BloqueCanciones
-                    nombrePersonaje={form.nombre ?? ""}
-                    personajeId={form.id}
-                    onSelect={onSelectCancion}
-                  />
+
+                  <div className="flex-1 min-w-0 rounded-xl overflow-hidden border border-primary/10">
+                    <div className="flex items-center gap-2 px-3 py-2 border-b border-primary/[0.06] bg-primary/[0.03]">
+                      <Music2 className="text-primary/40" size={10} />
+                      <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">
+                        Canciones
+                      </span>
+                    </div>
+                    <BloqueCanciones
+                      nombrePersonaje={form.nombre ?? ""}
+                      personajeId={form.id}
+                      onSelect={onSelectCancion}
+                    />
+                  </div>
                 </div>
               </div>
             </div>
