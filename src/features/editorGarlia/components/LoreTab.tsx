@@ -965,6 +965,7 @@ type SectionId =
   | "cultura"
   | "politica"
   | "economia"
+  | "sociedad"
   | "puntos"
   | "geografia"
   | "lineatiempo";
@@ -1032,15 +1033,13 @@ export function LoreTab({
   const { onSnippetAction } = useWikilink();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [activeTab, setActiveTab] = useState<
-    "mapa" | "cultura" | "economia" | "politica" | "lineatiempo"
+    "mapa" | "sociedad" | "lineatiempo"
   >(
     activeTabProp === "mapa"
       ? "mapa"
       : activeTabProp === "lineatiempo"
         ? "lineatiempo"
-        : activeTabProp && activeTabProp !== "historia"
-          ? (activeTabProp as any)
-          : "cultura",
+        : "sociedad",
   );
   const {
     criaturas,
@@ -1113,9 +1112,7 @@ export function LoreTab({
 
   const TABS = [
     { id: "mapa", label: "Mapa" },
-    { id: "cultura", label: "Cultura" },
-    { id: "economia", label: "Economía" },
-    { id: "politica", label: "Política" },
+    { id: "sociedad", label: "Sociedad" },
     { id: "lineatiempo", label: "Línea de tiempo" },
   ] as const;
 
@@ -1183,45 +1180,58 @@ export function LoreTab({
             style={{ scrollbarWidth: "none" }}
           >
             <div className="p-3 flex flex-col gap-4">
-              {/* CULTURA / ECONOMÍA / POLÍTICA — tab activo */}
-              {activeTab === "cultura" && (
-                <MarkdownEditor
-                  key="cultura"
-                  toolbar
-                  defaultMode="edit"
-                  entities={entities}
-                  placeholder="Tradiciones, religión, idioma, costumbres, arte…"
-                  rows={12}
-                  value={(form as any).cultura ?? ""}
-                  onChange={(v) => setForm((f) => ({ ...f, cultura: v }))}
-                  onSnippetAction={onSnippetAction}
-                />
-              )}
-              {activeTab === "politica" && (
-                <MarkdownEditor
-                  key="politica"
-                  toolbar
-                  defaultMode="edit"
-                  entities={entities}
-                  placeholder="Sistema de gobierno, facciones, líderes, leyes…"
-                  rows={12}
-                  value={(form as any).politica ?? ""}
-                  onChange={(v) => setForm((f) => ({ ...f, politica: v }))}
-                  onSnippetAction={onSnippetAction}
-                />
-              )}
-              {activeTab === "economia" && (
-                <MarkdownEditor
-                  key="economia"
-                  toolbar
-                  defaultMode="edit"
-                  entities={entities}
-                  placeholder="Recursos, comercio, moneda, riqueza…"
-                  rows={12}
-                  value={(form as any).economia ?? ""}
-                  onChange={(v) => setForm((f) => ({ ...f, economia: v }))}
-                  onSnippetAction={onSnippetAction}
-                />
+              {/* SOCIEDAD — cultura, política y economía en 3 columnas */}
+              {activeTab === "sociedad" && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="flex flex-col gap-2">
+                    <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">
+                      Cultura
+                    </label>
+                    <MarkdownEditor
+                      key="cultura"
+                      toolbar
+                      defaultMode="edit"
+                      entities={entities}
+                      placeholder="Tradiciones, religión, idioma, costumbres, arte…"
+                      rows={18}
+                      value={(form as any).cultura ?? ""}
+                      onChange={(v) => setForm((f) => ({ ...f, cultura: v }))}
+                      onSnippetAction={onSnippetAction}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">
+                      Política
+                    </label>
+                    <MarkdownEditor
+                      key="politica"
+                      toolbar
+                      defaultMode="edit"
+                      entities={entities}
+                      placeholder="Sistema de gobierno, facciones, líderes, leyes…"
+                      rows={18}
+                      value={(form as any).politica ?? ""}
+                      onChange={(v) => setForm((f) => ({ ...f, politica: v }))}
+                      onSnippetAction={onSnippetAction}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">
+                      Economía
+                    </label>
+                    <MarkdownEditor
+                      key="economia"
+                      toolbar
+                      defaultMode="edit"
+                      entities={entities}
+                      placeholder="Recursos, comercio, moneda, riqueza…"
+                      rows={18}
+                      value={(form as any).economia ?? ""}
+                      onChange={(v) => setForm((f) => ({ ...f, economia: v }))}
+                      onSnippetAction={onSnippetAction}
+                    />
+                  </div>
+                </div>
               )}
 
               {/* LÍNEA DE TIEMPO — tab activo */}
