@@ -2016,6 +2016,18 @@ function useDonCriatura(criaturaId: string) {
   return { catalogo, ids, loading, add, remove };
 }
 
+// ─── Helper: detecta si algún grupo del array es "mágico" ────────────────────
+function normStr(s: string) {
+  return s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+}
+function grupoEsMagico(grupos: { nombre: string }[]): boolean {
+  return grupos.some((g) => normStr(g.nombre) === "magico");
+}
+
 // ─── Componente lista mágica (hechizos o dones) ───────────────────────────────
 // Dos wrappers finos para evitar instanciar ambos hooks en cada montaje.
 
@@ -2866,20 +2878,23 @@ export function EditorCriatura({
             scrollbarWidth: "none",
           }}
         >
-          <BloqueMagico
-            criaturaId={form.id}
-            gruposActuales={gruposActuales.map((g) => g.id)}
-            icon={Sparkles}
-            label="Hechizos"
-            usarHook="hechizos"
-          />
-
-          <div
-            style={{
-              borderTop:
-                "1px solid color-mix(in srgb, var(--primary) 7%, transparent)",
-            }}
-          />
+          {grupoEsMagico(gruposActuales) && (
+            <>
+              <BloqueMagico
+                criaturaId={form.id}
+                gruposActuales={gruposActuales.map((g) => g.id)}
+                icon={Sparkles}
+                label="Hechizos"
+                usarHook="hechizos"
+              />
+              <div
+                style={{
+                  borderTop:
+                    "1px solid color-mix(in srgb, var(--primary) 7%, transparent)",
+                }}
+              />
+            </>
+          )}
 
           <BloqueMagico
             criaturaId={form.id}
@@ -3030,19 +3045,23 @@ export function EditorCriatura({
                   "1px solid color-mix(in srgb, var(--primary) 7%, transparent)",
               }}
             />
-            <BloqueMagico
-              criaturaId={form.id}
-              gruposActuales={gruposActuales.map((g) => g.id)}
-              icon={Sparkles}
-              label="Hechizos"
-              usarHook="hechizos"
-            />
-            <div
-              style={{
-                borderTop:
-                  "1px solid color-mix(in srgb, var(--primary) 7%, transparent)",
-              }}
-            />
+            {grupoEsMagico(gruposActuales) && (
+              <>
+                <BloqueMagico
+                  criaturaId={form.id}
+                  gruposActuales={gruposActuales.map((g) => g.id)}
+                  icon={Sparkles}
+                  label="Hechizos"
+                  usarHook="hechizos"
+                />
+                <div
+                  style={{
+                    borderTop:
+                      "1px solid color-mix(in srgb, var(--primary) 7%, transparent)",
+                  }}
+                />
+              </>
+            )}
             <BloqueMagico
               criaturaId={form.id}
               gruposActuales={gruposActuales.map((g) => g.id)}
