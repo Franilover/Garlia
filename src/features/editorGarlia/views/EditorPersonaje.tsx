@@ -2213,16 +2213,6 @@ export function FormularioPersonaje({
 
               {/* ── Bloques laterales — solo desktop, inline ───────────────── */}
               <div className="hidden sm:block mt-4 space-y-3">
-                <BloqueGruposPersonaje
-                  personajeId={form.id}
-                  onOpenGrupo={onOpenGrupo}
-                />
-
-                <BloqueRelaciones
-                  personajeId={form.id}
-                  onSelectPersonaje={onSelectPersonaje}
-                />
-
                 <BloqueEras
                   fechaNacimiento={(form as any).fecha_nacimiento ?? null}
                   personajeId={form.id}
@@ -2237,9 +2227,12 @@ export function FormularioPersonaje({
                   }}
                 />
 
-                <SeccionHechizos grupoIds={grupoIds} personajeId={form.id} />
+                <BloqueRelaciones
+                  personajeId={form.id}
+                  onSelectPersonaje={onSelectPersonaje}
+                />
 
-                {/* Capítulos + Canciones en fila en desktop */}
+                {/* Capítulos + Canciones + Grupos en 3 columnas */}
                 <div className="flex gap-3 items-start">
                   <div className="flex-1 min-w-0 rounded-xl overflow-hidden border border-primary/10">
                     <div className="flex items-center gap-1.5 px-2 py-1 border-b border-primary/[0.06]">
@@ -2264,7 +2257,16 @@ export function FormularioPersonaje({
                       onSelect={onSelectCancion}
                     />
                   </div>
+
+                  <div className="flex-1 min-w-0">
+                    <BloqueGruposPersonaje
+                      personajeId={form.id}
+                      onOpenGrupo={onOpenGrupo}
+                    />
+                  </div>
                 </div>
+
+                <SeccionHechizos grupoIds={grupoIds} personajeId={form.id} />
               </div>
             </div>
           </div>
@@ -2315,9 +2317,17 @@ export function FormularioPersonaje({
             </div>
 
             <div className="p-2">
-              <BloqueGruposPersonaje
+              <BloqueEras
+                fechaNacimiento={(form as any).fecha_nacimiento ?? null}
                 personajeId={form.id}
-                onOpenGrupo={onOpenGrupo}
+                onFechaNacimientoChange={(dia) => {
+                  const updated = {
+                    ...form,
+                    fecha_nacimiento: dia ?? null,
+                  } as any;
+                  setForm(updated);
+                  void dexiePut("personajes", updated);
+                }}
               />
             </div>
             <div
@@ -2330,26 +2340,6 @@ export function FormularioPersonaje({
               <BloqueRelaciones
                 personajeId={form.id}
                 onSelectPersonaje={onSelectPersonaje}
-              />
-            </div>
-            <div
-              style={{
-                borderTop:
-                  "1px solid color-mix(in srgb, var(--primary) 7%, transparent)",
-              }}
-            />
-            <div className="p-2">
-              <BloqueEras
-                fechaNacimiento={(form as any).fecha_nacimiento ?? null}
-                personajeId={form.id}
-                onFechaNacimientoChange={(dia) => {
-                  const updated = {
-                    ...form,
-                    fecha_nacimiento: dia ?? null,
-                  } as any;
-                  setForm(updated);
-                  void dexiePut("personajes", updated);
-                }}
               />
             </div>
             <div
@@ -2373,13 +2363,6 @@ export function FormularioPersonaje({
                   "1px solid color-mix(in srgb, var(--primary) 7%, transparent)",
               }}
             />
-            <SeccionHechizos grupoIds={grupoIds} personajeId={form.id} />
-            <div
-              style={{
-                borderTop:
-                  "1px solid color-mix(in srgb, var(--primary) 7%, transparent)",
-              }}
-            />
             <div>
               <div className="flex items-center gap-1.5 px-2 py-1 border-b border-primary/[0.06]">
                 <Music2 className="text-primary/25 shrink-0" size={8} />
@@ -2393,6 +2376,25 @@ export function FormularioPersonaje({
                 onSelect={onSelectCancion}
               />
             </div>
+            <div
+              style={{
+                borderTop:
+                  "1px solid color-mix(in srgb, var(--primary) 7%, transparent)",
+              }}
+            />
+            <div className="p-2">
+              <BloqueGruposPersonaje
+                personajeId={form.id}
+                onOpenGrupo={onOpenGrupo}
+              />
+            </div>
+            <div
+              style={{
+                borderTop:
+                  "1px solid color-mix(in srgb, var(--primary) 7%, transparent)",
+              }}
+            />
+            <SeccionHechizos grupoIds={grupoIds} personajeId={form.id} />
           </div>
         </div>
       )}
