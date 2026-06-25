@@ -282,13 +282,8 @@ function DetalleEditor({
   );
 }
 
-// ─── MapaPanel — mapa izquierda + selector Puntos/Geografía derecha ──────────
-type MapaSideTab = "puntos" | "geografia";
-
-function MapaPanel({
-  mapaUrl,
-  onMapaChange,
-  onDetallesArrayChange,
+// ─── MapaNuevo — canvas full height + overlays flotantes ─────────────────────
+function MapaNuevo({
   MapaConPuntosComponent,
   detalles,
   entities,
@@ -303,11 +298,8 @@ function MapaPanel({
   form,
   setForm,
   onSnippetAction,
-  reinoId,
+  onDetallesArrayChange,
 }: {
-  mapaUrl: string;
-  onMapaChange?: (url: string) => void;
-  onDetallesArrayChange?: (d: Ciudad[]) => void;
   MapaConPuntosComponent?: React.ComponentType<any>;
   detalles: Ciudad[];
   entities: WikiEntity[];
@@ -322,110 +314,130 @@ function MapaPanel({
   form: Reino;
   setForm: React.Dispatch<React.SetStateAction<Reino>>;
   onSnippetAction: any;
-  reinoId: string;
+  onDetallesArrayChange?: (d: Ciudad[]) => void;
 }) {
-  const [sideTab, setSideTab] = useState<MapaSideTab>("puntos");
-
-  const SIDE_TABS: {
-    key: MapaSideTab;
-    label: string;
-    Icon: React.ElementType;
-  }[] = [
-    { key: "puntos", label: "Puntos", Icon: MapPin },
-    { key: "geografia", label: "Geografía", Icon: Mountain },
-  ];
+  const [puntosOpen, setPuntosOpen] = useState(false);
+  const [geoOpen, setGeoOpen] = useState(false);
 
   return (
-    <div className="flex flex-col md:flex-row h-full min-h-0 overflow-y-auto md:overflow-hidden">
-      {/* ── Columna izquierda — Mapa ── */}
-      <div
-        className="flex-1 min-w-0 p-3 overflow-y-auto"
-        style={{
-          borderBottom:
-            "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
-        }}
-      >
-        {MapaConPuntosComponent ? (
-          <MapaConPuntosComponent
-            detalles={detalles}
-            mapaUrl={mapaUrl}
-            onDetallesChange={(d: any) => onDetallesArrayChange?.(d)}
-            onMapaChange={onMapaChange ?? (() => {})}
-          />
-        ) : (
-          <div className="flex flex-col items-center justify-center py-12 text-primary/20 gap-2">
-            <Map size={22} strokeWidth={1} />
-            <span className="text-[9px] font-black uppercase tracking-widest">
-              Sin mapa
-            </span>
-          </div>
-        )}
-      </div>
+    <div className="relative w-full h-full overflow-hidden">
+      {/* Canvas full height */}
+      {MapaConPuntosComponent ? (
+        <MapaConPuntosComponent
+          detalles={detalles}
+          mapaUrl={""}
+          onDetallesChange={(d: any) => onDetallesArrayChange?.(d)}
+          onMapaChange={() => {}}
+        />
+      ) : (
+        <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-primary/20">
+          <Map size={22} strokeWidth={1} />
+          <span className="text-[9px] font-black uppercase tracking-widest">
+            Sin mapa
+          </span>
+        </div>
+      )}
 
-      {/* ── Columna derecha — selector + contenido ── */}
-      <div
-        className="flex-[1.4] flex flex-col overflow-hidden min-w-0"
-        style={{
-          borderLeft:
-            "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
-        }}
-      >
-        {/* Selector de sub-tab — ocupa todo el ancho */}
-        <div
-          className="shrink-0 flex border-b"
+      {/* ── Botones flotantes bottom-right ── */}
+      <div className="absolute bottom-3 right-3 z-10 flex gap-1.5">
+        {/* Puntos */}
+        <button
+          className="flex items-center gap-1.5 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-widest transition-opacity hover:opacity-80"
           style={{
-            borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
-            background: "color-mix(in srgb, var(--primary) 2%, transparent)",
+            background: puntosOpen
+              ? "color-mix(in srgb, var(--accent) 18%, transparent)"
+              : "color-mix(in srgb, var(--bg-main) 85%, transparent)",
+            backdropFilter: "blur(10px)",
+            border: puntosOpen
+              ? "1px solid color-mix(in srgb, var(--accent) 28%, transparent)"
+              : "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+            borderRadius: "6px",
+            color: puntosOpen
+              ? "color-mix(in srgb, var(--accent) 80%, transparent)"
+              : "color-mix(in srgb, var(--foreground) 45%, transparent)",
+          }}
+          onClick={() => {
+            setPuntosOpen((v) => !v);
+            setGeoOpen(false);
           }}
         >
-          {SIDE_TABS.map(({ key, label, Icon }) => {
-            const isActive = sideTab === key;
-            const count = key === "puntos" ? detalles.length : 0;
-            return (
-              <button
-                key={key}
-                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[8px] font-black uppercase tracking-widest transition-all border-b-2"
-                style={
-                  isActive
-                    ? {
-                        borderColor: "var(--primary)",
-                        color: "var(--primary)",
-                        background:
-                          "color-mix(in srgb, var(--primary) 5%, transparent)",
-                      }
-                    : {
-                        borderColor: "transparent",
-                        color:
-                          "color-mix(in srgb, var(--primary) 35%, transparent)",
-                      }
-                }
-                onClick={() => setSideTab(key)}
-              >
-                <Icon size={9} />
-                {label}
-                {count > 0 && (
-                  <span
-                    className="text-[7px] font-black px-1 py-0.5 rounded-md"
-                    style={{
-                      background: isActive
-                        ? "color-mix(in srgb, var(--primary) 15%, transparent)"
-                        : "color-mix(in srgb, var(--primary) 8%, transparent)",
-                      color: isActive
-                        ? "var(--primary)"
-                        : "color-mix(in srgb, var(--primary) 45%, transparent)",
-                    }}
-                  >
-                    {count}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
+          <MapPin size={9} />
+          Puntos
+          {detalles.length > 0 && (
+            <span
+              className="text-[7px] font-black px-1 py-0.5 rounded-md"
+              style={{
+                background:
+                  "color-mix(in srgb, var(--primary) 12%, transparent)",
+              }}
+            >
+              {detalles.length}
+            </span>
+          )}
+        </button>
 
-        {/* Contenido del sub-tab */}
-        {sideTab === "puntos" ? (
-          <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
+        {/* Geografía */}
+        <button
+          className="flex items-center gap-1.5 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-widest transition-opacity hover:opacity-80"
+          style={{
+            background: geoOpen
+              ? "color-mix(in srgb, var(--accent) 18%, transparent)"
+              : "color-mix(in srgb, var(--bg-main) 85%, transparent)",
+            backdropFilter: "blur(10px)",
+            border: geoOpen
+              ? "1px solid color-mix(in srgb, var(--accent) 28%, transparent)"
+              : "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+            borderRadius: "6px",
+            color: geoOpen
+              ? "color-mix(in srgb, var(--accent) 80%, transparent)"
+              : "color-mix(in srgb, var(--foreground) 45%, transparent)",
+          }}
+          onClick={() => {
+            setGeoOpen((v) => !v);
+            setPuntosOpen(false);
+          }}
+        >
+          <Mountain size={9} /> Geografía
+        </button>
+      </div>
+
+      {/* ── Drawer de Puntos ── */}
+      {puntosOpen && (
+        <div
+          className="absolute top-0 right-0 bottom-0 z-20 flex flex-col w-64 shadow-2xl"
+          style={{
+            background: "color-mix(in srgb, var(--bg-main) 95%, transparent)",
+            backdropFilter: "blur(16px)",
+            borderLeft:
+              "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+          }}
+        >
+          <div
+            className="flex items-center gap-2 px-3 py-2.5 border-b shrink-0"
+            style={{
+              borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
+            }}
+          >
+            <MapPin size={10} style={{ color: "var(--accent)" }} />
+            <span
+              className="flex-1 text-[9px] font-black uppercase tracking-[0.2em]"
+              style={{
+                color: "color-mix(in srgb, var(--foreground) 40%, transparent)",
+              }}
+            >
+              Puntos · {detalles.length}
+            </span>
+            <button
+              className="text-primary/25 hover:text-primary/60 transition-colors"
+              onClick={() => setPuntosOpen(false)}
+            >
+              <X size={12} />
+            </button>
+          </div>
+          <div
+            className="flex-1 overflow-y-auto p-2 space-y-1.5"
+            style={{ scrollbarWidth: "none" }}
+          >
             {detalles.length === 0 && !addingPoint && (
               <div className="flex flex-col items-center gap-2 py-8 text-primary/20">
                 <MapPin size={18} strokeWidth={1} />
@@ -444,7 +456,6 @@ function MapaPanel({
                 onSaved={(d) => onDetalleUpdate?.(d)}
               />
             ))}
-
             {addingPoint ? (
               <div
                 className="flex flex-col gap-1.5 p-2 rounded-xl border border-primary/15"
@@ -489,8 +500,43 @@ function MapaPanel({
               </button>
             )}
           </div>
-        ) : (
-          <div className="flex-1 overflow-y-auto p-3">
+        </div>
+      )}
+
+      {/* ── Drawer de Geografía ── */}
+      {geoOpen && (
+        <div
+          className="absolute top-0 right-0 bottom-0 z-20 flex flex-col w-64 shadow-2xl"
+          style={{
+            background: "color-mix(in srgb, var(--bg-main) 95%, transparent)",
+            backdropFilter: "blur(16px)",
+            borderLeft:
+              "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+          }}
+        >
+          <div
+            className="flex items-center gap-2 px-3 py-2.5 border-b shrink-0"
+            style={{
+              borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
+            }}
+          >
+            <Mountain size={10} style={{ color: "var(--accent)" }} />
+            <span
+              className="flex-1 text-[9px] font-black uppercase tracking-[0.2em]"
+              style={{
+                color: "color-mix(in srgb, var(--foreground) 40%, transparent)",
+              }}
+            >
+              Geografía
+            </span>
+            <button
+              className="text-primary/25 hover:text-primary/60 transition-colors"
+              onClick={() => setGeoOpen(false)}
+            >
+              <X size={12} />
+            </button>
+          </div>
+          <div className="flex-1 p-3 overflow-y-auto">
             <MarkdownEditor
               key="geografia"
               toolbar
@@ -502,8 +548,8 @@ function MapaPanel({
               onSnippetAction={onSnippetAction}
             />
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1077,137 +1123,130 @@ export function LoreTab({
     <div className="flex h-full min-h-0 overflow-hidden">
       {/* ── COLUMNA 1 — Tabs + Editor central ───────────────────────────────── */}
       <div className="flex-1 min-w-0 flex flex-col min-h-0">
-        {/* Área de contenido — scroll completo */}
-        <main
-          ref={scrollRef}
-          className="flex-1 min-h-0 overflow-y-auto"
-          style={{ scrollbarWidth: "none" }}
+        {/* BARRA DE TABS — siempre visible arriba */}
+        <div
+          className="shrink-0 flex border-b"
+          style={{
+            borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
+            background: "color-mix(in srgb, var(--primary) 2%, transparent)",
+          }}
         >
-          <div className="p-3 flex flex-col gap-4">
-            {/* BARRA DE TABS */}
-            <div
-              className="flex items-stretch border-b"
-              style={{
-                borderColor:
-                  "color-mix(in srgb, var(--primary) 8%, transparent)",
-                background:
-                  "color-mix(in srgb, var(--primary) 2%, transparent)",
-                marginLeft: "-0.75rem",
-                marginRight: "-0.75rem",
-                paddingLeft: "0",
-              }}
+          {TABS.map((tab) => (
+            <button
+              key={tab.id}
+              className="flex-1 px-2 py-2 text-[9px] font-black uppercase tracking-widest transition-all border-b-2"
+              style={
+                activeTab === tab.id
+                  ? { borderColor: "var(--primary)", color: "var(--primary)" }
+                  : {
+                      borderColor: "transparent",
+                      color:
+                        "color-mix(in srgb, var(--primary) 35%, transparent)",
+                    }
+              }
+              type="button"
+              onClick={() => setActiveTab(tab.id as any)}
             >
-              {TABS.map((tab) => (
-                <button
-                  key={tab.id}
-                  className="flex-1 px-2 py-2 text-[9px] font-black uppercase tracking-widest transition-all border-b-2"
-                  style={
-                    activeTab === tab.id
-                      ? {
-                          borderColor: "var(--primary)",
-                          color: "var(--primary)",
-                        }
-                      : {
-                          borderColor: "transparent",
-                          color:
-                            "color-mix(in srgb, var(--primary) 35%, transparent)",
-                        }
-                  }
-                  type="button"
-                  onClick={() => setActiveTab(tab.id as any)}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
+              {tab.label}
+            </button>
+          ))}
+        </div>
 
-            {/* MAPA — tab activo */}
-            {activeTab === "mapa" && (
-              <MapaPanel
-                MapaConPuntosComponent={MapaConPuntosComponent}
-                addingPoint={addingPoint}
-                detalles={detalles}
-                entities={entities}
-                form={form}
-                mapaUrl={mapaUrl}
-                newPointName={newPointName}
-                reinoId={form.id}
-                setAddingPoint={setAddingPoint}
-                setForm={setForm}
-                setNewPointName={setNewPointName}
-                onAddPoint={onAddPoint}
-                onDetalleDelete={onDetalleDelete}
-                onDetalleUpdate={onDetalleUpdate}
-                onDetallesArrayChange={onDetallesArrayChange}
-                onMapaChange={onMapaChange}
-                onOpenDetalleEditor={onOpenDetalleEditor}
-                onSnippetAction={onSnippetAction}
-              />
-            )}
-
-            {/* CULTURA / ECONOMÍA / POLÍTICA — tab activo */}
-            {activeTab === "cultura" && (
-              <MarkdownEditor
-                key="cultura"
-                toolbar
-                defaultMode="edit"
-                entities={entities}
-                placeholder="Tradiciones, religión, idioma, costumbres, arte…"
-                rows={12}
-                value={(form as any).cultura ?? ""}
-                onChange={(v) => setForm((f) => ({ ...f, cultura: v }))}
-                onSnippetAction={onSnippetAction}
-              />
-            )}
-            {activeTab === "politica" && (
-              <MarkdownEditor
-                key="politica"
-                toolbar
-                defaultMode="edit"
-                entities={entities}
-                placeholder="Sistema de gobierno, facciones, líderes, leyes…"
-                rows={12}
-                value={(form as any).politica ?? ""}
-                onChange={(v) => setForm((f) => ({ ...f, politica: v }))}
-                onSnippetAction={onSnippetAction}
-              />
-            )}
-            {activeTab === "economia" && (
-              <MarkdownEditor
-                key="economia"
-                toolbar
-                defaultMode="edit"
-                entities={entities}
-                placeholder="Recursos, comercio, moneda, riqueza…"
-                rows={12}
-                value={(form as any).economia ?? ""}
-                onChange={(v) => setForm((f) => ({ ...f, economia: v }))}
-                onSnippetAction={onSnippetAction}
-              />
-            )}
-
-            {/* LÍNEA DE TIEMPO — tab activo */}
-            {activeTab === "lineatiempo" && (
-              <div
-                className="rounded-xl overflow-hidden -mx-3 -mb-3"
-                style={{
-                  border:
-                    "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
-                }}
-              >
-                <PanelHistoriaMundo
-                  key={`historia-panel-${form.id}`}
-                  reinoFijo={filtroReinoId ?? form.id}
-                  texto={(form as any).historia ?? ""}
-                  onChange={(v: string) =>
-                    setForm((f) => ({ ...f, historia: v }))
-                  }
-                  onSave={async () => {}}
-                />
-              </div>
-            )}
+        {/* MAPA — full height, sin scroll wrapper */}
+        {activeTab === "mapa" && (
+          <div className="flex-1 min-h-0 overflow-hidden">
+            <MapaNuevo
+              MapaConPuntosComponent={MapaConPuntosComponent}
+              addingPoint={addingPoint}
+              detalles={detalles}
+              entities={entities}
+              form={form}
+              newPointName={newPointName}
+              setAddingPoint={setAddingPoint}
+              setForm={setForm}
+              setNewPointName={setNewPointName}
+              onAddPoint={onAddPoint}
+              onDetalleDelete={onDetalleDelete}
+              onDetalleUpdate={onDetalleUpdate}
+              onDetallesArrayChange={onDetallesArrayChange}
+              onOpenDetalleEditor={onOpenDetalleEditor}
+              onSnippetAction={onSnippetAction}
+            />
           </div>
-        </main>
+        )}
+
+        {/* RESTO DE TABS — con scroll y padding normal */}
+        {activeTab !== "mapa" && (
+          <main
+            ref={scrollRef}
+            className="flex-1 min-h-0 overflow-y-auto"
+            style={{ scrollbarWidth: "none" }}
+          >
+            <div className="p-3 flex flex-col gap-4">
+              {/* CULTURA / ECONOMÍA / POLÍTICA — tab activo */}
+              {activeTab === "cultura" && (
+                <MarkdownEditor
+                  key="cultura"
+                  toolbar
+                  defaultMode="edit"
+                  entities={entities}
+                  placeholder="Tradiciones, religión, idioma, costumbres, arte…"
+                  rows={12}
+                  value={(form as any).cultura ?? ""}
+                  onChange={(v) => setForm((f) => ({ ...f, cultura: v }))}
+                  onSnippetAction={onSnippetAction}
+                />
+              )}
+              {activeTab === "politica" && (
+                <MarkdownEditor
+                  key="politica"
+                  toolbar
+                  defaultMode="edit"
+                  entities={entities}
+                  placeholder="Sistema de gobierno, facciones, líderes, leyes…"
+                  rows={12}
+                  value={(form as any).politica ?? ""}
+                  onChange={(v) => setForm((f) => ({ ...f, politica: v }))}
+                  onSnippetAction={onSnippetAction}
+                />
+              )}
+              {activeTab === "economia" && (
+                <MarkdownEditor
+                  key="economia"
+                  toolbar
+                  defaultMode="edit"
+                  entities={entities}
+                  placeholder="Recursos, comercio, moneda, riqueza…"
+                  rows={12}
+                  value={(form as any).economia ?? ""}
+                  onChange={(v) => setForm((f) => ({ ...f, economia: v }))}
+                  onSnippetAction={onSnippetAction}
+                />
+              )}
+
+              {/* LÍNEA DE TIEMPO — tab activo */}
+              {activeTab === "lineatiempo" && (
+                <div
+                  className="rounded-xl overflow-hidden -mx-3 -mb-3"
+                  style={{
+                    border:
+                      "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+                  }}
+                >
+                  <PanelHistoriaMundo
+                    key={`historia-panel-${form.id}`}
+                    reinoFijo={filtroReinoId ?? form.id}
+                    texto={(form as any).historia ?? ""}
+                    onChange={(v: string) =>
+                      setForm((f) => ({ ...f, historia: v }))
+                    }
+                    onSave={async () => {}}
+                  />
+                </div>
+              )}
+            </div>
+          </main>
+        )}
       </div>
       {/* fin columna tabs+editor */}
 
