@@ -387,6 +387,111 @@ function TileCard({
   );
 }
 
+// ─── Celda compacta de tile (modo tiles, tamaño real) ────────────────────────
+function TileGridCell({
+  tile,
+  onImageSelect,
+  onDelete,
+}: {
+  tile: MapTile & { label?: string | null };
+  onImageSelect: (url: string) => void;
+  onDelete: () => void;
+}) {
+  const [pickerOpen, setPickerOpen] = useState(false);
+
+  return (
+    <>
+      {pickerOpen && (
+        <div
+          className="fixed inset-0 z-200 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+          onClick={() => setPickerOpen(false)}
+        >
+          <div
+            className="bg-white-custom rounded-2xl shadow-2xl border border-primary/15 w-full max-w-lg p-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-2">
+                <Camera size={11} /> Imagen del tile [{tile.col}, {tile.row}]
+              </h3>
+              <button
+                className="text-primary/30 hover:text-primary transition-colors"
+                onClick={() => setPickerOpen(false)}
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <SimpleImagePicker
+              onClose={() => setPickerOpen(false)}
+              onSelect={(url) => {
+                onImageSelect(url);
+                setPickerOpen(false);
+              }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Celda de imagen a tamaño completo */}
+      <div
+        className="relative w-full h-full group cursor-pointer"
+        style={{
+          background: "color-mix(in srgb, var(--bg-main) 80%, transparent)",
+        }}
+        onClick={() => setPickerOpen(true)}
+      >
+        {tile.image_url ? (
+          <img
+            alt={`Tile ${tile.col},${tile.row}`}
+            className="w-full h-full object-cover"
+            src={tile.image_url}
+          />
+        ) : (
+          <div className="w-full h-full flex flex-col items-center justify-center gap-1">
+            <ImagePlus
+              size={16}
+              style={{
+                color: "color-mix(in srgb, var(--accent) 30%, transparent)",
+              }}
+            />
+          </div>
+        )}
+
+        {/* Overlay al hover */}
+        <div
+          className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity flex items-start justify-between p-1"
+          style={{ background: "rgba(0,0,0,0.45)" }}
+        >
+          <span
+            className="text-[8px] font-black"
+            style={{
+              color: "rgba(255,255,255,0.6)",
+              fontFamily: "'Cinzel', serif",
+            }}
+          >
+            [{tile.col},{tile.row}]
+          </span>
+          <button
+            className="opacity-60 hover:opacity-100 hover:text-red-400 transition-all"
+            title="Eliminar tile"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete();
+            }}
+          >
+            <Trash2 size={10} style={{ color: "white" }} />
+          </button>
+        </div>
+
+        {/* Ícono de cámara centrado al hover */}
+        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+          <Camera size={16} style={{ color: "var(--accent)" }} />
+        </div>
+      </div>
+    </>
+  );
+}
+
 // ─── Editor principal ─────────────────────────────────────────────────────────
 export function EditorMapa({
   onSelectReino,
@@ -838,7 +943,7 @@ export function EditorMapa({
 
             {/* ── Grilla de tiles (solo en modo tiles) ── */}
             {mode === "tiles" && (
-              <div className="flex-1 overflow-y-auto p-3">
+              <div className="flex-1 overflow-auto p-3">
                 {/* Botones de expandir + nuevo tile */}
                 {tiles.length > 0 && (
                   <div className="flex items-center gap-1 mb-3">
@@ -896,9 +1001,11 @@ export function EditorMapa({
                   </div>
                 )}
                 <div
-                  className="grid gap-2"
+                  className="grid"
                   style={{
-                    gridTemplateColumns: `repeat(${maxCol + 1}, minmax(110px, 1fr))`,
+                    gridTemplateColumns: `repeat(${maxCol + 1}, 160px)`,
+                    gap: 0,
+                    width: "fit-content",
                   }}
                 >
                   {Array.from({ length: maxRow + 1 }, (_, row) =>
@@ -912,10 +1019,14 @@ export function EditorMapa({
                           key={`${col}-${row}`}
                           draggable={!!tile}
                           style={{
+                            width: 160,
+                            height: 160,
+                            position: "relative",
                             outline:
                               dragOverIdx === idx
                                 ? `2px solid var(--accent)`
-                                : undefined,
+                                : "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+                            outlineOffset: "-1px",
                             opacity: draggedIdx.current === idx ? 0.4 : 1,
                             transition: "outline 0.1s, opacity 0.1s",
                           }}
@@ -928,9 +1039,8 @@ export function EditorMapa({
                           }}
                         >
                           {tile ? (
-                            <TileCard
+                            <TileGridCell
                               tile={tile}
-                              dragHandleProps={{ draggable: false }}
                               onDelete={() => handleDelete(tile.id)}
                               onImageSelect={(url) =>
                                 handleImageSelect(tile.id, url)
@@ -938,15 +1048,11 @@ export function EditorMapa({
                             />
                           ) : (
                             <button
-                              className="w-full border border-dashed flex items-center justify-center transition-all hover:opacity-60 disabled:opacity-40"
+                              className="w-full h-full flex items-center justify-center transition-all hover:opacity-60 disabled:opacity-40"
                               disabled={creatingAt === `${col}-${row}`}
                               style={{
-                                minHeight: 80,
-                                borderColor:
-                                  "color-mix(in srgb, var(--primary) 12%, transparent)",
                                 background:
                                   "color-mix(in srgb, var(--primary) 3%, transparent)",
-                                borderRadius: "2px",
                               }}
                               title="Crear tile aquí"
                               onClick={() => handleCreateTileAt(col, row)}
