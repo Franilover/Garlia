@@ -2025,96 +2025,100 @@ function PanelListas({
           {/* ── Listas visibles cuando no hay overlay ── */}
           {!overlay && (
             <div className="px-3 sm:px-3 pb-4">
-              {/* ── Fila 1: Personajes · Criaturas · Reinos (siempre expandidos) ── */}
+              {/* ── Fila 1: Personajes (2/3) · Criaturas + Reinos apilados (1/3) ── */}
               <div className="sm:grid sm:grid-cols-3 sm:gap-x-4">
-                <SeccionEntidades
-                  count={personajes.length}
-                  icon={Users}
-                  label={el.personajes}
-                  loading={loadingPersonajes}
-                  defaultCollapsed={false}
-                  storageKey="personajes"
-                  collapsed={isDesktop ? filaPersonajes.collapsed : undefined}
-                  onToggle={isDesktop ? filaPersonajes.toggle : undefined}
-                >
-                  {[...personajes]
-                    .sort(
-                      (a, b) =>
-                        (!!b.img_url ? 1 : 0) - (!!a.img_url ? 1 : 0) ||
-                        a.nombre.localeCompare(b.nombre),
-                    )
-                    .map((p) => (
-                      <Chip
-                        key={p.id}
-                        icon={UserCircle2}
-                        imgUrl={p.img_url}
-                        nombre={p.nombre}
-                        onClick={() => selectPersonaje(p)}
-                      />
-                    ))}
-                </SeccionEntidades>
+                <div className="sm:col-span-2">
+                  <SeccionEntidades
+                    count={personajes.length}
+                    icon={Users}
+                    label={el.personajes}
+                    loading={loadingPersonajes}
+                    defaultCollapsed={false}
+                    storageKey="personajes"
+                    collapsed={isDesktop ? filaPersonajes.collapsed : undefined}
+                    onToggle={isDesktop ? filaPersonajes.toggle : undefined}
+                  >
+                    {[...personajes]
+                      .sort(
+                        (a, b) =>
+                          (!!b.img_url ? 1 : 0) - (!!a.img_url ? 1 : 0) ||
+                          a.nombre.localeCompare(b.nombre),
+                      )
+                      .map((p) => (
+                        <Chip
+                          key={p.id}
+                          icon={UserCircle2}
+                          imgUrl={p.img_url}
+                          nombre={p.nombre}
+                          onClick={() => selectPersonaje(p)}
+                        />
+                      ))}
+                  </SeccionEntidades>
+                </div>
                 <div className={`${div} sm:hidden`} style={divStyle} />
 
-                <SeccionEntidades
-                  count={criaturas.length}
-                  icon={Bug}
-                  label={el.criaturas}
-                  loading={loadingCriaturas}
-                  defaultCollapsed={false}
-                  storageKey="criaturas"
-                  collapsed={isDesktop ? filaPersonajes.collapsed : undefined}
-                  onToggle={isDesktop ? filaPersonajes.toggle : undefined}
-                >
-                  {[...criaturas]
-                    .sort(
-                      (a, b) =>
-                        (!!b.imagen_url ? 1 : 0) - (!!a.imagen_url ? 1 : 0) ||
-                        a.nombre.localeCompare(b.nombre),
-                    )
-                    .map((c) => (
-                      <Chip
-                        key={c.id}
-                        icon={Bug}
-                        imgUrl={c.imagen_url}
-                        nombre={c.nombre}
-                        onClick={() => selectCriatura(c)}
-                      />
-                    ))}
-                </SeccionEntidades>
-                <div className={`${div} sm:hidden`} style={divStyle} />
+                <div className="flex flex-col">
+                  <SeccionEntidades
+                    count={criaturas.length}
+                    icon={Bug}
+                    label={el.criaturas}
+                    loading={loadingCriaturas}
+                    defaultCollapsed={false}
+                    storageKey="criaturas"
+                    collapsed={isDesktop ? filaPersonajes.collapsed : undefined}
+                    onToggle={isDesktop ? filaPersonajes.toggle : undefined}
+                  >
+                    {[...criaturas]
+                      .sort(
+                        (a, b) =>
+                          (!!b.imagen_url ? 1 : 0) - (!!a.imagen_url ? 1 : 0) ||
+                          a.nombre.localeCompare(b.nombre),
+                      )
+                      .map((c) => (
+                        <Chip
+                          key={c.id}
+                          icon={Bug}
+                          imgUrl={c.imagen_url}
+                          nombre={c.nombre}
+                          onClick={() => selectCriatura(c)}
+                        />
+                      ))}
+                  </SeccionEntidades>
+                  <div className={div} style={divStyle} />
 
-                <SeccionEntidades
-                  ref={reinosSeccionRef}
-                  count={reinos.length}
-                  icon={Map}
-                  label={el.reinos}
-                  loading={loadingReinos}
-                  defaultCollapsed={false}
-                  storageKey="reinos"
-                  collapsed={isDesktop ? filaPersonajes.collapsed : undefined}
-                  onToggle={isDesktop ? filaPersonajes.toggle : undefined}
-                  onExpand={isDesktop ? filaPersonajes.expand : undefined}
-                >
-                  {[...reinos]
-                    .sort(
-                      (a, b) =>
-                        (!!b.mapa_url ? 1 : 0) - (!!a.mapa_url ? 1 : 0) ||
-                        a.nombre.localeCompare(b.nombre),
-                    )
-                    .map((r) => (
-                      <Chip
-                        key={r.id}
-                        ref={(el) => {
-                          reinosChipRefs.current[r.id] = el;
-                        }}
-                        icon={Map}
-                        imgUrl={r.mapa_url}
-                        nombre={r.nombre}
-                        highlighted={highlightedReinoId === r.id}
-                        onClick={() => selectReino(r)}
-                      />
-                    ))}
-                </SeccionEntidades>
+                  <SeccionEntidades
+                    ref={reinosSeccionRef}
+                    count={reinos.length}
+                    icon={Map}
+                    label={el.reinos}
+                    loading={loadingReinos}
+                    defaultCollapsed={false}
+                    storageKey="reinos"
+                    collapsed={isDesktop ? filaPersonajes.collapsed : undefined}
+                    onToggle={isDesktop ? filaPersonajes.toggle : undefined}
+                    onExpand={isDesktop ? filaPersonajes.expand : undefined}
+                  >
+                    {[...reinos]
+                      .sort(
+                        (a, b) =>
+                          (!!b.mapa_url ? 1 : 0) - (!!a.mapa_url ? 1 : 0) ||
+                          a.nombre.localeCompare(b.nombre),
+                      )
+                      .map((r) => (
+                        <Chip
+                          key={r.id}
+                          ref={(el) => {
+                            reinosChipRefs.current[r.id] = el;
+                          }}
+                          icon={Map}
+                          imgUrl={r.mapa_url}
+                          nombre={r.nombre}
+                          highlighted={highlightedReinoId === r.id}
+                          onClick={() => selectReino(r)}
+                        />
+                      ))}
+                  </SeccionEntidades>
+                </div>
               </div>
               <div className={div} style={divStyle} />
 
