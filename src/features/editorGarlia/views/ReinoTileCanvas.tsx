@@ -634,128 +634,163 @@ export function ReinoTileCanvas({
     if (c) zoomAt(c.width / 2, c.height / 2, 300);
   };
 
-  // ── Estado vacío ──────────────────────────────────────────────────────────────
-  if (!loading && tiles.length === 0) {
-    return (
-      <div
-        className="relative w-full flex flex-col items-center justify-center gap-3 py-14 rounded-xl border border-dashed"
-        style={{
-          borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)",
-          background: "color-mix(in srgb, var(--primary) 3%, transparent)",
-        }}
-      >
-        <Map className="text-primary/20" size={28} strokeWidth={1} />
-        <p className="text-[9px] font-black uppercase tracking-widest text-primary/30">
-          Sin tiles de mapa
-        </p>
-        <div className="flex gap-2">
-          {[
-            [0, 0],
-            [1, 0],
-            [0, 1],
-          ].map(([c, r]) => (
-            <button
-              key={`${c}-${r}`}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border border-primary/15 text-primary/40 hover:text-primary hover:border-primary/30 transition-all"
-              onClick={() => addTile(c, r)}
-            >
-              <Plus size={10} /> Tile [{c},{r}]
-            </button>
-          ))}
-        </div>
-      </div>
-    );
-  }
+  // ── Estado vacío: canvas full-height con overlay centrado ───────────────────
+  const emptyState = !loading && tiles.length === 0;
 
   return (
-    <div className="flex flex-col h-full w-full">
-      {/* Canvas principal */}
+    <div className="relative w-full h-full overflow-hidden">
+      {/* Canvas principal — siempre ocupa todo */}
       <div
         ref={containerRef}
-        className="relative w-full h-full overflow-hidden"
-        style={{
-          borderColor: selectedPinId
-            ? "color-mix(in srgb, var(--primary) 40%, transparent)"
-            : "color-mix(in srgb, var(--primary) 10%, transparent)",
-          cursor: selectedPinId ? "crosshair" : "grab",
-        }}
+        className="absolute inset-0"
+        style={{ cursor: selectedPinId ? "crosshair" : "grab" }}
       >
         <canvas
           ref={canvasRef}
           className="absolute inset-0 touch-none w-full h-full"
         />
-
-        {/* Zoom controls */}
-        <div className="absolute bottom-3 right-3 z-10 flex flex-col gap-1">
-          {[
-            { l: "+", fn: zoomIn },
-            { l: "−", fn: zoomOut },
-          ].map(({ l, fn }) => (
-            <button
-              key={l}
-              className="w-7 h-7 flex items-center justify-center rounded-lg text-sm font-black shadow transition-all"
-              style={{
-                background:
-                  "color-mix(in srgb, var(--primary) 80%, transparent)",
-                color: "#fff",
-              }}
-              onClick={fn}
-            >
-              {l}
-            </button>
-          ))}
-        </div>
-
-        {/* Cancelar selección */}
-        {selectedPinId && (
-          <button
-            className="absolute top-2 right-2 z-10 flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase"
-            style={{
-              background:
-                "color-mix(in srgb, var(--foreground) 70%, transparent)",
-              color: "#fff",
-            }}
-            onClick={() => setSelectedPinId(null)}
-          >
-            <X size={10} /> Cancelar
-          </button>
-        )}
-
-        {/* Loading */}
-        {loading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/10">
-            <div className="w-5 h-5 border-2 border-primary/20 border-t-primary rounded-full animate-spin" />
-          </div>
-        )}
       </div>
 
-      {/* Gestión de tiles — solo en editMode */}
-      {editMode && (
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-2">
-            <span className="text-[9px] font-black uppercase tracking-widest text-primary/40 flex-1">
-              Tiles del mapa ({tiles.length})
-            </span>
-            <div className="relative">
-              <button
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-primary/15 text-primary/50 hover:text-primary hover:border-primary/30 transition-all"
-                onClick={() => setShowAddMenu((v) => !v)}
+      {/* Estado vacío — overlay centrado sobre el canvas */}
+      {emptyState && editMode && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 pointer-events-none">
+          <div
+            className="flex flex-col items-center gap-3 px-6 py-5 rounded-2xl pointer-events-auto"
+            style={{
+              background: "color-mix(in srgb, var(--bg-main) 90%, transparent)",
+              backdropFilter: "blur(12px)",
+              border:
+                "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+            }}
+          >
+            <Map className="text-primary/25" size={24} strokeWidth={1} />
+            <p className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">
+              Sin tiles de mapa
+            </p>
+            <div className="flex gap-2">
+              {(
+                [
+                  [0, 0],
+                  [1, 0],
+                  [0, 1],
+                ] as [number, number][]
+              ).map(([c, r]) => (
+                <button
+                  key={`${c}-${r}`}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border border-primary/15 text-primary/40 hover:text-primary hover:border-primary/30 transition-all"
+                  onClick={() => addTile(c, r)}
+                >
+                  <Plus size={9} /> {c},{r}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Zoom controls */}
+      <div className="absolute bottom-3 right-3 z-10 flex flex-col gap-1">
+        {[
+          { l: "+", fn: zoomIn },
+          { l: "−", fn: zoomOut },
+        ].map(({ l, fn }) => (
+          <button
+            key={l}
+            className="w-7 h-7 flex items-center justify-center rounded-lg text-sm font-black shadow transition-all"
+            style={{
+              background: "color-mix(in srgb, var(--primary) 80%, transparent)",
+              color: "#fff",
+            }}
+            onClick={fn}
+          >
+            {l}
+          </button>
+        ))}
+      </div>
+
+      {/* Cancelar selección de pin */}
+      {selectedPinId && (
+        <button
+          className="absolute top-2 right-2 z-10 flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase"
+          style={{
+            background:
+              "color-mix(in srgb, var(--foreground) 70%, transparent)",
+            color: "#fff",
+          }}
+          onClick={() => setSelectedPinId(null)}
+        >
+          <X size={10} /> Cancelar
+        </button>
+      )}
+
+      {/* Loading */}
+      {loading && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="w-5 h-5 border-2 border-primary/20 border-t-primary rounded-full animate-spin" />
+        </div>
+      )}
+
+      {/* ── Botón tiles + drawer — solo editMode ── */}
+      {editMode && !emptyState && (
+        <>
+          {/* Botón flotante bottom-left */}
+          <button
+            className="absolute bottom-3 left-3 z-10 flex items-center gap-1.5 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-widest transition-all"
+            style={{
+              background: showAddMenu
+                ? "color-mix(in srgb, var(--accent) 18%, transparent)"
+                : "color-mix(in srgb, var(--bg-main) 85%, transparent)",
+              backdropFilter: "blur(10px)",
+              border: showAddMenu
+                ? "1px solid color-mix(in srgb, var(--accent) 28%, transparent)"
+                : "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+              borderRadius: "6px",
+              color: showAddMenu
+                ? "color-mix(in srgb, var(--accent) 80%, transparent)"
+                : "color-mix(in srgb, var(--foreground) 45%, transparent)",
+            }}
+            onClick={() => setShowAddMenu((v) => !v)}
+          >
+            <MapPin size={9} />
+            Tiles · {tiles.length}
+          </button>
+
+          {/* Drawer lateral derecho */}
+          {showAddMenu && (
+            <div
+              className="absolute top-0 right-0 bottom-0 z-20 flex flex-col w-64 shadow-2xl"
+              style={{
+                background:
+                  "color-mix(in srgb, var(--bg-main) 95%, transparent)",
+                backdropFilter: "blur(16px)",
+                borderLeft:
+                  "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+              }}
+            >
+              {/* Header del drawer */}
+              <div
+                className="flex items-center gap-2 px-3 py-2.5 border-b shrink-0"
+                style={{
+                  borderColor:
+                    "color-mix(in srgb, var(--primary) 8%, transparent)",
+                }}
               >
-                <Plus size={10} /> Añadir tile
-              </button>
-              {showAddMenu && (
-                <div
-                  className="absolute right-0 top-full mt-1 z-30 rounded-xl shadow-xl border overflow-hidden"
+                <MapPin size={10} style={{ color: "var(--accent)" }} />
+                <span
+                  className="flex-1 text-[9px] font-black uppercase tracking-[0.2em]"
                   style={{
-                    background: "var(--white-custom)",
-                    borderColor:
-                      "color-mix(in srgb, var(--primary) 12%, transparent)",
-                    minWidth: 160,
+                    color:
+                      "color-mix(in srgb, var(--foreground) 40%, transparent)",
                   }}
                 >
+                  Tiles · {tiles.length}
+                </span>
+                {/* Añadir tile */}
+                <div className="flex gap-1">
                   {[
                     {
-                      label: "→ Columna derecha",
+                      label: "→",
+                      title: "Columna derecha",
                       col:
                         (tiles.length > 0
                           ? Math.max(...tiles.map((t) => t.col))
@@ -763,94 +798,105 @@ export function ReinoTileCanvas({
                       row: minRow,
                     },
                     {
-                      label: "↓ Fila abajo",
+                      label: "↓",
+                      title: "Fila abajo",
                       col: minCol,
                       row:
                         (tiles.length > 0
                           ? Math.max(...tiles.map((t) => t.row))
                           : -1) + 1,
                     },
-                  ].map(({ label, col, row }) => (
+                  ].map(({ label, title, col, row }) => (
                     <button
                       key={label}
-                      className="w-full text-left px-3 py-2.5 text-[10px] font-black uppercase tracking-widest hover:bg-primary/5 transition-colors"
-                      style={{ color: "var(--foreground)" }}
-                      onClick={async () => {
-                        await addTile(col, row);
-                        setShowAddMenu(false);
-                      }}
+                      className="w-6 h-6 flex items-center justify-center rounded-lg text-[11px] font-black transition-all border border-primary/15 text-primary/40 hover:text-primary hover:border-primary/30"
+                      title={title}
+                      onClick={() => addTile(col, row)}
                     >
                       {label}
                     </button>
                   ))}
                 </div>
-              )}
-            </div>
-          </div>
-
-          {/* Lista de tiles */}
-          <div className="grid grid-cols-2 gap-2">
-            {tiles.map((tile) => (
-              <div
-                key={tile.id}
-                className="relative rounded-lg overflow-hidden border group/tile"
-                style={{
-                  borderColor:
-                    "color-mix(in srgb, var(--primary) 12%, transparent)",
-                  background:
-                    "color-mix(in srgb, var(--primary) 5%, transparent)",
-                }}
-              >
-                {/* Thumbnail */}
-                <div
-                  className="relative aspect-video cursor-pointer"
-                  onClick={() => setPickerTile(tile)}
+                <button
+                  className="text-primary/25 hover:text-primary/60 transition-colors"
+                  onClick={() => setShowAddMenu(false)}
                 >
-                  {tile.image_url ? (
-                    <>
-                      <img
-                        alt={`Tile ${tile.col},${tile.row}`}
-                        className="w-full h-full object-cover"
-                        src={tile.image_url}
-                      />
-                      <div className="absolute inset-0 bg-black/0 group-hover/tile:bg-black/40 transition-all flex items-center justify-center opacity-0 group-hover/tile:opacity-100">
-                        <ImageIcon className="text-white" size={16} />
-                      </div>
-                    </>
-                  ) : (
-                    <div className="w-full h-full flex flex-col items-center justify-center gap-1 bg-primary/5">
-                      <ImageIcon className="text-primary/20" size={16} />
-                      <span className="text-[8px] font-black uppercase tracking-widest text-primary/25">
-                        Sin imagen
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Info y acciones */}
-                <div className="flex items-center gap-1.5 px-2 py-1.5">
-                  <span className="text-[9px] font-black uppercase text-primary/50 flex-1">
-                    [{tile.col}, {tile.row}]
-                  </span>
-                  <button
-                    className="text-primary/20 hover:text-primary/60 transition-colors"
-                    title="Cambiar imagen"
-                    onClick={() => setPickerTile(tile)}
-                  >
-                    <ImageIcon size={10} />
-                  </button>
-                  <button
-                    className="text-red-400/30 hover:text-red-400 transition-colors"
-                    title="Eliminar tile"
-                    onClick={() => deleteTile(tile.id)}
-                  >
-                    <Trash2 size={10} />
-                  </button>
-                </div>
+                  <X size={12} />
+                </button>
               </div>
-            ))}
-          </div>
-        </div>
+
+              {/* Lista de tiles scrolleable */}
+              <div
+                className="flex-1 overflow-y-auto p-2 grid grid-cols-2 gap-2 content-start"
+                style={{ scrollbarWidth: "none" }}
+              >
+                {tiles.map((tile) => (
+                  <div
+                    key={tile.id}
+                    className="relative rounded-lg overflow-hidden border group/tile"
+                    style={{
+                      borderColor:
+                        "color-mix(in srgb, var(--primary) 12%, transparent)",
+                      background:
+                        "color-mix(in srgb, var(--primary) 5%, transparent)",
+                    }}
+                  >
+                    {/* Thumbnail */}
+                    <div
+                      className="relative aspect-video cursor-pointer"
+                      onClick={() => setPickerTile(tile)}
+                    >
+                      {tile.image_url ? (
+                        <>
+                          <img
+                            alt={`Tile ${tile.col},${tile.row}`}
+                            className="w-full h-full object-cover"
+                            src={tile.image_url}
+                          />
+                          <div className="absolute inset-0 bg-black/0 group-hover/tile:bg-black/40 transition-all flex items-center justify-center opacity-0 group-hover/tile:opacity-100">
+                            <ImageIcon className="text-white" size={14} />
+                          </div>
+                        </>
+                      ) : (
+                        <div
+                          className="w-full h-full flex flex-col items-center justify-center gap-1 cursor-pointer"
+                          style={{
+                            background:
+                              "color-mix(in srgb, var(--primary) 8%, transparent)",
+                          }}
+                          onClick={() => setPickerTile(tile)}
+                        >
+                          <ImageIcon className="text-primary/25" size={14} />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Info y acciones */}
+                    <div className="flex items-center gap-1 px-1.5 py-1">
+                      <span className="text-[8px] font-black uppercase text-primary/40 flex-1">
+                        {tile.col},{tile.row}
+                      </span>
+                      <button
+                        className="text-primary/20 hover:text-primary/60 transition-colors p-0.5"
+                        title="Cambiar imagen"
+                        onClick={() => setPickerTile(tile)}
+                      >
+                        <ImageIcon size={9} />
+                      </button>
+                      <button
+                        className="text-red-400/30 hover:text-red-400 transition-colors p-0.5"
+                        title="Eliminar tile"
+                        onClick={() => deleteTile(tile.id)}
+                      >
+                        <Trash2 size={9} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {/* Image picker modal */}
