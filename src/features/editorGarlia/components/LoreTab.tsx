@@ -920,7 +920,8 @@ type SectionId =
   | "politica"
   | "economia"
   | "puntos"
-  | "geografia";
+  | "geografia"
+  | "lineatiempo";
 
 // ─── Componente principal — Doble columna con infinity scroll ────────────────
 
@@ -985,13 +986,15 @@ export function LoreTab({
   const { onSnippetAction } = useWikilink();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [activeTab, setActiveTab] = useState<
-    "mapa" | "cultura" | "economia" | "politica"
+    "mapa" | "cultura" | "economia" | "politica" | "lineatiempo"
   >(
     activeTabProp === "mapa"
       ? "mapa"
-      : activeTabProp && activeTabProp !== "historia"
-        ? (activeTabProp as any)
-        : "cultura",
+      : activeTabProp === "lineatiempo"
+        ? "lineatiempo"
+        : activeTabProp && activeTabProp !== "historia"
+          ? (activeTabProp as any)
+          : "cultura",
   );
   const {
     criaturas,
@@ -1067,6 +1070,7 @@ export function LoreTab({
     { id: "cultura", label: "Cultura" },
     { id: "economia", label: "Economía" },
     { id: "politica", label: "Política" },
+    { id: "lineatiempo", label: "Línea de tiempo" },
   ] as const;
 
   return (
@@ -1080,26 +1084,6 @@ export function LoreTab({
           style={{ scrollbarWidth: "none" }}
         >
           <div className="p-3 flex flex-col gap-4">
-            {/* HISTORIA — siempre visible (sistema nuevo: PanelHistoriaMundo) */}
-            <div
-              className="rounded-xl overflow-hidden"
-              style={{
-                border:
-                  "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
-                minHeight: 200,
-              }}
-            >
-              <PanelHistoriaMundo
-                key={`historia-panel-${form.id}`}
-                reinoFijo={filtroReinoId ?? form.id}
-                texto={(form as any).historia ?? ""}
-                onChange={(v: string) =>
-                  setForm((f) => ({ ...f, historia: v }))
-                }
-                onSave={async () => {}}
-              />
-            </div>
-
             {/* BARRA DE TABS */}
             <div
               className="flex items-stretch border-b"
@@ -1200,6 +1184,27 @@ export function LoreTab({
                 onChange={(v) => setForm((f) => ({ ...f, economia: v }))}
                 onSnippetAction={onSnippetAction}
               />
+            )}
+
+            {/* LÍNEA DE TIEMPO — tab activo */}
+            {activeTab === "lineatiempo" && (
+              <div
+                className="rounded-xl overflow-hidden -mx-3 -mb-3"
+                style={{
+                  border:
+                    "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+                }}
+              >
+                <PanelHistoriaMundo
+                  key={`historia-panel-${form.id}`}
+                  reinoFijo={filtroReinoId ?? form.id}
+                  texto={(form as any).historia ?? ""}
+                  onChange={(v: string) =>
+                    setForm((f) => ({ ...f, historia: v }))
+                  }
+                  onSave={async () => {}}
+                />
+              </div>
             )}
           </div>
         </main>
