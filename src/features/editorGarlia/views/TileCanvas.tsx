@@ -642,6 +642,9 @@ export function TileCanvas({
     if (!canvas) return;
 
     const onWheel = (e: WheelEvent) => {
+      // ctrlKey = true en pinch-to-zoom del trackpad (y Ctrl+scroll).
+      // Sin ctrlKey es scroll normal → dejar que la página se desplace.
+      if (!e.ctrlKey) return;
       e.preventDefault();
       zoomAt(e.clientX, e.clientY, e.deltaY);
     };
