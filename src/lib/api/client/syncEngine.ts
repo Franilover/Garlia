@@ -245,9 +245,11 @@ export async function loadPersonajesMap(
 
   if (missing.length > 0 && (await isReallyOnline())) {
     try {
+      // IMPORTANT: select("*") para no machacar campos como fecha_nacimiento en Dexie
+      // con un objeto parcial {id, nombre, img_url} que no los incluye.
       const { data } = await supabase
         .from("personajes")
-        .select("id, nombre, img_url")
+        .select("*")
         .in("id", missing);
       if (data) {
         for (const p of data) {

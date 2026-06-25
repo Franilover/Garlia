@@ -1057,6 +1057,16 @@ function BloqueEras({
         .from("personajes")
         .update({ fecha_nacimiento: cumpleDraft })
         .eq("id", personajeId);
+      // Actualizar Dexie para que el dato persista offline
+      try {
+        const existing = await (db as any)?.personajes?.get(personajeId);
+        if (existing) {
+          await (db as any)?.personajes?.put({
+            ...existing,
+            fecha_nacimiento: cumpleDraft,
+          });
+        }
+      } catch {}
       onFechaNacimientoChange?.(cumpleDraft);
       setCumpleSelectorOpen(false);
       setCumpleDraft(null);
@@ -2350,11 +2360,15 @@ export function FormularioPersonaje({
                 <BloqueEras
                   fechaNacimiento={(form as any).fecha_nacimiento ?? null}
                   personajeId={form.id}
-                  onFechaNacimientoChange={(dia) =>
-                    setForm(
-                      (f) => ({ ...f, fecha_nacimiento: dia ?? null }) as any,
-                    )
-                  }
+                  onFechaNacimientoChange={(dia) => {
+                    const updated = {
+                      ...form,
+                      fecha_nacimiento: dia ?? null,
+                    } as any;
+                    setForm(updated);
+                    // Persistir en Dexie inmediatamente sin esperar el botón Guardar
+                    void dexiePut("personajes", updated);
+                  }}
                 />
 
                 <div className="rounded-xl overflow-hidden border border-primary/10">
@@ -2459,11 +2473,14 @@ export function FormularioPersonaje({
               <BloqueEras
                 fechaNacimiento={(form as any).fecha_nacimiento ?? null}
                 personajeId={form.id}
-                onFechaNacimientoChange={(dia) =>
-                  setForm(
-                    (f) => ({ ...f, fecha_nacimiento: dia ?? null }) as any,
-                  )
-                }
+                onFechaNacimientoChange={(dia) => {
+                  const updated = {
+                    ...form,
+                    fecha_nacimiento: dia ?? null,
+                  } as any;
+                  setForm(updated);
+                  void dexiePut("personajes", updated);
+                }}
               />
             </div>
             <div
