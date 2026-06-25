@@ -1203,7 +1203,13 @@ function BloqueEras({
               : "color-mix(in srgb, var(--primary) 40%, transparent)",
           }}
           type="button"
-          onClick={() => setAddingNew((v) => !v)}
+          onClick={() => {
+            setAddingNew((v) => {
+              if (!v && fechaNacimiento != null)
+                setNewMomento(String(fechaNacimiento));
+              return !v;
+            });
+          }}
         >
           <Plus size={8} /> Era
         </button>
