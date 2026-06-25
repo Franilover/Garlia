@@ -10,10 +10,14 @@ import {
   Save,
   Loader2,
   Image as ImageIcon,
-  SlidersHorizontal,
   Mountain,
   Plus,
   ChevronRight,
+  BookOpen,
+  Landmark,
+  Coins,
+  Trees,
+  Users,
 } from "lucide-react";
 import React, { useState, useEffect, useRef } from "react";
 
@@ -47,7 +51,6 @@ async function dexieDel(tabla: string, id: string): Promise<void> {
 // ─── Hook: ciudades del reino ─────────────────────────────────────────────────
 function useCiudadesDelReino(reinoId: string) {
   const [ciudades, setCiudades] = useState<Ciudad[]>([]);
-
   useEffect(() => {
     let cancelled = false;
     const run = async () => {
@@ -78,11 +81,10 @@ function useCiudadesDelReino(reinoId: string) {
       cancelled = true;
     };
   }, [reinoId]);
-
   return { ciudades, setCiudades };
 }
 
-// ─── Mini modal de imagen ─────────────────────────────────────────────────────
+// ─── ImagePickerModal ─────────────────────────────────────────────────────────
 function ImagePickerModal({
   onSelect,
   onClose,
@@ -97,7 +99,6 @@ function ImagePickerModal({
       (m) => setComponent(() => m.default),
     );
   }, []);
-
   return (
     <div
       className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4"
@@ -130,7 +131,7 @@ function ImagePickerModal({
   );
 }
 
-// ─── Panel flotante de ciudad seleccionada ────────────────────────────────────
+// ─── Panel flotante de ciudad ─────────────────────────────────────────────────
 function CiudadPanel({
   ciudad,
   onClose,
@@ -147,7 +148,6 @@ function CiudadPanel({
   const [form, setForm] = useState(ciudad);
   const [status, setStatus] = useState<SaveStatus>("idle");
   const { confirm, ConfirmModal } = useConfirm();
-
   useEffect(() => {
     setForm(ciudad);
   }, [ciudad.id]);
@@ -193,8 +193,6 @@ function CiudadPanel({
       <ConfirmModal />
       <div className="flex items-center gap-2 px-3 py-2">
         <MapPin size={10} style={{ color: "var(--accent)", flexShrink: 0 }} />
-
-        {/* Nombre inline */}
         <input
           className="flex-1 min-w-0 bg-transparent text-[11px] font-black uppercase tracking-widest text-primary outline-none placeholder:text-primary/25"
           placeholder="Nombre de la ciudad"
@@ -208,16 +206,13 @@ function CiudadPanel({
             }
           }}
         />
-
         <SaveIndicator status={status} />
-
         {onOpenEditor && (
           <button
             className="flex items-center gap-1 px-2 py-1 text-[9px] font-black uppercase tracking-widest transition-opacity hover:opacity-70"
             style={{
               color: "color-mix(in srgb, var(--accent) 70%, transparent)",
             }}
-            title="Abrir ficha completa"
             onClick={() => onOpenEditor(form.id)}
           >
             Ver <ChevronRight size={9} />
@@ -225,7 +220,6 @@ function CiudadPanel({
         )}
         <button
           className="text-red-400/30 hover:text-red-400 transition-colors"
-          title="Eliminar"
           onClick={handleDelete}
         >
           <Trash2 size={10} />
@@ -237,8 +231,6 @@ function CiudadPanel({
           <X size={12} />
         </button>
       </div>
-
-      {/* Descripción */}
       <div
         className="px-3 pb-2 border-t"
         style={{
@@ -260,68 +252,351 @@ function CiudadPanel({
   );
 }
 
-// ─── Drawer de geografía ──────────────────────────────────────────────────────
-function GeografiaDrawer({
-  value,
-  onClose,
-  onChange,
-  onSave,
-  status,
+// ─── Tab de mapa ──────────────────────────────────────────────────────────────
+function TabMapa({
+  form,
+  detalles,
+  setDetalles,
+  onSelectCiudad,
 }: {
-  value: string;
-  onClose: () => void;
-  onChange: (v: string) => void;
-  onSave: () => void;
-  status: SaveStatus;
+  form: Reino;
+  detalles: Ciudad[];
+  setDetalles: React.Dispatch<React.SetStateAction<Ciudad[]>>;
+  onSelectCiudad?: (id: string) => void;
 }) {
+  const [selectedCiudad, setSelectedCiudad] = useState<Ciudad | null>(null);
+  const [geoOpen, setGeoOpen] = useState(false);
+  const [geoValue, setGeoValue] = useState(form.geografia ?? "");
+  const [geoStatus, setGeoStatus] = useState<SaveStatus>("idle");
+  const [addingCity, setAddingCity] = useState(false);
+  const [newCityName, setNewCityName] = useState("");
+
+  useEffect(() => {
+    if (!selectedCiudad) return;
+    const updated = detalles.find((d) => d.id === selectedCiudad.id);
+    if (updated) setSelectedCiudad(updated);
+  }, [detalles]);
+
+  const handleDetallesChange = async (updated: Ciudad[]) => {
+    setDetalles(updated);
+    await Promise.all(
+      updated.map((d) =>
+        supabase
+          .from("ciudades")
+          .update({ coord_x: d.coord_x, coord_y: d.coord_y })
+          .eq("id", d.id),
+      ),
+    );
+  };
+
+  const saveGeo = async () => {
+    setGeoStatus("saving");
+    try {
+      const { error } = await supabase
+        .from("reinos")
+        .update({ geografia: geoValue })
+        .eq("id", form.id);
+      if (error) throw error;
+      setGeoStatus("saved");
+      setTimeout(() => setGeoStatus("idle"), 2000);
+    } catch {
+      setGeoStatus("error");
+    }
+  };
+
+  const handleAddCity = async () => {
+    if (!newCityName.trim()) return;
+    const { data, error } = await supabase
+      .from("ciudades")
+      .insert([
+        {
+          reino_id: form.id,
+          nombre: newCityName.trim(),
+          coord_x: 50,
+          coord_y: 50,
+        },
+      ])
+      .select()
+      .single();
+    if (!error && data) {
+      setDetalles((prev) => [...prev, data as Ciudad]);
+      void dexiePut("ciudades", data);
+      setAddingCity(false);
+      setNewCityName("");
+    }
+  };
+
   return (
-    <div
-      className="absolute top-0 right-0 bottom-0 z-30 flex flex-col w-72 shadow-2xl"
-      style={{
-        background: "color-mix(in srgb, var(--bg-main) 95%, transparent)",
-        backdropFilter: "blur(16px)",
-        borderLeft:
-          "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-      }}
-    >
-      {/* Header */}
-      <div
-        className="flex items-center gap-2 px-3 py-2.5 border-b shrink-0"
-        style={{
-          borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
-        }}
-      >
-        <Mountain size={10} style={{ color: "var(--accent)" }} />
-        <span
-          className="flex-1 text-[9px] font-black uppercase tracking-[0.2em]"
-          style={{
-            color: "color-mix(in srgb, var(--foreground) 40%, transparent)",
+    <div className="flex-1 min-h-0 relative overflow-hidden">
+      {/* Panel ciudad seleccionada */}
+      {selectedCiudad && (
+        <CiudadPanel
+          ciudad={selectedCiudad}
+          onClose={() => setSelectedCiudad(null)}
+          onDeleted={(id) => {
+            setDetalles((prev) => prev.filter((x) => x.id !== id));
+            setSelectedCiudad(null);
           }}
-        >
-          Geografía
-        </span>
-        <SaveIndicator status={status} />
-        <button
-          className="text-primary/25 hover:text-primary/60 transition-colors"
-          onClick={onClose}
-        >
-          <X size={12} />
-        </button>
+          onOpenEditor={onSelectCiudad}
+          onSaved={(d) =>
+            setDetalles((prev) => prev.map((x) => (x.id === d.id ? d : x)))
+          }
+        />
+      )}
+
+      {/* Canvas full height */}
+      <ReinoTileCanvas
+        detalles={detalles}
+        editMode={true}
+        reinoId={form.id}
+        onDetallesChange={handleDetallesChange}
+        onPinClick={(ciudad) => setSelectedCiudad(ciudad as Ciudad)}
+      />
+
+      {/* Botón añadir ciudad — bottom left */}
+      <div className="absolute bottom-3 left-3 z-10">
+        {addingCity ? (
+          <div
+            className="flex items-center gap-1 px-2 py-1.5 rounded-lg"
+            style={{
+              background: "color-mix(in srgb, var(--bg-main) 90%, transparent)",
+              backdropFilter: "blur(10px)",
+              border:
+                "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+            }}
+          >
+            <MapPin
+              size={9}
+              style={{ color: "var(--accent)", flexShrink: 0 }}
+            />
+            <input
+              autoFocus
+              className="bg-transparent text-[10px] font-black uppercase tracking-widest text-primary outline-none placeholder:text-primary/30 w-28"
+              placeholder="Nombre…"
+              value={newCityName}
+              onChange={(e) => setNewCityName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleAddCity();
+                if (e.key === "Escape") {
+                  setAddingCity(false);
+                  setNewCityName("");
+                }
+              }}
+            />
+            <button
+              className="text-primary/30 hover:text-primary/60 transition-colors"
+              onClick={() => {
+                setAddingCity(false);
+                setNewCityName("");
+              }}
+            >
+              <X size={9} />
+            </button>
+            <button
+              className="text-primary/50 hover:text-primary transition-colors"
+              onClick={handleAddCity}
+            >
+              <Check size={9} />
+            </button>
+          </div>
+        ) : (
+          <button
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-widest transition-opacity hover:opacity-80"
+            style={{
+              background: "color-mix(in srgb, var(--bg-main) 85%, transparent)",
+              backdropFilter: "blur(10px)",
+              border:
+                "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+              borderRadius: "6px",
+              color: "color-mix(in srgb, var(--foreground) 45%, transparent)",
+            }}
+            onClick={() => setAddingCity(true)}
+          >
+            <Plus size={9} /> Ciudad
+          </button>
+        )}
       </div>
 
-      {/* Textarea */}
+      {/* Botón geografía — bottom right */}
+      <button
+        className="absolute bottom-3 right-3 z-10 flex items-center gap-1.5 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-widest transition-opacity hover:opacity-80"
+        style={{
+          background: geoOpen
+            ? "color-mix(in srgb, var(--accent) 18%, transparent)"
+            : "color-mix(in srgb, var(--bg-main) 85%, transparent)",
+          backdropFilter: "blur(10px)",
+          border: geoOpen
+            ? "1px solid color-mix(in srgb, var(--accent) 28%, transparent)"
+            : "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+          borderRadius: "6px",
+          color: geoOpen
+            ? "color-mix(in srgb, var(--accent) 80%, transparent)"
+            : "color-mix(in srgb, var(--foreground) 45%, transparent)",
+        }}
+        onClick={() => setGeoOpen((v) => !v)}
+      >
+        <Mountain size={9} /> Geografía
+      </button>
+
+      {/* Drawer geografía */}
+      {geoOpen && (
+        <div
+          className="absolute top-0 right-0 bottom-0 z-30 flex flex-col w-72 shadow-2xl"
+          style={{
+            background: "color-mix(in srgb, var(--bg-main) 95%, transparent)",
+            backdropFilter: "blur(16px)",
+            borderLeft:
+              "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+          }}
+        >
+          <div
+            className="flex items-center gap-2 px-3 py-2.5 border-b shrink-0"
+            style={{
+              borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
+            }}
+          >
+            <Mountain size={10} style={{ color: "var(--accent)" }} />
+            <span
+              className="flex-1 text-[9px] font-black uppercase tracking-[0.2em]"
+              style={{
+                color: "color-mix(in srgb, var(--foreground) 40%, transparent)",
+              }}
+            >
+              Geografía
+            </span>
+            <SaveIndicator status={geoStatus} />
+            <button
+              className="text-primary/25 hover:text-primary/60 transition-colors"
+              onClick={() => setGeoOpen(false)}
+            >
+              <X size={12} />
+            </button>
+          </div>
+          <textarea
+            className="flex-1 p-3 bg-transparent text-[11px] text-primary/80 placeholder:text-primary/25 outline-none resize-none leading-relaxed"
+            placeholder="Describe la geografía del reino: montañas, ríos, clima, regiones…"
+            value={geoValue}
+            onChange={(e) => setGeoValue(e.target.value)}
+            onBlur={saveGeo}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Tab de texto genérico ────────────────────────────────────────────────────
+function TabTexto({
+  value,
+  placeholder,
+  onChange,
+  onBlur,
+}: {
+  value: string;
+  placeholder: string;
+  onChange: (v: string) => void;
+  onBlur: () => void;
+}) {
+  return (
+    <div className="flex-1 min-h-0 overflow-y-auto p-4">
       <textarea
-        className="flex-1 p-3 bg-transparent text-[11px] text-primary/80 placeholder:text-primary/25 outline-none resize-none leading-relaxed"
-        placeholder="Describe la geografía del reino: montañas, ríos, clima, regiones…"
+        className="w-full h-full min-h-[300px] bg-transparent text-[12px] text-primary/80 placeholder:text-primary/25 outline-none resize-none leading-relaxed"
+        placeholder={placeholder}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        onBlur={onSave}
+        onBlur={onBlur}
       />
     </div>
   );
 }
 
+// ─── Tab de personajes ────────────────────────────────────────────────────────
+function TabPersonajes({
+  personajes,
+  loading,
+  onSelectPersonaje,
+}: {
+  personajes: any[];
+  loading: boolean;
+  onSelectPersonaje?: (p: any) => void;
+}) {
+  if (loading)
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <Loader2 className="animate-spin text-primary/20" size={16} />
+      </div>
+    );
+  if (!personajes.length)
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center gap-2 text-primary/25">
+        <Users size={24} strokeWidth={1} />
+        <span className="text-[9px] font-black uppercase tracking-widest">
+          Sin personajes
+        </span>
+      </div>
+    );
+  return (
+    <div className="flex-1 min-h-0 overflow-y-auto p-3 flex flex-col gap-1.5">
+      {personajes.map((p) => (
+        <button
+          key={p.id}
+          className="flex items-center gap-2.5 px-3 py-2 text-left transition-all hover:opacity-70"
+          style={{
+            border:
+              "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+            borderRadius: "6px",
+            background: "color-mix(in srgb, var(--primary) 2%, transparent)",
+          }}
+          onClick={() => onSelectPersonaje?.(p)}
+        >
+          {p.imagen_url ? (
+            <img
+              alt={p.nombre}
+              className="w-6 h-6 rounded-full object-cover shrink-0"
+              src={p.imagen_url}
+            />
+          ) : (
+            <div
+              className="w-6 h-6 rounded-full shrink-0 flex items-center justify-center"
+              style={{
+                background:
+                  "color-mix(in srgb, var(--primary) 10%, transparent)",
+              }}
+            >
+              <Users
+                size={10}
+                style={{
+                  color: "color-mix(in srgb, var(--primary) 40%, transparent)",
+                }}
+              />
+            </div>
+          )}
+          <span className="text-[11px] font-black uppercase tracking-widest text-primary truncate">
+            {p.nombre}
+          </span>
+          {p.rol && (
+            <span className="text-[9px] text-primary/35 uppercase tracking-widest truncate ml-auto shrink-0">
+              {p.rol}
+            </span>
+          )}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 // ─── EditorReino ──────────────────────────────────────────────────────────────
+const TABS = [
+  { id: "mapa", label: "Mapa", icon: Map },
+  { id: "historia", label: "Historia", icon: BookOpen },
+  { id: "politica", label: "Política", icon: Landmark },
+  { id: "economia", label: "Economía", icon: Coins },
+  { id: "cultura", label: "Cultura", icon: Trees },
+  { id: "personajes", label: "Personas", icon: Users },
+] as const;
+
+type TabId = (typeof TABS)[number]["id"];
+
 export function EditorReino({
   item,
   onSaved,
@@ -343,29 +618,19 @@ export function EditorReino({
 }) {
   const [form, setForm] = useState<Reino>(item);
   const [status, setStatus] = useState<SaveStatus>("idle");
-  const [geoStatus, setGeoStatus] = useState<SaveStatus>("idle");
-  const [selectedCiudad, setSelectedCiudad] = useState<Ciudad | null>(null);
-  const [geoOpen, setGeoOpen] = useState(false);
-  const [addingCity, setAddingCity] = useState(false);
-  const [newCityName, setNewCityName] = useState("");
+  const [activeTab, setActiveTab] = useState<TabId>("mapa");
   const { ciudades: detalles, setCiudades: setDetalles } = useCiudadesDelReino(
     item.id,
   );
   const { confirm, ConfirmModal } = useConfirm();
+  const { personajes, loading: loadingPersonajes } = usePersonajesDelReino(
+    form.nombre,
+  );
 
   useEffect(() => {
     setForm(item);
     setStatus("idle");
-    setSelectedCiudad(null);
-    setGeoOpen(false);
   }, [item.id]);
-
-  // Sync ciudad seleccionada con cambios de coordenadas
-  useEffect(() => {
-    if (!selectedCiudad) return;
-    const updated = detalles.find((d) => d.id === selectedCiudad.id);
-    if (updated) setSelectedCiudad(updated);
-  }, [detalles]);
 
   const save = async () => {
     setStatus("saving");
@@ -394,23 +659,6 @@ export function EditorReino({
     }
   };
 
-  const saveGeo = async () => {
-    setGeoStatus("saving");
-    try {
-      const { error } = await supabase
-        .from("reinos")
-        .update({ geografia: form.geografia })
-        .eq("id", form.id);
-      if (error) throw error;
-      setGeoStatus("saved");
-      onSaved(form);
-      void dexiePut("reinos", form);
-      setTimeout(() => setGeoStatus("idle"), 2000);
-    } catch {
-      setGeoStatus("error");
-    }
-  };
-
   const del = async () => {
     const ok = await confirm({
       message: `¿Eliminar el reino "${form.nombre}"?`,
@@ -420,40 +668,6 @@ export function EditorReino({
     await supabase.from("reinos").delete().eq("id", form.id);
     void dexieDel("reinos", form.id);
     onDeleted(form.id);
-  };
-
-  const handleAddCity = async () => {
-    if (!newCityName.trim()) return;
-    const { data, error } = await supabase
-      .from("ciudades")
-      .insert([
-        {
-          reino_id: form.id,
-          nombre: newCityName.trim(),
-          coord_x: 50,
-          coord_y: 50,
-        },
-      ])
-      .select()
-      .single();
-    if (!error && data) {
-      setDetalles((prev) => [...prev, data as Ciudad]);
-      void dexiePut("ciudades", data);
-      setAddingCity(false);
-      setNewCityName("");
-    }
-  };
-
-  const handleDetallesChange = async (updated: Ciudad[]) => {
-    setDetalles(updated);
-    await Promise.all(
-      updated.map((d) =>
-        supabase
-          .from("ciudades")
-          .update({ coord_x: d.coord_x, coord_y: d.coord_y })
-          .eq("id", d.id),
-      ),
-    );
   };
 
   return (
@@ -468,7 +682,6 @@ export function EditorReino({
           background: "color-mix(in srgb, var(--primary) 2%, transparent)",
         }}
       >
-        {/* Thumbnail */}
         <div
           className="shrink-0 w-7 h-7 rounded-lg overflow-hidden border flex items-center justify-center"
           style={{
@@ -486,17 +699,13 @@ export function EditorReino({
             <Map className="text-primary/25" size={12} />
           )}
         </div>
-
-        {/* Nombre */}
         <input
           className="flex-1 min-w-0 bg-transparent text-sm font-black text-primary outline-none placeholder:text-primary/25"
           placeholder="Nombre del reino"
           value={form.nombre ?? ""}
           onChange={(e) => setForm((f) => ({ ...f, nombre: e.target.value }))}
         />
-
         <SaveIndicator status={status} />
-
         <button
           className="flex items-center justify-center gap-1 px-2 py-1.5 text-[9px] font-black uppercase border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 transition-all"
           style={{ borderRadius: "3px" }}
@@ -504,7 +713,6 @@ export function EditorReino({
         >
           <Trash2 size={9} />
         </button>
-
         <button
           className="flex items-center gap-1.5 px-3 py-1.5 text-[9px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-sm disabled:opacity-50"
           style={{ borderRadius: "3px" }}
@@ -516,129 +724,86 @@ export function EditorReino({
         </button>
       </div>
 
-      {/* ── Cuerpo: canvas + overlays ──────────────────────────────────────── */}
-      <div className="flex-1 min-h-0 relative overflow-hidden">
-        {/* Panel ciudad seleccionada (top overlay) */}
-        {selectedCiudad && (
-          <CiudadPanel
-            ciudad={selectedCiudad}
-            onClose={() => setSelectedCiudad(null)}
-            onDeleted={(id) => {
-              setDetalles((prev) => prev.filter((x) => x.id !== id));
-              setSelectedCiudad(null);
+      {/* ── Tabs ───────────────────────────────────────────────────────────── */}
+      <div
+        className="shrink-0 flex border-b overflow-x-auto"
+        style={{
+          borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
+        }}
+      >
+        {TABS.map(({ id, label, icon: Icon }) => (
+          <button
+            key={id}
+            className="flex items-center gap-1.5 px-3 py-2 text-[9px] font-black uppercase tracking-widest whitespace-nowrap transition-all shrink-0"
+            style={{
+              background:
+                activeTab === id
+                  ? "color-mix(in srgb, var(--primary) 10%, transparent)"
+                  : "transparent",
+              color:
+                activeTab === id
+                  ? "color-mix(in srgb, var(--foreground) 60%, transparent)"
+                  : "color-mix(in srgb, var(--foreground) 25%, transparent)",
+              borderBottom:
+                activeTab === id
+                  ? "1px solid color-mix(in srgb, var(--primary) 30%, transparent)"
+                  : "1px solid transparent",
             }}
-            onOpenEditor={onSelectCiudad}
-            onSaved={(d) =>
-              setDetalles((prev) => prev.map((x) => (x.id === d.id ? d : x)))
-            }
+            onClick={() => setActiveTab(id)}
+          >
+            <Icon size={9} />
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* ── Contenido del tab activo ────────────────────────────────────────── */}
+      <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+        {activeTab === "mapa" && (
+          <TabMapa
+            form={form}
+            detalles={detalles}
+            setDetalles={setDetalles}
+            onSelectCiudad={onSelectCiudad}
           />
         )}
-
-        {/* Canvas del mapa — full height */}
-        <ReinoTileCanvas
-          detalles={detalles}
-          editMode={true}
-          reinoId={form.id}
-          onDetallesChange={handleDetallesChange}
-          onPinClick={(ciudad) => setSelectedCiudad(ciudad)}
-        />
-
-        {/* Botones flotantes — bottom left */}
-        <div className="absolute bottom-3 left-3 z-10 flex flex-col gap-1.5">
-          {/* Añadir ciudad */}
-          {addingCity ? (
-            <div
-              className="flex items-center gap-1 px-2 py-1.5 rounded-lg"
-              style={{
-                background:
-                  "color-mix(in srgb, var(--bg-main) 90%, transparent)",
-                backdropFilter: "blur(10px)",
-                border:
-                  "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-              }}
-            >
-              <MapPin
-                size={9}
-                style={{ color: "var(--accent)", flexShrink: 0 }}
-              />
-              <input
-                autoFocus
-                className="bg-transparent text-[10px] font-black uppercase tracking-widest text-primary outline-none placeholder:text-primary/30 w-28"
-                placeholder="Nombre…"
-                value={newCityName}
-                onChange={(e) => setNewCityName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleAddCity();
-                  if (e.key === "Escape") {
-                    setAddingCity(false);
-                    setNewCityName("");
-                  }
-                }}
-              />
-              <button
-                className="text-primary/30 hover:text-primary/60 transition-colors"
-                onClick={() => {
-                  setAddingCity(false);
-                  setNewCityName("");
-                }}
-              >
-                <X size={9} />
-              </button>
-              <button
-                className="text-primary/50 hover:text-primary transition-colors"
-                onClick={handleAddCity}
-              >
-                <Check size={9} />
-              </button>
-            </div>
-          ) : (
-            <button
-              className="flex items-center gap-1.5 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-widest transition-opacity hover:opacity-80"
-              style={{
-                background:
-                  "color-mix(in srgb, var(--bg-main) 85%, transparent)",
-                backdropFilter: "blur(10px)",
-                border:
-                  "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-                borderRadius: "6px",
-                color: "color-mix(in srgb, var(--foreground) 45%, transparent)",
-              }}
-              onClick={() => setAddingCity(true)}
-            >
-              <Plus size={9} /> Ciudad
-            </button>
-          )}
-        </div>
-
-        {/* Botón geografía — bottom right */}
-        <button
-          className="absolute bottom-3 right-3 z-10 flex items-center gap-1.5 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-widest transition-opacity hover:opacity-80"
-          style={{
-            background: geoOpen
-              ? "color-mix(in srgb, var(--accent) 18%, transparent)"
-              : "color-mix(in srgb, var(--bg-main) 85%, transparent)",
-            backdropFilter: "blur(10px)",
-            border: geoOpen
-              ? "1px solid color-mix(in srgb, var(--accent) 28%, transparent)"
-              : "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-            borderRadius: "6px",
-            color: geoOpen
-              ? "color-mix(in srgb, var(--accent) 80%, transparent)"
-              : "color-mix(in srgb, var(--foreground) 45%, transparent)",
-          }}
-          onClick={() => setGeoOpen((v) => !v)}
-        >
-          <Mountain size={9} /> Geografía
-        </button>
-
-        {/* Drawer de geografía */}
-        {geoOpen && (
-          <GeografiaDrawer
-            status={geoStatus}
-            value={form.geografia ?? ""}
-            onChange={(v) => setForm((f) => ({ ...f, geografia: v }))}
-            onClose={() => setGeoOpen(false)}
-            onSave={saveGeo}
+        {activeTab === "historia" && (
+          <TabTexto
+            placeholder="Historia del reino, su origen, eventos fundacionales…"
+            value={form.historia ?? ""}
+            onChange={(v) => setForm((f) => ({ ...f, historia: v }))}
+            onBlur={save}
+          />
+        )}
+        {activeTab === "politica" && (
+          <TabTexto
+            placeholder="Sistema político, gobernantes, facciones, leyes…"
+            value={form.politica ?? ""}
+            onChange={(v) => setForm((f) => ({ ...f, politica: v }))}
+            onBlur={save}
+          />
+        )}
+        {activeTab === "economia" && (
+          <TabTexto
+            placeholder="Recursos, comercio, moneda, gremios…"
+            value={form.economia ?? ""}
+            onChange={(v) => setForm((f) => ({ ...f, economia: v }))}
+            onBlur={save}
+          />
+        )}
+        {activeTab === "cultura" && (
+          <TabTexto
+            placeholder="Tradiciones, religión, arte, idioma, costumbres…"
+            value={form.cultura ?? ""}
+            onChange={(v) => setForm((f) => ({ ...f, cultura: v }))}
+            onBlur={save}
+          />
+        )}
+        {activeTab === "personajes" && (
+          <TabPersonajes
+            loading={loadingPersonajes}
+            personajes={personajes}
+            onSelectPersonaje={onSelectPersonaje}
           />
         )}
       </div>
