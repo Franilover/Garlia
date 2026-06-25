@@ -450,9 +450,7 @@ function TileGridCell({
           <div className="w-full h-full flex flex-col items-center justify-center gap-1">
             <ImagePlus
               size={16}
-              style={{
-                color: "color-mix(in srgb, var(--accent) 30%, transparent)",
-              }}
+              style={{ color: "color-mix(in srgb, var(--accent) 30%, transparent)" }}
             />
           </div>
         )}
@@ -464,10 +462,7 @@ function TileGridCell({
         >
           <span
             className="text-[8px] font-black"
-            style={{
-              color: "rgba(255,255,255,0.6)",
-              fontFamily: "'Cinzel', serif",
-            }}
+            style={{ color: "rgba(255,255,255,0.6)", fontFamily: "'Cinzel', serif" }}
           >
             [{tile.col},{tile.row}]
           </span>
@@ -484,7 +479,9 @@ function TileGridCell({
         </div>
 
         {/* Ícono de cámara centrado al hover */}
-        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+        <div
+          className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
+        >
           <Camera size={16} style={{ color: "var(--accent)" }} />
         </div>
       </div>
@@ -507,7 +504,7 @@ export function EditorMapa({
   const [showModal, setShowModal] = useState(false);
   const [reinos, setReinos] = useState<ReinoConTile[]>([]);
   const [selectedReinoId, setSelectedReinoId] = useState<string | null>(null);
-  const [mode, setMode] = useState<"mover" | "tiles">("mover");
+  const [mode, setMode] = useState<"mover" | "tiles">("tiles");
   const [savingReino, setSavingReino] = useState(false);
   const [pendingReinos, setPendingReinos] = useState<
     Record<string, ReinoConTile>
@@ -809,6 +806,8 @@ export function EditorMapa({
         />
       )}
 
+
+
       {/* Contenido unificado */}
       <div className="flex-1 overflow-y-auto flex flex-col min-h-0">
         {loading ? (
@@ -839,30 +838,21 @@ export function EditorMapa({
         ) : (
           <div className="flex flex-col flex-1 min-h-0">
             {/* ── Toggle de modo ── */}
-            <div
-              className="flex shrink-0 border-b"
-              style={{
-                borderColor:
-                  "color-mix(in srgb, var(--primary) 8%, transparent)",
-              }}
-            >
+            <div className="flex shrink-0 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
               {(["mover", "tiles"] as const).map((m) => (
                 <button
                   key={m}
                   className="flex-1 py-2 text-[9px] font-black uppercase tracking-widest transition-all"
                   style={{
-                    background:
-                      mode === m
-                        ? "color-mix(in srgb, var(--primary) 12%, transparent)"
-                        : "transparent",
-                    color:
-                      mode === m
-                        ? "color-mix(in srgb, var(--foreground) 55%, transparent)"
-                        : "color-mix(in srgb, var(--foreground) 25%, transparent)",
-                    borderBottom:
-                      mode === m
-                        ? "1px solid color-mix(in srgb, var(--primary) 30%, transparent)"
-                        : "1px solid transparent",
+                    background: mode === m
+                      ? "color-mix(in srgb, var(--primary) 12%, transparent)"
+                      : "transparent",
+                    color: mode === m
+                      ? "color-mix(in srgb, var(--foreground) 55%, transparent)"
+                      : "color-mix(in srgb, var(--foreground) 25%, transparent)",
+                    borderBottom: mode === m
+                      ? "1px solid color-mix(in srgb, var(--primary) 30%, transparent)"
+                      : "1px solid transparent",
                   }}
                   onClick={() => {
                     setMode(m);
@@ -885,9 +875,7 @@ export function EditorMapa({
                 <button
                   className="flex items-center gap-1 px-3 text-[9px] uppercase disabled:opacity-50 shrink-0 transition-opacity hover:opacity-70"
                   disabled={savingReino}
-                  style={{
-                    color: "color-mix(in srgb, var(--accent) 70%, transparent)",
-                  }}
+                  style={{ color: "color-mix(in srgb, var(--accent) 70%, transparent)" }}
                   onClick={handleSaveReinos}
                 >
                   {savingReino ? <Hourglass size={9} /> : null}
@@ -976,8 +964,14 @@ export function EditorMapa({
                       </button>
                     ))}
                     <button
-                      className="w-7 h-7 flex items-center justify-center btn-brand"
-                      style={{ borderRadius: "2px", flexShrink: 0 }}
+                      className="w-7 h-7 flex items-center justify-center transition-opacity hover:opacity-80"
+                      style={{
+                        borderRadius: "2px",
+                        flexShrink: 0,
+                        background: "color-mix(in srgb, var(--accent) 18%, transparent)",
+                        border: "1px solid color-mix(in srgb, var(--accent) 25%, transparent)",
+                        color: "color-mix(in srgb, var(--accent) 80%, transparent)",
+                      }}
                       title="Nuevo tile en posición personalizada"
                       onClick={() => setShowModal(true)}
                     >
