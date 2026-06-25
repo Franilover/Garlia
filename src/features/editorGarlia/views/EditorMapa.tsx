@@ -928,7 +928,7 @@ export function EditorMapa({
 
             {/* ── Grilla de tiles (solo en modo tiles) ── */}
             {mode === "tiles" && (
-              <div className="flex-1 overflow-auto p-3">
+              <div className="flex-1 overflow-auto p-3 flex flex-col items-center">
                 {/* Botones de expandir + nuevo tile */}
                 {tiles.length > 0 && (
                   <div className="flex items-center gap-1 mb-3">
