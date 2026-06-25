@@ -458,6 +458,64 @@ function useGruposTodos() {
   return { grupos: grupos as GrupoTodo[], loading };
 }
 
+// ─── Detección de viewport "computadora" (mismo breakpoint que sm: de Tailwind) ──
+// Se usa para que el colapso de SeccionEntidades sea por fila solo en pantallas
+// de escritorio; en mobile cada sección sigue siendo individual.
+function useIsDesktop(breakpointPx = 640) {
+  const [isDesktop, setIsDesktop] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia(`(min-width: ${breakpointPx}px)`);
+    const update = () => setIsDesktop(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, [breakpointPx]);
+  return isDesktop;
+}
+
+// ─── Colapso compartido por fila ─────────────────────────────────────────────
+// Igual que el colapso individual de SeccionEntidades, pero pensado para que
+// varias secciones de una misma fila compartan un único estado (y una única
+// clave de localStorage), de modo que abrir/cerrar una abra/cierre todas.
+function useRowCollapse(storageKey: string, defaultCollapsed: boolean) {
+  const lsKey = `garlia-section-collapsed-${storageKey}`;
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    try {
+      const stored = localStorage.getItem(lsKey);
+      if (stored !== null) return stored === "true";
+    } catch {}
+    return defaultCollapsed;
+  });
+
+  const persist = useCallback(
+    (value: boolean) => {
+      try {
+        localStorage.setItem(lsKey, String(value));
+      } catch {}
+    },
+    [lsKey],
+  );
+
+  const toggle = useCallback(() => {
+    setCollapsed((prev) => {
+      const next = !prev;
+      persist(next);
+      return next;
+    });
+  }, [persist]);
+
+  const expand = useCallback(() => {
+    setCollapsed((prev) => {
+      if (!prev) return prev;
+      persist(false);
+      return false;
+    });
+  }, [persist]);
+
+  return { collapsed, toggle, expand };
+}
+
 // ─── Tipos de labels externalizados ──────────────────────────────────────────
 export type SectionLabels = {
   historia?: string;
@@ -1253,6 +1311,19 @@ function PanelListas({
     );
   });
 
+  // ── Colapso por fila (solo en computadora) ───────────────────────────────
+  // En mobile cada SeccionEntidades sigue colapsándose de forma individual;
+  // en desktop, las secciones agrupadas en una misma fila comparten estado:
+  // abrir o cerrar cualquiera de ellas abre/cierra toda la fila.
+  const isDesktop = useIsDesktop();
+  const filaPersonajes = useRowCollapse(
+    "fila-personajes-criaturas-reinos",
+    false,
+  );
+  const filaObjetos = useRowCollapse("fila-objetos-ciudades", true);
+  const filaDones = useRowCollapse("fila-dones-hechizos-runas", true);
+  const filaGrupos = useRowCollapse("fila-grupos-notas", true);
+
   // ── Helper: sección de entidades ─────────────────────────────────────────
   // Ref imperativa: permite que el padre llame a expand() sobre la sección
   type SeccionHandle = { expand: () => void };
@@ -1269,6 +1340,13 @@ function PanelListas({
       minColWidth?: string;
       defaultCollapsed?: boolean;
       storageKey?: string;
+      // Modo controlado: cuando se proveen, el colapso lo maneja el padre
+      // (usado para que varias secciones de una fila compartan un solo estado
+      // en computadora). Si se omiten, la sección se comporta de forma
+      // individual e independiente, como antes.
+      collapsed?: boolean;
+      onToggle?: () => void;
+      onExpand?: () => void;
     }
   >(function SeccionEntidades(
     {
@@ -1281,11 +1359,14 @@ function PanelListas({
       minColWidth = "60px",
       defaultCollapsed = false,
       storageKey,
+      collapsed: collapsedProp,
+      onToggle: onToggleProp,
+      onExpand,
     },
     ref,
   ) {
     const lsKey = storageKey ? `garlia-section-collapsed-${storageKey}` : null;
-    const [collapsed, setCollapsed] = useState<boolean>(() => {
+    const [collapsedState, setCollapsedState] = useState<boolean>(() => {
       if (lsKey) {
         try {
           const stored = localStorage.getItem(lsKey);
@@ -1295,8 +1376,15 @@ function PanelListas({
       return defaultCollapsed;
     });
 
+    const isControlled = collapsedProp !== undefined;
+    const collapsed = isControlled ? collapsedProp : collapsedState;
+
     const toggle = () => {
-      setCollapsed((prev) => {
+      if (isControlled) {
+        onToggleProp?.();
+        return;
+      }
+      setCollapsedState((prev) => {
         const next = !prev;
         if (lsKey) {
           try {
@@ -1310,7 +1398,11 @@ function PanelListas({
     // Exponer expand() al padre vía ref
     React.useImperativeHandle(ref, () => ({
       expand: () => {
-        setCollapsed((prev) => {
+        if (isControlled) {
+          onExpand?.();
+          return;
+        }
+        setCollapsedState((prev) => {
           if (prev) {
             if (lsKey) {
               try {
@@ -1942,6 +2034,8 @@ function PanelListas({
                   loading={loadingPersonajes}
                   defaultCollapsed={false}
                   storageKey="personajes"
+                  collapsed={isDesktop ? filaPersonajes.collapsed : undefined}
+                  onToggle={isDesktop ? filaPersonajes.toggle : undefined}
                 >
                   {[...personajes]
                     .sort(
@@ -1968,6 +2062,8 @@ function PanelListas({
                   loading={loadingCriaturas}
                   defaultCollapsed={false}
                   storageKey="criaturas"
+                  collapsed={isDesktop ? filaPersonajes.collapsed : undefined}
+                  onToggle={isDesktop ? filaPersonajes.toggle : undefined}
                 >
                   {[...criaturas]
                     .sort(
@@ -1995,6 +2091,9 @@ function PanelListas({
                   loading={loadingReinos}
                   defaultCollapsed={false}
                   storageKey="reinos"
+                  collapsed={isDesktop ? filaPersonajes.collapsed : undefined}
+                  onToggle={isDesktop ? filaPersonajes.toggle : undefined}
+                  onExpand={isDesktop ? filaPersonajes.expand : undefined}
                 >
                   {[...reinos]
                     .sort(
@@ -2028,6 +2127,8 @@ function PanelListas({
                   loading={loadingObjetos}
                   defaultCollapsed={true}
                   storageKey="objetos"
+                  collapsed={isDesktop ? filaObjetos.collapsed : undefined}
+                  onToggle={isDesktop ? filaObjetos.toggle : undefined}
                 >
                   {[...objetos]
                     .sort(
@@ -2054,6 +2155,8 @@ function PanelListas({
                   loading={loadingCiudades}
                   defaultCollapsed={true}
                   storageKey="ciudades"
+                  collapsed={isDesktop ? filaObjetos.collapsed : undefined}
+                  onToggle={isDesktop ? filaObjetos.toggle : undefined}
                 >
                   {[...ciudades]
                     .sort(
@@ -2096,6 +2199,8 @@ function PanelListas({
                   loading={loadingDones}
                   defaultCollapsed={true}
                   storageKey="dones"
+                  collapsed={isDesktop ? filaDones.collapsed : undefined}
+                  onToggle={isDesktop ? filaDones.toggle : undefined}
                 >
                   {dones.map((d) => (
                     <Chip
@@ -2118,6 +2223,8 @@ function PanelListas({
                   loading={loadingHechizos}
                   defaultCollapsed={true}
                   storageKey="hechizos"
+                  collapsed={isDesktop ? filaDones.collapsed : undefined}
+                  onToggle={isDesktop ? filaDones.toggle : undefined}
                 >
                   {hechizos.map((h) => (
                     <Chip
@@ -2140,6 +2247,8 @@ function PanelListas({
                   loading={loadingRunas}
                   defaultCollapsed={true}
                   storageKey="runas"
+                  collapsed={isDesktop ? filaDones.collapsed : undefined}
+                  onToggle={isDesktop ? filaDones.toggle : undefined}
                 >
                   {[...runas]
                     .sort(
@@ -2169,6 +2278,8 @@ function PanelListas({
                   loading={!loadedGrupos}
                   defaultCollapsed={true}
                   storageKey="grupos"
+                  collapsed={isDesktop ? filaGrupos.collapsed : undefined}
+                  onToggle={isDesktop ? filaGrupos.toggle : undefined}
                 >
                   {(() => {
                     const porTipo = grupos.reduce(
@@ -2255,6 +2366,8 @@ function PanelListas({
                   loading={loadingNotas}
                   defaultCollapsed={true}
                   storageKey="notas"
+                  collapsed={isDesktop ? filaGrupos.collapsed : undefined}
+                  onToggle={isDesktop ? filaGrupos.toggle : undefined}
                 >
                   {notas.map((n) => (
                     <button
