@@ -838,62 +838,44 @@ export function EditorMapa({
           </div>
         ) : (
           <div className="flex flex-col flex-1 min-h-0">
-            {/* ── Toggle de modo + estado contextual ── */}
+            {/* ── Toggle de modo ── */}
             <div
-              className="flex items-center gap-2 px-4 py-2 border-b shrink-0"
+              className="flex shrink-0 border-b"
               style={{
                 borderColor:
                   "color-mix(in srgb, var(--primary) 8%, transparent)",
               }}
             >
-              {/* Toggle */}
-              <div
-                className="flex rounded overflow-hidden border shrink-0"
-                style={{
-                  borderColor:
-                    "color-mix(in srgb, var(--primary) 15%, transparent)",
-                }}
-              >
-                {(["mover", "tiles"] as const).map((m) => (
-                  <button
-                    key={m}
-                    className="px-3 py-1.5 text-[9px] font-black uppercase tracking-widest transition-all"
-                    style={{
-                      background: mode === m ? "var(--primary)" : "transparent",
-                      color:
-                        mode === m
-                          ? "var(--btn-text, #fff)"
-                          : "color-mix(in srgb, var(--foreground) 40%, transparent)",
-                    }}
-                    onClick={() => {
-                      setMode(m);
-                      setSelectedReinoId(null);
-                    }}
-                  >
-                    {m === "mover" ? "Reinos" : "Tiles"}
-                  </button>
-                ))}
-              </div>
-
-              {/* Estado contextual */}
-              <span
-                className="text-[9px] uppercase tracking-widest flex-1 truncate"
-                style={{
-                  color:
-                    "color-mix(in srgb, var(--foreground) 30%, transparent)",
-                }}
-              >
-                {mode === "mover"
-                  ? selectedReinoId
-                    ? `→ "${reinos.find((r) => r.id === selectedReinoId)?.nombre}" seleccionado · click vacío para reubicarlo`
-                    : ""
-                  : "click imagen para cambiarla · click vacío crea tile · arrastra para reordenar"}
-              </span>
-
-              {/* Acciones contextuales */}
+              {(["mover", "tiles"] as const).map((m) => (
+                <button
+                  key={m}
+                  className="flex-1 py-2 text-[9px] font-black uppercase tracking-widest transition-all"
+                  style={{
+                    background:
+                      mode === m
+                        ? "color-mix(in srgb, var(--primary) 12%, transparent)"
+                        : "transparent",
+                    color:
+                      mode === m
+                        ? "color-mix(in srgb, var(--foreground) 55%, transparent)"
+                        : "color-mix(in srgb, var(--foreground) 25%, transparent)",
+                    borderBottom:
+                      mode === m
+                        ? "1px solid color-mix(in srgb, var(--primary) 30%, transparent)"
+                        : "1px solid transparent",
+                  }}
+                  onClick={() => {
+                    setMode(m);
+                    setSelectedReinoId(null);
+                  }}
+                >
+                  {m === "mover" ? "Reinos" : "Tiles"}
+                </button>
+              ))}
+              {/* Acciones contextuales inline */}
               {mode === "mover" && selectedReinoId && (
                 <button
-                  className="w-5 h-5 flex items-center justify-center opacity-40 hover:opacity-80 transition-opacity"
+                  className="w-8 flex items-center justify-center opacity-30 hover:opacity-70 transition-opacity"
                   onClick={() => setSelectedReinoId(null)}
                 >
                   <X size={10} />
@@ -901,8 +883,11 @@ export function EditorMapa({
               )}
               {mode === "mover" && Object.keys(pendingReinos).length > 0 && (
                 <button
-                  className="btn-brand flex items-center gap-1 px-2 py-1 text-[9px] uppercase disabled:opacity-50 shrink-0"
+                  className="flex items-center gap-1 px-3 text-[9px] uppercase disabled:opacity-50 shrink-0 transition-opacity hover:opacity-70"
                   disabled={savingReino}
+                  style={{
+                    color: "color-mix(in srgb, var(--accent) 70%, transparent)",
+                  }}
                   onClick={handleSaveReinos}
                 >
                   {savingReino ? <Hourglass size={9} /> : null}
