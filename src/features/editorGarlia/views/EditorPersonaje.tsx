@@ -199,36 +199,36 @@ function BloqueCapsAparece({ personajeId }: { personajeId: string }) {
 
   if (loading)
     return (
-      <div className="flex justify-center py-4">
-        <Loader2 className="animate-spin text-primary/20" size={16} />
+      <div className="flex justify-center py-3">
+        <Loader2 className="animate-spin text-primary/15" size={12} />
       </div>
     );
   if (!caps.length)
     return (
-      <p className="text-[10px] font-bold text-primary/25 uppercase tracking-widest text-center py-4 italic">
-        Sin apariciones registradas
+      <p className="text-[7px] font-black text-primary/20 uppercase tracking-[0.2em] text-center py-3 italic">
+        Sin apariciones
       </p>
     );
   return (
-    <div className="space-y-1">
+    <div>
       {caps.map((cap) => (
         <button
           key={cap.id}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-primary/5 active:bg-primary/10 transition-colors text-left group disabled:opacity-40 disabled:cursor-default cursor-pointer"
+          className="w-full flex items-center gap-2 px-2.5 py-1.5 hover:bg-primary/[0.04] transition-colors text-left group disabled:opacity-40 disabled:cursor-default cursor-pointer border-b border-primary/[0.04] last:border-0"
           disabled={!cap.libro_id}
           type="button"
           onClick={() => navigateToCap(cap)}
         >
-          <div className="shrink-0 w-6 h-6 rounded-lg flex items-center justify-center text-[9px] font-black bg-accent/10 text-accent group-hover:bg-accent/20 transition-colors">
+          <span className="shrink-0 text-[7px] font-black tabular-nums text-accent/50 w-4 text-right leading-none">
             {cap.orden}
-          </div>
+          </span>
           <div className="flex-1 min-w-0">
-            <p className="text-[11px] font-bold text-primary truncate uppercase italic group-hover:text-primary/80 transition-colors">
+            <p className="text-[8px] font-black text-primary/70 truncate uppercase tracking-wide leading-tight group-hover:text-primary transition-colors">
               {cap.titulo_capitulo}
             </p>
             {cap.libro_titulo && (
-              <p className="text-[9px] text-primary/35 truncate flex items-center gap-1">
-                <BookOpen size={8} /> {cap.libro_titulo}
+              <p className="text-[7px] text-primary/25 truncate leading-tight">
+                {cap.libro_titulo}
               </p>
             )}
           </div>
@@ -338,28 +338,28 @@ function BloqueCanciones({
 
   if (loading)
     return (
-      <div className="flex justify-center py-4">
-        <Loader2 className="animate-spin text-primary/20" size={16} />
+      <div className="flex justify-center py-3">
+        <Loader2 className="animate-spin text-primary/15" size={12} />
       </div>
     );
   if (!canciones.length)
     return (
-      <p className="text-[10px] font-bold text-primary/25 uppercase tracking-widest text-center py-4 italic">
+      <p className="text-[7px] font-black text-primary/20 uppercase tracking-[0.2em] text-center py-3 italic">
         Sin canciones
       </p>
     );
   return (
-    <div className="space-y-1">
+    <div>
       {canciones.map((c) => (
         <button
           key={c.id}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-primary/5 active:bg-primary/10 transition-colors text-left group disabled:cursor-default cursor-pointer"
+          className="w-full flex items-center gap-2 px-2.5 py-1.5 hover:bg-primary/[0.04] transition-colors text-left group disabled:cursor-default cursor-pointer border-b border-primary/[0.04] last:border-0"
           disabled={!onSelect}
           type="button"
           onClick={() => onSelect?.(c.id)}
         >
           {c.portada_url ? (
-            <div className="shrink-0 w-6 h-6 rounded-lg overflow-hidden border border-primary/15">
+            <div className="shrink-0 w-4 h-4 rounded overflow-hidden border border-primary/10">
               <Image
                 alt={c.titulo}
                 className="w-full h-full object-cover"
@@ -367,16 +367,14 @@ function BloqueCanciones({
               />
             </div>
           ) : (
-            <div className="shrink-0 w-6 h-6 rounded-lg flex items-center justify-center bg-accent/10 text-accent">
-              <Music2 size={10} />
-            </div>
+            <Music2 className="shrink-0 text-primary/20" size={9} />
           )}
           <div className="flex-1 min-w-0">
-            <p className="text-[11px] font-bold text-primary truncate uppercase italic group-hover:text-primary/80 transition-colors">
+            <p className="text-[8px] font-black text-primary/70 truncate uppercase tracking-wide leading-tight group-hover:text-primary transition-colors">
               {c.titulo}
             </p>
             {c.cantante && (
-              <p className="text-[9px] text-primary/35 truncate">
+              <p className="text-[7px] text-primary/25 truncate leading-tight">
                 {c.cantante}
               </p>
             )}
@@ -827,18 +825,18 @@ function BloqueGruposPersonaje({
           Grupos
         </span>
       </div>
-      <div className="flex flex-wrap gap-1.5 p-2.5">
+      <div>
         {grupos.map((g) => (
           <button
             key={g.id}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-primary/15 bg-primary/[0.03] hover:bg-primary/[0.07] hover:border-primary/30 transition-all group"
+            className="w-full flex items-center gap-2 px-2.5 py-1.5 hover:bg-primary/[0.04] transition-colors text-left group border-b border-primary/[0.04] last:border-0"
             onClick={() => onOpenGrupo?.(g.id)}
           >
             <Users
-              className="text-primary/35 group-hover:text-primary/60 transition-colors"
-              size={9}
+              className="shrink-0 text-primary/20 group-hover:text-primary/40 transition-colors"
+              size={8}
             />
-            <span className="text-[10px] font-black uppercase tracking-widest text-primary/50 group-hover:text-primary/80 transition-colors">
+            <span className="text-[8px] font-black uppercase tracking-wide text-primary/50 group-hover:text-primary/80 transition-colors truncate leading-tight">
               {g.nombre}
             </span>
           </button>
