@@ -22,10 +22,7 @@ import {
 } from "lucide-react";
 import React, { useState, useEffect, useCallback } from "react";
 
-import {
-  MarkdownEditor,
-  WikiEntity,
-} from "@/components/forms/Markdown/MarkdownEditor";
+import { WikiEntity } from "@/components/forms/Markdown/MarkdownEditor";
 import { ComboSelector } from "@/components/ui/ComboSelector";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { SeccionEntidad } from "@/components/ui/SeccionEntidad";
@@ -43,7 +40,6 @@ import {
 import { useNombresDeTabla } from "../components/hooks";
 import { type Personaje, type SaveStatus } from "../components/types";
 import { SelectorImagen, SaveIndicator } from "../components/UIComponents";
-import { useWikilink } from "../components/WikilinkContext";
 
 // ─── Dexie helpers ────────────────────────────────────────────────────────────
 async function dexiePut(tabla: string, row: any): Promise<void> {
@@ -1852,7 +1848,6 @@ export function FormularioPersonaje({
       setForm((f) => ({ ...f, ciudad_id: val.replace("ciudad:", "") }) as any);
     }
   };
-  const { onSnippetAction } = useWikilink();
   const [mobileAsideOpen, setMobileAsideOpen] = useState(false);
 
   const field =
@@ -2100,47 +2095,6 @@ export function FormularioPersonaje({
                 <div className="space-y-1.5">
                   <BloqueDones grupoIds={grupoIds} personajeId={form.id} />
                 </div>
-                {/* Fecha de nacimiento — mobile */}
-                <div className="col-span-2 space-y-1">
-                  <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">
-                    Fecha de nacimiento
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 min-w-0">
-                      <SelectorFechaMundo
-                        placeholder="Seleccionar fecha de nacimiento…"
-                        value={(form as any).fecha_nacimiento ?? null}
-                        onChange={(dia) =>
-                          setForm(
-                            (f) =>
-                              ({ ...f, fecha_nacimiento: dia ?? null }) as any,
-                          )
-                        }
-                      />
-                    </div>
-                    {(form as any).fecha_nacimiento != null && (
-                      <button
-                        className="shrink-0 p-1 rounded-lg text-primary/25 hover:text-accent hover:bg-accent/5 transition-all"
-                        title="Quitar fecha"
-                        type="button"
-                        onClick={() =>
-                          setForm(
-                            (f) => ({ ...f, fecha_nacimiento: null }) as any,
-                          )
-                        }
-                      >
-                        <X size={10} />
-                      </button>
-                    )}
-                  </div>
-                  {(form as any).fecha_nacimiento != null && (
-                    <div className="pt-0.5">
-                      <FechaMundoBadge
-                        diaAbsoluto={(form as any).fecha_nacimiento}
-                      />
-                    </div>
-                  )}
-                </div>
               </div>
 
               {/* Desktop: layout original (fila de 3 + Don al lado) */}
@@ -2250,100 +2204,6 @@ export function FormularioPersonaje({
                   <BloqueDones grupoIds={grupoIds} personajeId={form.id} />
                 </div>
               </div>
-
-              {/* Fecha de nacimiento — desktop */}
-              <div className="space-y-1">
-                <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">
-                  Fecha de nacimiento
-                </label>
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 min-w-0">
-                    <SelectorFechaMundo
-                      placeholder="Seleccionar fecha de nacimiento…"
-                      value={(form as any).fecha_nacimiento ?? null}
-                      onChange={(dia) =>
-                        setForm(
-                          (f) =>
-                            ({ ...f, fecha_nacimiento: dia ?? null }) as any,
-                        )
-                      }
-                    />
-                  </div>
-                  {(form as any).fecha_nacimiento != null && (
-                    <>
-                      <FechaMundoBadge
-                        diaAbsoluto={(form as any).fecha_nacimiento}
-                      />
-                      <button
-                        className="shrink-0 p-1 rounded-lg text-primary/25 hover:text-accent hover:bg-accent/5 transition-all"
-                        title="Quitar fecha"
-                        type="button"
-                        onClick={() =>
-                          setForm(
-                            (f) => ({ ...f, fecha_nacimiento: null }) as any,
-                          )
-                        }
-                      >
-                        <X size={10} />
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              {/* Descripción + Características en fila */}
-              {!compacto ? (
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <div className="flex-1 min-w-0 space-y-1">
-                    <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">
-                      Sobre el personaje
-                    </label>
-                    <MarkdownEditor
-                      toolbar
-                      defaultMode="edit"
-                      entities={entities}
-                      placeholder="Biografía, personalidad…"
-                      rows={8}
-                      value={form.sobre ?? ""}
-                      onChange={(v) => setForm((f) => ({ ...f, sobre: v }))}
-                      onSnippetAction={onSnippetAction}
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0 space-y-1">
-                    <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">
-                      Características
-                    </label>
-                    <MarkdownEditor
-                      toolbar
-                      defaultMode="edit"
-                      entities={entities}
-                      placeholder="Rasgos físicos, personalidad, habilidades…"
-                      rows={8}
-                      value={form.caracteristicas ?? ""}
-                      onChange={(v) =>
-                        setForm((f) => ({ ...f, caracteristicas: v }))
-                      }
-                      onSnippetAction={onSnippetAction}
-                    />
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-1">
-                  <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">
-                    Sobre el personaje
-                  </label>
-                  <MarkdownEditor
-                    toolbar
-                    defaultMode="edit"
-                    entities={entities}
-                    placeholder="Biografía, personalidad…"
-                    rows={5}
-                    value={form.sobre ?? ""}
-                    onChange={(v) => setForm((f) => ({ ...f, sobre: v }))}
-                    onSnippetAction={onSnippetAction}
-                  />
-                </div>
-              )}
 
               {/* ── Bloques laterales — solo desktop, inline ───────────────── */}
               <div className="hidden sm:block mt-4 space-y-3">
