@@ -856,7 +856,7 @@ export function EditorMapa({
                 {mode === "mover"
                   ? selectedReinoId
                     ? `→ "${reinos.find((r) => r.id === selectedReinoId)?.nombre}" seleccionado · click vacío para reubicarlo`
-                    : "click un reino para editarlo (panel derecho) o reubicarlo"
+                    : "click un reino para abrirlo en la lista · mantén seleccionado para reubicarlo"
                   : "click imagen para cambiarla · click vacío crea tile · arrastra para reordenar"}
               </span>
 

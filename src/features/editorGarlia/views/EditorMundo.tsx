@@ -707,11 +707,32 @@ function PanelListas({
   const [selectedCancion, setSelectedCancion] = useState<Cancion | null>(null);
   const [showModalCancion, setShowModalCancion] = useState(false);
 
-  // ── Reino abierto en el panel lateral del mapa (independiente del overlay) ──
-  const [mapaReinoId, setMapaReinoId] = useState<string | null>(null);
-  const mapaReino = mapaReinoId
-    ? (reinos.find((r) => r.id === mapaReinoId) ?? null)
-    : null;
+  // ── Reino resaltado desde el mapa (flash en la lista, sin panel lateral) ──
+  const [highlightedReinoId, setHighlightedReinoId] = useState<string | null>(
+    null,
+  );
+  const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reinosSeccionRef = useRef<{ expand: () => void } | null>(null);
+  const reinosChipRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+
+  const flashReino = useCallback((id: string) => {
+    // Expande la sección si estaba colapsada
+    reinosSeccionRef.current?.expand();
+    // Resaltar el chip
+    if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
+    setHighlightedReinoId(id);
+    // Scroll al chip tras dos frames (esperar que React expanda la sección)
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const chipEl = reinosChipRefs.current[id];
+        chipEl?.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+    });
+    highlightTimerRef.current = setTimeout(
+      () => setHighlightedReinoId(null),
+      2500,
+    );
+  }, []);
 
   // ── Scroll position ───────────────────────────────────────────────────────
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -1110,31 +1131,47 @@ function PanelListas({
   }, [clearAllOverlays]);
 
   // ── Helper: chip genérico ─────────────────────────────────────────────────
-  function Chip({
-    onClick,
-    imgUrl,
-    icon: Icon,
-    nombre,
-    accentBg,
-    accentBorder,
-    accentText,
-    fullWidth,
-    noMaxW,
-  }: {
-    onClick: () => void;
-    imgUrl?: string | null;
-    icon: React.ElementType;
-    nombre: string;
-    accentBg?: string;
-    accentBorder?: string;
-    accentText?: string;
-    fullWidth?: boolean;
-    noMaxW?: boolean;
-  }) {
+  const Chip = React.forwardRef<
+    HTMLButtonElement,
+    {
+      onClick: () => void;
+      imgUrl?: string | null;
+      icon: React.ElementType;
+      nombre: string;
+      accentBg?: string;
+      accentBorder?: string;
+      accentText?: string;
+      fullWidth?: boolean;
+      noMaxW?: boolean;
+      highlighted?: boolean;
+    }
+  >(function Chip(
+    {
+      onClick,
+      imgUrl,
+      icon: Icon,
+      nombre,
+      accentBg,
+      accentBorder,
+      accentText,
+      fullWidth,
+      noMaxW,
+      highlighted,
+    },
+    ref,
+  ) {
     const hasImg = !!imgUrl;
+    const highlightStyle: React.CSSProperties = highlighted
+      ? {
+          boxShadow: "0 0 0 2px var(--accent)",
+          borderColor: "var(--accent)",
+          transition: "box-shadow 0.15s ease, border-color 0.15s ease",
+        }
+      : {};
     if (hasImg) {
       return (
         <button
+          ref={ref}
           className={`relative rounded-xl border overflow-hidden transition-all hover:scale-[1.02] active:scale-[0.98]${fullWidth ? " w-full" : ""}`}
           style={{
             background:
@@ -1144,6 +1181,7 @@ function PanelListas({
               "color-mix(in srgb, var(--primary) 12%, transparent)",
             aspectRatio: "1/1",
             width: "100%",
+            ...highlightStyle,
           }}
           title={nombre}
           type="button"
@@ -1159,6 +1197,7 @@ function PanelListas({
     }
     return (
       <button
+        ref={ref}
         className={`flex items-center rounded-xl border transition-all hover:scale-[1.02] active:scale-[0.98]${fullWidth ? " w-full" : ""} px-3 py-1.5`}
         style={{
           background:
@@ -1166,6 +1205,7 @@ function PanelListas({
           borderColor:
             accentBorder ??
             "color-mix(in srgb, var(--primary) 12%, transparent)",
+          ...highlightStyle,
         }}
         type="button"
         onClick={onClick}
@@ -1182,30 +1222,39 @@ function PanelListas({
         </span>
       </button>
     );
-  }
+  });
 
   // ── Helper: sección de entidades ─────────────────────────────────────────
-  function SeccionEntidades({
-    icon: Icon,
-    label,
-    count,
-    loading,
-    children,
-    cols = 3,
-    minColWidth = "60px",
-    defaultCollapsed = false,
-    storageKey,
-  }: {
-    icon: React.ElementType;
-    label: string;
-    count: number;
-    loading: boolean;
-    children: React.ReactNode;
-    cols?: 1 | 3;
-    minColWidth?: string;
-    defaultCollapsed?: boolean;
-    storageKey?: string;
-  }) {
+  // Ref imperativa: permite que el padre llame a expand() sobre la sección
+  type SeccionHandle = { expand: () => void };
+
+  const SeccionEntidades = React.forwardRef<
+    SeccionHandle,
+    {
+      icon: React.ElementType;
+      label: string;
+      count: number;
+      loading: boolean;
+      children: React.ReactNode;
+      cols?: 1 | 3;
+      minColWidth?: string;
+      defaultCollapsed?: boolean;
+      storageKey?: string;
+    }
+  >(function SeccionEntidades(
+    {
+      icon: Icon,
+      label,
+      count,
+      loading,
+      children,
+      cols = 3,
+      minColWidth = "60px",
+      defaultCollapsed = false,
+      storageKey,
+    },
+    ref,
+  ) {
     const lsKey = storageKey ? `garlia-section-collapsed-${storageKey}` : null;
     const [collapsed, setCollapsed] = useState<boolean>(() => {
       if (lsKey) {
@@ -1228,6 +1277,23 @@ function PanelListas({
         return next;
       });
     };
+
+    // Exponer expand() al padre vía ref
+    React.useImperativeHandle(ref, () => ({
+      expand: () => {
+        setCollapsed((prev) => {
+          if (prev) {
+            if (lsKey) {
+              try {
+                localStorage.setItem(lsKey, "false");
+              } catch {}
+            }
+            return false;
+          }
+          return prev;
+        });
+      },
+    }));
 
     return (
       <div className="pb-1">
@@ -1275,7 +1341,7 @@ function PanelListas({
           ))}
       </div>
     );
-  }
+  });
 
   const div = "border-t my-2" as const;
   const divStyle = {
@@ -1893,6 +1959,7 @@ function PanelListas({
                 <div className={`${div} sm:hidden`} style={divStyle} />
 
                 <SeccionEntidades
+                  ref={reinosSeccionRef}
                   count={reinos.length}
                   icon={Map}
                   label={el.reinos}
@@ -1909,9 +1976,13 @@ function PanelListas({
                     .map((r) => (
                       <Chip
                         key={r.id}
+                        ref={(el) => {
+                          reinosChipRefs.current[r.id] = el;
+                        }}
                         icon={Map}
                         imgUrl={r.mapa_url}
                         nombre={r.nombre}
+                        highlighted={highlightedReinoId === r.id}
                         onClick={() => selectReino(r)}
                       />
                     ))}
@@ -2216,96 +2287,10 @@ function PanelListas({
             position: "relative",
           }}
         >
-          {/* Mapa — ocupa todo el ancho siempre */}
+          {/* Mapa — ocupa todo el ancho; al click en un reino sube a la lista */}
           <div className="flex flex-col min-h-0" style={{ minHeight: "68vh" }}>
-            <EditorMapa onSelectReino={(id) => setMapaReinoId(id)} />
+            <EditorMapa onSelectReino={(id) => flashReino(id)} />
           </div>
-
-          {/* Panel flotante — se superpone sobre el mapa, no le quita ancho */}
-          {mapaReino && (
-            <div
-              className="absolute top-0 right-0 bottom-0 w-full sm:w-[min(680px,65%)] z-20 flex flex-col min-h-0"
-              style={{
-                borderLeft:
-                  "var(--border-width) solid color-mix(in srgb, var(--primary) 15%, transparent)",
-                background: "var(--bg-main)",
-                boxShadow: "-8px 0 24px -4px rgba(0,0,0,0.25)",
-              }}
-            >
-              <div
-                className="shrink-0 flex items-center justify-between px-3"
-                style={{
-                  height: 40,
-                  borderBottom:
-                    "var(--border-width) solid color-mix(in srgb, var(--primary) 8%, transparent)",
-                  background: "var(--bg-main)",
-                }}
-              >
-                <span className="text-[10px] font-black uppercase tracking-widest text-primary/50 truncate">
-                  {mapaReino.nombre}
-                </span>
-                <button
-                  className="opacity-50 hover:opacity-100 transition-opacity shrink-0"
-                  title="Cerrar"
-                  onClick={() => setMapaReinoId(null)}
-                >
-                  <X size={14} />
-                </button>
-              </div>
-              <div className="flex-1 flex min-h-0 overflow-hidden">
-                <EditorReino
-                  key={mapaReino.id}
-                  entities={allEntityNames}
-                  item={mapaReino}
-                  onDeleted={(id) => {
-                    setReinos((p) => p.filter((r) => r.id !== id));
-                    setMapaReinoId(null);
-                  }}
-                  onSaved={(u) => {
-                    setReinos((p) => p.map((r) => (r.id === u.id ? u : r)));
-                  }}
-                  onSelectCiudad={async (id: string) => {
-                    const local = ciudades.find((x) => x.id === id);
-                    setMapaReinoId(null);
-                    clearAllOverlays();
-                    if (local) {
-                      setSelectedCiudad(local as Ciudad);
-                      return;
-                    }
-                    const { data } = await supabase
-                      .from("ciudades")
-                      .select("*")
-                      .eq("id", id)
-                      .single();
-                    if (data) setSelectedCiudad(data as Ciudad);
-                  }}
-                  onSelectCriatura={(id) => {
-                    const c = criaturas.find((x) => x.id === id);
-                    if (!c) return;
-                    setMapaReinoId(null);
-                    clearAllOverlays();
-                    setSelectedCriatura(c);
-                  }}
-                  onSelectItem={(id) => {
-                    const o = objetos.find((x) => x.id === id);
-                    if (!o) return;
-                    setMapaReinoId(null);
-                    clearAllOverlays();
-                    setSelectedObjeto(o);
-                  }}
-                  onSelectPersonaje={(p) => {
-                    const found = personajes.find(
-                      (x) => x.id === p?.id || x.nombre === p?.nombre,
-                    );
-                    if (!found) return;
-                    setMapaReinoId(null);
-                    clearAllOverlays();
-                    setSelectedPersonaje(found);
-                  }}
-                />
-              </div>
-            </div>
-          )}
         </div>
 
         {/* RELACIONES */}
