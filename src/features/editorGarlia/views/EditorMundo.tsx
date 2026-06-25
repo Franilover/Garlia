@@ -714,24 +714,50 @@ function PanelListas({
   const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reinosSeccionRef = useRef<{ expand: () => void } | null>(null);
   const reinosChipRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  // Refs que se actualizan cada render para evitar closures stale
+  const selectReinoRef = useRef<((r: Reino) => void) | null>(null);
+  const reinosRef = useRef<Reino[]>([]);
 
   const flashReino = useCallback((id: string) => {
-    // Expande la sección si estaba colapsada
+    // 1. Expande la sección si estaba colapsada
     reinosSeccionRef.current?.expand();
-    // Resaltar el chip
+
+    // 2. Resaltar el chip visualmente
     if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
     setHighlightedReinoId(id);
-    // Scroll al chip tras dos frames (esperar que React expanda la sección)
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        const chipEl = reinosChipRefs.current[id];
-        chipEl?.scrollIntoView({ behavior: "smooth", block: "center" });
-      });
-    });
     highlightTimerRef.current = setTimeout(
       () => setHighlightedReinoId(null),
       2500,
     );
+
+    // 3. Abrir el editor del reino en el siguiente tick
+    //    (para que React procese primero la expansión de la sección)
+    setTimeout(() => {
+      const reino = reinosRef.current.find((r) => r.id === id);
+      if (reino) selectReinoRef.current?.(reino);
+    }, 0);
+
+    // 4. Scroll al chip dentro del contenedor scrollable, tras dos frames
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const chipEl = reinosChipRefs.current[id];
+        if (!chipEl) return;
+        const container = scrollRef.current;
+        if (container) {
+          const chipRect = chipEl.getBoundingClientRect();
+          const containerRect = container.getBoundingClientRect();
+          const offset =
+            chipRect.top -
+            containerRect.top +
+            container.scrollTop -
+            containerRect.height / 2 +
+            chipRect.height / 2;
+          container.scrollTo({ top: offset, behavior: "smooth" });
+        } else {
+          chipEl.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      });
+    });
   }, []);
 
   // ── Scroll position ───────────────────────────────────────────────────────
@@ -785,6 +811,9 @@ function PanelListas({
     },
     [persistOpenItem, clearPersistedItem],
   );
+  // Mantener refs sincronizados para que flashReino pueda usarlos sin closure stale
+  reinosRef.current = reinos;
+  selectReinoRef.current = selectReino;
   const selectCriatura = useCallback(
     (c: any | null) => {
       setSelectedCriatura(c);
