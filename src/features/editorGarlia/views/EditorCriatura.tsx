@@ -2576,6 +2576,7 @@ export function EditorCriatura({
 
       {/* ── CONTENIDO PRINCIPAL ──────────────────────────────────────────────── */}
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+
         {/* ── Header compacto ──────────────────────────────────────────────── */}
         <div
           className="shrink-0 flex items-center gap-2 px-3 py-2 border-b"
@@ -2587,11 +2588,7 @@ export function EditorCriatura({
           {/* Avatar */}
           <div className="shrink-0 w-7 h-7 rounded-lg overflow-hidden border border-primary/15 bg-primary/5 flex items-center justify-center">
             {form.imagen_url ? (
-              <Image
-                alt={form.nombre}
-                className="w-full h-full object-cover"
-                src={form.imagen_url}
-              />
+              <Image alt={form.nombre} className="w-full h-full object-cover" src={form.imagen_url} />
             ) : (
               <Bug className="text-primary/25" size={13} />
             )}
@@ -2630,10 +2627,8 @@ export function EditorCriatura({
         </div>
 
         {/* ── Contenido superior ───────────────────────────────────────────── */}
-        <div
-          className="flex-1 min-h-0 p-3 flex flex-col gap-3 overflow-y-auto"
-          style={{ scrollbarWidth: "none" }}
-        >
+        <div className="flex-1 min-h-0 p-3 flex flex-col gap-3 overflow-y-auto" style={{ scrollbarWidth: "none" }}>
+
           {/* Imagen + Descripción */}
           <div className="flex gap-3">
             <div className="hidden sm:block shrink-0 w-36">
@@ -2647,11 +2642,7 @@ export function EditorCriatura({
             </div>
             <div className="sm:hidden shrink-0 relative w-24 h-24 rounded-xl overflow-hidden border border-primary/10 bg-primary/3">
               {form.imagen_url ? (
-                <Image
-                  alt={form.nombre}
-                  className="w-full h-full object-cover"
-                  src={form.imagen_url}
-                />
+                <Image alt={form.nombre} className="w-full h-full object-cover" src={form.imagen_url} />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
                   <Bug className="text-primary/15" size={32} />
@@ -2660,9 +2651,7 @@ export function EditorCriatura({
               <div className="absolute top-1.5 right-1.5 z-10">
                 <PickerImagenCriaturaBtn
                   value={form.imagen_url ?? ""}
-                  onChange={(url) =>
-                    setForm((f) => ({ ...f, imagen_url: url }))
-                  }
+                  onChange={(url) => setForm((f) => ({ ...f, imagen_url: url }))}
                 />
               </div>
             </div>
@@ -2688,8 +2677,7 @@ export function EditorCriatura({
             className="rounded-xl p-2.5"
             style={{
               background: "color-mix(in srgb, var(--primary) 2%, transparent)",
-              border:
-                "1px solid color-mix(in srgb, var(--primary) 7%, transparent)",
+              border: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)",
             }}
           >
             <p className="text-[7.5px] font-black uppercase tracking-[0.28em] text-primary/25 mb-2 px-0.5">
@@ -2698,19 +2686,11 @@ export function EditorCriatura({
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
               {(
                 [
-                  { label: "Hábitat", subtipo: "Hábitat", icon: Globe },
-                  {
-                    label: "Inteligencia",
-                    subtipo: "Inteligencia",
-                    icon: Brain,
-                  },
-                  { label: "Alma", subtipo: "Alma", icon: Wand2 },
-                  { label: "Usar Mana", subtipo: "Usar Mana", icon: Sparkles },
-                  {
-                    label: "Produce Mana",
-                    subtipo: "Produce Mana",
-                    icon: Star,
-                  },
+                  { label: "Hábitat",      subtipo: "Hábitat",       icon: Globe },
+                  { label: "Inteligencia", subtipo: "Inteligencia",  icon: Brain },
+                  { label: "Alma",         subtipo: "Alma",          icon: Wand2 },
+                  { label: "Usar Mana",    subtipo: "Usar Mana",     icon: Sparkles },
+                  { label: "Produce Mana", subtipo: "Produce Mana",  icon: Star },
                 ] as const
               ).map(({ label, subtipo, icon }) => (
                 <div key={subtipo} className="flex flex-col gap-0.5">
@@ -2731,6 +2711,7 @@ export function EditorCriatura({
               ))}
             </div>
           </div>
+
         </div>
 
         {/* ── BARRA DE ENTIDADES — fila horizontal inferior ────────────────── */}
@@ -2742,20 +2723,10 @@ export function EditorCriatura({
             background: "color-mix(in srgb, var(--primary) 1.5%, transparent)",
           }}
         >
-          {/* Personajes — flex 2 (más ancho) */}
-          <div
-            className="flex flex-col min-w-0 overflow-hidden border-r"
-            style={{
-              flex: "2 1 0",
-              borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)",
-            }}
-          >
+          {/* Personajes - se expande, mas columnas */}
+          <div className="flex-1 flex flex-col min-w-0 overflow-hidden border-r" style={{ borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)" }}>
             <SeccionEntidad
-              allEntities={allPersonajes.map((p) => ({
-                id: p.id,
-                nombre: p.nombre,
-                imagen_url: p.img_url,
-              }))}
+              allEntities={allPersonajes.map((p) => ({ id: p.id, nombre: p.nombre, imagen_url: p.img_url }))}
               columns={2}
               emptyLabel="Sin personajes"
               fallbackIcon={<UserCircle2 size={14} strokeWidth={1} />}
@@ -2769,19 +2740,10 @@ export function EditorCriatura({
             />
           </div>
 
-          {/* Territorio */}
-          <div
-            className="flex flex-col min-w-0 overflow-hidden border-r"
-            style={{
-              flex: "1 1 0",
-              borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)",
-            }}
-          >
+          {/* Territorio - ancho fijo */}
+          <div className="shrink-0 flex flex-col overflow-hidden border-r" style={{ width: "110px", borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)" }}>
             <SeccionEntidad
-              allEntities={allReinos.map((r) => ({
-                id: r.id,
-                nombre: r.nombre,
-              }))}
+              allEntities={allReinos.map((r) => ({ id: r.id, nombre: r.nombre }))}
               emptyLabel="Sin territorio"
               fallbackIcon={<Globe size={14} strokeWidth={1} />}
               icon={<Globe size={9} />}
@@ -2794,31 +2756,14 @@ export function EditorCriatura({
             />
           </div>
 
-          {/* Ciudades */}
-          <div
-            className="flex flex-col min-w-0 overflow-hidden border-r"
-            style={{
-              flex: "1 1 0",
-              borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)",
-            }}
-          >
+          {/* Ciudades - ancho fijo */}
+          <div className="shrink-0 flex flex-col overflow-hidden border-r" style={{ width: "110px", borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)" }}>
             <SeccionEntidad
-              allEntities={ciudadesConReino.map((l) => ({
-                id: l.id,
-                nombre: l.nombre,
-              }))}
-              emptyLabel={
-                reinosSeleccionadosIds.length > 0
-                  ? "Sin ciudades en estos reinos"
-                  : "Sin ciudades"
-              }
+              allEntities={ciudadesConReino.map((l) => ({ id: l.id, nombre: l.nombre }))}
+              emptyLabel={reinosSeleccionadosIds.length > 0 ? "Sin ciudades en estos reinos" : "Sin ciudades"}
               fallbackIcon={<MapPin size={14} strokeWidth={1} />}
               icon={<MapPin size={9} />}
-              label={
-                reinosSeleccionadosIds.length > 0
-                  ? `Ciudades (${reinosSeleccionadosIds.length})`
-                  : "Ciudades"
-              }
+              label={reinosSeleccionadosIds.length > 0 ? `Ciudades (${reinosSeleccionadosIds.length})` : "Ciudades"}
               loading={loadingCiudades}
               saving={savingCiudades}
               selectedIds={ciudadRows.map((r) => r.ciudadId)}
@@ -2827,20 +2772,10 @@ export function EditorCriatura({
             />
           </div>
 
-          {/* Creaciones */}
-          <div
-            className="flex flex-col min-w-0 overflow-hidden border-r"
-            style={{
-              flex: "1 1 0",
-              borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)",
-            }}
-          >
+          {/* Creaciones - ancho fijo */}
+          <div className="shrink-0 flex flex-col overflow-hidden border-r" style={{ width: "110px", borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)" }}>
             <SeccionEntidad
-              allEntities={allCraftedItems.map((i) => ({
-                id: i.id,
-                nombre: i.nombre,
-                imagen_url: i.imagen_url,
-              }))}
+              allEntities={allCraftedItems.map((i) => ({ id: i.id, nombre: i.nombre, imagen_url: i.imagen_url }))}
               emptyLabel="Sin creaciones"
               fallbackIcon={<Package size={14} strokeWidth={1} />}
               icon={<Wrench size={9} />}
@@ -2853,20 +2788,11 @@ export function EditorCriatura({
             />
           </div>
 
-          {/* Hechizos (si mágico) + Dones */}
-          <div
-            className="flex flex-col min-w-0 overflow-hidden"
-            style={{ flex: "1 1 0" }}
-          >
+          {/* Hechizos + Dones - ancho fijo */}
+          <div className="shrink-0 flex flex-col overflow-hidden" style={{ width: "110px" }}>
             {grupoEsMagico(gruposActuales) ? (
               <>
-                <div
-                  className="flex-1 min-h-0 overflow-hidden flex flex-col border-b"
-                  style={{
-                    borderColor:
-                      "color-mix(in srgb, var(--primary) 7%, transparent)",
-                  }}
-                >
+                <div className="flex-1 min-h-0 overflow-hidden flex flex-col border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)" }}>
                   <BloqueMagico
                     criaturaId={form.id}
                     gruposActuales={gruposActuales.map((g) => g.id)}
@@ -2896,6 +2822,7 @@ export function EditorCriatura({
             )}
           </div>
         </div>
+
       </div>
 
       {/* ── BARRA DE ENTIDADES — mobile drawer ───────────────────────────────── */}
@@ -2903,9 +2830,7 @@ export function EditorCriatura({
         <div className="sm:hidden fixed inset-0 z-50 flex justify-end">
           <div
             className="absolute inset-0"
-            style={{
-              background: "color-mix(in srgb, var(--primary) 20%, transparent)",
-            }}
+            style={{ background: "color-mix(in srgb, var(--primary) 20%, transparent)" }}
             onClick={() => setMobileAsideOpen(false)}
           />
           <div
@@ -2913,34 +2838,23 @@ export function EditorCriatura({
             style={{
               width: "200px",
               background: "var(--white-custom, var(--bg-main))",
-              borderLeft:
-                "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+              borderLeft: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
               scrollbarWidth: "none",
             }}
           >
             <div
               className="shrink-0 flex items-center justify-between px-3 py-2 border-b"
-              style={{
-                borderColor:
-                  "color-mix(in srgb, var(--primary) 10%, transparent)",
-              }}
+              style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
             >
               <span className="text-[8px] font-black uppercase tracking-[0.2em] flex items-center gap-1.5 text-primary/40">
                 <SlidersHorizontal size={9} /> Entidades
               </span>
-              <button
-                className="p-1 rounded-lg text-primary/30 hover:text-primary hover:bg-primary/8 transition-all"
-                onClick={() => setMobileAsideOpen(false)}
-              >
+              <button className="p-1 rounded-lg text-primary/30 hover:text-primary hover:bg-primary/8 transition-all" onClick={() => setMobileAsideOpen(false)}>
                 <X size={13} />
               </button>
             </div>
             <SeccionEntidad
-              allEntities={allPersonajes.map((p) => ({
-                id: p.id,
-                nombre: p.nombre,
-                imagen_url: p.img_url,
-              }))}
+              allEntities={allPersonajes.map((p) => ({ id: p.id, nombre: p.nombre, imagen_url: p.img_url }))}
               columns={2}
               emptyLabel="Sin personajes"
               fallbackIcon={<UserCircle2 size={14} strokeWidth={1} />}
@@ -2952,17 +2866,9 @@ export function EditorCriatura({
               onEntityClick={(id) => onSelectPersonaje?.(id)}
               onToggle={handleTogglePersonaje}
             />
-            <div
-              style={{
-                borderTop:
-                  "1px solid color-mix(in srgb, var(--primary) 7%, transparent)",
-              }}
-            />
+            <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
             <SeccionEntidad
-              allEntities={allReinos.map((r) => ({
-                id: r.id,
-                nombre: r.nombre,
-              }))}
+              allEntities={allReinos.map((r) => ({ id: r.id, nombre: r.nombre }))}
               emptyLabel="Sin territorio"
               fallbackIcon={<Globe size={14} strokeWidth={1} />}
               icon={<Globe size={9} />}
@@ -2973,47 +2879,22 @@ export function EditorCriatura({
               onEntityClick={(id) => onNavigateReino?.(id)}
               onToggle={(id, add) => handleToggleReino(id, add)}
             />
-            <div
-              style={{
-                borderTop:
-                  "1px solid color-mix(in srgb, var(--primary) 7%, transparent)",
-              }}
-            />
+            <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
             <SeccionEntidad
-              allEntities={ciudadesConReino.map((l) => ({
-                id: l.id,
-                nombre: l.nombre,
-              }))}
-              emptyLabel={
-                reinosSeleccionadosIds.length > 0
-                  ? "Sin ciudades en estos reinos"
-                  : "Sin ciudades"
-              }
+              allEntities={ciudadesConReino.map((l) => ({ id: l.id, nombre: l.nombre }))}
+              emptyLabel={reinosSeleccionadosIds.length > 0 ? "Sin ciudades en estos reinos" : "Sin ciudades"}
               fallbackIcon={<MapPin size={14} strokeWidth={1} />}
               icon={<MapPin size={9} />}
-              label={
-                reinosSeleccionadosIds.length > 0
-                  ? `Ciudades (${reinosSeleccionadosIds.length})`
-                  : "Ciudades"
-              }
+              label={reinosSeleccionadosIds.length > 0 ? `Ciudades (${reinosSeleccionadosIds.length})` : "Ciudades"}
               loading={loadingCiudades}
               saving={savingCiudades}
               selectedIds={ciudadRows.map((r) => r.ciudadId)}
               onEntityClick={(id) => onNavigateCiudad?.(id)}
               onToggle={(id, add) => handleToggleCiudad(id, add)}
             />
-            <div
-              style={{
-                borderTop:
-                  "1px solid color-mix(in srgb, var(--primary) 7%, transparent)",
-              }}
-            />
+            <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
             <SeccionEntidad
-              allEntities={allCraftedItems.map((i) => ({
-                id: i.id,
-                nombre: i.nombre,
-                imagen_url: i.imagen_url,
-              }))}
+              allEntities={allCraftedItems.map((i) => ({ id: i.id, nombre: i.nombre, imagen_url: i.imagen_url }))}
               emptyLabel="Sin creaciones"
               fallbackIcon={<Package size={14} strokeWidth={1} />}
               icon={<Wrench size={9} />}
@@ -3024,12 +2905,7 @@ export function EditorCriatura({
               onEntityClick={(id) => onSelectItem?.(id)}
               onToggle={handleToggleCrafted}
             />
-            <div
-              style={{
-                borderTop:
-                  "1px solid color-mix(in srgb, var(--primary) 7%, transparent)",
-              }}
-            />
+            <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
             {grupoEsMagico(gruposActuales) && (
               <>
                 <BloqueMagico
@@ -3039,12 +2915,7 @@ export function EditorCriatura({
                   label="Hechizos"
                   usarHook="hechizos"
                 />
-                <div
-                  style={{
-                    borderTop:
-                      "1px solid color-mix(in srgb, var(--primary) 7%, transparent)",
-                  }}
-                />
+                <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }} />
               </>
             )}
             <BloqueMagico
