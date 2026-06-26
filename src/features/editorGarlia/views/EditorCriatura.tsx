@@ -2735,16 +2735,16 @@ export function EditorCriatura({
 
         {/* ── BARRA DE ENTIDADES — fila horizontal inferior ────────────────── */}
         <div
-          className="shrink-0 hidden sm:flex border-t overflow-hidden"
+          className="shrink-0 hidden sm:flex border-t overflow-y-auto"
           style={{
-            height: "180px",
+            maxHeight: "60vh",
             borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
             background: "color-mix(in srgb, var(--primary) 1.5%, transparent)",
           }}
         >
           {/* Personajes - se expande, mas columnas */}
           <div
-            className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden border-r"
+            className="flex-1 flex flex-col min-w-0 border-r"
             style={{
               borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)",
             }}
@@ -2758,6 +2758,7 @@ export function EditorCriatura({
               columns={8}
               emptyLabel="Sin personajes"
               fallbackIcon={<UserCircle2 size={14} strokeWidth={1} />}
+              fill={false}
               icon={<Users size={9} />}
               label="Personajes"
               loading={loadingPersonajes}
@@ -2770,7 +2771,7 @@ export function EditorCriatura({
 
           {/* Territorio - ancho fijo */}
           <div
-            className="shrink-0 flex flex-col overflow-hidden border-r"
+            className="shrink-0 flex flex-col border-r"
             style={{
               width: "110px",
               borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)",
@@ -2783,6 +2784,7 @@ export function EditorCriatura({
               }))}
               emptyLabel="Sin territorio"
               fallbackIcon={<Globe size={14} strokeWidth={1} />}
+              fill={false}
               icon={<Globe size={9} />}
               label="Territorio"
               loading={loadingReinos}
@@ -2795,7 +2797,7 @@ export function EditorCriatura({
 
           {/* Ciudades - ancho fijo */}
           <div
-            className="shrink-0 flex flex-col overflow-hidden border-r"
+            className="shrink-0 flex flex-col border-r"
             style={{
               width: "110px",
               borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)",
@@ -2812,6 +2814,7 @@ export function EditorCriatura({
                   : "Sin ciudades"
               }
               fallbackIcon={<MapPin size={14} strokeWidth={1} />}
+              fill={false}
               icon={<MapPin size={9} />}
               label={
                 reinosSeleccionadosIds.length > 0
@@ -2828,7 +2831,7 @@ export function EditorCriatura({
 
           {/* Creaciones - ancho fijo */}
           <div
-            className="shrink-0 flex flex-col overflow-hidden border-r"
+            className="shrink-0 flex flex-col border-r"
             style={{
               width: "110px",
               borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)",
@@ -2842,6 +2845,7 @@ export function EditorCriatura({
               }))}
               emptyLabel="Sin creaciones"
               fallbackIcon={<Package size={14} strokeWidth={1} />}
+              fill={false}
               icon={<Wrench size={9} />}
               label="Creaciones"
               loading={loadingCrafted}
