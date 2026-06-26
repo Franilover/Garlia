@@ -257,6 +257,19 @@ export async function libroUpdateMeta(
 ): Promise<void> {
   const { error } = await supabase.from("libros").update(fields).eq("id", id);
   if (error) throw error;
+
+  // Sincronizar Dexie para que el cache refleje los cambios (ej: trigger_warnings)
+  try {
+    const table = (db as any)["libros"];
+    if (table) {
+      const existing = await table.get(id);
+      if (existing) {
+        await table.put({ ...existing, ...fields });
+      }
+    }
+  } catch (e) {
+    console.warn("[Dexie] libroUpdateMeta:", e);
+  }
 }
 
 export async function libroDelete(id: string): Promise<void> {

@@ -1,6 +1,12 @@
 "use client";
 
-import { Play, Clock, CheckCircle2 } from "lucide-react";
+import {
+  Play,
+  Clock,
+  CheckCircle2,
+  TriangleAlert,
+  ArrowLeft,
+} from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import React, { useEffect, useState, useRef } from "react";
 
@@ -89,10 +95,12 @@ function ModalTriggerWarning({
   titulo,
   warnings,
   onAceptar,
+  onRechazar,
 }: {
   titulo: string;
   warnings: string[];
   onAceptar: () => void;
+  onRechazar: () => void;
 }) {
   return (
     <div
@@ -140,7 +148,10 @@ function ModalTriggerWarning({
               marginBottom: 8,
             }}
           >
-            <span style={{ fontSize: 20, lineHeight: 1 }}>⚠️</span>
+            <TriangleAlert
+              size={16}
+              style={{ color: "var(--callout-warning-title)", flexShrink: 0 }}
+            />
             <span
               style={{
                 fontSize: 10,
@@ -202,8 +213,15 @@ function ModalTriggerWarning({
           ))}
         </div>
 
-        {/* Botón */}
-        <div style={{ padding: "0 22px 22px" }}>
+        {/* Botones */}
+        <div
+          style={{
+            padding: "0 22px 22px",
+            display: "flex",
+            flexDirection: "column" as const,
+            gap: 8,
+          }}
+        >
           <button
             className="w-full py-3 rounded-[var(--radius-btn)] bg-primary font-black uppercase tracking-widest transition-opacity hover:opacity-85"
             style={{
@@ -216,6 +234,26 @@ function ModalTriggerWarning({
             onClick={onAceptar}
           >
             Soy consciente · Continuar
+          </button>
+          <button
+            className="w-full py-2.5 rounded-[var(--radius-btn)] font-black uppercase tracking-widest transition-all hover:bg-primary/8"
+            style={{
+              fontSize: 10,
+              fontFamily: "var(--font-mono)",
+              color: "color-mix(in srgb, var(--primary) 40%, transparent)",
+              border:
+                "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 6,
+              background: "transparent",
+            }}
+            onClick={onRechazar}
+          >
+            <ArrowLeft size={10} />
+            Volver a la biblioteca
           </button>
         </div>
       </div>
@@ -634,6 +672,10 @@ export default function LibroDetalle() {
             router.push(pendingRouteRef.current);
             pendingRouteRef.current = null;
           }
+        }}
+        onRechazar={() => {
+          setMostrarModalTW(false);
+          router.push("/garlia/libros");
         }}
       />
     ) : null;
