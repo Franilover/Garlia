@@ -48,8 +48,8 @@ type SeccionEntidadProps = {
   saving: boolean;
   onToggle: (id: string, add: boolean) => void;
   onEntityClick?: (id: string) => void;
-  /** Mostrar entidades seleccionadas en 2 columnas cuando hay muchas */
-  columns?: 2;
+  /** Mostrar entidades seleccionadas en grid de N columnas en vez de lista (1 fila c/u) */
+  columns?: number;
   /**
    * Si true (default), la sección ocupa todo el espacio disponible del
    * contenedor flex padre y la lista de seleccionados scrollea internamente
@@ -556,9 +556,14 @@ export const SeccionEntidad = ({
               {emptyLabel}
             </p>
           </div>
-        ) : columns === 2 ? (
-          /* ── Grid 2 columnas ── */
-          <div className="grid grid-cols-2 gap-1 p-2">
+        ) : columns ? (
+          /* ── Grid N columnas ── */
+          <div
+            className="grid gap-1 p-2"
+            style={{
+              gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+            }}
+          >
             {selected.map((e) => (
               <div
                 key={e.id}
