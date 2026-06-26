@@ -2629,191 +2629,107 @@ export function EditorCriatura({
           </div>
         </div>
 
-        {/* ── Contenido scrollable ─────────────────────────────────────────── */}
+        {/* ── Contenido ────────────────────────────────────────────────────── */}
         <div
-          className="flex-1 overflow-y-auto min-h-0"
-          style={{ scrollbarWidth: "thin" }}
+          className="flex-1 min-h-0 p-3 flex flex-col gap-3 overflow-y-auto"
+          style={{ scrollbarWidth: "none" }}
         >
-          <div className="p-3 space-y-3">
-            {/* ── Fila 1: Imagen pequeña + Descripción ─────────────────────── */}
-            <div className="flex gap-3">
-              {/* Imagen cuadrada compacta — desktop */}
-              <div className="hidden sm:block shrink-0 w-24">
-                <SelectorImagen
-                  aspect="square"
-                  label=""
-                  placeholder={<Bug className="opacity-20" size={16} />}
+          {/* Imagen + Descripción */}
+          <div className="flex gap-3">
+            {/* Imagen — desktop */}
+            <div className="hidden sm:block shrink-0 w-36">
+              <SelectorImagen
+                aspect="square"
+                label=""
+                placeholder={<Bug className="opacity-20" size={20} />}
+                value={form.imagen_url ?? ""}
+                onChange={(url) => setForm((f) => ({ ...f, imagen_url: url }))}
+              />
+            </div>
+            {/* Imagen — mobile */}
+            <div className="sm:hidden shrink-0 relative w-24 h-24 rounded-xl overflow-hidden border border-primary/10 bg-primary/3">
+              {form.imagen_url ? (
+                <Image
+                  alt={form.nombre}
+                  className="w-full h-full object-cover"
+                  src={form.imagen_url}
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <Bug className="text-primary/15" size={32} />
+                </div>
+              )}
+              <div className="absolute top-1.5 right-1.5 z-10">
+                <PickerImagenCriaturaBtn
                   value={form.imagen_url ?? ""}
                   onChange={(url) =>
                     setForm((f) => ({ ...f, imagen_url: url }))
                   }
                 />
               </div>
-              {/* Imagen mobile con botón flotante */}
-              <div className="sm:hidden shrink-0 relative w-20 h-20 rounded-xl overflow-hidden border border-primary/10 bg-primary/3">
-                {form.imagen_url ? (
-                  <Image
-                    alt={form.nombre}
-                    className="w-full h-full object-cover"
-                    src={form.imagen_url}
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <Bug className="text-primary/15" size={28} />
-                  </div>
-                )}
-                <div className="absolute top-1 right-1 z-10">
-                  <PickerImagenCriaturaBtn
-                    value={form.imagen_url ?? ""}
-                    onChange={(url) =>
-                      setForm((f) => ({ ...f, imagen_url: url }))
-                    }
-                  />
-                </div>
-              </div>
-
-              {/* Descripción */}
-              <div className="flex-1 min-w-0 flex flex-col gap-1">
-                <label className="text-[8px] font-black uppercase tracking-[0.25em] text-primary/30">
-                  Descripción
-                </label>
-                <MarkdownEditor
-                  toolbar
-                  defaultMode="edit"
-                  entities={entities}
-                  placeholder="Aspecto físico general…"
-                  rows={4}
-                  value={form.descripcion ?? ""}
-                  onChange={(v) => setForm((f) => ({ ...f, descripcion: v }))}
-                  onSnippetAction={onSnippetAction}
-                />
-              </div>
             </div>
 
-            {/* ── Fila 2: Grupos en fila horizontal compacta ───────────────── */}
-            <div
-              className="rounded-xl p-2 space-y-1.5"
-              style={{
-                background:
-                  "color-mix(in srgb, var(--primary) 2%, transparent)",
-                border:
-                  "1px solid color-mix(in srgb, var(--primary) 7%, transparent)",
-              }}
-            >
-              <p className="text-[7.5px] font-black uppercase tracking-[0.25em] text-primary/25 px-0.5">
-                Clasificación
-              </p>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
-                {(
-                  [
-                    { label: "Hábitat", subtipo: "Hábitat", icon: Globe },
-                    {
-                      label: "Inteligencia",
-                      subtipo: "Inteligencia",
-                      icon: Brain,
-                    },
-                    { label: "Alma", subtipo: "Alma", icon: Wand2 },
-                    {
-                      label: "Usar Mana",
-                      subtipo: "Usar Mana",
-                      icon: Sparkles,
-                    },
-                    {
-                      label: "Produce Mana",
-                      subtipo: "Produce Mana",
-                      icon: Star,
-                    },
-                  ] as const
-                ).map(({ label, subtipo, icon }) => (
-                  <div key={subtipo} className="flex flex-col gap-0.5">
-                    <span className="flex items-center gap-1 text-[7px] font-black uppercase tracking-widest text-primary/30">
-                      {React.createElement(icon, { size: 7 })} {label}
-                    </span>
-                    <BloqueGrupoCategoria
-                      gruposActuales={gruposActuales as GrupoMinExt[]}
-                      icon={icon}
-                      label={label}
-                      subtipo={subtipo}
-                      todosGrupos={todosGrupos as GrupoMinExt[]}
-                      onAdd={addToGrupo}
-                      onRemove={removeFromGrupo}
-                      onSelectGrupo={onSelectGrupo}
-                    />
-                  </div>
-                ))}
-              </div>
+            {/* Descripción */}
+            <div className="flex-1 min-w-0 flex flex-col gap-1">
+              <label className="text-[8px] font-black uppercase tracking-[0.25em] text-primary/30">
+                Descripción
+              </label>
+              <MarkdownEditor
+                toolbar
+                defaultMode="edit"
+                entities={entities}
+                placeholder="Aspecto físico general…"
+                rows={6}
+                value={form.descripcion ?? ""}
+                onChange={(v) => setForm((f) => ({ ...f, descripcion: v }))}
+                onSnippetAction={onSnippetAction}
+              />
             </div>
+          </div>
 
-            {/* ── Fila 3: Campos de lore — textareas inline siempre visibles ── */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {/* Clasificación — 5 grupos en fila */}
+          <div
+            className="rounded-xl p-2.5"
+            style={{
+              background: "color-mix(in srgb, var(--primary) 2%, transparent)",
+              border:
+                "1px solid color-mix(in srgb, var(--primary) 7%, transparent)",
+            }}
+          >
+            <p className="text-[7.5px] font-black uppercase tracking-[0.28em] text-primary/25 mb-2 px-0.5">
+              Clasificación
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
               {(
                 [
+                  { label: "Hábitat", subtipo: "Hábitat", icon: Globe },
                   {
-                    key: "habitat",
-                    label: "Hábitat",
-                    icon: Globe,
-                    placeholder: "Dónde vive, biomas, territorios…",
-                  },
-                  {
-                    key: "biologia",
-                    label: "Biología",
-                    icon: Bug,
-                    placeholder: "Anatomía, fisiología, ciclo de vida…",
-                  },
-                  {
-                    key: "comportamiento",
-                    label: "Comportamiento",
-                    icon: Layers,
-                    placeholder: "Conductas, instintos, patrones sociales…",
-                  },
-                  {
-                    key: "pensamiento",
-                    label: "Pensamiento",
+                    label: "Inteligencia",
+                    subtipo: "Inteligencia",
                     icon: Brain,
-                    placeholder: "Cognición, razonamiento, conciencia…",
                   },
+                  { label: "Alma", subtipo: "Alma", icon: Wand2 },
+                  { label: "Usar Mana", subtipo: "Usar Mana", icon: Sparkles },
                   {
-                    key: "alma",
-                    label: "Alma",
-                    icon: Wand2,
-                    placeholder: "Naturaleza espiritual, esencia mágica…",
-                  },
-                  {
-                    key: "magia",
-                    label: "Magia",
-                    icon: Sparkles,
-                    placeholder: "Poderes, mana, habilidades mágicas…",
-                  },
-                  {
-                    key: "relacion",
-                    label: "Relación",
-                    icon: Users,
-                    placeholder: "Vínculo con humanos, otras especies…",
+                    label: "Produce Mana",
+                    subtipo: "Produce Mana",
+                    icon: Star,
                   },
                 ] as const
-              ).map(({ key, label, icon: Icon, placeholder }) => (
-                <div key={key} className="flex flex-col gap-0.5">
-                  <label className="flex items-center gap-1 text-[7.5px] font-black uppercase tracking-widest text-primary/30">
-                    <Icon size={8} /> {label}
-                  </label>
-                  <textarea
-                    className="w-full rounded-lg border px-2 py-1.5 text-[10px] leading-relaxed outline-none transition-all resize-none"
-                    placeholder={placeholder}
-                    rows={3}
-                    style={{
-                      background: (form as any)[key]
-                        ? "color-mix(in srgb, var(--primary) 3%, transparent)"
-                        : "transparent",
-                      borderColor: (form as any)[key]
-                        ? "color-mix(in srgb, var(--primary) 12%, transparent)"
-                        : "color-mix(in srgb, var(--primary) 7%, transparent)",
-                      color: "var(--primary)",
-                      scrollbarWidth: "none",
-                    }}
-                    value={(form as any)[key] ?? ""}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, [key]: e.target.value }))
-                    }
+              ).map(({ label, subtipo, icon }) => (
+                <div key={subtipo} className="flex flex-col gap-0.5">
+                  <span className="flex items-center gap-1 text-[7px] font-black uppercase tracking-widest text-primary/30 mb-0.5">
+                    {React.createElement(icon, { size: 7 })} {label}
+                  </span>
+                  <BloqueGrupoCategoria
+                    gruposActuales={gruposActuales as GrupoMinExt[]}
+                    icon={icon}
+                    label={label}
+                    subtipo={subtipo}
+                    todosGrupos={todosGrupos as GrupoMinExt[]}
+                    onAdd={addToGrupo}
+                    onRemove={removeFromGrupo}
+                    onSelectGrupo={onSelectGrupo}
                   />
                 </div>
               ))}
