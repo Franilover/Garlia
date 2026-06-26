@@ -1,13 +1,34 @@
 "use client";
 import Image from "next/image";
 
-
 import {
-  Users, Bug, Package, Sparkles, Star, ScrollText, Map,
-  Plus, Trash2, Save, Search, X,
-  Loader2, Layers, UserCircle2, Swords, Wand2, Gem, Feather,
+  Users,
+  Bug,
+  Package,
+  Sparkles,
+  Star,
+  ScrollText,
+  Map,
+  Plus,
+  Trash2,
+  Save,
+  Search,
+  X,
+  Loader2,
+  Layers,
+  UserCircle2,
+  Swords,
+  Wand2,
+  Gem,
+  Feather,
 } from "lucide-react";
-import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  useRef,
+} from "react";
 
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { db } from "@/lib/api/client/db";
@@ -18,10 +39,14 @@ import { SaveIndicator } from "../components/UIComponents";
 
 // ─── Dexie helpers ────────────────────────────────────────────────────────────
 async function dexiePut(tabla: string, row: any): Promise<void> {
-  try { if (db) await (db as any)[tabla]?.put(row); } catch {}
+  try {
+    if (db) await (db as any)[tabla]?.put(row);
+  } catch {}
 }
 async function dexieDel(tabla: string, id: string): Promise<void> {
-  try { if (db) await (db as any)[tabla]?.delete(id); } catch {}
+  try {
+    if (db) await (db as any)[tabla]?.delete(id);
+  } catch {}
 }
 async function dexieReadAll<T>(tabla: string): Promise<T[]> {
   try {
@@ -29,7 +54,9 @@ async function dexieReadAll<T>(tabla: string): Promise<T[]> {
     const t = (db as any)[tabla];
     if (!t) return [];
     return ((await t.toArray()) as any[]).filter((r: any) => !r.deleted) as T[];
-  } catch { return []; }
+  } catch {
+    return [];
+  }
 }
 async function dexieWriteAll(tabla: string, rows: any[]): Promise<void> {
   try {
@@ -39,13 +66,23 @@ async function dexieWriteAll(tabla: string, rows: any[]): Promise<void> {
     if (rows.length > 0) await t.bulkPut(rows);
     const remoteIds = new Set(rows.map((r: any) => r.id));
     const local: any[] = await t.toArray();
-    const toDelete = local.map((r: any) => r.id).filter((id: string) => !remoteIds.has(id));
+    const toDelete = local
+      .map((r: any) => r.id)
+      .filter((id: string) => !remoteIds.has(id));
     if (toDelete.length > 0) await t.bulkDelete(toDelete);
   } catch {}
 }
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
-export type GrupoTipo = "personajes" | "criaturas" | "items" | "reinos" | "hechizos" | "dones" | "runas" | "libros";
+export type GrupoTipo =
+  | "personajes"
+  | "criaturas"
+  | "items"
+  | "reinos"
+  | "hechizos"
+  | "dones"
+  | "runas"
+  | "libros";
 
 export type Grupo = {
   id: string;
@@ -69,71 +106,175 @@ type EntidadMin = {
 };
 
 // ─── Config de tipos de grupo ─────────────────────────────────────────────────
-export const GRUPO_TIPO_CONFIG: Record<GrupoTipo, {
-  label: string;
-  labelPlural: string;
-  Icon: React.ElementType;
-  IconAlt: React.ElementType;
-  color: string;
-  tabla: string;
-  ejemplo: string;
-  sugerenciasDefault: string[];
-}> = {
+export const GRUPO_TIPO_CONFIG: Record<
+  GrupoTipo,
+  {
+    label: string;
+    labelPlural: string;
+    Icon: React.ElementType;
+    IconAlt: React.ElementType;
+    color: string;
+    tabla: string;
+    ejemplo: string;
+    sugerenciasDefault: string[];
+  }
+> = {
   personajes: {
-    label: "Personaje", labelPlural: "Personajes",
-    Icon: Users, IconAlt: UserCircle2,
-    color: "var(--primary)", tabla: "personajes",
+    label: "Personaje",
+    labelPlural: "Personajes",
+    Icon: Users,
+    IconAlt: UserCircle2,
+    color: "var(--primary)",
+    tabla: "personajes",
     ejemplo: "Familia, partido político, gremio…",
-    sugerenciasDefault: ["Familia", "Partido político", "Agrupación", "Secta", "Gremio", "Clan", "Facción", "Orden", "Hermandad", "Tribu"],
+    sugerenciasDefault: [
+      "Familia",
+      "Partido político",
+      "Agrupación",
+      "Secta",
+      "Gremio",
+      "Clan",
+      "Facción",
+      "Orden",
+      "Hermandad",
+      "Tribu",
+    ],
   },
   criaturas: {
-    label: "Criatura", labelPlural: "Criaturas",
-    Icon: Bug, IconAlt: Feather,
-    color: "color-mix(in srgb, var(--primary) 70%, #4ade80)", tabla: "criaturas",
+    label: "Criatura",
+    labelPlural: "Criaturas",
+    Icon: Bug,
+    IconAlt: Feather,
+    color: "color-mix(in srgb, var(--primary) 70%, #4ade80)",
+    tabla: "criaturas",
     ejemplo: "Manada, especie, bandada…",
-    sugerenciasDefault: ["Manada", "Especie", "Bandada", "Colonia", "Horda", "Enjambre", "Orden", "Estirpe", "Clan", "Nidada"],
+    sugerenciasDefault: [
+      "Manada",
+      "Especie",
+      "Bandada",
+      "Colonia",
+      "Horda",
+      "Enjambre",
+      "Orden",
+      "Estirpe",
+      "Clan",
+      "Nidada",
+    ],
   },
   items: {
-    label: "Objeto", labelPlural: "Objetos",
-    Icon: Package, IconAlt: Swords,
-    color: "color-mix(in srgb, var(--primary) 60%, #f59e0b)", tabla: "items",
+    label: "Objeto",
+    labelPlural: "Objetos",
+    Icon: Package,
+    IconAlt: Swords,
+    color: "color-mix(in srgb, var(--primary) 60%, #f59e0b)",
+    tabla: "items",
     ejemplo: "Arsenal, colección, reliquias…",
-    sugerenciasDefault: ["Arsenal", "Colección", "Reliquias", "Juego de piezas", "Equipamiento", "Tesoro", "Set legendario", "Artefactos"],
+    sugerenciasDefault: [
+      "Arsenal",
+      "Colección",
+      "Reliquias",
+      "Juego de piezas",
+      "Equipamiento",
+      "Tesoro",
+      "Set legendario",
+      "Artefactos",
+    ],
   },
   reinos: {
-    label: "Reino", labelPlural: "Reinos",
-    Icon: Map, IconAlt: Map,
-    color: "color-mix(in srgb, var(--primary) 60%, #60a5fa)", tabla: "reinos",
+    label: "Reino",
+    labelPlural: "Reinos",
+    Icon: Map,
+    IconAlt: Map,
+    color: "color-mix(in srgb, var(--primary) 60%, #60a5fa)",
+    tabla: "reinos",
     ejemplo: "Alianza, confederación, imperio…",
-    sugerenciasDefault: ["Alianza", "Confederación", "Imperio", "Liga", "Pacto", "Unión", "Federación", "Coalición"],
+    sugerenciasDefault: [
+      "Alianza",
+      "Confederación",
+      "Imperio",
+      "Liga",
+      "Pacto",
+      "Unión",
+      "Federación",
+      "Coalición",
+    ],
   },
   hechizos: {
-    label: "Hechizo", labelPlural: "Hechizos",
-    Icon: Sparkles, IconAlt: Wand2,
-    color: "var(--accent)", tabla: "hechizos",
+    label: "Hechizo",
+    labelPlural: "Hechizos",
+    Icon: Sparkles,
+    IconAlt: Wand2,
+    color: "var(--accent)",
+    tabla: "hechizos",
     ejemplo: "Escuela, elemento, estilo…",
-    sugerenciasDefault: ["Escuela", "Elemento", "Estilo", "Tradición", "Arte arcano", "Linaje mágico", "Especialidad", "Corriente"],
+    sugerenciasDefault: [
+      "Escuela",
+      "Elemento",
+      "Estilo",
+      "Tradición",
+      "Arte arcano",
+      "Linaje mágico",
+      "Especialidad",
+      "Corriente",
+    ],
   },
   dones: {
-    label: "Don", labelPlural: "Dones",
-    Icon: Star, IconAlt: Gem,
-    color: "color-mix(in srgb, var(--accent) 70%, var(--primary))", tabla: "dones",
+    label: "Don",
+    labelPlural: "Dones",
+    Icon: Star,
+    IconAlt: Gem,
+    color: "color-mix(in srgb, var(--accent) 70%, var(--primary))",
+    tabla: "dones",
     ejemplo: "Linaje, maldición, don ancestral…",
-    sugerenciasDefault: ["Linaje", "Maldición", "Don ancestral", "Bendición", "Legado", "Herencia divina", "Pacto", "Señal"],
+    sugerenciasDefault: [
+      "Linaje",
+      "Maldición",
+      "Don ancestral",
+      "Bendición",
+      "Legado",
+      "Herencia divina",
+      "Pacto",
+      "Señal",
+    ],
   },
   runas: {
-    label: "Runa", labelPlural: "Runas",
-    Icon: ScrollText, IconAlt: ScrollText,
-    color: "var(--primary)", tabla: "runas",
+    label: "Runa",
+    labelPlural: "Runas",
+    Icon: ScrollText,
+    IconAlt: ScrollText,
+    color: "var(--primary)",
+    tabla: "runas",
     ejemplo: "Conjunto rúnico, tradición…",
-    sugerenciasDefault: ["Conjunto rúnico", "Tradición", "Sistema", "Alfabeto", "Escuela rúnica", "Legado", "Ciclo"],
+    sugerenciasDefault: [
+      "Conjunto rúnico",
+      "Tradición",
+      "Sistema",
+      "Alfabeto",
+      "Escuela rúnica",
+      "Legado",
+      "Ciclo",
+    ],
   },
   libros: {
-    label: "Libro", labelPlural: "Libros",
-    Icon: ScrollText, IconAlt: Feather,
-    color: "color-mix(in srgb, var(--primary) 60%, #a78bfa)", tabla: "libros",
+    label: "Libro",
+    labelPlural: "Libros",
+    Icon: ScrollText,
+    IconAlt: Feather,
+    color: "color-mix(in srgb, var(--primary) 60%, #a78bfa)",
+    tabla: "libros",
     ejemplo: "Novela, poemario, antología…",
-    sugerenciasDefault: ["Novela", "Poemario", "Antología", "Cuento", "Relato", "Saga", "Serie", "Extra", "Spin-off", "Precuela"],
+    sugerenciasDefault: [
+      "Novela",
+      "Poemario",
+      "Antología",
+      "Cuento",
+      "Relato",
+      "Saga",
+      "Serie",
+      "Extra",
+      "Spin-off",
+      "Precuela",
+    ],
   },
 };
 
@@ -150,26 +291,65 @@ function useEntidades(tabla: string) {
       let local = await dexieReadAll<EntidadMin>(tabla);
       // libros usa "titulo" en DB — normalizar si el caché tiene el campo crudo
       if (tabla === "libros") {
-        local = local.map((r: any) => r.nombre ? r : { ...r, nombre: r.titulo ?? "" });
+        local = local.map((r: any) =>
+          r.nombre ? r : { ...r, nombre: r.titulo ?? "" },
+        );
       }
-      if (local.length && !cancelled) { setEntidades(local); setLoading(false); }
-      if (!navigator.onLine) { if (!local.length) setLoading(false); return; }
+      if (local.length && !cancelled) {
+        setEntidades(local);
+        setLoading(false);
+      }
+      if (!navigator.onLine) {
+        if (!local.length) setLoading(false);
+        return;
+      }
 
       let result: EntidadMin[] = [];
       if (tabla === "personajes") {
-        const { data } = await supabase.from("personajes").select("id, nombre, img_url, especie, reino").order("nombre");
-        result = (data ?? []).map(r => ({ id: r.id, nombre: r.nombre, img_url: r.img_url ?? undefined, especie: r.especie ?? undefined, reino: r.reino ?? undefined }));
+        const { data } = await supabase
+          .from("personajes")
+          .select("id, nombre, img_url, especie, reino")
+          .order("nombre");
+        result = (data ?? []).map((r) => ({
+          id: r.id,
+          nombre: r.nombre,
+          img_url: r.img_url ?? undefined,
+          especie: r.especie ?? undefined,
+          reino: r.reino ?? undefined,
+        }));
       } else if (tabla === "criaturas") {
-        const { data } = await supabase.from("criaturas").select("id, nombre, imagen_url, habitat").order("nombre");
-        result = (data ?? []).map(r => ({ id: r.id, nombre: r.nombre, imagen_url: r.imagen_url ?? undefined, habitat: r.habitat ?? undefined }));
+        const { data } = await supabase
+          .from("criaturas")
+          .select("id, nombre, imagen_url, habitat")
+          .order("nombre");
+        result = (data ?? []).map((r) => ({
+          id: r.id,
+          nombre: r.nombre,
+          imagen_url: r.imagen_url ?? undefined,
+          habitat: r.habitat ?? undefined,
+        }));
       } else if (tabla === "items") {
-        const { data } = await supabase.from("items").select("id, nombre, imagen_url, categoria").order("nombre");
-        result = (data ?? []).map(r => ({ id: r.id, nombre: r.nombre, imagen_url: r.imagen_url ?? undefined, categoria: r.categoria ?? undefined }));
+        const { data } = await supabase
+          .from("items")
+          .select("id, nombre, imagen_url, categoria")
+          .order("nombre");
+        result = (data ?? []).map((r) => ({
+          id: r.id,
+          nombre: r.nombre,
+          imagen_url: r.imagen_url ?? undefined,
+          categoria: r.categoria ?? undefined,
+        }));
       } else if (tabla === "reinos") {
-        const { data } = await supabase.from("reinos").select("id, nombre").order("nombre");
+        const { data } = await supabase
+          .from("reinos")
+          .select("id, nombre")
+          .order("nombre");
         result = (data ?? []).map((r: any) => ({ id: r.id, nombre: r.nombre }));
       } else if (tabla === "libros") {
-        const { data } = await supabase.from("libros").select("id, titulo, portada_url, categoria").order("titulo");
+        const { data } = await supabase
+          .from("libros")
+          .select("id, titulo, portada_url, categoria")
+          .order("titulo");
         result = (data ?? []).map((r: any) => ({
           id: r.id,
           nombre: r.titulo,
@@ -177,15 +357,25 @@ function useEntidades(tabla: string) {
           categoria: r.categoria ?? undefined,
         }));
       } else {
-        const { data } = await (supabase.from(tabla as any) as any).select("id, nombre, imagen_url").order("nombre");
-        result = (data ?? []).map((r: any) => ({ id: r.id, nombre: r.nombre, imagen_url: r.imagen_url ?? undefined }));
+        const { data } = await (supabase.from(tabla as any) as any)
+          .select("id, nombre, imagen_url")
+          .order("nombre");
+        result = (data ?? []).map((r: any) => ({
+          id: r.id,
+          nombre: r.nombre,
+          imagen_url: r.imagen_url ?? undefined,
+        }));
       }
 
       if (cancelled) return;
-      setEntidades(result); setLoading(false);
+      setEntidades(result);
+      setLoading(false);
       await dexieWriteAll(tabla, result);
     };
-    run(); return () => { cancelled = true; };
+    run();
+    return () => {
+      cancelled = true;
+    };
   }, [tabla]);
 
   return { entidades, loading };
@@ -198,15 +388,24 @@ export function useGrupos() {
 
   const load = useCallback(async () => {
     const local = await dexieReadAll<Grupo>("grupos_mundo");
-    if (local.length) { setGrupos(local); setLoaded(true); }
+    if (local.length) {
+      setGrupos(local);
+      setLoaded(true);
+    }
 
-    if (!navigator.onLine) { if (!local.length) setLoaded(true); return; }
+    if (!navigator.onLine) {
+      if (!local.length) setLoaded(true);
+      return;
+    }
 
     const { data, error } = await supabase
       .from("grupos_mundo")
       .select("*")
       .order("created_at", { ascending: false });
-    if (error) { if (!local.length) setLoaded(true); return; }
+    if (error) {
+      if (!local.length) setLoaded(true);
+      return;
+    }
 
     const result = (data ?? []).map((r: any) => ({
       ...r,
@@ -218,38 +417,52 @@ export function useGrupos() {
     await dexieWriteAll("grupos_mundo", result);
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
-  const crearGrupo = useCallback(async (tipo: GrupoTipo): Promise<Grupo | null> => {
-    const cfg = GRUPO_TIPO_CONFIG[tipo];
-    const optimista: Grupo = {
-      id: crypto.randomUUID(),
-      nombre: `Nuevo ${cfg.label.toLowerCase()}`,
-      tipo,
-      subtipo: null,
-      descripcion: null,
-      miembro_ids: [],
-      created_at: new Date().toISOString(),
-    };
+  const crearGrupo = useCallback(
+    async (tipo: GrupoTipo): Promise<Grupo | null> => {
+      const cfg = GRUPO_TIPO_CONFIG[tipo];
+      const optimista: Grupo = {
+        id: crypto.randomUUID(),
+        nombre: `Nuevo ${cfg.label.toLowerCase()}`,
+        tipo,
+        subtipo: null,
+        descripcion: null,
+        miembro_ids: [],
+        created_at: new Date().toISOString(),
+      };
 
-    setGrupos(prev => [optimista, ...prev]);
-    void dexiePut("grupos_mundo", optimista);
+      setGrupos((prev) => [optimista, ...prev]);
+      void dexiePut("grupos_mundo", optimista);
 
-    const { data, error } = await supabase
-      .from("grupos_mundo")
-      .insert([{ id: optimista.id, nombre: optimista.nombre, tipo, subtipo: null, descripcion: null, miembro_ids: [] }])
-      .select()
-      .single();
+      const { data, error } = await supabase
+        .from("grupos_mundo")
+        .insert([
+          {
+            id: optimista.id,
+            nombre: optimista.nombre,
+            tipo,
+            subtipo: null,
+            descripcion: null,
+            miembro_ids: [],
+          },
+        ])
+        .select()
+        .single();
 
-    if (error || !data) return optimista;
-    const real = { ...data, miembro_ids: data.miembro_ids ?? [] } as Grupo;
-    setGrupos(prev => prev.map(g => g.id === optimista.id ? real : g));
-    void dexiePut("grupos_mundo", real);
-    return real;
-  }, []);
+      if (error || !data) return optimista;
+      const real = { ...data, miembro_ids: data.miembro_ids ?? [] } as Grupo;
+      setGrupos((prev) => prev.map((g) => (g.id === optimista.id ? real : g)));
+      void dexiePut("grupos_mundo", real);
+      return real;
+    },
+    [],
+  );
 
   const actualizarGrupo = useCallback(async (updated: Grupo): Promise<void> => {
-    setGrupos(prev => prev.map(g => g.id === updated.id ? updated : g));
+    setGrupos((prev) => prev.map((g) => (g.id === updated.id ? updated : g)));
     void dexiePut("grupos_mundo", updated);
 
     await supabase
@@ -265,7 +478,7 @@ export function useGrupos() {
   }, []);
 
   const eliminarGrupo = useCallback(async (id: string): Promise<void> => {
-    setGrupos(prev => prev.filter(g => g.id !== id));
+    setGrupos((prev) => prev.filter((g) => g.id !== id));
     void dexieDel("grupos_mundo", id);
     await supabase.from("grupos_mundo").delete().eq("id", id);
   }, []);
@@ -294,71 +507,90 @@ function SelectorMiembros({
   useEffect(() => {
     if (!open) return;
     const h = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      if (ref.current && !ref.current.contains(e.target as Node))
+        setOpen(false);
     };
     document.addEventListener("mousedown", h);
     return () => document.removeEventListener("mousedown", h);
   }, [open]);
 
   const miembros = useMemo(
-    () => entidades.filter(e => miembro_ids.includes(e.id)),
-    [entidades, miembro_ids]
+    () => entidades.filter((e) => miembro_ids.includes(e.id)),
+    [entidades, miembro_ids],
   );
 
   const disponibles = useMemo(
-    () => entidades.filter(e => {
-      const noEsta = !miembro_ids.includes(e.id);
-      const matchSearch = (e.nombre ?? "").toLowerCase().includes(search.toLowerCase());
-      return noEsta && matchSearch;
-    }),
-    [entidades, miembro_ids, search]
+    () =>
+      entidades.filter((e) => {
+        const noEsta = !miembro_ids.includes(e.id);
+        const matchSearch = (e.nombre ?? "")
+          .toLowerCase()
+          .includes(search.toLowerCase());
+        return noEsta && matchSearch;
+      }),
+    [entidades, miembro_ids, search],
   );
 
   const toggle = (id: string) => {
     if (miembro_ids.includes(id)) {
-      onChange(miembro_ids.filter(x => x !== id));
+      onChange(miembro_ids.filter((x) => x !== id));
     } else {
       onChange([...miembro_ids, id]);
     }
   };
 
-  const getImg = (e: EntidadMin) => tipo === "personajes" ? e.img_url : e.imagen_url;
+  const getImg = (e: EntidadMin) =>
+    tipo === "personajes" ? e.img_url : e.imagen_url;
   const getSubtitle = (e: EntidadMin) => {
-    if (tipo === "personajes") return [e.especie, e.reino].filter(Boolean).join(" · ");
+    if (tipo === "personajes")
+      return [e.especie, e.reino].filter(Boolean).join(" · ");
     if (tipo === "criaturas") return e.habitat;
     if (tipo === "items") return e.categoria;
     return undefined;
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       {miembros.length > 0 && (
-        <div className="space-y-1">
-          <p className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">
-            Miembros ({miembros.length})
-          </p>
-          <div className="grid grid-cols-6 gap-1">
-            {miembros.map(e => {
+        <div>
+          <div className="flex items-center gap-1.5 px-1 py-0.5 mb-0.5">
+            <span className="text-[7px] font-black uppercase tracking-[0.3em] text-primary/30">
+              Miembros · {miembros.length}
+            </span>
+          </div>
+          <div className="rounded-lg border border-primary/[0.07] overflow-hidden">
+            {miembros.map((e) => {
               const img = getImg(e);
               const sub = getSubtitle(e);
               return (
-                <div key={e.id}
-                  className="flex items-center gap-2 px-2 py-1.5 rounded-xl border transition-all"
-                  style={{ borderColor: `color-mix(in srgb, ${cfg.color} 15%, transparent)`, background: `color-mix(in srgb, ${cfg.color} 5%, transparent)` }}>
-                  <div className="shrink-0 w-6 h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
-                    {img
-                      ? <Image alt={e.nombre} className="w-full h-full object-cover" src={img} />
-                      : <cfg.Icon className="text-primary/25" size={10} />}
+                <div
+                  key={e.id}
+                  className="flex items-center gap-2 px-2.5 py-1.5 border-b border-primary/[0.04] last:border-0 hover:bg-primary/[0.03] transition-colors"
+                >
+                  <div className="shrink-0 w-5 h-5 rounded overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
+                    {img ? (
+                      <Image
+                        alt={e.nombre}
+                        className="w-full h-full object-cover"
+                        src={img}
+                      />
+                    ) : (
+                      <cfg.Icon className="text-primary/25" size={9} />
+                    )}
                   </div>
                   <button
                     className="flex-1 min-w-0 text-left group"
                     type="button"
                     onClick={() => onClickMiembro?.(e.id, cfg.tabla)}
                   >
-                    <p className="text-[10px] font-bold text-primary/85 truncate group-hover:text-primary transition-colors leading-tight">
+                    <p className="text-[8px] font-black text-primary/70 truncate group-hover:text-primary transition-colors leading-tight uppercase tracking-wide">
                       {e.nombre}
                     </p>
-                    {sub && <p className="text-[8px] text-primary/35 truncate leading-tight">{sub}</p>}
+                    {sub && (
+                      <p className="text-[7px] text-primary/25 truncate leading-tight">
+                        {sub}
+                      </p>
+                    )}
                   </button>
                   <button
                     className="shrink-0 w-4 h-4 rounded flex items-center justify-center text-primary/20 hover:text-red-400 transition-colors"
@@ -376,63 +608,105 @@ function SelectorMiembros({
 
       <div ref={ref} className="relative">
         <button
-          className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl border border-dashed text-[9px] font-black uppercase tracking-widest transition-all"
+          className="w-full flex items-center justify-center gap-1 py-1 rounded-lg border border-dashed text-[8px] font-black uppercase tracking-widest transition-all"
           style={{
-            borderColor: `color-mix(in srgb, ${cfg.color} 25%, transparent)`,
-            color: `color-mix(in srgb, ${cfg.color} 55%, transparent)`,
+            borderColor: `color-mix(in srgb, ${cfg.color} 20%, transparent)`,
+            color: `color-mix(in srgb, ${cfg.color} 50%, transparent)`,
           }}
           type="button"
-          onClick={() => setOpen(o => !o)}
+          onClick={() => setOpen((o) => !o)}
         >
-          <Plus size={9} /> Agregar {cfg.label.toLowerCase()}
+          <Plus size={8} /> Agregar {cfg.label.toLowerCase()}
         </button>
 
         {open && (
           <>
-            <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-            <div className="absolute z-50 bottom-full left-0 right-0 mb-1.5 rounded-xl border shadow-xl overflow-hidden"
-              style={{ background: "var(--bg-main)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
-              <div className="p-2 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+            <div
+              className="fixed inset-0 z-40"
+              onClick={() => setOpen(false)}
+            />
+            <div
+              className="absolute z-50 bottom-full left-0 right-0 mb-1.5 rounded-xl border shadow-xl overflow-hidden"
+              style={{
+                background: "var(--bg-main)",
+                borderColor:
+                  "color-mix(in srgb, var(--primary) 12%, transparent)",
+              }}
+            >
+              <div
+                className="p-2 border-b"
+                style={{
+                  borderColor:
+                    "color-mix(in srgb, var(--primary) 8%, transparent)",
+                }}
+              >
                 <div className="relative">
-                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-primary/25" size={9} />
+                  <Search
+                    className="absolute left-2.5 top-1/2 -translate-y-1/2 text-primary/25"
+                    size={9}
+                  />
                   <input
                     autoFocus
                     className="w-full bg-primary/5 border border-primary/10 rounded-lg pl-7 pr-2 py-1.5 text-[10px] outline-none focus:border-primary/25 text-primary placeholder:text-primary/25"
                     placeholder={`Buscar ${cfg.labelPlural.toLowerCase()}…`}
                     value={search}
-                    onChange={e => setSearch(e.target.value)}
+                    onChange={(e) => setSearch(e.target.value)}
                   />
                 </div>
               </div>
               <div className="max-h-52 overflow-y-auto p-1">
                 {loading ? (
-                  <div className="flex justify-center py-6"><Loader2 className="animate-spin text-primary/20" size={14} /></div>
+                  <div className="flex justify-center py-6">
+                    <Loader2
+                      className="animate-spin text-primary/20"
+                      size={14}
+                    />
+                  </div>
                 ) : disponibles.length === 0 ? (
                   <p className="text-[9px] text-primary/25 text-center py-4 italic">
-                    {search ? "Sin resultados" : `Todos los ${cfg.labelPlural.toLowerCase()} ya están en el grupo`}
+                    {search
+                      ? "Sin resultados"
+                      : `Todos los ${cfg.labelPlural.toLowerCase()} ya están en el grupo`}
                   </p>
-                ) : disponibles.map(e => {
-                  const img = getImg(e);
-                  const sub = getSubtitle(e);
-                  return (
-                    <button
-                      key={e.id}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left hover:bg-primary/6 transition-colors"
-                      type="button"
-                      onMouseDown={() => { toggle(e.id); setSearch(""); }}
-                    >
-                      <div className="shrink-0 w-6 h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
-                        {img
-                          ? <Image alt={e.nombre} className="w-full h-full object-cover" src={img} />
-                          : <cfg.Icon className="text-primary/25" size={10} />}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <span className="text-[11px] font-medium text-primary/80 truncate block">{e.nombre}</span>
-                        {sub && <span className="text-[9px] text-primary/30 truncate block">{sub}</span>}
-                      </div>
-                    </button>
-                  );
-                })}
+                ) : (
+                  disponibles.map((e) => {
+                    const img = getImg(e);
+                    const sub = getSubtitle(e);
+                    return (
+                      <button
+                        key={e.id}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left hover:bg-primary/6 transition-colors"
+                        type="button"
+                        onMouseDown={() => {
+                          toggle(e.id);
+                          setSearch("");
+                        }}
+                      >
+                        <div className="shrink-0 w-6 h-6 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
+                          {img ? (
+                            <Image
+                              alt={e.nombre}
+                              className="w-full h-full object-cover"
+                              src={img}
+                            />
+                          ) : (
+                            <cfg.Icon className="text-primary/25" size={10} />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <span className="text-[11px] font-medium text-primary/80 truncate block">
+                            {e.nombre}
+                          </span>
+                          {sub && (
+                            <span className="text-[9px] text-primary/30 truncate block">
+                              {sub}
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })
+                )}
               </div>
             </div>
           </>
@@ -441,7 +715,6 @@ function SelectorMiembros({
     </div>
   );
 }
-
 
 // ─── SubtipoInput — campo con autocompletado por tipo ─────────────────────────
 function SubtipoInput({
@@ -453,7 +726,7 @@ function SubtipoInput({
   value: string;
   onChange: (v: string) => void;
   tipo: GrupoTipo;
-  sugerencias: string[];  // ya filtradas para este tipo
+  sugerencias: string[]; // ya filtradas para este tipo
 }) {
   const cfg = GRUPO_TIPO_CONFIG[tipo];
   const [open, setOpen] = useState(false);
@@ -463,20 +736,23 @@ function SubtipoInput({
   // Merge default suggestions with user-created ones, deduplicated
   const allSugerencias = useMemo(() => {
     const defaults = cfg.sugerenciasDefault;
-    const custom = sugerencias.filter(s => !defaults.some(d => d.toLowerCase() === s.toLowerCase()));
+    const custom = sugerencias.filter(
+      (s) => !defaults.some((d) => d.toLowerCase() === s.toLowerCase()),
+    );
     return [...custom, ...defaults];
   }, [cfg.sugerenciasDefault, sugerencias]);
 
   const filtered = useMemo(() => {
     const q = value.toLowerCase().trim();
     if (!q) return allSugerencias;
-    return allSugerencias.filter(s => s.toLowerCase().includes(q));
+    return allSugerencias.filter((s) => s.toLowerCase().includes(q));
   }, [allSugerencias, value]);
 
   useEffect(() => {
     if (!open) return;
     const h = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      if (ref.current && !ref.current.contains(e.target as Node))
+        setOpen(false);
     };
     document.addEventListener("mousedown", h);
     return () => document.removeEventListener("mousedown", h);
@@ -492,10 +768,13 @@ function SubtipoInput({
     <div ref={ref} className="relative">
       <input
         ref={inputRef}
-        className="w-full bg-primary/4 border border-primary/10 rounded-xl px-3 py-2 text-[11px] text-primary outline-none focus:border-primary/25 placeholder:text-primary/25 transition-colors"
+        className="w-full bg-primary/[0.03] border border-primary/10 rounded-lg px-2.5 py-1 text-[10px] text-primary outline-none focus:border-primary/25 placeholder:text-primary/25 transition-colors"
         placeholder={cfg.ejemplo}
         value={value}
-        onChange={e => { onChange(e.target.value); setOpen(true); }}
+        onChange={(e) => {
+          onChange(e.target.value);
+          setOpen(true);
+        }}
         onFocus={() => setOpen(true)}
       />
       {open && filtered.length > 0 && (
@@ -503,35 +782,64 @@ function SubtipoInput({
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
           <div
             className="absolute z-50 top-full left-0 right-0 mt-1 rounded-xl border shadow-xl overflow-hidden"
-            style={{ background: "var(--bg-main)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}
+            style={{
+              background: "var(--bg-main)",
+              borderColor:
+                "color-mix(in srgb, var(--primary) 12%, transparent)",
+            }}
           >
             {/* Header de la lista */}
-            <div className="px-3 py-1.5 border-b flex items-center gap-1.5"
-              style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}>
-              <cfg.Icon size={8} style={{ color: `color-mix(in srgb, ${cfg.color} 55%, transparent)` }} />
-              <span className="text-[8px] font-black uppercase tracking-[0.25em]"
-                style={{ color: `color-mix(in srgb, ${cfg.color} 45%, transparent)` }}>
+            <div
+              className="px-3 py-1.5 border-b flex items-center gap-1.5"
+              style={{
+                borderColor:
+                  "color-mix(in srgb, var(--primary) 8%, transparent)",
+                background:
+                  "color-mix(in srgb, var(--primary) 3%, transparent)",
+              }}
+            >
+              <cfg.Icon
+                size={8}
+                style={{
+                  color: `color-mix(in srgb, ${cfg.color} 55%, transparent)`,
+                }}
+              />
+              <span
+                className="text-[8px] font-black uppercase tracking-[0.25em]"
+                style={{
+                  color: `color-mix(in srgb, ${cfg.color} 45%, transparent)`,
+                }}
+              >
                 Tipos de {cfg.labelPlural.toLowerCase()}
               </span>
             </div>
             <div className="max-h-44 overflow-y-auto p-1">
-              {filtered.map(s => {
-                const isCustom = sugerencias.some(c => c.toLowerCase() === s.toLowerCase()) &&
-                  !cfg.sugerenciasDefault.some(d => d.toLowerCase() === s.toLowerCase());
+              {filtered.map((s) => {
+                const isCustom =
+                  sugerencias.some(
+                    (c) => c.toLowerCase() === s.toLowerCase(),
+                  ) &&
+                  !cfg.sugerenciasDefault.some(
+                    (d) => d.toLowerCase() === s.toLowerCase(),
+                  );
                 return (
                   <button
                     key={s}
-                    className="w-full flex items-center justify-between gap-2 px-3 py-1.5 rounded-lg text-left transition-colors hover:bg-primary/6"
+                    className="w-full flex items-center justify-between gap-2 px-2.5 py-1 rounded-lg text-left transition-colors hover:bg-primary/6"
                     type="button"
                     onMouseDown={() => select(s)}
                   >
-                    <span className="text-[11px] text-primary/75">{s}</span>
+                    <span className="text-[9px] font-black uppercase tracking-wide text-primary/65">
+                      {s}
+                    </span>
                     {isCustom && (
-                      <span className="text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md"
+                      <span
+                        className="text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md"
                         style={{
                           background: `color-mix(in srgb, ${cfg.color} 10%, transparent)`,
                           color: `color-mix(in srgb, ${cfg.color} 60%, transparent)`,
-                        }}>
+                        }}
+                      >
                         usado
                       </span>
                     )}
@@ -567,7 +875,10 @@ export function EditorGrupo({
   const { confirm, ConfirmModal } = useConfirm();
   const cfg = GRUPO_TIPO_CONFIG[form.tipo];
 
-  useEffect(() => { setForm(grupo); setStatus("idle"); }, [grupo.id]);
+  useEffect(() => {
+    setForm(grupo);
+    setStatus("idle");
+  }, [grupo.id]);
 
   const save = async () => {
     setStatus("saving");
@@ -586,11 +897,16 @@ export function EditorGrupo({
       await onSaved(form);
       setStatus("saved");
       setTimeout(() => setStatus("idle"), 2000);
-    } catch { setStatus("error"); }
+    } catch {
+      setStatus("error");
+    }
   };
 
   const del = async () => {
-    const ok = await confirm({ message: `¿Eliminar el grupo "${form.nombre}"?`, danger: true });
+    const ok = await confirm({
+      message: `¿Eliminar el grupo "${form.nombre}"?`,
+      danger: true,
+    });
     if (!ok) return;
     await supabase.from("grupos_mundo").delete().eq("id", form.id);
     void dexieDel("grupos_mundo", form.id);
@@ -602,97 +918,131 @@ export function EditorGrupo({
       <ConfirmModal />
 
       {/* Header — una sola fila compacta */}
-      <div className="shrink-0 flex items-center gap-2.5 px-4 py-2.5 border-b"
-        style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}>
-
+      <div className="shrink-0 flex items-center gap-2 px-3 py-2 border-b border-primary/10 bg-primary/[0.03]">
         {/* Ícono tipo */}
-        <div className="shrink-0 w-7 h-7 rounded-lg flex items-center justify-center border"
+        <div
+          className="shrink-0 w-7 h-7 rounded-lg flex items-center justify-center border"
           style={{
-            background: `color-mix(in srgb, ${cfg.color} 12%, transparent)`,
-            borderColor: `color-mix(in srgb, ${cfg.color} 25%, transparent)`,
-          }}>
-          <cfg.Icon size={12} style={{ color: cfg.color }} />
+            background: `color-mix(in srgb, ${cfg.color} 10%, transparent)`,
+            borderColor: `color-mix(in srgb, ${cfg.color} 20%, transparent)`,
+          }}
+        >
+          <cfg.Icon
+            size={11}
+            style={{
+              color: `color-mix(in srgb, ${cfg.color} 80%, transparent)`,
+            }}
+          />
         </div>
 
         {/* Nombre */}
         <input
           className="flex-1 min-w-0 bg-transparent text-sm font-black text-primary outline-none placeholder:text-primary/25"
           placeholder="Nombre del grupo…"
+          style={{ letterSpacing: "0.02em" }}
           value={form.nombre}
-          onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))}
+          onChange={(e) => setForm((f) => ({ ...f, nombre: e.target.value }))}
         />
 
         {/* Badge tipo */}
-        <span className="hidden sm:inline-flex shrink-0 items-center gap-1 px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest"
-          style={{ background: `color-mix(in srgb, ${cfg.color} 10%, transparent)`, color: `color-mix(in srgb, ${cfg.color} 70%, transparent)`, border: `1px solid color-mix(in srgb, ${cfg.color} 20%, transparent)` }}>
+        <span
+          className="hidden sm:inline-flex shrink-0 items-center gap-1 px-1.5 py-0.5 rounded text-[7px] font-black uppercase tracking-widest"
+          style={{
+            background: `color-mix(in srgb, ${cfg.color} 8%, transparent)`,
+            color: `color-mix(in srgb, ${cfg.color} 60%, transparent)`,
+            border: `1px solid color-mix(in srgb, ${cfg.color} 15%, transparent)`,
+          }}
+        >
           {cfg.labelPlural}
         </span>
 
         {/* Acciones */}
         <div className="shrink-0 flex items-center gap-1.5">
           <SaveIndicator status={status} />
-          <button className="flex items-center gap-1 px-2 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all"
-            onClick={del}>
+          <button
+            className="flex items-center gap-1 px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all"
+            onClick={del}
+          >
             <Trash2 size={10} />
           </button>
-          <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50" disabled={status === "saving"}
-            onClick={save}>
-            <Save size={11} /> Guardar
+          <button
+            className="flex items-center gap-1 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50"
+            disabled={status === "saving"}
+            onClick={save}
+          >
+            <Save size={10} /> Guardar
           </button>
         </div>
       </div>
 
       {/* Body — dos columnas: info · miembros */}
-      <div className="flex-1 overflow-y-auto min-h-0 p-4">
-        <div className="flex flex-col sm:flex-row gap-4 h-full">
-
+      <div className="flex-1 overflow-y-auto min-h-0 p-3">
+        <div className="flex flex-col sm:flex-row gap-3 h-full">
           {/* Columna izquierda: subtipo + descripción */}
-          <div className="flex flex-col gap-3 sm:w-72 sm:shrink-0">
-            <div className="space-y-1.5">
-              <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">Tipo</label>
+          <div className="flex flex-col gap-2 sm:w-56 sm:shrink-0">
+            <div className="space-y-1">
+              <label className="text-[7px] font-black uppercase tracking-[0.3em] text-primary/30">
+                Tipo / subtipo
+              </label>
               <SubtipoInput
                 sugerencias={sugerenciasSubtipo}
                 tipo={form.tipo}
                 value={form.subtipo ?? ""}
-                onChange={v => setForm(f => ({ ...f, subtipo: v || null }))}
+                onChange={(v) => setForm((f) => ({ ...f, subtipo: v || null }))}
               />
             </div>
 
-            <div className="space-y-1.5 flex-1 flex flex-col">
-              <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">Descripción</label>
+            <div className="space-y-1 flex-1 flex flex-col">
+              <label className="text-[7px] font-black uppercase tracking-[0.3em] text-primary/30">
+                Descripción
+              </label>
               <textarea
-                className="flex-1 w-full bg-primary/4 border border-primary/10 rounded-xl px-3 py-2.5 text-[11px] text-primary outline-none focus:border-primary/25 resize-none placeholder:text-primary/25 leading-relaxed"
-                placeholder={`¿Qué es este grupo? ${cfg.ejemplo}`}
+                className="flex-1 w-full bg-primary/[0.03] border border-primary/10 rounded-lg px-2.5 py-1.5 text-[9px] text-primary outline-none focus:border-primary/25 resize-none placeholder:text-primary/25 leading-relaxed"
+                placeholder={`${cfg.ejemplo}`}
                 rows={4}
                 value={form.descripcion ?? ""}
-                onChange={e => setForm(f => ({ ...f, descripcion: e.target.value || null }))}
+                onChange={(e) =>
+                  setForm((f) => ({
+                    ...f,
+                    descripcion: e.target.value || null,
+                  }))
+                }
               />
             </div>
           </div>
 
           {/* Columna derecha: miembros */}
-          <div className="flex-1 min-w-0 space-y-1.5">
-            <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">
-              {cfg.labelPlural} del grupo
+          <div className="flex-1 min-w-0 space-y-1">
+            <label className="text-[7px] font-black uppercase tracking-[0.3em] text-primary/30">
+              {cfg.labelPlural}
             </label>
             <SelectorMiembros
               miembro_ids={form.miembro_ids}
               tipo={form.tipo}
-              onChange={ids => setForm(f => ({ ...f, miembro_ids: ids }))}
+              onChange={(ids) => setForm((f) => ({ ...f, miembro_ids: ids }))}
               onClickMiembro={onClickMiembro}
             />
             {form.miembro_ids.length === 0 && (
-              <div className="flex flex-col items-center gap-2 py-6 rounded-xl border border-dashed mt-1"
-                style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)" }}>
-                <cfg.Icon size={18} strokeWidth={1} style={{ color: `color-mix(in srgb, ${cfg.color} 30%, transparent)` }} />
-                <p className="text-[9px] font-black uppercase tracking-widest text-primary/20">Sin miembros aún</p>
-                <p className="text-[9px] text-primary/15 text-center">
-                  Usá el botón de arriba para agregar {cfg.labelPlural.toLowerCase()}
+              <div
+                className="flex flex-col items-center gap-1.5 py-4 rounded-lg border border-dashed mt-1"
+                style={{
+                  borderColor:
+                    "color-mix(in srgb, var(--primary) 8%, transparent)",
+                }}
+              >
+                <cfg.Icon
+                  size={14}
+                  strokeWidth={1}
+                  style={{
+                    color: `color-mix(in srgb, ${cfg.color} 25%, transparent)`,
+                  }}
+                />
+                <p className="text-[7px] font-black uppercase tracking-widest text-primary/20">
+                  Sin miembros aún
                 </p>
               </div>
             )}
           </div>
-
         </div>
       </div>
     </div>
@@ -711,16 +1061,22 @@ export function EditorGrupoStandalone({
   autoCrear?: boolean;
   initialSelectedId?: string | null;
 }) {
-  const { grupos, loaded, crearGrupo, actualizarGrupo, eliminarGrupo } = useGrupos();
-  const [selectedId, setSelectedId] = useState<string | null>(initialSelectedId ?? null);
+  const { grupos, loaded, crearGrupo, actualizarGrupo, eliminarGrupo } =
+    useGrupos();
+  const [selectedId, setSelectedId] = useState<string | null>(
+    initialSelectedId ?? null,
+  );
   const [search, setSearch] = useState("");
   const [creando, setCreando] = useState(autoCrear);
 
   useEffect(() => {
-    if (initialSelectedId) { setSelectedId(initialSelectedId); setCreando(false); }
+    if (initialSelectedId) {
+      setSelectedId(initialSelectedId);
+      setCreando(false);
+    }
   }, [initialSelectedId]);
 
-  const selected = grupos.find(g => g.id === selectedId) ?? null;
+  const selected = grupos.find((g) => g.id === selectedId) ?? null;
 
   // Sugerencias de subtipo aisladas por tipo — nunca se mezclan
   const sugerenciasSubtipo = useMemo(() => {
@@ -728,8 +1084,11 @@ export function EditorGrupoStandalone({
     return [
       ...new Set(
         grupos
-          .filter(g => g.tipo === selected.tipo && g.id !== selected.id && g.subtipo)
-          .map(g => g.subtipo as string)
+          .filter(
+            (g) =>
+              g.tipo === selected.tipo && g.id !== selected.id && g.subtipo,
+          )
+          .map((g) => g.subtipo as string),
       ),
     ];
   }, [grupos, selected]);
@@ -737,9 +1096,10 @@ export function EditorGrupoStandalone({
   const filtered = useMemo(() => {
     if (!search.trim()) return grupos;
     const q = search.toLowerCase();
-    return grupos.filter(g =>
-      g.nombre.toLowerCase().includes(q) ||
-      GRUPO_TIPO_CONFIG[g.tipo].labelPlural.toLowerCase().includes(q)
+    return grupos.filter(
+      (g) =>
+        g.nombre.toLowerCase().includes(q) ||
+        GRUPO_TIPO_CONFIG[g.tipo].labelPlural.toLowerCase().includes(q),
     );
   }, [grupos, search]);
 
@@ -768,73 +1128,138 @@ export function EditorGrupoStandalone({
 
   return (
     <div className="w-full h-full flex min-h-0 overflow-hidden">
-
       {/* Sidebar */}
       <div
         className={`flex-col border-r min-h-0 w-64 shrink-0 ${selected || creando ? "hidden sm:flex" : "flex flex-1 sm:flex-none"}`}
-        style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
+        style={{
+          borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
+        }}
       >
-        <div className="shrink-0 flex items-center gap-2 px-4 py-3 border-b"
-          style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}>
-          <Layers className="text-primary/40 shrink-0" size={13} />
-          <span className="text-[11px] font-black uppercase tracking-[0.2em] text-primary/50 flex-1">Grupos</span>
-          <span className="text-[9px] text-primary/25 tabular-nums">{grupos.length}</span>
+        <div
+          className="shrink-0 flex items-center gap-2 px-3 py-2 border-b"
+          style={{
+            borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
+            background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+          }}
+        >
+          <Layers className="text-primary/35 shrink-0" size={11} />
+          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/45 flex-1">
+            Grupos
+          </span>
+          <span className="text-[8px] text-primary/25 tabular-nums">
+            {grupos.length}
+          </span>
         </div>
 
-        <div className="shrink-0 px-3 pt-3 pb-2 space-y-2">
+        <div className="shrink-0 px-2 pt-2 pb-1.5 space-y-1.5">
           <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-primary/25" size={10} />
-            <input className="w-full bg-primary/4 border border-primary/10 rounded-lg pl-7 pr-6 py-1.5 text-[10px] font-medium outline-none focus:border-primary/25 text-primary placeholder:text-primary/25" placeholder="Buscar grupos…" value={search}
-              onChange={e => setSearch(e.target.value)} />
+            <Search
+              className="absolute left-2 top-1/2 -translate-y-1/2 text-primary/25"
+              size={9}
+            />
+            <input
+              className="w-full bg-primary/[0.04] border border-primary/10 rounded-lg pl-6 pr-5 py-1 text-[9px] font-medium outline-none focus:border-primary/25 text-primary placeholder:text-primary/25"
+              placeholder="Buscar grupos…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
             {search && (
-              <button className="absolute right-2 top-1/2 -translate-y-1/2 text-primary/30 hover:text-primary" onClick={() => setSearch("")}>
+              <button
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 text-primary/30 hover:text-primary"
+                onClick={() => setSearch("")}
+              >
                 <X size={9} />
               </button>
             )}
           </div>
-          <button className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg border border-dashed text-[9px] font-black uppercase tracking-widest transition-all"
-            style={{ borderColor: "color-mix(in srgb, var(--primary) 20%, transparent)", color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}
-            onClick={() => { setCreando(true); setSelectedId(null); }}>
-            <Plus size={9} /> Nuevo grupo
+          <button
+            className="w-full flex items-center justify-center gap-1 py-1 rounded-lg border border-dashed text-[8px] font-black uppercase tracking-widest transition-all"
+            style={{
+              borderColor:
+                "color-mix(in srgb, var(--primary) 18%, transparent)",
+              color: "color-mix(in srgb, var(--primary) 40%, transparent)",
+            }}
+            onClick={() => {
+              setCreando(true);
+              setSelectedId(null);
+            }}
+          >
+            <Plus size={8} /> Nuevo grupo
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto min-h-0 px-3 pb-3 space-y-3">
+        <div className="flex-1 overflow-y-auto min-h-0 px-2 pb-2 space-y-2">
           {grupos.length === 0 ? (
-            <div className="flex flex-col items-center gap-3 py-12 text-center">
-              <Layers className="text-primary/15" size={26} strokeWidth={1} />
-              <p className="text-[9px] font-black uppercase tracking-widest text-primary/20">Sin grupos aún</p>
+            <div className="flex flex-col items-center gap-2 py-10 text-center">
+              <Layers className="text-primary/15" size={20} strokeWidth={1} />
+              <p className="text-[8px] font-black uppercase tracking-widest text-primary/20">
+                Sin grupos aún
+              </p>
             </div>
           ) : filtered.length === 0 ? (
-            <p className="text-[9px] text-primary/20 text-center py-8 italic">Sin resultados</p>
+            <p className="text-[8px] text-primary/20 text-center py-6 italic">
+              Sin resultados
+            </p>
           ) : (
-            (Object.entries(GRUPO_TIPO_CONFIG) as [GrupoTipo, typeof GRUPO_TIPO_CONFIG[GrupoTipo]][])
+            (
+              Object.entries(GRUPO_TIPO_CONFIG) as [
+                GrupoTipo,
+                (typeof GRUPO_TIPO_CONFIG)[GrupoTipo],
+              ][]
+            )
               .filter(([tipo]) => gruposPorTipo[tipo]?.length)
               .map(([tipo, cfg]) => (
                 <div key={tipo}>
-                  <div className="flex items-center gap-1.5 px-1 py-1 mb-0.5">
-                    <cfg.Icon size={9} style={{ color: `color-mix(in srgb, ${cfg.color} 50%, transparent)` }} />
-                    <span className="text-[8px] font-black uppercase tracking-[0.3em]"
-                      style={{ color: `color-mix(in srgb, ${cfg.color} 45%, transparent)` }}>
+                  <div className="flex items-center gap-1 px-1 py-0.5 mb-0.5">
+                    <cfg.Icon
+                      size={8}
+                      style={{
+                        color: `color-mix(in srgb, ${cfg.color} 45%, transparent)`,
+                      }}
+                    />
+                    <span
+                      className="text-[7px] font-black uppercase tracking-[0.3em]"
+                      style={{
+                        color: `color-mix(in srgb, ${cfg.color} 40%, transparent)`,
+                      }}
+                    >
                       {cfg.labelPlural}
                     </span>
                   </div>
-                  <div className="space-y-0.5">
-                    {gruposPorTipo[tipo]!.map(grupo => (
-                      <button key={grupo.id}
-                        className={`w-full text-left px-2.5 py-2 rounded-xl transition-all border ${
-                          selectedId === grupo.id ? "border-primary/20 bg-primary/10" : "border-transparent hover:bg-primary/6 hover:border-primary/10"
+                  <div className="space-y-0">
+                    {gruposPorTipo[tipo]!.map((grupo) => (
+                      <button
+                        key={grupo.id}
+                        className={`w-full text-left px-2 py-1.5 rounded-lg transition-all border ${
+                          selectedId === grupo.id
+                            ? "border-primary/15 bg-primary/8"
+                            : "border-transparent hover:bg-primary/5 hover:border-primary/8"
                         }`}
-                        onClick={() => { setSelectedId(grupo.id); setCreando(false); }}>
-                        <p className={`text-[11px] font-bold truncate ${selectedId === grupo.id ? "text-primary" : "text-primary/70"}`}>{grupo.nombre}</p>
+                        onClick={() => {
+                          setSelectedId(grupo.id);
+                          setCreando(false);
+                        }}
+                      >
+                        <p
+                          className={`text-[9px] font-black uppercase tracking-wide truncate ${selectedId === grupo.id ? "text-primary" : "text-primary/60"}`}
+                        >
+                          {grupo.nombre}
+                        </p>
                         <div className="flex items-center gap-1 mt-0.5 flex-wrap">
                           {grupo.subtipo && (
-                            <span className="text-[7px] font-semibold px-1.5 py-px rounded-md"
-                              style={{ background: `color-mix(in srgb, ${GRUPO_TIPO_CONFIG[grupo.tipo].color} 10%, transparent)`, color: `color-mix(in srgb, ${GRUPO_TIPO_CONFIG[grupo.tipo].color} 55%, transparent)` }}>
+                            <span
+                              className="text-[7px] font-semibold px-1 py-px rounded"
+                              style={{
+                                background: `color-mix(in srgb, ${GRUPO_TIPO_CONFIG[grupo.tipo].color} 8%, transparent)`,
+                                color: `color-mix(in srgb, ${GRUPO_TIPO_CONFIG[grupo.tipo].color} 50%, transparent)`,
+                              }}
+                            >
                               {grupo.subtipo}
                             </span>
                           )}
-                          <span className="text-[8px] text-primary/30">{grupo.miembro_ids.length} miembros</span>
+                          <span className="text-[7px] text-primary/25">
+                            {grupo.miembro_ids.length} miembros
+                          </span>
                         </div>
                       </button>
                     ))}
@@ -846,24 +1271,37 @@ export function EditorGrupoStandalone({
       </div>
 
       {/* Panel principal */}
-      <div className={`flex-1 flex flex-col min-h-0 overflow-hidden ${selected || creando ? "flex" : "hidden sm:flex"}`}>
+      <div
+        className={`flex-1 flex flex-col min-h-0 overflow-hidden ${selected || creando ? "flex" : "hidden sm:flex"}`}
+      >
         {creando ? (
-          <SelectorTipoGrupo onCancel={() => setCreando(false)} onSelect={handleCrear} />
+          <SelectorTipoGrupo
+            onCancel={() => setCreando(false)}
+            onSelect={handleCrear}
+          />
         ) : selected ? (
           <EditorGrupo
             key={selected.id}
             grupo={selected}
             sugerenciasSubtipo={sugerenciasSubtipo}
             onClickMiembro={onClickMiembro}
-            onDeleted={async id => { await eliminarGrupo(id); setSelectedId(null); }}
-            onSaved={async updated => { await actualizarGrupo(updated); }}
+            onDeleted={async (id) => {
+              await eliminarGrupo(id);
+              setSelectedId(null);
+            }}
+            onSaved={async (updated) => {
+              await actualizarGrupo(updated);
+            }}
           />
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center gap-3 select-none">
             <Layers className="text-primary/15" size={36} strokeWidth={1} />
-            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/25">Grupos</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/25">
+              Grupos
+            </p>
             <p className="text-[10px] text-primary/20 tracking-widest text-center max-w-xs px-4">
-              Agrupá personajes, criaturas, objetos o magia en facciones, manadas, colecciones y más
+              Agrupá personajes, criaturas, objetos o magia en facciones,
+              manadas, colecciones y más
             </p>
           </div>
         )}
@@ -873,30 +1311,77 @@ export function EditorGrupoStandalone({
 }
 
 // ─── SelectorTipoGrupo — selector al crear un grupo nuevo ────────────────────
-function SelectorTipoGrupo({ onSelect, onCancel }: { onSelect: (tipo: GrupoTipo) => void; onCancel: () => void }) {
+function SelectorTipoGrupo({
+  onSelect,
+  onCancel,
+}: {
+  onSelect: (tipo: GrupoTipo) => void;
+  onCancel: () => void;
+}) {
   return (
     <div className="flex-1 flex flex-col items-center justify-center gap-5 p-6">
       <div className="text-center">
-        <Layers className="text-primary/20 mx-auto mb-2" size={28} strokeWidth={1} />
-        <p className="text-[11px] font-black uppercase tracking-[0.2em] text-primary/50">Tipo de grupo</p>
-        <p className="text-[9px] text-primary/25 mt-0.5">¿De qué serán los miembros?</p>
+        <Layers
+          className="text-primary/20 mx-auto mb-2"
+          size={28}
+          strokeWidth={1}
+        />
+        <p className="text-[11px] font-black uppercase tracking-[0.2em] text-primary/50">
+          Tipo de grupo
+        </p>
+        <p className="text-[9px] text-primary/25 mt-0.5">
+          ¿De qué serán los miembros?
+        </p>
       </div>
       <div className="w-full max-w-xs grid grid-cols-2 gap-2">
-        {(Object.entries(GRUPO_TIPO_CONFIG) as [GrupoTipo, typeof GRUPO_TIPO_CONFIG[GrupoTipo]][]).map(([tipo, cfg]) => (
-          <button key={tipo} className="flex flex-col items-center gap-2 p-3 rounded-xl border transition-all hover:scale-[1.02]"
-            style={{ borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)", background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}
+        {(
+          Object.entries(GRUPO_TIPO_CONFIG) as [
+            GrupoTipo,
+            (typeof GRUPO_TIPO_CONFIG)[GrupoTipo],
+          ][]
+        ).map(([tipo, cfg]) => (
+          <button
+            key={tipo}
+            className="flex flex-col items-center gap-2 p-3 rounded-xl border transition-all hover:scale-[1.02]"
+            style={{
+              borderColor:
+                "color-mix(in srgb, var(--primary) 12%, transparent)",
+              background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+            }}
             onClick={() => onSelect(tipo)}
-            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = `color-mix(in srgb, ${cfg.color} 30%, transparent)`; (e.currentTarget as HTMLElement).style.background = `color-mix(in srgb, ${cfg.color} 8%, transparent)`; }}
-            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 12%, transparent)"; (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 3%, transparent)"; }}>
-            <cfg.IconAlt size={20} strokeWidth={1.5} style={{ color: `color-mix(in srgb, ${cfg.color} 70%, transparent)` }} />
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLElement).style.borderColor =
+                `color-mix(in srgb, ${cfg.color} 30%, transparent)`;
+              (e.currentTarget as HTMLElement).style.background =
+                `color-mix(in srgb, ${cfg.color} 8%, transparent)`;
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLElement).style.borderColor =
+                "color-mix(in srgb, var(--primary) 12%, transparent)";
+              (e.currentTarget as HTMLElement).style.background =
+                "color-mix(in srgb, var(--primary) 3%, transparent)";
+            }}
+          >
+            <cfg.IconAlt
+              size={20}
+              strokeWidth={1.5}
+              style={{
+                color: `color-mix(in srgb, ${cfg.color} 70%, transparent)`,
+              }}
+            />
             <div className="text-center">
-              <p className="text-[10px] font-black uppercase tracking-widest text-primary/70">{cfg.labelPlural}</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-primary/70">
+                {cfg.labelPlural}
+              </p>
               <p className="text-[8px] text-primary/30 mt-0.5">{cfg.ejemplo}</p>
             </div>
           </button>
         ))}
       </div>
-      <button className="text-[9px] font-black uppercase tracking-widest text-primary/25 hover:text-primary/50 transition-colors" onClick={onCancel}>
+      <button
+        className="text-[9px] font-black uppercase tracking-widest text-primary/25 hover:text-primary/50 transition-colors"
+        onClick={onCancel}
+      >
         Cancelar
       </button>
     </div>
