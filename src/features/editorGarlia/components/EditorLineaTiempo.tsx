@@ -2685,8 +2685,6 @@ function ListaEventosConMinimapa({
                 : null;
             const eraEvt = getEraEvt(evt.dia_absoluto);
             const eraColor = eraEvt?.color ?? null;
-            const dotColor =
-              eraColor ?? "color-mix(in srgb, var(--primary) 45%, transparent)";
             const isSel = evt.id === evtSeleccionado;
 
             // Separador de ERA — solo cuando la era cambia
@@ -2809,19 +2807,6 @@ function ListaEventosConMinimapa({
                   }
                 }}
               >
-                <div
-                  className="shrink-0"
-                  style={{
-                    width: 5,
-                    height: 5,
-                    borderRadius: "50%",
-                    background: dotColor,
-                    boxShadow: isSel
-                      ? `0 0 0 2px ${eraColor ? `${eraColor}35` : "color-mix(in srgb, var(--primary) 18%, transparent)"}`
-                      : "none",
-                    transition: "box-shadow 0.15s",
-                  }}
-                />
                 <span
                   className="text-[10px] font-bold truncate flex-1"
                   style={{
