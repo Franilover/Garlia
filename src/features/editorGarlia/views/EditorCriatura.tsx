@@ -2576,15 +2576,16 @@ export function EditorCriatura({
 
       {/* ── CONTENIDO PRINCIPAL ──────────────────────────────────────────────── */}
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-        {/* ── Fixed header ─────────────────────────────────────────────────── */}
+        {/* ── Header compacto ──────────────────────────────────────────────── */}
         <div
-          className="shrink-0 flex items-center gap-3 px-4 py-3 border-b"
+          className="shrink-0 flex items-center gap-2 px-3 py-2 border-b"
           style={{
             borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
-            background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+            background: "color-mix(in srgb, var(--primary) 2%, transparent)",
           }}
         >
-          <div className="shrink-0 w-9 h-9 rounded-xl overflow-hidden border border-primary/15 bg-primary/5 flex items-center justify-center">
+          {/* Avatar */}
+          <div className="shrink-0 w-7 h-7 rounded-lg overflow-hidden border border-primary/15 bg-primary/5 flex items-center justify-center">
             {form.imagen_url ? (
               <Image
                 alt={form.nombre}
@@ -2592,7 +2593,7 @@ export function EditorCriatura({
                 src={form.imagen_url}
               />
             ) : (
-              <Bug className="text-primary/25" size={16} />
+              <Bug className="text-primary/25" size={13} />
             )}
           </div>
 
@@ -2603,71 +2604,66 @@ export function EditorCriatura({
             onChange={field("nombre")}
           />
 
-          <div className="shrink-0 flex items-center gap-2">
+          <div className="shrink-0 flex items-center gap-1.5">
             <SaveIndicator status={status} />
             <button
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all cursor-pointer"
+              className="flex items-center gap-1 px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all cursor-pointer"
               onClick={del}
             >
-              <Trash2 size={10} />
+              <Trash2 size={9} />
             </button>
             <button
-              className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+              className="flex items-center gap-1 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-sm shadow-primary/20 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
               disabled={status === "saving"}
               onClick={save}
             >
-              <Save size={11} /> Guardar
+              <Save size={10} /> Guardar
             </button>
             <button
-              className="sm:hidden flex items-center justify-center p-2 rounded-xl text-primary/30 hover:text-primary hover:bg-primary/8 transition-all border border-primary/10"
+              className="sm:hidden flex items-center justify-center p-1.5 rounded-lg text-primary/30 hover:text-primary hover:bg-primary/8 transition-all border border-primary/10"
               title="Entidades"
               onClick={() => setMobileAsideOpen(true)}
             >
-              <SlidersHorizontal size={13} />
+              <SlidersHorizontal size={12} />
             </button>
           </div>
         </div>
 
-        {/* ── Tab content ──────────────────────────────────────────────────── */}
-        <div className="flex-1 overflow-y-auto min-h-0">
-          <div className="p-4 space-y-4">
-            {/* ── Fila 1: Imagen + Descripción ─────────────────────────────── */}
-            {/* Mobile: columna única — imagen grande arriba, markdown abajo   */}
-            {/* Desktop: dos columnas en fila                                  */}
-            <div className="flex flex-col sm:flex-row gap-5">
-              {/* Imagen */}
-              <div className="shrink-0 w-full sm:w-52">
-                {/* Mobile: imagen grande con botón flotante */}
-                <div
-                  className="sm:hidden relative w-full rounded-xl overflow-hidden border border-primary/10 bg-primary/3"
-                  style={{ aspectRatio: "1 / 1" }}
-                >
-                  {form.imagen_url ? (
-                    <Image
-                      alt={form.nombre}
-                      className="w-full h-full object-cover"
-                      src={form.imagen_url}
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <Bug className="text-primary/15" size={48} />
-                    </div>
-                  )}
-                  <div className="absolute top-2 right-2 z-10">
-                    <PickerImagenCriaturaBtn
-                      value={form.imagen_url ?? ""}
-                      onChange={(url) =>
-                        setForm((f) => ({ ...f, imagen_url: url }))
-                      }
-                    />
+        {/* ── Contenido scrollable ─────────────────────────────────────────── */}
+        <div
+          className="flex-1 overflow-y-auto min-h-0"
+          style={{ scrollbarWidth: "thin" }}
+        >
+          <div className="p-3 space-y-3">
+            {/* ── Fila 1: Imagen pequeña + Descripción ─────────────────────── */}
+            <div className="flex gap-3">
+              {/* Imagen cuadrada compacta — desktop */}
+              <div className="hidden sm:block shrink-0 w-24">
+                <SelectorImagen
+                  aspect="square"
+                  label=""
+                  placeholder={<Bug className="opacity-20" size={16} />}
+                  value={form.imagen_url ?? ""}
+                  onChange={(url) =>
+                    setForm((f) => ({ ...f, imagen_url: url }))
+                  }
+                />
+              </div>
+              {/* Imagen mobile con botón flotante */}
+              <div className="sm:hidden shrink-0 relative w-20 h-20 rounded-xl overflow-hidden border border-primary/10 bg-primary/3">
+                {form.imagen_url ? (
+                  <Image
+                    alt={form.nombre}
+                    className="w-full h-full object-cover"
+                    src={form.imagen_url}
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <Bug className="text-primary/15" size={28} />
                   </div>
-                </div>
-                {/* Desktop: selector normal */}
-                <div className="hidden sm:block w-full">
-                  <SelectorImagen
-                    aspect="square"
-                    label=""
-                    placeholder={<Bug className="opacity-20" size={20} />}
+                )}
+                <div className="absolute top-1 right-1 z-10">
+                  <PickerImagenCriaturaBtn
                     value={form.imagen_url ?? ""}
                     onChange={(url) =>
                       setForm((f) => ({ ...f, imagen_url: url }))
@@ -2677,8 +2673,8 @@ export function EditorCriatura({
               </div>
 
               {/* Descripción */}
-              <div className="flex-1 min-w-0 flex flex-col gap-1.5">
-                <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">
+              <div className="flex-1 min-w-0 flex flex-col gap-1">
+                <label className="text-[8px] font-black uppercase tracking-[0.25em] text-primary/30">
                   Descripción
                 </label>
                 <MarkdownEditor
@@ -2686,7 +2682,7 @@ export function EditorCriatura({
                   defaultMode="edit"
                   entities={entities}
                   placeholder="Aspecto físico general…"
-                  rows={7}
+                  rows={4}
                   value={form.descripcion ?? ""}
                   onChange={(v) => setForm((f) => ({ ...f, descripcion: v }))}
                   onSnippetAction={onSnippetAction}
@@ -2694,219 +2690,267 @@ export function EditorCriatura({
               </div>
             </div>
 
-            {/* ── Fila 2: Selectores de grupo ──────────────────────────────── */}
-            <div className="grid grid-cols-3 gap-2">
-              <BloqueGrupoCategoria
-                gruposActuales={gruposActuales as GrupoMinExt[]}
-                icon={Globe}
-                label="Hábitat"
-                subtipo="Hábitat"
-                todosGrupos={todosGrupos as GrupoMinExt[]}
-                onAdd={addToGrupo}
-                onRemove={removeFromGrupo}
-                onSelectGrupo={onSelectGrupo}
-              />
-              <BloqueGrupoCategoria
-                gruposActuales={gruposActuales as GrupoMinExt[]}
-                icon={Brain}
-                label="Inteligencia"
-                subtipo="Inteligencia"
-                todosGrupos={todosGrupos as GrupoMinExt[]}
-                onAdd={addToGrupo}
-                onRemove={removeFromGrupo}
-                onSelectGrupo={onSelectGrupo}
-              />
-              <BloqueGrupoCategoria
-                gruposActuales={gruposActuales as GrupoMinExt[]}
-                icon={Wand2}
-                label="Alma"
-                subtipo="Alma"
-                todosGrupos={todosGrupos as GrupoMinExt[]}
-                onAdd={addToGrupo}
-                onRemove={removeFromGrupo}
-                onSelectGrupo={onSelectGrupo}
-              />
-              <BloqueGrupoCategoria
-                gruposActuales={gruposActuales as GrupoMinExt[]}
-                icon={Sparkles}
-                label="Usar Mana"
-                subtipo="Usar Mana"
-                todosGrupos={todosGrupos as GrupoMinExt[]}
-                onAdd={addToGrupo}
-                onRemove={removeFromGrupo}
-                onSelectGrupo={onSelectGrupo}
-              />
-              <BloqueGrupoCategoria
-                gruposActuales={gruposActuales as GrupoMinExt[]}
-                icon={Star}
-                label="Produce Mana"
-                subtipo="Produce Mana"
-                todosGrupos={todosGrupos as GrupoMinExt[]}
-                onAdd={addToGrupo}
-                onRemove={removeFromGrupo}
-                onSelectGrupo={onSelectGrupo}
-              />
+            {/* ── Fila 2: Grupos en fila horizontal compacta ───────────────── */}
+            <div
+              className="rounded-xl p-2 space-y-1.5"
+              style={{
+                background:
+                  "color-mix(in srgb, var(--primary) 2%, transparent)",
+                border:
+                  "1px solid color-mix(in srgb, var(--primary) 7%, transparent)",
+              }}
+            >
+              <p className="text-[7.5px] font-black uppercase tracking-[0.25em] text-primary/25 px-0.5">
+                Clasificación
+              </p>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+                {(
+                  [
+                    { label: "Hábitat", subtipo: "Hábitat", icon: Globe },
+                    {
+                      label: "Inteligencia",
+                      subtipo: "Inteligencia",
+                      icon: Brain,
+                    },
+                    { label: "Alma", subtipo: "Alma", icon: Wand2 },
+                    {
+                      label: "Usar Mana",
+                      subtipo: "Usar Mana",
+                      icon: Sparkles,
+                    },
+                    {
+                      label: "Produce Mana",
+                      subtipo: "Produce Mana",
+                      icon: Star,
+                    },
+                  ] as const
+                ).map(({ label, subtipo, icon }) => (
+                  <div key={subtipo} className="flex flex-col gap-0.5">
+                    <span className="flex items-center gap-1 text-[7px] font-black uppercase tracking-widest text-primary/30">
+                      {React.createElement(icon, { size: 7 })} {label}
+                    </span>
+                    <BloqueGrupoCategoria
+                      gruposActuales={gruposActuales as GrupoMinExt[]}
+                      icon={icon}
+                      label={label}
+                      subtipo={subtipo}
+                      todosGrupos={todosGrupos as GrupoMinExt[]}
+                      onAdd={addToGrupo}
+                      onRemove={removeFromGrupo}
+                      onSelectGrupo={onSelectGrupo}
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
 
-            {/* Hechizos + Dones — en la barra lateral */}
-            {/* Naturales + Creaciones — en la barra lateral */}
+            {/* ── Fila 3: Campos de lore — textareas inline siempre visibles ── */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {(
+                [
+                  {
+                    key: "habitat",
+                    label: "Hábitat",
+                    icon: Globe,
+                    placeholder: "Dónde vive, biomas, territorios…",
+                  },
+                  {
+                    key: "biologia",
+                    label: "Biología",
+                    icon: Bug,
+                    placeholder: "Anatomía, fisiología, ciclo de vida…",
+                  },
+                  {
+                    key: "comportamiento",
+                    label: "Comportamiento",
+                    icon: Layers,
+                    placeholder: "Conductas, instintos, patrones sociales…",
+                  },
+                  {
+                    key: "pensamiento",
+                    label: "Pensamiento",
+                    icon: Brain,
+                    placeholder: "Cognición, razonamiento, conciencia…",
+                  },
+                  {
+                    key: "alma",
+                    label: "Alma",
+                    icon: Wand2,
+                    placeholder: "Naturaleza espiritual, esencia mágica…",
+                  },
+                  {
+                    key: "magia",
+                    label: "Magia",
+                    icon: Sparkles,
+                    placeholder: "Poderes, mana, habilidades mágicas…",
+                  },
+                  {
+                    key: "relacion",
+                    label: "Relación",
+                    icon: Users,
+                    placeholder: "Vínculo con humanos, otras especies…",
+                  },
+                ] as const
+              ).map(({ key, label, icon: Icon, placeholder }) => (
+                <div key={key} className="flex flex-col gap-0.5">
+                  <label className="flex items-center gap-1 text-[7.5px] font-black uppercase tracking-widest text-primary/30">
+                    <Icon size={8} /> {label}
+                  </label>
+                  <textarea
+                    className="w-full rounded-lg border px-2 py-1.5 text-[10px] leading-relaxed outline-none transition-all resize-none"
+                    placeholder={placeholder}
+                    rows={3}
+                    style={{
+                      background: (form as any)[key]
+                        ? "color-mix(in srgb, var(--primary) 3%, transparent)"
+                        : "transparent",
+                      borderColor: (form as any)[key]
+                        ? "color-mix(in srgb, var(--primary) 12%, transparent)"
+                        : "color-mix(in srgb, var(--primary) 7%, transparent)",
+                      color: "var(--primary)",
+                      scrollbarWidth: "none",
+                    }}
+                    value={(form as any)[key] ?? ""}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, [key]: e.target.value }))
+                    }
+                  />
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* ── BARRA LATERAL TRIPLE — desktop ───────────────────────────────────── */}
+      {/* ── BARRA LATERAL — desktop (columna única compacta) ─────────────────── */}
       <aside
-        className="hidden sm:flex shrink-0 border-l overflow-hidden"
+        className="hidden sm:flex shrink-0 flex-col border-l overflow-y-auto overflow-x-hidden"
         style={{
+          width: "160px",
           borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)",
+          background: "color-mix(in srgb, var(--primary) 1%, transparent)",
+          scrollbarWidth: "none",
         }}
       >
-        {/* Columna 1: Personajes */}
+        <SeccionEntidad
+          allEntities={allPersonajes.map((p) => ({
+            id: p.id,
+            nombre: p.nombre,
+            imagen_url: p.img_url,
+          }))}
+          columns={2}
+          emptyLabel="Sin personajes"
+          fallbackIcon={<UserCircle2 size={14} strokeWidth={1} />}
+          icon={<Users size={9} />}
+          label="Personajes"
+          loading={loadingPersonajes}
+          saving={savingPersonajes}
+          selectedIds={personajesDeEspecie.map((p) => p.id)}
+          onEntityClick={(id) => onSelectPersonaje?.(id)}
+          onToggle={handleTogglePersonaje}
+        />
         <div
-          className="w-44 flex flex-col border-r overflow-y-auto overflow-x-hidden"
           style={{
-            borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)",
-            background: "color-mix(in srgb, var(--primary) 1%, transparent)",
-            scrollbarWidth: "none",
+            borderTop:
+              "1px solid color-mix(in srgb, var(--primary) 7%, transparent)",
           }}
-        >
-          <SeccionEntidad
-            allEntities={allPersonajes.map((p) => ({
-              id: p.id,
-              nombre: p.nombre,
-              imagen_url: p.img_url,
-            }))}
-            columns={2}
-            emptyLabel="Sin personajes"
-            fallbackIcon={<UserCircle2 size={14} strokeWidth={1} />}
-            icon={<Users size={9} />}
-            label="Personajes"
-            loading={loadingPersonajes}
-            saving={savingPersonajes}
-            selectedIds={personajesDeEspecie.map((p) => p.id)}
-            onEntityClick={(id) => onSelectPersonaje?.(id)}
-            onToggle={handleTogglePersonaje}
-          />
-        </div>
-
-        {/* Columna 2: Reinos · Ciudades */}
+        />
+        <SeccionEntidad
+          allEntities={allReinos.map((r) => ({ id: r.id, nombre: r.nombre }))}
+          emptyLabel="Sin territorio"
+          fallbackIcon={<Globe size={14} strokeWidth={1} />}
+          icon={<Globe size={9} />}
+          label="Territorio"
+          loading={loadingReinos}
+          saving={savingReinos}
+          selectedIds={reinoRows.map((r) => r.reinoId)}
+          onEntityClick={(id) => onNavigateReino?.(id)}
+          onToggle={(id, add) => handleToggleReino(id, add)}
+        />
         <div
-          className="w-44 flex flex-col border-r overflow-y-auto overflow-x-hidden"
           style={{
-            borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)",
-            background: "color-mix(in srgb, var(--primary) 0.5%, transparent)",
-            scrollbarWidth: "none",
+            borderTop:
+              "1px solid color-mix(in srgb, var(--primary) 7%, transparent)",
           }}
-        >
-          <SeccionEntidad
-            allEntities={allReinos.map((r) => ({ id: r.id, nombre: r.nombre }))}
-            emptyLabel="Sin territorio"
-            fallbackIcon={<Globe size={14} strokeWidth={1} />}
-            icon={<Globe size={9} />}
-            label="Territorio"
-            loading={loadingReinos}
-            saving={savingReinos}
-            selectedIds={reinoRows.map((r) => r.reinoId)}
-            onEntityClick={(id) => onNavigateReino?.(id)}
-            onToggle={(id, add) => handleToggleReino(id, add)}
-          />
-
-          <div
-            style={{
-              borderTop:
-                "1px solid color-mix(in srgb, var(--primary) 7%, transparent)",
-            }}
-          />
-
-          <SeccionEntidad
-            allEntities={ciudadesConReino.map((l) => ({
-              id: l.id,
-              nombre: l.nombre,
-            }))}
-            emptyLabel={
-              reinosSeleccionadosIds.length > 0
-                ? "Sin ciudades en estos reinos"
-                : "Sin ciudades"
-            }
-            fallbackIcon={<MapPin size={14} strokeWidth={1} />}
-            icon={<MapPin size={9} />}
-            label={
-              reinosSeleccionadosIds.length > 0
-                ? `Ciudades (${reinosSeleccionadosIds.length})`
-                : "Ciudades"
-            }
-            loading={loadingCiudades}
-            saving={savingCiudades}
-            selectedIds={ciudadRows.map((r) => r.ciudadId)}
-            onEntityClick={(id) => onNavigateCiudad?.(id)}
-            onToggle={(id, add) => handleToggleCiudad(id, add)}
-          />
-        </div>
-
-        {/* Columna 3: Creaciones */}
+        />
+        <SeccionEntidad
+          allEntities={ciudadesConReino.map((l) => ({
+            id: l.id,
+            nombre: l.nombre,
+          }))}
+          emptyLabel={
+            reinosSeleccionadosIds.length > 0
+              ? "Sin ciudades en estos reinos"
+              : "Sin ciudades"
+          }
+          fallbackIcon={<MapPin size={14} strokeWidth={1} />}
+          icon={<MapPin size={9} />}
+          label={
+            reinosSeleccionadosIds.length > 0
+              ? `Ciudades (${reinosSeleccionadosIds.length})`
+              : "Ciudades"
+          }
+          loading={loadingCiudades}
+          saving={savingCiudades}
+          selectedIds={ciudadRows.map((r) => r.ciudadId)}
+          onEntityClick={(id) => onNavigateCiudad?.(id)}
+          onToggle={(id, add) => handleToggleCiudad(id, add)}
+        />
         <div
-          className="w-44 flex flex-col border-r overflow-y-auto overflow-x-hidden"
           style={{
-            borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)",
-            background: "color-mix(in srgb, var(--primary) 1%, transparent)",
-            scrollbarWidth: "none",
+            borderTop:
+              "1px solid color-mix(in srgb, var(--primary) 7%, transparent)",
           }}
-        >
-          <SeccionEntidad
-            allEntities={allCraftedItems.map((i) => ({
-              id: i.id,
-              nombre: i.nombre,
-              imagen_url: i.imagen_url,
-            }))}
-            emptyLabel="Sin creaciones"
-            fallbackIcon={<Package size={14} strokeWidth={1} />}
-            icon={<Wrench size={9} />}
-            label="Creaciones"
-            loading={loadingCrafted}
-            saving={savingCrafted}
-            selectedIds={craftedItems.map((i) => i.itemId)}
-            onEntityClick={(id) => onSelectItem?.(id)}
-            onToggle={handleToggleCrafted}
-          />
-        </div>
-
-        {/* Columna 4: Hechizos · Dones */}
+        />
+        <SeccionEntidad
+          allEntities={allCraftedItems.map((i) => ({
+            id: i.id,
+            nombre: i.nombre,
+            imagen_url: i.imagen_url,
+          }))}
+          emptyLabel="Sin creaciones"
+          fallbackIcon={<Package size={14} strokeWidth={1} />}
+          icon={<Wrench size={9} />}
+          label="Creaciones"
+          loading={loadingCrafted}
+          saving={savingCrafted}
+          selectedIds={craftedItems.map((i) => i.itemId)}
+          onEntityClick={(id) => onSelectItem?.(id)}
+          onToggle={handleToggleCrafted}
+        />
         <div
-          className="w-44 flex flex-col overflow-y-auto overflow-x-hidden"
           style={{
-            background: "color-mix(in srgb, var(--primary) 0.5%, transparent)",
-            scrollbarWidth: "none",
+            borderTop:
+              "1px solid color-mix(in srgb, var(--primary) 7%, transparent)",
           }}
-        >
-          {grupoEsMagico(gruposActuales) && (
-            <>
-              <BloqueMagico
-                criaturaId={form.id}
-                gruposActuales={gruposActuales.map((g) => g.id)}
-                icon={Sparkles}
-                label="Hechizos"
-                usarHook="hechizos"
-              />
-              <div
-                style={{
-                  borderTop:
-                    "1px solid color-mix(in srgb, var(--primary) 7%, transparent)",
-                }}
-              />
-            </>
-          )}
-
-          <BloqueMagico
-            criaturaId={form.id}
-            gruposActuales={gruposActuales.map((g) => g.id)}
-            icon={Star}
-            label="Dones"
-            usarHook="dones"
-          />
-        </div>
+        />
+        {grupoEsMagico(gruposActuales) && (
+          <>
+            <BloqueMagico
+              criaturaId={form.id}
+              gruposActuales={gruposActuales.map((g) => g.id)}
+              icon={Sparkles}
+              label="Hechizos"
+              usarHook="hechizos"
+            />
+            <div
+              style={{
+                borderTop:
+                  "1px solid color-mix(in srgb, var(--primary) 7%, transparent)",
+              }}
+            />
+          </>
+        )}
+        <BloqueMagico
+          criaturaId={form.id}
+          gruposActuales={gruposActuales.map((g) => g.id)}
+          icon={Star}
+          label="Dones"
+          usarHook="dones"
+        />
       </aside>
 
-      {/* ── BARRA LATERAL TRIPLE — mobile drawer ─────────────────────────────── */}
+      {/* ── BARRA LATERAL — mobile drawer ────────────────────────────────────── */}
       {mobileAsideOpen && (
         <div className="sm:hidden fixed inset-0 z-50 flex justify-end">
           <div
@@ -2919,37 +2963,32 @@ export function EditorCriatura({
           <div
             className="relative flex flex-col h-full overflow-y-auto shadow-2xl"
             style={{
-              width: "240px",
+              width: "200px",
               background: "var(--white-custom, var(--bg-main))",
               borderLeft:
                 "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
               scrollbarWidth: "none",
             }}
           >
-            {/* Header */}
             <div
-              className="shrink-0 flex items-center justify-between px-3 py-2.5 border-b"
+              className="shrink-0 flex items-center justify-between px-3 py-2 border-b"
               style={{
                 borderColor:
                   "color-mix(in srgb, var(--primary) 10%, transparent)",
               }}
             >
-              <span
-                className="text-[8px] font-black uppercase tracking-[0.2em] flex items-center gap-1.5"
-                style={{
-                  color: "color-mix(in srgb, var(--primary) 40%, transparent)",
-                }}
-              >
+              <span className="text-[8px] font-black uppercase tracking-[0.2em] flex items-center gap-1.5 text-primary/40">
                 <SlidersHorizontal size={9} /> Entidades
               </span>
               <button
                 className="p-1 rounded-lg text-primary/30 hover:text-primary hover:bg-primary/8 transition-all"
                 onClick={() => setMobileAsideOpen(false)}
               >
-                <X size={14} />
+                <X size={13} />
               </button>
             </div>
 
+            {/* mismo contenido que el sidebar desktop */}
             <SeccionEntidad
               allEntities={allPersonajes.map((p) => ({
                 id: p.id,
@@ -2981,7 +3020,7 @@ export function EditorCriatura({
               emptyLabel="Sin territorio"
               fallbackIcon={<Globe size={14} strokeWidth={1} />}
               icon={<Globe size={9} />}
-              label="Reinos"
+              label="Territorio"
               loading={loadingReinos}
               saving={savingReinos}
               selectedIds={reinoRows.map((r) => r.reinoId)}
