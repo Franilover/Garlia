@@ -50,6 +50,13 @@ type SeccionEntidadProps = {
   onEntityClick?: (id: string) => void;
   /** Mostrar entidades seleccionadas en 2 columnas cuando hay muchas */
   columns?: 2;
+  /**
+   * Si true (default), la sección ocupa todo el espacio disponible del
+   * contenedor flex padre y la lista de seleccionados scrollea internamente
+   * en vez de desbordarse. Usar `false` cuando varias secciones se apilan
+   * una tras otra en un contenedor con su propio scroll (ej. drawer mobile).
+   */
+  fill?: boolean;
 };
 
 export const SeccionEntidad = ({
@@ -65,6 +72,7 @@ export const SeccionEntidad = ({
   onToggle,
   onEntityClick,
   columns,
+  fill = true,
 }: SeccionEntidadProps) => {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -174,10 +182,15 @@ export const SeccionEntidad = ({
     "1px solid color-mix(in srgb, var(--primary) 28%, transparent)";
 
   return (
-    <div ref={containerRef} className="shrink-0 flex flex-col">
+    <div
+      ref={containerRef}
+      className={
+        fill ? "flex-1 min-h-0 flex flex-col" : "shrink-0 flex flex-col"
+      }
+    >
       {/* ── Cabecera ── */}
       <div
-        className="flex items-center justify-between px-2 py-1"
+        className="shrink-0 flex items-center justify-between px-2 py-1"
         style={{
           borderBottom:
             "1px solid color-mix(in srgb, var(--primary) 6%, transparent)",
@@ -227,7 +240,7 @@ export const SeccionEntidad = ({
       {/* ── Dropdown mini-combo ── */}
       {open && (
         <div
-          className="mx-2 mb-1.5 rounded-lg overflow-hidden"
+          className="shrink-0 mx-2 mb-1.5 rounded-lg overflow-hidden"
           style={{
             border: borderFocus,
             background: "var(--bg-main)",
@@ -521,97 +534,199 @@ export const SeccionEntidad = ({
       )}
 
       {/* ── Entidades seleccionadas ── */}
-      {selected.length === 0 ? (
-        <div
-          className="flex items-center gap-2 px-2.5 py-1.5"
-          style={{ opacity: 0.35 }}
-        >
-          <span
-            style={{
-              color: "color-mix(in srgb, var(--primary) 40%, transparent)",
-            }}
+      <div className={fill ? "flex-1 min-h-0 overflow-y-auto" : ""}>
+        {selected.length === 0 ? (
+          <div
+            className="flex items-center gap-2 px-2.5 py-1.5"
+            style={{ opacity: 0.35 }}
           >
-            {fallbackIcon}
-          </span>
-          <p
-            className="text-[7px] font-black uppercase tracking-[0.2em] leading-none"
-            style={{
-              color: "color-mix(in srgb, var(--primary) 30%, transparent)",
-            }}
-          >
-            {emptyLabel}
-          </p>
-        </div>
-      ) : columns === 2 ? (
-        /* ── Grid 2 columnas ── */
-        <div className="grid grid-cols-2 gap-1 p-2">
-          {selected.map((e) => (
-            <div
-              key={e.id}
-              className="group relative flex flex-col items-center gap-1 p-1.5 rounded-lg transition-all hover:bg-primary/5"
-              style={{ cursor: onEntityClick ? "pointer" : "default" }}
-              onClick={() => onEntityClick?.(e.id)}
+            <span
+              style={{
+                color: "color-mix(in srgb, var(--primary) 40%, transparent)",
+              }}
             >
-              {e.imagen_url ? (
-                <img
-                  alt={e.nombre}
-                  className="w-8 h-8 rounded-lg shrink-0 object-cover"
-                  src={e.imagen_url}
+              {fallbackIcon}
+            </span>
+            <p
+              className="text-[7px] font-black uppercase tracking-[0.2em] leading-none"
+              style={{
+                color: "color-mix(in srgb, var(--primary) 30%, transparent)",
+              }}
+            >
+              {emptyLabel}
+            </p>
+          </div>
+        ) : columns === 2 ? (
+          /* ── Grid 2 columnas ── */
+          <div className="grid grid-cols-2 gap-1 p-2">
+            {selected.map((e) => (
+              <div
+                key={e.id}
+                className="group relative flex flex-col items-center gap-1 p-1.5 rounded-lg transition-all hover:bg-primary/5"
+                style={{ cursor: onEntityClick ? "pointer" : "default" }}
+                onClick={() => onEntityClick?.(e.id)}
+              >
+                {e.imagen_url ? (
+                  <img
+                    alt={e.nombre}
+                    className="w-8 h-8 rounded-lg shrink-0 object-cover"
+                    src={e.imagen_url}
+                    style={{
+                      background:
+                        "color-mix(in srgb, var(--primary) 10%, transparent)",
+                    }}
+                  />
+                ) : (
+                  <div
+                    className="w-8 h-8 rounded-lg shrink-0 flex items-center justify-center text-[9px] font-black uppercase"
+                    style={{
+                      background:
+                        "color-mix(in srgb, var(--primary) 12%, transparent)",
+                      color:
+                        "color-mix(in srgb, var(--primary) 60%, transparent)",
+                    }}
+                  >
+                    {e.nombre.charAt(0)}
+                  </div>
+                )}
+                <span
+                  className="w-full text-center text-[8px] font-black uppercase tracking-wide truncate leading-tight"
                   style={{
-                    background:
-                      "color-mix(in srgb, var(--primary) 10%, transparent)",
-                  }}
-                />
-              ) : (
-                <div
-                  className="w-8 h-8 rounded-lg shrink-0 flex items-center justify-center text-[9px] font-black uppercase"
-                  style={{
-                    background:
-                      "color-mix(in srgb, var(--primary) 12%, transparent)",
                     color:
-                      "color-mix(in srgb, var(--primary) 60%, transparent)",
+                      "color-mix(in srgb, var(--primary) 65%, transparent)",
                   }}
                 >
-                  {e.nombre.charAt(0)}
-                </div>
-              )}
-              <span
-                className="w-full text-center text-[8px] font-black uppercase tracking-wide truncate leading-tight"
-                style={{
-                  color: "color-mix(in srgb, var(--primary) 65%, transparent)",
-                }}
-              >
-                {e.nombre}
-              </span>
-              <button
-                className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-red-500/10 hover:bg-red-500/20"
-                style={{
-                  color: "color-mix(in srgb, var(--primary) 30%, transparent)",
-                }}
-                title="Quitar"
-                type="button"
-                onClick={(ev) => {
-                  ev.stopPropagation();
-                  onToggle(e.id, false);
-                }}
-              >
-                <X size={8} />
-              </button>
-            </div>
-          ))}
-        </div>
-      ) : groups && groups.length > 0 ? (
-        /* ── Lista agrupada ── */
-        (() => {
-          const ungroupedSel = selected.filter((e) => !e.group);
-          const groupedSel = groups
-            .map((g) => ({
-              group: g,
-              items: selected.filter((e) => e.group === g.key),
-            }))
-            .filter((g) => g.items.length > 0);
+                  {e.nombre}
+                </span>
+                <button
+                  className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-red-500/10 hover:bg-red-500/20"
+                  style={{
+                    color:
+                      "color-mix(in srgb, var(--primary) 30%, transparent)",
+                  }}
+                  title="Quitar"
+                  type="button"
+                  onClick={(ev) => {
+                    ev.stopPropagation();
+                    onToggle(e.id, false);
+                  }}
+                >
+                  <X size={8} />
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : groups && groups.length > 0 ? (
+          /* ── Lista agrupada ── */
+          (() => {
+            const ungroupedSel = selected.filter((e) => !e.group);
+            const groupedSel = groups
+              .map((g) => ({
+                group: g,
+                items: selected.filter((e) => e.group === g.key),
+              }))
+              .filter((g) => g.items.length > 0);
 
-          const renderSelItem = (e: EntidadBase) => (
+            const renderSelItem = (e: EntidadBase) => (
+              <div
+                key={e.id}
+                className="group flex items-center gap-2 px-2.5 py-1.5 transition-all hover:bg-primary/[0.04] border-b border-primary/[0.04] last:border-0"
+                style={{ cursor: onEntityClick ? "pointer" : "default" }}
+                onClick={() => onEntityClick?.(e.id)}
+              >
+                {e.imagen_url ? (
+                  <Image
+                    alt={e.nombre}
+                    className="w-5 h-5 rounded-full shrink-0 object-cover"
+                    src={e.imagen_url}
+                    style={{
+                      background:
+                        "color-mix(in srgb, var(--primary) 10%, transparent)",
+                    }}
+                  />
+                ) : (
+                  <div
+                    className="w-4 h-4 rounded-full shrink-0 flex items-center justify-center text-[6px] font-black uppercase"
+                    style={{
+                      background:
+                        "color-mix(in srgb, var(--primary) 12%, transparent)",
+                      color:
+                        "color-mix(in srgb, var(--primary) 60%, transparent)",
+                    }}
+                  >
+                    {e.nombre.charAt(0)}
+                  </div>
+                )}
+                <span
+                  className="flex-1 min-w-0 text-[8px] font-black uppercase tracking-wide truncate leading-tight"
+                  style={{
+                    color:
+                      "color-mix(in srgb, var(--primary) 65%, transparent)",
+                  }}
+                >
+                  {e.nombre}
+                </span>
+                <button
+                  className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity rounded p-0.5 hover:bg-red-500/10"
+                  style={{
+                    color:
+                      "color-mix(in srgb, var(--primary) 30%, transparent)",
+                  }}
+                  title="Quitar"
+                  type="button"
+                  onClick={(ev) => {
+                    ev.stopPropagation();
+                    onToggle(e.id, false);
+                  }}
+                >
+                  <X size={9} />
+                </button>
+              </div>
+            );
+
+            return (
+              <>
+                {ungroupedSel.map(renderSelItem)}
+                {groupedSel.map(({ group, items: gItems }, gi) => (
+                  <React.Fragment key={group.key}>
+                    <div
+                      className="flex items-center gap-1 px-3 py-0.5"
+                      style={{
+                        borderTop:
+                          ungroupedSel.length > 0 || gi > 0
+                            ? "1px solid color-mix(in srgb, var(--primary) 6%, transparent)"
+                            : undefined,
+                      }}
+                    >
+                      {group.icon && (
+                        <span
+                          style={{
+                            color:
+                              "color-mix(in srgb, var(--primary) 28%, transparent)",
+                          }}
+                        >
+                          {group.icon}
+                        </span>
+                      )}
+                      <span
+                        className="text-[7px] font-black uppercase tracking-[0.2em]"
+                        style={{
+                          color:
+                            "color-mix(in srgb, var(--primary) 25%, transparent)",
+                        }}
+                      >
+                        {group.label}
+                      </span>
+                    </div>
+                    {gItems.map(renderSelItem)}
+                  </React.Fragment>
+                ))}
+              </>
+            );
+          })()
+        ) : (
+          /* ── Lista simple (default) ── */
+          selected.map((e) => (
             <div
               key={e.id}
               className="group flex items-center gap-2 px-2.5 py-1.5 transition-all hover:bg-primary/[0.04] border-b border-primary/[0.04] last:border-0"
@@ -619,9 +734,9 @@ export const SeccionEntidad = ({
               onClick={() => onEntityClick?.(e.id)}
             >
               {e.imagen_url ? (
-                <Image
+                <img
                   alt={e.nombre}
-                  className="w-5 h-5 rounded-full shrink-0 object-cover"
+                  className="w-4 h-4 rounded-full shrink-0 object-cover"
                   src={e.imagen_url}
                   style={{
                     background:
@@ -664,104 +779,9 @@ export const SeccionEntidad = ({
                 <X size={9} />
               </button>
             </div>
-          );
-
-          return (
-            <>
-              {ungroupedSel.map(renderSelItem)}
-              {groupedSel.map(({ group, items: gItems }, gi) => (
-                <React.Fragment key={group.key}>
-                  <div
-                    className="flex items-center gap-1 px-3 py-0.5"
-                    style={{
-                      borderTop:
-                        ungroupedSel.length > 0 || gi > 0
-                          ? "1px solid color-mix(in srgb, var(--primary) 6%, transparent)"
-                          : undefined,
-                    }}
-                  >
-                    {group.icon && (
-                      <span
-                        style={{
-                          color:
-                            "color-mix(in srgb, var(--primary) 28%, transparent)",
-                        }}
-                      >
-                        {group.icon}
-                      </span>
-                    )}
-                    <span
-                      className="text-[7px] font-black uppercase tracking-[0.2em]"
-                      style={{
-                        color:
-                          "color-mix(in srgb, var(--primary) 25%, transparent)",
-                      }}
-                    >
-                      {group.label}
-                    </span>
-                  </div>
-                  {gItems.map(renderSelItem)}
-                </React.Fragment>
-              ))}
-            </>
-          );
-        })()
-      ) : (
-        /* ── Lista simple (default) ── */
-        selected.map((e) => (
-          <div
-            key={e.id}
-            className="group flex items-center gap-2 px-2.5 py-1.5 transition-all hover:bg-primary/[0.04] border-b border-primary/[0.04] last:border-0"
-            style={{ cursor: onEntityClick ? "pointer" : "default" }}
-            onClick={() => onEntityClick?.(e.id)}
-          >
-            {e.imagen_url ? (
-              <img
-                alt={e.nombre}
-                className="w-4 h-4 rounded-full shrink-0 object-cover"
-                src={e.imagen_url}
-                style={{
-                  background:
-                    "color-mix(in srgb, var(--primary) 10%, transparent)",
-                }}
-              />
-            ) : (
-              <div
-                className="w-4 h-4 rounded-full shrink-0 flex items-center justify-center text-[6px] font-black uppercase"
-                style={{
-                  background:
-                    "color-mix(in srgb, var(--primary) 12%, transparent)",
-                  color: "color-mix(in srgb, var(--primary) 60%, transparent)",
-                }}
-              >
-                {e.nombre.charAt(0)}
-              </div>
-            )}
-            <span
-              className="flex-1 min-w-0 text-[8px] font-black uppercase tracking-wide truncate leading-tight"
-              style={{
-                color: "color-mix(in srgb, var(--primary) 65%, transparent)",
-              }}
-            >
-              {e.nombre}
-            </span>
-            <button
-              className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity rounded p-0.5 hover:bg-red-500/10"
-              style={{
-                color: "color-mix(in srgb, var(--primary) 30%, transparent)",
-              }}
-              title="Quitar"
-              type="button"
-              onClick={(ev) => {
-                ev.stopPropagation();
-                onToggle(e.id, false);
-              }}
-            >
-              <X size={9} />
-            </button>
-          </div>
-        ))
-      )}
+          ))
+        )}
+      </div>
     </div>
   );
 };

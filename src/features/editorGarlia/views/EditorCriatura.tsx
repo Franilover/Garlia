@@ -2724,7 +2724,7 @@ export function EditorCriatura({
           }}
         >
           {/* Personajes - se expande, mas columnas */}
-          <div className="flex-1 flex flex-col min-w-0 overflow-hidden border-r" style={{ borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)" }}>
+          <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden border-r" style={{ borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)" }}>
             <SeccionEntidad
               allEntities={allPersonajes.map((p) => ({ id: p.id, nombre: p.nombre, imagen_url: p.img_url }))}
               columns={2}
@@ -2858,6 +2858,7 @@ export function EditorCriatura({
               columns={2}
               emptyLabel="Sin personajes"
               fallbackIcon={<UserCircle2 size={14} strokeWidth={1} />}
+              fill={false}
               icon={<Users size={9} />}
               label="Personajes"
               loading={loadingPersonajes}
@@ -2871,6 +2872,7 @@ export function EditorCriatura({
               allEntities={allReinos.map((r) => ({ id: r.id, nombre: r.nombre }))}
               emptyLabel="Sin territorio"
               fallbackIcon={<Globe size={14} strokeWidth={1} />}
+              fill={false}
               icon={<Globe size={9} />}
               label="Territorio"
               loading={loadingReinos}
@@ -2884,6 +2886,7 @@ export function EditorCriatura({
               allEntities={ciudadesConReino.map((l) => ({ id: l.id, nombre: l.nombre }))}
               emptyLabel={reinosSeleccionadosIds.length > 0 ? "Sin ciudades en estos reinos" : "Sin ciudades"}
               fallbackIcon={<MapPin size={14} strokeWidth={1} />}
+              fill={false}
               icon={<MapPin size={9} />}
               label={reinosSeleccionadosIds.length > 0 ? `Ciudades (${reinosSeleccionadosIds.length})` : "Ciudades"}
               loading={loadingCiudades}
@@ -2897,6 +2900,7 @@ export function EditorCriatura({
               allEntities={allCraftedItems.map((i) => ({ id: i.id, nombre: i.nombre, imagen_url: i.imagen_url }))}
               emptyLabel="Sin creaciones"
               fallbackIcon={<Package size={14} strokeWidth={1} />}
+              fill={false}
               icon={<Wrench size={9} />}
               label="Creaciones"
               loading={loadingCrafted}
