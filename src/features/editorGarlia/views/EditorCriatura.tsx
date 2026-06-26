@@ -2755,7 +2755,7 @@ export function EditorCriatura({
                 nombre: p.nombre,
                 imagen_url: p.img_url,
               }))}
-              columns={4}
+              columns={8}
               emptyLabel="Sin personajes"
               fallbackIcon={<UserCircle2 size={14} strokeWidth={1} />}
               icon={<Users size={9} />}
