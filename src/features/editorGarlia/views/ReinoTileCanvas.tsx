@@ -31,11 +31,10 @@ import { UnifiedTileCanvas } from "./UnifiedTileCanvas";
 
 // Extiende Ciudad con las coordenadas de tile añadidas en la migración
 type CiudadConTile = Ciudad & {
-  coord_x: number;
-  coord_y: number;
   tile_col?: number | null;
   tile_row?: number | null;
 };
+
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 export type ReinoTile = {
   id: string;
@@ -205,14 +204,10 @@ export function ReinoTileCanvas({
   const emptyState = !loading && tiles.length === 0;
 
   return (
-    <div className="relative w-full h-full overflow-hidden">
+    <div className="relative w-full h-full flex flex-col overflow-hidden">
       <UnifiedTileCanvas<ReinoTile, CiudadConTile>
         editMode={editMode}
-        markers={detalles.map((d) => ({
-          ...d,
-          coord_x: d.coord_x ?? 0,
-          coord_y: d.coord_y ?? 0,
-        }))}
+        markers={detalles}
         selectedMarkerId={selectedPinId}
         tiles={tiles}
         tileSize={tileSize}

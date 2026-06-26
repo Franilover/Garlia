@@ -40,8 +40,8 @@ export type BaseMarker = {
   id: string;
   nombre?: string;
   name?: string;
-  coord_x: number;
-  coord_y: number;
+  coord_x?: number | null;
+  coord_y?: number | null;
   tile_col?: number | null;
   tile_row?: number | null;
   oculto?: boolean;
@@ -123,9 +123,7 @@ export function UnifiedTileCanvas<
   const lastPinchDist = useRef<number | null>(null);
   const animFrameRef = useRef<number>(0);
   const pulseRef = useRef(0);
-  const lastClickRef = useRef<{ t: number; x: number; y: number } | null>(
-    null,
-  );
+  const lastClickRef = useRef<{ t: number; x: number; y: number } | null>(null);
 
   const cssColorsRef = useRef({
     primary: "#6b4423",
@@ -348,7 +346,10 @@ export function UnifiedTileCanvas<
     const ox = clientX - rect.left;
     const oy = clientY - rect.top;
     const cam = camRef.current;
-    const newScale = Math.max(0.1, Math.min(10, cam.scale * (1 - delta * 0.001)));
+    const newScale = Math.max(
+      0.1,
+      Math.min(10, cam.scale * (1 - delta * 0.001)),
+    );
     const ratio = newScale / cam.scale;
     camRef.current = {
       scale: newScale,
@@ -494,7 +495,13 @@ export function UnifiedTileCanvas<
           (ctx as any).roundRect?.(rx, ry, size, size, 5) ??
             ctx.rect(rx, ry, size, size);
           ctx.fill();
-          trashRectRef.current = { x: rx, y: ry, w: size, h: size, tile: hovered };
+          trashRectRef.current = {
+            x: rx,
+            y: ry,
+            w: size,
+            h: size,
+            tile: hovered,
+          };
         }
       }
 
@@ -560,24 +567,40 @@ export function UnifiedTileCanvas<
 
     if (nearLeft && withinVerticalSpan) {
       const rowAtClick =
-        minRow + Math.max(0, Math.min(totalRows - 1, Math.floor((py - top) / (tileSize * scale))));
+        minRow +
+        Math.max(
+          0,
+          Math.min(totalRows - 1, Math.floor((py - top) / (tileSize * scale))),
+        );
       // Tras desplazar +1 columna, el hueco libre queda en minCol
       return { col: minCol, row: rowAtClick, dCol: 1, dRow: 0 };
     }
     if (nearRight && withinVerticalSpan) {
       const rowAtClick =
-        minRow + Math.max(0, Math.min(totalRows - 1, Math.floor((py - top) / (tileSize * scale))));
+        minRow +
+        Math.max(
+          0,
+          Math.min(totalRows - 1, Math.floor((py - top) / (tileSize * scale))),
+        );
       return { col: minCol + totalCols, row: rowAtClick, dCol: 0, dRow: 0 };
     }
     if (nearTop && withinHorizontalSpan) {
       const colAtClick =
-        minCol + Math.max(0, Math.min(totalCols - 1, Math.floor((px - left) / (tileSize * scale))));
+        minCol +
+        Math.max(
+          0,
+          Math.min(totalCols - 1, Math.floor((px - left) / (tileSize * scale))),
+        );
       // Tras desplazar +1 fila, el hueco libre queda en minRow
       return { col: colAtClick, row: minRow, dCol: 0, dRow: 1 };
     }
     if (nearBottom && withinHorizontalSpan) {
       const colAtClick =
-        minCol + Math.max(0, Math.min(totalCols - 1, Math.floor((px - left) / (tileSize * scale))));
+        minCol +
+        Math.max(
+          0,
+          Math.min(totalCols - 1, Math.floor((px - left) / (tileSize * scale))),
+        );
       return { col: colAtClick, row: minRow + totalRows, dCol: 0, dRow: 0 };
     }
     return null;
@@ -633,7 +656,9 @@ export function UnifiedTileCanvas<
       }
     };
 
-    const pendingClickTimer = { current: null as ReturnType<typeof setTimeout> | null };
+    const pendingClickTimer = {
+      current: null as ReturnType<typeof setTimeout> | null,
+    };
 
     const runSingleClickAction = (clientX: number, clientY: number) => {
       // Click en la papelera flotante
@@ -810,15 +835,13 @@ export function UnifiedTileCanvas<
       ref={containerRef}
       className={`relative flex-1 overflow-hidden min-h-0 ${className ?? ""}`}
       style={{
-        minHeight: "100%",
-        cursor: selectedMarkerId
-          ? "crosshair"
-          : hoverTile
-            ? "pointer"
-            : "grab",
+        cursor: selectedMarkerId ? "crosshair" : hoverTile ? "pointer" : "grab",
       }}
     >
-      <canvas ref={canvasRef} className="absolute inset-0 touch-none w-full h-full" />
+      <canvas
+        ref={canvasRef}
+        className="absolute inset-0 touch-none w-full h-full"
+      />
 
       {/* Zoom controls */}
       <div className="absolute bottom-3 right-3 z-10 flex flex-col gap-1">
@@ -845,7 +868,8 @@ export function UnifiedTileCanvas<
         <button
           className="absolute top-2 right-2 z-10 flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase"
           style={{
-            background: "color-mix(in srgb, var(--foreground) 70%, transparent)",
+            background:
+              "color-mix(in srgb, var(--foreground) 70%, transparent)",
             color: "#fff",
           }}
           onClick={() => onMarkerSelect(null)}

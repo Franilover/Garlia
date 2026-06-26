@@ -451,7 +451,10 @@ export function EditorMapa({
   const existingPositions = tiles.map((t) => ({ col: t.col, row: t.row }));
 
   return (
-    <div className="flex flex-col min-h-0 h-full">
+    <div
+      className="flex flex-col min-h-0"
+      style={{ minHeight: "65vh", height: "65vh" }}
+    >
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&display=swap');`}</style>
 
       {toast && (
@@ -510,14 +513,12 @@ export function EditorMapa({
           <>
             <UnifiedTileCanvas<
               MapTile & { label?: string | null },
-              ReinoConTile & { coord_x: number; coord_y: number }
+              ReinoConTile
             >
               editMode={true}
-              markers={
-                reinos.filter(
-                  (r) => r.coord_x != null && r.coord_y != null,
-                ) as any
-              }
+              markers={reinos.filter(
+                (r) => r.coord_x != null && r.coord_y != null,
+              )}
               selectedMarkerId={selectedReinoId}
               tiles={tiles}
               onMarkerClick={(r) => onSelectReino?.(r.id)}
