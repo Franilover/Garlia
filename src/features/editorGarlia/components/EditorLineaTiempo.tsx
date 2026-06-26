@@ -2677,6 +2677,7 @@ function ListaEventosConMinimapa({
         {(() => {
           const items: React.ReactNode[] = [];
           let lastAnio: number | null = null;
+          let lastEraId: string | null | undefined = undefined;
           for (const evt of allEvents) {
             const anio =
               evt.dia_absoluto != null
@@ -2688,15 +2689,17 @@ function ListaEventosConMinimapa({
               eraColor ?? "color-mix(in srgb, var(--primary) 45%, transparent)";
             const isSel = evt.id === evtSeleccionado;
 
-            if (anio !== null && anio !== lastAnio) {
-              lastAnio = anio;
+            // Separador de ERA — solo cuando la era cambia
+            const eraId = eraEvt?.id ?? null;
+            if (eraId !== lastEraId && eraEvt?.nombre) {
+              lastEraId = eraId;
               items.push(
                 <div
-                  key={`list-sep-${anio}`}
-                  className="flex items-center gap-1.5 mt-2 mb-0.5"
+                  key={`list-era-${eraEvt.id}`}
+                  className="flex items-center gap-1.5 mt-3 mb-1"
                 >
                   <span
-                    className="text-[7px] font-black uppercase tracking-[0.2em] px-1.5 py-0.5 rounded-full shrink-0"
+                    className="text-[7px] font-black uppercase tracking-[0.2em] px-2 py-0.5 rounded-full shrink-0 flex items-center gap-1"
                     style={{
                       background: eraColor
                         ? `${eraColor}18`
@@ -2704,18 +2707,63 @@ function ListaEventosConMinimapa({
                       color:
                         eraColor ??
                         "color-mix(in srgb, var(--primary) 45%, transparent)",
-                      border: `1px solid ${eraColor ? `${eraColor}30` : "color-mix(in srgb, var(--primary) 12%, transparent)"}`,
+                      border: `1px solid ${eraColor ? `${eraColor}35` : "color-mix(in srgb, var(--primary) 12%, transparent)"}`,
                     }}
                   >
-                    {anio}
-                    {eraEvt?.nombre ? ` · ${eraEvt.nombre}` : ""}
+                    <span
+                      style={{
+                        display: "inline-block",
+                        width: 5,
+                        height: 5,
+                        borderRadius: "50%",
+                        background: eraColor ?? "currentColor",
+                        flexShrink: 0,
+                      }}
+                    />
+                    {eraEvt.nombre}
                   </span>
                   <div
                     className="flex-1 h-px"
                     style={{
                       background: eraColor
-                        ? `${eraColor}25`
+                        ? `${eraColor}30`
                         : "color-mix(in srgb, var(--primary) 8%, transparent)",
+                    }}
+                  />
+                </div>,
+              );
+            } else if (eraId !== lastEraId) {
+              // Era cambió pero sin nombre (sin era) — resetear sin separador visible
+              lastEraId = eraId;
+            }
+
+            // Separador de AÑO — solo el número, sin repetir la era
+            if (anio !== null && anio !== lastAnio) {
+              lastAnio = anio;
+              items.push(
+                <div
+                  key={`list-sep-${anio}`}
+                  className="flex items-center gap-1.5 mt-1.5 mb-0.5"
+                >
+                  <span
+                    className="text-[7px] font-black tabular-nums px-1.5 py-0.5 rounded shrink-0"
+                    style={{
+                      color:
+                        eraColor ??
+                        "color-mix(in srgb, var(--primary) 35%, transparent)",
+                      background: eraColor
+                        ? `${eraColor}10`
+                        : "color-mix(in srgb, var(--primary) 4%, transparent)",
+                    }}
+                  >
+                    {anio}
+                  </span>
+                  <div
+                    className="flex-1 h-px"
+                    style={{
+                      background: eraColor
+                        ? `${eraColor}15`
+                        : "color-mix(in srgb, var(--primary) 6%, transparent)",
                     }}
                   />
                 </div>,
