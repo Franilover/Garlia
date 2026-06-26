@@ -2543,7 +2543,6 @@ function ListaEventosConMinimapa({
 }) {
   const listRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
-  const [dotRatios, setDotRatios] = useState<Record<string, number>>({});
 
   const diasAnioLista =
     cal?.estaciones?.reduce(
@@ -2561,104 +2560,12 @@ function ListaEventosConMinimapa({
         ) ?? null)
       : null;
 
-  const total = allEvents.length;
   const selEvt = allEvents.find((e) => e.id === evtSeleccionado) ?? null;
   const selEra = selEvt ? getEraEvt(selEvt.dia_absoluto) : null;
   const selEraColor = selEra?.color ?? null;
 
-  // Mide, para cada evento, su centro vertical real como fracción (0–1) del
-  // alto total de la lista (scrollHeight), independientemente del scroll
-  // actual. getBoundingClientRect evita problemas con offsetParent.
-  const measure = useCallback(() => {
-    const container = listRef.current;
-    if (!container) return;
-    const totalHeight = container.scrollHeight;
-    if (!totalHeight) return;
-    const containerRect = container.getBoundingClientRect();
-    const next: Record<string, number> = {};
-    itemRefs.current.forEach((el, id) => {
-      const itemRect = el.getBoundingClientRect();
-      const offsetEnContenido =
-        itemRect.top -
-        containerRect.top +
-        container.scrollTop +
-        itemRect.height / 2;
-      next[id] = Math.min(1, Math.max(0, offsetEnContenido / totalHeight));
-    });
-    setDotRatios(next);
-  }, []);
-
-  // Remedir cuando cambia el set de eventos (después de que el DOM se
-  // actualice, antes del paint, para evitar parpadeos de puntos mal ubicados)
-  useLayoutEffect(() => {
-    measure();
-  }, [allEvents, measure]);
-
-  // Remedir ante cambios de tamaño del contenedor (p. ej. al abrir el panel
-  // de detalle, la lista se angosta a 180px y los separadores pueden
-  // envolver distinto, cambiando alturas)
-  useEffect(() => {
-    const container = listRef.current;
-    if (!container || typeof ResizeObserver === "undefined") return;
-    const ro = new ResizeObserver(() => measure());
-    ro.observe(container);
-    return () => ro.disconnect();
-  }, [measure]);
-
   return (
     <div className="flex gap-0" style={{ minHeight: 120 }}>
-      {/* ── Minimap vertical ── */}
-      {total > 0 && (
-        <div
-          className="relative shrink-0"
-          style={{
-            width: 14,
-            marginRight: 8,
-            background: "color-mix(in srgb, var(--primary) 4%, transparent)",
-            border:
-              "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-            borderRadius: 4,
-            cursor: "pointer",
-          }}
-          title="Minimap vertical — click para saltar"
-          onClick={(e) => {
-            const rect = e.currentTarget.getBoundingClientRect();
-            const ratio = (e.clientY - rect.top) / rect.height;
-            const listEl = listRef.current;
-            if (!listEl) return;
-            listEl.scrollTop =
-              ratio * (listEl.scrollHeight - listEl.clientHeight);
-          }}
-        >
-          {allEvents.map((evt, i) => {
-            const eraC = getEraEvt(evt.dia_absoluto)?.color ?? null;
-            const dotC =
-              eraC ?? "color-mix(in srgb, var(--primary) 40%, transparent)";
-            const isSel = evt.id === evtSeleccionado;
-            // Fallback por índice solo para el primer render, antes de medir
-            const ratio = dotRatios[evt.id] ?? i / (total - 1 || 1);
-            return (
-              <div
-                key={evt.id}
-                style={{
-                  position: "absolute",
-                  top: `${ratio * 100}%`,
-                  left: "50%",
-                  transform: "translate(-50%, -50%)",
-                  width: isSel ? 6 : 4,
-                  height: isSel ? 6 : 4,
-                  borderRadius: "50%",
-                  background: dotC,
-                  opacity: isSel ? 1 : 0.75,
-                  boxShadow: isSel ? `0 0 0 2px ${dotC}40` : "none",
-                  transition: "all 0.15s",
-                }}
-              />
-            );
-          })}
-        </div>
-      )}
-
       {/* ── Lista compacta ── */}
       <div
         ref={listRef}
