@@ -248,6 +248,15 @@ export default function LibroDetalle() {
   const [mostrarModalTW, setMostrarModalTW] = useState(false);
   const pendingRouteRef = useRef<string | null>(null);
 
+  // ── Mostrar modal TW al cargar el libro ────────────────────────────────────
+  useEffect(() => {
+    if (!libro) return;
+    const tws = libro.trigger_warnings?.filter(Boolean) ?? [];
+    if (tws.length > 0 && !twAceptado) {
+      setMostrarModalTW(true);
+    }
+  }, [libro]);
+
   // ── Capítulos leídos desde Supabase ────────────────────────────────────────
   useEffect(() => {
     if (!libroId) return;
