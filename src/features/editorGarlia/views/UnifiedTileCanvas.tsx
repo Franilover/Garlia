@@ -325,15 +325,19 @@ export function UnifiedTileCanvas<
     const { x: cx, y: cy, scale } = camRef.current;
     const canvasX = (px - cx) / scale;
     const canvasY = (py - cy) / scale;
+    // Math.floor no funciona bien con negativos en JS (-0.1 → -1, no 0)
+    // usamos Math.floor sobre el offset desde minCol/minRow
     const clickedCol = minCol + Math.floor(canvasX / tileSize);
     const clickedRow = minRow + Math.floor(canvasY / tileSize);
+    const modX = ((canvasX % tileSize) + tileSize) % tileSize;
+    const modY = ((canvasY % tileSize) + tileSize) % tileSize;
     const localX = Math.max(
       0,
-      Math.min(100, Math.round(((canvasX % tileSize) / tileSize) * 100)),
+      Math.min(100, Math.round((modX / tileSize) * 100)),
     );
     const localY = Math.max(
       0,
-      Math.min(100, Math.round(((canvasY % tileSize) / tileSize) * 100)),
+      Math.min(100, Math.round((modY / tileSize) * 100)),
     );
     return {
       x: localX,
@@ -705,10 +709,27 @@ export function UnifiedTileCanvas<
           markDirty();
         }
         if (info && !tile) {
-          const g = ghostHoverRef.current;
-          if (!g || g.col !== info.tile_col || g.row !== info.tile_row) {
-            ghostHoverRef.current = { col: info.tile_col, row: info.tile_row };
-            setGhostHover({ col: info.tile_col, row: info.tile_row });
+          const ghost = ghostGridRef.current;
+          const inZone =
+            ghost &&
+            info.tile_col >= ghost.gMinCol &&
+            info.tile_col <= ghost.gMaxCol &&
+            info.tile_row >= ghost.gMinRow &&
+            info.tile_row <= ghost.gMaxRow &&
+            !ghost.tileSet.has(`${info.tile_col},${info.tile_row}`);
+          if (inZone) {
+            const g = ghostHoverRef.current;
+            if (!g || g.col !== info.tile_col || g.row !== info.tile_row) {
+              ghostHoverRef.current = {
+                col: info.tile_col,
+                row: info.tile_row,
+              };
+              setGhostHover({ col: info.tile_col, row: info.tile_row });
+              markDirty();
+            }
+          } else if (ghostHoverRef.current) {
+            ghostHoverRef.current = null;
+            setGhostHover(null);
             markDirty();
           }
         } else {
@@ -806,9 +827,21 @@ export function UnifiedTileCanvas<
           return;
         }
 
-        // ── Click en casilla fantasma (solo Ctrl) → crear tile, coords pueden ser negativas ──
-        if (info && !tile && withCtrl) {
-          onTileCreate(info.tile_col, info.tile_row);
+        // ── Click en casilla fantasma (solo Ctrl) → crear tile en el borde ──────
+        if (info && !tile && withCtrl && ghostGridRef.current) {
+          const { gMinCol, gMinRow, gMaxCol, gMaxRow, tileSet } =
+            ghostGridRef.current;
+          const { tile_col: col, tile_row: row } = info;
+          // Solo permitir si está dentro del anillo de "+" (1 casilla alrededor)
+          const inGhostZone =
+            col >= gMinCol &&
+            col <= gMaxCol &&
+            row >= gMinRow &&
+            row <= gMaxRow &&
+            !tileSet.has(`${col},${row}`);
+          if (inGhostZone) {
+            onTileCreate(col, row);
+          }
           return;
         }
       }
@@ -901,7 +934,7 @@ export function UnifiedTileCanvas<
             ? "crosshair"
             : hoverTile || ghostHover
               ? "pointer"
-              : "grab",
+              : "default",
       }}
     >
       <canvas
