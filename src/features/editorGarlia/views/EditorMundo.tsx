@@ -2280,7 +2280,7 @@ function PanelListas({
                   icon={Layers}
                   label={el.grupos}
                   loading={!loadedGrupos}
-                  minColWidth="calc(50% - 0.1875rem)"
+                  minColWidth="calc(25% - 0.28125rem)"
                   defaultCollapsed={true}
                   storageKey="grupos"
                   collapsed={isDesktop ? filaGrupos.collapsed : undefined}
@@ -2332,7 +2332,10 @@ function PanelListas({
                           >
                             {tipo}
                           </span>
-                          <div className="flex flex-col gap-2">
+                          <div
+                            className="grid gap-2"
+                            style={{ gridTemplateColumns: "1fr 1fr" }}
+                          >
                             {subtiposOrdenados.map(([subtipo, subLista]) => (
                               <div
                                 key={subtipo || "__sin_subtipo__"}
@@ -2353,7 +2356,7 @@ function PanelListas({
                                   className="grid gap-1.5"
                                   style={{
                                     gridTemplateColumns:
-                                      "repeat(auto-fill, minmax(60px, 1fr))",
+                                      "repeat(auto-fill, minmax(50px, 1fr))",
                                   }}
                                 >
                                   {subLista.map((g) => {
