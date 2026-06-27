@@ -30,9 +30,9 @@ import {
   MarkdownEditor,
   type WikiEntity,
 } from "@/components/forms/Markdown/MarkdownEditor";
-import { PanelEditor } from "@/features/editorGarlia/components/editorLetras/components/editor/PanelEditor";
 import { ModalNuevaCancion } from "@/features/editorGarlia/components/editorLetras/components/modals/ModalNuevaCancion";
 import type { Cancion } from "@/features/editorGarlia/components/editorLetras/types";
+import { EntidadOverlay } from "@/features/editorGarlia/components/EntidadOverlay";
 import EstudioCapitulos from "@/features/editorGarlia/views/EditorCapitulos";
 import AdminDescubrimientos from "@/features/editorGarlia/views/editorRelaciones";
 import EditorMisiones from "@/features/editorGarlia/components/editorMisiones";
@@ -40,20 +40,9 @@ import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import { db } from "@/lib/api/client/db";
 import { supabase } from "@/lib/api/client/supabase";
 
-import { EditorCiudad, type Ciudad } from "./EditorCiudad";
-import { EditorCriatura } from "./EditorCriatura";
-import {
-  EditorGrupo,
-  GRUPO_TIPO_CONFIG,
-  useGrupos,
-  type Grupo,
-} from "./EditorGrupo";
-import { EditorHechizos } from "./EditorHechizos";
-import { EditorItem } from "./EditorItem";
-import { EditorNota } from "./EditorNota";
-import { EditorPersonaje } from "./EditorPersonaje";
+import { type Ciudad } from "./EditorCiudad";
+import { useGrupos, GRUPO_TIPO_CONFIG, type Grupo } from "./EditorGrupo";
 import { EditorMapa } from "./EditorMapa";
-import { EditorReino } from "./EditorReino";
 import { PanelHistoriaMundo } from "../components/EditorLineaTiempo";
 import {
   type MundoSectionKey,
@@ -1521,464 +1510,63 @@ function PanelListas({
           }}
         >
           {/* ── Overlay inline: reemplaza solo el bloque de entidades ── */}
-          {overlay && (
-            <div
-              className="flex flex-col min-h-0"
-              style={{ background: "var(--bg-main)", minHeight: 400 }}
-            >
-              {/* Botón volver al menú */}
-              <div
-                className="shrink-0 flex items-center px-3"
-                style={{
-                  height: 40,
-                  borderBottom:
-                    "var(--border-width) solid color-mix(in srgb, var(--primary) 8%, transparent)",
-                }}
-              >
-                <button
-                  className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-primary/40 hover:text-primary/70 transition-colors"
-                  onClick={clearAllOverlays}
-                  type="button"
-                >
-                  <ChevronLeft size={12} />
-                  Volver
-                </button>
-              </div>
-
-              {/* Contenido del editor activo */}
-              <div
-                className="flex-1 flex flex-col min-h-0 overflow-hidden"
-                style={{ minHeight: 360 }}
-              >
-                {overlay === "reino" && selectedReino && (
-                  <EditorReino
-                    key={selectedReino.id}
-                    entities={allEntityNames}
-                    item={selectedReino}
-                    onDeleted={(id) => {
-                      setReinos((p) => p.filter((r) => r.id !== id));
-                      setSelectedReino(null);
-                    }}
-                    onSaved={(u) => {
-                      setReinos((p) => p.map((r) => (r.id === u.id ? u : r)));
-                      setSelectedReino(u);
-                    }}
-                    onSelectCiudad={async (id: string) => {
-                      const local = ciudades.find((x) => x.id === id);
-                      clearAllOverlays();
-                      if (local) {
-                        setSelectedCiudad(local as Ciudad);
-                        return;
-                      }
-                      const { data } = await supabase
-                        .from("ciudades")
-                        .select("*")
-                        .eq("id", id)
-                        .single();
-                      if (data) setSelectedCiudad(data as Ciudad);
-                    }}
-                    onSelectCriatura={(id) => {
-                      const c = criaturas.find((x) => x.id === id);
-                      if (!c) return;
-                      clearAllOverlays();
-                      setSelectedCriatura(c);
-                    }}
-                    onSelectItem={(id) => {
-                      const o = objetos.find((x) => x.id === id);
-                      if (!o) return;
-                      clearAllOverlays();
-                      setSelectedObjeto(o);
-                    }}
-                    onSelectPersonaje={(p) => {
-                      const found = personajes.find(
-                        (x) => x.id === p?.id || x.nombre === p?.nombre,
-                      );
-                      if (!found) return;
-                      clearAllOverlays();
-                      setSelectedPersonaje(found);
-                    }}
-                  />
-                )}
-                {overlay === "criatura" && selectedCriatura && (
-                  <EditorCriatura
-                    key={selectedCriatura.id}
-                    entities={allEntityNames}
-                    item={selectedCriatura as any}
-                    onDeleted={(id) => {
-                      setCriaturas((p) => p.filter((c) => c.id !== id));
-                      setSelectedCriatura(null);
-                    }}
-                    onNavigateCiudad={async (id) => {
-                      const local = ciudades.find((x) => x.id === id);
-                      clearAllOverlays();
-                      if (local) {
-                        selectCiudad(local);
-                        return;
-                      }
-                      const { data } = await supabase
-                        .from("ciudades")
-                        .select("*")
-                        .eq("id", id)
-                        .single();
-                      if (data) selectCiudad(data as Ciudad);
-                    }}
-                    onNavigateReino={async (id) => {
-                      const local = reinos.find((x) => x.id === id);
-                      clearAllOverlays();
-                      if (local) {
-                        selectReino(local);
-                        return;
-                      }
-                      const { data } = await supabase
-                        .from("reinos")
-                        .select("*")
-                        .eq("id", id)
-                        .single();
-                      if (data) selectReino(data as Reino);
-                    }}
-                    onSaved={(u) => {
-                      setCriaturas((p) =>
-                        p.map((c) => (c.id === u.id ? { ...c, ...u } : c)),
-                      );
-                      setSelectedCriatura({ ...selectedCriatura, ...u });
-                    }}
-                    onSelectGrupo={async (id) => {
-                      const local = grupos.find((x) => x.id === id);
-                      clearAllOverlays();
-                      if (local) {
-                        selectGrupo(local);
-                        return;
-                      }
-                      const { data } = await supabase
-                        .from("grupos_mundo")
-                        .select("*")
-                        .eq("id", id)
-                        .single();
-                      if (data)
-                        selectGrupo({
-                          ...data,
-                          miembro_ids: data.miembro_ids ?? [],
-                        } as Grupo);
-                    }}
-                    onSelectItem={(id) => {
-                      const o = objetos.find((x) => x.id === id);
-                      if (!o) return;
-                      clearAllOverlays();
-                      setSelectedObjeto(o);
-                    }}
-                    onSelectPersonaje={(id) => {
-                      const p = personajes.find((x) => x.id === id);
-                      if (!p) return;
-                      clearAllOverlays();
-                      setSelectedPersonaje(p);
-                    }}
-                  />
-                )}
-                {overlay === "objeto" && selectedObjeto && (
-                  <EditorItem
-                    key={selectedObjeto.id}
-                    entities={allEntityNames}
-                    item={selectedObjeto as any}
-                    onDeleted={(id) => {
-                      setObjetos((p) => p.filter((o) => o.id !== id));
-                      setSelectedObjeto(null);
-                    }}
-                    onNavigateCiudad={async (id) => {
-                      const local = ciudades.find((x) => x.id === id);
-                      clearAllOverlays();
-                      if (local) {
-                        selectCiudad(local);
-                        return;
-                      }
-                      const { data } = await supabase
-                        .from("ciudades")
-                        .select("*")
-                        .eq("id", id)
-                        .single();
-                      if (data) selectCiudad(data as Ciudad);
-                    }}
-                    onNavigateReino={async (id) => {
-                      const local = reinos.find((x) => x.id === id);
-                      clearAllOverlays();
-                      if (local) {
-                        selectReino(local);
-                        return;
-                      }
-                      const { data } = await supabase
-                        .from("reinos")
-                        .select("*")
-                        .eq("id", id)
-                        .single();
-                      if (data) selectReino(data as Reino);
-                    }}
-                    onSaved={(u) => {
-                      setObjetos((p) =>
-                        p.map((o) => (o.id === u.id ? { ...o, ...u } : o)),
-                      );
-                      setSelectedObjeto({ ...selectedObjeto, ...u });
-                    }}
-                    onSelectCriatura={(id) => {
-                      const c = criaturas.find((x) => x.id === id);
-                      if (!c) return;
-                      clearAllOverlays();
-                      setSelectedCriatura(c);
-                    }}
-                  />
-                )}
-                {overlay === "ciudad" && selectedCiudad && (
-                  <EditorCiudad
-                    key={selectedCiudad.id}
-                    entities={allEntityNames}
-                    item={selectedCiudad as Ciudad}
-                    onDeleted={(id) => {
-                      setCiudades((p) => p.filter((l) => l.id !== id));
-                      setSelectedCiudad(null);
-                    }}
-                    onNavigateReino={(id) => {
-                      const r = reinos.find((x) => x.id === id);
-                      if (!r) return;
-                      clearAllOverlays();
-                      setSelectedReino(r);
-                    }}
-                    onSaved={(u) => {
-                      const uMin: CiudadMin = {
-                        id: u.id,
-                        nombre: u.nombre,
-                        imagen_url: u.imagen_url ?? undefined,
-                        tipo: u.tipo ?? undefined,
-                        reino_id: u.reino_id ?? undefined,
-                      };
-                      setCiudades((p) =>
-                        p.map((l) => (l.id === u.id ? { ...l, ...uMin } : l)),
-                      );
-                      setSelectedCiudad({ ...selectedCiudad, ...u });
-                    }}
-                    onSelectCriatura={(id) => {
-                      const c = criaturas.find((x) => x.id === id);
-                      if (!c) return;
-                      clearAllOverlays();
-                      setSelectedCriatura(c);
-                    }}
-                    onSelectItem={(id) => {
-                      const o = objetos.find((x) => x.id === id);
-                      if (!o) return;
-                      clearAllOverlays();
-                      setSelectedObjeto(o);
-                    }}
-                    onSelectPersonaje={(id) => {
-                      const p = personajes.find((x) => x.id === id);
-                      if (!p) return;
-                      clearAllOverlays();
-                      setSelectedPersonaje(p);
-                    }}
-                  />
-                )}
-                {overlay === "personaje" && selectedPersonaje && (
-                  <EditorPersonaje
-                    key={selectedPersonaje.id}
-                    entities={allEntityNames}
-                    item={selectedPersonaje}
-                    onDeleted={(id) => {
-                      setPersonajes((p) => p.filter((x) => x.id !== id));
-                      setSelectedPersonaje(null);
-                    }}
-                    onNavigate={(tab, nombre) => {
-                      if (tab === "criaturas") {
-                        const c = criaturas.find(
-                          (x) =>
-                            x.nombre.toLowerCase() === nombre.toLowerCase(),
-                        );
-                        if (!c) return;
-                        clearAllOverlays();
-                        setSelectedCriatura(c);
-                      } else if (tab === "reinos") {
-                        const r = reinos.find(
-                          (x) =>
-                            x.nombre.toLowerCase() === nombre.toLowerCase(),
-                        );
-                        if (!r) return;
-                        clearAllOverlays();
-                        setSelectedReino(r);
-                      }
-                    }}
-                    onOpenGrupo={async (id) => {
-                      const local = grupos.find((x) => x.id === id);
-                      clearAllOverlays();
-                      if (local) {
-                        selectGrupo(local);
-                        return;
-                      }
-                      const { data } = await supabase
-                        .from("grupos_mundo")
-                        .select("*")
-                        .eq("id", id)
-                        .single();
-                      if (data)
-                        selectGrupo({
-                          ...data,
-                          miembro_ids: data.miembro_ids ?? [],
-                        } as Grupo);
-                    }}
-                    onSaved={(u) => {
-                      setPersonajes((p) =>
-                        p.map((x) => (x.id === u.id ? u : x)),
-                      );
-                      setSelectedPersonaje(u);
-                    }}
-                    onSelectCancion={async (id) => {
-                      const local = canciones.find((x) => x.id === id);
-                      clearAllOverlays();
-                      if (local) {
-                        selectCancion(local as unknown as Cancion);
-                        return;
-                      }
-                      const { data } = await supabase
-                        .from("canciones")
-                        .select("*")
-                        .eq("id", id)
-                        .single();
-                      if (data) selectCancion(data as unknown as Cancion);
-                    }}
-                    onSelectPersonaje={(id) => {
-                      const p = personajes.find((x) => x.id === id);
-                      if (!p) return;
-                      clearAllOverlays();
-                      setSelectedPersonaje(p);
-                    }}
-                  />
-                )}
-                {overlay === "hechizo" && selectedHechizo && (
-                  <EditorHechizos
-                    initialSelectedId={selectedHechizo.id}
-                    modo="hechizos"
-                    onItemDeleted={(id) => {
-                      setHechizos((p) => p.filter((h) => h.id !== id));
-                      setSelectedHechizo(null);
-                    }}
-                    onItemSaved={(updated) =>
-                      setHechizos((p) =>
-                        p.map((h) =>
-                          h.id === updated.id
-                            ? { id: updated.id, nombre: updated.nombre }
-                            : h,
-                        ),
-                      )
-                    }
-                    onSelectedIdChange={(id) => {
-                      if (!id) setSelectedHechizo(null);
-                    }}
-                  />
-                )}
-                {overlay === "don" && selectedDon && (
-                  <EditorHechizos
-                    initialSelectedId={selectedDon.id}
-                    modo="dones"
-                    onItemDeleted={(id) => {
-                      setDones((p) => p.filter((d) => d.id !== id));
-                      setSelectedDon(null);
-                    }}
-                    onItemSaved={(updated) =>
-                      setDones((p) =>
-                        p.map((d) =>
-                          d.id === updated.id
-                            ? { id: updated.id, nombre: updated.nombre }
-                            : d,
-                        ),
-                      )
-                    }
-                    onSelectedIdChange={(id) => {
-                      if (!id) setSelectedDon(null);
-                    }}
-                  />
-                )}
-                {overlay === "runa" && selectedRuna && (
-                  <EditorHechizos
-                    initialSelectedId={selectedRuna.id}
-                    modo="runas"
-                    onItemDeleted={(id) => {
-                      setRunas((p) => p.filter((r) => r.id !== id));
-                      setSelectedRuna(null);
-                    }}
-                    onItemSaved={(updated) =>
-                      setRunas((p) =>
-                        p.map((r) =>
-                          r.id === updated.id
-                            ? {
-                                id: updated.id,
-                                nombre: updated.nombre,
-                                imagen_url: (updated as any).imagen_url,
-                              }
-                            : r,
-                        ),
-                      )
-                    }
-                    onSelectedIdChange={(id) => {
-                      if (!id) setSelectedRuna(null);
-                    }}
-                  />
-                )}
-                {overlay === "nota" && selectedNota && (
-                  <EditorNota
-                    key={selectedNota.id}
-                    nota={selectedNota}
-                    onDeleted={(id) => {
-                      eliminarNota(id);
-                      setSelectedNota(null);
-                    }}
-                    onSaved={async (updated) => {
-                      await actualizarNota(updated);
-                      setSelectedNota(updated);
-                    }}
-                  />
-                )}
-                {overlay === "grupo" && selectedGrupo && (
-                  <EditorGrupo
-                    key={selectedGrupo.id}
-                    grupo={selectedGrupo}
-                    onClickMiembro={(id, tabla) => {
-                      if (tabla === "personajes") {
-                        const p = personajes.find((x) => x.id === id);
-                        if (!p) return;
-                        clearAllOverlays();
-                        setSelectedPersonaje(p);
-                      } else if (tabla === "criaturas") {
-                        const c = criaturas.find((x) => x.id === id);
-                        if (!c) return;
-                        clearAllOverlays();
-                        setSelectedCriatura(c);
-                      } else if (tabla === "items") {
-                        const o = objetos.find((x) => x.id === id);
-                        if (!o) return;
-                        clearAllOverlays();
-                        setSelectedObjeto(o);
-                      } else if (tabla === "reinos") {
-                        const r = reinos.find((x) => x.id === id);
-                        if (!r) return;
-                        clearAllOverlays();
-                        setSelectedReino(r);
-                      }
-                    }}
-                    onDeleted={async (id) => {
-                      await eliminarGrupo(id);
-                      setSelectedGrupo(null);
-                    }}
-                    onSaved={async (updated) => {
-                      await actualizarGrupo(updated);
-                      setSelectedGrupo(updated);
-                    }}
-                  />
-                )}
-                {overlay === "cancion" && selectedCancion && (
-                  <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-                    <PanelEditor
-                      key={selectedCancion.id}
-                      cancionId={selectedCancion.id}
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
+          <EntidadOverlay
+            actions={{
+              clearAllOverlays,
+              selectReino,
+              selectCiudad,
+              selectGrupo,
+              selectCancion,
+              setSelectedReino,
+              setSelectedCriatura,
+              setSelectedObjeto,
+              setSelectedCiudad,
+              setSelectedPersonaje,
+              setSelectedHechizo,
+              setSelectedDon,
+              setSelectedRuna,
+              setSelectedNota,
+              setSelectedGrupo,
+              eliminarNota,
+              actualizarNota,
+              eliminarGrupo,
+              actualizarGrupo,
+            }}
+            data={{
+              reinos,
+              criaturas,
+              objetos,
+              ciudades,
+              personajes,
+              grupos,
+              canciones,
+            }}
+            entities={allEntityNames}
+            overlay={overlay}
+            selected={{
+              reino: selectedReino,
+              criatura: selectedCriatura,
+              objeto: selectedObjeto,
+              ciudad: selectedCiudad,
+              personaje: selectedPersonaje,
+              hechizo: selectedHechizo,
+              don: selectedDon,
+              runa: selectedRuna,
+              nota: selectedNota,
+              grupo: selectedGrupo,
+              cancion: selectedCancion,
+            }}
+            setters={{
+              setReinos,
+              setCriaturas,
+              setObjetos,
+              setCiudades,
+              setPersonajes,
+              setHechizos,
+              setDones,
+              setRunas,
+            }}
+          />
 
           {/* ── Listas visibles cuando no hay overlay ── */}
           {!overlay && (
