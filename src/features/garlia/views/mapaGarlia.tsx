@@ -2946,7 +2946,7 @@ export default function MapaInteractivo() {
 
       {/* ── MAP AREA ── */}
       <div
-        className={`relative flex-1 transition-all duration-500 pb-14 md:pb-0 ${panelOpen && !isMobile ? "" : "w-full"}`}
+        className={`relative flex-1 min-h-0 overflow-hidden transition-all duration-500 pb-14 md:pb-0 ${panelOpen && !isMobile ? "" : "w-full"}`}
       >
         {isAdmin && (
           <div
@@ -3221,6 +3221,7 @@ export default function MapaInteractivo() {
 
         {vistaActual === "global" ? (
           <UnifiedTileCanvas
+            className="absolute inset-0"
             editMode={editMode}
             eyedropperActive={eyedropperActive}
             fondoColor={fondoColor}
