@@ -447,16 +447,30 @@ export default function EditorEntidades() {
   // Lista de entidades con tipo para el autocompletado [[wikilink]]
   const allEntityNames = useMemo(
     () => [
-      ...allItems.personajes.map((e) => ({
-        name: e.nombre,
-        type: "personaje",
-      })),
-      ...allItems.criaturas.map((e) => ({ name: e.nombre, type: "criatura" })),
-      ...allItems.items.map((e) => ({ name: e.nombre, type: "ítem" })),
-      ...allItems.reinos.map((e) => ({ name: e.nombre, type: "reino" })),
-      ...allItems.hechizos.map((e) => ({ name: e.nombre, type: "hechizo" })),
-      ...allItems.dones.map((e) => ({ name: e.nombre, type: "don" })),
-      ...allItems.runas.map((e) => ({ name: e.nombre, type: "runa" })),
+      ...allItems.personajes
+        .filter((e) => e.nombre)
+        .map((e) => ({
+          name: e.nombre,
+          type: "personaje",
+        })),
+      ...allItems.criaturas
+        .filter((e) => e.nombre)
+        .map((e) => ({ name: e.nombre, type: "criatura" })),
+      ...allItems.items
+        .filter((e) => e.nombre)
+        .map((e) => ({ name: e.nombre, type: "ítem" })),
+      ...allItems.reinos
+        .filter((e) => e.nombre)
+        .map((e) => ({ name: e.nombre, type: "reino" })),
+      ...allItems.hechizos
+        .filter((e) => e.nombre)
+        .map((e) => ({ name: e.nombre, type: "hechizo" })),
+      ...allItems.dones
+        .filter((e) => e.nombre)
+        .map((e) => ({ name: e.nombre, type: "don" })),
+      ...allItems.runas
+        .filter((e) => e.nombre)
+        .map((e) => ({ name: e.nombre, type: "runa" })),
     ],
     [allItems],
   );
@@ -512,8 +526,8 @@ export default function EditorEntidades() {
 
   const handleWikilinkNavigate = useCallback(
     (target: string) => {
-      const norm = (s: string) =>
-        s
+      const norm = (s: string | null | undefined) =>
+        (s ?? "")
           .toLowerCase()
           .normalize("NFD")
           .replace(/[\u0300-\u036f]/g, "");
