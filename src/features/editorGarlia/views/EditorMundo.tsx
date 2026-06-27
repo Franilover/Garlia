@@ -2277,6 +2277,7 @@ function PanelListas({
                   icon={Layers}
                   label={el.grupos}
                   loading={!loadedGrupos}
+                  minColWidth="calc(50% - 0.1875rem)"
                   defaultCollapsed={true}
                   storageKey="grupos"
                   collapsed={isDesktop ? filaGrupos.collapsed : undefined}
@@ -2292,70 +2293,114 @@ function PanelListas({
                       },
                       {} as Record<string, typeof grupos>,
                     );
-                    return Object.entries(porTipo).map(([tipo, lista]) => (
-                      <div
-                        key={tipo}
-                        className="col-span-full flex flex-col gap-1"
-                      >
-                        <span
-                          className="text-[7px] font-black uppercase tracking-[0.2em] px-1"
-                          style={{
-                            color:
-                              "color-mix(in srgb, var(--primary) 25%, transparent)",
-                          }}
-                        >
-                          {tipo}
-                        </span>
-                        <div
-                          className="grid gap-1.5"
-                          style={{
-                            gridTemplateColumns:
-                              "repeat(auto-fill, minmax(60px, 1fr))",
-                          }}
-                        >
-                          {lista.map((g) => {
-                            const cfg =
-                              GRUPO_TIPO_CONFIG[
-                                g.tipo as keyof typeof GRUPO_TIPO_CONFIG
-                              ];
-                            return (
-                              <button
-                                key={g.id}
-                                className="flex items-center justify-center text-center px-3 py-1.5 rounded-xl border transition-all hover:scale-[1.02] active:scale-[0.98]"
-                                style={{
-                                  background: `color-mix(in srgb, ${cfg?.color ?? "var(--primary)"} 4%, transparent)`,
-                                  borderColor: `color-mix(in srgb, ${cfg?.color ?? "var(--primary)"} 12%, transparent)`,
-                                }}
-                                type="button"
-                                onClick={async () => {
-                                  const full = grupos.find(
-                                    (x) => x.id === g.id,
-                                  );
-                                  if (full) {
-                                    selectGrupo(full);
-                                    return;
-                                  }
-                                  const { data } = await supabase
-                                    .from("grupos_mundo")
-                                    .select("*")
-                                    .eq("id", g.id)
-                                    .single();
-                                  if (data)
-                                    selectGrupo({
-                                      ...data,
-                                      miembro_ids: data.miembro_ids ?? [],
-                                    } as Grupo);
-                                }}
+                    const entradasOrdenadas = Object.entries(porTipo).sort(
+                      ([, a], [, b]) => b.length - a.length,
+                    );
+                    return entradasOrdenadas.map(([tipo, lista]) => {
+                      // Sub-agrupar por subtipo dentro de cada tipo. Los
+                      // grupos sin subtipo quedan bajo la clave "" y se
+                      // muestran al final, después de los subtipos con
+                      // nombre, ordenados de mayor a menor cantidad.
+                      const porSubtipo = lista.reduce(
+                        (acc, g) => {
+                          const s = g.subtipo?.trim() || "";
+                          if (!acc[s]) acc[s] = [];
+                          acc[s].push(g);
+                          return acc;
+                        },
+                        {} as Record<string, typeof lista>,
+                      );
+                      const subtiposOrdenados = Object.entries(porSubtipo).sort(
+                        ([sa, a], [sb, b]) => {
+                          if (sa === "" && sb !== "") return 1;
+                          if (sb === "" && sa !== "") return -1;
+                          return b.length - a.length;
+                        },
+                      );
+
+                      return (
+                        <div key={tipo} className="flex flex-col gap-1">
+                          <span
+                            className="block w-full text-[7px] font-black uppercase tracking-[0.2em] px-1 text-center"
+                            style={{
+                              color:
+                                "color-mix(in srgb, var(--primary) 25%, transparent)",
+                            }}
+                          >
+                            {tipo}
+                          </span>
+                          <div className="flex flex-col gap-2">
+                            {subtiposOrdenados.map(([subtipo, subLista]) => (
+                              <div
+                                key={subtipo || "__sin_subtipo__"}
+                                className="flex flex-col gap-1"
                               >
-                                <span className="text-[11px] font-bold text-center text-primary/70 truncate">
-                                  {g.nombre}
-                                </span>
-                              </button>
-                            );
-                          })}
+                                {subtipo && (
+                                  <span
+                                    className="block w-full text-[6px] font-bold uppercase tracking-[0.15em] px-1 text-center"
+                                    style={{
+                                      color:
+                                        "color-mix(in srgb, var(--primary) 18%, transparent)",
+                                    }}
+                                  >
+                                    {subtipo}
+                                  </span>
+                                )}
+                                <div
+                                  className="grid gap-1.5"
+                                  style={{
+                                    gridTemplateColumns:
+                                      "repeat(auto-fill, minmax(60px, 1fr))",
+                                  }}
+                                >
+                                  {subLista.map((g) => {
+                                    const cfg =
+                                      GRUPO_TIPO_CONFIG[
+                                        g.tipo as keyof typeof GRUPO_TIPO_CONFIG
+                                      ];
+                                    return (
+                                      <button
+                                        key={g.id}
+                                        className="flex items-center justify-center text-center px-3 py-1.5 rounded-xl border transition-all hover:scale-[1.02] active:scale-[0.98]"
+                                        style={{
+                                          background: `color-mix(in srgb, ${cfg?.color ?? "var(--primary)"} 4%, transparent)`,
+                                          borderColor: `color-mix(in srgb, ${cfg?.color ?? "var(--primary)"} 12%, transparent)`,
+                                        }}
+                                        type="button"
+                                        onClick={async () => {
+                                          const full = grupos.find(
+                                            (x) => x.id === g.id,
+                                          );
+                                          if (full) {
+                                            selectGrupo(full);
+                                            return;
+                                          }
+                                          const { data } = await supabase
+                                            .from("grupos_mundo")
+                                            .select("*")
+                                            .eq("id", g.id)
+                                            .single();
+                                          if (data)
+                                            selectGrupo({
+                                              ...data,
+                                              miembro_ids:
+                                                data.miembro_ids ?? [],
+                                            } as Grupo);
+                                        }}
+                                      >
+                                        <span className="text-[11px] font-bold text-center text-primary/70 truncate">
+                                          {g.nombre}
+                                        </span>
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    ));
+                      );
+                    });
                   })()}
                 </SeccionEntidades>
                 <div className={`${div} sm:hidden`} style={divStyle} />
