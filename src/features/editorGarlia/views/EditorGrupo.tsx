@@ -558,46 +558,49 @@ function SelectorMiembros({
               Miembros · {miembros.length}
             </span>
           </div>
-          <div className="rounded-lg border border-primary/[0.07] overflow-hidden">
+          <div className="grid grid-cols-3 sm:grid-cols-7 gap-1.5">
             {miembros.map((e) => {
               const img = getImg(e);
               const sub = getSubtitle(e);
               return (
                 <div
                   key={e.id}
-                  className="flex items-center gap-2 px-2.5 py-1.5 border-b border-primary/[0.04] last:border-0 hover:bg-primary/[0.03] transition-colors"
+                  className="relative flex flex-col items-center gap-1 p-1.5 rounded-lg border border-primary/[0.07] bg-primary/[0.02] hover:bg-primary/[0.05] transition-colors group"
                 >
-                  <div className="shrink-0 w-5 h-5 rounded overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
-                    {img ? (
-                      <Image
-                        alt={e.nombre}
-                        className="w-full h-full object-cover"
-                        src={img}
-                      />
-                    ) : (
-                      <cfg.Icon className="text-primary/25" size={9} />
-                    )}
-                  </div>
+                  {/* Remove button */}
                   <button
-                    className="flex-1 min-w-0 text-left group"
-                    type="button"
-                    onClick={() => onClickMiembro?.(e.id, cfg.tabla)}
-                  >
-                    <p className="text-[8px] font-black text-primary/70 truncate group-hover:text-primary transition-colors leading-tight uppercase tracking-wide">
-                      {e.nombre}
-                    </p>
-                    {sub && (
-                      <p className="text-[7px] text-primary/25 truncate leading-tight">
-                        {sub}
-                      </p>
-                    )}
-                  </button>
-                  <button
-                    className="shrink-0 w-4 h-4 rounded flex items-center justify-center text-primary/20 hover:text-red-400 transition-colors"
+                    className="absolute top-0.5 right-0.5 w-3.5 h-3.5 rounded flex items-center justify-center text-primary/0 group-hover:text-primary/30 hover:!text-red-400 transition-colors z-10"
                     type="button"
                     onClick={() => toggle(e.id)}
                   >
                     <X size={8} />
+                  </button>
+
+                  {/* Whole card is clickable */}
+                  <button
+                    className="w-full flex flex-col items-center gap-1"
+                    type="button"
+                    onClick={() => onClickMiembro?.(e.id, cfg.tabla)}
+                  >
+                    <div className="w-full aspect-square rounded-md overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
+                      {img ? (
+                        <Image
+                          alt={e.nombre}
+                          className="w-full h-full object-cover"
+                          src={img}
+                        />
+                      ) : (
+                        <cfg.Icon className="text-primary/25" size={14} />
+                      )}
+                    </div>
+                    <p className="text-[7px] font-black text-primary/60 truncate w-full text-center leading-tight uppercase tracking-wide">
+                      {e.nombre}
+                    </p>
+                    {sub && (
+                      <p className="text-[6px] text-primary/25 truncate w-full text-center leading-tight">
+                        {sub}
+                      </p>
+                    )}
                   </button>
                 </div>
               );
