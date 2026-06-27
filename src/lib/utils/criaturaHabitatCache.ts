@@ -16,7 +16,11 @@ import { supabase } from "@/lib/api/client/supabase";
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 export type ReinoMin = { id: string; nombre: string };
 export type CiudadMin = { id: string; nombre: string; reino_id: string | null };
-export type PersonajeMin = { id: string; nombre: string; img_url?: string | null };
+export type PersonajeMin = {
+  id: string;
+  nombre: string;
+  img_url?: string | null;
+};
 
 // ─── Reinos — TTL 30 min ──────────────────────────────────────────────────────
 let _reinosCache: ReinoMin[] | null = null;
@@ -30,7 +34,10 @@ export async function getAllReinos(): Promise<ReinoMin[]> {
     if (db) {
       const local: any[] = (await (db as any).reinos?.toArray()) ?? [];
       if (local.length) {
-        _reinosCache = local.map((r: any) => ({ id: r.id, nombre: r.nombre }));
+        _reinosCache = local.map((r: any) => ({
+          id: r.id,
+          nombre: r.nombre ?? "",
+        }));
         _reinosCacheTs = Date.now();
         if (navigator.onLine)
           supabase
@@ -39,7 +46,10 @@ export async function getAllReinos(): Promise<ReinoMin[]> {
             .order("nombre")
             .then(({ data }) => {
               if (data?.length) {
-                _reinosCache = data as ReinoMin[];
+                _reinosCache = data.map((r: any) => ({
+                  id: r.id,
+                  nombre: r.nombre ?? "",
+                }));
                 _reinosCacheTs = Date.now();
               }
             });
@@ -48,8 +58,14 @@ export async function getAllReinos(): Promise<ReinoMin[]> {
     }
   } catch {}
   if (!navigator.onLine) return _reinosCache ?? [];
-  const { data } = await supabase.from("reinos").select("id, nombre").order("nombre");
-  _reinosCache = (data ?? []) as ReinoMin[];
+  const { data } = await supabase
+    .from("reinos")
+    .select("id, nombre")
+    .order("nombre");
+  _reinosCache = (data ?? []).map((r: any) => ({
+    id: r.id,
+    nombre: r.nombre ?? "",
+  }));
   _reinosCacheTs = Date.now();
   return _reinosCache;
 }
@@ -68,7 +84,7 @@ export async function getAllCiudades(): Promise<CiudadMin[]> {
       if (local.length) {
         _ciudadesCache = local.map((l: any) => ({
           id: l.id,
-          nombre: l.nombre,
+          nombre: l.nombre ?? "",
           reino_id: l.reino_id ?? null,
         }));
         _ciudadesCacheTs = Date.now();
@@ -81,6 +97,7 @@ export async function getAllCiudades(): Promise<CiudadMin[]> {
               if (data?.length) {
                 _ciudadesCache = data.map((l: any) => ({
                   ...l,
+                  nombre: l.nombre ?? "",
                   reino_id: l.reino_id ?? null,
                 }));
                 _ciudadesCacheTs = Date.now();
@@ -97,6 +114,7 @@ export async function getAllCiudades(): Promise<CiudadMin[]> {
     .order("nombre");
   _ciudadesCache = (data ?? []).map((l: any) => ({
     ...l,
+    nombre: l.nombre ?? "",
     reino_id: l.reino_id ?? null,
   }));
   _ciudadesCacheTs = Date.now();
@@ -117,7 +135,7 @@ export async function getAllPersonajes(): Promise<PersonajeMin[]> {
       if (local.length) {
         _personajesCache = local.map((p: any) => ({
           id: p.id,
-          nombre: p.nombre,
+          nombre: p.nombre ?? "",
           img_url: p.img_url ?? null,
         }));
         _personajesCacheTs = Date.now();
@@ -128,7 +146,11 @@ export async function getAllPersonajes(): Promise<PersonajeMin[]> {
             .order("nombre")
             .then(({ data }) => {
               if (data?.length) {
-                _personajesCache = data as PersonajeMin[];
+                _personajesCache = data.map((p: any) => ({
+                  id: p.id,
+                  nombre: p.nombre ?? "",
+                  img_url: p.img_url ?? null,
+                }));
                 _personajesCacheTs = Date.now();
               }
             });
@@ -141,7 +163,11 @@ export async function getAllPersonajes(): Promise<PersonajeMin[]> {
     .from("personajes")
     .select("id, nombre, img_url")
     .order("nombre");
-  _personajesCache = (data ?? []) as PersonajeMin[];
+  _personajesCache = (data ?? []).map((p: any) => ({
+    id: p.id,
+    nombre: p.nombre ?? "",
+    img_url: p.img_url ?? null,
+  }));
   _personajesCacheTs = Date.now();
   return _personajesCache;
 }

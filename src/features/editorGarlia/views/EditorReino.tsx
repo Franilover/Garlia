@@ -14,12 +14,12 @@ import React, { useState, useEffect } from "react";
 
 import { WikiEntity } from "@/components/forms/Markdown/MarkdownEditor";
 import { useConfirm } from "@/components/ui/ConfirmModal";
-import { usePersonajesDelReino } from "@/features/editorGarlia/components/hooks";
+import { usePersonajesDelReino } from "@/features/editorGarlia/hooks/hooks";
 import { LoreTab } from "@/features/editorGarlia/components/LoreTab";
 import {
   type Reino,
   type SaveStatus,
-} from "@/features/editorGarlia/components/types";
+} from "@/features/editorGarlia/hooks/types";
 import { SaveIndicator } from "@/features/editorGarlia/components/UIComponents";
 import { type Ciudad } from "@/features/editorGarlia/views/EditorCiudad";
 import { ReinoTileCanvas } from "@/features/editorGarlia/views/ReinoTileCanvas";

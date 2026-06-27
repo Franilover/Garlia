@@ -50,9 +50,9 @@ import {
   type Personaje,
   type Reino,
   type SaveStatus,
-} from "../components/types";
+} from "../hooks/types";
 import { SaveIndicator } from "../components/UIComponents";
-import { useNotas } from "../components/useNotas";
+import { useNotas } from "../hooks/useNotas";
 import { useWikilink } from "../components/WikilinkContext";
 
 // ─── Dexie helpers ────────────────────────────────────────────────────────────

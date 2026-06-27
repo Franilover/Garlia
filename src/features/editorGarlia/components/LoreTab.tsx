@@ -28,7 +28,7 @@ import { PanelHistoriaMundo } from "@/features/editorGarlia/components/EditorLin
 import { db } from "@/lib/api/client/db";
 import { supabase } from "@/lib/api/client/supabase";
 
-import { INPUT_CLS, type SaveStatus, type Reino } from "./types";
+import { INPUT_CLS, type SaveStatus, type Reino } from "../hooks/types";
 import { SaveIndicator } from "./UIComponents";
 import { useWikilink } from "./WikilinkContext";
 

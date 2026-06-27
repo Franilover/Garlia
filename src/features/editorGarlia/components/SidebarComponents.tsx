@@ -46,7 +46,7 @@ import {
   MUNDO_SECTIONS,
   type TabKey,
   type MundoSectionKey,
-} from "./types";
+} from "../hooks/types";
 
 // ─── Dexie helpers ────────────────────────────────────────────────────────────
 async function dexiePut(tabla: string, row: any): Promise<void> {

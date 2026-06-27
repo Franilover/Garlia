@@ -69,11 +69,16 @@ export async function getGruposByTipo(tipo: string): Promise<any[]> {
   if (cached && Date.now() - cached.ts < GRUPOS_TTL_MS) return cached.data;
   try {
     if (db) {
-      const data: any[] =
+      const raw: any[] =
         (await (db as any).grupos_mundo
           ?.where("tipo")
           .equals(tipo)
           .toArray()) ?? [];
+      const data = raw.map((g: any) => ({
+        ...g,
+        nombre: g.nombre ?? "",
+        miembro_ids: g.miembro_ids ?? [],
+      }));
       _gruposByTipo.set(tipo, { data, ts: Date.now() });
       return data;
     }

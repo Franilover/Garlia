@@ -29,7 +29,7 @@ import SimpleImagePicker from "@/features/editorGarlia/components/editorCapitulo
 import { dexiePut, dexieDelete } from "@/hooks/data/useOfflineSync";
 import { supabase } from "@/lib/api/client/supabase";
 
-import { type Item, type SaveStatus } from "../components/types";
+import { type Item, type SaveStatus } from "../hooks/types";
 import { SelectorImagen, SaveIndicator } from "../components/UIComponents";
 import { useWikilink } from "../components/WikilinkContext";
 

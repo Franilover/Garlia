@@ -37,7 +37,7 @@ import {
   invalidateItemsPorCiudad,
 } from "@/lib/api/client/syncEngine";
 
-import { type SaveStatus } from "../components/types";
+import { type SaveStatus } from "../hooks/types";
 import { SelectorImagen, SaveIndicator } from "../components/UIComponents";
 import { useWikilink } from "../components/WikilinkContext";
 

@@ -41,8 +41,8 @@ import { WikiEntity } from "@/components/forms/Markdown/MarkdownEditor";
 import { ComboSelector } from "@/components/ui/ComboSelector";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import SimpleImagePicker from "@/features/editorGarlia/components/editorCapitulos/snippets/forms/SimpleImagePicker";
-import { PersonajeSidebarPanel } from "@/features/editorGarlia/components/PersonajeSidebarPanel";
-import { PersonajeLineaDeTiempo } from "@/features/editorGarlia/components/PersonajeLineaDeTiempo";
+import { PersonajeSidebarPanel } from "@/features/editorGarlia/components/Personajes/PersonajeSidebarPanel";
+import { PersonajeLineaDeTiempo } from "@/features/editorGarlia/components/Personajes/PersonajeLineaDeTiempo";
 import { db } from "@/lib/api/client/db";
 import { supabase } from "@/lib/api/client/supabase";
 import { dexiePut, dexieDelete } from "@/lib/utils/dexieHelpers";
@@ -52,8 +52,8 @@ import {
 } from "@/lib/utils/criaturaCache";
 
 import { BloqueDones } from "../components/BloqueDones";
-import { useNombresDeTabla } from "../components/hooks";
-import { type Personaje, type SaveStatus } from "../components/types";
+import { useNombresDeTabla } from "../hooks/hooks";
+import { type Personaje, type SaveStatus } from "../hooks/types";
 import { SelectorImagen, SaveIndicator } from "../components/UIComponents";
 
 // ─── Hook: variantes de una criatura por nombre de especie ───────────────────

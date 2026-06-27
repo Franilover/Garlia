@@ -16,7 +16,7 @@ import { supabase } from "@/lib/api/client/supabase";
 import { EditorGrupoStandalone } from "./EditorGrupo";
 import { EditorHechizos } from "./EditorHechizos";
 import { EditorMundo } from "./EditorMundo";
-import { useMundoSecciones } from "../components/hooks";
+import { useMundoSecciones } from "../hooks/hooks";
 import {
   ModalAcontecimiento,
   ModalNuevoGrupo,
@@ -35,7 +35,7 @@ import {
   type Criatura,
   type Item,
   type Reino,
-} from "../components/types";
+} from "../hooks/types";
 
 // ─── Helpers Dexie locales ────────────────────────────────────────────────────
 async function dexieReadAll<T>(tabla: string): Promise<T[]> {

@@ -53,24 +53,24 @@ import {
 } from "@/components/forms/Markdown/MarkdownEditor";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { SeccionEntidad } from "@/components/ui/SeccionEntidad";
-import { CriaturaHabitat } from "@/features/editorGarlia/components/CriaturaHabitat";
+import { CriaturaHabitat } from "@/features/editorGarlia/components/Criaturas/CriaturaHabitat";
 import {
   CriaturaItemsCraftedos,
   useCraftedItems,
-} from "@/features/editorGarlia/components/CriaturaItemsCraftedos";
-import { CriaturaItemsNaturales } from "@/features/editorGarlia/components/CriaturaItemsNaturales";
+} from "@/features/editorGarlia/components/Criaturas/CriaturaItemsCraftedos";
+import { CriaturaItemsNaturales } from "@/features/editorGarlia/components/Criaturas/CriaturaItemsNaturales";
 import {
   CriaturaMagia,
   grupoEsMagico,
-} from "@/features/editorGarlia/components/CriaturaMagia";
+} from "@/features/editorGarlia/components/Criaturas/CriaturaMagia";
 import SimpleImagePicker from "@/features/editorGarlia/components/editorCapitulos/snippets/forms/SimpleImagePicker";
 import { db } from "@/lib/api/client/db";
 import { supabase } from "@/lib/api/client/supabase";
 import { getAllPersonajes } from "@/lib/utils/criaturaHabitatCache";
 import { dexiePut, dexieDelete } from "@/lib/utils/dexieHelpers";
 
-import { useGruposDeCriatura, type GrupoMin } from "../components/hooks";
-import { type Criatura, type SaveStatus } from "../components/types";
+import { useGruposDeCriatura, type GrupoMin } from "../hooks/hooks";
+import { type Criatura, type SaveStatus } from "../hooks/types";
 import { SelectorImagen, SaveIndicator } from "../components/UIComponents";
 import { useWikilink } from "../components/WikilinkContext";
 

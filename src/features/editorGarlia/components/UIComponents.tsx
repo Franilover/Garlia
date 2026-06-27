@@ -12,7 +12,7 @@ import { MarkdownEditor } from "@/components/forms/Markdown/MarkdownEditor";
 import { normalize } from "@/components/layout/EstudioTemplates";
 import SimpleImagePicker from "@/features/editorGarlia/components/editorCapitulos/snippets/forms/SimpleImagePicker";
 
-import { INPUT_CLS, type SaveStatus } from "./types";
+import { INPUT_CLS, type SaveStatus } from "../hooks/types";
 import { useWikilink } from "./WikilinkContext";
 
 export function SaveIndicator({ status }: { status: SaveStatus }) {

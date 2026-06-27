@@ -13,7 +13,7 @@ import SimpleImagePicker from "@/features/editorGarlia/components/editorCapitulo
 import { db } from "@/lib/api/client/db";
 import { supabase } from "@/lib/api/client/supabase";
 
-import { type SaveStatus } from "../components/types";
+import { type SaveStatus } from "../hooks/types";
 import { SaveIndicator } from "../components/UIComponents";
 import { useWikilink } from "../components/WikilinkContext";
 
