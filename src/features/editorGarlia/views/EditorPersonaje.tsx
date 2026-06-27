@@ -89,6 +89,87 @@ type CapAparece = {
 // Cache en memoria para no re-escanear Dexie si ya cargamos este personaje
 const _capsCache = new Map<string, CapAparece[]>();
 
+// ─── Caché compartida para resolución de criatura por nombre ─────────────────
+// Evita que useGruposDeCriaturaPorNombre, useCriaturaVariantesPorNombre y
+// useCancionesPersonaje llamen toArray() por separado (O(n) × 3 → O(n) × 1).
+const _criaturaByNombre = new Map<string, any | null>();
+let _criaturaTableLoaded = false;
+
+async function _preloadCriaturas(): Promise<void> {
+  if (_criaturaTableLoaded) return;
+  _criaturaTableLoaded = true;
+  try {
+    if (!db) return;
+    const todas: any[] = (await (db as any).criaturas?.toArray()) ?? [];
+    for (const c of todas) {
+      const key = c.nombre?.toLowerCase().trim();
+      if (key) _criaturaByNombre.set(key, c);
+    }
+  } catch {
+    _criaturaTableLoaded = false;
+  }
+}
+
+async function getCriaturaByNombre(nombre: string): Promise<any | null> {
+  const key = nombre.trim().toLowerCase();
+  if (_criaturaByNombre.has(key)) return _criaturaByNombre.get(key) ?? null;
+  await _preloadCriaturas();
+  if (_criaturaByNombre.has(key)) return _criaturaByNombre.get(key) ?? null;
+  // Supabase fallback
+  if (!navigator.onLine) return null;
+  try {
+    const { data } = await supabase
+      .from("criaturas")
+      .select("id, nombre")
+      .ilike("nombre", nombre.trim())
+      .limit(1)
+      .maybeSingle();
+    _criaturaByNombre.set(key, data ?? null);
+    return data ?? null;
+  } catch {
+    return null;
+  }
+}
+
+// ─── Caché compartida para grupos_mundo por tipo ──────────────────────────────
+// grupos_mundo tiene índice "tipo" en Dexie — usarlo evita toArray() completo.
+const _gruposByTipo = new Map<string, { data: any[]; ts: number }>();
+const GRUPOS_TTL_MS = 60_000;
+
+async function getGruposByTipo(tipo: string): Promise<any[]> {
+  const cached = _gruposByTipo.get(tipo);
+  if (cached && Date.now() - cached.ts < GRUPOS_TTL_MS) return cached.data;
+  try {
+    if (db) {
+      const data: any[] =
+        (await (db as any).grupos_mundo
+          ?.where("tipo")
+          .equals(tipo)
+          .toArray()) ?? [];
+      _gruposByTipo.set(tipo, { data, ts: Date.now() });
+      return data;
+    }
+  } catch {}
+  return [];
+}
+
+// ─── Caché de libroMap (evita toArray de libros en cada cambio de personaje) ──
+let _libroMapCache: Record<string, string> | null = null;
+
+async function getLibroMap(): Promise<Record<string, string>> {
+  if (_libroMapCache) return _libroMapCache;
+  try {
+    if (db) {
+      const libros: any[] = (await (db as any).libros?.toArray()) ?? [];
+      _libroMapCache = Object.fromEntries(
+        libros.map((l: any) => [l.id, l.titulo ?? ""]),
+      );
+      return _libroMapCache!;
+    }
+  } catch {}
+  return {};
+}
+
 function mapCap(c: any, libroMap: Record<string, string>): CapAparece {
   return {
     id: c.id,
@@ -118,17 +199,12 @@ function useCapitulosConPersonaje(personajeId: string): {
       if (!_capsCache.has(personajeId)) {
         try {
           if (db) {
-            // toArray una sola vez y filtra en memoria — no hay índice en
-            // personajes_ids[], así que es inevitable, pero lo hacemos sin
-            // bloquear la UI gracias al estado inicial vacío + loading
-            const [allCaps, allLibros]: [any[], any[]] = await Promise.all([
+            // toArray de caps + libroMap cacheado (evita el segundo toArray)
+            const [allCaps, libroMap] = await Promise.all([
               (db as any).capitulos?.toArray() ?? [],
-              (db as any).libros?.toArray() ?? [],
+              getLibroMap(),
             ]);
             if (cancelled) return;
-            const libroMap = Object.fromEntries(
-              (allLibros as any[]).map((l: any) => [l.id, l.titulo]),
-            );
             const filtered = (allCaps as any[])
               .filter((c: any) =>
                 (c.personajes_ids ?? []).includes(personajeId),
@@ -256,17 +332,31 @@ function useCancionesPersonaje(
   const load = useCallback(async () => {
     setLoading(true);
 
-    // 1. Dexie primero
+    // 1. Dexie primero — usa el índice personaje_id (v23) en vez de toArray()
     try {
       if (db) {
-        const todas: any[] = (await (db as any).canciones?.toArray()) ?? [];
+        // v23 agrega el índice personaje_id; la consulta es O(log n)
+        const byId: any[] =
+          (await (db as any).canciones
+            ?.where("personaje_id")
+            .equals(personajeId)
+            .toArray()) ?? [];
+
+        // Complemento: buscar por título si hay nombre (fallback para canciones
+        // sin personaje_id pero cuyo título contiene el nombre del personaje)
         const nombre = nombrePersonaje?.trim().toLowerCase() ?? "";
-        const filtered = todas.filter(
-          (c: any) =>
-            c.personaje_id === personajeId ||
-            c.id === personajeId ||
-            (nombre && c.titulo?.toLowerCase().includes(nombre)),
-        );
+        let byNombre: any[] = [];
+        if (nombre && byId.length === 0) {
+          // Solo hacemos toArray si no encontramos nada por id (raro)
+          const todas: any[] = (await (db as any).canciones?.toArray()) ?? [];
+          byNombre = todas.filter(
+            (c: any) =>
+              c.id === personajeId ||
+              (nombre && c.titulo?.toLowerCase().includes(nombre)),
+          );
+        }
+
+        const filtered = byId.length > 0 ? byId : byNombre;
         if (filtered.length > 0) {
           setCanciones(
             filtered.map((c: any) => ({
@@ -528,35 +618,25 @@ function useGruposDeCriaturaPorNombre(
       return;
     }
 
-    // 1. Dexie: buscar criatura y sus grupos
-    let criaturaId: string | null = null;
-    try {
-      if (db) {
-        const allCriaturas: any[] =
-          (await (db as any).criaturas?.toArray()) ?? [];
-        const criLocal = allCriaturas.find(
-          (c: any) =>
-            c.nombre?.toLowerCase() === nombreEspecie.trim().toLowerCase(),
+    // 1. Usar caché compartida para resolver criatura por nombre (O(1) si ya
+    //    se llamó _preloadCriaturas antes, evita duplicar toArray())
+    const criLocal = await getCriaturaByNombre(nombreEspecie);
+    let criaturaId: string | null = criLocal?.id ?? null;
+
+    if (criaturaId) {
+      // Grupos: usar índice "tipo" de Dexie en vez de toArray() completo
+      const gruposCriaturas = await getGruposByTipo("criaturas");
+      const grupos = gruposCriaturas.filter((g: any) =>
+        (g.miembro_ids ?? []).includes(criaturaId),
+      );
+      if (grupos.length) {
+        setGrupoIds(grupos.map((g: any) => g.id));
+        setEsMagico(
+          grupos.some((g: any) => normNombre(g.nombre ?? "") === "magico"),
         );
-        if (criLocal) {
-          criaturaId = criLocal.id;
-          const allGrupos: any[] =
-            (await (db as any).grupos_mundo?.toArray()) ?? [];
-          const grupos = allGrupos.filter(
-            (g: any) =>
-              g.tipo === "criaturas" &&
-              (g.miembro_ids ?? []).includes(criaturaId),
-          );
-          if (grupos.length) {
-            setGrupoIds(grupos.map((g: any) => g.id));
-            setEsMagico(
-              grupos.some((g: any) => normNombre(g.nombre ?? "") === "magico"),
-            );
-            if (!navigator.onLine) return;
-          }
-        }
+        if (!navigator.onLine) return;
       }
-    } catch {}
+    }
 
     if (!navigator.onLine) return;
 
@@ -609,25 +689,18 @@ function useCriaturaVariantesPorNombre(
       return;
     }
 
-    // 1. Dexie primero
+    // 1. Usar caché compartida en vez de toArray() de criaturas
     try {
-      if (db) {
-        const allCriaturas: any[] =
-          (await (db as any).criaturas?.toArray()) ?? [];
-        const criLocal = allCriaturas.find(
-          (c: any) =>
-            c.nombre?.toLowerCase() === nombreEspecie.trim().toLowerCase(),
-        );
-        if (criLocal) {
-          const vars: any[] =
-            (await (db as any).criatura_variantes
-              ?.where("criatura_id")
-              .equals(criLocal.id)
-              .toArray()) ?? [];
-          if (vars.length) {
-            setVariantes(vars);
-            if (!navigator.onLine) return;
-          }
+      const criLocal = await getCriaturaByNombre(nombreEspecie);
+      if (criLocal && db) {
+        const vars: any[] =
+          (await (db as any).criatura_variantes
+            ?.where("criatura_id")
+            .equals(criLocal.id)
+            .toArray()) ?? [];
+        if (vars.length) {
+          setVariantes(vars);
+          if (!navigator.onLine) return;
         }
       }
     } catch {}
@@ -753,25 +826,21 @@ function useGruposDelPersonaje(personajeId: string): {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      // 1. Dexie primero
-      if (db) {
-        const todos: any[] = (await (db as any).grupos_mundo?.toArray()) ?? [];
-        const local = todos.filter(
-          (g: any) =>
-            g.tipo === "personajes" &&
-            (g.miembro_ids ?? []).includes(personajeId),
+      // 1. Dexie — usar índice "tipo" en vez de toArray() completo
+      const todosPersonajes = await getGruposByTipo("personajes");
+      const local = todosPersonajes.filter((g: any) =>
+        (g.miembro_ids ?? []).includes(personajeId),
+      );
+      if (local.length) {
+        setGrupos(
+          local.map((g: any) => ({
+            id: g.id,
+            nombre: g.nombre,
+            tipo: g.tipo,
+          })),
         );
-        if (local.length) {
-          setGrupos(
-            local.map((g: any) => ({
-              id: g.id,
-              nombre: g.nombre,
-              tipo: g.tipo,
-            })),
-          );
-          setLoading(false);
-          if (!navigator.onLine) return;
-        }
+        setLoading(false);
+        if (!navigator.onLine) return;
       }
     } catch {}
 
@@ -1086,23 +1155,61 @@ function BloqueEras({
   useEffect(() => {
     if (!personajeId) return;
     setLoading(true);
-    supabase
-      .from("personaje_eras" as any)
-      .select("id, momento, label, rasgos, notas")
-      .eq("personaje_id", personajeId)
-      .order("momento")
-      .then(({ data }: { data: any }) => {
-        setEras(
-          (data ?? []).map((e: any) => ({
-            id: e.id,
-            momento: e.momento,
-            label: e.label ?? "",
-            rasgos: e.rasgos ?? [],
-            notas: e.notas ?? "",
-          })),
-        );
-        setLoading(false);
-      });
+
+    const mapEraRow = (e: any): Era => ({
+      id: e.id,
+      momento: e.momento,
+      label: e.label ?? "",
+      rasgos: e.rasgos ?? [],
+      notas: e.notas ?? "",
+    });
+
+    const run = async () => {
+      // 1. Dexie primero — respuesta inmediata sin esperar red
+      try {
+        if (db) {
+          const local: any[] =
+            (await (db as any).personaje_eras
+              ?.where("personaje_id")
+              .equals(personajeId)
+              .toArray()) ?? [];
+          if (local.length) {
+            const sorted = [...local].sort(
+              (a, b) => (a.momento ?? 0) - (b.momento ?? 0),
+            );
+            setEras(sorted.map(mapEraRow));
+            setLoading(false);
+            if (!navigator.onLine) return;
+          }
+        }
+      } catch {}
+
+      // 2. Supabase en background (actualiza sin spinner si ya había datos)
+      try {
+        const { data } = await (supabase as any)
+          .from("personaje_eras")
+          .select("id, momento, label, rasgos, notas")
+          .eq("personaje_id", personajeId)
+          .order("momento");
+        if (data) {
+          setEras(data.map(mapEraRow));
+          setLoading(false);
+          // Persistir en Dexie para próxima apertura
+          try {
+            if (db && data.length > 0) {
+              const rowsWithPid = data.map((e: any) => ({
+                ...e,
+                personaje_id: personajeId,
+              }));
+              await (db as any).personaje_eras?.bulkPut(rowsWithPid);
+            }
+          } catch {}
+        }
+      } catch {}
+      setLoading(false);
+    };
+
+    run();
   }, [personajeId]);
 
   const updateEra = (id: string, patch: Partial<Era>) =>
@@ -1135,6 +1242,14 @@ function BloqueEras({
       };
       setEras((prev) => [...prev, era].sort((a, b) => a.momento - b.momento));
       setExpandedId(era.id);
+      // Persistir en Dexie para próxima apertura sin red
+      try {
+        if (db)
+          await (db as any).personaje_eras?.put({
+            ...data,
+            personaje_id: personajeId,
+          });
+      } catch {}
     }
     setNewMomento("");
     setNewLabel("");
@@ -1145,6 +1260,9 @@ function BloqueEras({
   const handleDeleteEra = async (id: string) => {
     setEras((prev) => prev.filter((e) => e.id !== id));
     await (supabase as any).from("personaje_eras").delete().eq("id", id);
+    try {
+      if (db) await (db as any).personaje_eras?.delete(id);
+    } catch {}
   };
 
   const handleAddRasgo = async (era: Era, rasgo: string) => {

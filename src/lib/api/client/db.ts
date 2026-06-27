@@ -1229,6 +1229,14 @@ class AgendaFraniDB extends Dexie {
       map_tiles: "id, world_id, col, row", // ← tiles del mapa global
       reino_tiles: "id, reino_id, col, row", // ← tiles del mapa de cada reino
     });
+
+    // ─── v23: índice personaje_id en canciones (acelera EditorPersonaje) ──────
+    // Antes de esta versión, useCancionesPersonaje hacía toArray() completo y
+    // filtraba en JS. Con el índice, .where("personaje_id").equals(id) es O(log n).
+    this.version(23).stores({
+      canciones:
+        "id, titulo, personaje, personaje_id, visible, created_at, dia_absoluto",
+    });
   }
 }
 

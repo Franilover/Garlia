@@ -957,23 +957,47 @@ export async function loadMisiones(
  * COMPLETO (incluidas misiones inactivas), y sincroniza eliminaciones
  * reales contra Dexie (persistReplace) — a diferencia de loadMisiones(),
  * que es para el tablón del jugador y solo trae activas.
+ *
+ * Dexie-first: antes pegaba SIEMPRE a Supabase y esperaba la respuesta
+ * (network-first), así que el panel admin tardaba un round-trip completo
+ * cada vez que se abría, incluso con caché local válido. Ahora sigue el
+ * mismo patrón que loadWithCache: muestra lo que haya en Dexie al
+ * instante y refresca en background si hay conexión, notificando vía
+ * onUpdate cuando llegue lo fresco.
  */
-export async function loadMisionesAdmin(): Promise<any[]> {
-  const online = await isReallyOnline();
-  if (!online) return dexieAll(db?.misiones);
+export async function loadMisionesAdmin(
+  onUpdate?: (data: any[]) => void,
+): Promise<any[]> {
+  const local = await dexieAll<any>(db?.misiones);
+  if (local.length > 0) {
+    isReallyOnline().then((online) => {
+      if (online) fetchMisionesAdmin(onUpdate);
+    });
+    return local;
+  }
+  return (await fetchMisionesAdmin(onUpdate)) ?? dexieAll(db?.misiones);
+}
 
-  const { data, error } = await supabase
-    .from("misiones")
-    .select(
-      "id, titulo, descripcion, dificultad, categoria, imagen_url, requisitos, vence_en, recompensa_xp, recompensa_monedas, recompensa_item_nombre, recompensa_item_imagen_url, recompensa_item_id, activa, creado_en",
-    )
-    .order("creado_en", { ascending: false });
+async function fetchMisionesAdmin(
+  onUpdate?: (data: any[]) => void,
+): Promise<any[] | null> {
+  try {
+    const { data, error } = await supabase
+      .from("misiones")
+      .select(
+        "id, titulo, descripcion, dificultad, categoria, imagen_url, requisitos, vence_en, recompensa_xp, recompensa_monedas, recompensa_item_nombre, recompensa_item_imagen_url, recompensa_item_id, activa, creado_en",
+      )
+      .order("creado_en", { ascending: false });
 
-  if (error || !data) return dexieAll(db?.misiones);
+    if (error || !data) return null;
 
-  const rows = data.map((m: any) => ({ ...m, cached_at: Date.now() }));
-  await persistReplace("misiones", rows);
-  return rows;
+    const rows = data.map((m: any) => ({ ...m, cached_at: Date.now() }));
+    await persistReplace("misiones", rows);
+    onUpdate?.(rows);
+    return rows;
+  } catch {
+    return null;
+  }
 }
 
 export async function loadMisionesUsuario(
@@ -1179,6 +1203,110 @@ async function enqueueOffline(
       retries: 0,
     });
   } catch {}
+}
+
+// ─── Relaciones entre personajes ──────────────────────────────────────────────
+//
+// Tabla de catálogo (como reinos/ciudades): cambia poco, ideal para Dexie-first.
+// Usa persistReplace porque es un panel admin (AdminDescubrimientos) que ve y
+// gestiona el set completo — si se borra una relación en Supabase, debe
+// desaparecer también del caché offline.
+
+export async function loadRelaciones(
+  onUpdate?: (data: any[]) => void,
+): Promise<any[]> {
+  return loadWithCache(
+    {
+      cacheKey: "relaciones:all",
+      dexieSource: () => dexieAll(db?.relaciones),
+      supabaseFetch: async () => {
+        const { data } = await supabase.from("relaciones").select("*");
+        return data ?? null;
+      },
+      persist: (rows) => persistReplace("relaciones", rows),
+    },
+    onUpdate,
+  );
+}
+
+export async function invalidateRelaciones(): Promise<void> {
+  invalidateCache("relaciones:all");
+}
+
+// ─── Vínculos de entidades a misiones (mision_entidades) ─────────────────────
+//
+// Igual patrón: catálogo compartido, poco volátil, panel admin necesita ver
+// el set completo (persistReplace para que las desvinculaciones se reflejen).
+
+export async function loadMisionEntidades(
+  onUpdate?: (data: any[]) => void,
+): Promise<any[]> {
+  return loadWithCache(
+    {
+      cacheKey: "mision_entidades:all",
+      dexieSource: () => dexieAll(db?.mision_entidades),
+      supabaseFetch: async () => {
+        const { data } = await supabase
+          .from("mision_entidades")
+          .select("id, mision_id, tipo, entidad_id, rol, nombre, imagen_url");
+        return data ?? null;
+      },
+      persist: (rows) => persistReplace("mision_entidades", rows),
+    },
+    onUpdate,
+  );
+}
+
+/** Variante filtrada por misión — útil si el editor de una misión puntual
+ * no necesita cargar el catálogo completo de vínculos. */
+export async function loadMisionEntidadesPorMision(
+  misionId: string,
+  onUpdate?: (data: any[]) => void,
+): Promise<any[]> {
+  const cacheKey = `mision_entidades:mision:${misionId}`;
+  const mem = memGet<any[]>(cacheKey, TTL["misiones"] ?? DEFAULT_TTL);
+  if (mem) return mem;
+
+  const local = await dexieWhere<any>(
+    db?.mision_entidades,
+    "mision_id",
+    misionId,
+  );
+  if (local.length > 0) {
+    memSet(cacheKey, local);
+    isReallyOnline().then((online) => {
+      if (online) fetchMisionEntidadesPorMision(misionId, cacheKey, onUpdate);
+    });
+    return local;
+  }
+
+  return (
+    (await fetchMisionEntidadesPorMision(misionId, cacheKey, onUpdate)) ?? []
+  );
+}
+
+async function fetchMisionEntidadesPorMision(
+  misionId: string,
+  cacheKey: string,
+  onUpdate?: (data: any[]) => void,
+): Promise<any[]> {
+  try {
+    const { data, error } = await supabase
+      .from("mision_entidades")
+      .select("id, mision_id, tipo, entidad_id, rol, nombre, imagen_url")
+      .eq("mision_id", misionId);
+    if (error || !data) return [];
+    memSet(cacheKey, data);
+    await persist("mision_entidades", data);
+    onUpdate?.(data);
+    return data;
+  } catch {
+    return [];
+  }
+}
+
+export async function invalidateMisionEntidades(): Promise<void> {
+  invalidateCache("mision_entidades:");
 }
 
 // ─── Utilidades ───────────────────────────────────────────────────────────────

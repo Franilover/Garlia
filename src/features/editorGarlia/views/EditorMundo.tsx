@@ -9,6 +9,7 @@ import {
   Map,
   MapPin,
   Music,
+  Network,
   Package,
   ScrollText,
   Sparkles,
@@ -514,6 +515,61 @@ function useRowCollapse(storageKey: string, defaultCollapsed: boolean) {
   }, [persist]);
 
   return { collapsed, toggle, expand };
+}
+
+// ─── Barra colapsable para paneles grandes (Mapa, Relaciones, Misiones) ──────
+// Misma idea visual que el header de SeccionEntidades (título + chevron que
+// rota), pero pensada para envolver un panel completo en vez de una grilla de
+// chips. El estado se persiste en localStorage igual que useRowCollapse.
+function PanelColapsable({
+  icon: Icon,
+  label,
+  storageKey,
+  defaultCollapsed = false,
+  children,
+}: {
+  icon: React.ElementType;
+  label: string;
+  storageKey: string;
+  defaultCollapsed?: boolean;
+  children: React.ReactNode;
+}) {
+  const { collapsed, toggle } = useRowCollapse(storageKey, defaultCollapsed);
+
+  return (
+    <div className="flex flex-col min-h-0">
+      <button
+        type="button"
+        className="flex items-center gap-1.5 px-3 py-2 w-full group cursor-pointer select-none shrink-0"
+        onClick={toggle}
+      >
+        <Icon
+          size={12}
+          className="text-primary/30 shrink-0"
+          aria-hidden="true"
+        />
+        <span
+          className="text-[10px] font-black uppercase tracking-[0.25em] flex-1 text-left"
+          style={{
+            color: "color-mix(in srgb, var(--primary) 30%, transparent)",
+          }}
+        >
+          {label}
+        </span>
+        <ChevronLeft
+          size={10}
+          className="text-primary/20 group-hover:text-primary/40 transition-all shrink-0"
+          style={{
+            transform: collapsed ? "rotate(-90deg)" : "rotate(-270deg)",
+            transition: "transform 0.2s ease",
+          }}
+        />
+      </button>
+      {!collapsed && (
+        <div className="flex-1 flex flex-col min-h-0">{children}</div>
+      )}
+    </div>
+  );
 }
 
 // ─── Tipos de labels externalizados ──────────────────────────────────────────
@@ -2477,14 +2533,18 @@ function PanelListas({
           className="border-b"
           style={{
             borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
-            minHeight: "70vh",
             position: "relative",
           }}
         >
-          {/* Mapa — ocupa todo el ancho; al click en un reino sube a la lista */}
-          <div className="flex flex-col min-h-0" style={{ minHeight: "68vh" }}>
-            <EditorMapa onSelectReino={(id) => flashReino(id)} />
-          </div>
+          <PanelColapsable icon={Map} label="Mapa" storageKey="panel-mapa">
+            {/* Mapa — ocupa todo el ancho; al click en un reino sube a la lista */}
+            <div
+              className="flex flex-col min-h-0"
+              style={{ minHeight: "68vh" }}
+            >
+              <EditorMapa onSelectReino={(id) => flashReino(id)} />
+            </div>
+          </PanelColapsable>
         </div>
 
         {/* RELACIONES · MISIONES — lado a lado en computadora (≥1024px) */}
@@ -2493,24 +2553,35 @@ function PanelListas({
             className="border-b lg:border-b-0 lg:border-r"
             style={{
               borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
-              minHeight: "60vh",
             }}
           >
-            <div
-              className="flex flex-col min-h-0"
-              style={{ minHeight: "58vh" }}
+            <PanelColapsable
+              icon={Network}
+              label="Relaciones"
+              storageKey="panel-relaciones"
             >
-              <AdminDescubrimientos />
-            </div>
+              <div
+                className="flex flex-col min-h-0"
+                style={{ minHeight: "58vh" }}
+              >
+                <AdminDescubrimientos />
+              </div>
+            </PanelColapsable>
           </div>
 
-          <div style={{ minHeight: "60vh" }}>
-            <div
-              className="flex flex-col min-h-0"
-              style={{ minHeight: "58vh" }}
+          <div>
+            <PanelColapsable
+              icon={ScrollText}
+              label="Misiones"
+              storageKey="panel-misiones"
             >
-              <EditorMisiones />
-            </div>
+              <div
+                className="flex flex-col min-h-0"
+                style={{ minHeight: "58vh" }}
+              >
+                <EditorMisiones />
+              </div>
+            </PanelColapsable>
           </div>
         </div>
       </div>
