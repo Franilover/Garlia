@@ -186,7 +186,7 @@ function BloqueGrupoCategoria({
   const disponibles = gruposDeCat.filter(
     (g) =>
       !gruposActuales.some((a) => a.id === g.id) &&
-      g.nombre.toLowerCase().includes(search.toLowerCase()),
+      (g.nombre ?? "").toLowerCase().includes(search.toLowerCase()),
   );
 
   const border =
@@ -396,7 +396,7 @@ function BloqueGruposCriatura({
       todosGrupos.filter(
         (g) =>
           !gruposActuales.some((a) => a.id === g.id) &&
-          g.nombre.toLowerCase().includes(search.toLowerCase()),
+          (g.nombre ?? "").toLowerCase().includes(search.toLowerCase()),
       ),
     [todosGrupos, gruposActuales, search],
   );
