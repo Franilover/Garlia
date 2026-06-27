@@ -454,14 +454,14 @@ export function EntidadOverlay({
             onNavigate={(tab, nombre) => {
               if (tab === "criaturas") {
                 const c = criaturas.find(
-                  (x) => x.nombre.toLowerCase() === nombre.toLowerCase(),
+                  (x) => (x.nombre ?? "").toLowerCase() === nombre.toLowerCase(),
                 );
                 if (!c) return;
                 clearAllOverlays();
                 setSelectedCriatura(c);
               } else if (tab === "reinos") {
                 const r = reinos.find(
-                  (x) => x.nombre.toLowerCase() === nombre.toLowerCase(),
+                  (x) => (x.nombre ?? "").toLowerCase() === nombre.toLowerCase(),
                 );
                 if (!r) return;
                 clearAllOverlays();
