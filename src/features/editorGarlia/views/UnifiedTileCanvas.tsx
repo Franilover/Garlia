@@ -248,6 +248,7 @@ export function UnifiedTileCanvas<
           compositeRef.current = oc;
           compositeReadyRef.current = true;
           setCompositeReady(true);
+          markDirty();
         }
       };
       img.onload = () => {
@@ -265,6 +266,7 @@ export function UnifiedTileCanvas<
   ]);
 
   // ── Centrar al cargar ─────────────────────────────────────────────────────
+  const hasCenteredRef = useRef(false);
   const centerImage = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -275,11 +277,30 @@ export function UnifiedTileCanvas<
       y: (canvas.height - totalH * scale) / 2,
       scale,
     };
+    markDirty();
   }, [totalW, totalH]);
 
+  // Centrar cuando compositeReady cambia a true (primera carga)
   useEffect(() => {
-    if (compositeReady) centerImage();
+    if (compositeReady) {
+      centerImage();
+      hasCenteredRef.current = true;
+    }
   }, [compositeReady, centerImage]);
+
+  // Recentrar si los tiles llegan tarde y cambian las dimensiones del mapa
+  const prevTotalWRef = useRef(totalW);
+  const prevTotalHRef = useRef(totalH);
+  useEffect(() => {
+    if (
+      hasCenteredRef.current &&
+      (totalW !== prevTotalWRef.current || totalH !== prevTotalHRef.current)
+    ) {
+      centerImage();
+    }
+    prevTotalWRef.current = totalW;
+    prevTotalHRef.current = totalH;
+  }, [totalW, totalH, centerImage]);
 
   // ── Resize ─────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -490,11 +511,14 @@ export function UnifiedTileCanvas<
       // ── Tiles compuestos ─────────────────────────────────────────────────
       if (compositeRef.current && compositeReadyRef.current) {
         ctx.drawImage(compositeRef.current, 0, 0, iw, ih);
-      } else if (compositeReadyRef.current && tiles.length > 0) {
+      } else {
+        // Mientras carga el composite (o si no hay imágenes), dibujamos el fondo de cada tile
         tiles.forEach((tile) => {
           const tx = (tile.col - minCol) * ts;
           const ty = (tile.row - minRow) * ts;
-          ctx.fillStyle = "rgba(0,0,0,0.06)";
+          ctx.fillStyle = isDark
+            ? "rgba(255,255,255,0.04)"
+            : "rgba(0,0,0,0.06)";
           ctx.fillRect(tx, ty, ts, ts);
         });
       }
