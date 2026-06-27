@@ -49,10 +49,13 @@ function useCiudadesDelReino(reinoId: string) {
     const run = async () => {
       try {
         if (db) {
-          const local: any[] = (await (db as any).ciudades?.toArray()) ?? [];
-          const filtrados = local.filter(
-            (l: any) => l.reino_id === reinoId && !l.deleted,
-          );
+          // ciudades tiene índice reino_id (v14) — O(log n) en vez de toArray() completo
+          const local: any[] =
+            (await (db as any).ciudades
+              ?.where("reino_id")
+              .equals(reinoId)
+              .toArray()) ?? [];
+          const filtrados = local.filter((l: any) => !l.deleted);
           if (filtrados.length && !cancelled) setCiudades(filtrados);
         }
       } catch {}

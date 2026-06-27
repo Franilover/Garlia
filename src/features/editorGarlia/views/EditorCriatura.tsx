@@ -1326,28 +1326,214 @@ function BloqueGruposCriatura({
 type ReinoMin = { id: string; nombre: string };
 type CiudadMin2 = { id: string; nombre: string; reino_id: string | null };
 
+// ─── Caches de módulo compartidas ─────────────────────────────────────────────
+// Evita que useCriaturaReinos, useCriaturaCiudades, BloqueHabitat y el useEffect
+// del EditorCriatura hagan toArray() / queries de red por separado en cada mount.
+
+// Reinos — TTL 30 min (muy estables)
+let _reinosCache: ReinoMin[] | null = null;
+let _reinosCacheTs = 0;
+const REINOS_TTL = 30 * 60_000;
+
+async function getAllReinos(): Promise<ReinoMin[]> {
+  if (_reinosCache && Date.now() - _reinosCacheTs < REINOS_TTL)
+    return _reinosCache;
+  try {
+    if (db) {
+      const local: any[] = (await (db as any).reinos?.toArray()) ?? [];
+      if (local.length) {
+        _reinosCache = local.map((r: any) => ({ id: r.id, nombre: r.nombre }));
+        _reinosCacheTs = Date.now();
+        // Refrescar en background
+        if (navigator.onLine)
+          supabase
+            .from("reinos")
+            .select("id, nombre")
+            .order("nombre")
+            .then(({ data }) => {
+              if (data?.length) {
+                _reinosCache = data as ReinoMin[];
+                _reinosCacheTs = Date.now();
+              }
+            });
+        return _reinosCache;
+      }
+    }
+  } catch {}
+  if (!navigator.onLine) return _reinosCache ?? [];
+  const { data } = await supabase
+    .from("reinos")
+    .select("id, nombre")
+    .order("nombre");
+  _reinosCache = (data ?? []) as ReinoMin[];
+  _reinosCacheTs = Date.now();
+  return _reinosCache;
+}
+
+// Ciudades — TTL 30 min
+let _ciudadesCache: CiudadMin2[] | null = null;
+let _ciudadesCacheTs = 0;
+const CIUDADES_TTL = 30 * 60_000;
+
+async function getAllCiudades(): Promise<CiudadMin2[]> {
+  if (_ciudadesCache && Date.now() - _ciudadesCacheTs < CIUDADES_TTL)
+    return _ciudadesCache;
+  try {
+    if (db) {
+      const local: any[] = (await (db as any).ciudades?.toArray()) ?? [];
+      if (local.length) {
+        _ciudadesCache = local.map((l: any) => ({
+          id: l.id,
+          nombre: l.nombre,
+          reino_id: l.reino_id ?? null,
+        }));
+        _ciudadesCacheTs = Date.now();
+        if (navigator.onLine)
+          supabase
+            .from("ciudades")
+            .select("id, nombre, reino_id")
+            .order("nombre")
+            .then(({ data }) => {
+              if (data?.length) {
+                _ciudadesCache = data.map((l: any) => ({
+                  ...l,
+                  reino_id: l.reino_id ?? null,
+                }));
+                _ciudadesCacheTs = Date.now();
+              }
+            });
+        return _ciudadesCache;
+      }
+    }
+  } catch {}
+  if (!navigator.onLine) return _ciudadesCache ?? [];
+  const { data } = await supabase
+    .from("ciudades")
+    .select("id, nombre, reino_id")
+    .order("nombre");
+  _ciudadesCache = (data ?? []).map((l: any) => ({
+    ...l,
+    reino_id: l.reino_id ?? null,
+  }));
+  _ciudadesCacheTs = Date.now();
+  return _ciudadesCache;
+}
+
+// Personajes (catálogo completo para el selector) — TTL 10 min
+let _personajesCache:
+  | { id: string; nombre: string; img_url?: string | null }[]
+  | null = null;
+let _personajesCacheTs = 0;
+const PERSONAJES_TTL = 10 * 60_000;
+
+async function getAllPersonajes(): Promise<
+  { id: string; nombre: string; img_url?: string | null }[]
+> {
+  if (_personajesCache && Date.now() - _personajesCacheTs < PERSONAJES_TTL)
+    return _personajesCache;
+  try {
+    if (db) {
+      const local: any[] = (await (db as any).personajes?.toArray()) ?? [];
+      if (local.length) {
+        _personajesCache = local.map((p: any) => ({
+          id: p.id,
+          nombre: p.nombre,
+          img_url: p.img_url ?? null,
+        }));
+        _personajesCacheTs = Date.now();
+        if (navigator.onLine)
+          supabase
+            .from("personajes")
+            .select("id, nombre, img_url")
+            .order("nombre")
+            .then(({ data }) => {
+              if (data?.length) {
+                _personajesCache = data as typeof _personajesCache;
+                _personajesCacheTs = Date.now();
+              }
+            });
+        return _personajesCache!;
+      }
+    }
+  } catch {}
+  if (!navigator.onLine) return _personajesCache ?? [];
+  const { data } = await supabase
+    .from("personajes")
+    .select("id, nombre, img_url")
+    .order("nombre");
+  _personajesCache = (data ?? []) as typeof _personajesCache;
+  _personajesCacheTs = Date.now();
+  return _personajesCache!;
+}
+
+// Caché de criatura_reinos por criatura — TTL 5 min
+const _criaturaReinosCache = new Map<
+  string,
+  {
+    data: { rowId: string; reinoId: string; reinoNombre: string }[];
+    ts: number;
+  }
+>();
+const CRIATURA_REL_TTL = 5 * 60_000;
+
+// Caché de criatura_ciudades por criatura — TTL 5 min
+const _criaturaCiudadesCache = new Map<
+  string,
+  {
+    data: {
+      rowId: string;
+      ciudadId: string;
+      ciudadNombre: string;
+      reinoId: string | null;
+    }[];
+    ts: number;
+  }
+>();
+
 // ─── Hook: reinos de la criatura (criatura_reinos) ────────────────────────────
 
 function useCriaturaReinos(criaturaId: string) {
   type Row = { rowId: string; reinoId: string; reinoNombre: string };
-  const [rows, setRows] = useState<Row[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [rows, setRows] = useState<Row[]>(() => {
+    const cached = _criaturaReinosCache.get(criaturaId);
+    return cached && Date.now() - cached.ts < CRIATURA_REL_TTL
+      ? cached.data
+      : [];
+  });
+  const [loading, setLoading] = useState(
+    !(_criaturaReinosCache.get(criaturaId)?.ts ?? 0) ||
+      Date.now() - (_criaturaReinosCache.get(criaturaId)?.ts ?? 0) >
+        CRIATURA_REL_TTL,
+  );
 
   const load = useCallback(async () => {
+    // Si la caché en memoria es fresca, no fetchear
+    const cached = _criaturaReinosCache.get(criaturaId);
+    if (cached && Date.now() - cached.ts < CRIATURA_REL_TTL) {
+      setRows(cached.data);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
+    if (!navigator.onLine) {
+      setLoading(false);
+      return;
+    }
+
     const { data } = await supabase
       .from("criatura_reinos")
       .select("id, reino_id, reinos!reino_id(nombre)")
       .eq("criatura_id", criaturaId);
-    setRows(
-      (data ?? []).map((r: any) => ({
-        rowId: r.id,
-        reinoId: r.reino_id,
-        reinoNombre:
-          (Array.isArray(r.reinos) ? r.reinos[0]?.nombre : r.reinos?.nombre) ??
-          "—",
-      })),
-    );
+    const parsed = (data ?? []).map((r: any) => ({
+      rowId: r.id,
+      reinoId: r.reino_id,
+      reinoNombre:
+        (Array.isArray(r.reinos) ? r.reinos[0]?.nombre : r.reinos?.nombre) ??
+        "—",
+    }));
+    _criaturaReinosCache.set(criaturaId, { data: parsed, ts: Date.now() });
+    setRows(parsed);
     setLoading(false);
   }, [criaturaId]);
 
@@ -1362,16 +1548,21 @@ function useCriaturaReinos(criaturaId: string) {
       .insert([{ criatura_id: criaturaId, reino_id: reino.id }])
       .select()
       .single();
-    if (!error && data)
-      setRows((prev) => [
-        ...prev,
+    if (!error && data) {
+      const next = [
+        ...rows,
         { rowId: data.id, reinoId: reino.id, reinoNombre: reino.nombre },
-      ]);
+      ];
+      _criaturaReinosCache.set(criaturaId, { data: next, ts: Date.now() });
+      setRows(next);
+    }
   };
 
   const remove = async (rowId: string) => {
     await supabase.from("criatura_reinos").delete().eq("id", rowId);
-    setRows((prev) => prev.filter((r) => r.rowId !== rowId));
+    const next = rows.filter((r) => r.rowId !== rowId);
+    _criaturaReinosCache.set(criaturaId, { data: next, ts: Date.now() });
+    setRows(next);
   };
 
   return { rows, loading, add, remove };
@@ -1386,26 +1577,47 @@ function useCriaturaCiudades(criaturaId: string) {
     ciudadNombre: string;
     reinoId: string | null;
   };
-  const [rows, setRows] = useState<Row[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [rows, setRows] = useState<Row[]>(() => {
+    const cached = _criaturaCiudadesCache.get(criaturaId);
+    return cached && Date.now() - cached.ts < CRIATURA_REL_TTL
+      ? cached.data
+      : [];
+  });
+  const [loading, setLoading] = useState(
+    !(_criaturaCiudadesCache.get(criaturaId)?.ts ?? 0) ||
+      Date.now() - (_criaturaCiudadesCache.get(criaturaId)?.ts ?? 0) >
+        CRIATURA_REL_TTL,
+  );
 
   const load = useCallback(async () => {
+    const cached = _criaturaCiudadesCache.get(criaturaId);
+    if (cached && Date.now() - cached.ts < CRIATURA_REL_TTL) {
+      setRows(cached.data);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
+    if (!navigator.onLine) {
+      setLoading(false);
+      return;
+    }
+
     const { data } = await supabase
       .from("criatura_ciudades")
       .select("id, ciudad_id, ciudades!ciudad_id(nombre, reino_id)")
       .eq("criatura_id", criaturaId);
-    setRows(
-      (data ?? []).map((r: any) => {
-        const l = Array.isArray(r.ciudades) ? r.ciudades[0] : r.ciudades;
-        return {
-          rowId: r.id,
-          ciudadId: r.ciudad_id,
-          ciudadNombre: l?.nombre ?? "—",
-          reinoId: l?.reino_id ?? null,
-        };
-      }),
-    );
+    const parsed = (data ?? []).map((r: any) => {
+      const l = Array.isArray(r.ciudades) ? r.ciudades[0] : r.ciudades;
+      return {
+        rowId: r.id,
+        ciudadId: r.ciudad_id,
+        ciudadNombre: l?.nombre ?? "—",
+        reinoId: l?.reino_id ?? null,
+      };
+    });
+    _criaturaCiudadesCache.set(criaturaId, { data: parsed, ts: Date.now() });
+    setRows(parsed);
     setLoading(false);
   }, [criaturaId]);
 
@@ -1420,21 +1632,26 @@ function useCriaturaCiudades(criaturaId: string) {
       .insert([{ criatura_id: criaturaId, ciudad_id: ciudad.id }])
       .select()
       .single();
-    if (!error && data)
-      setRows((prev) => [
-        ...prev,
+    if (!error && data) {
+      const next = [
+        ...rows,
         {
           rowId: data.id,
           ciudadId: ciudad.id,
           ciudadNombre: ciudad.nombre,
           reinoId: ciudad.reino_id,
         },
-      ]);
+      ];
+      _criaturaCiudadesCache.set(criaturaId, { data: next, ts: Date.now() });
+      setRows(next);
+    }
   };
 
   const remove = async (rowId: string) => {
     await supabase.from("criatura_ciudades").delete().eq("id", rowId);
-    setRows((prev) => prev.filter((r) => r.rowId !== rowId));
+    const next = rows.filter((r) => r.rowId !== rowId);
+    _criaturaCiudadesCache.set(criaturaId, { data: next, ts: Date.now() });
+    setRows(next);
   };
 
   return { rows, loading, add, remove };
@@ -1464,8 +1681,10 @@ function BloqueHabitat({
     remove: removeCiudad,
   } = useCriaturaCiudades(criaturaId);
 
-  const [allReinos, setAllReinos] = useState<ReinoMin[]>([]);
-  const [allCiudades, setAllCiudades] = useState<CiudadMin2[]>([]);
+  const [allReinos, setAllReinos] = useState<ReinoMin[]>(_reinosCache ?? []);
+  const [allCiudades, setAllCiudades] = useState<CiudadMin2[]>(
+    _ciudadesCache ?? [],
+  );
   const [reinoFiltro, setReinoFiltro] = useState<string | null>(null); // reino_id activo
   const [openR, setOpenR] = useState(false);
   const [openL, setOpenL] = useState(false);
@@ -1473,23 +1692,9 @@ function BloqueHabitat({
   const [searchL, setSearchL] = useState("");
 
   useEffect(() => {
-    supabase
-      .from("reinos")
-      .select("id, nombre")
-      .order("nombre")
-      .then(({ data }) => setAllReinos(data ?? []));
-    supabase
-      .from("ciudades")
-      .select("id, nombre, reino_id")
-      .order("nombre")
-      .then(({ data }) =>
-        setAllCiudades(
-          (data ?? []).map((l: any) => ({
-            ...l,
-            reino_id: l.reino_id ?? null,
-          })),
-        ),
-      );
+    // Usar caches compartidas — respuesta inmediata si ya se cargaron antes
+    getAllReinos().then(setAllReinos);
+    getAllCiudades().then(setAllCiudades);
   }, []);
 
   // Ciudades filtradas por reino activo (o sin reino si no hay activo)
@@ -2387,15 +2592,45 @@ export function EditorCriatura({
 
   useEffect(() => {
     setLoadingPersonajes(true);
-    supabase
-      .from("personajes")
-      .select("id, nombre, img_url")
-      .eq("especie", item.nombre)
-      .order("nombre")
-      .then(({ data }) => {
-        setPersonajesDeEspecie(data ?? []);
+    const run = async () => {
+      // 1. Dexie primero — filtrar por especie en memoria (no hay índice en especie)
+      try {
+        if (db) {
+          const todas: any[] = (await (db as any).personajes?.toArray()) ?? [];
+          const local = todas.filter(
+            (p: any) =>
+              p.especie?.toLowerCase() === item.nombre?.toLowerCase() &&
+              !p.deleted,
+          );
+          if (local.length) {
+            setPersonajesDeEspecie(
+              local.map((p: any) => ({
+                id: p.id,
+                nombre: p.nombre,
+                img_url: p.img_url ?? null,
+              })),
+            );
+            setLoadingPersonajes(false);
+            if (!navigator.onLine) return;
+          }
+        }
+      } catch {}
+
+      if (!navigator.onLine) {
         setLoadingPersonajes(false);
-      });
+        return;
+      }
+
+      // 2. Supabase en background
+      const { data } = await supabase
+        .from("personajes")
+        .select("id, nombre, img_url")
+        .eq("especie", item.nombre)
+        .order("nombre");
+      setPersonajesDeEspecie(data ?? []);
+      setLoadingPersonajes(false);
+    };
+    run();
   }, [item.nombre]);
 
   const handleTogglePersonaje = async (id: string, add: boolean) => {
@@ -2417,9 +2652,9 @@ export function EditorCriatura({
   // ── Datos para la barra lateral ────────────────────────────────────────────
   const [allPersonajes, setAllPersonajes] = useState<
     { id: string; nombre: string; img_url?: string | null }[]
-  >([]);
+  >(_personajesCache ?? []);
   const [allReinos, setAllReinos] = useState<{ id: string; nombre: string }[]>(
-    [],
+    _reinosCache ?? [],
   );
 
   const {
@@ -2449,31 +2684,15 @@ export function EditorCriatura({
   const [savingCrafted, setSavingCrafted] = useState(false);
   const [mobileAsideOpen, setMobileAsideOpen] = useState(false);
 
-  const [allCiudades, setAllCiudades] = useState<CiudadMin2[]>([]);
+  const [allCiudades, setAllCiudades] = useState<CiudadMin2[]>(
+    _ciudadesCache ?? [],
+  );
 
   useEffect(() => {
-    supabase
-      .from("personajes")
-      .select("id, nombre, img_url")
-      .order("nombre")
-      .then(({ data }) => setAllPersonajes(data ?? []));
-    supabase
-      .from("reinos")
-      .select("id, nombre")
-      .order("nombre")
-      .then(({ data }) => setAllReinos(data ?? []));
-    supabase
-      .from("ciudades")
-      .select("id, nombre, reino_id")
-      .order("nombre")
-      .then(({ data }) =>
-        setAllCiudades(
-          (data ?? []).map((l: any) => ({
-            ...l,
-            reino_id: l.reino_id ?? null,
-          })),
-        ),
-      );
+    // Usar caches compartidas — respuesta instantánea si ya se cargaron antes
+    getAllPersonajes().then(setAllPersonajes);
+    getAllReinos().then(setAllReinos);
+    getAllCiudades().then(setAllCiudades);
   }, []);
 
   // ── Ciudades con reino → filtradas a los reinos seleccionados ────────────────
