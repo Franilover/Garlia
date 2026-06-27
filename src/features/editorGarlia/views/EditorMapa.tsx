@@ -515,6 +515,7 @@ export function EditorMapa({
               MapTile & { label?: string | null },
               ReinoConTile
             >
+              disablePinchZoom
               editMode={true}
               markers={reinos.filter(
                 (r) => r.coord_x != null && r.coord_y != null,

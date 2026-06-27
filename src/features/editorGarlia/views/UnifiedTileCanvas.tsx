@@ -86,6 +86,8 @@ interface UnifiedTileCanvasProps<
   // ── Extras opcionales (usados por el mapa del mundo) ─────────────────────
   fondoColor?: string | null;
   isFirstOpen?: boolean;
+  /** Si true, el gesto de pinch (2 dedos) no hace zoom — permite scroll nativo de la página */
+  disablePinchZoom?: boolean;
   eyedropperActive?: boolean;
   onEyedropperPick?: (color: string) => void;
   onMapClick?: (
@@ -120,6 +122,7 @@ export function UnifiedTileCanvas<
   onShiftTiles,
   fondoColor,
   isFirstOpen,
+  disablePinchZoom = false,
   eyedropperActive,
   onEyedropperPick,
   onMapClick,
@@ -628,6 +631,9 @@ export function UnifiedTileCanvas<
     if (!canvas) return;
 
     const onWheel = (e: WheelEvent) => {
+      // Si disablePinchZoom está activo, el zoom solo se dispara con Ctrl/Cmd.
+      // Sin Ctrl, el evento pasa al navegador y scrollea la página normalmente.
+      if (disablePinchZoom && !e.ctrlKey && !e.metaKey) return;
       e.preventDefault();
       zoomAt(e.clientX, e.clientY, e.deltaY);
     };
@@ -799,6 +805,7 @@ export function UnifiedTileCanvas<
     };
 
     const onTouchStart = (e: TouchEvent) => {
+      if (disablePinchZoom) return;
       if (e.touches.length === 2) {
         lastPinchDist.current = Math.hypot(
           e.touches[0].clientX - e.touches[1].clientX,
@@ -807,6 +814,7 @@ export function UnifiedTileCanvas<
       }
     };
     const onTouchMove = (e: TouchEvent) => {
+      if (disablePinchZoom) return;
       if (e.touches.length === 2 && lastPinchDist.current !== null) {
         const dist = Math.hypot(
           e.touches[0].clientX - e.touches[1].clientX,
@@ -965,7 +973,7 @@ export function UnifiedTileCanvas<
 
       {/* Hint de doble-click en bordes (solo editMode, con tiles ya creados) */}
       {editMode && tiles.length > 0 && (
-        <div className="absolute top-2 left-2 z-10 pointer-events-none">
+        <div className="absolute top-2 left-2 z-10 pointer-events-none flex flex-col gap-1">
           <span
             className="text-[8px] font-bold uppercase tracking-widest px-2 py-1 rounded-lg"
             style={{
@@ -975,6 +983,18 @@ export function UnifiedTileCanvas<
           >
             Doble-click en el borde para expandir
           </span>
+          {disablePinchZoom && (
+            <span
+              className="text-[8px] font-bold uppercase tracking-widest px-2 py-1 rounded-lg"
+              style={{
+                background:
+                  "color-mix(in srgb, var(--bg-main) 85%, transparent)",
+                color: "color-mix(in srgb, var(--foreground) 35%, transparent)",
+              }}
+            >
+              Ctrl + scroll para zoom
+            </span>
+          )}
         </div>
       )}
     </div>
