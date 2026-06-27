@@ -1350,7 +1350,6 @@ function PanelListas({
     }
   >(function SeccionEntidades(
     {
-      icon: Icon,
       label,
       count,
       loading,
@@ -1423,7 +1422,6 @@ function PanelListas({
           className="flex items-center gap-1.5 mb-2 w-full group cursor-pointer select-none"
           onClick={toggle}
         >
-          <Icon className="text-primary/30 shrink-0" size={10} />
           <span
             className="text-[8px] font-black uppercase tracking-[0.25em] flex-1 text-center"
             style={{
@@ -1556,7 +1554,7 @@ function PanelListas({
 
         {/* ENTIDADES */}
         <div
-          className="border-b"
+          className="border-b border-t mt-3"
           style={{
             borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
             position: "relative",
@@ -2024,7 +2022,7 @@ function PanelListas({
 
           {/* ── Listas visibles cuando no hay overlay ── */}
           {!overlay && (
-            <div className="px-3 sm:px-3 pb-4">
+            <div className="px-3 sm:px-3 pt-3 pb-4">
               {/* ── Fila 1: Personajes (50%) · Criaturas (25%) · Reinos (25%) ── */}
               <div
                 className="sm:grid sm:gap-x-4"
