@@ -5,9 +5,15 @@ import React from "react";
 import type { WikiEntity } from "@/components/forms/Markdown/MarkdownEditor";
 import { PanelEditor } from "@/features/editorGarlia/components/editorLetras/components/editor/PanelEditor";
 import type { Cancion } from "@/features/editorGarlia/components/editorLetras/types";
-import { EditorCiudad, type Ciudad } from "@/features/editorGarlia/views/EditorCiudad";
+import {
+  EditorCiudad,
+  type Ciudad,
+} from "@/features/editorGarlia/views/EditorCiudad";
 import { EditorCriatura } from "@/features/editorGarlia/views/EditorCriatura";
-import { EditorGrupo, type Grupo } from "@/features/editorGarlia/views/EditorGrupo";
+import {
+  EditorGrupo,
+  type Grupo,
+} from "@/features/editorGarlia/views/EditorGrupo";
 import { EditorHechizos } from "@/features/editorGarlia/views/EditorHechizos";
 import { EditorItem } from "@/features/editorGarlia/views/EditorItem";
 import { EditorNota } from "@/features/editorGarlia/views/EditorNota";
@@ -15,7 +21,7 @@ import { EditorPersonaje } from "@/features/editorGarlia/views/EditorPersonaje";
 import { EditorReino } from "@/features/editorGarlia/views/EditorReino";
 import { supabase } from "@/lib/api/client/supabase";
 
-import { type Nota, type Personaje, type Reino } from "../types";
+import { type Nota, type Personaje, type Reino } from "./types";
 
 // ─── Tipos mínimos de entidades (espejo de los de EditorMundo.tsx) ────────────
 export type CriaturaMin = {
@@ -38,7 +44,11 @@ export type CiudadMin = {
   reino_id?: string;
 };
 export type EntidadMagicaMin = { id: string; nombre: string };
-export type RunaMin = { id: string; nombre: string; imagen_url?: string | null };
+export type RunaMin = {
+  id: string;
+  nombre: string;
+  imagen_url?: string | null;
+};
 
 export type OverlayKind =
   | "reino"
