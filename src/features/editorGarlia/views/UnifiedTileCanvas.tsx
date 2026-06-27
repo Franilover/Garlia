@@ -36,6 +36,9 @@ export type BaseTile = {
   label?: string | null;
 };
 
+/** Alias de BaseTile para compatibilidad con código existente */
+export type MapTile = BaseTile;
+
 export type BaseMarker = {
   id: string;
   nombre?: string;
@@ -83,6 +86,15 @@ interface UnifiedTileCanvasProps<
   // ── Extras opcionales (usados por el mapa del mundo) ─────────────────────
   fondoColor?: string | null;
   isFirstOpen?: boolean;
+  eyedropperActive?: boolean;
+  onEyedropperPick?: (color: string) => void;
+  onMapClick?: (
+    x: number,
+    y: number,
+    tile_col?: number,
+    tile_row?: number,
+  ) => void;
+  onOpenPanel?: () => void;
 
   className?: string;
 }
@@ -108,6 +120,10 @@ export function UnifiedTileCanvas<
   onShiftTiles,
   fondoColor,
   isFirstOpen,
+  eyedropperActive,
+  onEyedropperPick,
+  onMapClick,
+  onOpenPanel,
   className,
 }: UnifiedTileCanvasProps<TTile, TMarker>) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -661,6 +677,22 @@ export function UnifiedTileCanvas<
     };
 
     const runSingleClickAction = (clientX: number, clientY: number) => {
+      // Eyedropper: tomar color del pixel del canvas
+      if (eyedropperActive) {
+        const ctx2 = canvas.getContext("2d");
+        if (ctx2) {
+          const rect2 = canvas.getBoundingClientRect();
+          const px2 = Math.round(clientX - rect2.left);
+          const py2 = Math.round(clientY - rect2.top);
+          const [r, g, b] = ctx2.getImageData(px2, py2, 1, 1).data;
+          const hex =
+            "#" +
+            [r, g, b].map((v) => v.toString(16).padStart(2, "0")).join("");
+          onEyedropperPick?.(hex);
+        }
+        return;
+      }
+
       // Click en la papelera flotante
       const trash = trashRectRef.current;
       const rect = canvas.getBoundingClientRect();
@@ -699,11 +731,17 @@ export function UnifiedTileCanvas<
         return;
       }
 
-      // Click sobre un tile existente → abrir picker de imagen
+      // Click sobre un tile existente → abrir picker de imagen (editMode) o disparar onMapClick
       const info = canvasToTileInfo(clientX, clientY);
       const tile = info ? findTileAt(info.tile_col, info.tile_row) : null;
-      if (tile) {
+      if (tile && editMode) {
         onTilePick(tile);
+        return;
+      }
+
+      // Fallback: notificar posición del click (usado por el mapa del mundo)
+      if (info) {
+        onMapClick?.(info.x, info.y, info.tile_col, info.tile_row);
       }
     };
 
@@ -835,7 +873,13 @@ export function UnifiedTileCanvas<
       ref={containerRef}
       className={`relative flex-1 overflow-hidden min-h-0 ${className ?? ""}`}
       style={{
-        cursor: selectedMarkerId ? "crosshair" : hoverTile ? "pointer" : "grab",
+        cursor: eyedropperActive
+          ? "crosshair"
+          : selectedMarkerId
+            ? "crosshair"
+            : hoverTile
+              ? "pointer"
+              : "grab",
       }}
     >
       <canvas
@@ -888,6 +932,35 @@ export function UnifiedTileCanvas<
             Sin tiles configurados
           </p>
         </div>
+      )}
+
+      {/* Open panel button (mobile) */}
+      {onOpenPanel && (
+        <button
+          className="absolute bottom-4 left-4 z-10 w-9 h-9 flex items-center justify-center border md:hidden"
+          style={{
+            background: "color-mix(in srgb, var(--primary) 80%, transparent)",
+            borderColor: "color-mix(in srgb, var(--accent) 35%, transparent)",
+            color: "var(--btn-text, #fff)",
+            borderRadius: "2px",
+            boxShadow: "0 1px 4px rgba(0,0,0,0.3)",
+          }}
+          onClick={onOpenPanel}
+        >
+          <svg
+            fill="none"
+            height="14"
+            stroke="currentColor"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="2"
+            viewBox="0 0 24 24"
+            width="14"
+          >
+            <circle cx="12" cy="8" r="4" />
+            <path d="M20 21a8 8 0 1 0-16 0" />
+          </svg>
+        </button>
       )}
 
       {/* Hint de doble-click en bordes (solo editMode, con tiles ya creados) */}

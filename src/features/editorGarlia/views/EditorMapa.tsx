@@ -35,7 +35,7 @@ import {
   loadReinos,
 } from "@/lib/api/client/syncEngine";
 import { UnifiedTileCanvas } from "./UnifiedTileCanvas";
-import type { MapTile } from "./TileCanvas";
+import type { MapTile } from "./UnifiedTileCanvas";
 
 type ReinoConTile = {
   id: string;

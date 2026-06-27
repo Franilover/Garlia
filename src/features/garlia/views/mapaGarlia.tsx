@@ -30,9 +30,9 @@ import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import { db } from "@/lib/api/client/db";
 import { supabase } from "@/lib/api/client/supabase";
 import {
-  TileCanvas,
+  UnifiedTileCanvas,
   type MapTile,
-} from "@/features/editorGarlia/views/TileCanvas";
+} from "@/features/editorGarlia/views/UnifiedTileCanvas";
 
 // ─── Hourglass — reemplaza Loader2 en todos los indicadores de carga ──────────
 function Hourglass({ size = 14 }: { size?: number }) {
@@ -3220,7 +3220,7 @@ export default function MapaInteractivo() {
         )}
 
         {vistaActual === "global" ? (
-          <TileCanvas
+          <UnifiedTileCanvas
             editMode={editMode}
             eyedropperActive={eyedropperActive}
             fondoColor={fondoColor}
@@ -3234,6 +3234,11 @@ export default function MapaInteractivo() {
             onEyedropperPick={handleFondoColorChange}
             onMapClick={handleMapClick}
             onMarkerClick={handleReinoClick}
+            onMarkerMove={() => {}}
+            onMarkerSelect={() => {}}
+            onTileCreate={() => {}}
+            onTileDelete={() => {}}
+            onTilePick={() => {}}
             onOpenPanel={
               isMobile && reinoSeleccionado
                 ? () => setPanelOpen(true)
