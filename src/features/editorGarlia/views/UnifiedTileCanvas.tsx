@@ -157,6 +157,12 @@ export function UnifiedTileCanvas<
   // Tile bajo el cursor (para mostrar la papelera flotante)
   const [hoverTile, setHoverTile] = useState<TTile | null>(null);
   const hoverTileRef = useRef<TTile | null>(null);
+  // Casilla fantasma bajo el cursor (col/row de celda vacía en editMode)
+  const ghostHoverRef = useRef<{ col: number; row: number } | null>(null);
+  const [ghostHover, setGhostHover] = useState<{
+    col: number;
+    row: number;
+  } | null>(null);
   // Rect (en coords de pantalla) de la papelerita activa, para detectar el click
   const trashRectRef = useRef<{
     x: number;
@@ -399,7 +405,60 @@ export function UnifiedTileCanvas<
       ctx.save();
       ctx.translate(cx, cy);
 
-      // Tiles compuestos
+      // ── En editMode: grilla fantasma extendida 1 casilla alrededor ──────────
+      if (editMode) {
+        const tileSet = new Set(tiles.map((t) => `${t.col},${t.row}`));
+        const gMinCol = tiles.length > 0 ? minCol - 1 : -1;
+        const gMinRow = tiles.length > 0 ? minRow - 1 : -1;
+        const gMaxCol =
+          tiles.length > 0 ? Math.max(...tiles.map((t) => t.col)) + 1 : 1;
+        const gMaxRow =
+          tiles.length > 0 ? Math.max(...tiles.map((t) => t.row)) + 1 : 1;
+        const ts = tileSize * scale;
+
+        for (let c = gMinCol; c <= gMaxCol; c++) {
+          for (let r = gMinRow; r <= gMaxRow; r++) {
+            const tx = (c - minCol) * ts;
+            const ty = (r - minRow) * ts;
+            const exists = tileSet.has(`${c},${r}`);
+
+            if (!exists) {
+              const isGhostHovered =
+                ghostHoverRef.current?.col === c &&
+                ghostHoverRef.current?.row === r;
+              // Casilla fantasma: fondo muy sutil + borde al 20%
+              ctx.globalAlpha = isGhostHovered ? 0.35 : 0.18;
+              ctx.fillStyle = isDark
+                ? "rgba(255,255,255,0.06)"
+                : "rgba(0,0,0,0.03)";
+              ctx.fillRect(tx, ty, ts, ts);
+              ctx.strokeStyle = isDark
+                ? "rgba(255,255,255,0.6)"
+                : "rgba(0,0,0,0.5)";
+              ctx.lineWidth = isGhostHovered ? 1.5 : 1;
+              ctx.setLineDash([4, 4]);
+              ctx.strokeRect(tx + 0.5, ty + 0.5, ts - 1, ts - 1);
+              ctx.setLineDash([]);
+              ctx.globalAlpha = 1;
+
+              // "+" en el centro si el tile es razonablemente visible
+              if (ts > 60) {
+                ctx.globalAlpha = isGhostHovered ? 0.4 : 0.15;
+                ctx.fillStyle = isDark ? "#fff" : "#000";
+                ctx.font = `bold ${Math.min(ts * 0.18, 28)}px sans-serif`;
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.fillText("+", tx + ts / 2, ty + ts / 2);
+                ctx.textAlign = "left";
+                ctx.textBaseline = "alphabetic";
+                ctx.globalAlpha = 1;
+              }
+            }
+          }
+        }
+      }
+
+      // Tiles compuestos (al 100%)
       if (compositeRef.current && compositeReadyRef.current) {
         ctx.drawImage(compositeRef.current, 0, 0, iw, ih);
       } else if (compositeReadyRef.current && tiles.length > 0) {
@@ -414,9 +473,9 @@ export function UnifiedTileCanvas<
         });
       }
 
-      // Bordes de tiles
+      // Bordes de tiles existentes (al 100%)
       if (tiles.length > 1) {
-        ctx.strokeStyle = `rgba(${isDark ? "255,255,255" : "0,0,0"},0.06)`;
+        ctx.strokeStyle = `rgba(${isDark ? "255,255,255" : "0,0,0"},0.12)`;
         ctx.lineWidth = 1;
         for (let c = 0; c <= totalCols; c++) {
           ctx.beginPath();
@@ -560,6 +619,7 @@ export function UnifiedTileCanvas<
     totalRows,
     minCol,
     minRow,
+    ghostHover,
     getMarkerScreenPos,
   ]);
 
@@ -675,6 +735,19 @@ export function UnifiedTileCanvas<
           hoverTileRef.current = tile;
           setHoverTile(tile);
         }
+        // Hover de casilla fantasma
+        if (info && !tile) {
+          const g = ghostHoverRef.current;
+          if (!g || g.col !== info.tile_col || g.row !== info.tile_row) {
+            ghostHoverRef.current = { col: info.tile_col, row: info.tile_row };
+            setGhostHover({ col: info.tile_col, row: info.tile_row });
+          }
+        } else {
+          if (ghostHoverRef.current) {
+            ghostHoverRef.current = null;
+            setGhostHover(null);
+          }
+        }
       }
     };
 
@@ -742,6 +815,12 @@ export function UnifiedTileCanvas<
       const tile = info ? findTileAt(info.tile_col, info.tile_row) : null;
       if (tile && editMode) {
         onTilePick(tile);
+        return;
+      }
+
+      // Click en casilla fantasma (editMode) → crear tile nuevo ahí
+      if (editMode && info && !tile) {
+        onTileCreate(info.tile_col, info.tile_row);
         return;
       }
 
@@ -885,7 +964,7 @@ export function UnifiedTileCanvas<
           ? "crosshair"
           : selectedMarkerId
             ? "crosshair"
-            : hoverTile
+            : hoverTile || ghostHover
               ? "pointer"
               : "grab",
       }}
