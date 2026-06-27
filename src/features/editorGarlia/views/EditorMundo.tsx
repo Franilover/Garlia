@@ -1423,7 +1423,7 @@ function PanelListas({
           onClick={toggle}
         >
           <span
-            className="text-[8px] font-black uppercase tracking-[0.25em] flex-1 text-center"
+            className="text-[10px] font-black uppercase tracking-[0.25em] flex-1 text-center"
             style={{
               color: "color-mix(in srgb, var(--primary) 30%, transparent)",
             }}
@@ -2271,7 +2271,10 @@ function PanelListas({
               <div className={div} style={divStyle} />
 
               {/* ── Fila 4: Grupos · Notas (colapsados) ── */}
-              <div className="sm:grid sm:grid-cols-2 sm:gap-x-4">
+              <div
+                className="sm:grid sm:gap-x-4"
+                style={{ gridTemplateColumns: "3fr 1fr" }}
+              >
                 <SeccionEntidades
                   count={grupos.length}
                   icon={Layers}
@@ -2321,7 +2324,7 @@ function PanelListas({
                       return (
                         <div key={tipo} className="flex flex-col gap-1">
                           <span
-                            className="block w-full text-[7px] font-black uppercase tracking-[0.2em] px-1 text-center"
+                            className="block w-full text-[9px] font-black uppercase tracking-[0.2em] px-1 text-center"
                             style={{
                               color:
                                 "color-mix(in srgb, var(--primary) 25%, transparent)",
@@ -2337,7 +2340,7 @@ function PanelListas({
                               >
                                 {subtipo && (
                                   <span
-                                    className="block w-full text-[6px] font-bold uppercase tracking-[0.15em] px-1 text-center"
+                                    className="block w-full text-[8px] font-bold uppercase tracking-[0.15em] px-1 text-center"
                                     style={{
                                       color:
                                         "color-mix(in srgb, var(--primary) 18%, transparent)",
