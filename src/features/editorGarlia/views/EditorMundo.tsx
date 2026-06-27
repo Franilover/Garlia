@@ -36,6 +36,7 @@ import type { Cancion } from "@/features/editorGarlia/components/editorLetras/ty
 import EstudioCapitulos from "@/features/editorGarlia/views/EditorCapitulos";
 import AdminDescubrimientos from "@/features/editorGarlia/views/editorRelaciones";
 import EditorMisiones from "@/features/editorGarlia/components/editorMisiones";
+import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import { db } from "@/lib/api/client/db";
 import { supabase } from "@/lib/api/client/supabase";
 
@@ -115,151 +116,18 @@ type CiudadMin = {
 type EntidadMagicaMin = { id: string; nombre: string };
 type RunaMin = { id: string; nombre: string; imagen_url?: string | null };
 
-// ─── Caché de timestamps de última sincronización remota ─────────────────────
-// Evita re-fetchear Supabase en cada mount cuando Dexie ya tiene datos frescos.
-const _entityLastFetch: Record<string, number> = {};
-const ENTITY_TTL_MS = 60_000; // 1 minuto
-
-// ─── Hook genérico de carga: local (Dexie) → remoto (Supabase) ───────────────
-// Reemplaza useReinos, useCriaturas, useObjetos, useCiudades, usePersonajesList,
-// useEntidadesMagicas y useRunas, que eran idénticos salvo la tabla y el select.
-function useEntityList<T>(
-  tablaLocal: string,
-  buildQuery: () => any,
-  mapResult: (row: any) => T = (r) => r as T,
-) {
-  const [items, setItems] = useState<T[]>([]);
-  const [loading, setLoading] = useState(true);
-  const abortRef = useRef<AbortController | null>(null);
-  const isMounted = useRef(true);
-
-  const fetchRemote = useCallback(
-    async (ctrl: AbortController) => {
-      try {
-        const { data } = await buildQuery().abortSignal(ctrl.signal);
-        if (ctrl.signal.aborted || !isMounted.current) return;
-        const result = (data ?? []).map(mapResult) as T[];
-        setItems(result);
-        setLoading(false);
-        _entityLastFetch[tablaLocal] = Date.now();
-        // Solo escribe en Dexie si hay datos para no borrar la caché con array vacío
-        if (result.length) await dexieWriteAll(tablaLocal, result);
-      } catch (e: any) {
-        if (ctrl.signal.aborted || e?.name === "AbortError") return;
-        if (isMounted.current) setLoading(false);
-      }
-      // tablaLocal is stable; buildQuery/mapResult are inline — intentional
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    },
-    [tablaLocal],
-  );
-
-  useEffect(() => {
-    isMounted.current = true;
-    abortRef.current?.abort();
-    const ctrl = new AbortController();
-    abortRef.current = ctrl;
-
-    const run = async () => {
-      try {
-        const local = await dexieReadAll<T>(tablaLocal);
-        if (ctrl.signal.aborted || !isMounted.current) return;
-        if (local.length) {
-          setItems(local);
-          setLoading(false);
-        }
-        if (!navigator.onLine) {
-          if (!local.length) setLoading(false);
-          return;
-        }
-
-        // Si tenemos datos locales y el fetch fue reciente, no volvemos a pedir
-        const lastFetch = _entityLastFetch[tablaLocal] ?? 0;
-        const isFresh =
-          local.length > 0 && Date.now() - lastFetch < ENTITY_TTL_MS;
-        if (isFresh) return;
-
-        await fetchRemote(ctrl);
-      } catch (e: any) {
-        if (ctrl.signal.aborted || e?.name === "AbortError") return;
-        if (isMounted.current) setLoading(false);
-      }
-    };
-
-    run();
-
-    // Al recuperar conexión siempre forzamos fetch remoto (ignora TTL)
-    const handleOnline = () => {
-      if (!isMounted.current) return;
-      const freshCtrl = new AbortController();
-      abortRef.current = freshCtrl;
-      fetchRemote(freshCtrl);
-    };
-    window.addEventListener("online", handleOnline);
-
-    return () => {
-      isMounted.current = false;
-      ctrl.abort();
-      window.removeEventListener("online", handleOnline);
-    };
-  }, [tablaLocal, fetchRemote]);
-
-  return { items, setItems, loading };
-}
-
-// Wrappers tipados que conservan los nombres originales usados en PanelListas
-function useReinos() {
-  const { items, setItems, loading } = useEntityList<Reino>("reinos", () =>
-    supabase.from("reinos").select("*").order("nombre"),
-  );
-  return { reinos: items, setReinos: setItems, loading };
-}
-
-function useCriaturas() {
-  const { items, setItems, loading } = useEntityList<CriaturaMin>(
-    "criaturas",
-    () =>
-      supabase
-        .from("criaturas")
-        .select("id, nombre, imagen_url, habitat")
-        .order("nombre"),
-  );
-  return { criaturas: items, setCriaturas: setItems, loading };
-}
-
-function useObjetos() {
-  const { items, setItems, loading } = useEntityList<ObjetoMin>("items", () =>
-    supabase
-      .from("items")
-      .select("id, nombre, imagen_url, categoria")
-      .order("nombre"),
-  );
-  return { objetos: items, setObjetos: setItems, loading };
-}
-
-function useCiudades() {
-  const { items, setItems, loading } = useEntityList<CiudadMin>(
-    "ciudades",
-    () =>
-      supabase
-        .from("ciudades")
-        .select("id, nombre, imagen_url, tipo, reino_id")
-        .order("nombre"),
-  );
-  return { ciudades: items, setCiudades: setItems, loading };
-}
-
-function usePersonajesList() {
-  const { items, setItems, loading } = useEntityList<Personaje>(
-    "personajes",
-    () =>
-      supabase
-        .from("personajes")
-        .select("id, nombre, img_url, especie, sobre, reino")
-        .order("nombre"),
-  );
-  return { personajes: items, setPersonajes: setItems, loading };
-}
+// ─── NOTA DE MIGRACIÓN ────────────────────────────────────────────────────────
+// useEntityList (genérico casero) + sus wrappers useReinos/useCriaturas/
+// useObjetos/useCiudades/usePersonajesList fueron eliminados. Ese mismo patrón
+// (Dexie primero → Supabase si no hay datos frescos → realtime) ya existe,
+// mejor implementado, en useSupabaseData (src/hooks/data/useSupabaseData.ts):
+// agrega realtime vía postgres_changes, reconexión con backoff, polling de
+// respaldo, y CRUD con cola offline (addRow/updateRow/deleteRow). Las 6 tablas
+// que faltaban (reinos, hechizos, dones, runas, grupos_mundo, ciudades) se
+// agregaron a DEXIE_TABLES/OFFLINE_WRITABLE ahí, y a SYNC_TABLES en
+// useOfflineSync.tsx (paso obligatorio: sin esa entrada, las mutaciones
+// offline de esas tablas se descartan en silencio al volver la conexión).
+// PanelListas ahora llama useSupabaseData("reinos"), etc. directamente.
 
 function useCriaturaVariantes(criaturaId: string | null) {
   const [variantes, setVariantes] = useState<VarianteMin[]>([]);
@@ -683,36 +551,72 @@ function PanelListas({
   const el = { ...DEFAULT_ENTITY_LABELS, ...entityLabelsProp };
 
   // ── Datos — todos cargan al montar ───────────────────────────────────────
-  const { reinos, setReinos, loading: loadingReinos } = useReinos();
-  const { criaturas, setCriaturas, loading: loadingCriaturas } = useCriaturas();
-  const { objetos, setObjetos, loading: loadingObjetos } = useObjetos();
-  const { ciudades, setCiudades, loading: loadingCiudades } = useCiudades();
+  // Migrado de useEntityList casero a useSupabaseData: mismo patrón
+  // Dexie→Supabase pero con realtime, reconexión, y CRUD offline incluidos.
   const {
-    personajes,
-    setPersonajes,
+    data: reinos,
+    setData: setReinos,
+    loading: loadingReinos,
+  } = useSupabaseData<Reino>("reinos", {
+    select: "*",
+    order: { campo: "nombre" },
+  });
+  const {
+    data: criaturas,
+    setData: setCriaturas,
+    loading: loadingCriaturas,
+  } = useSupabaseData<CriaturaMin>("criaturas", {
+    select: "id, nombre, imagen_url, habitat",
+    order: { campo: "nombre" },
+  });
+  const {
+    data: objetos,
+    setData: setObjetos,
+    loading: loadingObjetos,
+  } = useSupabaseData<ObjetoMin>("items", {
+    select: "id, nombre, imagen_url, categoria",
+    order: { campo: "nombre" },
+  });
+  const {
+    data: ciudades,
+    setData: setCiudades,
+    loading: loadingCiudades,
+  } = useSupabaseData<CiudadMin>("ciudades", {
+    select: "id, nombre, imagen_url, tipo, reino_id",
+    order: { campo: "nombre" },
+  });
+  const {
+    data: personajes,
+    setData: setPersonajes,
     loading: loadingPersonajes,
-  } = usePersonajesList();
+  } = useSupabaseData<Personaje>("personajes", {
+    select: "id, nombre, img_url, especie, sobre, reino",
+    order: { campo: "nombre" },
+  });
   const {
-    items: hechizos,
-    setItems: setHechizos,
+    data: hechizos,
+    setData: setHechizos,
     loading: loadingHechizos,
-  } = useEntityList<EntidadMagicaMin>("hechizos", () =>
-    supabase.from("hechizos").select("id, nombre").order("nombre"),
-  );
+  } = useSupabaseData<EntidadMagicaMin>("hechizos", {
+    select: "id, nombre",
+    order: { campo: "nombre" },
+  });
   const {
-    items: dones,
-    setItems: setDones,
+    data: dones,
+    setData: setDones,
     loading: loadingDones,
-  } = useEntityList<EntidadMagicaMin>("dones", () =>
-    supabase.from("dones").select("id, nombre").order("nombre"),
-  );
+  } = useSupabaseData<EntidadMagicaMin>("dones", {
+    select: "id, nombre",
+    order: { campo: "nombre" },
+  });
   const {
-    items: runas,
-    setItems: setRunas,
+    data: runas,
+    setData: setRunas,
     loading: loadingRunas,
-  } = useEntityList<RunaMin>("runas", () =>
-    supabase.from("runas").select("id, nombre, imagen_url").order("nombre"),
-  );
+  } = useSupabaseData<RunaMin>("runas", {
+    select: "id, nombre, imagen_url",
+    order: { campo: "nombre" },
+  });
   // Canciones: carga paginada directa desde Supabase (evita el límite de 1000 filas)
   // Dexie se usa solo como caché de lectura rápida; nunca se borran filas locales
   // que no lleguen en el fetch (bulkPut en lugar de dexieWriteAll).
