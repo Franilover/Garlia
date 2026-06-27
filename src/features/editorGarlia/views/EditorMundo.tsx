@@ -1285,7 +1285,7 @@ function PanelListas({
     return (
       <button
         ref={ref}
-        className={`flex items-center rounded-xl border transition-all hover:scale-[1.02] active:scale-[0.98]${fullWidth ? " w-full" : ""} px-3 py-1.5`}
+        className={`flex items-center justify-center text-center rounded-xl border transition-all hover:scale-[1.02] active:scale-[0.98]${fullWidth ? " w-full" : ""} px-3 py-1.5`}
         style={{
           background:
             accentBg ?? "color-mix(in srgb, var(--primary) 4%, transparent)",
@@ -1298,7 +1298,7 @@ function PanelListas({
         onClick={onClick}
       >
         <span
-          className={`text-[11px] font-bold truncate${fullWidth || noMaxW ? "" : " max-w-[120px] sm:max-w-[90px]"}`}
+          className={`text-[11px] font-bold text-center truncate${fullWidth || noMaxW ? "" : " max-w-[120px] sm:max-w-[90px]"}`}
           style={{
             color:
               accentText ??
@@ -2323,7 +2323,7 @@ function PanelListas({
                             return (
                               <button
                                 key={g.id}
-                                className="flex items-center px-3 py-1.5 rounded-xl border transition-all hover:scale-[1.02] active:scale-[0.98]"
+                                className="flex items-center justify-center text-center px-3 py-1.5 rounded-xl border transition-all hover:scale-[1.02] active:scale-[0.98]"
                                 style={{
                                   background: `color-mix(in srgb, ${cfg?.color ?? "var(--primary)"} 4%, transparent)`,
                                   borderColor: `color-mix(in srgb, ${cfg?.color ?? "var(--primary)"} 12%, transparent)`,
@@ -2349,7 +2349,7 @@ function PanelListas({
                                     } as Grupo);
                                 }}
                               >
-                                <span className="text-[11px] font-bold text-primary/70 truncate">
+                                <span className="text-[11px] font-bold text-center text-primary/70 truncate">
                                   {g.nombre}
                                 </span>
                               </button>
@@ -2375,7 +2375,7 @@ function PanelListas({
                   {notas.map((n) => (
                     <button
                       key={n.id}
-                      className="flex items-center px-3 py-1.5 rounded-xl border transition-all hover:scale-[1.02] active:scale-[0.98]"
+                      className="flex items-center justify-center text-center px-3 py-1.5 rounded-xl border transition-all hover:scale-[1.02] active:scale-[0.98]"
                       style={{
                         background:
                           "color-mix(in srgb, var(--primary) 4%, transparent)",
@@ -2385,7 +2385,7 @@ function PanelListas({
                       type="button"
                       onClick={() => setSelectedNota(n)}
                     >
-                      <span className="text-[11px] font-bold text-primary/70 truncate">
+                      <span className="text-[11px] font-bold text-center text-primary/70 truncate">
                         {n.titulo || (
                           <span className="italic text-primary/30">
                             Sin título
