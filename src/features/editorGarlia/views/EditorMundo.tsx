@@ -1425,7 +1425,7 @@ function PanelListas({
         >
           <Icon className="text-primary/30 shrink-0" size={10} />
           <span
-            className="text-[8px] font-black uppercase tracking-[0.25em] flex-1 text-left"
+            className="text-[8px] font-black uppercase tracking-[0.25em] flex-1 text-center"
             style={{
               color: "color-mix(in srgb, var(--primary) 30%, transparent)",
             }}
