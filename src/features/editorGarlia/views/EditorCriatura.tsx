@@ -2769,11 +2769,13 @@ export function EditorCriatura({
             />
           </div>
 
-          {/* Territorio - ancho fijo */}
+          {/* Territorio - se ensancha según el contenido */}
           <div
             className="shrink-0 flex flex-col border-r"
             style={{
-              width: "110px",
+              width: "max-content",
+              minWidth: "110px",
+              maxWidth: "220px",
               borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)",
             }}
           >
@@ -2795,11 +2797,13 @@ export function EditorCriatura({
             />
           </div>
 
-          {/* Ciudades - ancho fijo */}
+          {/* Ciudades - se ensancha según el contenido */}
           <div
             className="shrink-0 flex flex-col border-r"
             style={{
-              width: "110px",
+              width: "max-content",
+              minWidth: "110px",
+              maxWidth: "220px",
               borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)",
             }}
           >
@@ -2829,11 +2833,13 @@ export function EditorCriatura({
             />
           </div>
 
-          {/* Creaciones - ancho fijo */}
+          {/* Creaciones - se ensancha según el contenido */}
           <div
             className="shrink-0 flex flex-col border-r"
             style={{
-              width: "110px",
+              width: "max-content",
+              minWidth: "110px",
+              maxWidth: "220px",
               borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)",
             }}
           >

@@ -595,7 +595,7 @@ export const SeccionEntidad = ({
                   </div>
                 )}
                 <span
-                  className="w-full text-center text-[8px] font-black uppercase tracking-wide truncate leading-tight"
+                  className="w-full text-center text-[8px] font-black uppercase tracking-wide leading-tight break-words line-clamp-2"
                   style={{
                     color:
                       "color-mix(in srgb, var(--primary) 65%, transparent)",
@@ -663,7 +663,7 @@ export const SeccionEntidad = ({
                   </div>
                 )}
                 <span
-                  className="flex-1 min-w-0 text-[8px] font-black uppercase tracking-wide truncate leading-tight"
+                  className="flex-1 min-w-0 text-[8px] font-black uppercase tracking-wide leading-tight break-words"
                   style={{
                     color:
                       "color-mix(in srgb, var(--primary) 65%, transparent)",
@@ -762,7 +762,7 @@ export const SeccionEntidad = ({
                 </div>
               )}
               <span
-                className="flex-1 min-w-0 text-[8px] font-black uppercase tracking-wide truncate leading-tight"
+                className="flex-1 min-w-0 text-[8px] font-black uppercase tracking-wide leading-tight break-words"
                 style={{
                   color: "color-mix(in srgb, var(--primary) 65%, transparent)",
                 }}
