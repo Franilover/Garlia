@@ -86,8 +86,6 @@ interface UnifiedTileCanvasProps<
   // ── Extras opcionales (usados por el mapa del mundo) ─────────────────────
   fondoColor?: string | null;
   isFirstOpen?: boolean;
-  /** Si true, el gesto de pinch (2 dedos) no hace zoom — permite scroll nativo de la página */
-  disablePinchZoom?: boolean;
   eyedropperActive?: boolean;
   onEyedropperPick?: (color: string) => void;
   onMapClick?: (
@@ -100,8 +98,6 @@ interface UnifiedTileCanvasProps<
 
   className?: string;
 }
-
-const EDGE_THRESHOLD = 64; // px de pantalla cerca del borde para detectar doble-click de expansión
 
 export function UnifiedTileCanvas<
   TTile extends BaseTile,
@@ -122,7 +118,6 @@ export function UnifiedTileCanvas<
   onShiftTiles,
   fondoColor,
   isFirstOpen,
-  disablePinchZoom = false,
   eyedropperActive,
   onEyedropperPick,
   onMapClick,
@@ -142,7 +137,6 @@ export function UnifiedTileCanvas<
   const lastPinchDist = useRef<number | null>(null);
   const animFrameRef = useRef<number>(0);
   const pulseRef = useRef(0);
-  const lastClickRef = useRef<{ t: number; x: number; y: number } | null>(null);
 
   const cssColorsRef = useRef({
     primary: "#6b4423",
@@ -624,85 +618,26 @@ export function UnifiedTileCanvas<
   ]);
 
   // ── Detectar borde para doble-click de expansión ─────────────────────────
-  const detectEdgeExpand = (
-    px: number,
-    py: number,
-  ): { col: number; row: number; dCol: number; dRow: number } | null => {
-    const { x: cx, y: cy, scale } = camRef.current;
-    const iw = totalW * scale;
-    const ih = totalH * scale;
-    const left = cx;
-    const right = cx + iw;
-    const top = cy;
-    const bottom = cy + ih;
-
-    const nearLeft = px >= left - EDGE_THRESHOLD && px < left + 4;
-    const nearRight = px <= right + EDGE_THRESHOLD && px > right - 4;
-    const nearTop = py >= top - EDGE_THRESHOLD && py < top + 4;
-    const nearBottom = py <= bottom + EDGE_THRESHOLD && py > bottom - 4;
-
-    const withinVerticalSpan = py >= top - 8 && py <= bottom + 8;
-    const withinHorizontalSpan = px >= left - 8 && px <= right + 8;
-
-    if (nearLeft && withinVerticalSpan) {
-      const rowAtClick =
-        minRow +
-        Math.max(
-          0,
-          Math.min(totalRows - 1, Math.floor((py - top) / (tileSize * scale))),
-        );
-      // Tras desplazar +1 columna, el hueco libre queda en minCol
-      return { col: minCol, row: rowAtClick, dCol: 1, dRow: 0 };
-    }
-    if (nearRight && withinVerticalSpan) {
-      const rowAtClick =
-        minRow +
-        Math.max(
-          0,
-          Math.min(totalRows - 1, Math.floor((py - top) / (tileSize * scale))),
-        );
-      return { col: minCol + totalCols, row: rowAtClick, dCol: 0, dRow: 0 };
-    }
-    if (nearTop && withinHorizontalSpan) {
-      const colAtClick =
-        minCol +
-        Math.max(
-          0,
-          Math.min(totalCols - 1, Math.floor((px - left) / (tileSize * scale))),
-        );
-      // Tras desplazar +1 fila, el hueco libre queda en minRow
-      return { col: colAtClick, row: minRow, dCol: 0, dRow: 1 };
-    }
-    if (nearBottom && withinHorizontalSpan) {
-      const colAtClick =
-        minCol +
-        Math.max(
-          0,
-          Math.min(totalCols - 1, Math.floor((px - left) / (tileSize * scale))),
-        );
-      return { col: colAtClick, row: minRow + totalRows, dCol: 0, dRow: 0 };
-    }
-    return null;
-  };
-
   // ── Eventos ───────────────────────────────────────────────────────────────
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
+    // ── Zoom: solo Ctrl+scroll (siempre, en todos los modos) ─────────────────
     const onWheel = (e: WheelEvent) => {
-      // Si disablePinchZoom está activo, el zoom solo se dispara con Ctrl/Cmd.
-      // Sin Ctrl, el evento pasa al navegador y scrollea la página normalmente.
-      if (disablePinchZoom && !e.ctrlKey && !e.metaKey) return;
+      if (!e.ctrlKey && !e.metaKey) return; // sin Ctrl → scrollea la página
       e.preventDefault();
       zoomAt(e.clientX, e.clientY, e.deltaY);
     };
 
+    // ── Pan: drag con click presionado (sin modificador) ──────────────────────
     let isPointerDown = false;
+    let pointerDownCtrl = false;
 
     const onPointerDown = (e: PointerEvent) => {
       if (e.button !== 0 && e.pointerType !== "touch") return;
       isPointerDown = true;
+      pointerDownCtrl = e.ctrlKey || e.metaKey;
       isDragging.current = false;
       dragStart.current = {
         x: e.clientX,
@@ -727,7 +662,7 @@ export function UnifiedTileCanvas<
         }
       }
 
-      // Actualizar hover de tile (solo en editMode, para la papelerita)
+      // Hover en editMode: tile existente (papelera) y casilla fantasma (Ctrl)
       if (editMode && !isDragging.current) {
         const info = canvasToTileInfo(e.clientX, e.clientY);
         const tile = info ? findTileAt(info.tile_col, info.tile_row) : null;
@@ -735,7 +670,6 @@ export function UnifiedTileCanvas<
           hoverTileRef.current = tile;
           setHoverTile(tile);
         }
-        // Hover de casilla fantasma
         if (info && !tile) {
           const g = ghostHoverRef.current;
           if (!g || g.col !== info.tile_col || g.row !== info.tile_row) {
@@ -751,44 +685,37 @@ export function UnifiedTileCanvas<
       }
     };
 
-    const pendingClickTimer = {
-      current: null as ReturnType<typeof setTimeout> | null,
-    };
+    const onPointerUp = (e: PointerEvent) => {
+      isPointerDown = false;
+      if (isDragging.current) {
+        isDragging.current = false;
+        return;
+      }
 
-    const runSingleClickAction = (clientX: number, clientY: number) => {
-      // Eyedropper: tomar color del pixel del canvas
+      const withCtrl = pointerDownCtrl || e.ctrlKey || e.metaKey;
+      const clientX = e.clientX;
+      const clientY = e.clientY;
+
+      // ── Eyedropper (siempre tiene prioridad) ────────────────────────────────
       if (eyedropperActive) {
         const ctx2 = canvas.getContext("2d");
         if (ctx2) {
           const rect2 = canvas.getBoundingClientRect();
-          const px2 = Math.round(clientX - rect2.left);
-          const py2 = Math.round(clientY - rect2.top);
-          const [r, g, b] = ctx2.getImageData(px2, py2, 1, 1).data;
-          const hex =
+          const [r, g, b] = ctx2.getImageData(
+            Math.round(clientX - rect2.left),
+            Math.round(clientY - rect2.top),
+            1,
+            1,
+          ).data;
+          onEyedropperPick?.(
             "#" +
-            [r, g, b].map((v) => v.toString(16).padStart(2, "0")).join("");
-          onEyedropperPick?.(hex);
+              [r, g, b].map((v) => v.toString(16).padStart(2, "0")).join(""),
+          );
         }
         return;
       }
 
-      // Click en la papelera flotante
-      const trash = trashRectRef.current;
-      const rect = canvas.getBoundingClientRect();
-      const px = clientX - rect.left;
-      const py = clientY - rect.top;
-      if (
-        trash &&
-        px >= trash.x &&
-        px <= trash.x + trash.w &&
-        py >= trash.y &&
-        py <= trash.y + trash.h
-      ) {
-        onTileDelete(trash.tile);
-        return;
-      }
-
-      // Mover pin seleccionado
+      // ── Si hay pin seleccionado esperando ser movido → depositarlo ──────────
       if (selectedMarkerId) {
         const info = canvasToTileInfo(clientX, clientY);
         if (info) {
@@ -802,89 +729,63 @@ export function UnifiedTileCanvas<
         return;
       }
 
-      // Seleccionar pin
+      // ── Click en la papelera flotante (solo editMode) ────────────────────────
+      if (editMode) {
+        const trash = trashRectRef.current;
+        const rect = canvas.getBoundingClientRect();
+        const px = clientX - rect.left;
+        const py = clientY - rect.top;
+        if (
+          trash &&
+          px >= trash.x &&
+          px <= trash.x + trash.w &&
+          py >= trash.y &&
+          py <= trash.y + trash.h
+        ) {
+          onTileDelete(trash.tile);
+          return;
+        }
+      }
+
+      // ── Click sobre un pin ───────────────────────────────────────────────────
       const marker = findMarkerAt(clientX, clientY);
       if (marker) {
-        onMarkerSelect(marker.id === selectedMarkerId ? null : marker.id);
-        onMarkerClick?.(marker);
-        return;
-      }
-
-      // Click sobre un tile existente → abrir picker de imagen (editMode) o disparar onMapClick
-      const info = canvasToTileInfo(clientX, clientY);
-      const tile = info ? findTileAt(info.tile_col, info.tile_row) : null;
-      if (tile && editMode) {
-        onTilePick(tile);
-        return;
-      }
-
-      // Click en casilla fantasma (editMode) → crear tile nuevo ahí
-      if (editMode && info && !tile) {
-        onTileCreate(info.tile_col, info.tile_row);
-        return;
-      }
-
-      // Fallback: notificar posición del click (usado por el mapa del mundo)
-      if (info) {
-        onMapClick?.(info.x, info.y, info.tile_col, info.tile_row);
-      }
-    };
-
-    const onPointerUp = async (e: PointerEvent) => {
-      isPointerDown = false;
-      if (isDragging.current) {
-        isDragging.current = false;
-        return;
-      }
-
-      const rect = canvas.getBoundingClientRect();
-      const px = e.clientX - rect.left;
-      const py = e.clientY - rect.top;
-      const clientX = e.clientX;
-      const clientY = e.clientY;
-
-      const now = performance.now();
-      const last = lastClickRef.current;
-      const isDoubleClick =
-        !!last &&
-        now - last.t < 380 &&
-        Math.hypot(px - last.x, py - last.y) < 18;
-
-      if (isDoubleClick) {
-        // Cancelar la acción de single-click pendiente del primer click
-        if (pendingClickTimer.current) {
-          clearTimeout(pendingClickTimer.current);
-          pendingClickTimer.current = null;
-        }
-        lastClickRef.current = null;
-
-        const edge = detectEdgeExpand(px, py);
-        if (edge) {
-          if (edge.dCol > 0 || edge.dRow > 0) {
-            await onShiftTiles?.(edge.dCol, edge.dRow);
-          }
-          onTileCreate(edge.col, edge.row);
+        if (withCtrl && editMode) {
+          // Ctrl + click en pin → seleccionarlo para moverlo
+          onMarkerSelect(marker.id === selectedMarkerId ? null : marker.id);
+        } else {
+          // Click simple en pin → abrir panel (solo notificar)
+          onMarkerClick?.(marker);
         }
         return;
       }
 
-      lastClickRef.current = { t: now, x: px, y: py };
+      // ── Click en tile existente (solo editMode + Ctrl) ───────────────────────
+      if (editMode) {
+        const info = canvasToTileInfo(clientX, clientY);
+        const tile = info ? findTileAt(info.tile_col, info.tile_row) : null;
+        if (tile) {
+          if (withCtrl) onTilePick(tile); // Ctrl → picker de imagen
+          // sin Ctrl sobre tile existente → nada
+          return;
+        }
 
-      // ¿Este click podría ser el primero de un doble-click cerca de un borde?
-      const nearEdge = !!detectEdgeExpand(px, py);
-      if (nearEdge) {
-        // Demorar la acción de single-click por si llega un segundo click
-        pendingClickTimer.current = setTimeout(() => {
-          pendingClickTimer.current = null;
-          runSingleClickAction(clientX, clientY);
-        }, 380);
-      } else {
-        runSingleClickAction(clientX, clientY);
+        // ── Click en casilla fantasma (solo Ctrl) ──────────────────────────────
+        if (info && !tile && withCtrl) {
+          onTileCreate(info.tile_col, info.tile_row);
+          return;
+        }
+      }
+
+      // ── Fallback: notificar posición (mapa del mundo, fuera de editMode) ─────
+      if (!editMode) {
+        const info = canvasToTileInfo(clientX, clientY);
+        if (info) onMapClick?.(info.x, info.y, info.tile_col, info.tile_row);
       }
     };
 
+    // ── Pinch zoom (touch, sin restricción de Ctrl en táctil) ────────────────
     const onTouchStart = (e: TouchEvent) => {
-      if (disablePinchZoom) return;
       if (e.touches.length === 2) {
         lastPinchDist.current = Math.hypot(
           e.touches[0].clientX - e.touches[1].clientX,
@@ -893,7 +794,6 @@ export function UnifiedTileCanvas<
       }
     };
     const onTouchMove = (e: TouchEvent) => {
-      if (disablePinchZoom) return;
       if (e.touches.length === 2 && lastPinchDist.current !== null) {
         const dist = Math.hypot(
           e.touches[0].clientX - e.touches[1].clientX,
@@ -920,7 +820,6 @@ export function UnifiedTileCanvas<
     canvas.addEventListener("touchend", onTouchEnd);
 
     return () => {
-      if (pendingClickTimer.current) clearTimeout(pendingClickTimer.current);
       canvas.removeEventListener("wheel", onWheel);
       canvas.removeEventListener("pointerdown", onPointerDown);
       canvas.removeEventListener("pointermove", onPointerMove);
@@ -942,7 +841,6 @@ export function UnifiedTileCanvas<
     minRow,
     totalCols,
     totalRows,
-    onShiftTiles,
   ]);
 
   // ── Zoom buttons ──────────────────────────────────────────────────────────
@@ -1021,36 +919,7 @@ export function UnifiedTileCanvas<
         </div>
       )}
 
-      {/* Open panel button (mobile) */}
-      {onOpenPanel && (
-        <button
-          className="absolute bottom-4 left-4 z-10 w-9 h-9 flex items-center justify-center border md:hidden"
-          style={{
-            background: "color-mix(in srgb, var(--primary) 80%, transparent)",
-            borderColor: "color-mix(in srgb, var(--accent) 35%, transparent)",
-            color: "var(--btn-text, #fff)",
-            borderRadius: "2px",
-            boxShadow: "0 1px 4px rgba(0,0,0,0.3)",
-          }}
-          onClick={onOpenPanel}
-        >
-          <svg
-            fill="none"
-            height="14"
-            stroke="currentColor"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="2"
-            viewBox="0 0 24 24"
-            width="14"
-          >
-            <circle cx="12" cy="8" r="4" />
-            <path d="M20 21a8 8 0 1 0-16 0" />
-          </svg>
-        </button>
-      )}
-
-      {/* Hint de doble-click en bordes (solo editMode, con tiles ya creados) */}
+      {/* Hints (solo editMode, con tiles) */}
       {editMode && tiles.length > 0 && (
         <div className="absolute top-2 left-2 z-10 pointer-events-none flex flex-col gap-1">
           <span
@@ -1060,20 +929,8 @@ export function UnifiedTileCanvas<
               color: "color-mix(in srgb, var(--foreground) 35%, transparent)",
             }}
           >
-            Doble-click en el borde para expandir
+            Ctrl + click para editar · Ctrl + scroll para zoom
           </span>
-          {disablePinchZoom && (
-            <span
-              className="text-[8px] font-bold uppercase tracking-widest px-2 py-1 rounded-lg"
-              style={{
-                background:
-                  "color-mix(in srgb, var(--bg-main) 85%, transparent)",
-                color: "color-mix(in srgb, var(--foreground) 35%, transparent)",
-              }}
-            >
-              Ctrl + scroll para zoom
-            </span>
-          )}
         </div>
       )}
     </div>
