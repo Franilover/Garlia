@@ -31,11 +31,14 @@ import {
 export function useCriaturaReinos(criaturaId: string) {
   const [rows, setRows] = useState<CriaturaReinoRow[]>(() => {
     const cached = criaturaReinosCache.get(criaturaId);
-    return cached && Date.now() - cached.ts < CRIATURA_REL_TTL ? cached.data : [];
+    return cached && Date.now() - cached.ts < CRIATURA_REL_TTL
+      ? cached.data
+      : [];
   });
   const [loading, setLoading] = useState(
     !criaturaReinosCache.get(criaturaId) ||
-      Date.now() - (criaturaReinosCache.get(criaturaId)?.ts ?? 0) > CRIATURA_REL_TTL,
+      Date.now() - (criaturaReinosCache.get(criaturaId)?.ts ?? 0) >
+        CRIATURA_REL_TTL,
   );
 
   const load = useCallback(async () => {
@@ -46,7 +49,10 @@ export function useCriaturaReinos(criaturaId: string) {
       return;
     }
     setLoading(true);
-    if (!navigator.onLine) { setLoading(false); return; }
+    if (!navigator.onLine) {
+      setLoading(false);
+      return;
+    }
 
     const { data } = await supabase
       .from("criatura_reinos")
@@ -57,14 +63,17 @@ export function useCriaturaReinos(criaturaId: string) {
       rowId: r.id,
       reinoId: r.reino_id,
       reinoNombre:
-        (Array.isArray(r.reinos) ? r.reinos[0]?.nombre : r.reinos?.nombre) ?? "—",
+        (Array.isArray(r.reinos) ? r.reinos[0]?.nombre : r.reinos?.nombre) ??
+        "—",
     }));
     criaturaReinosCache.set(criaturaId, { data: parsed, ts: Date.now() });
     setRows(parsed);
     setLoading(false);
   }, [criaturaId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const add = async (reino: ReinoMin) => {
     if (rows.some((r) => r.reinoId === reino.id)) return;
@@ -74,7 +83,10 @@ export function useCriaturaReinos(criaturaId: string) {
       .select()
       .single();
     if (!error && data) {
-      const next = [...rows, { rowId: data.id, reinoId: reino.id, reinoNombre: reino.nombre }];
+      const next = [
+        ...rows,
+        { rowId: data.id, reinoId: reino.id, reinoNombre: reino.nombre },
+      ];
       criaturaReinosCache.set(criaturaId, { data: next, ts: Date.now() });
       setRows(next);
     }
@@ -94,11 +106,14 @@ export function useCriaturaReinos(criaturaId: string) {
 export function useCriaturaCiudades(criaturaId: string) {
   const [rows, setRows] = useState<CriaturaCiudadRow[]>(() => {
     const cached = criaturaCiudadesCache.get(criaturaId);
-    return cached && Date.now() - cached.ts < CRIATURA_REL_TTL ? cached.data : [];
+    return cached && Date.now() - cached.ts < CRIATURA_REL_TTL
+      ? cached.data
+      : [];
   });
   const [loading, setLoading] = useState(
     !criaturaCiudadesCache.get(criaturaId) ||
-      Date.now() - (criaturaCiudadesCache.get(criaturaId)?.ts ?? 0) > CRIATURA_REL_TTL,
+      Date.now() - (criaturaCiudadesCache.get(criaturaId)?.ts ?? 0) >
+        CRIATURA_REL_TTL,
   );
 
   const load = useCallback(async () => {
@@ -109,7 +124,10 @@ export function useCriaturaCiudades(criaturaId: string) {
       return;
     }
     setLoading(true);
-    if (!navigator.onLine) { setLoading(false); return; }
+    if (!navigator.onLine) {
+      setLoading(false);
+      return;
+    }
 
     const { data } = await supabase
       .from("criatura_ciudades")
@@ -130,7 +148,9 @@ export function useCriaturaCiudades(criaturaId: string) {
     setLoading(false);
   }, [criaturaId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const add = async (ciudad: CiudadMin) => {
     if (rows.some((r) => r.ciudadId === ciudad.id)) return;
@@ -142,7 +162,12 @@ export function useCriaturaCiudades(criaturaId: string) {
     if (!error && data) {
       const next = [
         ...rows,
-        { rowId: data.id, ciudadId: ciudad.id, ciudadNombre: ciudad.nombre, reinoId: ciudad.reino_id },
+        {
+          rowId: data.id,
+          ciudadId: ciudad.id,
+          ciudadNombre: ciudad.nombre,
+          reinoId: ciudad.reino_id,
+        },
       ];
       criaturaCiudadesCache.set(criaturaId, { data: next, ts: Date.now() });
       setRows(next);
@@ -169,10 +194,18 @@ export function CriaturaHabitat({
   onNavigateCiudad?: (id: string) => void;
   onNavigateReino?: (id: string) => void;
 }) {
-  const { rows: reinoRows, loading: loadingR, add: addReino, remove: removeReino } =
-    useCriaturaReinos(criaturaId);
-  const { rows: ciudadRows, loading: loadingC, add: addCiudad, remove: removeCiudad } =
-    useCriaturaCiudades(criaturaId);
+  const {
+    rows: reinoRows,
+    loading: loadingR,
+    add: addReino,
+    remove: removeReino,
+  } = useCriaturaReinos(criaturaId);
+  const {
+    rows: ciudadRows,
+    loading: loadingC,
+    add: addCiudad,
+    remove: removeCiudad,
+  } = useCriaturaCiudades(criaturaId);
 
   const [allReinos, setAllReinos] = useState<ReinoMin[]>([]);
   const [allCiudades, setAllCiudades] = useState<CiudadMin[]>([]);
@@ -181,7 +214,7 @@ export function CriaturaHabitat({
   const [openR, setOpenR] = useState(false);
   const [searchR, setSearchR] = useState("");
   const [openL, setOpenL] = useState(false);
-  const [searchL, setSearchL] = useState(false);
+  const [searchL, setSearchL] = useState("");
 
   useEffect(() => {
     getAllReinos().then(setAllReinos);
@@ -193,7 +226,7 @@ export function CriaturaHabitat({
       allReinos.filter(
         (r) =>
           !reinoRows.some((rr) => rr.reinoId === r.id) &&
-          r.nombre.toLowerCase().includes(searchR.toLowerCase()),
+          (r.nombre ?? "").toLowerCase().includes(searchR.toLowerCase()),
       ),
     [allReinos, reinoRows, searchR],
   );
@@ -211,7 +244,7 @@ export function CriaturaHabitat({
     return allCiudades.filter(
       (l) =>
         !asignadasIds.has(l.id) &&
-        l.nombre.toLowerCase().includes((searchL as any as string).toLowerCase()) &&
+        (l.nombre ?? "").toLowerCase().includes(searchL.toLowerCase()) &&
         (reinoFiltro ? l.reino_id === reinoFiltro : l.reino_id !== null),
     );
   }, [allCiudades, ciudadRows, searchL, reinoFiltro]);
@@ -229,7 +262,9 @@ export function CriaturaHabitat({
         ) : (
           <>
             {reinoRows.length === 0 && (
-              <p className="text-[9px] text-primary/20 italic py-1">Sin reinos asignados</p>
+              <p className="text-[9px] text-primary/20 italic py-1">
+                Sin reinos asignados
+              </p>
             )}
             {reinoRows.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
@@ -238,12 +273,14 @@ export function CriaturaHabitat({
                     key={r.rowId}
                     className="flex items-center gap-1 pl-2 pr-1 py-1 rounded-lg border text-[10px] font-bold"
                     style={{
-                      background: reinoFiltro === r.reinoId
-                        ? "color-mix(in srgb, var(--primary) 12%, transparent)"
-                        : "color-mix(in srgb, var(--primary) 5%, transparent)",
-                      borderColor: reinoFiltro === r.reinoId
-                        ? "color-mix(in srgb, var(--primary) 30%, transparent)"
-                        : "color-mix(in srgb, var(--primary) 14%, transparent)",
+                      background:
+                        reinoFiltro === r.reinoId
+                          ? "color-mix(in srgb, var(--primary) 12%, transparent)"
+                          : "color-mix(in srgb, var(--primary) 5%, transparent)",
+                      borderColor:
+                        reinoFiltro === r.reinoId
+                          ? "color-mix(in srgb, var(--primary) 30%, transparent)"
+                          : "color-mix(in srgb, var(--primary) 14%, transparent)",
                       color: "var(--primary)",
                     }}
                   >
@@ -252,7 +289,9 @@ export function CriaturaHabitat({
                       title="Filtrar ciudades / ir al reino"
                       type="button"
                       onClick={() => {
-                        setReinoFiltro(reinoFiltro === r.reinoId ? null : r.reinoId);
+                        setReinoFiltro(
+                          reinoFiltro === r.reinoId ? null : r.reinoId,
+                        );
                         onNavigateReino?.(r.reinoId);
                       }}
                     >
@@ -278,7 +317,8 @@ export function CriaturaHabitat({
               <button
                 className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-dashed text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer"
                 style={{
-                  borderColor: "color-mix(in srgb, var(--primary) 18%, transparent)",
+                  borderColor:
+                    "color-mix(in srgb, var(--primary) 18%, transparent)",
                   color: "color-mix(in srgb, var(--primary) 35%, transparent)",
                 }}
                 type="button"
@@ -288,12 +328,28 @@ export function CriaturaHabitat({
               </button>
               {openR && (
                 <>
-                  <div className="fixed inset-0 z-40" onClick={() => { setOpenR(false); setSearchR(""); }} />
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => {
+                      setOpenR(false);
+                      setSearchR("");
+                    }}
+                  />
                   <div
                     className="absolute z-50 top-full left-0 mt-1 w-48 rounded-xl border shadow-xl overflow-hidden"
-                    style={{ background: "var(--bg-main)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}
+                    style={{
+                      background: "var(--bg-main)",
+                      borderColor:
+                        "color-mix(in srgb, var(--primary) 12%, transparent)",
+                    }}
                   >
-                    <div className="p-1.5 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+                    <div
+                      className="p-1.5 border-b"
+                      style={{
+                        borderColor:
+                          "color-mix(in srgb, var(--primary) 8%, transparent)",
+                      }}
+                    >
                       <input
                         autoFocus
                         className="w-full bg-transparent text-[10px] text-primary outline-none placeholder:text-primary/30 px-1.5 py-0.5"
@@ -304,14 +360,20 @@ export function CriaturaHabitat({
                     </div>
                     <div className="max-h-40 overflow-y-auto p-1">
                       {reinosDisponibles.length === 0 ? (
-                        <p className="text-[9px] text-primary/25 italic text-center py-3">Sin resultados</p>
+                        <p className="text-[9px] text-primary/25 italic text-center py-3">
+                          Sin resultados
+                        </p>
                       ) : (
                         reinosDisponibles.map((r) => (
                           <button
                             key={r.id}
                             className="w-full text-left px-2.5 py-1.5 rounded-lg text-[11px] font-medium text-primary/75 hover:bg-primary/6 hover:text-primary transition-colors truncate cursor-pointer"
                             type="button"
-                            onMouseDown={() => { addReino(r); setOpenR(false); setSearchR(""); }}
+                            onMouseDown={() => {
+                              addReino(r);
+                              setOpenR(false);
+                              setSearchR("");
+                            }}
                           >
                             {r.nombre}
                           </button>
@@ -335,7 +397,8 @@ export function CriaturaHabitat({
             <span
               className="text-[8px] font-bold px-1.5 py-0.5 rounded-md"
               style={{
-                background: "color-mix(in srgb, var(--primary) 10%, transparent)",
+                background:
+                  "color-mix(in srgb, var(--primary) 10%, transparent)",
                 color: "color-mix(in srgb, var(--primary) 60%, transparent)",
               }}
             >
@@ -350,7 +413,9 @@ export function CriaturaHabitat({
           <>
             {ciudadesAsignadas.length === 0 && (
               <p className="text-[9px] text-primary/20 italic py-1">
-                {reinoFiltro ? "Sin ciudades en este reino" : "Sin ciudades asignadas"}
+                {reinoFiltro
+                  ? "Sin ciudades en este reino"
+                  : "Sin ciudades asignadas"}
               </p>
             )}
             {ciudadesAsignadas.length > 0 && (
@@ -360,15 +425,20 @@ export function CriaturaHabitat({
                     key={r.rowId}
                     className="relative group flex items-center gap-2 px-2.5 py-1.5 rounded-xl transition-colors"
                     style={{
-                      background: "color-mix(in srgb, var(--primary) 4%, transparent)",
-                      border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+                      background:
+                        "color-mix(in srgb, var(--primary) 4%, transparent)",
+                      border:
+                        "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
                     }}
                   >
                     <button
                       className="flex items-center gap-2 flex-1 min-w-0 text-left cursor-pointer hover:text-primary transition-colors group/ciudad"
                       onClick={() => onNavigateCiudad?.(r.ciudadId)}
                     >
-                      <MapPin className="shrink-0 text-primary/30 group-hover/ciudad:text-primary/60 transition-colors" size={9} />
+                      <MapPin
+                        className="shrink-0 text-primary/30 group-hover/ciudad:text-primary/60 transition-colors"
+                        size={9}
+                      />
                       <span className="text-[10px] font-bold text-primary/65 truncate group-hover/ciudad:text-primary transition-colors underline-offset-2 group-hover/ciudad:underline">
                         {r.ciudadNombre}
                       </span>
@@ -389,7 +459,8 @@ export function CriaturaHabitat({
               <button
                 className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-dashed text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer"
                 style={{
-                  borderColor: "color-mix(in srgb, var(--primary) 18%, transparent)",
+                  borderColor:
+                    "color-mix(in srgb, var(--primary) 18%, transparent)",
                   color: "color-mix(in srgb, var(--primary) 35%, transparent)",
                 }}
                 type="button"
@@ -399,30 +470,52 @@ export function CriaturaHabitat({
               </button>
               {openL && (
                 <>
-                  <div className="fixed inset-0 z-40" onClick={() => { setOpenL(false); setSearchL(false as any); }} />
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => {
+                      setOpenL(false);
+                      setSearchL("");
+                    }}
+                  />
                   <div
                     className="absolute z-50 top-full left-0 mt-1 w-52 rounded-xl border shadow-xl overflow-hidden"
-                    style={{ background: "var(--bg-main)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}
+                    style={{
+                      background: "var(--bg-main)",
+                      borderColor:
+                        "color-mix(in srgb, var(--primary) 12%, transparent)",
+                    }}
                   >
-                    <div className="p-1.5 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+                    <div
+                      className="p-1.5 border-b"
+                      style={{
+                        borderColor:
+                          "color-mix(in srgb, var(--primary) 8%, transparent)",
+                      }}
+                    >
                       <input
                         autoFocus
                         className="w-full bg-transparent text-[10px] text-primary outline-none placeholder:text-primary/30 px-1.5 py-0.5"
                         placeholder="Buscar ciudad…"
-                        value={searchL as any as string}
-                        onChange={(e) => setSearchL(e.target.value as any)}
+                        value={searchL}
+                        onChange={(e) => setSearchL(e.target.value)}
                       />
                     </div>
                     <div className="max-h-40 overflow-y-auto p-1">
                       {ciudadesDisponibles.length === 0 ? (
-                        <p className="text-[9px] text-primary/25 italic text-center py-3">Sin resultados</p>
+                        <p className="text-[9px] text-primary/25 italic text-center py-3">
+                          Sin resultados
+                        </p>
                       ) : (
                         ciudadesDisponibles.map((l) => (
                           <button
                             key={l.id}
                             className="w-full text-left px-2.5 py-1.5 rounded-lg text-[11px] font-medium text-primary/75 hover:bg-primary/6 hover:text-primary transition-colors truncate cursor-pointer"
                             type="button"
-                            onMouseDown={() => { addCiudad(l); setOpenL(false); setSearchL(false as any); }}
+                            onMouseDown={() => {
+                              addCiudad(l);
+                              setOpenL(false);
+                              setSearchL("");
+                            }}
                           >
                             {l.nombre}
                           </button>

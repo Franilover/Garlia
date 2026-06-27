@@ -37,7 +37,7 @@ import {
   eraEnAnio,
 } from "@/lib/utils/calendario";
 
-import { type Reino, type SaveStatus } from "./types";
+import { type Reino, type SaveStatus } from "../hooks/types";
 import { SaveIndicator } from "./UIComponents";
 
 // ─── Hook: cargar calendario — Dexie → memoria → Supabase ────────────────────

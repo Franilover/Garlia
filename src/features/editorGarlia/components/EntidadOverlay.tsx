@@ -21,7 +21,7 @@ import { EditorPersonaje } from "@/features/editorGarlia/views/EditorPersonaje";
 import { EditorReino } from "@/features/editorGarlia/views/EditorReino";
 import { supabase } from "@/lib/api/client/supabase";
 
-import { type Nota, type Personaje, type Reino } from "./types";
+import { type Nota, type Personaje, type Reino } from "../hooks/types";
 
 // ─── Tipos mínimos de entidades (espejo de los de EditorMundo.tsx) ────────────
 export type CriaturaMin = {
@@ -454,14 +454,16 @@ export function EntidadOverlay({
             onNavigate={(tab, nombre) => {
               if (tab === "criaturas") {
                 const c = criaturas.find(
-                  (x) => (x.nombre ?? "").toLowerCase() === nombre.toLowerCase(),
+                  (x) =>
+                    (x.nombre ?? "").toLowerCase() === nombre.toLowerCase(),
                 );
                 if (!c) return;
                 clearAllOverlays();
                 setSelectedCriatura(c);
               } else if (tab === "reinos") {
                 const r = reinos.find(
-                  (x) => (x.nombre ?? "").toLowerCase() === nombre.toLowerCase(),
+                  (x) =>
+                    (x.nombre ?? "").toLowerCase() === nombre.toLowerCase(),
                 );
                 if (!r) return;
                 clearAllOverlays();
