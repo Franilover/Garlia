@@ -36,7 +36,9 @@ async function dexieWrite(tabla: string, rows: any[]): Promise<void> {
     // Eliminar filas locales que ya no existen en remoto
     const remoteIds = new Set(rows.map((r: any) => r.id));
     const allLocal: any[] = await table.toArray();
-    const toDelete = allLocal.map((r: any) => r.id).filter((id: string) => !remoteIds.has(id));
+    const toDelete = allLocal
+      .map((r: any) => r.id)
+      .filter((id: string) => !remoteIds.has(id));
     if (toDelete.length > 0) await table.bulkDelete(toDelete);
   } catch (e) {
     console.warn(`[Dexie hooks] write failed on '${tabla}':`, e);
@@ -67,16 +69,21 @@ async function dexieDeleteOne(tabla: string, id: string): Promise<void> {
 
 // ─── useEntidades ─────────────────────────────────────────────────────────────
 
-export function useEntidades<T extends { id: string; nombre: string }>(tab: TabKey) {
-  const [items,     setItems]     = useState<T[]>([]);
-  const [loading,   setLoading]   = useState(true);
+export function useEntidades<T extends { id: string; nombre: string }>(
+  tab: TabKey,
+) {
+  const [items, setItems] = useState<T[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isOffline, setIsOffline] = useState(false);
 
   const load = useCallback(async () => {
-    if (tab === "mundo") { setLoading(false); return; }
+    if (tab === "mundo") {
+      setLoading(false);
+      return;
+    }
 
     const config = TAB_CONFIG[tab as Exclude<TabKey, "mundo">];
-    const tabla  = config.tabla;
+    const tabla = config.tabla;
 
     // 1. Mostrar datos locales de inmediato
     const local = await dexieRead<T>(tabla);
@@ -97,14 +104,21 @@ export function useEntidades<T extends { id: string; nombre: string }>(tab: TabK
     setIsOffline(false);
 
     try {
+      const orderBy = config.orderBy ?? "nombre";
+      const labelKey = config.labelKey ?? "nombre";
       const { data, error } = await supabase
         .from(tabla)
         .select("*")
-        .order("nombre");
+        .order(orderBy);
       if (error) throw error;
-      const result = (data ?? []) as T[];
+      // Normalizar: si la tabla usa otro campo como etiqueta (ej: canciones → titulo),
+      // copiar ese campo a `nombre` para que los consumidores no exploten con toLowerCase.
+      const result = (data ?? []).map((r: any) => ({
+        ...r,
+        nombre: (r.nombre ?? r[labelKey] ?? "") as string,
+      })) as T[];
       setItems(result);
-      dexieWrite(tabla, result);   // ← persiste en Dexie
+      dexieWrite(tabla, result); // ← persiste en Dexie
     } catch {
       setIsOffline(true);
     } finally {
@@ -114,7 +128,10 @@ export function useEntidades<T extends { id: string; nombre: string }>(tab: TabK
 
   useEffect(() => {
     load();
-    const handleOnline = () => { setIsOffline(false); load(); };
+    const handleOnline = () => {
+      setIsOffline(false);
+      load();
+    };
     window.addEventListener("online", handleOnline);
     return () => window.removeEventListener("online", handleOnline);
   }, [load]);
@@ -160,7 +177,7 @@ export function useUniqueValues(tabla: string, columna: string) {
             data
               .map((r: any) => r[columna])
               .filter(Boolean)
-              .map((v: string) => v.trim())
+              .map((v: string) => v.trim()),
           ),
         ].sort() as string[];
         setValores(unique);
@@ -178,7 +195,9 @@ export function useUniqueValues(tabla: string, columna: string) {
     };
 
     run();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [tabla, columna, cacheKey]);
 
   return valores;
@@ -200,7 +219,7 @@ export function useNombresDeTabla(tabla: string) {
       const local = await dexieRead<{ nombre: string }>(tabla);
       if (local.length > 0 && !cancelled) {
         setNombres(
-          [...new Set(local.map(r => r.nombre).filter(Boolean))].sort()
+          [...new Set(local.map((r) => r.nombre).filter(Boolean))].sort(),
         );
         if (!navigator.onLine) return;
       }
@@ -210,7 +229,10 @@ export function useNombresDeTabla(tabla: string) {
         try {
           if (db) {
             const cached = await (db as any).session_cache?.get(cacheKey);
-            if (cached && Date.now() - cached.updated_at < SESSION_CACHE_TTL_MS) {
+            if (
+              cached &&
+              Date.now() - cached.updated_at < SESSION_CACHE_TTL_MS
+            ) {
               if (!cancelled) setNombres(cached.value as string[]);
               if (!navigator.onLine) return;
             }
@@ -249,7 +271,9 @@ export function useNombresDeTabla(tabla: string) {
     };
 
     run();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [tabla, cacheKey]);
 
   return nombres;
@@ -258,12 +282,15 @@ export function useNombresDeTabla(tabla: string) {
 // ─── useCapitulosNarrados ─────────────────────────────────────────────────────
 
 export function useCapitulosNarrados(personajeId: string | null) {
-  const [caps,    setCaps]    = useState<CapituloNarrado[]>([]);
+  const [caps, setCaps] = useState<CapituloNarrado[]>([]);
   const [loading, setLoading] = useState(false);
   const cacheKey = `caps_narrados:${personajeId}`;
 
   useEffect(() => {
-    if (!personajeId) { setCaps([]); return; }
+    if (!personajeId) {
+      setCaps([]);
+      return;
+    }
     let cancelled = false;
 
     const run = async () => {
@@ -274,13 +301,19 @@ export function useCapitulosNarrados(personajeId: string | null) {
         if (db) {
           const cached = await (db as any).session_cache?.get(cacheKey);
           if (cached && Date.now() - cached.updated_at < SESSION_CACHE_TTL_MS) {
-            if (!cancelled) { setCaps(cached.value); setLoading(false); }
+            if (!cancelled) {
+              setCaps(cached.value);
+              setLoading(false);
+            }
             if (!navigator.onLine) return;
           }
         }
       } catch {}
 
-      if (!navigator.onLine) { setLoading(false); return; }
+      if (!navigator.onLine) {
+        setLoading(false);
+        return;
+      }
 
       try {
         const { data } = await supabase
@@ -290,11 +323,11 @@ export function useCapitulosNarrados(personajeId: string | null) {
           .order("orden");
         if (cancelled) return;
         const result = (data ?? []).map((c: any) => ({
-          id:              c.id,
+          id: c.id,
           titulo_capitulo: c.titulo_capitulo,
-          orden:           c.orden,
-          libro_id:        c.libro_id,
-          libro_titulo:    c.libros?.titulo ?? "",
+          orden: c.orden,
+          libro_id: c.libro_id,
+          libro_titulo: c.libros?.titulo ?? "",
         }));
         setCaps(result);
         try {
@@ -312,7 +345,9 @@ export function useCapitulosNarrados(personajeId: string | null) {
     };
 
     run();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [personajeId, cacheKey]);
 
   return { caps, loading };
@@ -322,45 +357,51 @@ export function useCapitulosNarrados(personajeId: string | null) {
 
 export function useReinoDetalles(reinoId: string | null) {
   const [detalles, setDetalles] = useState<ReinoDetalle[]>([]);
-  const [loading,  setLoading]  = useState(false);
+  const [loading, setLoading] = useState(false);
   const cacheKey = `reino_detalles:${reinoId}`;
 
-  const load = useCallback(async (id: string) => {
-    setLoading(true);
+  const load = useCallback(
+    async (id: string) => {
+      setLoading(true);
 
-    // Cache
-    try {
-      if (db) {
-        const cached = await (db as any).session_cache?.get(cacheKey);
-        if (cached && Date.now() - cached.updated_at < SESSION_CACHE_TTL_MS) {
-          setDetalles(cached.value);
-          setLoading(false);
-          if (!navigator.onLine) return;
+      // Cache
+      try {
+        if (db) {
+          const cached = await (db as any).session_cache?.get(cacheKey);
+          if (cached && Date.now() - cached.updated_at < SESSION_CACHE_TTL_MS) {
+            setDetalles(cached.value);
+            setLoading(false);
+            if (!navigator.onLine) return;
+          }
         }
+      } catch {}
+
+      if (!navigator.onLine) {
+        setLoading(false);
+        return;
       }
-    } catch {}
 
-    if (!navigator.onLine) { setLoading(false); return; }
+      const { data } = await supabase
+        .from("reino_detalles")
+        .select("*")
+        .eq("reino_id", id)
+        .order("nombre");
+      const result = data || [];
+      setDetalles(result);
+      setLoading(false);
 
-    const { data } = await supabase
-      .from("reino_detalles")
-      .select("*")
-      .eq("reino_id", id)
-      .order("nombre");
-    const result = data || [];
-    setDetalles(result);
-    setLoading(false);
-
-    try {
-      if (db) {
-        await (db as any).session_cache?.put({
-          key: cacheKey,
-          value: result,
-          updated_at: Date.now(),
-        });
-      }
-    } catch {}
-  }, [cacheKey]);
+      try {
+        if (db) {
+          await (db as any).session_cache?.put({
+            key: cacheKey,
+            value: result,
+            updated_at: Date.now(),
+          });
+        }
+      } catch {}
+    },
+    [cacheKey],
+  );
 
   useEffect(() => {
     if (reinoId) load(reinoId);
@@ -374,7 +415,7 @@ export function useReinoDetalles(reinoId: string | null) {
 
 export function useCriaturaVariantes(criaturaId: string | null) {
   const [variantes, setVariantes] = useState<CriaturaVariante[]>([]);
-  const [loading,   setLoading]   = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const load = useCallback(async (id: string) => {
     setLoading(true);
@@ -396,7 +437,10 @@ export function useCriaturaVariantes(criaturaId: string | null) {
       }
     } catch {}
 
-    if (!navigator.onLine) { setLoading(false); return; }
+    if (!navigator.onLine) {
+      setLoading(false);
+      return;
+    }
 
     // 2. Refrescar desde Supabase en background (sin bloquear si ya hay caché)
     try {
@@ -434,11 +478,14 @@ export function useCriaturaVariantes(criaturaId: string | null) {
 
 export function usePersonajesDelReino(reinoNombre: string | null | undefined) {
   const [personajes, setPersonajes] = useState<Personaje[]>([]);
-  const [loading,    setLoading]    = useState(false);
+  const [loading, setLoading] = useState(false);
   const cacheKey = `personajes_reino:${reinoNombre}`;
 
   useEffect(() => {
-    if (!reinoNombre) { setPersonajes([]); return; }
+    if (!reinoNombre) {
+      setPersonajes([]);
+      return;
+    }
     let cancelled = false;
 
     const run = async () => {
@@ -449,7 +496,10 @@ export function usePersonajesDelReino(reinoNombre: string | null | undefined) {
         if (db) {
           const cached = await (db as any).session_cache?.get(cacheKey);
           if (cached && Date.now() - cached.updated_at < SESSION_CACHE_TTL_MS) {
-            if (!cancelled) { setPersonajes(cached.value); setLoading(false); }
+            if (!cancelled) {
+              setPersonajes(cached.value);
+              setLoading(false);
+            }
             if (!navigator.onLine) return;
           }
         }
@@ -458,10 +508,12 @@ export function usePersonajesDelReino(reinoNombre: string | null | undefined) {
       // Intentar desde Dexie directo (personajes ya está en Dexie)
       try {
         if (db) {
-          const all = await (db as any).personajes?.toArray() as Personaje[] | undefined;
+          const all = (await (db as any).personajes?.toArray()) as
+            | Personaje[]
+            | undefined;
           if (all?.length) {
             const q = reinoNombre.toLowerCase();
-            const local = all.filter(p => p.reino?.toLowerCase().includes(q));
+            const local = all.filter((p) => p.reino?.toLowerCase().includes(q));
             if (local.length && !cancelled) {
               setPersonajes(local);
               setLoading(false);
@@ -471,7 +523,10 @@ export function usePersonajesDelReino(reinoNombre: string | null | undefined) {
         }
       } catch {}
 
-      if (!navigator.onLine) { setLoading(false); return; }
+      if (!navigator.onLine) {
+        setLoading(false);
+        return;
+      }
 
       const { data } = await supabase
         .from("personajes")
@@ -495,7 +550,9 @@ export function usePersonajesDelReino(reinoNombre: string | null | undefined) {
     };
 
     run();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [reinoNombre, cacheKey]);
 
   return { personajes, setPersonajes, loading };
@@ -503,13 +560,18 @@ export function usePersonajesDelReino(reinoNombre: string | null | undefined) {
 
 // ─── usePersonajesDeEspecie ───────────────────────────────────────────────────
 
-export function usePersonajesDeEspecie(especieNombre: string | null | undefined) {
+export function usePersonajesDeEspecie(
+  especieNombre: string | null | undefined,
+) {
   const [personajes, setPersonajes] = useState<Personaje[]>([]);
-  const [loading,    setLoading]    = useState(false);
+  const [loading, setLoading] = useState(false);
   const cacheKey = `personajes_especie:${especieNombre}`;
 
   useEffect(() => {
-    if (!especieNombre?.trim()) { setPersonajes([]); return; }
+    if (!especieNombre?.trim()) {
+      setPersonajes([]);
+      return;
+    }
     let cancelled = false;
 
     const run = async () => {
@@ -520,7 +582,10 @@ export function usePersonajesDeEspecie(especieNombre: string | null | undefined)
         if (db) {
           const cached = await (db as any).session_cache?.get(cacheKey);
           if (cached && Date.now() - cached.updated_at < SESSION_CACHE_TTL_MS) {
-            if (!cancelled) { setPersonajes(cached.value); setLoading(false); }
+            if (!cancelled) {
+              setPersonajes(cached.value);
+              setLoading(false);
+            }
             if (!navigator.onLine) return;
           }
         }
@@ -529,10 +594,14 @@ export function usePersonajesDeEspecie(especieNombre: string | null | undefined)
       // Dexie directo
       try {
         if (db) {
-          const all = await (db as any).personajes?.toArray() as Personaje[] | undefined;
+          const all = (await (db as any).personajes?.toArray()) as
+            | Personaje[]
+            | undefined;
           if (all?.length) {
             const q = especieNombre.toLowerCase().trim();
-            const local = all.filter(p => p.especie?.toLowerCase().includes(q));
+            const local = all.filter((p) =>
+              p.especie?.toLowerCase().includes(q),
+            );
             if (local.length && !cancelled) {
               setPersonajes(local);
               setLoading(false);
@@ -542,7 +611,10 @@ export function usePersonajesDeEspecie(especieNombre: string | null | undefined)
         }
       } catch {}
 
-      if (!navigator.onLine) { setLoading(false); return; }
+      if (!navigator.onLine) {
+        setLoading(false);
+        return;
+      }
 
       const { data } = await supabase
         .from("personajes")
@@ -566,7 +638,9 @@ export function usePersonajesDeEspecie(especieNombre: string | null | undefined)
     };
 
     run();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [especieNombre, cacheKey]);
 
   return { personajes, setPersonajes, loading };
@@ -575,8 +649,10 @@ export function usePersonajesDeEspecie(especieNombre: string | null | undefined)
 // ─── useMundoSecciones ────────────────────────────────────────────────────────
 
 export function useMundoSecciones() {
-  const [textos,  setTextos]  = useState<Record<MundoSectionKey, string>>({
-    magia: "", geografia: "", historia: "",
+  const [textos, setTextos] = useState<Record<MundoSectionKey, string>>({
+    magia: "",
+    geografia: "",
+    historia: "",
   });
   const [loading, setLoading] = useState(true);
   const cacheKey = "mundo_secciones";
@@ -590,21 +666,32 @@ export function useMundoSecciones() {
         if (db) {
           const cached = await (db as any).session_cache?.get(cacheKey);
           if (cached && Date.now() - cached.updated_at < SESSION_CACHE_TTL_MS) {
-            if (!cancelled) { setTextos(cached.value); setLoading(false); }
+            if (!cancelled) {
+              setTextos(cached.value);
+              setLoading(false);
+            }
             if (!navigator.onLine) return;
           }
         }
       } catch {}
 
-      if (!navigator.onLine) { setLoading(false); return; }
+      if (!navigator.onLine) {
+        setLoading(false);
+        return;
+      }
 
       const { data } = await supabase
         .from("mundo_secciones")
         .select("key, contenido");
       if (!data || cancelled) return;
 
-      const result = { magia: "", geografia: "", historia: "" } as Record<MundoSectionKey, string>;
-      data.forEach((r: any) => { result[r.key as MundoSectionKey] = r.contenido ?? ""; });
+      const result = { magia: "", geografia: "", historia: "" } as Record<
+        MundoSectionKey,
+        string
+      >;
+      data.forEach((r: any) => {
+        result[r.key as MundoSectionKey] = r.contenido ?? "";
+      });
       setTextos(result);
       setLoading(false);
 
@@ -620,7 +707,9 @@ export function useMundoSecciones() {
     };
 
     run();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const save = async (section: MundoSectionKey, value: string) => {
@@ -651,7 +740,13 @@ export function useMundoSecciones() {
 // Devuelve los nombres de grupos de un tipo dado (ej: "criaturas") para usar
 // como opciones adicionales en los SelectorTexto del EditorCriatura.
 
-export type GrupoTipo = "personajes" | "criaturas" | "items" | "hechizos" | "dones" | "runas";
+export type GrupoTipo =
+  | "personajes"
+  | "criaturas"
+  | "items"
+  | "hechizos"
+  | "dones"
+  | "runas";
 
 export function useGruposComoOpciones(tipo: GrupoTipo): string[] {
   const [nombres, setNombres] = useState<string[]>([]);
@@ -672,7 +767,7 @@ export function useGruposComoOpciones(tipo: GrupoTipo): string[] {
     // 2. Dexie directo si la tabla grupos_mundo existe
     try {
       if (db && (db as any).grupos_mundo) {
-        const all = await (db as any).grupos_mundo.toArray() as any[];
+        const all = (await (db as any).grupos_mundo.toArray()) as any[];
         const local = all
           .filter((g: any) => !g.deleted && g.tipo === tipo)
           .map((g: any) => g.nombre as string)
@@ -712,7 +807,9 @@ export function useGruposComoOpciones(tipo: GrupoTipo): string[] {
   useEffect(() => {
     let cancelled = false;
     refresh();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [refresh]);
 
   return nombres;
@@ -742,10 +839,14 @@ export function useGruposDeCriatura(criaturaId: string) {
     if (!navigator.onLine) {
       try {
         if (db && (db as any).grupos_mundo) {
-          const all = await (db as any).grupos_mundo.toArray() as GrupoMin[];
-          const deCriaturas = all.filter(g => g.tipo === "criaturas");
+          const all = (await (db as any).grupos_mundo.toArray()) as GrupoMin[];
+          const deCriaturas = all.filter((g) => g.tipo === "criaturas");
           setTodosGrupos(deCriaturas);
-          setGrupos(deCriaturas.filter(g => (g.miembro_ids ?? []).includes(criaturaId)));
+          setGrupos(
+            deCriaturas.filter((g) =>
+              (g.miembro_ids ?? []).includes(criaturaId),
+            ),
+          );
         }
       } catch {}
       setLoading(false);
@@ -760,74 +861,109 @@ export function useGruposDeCriatura(criaturaId: string) {
         .order("nombre");
       const todos = (data ?? []) as GrupoMin[];
       setTodosGrupos(todos);
-      setGrupos(todos.filter(g => (g.miembro_ids ?? []).includes(criaturaId)));
+      setGrupos(
+        todos.filter((g) => (g.miembro_ids ?? []).includes(criaturaId)),
+      );
     } catch {}
     setLoading(false);
   }, [criaturaId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   // Añadir la criatura a un grupo por ID de grupo
-  const addToGrupo = useCallback(async (grupoId: string) => {
-    const grupo = todosGrupos.find(g => g.id === grupoId);
-    if (!grupo) return;
-    if ((grupo.miembro_ids ?? []).includes(criaturaId)) return;
+  const addToGrupo = useCallback(
+    async (grupoId: string) => {
+      const grupo = todosGrupos.find((g) => g.id === grupoId);
+      if (!grupo) return;
+      if ((grupo.miembro_ids ?? []).includes(criaturaId)) return;
 
-    const nuevosIds = [...(grupo.miembro_ids ?? []), criaturaId];
+      const nuevosIds = [...(grupo.miembro_ids ?? []), criaturaId];
 
-    // Optimista
-    const actualizado = { ...grupo, miembro_ids: nuevosIds };
-    setGrupos(prev => [...prev, actualizado]);
-    setTodosGrupos(prev => prev.map(g => g.id === grupoId ? actualizado : g));
+      // Optimista
+      const actualizado = { ...grupo, miembro_ids: nuevosIds };
+      setGrupos((prev) => [...prev, actualizado]);
+      setTodosGrupos((prev) =>
+        prev.map((g) => (g.id === grupoId ? actualizado : g)),
+      );
 
-    await supabase
-      .from("grupos_mundo")
-      .update({ miembro_ids: nuevosIds })
-      .eq("id", grupoId);
+      await supabase
+        .from("grupos_mundo")
+        .update({ miembro_ids: nuevosIds })
+        .eq("id", grupoId);
 
-    try {
-      if (db) await (db as any).grupos_mundo?.put(actualizado);
-    } catch {}
-  }, [criaturaId, todosGrupos]);
+      try {
+        if (db) await (db as any).grupos_mundo?.put(actualizado);
+      } catch {}
+    },
+    [criaturaId, todosGrupos],
+  );
 
   // Quitar la criatura de un grupo
-  const removeFromGrupo = useCallback(async (grupoId: string) => {
-    const grupo = todosGrupos.find(g => g.id === grupoId);
-    if (!grupo) return;
+  const removeFromGrupo = useCallback(
+    async (grupoId: string) => {
+      const grupo = todosGrupos.find((g) => g.id === grupoId);
+      if (!grupo) return;
 
-    const nuevosIds = (grupo.miembro_ids ?? []).filter(id => id !== criaturaId);
+      const nuevosIds = (grupo.miembro_ids ?? []).filter(
+        (id) => id !== criaturaId,
+      );
 
-    // Optimista
-    const actualizado = { ...grupo, miembro_ids: nuevosIds };
-    setGrupos(prev => prev.filter(g => g.id !== grupoId));
-    setTodosGrupos(prev => prev.map(g => g.id === grupoId ? actualizado : g));
+      // Optimista
+      const actualizado = { ...grupo, miembro_ids: nuevosIds };
+      setGrupos((prev) => prev.filter((g) => g.id !== grupoId));
+      setTodosGrupos((prev) =>
+        prev.map((g) => (g.id === grupoId ? actualizado : g)),
+      );
 
-    await supabase
-      .from("grupos_mundo")
-      .update({ miembro_ids: nuevosIds })
-      .eq("id", grupoId);
+      await supabase
+        .from("grupos_mundo")
+        .update({ miembro_ids: nuevosIds })
+        .eq("id", grupoId);
 
-    try {
-      if (db) await (db as any).grupos_mundo?.put(actualizado);
-    } catch {}
-  }, [criaturaId, todosGrupos]);
+      try {
+        if (db) await (db as any).grupos_mundo?.put(actualizado);
+      } catch {}
+    },
+    [criaturaId, todosGrupos],
+  );
 
-  return { grupos, todosGrupos, loading, addToGrupo, removeFromGrupo, reload: load };
+  return {
+    grupos,
+    todosGrupos,
+    loading,
+    addToGrupo,
+    removeFromGrupo,
+    reload: load,
+  };
 }
 // ─── useReinos ────────────────────────────────────────────────────────────────
 // Trae TODOS los reinos (sin filtrar por oculto) para uso interno del editor.
 
 export function useReinos() {
-  const [reinos,  setReinos]  = useState<{ id: string; nombre: string; oculto?: boolean }[]>([]);
+  const [reinos, setReinos] = useState<
+    { id: string; nombre: string; oculto?: boolean }[]
+  >([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     const run = async () => {
       // 1. Caché local Dexie primero
-      const local = await dexieRead<{ id: string; nombre: string; oculto?: boolean }>("reinos");
-      if (local.length && !cancelled) { setReinos(local); setLoading(false); }
-      if (!navigator.onLine) { if (!local.length) setLoading(false); return; }
+      const local = await dexieRead<{
+        id: string;
+        nombre: string;
+        oculto?: boolean;
+      }>("reinos");
+      if (local.length && !cancelled) {
+        setReinos(local);
+        setLoading(false);
+      }
+      if (!navigator.onLine) {
+        if (!local.length) setLoading(false);
+        return;
+      }
 
       // 2. Fetch remoto — SIN filtrar por oculto para ver todos los reinos
       try {
@@ -838,10 +974,14 @@ export function useReinos() {
         if (!data || cancelled) return;
         setReinos(data);
         setLoading(false);
-      } catch { if (!cancelled) setLoading(false); }
+      } catch {
+        if (!cancelled) setLoading(false);
+      }
     };
     run();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return { reinos, loading };
