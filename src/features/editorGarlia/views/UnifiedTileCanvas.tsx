@@ -130,6 +130,20 @@ export function UnifiedTileCanvas<
   const animFrameRef = useRef<number>(0);
   const pulseRef = useRef(0);
 
+  // ── Rendimiento: dirty flag + caché ───────────────────────────────────────
+  const dirtyRef = useRef(true); // true = necesita redibujar
+  const labelCacheRef = useRef<Map<string, number>>(new Map()); // id → textWidth
+  const ghostGridRef = useRef<{
+    gMinCol: number;
+    gMinRow: number;
+    gMaxCol: number;
+    gMaxRow: number;
+    tileSet: Set<string>;
+  } | null>(null);
+  const markDirty = () => {
+    dirtyRef.current = true;
+  };
+
   const cssColorsRef = useRef({
     primary: "#6b4423",
     accent: "#c08040",
@@ -369,6 +383,31 @@ export function UnifiedTileCanvas<
     };
   };
 
+  // ── Precalcular ghost grid cuando cambian los tiles ──────────────────────
+  useEffect(() => {
+    if (!editMode || tiles.length === 0) {
+      ghostGridRef.current = null;
+    } else {
+      const tileSet = new Set(tiles.map((t) => `${t.col},${t.row}`));
+      const cols = tiles.map((t) => t.col);
+      const rows = tiles.map((t) => t.row);
+      ghostGridRef.current = {
+        gMinCol: Math.min(...cols) - 1,
+        gMinRow: Math.min(...rows) - 1,
+        gMaxCol: Math.max(...cols) + 1,
+        gMaxRow: Math.max(...rows) + 1,
+        tileSet,
+      };
+    }
+    markDirty();
+  }, [editMode, tiles]);
+
+  // Invalidar caché de labels cuando cambian los markers
+  useEffect(() => {
+    labelCacheRef.current.clear();
+    markDirty();
+  }, [markers, hiddenMarkers]);
+
   // ── Draw loop ────────────────────────────────────────────────────────────
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -376,8 +415,19 @@ export function UnifiedTileCanvas<
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
+    markDirty();
+
     const draw = (t: number) => {
+      const hasSelectedPin = !!selectedMarkerId;
+
+      // Solo redibujar si hay cambios o si hay animación de pulso activa
+      if (!dirtyRef.current && !hasSelectedPin) {
+        animFrameRef.current = requestAnimationFrame(draw);
+        return;
+      }
+      dirtyRef.current = false;
       pulseRef.current = t;
+
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       const { accent, bg, labelBg, labelText, isDark } = cssColorsRef.current;
@@ -387,110 +437,96 @@ export function UnifiedTileCanvas<
       const { x: cx, y: cy, scale } = camRef.current;
       const iw = totalW * scale;
       const ih = totalH * scale;
+      const ts = tileSize * scale;
 
       ctx.save();
       ctx.translate(cx, cy);
 
-      // ── En editMode: grilla fantasma extendida 1 casilla alrededor ──────────
-      if (editMode) {
-        const tileSet = new Set(tiles.map((t) => `${t.col},${t.row}`));
-        const gMinCol = tiles.length > 0 ? minCol - 1 : -1;
-        const gMinRow = tiles.length > 0 ? minRow - 1 : -1;
-        const gMaxCol =
-          tiles.length > 0 ? Math.max(...tiles.map((t) => t.col)) + 1 : 1;
-        const gMaxRow =
-          tiles.length > 0 ? Math.max(...tiles.map((t) => t.row)) + 1 : 1;
-        const ts = tileSize * scale;
+      // ── Grilla fantasma (editMode) ────────────────────────────────────────
+      if (editMode && ghostGridRef.current) {
+        const { gMinCol, gMinRow, gMaxCol, gMaxRow, tileSet } =
+          ghostGridRef.current;
+        const ghostFill = isDark
+          ? "rgba(255,255,255,0.06)"
+          : "rgba(0,0,0,0.03)";
+        const ghostStroke = isDark
+          ? "rgba(255,255,255,0.6)"
+          : "rgba(0,0,0,0.5)";
+        const hoveredGhost = ghostHoverRef.current;
 
+        ctx.setLineDash([4, 4]);
         for (let c = gMinCol; c <= gMaxCol; c++) {
           for (let r = gMinRow; r <= gMaxRow; r++) {
+            if (tileSet.has(`${c},${r}`)) continue;
             const tx = (c - minCol) * ts;
             const ty = (r - minRow) * ts;
-            const exists = tileSet.has(`${c},${r}`);
-
-            if (!exists) {
-              const isGhostHovered =
-                ghostHoverRef.current?.col === c &&
-                ghostHoverRef.current?.row === r;
-              // Casilla fantasma: fondo muy sutil + borde al 20%
-              ctx.globalAlpha = isGhostHovered ? 0.35 : 0.18;
-              ctx.fillStyle = isDark
-                ? "rgba(255,255,255,0.06)"
-                : "rgba(0,0,0,0.03)";
-              ctx.fillRect(tx, ty, ts, ts);
-              ctx.strokeStyle = isDark
-                ? "rgba(255,255,255,0.6)"
-                : "rgba(0,0,0,0.5)";
-              ctx.lineWidth = isGhostHovered ? 1.5 : 1;
-              ctx.setLineDash([4, 4]);
-              ctx.strokeRect(tx + 0.5, ty + 0.5, ts - 1, ts - 1);
-              ctx.setLineDash([]);
-              ctx.globalAlpha = 1;
-
-              // "+" en el centro si el tile es razonablemente visible
-              if (ts > 60) {
-                ctx.globalAlpha = isGhostHovered ? 0.4 : 0.15;
-                ctx.fillStyle = isDark ? "#fff" : "#000";
-                ctx.font = `bold ${Math.min(ts * 0.18, 28)}px sans-serif`;
-                ctx.textAlign = "center";
-                ctx.textBaseline = "middle";
-                ctx.fillText("+", tx + ts / 2, ty + ts / 2);
-                ctx.textAlign = "left";
-                ctx.textBaseline = "alphabetic";
-                ctx.globalAlpha = 1;
-              }
+            const isHov = hoveredGhost?.col === c && hoveredGhost?.row === r;
+            ctx.globalAlpha = isHov ? 0.35 : 0.18;
+            ctx.fillStyle = ghostFill;
+            ctx.fillRect(tx, ty, ts, ts);
+            ctx.strokeStyle = ghostStroke;
+            ctx.lineWidth = isHov ? 1.5 : 1;
+            ctx.strokeRect(tx + 0.5, ty + 0.5, ts - 1, ts - 1);
+            if (ts > 60) {
+              ctx.globalAlpha = isHov ? 0.4 : 0.15;
+              ctx.fillStyle = isDark ? "#fff" : "#000";
+              ctx.font = `bold ${Math.min(ts * 0.18, 28)}px sans-serif`;
+              ctx.textAlign = "center";
+              ctx.textBaseline = "middle";
+              ctx.fillText("+", tx + ts / 2, ty + ts / 2);
+              ctx.textAlign = "left";
+              ctx.textBaseline = "alphabetic";
             }
           }
         }
+        ctx.setLineDash([]);
+        ctx.globalAlpha = 1;
       }
 
-      // Tiles compuestos (al 100%)
+      // ── Tiles compuestos ─────────────────────────────────────────────────
       if (compositeRef.current && compositeReadyRef.current) {
         ctx.drawImage(compositeRef.current, 0, 0, iw, ih);
       } else if (compositeReadyRef.current && tiles.length > 0) {
         tiles.forEach((tile) => {
-          const tx = (tile.col - minCol) * tileSize * scale;
-          const ty = (tile.row - minRow) * tileSize * scale;
+          const tx = (tile.col - minCol) * ts;
+          const ty = (tile.row - minRow) * ts;
           ctx.fillStyle = "rgba(0,0,0,0.06)";
-          ctx.fillRect(tx, ty, tileSize * scale, tileSize * scale);
-          ctx.strokeStyle = "rgba(0,0,0,0.1)";
-          ctx.lineWidth = 1;
-          ctx.strokeRect(tx, ty, tileSize * scale, tileSize * scale);
+          ctx.fillRect(tx, ty, ts, ts);
         });
       }
 
-      // Bordes de tiles existentes (al 100%)
+      // ── Bordes de tiles existentes ────────────────────────────────────────
       if (tiles.length > 1) {
         ctx.strokeStyle = `rgba(${isDark ? "255,255,255" : "0,0,0"},0.12)`;
         ctx.lineWidth = 1;
+        ctx.beginPath();
         for (let c = 0; c <= totalCols; c++) {
-          ctx.beginPath();
-          ctx.moveTo(c * tileSize * scale, 0);
-          ctx.lineTo(c * tileSize * scale, ih);
-          ctx.stroke();
+          const x = c * ts;
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, ih);
         }
         for (let r = 0; r <= totalRows; r++) {
-          ctx.beginPath();
-          ctx.moveTo(0, r * tileSize * scale);
-          ctx.lineTo(iw, r * tileSize * scale);
-          ctx.stroke();
+          const y = r * ts;
+          ctx.moveTo(0, y);
+          ctx.lineTo(iw, y);
         }
+        ctx.stroke();
       }
 
-      // Resaltar tile bajo el cursor (sutil)
+      // ── Hover tile highlight ──────────────────────────────────────────────
       const hovered = hoverTileRef.current;
       if (hovered && editMode) {
-        const tx = (hovered.col - minCol) * tileSize * scale;
-        const ty = (hovered.row - minRow) * tileSize * scale;
+        const tx = (hovered.col - minCol) * ts;
+        const ty = (hovered.row - minRow) * ts;
         ctx.fillStyle = "rgba(255,255,255,0.05)";
-        ctx.fillRect(tx, ty, tileSize * scale, tileSize * scale);
+        ctx.fillRect(tx, ty, ts, ts);
         ctx.strokeStyle = `${accent}55`;
         ctx.lineWidth = 2;
-        ctx.strokeRect(tx, ty, tileSize * scale, tileSize * scale);
+        ctx.strokeRect(tx, ty, ts, ts);
       }
 
-      // Pins
-      const pulse = (Math.sin(t / 600) + 1) / 2;
+      // ── Pins ─────────────────────────────────────────────────────────────
+      const pulse = hasSelectedPin ? (Math.sin(t / 600) + 1) / 2 : 0;
       const allMarkers = editMode ? [...markers, ...hiddenMarkers] : markers;
 
       for (const m of allMarkers) {
@@ -521,16 +557,21 @@ export function UnifiedTileCanvas<
 
       ctx.restore();
 
-      // Labels (en coords de pantalla, sin transform activo, para que no escalen)
+      // ── Labels (fuera del transform) ──────────────────────────────────────
       const allMarkers2 = editMode ? [...markers, ...hiddenMarkers] : markers;
       ctx.font = "700 11px 'Cinzel', serif";
+      const cache = labelCacheRef.current;
+
       for (const m of allMarkers2) {
-        const isHidden2 = hiddenMarkers.some((h) => h.id === m.id);
-        if (isHidden2) continue;
+        if (hiddenMarkers.some((h) => h.id === m.id)) continue;
         const label = m.nombre || m.name || "";
         if (!label) continue;
         const { mx, my } = getMarkerScreenPos(m, cx, cy, scale);
-        const tw = ctx.measureText(label).width;
+        let tw = cache.get(m.id);
+        if (tw === undefined) {
+          tw = ctx.measureText(label).width;
+          cache.set(m.id, tw);
+        }
         const pad = 5;
         const lx = mx - tw / 2 - pad;
         const ly = my + 10;
@@ -543,17 +584,15 @@ export function UnifiedTileCanvas<
         ctx.fillText(label, mx - tw / 2, ly + 12);
       }
 
-      // Papelera flotante sobre el tile bajo el cursor (esquina sup. derecha)
+      // ── Papelera flotante ─────────────────────────────────────────────────
       trashRectRef.current = null;
       if (hovered && editMode && !selectedMarkerId) {
-        const tx = cx + (hovered.col - minCol) * tileSize * scale;
-        const ty = cy + (hovered.row - minRow) * tileSize * scale;
+        const tx = cx + (hovered.col - minCol) * ts;
+        const ty = cy + (hovered.row - minRow) * ts;
         const size = 22;
-        const tileW = tileSize * scale;
-        const rx = tx + tileW - size - 6;
+        const rx = tx + ts - size - 6;
         const ry = ty + 6;
-        // Solo dibujar si el tile es visible en pantalla y razonablemente grande
-        if (tileW > 40) {
+        if (ts > 40) {
           ctx.fillStyle = "rgba(0,0,0,0.55)";
           ctx.beginPath();
           (ctx as any).roundRect?.(rx, ry, size, size, 5) ??
@@ -569,7 +608,7 @@ export function UnifiedTileCanvas<
         }
       }
 
-      // Hint si hay pin seleccionado
+      // ── Hint pin seleccionado ─────────────────────────────────────────────
       if (selectedMarkerId) {
         ctx.fillStyle = "rgba(0,0,0,0.55)";
         ctx.fillRect(0, canvas.height - 36, canvas.width, 36);
@@ -617,9 +656,10 @@ export function UnifiedTileCanvas<
 
     // ── Zoom: solo Ctrl+scroll (siempre, en todos los modos) ─────────────────
     const onWheel = (e: WheelEvent) => {
-      if (!e.ctrlKey && !e.metaKey) return; // sin Ctrl → scrollea la página
+      if (!e.ctrlKey && !e.metaKey) return;
       e.preventDefault();
       zoomAt(e.clientX, e.clientY, e.deltaY);
+      markDirty();
     };
 
     // ── Pan: drag con click presionado (sin modificador) ──────────────────────
@@ -651,6 +691,7 @@ export function UnifiedTileCanvas<
             x: dragStart.current.camX + dx,
             y: dragStart.current.camY + dy,
           };
+          markDirty();
         }
       }
 
@@ -661,17 +702,20 @@ export function UnifiedTileCanvas<
         if (tile?.id !== hoverTileRef.current?.id) {
           hoverTileRef.current = tile;
           setHoverTile(tile);
+          markDirty();
         }
         if (info && !tile) {
           const g = ghostHoverRef.current;
           if (!g || g.col !== info.tile_col || g.row !== info.tile_row) {
             ghostHoverRef.current = { col: info.tile_col, row: info.tile_row };
             setGhostHover({ col: info.tile_col, row: info.tile_row });
+            markDirty();
           }
         } else {
           if (ghostHoverRef.current) {
             ghostHoverRef.current = null;
             setGhostHover(null);
+            markDirty();
           }
         }
       }
@@ -797,6 +841,7 @@ export function UnifiedTileCanvas<
         };
         zoomAt(mid.x, mid.y, (lastPinchDist.current - dist) * 3);
         lastPinchDist.current = dist;
+        markDirty();
       }
     };
     const onTouchEnd = () => {
