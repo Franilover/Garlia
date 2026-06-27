@@ -23,22 +23,11 @@ import {
 import { SaveIndicator } from "@/features/editorGarlia/components/UIComponents";
 import { type Ciudad } from "@/features/editorGarlia/views/EditorCiudad";
 import { ReinoTileCanvas } from "@/features/editorGarlia/views/ReinoTileCanvas";
-import { db } from "@/lib/api/client/db";
+import { dexiePut, dexieDelete } from "@/hooks/data/useOfflineSync";
 import { supabase } from "@/lib/api/client/supabase";
+import { loadCiudadesPorReino } from "@/lib/api/client/syncEngine";
 
 import { useWikilink } from "../components/WikilinkContext";
-
-// ─── Dexie helpers ────────────────────────────────────────────────────────────
-async function dexiePut(tabla: string, row: any): Promise<void> {
-  try {
-    if (db) await (db as any)[tabla]?.put(row);
-  } catch {}
-}
-async function dexieDel(tabla: string, id: string): Promise<void> {
-  try {
-    if (db) await (db as any)[tabla]?.delete(id);
-  } catch {}
-}
 
 // ─── Hook: ciudades del reino ─────────────────────────────────────────────────
 function useCiudadesDelReino(reinoId: string) {
@@ -46,33 +35,11 @@ function useCiudadesDelReino(reinoId: string) {
 
   useEffect(() => {
     let cancelled = false;
-    const run = async () => {
-      try {
-        if (db) {
-          // ciudades tiene índice reino_id (v14) — O(log n) en vez de toArray() completo
-          const local: any[] =
-            (await (db as any).ciudades
-              ?.where("reino_id")
-              .equals(reinoId)
-              .toArray()) ?? [];
-          const filtrados = local.filter((l: any) => !l.deleted);
-          if (filtrados.length && !cancelled) setCiudades(filtrados);
-        }
-      } catch {}
-      if (!navigator.onLine) return;
-      const { data } = await supabase
-        .from("ciudades")
-        .select(
-          "id, nombre, descripcion, coord_x, coord_y, imagen_url, tipo, historia, secretos, reino_id",
-        )
-        .eq("reino_id", reinoId)
-        .order("nombre");
-      if (!cancelled && data) {
-        setCiudades(data as Ciudad[]);
-        if (db) (db as any).ciudades?.bulkPut(data).catch(() => {});
-      }
-    };
-    run();
+    loadCiudadesPorReino(reinoId, (data) => {
+      if (!cancelled) setCiudades(data as Ciudad[]);
+    }).then((data) => {
+      if (!cancelled) setCiudades(data as Ciudad[]);
+    });
     return () => {
       cancelled = true;
     };
@@ -202,7 +169,7 @@ export function EditorReino({
     });
     if (!ok) return;
     await supabase.from("reinos").delete().eq("id", form.id);
-    void dexieDel("reinos", form.id);
+    void dexieDelete("reinos", form.id);
     onDeleted(form.id);
   };
 

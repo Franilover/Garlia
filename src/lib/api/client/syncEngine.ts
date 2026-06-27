@@ -100,7 +100,7 @@ export async function invalidateSessionCache(prefix: string): Promise<void> {
 
 // ─── Helpers internos ─────────────────────────────────────────────────────────
 
-async function dexieAll<T>(table: any): Promise<T[]> {
+export async function dexieAll<T>(table: any): Promise<T[]> {
   try {
     return ((await table?.toArray()) as T[]) ?? [];
   } catch {
@@ -108,7 +108,7 @@ async function dexieAll<T>(table: any): Promise<T[]> {
   }
 }
 
-async function dexieWhere<T>(
+export async function dexieWhere<T>(
   table: any,
   field: string,
   value: any,
@@ -322,6 +322,58 @@ export async function loadReinosMap(
   return map;
 }
 
+// ─── Ciudades de un reino (reino_id está indexado en Dexie, v14) ─────────────
+
+export async function loadCiudadesPorReino(
+  reinoId: string,
+  onUpdate?: (data: any[]) => void,
+): Promise<any[]> {
+  const cacheKey = `ciudades:reino:${reinoId}`;
+  const mem = memGet<any[]>(cacheKey, TTL["ciudades"] ?? DEFAULT_TTL);
+  if (mem) return mem;
+
+  const all = await dexieWhere<any>(db?.ciudades, "reino_id", reinoId);
+  const local = all.filter((c) => !c.deleted);
+  if (local.length > 0) {
+    memSet(cacheKey, local);
+    isReallyOnline().then((online) => {
+      if (online) fetchCiudadesPorReino(reinoId, cacheKey, onUpdate);
+    });
+    return local;
+  }
+
+  return (await fetchCiudadesPorReino(reinoId, cacheKey, onUpdate)) ?? [];
+}
+
+async function fetchCiudadesPorReino(
+  reinoId: string,
+  cacheKey: string,
+  onUpdate?: (data: any[]) => void,
+): Promise<any[]> {
+  try {
+    const { data, error } = await supabase
+      .from("ciudades")
+      .select(
+        "id, nombre, descripcion, coord_x, coord_y, imagen_url, tipo, historia, secretos, reino_id",
+      )
+      .eq("reino_id", reinoId)
+      .order("nombre");
+    if (error || !data) return [];
+    memSet(cacheKey, data);
+    await persist("ciudades", data);
+    onUpdate?.(data);
+    return data;
+  } catch {
+    return [];
+  }
+}
+
+export async function invalidateCiudadesPorReino(
+  reinoId: string,
+): Promise<void> {
+  invalidateCache(`ciudades:reino:${reinoId}`);
+}
+
 // ─── Ciudades ─────────────────────────────────────────────────────────────────
 
 export async function loadCiudades(
@@ -374,6 +426,157 @@ export async function loadCiudadesMap(
   }
 
   return map;
+}
+
+// ─── Entidades vinculadas a una ciudad (personajes / criaturas / ítems) ──────
+//
+// "ciudad_id" no está indexado en Dexie para estas tres tablas (ver db.ts),
+// así que igual que el código que reemplazan, filtramos en memoria sobre
+// dexieAll() en vez de dexieWhere(). Si en el futuro se agrega el índice,
+// esto puede pasar a dexieWhere() para evitar el toArray() completo.
+
+export async function loadPersonajesPorCiudad(
+  ciudadId: string,
+  onUpdate?: (data: any[]) => void,
+): Promise<any[]> {
+  const cacheKey = `personajes:ciudad:${ciudadId}`;
+  const mem = memGet<any[]>(cacheKey, TTL["personajes"] ?? DEFAULT_TTL);
+  if (mem) return mem;
+
+  const all = await dexieAll<any>(db?.personajes);
+  const local = all.filter((p) => p.ciudad_id === ciudadId && !p.deleted);
+  if (local.length > 0) {
+    memSet(cacheKey, local);
+    isReallyOnline().then((online) => {
+      if (online) fetchPersonajesPorCiudad(ciudadId, cacheKey, onUpdate);
+    });
+    return local;
+  }
+
+  return (await fetchPersonajesPorCiudad(ciudadId, cacheKey, onUpdate)) ?? [];
+}
+
+async function fetchPersonajesPorCiudad(
+  ciudadId: string,
+  cacheKey: string,
+  onUpdate?: (data: any[]) => void,
+): Promise<any[]> {
+  try {
+    const { data, error } = await supabase
+      .from("personajes")
+      .select("id, nombre, img_url")
+      .eq("ciudad_id", ciudadId)
+      .order("nombre");
+    if (error || !data) return [];
+    memSet(cacheKey, data);
+    await persist("personajes", data);
+    onUpdate?.(data);
+    return data;
+  } catch {
+    return [];
+  }
+}
+
+export async function loadCriaturasPorCiudad(
+  ciudadId: string,
+  onUpdate?: (data: any[]) => void,
+): Promise<any[]> {
+  const cacheKey = `criaturas:ciudad:${ciudadId}`;
+  const mem = memGet<any[]>(cacheKey, DEFAULT_TTL);
+  if (mem) return mem;
+
+  const all = await dexieAll<any>(db?.criaturas);
+  const local = all.filter((c) => c.ciudad_id === ciudadId && !c.deleted);
+  if (local.length > 0) {
+    memSet(cacheKey, local);
+    isReallyOnline().then((online) => {
+      if (online) fetchCriaturasPorCiudad(ciudadId, cacheKey, onUpdate);
+    });
+    return local;
+  }
+
+  return (await fetchCriaturasPorCiudad(ciudadId, cacheKey, onUpdate)) ?? [];
+}
+
+async function fetchCriaturasPorCiudad(
+  ciudadId: string,
+  cacheKey: string,
+  onUpdate?: (data: any[]) => void,
+): Promise<any[]> {
+  try {
+    const { data, error } = await supabase
+      .from("criaturas")
+      .select("id, nombre, imagen_url")
+      .eq("ciudad_id", ciudadId)
+      .order("nombre");
+    if (error || !data) return [];
+    memSet(cacheKey, data);
+    await persist("criaturas", data);
+    onUpdate?.(data);
+    return data;
+  } catch {
+    return [];
+  }
+}
+
+export async function loadItemsPorCiudad(
+  ciudadId: string,
+  onUpdate?: (data: any[]) => void,
+): Promise<any[]> {
+  const cacheKey = `items:ciudad:${ciudadId}`;
+  const mem = memGet<any[]>(cacheKey, DEFAULT_TTL);
+  if (mem) return mem;
+
+  const all = await dexieAll<any>(db?.items);
+  const local = all.filter((i) => i.ciudad_id === ciudadId && !i.deleted);
+  if (local.length > 0) {
+    memSet(cacheKey, local);
+    isReallyOnline().then((online) => {
+      if (online) fetchItemsPorCiudad(ciudadId, cacheKey, onUpdate);
+    });
+    return local;
+  }
+
+  return (await fetchItemsPorCiudad(ciudadId, cacheKey, onUpdate)) ?? [];
+}
+
+async function fetchItemsPorCiudad(
+  ciudadId: string,
+  cacheKey: string,
+  onUpdate?: (data: any[]) => void,
+): Promise<any[]> {
+  try {
+    const { data, error } = await supabase
+      .from("items")
+      .select("id, nombre, imagen_url")
+      .eq("ciudad_id", ciudadId)
+      .order("nombre");
+    if (error || !data) return [];
+    memSet(cacheKey, data);
+    await persist("items", data);
+    onUpdate?.(data);
+    return data;
+  } catch {
+    return [];
+  }
+}
+
+export async function invalidatePersonajesPorCiudad(
+  ciudadId: string,
+): Promise<void> {
+  invalidateCache(`personajes:ciudad:${ciudadId}`);
+}
+
+export async function invalidateCriaturasPorCiudad(
+  ciudadId: string,
+): Promise<void> {
+  invalidateCache(`criaturas:ciudad:${ciudadId}`);
+}
+
+export async function invalidateItemsPorCiudad(
+  ciudadId: string,
+): Promise<void> {
+  invalidateCache(`items:ciudad:${ciudadId}`);
 }
 
 // ─── Capítulos de un libro ────────────────────────────────────────────────────

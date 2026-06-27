@@ -26,48 +26,12 @@ import {
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { SeccionEntidad } from "@/components/ui/SeccionEntidad";
 import SimpleImagePicker from "@/features/editorGarlia/components/editorCapitulos/snippets/forms/SimpleImagePicker";
-import { db } from "@/lib/api/client/db";
+import { dexiePut, dexieDelete } from "@/hooks/data/useOfflineSync";
 import { supabase } from "@/lib/api/client/supabase";
 
 import { type Item, type SaveStatus } from "../components/types";
 import { SelectorImagen, SaveIndicator } from "../components/UIComponents";
 import { useWikilink } from "../components/WikilinkContext";
-
-// ─── Dexie helpers ────────────────────────────────────────────────────────────
-async function dexiePut(tabla: string, row: any): Promise<void> {
-  try {
-    if (db) await (db as any)[tabla]?.put(row);
-  } catch {}
-}
-async function dexieDel(tabla: string, id: string): Promise<void> {
-  try {
-    if (db) await (db as any)[tabla]?.delete(id);
-  } catch {}
-}
-async function dexieReadAll<T>(tabla: string): Promise<T[]> {
-  try {
-    if (!db) return [];
-    const t = (db as any)[tabla];
-    if (!t) return [];
-    return ((await t.toArray()) as any[]).filter((r: any) => !r.deleted) as T[];
-  } catch {
-    return [];
-  }
-}
-async function dexieWriteAll(tabla: string, rows: any[]): Promise<void> {
-  try {
-    if (!db) return;
-    const t = (db as any)[tabla];
-    if (!t) return;
-    if (rows.length > 0) await t.bulkPut(rows);
-    const remoteIds = new Set(rows.map((r: any) => r.id));
-    const local: any[] = await t.toArray();
-    const toDelete = local
-      .map((r: any) => r.id)
-      .filter((id: string) => !remoteIds.has(id));
-    if (toDelete.length > 0) await t.bulkDelete(toDelete);
-  } catch {}
-}
 
 // ─── Hook: qué criaturas crean este ítem (item_crafteres) ─────────────────────
 
@@ -792,7 +756,7 @@ export function EditorItem({
     });
     if (!ok) return;
     await supabase.from(tabla).delete().eq("id", form.id);
-    void dexieDel(tabla, form.id);
+    void dexieDelete(tabla, form.id);
     onDeleted(form.id);
   };
 

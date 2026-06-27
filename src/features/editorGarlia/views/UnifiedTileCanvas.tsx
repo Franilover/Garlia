@@ -16,9 +16,8 @@
  *       3. Si el click cae sobre un pin   → lo selecciona
  *       4. Si cae dentro de un tile       → abre el picker de imagen
  *       5. Si cae fuera de cualquier tile → no hace nada
- *   - Doble-click cerca de un borde exterior → crea tile nuevo ahí
- *     (expande el mapa en esa dirección, desplazando los tiles existentes
- *     si hace falta vía onShiftTiles)
+ *   - Ctrl+click en casilla fantasma → crea tile nuevo en esa posición
+ *     (las coordenadas son cartesianas: soporta negativos en todas direcciones)
  *   - Hover sobre un tile → muestra una papelera pequeña en su esquina
  *     superior derecha para eliminarlo
  *
@@ -74,14 +73,8 @@ interface UnifiedTileCanvasProps<
   onTilePick: (tile: TTile) => void;
   /** Elimina el tile indicado (ya confirmado). */
   onTileDelete: (tile: TTile) => void;
-  /** Crea un tile nuevo en (col, row). */
+  /** Crea un tile nuevo en (col, row). El sistema soporta negativos. */
   onTileCreate: (col: number, row: number) => void;
-  /**
-   * Desplaza todos los tiles existentes (dCol/dRow) para abrir espacio
-   * al expandir por arriba/izquierda. Opcional: si no se provee, expandir
-   * por esos lados queda deshabilitado.
-   */
-  onShiftTiles?: (dCol: number, dRow: number) => void | Promise<void>;
 
   // ── Extras opcionales (usados por el mapa del mundo) ─────────────────────
   fondoColor?: string | null;
@@ -115,7 +108,6 @@ export function UnifiedTileCanvas<
   onTilePick,
   onTileDelete,
   onTileCreate,
-  onShiftTiles,
   fondoColor,
   isFirstOpen,
   eyedropperActive,
@@ -770,7 +762,7 @@ export function UnifiedTileCanvas<
           return;
         }
 
-        // ── Click en casilla fantasma (solo Ctrl) ──────────────────────────────
+        // ── Click en casilla fantasma (solo Ctrl) → crear tile, coords pueden ser negativas ──
         if (info && !tile && withCtrl) {
           onTileCreate(info.tile_col, info.tile_row);
           return;

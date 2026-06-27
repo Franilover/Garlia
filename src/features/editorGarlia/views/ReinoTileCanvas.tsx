@@ -136,35 +136,6 @@ export function useReinoTiles(reinoId: string) {
     await invalidateReinoTiles(reinoId);
   };
 
-  // ── Desplazar todos los tiles para abrir espacio (expandir arriba/izq) ────
-  const shiftTiles = async (dCol: number, dRow: number) => {
-    try {
-      // 1. Mover a posiciones temporales para evitar conflictos de unique
-      await Promise.all(
-        tiles.map((t) =>
-          supabase
-            .from("reino_tiles")
-            .update({ col: t.col + dCol + 1000, row: t.row + dRow + 1000 })
-            .eq("id", t.id),
-        ),
-      );
-      await Promise.all(
-        tiles.map((t) =>
-          supabase
-            .from("reino_tiles")
-            .update({ col: t.col + dCol, row: t.row + dRow })
-            .eq("id", t.id),
-        ),
-      );
-      setTiles((prev) =>
-        prev.map((t) => ({ ...t, col: t.col + dCol, row: t.row + dRow })),
-      );
-      await invalidateReinoTiles(reinoId);
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
   return {
     tiles,
     setTiles,
@@ -172,7 +143,6 @@ export function useReinoTiles(reinoId: string) {
     addTile,
     updateTileImage,
     deleteTile,
-    shiftTiles,
     reload: load,
   };
 }
@@ -195,7 +165,7 @@ export function ReinoTileCanvas({
   tileSize = 1024,
   onPinClick,
 }: ReinoTileCanvasProps) {
-  const { tiles, loading, addTile, updateTileImage, deleteTile, shiftTiles } =
+  const { tiles, loading, addTile, updateTileImage, deleteTile } =
     useReinoTiles(reinoId);
 
   const [selectedPinId, setSelectedPinId] = useState<string | null>(null);
@@ -229,7 +199,6 @@ export function ReinoTileCanvas({
           setSelectedPinId(null);
         }}
         onMarkerSelect={setSelectedPinId}
-        onShiftTiles={shiftTiles}
         onTileCreate={(col, row) => addTile(col, row)}
         onTileDelete={(tile) => deleteTile(tile.id)}
         onTilePick={(tile) => setPickerTile(tile)}

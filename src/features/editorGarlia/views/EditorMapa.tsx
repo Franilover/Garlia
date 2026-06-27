@@ -338,36 +338,6 @@ export function EditorMapa({
     );
   }, []);
 
-  // ── Desplazar todos los tiles (para añadir fila/col arriba/izquierda) ────
-  const shiftTiles = async (dCol: number, dRow: number) => {
-    try {
-      await Promise.all(
-        tiles.map((t) =>
-          supabase
-            .from("map_tiles")
-            .update({ col: t.col + dCol + 1000, row: t.row + dRow + 1000 })
-            .eq("id", t.id),
-        ),
-      );
-      await Promise.all(
-        tiles.map((t) =>
-          supabase
-            .from("map_tiles")
-            .update({ col: t.col + dCol, row: t.row + dRow })
-            .eq("id", t.id),
-        ),
-      );
-      setTiles((prev) =>
-        prev.map((t) => ({ ...t, col: t.col + dCol, row: t.row + dRow })),
-      );
-      await invalidateMapTiles("garlia");
-    } catch (e) {
-      console.error(e);
-      showToast("Error al desplazar tiles", false);
-      loadTiles();
-    }
-  };
-
   // ── Mover reino en el canvas ──────────────────────────────────────────────
   const handleMarkerMove = (
     markerId: string,
@@ -524,7 +494,6 @@ export function EditorMapa({
               onMarkerClick={(r) => onSelectReino?.(r.id)}
               onMarkerMove={handleMarkerMove}
               onMarkerSelect={setSelectedReinoId}
-              onShiftTiles={shiftTiles}
               onTileCreate={handleCreateTileAt}
               onTileDelete={(tile) => handleDelete(tile.id)}
               onTilePick={(tile) => setPickerTile(tile)}
