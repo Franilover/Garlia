@@ -32,14 +32,23 @@ export async function fetchAllItems(): Promise<ItemMin[]> {
       if (db) {
         const local = await db.items.orderBy("nombre").toArray();
         if (local.length > 0) {
-          _itemsData = local as ItemMin[];
+          _itemsData = local.map((i: any) => ({
+            id: i.id,
+            nombre: i.nombre ?? "",
+            imagen_url: i.imagen_url ?? null,
+          }));
           if (navigator.onLine) {
             supabase
               .from("items")
               .select("id, nombre, imagen_url")
               .order("nombre")
               .then(({ data }) => {
-                if (data && data.length > 0) _itemsData = data as ItemMin[];
+                if (data && data.length > 0)
+                  _itemsData = data.map((i) => ({
+                    id: i.id,
+                    nombre: (i.nombre as string | null) ?? "",
+                    imagen_url: (i.imagen_url as string | null) ?? null,
+                  }));
               });
           }
           return _itemsData;
@@ -52,7 +61,11 @@ export async function fetchAllItems(): Promise<ItemMin[]> {
       .from("items")
       .select("id, nombre, imagen_url")
       .order("nombre");
-    _itemsData = (data ?? []) as ItemMin[];
+    _itemsData = (data ?? []).map((i) => ({
+      id: i.id,
+      nombre: (i.nombre as string | null) ?? "",
+      imagen_url: (i.imagen_url as string | null) ?? null,
+    }));
     return _itemsData;
   })().finally(() => {
     _itemsPromise = null;
