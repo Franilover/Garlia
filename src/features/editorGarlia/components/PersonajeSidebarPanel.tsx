@@ -5,7 +5,7 @@
  * ─────────────────────────
  * Sidebar de escritorio y drawer mobile del editor de personajes.
  * Compone todos los bloques laterales: relaciones, capítulos, canciones,
- * grupos, hechizos y línea de tiempo.
+ * grupos y hechizos.
  *
  * Props de navegación se pasan hacia abajo para que los bloques puedan
  * abrir otros editores sin acoplarse entre sí.
@@ -19,7 +19,6 @@ import { BookOpen, Music2, SlidersHorizontal, Users, X } from "lucide-react";
 import { BloqueRelaciones } from "@/features/editorGarlia/components/BloqueRelaciones";
 import { PersonajeCapitulosAparece } from "@/features/editorGarlia/components/PersonajeCapitulosAparece";
 import { PersonajeCancionesAsociadas } from "@/features/editorGarlia/components/PersonajeCancionesAsociadas";
-import { PersonajeLineaDeTiempo } from "@/features/editorGarlia/components/PersonajeLineaDeTiempo";
 import { PersonajeGrupos } from "@/features/editorGarlia/components/PersonajeGrupos";
 import { PersonajeHechizos } from "@/features/editorGarlia/components/PersonajeHechizos";
 
@@ -28,7 +27,8 @@ function Separador() {
   return (
     <div
       style={{
-        borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)",
+        borderTop:
+          "1px solid color-mix(in srgb, var(--primary) 7%, transparent)",
       }}
     />
   );
@@ -38,14 +38,12 @@ function Separador() {
 interface PersonajeSidebarPanelProps {
   personajeId: string;
   nombrePersonaje: string;
-  fechaNacimiento?: number | null;
   grupoIds: string[];
   especieEsMagica: boolean;
   /** Modo inline (columna derecha en desktop) o drawer (modal en mobile). */
   modo: "inline" | "drawer";
   /** Solo relevante cuando modo="drawer". */
   onCerrarDrawer?: () => void;
-  onFechaNacimientoChange?: (dia: number | null) => void;
   onSelectPersonaje?: (id: string) => void;
   onOpenGrupo?: (id: string) => void;
   onSelectCancion?: (id: string) => void;
@@ -55,27 +53,14 @@ interface PersonajeSidebarPanelProps {
 function SidebarContenido({
   personajeId,
   nombrePersonaje,
-  fechaNacimiento,
   grupoIds,
   especieEsMagica,
-  onFechaNacimientoChange,
   onSelectPersonaje,
   onOpenGrupo,
   onSelectCancion,
 }: Omit<PersonajeSidebarPanelProps, "modo" | "onCerrarDrawer">) {
   return (
     <>
-      {/* Línea de tiempo */}
-      <div className="p-2">
-        <PersonajeLineaDeTiempo
-          fechaNacimiento={fechaNacimiento}
-          personajeId={personajeId}
-          onFechaNacimientoChange={onFechaNacimientoChange}
-        />
-      </div>
-
-      <Separador />
-
       {/* Relaciones */}
       <div className="p-2">
         <BloqueRelaciones
@@ -118,10 +103,7 @@ function SidebarContenido({
 
       {/* Grupos */}
       <div className="p-2">
-        <PersonajeGrupos
-          personajeId={personajeId}
-          onOpenGrupo={onOpenGrupo}
-        />
+        <PersonajeGrupos personajeId={personajeId} onOpenGrupo={onOpenGrupo} />
       </div>
 
       {/* Hechizos — solo si la especie es mágica */}
@@ -182,8 +164,7 @@ export function PersonajeSidebarPanel({
         <div
           className="shrink-0 flex items-center justify-between px-3 py-2.5 border-b"
           style={{
-            borderColor:
-              "color-mix(in srgb, var(--primary) 10%, transparent)",
+            borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
           }}
         >
           <span

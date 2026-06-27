@@ -42,6 +42,7 @@ import { ComboSelector } from "@/components/ui/ComboSelector";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import SimpleImagePicker from "@/features/editorGarlia/components/editorCapitulos/snippets/forms/SimpleImagePicker";
 import { PersonajeSidebarPanel } from "@/features/editorGarlia/components/PersonajeSidebarPanel";
+import { PersonajeLineaDeTiempo } from "@/features/editorGarlia/components/PersonajeLineaDeTiempo";
 import { db } from "@/lib/api/client/db";
 import { supabase } from "@/lib/api/client/supabase";
 import { dexiePut, dexieDelete } from "@/lib/utils/dexieHelpers";
@@ -456,17 +457,17 @@ export function FormularioPersonaje({
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
       setForm((f) => ({ ...f, [k]: e.target.value }));
 
+  const onFechaNacimientoChange = (dia: number | null) => {
+    const updated = { ...form, fecha_nacimiento: dia ?? null } as any;
+    setForm(updated);
+    void dexiePut("personajes", updated);
+  };
+
   const sidebarProps = {
     personajeId: form.id,
     nombrePersonaje: form.nombre ?? "",
-    fechaNacimiento: (form as any).fecha_nacimiento ?? null,
     grupoIds,
     especieEsMagica,
-    onFechaNacimientoChange: (dia: number | null) => {
-      const updated = { ...form, fecha_nacimiento: dia ?? null } as any;
-      setForm(updated);
-      void dexiePut("personajes", updated);
-    },
     onSelectPersonaje,
     onOpenGrupo,
     onSelectCancion,
@@ -879,14 +880,14 @@ export function FormularioPersonaje({
                   onChange={field("sobre")}
                 />
 
-                {/* Características */}
-                <textarea
-                  className="w-full bg-transparent border border-primary/10 rounded-xl px-3 py-2.5 text-[11px] leading-relaxed outline-none focus:border-primary/25 transition-colors resize-none placeholder:text-primary/20"
-                  placeholder="Características físicas, rasgos, detalles…"
-                  rows={3}
-                  value={form.caracteristicas ?? ""}
-                  onChange={field("caracteristicas")}
-                />
+                {/* Línea de tiempo */}
+                <div className="rounded-xl overflow-hidden border border-primary/10">
+                  <PersonajeLineaDeTiempo
+                    fechaNacimiento={(form as any).fecha_nacimiento ?? null}
+                    personajeId={form.id}
+                    onFechaNacimientoChange={onFechaNacimientoChange}
+                  />
+                </div>
               </div>
             </div>
           </div>
