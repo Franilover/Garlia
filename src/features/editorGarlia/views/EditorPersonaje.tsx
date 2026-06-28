@@ -24,8 +24,6 @@
  *   lib/utils/criaturaCache.ts
  */
 
-import Image from "next/image";
-
 import {
   Camera,
   Loader2,
@@ -479,7 +477,7 @@ export function FormularioPersonaje({
       <div className="shrink-0 flex items-center gap-2 px-3 py-2 border-b border-primary/10 bg-primary/[0.03]">
         <div className="shrink-0 w-8 h-8 rounded-lg overflow-hidden border border-primary/15 bg-primary/5 flex items-center justify-center">
           {form.img_url ? (
-            <Image
+            <img
               alt={form.nombre}
               className="w-full h-full object-cover"
               src={form.img_url}
@@ -554,7 +552,7 @@ export function FormularioPersonaje({
                   style={{ aspectRatio: "1 / 1" }}
                 >
                   {form.img_url ? (
-                    <Image
+                    <img
                       alt={form.nombre}
                       className="w-full h-full object-cover"
                       src={form.img_url}
