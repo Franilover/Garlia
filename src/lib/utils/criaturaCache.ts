@@ -59,14 +59,34 @@ export async function getCriaturaByNombre(nombre: string): Promise<any | null> {
 const _gruposByTipo = new Map<string, { data: any[]; ts: number }>();
 const GRUPOS_TTL_MS = 60_000;
 
+function mapGrupoRow(g: any) {
+  return {
+    ...g,
+    nombre: g.nombre ?? "",
+    miembro_ids: g.miembro_ids ?? [],
+  };
+}
+
 /**
  * Devuelve todos los grupos_mundo de un tipo dado.
  * Usa el índice "tipo" de Dexie en vez de toArray() completo.
  * Resultado se cachea 60 segundos en memoria.
+ *
+ * Estrategia stale-while-revalidate:
+ *   1. Si hay caché vigente (< TTL), se devuelve de inmediato.
+ *   2. Si no, se lee Dexie para responder rápido sin red.
+ *   3. Si hay conexión, SIEMPRE se contrasta contra Supabase y se
+ *      actualiza tanto la caché en memoria como Dexie, para que los
+ *      grupos creados/editados/eliminados se reflejen sin recargar
+ *      la página.
  */
 export async function getGruposByTipo(tipo: string): Promise<any[]> {
   const cached = _gruposByTipo.get(tipo);
   if (cached && Date.now() - cached.ts < GRUPOS_TTL_MS) return cached.data;
+
+  let data: any[] = cached?.data ?? [];
+
+  // 1. Dexie (rápido, sin red)
   try {
     if (db) {
       const raw: any[] =
@@ -74,16 +94,42 @@ export async function getGruposByTipo(tipo: string): Promise<any[]> {
           ?.where("tipo")
           .equals(tipo)
           .toArray()) ?? [];
-      const data = raw.map((g: any) => ({
-        ...g,
-        nombre: g.nombre ?? "",
-        miembro_ids: g.miembro_ids ?? [],
-      }));
-      _gruposByTipo.set(tipo, { data, ts: Date.now() });
-      return data;
+      if (raw.length) {
+        data = raw.map(mapGrupoRow);
+        _gruposByTipo.set(tipo, { data, ts: Date.now() });
+      }
     }
   } catch {}
-  return [];
+
+  if (!navigator.onLine) return data;
+
+  // 2. Supabase — fuente de verdad, refresca caché y Dexie
+  try {
+    const { data: fresh, error } = await supabase
+      .from("grupos_mundo")
+      .select("id, nombre, tipo, miembro_ids")
+      .eq("tipo", tipo);
+    if (error) throw error;
+    const mapped = (fresh ?? []).map(mapGrupoRow);
+    _gruposByTipo.set(tipo, { data: mapped, ts: Date.now() });
+    try {
+      if (db && mapped.length) await (db as any).grupos_mundo?.bulkPut(mapped);
+    } catch {}
+    return mapped;
+  } catch {
+    // Si falla la red, nos quedamos con lo que teníamos (Dexie o caché vieja)
+    return data;
+  }
+}
+
+/**
+ * Invalida la caché de un tipo de grupo (o de todos si no se especifica).
+ * Llamar tras crear, editar o eliminar un grupo_mundo para que el próximo
+ * `getGruposByTipo` traiga datos frescos de inmediato, sin esperar el TTL.
+ */
+export function invalidateGruposByTipo(tipo?: string): void {
+  if (tipo) _gruposByTipo.delete(tipo);
+  else _gruposByTipo.clear();
 }
 
 // ─── Caché: mapa id → título de libros ───────────────────────────────────────

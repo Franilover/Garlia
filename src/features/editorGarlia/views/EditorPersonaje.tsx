@@ -5,7 +5,7 @@
  * ────────────────────
  * Vista principal del editor de personajes.
  * Contiene únicamente:
- *   - Hooks de datos propios (especie, territorio, variantes)
+ *   - Hooks de datos propios (especie, territorio)
  *   - FormularioPersonaje — formulario + sidebar orquestado
  *   - EditorPersonaje — shell con save/delete
  *
@@ -53,67 +53,6 @@ import { BloqueDones } from "../components/BloqueDones";
 import { useNombresDeTabla } from "../hooks/hooks";
 import { type Personaje, type SaveStatus } from "../hooks/types";
 import { SelectorImagen, SaveIndicator } from "../components/UIComponents";
-
-// ─── Hook: variantes de una criatura por nombre de especie ───────────────────
-type VarianteMin = { id: string; tipo: string };
-
-function useCriaturaVariantesPorNombre(
-  nombreEspecie: string | null | undefined,
-) {
-  const [variantes, setVariantes] = useState<VarianteMin[]>([]);
-
-  const load = useCallback(async () => {
-    if (!nombreEspecie?.trim()) {
-      setVariantes([]);
-      return;
-    }
-
-    try {
-      const criLocal = await getCriaturaByNombre(nombreEspecie);
-      if (criLocal && db) {
-        const vars: any[] =
-          (await (db as any).criatura_variantes
-            ?.where("criatura_id")
-            .equals(criLocal.id)
-            .toArray()) ?? [];
-        if (vars.length) {
-          setVariantes(vars);
-          if (!navigator.onLine) return;
-        }
-      }
-    } catch {}
-
-    if (!navigator.onLine) return;
-
-    const { data: criatura } = await supabase
-      .from("criaturas")
-      .select("id")
-      .ilike("nombre", nombreEspecie.trim())
-      .limit(1)
-      .maybeSingle();
-    if (!criatura) {
-      setVariantes([]);
-      return;
-    }
-
-    const { data } = await supabase
-      .from("criatura_variantes")
-      .select("id, tipo")
-      .eq("criatura_id", criatura.id)
-      .order("tipo");
-    const result = data ?? [];
-    setVariantes(result);
-    try {
-      if (db && result.length > 0)
-        await (db as any).criatura_variantes?.bulkPut(result);
-    } catch {}
-  }, [nombreEspecie]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
-  return variantes;
-}
 
 // ─── Hook: grupos de criatura + esMagico ─────────────────────────────────────
 function normNombre(s: string) {
@@ -403,7 +342,6 @@ export function FormularioPersonaje({
   const especies = useNombresDeTabla("criaturas");
   const reinosMin = useReinosMin();
   const ciudades = useCiudades();
-  const variantes = useCriaturaVariantesPorNombre(form.especie);
   const { ids: grupoIds, esMagico: especieEsMagica } =
     useGruposDeCriaturaPorNombre(form.especie);
 
@@ -661,14 +599,7 @@ export function FormularioPersonaje({
                       placeholder="Humano, elfo…"
                       value={form.especie ?? null}
                       onChange={(v) =>
-                        setForm(
-                          (f) =>
-                            ({
-                              ...f,
-                              especie: v ?? "",
-                              variante_id: null,
-                            }) as any,
-                        )
+                        setForm((f) => ({ ...f, especie: v ?? "" }) as any)
                       }
                       onNavigate={
                         onNavigate
@@ -676,36 +607,6 @@ export function FormularioPersonaje({
                           : undefined
                       }
                     />
-                    {variantes.length > 0 && (
-                      <div className="flex flex-wrap items-center gap-1 pt-0.5">
-                        <span className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/25 mr-0.5">
-                          Variante
-                        </span>
-                        <button
-                          className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border transition-all ${!(form as any).variante_id ? "bg-primary/10 border-primary/25 text-primary" : "border-primary/10 text-primary/25"}`}
-                          type="button"
-                          onClick={() =>
-                            setForm((f) => ({ ...f, variante_id: null }) as any)
-                          }
-                        >
-                          Todas
-                        </button>
-                        {variantes.map((v) => (
-                          <button
-                            key={v.id}
-                            className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border transition-all ${(form as any).variante_id === v.id ? "bg-primary/10 border-primary/25 text-primary" : "border-primary/10 text-primary/25"}`}
-                            type="button"
-                            onClick={() =>
-                              setForm(
-                                (f) => ({ ...f, variante_id: v.id }) as any,
-                              )
-                            }
-                          >
-                            {v.tipo}
-                          </button>
-                        ))}
-                      </div>
-                    )}
                   </div>
                   <ComboSelector
                     allowNone
@@ -769,14 +670,7 @@ export function FormularioPersonaje({
                         placeholder="Humano, elfo…"
                         value={form.especie ?? null}
                         onChange={(v) =>
-                          setForm(
-                            (f) =>
-                              ({
-                                ...f,
-                                especie: v ?? "",
-                                variante_id: null,
-                              }) as any,
-                          )
+                          setForm((f) => ({ ...f, especie: v ?? "" }) as any)
                         }
                         onNavigate={
                           onNavigate
@@ -784,38 +678,6 @@ export function FormularioPersonaje({
                             : undefined
                         }
                       />
-                      {variantes.length > 0 && (
-                        <div className="flex flex-wrap items-center gap-1 pt-0.5">
-                          <span className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/25 mr-0.5">
-                            Variante
-                          </span>
-                          <button
-                            className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border transition-all ${!(form as any).variante_id ? "bg-primary/10 border-primary/25 text-primary" : "border-primary/10 text-primary/25"}`}
-                            type="button"
-                            onClick={() =>
-                              setForm(
-                                (f) => ({ ...f, variante_id: null }) as any,
-                              )
-                            }
-                          >
-                            Todas
-                          </button>
-                          {variantes.map((v) => (
-                            <button
-                              key={v.id}
-                              className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border transition-all ${(form as any).variante_id === v.id ? "bg-primary/10 border-primary/25 text-primary" : "border-primary/10 text-primary/25"}`}
-                              type="button"
-                              onClick={() =>
-                                setForm(
-                                  (f) => ({ ...f, variante_id: v.id }) as any,
-                                )
-                              }
-                            >
-                              {v.tipo}
-                            </button>
-                          ))}
-                        </div>
-                      )}
                     </div>
                     <ComboSelector
                       allowNone
@@ -951,7 +813,6 @@ export function EditorPersonaje({
           reino: form.reino,
           especie: form.especie,
           caracteristicas: form.caracteristicas || null,
-          variante_id: (form as any).variante_id || null,
           ciudad_id: (form as any).ciudad_id || null,
           fecha_nacimiento: (form as any).fecha_nacimiento ?? null,
         })

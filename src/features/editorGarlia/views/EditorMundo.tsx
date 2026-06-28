@@ -88,7 +88,6 @@ type CriaturaMin = {
   imagen_url?: string;
   habitat?: string;
 };
-type VarianteMin = { id: string; tipo: string };
 type ObjetoMin = {
   id: string;
   nombre: string;
@@ -117,92 +116,6 @@ type RunaMin = { id: string; nombre: string; imagen_url?: string | null };
 // useOfflineSync.tsx (paso obligatorio: sin esa entrada, las mutaciones
 // offline de esas tablas se descartan en silencio al volver la conexión).
 // PanelListas ahora llama useSupabaseData("reinos"), etc. directamente.
-
-function useCriaturaVariantes(criaturaId: string | null) {
-  const [variantes, setVariantes] = useState<VarianteMin[]>([]);
-  const [loading, setLoading] = useState(false);
-  const abortRef = useRef<AbortController | null>(null);
-  const isMounted = useRef(true);
-
-  const fetchRemote = useCallback(async (ctrl: AbortController, id: string) => {
-    try {
-      const { data } = await (
-        supabase
-          .from("criatura_variantes")
-          .select("id, tipo")
-          .eq("criatura_id", id)
-          .order("tipo") as any
-      ).abortSignal(ctrl.signal);
-      if (ctrl.signal.aborted || !isMounted.current) return;
-      const result = (data ?? []) as VarianteMin[];
-      setVariantes(result);
-      setLoading(false);
-      try {
-        if (db && result.length)
-          await (db as any).criatura_variantes?.bulkPut(result);
-      } catch {}
-    } catch (e: any) {
-      if (ctrl.signal.aborted || e?.name === "AbortError") return;
-      if (isMounted.current) setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    isMounted.current = true;
-    if (!criaturaId) {
-      setVariantes([]);
-      return;
-    }
-    abortRef.current?.abort();
-    const ctrl = new AbortController();
-    abortRef.current = ctrl;
-
-    const run = async () => {
-      setLoading(true);
-      try {
-        if (db) {
-          const local: any[] =
-            (await (db as any).criatura_variantes
-              ?.where("criatura_id")
-              .equals(criaturaId)
-              .toArray()) ?? [];
-          if (ctrl.signal.aborted || !isMounted.current) return;
-          if (local.length) {
-            setVariantes(local);
-            setLoading(false);
-            if (!navigator.onLine) return;
-          }
-        }
-        if (!navigator.onLine) {
-          setLoading(false);
-          return;
-        }
-        await fetchRemote(ctrl, criaturaId);
-      } catch (e: any) {
-        if (ctrl.signal.aborted || e?.name === "AbortError") return;
-        if (isMounted.current) setLoading(false);
-      }
-    };
-
-    run();
-
-    const handleOnline = () => {
-      if (!isMounted.current) return;
-      const freshCtrl = new AbortController();
-      abortRef.current = freshCtrl;
-      fetchRemote(freshCtrl, criaturaId);
-    };
-    window.addEventListener("online", handleOnline);
-
-    return () => {
-      isMounted.current = false;
-      ctrl.abort();
-      window.removeEventListener("online", handleOnline);
-    };
-  }, [criaturaId, fetchRemote]);
-
-  return { variantes, loading };
-}
 
 // ─── Hook: grupos del mundo (filtrable por tipo) ──────────────────────────────
 type GrupoTodo = {
@@ -771,7 +684,6 @@ function PanelListas({
   const scrollRef = useRef<HTMLDivElement>(null);
   const scrollSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const capitulosRef = useRef<HTMLDivElement>(null);
-  const entidadesRef = useRef<HTMLDivElement>(null);
 
   // Restaurar posición de scroll al montar
   useEffect(() => {
@@ -940,30 +852,6 @@ function PanelListas({
   useEffect(() => {
     onOverlayChange?.(!!overlay, clearAllOverlays);
   }, [overlay, clearAllOverlays, onOverlayChange]);
-
-  // ── Scroll automático al overlay de entidad al abrirse ─────────────────────
-  // Se dispara para cualquier vía de apertura (click en chip, navegación
-  // cruzada, restauración desde localStorage, etc.) porque reacciona a
-  // `overlay` en sí, no a cada selectX por separado.
-  useEffect(() => {
-    if (!overlay) return;
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        const el = entidadesRef.current;
-        const container = scrollRef.current;
-        if (!el) return;
-        if (container) {
-          const elRect = el.getBoundingClientRect();
-          const containerRect = container.getBoundingClientRect();
-          const offset =
-            elRect.top - containerRect.top + container.scrollTop - 8;
-          container.scrollTo({ top: offset, behavior: "smooth" });
-        } else {
-          el.scrollIntoView({ behavior: "smooth", block: "start" });
-        }
-      });
-    });
-  }, [overlay]);
 
   // ── WikiEntity list ────────────────────────────────────────────────────────
   const allEntityNames = useMemo(
@@ -1528,7 +1416,6 @@ function PanelListas({
 
         {/* ENTIDADES */}
         <div
-          ref={entidadesRef}
           className="border-b border-t mt-3"
           style={{
             borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",

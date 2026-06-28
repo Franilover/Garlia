@@ -27,8 +27,11 @@ type CapAparece = {
   libro_id?: string | null;
 };
 
-// Cache en memoria para no re-escanear Dexie si ya cargamos este personaje
-const _capsCache = new Map<string, CapAparece[]>();
+// Cache en memoria para no re-escanear Dexie si ya cargamos este personaje.
+// TTL corto: evita el costo de Dexie en navegaciones repetidas, pero sin
+// quedarse pegada indefinidamente si Supabase tarda en sincronizar.
+const _capsCache = new Map<string, { caps: CapAparece[]; ts: number }>();
+const CAPS_TTL_MS = 30_000;
 
 function mapCap(c: any, libroMap: Record<string, string>): CapAparece {
   return {
@@ -46,15 +49,21 @@ export function useCapitulosConPersonaje(personajeId: string): {
   loading: boolean;
 } {
   const cached = _capsCache.get(personajeId);
-  const [caps, setCaps] = useState<CapAparece[]>(cached ?? []);
-  const [loading, setLoading] = useState(!cached);
+  const cacheVigente = cached && Date.now() - cached.ts < CAPS_TTL_MS;
+  const [caps, setCaps] = useState<CapAparece[]>(
+    cacheVigente ? cached!.caps : [],
+  );
+  const [loading, setLoading] = useState(!cacheVigente);
 
   useEffect(() => {
     let cancelled = false;
 
     const run = async () => {
-      // 1. Dexie (stale-while-revalidate) — solo si no hay caché
-      if (!_capsCache.has(personajeId)) {
+      const cachedNow = _capsCache.get(personajeId);
+      const vigente = cachedNow && Date.now() - cachedNow.ts < CAPS_TTL_MS;
+
+      // 1. Dexie (stale-while-revalidate) — solo si no hay caché vigente
+      if (!vigente) {
         try {
           if (db) {
             const [allCaps, libroMap] = await Promise.all([
@@ -69,7 +78,6 @@ export function useCapitulosConPersonaje(personajeId: string): {
               .sort((a: any, b: any) => (a.orden ?? 0) - (b.orden ?? 0))
               .map((c: any) => mapCap(c, libroMap));
             if (filtered.length > 0) {
-              _capsCache.set(personajeId, filtered);
               setCaps(filtered);
             }
             setLoading(false);
@@ -87,13 +95,14 @@ export function useCapitulosConPersonaje(personajeId: string): {
 
       // 2. Supabase en background (actualiza sin spinner)
       try {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from("capitulos")
           .select(
             "id, orden, titulo_capitulo, libro_id, libros!libro_id(titulo)",
           )
           .contains("personajes_ids", [personajeId])
           .order("orden");
+        if (error) throw error;
         if (cancelled) return;
         const fresh = (data ?? []).map((c: any) => ({
           id: c.id,
@@ -105,9 +114,12 @@ export function useCapitulosConPersonaje(personajeId: string): {
               : c.libros?.titulo) ?? null,
           libro_id: c.libro_id ?? null,
         }));
-        _capsCache.set(personajeId, fresh);
+        _capsCache.set(personajeId, { caps: fresh, ts: Date.now() });
         setCaps(fresh);
-      } catch {}
+      } catch {
+        // Si falló Supabase, no actualizamos el ts de la caché: así el
+        // próximo montaje reintentará en vez de quedarse pegado.
+      }
       setLoading(false);
     };
 

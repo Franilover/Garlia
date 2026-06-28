@@ -14,7 +14,6 @@
 import { Loader2, Users } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
-import { supabase } from "@/lib/api/client/supabase";
 import { getGruposByTipo } from "@/lib/utils/criaturaCache";
 
 // ─── Tipo ─────────────────────────────────────────────────────────────────────
@@ -30,40 +29,16 @@ export function useGruposDelPersonaje(personajeId: string): {
 
   const load = useCallback(async () => {
     setLoading(true);
-
-    // 1. Dexie — usar índice "tipo" en vez de toArray() completo
     try {
+      // getGruposByTipo ya resuelve Dexie (rápido) + Supabase (fuente de
+      // verdad) y mantiene su propia caché con TTL — no hace falta
+      // duplicar la consulta a Supabase aquí.
       const todosPersonajes = await getGruposByTipo("personajes");
       const local = todosPersonajes.filter((g: any) =>
         (g.miembro_ids ?? []).includes(personajeId),
       );
-      if (local.length) {
-        setGrupos(
-          local.map((g: any) => ({
-            id: g.id,
-            nombre: g.nombre,
-            tipo: g.tipo,
-          })),
-        );
-        setLoading(false);
-        if (!navigator.onLine) return;
-      }
-    } catch {}
-
-    if (!navigator.onLine) {
-      setLoading(false);
-      return;
-    }
-
-    // 2. Supabase
-    try {
-      const { data } = await supabase
-        .from("grupos_mundo")
-        .select("id, nombre, tipo")
-        .eq("tipo", "personajes")
-        .contains("miembro_ids", [personajeId]);
       setGrupos(
-        (data ?? []).map((g: any) => ({
+        local.map((g: any) => ({
           id: g.id,
           nombre: g.nombre,
           tipo: g.tipo,
