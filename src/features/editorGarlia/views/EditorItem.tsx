@@ -7,7 +7,6 @@ import {
   Trash2,
   Bug,
   Loader2,
-  Wrench,
   X,
   MapPin,
   Globe,
@@ -15,7 +14,6 @@ import {
   ChevronDown,
   Pencil,
   Search,
-  Leaf,
 } from "lucide-react";
 import React, { useState, useEffect, useCallback } from "react";
 
@@ -681,6 +679,280 @@ function SelectorCategoriaGrupo({
   );
 }
 
+// ─── SelectorOrigenGrupo ─────────────────────────────────────────────────────
+// Análogo a SelectorCategoriaGrupo pero carga grupos_mundo con subtipo "Origen".
+// El valor guardado en form.origen es el nombre del grupo (string | null).
+
+function useOrigenesDeGrupoItems() {
+  const [grupos, setGrupos] = useState<GrupoTipoMin[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    supabase
+      .from("grupos_mundo")
+      .select("id, nombre")
+      .eq("tipo", "items")
+      .eq("subtipo", "Origen")
+      .order("nombre")
+      .then(({ data }) => {
+        setGrupos(
+          (data ?? []).map((r: any) => ({ id: r.id, nombre: r.nombre })),
+        );
+        setLoading(false);
+      });
+  }, []);
+
+  return { grupos, loading };
+}
+
+function SelectorOrigenGrupo({
+  value,
+  onChange,
+  onSelectGrupo,
+}: {
+  value: string | null;
+  onChange: (nombre: string | null) => void;
+  onSelectGrupo?: (grupoId: string) => void;
+}) {
+  const { grupos, loading } = useOrigenesDeGrupoItems();
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const containerRef = React.useRef<HTMLDivElement>(null);
+
+  const grupoActual = grupos.find((g) => g.nombre === value) ?? null;
+
+  const disponibles = grupos.filter(
+    (g) =>
+      g.nombre !== value &&
+      g.nombre.toLowerCase().includes(search.toLowerCase()),
+  );
+
+  const border =
+    "1px solid color-mix(in srgb, var(--primary) 15%, transparent)";
+  const borderFocus =
+    "1px solid color-mix(in srgb, var(--primary) 35%, transparent)";
+
+  useEffect(() => {
+    if (!open) return;
+    const h = (e: MouseEvent) => {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(e.target as Node)
+      ) {
+        setOpen(false);
+        setSearch("");
+      }
+    };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, [open]);
+
+  return (
+    <div ref={containerRef} className="space-y-1">
+      {/* Label */}
+      <div className="flex items-center gap-1.5">
+        <Package
+          size={9}
+          style={{
+            color: "color-mix(in srgb, var(--primary) 38%, transparent)",
+          }}
+        />
+        <span
+          className="text-[8px] font-black uppercase tracking-[0.25em]"
+          style={{
+            color: "color-mix(in srgb, var(--primary) 38%, transparent)",
+          }}
+        >
+          Origen
+        </span>
+      </div>
+
+      {loading ? (
+        <div
+          className="flex items-center gap-2 px-3 py-2 rounded-[var(--radius-btn)]"
+          style={{
+            background: "color-mix(in srgb, var(--primary) 5%, transparent)",
+            border,
+          }}
+        >
+          <Loader2 className="animate-spin text-primary/30" size={10} />
+          <span className="text-[10px] text-primary/30">Cargando…</span>
+        </div>
+      ) : grupoActual ? (
+        /* ── Valor asignado: nombre clickeable + lápiz ─────────────────────── */
+        <div
+          className="w-full flex items-center rounded-[var(--radius-btn)] overflow-hidden transition-all"
+          style={{
+            background: "color-mix(in srgb, var(--primary) 5%, transparent)",
+            border,
+          }}
+        >
+          {/* Click en nombre → navegar al grupo */}
+          <button
+            className="flex-1 flex items-center gap-2 px-3 py-2 text-[11px] font-black uppercase truncate transition-all hover:bg-primary/5 min-w-0"
+            style={{ color: "var(--primary)" }}
+            title="Ir al grupo de origen"
+            type="button"
+            onClick={() => onSelectGrupo?.(grupoActual.id)}
+          >
+            <span className="truncate">{grupoActual.nombre}</span>
+          </button>
+          {/* Lápiz → abrir dropdown */}
+          <button
+            className="shrink-0 flex items-center justify-center px-2.5 py-2 transition-all hover:bg-primary/10"
+            style={{
+              borderLeft:
+                "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+              color: "color-mix(in srgb, var(--primary) 35%, transparent)",
+            }}
+            title="Cambiar origen"
+            type="button"
+            onClick={() => {
+              setOpen((o) => !o);
+              setSearch("");
+            }}
+          >
+            <Pencil size={10} />
+          </button>
+        </div>
+      ) : (
+        /* ── Sin valor: trigger vacío ───────────────────────────────────────── */
+        <button
+          className="w-full flex items-center justify-between px-3 py-2 rounded-[var(--radius-btn)] text-[11px] font-bold transition-all"
+          style={{
+            background: "color-mix(in srgb, var(--primary) 5%, transparent)",
+            border: open ? borderFocus : border,
+            color: "color-mix(in srgb, var(--primary) 40%, transparent)",
+          }}
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+        >
+          <span className="font-black uppercase text-[10px] tracking-wide">
+            Sin origen
+          </span>
+          <ChevronDown
+            className={`shrink-0 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+            size={12}
+            style={{ opacity: 0.5 }}
+          />
+        </button>
+      )}
+
+      {/* Dropdown */}
+      {open && (
+        <div
+          className="rounded-[var(--radius-btn)] overflow-hidden"
+          style={{
+            border,
+            background: "var(--bg-main)",
+            boxShadow:
+              "0 8px 24px color-mix(in srgb, var(--primary) 10%, transparent)",
+          }}
+        >
+          {/* Buscador */}
+          <div
+            className="flex items-center gap-2 px-3 py-2"
+            style={{
+              borderBottom:
+                "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+            }}
+          >
+            <Search
+              size={11}
+              style={{
+                color: "color-mix(in srgb, var(--primary) 30%, transparent)",
+                flexShrink: 0,
+              }}
+            />
+            <input
+              autoFocus
+              className="flex-1 bg-transparent outline-none text-[11px] font-bold uppercase tracking-wide placeholder:normal-case placeholder:font-medium placeholder:tracking-normal"
+              placeholder="Buscar origen…"
+              style={{ color: "var(--primary)", caretColor: "var(--primary)" }}
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              onKeyDown={(e) =>
+                e.key === "Escape" && (setOpen(false), setSearch(""))
+              }
+            />
+            {search && (
+              <button
+                className="opacity-30 hover:opacity-70 transition-opacity"
+                type="button"
+                onClick={() => setSearch("")}
+              >
+                <X size={10} style={{ color: "var(--primary)" }} />
+              </button>
+            )}
+          </div>
+
+          {/* Lista */}
+          <div className="max-h-48 overflow-y-auto">
+            {/* Opción "quitar" si hay valor */}
+            {grupoActual && (
+              <button
+                className="w-full flex items-center gap-2 px-4 py-2.5 text-[11px] font-bold uppercase transition-all hover:bg-primary/5"
+                style={{
+                  color: "color-mix(in srgb, var(--primary) 45%, transparent)",
+                }}
+                type="button"
+                onMouseDown={() => {
+                  onChange(null);
+                  setOpen(false);
+                  setSearch("");
+                }}
+              >
+                <span className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center">
+                  <X className="opacity-50" size={9} />
+                </span>
+                Sin origen
+              </button>
+            )}
+
+            {grupos.length === 0 ? (
+              <p className="text-[10px] text-primary/30 px-4 py-3 font-bold uppercase">
+                No hay grupos de tipo «Origen» creados
+              </p>
+            ) : disponibles.length === 0 && !grupoActual ? (
+              <p className="text-[10px] text-primary/30 px-4 py-3 font-bold uppercase">
+                {search
+                  ? `Sin resultados para "${search}"`
+                  : "Todas las opciones ya asignadas"}
+              </p>
+            ) : disponibles.length === 0 && grupoActual ? (
+              <p className="text-[10px] text-primary/30 px-4 py-3 font-bold uppercase">
+                {search
+                  ? `Sin resultados para "${search}"`
+                  : "No hay otros orígenes"}
+              </p>
+            ) : (
+              disponibles.map((g) => (
+                <button
+                  key={g.id}
+                  className="w-full flex items-center justify-between px-4 py-2.5 text-[11px] font-bold uppercase transition-all hover:bg-primary/6"
+                  style={{
+                    color:
+                      "color-mix(in srgb, var(--primary) 50%, transparent)",
+                  }}
+                  type="button"
+                  onMouseDown={() => {
+                    onChange(g.nombre);
+                    setOpen(false);
+                    setSearch("");
+                  }}
+                >
+                  <span className="truncate">{g.nombre}</span>
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── EditorItem ───────────────────────────────────────────────────────────────
 
 export function EditorItem({
@@ -868,143 +1140,18 @@ export function EditorItem({
               <div className="flex flex-col sm:flex-row gap-4">
                 {/* Columna Origen — solo para ítems */}
                 {tabla === "items" && (
-                  <div
-                    className="flex-1 min-w-0 rounded-xl overflow-hidden"
-                    style={{
-                      border:
-                        "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
-                    }}
-                  >
-                    {/* Cabecera */}
-                    <div
-                      className="flex items-center gap-1.5 px-3 py-2"
-                      style={{
-                        borderBottom:
-                          "1px solid color-mix(in srgb, var(--primary) 6%, transparent)",
-                        background:
-                          "color-mix(in srgb, var(--primary) 2%, transparent)",
-                      }}
-                    >
-                      <Package
-                        size={9}
-                        style={{
-                          color:
-                            "color-mix(in srgb, var(--primary) 38%, transparent)",
-                        }}
-                      />
-                      <span
-                        className="text-[8px] font-black uppercase tracking-widest"
-                        style={{
-                          color:
-                            "color-mix(in srgb, var(--primary) 38%, transparent)",
-                        }}
-                      >
-                        Origen
-                      </span>
-                    </div>
-
-                    {/* Nivel 1: Natural / Artificial */}
-                    <div
-                      className="flex"
-                      style={{
-                        borderBottom: form.origen
-                          ? "1px solid color-mix(in srgb, var(--primary) 6%, transparent)"
-                          : undefined,
-                      }}
-                    >
-                      {(["Natural", "Artificial"] as const).map((op, i) => {
-                        const isSelected = form.origen === op;
-                        const Icon = op === "Natural" ? Leaf : Wrench;
-                        return (
-                          <button
-                            key={op}
-                            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[9px] font-black uppercase tracking-widest transition-all"
-                            style={{
-                              borderRight:
-                                i === 0
-                                  ? "1px solid color-mix(in srgb, var(--primary) 8%, transparent)"
-                                  : undefined,
-                              background: isSelected
-                                ? "color-mix(in srgb, var(--primary) 10%, transparent)"
-                                : "transparent",
-                              color: isSelected
-                                ? "var(--primary)"
-                                : "color-mix(in srgb, var(--primary) 30%, transparent)",
-                            }}
-                            type="button"
-                            onClick={() =>
-                              setForm((f) => ({
-                                ...f,
-                                origen: isSelected ? null : op,
-                                sub_origen: null,
-                              }))
-                            }
-                          >
-                            <Icon size={10} /> {op}
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    {/* Nivel 2: sub-origen de Natural */}
-                    {form.origen === "Natural" && (
-                      <div>
-                        <div
-                          className="flex"
-                          style={{
-                            borderBottom:
-                              form.sub_origen === "Criatura"
-                                ? "1px solid color-mix(in srgb, var(--primary) 6%, transparent)"
-                                : undefined,
-                          }}
-                        >
-                          {(["Criatura"] as const).map((sub) => {
-                            const isSelected = form.sub_origen === sub;
-                            return (
-                              <button
-                                key={sub}
-                                className="flex-1 flex items-center justify-center gap-1.5 py-2 text-[9px] font-black uppercase tracking-widest transition-all"
-                                style={{
-                                  background: isSelected
-                                    ? "color-mix(in srgb, var(--primary) 7%, transparent)"
-                                    : "color-mix(in srgb, var(--primary) 2%, transparent)",
-                                  color: isSelected
-                                    ? "var(--primary)"
-                                    : "color-mix(in srgb, var(--primary) 25%, transparent)",
-                                }}
-                                type="button"
-                                onClick={() =>
-                                  setForm((f) => ({
-                                    ...f,
-                                    sub_origen: isSelected ? null : sub,
-                                  }))
-                                }
-                              >
-                                <Bug size={9} /> {sub}
-                              </button>
-                            );
-                          })}
-                        </div>
-                        {form.sub_origen === "Criatura" && (
-                          <div className="p-2">
-                            <PanelCrafterSources
-                              itemId={form.id}
-                              onSelectCriatura={onSelectCriatura}
-                            />
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Nivel 2: Artificial → selector de criaturas */}
-                    {form.origen === "Artificial" && (
-                      <div className="p-2">
-                        <PanelCrafterSources
-                          itemId={form.id}
-                          onSelectCriatura={onSelectCriatura}
-                        />
-                      </div>
-                    )}
+                  <div className="flex-1 min-w-0">
+                    <SelectorOrigenGrupo
+                      value={form.origen ?? null}
+                      onChange={(nombre) =>
+                        setForm((f) => ({
+                          ...f,
+                          origen: (nombre ?? null) as Item["origen"],
+                          sub_origen: null,
+                        }))
+                      }
+                      onSelectGrupo={onSelectGrupo}
+                    />
                   </div>
                 )}{" "}
                 {/* fin tabla === "items" */}
