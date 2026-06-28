@@ -17,7 +17,10 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 
 import { db } from "@/lib/api/client/db";
 import { supabase } from "@/lib/api/client/supabase";
-import { loreReadRelaciones, loreSyncRelaciones } from "@/lib/utils/dexieHelpers";
+import {
+  loreReadRelaciones,
+  loreSyncRelaciones,
+} from "@/lib/utils/dexieHelpers";
 
 // ─── Tipos catálogo ───────────────────────────────────────────────────────────
 export type HechizoCat = { id: string; nombre: string; grupo_ids?: string[] };

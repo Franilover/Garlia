@@ -73,8 +73,8 @@ import {
 } from "@/lib/utils/criaturaHabitatCache";
 import { dexiePut, dexieDelete } from "@/lib/utils/dexieHelpers";
 
-import { useGruposDeCriatura, type GrupoMin } from "../components/hooks";
-import { type Criatura, type SaveStatus } from "../components/types";
+import { useGruposDeCriatura, type GrupoMin } from "../hooks/hooks";
+import { type Criatura, type SaveStatus } from "../hooks/types";
 import { SelectorImagen, SaveIndicator } from "../components/UIComponents";
 import { useWikilink } from "../components/WikilinkContext";
 

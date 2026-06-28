@@ -1,63 +1,105 @@
 /**
  * dexieHelpers.ts
- * ───────────────
- * Helpers de Dexie usados en varios editores (personajes, criaturas, mundo…).
- * Sin React, sin JSX → va en lib/utils/.
+ * ─────────────────
+ * Helpers genéricos para leer/escribir en Dexie (IndexedDB local),
+ * usados como caché offline-first antes/después de las queries a Supabase.
  *
- * Ruta destino: src/lib/utils/dexieHelpers.ts
+ * Ruta destino:
+ *   src/lib/utils/dexieHelpers.ts
  */
 
 import { db } from "@/lib/api/client/db";
 
-/** Inserta o actualiza una fila en una tabla de Dexie. */
-export async function dexiePut(tabla: string, row: unknown): Promise<void> {
+export async function dexiePut(tabla: string, row: any): Promise<void> {
   try {
     if (db) await (db as any)[tabla]?.put(row);
   } catch {}
 }
 
-/** Elimina una fila por ID de una tabla de Dexie. */
 export async function dexieDelete(tabla: string, id: string): Promise<void> {
   try {
     if (db) await (db as any)[tabla]?.delete(id);
   } catch {}
 }
 
-/**
- * Lee todas las filas de una tabla de Dexie filtrando las marcadas
- * como eliminadas (campo `deleted`).
- */
 export async function dexieReadAll<T>(tabla: string): Promise<T[]> {
   try {
     if (!db) return [];
     const t = (db as any)[tabla];
     if (!t) return [];
-    return ((await t.toArray()) as any[]).filter(
-      (r: any) => !r.deleted,
-    ) as T[];
+    return ((await t.toArray()) as any[]).filter((r: any) => !r.deleted) as T[];
   } catch {
     return [];
   }
 }
 
-/**
- * Reemplaza el contenido local de una tabla con los datos remotos:
- * hace bulkPut de las filas nuevas y elimina las que ya no existen.
- */
-export async function dexieWriteAll(
-  tabla: string,
-  rows: unknown[],
-): Promise<void> {
+export async function dexieWriteAll(tabla: string, rows: any[]): Promise<void> {
   try {
     if (!db) return;
     const t = (db as any)[tabla];
     if (!t) return;
     if (rows.length > 0) await t.bulkPut(rows);
-    const remoteIds = new Set((rows as any[]).map((r) => r.id));
+    const remoteIds = new Set(rows.map((r: any) => r.id));
     const local: any[] = await t.toArray();
     const toDelete = local
       .map((r: any) => r.id)
       .filter((id: string) => !remoteIds.has(id));
     if (toDelete.length > 0) await t.bulkDelete(toDelete);
   } catch {}
+}
+
+/**
+ * Lee relaciones N:N locales (Dexie), detectando dinámicamente si la tabla
+ * indexa por "personaje_id" o "criatura_id" (mismas tablas se reusan para
+ * personajes y criaturas, p.ej. personaje_hechizos / personaje_dones).
+ */
+export async function loreReadRelaciones(
+  tabla: string,
+  entidadId: string,
+  foreignKey: string,
+): Promise<string[]> {
+  try {
+    if (!db) return [];
+    const t = (db as any)[tabla];
+    if (!t) return [];
+    const searchKey = t.schema.indexes.some(
+      (i: any) => i.name === "personaje_id",
+    )
+      ? "personaje_id"
+      : "criatura_id";
+
+    const rows = await t.where(searchKey).equals(entidadId).toArray();
+    return rows.map((r: any) => r[foreignKey]);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Sincroniza relaciones N:N locales (Dexie) con la lista de IDs remotos:
+ * borra todas las filas existentes para la entidad y reinserta las actuales.
+ */
+export async function loreSyncRelaciones(
+  tabla: string,
+  entidadId: string,
+  foreignKey: string,
+  remoteIds: string[],
+): Promise<void> {
+  try {
+    if (!db) return;
+    const t = (db as any)[tabla];
+    if (!t) return;
+    const searchKey = t.schema.indexes.some(
+      (i: any) => i.name === "personaje_id",
+    )
+      ? "personaje_id"
+      : "criatura_id";
+
+    await t.where(searchKey).equals(entidadId).delete();
+    for (const id of remoteIds) {
+      await t.put({ [searchKey]: entidadId, [foreignKey]: id });
+    }
+  } catch (e) {
+    console.error(`Error sincronizando relaciones locales en ${tabla}:`, e);
+  }
 }
