@@ -317,7 +317,19 @@ export function useSupabaseData<T = any>(
     try {
       const opts = optionsRef.current;
       const fetchPromise = (): Promise<any> => {
-        if (QUERIES_MAP[tabla]) return QUERIES_MAP[tabla].getAll(opts);
+        if (QUERIES_MAP[tabla]) {
+          // Los *Queries.getAll(orden) de @/lib/api/queries esperan
+          // directamente { campo, asc } — no el objeto `opts` completo
+          // (que tiene `order` anidado y además `select`, que estas
+          // queries no usan porque ya tienen su propio select fijo).
+          // Pasar `opts` tal cual produce `.order(undefined, ...)`.
+          const orden = opts.order
+            ? { campo: opts.order.campo, asc: opts.order.asc ?? true }
+            : undefined;
+          return orden
+            ? QUERIES_MAP[tabla].getAll(orden)
+            : QUERIES_MAP[tabla].getAll();
+        }
         let query = supabase.from(tabla).select(opts.select ?? "*");
         if (opts.order) {
           query = query.order(opts.order.campo, {

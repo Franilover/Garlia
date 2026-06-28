@@ -1109,7 +1109,15 @@ function PanelListas({
     },
     ref,
   ) {
-    const hasImg = !!imgUrl;
+    // No basta con que imgUrl exista: la URL puede estar rota, vencida o
+    // apuntar a un archivo borrado del storage. Si la carga falla, caemos
+    // al ícono en vez de dejar un <img> roto o un hueco en blanco.
+    const [imgError, setImgError] = useState(false);
+    useEffect(() => {
+      setImgError(false);
+    }, [imgUrl]);
+
+    const hasImg = !!imgUrl && !imgError;
     const highlightStyle: React.CSSProperties = highlighted
       ? {
           boxShadow: "0 0 0 2px var(--accent)",
@@ -1140,6 +1148,7 @@ function PanelListas({
             alt={nombre}
             className="w-full h-full object-cover"
             src={imgUrl}
+            onError={() => setImgError(true)}
           />
         </button>
       );
