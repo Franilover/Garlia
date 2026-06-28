@@ -771,6 +771,7 @@ function PanelListas({
   const scrollRef = useRef<HTMLDivElement>(null);
   const scrollSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const capitulosRef = useRef<HTMLDivElement>(null);
+  const entidadesRef = useRef<HTMLDivElement>(null);
 
   // Restaurar posición de scroll al montar
   useEffect(() => {
@@ -939,6 +940,30 @@ function PanelListas({
   useEffect(() => {
     onOverlayChange?.(!!overlay, clearAllOverlays);
   }, [overlay, clearAllOverlays, onOverlayChange]);
+
+  // ── Scroll automático al overlay de entidad al abrirse ─────────────────────
+  // Se dispara para cualquier vía de apertura (click en chip, navegación
+  // cruzada, restauración desde localStorage, etc.) porque reacciona a
+  // `overlay` en sí, no a cada selectX por separado.
+  useEffect(() => {
+    if (!overlay) return;
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const el = entidadesRef.current;
+        const container = scrollRef.current;
+        if (!el) return;
+        if (container) {
+          const elRect = el.getBoundingClientRect();
+          const containerRect = container.getBoundingClientRect();
+          const offset =
+            elRect.top - containerRect.top + container.scrollTop - 8;
+          container.scrollTo({ top: offset, behavior: "smooth" });
+        } else {
+          el.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      });
+    });
+  }, [overlay]);
 
   // ── WikiEntity list ────────────────────────────────────────────────────────
   const allEntityNames = useMemo(
@@ -1503,6 +1528,7 @@ function PanelListas({
 
         {/* ENTIDADES */}
         <div
+          ref={entidadesRef}
           className="border-b border-t mt-3"
           style={{
             borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
