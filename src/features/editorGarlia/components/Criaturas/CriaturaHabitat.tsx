@@ -3,21 +3,21 @@
 /**
  * CriaturaHabitat.tsx
  * ─────────────────────
- * Hooks `useCriaturaReinos` + `useCriaturaCiudades` + componente `CriaturaHabitat`.
- * Gestiona los reinos y ciudades donde habita una criatura, con mapa de pins
- * y selects de añadir/quitar. Filtrado de ciudades por reino seleccionado.
+ * Hooks `useCriaturaReinos` / `useCriaturaCiudades` + componente
+ * `BloqueHabitat`. Gestiona la relación N:N criatura↔reino y
+ * criatura↔ciudad, con filtro de ciudades por reino activo.
  *
  * Ruta destino:
- *   src/features/editorGarlia/components/CriaturaHabitat.tsx
+ *   src/features/editorGarlia/components/Criaturas/CriaturaHabitat.tsx
  */
 
-import { Globe, MapPin, Plus, X } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { ExternalLink, Globe, MapPin, Plus, X } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 
 import { supabase } from "@/lib/api/client/supabase";
 import {
-  getAllCiudades,
   getAllReinos,
+  getAllCiudades,
   criaturaReinosCache,
   criaturaCiudadesCache,
   CRIATURA_REL_TTL,
@@ -27,7 +27,8 @@ import {
   type CriaturaCiudadRow,
 } from "@/lib/utils/criaturaHabitatCache";
 
-// ─── Hook: reinos de la criatura ──────────────────────────────────────────────
+// ─── Hook: reinos de la criatura (criatura_reinos) ────────────────────────────
+
 export function useCriaturaReinos(criaturaId: string) {
   const [rows, setRows] = useState<CriaturaReinoRow[]>(() => {
     const cached = criaturaReinosCache.get(criaturaId);
@@ -36,18 +37,20 @@ export function useCriaturaReinos(criaturaId: string) {
       : [];
   });
   const [loading, setLoading] = useState(
-    !criaturaReinosCache.get(criaturaId) ||
+    !(criaturaReinosCache.get(criaturaId)?.ts ?? 0) ||
       Date.now() - (criaturaReinosCache.get(criaturaId)?.ts ?? 0) >
         CRIATURA_REL_TTL,
   );
 
   const load = useCallback(async () => {
+    // Si la caché en memoria es fresca, no fetchear
     const cached = criaturaReinosCache.get(criaturaId);
     if (cached && Date.now() - cached.ts < CRIATURA_REL_TTL) {
       setRows(cached.data);
       setLoading(false);
       return;
     }
+
     setLoading(true);
     if (!navigator.onLine) {
       setLoading(false);
@@ -58,7 +61,6 @@ export function useCriaturaReinos(criaturaId: string) {
       .from("criatura_reinos")
       .select("id, reino_id, reinos!reino_id(nombre)")
       .eq("criatura_id", criaturaId);
-
     const parsed = (data ?? []).map((r: any) => ({
       rowId: r.id,
       reinoId: r.reino_id,
@@ -93,16 +95,17 @@ export function useCriaturaReinos(criaturaId: string) {
   };
 
   const remove = async (rowId: string) => {
+    await supabase.from("criatura_reinos").delete().eq("id", rowId);
     const next = rows.filter((r) => r.rowId !== rowId);
     criaturaReinosCache.set(criaturaId, { data: next, ts: Date.now() });
     setRows(next);
-    await supabase.from("criatura_reinos").delete().eq("id", rowId);
   };
 
   return { rows, loading, add, remove };
 }
 
-// ─── Hook: ciudades de la criatura ────────────────────────────────────────────
+// ─── Hook: ciudades de la criatura (criatura_ciudades) ─────────────────────────
+
 export function useCriaturaCiudades(criaturaId: string) {
   const [rows, setRows] = useState<CriaturaCiudadRow[]>(() => {
     const cached = criaturaCiudadesCache.get(criaturaId);
@@ -111,7 +114,7 @@ export function useCriaturaCiudades(criaturaId: string) {
       : [];
   });
   const [loading, setLoading] = useState(
-    !criaturaCiudadesCache.get(criaturaId) ||
+    !(criaturaCiudadesCache.get(criaturaId)?.ts ?? 0) ||
       Date.now() - (criaturaCiudadesCache.get(criaturaId)?.ts ?? 0) >
         CRIATURA_REL_TTL,
   );
@@ -123,6 +126,7 @@ export function useCriaturaCiudades(criaturaId: string) {
       setLoading(false);
       return;
     }
+
     setLoading(true);
     if (!navigator.onLine) {
       setLoading(false);
@@ -133,14 +137,13 @@ export function useCriaturaCiudades(criaturaId: string) {
       .from("criatura_ciudades")
       .select("id, ciudad_id, ciudades!ciudad_id(nombre, reino_id)")
       .eq("criatura_id", criaturaId);
-
     const parsed = (data ?? []).map((r: any) => {
-      const ciudad = Array.isArray(r.ciudades) ? r.ciudades[0] : r.ciudades;
+      const l = Array.isArray(r.ciudades) ? r.ciudades[0] : r.ciudades;
       return {
         rowId: r.id,
         ciudadId: r.ciudad_id,
-        ciudadNombre: ciudad?.nombre ?? "—",
-        reinoId: ciudad?.reino_id ?? null,
+        ciudadNombre: l?.nombre ?? "—",
+        reinoId: l?.reino_id ?? null,
       };
     });
     criaturaCiudadesCache.set(criaturaId, { data: parsed, ts: Date.now() });
@@ -175,17 +178,18 @@ export function useCriaturaCiudades(criaturaId: string) {
   };
 
   const remove = async (rowId: string) => {
+    await supabase.from("criatura_ciudades").delete().eq("id", rowId);
     const next = rows.filter((r) => r.rowId !== rowId);
     criaturaCiudadesCache.set(criaturaId, { data: next, ts: Date.now() });
     setRows(next);
-    await supabase.from("criatura_ciudades").delete().eq("id", rowId);
   };
 
   return { rows, loading, add, remove };
 }
 
-// ─── CriaturaHabitat ──────────────────────────────────────────────────────────
-export function CriaturaHabitat({
+// ─── Componente ───────────────────────────────────────────────────────────────
+
+export function BloqueHabitat({
   criaturaId,
   onNavigateCiudad,
   onNavigateReino,
@@ -209,51 +213,45 @@ export function CriaturaHabitat({
 
   const [allReinos, setAllReinos] = useState<ReinoMin[]>([]);
   const [allCiudades, setAllCiudades] = useState<CiudadMin[]>([]);
-  const [reinoFiltro, setReinoFiltro] = useState<string | null>(null);
-
+  const [reinoFiltro, setReinoFiltro] = useState<string | null>(null); // reino_id activo
   const [openR, setOpenR] = useState(false);
-  const [searchR, setSearchR] = useState("");
   const [openL, setOpenL] = useState(false);
+  const [searchR, setSearchR] = useState("");
   const [searchL, setSearchL] = useState("");
 
   useEffect(() => {
+    // Usar caches compartidas — respuesta inmediata si ya se cargaron antes
     getAllReinos().then(setAllReinos);
     getAllCiudades().then(setAllCiudades);
   }, []);
 
-  const reinosDisponibles = useMemo(
-    () =>
-      allReinos.filter(
-        (r) =>
-          !reinoRows.some((rr) => rr.reinoId === r.id) &&
-          (r.nombre ?? "").toLowerCase().includes(searchR.toLowerCase()),
-      ),
-    [allReinos, reinoRows, searchR],
+  // Ciudades filtradas por reino activo (o sin reino si no hay activo)
+  const ciudadesFiltradas = allCiudades.filter((l) =>
+    reinoFiltro ? l.reino_id === reinoFiltro : true,
   );
 
-  const ciudadesAsignadas = useMemo(
-    () =>
-      ciudadRows.filter((r) =>
-        reinoFiltro ? r.reinoId === reinoFiltro : true,
-      ),
-    [ciudadRows, reinoFiltro],
+  // Ciudades ya asignadas visibles según filtro actual
+  const ciudadesAsignadas = ciudadRows.filter((r) =>
+    reinoFiltro ? r.reinoId === reinoFiltro : true,
   );
 
-  const ciudadesDisponibles = useMemo(() => {
-    const asignadasIds = new Set(ciudadRows.map((r) => r.ciudadId));
-    return allCiudades.filter(
-      (l) =>
-        !asignadasIds.has(l.id) &&
-        (l.nombre ?? "").toLowerCase().includes(searchL.toLowerCase()) &&
-        (reinoFiltro ? l.reino_id === reinoFiltro : l.reino_id !== null),
-    );
-  }, [allCiudades, ciudadRows, searchL, reinoFiltro]);
+  const reinosDisponibles = allReinos.filter(
+    (r) =>
+      r.nombre.toLowerCase().includes(searchR.toLowerCase()) &&
+      !reinoRows.some((rr) => rr.reinoId === r.id),
+  );
+
+  const ciudadesDisponibles = ciudadesFiltradas.filter(
+    (l) =>
+      l.nombre.toLowerCase().includes(searchL.toLowerCase()) &&
+      !ciudadRows.some((lr) => lr.ciudadId === l.id),
+  );
 
   return (
-    <div className="space-y-4 p-3">
+    <div className="space-y-3">
       {/* ── Reinos ── */}
       <div className="space-y-1.5">
-        <label className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/25 flex items-center gap-1.5">
+        <label className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/25 flex items-center gap-1">
           <Globe size={9} /> Reinos
         </label>
 
@@ -261,49 +259,57 @@ export function CriaturaHabitat({
           <p className="text-[9px] text-primary/20 italic">Cargando…</p>
         ) : (
           <>
-            {reinoRows.length === 0 && (
-              <p className="text-[9px] text-primary/20 italic py-1">
-                Sin reinos asignados
-              </p>
-            )}
             {reinoRows.length > 0 && (
-              <div className="flex flex-wrap gap-1.5">
+              <div className="flex flex-wrap gap-1">
                 {reinoRows.map((r) => (
                   <div
                     key={r.rowId}
-                    className="flex items-center gap-1 pl-2 pr-1 py-1 rounded-lg border text-[10px] font-bold"
+                    className="flex items-center gap-0.5 pl-2 pr-1 py-0.5 rounded-lg border text-[10px] font-bold transition-all"
                     style={{
                       background:
-                        reinoFiltro === r.reinoId
-                          ? "color-mix(in srgb, var(--primary) 12%, transparent)"
-                          : "color-mix(in srgb, var(--primary) 5%, transparent)",
+                        "color-mix(in srgb, var(--primary) 6%, transparent)",
                       borderColor:
-                        reinoFiltro === r.reinoId
-                          ? "color-mix(in srgb, var(--primary) 30%, transparent)"
-                          : "color-mix(in srgb, var(--primary) 14%, transparent)",
+                        "color-mix(in srgb, var(--primary) 15%, transparent)",
                       color: "var(--primary)",
                     }}
                   >
                     <button
-                      className="hover:underline cursor-pointer text-left leading-none"
-                      title="Filtrar ciudades / ir al reino"
-                      type="button"
-                      onClick={() => {
-                        setReinoFiltro(
-                          reinoFiltro === r.reinoId ? null : r.reinoId,
-                        );
-                        onNavigateReino?.(r.reinoId);
+                      className="leading-none flex items-center gap-1 hover:underline transition-opacity"
+                      style={{
+                        cursor: "pointer",
+                        opacity: reinoFiltro === r.reinoId ? 1 : 0.75,
                       }}
+                      title={
+                        reinoFiltro === r.reinoId
+                          ? "Quitar filtro de ciudades"
+                          : "Filtrar ciudades por este reino"
+                      }
+                      type="button"
+                      onClick={() =>
+                        setReinoFiltro((f) =>
+                          f === r.reinoId ? null : r.reinoId,
+                        )
+                      }
                     >
                       {r.reinoNombre}
+                      {reinoFiltro === r.reinoId && (
+                        <X className="opacity-60" size={7} />
+                      )}
                     </button>
+                    {onNavigateReino && (
+                      <button
+                        className="w-3.5 h-3.5 rounded flex items-center justify-center text-primary/30 hover:text-primary/70 transition-colors"
+                        title="Abrir reino"
+                        type="button"
+                        onClick={() => onNavigateReino(r.reinoId)}
+                      >
+                        <ExternalLink size={7} />
+                      </button>
+                    )}
                     <button
-                      className="w-3.5 h-3.5 rounded flex items-center justify-center text-primary/30 hover:text-red-400 transition-colors cursor-pointer"
+                      className="w-3.5 h-3.5 rounded flex items-center justify-center text-primary/30 hover:text-red-400 transition-colors"
                       type="button"
-                      onClick={() => {
-                        removeReino(r.rowId);
-                        if (reinoFiltro === r.reinoId) setReinoFiltro(null);
-                      }}
+                      onClick={() => removeReino(r.rowId)}
                     >
                       <X size={8} />
                     </button>
@@ -312,7 +318,6 @@ export function CriaturaHabitat({
               </div>
             )}
 
-            {/* Añadir reino */}
             <div className="relative">
               <button
                 className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-dashed text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer"
@@ -454,7 +459,6 @@ export function CriaturaHabitat({
               </div>
             )}
 
-            {/* Añadir ciudad */}
             <div className="relative">
               <button
                 className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-dashed text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer"

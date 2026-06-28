@@ -1,12 +1,12 @@
 /**
  * criaturaItemsCache.ts
- * ──────────────────────
- * Singleton del catálogo de ítems — compartido entre CriaturaItemsNaturales
- * y CriaturaItemsCraftedos. Un solo fetch aunque ambos bloques estén montados
- * simultáneamente (criatura base + variantes).
+ * ───────────────────────
+ * Singleton de catálogo de ítems (tabla `items`), compartido entre
+ * CriaturaItemsCraftedos y CriaturaItemsNaturales — un solo fetch
+ * aunque haya múltiples bloques montados (criatura base + variantes).
  *
- * Sin React, sin JSX → va en lib/utils/.
- * Ruta destino: src/lib/utils/criaturaItemsCache.ts
+ * Ruta destino:
+ *   src/lib/utils/criaturaItemsCache.ts
  */
 
 import { db } from "@/lib/api/client/db";
@@ -17,38 +17,25 @@ export type ItemMin = { id: string; nombre: string; imagen_url?: string | null }
 let _itemsData: ItemMin[] | null = null;
 let _itemsPromise: Promise<ItemMin[]> | null = null;
 
-/**
- * Devuelve el catálogo completo de ítems.
- * - Primera llamada: Dexie → si hay datos los devuelve y refresca en background.
- * - Sin datos locales: Supabase.
- * - Múltiples llamadas simultáneas comparten la misma Promise (no hay race).
- */
 export async function fetchAllItems(): Promise<ItemMin[]> {
   if (_itemsData) return _itemsData;
   if (_itemsPromise) return _itemsPromise;
 
   _itemsPromise = (async () => {
+    // 1. Dexie primero
     try {
       if (db) {
         const local = await db.items.orderBy("nombre").toArray();
         if (local.length > 0) {
-          _itemsData = local.map((i: any) => ({
-            id: i.id,
-            nombre: i.nombre ?? "",
-            imagen_url: i.imagen_url ?? null,
-          }));
+          _itemsData = local as ItemMin[];
+          // Refrescar en background
           if (navigator.onLine) {
             supabase
               .from("items")
               .select("id, nombre, imagen_url")
               .order("nombre")
               .then(({ data }) => {
-                if (data && data.length > 0)
-                  _itemsData = data.map((i) => ({
-                    id: i.id,
-                    nombre: (i.nombre as string | null) ?? "",
-                    imagen_url: (i.imagen_url as string | null) ?? null,
-                  }));
+                if (data && data.length > 0) _itemsData = data as ItemMin[];
               });
           }
           return _itemsData;
@@ -56,25 +43,17 @@ export async function fetchAllItems(): Promise<ItemMin[]> {
       }
     } catch {}
 
+    // 2. Supabase
     if (!navigator.onLine) return [];
     const { data } = await supabase
       .from("items")
       .select("id, nombre, imagen_url")
       .order("nombre");
-    _itemsData = (data ?? []).map((i) => ({
-      id: i.id,
-      nombre: (i.nombre as string | null) ?? "",
-      imagen_url: (i.imagen_url as string | null) ?? null,
-    }));
+    _itemsData = (data ?? []) as ItemMin[];
     return _itemsData;
   })().finally(() => {
     _itemsPromise = null;
   });
 
   return _itemsPromise;
-}
-
-/** Invalida la caché (llamar tras crear/eliminar un ítem). */
-export function invalidateItemsCache(): void {
-  _itemsData = null;
 }

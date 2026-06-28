@@ -3,12 +3,12 @@
 /**
  * CriaturaItemsNaturales.tsx
  * ───────────────────────────
- * Hook `useNaturalItems` + componente `CriaturaItemsNaturales`.
+ * Hook `useNaturalItems` + componente `BloqueItemsNaturales`.
  * Muestra los ítems que dropea naturalmente una criatura (o su variante),
  * con opción de añadir/quitar y navegar al editor del ítem.
  *
  * Ruta destino:
- *   src/features/editorGarlia/components/CriaturaItemsNaturales.tsx
+ *   src/features/editorGarlia/components/Criaturas/CriaturaItemsNaturales.tsx
  */
 
 import Image from "next/image";
@@ -20,7 +20,7 @@ import { supabase } from "@/lib/api/client/supabase";
 import { fetchAllItems, type ItemMin } from "@/lib/utils/criaturaItemsCache";
 
 // ─── Tipo ─────────────────────────────────────────────────────────────────────
-type NaturalItem = {
+export type NaturalItem = {
   dropId: string;
   itemId: string;
   itemName: string;
@@ -36,6 +36,7 @@ export function useNaturalItems(criaturaId: string, varianteId?: string | null) 
   const load = useCallback(async () => {
     setLoading(true);
 
+    // Leer Dexie local + catálogo en paralelo
     const localDropsPromise = db
       ? db.criatura_drops
           .where("criatura_id")
@@ -69,6 +70,7 @@ export function useNaturalItems(criaturaId: string, varianteId?: string | null) 
       setLoading(false);
     }
 
+    // Fetch remoto
     if (!navigator.onLine) {
       setLoading(false);
       return;
@@ -97,7 +99,7 @@ export function useNaturalItems(criaturaId: string, varianteId?: string | null) 
     setItems(remoteItems);
     setLoading(false);
 
-    // Sync Dexie
+    // Sincronizar Dexie
     try {
       if (db) {
         const existing = await db.criatura_drops
@@ -107,7 +109,8 @@ export function useNaturalItems(criaturaId: string, varianteId?: string | null) 
             varianteId ? r.variante_id === varianteId : !r.variante_id,
           )
           .primaryKeys();
-        if (existing.length > 0) await db.criatura_drops.bulkDelete(existing);
+        if (existing.length > 0)
+          await db.criatura_drops.bulkDelete(existing as string[]);
         if (remoteItems.length > 0) {
           await db.criatura_drops.bulkPut(
             remoteItems.map((i) => ({
@@ -128,15 +131,27 @@ export function useNaturalItems(criaturaId: string, varianteId?: string | null) 
 
   const add = async (item: ItemMin) => {
     if (items.some((i) => i.itemId === item.id)) return;
+    // Optimista
     const tempId = `temp_${item.id}`;
     setItems((prev) => [
       ...prev,
-      { dropId: tempId, itemId: item.id, itemName: item.nombre, itemImg: item.imagen_url ?? null },
+      {
+        dropId: tempId,
+        itemId: item.id,
+        itemName: item.nombre,
+        itemImg: item.imagen_url ?? null,
+      },
     ]);
 
     const { data, error } = await supabase
       .from("criatura_drops")
-      .insert([{ item_id: item.id, criatura_id: criaturaId, variante_id: varianteId ?? null }])
+      .insert([
+        {
+          item_id: item.id,
+          criatura_id: criaturaId,
+          variante_id: varianteId ?? null,
+        },
+      ])
       .select()
       .single();
 
@@ -153,20 +168,26 @@ export function useNaturalItems(criaturaId: string, varianteId?: string | null) 
             variante_id: varianteId ?? null,
           });
       } catch {}
-      // Marcar el ítem como origen natural
       await supabase
         .from("items")
-        .update({ origen: "Natural", sub_origen: null })
+        .update({ origen: "Natural", sub_origen: "Criatura" })
         .eq("id", item.id);
-      const ch = new BroadcastChannel("item_origen_sync");
-      ch.postMessage({ itemId: item.id, origen: "Natural", sub_origen: null });
-      ch.close();
+      {
+        const _ch = new BroadcastChannel("item_origen_sync");
+        _ch.postMessage({
+          itemId: item.id,
+          origen: "Natural",
+          sub_origen: "Criatura",
+        });
+        _ch.close();
+      }
     } else {
       setItems((prev) => prev.filter((i) => i.dropId !== tempId));
     }
   };
 
   const remove = async (dropId: string) => {
+    // Optimista
     setItems((prev) => prev.filter((i) => i.dropId !== dropId));
     try {
       if (db) await db.criatura_drops.delete(dropId);
@@ -178,7 +199,7 @@ export function useNaturalItems(criaturaId: string, varianteId?: string | null) 
 }
 
 // ─── Componente ───────────────────────────────────────────────────────────────
-export function CriaturaItemsNaturales({
+export function BloqueItemsNaturales({
   criaturaId,
   varianteId,
   onSelectItem,
@@ -187,7 +208,10 @@ export function CriaturaItemsNaturales({
   varianteId?: string | null;
   onSelectItem?: (itemId: string) => void;
 }) {
-  const { items, allItems, loading, add, remove } = useNaturalItems(criaturaId, varianteId);
+  const { items, allItems, loading, add, remove } = useNaturalItems(
+    criaturaId,
+    varianteId,
+  );
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
 
@@ -207,7 +231,9 @@ export function CriaturaItemsNaturales({
   return (
     <div className="space-y-2">
       {items.length === 0 && (
-        <p className="text-[9px] text-primary/20 italic py-2">Sin ítems naturales</p>
+        <p className="text-[9px] text-primary/20 italic py-2">
+          Sin ítems naturales
+        </p>
       )}
 
       {items.length > 0 && (
@@ -217,14 +243,20 @@ export function CriaturaItemsNaturales({
               <button
                 className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-left transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
                 style={{
-                  background: "color-mix(in srgb, var(--primary) 4%, transparent)",
-                  border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+                  background:
+                    "color-mix(in srgb, var(--primary) 4%, transparent)",
+                  border:
+                    "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
                 }}
                 onClick={() => onSelectItem?.(it.itemId)}
               >
                 <div className="shrink-0 w-7 h-7 rounded-md overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
                   {it.itemImg ? (
-                    <Image alt={it.itemName} className="w-full h-full object-cover" src={it.itemImg} />
+                    <Image
+                      alt={it.itemName}
+                      className="w-full h-full object-cover"
+                      src={it.itemImg}
+                    />
                   ) : (
                     <Package className="text-primary/20" size={11} />
                   )}
@@ -235,7 +267,10 @@ export function CriaturaItemsNaturales({
               </button>
               <button
                 className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all bg-red-500/10 hover:bg-red-500/20 text-red-400/60 hover:text-red-400 border border-red-500/20 cursor-pointer"
-                onClick={(e) => { e.stopPropagation(); remove(it.dropId); }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  remove(it.dropId);
+                }}
               >
                 <X size={8} />
               </button>
@@ -244,7 +279,6 @@ export function CriaturaItemsNaturales({
         </div>
       )}
 
-      {/* Dropdown añadir */}
       <div className="relative">
         <button
           className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg border border-dashed border-primary/15 text-[9px] font-black uppercase tracking-widest text-primary/30 hover:text-primary/60 hover:border-primary/30 transition-all cursor-pointer"
@@ -257,12 +291,16 @@ export function CriaturaItemsNaturales({
             className="absolute top-full left-0 right-0 z-20 mt-1 rounded-xl shadow-xl overflow-hidden"
             style={{
               background: "var(--bg-main)",
-              border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
+              border:
+                "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
             }}
           >
             <div
               className="p-1.5 border-b"
-              style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
+              style={{
+                borderColor:
+                  "color-mix(in srgb, var(--primary) 8%, transparent)",
+              }}
             >
               <input
                 autoFocus
@@ -274,22 +312,34 @@ export function CriaturaItemsNaturales({
             </div>
             <div className="max-h-40 overflow-y-auto">
               {filtered.length === 0 && (
-                <p className="text-[9px] text-primary/25 italic text-center py-3">Sin resultados</p>
+                <p className="text-[9px] text-primary/25 italic text-center py-3">
+                  Sin resultados
+                </p>
               )}
               {filtered.map((it) => (
                 <button
                   key={it.id}
                   className="w-full flex items-center gap-2 px-2.5 py-1.5 hover:bg-primary/5 transition-colors text-left cursor-pointer"
-                  onClick={() => { add(it); setOpen(false); setSearch(""); }}
+                  onClick={() => {
+                    add(it);
+                    setOpen(false);
+                    setSearch("");
+                  }}
                 >
                   <div className="shrink-0 w-5 h-5 rounded-md overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
                     {it.imagen_url ? (
-                      <Image alt={it.nombre} className="w-full h-full object-cover" src={it.imagen_url} />
+                      <Image
+                        alt={it.nombre}
+                        className="w-full h-full object-cover"
+                        src={it.imagen_url}
+                      />
                     ) : (
                       <Package className="text-primary/20" size={8} />
                     )}
                   </div>
-                  <span className="text-[10px] font-bold text-primary/65 truncate">{it.nombre}</span>
+                  <span className="text-[10px] font-bold text-primary/65 truncate">
+                    {it.nombre}
+                  </span>
                 </button>
               ))}
             </div>

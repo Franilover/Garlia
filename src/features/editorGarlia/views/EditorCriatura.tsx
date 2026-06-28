@@ -4,25 +4,26 @@
  * EditorCriatura.tsx
  * ───────────────────
  * Vista principal del editor de criaturas. Contiene únicamente:
- *   - BloqueGrupoCategoria — combo con subtipo de grupo
- *   - BloqueGruposCriatura — chips + dropdown de grupos generales
  *   - PickerImagenCriaturaBtn — botón mobile para cambiar imagen
+ *   - BloqueGrupoCategoria — combo con subtipo de grupo (Hábitat, Inteligencia…)
+ *   - BloqueGruposCriatura — chips + dropdown de grupos generales
  *   - EditorCriatura — shell con save/delete + barra de entidades inferior
  *
- * Todo lo demás se movió a:
- *   components/CriaturaItemsNaturales.tsx  → drops naturales
- *   components/CriaturaItemsCraftedos.tsx  → ítems creados
- *   components/CriaturaHabitat.tsx         → reinos + ciudades
- *   components/CriaturaMagia.tsx           → hechizos + dones
- *   lib/utils/criaturaItemsCache.ts        → singleton de ítems
- *   lib/utils/criaturaHabitatCache.ts      → caches de reinos/ciudades/personajes
- *   lib/utils/dexieHelpers.ts              → dexiePut / dexieDelete
+ * Todo lo demás vive en:
+ *   components/Criaturas/CriaturaItemsNaturales.tsx  → drops naturales
+ *   components/Criaturas/CriaturaItemsCraftedos.tsx  → ítems creados
+ *   components/Criaturas/CriaturaHabitat.tsx         → reinos + ciudades
+ *   components/Criaturas/CriaturaMagia.tsx           → hechizos + dones
+ *   lib/utils/criaturaItemsCache.ts                  → singleton de ítems
+ *   lib/utils/criaturaHabitatCache.ts                → caches de reinos/ciudades/personajes
+ *   lib/utils/dexieHelpers.ts                        → dexiePut / dexieDelete / relaciones
  */
 
 import Image from "next/image";
 
 import {
   Bug,
+  Brain,
   Camera,
   ChevronDown,
   Globe,
@@ -57,7 +58,7 @@ import {
 } from "@/features/editorGarlia/components/Criaturas/CriaturaHabitat";
 import { useCraftedItems } from "@/features/editorGarlia/components/Criaturas/CriaturaItemsCraftedos";
 import {
-  CriaturaMagia,
+  BloqueMagico,
   grupoEsMagico,
 } from "@/features/editorGarlia/components/Criaturas/CriaturaMagia";
 import SimpleImagePicker from "@/features/editorGarlia/components/editorCapitulos/snippets/forms/SimpleImagePicker";
@@ -72,15 +73,67 @@ import {
 } from "@/lib/utils/criaturaHabitatCache";
 import { dexiePut, dexieDelete } from "@/lib/utils/dexieHelpers";
 
-import { useGruposDeCriatura, type GrupoMin } from "../hooks/hooks";
-import { type Criatura, type SaveStatus } from "../hooks/types";
+import { useGruposDeCriatura, type GrupoMin } from "../components/hooks";
+import { type Criatura, type SaveStatus } from "../components/types";
 import { SelectorImagen, SaveIndicator } from "../components/UIComponents";
 import { useWikilink } from "../components/WikilinkContext";
 
-// ─── Tipo extendido ───────────────────────────────────────────────────────────
+// ─── Botón mobile para cambiar imagen de la criatura ─────────────────────────
+
+function PickerImagenCriaturaBtn({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (url: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      {open && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+          onClick={() => setOpen(false)}
+        >
+          <div
+            className="bg-white-custom rounded-2xl shadow-2xl border border-primary/15 w-full max-w-lg p-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-2">
+                <Camera size={11} /> Imagen de la criatura
+              </h3>
+              <button
+                className="text-primary/30 hover:text-primary transition-colors"
+                onClick={() => setOpen(false)}
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <SimpleImagePicker
+              onClose={() => setOpen(false)}
+              onSelect={(url) => {
+                onChange(url);
+                setOpen(false);
+              }}
+            />
+          </div>
+        </div>
+      )}
+      <button
+        className="flex items-center justify-center w-8 h-8 rounded-full bg-bg-main/80 backdrop-blur-sm border border-primary/20 text-primary/50 hover:text-primary hover:bg-bg-main transition-all shadow-md"
+        title="Cambiar imagen"
+        onClick={() => setOpen(true)}
+      >
+        <Camera size={13} />
+      </button>
+    </>
+  );
+}
+
+// ─── Tipo extendido localmente (GrupoMin + subtipo) ──────────────────────────
 type GrupoMinExt = GrupoMin & { subtipo?: string | null };
 
-// ─── BloqueGrupoCategoria ────────────────────────────────────────────────────
 function BloqueGrupoCategoria({
   label,
   subtipo,
@@ -111,7 +164,7 @@ function BloqueGrupoCategoria({
   const disponibles = gruposDeCat.filter(
     (g) =>
       !gruposActuales.some((a) => a.id === g.id) &&
-      (g.nombre ?? "").toLowerCase().includes(search.toLowerCase()),
+      g.nombre.toLowerCase().includes(search.toLowerCase()),
   );
 
   const border =
@@ -338,7 +391,7 @@ function BloqueGruposCriatura({
       todosGrupos.filter(
         (g) =>
           !gruposActuales.some((a) => a.id === g.id) &&
-          (g.nombre ?? "").toLowerCase().includes(search.toLowerCase()),
+          g.nombre.toLowerCase().includes(search.toLowerCase()),
       ),
     [todosGrupos, gruposActuales, search],
   );
@@ -462,60 +515,6 @@ function BloqueGruposCriatura({
   );
 }
 
-// ─── PickerImagenCriaturaBtn ──────────────────────────────────────────────────
-// Botón mobile para cambiar la imagen de la criatura.
-
-function PickerImagenCriaturaBtn({
-  value,
-  onChange,
-}: {
-  value: string;
-  onChange: (url: string) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  return (
-    <>
-      {open && (
-        <div
-          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
-          onClick={() => setOpen(false)}
-        >
-          <div
-            className="bg-white-custom rounded-2xl shadow-2xl border border-primary/15 w-full max-w-lg p-5"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-2">
-                <Camera size={11} /> Imagen de la criatura
-              </h3>
-              <button
-                className="text-primary/30 hover:text-primary transition-colors"
-                onClick={() => setOpen(false)}
-              >
-                <X size={16} />
-              </button>
-            </div>
-            <SimpleImagePicker
-              onClose={() => setOpen(false)}
-              onSelect={(url) => {
-                onChange(url);
-                setOpen(false);
-              }}
-            />
-          </div>
-        </div>
-      )}
-      <button
-        className="flex items-center justify-center w-8 h-8 rounded-full bg-bg-main/80 backdrop-blur-sm border border-primary/20 text-primary/50 hover:text-primary hover:bg-bg-main transition-all shadow-md"
-        title="Cambiar imagen"
-        onClick={() => setOpen(true)}
-      >
-        <Camera size={13} />
-      </button>
-    </>
-  );
-}
-
 // ─── EditorCriatura ───────────────────────────────────────────────────────────
 export function EditorCriatura({
   item,
@@ -550,7 +549,6 @@ export function EditorCriatura({
     addToGrupo,
     removeFromGrupo,
   } = useGruposDeCriatura(form.id);
-
   // ── Personajes: hook local con toggle ─────────────────────────────────────
   const [personajesDeEspecie, setPersonajesDeEspecie] = useState<
     { id: string; nombre: string; img_url?: string | null }[]
@@ -617,7 +615,7 @@ export function EditorCriatura({
     setSavingPersonajes(false);
   };
 
-  // ── Datos para la barra de entidades ───────────────────────────────────────
+  // ── Datos para la barra lateral ────────────────────────────────────────────
   const [allPersonajes, setAllPersonajes] = useState<
     { id: string; nombre: string; img_url?: string | null }[]
   >([]);
@@ -652,6 +650,7 @@ export function EditorCriatura({
   const [mobileAsideOpen, setMobileAsideOpen] = useState(false);
 
   useEffect(() => {
+    // Usar caches compartidas — respuesta instantánea si ya se cargaron antes
     getAllPersonajes().then(setAllPersonajes);
     getAllReinos().then(setAllReinos);
     getAllCiudades().then(setAllCiudades);
@@ -743,12 +742,6 @@ export function EditorCriatura({
     void dexieDelete("criaturas", form.id);
     onDeleted(form.id);
   };
-
-  const esMagica = grupoEsMagico(gruposActuales);
-
-  // Grupos por subtipo para los combos de categoría
-  const todosExt = todosGrupos as GrupoMinExt[];
-  const gruposExt = gruposActuales as GrupoMinExt[];
 
   return (
     <div className="flex-1 flex min-h-0 overflow-hidden relative">
@@ -879,7 +872,11 @@ export function EditorCriatura({
               {(
                 [
                   { label: "Hábitat", subtipo: "Hábitat", icon: Globe },
-                  { label: "Inteligencia", subtipo: "Inteligencia", icon: Bug },
+                  {
+                    label: "Inteligencia",
+                    subtipo: "Inteligencia",
+                    icon: Brain,
+                  },
                   { label: "Alma", subtipo: "Alma", icon: Wand2 },
                   { label: "Usar Mana", subtipo: "Usar Mana", icon: Sparkles },
                   {
@@ -894,26 +891,17 @@ export function EditorCriatura({
                     {React.createElement(icon, { size: 7 })} {label}
                   </span>
                   <BloqueGrupoCategoria
-                    gruposActuales={gruposExt}
+                    gruposActuales={gruposActuales as GrupoMinExt[]}
                     icon={icon}
                     label={label}
                     subtipo={subtipo}
-                    todosGrupos={todosExt}
+                    todosGrupos={todosGrupos as GrupoMinExt[]}
                     onAdd={addToGrupo}
                     onRemove={removeFromGrupo}
                     onSelectGrupo={onSelectGrupo}
                   />
                 </div>
               ))}
-            </div>
-            <div className="mt-2">
-              <BloqueGruposCriatura
-                gruposActuales={gruposActuales}
-                todosGrupos={todosGrupos}
-                onAdd={addToGrupo}
-                onRemove={removeFromGrupo}
-                onSelectGrupo={onSelectGrupo}
-              />
             </div>
           </div>
         </div>
@@ -1052,11 +1040,42 @@ export function EditorCriatura({
             className="shrink-0 flex flex-col overflow-hidden"
             style={{ width: "110px" }}
           >
-            <CriaturaMagia
-              criaturaId={form.id}
-              gruposActuales={gruposActuales.map((g) => g.id)}
-              mostrarHechizos={esMagica}
-            />
+            {grupoEsMagico(gruposActuales) ? (
+              <>
+                <div
+                  className="flex-1 min-h-0 overflow-hidden flex flex-col border-b"
+                  style={{
+                    borderColor:
+                      "color-mix(in srgb, var(--primary) 7%, transparent)",
+                  }}
+                >
+                  <BloqueMagico
+                    criaturaId={form.id}
+                    gruposActuales={gruposActuales.map((g) => g.id)}
+                    icon={Sparkles}
+                    label="Hechizos"
+                    usarHook="hechizos"
+                  />
+                </div>
+                <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
+                  <BloqueMagico
+                    criaturaId={form.id}
+                    gruposActuales={gruposActuales.map((g) => g.id)}
+                    icon={Star}
+                    label="Dones"
+                    usarHook="dones"
+                  />
+                </div>
+              </>
+            ) : (
+              <BloqueMagico
+                criaturaId={form.id}
+                gruposActuales={gruposActuales.map((g) => g.id)}
+                icon={Star}
+                label="Dones"
+                usarHook="dones"
+              />
+            )}
           </div>
         </div>
       </div>
@@ -1197,10 +1216,29 @@ export function EditorCriatura({
                   "1px solid color-mix(in srgb, var(--primary) 7%, transparent)",
               }}
             />
-            <CriaturaMagia
+            {grupoEsMagico(gruposActuales) && (
+              <>
+                <BloqueMagico
+                  criaturaId={form.id}
+                  gruposActuales={gruposActuales.map((g) => g.id)}
+                  icon={Sparkles}
+                  label="Hechizos"
+                  usarHook="hechizos"
+                />
+                <div
+                  style={{
+                    borderTop:
+                      "1px solid color-mix(in srgb, var(--primary) 7%, transparent)",
+                  }}
+                />
+              </>
+            )}
+            <BloqueMagico
               criaturaId={form.id}
               gruposActuales={gruposActuales.map((g) => g.id)}
-              mostrarHechizos={esMagica}
+              icon={Star}
+              label="Dones"
+              usarHook="dones"
             />
           </div>
         </div>

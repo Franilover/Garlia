@@ -3,12 +3,12 @@
 /**
  * CriaturaItemsCraftedos.tsx
  * ───────────────────────────
- * Hook `useCraftedItems` + componente `CriaturaItemsCraftedos`.
+ * Hook `useCraftedItems` + componente `BloqueItemsCraftedos`.
  * Muestra los ítems que fabrica/crea una criatura (tabla item_crafteres),
  * con opción de añadir/quitar y navegar al editor del ítem.
  *
  * Ruta destino:
- *   src/features/editorGarlia/components/CriaturaItemsCraftedos.tsx
+ *   src/features/editorGarlia/components/Criaturas/CriaturaItemsCraftedos.tsx
  */
 
 import Image from "next/image";
@@ -20,7 +20,7 @@ import { supabase } from "@/lib/api/client/supabase";
 import { fetchAllItems, type ItemMin } from "@/lib/utils/criaturaItemsCache";
 
 // ─── Tipo ─────────────────────────────────────────────────────────────────────
-type CraftedItem = {
+export type CraftedItem = {
   crafterId: string;
   itemId: string;
   itemName: string;
@@ -36,6 +36,7 @@ export function useCraftedItems(criaturaId: string) {
   const load = useCallback(async () => {
     setLoading(true);
 
+    // Leer Dexie local + catálogo en paralelo
     const [localDrops, catalogResult] = await Promise.all([
       db
         ? db.item_crafteres
@@ -62,6 +63,7 @@ export function useCraftedItems(criaturaId: string) {
       setLoading(false);
     }
 
+    // Fetch remoto
     if (!navigator.onLine) {
       setLoading(false);
       return;
@@ -85,7 +87,7 @@ export function useCraftedItems(criaturaId: string) {
     setItems(remoteItems);
     setLoading(false);
 
-    // Sync Dexie
+    // Sincronizar Dexie
     try {
       if (db) {
         await db.item_crafteres
@@ -111,6 +113,7 @@ export function useCraftedItems(criaturaId: string) {
 
   const add = async (item: ItemMin) => {
     if (items.some((i) => i.itemId === item.id)) return;
+    // Optimista
     const tempId = `temp_${item.id}`;
     setItems((prev) => [
       ...prev,
@@ -147,19 +150,23 @@ export function useCraftedItems(criaturaId: string) {
         .from("items")
         .update({ origen: "Artificial", sub_origen: null })
         .eq("id", item.id);
-      const ch = new BroadcastChannel("item_origen_sync");
-      ch.postMessage({
-        itemId: item.id,
-        origen: "Artificial",
-        sub_origen: null,
-      });
-      ch.close();
+      {
+        const _ch = new BroadcastChannel("item_origen_sync");
+        _ch.postMessage({
+          itemId: item.id,
+          origen: "Artificial",
+          sub_origen: null,
+        });
+        _ch.close();
+      }
     } else {
+      // Revertir optimista si falló
       setItems((prev) => prev.filter((i) => i.crafterId !== tempId));
     }
   };
 
   const remove = async (crafterId: string) => {
+    // Optimista
     setItems((prev) => prev.filter((i) => i.crafterId !== crafterId));
     try {
       if (db) await db.item_crafteres.delete(crafterId);
@@ -171,7 +178,7 @@ export function useCraftedItems(criaturaId: string) {
 }
 
 // ─── Componente ───────────────────────────────────────────────────────────────
-export function CriaturaItemsCraftedos({
+export function BloqueItemsCraftedos({
   criaturaId,
   onSelectItem,
 }: {
@@ -203,10 +210,12 @@ export function CriaturaItemsCraftedos({
         </p>
       )}
 
+      {/* Grid de 2 columnas */}
       {items.length > 0 && (
         <div className="grid grid-cols-2 gap-1.5">
           {items.map((it) => (
             <div key={it.crafterId} className="relative group">
+              {/* Tarjeta clickeable */}
               <button
                 className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-left transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
                 style={{
@@ -232,6 +241,8 @@ export function CriaturaItemsCraftedos({
                   {it.itemName}
                 </span>
               </button>
+
+              {/* Botón quitar flotante */}
               <button
                 className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all bg-red-500/10 hover:bg-red-500/20 text-red-400/60 hover:text-red-400 border border-red-500/20 cursor-pointer"
                 onClick={(e) => {
@@ -246,7 +257,7 @@ export function CriaturaItemsCraftedos({
         </div>
       )}
 
-      {/* Dropdown añadir */}
+      {/* Dropdown para añadir */}
       <div className="relative">
         <button
           className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg border border-dashed border-primary/15 text-[9px] font-black uppercase tracking-widest text-primary/30 hover:text-primary/60 hover:border-primary/30 transition-all cursor-pointer"
