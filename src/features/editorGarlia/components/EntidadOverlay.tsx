@@ -246,12 +246,6 @@ export function EntidadOverlay({
                 .single();
               if (remote) setSelectedCiudad(remote as Ciudad);
             }}
-            onSelectCriatura={(id) => {
-              const c = criaturas.find((x) => x.id === id);
-              if (!c) return;
-              clearAllOverlays();
-              setSelectedCriatura(c);
-            }}
             onSelectItem={(id) => {
               const o = objetos.find((x) => x.id === id);
               if (!o) return;
@@ -386,12 +380,6 @@ export function EntidadOverlay({
               );
               setSelectedObjeto({ ...selected.objeto, ...u });
             }}
-            onSelectCriatura={(id) => {
-              const c = criaturas.find((x) => x.id === id);
-              if (!c) return;
-              clearAllOverlays();
-              setSelectedCriatura(c);
-            }}
           />
         )}
         {overlay === "ciudad" && selected.ciudad && (
@@ -421,12 +409,6 @@ export function EntidadOverlay({
                 p.map((l) => (l.id === u.id ? { ...l, ...uMin } : l)),
               );
               setSelectedCiudad({ ...selected.ciudad, ...u });
-            }}
-            onSelectCriatura={(id) => {
-              const c = criaturas.find((x) => x.id === id);
-              if (!c) return;
-              clearAllOverlays();
-              setSelectedCriatura(c);
             }}
             onSelectItem={(id) => {
               const o = objetos.find((x) => x.id === id);
