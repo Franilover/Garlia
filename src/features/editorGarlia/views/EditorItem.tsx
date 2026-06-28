@@ -5,7 +5,6 @@ import {
   Package,
   Save,
   Trash2,
-  Bug,
   Loader2,
   X,
   MapPin,
@@ -30,139 +29,6 @@ import { supabase } from "@/lib/api/client/supabase";
 import { type Item, type SaveStatus } from "../hooks/types";
 import { SelectorImagen, SaveIndicator } from "../components/UIComponents";
 import { useWikilink } from "../components/WikilinkContext";
-
-// ─── Hook: qué criaturas crean este ítem (item_crafteres) ─────────────────────
-
-type CrafterSource = {
-  crafterId: string;
-  criaturaId: string;
-  criaturaName: string;
-  criaturaImg?: string | null;
-};
-
-function useCrafterSources(itemId: string) {
-  const [crafters, setCrafters] = useState<CrafterSource[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    const { data } = await supabase
-      .from("item_crafteres")
-      .select(`id, criatura_id, criaturas!criatura_id(nombre, imagen_url)`)
-      .eq("item_id", itemId);
-
-    setCrafters(
-      (data ?? []).map((r: any) => ({
-        crafterId: r.id,
-        criaturaId: r.criatura_id,
-        criaturaName:
-          (Array.isArray(r.criaturas)
-            ? r.criaturas[0]?.nombre
-            : r.criaturas?.nombre) ?? "—",
-        criaturaImg:
-          (Array.isArray(r.criaturas)
-            ? r.criaturas[0]?.imagen_url
-            : r.criaturas?.imagen_url) ?? null,
-      })),
-    );
-    setLoading(false);
-  }, [itemId]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  const add = async (criatura: {
-    id: string;
-    nombre: string;
-    imagen_url?: string | null;
-  }) => {
-    if (crafters.some((c) => c.criaturaId === criatura.id)) return;
-    const { data, error } = await supabase
-      .from("item_crafteres")
-      .insert([{ item_id: itemId, criatura_id: criatura.id }])
-      .select()
-      .single();
-    if (!error && data) {
-      setCrafters((prev) => [
-        ...prev,
-        {
-          crafterId: data.id,
-          criaturaId: criatura.id,
-          criaturaName: criatura.nombre,
-          criaturaImg: criatura.imagen_url ?? null,
-        },
-      ]);
-      // Marcar el ítem como Artificial automáticamente
-      await supabase
-        .from("items")
-        .update({ origen: "Artificial", sub_origen: null })
-        .eq("id", itemId);
-    }
-  };
-
-  const remove = async (crafterId: string) => {
-    await supabase.from("item_crafteres").delete().eq("id", crafterId);
-    setCrafters((prev) => prev.filter((c) => c.crafterId !== crafterId));
-  };
-
-  return { crafters, loading, add, remove };
-}
-
-// ─── Panel selector de criaturas creadoras (usa SeccionEntidad) ──────────────
-
-function PanelCrafterSources({
-  itemId,
-  onSelectCriatura,
-}: {
-  itemId: string;
-  onSelectCriatura?: (criaturaId: string) => void;
-}) {
-  const { crafters, loading, add, remove } = useCrafterSources(itemId);
-  const [allCriaturas, setAllCriaturas] = useState<
-    { id: string; nombre: string; imagen_url?: string | null }[]
-  >([]);
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    supabase
-      .from("criaturas")
-      .select("id, nombre, imagen_url")
-      .order("nombre")
-      .then(({ data }) => setAllCriaturas(data ?? []));
-  }, []);
-
-  const handleToggle = async (id: string, addIt: boolean) => {
-    setSaving(true);
-    if (addIt) {
-      const criatura = allCriaturas.find((c) => c.id === id);
-      if (criatura) await add(criatura);
-    } else {
-      const crafter = crafters.find((c) => c.criaturaId === id);
-      if (crafter) await remove(crafter.crafterId);
-    }
-    setSaving(false);
-  };
-
-  return (
-    <SeccionEntidad
-      allEntities={allCriaturas.map((c) => ({
-        id: c.id,
-        nombre: c.nombre,
-        imagen_url: c.imagen_url,
-      }))}
-      emptyLabel="Ninguna criatura asignada"
-      fallbackIcon={<Bug size={9} />}
-      icon={<Bug size={9} />}
-      label="Criaturas"
-      loading={loading}
-      saving={saving}
-      selectedIds={crafters.map((c) => c.criaturaId)}
-      onEntityClick={onSelectCriatura}
-      onToggle={handleToggle}
-    />
-  );
-}
 
 // ─── Tipos comunes ────────────────────────────────────────────────────────────
 type ReinoMin = { id: string; nombre: string };
@@ -961,7 +827,6 @@ export function EditorItem({
   onSaved,
   onDeleted,
   entities = [],
-  onSelectCriatura,
   onNavigateCiudad,
   onNavigateReino,
   onSelectGrupo,
@@ -971,7 +836,6 @@ export function EditorItem({
   onSaved: (i: Item) => void;
   onDeleted: (id: string) => void;
   entities?: WikiEntity[];
-  onSelectCriatura?: (criaturaId: string) => void;
   onNavigateCiudad?: (id: string) => void;
   onNavigateReino?: (id: string) => void;
   onSelectGrupo?: (grupoId: string) => void;
@@ -1001,12 +865,6 @@ export function EditorItem({
         categoria: form.categoria,
         reino_ids: form.reino_ids ?? [],
       };
-      // origen/sub_origen solo existen en la tabla items
-      if (tabla === "items") {
-        payload.origen = form.origen;
-        payload.sub_origen =
-          form.origen === "Natural" ? (form.sub_origen ?? null) : null;
-      }
       const { error } = await supabase
         .from(tabla)
         .update(payload)
@@ -1147,7 +1005,6 @@ export function EditorItem({
                         setForm((f) => ({
                           ...f,
                           origen: (nombre ?? null) as Item["origen"],
-                          sub_origen: null,
                         }))
                       }
                       onSelectGrupo={onSelectGrupo}
