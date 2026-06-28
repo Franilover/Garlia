@@ -32,7 +32,7 @@ import { ComboSelector } from "@/components/ui/ComboSelector";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { SeccionEntidad } from "@/components/ui/SeccionEntidad";
 import SimpleImagePicker from "@/features/editorGarlia/components/editorCapitulos/snippets/forms/SimpleImagePicker";
-import { SelectorFechaMundo } from "@/features/editorGarlia/components/EditorLineaTiempo";
+import { SelectorFechaMundo } from "@/features/editorGarlia/views/EditorLineaTiempo";
 import { usePersonajes } from "@/hooks/useEditorShared";
 import { db } from "@/lib/api/client/db";
 import { supabase } from "@/lib/api/client/supabase";

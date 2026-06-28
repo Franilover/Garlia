@@ -38,7 +38,7 @@ import {
 } from "@/lib/utils/calendario";
 
 import { type Reino, type SaveStatus } from "../hooks/types";
-import { SaveIndicator } from "./UIComponents";
+import { SaveIndicator } from "../components/UIComponents";
 
 // ─── Hook: cargar calendario — Dexie → memoria → Supabase ────────────────────
 // Orden de prioridad:

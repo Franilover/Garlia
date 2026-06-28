@@ -24,7 +24,7 @@ import {
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { SeccionEntidad } from "@/components/ui/SeccionEntidad";
 import { type Ciudad } from "@/features/editorGarlia/views/EditorCiudad";
-import { PanelHistoriaMundo } from "@/features/editorGarlia/components/EditorLineaTiempo";
+import { PanelHistoriaMundo } from "@/features/editorGarlia/views/EditorLineaTiempo";
 import { db } from "@/lib/api/client/db";
 import { supabase } from "@/lib/api/client/supabase";
 

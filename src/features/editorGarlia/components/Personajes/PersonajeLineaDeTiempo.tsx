@@ -30,7 +30,7 @@ import {
   FechaMundoBadge,
   SelectorFechaMundo,
   useCalendario,
-} from "@/features/editorGarlia/components/EditorLineaTiempo";
+} from "@/features/editorGarlia/views/EditorLineaTiempo";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 type Era = {
@@ -49,9 +49,7 @@ function calcularEdad(
   diasPorAnio: number,
 ): number {
   if (diasPorAnio <= 0) return 0;
-  return Math.floor(
-    (diaAbsolutoEra - diaAbsolutoNacimiento) / diasPorAnio,
-  );
+  return Math.floor((diaAbsolutoEra - diaAbsolutoNacimiento) / diasPorAnio);
 }
 
 // ─── EraItem ──────────────────────────────────────────────────────────────────
@@ -88,7 +86,10 @@ function EraItem({
         type="button"
         onClick={onToggle}
       >
-        <div className="shrink-0 flex flex-col items-center" style={{ width: 20 }}>
+        <div
+          className="shrink-0 flex flex-col items-center"
+          style={{ width: 20 }}
+        >
           <div className="w-2 h-2 rounded-full border-2 border-accent bg-bg-main shrink-0" />
         </div>
         <div className="flex-1 min-w-0">
@@ -98,8 +99,10 @@ function EraItem({
               <span
                 className="px-1.5 py-0 rounded-full text-[7px] font-black uppercase border tracking-widest"
                 style={{
-                  background: "color-mix(in srgb, var(--accent) 8%, transparent)",
-                  borderColor: "color-mix(in srgb, var(--accent) 20%, transparent)",
+                  background:
+                    "color-mix(in srgb, var(--accent) 8%, transparent)",
+                  borderColor:
+                    "color-mix(in srgb, var(--accent) 20%, transparent)",
                   color: "var(--accent)",
                 }}
               >
@@ -119,9 +122,12 @@ function EraItem({
                   key={r}
                   className="px-1.5 py-0 rounded-full text-[7px] font-black uppercase border"
                   style={{
-                    background: "color-mix(in srgb, var(--primary) 5%, transparent)",
-                    borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
-                    color: "color-mix(in srgb, var(--primary) 45%, transparent)",
+                    background:
+                      "color-mix(in srgb, var(--primary) 5%, transparent)",
+                    borderColor:
+                      "color-mix(in srgb, var(--primary) 12%, transparent)",
+                    color:
+                      "color-mix(in srgb, var(--primary) 45%, transparent)",
                   }}
                 >
                   {r}
@@ -182,9 +188,12 @@ function EraItem({
                     key={rasgo}
                     className="group flex items-center gap-1 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wide border transition-all"
                     style={{
-                      background: "color-mix(in srgb, var(--primary) 6%, transparent)",
-                      borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)",
-                      color: "color-mix(in srgb, var(--primary) 60%, transparent)",
+                      background:
+                        "color-mix(in srgb, var(--primary) 6%, transparent)",
+                      borderColor:
+                        "color-mix(in srgb, var(--primary) 15%, transparent)",
+                      color:
+                        "color-mix(in srgb, var(--primary) 60%, transparent)",
                     }}
                   >
                     {rasgo}
@@ -235,7 +244,8 @@ function EraItem({
                   background: nuevoRasgo.trim()
                     ? "color-mix(in srgb, var(--primary) 10%, transparent)"
                     : "transparent",
-                  borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)",
+                  borderColor:
+                    "color-mix(in srgb, var(--primary) 15%, transparent)",
                   color: "var(--primary)",
                 }}
                 type="button"
@@ -271,7 +281,8 @@ function EraItem({
               className="flex items-center gap-1 px-2 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-widest border transition-all"
               style={{
                 color: "var(--accent)",
-                borderColor: "color-mix(in srgb, var(--accent) 20%, transparent)",
+                borderColor:
+                  "color-mix(in srgb, var(--accent) 20%, transparent)",
                 background: "transparent",
               }}
               type="button"
@@ -537,7 +548,9 @@ export function PersonajeLineaDeTiempo({
       {addingNew && (
         <div
           className="px-3 py-2.5 border-b border-primary/[0.06] space-y-2"
-          style={{ background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}
+          style={{
+            background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+          }}
         >
           <div className="space-y-1.5">
             <SelectorFechaMundo
@@ -557,7 +570,8 @@ export function PersonajeLineaDeTiempo({
               placeholder="Etiqueta (opcional)"
               style={{
                 background: "transparent",
-                borderColor: "color-mix(in srgb, var(--primary) 18%, transparent)",
+                borderColor:
+                  "color-mix(in srgb, var(--primary) 18%, transparent)",
                 color: "var(--primary)",
               }}
               type="text"
@@ -586,14 +600,20 @@ export function PersonajeLineaDeTiempo({
                   parseInt(newMomento, 10) <= fechaNacimiento)
               }
               style={{
-                background: "color-mix(in srgb, var(--primary) 10%, transparent)",
-                borderColor: "color-mix(in srgb, var(--primary) 20%, transparent)",
+                background:
+                  "color-mix(in srgb, var(--primary) 10%, transparent)",
+                borderColor:
+                  "color-mix(in srgb, var(--primary) 20%, transparent)",
                 color: "var(--primary)",
               }}
               type="button"
               onClick={handleAddEra}
             >
-              {creating ? <Loader2 className="animate-spin" size={8} /> : <Check size={8} />}{" "}
+              {creating ? (
+                <Loader2 className="animate-spin" size={8} />
+              ) : (
+                <Check size={8} />
+              )}{" "}
               Crear
             </button>
           </div>
@@ -611,13 +631,17 @@ export function PersonajeLineaDeTiempo({
           {fechaNacimiento != null && (
             <div className="border-b border-primary/[0.06]">
               <div className="w-full flex items-center gap-2 px-3 py-2.5 text-left">
-                <div className="shrink-0 flex flex-col items-center" style={{ width: 20 }}>
+                <div
+                  className="shrink-0 flex flex-col items-center"
+                  style={{ width: 20 }}
+                >
                   <div
                     className="w-2.5 h-2.5 rounded-full border-2 shrink-0"
                     style={{
                       borderColor: "var(--accent)",
                       background: "var(--accent)",
-                      boxShadow: "0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent)",
+                      boxShadow:
+                        "0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent)",
                     }}
                   />
                 </div>
@@ -641,9 +665,11 @@ export function PersonajeLineaDeTiempo({
                 <button
                   className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-dashed text-[8px] font-black uppercase tracking-widest transition-all"
                   style={{
-                    borderColor: "color-mix(in srgb, var(--accent) 30%, transparent)",
+                    borderColor:
+                      "color-mix(in srgb, var(--accent) 30%, transparent)",
                     color: "color-mix(in srgb, var(--accent) 60%, transparent)",
-                    background: "color-mix(in srgb, var(--accent) 4%, transparent)",
+                    background:
+                      "color-mix(in srgb, var(--accent) 4%, transparent)",
                   }}
                   type="button"
                   onClick={() => setCumpleSelectorOpen(true)}
@@ -654,13 +680,18 @@ export function PersonajeLineaDeTiempo({
                 <div
                   className="space-y-2 p-2.5 rounded-xl border"
                   style={{
-                    borderColor: "color-mix(in srgb, var(--accent) 20%, transparent)",
-                    background: "color-mix(in srgb, var(--accent) 4%, transparent)",
+                    borderColor:
+                      "color-mix(in srgb, var(--accent) 20%, transparent)",
+                    background:
+                      "color-mix(in srgb, var(--accent) 4%, transparent)",
                   }}
                 >
                   <p
                     className="text-[8px] font-black uppercase tracking-widest"
-                    style={{ color: "color-mix(in srgb, var(--accent) 60%, transparent)" }}
+                    style={{
+                      color:
+                        "color-mix(in srgb, var(--accent) 60%, transparent)",
+                    }}
                   >
                     ✦ Fecha de nacimiento
                   </p>
@@ -673,7 +704,10 @@ export function PersonajeLineaDeTiempo({
                     <button
                       className="px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border transition-all text-primary/35 border-primary/10 hover:text-primary hover:border-primary/25"
                       type="button"
-                      onClick={() => { setCumpleSelectorOpen(false); setCumpleDraft(null); }}
+                      onClick={() => {
+                        setCumpleSelectorOpen(false);
+                        setCumpleDraft(null);
+                      }}
                     >
                       Cancelar
                     </button>
@@ -681,14 +715,20 @@ export function PersonajeLineaDeTiempo({
                       className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border transition-all disabled:opacity-30"
                       disabled={cumpleDraft == null || savingCumple}
                       style={{
-                        background: "color-mix(in srgb, var(--accent) 12%, transparent)",
-                        borderColor: "color-mix(in srgb, var(--accent) 25%, transparent)",
+                        background:
+                          "color-mix(in srgb, var(--accent) 12%, transparent)",
+                        borderColor:
+                          "color-mix(in srgb, var(--accent) 25%, transparent)",
                         color: "var(--accent)",
                       }}
                       type="button"
                       onClick={handleGuardarCumple}
                     >
-                      {savingCumple ? <Loader2 className="animate-spin" size={8} /> : <Check size={8} />}{" "}
+                      {savingCumple ? (
+                        <Loader2 className="animate-spin" size={8} />
+                      ) : (
+                        <Check size={8} />
+                      )}{" "}
                       Guardar
                     </button>
                   </div>
@@ -708,14 +748,17 @@ export function PersonajeLineaDeTiempo({
             <div
               className="mx-3 my-2 px-2.5 py-2 rounded-xl border border-dashed space-y-1.5"
               style={{
-                borderColor: "color-mix(in srgb, var(--accent) 25%, transparent)",
+                borderColor:
+                  "color-mix(in srgb, var(--accent) 25%, transparent)",
                 background: "color-mix(in srgb, var(--accent) 3%, transparent)",
               }}
             >
               {!cumpleSelectorOpen ? (
                 <button
                   className="w-full flex items-center justify-center gap-1.5 text-[8px] font-black uppercase tracking-widest transition-all py-1"
-                  style={{ color: "color-mix(in srgb, var(--accent) 55%, transparent)" }}
+                  style={{
+                    color: "color-mix(in srgb, var(--accent) 55%, transparent)",
+                  }}
                   type="button"
                   onClick={() => setCumpleSelectorOpen(true)}
                 >
@@ -725,7 +768,10 @@ export function PersonajeLineaDeTiempo({
                 <div className="space-y-2">
                   <p
                     className="text-[8px] font-black uppercase tracking-widest"
-                    style={{ color: "color-mix(in srgb, var(--accent) 60%, transparent)" }}
+                    style={{
+                      color:
+                        "color-mix(in srgb, var(--accent) 60%, transparent)",
+                    }}
                   >
                     ✦ Fecha de nacimiento
                   </p>
@@ -738,7 +784,10 @@ export function PersonajeLineaDeTiempo({
                     <button
                       className="px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border transition-all text-primary/35 border-primary/10 hover:text-primary hover:border-primary/25"
                       type="button"
-                      onClick={() => { setCumpleSelectorOpen(false); setCumpleDraft(null); }}
+                      onClick={() => {
+                        setCumpleSelectorOpen(false);
+                        setCumpleDraft(null);
+                      }}
                     >
                       Cancelar
                     </button>
@@ -746,14 +795,20 @@ export function PersonajeLineaDeTiempo({
                       className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border transition-all disabled:opacity-30"
                       disabled={cumpleDraft == null || savingCumple}
                       style={{
-                        background: "color-mix(in srgb, var(--accent) 12%, transparent)",
-                        borderColor: "color-mix(in srgb, var(--accent) 25%, transparent)",
+                        background:
+                          "color-mix(in srgb, var(--accent) 12%, transparent)",
+                        borderColor:
+                          "color-mix(in srgb, var(--accent) 25%, transparent)",
                         color: "var(--accent)",
                       }}
                       type="button"
                       onClick={handleGuardarCumple}
                     >
-                      {savingCumple ? <Loader2 className="animate-spin" size={8} /> : <Check size={8} />}{" "}
+                      {savingCumple ? (
+                        <Loader2 className="animate-spin" size={8} />
+                      ) : (
+                        <Check size={8} />
+                      )}{" "}
                       Guardar
                     </button>
                   </div>

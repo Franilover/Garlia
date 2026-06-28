@@ -35,7 +35,7 @@ import type { Cancion } from "@/features/editorGarlia/components/editorLetras/ty
 import { EntidadOverlay } from "@/features/editorGarlia/components/EntidadOverlay";
 import EstudioCapitulos from "@/features/editorGarlia/views/EditorCapitulos";
 import AdminDescubrimientos from "@/features/editorGarlia/views/editorRelaciones";
-import EditorMisiones from "@/features/editorGarlia/components/editorMisiones";
+import EditorMisiones from "@/features/editorGarlia/views/editorMisiones";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import { db } from "@/lib/api/client/db";
 import { supabase } from "@/lib/api/client/supabase";
@@ -43,7 +43,7 @@ import { supabase } from "@/lib/api/client/supabase";
 import { type Ciudad } from "./EditorCiudad";
 import { useGrupos, GRUPO_TIPO_CONFIG, type Grupo } from "./EditorGrupo";
 import { EditorMapa } from "./EditorMapa";
-import { PanelHistoriaMundo } from "../components/EditorLineaTiempo";
+import { PanelHistoriaMundo } from "../views/EditorLineaTiempo";
 import {
   type MundoSectionKey,
   type Nota,

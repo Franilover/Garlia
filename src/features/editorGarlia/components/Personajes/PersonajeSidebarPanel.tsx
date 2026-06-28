@@ -16,7 +16,7 @@
 
 import { BookOpen, Music2, SlidersHorizontal, Users, X } from "lucide-react";
 
-import { BloqueRelaciones } from "@/features/editorGarlia/components/BloqueRelaciones";
+import { BloqueRelaciones } from "@/features/editorGarlia/components/Personajes/BloqueRelaciones";
 import { PersonajeCapitulosAparece } from "@/features/editorGarlia/components/Personajes/PersonajeCapitulosAparece";
 import { PersonajeCancionesAsociadas } from "@/features/editorGarlia/components/Personajes/PersonajeCancionesAsociadas";
 import { PersonajeGrupos } from "@/features/editorGarlia/components/Personajes/PersonajeGrupos";
