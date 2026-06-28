@@ -250,11 +250,15 @@ export function GlobalCommandPalette() {
   const activePrefix = prefixMatch ?? null; // "per"
   const activeGroup = activePrefix ? PREFIX_MAP[activePrefix] : null; // "Personajes"
   // Query real que se manda a Supabase (lo que va después del prefijo)
+  // Si solo hay prefijo sin texto aún, mandamos "%%" para que ilike traiga todo
   const prefixQuery = activePrefix
     ? search.trim().slice(activePrefix.length).trimStart()
     : search;
+  // Lo que realmente viaja a los hooks — mínimo "%%" cuando hay prefijo solo
+  const hookQuery =
+    activePrefix && prefixQuery.length === 0 ? "%%" : prefixQuery;
 
-  const { data, isFetching: isFetchingAdmin } = useGlobalSearch(prefixQuery);
+  const { data, isFetching: isFetchingAdmin } = useGlobalSearch(hookQuery);
   const fromCache = data?.fromCache ?? false;
 
   // Búsqueda pública — activa para TODOS los usuarios (admin y no-admin)
@@ -263,7 +267,7 @@ export function GlobalCommandPalette() {
     capitulos: capitulosPublicos,
     libros: librosPublicos,
     isFetching: isFetchingPublic,
-  } = usePublicSearch(prefixQuery);
+  } = usePublicSearch(hookQuery);
 
   // Browse público — carga inicial sin query para el panel "Descubrir"
   const {
@@ -1233,7 +1237,7 @@ export function GlobalCommandPalette() {
                     <Flower2 size={20} />
                     {activePrefix && prefixQuery.length === 0 ? (
                       <span className="text-xs font-medium">
-                        Escribe para buscar en {activeGroup}…
+                        Cargando {activeGroup}…
                       </span>
                     ) : (
                       <span className="text-xs font-medium">
