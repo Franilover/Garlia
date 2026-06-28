@@ -708,6 +708,52 @@ export function GlobalCommandPalette() {
           .startsWith(t + " "),
     );
 
+  const GRID_COLS = 3;
+  const [gridIndex, setGridIndex] = useState(0);
+
+  // Fix 1: ref estable — evita re-registrar el handler en cada render
+  const createItemsRef = useRef<CommandItem[]>([]);
+  createItemsRef.current = createItems;
+
+  // Reset index cuando se entra/sale del modo grid
+  useEffect(() => {
+    if (showCreateGrid) setGridIndex(0);
+  }, [showCreateGrid]);
+
+  // Navegación con flechas en el grid (←→↑↓)
+  useEffect(() => {
+    if (!showCreateGrid) return;
+    const handler = (e: KeyboardEvent) => {
+      if (
+        !["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Enter"].includes(
+          e.key,
+        )
+      )
+        return;
+      e.preventDefault();
+      // Fix 2: stopImmediatePropagation bloquea cmdk en la misma fase de captura —
+      // sin esto cmdk mueve su cursor interno en paralelo al nuestro
+      e.stopImmediatePropagation();
+      const items = createItemsRef.current;
+      setGridIndex((prev) => {
+        const total = items.length;
+        if (e.key === "ArrowRight") return (prev + 1) % total;
+        if (e.key === "ArrowLeft") return (prev - 1 + total) % total;
+        if (e.key === "ArrowDown") return Math.min(prev + GRID_COLS, total - 1);
+        if (e.key === "ArrowUp") return Math.max(prev - GRID_COLS, 0);
+        if (e.key === "Enter") {
+          items[prev]?.action();
+          return prev;
+        }
+        return prev;
+      });
+    };
+    window.addEventListener("keydown", handler, true);
+    return () => window.removeEventListener("keydown", handler, true);
+    // createItems intencionalmente fuera de deps — se lee via ref
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showCreateGrid]);
+
   // ── Dynamic search results → CommandItems ──────────────────────────────────
 
   // Resultados públicos — visibles para usuarios NO-admin cuando hay búsqueda activa.
@@ -1035,10 +1081,15 @@ export function GlobalCommandPalette() {
                     </div>
                     <div
                       className="grid gap-1.5 px-1 pb-2"
-                      style={{ gridTemplateColumns: "repeat(2, 1fr)" }}
+                      style={{ gridTemplateColumns: "repeat(3, 1fr)" }}
                     >
-                      {createItems.map((item) => (
-                        <CommandGridItem key={item.id} item={item} />
+                      {createItems.map((item, i) => (
+                        <CommandGridItem
+                          key={item.id}
+                          item={item}
+                          isSelected={i === gridIndex}
+                          onHover={() => setGridIndex(i)}
+                        />
                       ))}
                     </div>
                   </Command.Group>
@@ -1145,6 +1196,17 @@ export function GlobalCommandPalette() {
                 <span className="text-[9px] font-black uppercase tracking-widest">
                   ↵ abrir
                 </span>
+                {showCreateGrid && (
+                  <span
+                    className="text-[9px] font-black uppercase tracking-widest"
+                    style={{
+                      color:
+                        "color-mix(in srgb, var(--primary) 28%, transparent)",
+                    }}
+                  >
+                    ← → ↑ ↓ mover
+                  </span>
+                )}
                 {showDynamic && (
                   <span
                     className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest ml-auto"
@@ -1183,21 +1245,32 @@ export function GlobalCommandPalette() {
 
 // ── Grid item (panel Crear) ───────────────────────────────────────────────────
 
-function CommandGridItem({ item }: { item: CommandItem }) {
+function CommandGridItem({
+  item,
+  isSelected,
+  onHover,
+}: {
+  item: CommandItem;
+  isSelected: boolean;
+  onHover: () => void;
+}) {
   const Icon = item.icon;
 
   return (
     <Command.Item
-      className="group flex flex-col items-center justify-center gap-2 cursor-pointer outline-none transition-all duration-100 data-[selected=true]:bg-[color-mix(in_srgb,var(--primary)_6%,transparent)]"
+      className="group flex flex-col items-center justify-center gap-2 cursor-pointer outline-none transition-all duration-100"
       style={{
         padding: "14px 8px",
         borderRadius: "var(--radius-btn)",
         color: "color-mix(in srgb, var(--primary) 70%, transparent)",
-        border:
-          "var(--border-width) solid color-mix(in srgb, var(--primary) 10%, transparent)",
+        border: `var(--border-width) solid ${isSelected ? "color-mix(in srgb, var(--primary) 25%, transparent)" : "color-mix(in srgb, var(--primary) 10%, transparent)"}`,
+        background: isSelected
+          ? "color-mix(in srgb, var(--primary) 6%, transparent)"
+          : "transparent",
       }}
       value={`${item.id} ${item.label} ${item.keywords?.join(" ") ?? ""}`}
       onSelect={item.action}
+      onMouseEnter={onHover}
     >
       <span
         className="flex items-center justify-center shrink-0 transition-colors duration-100"
@@ -1205,7 +1278,9 @@ function CommandGridItem({ item }: { item: CommandItem }) {
           width: 36,
           height: 36,
           borderRadius: "var(--radius-btn)",
-          background: "color-mix(in srgb, var(--primary) 7%, transparent)",
+          background: isSelected
+            ? "color-mix(in srgb, var(--primary) 12%, transparent)"
+            : "color-mix(in srgb, var(--primary) 7%, transparent)",
           color: "var(--primary)",
         }}
       >
@@ -1215,7 +1290,6 @@ function CommandGridItem({ item }: { item: CommandItem }) {
         className="text-[10px] font-semibold text-center leading-tight"
         style={{ color: "var(--primary)" }}
       >
-        {/* Quitar el prefijo "Nuevo/Nueva/New" para que quepa mejor */}
         {item.label.replace(/^(Nuevo|Nueva|New)\s+/i, "")}
       </p>
     </Command.Item>
