@@ -754,7 +754,15 @@ export function GlobalCommandPalette() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showCreateGrid]);
 
-  // ── Dynamic search results → CommandItems ──────────────────────────────────
+  // Scroll automático al item seleccionado en el grid
+  const listRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!showCreateGrid) return;
+    const el = listRef.current?.querySelector(
+      `[data-grid-index="${gridIndex}"]`,
+    );
+    el?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [gridIndex, showCreateGrid]);
 
   // Resultados públicos — visibles para usuarios NO-admin cuando hay búsqueda activa.
   // Libros, canciones y capítulos navegan a sus rutas públicas (/garlia/...).
@@ -1049,6 +1057,7 @@ export function GlobalCommandPalette() {
 
               {/* Results */}
               <Command.List
+                ref={listRef}
                 className="custom-scrollbar"
                 style={{
                   maxHeight: "360px",
@@ -1087,6 +1096,7 @@ export function GlobalCommandPalette() {
                         <CommandGridItem
                           key={item.id}
                           item={item}
+                          index={i}
                           isSelected={i === gridIndex}
                           onHover={() => setGridIndex(i)}
                         />
@@ -1247,10 +1257,12 @@ export function GlobalCommandPalette() {
 
 function CommandGridItem({
   item,
+  index,
   isSelected,
   onHover,
 }: {
   item: CommandItem;
+  index: number;
   isSelected: boolean;
   onHover: () => void;
 }) {
@@ -1258,6 +1270,7 @@ function CommandGridItem({
 
   return (
     <Command.Item
+      data-grid-index={index}
       className="group flex flex-col items-center justify-center gap-2 cursor-pointer outline-none transition-all duration-100"
       style={{
         padding: "14px 8px",
