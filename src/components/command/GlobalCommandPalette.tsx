@@ -220,7 +220,41 @@ export function GlobalCommandPalette() {
   const isDark = dark === "dark";
 
   const [search, setSearch] = useState("");
-  const { data, isFetching: isFetchingAdmin } = useGlobalSearch(search);
+
+  // ── Modo prefijo — "per ab" busca "ab" solo en Personajes ─────────────────
+  const PREFIX_MAP: Record<string, string> = {
+    per: "Personajes",
+    cri: "Criaturas",
+    ite: "Items",
+    rei: "Reinos",
+    ciu: "Ciudades",
+    can: "Canciones",
+    cap: "Capítulos",
+    lib: "Libros",
+    ens: "Ensayos",
+    don: "Dones",
+    hec: "Hechizos",
+    run: "Runas",
+  };
+  // Grupos admin que mapean al mismo tipo
+  const PREFIX_ADMIN_GROUPS: Record<string, string[]> = {
+    can: ["Canciones", "Canciones (editor)"],
+    cap: ["Capítulos", "Capítulos (editor)"],
+    lib: ["Libros"],
+  };
+
+  const searchLower = search.trimStart().toLowerCase();
+  const prefixMatch = Object.keys(PREFIX_MAP).find(
+    (p) => searchLower.startsWith(p + " ") || searchLower === p,
+  );
+  const activePrefix = prefixMatch ?? null; // "per"
+  const activeGroup = activePrefix ? PREFIX_MAP[activePrefix] : null; // "Personajes"
+  // Query real que se manda a Supabase (lo que va después del prefijo)
+  const prefixQuery = activePrefix
+    ? search.trim().slice(activePrefix.length).trimStart()
+    : search;
+
+  const { data, isFetching: isFetchingAdmin } = useGlobalSearch(prefixQuery);
   const fromCache = data?.fromCache ?? false;
 
   // Búsqueda pública — activa para TODOS los usuarios (admin y no-admin)
@@ -229,7 +263,7 @@ export function GlobalCommandPalette() {
     capitulos: capitulosPublicos,
     libros: librosPublicos,
     isFetching: isFetchingPublic,
-  } = usePublicSearch(search);
+  } = usePublicSearch(prefixQuery);
 
   // Browse público — carga inicial sin query para el panel "Descubrir"
   const {
@@ -903,11 +937,20 @@ export function GlobalCommandPalette() {
 
   // Unir: admin ve sus items de editor + los públicos del lector (para poder navegar como usuario)
   // No-admin solo ve los públicos del lector.
-  const dynamicItems: CommandItem[] = isAdmin
+  const allDynamicItems: CommandItem[] = isAdmin
     ? [...adminDynamicItems, ...publicDynamicItems]
     : [...publicDynamicItems];
 
-  const showDynamic = search.trim().length >= 2 && !showCreateGrid;
+  // Si hay prefijo activo, filtrar solo el grupo correspondiente
+  const dynamicItems: CommandItem[] = activeGroup
+    ? allDynamicItems.filter((item) => {
+        const allowed = PREFIX_ADMIN_GROUPS[activePrefix!] ?? [activeGroup];
+        return allowed.includes(item.group);
+      })
+    : allDynamicItems;
+
+  const showDynamic =
+    (search.trim().length >= 2 || activePrefix !== null) && !showCreateGrid;
   const hasDynamicResults = dynamicItems.length > 0;
 
   // Elementos de descubrimiento público — se muestran cuando no hay búsqueda activa
@@ -1029,6 +1072,21 @@ export function GlobalCommandPalette() {
                     }}
                   />
                 )}
+                {/* Badge de prefijo activo */}
+                {activeGroup && (
+                  <span
+                    className="shrink-0 text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded"
+                    style={{
+                      background:
+                        "color-mix(in srgb, var(--primary) 12%, transparent)",
+                      color: "var(--primary)",
+                      border:
+                        "var(--border-width) solid color-mix(in srgb, var(--primary) 20%, transparent)",
+                    }}
+                  >
+                    {activeGroup}
+                  </span>
+                )}
                 <Command.Input
                   autoFocus
                   className="flex-1 bg-transparent outline-none text-sm"
@@ -1065,17 +1123,6 @@ export function GlobalCommandPalette() {
                   padding: "6px",
                 }}
               >
-                <Command.Empty
-                  className="flex flex-col items-center gap-2 py-10 text-center"
-                  style={{
-                    color:
-                      "color-mix(in srgb, var(--primary) 35%, transparent)",
-                  }}
-                >
-                  <Flower2 size={20} />
-                  <span className="text-xs font-medium">Nada por aquí…</span>
-                </Command.Empty>
-
                 {/* Grid de creación — al escribir "add / crear / nuevo" */}
                 {showCreateGrid && (
                   <Command.Group>
@@ -1184,9 +1231,16 @@ export function GlobalCommandPalette() {
                     }}
                   >
                     <Flower2 size={20} />
-                    <span className="text-xs font-medium">
-                      Sin resultados para &ldquo;{search}&rdquo;
-                    </span>
+                    {activePrefix && prefixQuery.length === 0 ? (
+                      <span className="text-xs font-medium">
+                        Escribe para buscar en {activeGroup}…
+                      </span>
+                    ) : (
+                      <span className="text-xs font-medium">
+                        Sin resultados para &ldquo;{prefixQuery || search}
+                        &rdquo;
+                      </span>
+                    )}
                   </div>
                 )}
               </Command.List>
@@ -1233,9 +1287,20 @@ export function GlobalCommandPalette() {
                     {fromCache ? "cache local" : "en línea"}
                   </span>
                 )}
-                {!showDynamic && (
+                {!showDynamic && !showCreateGrid && (
                   <span
                     className="text-[9px] font-black uppercase tracking-widest ml-auto"
+                    style={{
+                      color:
+                        "color-mix(in srgb, var(--primary) 28%, transparent)",
+                    }}
+                  >
+                    per · cri · lib · can…
+                  </span>
+                )}
+                {!showDynamic && !showCreateGrid && (
+                  <span
+                    className="text-[9px] font-black uppercase tracking-widest"
                     style={{
                       color:
                         "color-mix(in srgb, var(--primary) 28%, transparent)",
