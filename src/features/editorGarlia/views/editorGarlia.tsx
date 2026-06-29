@@ -17,12 +17,13 @@ import { EditorGrupoStandalone } from "./EditorGrupo";
 import { EditorHechizos } from "./EditorHechizos";
 import { EditorMundo } from "./EditorMundo";
 import { useMundoSecciones } from "../hooks/hooks";
+
 import {
   ModalAcontecimiento,
   ModalNuevoGrupo,
   type AllItems,
   type MagicAddKey,
-} from "../components/SidebarComponents";
+} from "../components/EditorModals";
 import {
   TAB_CONFIG,
   type TabKey,
