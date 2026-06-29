@@ -33,7 +33,7 @@ import {
   UserCircle2,
   X,
 } from "lucide-react";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 
 import { WikiEntity } from "@/components/forms/Markdown/MarkdownEditor";
 import { ComboSelector } from "@/components/ui/ComboSelector";
@@ -44,10 +44,7 @@ import { PersonajeLineaDeTiempo } from "@/features/editorGarlia/components/Perso
 import { db } from "@/lib/api/client/db";
 import { supabase } from "@/lib/api/client/supabase";
 import { dexiePut, dexieDelete } from "@/lib/utils/dexieHelpers";
-import {
-  getCriaturaByNombre,
-  getGruposByTipo,
-} from "@/lib/utils/criaturaCache";
+import { isReallyOnline } from "@/hooks/data/useOfflineSync";
 
 import { BloqueDones } from "../components/BloqueDones";
 import { useNombresDeTabla } from "../hooks/hooks";
@@ -68,6 +65,14 @@ function useGruposDeCriaturaPorNombre(
 ): { ids: string[]; esMagico: boolean } {
   const [grupoIds, setGrupoIds] = useState<string[]>([]);
   const [esMagico, setEsMagico] = useState(false);
+  const isMounted = useRef(true);
+
+  const applyGrupos = useCallback((grupos: any[]) => {
+    setGrupoIds(grupos.map((g: any) => g.id));
+    setEsMagico(
+      grupos.some((g: any) => normNombre(g.nombre ?? "") === "magico"),
+    );
+  }, []);
 
   const load = useCallback(async () => {
     if (!nombreEspecie?.trim()) {
@@ -76,54 +81,62 @@ function useGruposDeCriaturaPorNombre(
       return;
     }
 
-    const criLocal = await getCriaturaByNombre(nombreEspecie);
-    let criaturaId: string | null = criLocal?.id ?? null;
-
-    if (criaturaId) {
-      const gruposCriaturas = await getGruposByTipo("criaturas");
-      const grupos = gruposCriaturas.filter((g: any) =>
-        (g.miembro_ids ?? []).includes(criaturaId),
-      );
-      if (grupos.length) {
-        setGrupoIds(grupos.map((g: any) => g.id));
-        setEsMagico(
-          grupos.some((g: any) => normNombre(g.nombre ?? "") === "magico"),
+    // ── 1. Dexie primero (instantáneo) ──────────────────────────────────────
+    try {
+      if (db?.criaturas && db?.grupos_mundo) {
+        // Buscar criatura por nombre en Dexie
+        const todas: any[] = await db.criaturas.toArray();
+        const criLocal = todas.find(
+          (c: any) => normNombre(c.nombre ?? "") === normNombre(nombreEspecie),
         );
-        if (!navigator.onLine) return;
+        if (criLocal?.id) {
+          const gruposLocal: any[] = await db.grupos_mundo
+            .where("tipo")
+            .equals("criaturas")
+            .toArray();
+          const match = gruposLocal.filter((g: any) =>
+            (g.miembro_ids ?? []).includes(criLocal.id),
+          );
+          if (match.length && isMounted.current) {
+            applyGrupos(match);
+          }
+        }
       }
-    }
+    } catch {}
 
-    if (!navigator.onLine) return;
+    // ── 2. Supabase en background ────────────────────────────────────────────
+    try {
+      const online = await isReallyOnline();
+      if (!online || !isMounted.current) return;
 
-    if (!criaturaId) {
+      // Buscar criatura por nombre en Supabase
       const { data: cri } = await supabase
         .from("criaturas")
         .select("id")
         .ilike("nombre", nombreEspecie.trim())
         .limit(1)
         .maybeSingle();
-      criaturaId = cri?.id ?? null;
-    }
-    if (!criaturaId) {
-      setGrupoIds([]);
-      setEsMagico(false);
-      return;
-    }
 
-    const { data: grupos } = await supabase
-      .from("grupos_mundo")
-      .select("id, nombre, miembro_ids")
-      .eq("tipo", "criaturas")
-      .contains("miembro_ids", [criaturaId]);
-    setGrupoIds((grupos ?? []).map((g: any) => g.id));
-    setEsMagico(
-      (grupos ?? []).some((g: any) => normNombre(g.nombre ?? "") === "magico"),
-    );
-  }, [nombreEspecie]);
+      if (!cri?.id || !isMounted.current) return;
+
+      const { data: grupos } = await supabase
+        .from("grupos_mundo")
+        .select("id, nombre, miembro_ids")
+        .eq("tipo", "criaturas")
+        .contains("miembro_ids", [cri.id]);
+
+      if (isMounted.current) applyGrupos(grupos ?? []);
+    } catch {}
+  }, [nombreEspecie, applyGrupos]);
 
   useEffect(() => {
+    isMounted.current = true;
     load();
+    return () => {
+      isMounted.current = false;
+    };
   }, [load]);
+
   return { ids: grupoIds, esMagico };
 }
 
@@ -132,42 +145,50 @@ type CiudadMin = { id: string; nombre: string; reino_id: string | null };
 
 function useCiudades(): CiudadMin[] {
   const [ciudades, setCiudades] = useState<CiudadMin[]>([]);
+
   useEffect(() => {
+    let mounted = true;
     const run = async () => {
+      // ── 1. Dexie primero ──────────────────────────────────────────────────
       try {
-        if (db) {
-          const local: any[] = (await (db as any).ciudades?.toArray()) ?? [];
-          if (local.length) {
-            setCiudades(
-              local
-                .filter((l: any) => !l.deleted)
-                .map((l: any) => ({
-                  id: l.id,
-                  nombre: l.nombre,
-                  reino_id: l.reino_id ?? null,
-                }))
-                .sort((a, b) => a.nombre.localeCompare(b.nombre)),
-            );
-            if (!navigator.onLine) return;
-          }
+        if (db?.ciudades) {
+          const local: any[] = await db.ciudades.toArray();
+          const mapped = local
+            .filter((l: any) => !l.deleted)
+            .map((l: any) => ({
+              id: l.id,
+              nombre: l.nombre,
+              reino_id: l.reino_id ?? null,
+            }))
+            .sort((a, b) => a.nombre.localeCompare(b.nombre));
+          if (mapped.length && mounted) setCiudades(mapped);
         }
       } catch {}
-      if (!navigator.onLine) return;
-      const { data } = await supabase
-        .from("ciudades")
-        .select("id, nombre, reino_id")
-        .order("nombre");
-      if (data)
-        setCiudades(
-          data.map((l: any) => ({
-            id: l.id,
-            nombre: l.nombre,
-            reino_id: l.reino_id ?? null,
-          })),
-        );
+
+      // ── 2. Supabase en background ─────────────────────────────────────────
+      try {
+        const online = await isReallyOnline();
+        if (!online || !mounted) return;
+        const { data } = await supabase
+          .from("ciudades")
+          .select("id, nombre, reino_id")
+          .order("nombre");
+        if (data && mounted)
+          setCiudades(
+            data.map((l: any) => ({
+              id: l.id,
+              nombre: l.nombre,
+              reino_id: l.reino_id ?? null,
+            })),
+          );
+      } catch {}
     };
     run();
+    return () => {
+      mounted = false;
+    };
   }, []);
+
   return ciudades;
 }
 
@@ -176,30 +197,38 @@ type ReinoMin = { id: string; nombre: string };
 
 function useReinosMin(): ReinoMin[] {
   const [reinos, setReinos] = useState<ReinoMin[]>([]);
+
   useEffect(() => {
+    let mounted = true;
     const run = async () => {
+      // ── 1. Dexie primero ──────────────────────────────────────────────────
       try {
-        if (db) {
-          const local: any[] = (await (db as any).reinos?.toArray()) ?? [];
-          if (local.length) {
-            setReinos(
-              local
-                .filter((r: any) => !r.deleted)
-                .map((r: any) => ({ id: r.id, nombre: r.nombre })),
-            );
-            if (!navigator.onLine) return;
-          }
+        if (db?.reinos) {
+          const local: any[] = await db.reinos.toArray();
+          const mapped = local
+            .filter((r: any) => !r.deleted)
+            .map((r: any) => ({ id: r.id, nombre: r.nombre }));
+          if (mapped.length && mounted) setReinos(mapped);
         }
       } catch {}
-      if (!navigator.onLine) return;
-      const { data } = await supabase
-        .from("reinos")
-        .select("id, nombre")
-        .order("nombre");
-      if (data) setReinos(data);
+
+      // ── 2. Supabase en background ─────────────────────────────────────────
+      try {
+        const online = await isReallyOnline();
+        if (!online || !mounted) return;
+        const { data } = await supabase
+          .from("reinos")
+          .select("id, nombre")
+          .order("nombre");
+        if (data && mounted) setReinos(data);
+      } catch {}
     };
     run();
+    return () => {
+      mounted = false;
+    };
   }, []);
+
   return reinos;
 }
 
