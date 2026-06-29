@@ -749,18 +749,22 @@ export function GlobalCommandPalette() {
   const GRID_COLS = 3;
   const [gridIndex, setGridIndex] = useState(0);
 
-  // Fix 1: ref estable — evita re-registrar el handler en cada render
+  // ref estable para los items activos en el grid (create o prefix)
   const createItemsRef = useRef<CommandItem[]>([]);
   createItemsRef.current = createItems;
 
-  // Reset index cuando se entra/sale del modo grid
-  useEffect(() => {
-    if (showCreateGrid) setGridIndex(0);
-  }, [showCreateGrid]);
+  const prefixItemsRef = useRef<CommandItem[]>([]);
 
-  // Navegación con flechas en el grid (←→↑↓)
+  const inGridMode = showCreateGrid || !!activePrefix;
+
+  // Reset index al entrar en cualquier modo grid
   useEffect(() => {
-    if (!showCreateGrid) return;
+    if (inGridMode) setGridIndex(0);
+  }, [inGridMode]);
+
+  // Navegación con flechas — activa en ambos modos grid
+  useEffect(() => {
+    if (!inGridMode) return;
     const handler = (e: KeyboardEvent) => {
       if (
         !["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Enter"].includes(
@@ -769,12 +773,13 @@ export function GlobalCommandPalette() {
       )
         return;
       e.preventDefault();
-      // Fix 2: stopImmediatePropagation bloquea cmdk en la misma fase de captura —
-      // sin esto cmdk mueve su cursor interno en paralelo al nuestro
       e.stopImmediatePropagation();
-      const items = createItemsRef.current;
+      const items = showCreateGrid
+        ? createItemsRef.current
+        : prefixItemsRef.current;
       setGridIndex((prev) => {
         const total = items.length;
+        if (!total) return prev;
         if (e.key === "ArrowRight") return (prev + 1) % total;
         if (e.key === "ArrowLeft") return (prev - 1 + total) % total;
         if (e.key === "ArrowDown") return Math.min(prev + GRID_COLS, total - 1);
@@ -788,19 +793,18 @@ export function GlobalCommandPalette() {
     };
     window.addEventListener("keydown", handler, true);
     return () => window.removeEventListener("keydown", handler, true);
-    // createItems intencionalmente fuera de deps — se lee via ref
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showCreateGrid]);
+  }, [inGridMode, showCreateGrid]);
 
   // Scroll automático al item seleccionado en el grid
   const listRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    if (!showCreateGrid) return;
+    if (!inGridMode) return;
     const el = listRef.current?.querySelector(
       `[data-grid-index="${gridIndex}"]`,
     );
     el?.scrollIntoView({ block: "nearest", behavior: "smooth" });
-  }, [gridIndex, showCreateGrid]);
+  }, [gridIndex, inGridMode]);
 
   // Resultados públicos — visibles para usuarios NO-admin cuando hay búsqueda activa.
   // Libros, canciones y capítulos navegan a sus rutas públicas (/garlia/...).
@@ -1156,25 +1160,60 @@ export function GlobalCommandPalette() {
                   </Command.Group>
                 )}
 
-                {/* Resultados dinámicos (búsqueda activa) */}
+                {/* Resultados dinámicos — grid si hay prefijo, lista si no */}
                 {showDynamic &&
                   hasDynamicResults &&
-                  Object.entries(dynamicGroups).map(([groupName, items]) => (
-                    <Command.Group key={groupName}>
-                      <div
-                        className="text-[8px] font-black uppercase tracking-widest px-3 pt-3 pb-1"
-                        style={{
-                          color:
-                            "color-mix(in srgb, var(--primary) 30%, transparent)",
-                        }}
-                      >
-                        {groupName}
-                      </div>
-                      {items.map((item) => (
-                        <CommandItemRow key={item.id} item={item} />
+                  (activePrefix
+                    ? (() => {
+                        // Aplanar todos los items del grupo en un solo array para el grid
+                        const flatItems = Object.values(dynamicGroups).flat();
+                        prefixItemsRef.current = flatItems;
+                        return (
+                          <Command.Group>
+                            <div
+                              className="text-[8px] font-black uppercase tracking-widest px-3 pt-3 pb-2"
+                              style={{
+                                color:
+                                  "color-mix(in srgb, var(--primary) 30%, transparent)",
+                              }}
+                            >
+                              {activeGroup}
+                            </div>
+                            <div
+                              className="grid gap-1.5 px-1 pb-2"
+                              style={{ gridTemplateColumns: "repeat(3, 1fr)" }}
+                            >
+                              {flatItems.map((item, i) => (
+                                <CommandGridItem
+                                  key={item.id}
+                                  item={item}
+                                  index={i}
+                                  isSelected={i === gridIndex}
+                                  onHover={() => setGridIndex(i)}
+                                />
+                              ))}
+                            </div>
+                          </Command.Group>
+                        );
+                      })()
+                    : Object.entries(dynamicGroups).map(
+                        ([groupName, items]) => (
+                          <Command.Group key={groupName}>
+                            <div
+                              className="text-[8px] font-black uppercase tracking-widest px-3 pt-3 pb-1"
+                              style={{
+                                color:
+                                  "color-mix(in srgb, var(--primary) 30%, transparent)",
+                              }}
+                            >
+                              {groupName}
+                            </div>
+                            {items.map((item) => (
+                              <CommandItemRow key={item.id} item={item} />
+                            ))}
+                          </Command.Group>
+                        ),
                       ))}
-                    </Command.Group>
-                  ))}
 
                 {/* Comandos estáticos (siempre visibles o cuando no hay búsqueda activa) */}
                 {!showDynamic &&
