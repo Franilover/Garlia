@@ -806,54 +806,55 @@ export function GlobalCommandPalette() {
     el?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }, [gridIndex, inGridMode]);
 
+  const dynamicActive = search.trim().length >= 2 || activePrefix !== null;
+
   // Resultados públicos — visibles para usuarios NO-admin cuando hay búsqueda activa.
   // Libros, canciones y capítulos navegan a sus rutas públicas (/garlia/...).
-  const publicDynamicItems: CommandItem[] =
-    search.trim().length >= 2
-      ? [
-          ...librosPublicos.map((l) => ({
-            id: `l-pub-${l.id}`,
-            label: l.titulo,
-            description: l.sinopsis
-              ? l.sinopsis.slice(0, 60) + (l.sinopsis.length > 60 ? "…" : "")
-              : (l.estado ?? "Libro"),
-            icon: BookText,
-            avatar: l.portada_url ?? null,
-            action: () => go(`/garlia/libros/${toSlug(l.titulo)}`),
-            group: "Libros",
-          })),
-          ...cancionesPublicas.map((c) => ({
-            id: `c-pub-${c.id}`,
-            label: c.titulo,
-            description: c.cantante ?? "Canción",
-            icon: Music,
-            avatar: c.portada_url ?? null,
-            action: () => go(`/garlia/canciones/${toSlug(c.titulo)}`),
-            group: "Canciones",
-          })),
-          ...capitulosPublicos.map((c) => {
-            const libroSlug = toSlug(c.libro_titulo ?? "");
-            const destino = libroSlug
-              ? `/garlia/libros/${libroSlug}/leer/${c.orden}`
-              : `/garlia/libros`;
-            return {
-              id: `cap-pub-${c.id}`,
-              label: c.titulo_capitulo,
-              description: c.libro_titulo
-                ? `Cap. ${c.orden} · ${c.libro_titulo}`
-                : `Capítulo ${c.orden}`,
-              icon: BookOpen,
-              avatar: c.libro_portada ?? null,
-              action: () => go(destino),
-              group: "Capítulos",
-            };
-          }),
-        ]
-      : [];
+  const publicDynamicItems: CommandItem[] = dynamicActive
+    ? [
+        ...librosPublicos.map((l) => ({
+          id: `l-pub-${l.id}`,
+          label: l.titulo,
+          description: l.sinopsis
+            ? l.sinopsis.slice(0, 60) + (l.sinopsis.length > 60 ? "…" : "")
+            : (l.estado ?? "Libro"),
+          icon: BookText,
+          avatar: l.portada_url ?? null,
+          action: () => go(`/garlia/libros/${toSlug(l.titulo)}`),
+          group: "Libros",
+        })),
+        ...cancionesPublicas.map((c) => ({
+          id: `c-pub-${c.id}`,
+          label: c.titulo,
+          description: c.cantante ?? "Canción",
+          icon: Music,
+          avatar: c.portada_url ?? null,
+          action: () => go(`/garlia/canciones/${toSlug(c.titulo)}`),
+          group: "Canciones",
+        })),
+        ...capitulosPublicos.map((c) => {
+          const libroSlug = toSlug(c.libro_titulo ?? "");
+          const destino = libroSlug
+            ? `/garlia/libros/${libroSlug}/leer/${c.orden}`
+            : `/garlia/libros`;
+          return {
+            id: `cap-pub-${c.id}`,
+            label: c.titulo_capitulo,
+            description: c.libro_titulo
+              ? `Cap. ${c.orden} · ${c.libro_titulo}`
+              : `Capítulo ${c.orden}`,
+            icon: BookOpen,
+            avatar: c.libro_portada ?? null,
+            action: () => go(destino),
+            group: "Capítulos",
+          };
+        }),
+      ]
+    : [];
 
   // Resultados de admin — solo para administradores, abren en EditorGarlia
   const adminDynamicItems: CommandItem[] =
-    search.trim().length >= 2 && isAdmin
+    dynamicActive && isAdmin
       ? [
           ...(data?.personajes ?? []).map((p) => ({
             id: `p-${p.id}`,
@@ -957,8 +958,7 @@ export function GlobalCommandPalette() {
       })
     : allDynamicItems;
 
-  const showDynamic =
-    (search.trim().length >= 2 || activePrefix !== null) && !showCreateGrid;
+  const showDynamic = dynamicActive && !showCreateGrid;
   const hasDynamicResults = dynamicItems.length > 0;
 
   // Elementos de descubrimiento público — se muestran cuando no hay búsqueda activa
