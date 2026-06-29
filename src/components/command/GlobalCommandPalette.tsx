@@ -254,9 +254,14 @@ export function GlobalCommandPalette() {
   const prefixQuery = activePrefix
     ? search.trim().slice(activePrefix.length).trimStart()
     : search;
-  // Lo que realmente viaja a los hooks — mínimo "%%" cuando hay prefijo solo
+  // Lo que realmente viaja a los hooks — mínimo "%%" cuando hay prefijo solo,
+  // y con prefijo activo bajamos el umbral a 1 char (per a ya busca)
   const hookQuery =
-    activePrefix && prefixQuery.length === 0 ? "%%" : prefixQuery;
+    activePrefix && prefixQuery.length === 0
+      ? "%%"
+      : activePrefix && prefixQuery.length === 1
+        ? `%${prefixQuery}%`
+        : prefixQuery;
 
   const { data, isFetching: isFetchingAdmin } = useGlobalSearch(hookQuery);
   const fromCache = data?.fromCache ?? false;
@@ -1160,60 +1165,82 @@ export function GlobalCommandPalette() {
                   </Command.Group>
                 )}
 
-                {/* Resultados dinámicos — grid si hay prefijo, lista si no */}
+                {/* Resultados dinámicos — siempre en grid */}
                 {showDynamic &&
                   hasDynamicResults &&
-                  (activePrefix
-                    ? (() => {
-                        // Aplanar todos los items del grupo en un solo array para el grid
-                        const flatItems = Object.values(dynamicGroups).flat();
-                        prefixItemsRef.current = flatItems;
-                        return (
-                          <Command.Group>
-                            <div
-                              className="text-[8px] font-black uppercase tracking-widest px-3 pt-3 pb-2"
-                              style={{
-                                color:
-                                  "color-mix(in srgb, var(--primary) 30%, transparent)",
-                              }}
-                            >
-                              {activeGroup}
-                            </div>
-                            <div
-                              className="grid gap-1.5 px-1 pb-2"
-                              style={{ gridTemplateColumns: "repeat(3, 1fr)" }}
-                            >
-                              {flatItems.map((item, i) => (
-                                <CommandGridItem
-                                  key={item.id}
-                                  item={item}
-                                  index={i}
-                                  isSelected={i === gridIndex}
-                                  onHover={() => setGridIndex(i)}
-                                />
-                              ))}
-                            </div>
-                          </Command.Group>
-                        );
-                      })()
-                    : Object.entries(dynamicGroups).map(
-                        ([groupName, items]) => (
-                          <Command.Group key={groupName}>
-                            <div
-                              className="text-[8px] font-black uppercase tracking-widest px-3 pt-3 pb-1"
-                              style={{
-                                color:
-                                  "color-mix(in srgb, var(--primary) 30%, transparent)",
-                              }}
-                            >
-                              {groupName}
-                            </div>
-                            {items.map((item) => (
-                              <CommandItemRow key={item.id} item={item} />
-                            ))}
-                          </Command.Group>
-                        ),
-                      ))}
+                  (() => {
+                    const flatItems = activePrefix
+                      ? Object.values(dynamicGroups).flat()
+                      : Object.values(dynamicGroups).flat();
+                    prefixItemsRef.current = flatItems;
+                    const groupLabel = activeGroup ?? "Resultados";
+                    return activePrefix ? (
+                      <Command.Group>
+                        <div
+                          className="text-[8px] font-black uppercase tracking-widest px-3 pt-3 pb-2"
+                          style={{
+                            color:
+                              "color-mix(in srgb, var(--primary) 30%, transparent)",
+                          }}
+                        >
+                          {groupLabel}
+                        </div>
+                        <div
+                          className="grid gap-1.5 px-1 pb-2"
+                          style={{ gridTemplateColumns: "repeat(3, 1fr)" }}
+                        >
+                          {flatItems.map((item, i) => (
+                            <CommandGridItem
+                              key={item.id}
+                              item={item}
+                              index={i}
+                              isSelected={i === gridIndex}
+                              onHover={() => setGridIndex(i)}
+                            />
+                          ))}
+                        </div>
+                      </Command.Group>
+                    ) : (
+                      Object.entries(dynamicGroups).map(
+                        ([groupName, items]) => {
+                          prefixItemsRef.current =
+                            Object.values(dynamicGroups).flat();
+                          return (
+                            <Command.Group key={groupName}>
+                              <div
+                                className="text-[8px] font-black uppercase tracking-widest px-3 pt-3 pb-2"
+                                style={{
+                                  color:
+                                    "color-mix(in srgb, var(--primary) 30%, transparent)",
+                                }}
+                              >
+                                {groupName}
+                              </div>
+                              <div
+                                className="grid gap-1.5 px-1 pb-2"
+                                style={{
+                                  gridTemplateColumns: "repeat(3, 1fr)",
+                                }}
+                              >
+                                {items.map((item, i) => {
+                                  const globalIndex = flatItems.indexOf(item);
+                                  return (
+                                    <CommandGridItem
+                                      key={item.id}
+                                      item={item}
+                                      index={globalIndex}
+                                      isSelected={globalIndex === gridIndex}
+                                      onHover={() => setGridIndex(globalIndex)}
+                                    />
+                                  );
+                                })}
+                              </div>
+                            </Command.Group>
+                          );
+                        },
+                      )
+                    );
+                  })()}
 
                 {/* Comandos estáticos (siempre visibles o cuando no hay búsqueda activa) */}
                 {!showDynamic &&
@@ -1375,15 +1402,15 @@ function CommandGridItem({
   onHover: () => void;
 }) {
   const Icon = item.icon;
+  const hasAvatar = !!item.avatar;
 
   return (
     <Command.Item
       data-grid-index={index}
       className="group flex flex-col items-center justify-center gap-2 cursor-pointer outline-none transition-all duration-100"
       style={{
-        padding: "14px 8px",
+        padding: "12px 8px",
         borderRadius: "var(--radius-btn)",
-        color: "color-mix(in srgb, var(--primary) 70%, transparent)",
         border: `var(--border-width) solid ${isSelected ? "color-mix(in srgb, var(--primary) 25%, transparent)" : "color-mix(in srgb, var(--primary) 10%, transparent)"}`,
         background: isSelected
           ? "color-mix(in srgb, var(--primary) 6%, transparent)"
@@ -1393,26 +1420,55 @@ function CommandGridItem({
       onSelect={item.action}
       onMouseEnter={onHover}
     >
-      <span
-        className="flex items-center justify-center shrink-0 transition-colors duration-100"
-        style={{
-          width: 36,
-          height: 36,
-          borderRadius: "var(--radius-btn)",
-          background: isSelected
-            ? "color-mix(in srgb, var(--primary) 12%, transparent)"
-            : "color-mix(in srgb, var(--primary) 7%, transparent)",
-          color: "var(--primary)",
-        }}
-      >
-        <Icon size={17} strokeWidth={1.75} />
-      </span>
+      {/* Imagen o icono */}
+      {hasAvatar ? (
+        <img
+          alt={item.label}
+          src={item.avatar!}
+          className="shrink-0 object-cover"
+          style={{
+            width: 44,
+            height: 44,
+            borderRadius: "var(--radius-btn)",
+            border: isSelected
+              ? "2px solid color-mix(in srgb, var(--primary) 30%, transparent)"
+              : "2px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+          }}
+        />
+      ) : (
+        <span
+          className="flex items-center justify-center shrink-0 transition-colors duration-100"
+          style={{
+            width: 44,
+            height: 44,
+            borderRadius: "var(--radius-btn)",
+            background: isSelected
+              ? "color-mix(in srgb, var(--primary) 12%, transparent)"
+              : "color-mix(in srgb, var(--primary) 7%, transparent)",
+            color: "var(--primary)",
+          }}
+        >
+          <Icon size={18} strokeWidth={1.75} />
+        </span>
+      )}
+
       <p
-        className="text-[10px] font-semibold text-center leading-tight"
+        className="text-[10px] font-semibold text-center leading-tight w-full truncate px-1"
         style={{ color: "var(--primary)" }}
       >
         {item.label.replace(/^(Nuevo|Nueva|New)\s+/i, "")}
       </p>
+
+      {item.description && (
+        <p
+          className="text-[9px] text-center leading-tight w-full truncate px-1 -mt-1"
+          style={{
+            color: "color-mix(in srgb, var(--primary) 40%, transparent)",
+          }}
+        >
+          {item.description}
+        </p>
+      )}
     </Command.Item>
   );
 }
