@@ -3,13 +3,21 @@
 /**
  * PersonajeLineaDeTiempo.tsx
  * ──────────────────────────
- * Hook `useErasDelPersonaje` + componentes `EraItem` y `PersonajeLineaDeTiempo`.
- * Gestiona la línea de tiempo de eras de un personaje: crear, expandir,
- * editar rasgos/notas/etiqueta, y eliminar eras. También incluye el
- * selector de fecha de nacimiento inline cuando aún no está asignado.
+ * UI de la línea de tiempo de eras de un personaje: crear, expandir,
+ * editar rasgos/notas/etiqueta, eliminar eras, y selector de fecha de
+ * nacimiento inline. Toda la lógica vive en useErasDelPersonaje.
  *
- * Ruta destino:
- *   src/features/editorGarlia/components/PersonajeLineaDeTiempo.tsx
+ * NOTA DE ARQUITECTURA: este componente depende de FechaMundoBadge,
+ * SelectorFechaMundo y useCalendario, que hoy viven en
+ * `features/editorGarlia/views/EditorLineaTiempo.tsx`. Un componente
+ * NO puede importar de `views/` (regla de zona). Esas tres piezas
+ * deberían moverse a `features/editorGarlia/components/CalendarioMundo.tsx`
+ * (son reutilizables, no exclusivas de una pantalla) y la view
+ * reexportarlas si necesita mantener compatibilidad. Mientras esa
+ * extracción no se haga, este import es una violación pendiente —
+ * señalada aquí a propósito en vez de ocultarla.
+ *
+ * Ruta: src/features/editorGarlia/components/Personajes/PersonajeLineaDeTiempo.tsx
  */
 
 import {
@@ -22,27 +30,21 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import React, { useEffect, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
-import { db } from "@/lib/api/client/db";
-import { supabase } from "@/lib/api/client/supabase";
 import {
   FechaMundoBadge,
   SelectorFechaMundo,
   useCalendario,
-} from "@/features/editorGarlia/views/EditorLineaTiempo";
-
-// ─── Tipos ────────────────────────────────────────────────────────────────────
-type Era = {
-  id: string;
-  momento: number;
-  label: string;
-  rasgos: string[];
-  notas: string;
-  _saving?: boolean;
-};
+} from "@/features/editorGarlia/components/CalendarioMundo";
+import {
+  type Era,
+  useErasDelPersonaje,
+} from "@/features/editorGarlia/hooks/useErasDelPersonaje";
+import { useGuardarCumpleanos } from "@/features/editorGarlia/hooks/useGuardarCumpleanos";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
 function calcularEdad(
   diaAbsolutoEra: number,
   diaAbsolutoNacimiento: number,
@@ -53,6 +55,7 @@ function calcularEdad(
 }
 
 // ─── EraItem ──────────────────────────────────────────────────────────────────
+
 function EraItem({
   era,
   isOpen,
@@ -297,7 +300,67 @@ function EraItem({
   );
 }
 
+// ─── Selector de cumpleaños inline (reutilizado en 2 lugares del render) ──────
+
+function SelectorCumple({
+  draft,
+  saving,
+  onChange,
+  onCancel,
+  onGuardar,
+}: {
+  draft: number | null;
+  saving: boolean;
+  onChange: (dia: number | null) => void;
+  onCancel: () => void;
+  onGuardar: () => void;
+}) {
+  return (
+    <div className="space-y-2">
+      <p
+        className="text-[8px] font-black uppercase tracking-widest"
+        style={{ color: "color-mix(in srgb, var(--accent) 60%, transparent)" }}
+      >
+        ✦ Fecha de nacimiento
+      </p>
+      <SelectorFechaMundo
+        placeholder="Seleccionar cumpleaños…"
+        value={draft}
+        onChange={onChange}
+      />
+      <div className="flex gap-1.5 justify-end">
+        <button
+          className="px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border transition-all text-primary/35 border-primary/10 hover:text-primary hover:border-primary/25"
+          type="button"
+          onClick={onCancel}
+        >
+          Cancelar
+        </button>
+        <button
+          className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border transition-all disabled:opacity-30"
+          disabled={draft == null || saving}
+          style={{
+            background: "color-mix(in srgb, var(--accent) 12%, transparent)",
+            borderColor: "color-mix(in srgb, var(--accent) 25%, transparent)",
+            color: "var(--accent)",
+          }}
+          type="button"
+          onClick={onGuardar}
+        >
+          {saving ? (
+            <Loader2 className="animate-spin" size={8} />
+          ) : (
+            <Check size={8} />
+          )}{" "}
+          Guardar
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ─── PersonajeLineaDeTiempo ───────────────────────────────────────────────────
+
 export function PersonajeLineaDeTiempo({
   personajeId,
   fechaNacimiento,
@@ -308,208 +371,56 @@ export function PersonajeLineaDeTiempo({
   onFechaNacimientoChange?: (dia: number | null) => void;
 }) {
   const { cal } = useCalendario();
-  const diasPorAnio = React.useMemo(() => {
+  const diasPorAnio = useMemo(() => {
     if (!cal?.estaciones?.length) return 0;
-    return cal.estaciones.reduce((sum, e) => sum + (e.duracion_dias ?? 0), 0);
+    return cal.estaciones.reduce(
+      (sum: number, e: { duracion_dias?: number }) =>
+        sum + (e.duracion_dias ?? 0),
+      0,
+    );
   }, [cal]);
 
-  const [eras, setEras] = useState<Era[]>([]);
-  const [loading, setLoading] = useState(true);
+  const {
+    eras,
+    loading,
+    creating,
+    addEra,
+    deleteEra,
+    addRasgo,
+    removeRasgo,
+    changeNotas,
+    changeLabel,
+  } = useErasDelPersonaje(personajeId, fechaNacimiento);
+
+  const { guardar: guardarCumple, saving: savingCumple } =
+    useGuardarCumpleanos(personajeId, onFechaNacimientoChange);
+
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [addingNew, setAddingNew] = useState(false);
   const [newMomento, setNewMomento] = useState("");
   const [newLabel, setNewLabel] = useState("");
-  const [creating, setCreating] = useState(false);
 
   const [cumpleSelectorOpen, setCumpleSelectorOpen] = useState(false);
   const [cumpleDraft, setCumpleDraft] = useState<number | null>(null);
-  const [savingCumple, setSavingCumple] = useState(false);
-
-  // ── Guardar fecha de nacimiento inline ────────────────────────────────────
-  const handleGuardarCumple = async () => {
-    if (cumpleDraft == null) return;
-    setSavingCumple(true);
-    try {
-      await (supabase as any)
-        .from("personajes")
-        .update({ fecha_nacimiento: cumpleDraft })
-        .eq("id", personajeId);
-      try {
-        const existing = await (db as any)?.personajes?.get(personajeId);
-        if (existing) {
-          await (db as any)?.personajes?.put({
-            ...existing,
-            fecha_nacimiento: cumpleDraft,
-          });
-        }
-      } catch {}
-      onFechaNacimientoChange?.(cumpleDraft);
-      setCumpleSelectorOpen(false);
-      setCumpleDraft(null);
-    } catch {}
-    setSavingCumple(false);
-  };
-
-  // ── Cargar eras ───────────────────────────────────────────────────────────
-  useEffect(() => {
-    if (!personajeId) return;
-    setLoading(true);
-
-    const mapEraRow = (e: any): Era => ({
-      id: e.id,
-      momento: e.momento,
-      label: e.label ?? "",
-      rasgos: e.rasgos ?? [],
-      notas: e.notas ?? "",
-    });
-
-    const run = async () => {
-      try {
-        if (db) {
-          const local: any[] =
-            (await (db as any).personaje_eras
-              ?.where("personaje_id")
-              .equals(personajeId)
-              .toArray()) ?? [];
-          if (local.length) {
-            setEras(
-              [...local]
-                .sort((a, b) => (a.momento ?? 0) - (b.momento ?? 0))
-                .map(mapEraRow),
-            );
-            setLoading(false);
-            if (!navigator.onLine) return;
-          }
-        }
-      } catch {}
-
-      try {
-        const { data } = await (supabase as any)
-          .from("personaje_eras")
-          .select("id, momento, label, rasgos, notas")
-          .eq("personaje_id", personajeId)
-          .order("momento");
-        if (data) {
-          setEras(data.map(mapEraRow));
-          setLoading(false);
-          try {
-            if (db && data.length > 0) {
-              const rowsWithPid = data.map((e: any) => ({
-                ...e,
-                personaje_id: personajeId,
-              }));
-              await (db as any).personaje_eras?.bulkPut(rowsWithPid);
-            }
-          } catch {}
-        }
-      } catch {}
-      setLoading(false);
-    };
-
-    run();
-  }, [personajeId]);
-
-  // ── Mutaciones de era ─────────────────────────────────────────────────────
-  const updateEra = (id: string, patch: Partial<Era>) =>
-    setEras((prev) => prev.map((e) => (e.id === id ? { ...e, ...patch } : e)));
 
   const handleAddEra = async () => {
     const num = parseInt(newMomento.trim(), 10);
-    if (isNaN(num)) return;
-    if (fechaNacimiento != null && num <= fechaNacimiento) return;
-    setCreating(true);
-    const { data, error } = await (supabase as any)
-      .from("personaje_eras")
-      .insert({
-        personaje_id: personajeId,
-        momento: num,
-        label: newLabel.trim() || null,
-        rasgos: [],
-        notas: "",
-      })
-      .select("id, momento, label, rasgos, notas")
-      .single();
-    if (!error && data) {
-      const era: Era = {
-        id: data.id,
-        momento: data.momento,
-        label: data.label ?? "",
-        rasgos: [],
-        notas: "",
-      };
-      setEras((prev) => [...prev, era].sort((a, b) => a.momento - b.momento));
-      setExpandedId(era.id);
-      try {
-        if (db)
-          await (db as any).personaje_eras?.put({
-            ...data,
-            personaje_id: personajeId,
-          });
-      } catch {}
-    }
+    const era = await addEra(num, newLabel);
+    if (era) setExpandedId(era.id);
     setNewMomento("");
     setNewLabel("");
     setAddingNew(false);
-    setCreating(false);
   };
 
-  const handleDeleteEra = async (id: string) => {
-    setEras((prev) => prev.filter((e) => e.id !== id));
-    await (supabase as any).from("personaje_eras").delete().eq("id", id);
-    try {
-      if (db) await (db as any).personaje_eras?.delete(id);
-    } catch {}
+  const handleGuardarCumple = async () => {
+    if (cumpleDraft == null) return;
+    const ok = await guardarCumple(cumpleDraft);
+    if (ok) {
+      setCumpleSelectorOpen(false);
+      setCumpleDraft(null);
+    }
   };
 
-  const handleAddRasgo = async (era: Era, rasgo: string) => {
-    const trimmed = rasgo.trim();
-    if (!trimmed) return;
-    const next = [...era.rasgos, trimmed];
-    updateEra(era.id, { rasgos: next, _saving: true });
-    await (supabase as any)
-      .from("personaje_eras")
-      .update({ rasgos: next })
-      .eq("id", era.id);
-    updateEra(era.id, { _saving: false });
-  };
-
-  const handleRemoveRasgo = async (era: Era, rasgo: string) => {
-    const next = era.rasgos.filter((r) => r !== rasgo);
-    updateEra(era.id, { rasgos: next, _saving: true });
-    await (supabase as any)
-      .from("personaje_eras")
-      .update({ rasgos: next })
-      .eq("id", era.id);
-    updateEra(era.id, { _saving: false });
-  };
-
-  const notasTimers = React.useRef<Record<string, any>>({});
-  const handleNotasChange = (era: Era, val: string) => {
-    updateEra(era.id, { notas: val, _saving: true });
-    clearTimeout(notasTimers.current[era.id]);
-    notasTimers.current[era.id] = setTimeout(async () => {
-      await (supabase as any)
-        .from("personaje_eras")
-        .update({ notas: val })
-        .eq("id", era.id);
-      updateEra(era.id, { _saving: false });
-    }, 1200);
-  };
-
-  const labelTimers = React.useRef<Record<string, any>>({});
-  const handleLabelChange = (era: Era, val: string) => {
-    updateEra(era.id, { label: val, _saving: true });
-    clearTimeout(labelTimers.current[era.id]);
-    labelTimers.current[era.id] = setTimeout(async () => {
-      await (supabase as any)
-        .from("personaje_eras")
-        .update({ label: val.trim() || null })
-        .eq("id", era.id);
-      updateEra(era.id, { _saving: false });
-    }, 800);
-  };
-
-  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="rounded-xl overflow-hidden border border-primary/10">
       {/* Cabecera */}
@@ -556,7 +467,9 @@ export function PersonajeLineaDeTiempo({
             <SelectorFechaMundo
               placeholder="Seleccionar fecha…"
               value={newMomento ? parseInt(newMomento, 10) : null}
-              onChange={(dia) => setNewMomento(dia != null ? String(dia) : "")}
+              onChange={(dia: number | null) =>
+                setNewMomento(dia != null ? String(dia) : "")
+              }
             />
             {fechaNacimiento != null &&
               newMomento &&
@@ -677,62 +590,16 @@ export function PersonajeLineaDeTiempo({
                   <CalendarDays size={9} /> Asignar fecha de nacimiento
                 </button>
               ) : (
-                <div
-                  className="space-y-2 p-2.5 rounded-xl border"
-                  style={{
-                    borderColor:
-                      "color-mix(in srgb, var(--accent) 20%, transparent)",
-                    background:
-                      "color-mix(in srgb, var(--accent) 4%, transparent)",
+                <SelectorCumple
+                  draft={cumpleDraft}
+                  saving={savingCumple}
+                  onCancel={() => {
+                    setCumpleSelectorOpen(false);
+                    setCumpleDraft(null);
                   }}
-                >
-                  <p
-                    className="text-[8px] font-black uppercase tracking-widest"
-                    style={{
-                      color:
-                        "color-mix(in srgb, var(--accent) 60%, transparent)",
-                    }}
-                  >
-                    ✦ Fecha de nacimiento
-                  </p>
-                  <SelectorFechaMundo
-                    placeholder="Seleccionar cumpleaños…"
-                    value={cumpleDraft}
-                    onChange={(dia) => setCumpleDraft(dia)}
-                  />
-                  <div className="flex gap-1.5 justify-end">
-                    <button
-                      className="px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border transition-all text-primary/35 border-primary/10 hover:text-primary hover:border-primary/25"
-                      type="button"
-                      onClick={() => {
-                        setCumpleSelectorOpen(false);
-                        setCumpleDraft(null);
-                      }}
-                    >
-                      Cancelar
-                    </button>
-                    <button
-                      className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border transition-all disabled:opacity-30"
-                      disabled={cumpleDraft == null || savingCumple}
-                      style={{
-                        background:
-                          "color-mix(in srgb, var(--accent) 12%, transparent)",
-                        borderColor:
-                          "color-mix(in srgb, var(--accent) 25%, transparent)",
-                        color: "var(--accent)",
-                      }}
-                      type="button"
-                      onClick={handleGuardarCumple}
-                    >
-                      {savingCumple ? (
-                        <Loader2 className="animate-spin" size={8} />
-                      ) : (
-                        <Check size={8} />
-                      )}{" "}
-                      Guardar
-                    </button>
-                  </div>
-                </div>
+                  onChange={setCumpleDraft}
+                  onGuardar={handleGuardarCumple}
+                />
               )}
             </div>
           )}
@@ -765,54 +632,16 @@ export function PersonajeLineaDeTiempo({
                   <CalendarDays size={9} /> Asignar fecha de nacimiento
                 </button>
               ) : (
-                <div className="space-y-2">
-                  <p
-                    className="text-[8px] font-black uppercase tracking-widest"
-                    style={{
-                      color:
-                        "color-mix(in srgb, var(--accent) 60%, transparent)",
-                    }}
-                  >
-                    ✦ Fecha de nacimiento
-                  </p>
-                  <SelectorFechaMundo
-                    placeholder="Seleccionar cumpleaños…"
-                    value={cumpleDraft}
-                    onChange={(dia) => setCumpleDraft(dia)}
-                  />
-                  <div className="flex gap-1.5 justify-end">
-                    <button
-                      className="px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border transition-all text-primary/35 border-primary/10 hover:text-primary hover:border-primary/25"
-                      type="button"
-                      onClick={() => {
-                        setCumpleSelectorOpen(false);
-                        setCumpleDraft(null);
-                      }}
-                    >
-                      Cancelar
-                    </button>
-                    <button
-                      className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border transition-all disabled:opacity-30"
-                      disabled={cumpleDraft == null || savingCumple}
-                      style={{
-                        background:
-                          "color-mix(in srgb, var(--accent) 12%, transparent)",
-                        borderColor:
-                          "color-mix(in srgb, var(--accent) 25%, transparent)",
-                        color: "var(--accent)",
-                      }}
-                      type="button"
-                      onClick={handleGuardarCumple}
-                    >
-                      {savingCumple ? (
-                        <Loader2 className="animate-spin" size={8} />
-                      ) : (
-                        <Check size={8} />
-                      )}{" "}
-                      Guardar
-                    </button>
-                  </div>
-                </div>
+                <SelectorCumple
+                  draft={cumpleDraft}
+                  saving={savingCumple}
+                  onCancel={() => {
+                    setCumpleSelectorOpen(false);
+                    setCumpleDraft(null);
+                  }}
+                  onChange={setCumpleDraft}
+                  onGuardar={handleGuardarCumple}
+                />
               )}
             </div>
           )}
@@ -830,11 +659,11 @@ export function PersonajeLineaDeTiempo({
               era={era}
               isLast={idx === eras.length - 1}
               isOpen={expandedId === era.id}
-              onAddRasgo={(r) => handleAddRasgo(era, r)}
-              onDelete={() => handleDeleteEra(era.id)}
-              onLabelChange={(v) => handleLabelChange(era, v)}
-              onNotasChange={(v) => handleNotasChange(era, v)}
-              onRemoveRasgo={(r) => handleRemoveRasgo(era, r)}
+              onAddRasgo={(r) => addRasgo(era, r)}
+              onDelete={() => deleteEra(era.id)}
+              onLabelChange={(v) => changeLabel(era, v)}
+              onNotasChange={(v) => changeNotas(era, v)}
+              onRemoveRasgo={(r) => removeRasgo(era, r)}
               onToggle={() =>
                 setExpandedId(expandedId === era.id ? null : era.id)
               }

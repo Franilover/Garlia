@@ -3,344 +3,53 @@
 /**
  * EditorPersonaje.tsx
  * ────────────────────
- * Vista principal del editor de personajes.
- * Contiene únicamente:
- *   - Hooks de datos propios (especie, territorio)
- *   - FormularioPersonaje — formulario + sidebar orquestado
- *   - EditorPersonaje — shell con save/delete
+ * View principal del editor de personajes. Orquesta hooks del módulo
+ * + componentes del módulo. No contiene lógica con estado propia más
+ * allá de UI puramente visual (apertura del drawer mobile).
  *
- * Todo lo que era sidebar se movió a:
- *   components/PersonajeSidebarPanel.tsx  → drawer + columna desktop
- *   components/PersonajeCapitulosAparece.tsx
- *   components/PersonajeCancionesAsociadas.tsx
- *   components/PersonajeLineaDeTiempo.tsx
- *   components/PersonajeGrupos.tsx
- *   components/PersonajeHechizos.tsx
+ * Datos:
+ *   hooks/useGruposDeCriatura.ts
+ *   hooks/useCiudades.ts
+ *   hooks/useReinosMin.ts
+ *   hooks/usePersonajeForm.ts
  *
- * Helpers de Dexie movidos a:
- *   lib/utils/dexieHelpers.ts
+ * UI:
+ *   components/Personajes/PersonajeSidebarPanel.tsx
+ *   components/Personajes/PersonajeLineaDeTiempo.tsx
+ *   components/Personajes/PersonajeImagePickers.tsx
  *
- * Caches movidas a:
- *   lib/utils/criaturaCache.ts
+ * Ruta: src/features/editorGarlia/views/EditorPersonaje.tsx
  */
 
 import {
-  Camera,
-  Loader2,
   Maximize2,
   Save,
   Trash2,
   UserCircle2,
-  X,
 } from "lucide-react";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useState } from "react";
 
 import { WikiEntity } from "@/components/forms/Markdown/MarkdownEditor";
 import { ComboSelector } from "@/components/ui/ComboSelector";
 import { useConfirm } from "@/components/ui/ConfirmModal";
-import SimpleImagePicker from "@/features/editorGarlia/components/editorCapitulos/snippets/forms/SimpleImagePicker";
 import { PersonajeSidebarPanel } from "@/features/editorGarlia/components/Personajes/PersonajeSidebarPanel";
 import { PersonajeLineaDeTiempo } from "@/features/editorGarlia/components/Personajes/PersonajeLineaDeTiempo";
-import { db } from "@/lib/api/client/db";
-import { supabase } from "@/lib/api/client/supabase";
-import { dexiePut, dexieDelete } from "@/lib/utils/dexieHelpers";
-import { isReallyOnline } from "@/hooks/data/useOfflineSync";
+import {
+  PickerCaraBtn,
+  PickerImagen,
+} from "@/features/editorGarlia/components/Personajes/PersonajeImagePickers";
+import { useCiudades } from "@/features/editorGarlia/hooks/useCiudades";
+import { useGruposDeCriatura } from "@/features/editorGarlia/hooks/useGruposDeCriatura";
+import { usePersonajeForm } from "@/features/editorGarlia/hooks/usePersonajeForm";
+import { useReinosMin } from "@/features/editorGarlia/hooks/useReinosMin";
 
 import { BloqueDones } from "../components/BloqueDones";
 import { useNombresDeTabla } from "../hooks/hooks";
 import { type Personaje, type SaveStatus } from "../hooks/types";
 import { SelectorImagen, SaveIndicator } from "../components/UIComponents";
 
-// ─── Hook: grupos de criatura + esMagico ─────────────────────────────────────
-function normNombre(s: string) {
-  return s
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .trim();
-}
-
-function useGruposDeCriaturaPorNombre(
-  nombreEspecie: string | null | undefined,
-): { ids: string[]; esMagico: boolean } {
-  const [grupoIds, setGrupoIds] = useState<string[]>([]);
-  const [esMagico, setEsMagico] = useState(false);
-  const isMounted = useRef(true);
-
-  const applyGrupos = useCallback((grupos: any[]) => {
-    setGrupoIds(grupos.map((g: any) => g.id));
-    setEsMagico(
-      grupos.some((g: any) => normNombre(g.nombre ?? "") === "magico"),
-    );
-  }, []);
-
-  const load = useCallback(async () => {
-    if (!nombreEspecie?.trim()) {
-      setGrupoIds([]);
-      setEsMagico(false);
-      return;
-    }
-
-    // ── 1. Dexie primero (instantáneo) ──────────────────────────────────────
-    try {
-      if (db?.criaturas && db?.grupos_mundo) {
-        // Buscar criatura por nombre en Dexie
-        const todas: any[] = await db.criaturas.toArray();
-        const criLocal = todas.find(
-          (c: any) => normNombre(c.nombre ?? "") === normNombre(nombreEspecie),
-        );
-        if (criLocal?.id) {
-          const gruposLocal: any[] = await db.grupos_mundo
-            .where("tipo")
-            .equals("criaturas")
-            .toArray();
-          const match = gruposLocal.filter((g: any) =>
-            (g.miembro_ids ?? []).includes(criLocal.id),
-          );
-          if (match.length && isMounted.current) {
-            applyGrupos(match);
-          }
-        }
-      }
-    } catch {}
-
-    // ── 2. Supabase en background ────────────────────────────────────────────
-    try {
-      const online = await isReallyOnline();
-      if (!online || !isMounted.current) return;
-
-      // Buscar criatura por nombre en Supabase
-      const { data: cri } = await supabase
-        .from("criaturas")
-        .select("id")
-        .ilike("nombre", nombreEspecie.trim())
-        .limit(1)
-        .maybeSingle();
-
-      if (!cri?.id || !isMounted.current) return;
-
-      const { data: grupos } = await supabase
-        .from("grupos_mundo")
-        .select("id, nombre, miembro_ids")
-        .eq("tipo", "criaturas")
-        .contains("miembro_ids", [cri.id]);
-
-      if (isMounted.current) applyGrupos(grupos ?? []);
-    } catch {}
-  }, [nombreEspecie, applyGrupos]);
-
-  useEffect(() => {
-    isMounted.current = true;
-    load();
-    return () => {
-      isMounted.current = false;
-    };
-  }, [load]);
-
-  return { ids: grupoIds, esMagico };
-}
-
-// ─── Hook: ciudades (para combo ubicación) ────────────────────────────────────
-type CiudadMin = { id: string; nombre: string; reino_id: string | null };
-
-function useCiudades(): CiudadMin[] {
-  const [ciudades, setCiudades] = useState<CiudadMin[]>([]);
-
-  useEffect(() => {
-    let mounted = true;
-    const run = async () => {
-      // ── 1. Dexie primero ──────────────────────────────────────────────────
-      try {
-        if (db?.ciudades) {
-          const local: any[] = await db.ciudades.toArray();
-          const mapped = local
-            .filter((l: any) => !l.deleted)
-            .map((l: any) => ({
-              id: l.id,
-              nombre: l.nombre,
-              reino_id: l.reino_id ?? null,
-            }))
-            .sort((a, b) => a.nombre.localeCompare(b.nombre));
-          if (mapped.length && mounted) setCiudades(mapped);
-        }
-      } catch {}
-
-      // ── 2. Supabase en background ─────────────────────────────────────────
-      try {
-        const online = await isReallyOnline();
-        if (!online || !mounted) return;
-        const { data } = await supabase
-          .from("ciudades")
-          .select("id, nombre, reino_id")
-          .order("nombre");
-        if (data && mounted)
-          setCiudades(
-            data.map((l: any) => ({
-              id: l.id,
-              nombre: l.nombre,
-              reino_id: l.reino_id ?? null,
-            })),
-          );
-      } catch {}
-    };
-    run();
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  return ciudades;
-}
-
-// ─── Hook: reinos mínimos (para filtrar ciudades) ────────────────────────────
-type ReinoMin = { id: string; nombre: string };
-
-function useReinosMin(): ReinoMin[] {
-  const [reinos, setReinos] = useState<ReinoMin[]>([]);
-
-  useEffect(() => {
-    let mounted = true;
-    const run = async () => {
-      // ── 1. Dexie primero ──────────────────────────────────────────────────
-      try {
-        if (db?.reinos) {
-          const local: any[] = await db.reinos.toArray();
-          const mapped = local
-            .filter((r: any) => !r.deleted)
-            .map((r: any) => ({ id: r.id, nombre: r.nombre }));
-          if (mapped.length && mounted) setReinos(mapped);
-        }
-      } catch {}
-
-      // ── 2. Supabase en background ─────────────────────────────────────────
-      try {
-        const online = await isReallyOnline();
-        if (!online || !mounted) return;
-        const { data } = await supabase
-          .from("reinos")
-          .select("id, nombre")
-          .order("nombre");
-        if (data && mounted) setReinos(data);
-      } catch {}
-    };
-    run();
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  return reinos;
-}
-
-// ─── Pickers de imagen (cara mobile y cuerpo) ─────────────────────────────────
-function PickerImagen({
-  value,
-  onChange,
-  titulo,
-  icon,
-  label,
-}: {
-  value: string;
-  onChange: (url: string) => void;
-  titulo: string;
-  icon: React.ReactNode;
-  label: string;
-}) {
-  const [open, setOpen] = useState(false);
-  return (
-    <>
-      {open && (
-        <div
-          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
-          onClick={() => setOpen(false)}
-        >
-          <div
-            className="bg-white-custom rounded-2xl shadow-2xl border border-primary/15 w-full max-w-lg p-5"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-2">
-                {icon} {titulo}
-              </h3>
-              <button
-                className="text-primary/30 hover:text-primary transition-colors"
-                onClick={() => setOpen(false)}
-              >
-                <X size={16} />
-              </button>
-            </div>
-            <SimpleImagePicker
-              onClose={() => setOpen(false)}
-              onSelect={(url) => {
-                onChange(url);
-                setOpen(false);
-              }}
-            />
-          </div>
-        </div>
-      )}
-      <button
-        className="flex items-center gap-2 px-3 py-2 rounded-xl border border-primary/15 text-[10px] font-black uppercase tracking-widest text-primary/50 hover:text-primary hover:border-primary/30 transition-all"
-        onClick={() => setOpen(true)}
-      >
-        {icon} {label}
-      </button>
-    </>
-  );
-}
-
-function PickerCaraBtn({
-  value,
-  onChange,
-}: {
-  value: string;
-  onChange: (url: string) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  return (
-    <>
-      {open && (
-        <div
-          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
-          onClick={() => setOpen(false)}
-        >
-          <div
-            className="bg-white-custom rounded-2xl shadow-2xl border border-primary/15 w-full max-w-lg p-5"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-2">
-                <Camera size={11} /> Imagen de perfil
-              </h3>
-              <button
-                className="text-primary/30 hover:text-primary transition-colors"
-                onClick={() => setOpen(false)}
-              >
-                <X size={16} />
-              </button>
-            </div>
-            <SimpleImagePicker
-              onClose={() => setOpen(false)}
-              onSelect={(url) => {
-                onChange(url);
-                setOpen(false);
-              }}
-            />
-          </div>
-        </div>
-      )}
-      <button
-        className="flex items-center justify-center w-8 h-8 rounded-full bg-bg-main/80 backdrop-blur-sm border border-primary/20 text-primary/50 hover:text-primary hover:bg-bg-main transition-all shadow-md"
-        title="Cambiar imagen"
-        onClick={() => setOpen(true)}
-      >
-        <Camera size={13} />
-      </button>
-    </>
-  );
-}
-
 // ─── FormularioPersonaje ──────────────────────────────────────────────────────
+
 export function FormularioPersonaje({
   form,
   setForm,
@@ -354,6 +63,7 @@ export function FormularioPersonaje({
   onOpenGrupo,
   onNavigateCiudad,
   onSelectCancion,
+  onFechaNacimientoChange,
 }: {
   form: Personaje;
   setForm: React.Dispatch<React.SetStateAction<Personaje>>;
@@ -367,12 +77,14 @@ export function FormularioPersonaje({
   onOpenGrupo?: (id: string) => void;
   onNavigateCiudad?: (id: string) => void;
   onSelectCancion?: (id: string) => void;
+  onFechaNacimientoChange: (dia: number | null) => void;
 }) {
   const especies = useNombresDeTabla("criaturas");
   const reinosMin = useReinosMin();
   const ciudades = useCiudades();
-  const { ids: grupoIds, esMagico: especieEsMagica } =
-    useGruposDeCriaturaPorNombre(form.especie);
+  const { ids: grupoIds, esMagico: especieEsMagica } = useGruposDeCriatura(
+    form.especie,
+  );
 
   const [mobileAsideOpen, setMobileAsideOpen] = useState(false);
 
@@ -382,7 +94,6 @@ export function FormularioPersonaje({
     reinoSeleccionadoId ? l.reino_id === reinoSeleccionadoId : !l.reino_id,
   );
 
-  // Valores y handlers para ComboSelector de territorio/ubicación
   const territorioValue = form.reino
     ? reinosMin.find((x) => x.nombre === form.reino)
       ? `reino:${reinosMin.find((x) => x.nombre === form.reino)!.id}`
@@ -421,12 +132,6 @@ export function FormularioPersonaje({
     (k: keyof Personaje) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
       setForm((f) => ({ ...f, [k]: e.target.value }));
-
-  const onFechaNacimientoChange = (dia: number | null) => {
-    const updated = { ...form, fecha_nacimiento: dia ?? null } as any;
-    setForm(updated);
-    void dexiePut("personajes", updated);
-  };
 
   const sidebarProps = {
     personajeId: form.id,
@@ -482,7 +187,6 @@ export function FormularioPersonaje({
             title="Entidades"
             onClick={() => setMobileAsideOpen(true)}
           >
-            {/* SlidersHorizontal inline para no importar más de lucide */}
             <svg
               fill="none"
               height={13}
@@ -507,7 +211,6 @@ export function FormularioPersonaje({
 
       {/* Cuerpo: formulario + sidebar inline desktop */}
       <div className="flex-1 flex min-h-0 overflow-hidden">
-        {/* Formulario principal */}
         <div className="flex-1 min-w-0 overflow-y-auto">
           <div className="p-3 space-y-3">
             {/* Imágenes */}
@@ -799,6 +502,7 @@ export function FormularioPersonaje({
 }
 
 // ─── EditorPersonaje ──────────────────────────────────────────────────────────
+
 export function EditorPersonaje({
   item,
   onSaved,
@@ -820,41 +524,9 @@ export function EditorPersonaje({
   onNavigateCiudad?: (id: string) => void;
   onSelectCancion?: (id: string) => void;
 }) {
-  const [form, setForm] = useState<Personaje>(item);
-  const [status, setStatus] = useState<SaveStatus>("idle");
+  const { form, setForm, status, save, remove, onFechaNacimientoChange } =
+    usePersonajeForm(item, onSaved, onDeleted);
   const { confirm, ConfirmModal } = useConfirm();
-
-  useEffect(() => {
-    setForm(item);
-    setStatus("idle");
-  }, [item.id]);
-
-  const save = async () => {
-    setStatus("saving");
-    try {
-      const { error } = await supabase
-        .from("personajes")
-        .update({
-          nombre: form.nombre,
-          img_url: form.img_url || null,
-          img_cuerpo_url: form.img_cuerpo_url || null,
-          sobre: form.sobre,
-          reino: form.reino,
-          especie: form.especie,
-          caracteristicas: form.caracteristicas || null,
-          ciudad_id: (form as any).ciudad_id || null,
-          fecha_nacimiento: (form as any).fecha_nacimiento ?? null,
-        })
-        .eq("id", form.id);
-      if (error) throw error;
-      setStatus("saved");
-      onSaved(form);
-      void dexiePut("personajes", form);
-      setTimeout(() => setStatus("idle"), 2000);
-    } catch {
-      setStatus("error");
-    }
-  };
 
   const del = async () => {
     const ok = await confirm({
@@ -862,9 +534,7 @@ export function EditorPersonaje({
       danger: true,
     });
     if (!ok) return;
-    await supabase.from("personajes").delete().eq("id", form.id);
-    void dexieDelete("personajes", form.id);
-    onDeleted(form.id);
+    await remove();
   };
 
   return (
@@ -876,6 +546,7 @@ export function EditorPersonaje({
         setForm={setForm}
         status={status}
         onDelete={del}
+        onFechaNacimientoChange={onFechaNacimientoChange}
         onNavigate={onNavigate}
         onNavigateCiudad={onNavigateCiudad}
         onOpenGrupo={onOpenGrupo}

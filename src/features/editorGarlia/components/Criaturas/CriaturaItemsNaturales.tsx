@@ -28,7 +28,10 @@ export type NaturalItem = {
 };
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
-export function useNaturalItems(criaturaId: string, varianteId?: string | null) {
+export function useNaturalItems(
+  criaturaId: string,
+  varianteId?: string | null,
+) {
   const [items, setItems] = useState<NaturalItem[]>([]);
   const [allItems, setAllItems] = useState<ItemMin[]>([]);
   const [loading, setLoading] = useState(true);
@@ -36,7 +39,6 @@ export function useNaturalItems(criaturaId: string, varianteId?: string | null) 
   const load = useCallback(async () => {
     setLoading(true);
 
-    // Leer Dexie local + catálogo en paralelo
     const localDropsPromise = db
       ? db.criatura_drops
           .where("criatura_id")
@@ -70,7 +72,6 @@ export function useNaturalItems(criaturaId: string, varianteId?: string | null) 
       setLoading(false);
     }
 
-    // Fetch remoto
     if (!navigator.onLine) {
       setLoading(false);
       return;
@@ -99,7 +100,6 @@ export function useNaturalItems(criaturaId: string, varianteId?: string | null) 
     setItems(remoteItems);
     setLoading(false);
 
-    // Sincronizar Dexie
     try {
       if (db) {
         const existing = await db.criatura_drops
@@ -131,7 +131,6 @@ export function useNaturalItems(criaturaId: string, varianteId?: string | null) 
 
   const add = async (item: ItemMin) => {
     if (items.some((i) => i.itemId === item.id)) return;
-    // Optimista
     const tempId = `temp_${item.id}`;
     setItems((prev) => [
       ...prev,
@@ -187,7 +186,6 @@ export function useNaturalItems(criaturaId: string, varianteId?: string | null) 
   };
 
   const remove = async (dropId: string) => {
-    // Optimista
     setItems((prev) => prev.filter((i) => i.dropId !== dropId));
     try {
       if (db) await db.criatura_drops.delete(dropId);
@@ -195,7 +193,16 @@ export function useNaturalItems(criaturaId: string, varianteId?: string | null) 
     await supabase.from("criatura_drops").delete().eq("id", dropId);
   };
 
-  return { items, allItems, loading, add, remove };
+  // El hook calcula los ítems disponibles para añadir, filtrados por búsqueda.
+  // El componente no necesita acceder a allItems crudo.
+  const getAvailable = (search: string): ItemMin[] =>
+    allItems.filter(
+      (it) =>
+        it.nombre.toLowerCase().includes(search.toLowerCase()) &&
+        !items.some((ni) => ni.itemId === it.id),
+    );
+
+  return { items, allItems, loading, add, remove, getAvailable };
 }
 
 // ─── Componente ───────────────────────────────────────────────────────────────
@@ -208,18 +215,14 @@ export function BloqueItemsNaturales({
   varianteId?: string | null;
   onSelectItem?: (itemId: string) => void;
 }) {
-  const { items, allItems, loading, add, remove } = useNaturalItems(
+  const { items, loading, add, remove, getAvailable } = useNaturalItems(
     criaturaId,
     varianteId,
   );
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
 
-  const filtered = allItems.filter(
-    (it) =>
-      it.nombre.toLowerCase().includes(search.toLowerCase()) &&
-      !items.some((ni) => ni.itemId === it.id),
-  );
+  const filtered = getAvailable(search);
 
   if (loading)
     return (

@@ -3,9 +3,8 @@
 /**
  * CriaturaHabitat.tsx
  * ─────────────────────
- * Hooks `useCriaturaReinos` / `useCriaturaCiudades` + componente
- * `BloqueHabitat`. Gestiona la relación N:N criatura↔reino y
- * criatura↔ciudad, con filtro de ciudades por reino activo.
+ * Hooks `useCriaturaReinos` / `useCriaturaCiudades` / `useHabitatCatalogs`
+ * + componente `BloqueHabitat`.
  *
  * Ruta destino:
  *   src/features/editorGarlia/components/Criaturas/CriaturaHabitat.tsx
@@ -27,6 +26,21 @@ import {
   type CriaturaCiudadRow,
 } from "@/lib/utils/criaturaHabitatCache";
 
+// ─── Hook: catálogos compartidos de reinos y ciudades ────────────────────────
+// Extrae la lógica de fetching de catálogos que antes vivía dentro del componente.
+
+export function useHabitatCatalogs() {
+  const [allReinos, setAllReinos] = useState<ReinoMin[]>([]);
+  const [allCiudades, setAllCiudades] = useState<CiudadMin[]>([]);
+
+  useEffect(() => {
+    getAllReinos().then(setAllReinos);
+    getAllCiudades().then(setAllCiudades);
+  }, []);
+
+  return { allReinos, allCiudades };
+}
+
 // ─── Hook: reinos de la criatura (criatura_reinos) ────────────────────────────
 
 export function useCriaturaReinos(criaturaId: string) {
@@ -43,7 +57,6 @@ export function useCriaturaReinos(criaturaId: string) {
   );
 
   const load = useCallback(async () => {
-    // Si la caché en memoria es fresca, no fetchear
     const cached = criaturaReinosCache.get(criaturaId);
     if (cached && Date.now() - cached.ts < CRIATURA_REL_TTL) {
       setRows(cached.data);
@@ -211,26 +224,20 @@ export function BloqueHabitat({
     remove: removeCiudad,
   } = useCriaturaCiudades(criaturaId);
 
-  const [allReinos, setAllReinos] = useState<ReinoMin[]>([]);
-  const [allCiudades, setAllCiudades] = useState<CiudadMin[]>([]);
-  const [reinoFiltro, setReinoFiltro] = useState<string | null>(null); // reino_id activo
+  // Catálogos: antes vivían en un useEffect dentro del componente.
+  // Ahora los provee un hook dedicado.
+  const { allReinos, allCiudades } = useHabitatCatalogs();
+
+  const [reinoFiltro, setReinoFiltro] = useState<string | null>(null);
   const [openR, setOpenR] = useState(false);
   const [openL, setOpenL] = useState(false);
   const [searchR, setSearchR] = useState("");
   const [searchL, setSearchL] = useState("");
 
-  useEffect(() => {
-    // Usar caches compartidas — respuesta inmediata si ya se cargaron antes
-    getAllReinos().then(setAllReinos);
-    getAllCiudades().then(setAllCiudades);
-  }, []);
-
-  // Ciudades filtradas por reino activo (o sin reino si no hay activo)
   const ciudadesFiltradas = allCiudades.filter((l) =>
     reinoFiltro ? l.reino_id === reinoFiltro : true,
   );
 
-  // Ciudades ya asignadas visibles según filtro actual
   const ciudadesAsignadas = ciudadRows.filter((r) =>
     reinoFiltro ? r.reinoId === reinoFiltro : true,
   );

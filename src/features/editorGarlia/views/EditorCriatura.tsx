@@ -3,20 +3,20 @@
 /**
  * EditorCriatura.tsx
  * ───────────────────
- * Vista principal del editor de criaturas. Contiene únicamente:
- *   - PickerImagenCriaturaBtn — botón mobile para cambiar imagen
- *   - BloqueGrupoCategoria — combo con subtipo de grupo (Hábitat, Inteligencia…)
- *   - BloqueGruposCriatura — chips + dropdown de grupos generales
- *   - EditorCriatura — shell con save/delete + barra de entidades inferior
+ * View principal del editor de criaturas. Solo orquesta:
+ * conecta hooks con componentes, no contiene lógica de dominio.
  *
- * Todo lo demás vive en:
- *   components/Criaturas/CriaturaItemsNaturales.tsx  → drops naturales
- *   components/Criaturas/CriaturaItemsCraftedos.tsx  → ítems creados
- *   components/Criaturas/CriaturaHabitat.tsx         → reinos + ciudades
- *   components/Criaturas/CriaturaMagia.tsx           → hechizos + dones
- *   lib/utils/criaturaItemsCache.ts                  → singleton de ítems
- *   lib/utils/criaturaHabitatCache.ts                → caches de reinos/ciudades/personajes
- *   lib/utils/dexieHelpers.ts                        → dexiePut / dexieDelete / relaciones
+ * Componentes extraídos a components/Criaturas/:
+ *   PickerImagenCriaturaBtn  → botón mobile de imagen
+ *   BloqueGrupoCategoria     → selector de grupo por subtipo
+ *   BloqueGruposCriatura     → chips + dropdown de grupos generales
+ *
+ * Hooks extraídos a components/Criaturas/:
+ *   usePersonajesDeCriatura  → personajes de la especie + toggle
+ *   useCriaturaAsideCatalogs → catálogos globales del aside
+ *
+ * Ruta destino:
+ *   src/features/editorGarlia/views/EditorCriatura.tsx
  */
 
 import Image from "next/image";
@@ -24,16 +24,10 @@ import Image from "next/image";
 import {
   Bug,
   Brain,
-  Camera,
-  ChevronDown,
   Globe,
-  Layers,
   MapPin,
   Package,
-  Pencil,
-  Plus,
   Save,
-  Search,
   SlidersHorizontal,
   Sparkles,
   Star,
@@ -53,6 +47,11 @@ import {
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { SeccionEntidad } from "@/components/ui/SeccionEntidad";
 import {
+  BloqueGrupoCategoria,
+  BloqueGruposCriatura,
+  type GrupoMinExt,
+} from "@/features/editorGarlia/components/Criaturas/BloqueGruposCriatura";
+import {
   useCriaturaReinos,
   useCriaturaCiudades,
 } from "@/features/editorGarlia/components/Criaturas/CriaturaHabitat";
@@ -61,459 +60,19 @@ import {
   BloqueMagico,
   grupoEsMagico,
 } from "@/features/editorGarlia/components/Criaturas/CriaturaMagia";
-import SimpleImagePicker from "@/features/editorGarlia/components/editorCapitulos/snippets/forms/SimpleImagePicker";
-import { db } from "@/lib/api/client/db";
-import { supabase } from "@/lib/api/client/supabase";
+import { PickerImagenCriaturaBtn } from "@/features/editorGarlia/components/Criaturas/PickerImagenCriaturaBtn";
+import { useCriaturaAsideCatalogs } from "@/features/editorGarlia/hooks/useCriaturaAsideCatalogs";
+import { usePersonajesDeCriatura } from "@/features/editorGarlia/hooks/usePersonajesDeCriatura";
+import { useGruposDeCriatura } from "@/features/editorGarlia/hooks/hooks";
 import {
-  getAllPersonajes,
-  getAllReinos,
-  getAllCiudades,
-  type ReinoMin,
-  type CiudadMin,
-} from "@/lib/utils/criaturaHabitatCache";
+  SelectorImagen,
+  SaveIndicator,
+} from "@/features/editorGarlia/components/UIComponents";
+import { useWikilink } from "@/features/editorGarlia/components/WikilinkContext";
+import { supabase } from "@/lib/api/client/supabase";
 import { dexiePut, dexieDelete } from "@/lib/utils/dexieHelpers";
 
-import { useGruposDeCriatura, type GrupoMin } from "../hooks/hooks";
 import { type Criatura, type SaveStatus } from "../hooks/types";
-import { SelectorImagen, SaveIndicator } from "../components/UIComponents";
-import { useWikilink } from "../components/WikilinkContext";
-
-// ─── Botón mobile para cambiar imagen de la criatura ─────────────────────────
-
-function PickerImagenCriaturaBtn({
-  value,
-  onChange,
-}: {
-  value: string;
-  onChange: (url: string) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  return (
-    <>
-      {open && (
-        <div
-          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
-          onClick={() => setOpen(false)}
-        >
-          <div
-            className="bg-white-custom rounded-2xl shadow-2xl border border-primary/15 w-full max-w-lg p-5"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-2">
-                <Camera size={11} /> Imagen de la criatura
-              </h3>
-              <button
-                className="text-primary/30 hover:text-primary transition-colors"
-                onClick={() => setOpen(false)}
-              >
-                <X size={16} />
-              </button>
-            </div>
-            <SimpleImagePicker
-              onClose={() => setOpen(false)}
-              onSelect={(url) => {
-                onChange(url);
-                setOpen(false);
-              }}
-            />
-          </div>
-        </div>
-      )}
-      <button
-        className="flex items-center justify-center w-8 h-8 rounded-full bg-bg-main/80 backdrop-blur-sm border border-primary/20 text-primary/50 hover:text-primary hover:bg-bg-main transition-all shadow-md"
-        title="Cambiar imagen"
-        onClick={() => setOpen(true)}
-      >
-        <Camera size={13} />
-      </button>
-    </>
-  );
-}
-
-// ─── Tipo extendido localmente (GrupoMin + subtipo) ──────────────────────────
-type GrupoMinExt = GrupoMin & { subtipo?: string | null };
-
-function BloqueGrupoCategoria({
-  label,
-  subtipo,
-  icon: Icon,
-  gruposActuales,
-  todosGrupos,
-  onAdd,
-  onRemove,
-  onSelectGrupo,
-}: {
-  label: string;
-  subtipo: string;
-  icon: React.ElementType;
-  gruposActuales: GrupoMinExt[];
-  todosGrupos: GrupoMinExt[];
-  onAdd: (grupoId: string) => void;
-  onRemove: (grupoId: string) => void;
-  onSelectGrupo?: (grupoId: string) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const [search, setSearch] = useState("");
-  const containerRef = React.useRef<HTMLDivElement>(null);
-
-  const gruposDeCat = todosGrupos.filter((g) => g.subtipo === subtipo);
-  const actual = gruposActuales.filter((g) =>
-    gruposDeCat.some((c) => c.id === g.id),
-  );
-  const disponibles = gruposDeCat.filter(
-    (g) =>
-      !gruposActuales.some((a) => a.id === g.id) &&
-      g.nombre.toLowerCase().includes(search.toLowerCase()),
-  );
-
-  const border =
-    "1px solid color-mix(in srgb, var(--primary) 15%, transparent)";
-  const borderFocus =
-    "1px solid color-mix(in srgb, var(--primary) 35%, transparent)";
-
-  // Cerrar al click fuera
-  useEffect(() => {
-    if (!open) return;
-    const h = (e: MouseEvent) => {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(e.target as Node)
-      ) {
-        setOpen(false);
-        setSearch("");
-      }
-    };
-    document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
-  }, [open]);
-
-  return (
-    <div ref={containerRef} className="space-y-1.5">
-      {/* Filas de valores asignados */}
-      {actual.length > 0 && (
-        <div className="flex flex-col gap-1">
-          {actual.map((g) => (
-            <div
-              key={g.id}
-              className="w-full flex items-center rounded-[var(--radius-btn)] overflow-hidden transition-all"
-              style={{
-                background:
-                  "color-mix(in srgb, var(--primary) 5%, transparent)",
-                border,
-              }}
-            >
-              {/* Click principal → navegar al grupo */}
-              <button
-                className="flex-1 flex items-center gap-2 px-3 py-2 text-[11px] font-black uppercase truncate transition-all hover:bg-primary/5 min-w-0"
-                style={{ color: "var(--primary)" }}
-                title="Ir al grupo"
-                type="button"
-                onClick={() => onSelectGrupo?.(g.id)}
-              >
-                <span className="truncate">{g.nombre}</span>
-              </button>
-              {/* Lápiz → abre el dropdown para cambiar */}
-              <button
-                className="shrink-0 flex items-center justify-center px-2.5 py-2 transition-all hover:bg-primary/10"
-                style={{
-                  borderLeft:
-                    "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-                  color: "color-mix(in srgb, var(--primary) 35%, transparent)",
-                }}
-                title="Cambiar"
-                type="button"
-                onClick={() => {
-                  setOpen((o) => !o);
-                  setSearch("");
-                }}
-              >
-                <Pencil size={10} />
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Trigger vacío */}
-      {actual.length === 0 && (
-        <button
-          className="w-full flex items-center justify-between px-3 py-2 rounded-[var(--radius-btn)] text-[11px] font-bold transition-all"
-          style={{
-            background: "color-mix(in srgb, var(--primary) 5%, transparent)",
-            border: open ? borderFocus : border,
-            color: "color-mix(in srgb, var(--primary) 40%, transparent)",
-          }}
-          type="button"
-          onClick={() => setOpen((o) => !o)}
-        >
-          <span className="font-black uppercase text-[10px] tracking-wide">
-            Sin asignar
-          </span>
-          <ChevronDown
-            className={`shrink-0 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
-            size={12}
-            style={{ opacity: 0.5 }}
-          />
-        </button>
-      )}
-
-      {/* Dropdown */}
-      {open && (
-        <div
-          className="rounded-[var(--radius-btn)] overflow-hidden"
-          style={{
-            border,
-            background: "var(--bg-main)",
-            boxShadow:
-              "0 8px 24px color-mix(in srgb, var(--primary) 10%, transparent)",
-          }}
-        >
-          {/* Buscador */}
-          <div
-            className="flex items-center gap-2 px-3 py-2"
-            style={{
-              borderBottom:
-                "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
-            }}
-          >
-            <Search
-              size={11}
-              style={{
-                color: "color-mix(in srgb, var(--primary) 30%, transparent)",
-                flexShrink: 0,
-              }}
-            />
-            <input
-              autoFocus
-              className="flex-1 bg-transparent outline-none text-[11px] font-bold uppercase tracking-wide placeholder:normal-case placeholder:font-medium placeholder:tracking-normal"
-              placeholder="Buscar…"
-              style={{ color: "var(--primary)", caretColor: "var(--primary)" }}
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={(e) =>
-                e.key === "Escape" && (setOpen(false), setSearch(""))
-              }
-            />
-            {search && (
-              <button
-                className="opacity-30 hover:opacity-70 transition-opacity"
-                type="button"
-                onClick={() => setSearch("")}
-              >
-                <X size={10} style={{ color: "var(--primary)" }} />
-              </button>
-            )}
-          </div>
-
-          {/* Lista */}
-          <div className="max-h-48 overflow-y-auto">
-            {/* Opción "quitar" si hay algo asignado */}
-            {actual.length > 0 && (
-              <button
-                className="w-full flex items-center gap-2 px-4 py-2.5 text-[11px] font-bold uppercase transition-all hover:bg-primary/5"
-                style={{
-                  color: "color-mix(in srgb, var(--primary) 45%, transparent)",
-                }}
-                type="button"
-                onMouseDown={() => {
-                  actual.forEach((g) => onRemove(g.id));
-                  setOpen(false);
-                  setSearch("");
-                }}
-              >
-                <span className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center">
-                  <X className="opacity-50" size={9} />
-                </span>
-                Sin asignar
-              </button>
-            )}
-
-            {gruposDeCat.length === 0 ? (
-              <p className="text-[10px] text-primary/30 px-4 py-3 font-bold uppercase">
-                No hay grupos de «{label}» creados
-              </p>
-            ) : disponibles.length === 0 && actual.length === 0 ? (
-              <p className="text-[10px] text-primary/30 px-4 py-3 font-bold uppercase">
-                {search ? `Sin resultados para "${search}"` : "Todos asignados"}
-              </p>
-            ) : (
-              disponibles.map((g) => (
-                <button
-                  key={g.id}
-                  className="w-full flex items-center justify-between px-4 py-2.5 text-[11px] font-bold uppercase transition-all hover:bg-primary/6"
-                  style={{
-                    color:
-                      "color-mix(in srgb, var(--primary) 50%, transparent)",
-                  }}
-                  type="button"
-                  onMouseDown={() => {
-                    onAdd(g.id);
-                    setOpen(false);
-                    setSearch("");
-                  }}
-                >
-                  <span className="truncate">{g.nombre}</span>
-                </button>
-              ))
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─── BloqueGruposCriatura ─────────────────────────────────────────────────────
-// Muestra a qué grupos pertenece la criatura y permite añadir/quitar.
-// Es la mitad del enlace bidireccional: el grupo almacena miembro_ids,
-// y desde aquí actualizamos esos arrays directamente en Supabase.
-
-function BloqueGruposCriatura({
-  gruposActuales,
-  todosGrupos,
-  onAdd,
-  onRemove,
-  onSelectGrupo,
-}: {
-  gruposActuales: GrupoMin[];
-  todosGrupos: GrupoMin[];
-  onAdd: (grupoId: string) => void;
-  onRemove: (grupoId: string) => void;
-  onSelectGrupo?: (grupoId: string) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const [search, setSearch] = useState("");
-
-  const disponibles = useMemo(
-    () =>
-      todosGrupos.filter(
-        (g) =>
-          !gruposActuales.some((a) => a.id === g.id) &&
-          g.nombre.toLowerCase().includes(search.toLowerCase()),
-      ),
-    [todosGrupos, gruposActuales, search],
-  );
-
-  if (todosGrupos.length === 0) return null;
-
-  return (
-    <div className="space-y-2">
-      <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/30 flex items-center gap-1">
-        <Layers size={9} /> Grupos
-      </label>
-
-      {/* Chips de grupos actuales */}
-      {gruposActuales.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
-          {gruposActuales.map((g) => (
-            <div
-              key={g.id}
-              className="flex items-center gap-1 pl-2.5 pr-1.5 py-1 rounded-lg border text-[10px] font-bold"
-              style={{
-                background:
-                  "color-mix(in srgb, var(--primary) 6%, transparent)",
-                borderColor:
-                  "color-mix(in srgb, var(--primary) 15%, transparent)",
-                color: "var(--primary)",
-              }}
-            >
-              <button
-                className="hover:underline cursor-pointer text-left leading-none"
-                title="Ir al grupo"
-                type="button"
-                onClick={() => onSelectGrupo?.(g.id)}
-              >
-                {g.nombre}
-              </button>
-              <button
-                className="w-3.5 h-3.5 rounded flex items-center justify-center text-primary/30 hover:text-red-400 transition-colors cursor-pointer"
-                type="button"
-                onClick={() => onRemove(g.id)}
-              >
-                <X size={8} />
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Dropdown añadir */}
-      <div className="relative">
-        <button
-          className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-dashed text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer"
-          style={{
-            borderColor: "color-mix(in srgb, var(--primary) 18%, transparent)",
-            color: "color-mix(in srgb, var(--primary) 35%, transparent)",
-          }}
-          type="button"
-          onClick={() => setOpen((o) => !o)}
-        >
-          <Plus size={8} /> Añadir a grupo
-        </button>
-
-        {open && (
-          <>
-            <div
-              className="fixed inset-0 z-40"
-              onClick={() => {
-                setOpen(false);
-                setSearch("");
-              }}
-            />
-            <div
-              className="absolute z-50 top-full left-0 mt-1 w-52 rounded-xl border shadow-xl overflow-hidden"
-              style={{
-                background: "var(--bg-main)",
-                borderColor:
-                  "color-mix(in srgb, var(--primary) 12%, transparent)",
-              }}
-            >
-              <div
-                className="p-1.5 border-b"
-                style={{
-                  borderColor:
-                    "color-mix(in srgb, var(--primary) 8%, transparent)",
-                }}
-              >
-                <input
-                  autoFocus
-                  className="w-full bg-transparent text-[10px] text-primary outline-none placeholder:text-primary/30 px-1.5 py-0.5"
-                  placeholder="Buscar grupo…"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
-              </div>
-              <div className="max-h-44 overflow-y-auto p-1">
-                {disponibles.length === 0 ? (
-                  <p className="text-[9px] text-primary/25 italic text-center py-3">
-                    {search ? "Sin resultados" : "Ya está en todos los grupos"}
-                  </p>
-                ) : (
-                  disponibles.map((g) => (
-                    <button
-                      key={g.id}
-                      className="w-full text-left px-2.5 py-1.5 rounded-lg text-[11px] font-medium text-primary/75 hover:bg-primary/6 hover:text-primary transition-colors truncate cursor-pointer"
-                      type="button"
-                      onMouseDown={() => {
-                        onAdd(g.id);
-                        setOpen(false);
-                        setSearch("");
-                      }}
-                    >
-                      {g.nombre}
-                    </button>
-                  ))
-                )}
-              </div>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
 
 // ─── EditorCriatura ───────────────────────────────────────────────────────────
 export function EditorCriatura({
@@ -542,86 +101,26 @@ export function EditorCriatura({
   const { confirm, ConfirmModal } = useConfirm();
   const { onSnippetAction } = useWikilink();
 
-  // Grupos de criaturas a los que pertenece esta criatura (sincronización bidireccional)
+  // ── Grupos ────────────────────────────────────────────────────────────────
   const {
     grupos: gruposActuales,
     todosGrupos,
     addToGrupo,
     removeFromGrupo,
   } = useGruposDeCriatura(form.id);
-  // ── Personajes: hook local con toggle ─────────────────────────────────────
-  const [personajesDeEspecie, setPersonajesDeEspecie] = useState<
-    { id: string; nombre: string; img_url?: string | null }[]
-  >([]);
-  const [loadingPersonajes, setLoadingPersonajes] = useState(true);
-  const [savingPersonajes, setSavingPersonajes] = useState(false);
 
-  useEffect(() => {
-    setLoadingPersonajes(true);
-    const run = async () => {
-      // 1. Dexie primero — filtrar por especie en memoria (no hay índice en especie)
-      try {
-        if (db) {
-          const todas: any[] = (await (db as any).personajes?.toArray()) ?? [];
-          const local = todas.filter(
-            (p: any) =>
-              p.especie?.toLowerCase() === item.nombre?.toLowerCase() &&
-              !p.deleted,
-          );
-          if (local.length) {
-            setPersonajesDeEspecie(
-              local.map((p: any) => ({
-                id: p.id,
-                nombre: p.nombre,
-                img_url: p.img_url ?? null,
-              })),
-            );
-            setLoadingPersonajes(false);
-            if (!navigator.onLine) return;
-          }
-        }
-      } catch {}
+  // ── Personajes de la especie ───────────────────────────────────────────────
+  const {
+    personajes: personajesDeEspecie,
+    loading: loadingPersonajes,
+    saving: savingPersonajes,
+    toggle: togglePersonaje,
+  } = usePersonajesDeCriatura(form.id, item.nombre);
 
-      if (!navigator.onLine) {
-        setLoadingPersonajes(false);
-        return;
-      }
+  // ── Catálogos del aside ────────────────────────────────────────────────────
+  const { allPersonajes, allReinos, allCiudades } = useCriaturaAsideCatalogs();
 
-      // 2. Supabase en background
-      const { data } = await supabase
-        .from("personajes")
-        .select("id, nombre, img_url")
-        .eq("especie", item.nombre)
-        .order("nombre");
-      setPersonajesDeEspecie(data ?? []);
-      setLoadingPersonajes(false);
-    };
-    run();
-  }, [item.nombre]);
-
-  const handleTogglePersonaje = async (id: string, add: boolean) => {
-    setSavingPersonajes(true);
-    if (add) {
-      await supabase
-        .from("personajes")
-        .update({ especie: form.nombre })
-        .eq("id", id);
-      const p = allPersonajes.find((p) => p.id === id);
-      if (p) setPersonajesDeEspecie((prev) => [...prev, p]);
-    } else {
-      await supabase.from("personajes").update({ especie: null }).eq("id", id);
-      setPersonajesDeEspecie((prev) => prev.filter((p) => p.id !== id));
-    }
-    setSavingPersonajes(false);
-  };
-
-  // ── Datos para la barra lateral ────────────────────────────────────────────
-  const [allPersonajes, setAllPersonajes] = useState<
-    { id: string; nombre: string; img_url?: string | null }[]
-  >([]);
-  const [allReinos, setAllReinos] = useState<ReinoMin[]>([]);
-  const [allCiudades, setAllCiudades] = useState<CiudadMin[]>([]);
-
+  // ── Relaciones del aside ───────────────────────────────────────────────────
   const {
     rows: reinoRows,
     loading: loadingReinos,
@@ -649,63 +148,26 @@ export function EditorCriatura({
   const [savingCrafted, setSavingCrafted] = useState(false);
   const [mobileAsideOpen, setMobileAsideOpen] = useState(false);
 
-  useEffect(() => {
-    // Usar caches compartidas — respuesta instantánea si ya se cargaron antes
-    getAllPersonajes().then(setAllPersonajes);
-    getAllReinos().then(setAllReinos);
-    getAllCiudades().then(setAllCiudades);
-  }, []);
-
-  // ── Ciudades con reino → filtradas a los reinos seleccionados ────────────────
-  // Las ciudades sin reino no se muestran en ningún lado.
+  // ── Derivados ─────────────────────────────────────────────────────────────
   const reinosSeleccionadosIds = reinoRows.map((r) => r.reinoId);
-  const ciudadesConReino = allCiudades.filter(
-    (l) =>
-      l.reino_id !== null &&
-      (reinosSeleccionadosIds.length === 0 ||
-        reinosSeleccionadosIds.includes(l.reino_id)),
+  const ciudadesConReino = useMemo(
+    () =>
+      allCiudades.filter(
+        (l: { id: string; nombre: string; reino_id: string | null }) =>
+          l.reino_id !== null &&
+          (reinosSeleccionadosIds.length === 0 ||
+            reinosSeleccionadosIds.includes(l.reino_id)),
+      ),
+    [allCiudades, reinosSeleccionadosIds],
   );
 
-  const handleToggleReino = async (id: string, add: boolean) => {
-    setSavingReinos(true);
-    const reino = allReinos.find((r) => r.id === id);
-    if (add && reino) await addReinoSidebar(reino);
-    else {
-      const row = reinoRows.find((r) => r.reinoId === id);
-      if (row) await removeReinoSidebar(row.rowId);
-    }
-    setSavingReinos(false);
-  };
-
-  const handleToggleCiudad = async (id: string, add: boolean) => {
-    setSavingCiudades(true);
-    if (add) {
-      const ciudad = allCiudades.find((l) => l.id === id);
-      if (ciudad) await addCiudadSidebar(ciudad);
-    } else {
-      const row = ciudadRows.find((r) => r.ciudadId === id);
-      if (row) await removeCiudadSidebar(row.rowId);
-    }
-    setSavingCiudades(false);
-  };
-
-  const handleToggleCrafted = async (id: string, add: boolean) => {
-    setSavingCrafted(true);
-    if (add) {
-      const item = allCraftedItems.find((i) => i.id === id);
-      if (item) await addCraftedSidebar(item);
-    } else {
-      const crafted = craftedItems.find((i) => i.itemId === id);
-      if (crafted) await removeCraftedSidebar(crafted.crafterId);
-    }
-    setSavingCrafted(false);
-  };
-
+  // ── Sincronizar form cuando cambia el item externo ────────────────────────
   useEffect(() => {
     setForm(item);
     setStatus("idle");
   }, [item.id]);
 
+  // ── Handlers ──────────────────────────────────────────────────────────────
   const field =
     (k: keyof Criatura) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
@@ -743,6 +205,44 @@ export function EditorCriatura({
     onDeleted(form.id);
   };
 
+  const handleTogglePersonaje = (id: string, add: boolean) =>
+    togglePersonaje(id, add, form.nombre, allPersonajes);
+
+  const handleToggleReino = async (id: string, add: boolean) => {
+    setSavingReinos(true);
+    const reino = allReinos.find((r) => r.id === id);
+    if (add && reino) await addReinoSidebar(reino);
+    else {
+      const row = reinoRows.find((r) => r.reinoId === id);
+      if (row) await removeReinoSidebar(row.rowId);
+    }
+    setSavingReinos(false);
+  };
+
+  const handleToggleCiudad = async (id: string, add: boolean) => {
+    setSavingCiudades(true);
+    if (add) {
+      const ciudad = allCiudades.find((l) => l.id === id);
+      if (ciudad) await addCiudadSidebar(ciudad);
+    } else {
+      const row = ciudadRows.find((r) => r.ciudadId === id);
+      if (row) await removeCiudadSidebar(row.rowId);
+    }
+    setSavingCiudades(false);
+  };
+
+  const handleToggleCrafted = async (id: string, add: boolean) => {
+    setSavingCrafted(true);
+    if (add) {
+      const it = allCraftedItems.find((i) => i.id === id);
+      if (it) await addCraftedSidebar(it);
+    } else {
+      const crafted = craftedItems.find((i) => i.itemId === id);
+      if (crafted) await removeCraftedSidebar(crafted.crafterId);
+    }
+    setSavingCrafted(false);
+  };
+
   return (
     <div className="flex-1 flex min-h-0 overflow-hidden relative">
       <ConfirmModal />
@@ -757,7 +257,6 @@ export function EditorCriatura({
             background: "color-mix(in srgb, var(--primary) 2%, transparent)",
           }}
         >
-          {/* Avatar */}
           <div className="shrink-0 w-7 h-7 rounded-lg overflow-hidden border border-primary/15 bg-primary/5 flex items-center justify-center">
             {form.imagen_url ? (
               <Image
@@ -904,6 +403,15 @@ export function EditorCriatura({
               ))}
             </div>
           </div>
+
+          {/* Grupos */}
+          <BloqueGruposCriatura
+            gruposActuales={gruposActuales}
+            todosGrupos={todosGrupos}
+            onAdd={addToGrupo}
+            onRemove={removeFromGrupo}
+            onSelectGrupo={onSelectGrupo}
+          />
         </div>
 
         {/* ── BARRA DE ENTIDADES — fila horizontal inferior ────────────────── */}
@@ -915,7 +423,7 @@ export function EditorCriatura({
             background: "color-mix(in srgb, var(--primary) 1.5%, transparent)",
           }}
         >
-          {/* Personajes - se expande, mas columnas */}
+          {/* Personajes */}
           <div
             className="flex-1 flex flex-col min-w-0 border-r"
             style={{
@@ -942,7 +450,7 @@ export function EditorCriatura({
             />
           </div>
 
-          {/* Territorio - se ensancha según el contenido */}
+          {/* Territorio */}
           <div
             className="shrink-0 flex flex-col border-r"
             style={{
@@ -970,7 +478,7 @@ export function EditorCriatura({
             />
           </div>
 
-          {/* Ciudades - se ensancha según el contenido */}
+          {/* Ciudades */}
           <div
             className="shrink-0 flex flex-col border-r"
             style={{
@@ -1006,7 +514,7 @@ export function EditorCriatura({
             />
           </div>
 
-          {/* Creaciones - se ensancha según el contenido */}
+          {/* Creaciones */}
           <div
             className="shrink-0 flex flex-col border-r"
             style={{
@@ -1035,7 +543,7 @@ export function EditorCriatura({
             />
           </div>
 
-          {/* Hechizos + Dones - ancho fijo */}
+          {/* Hechizos + Dones */}
           <div
             className="shrink-0 flex flex-col overflow-hidden"
             style={{ width: "110px" }}
@@ -1117,6 +625,7 @@ export function EditorCriatura({
                 <X size={13} />
               </button>
             </div>
+
             <SeccionEntidad
               allEntities={allPersonajes.map((p) => ({
                 id: p.id,

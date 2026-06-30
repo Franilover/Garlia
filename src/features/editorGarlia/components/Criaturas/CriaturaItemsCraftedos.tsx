@@ -36,7 +36,6 @@ export function useCraftedItems(criaturaId: string) {
   const load = useCallback(async () => {
     setLoading(true);
 
-    // Leer Dexie local + catálogo en paralelo
     const [localDrops, catalogResult] = await Promise.all([
       db
         ? db.item_crafteres
@@ -63,7 +62,6 @@ export function useCraftedItems(criaturaId: string) {
       setLoading(false);
     }
 
-    // Fetch remoto
     if (!navigator.onLine) {
       setLoading(false);
       return;
@@ -87,7 +85,6 @@ export function useCraftedItems(criaturaId: string) {
     setItems(remoteItems);
     setLoading(false);
 
-    // Sincronizar Dexie
     try {
       if (db) {
         await db.item_crafteres
@@ -113,7 +110,6 @@ export function useCraftedItems(criaturaId: string) {
 
   const add = async (item: ItemMin) => {
     if (items.some((i) => i.itemId === item.id)) return;
-    // Optimista
     const tempId = `temp_${item.id}`;
     setItems((prev) => [
       ...prev,
@@ -145,7 +141,6 @@ export function useCraftedItems(criaturaId: string) {
             item_id: item.id,
           });
       } catch {}
-      // Marcar el ítem como creado artificialmente
       await supabase
         .from("items")
         .update({ origen: "Artificial", sub_origen: null })
@@ -160,13 +155,11 @@ export function useCraftedItems(criaturaId: string) {
         _ch.close();
       }
     } else {
-      // Revertir optimista si falló
       setItems((prev) => prev.filter((i) => i.crafterId !== tempId));
     }
   };
 
   const remove = async (crafterId: string) => {
-    // Optimista
     setItems((prev) => prev.filter((i) => i.crafterId !== crafterId));
     try {
       if (db) await db.item_crafteres.delete(crafterId);
@@ -174,7 +167,16 @@ export function useCraftedItems(criaturaId: string) {
     await supabase.from("item_crafteres").delete().eq("id", crafterId);
   };
 
-  return { items, allItems, loading, add, remove };
+  // El hook calcula los ítems disponibles para añadir, filtrados por búsqueda.
+  // El componente no necesita acceder a allItems crudo.
+  const getAvailable = (search: string): ItemMin[] =>
+    allItems.filter(
+      (it) =>
+        it.nombre.toLowerCase().includes(search.toLowerCase()) &&
+        !items.some((ci) => ci.itemId === it.id),
+    );
+
+  return { items, allItems, loading, add, remove, getAvailable };
 }
 
 // ─── Componente ───────────────────────────────────────────────────────────────
@@ -185,15 +187,12 @@ export function BloqueItemsCraftedos({
   criaturaId: string;
   onSelectItem?: (itemId: string) => void;
 }) {
-  const { items, allItems, loading, add, remove } = useCraftedItems(criaturaId);
+  const { items, loading, add, remove, getAvailable } =
+    useCraftedItems(criaturaId);
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
 
-  const filtered = allItems.filter(
-    (it) =>
-      it.nombre.toLowerCase().includes(search.toLowerCase()) &&
-      !items.some((ci) => ci.itemId === it.id),
-  );
+  const filtered = getAvailable(search);
 
   if (loading)
     return (
@@ -210,12 +209,10 @@ export function BloqueItemsCraftedos({
         </p>
       )}
 
-      {/* Grid de 2 columnas */}
       {items.length > 0 && (
         <div className="grid grid-cols-2 gap-1.5">
           {items.map((it) => (
             <div key={it.crafterId} className="relative group">
-              {/* Tarjeta clickeable */}
               <button
                 className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-left transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
                 style={{
@@ -242,7 +239,6 @@ export function BloqueItemsCraftedos({
                 </span>
               </button>
 
-              {/* Botón quitar flotante */}
               <button
                 className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all bg-red-500/10 hover:bg-red-500/20 text-red-400/60 hover:text-red-400 border border-red-500/20 cursor-pointer"
                 onClick={(e) => {
@@ -257,7 +253,6 @@ export function BloqueItemsCraftedos({
         </div>
       )}
 
-      {/* Dropdown para añadir */}
       <div className="relative">
         <button
           className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg border border-dashed border-primary/15 text-[9px] font-black uppercase tracking-widest text-primary/30 hover:text-primary/60 hover:border-primary/30 transition-all cursor-pointer"

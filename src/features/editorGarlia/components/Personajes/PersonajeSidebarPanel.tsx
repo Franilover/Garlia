@@ -5,13 +5,10 @@
  * ─────────────────────────
  * Sidebar de escritorio y drawer mobile del editor de personajes.
  * Compone todos los bloques laterales: relaciones, capítulos, canciones,
- * grupos y hechizos.
+ * grupos y hechizos. No tiene estado propio salvo lo puramente visual
+ * (no aplica aquí) — toda la lógica vive en los componentes hijos.
  *
- * Props de navegación se pasan hacia abajo para que los bloques puedan
- * abrir otros editores sin acoplarse entre sí.
- *
- * Ruta destino:
- *   src/features/editorGarlia/components/PersonajeSidebarPanel.tsx
+ * Ruta: src/features/editorGarlia/components/Personajes/PersonajeSidebarPanel.tsx
  */
 
 import { BookOpen, Music2, SlidersHorizontal, Users, X } from "lucide-react";
@@ -140,7 +137,6 @@ export function PersonajeSidebarPanel({
   // Drawer mobile
   return (
     <div className="sm:hidden fixed inset-0 z-50 flex justify-end">
-      {/* Backdrop */}
       <div
         className="absolute inset-0"
         style={{
@@ -149,7 +145,6 @@ export function PersonajeSidebarPanel({
         onClick={onCerrarDrawer}
       />
 
-      {/* Panel */}
       <div
         className="relative flex flex-col h-full overflow-y-auto shadow-2xl"
         style={{
@@ -160,7 +155,6 @@ export function PersonajeSidebarPanel({
           scrollbarWidth: "none",
         }}
       >
-        {/* Header del drawer */}
         <div
           className="shrink-0 flex items-center justify-between px-3 py-2.5 border-b"
           style={{

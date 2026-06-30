@@ -3,119 +3,19 @@
 /**
  * PersonajeCancionesAsociadas.tsx
  * ────────────────────────────────
- * Hook `useCancionesDelPersonaje` + componente `PersonajeCancionesAsociadas`.
- * Lista las canciones asociadas a un personaje (por personaje_id, por su
- * propio id como canción, o por coincidencia de nombre en el título).
+ * Lista las canciones asociadas a un personaje.
+ * La lógica de datos vive en useCancionesDelPersonaje.
  *
- * Ruta destino:
- *   src/features/editorGarlia/components/PersonajeCancionesAsociadas.tsx
+ * Ruta: src/features/editorGarlia/components/Personajes/PersonajeCancionesAsociadas.tsx
  */
 
 import Image from "next/image";
 import { Loader2, Music2 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
 
-import { db } from "@/lib/api/client/db";
-import { supabase } from "@/lib/api/client/supabase";
-
-// ─── Tipos ────────────────────────────────────────────────────────────────────
-type CancionMin = {
-  id: string;
-  titulo: string;
-  cantante: string | null;
-  portada_url: string | null;
-};
-
-// ─── Hook ─────────────────────────────────────────────────────────────────────
-export function useCancionesDelPersonaje(
-  personajeId: string,
-  nombrePersonaje: string,
-): { canciones: CancionMin[]; loading: boolean } {
-  const [canciones, setCanciones] = useState<CancionMin[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-
-    // 1. Dexie — usa el índice personaje_id (v23)
-    try {
-      if (db) {
-        const byId: any[] =
-          (await (db as any).canciones
-            ?.where("personaje_id")
-            .equals(personajeId)
-            .toArray()) ?? [];
-
-        const nombre = nombrePersonaje?.trim().toLowerCase() ?? "";
-        let byNombre: any[] = [];
-        if (nombre && byId.length === 0) {
-          const todas: any[] = (await (db as any).canciones?.toArray()) ?? [];
-          byNombre = todas.filter(
-            (c: any) =>
-              c.id === personajeId ||
-              (nombre && c.titulo?.toLowerCase().includes(nombre)),
-          );
-        }
-
-        const filtered = byId.length > 0 ? byId : byNombre;
-        if (filtered.length > 0) {
-          setCanciones(
-            filtered.map((c: any) => ({
-              id: c.id,
-              titulo: c.titulo ?? "Sin título",
-              cantante: c.cantante ?? null,
-              portada_url: c.portada_url ?? null,
-            })),
-          );
-          setLoading(false);
-          if (!navigator.onLine) return;
-        }
-      }
-    } catch {}
-
-    if (!navigator.onLine) {
-      setLoading(false);
-      return;
-    }
-
-    // 2. Supabase: por personaje_id, por id o por título
-    try {
-      const nombre = nombrePersonaje?.trim() ?? "";
-      let query = supabase
-        .from("canciones")
-        .select("id, titulo, cantante, portada_url");
-
-      if (nombre) {
-        query = query.or(
-          `personaje_id.eq.${personajeId},id.eq.${personajeId},titulo.ilike.%${nombre}%`,
-        );
-      } else {
-        query = query.or(
-          `personaje_id.eq.${personajeId},id.eq.${personajeId}`,
-        );
-      }
-
-      const { data } = await query.order("titulo");
-      setCanciones(
-        (data ?? []).map((c: any) => ({
-          id: c.id,
-          titulo: c.titulo ?? "Sin título",
-          cantante: c.cantante ?? null,
-          portada_url: c.portada_url ?? null,
-        })),
-      );
-    } catch {}
-    setLoading(false);
-  }, [personajeId, nombrePersonaje]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  return { canciones, loading };
-}
+import { useCancionesDelPersonaje } from "@/features/editorGarlia/hooks/useCancionesDelPersonaje";
 
 // ─── Componente ───────────────────────────────────────────────────────────────
+
 export function PersonajeCancionesAsociadas({
   personajeId,
   nombrePersonaje,
