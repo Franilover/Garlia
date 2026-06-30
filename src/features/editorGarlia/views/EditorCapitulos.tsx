@@ -34,15 +34,25 @@ import React, {
 } from "react";
 
 import {
-  MarkdownEditor,
   renderMarkdown,
   renderMathInElement,
   PROSE_STYLES,
-} from "@/components/forms/Markdown/MarkdownEditor";
+} from "@/components/forms/Markdown/markdownRenderer";
 import type {
   CommandItem as MdCommandItem,
   SnippetAction,
-} from "@/components/forms/Markdown/MarkdownEditor";
+} from "@/components/forms/Markdown/commandItems";
+import { RichEditor } from "@/features/editorGarlia/components/editorCapitulos/lexical-editor";
+import type { SnippetEditRequest } from "@/features/editorGarlia/components/editorCapitulos/lexical-editor";
+import {
+  dropPayloadToRaw,
+  soundPayloadToRaw,
+  imgPayloadToRaw,
+  choicePayloadToRaw,
+  usePayloadToRaw,
+  gatePayloadToRaw,
+  sectionPayloadToRaw,
+} from "@/features/editorGarlia/components/editorCapitulos/lexical-editor";
 import {
   BannerOffline,
   ModalBase,
@@ -72,7 +82,7 @@ import {
   useReinos,
 } from "@/features/editorGarlia/components/editorCapitulos/hooks/hooks";
 import { SnippetCommandPalette } from "@/features/editorGarlia/components/editorCapitulos/snippets/SnippetCommandPalette";
-import { makeSnippetOverlay } from "@/features/editorGarlia/components/editorCapitulos/snippets/SnippetOverlay";
+// SnippetOverlay eliminado — reemplazado por nodos Lexical reales
 import {
   Libro,
   Capitulo,
@@ -225,10 +235,8 @@ const PanelEditor = ({
   } | null>(null);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const timer = useRef<any>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const caretMirrorRef = useRef<HTMLDivElement>(null);
-  const mdInsertRef = useRef<((text: string) => void) | null>(null);
+  const mdInsertRef = useRef<((raw: string) => void) | null>(null);
   const pendingReplaceRef = useRef<((next: string) => void) | null>(null);
   const pendingSnippetRawRef = useRef<string | null>(null);
   const isMountedRef = useRef(true);
@@ -294,43 +302,12 @@ const PanelEditor = ({
       });
   }, [libroId]);
 
-  useEffect(() => {
-    const ta = textareaRef.current;
-    if (!ta) return;
-    ta.style.height = "auto";
-    ta.style.height = `${ta.scrollHeight}px`;
-  }, [contenido]);
+  // Auto-resize eliminado — Lexical maneja el resize internamente
 
+  // centerCursor eliminado — usaba textareaRef/caretMirrorRef del textarea.
+  // Lexical maneja el scroll al cursor internamente.
   const centerCursor = useCallback(() => {
-    const ta = textareaRef.current;
-    const container = scrollRef.current;
-    const mirror = caretMirrorRef.current;
-    if (!ta || !container || !mirror) return;
-
-    const cs = getComputedStyle(ta);
-    mirror.style.cssText = `
-      position: absolute; visibility: hidden; pointer-events: none;
-      white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word;
-      width: ${ta.clientWidth}px; font: ${cs.font}; line-height: ${cs.lineHeight};
-      padding: ${cs.padding}; border: ${cs.border}; box-sizing: ${cs.boxSizing};
-      top: 0; left: 0;
-    `;
-
-    const textBefore = ta.value.slice(0, ta.selectionStart ?? ta.value.length);
-    mirror.innerHTML =
-      textBefore
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/\n/g, "<br>") + '<span id="caret-pos">\u200b</span>';
-
-    const caretSpan = mirror.querySelector("#caret-pos") as HTMLElement | null;
-    if (!caretSpan) return;
-
-    const mirrorRect = mirror.getBoundingClientRect();
-    const caretRect = caretSpan.getBoundingClientRect();
-    const caretTop = caretRect.top - mirrorRect.top;
-    const targetScroll = ta.offsetTop + caretTop - container.clientHeight / 2;
-    container.scrollTo({ top: Math.max(0, targetScroll), behavior: "smooth" });
+    // no-op: mantenido para no romper la referencia en onChange
   }, []);
 
   // FIX 1: optimistic update del estado React con objeto completo antes del
@@ -429,19 +406,49 @@ const PanelEditor = ({
   );
 
   const openPalette = useCallback((initialRaw?: string) => {
-    const ta = textareaRef.current;
-    if (!ta) {
-      setPalette({ anchorRect: { top: 200, left: 300 }, initialRaw });
-      return;
-    }
-    const rect = ta.getBoundingClientRect();
-    const cs = getComputedStyle(ta);
-    const lh = parseFloat(cs.lineHeight) || 20;
-    const lines = ta.value.slice(0, ta.selectionStart ?? 0).split("\n").length;
-    const top = rect.top + Math.min(lines * lh, ta.clientHeight - 20);
-    const left = rect.left + 40;
-    setPalette({ anchorRect: { top, left }, initialRaw });
+    // Con Lexical ya no hay textarea ni caret que medir —
+    // la palette se ancla a una posición fija centrada.
+    setPalette({ anchorRect: { top: 200, left: 300 }, initialRaw });
   }, []);
+
+  // Helper: convierte payload de un nodo editado → raw [[kind|...]]
+  // para pasárselo a SnippetCommandPalette como initialRaw
+  const snippetPayloadToRaw = useCallback(
+    (kind: string, payload: any): string => {
+      switch (kind) {
+        case "drop":
+          return dropPayloadToRaw(payload);
+        case "sound":
+          return soundPayloadToRaw(payload);
+        case "img":
+        case "float":
+          return imgPayloadToRaw(payload);
+        case "choice":
+          return choicePayloadToRaw(payload);
+        case "use":
+          return usePayloadToRaw(payload);
+        case "gate":
+          return gatePayloadToRaw(payload);
+        case "section":
+          return sectionPayloadToRaw(payload);
+        default:
+          return "";
+      }
+    },
+    [],
+  );
+
+  // Handler que RichEditor llama cuando el usuario hace click en un chip
+  // existente para editarlo — abre la palette con el raw actual pre-llenado
+  const handleSnippetEdit = useCallback(
+    (req: SnippetEditRequest<any>) => {
+      const raw = snippetPayloadToRaw(req.kind, req.payload);
+      pendingReplaceRef.current = (next: string) => req.replace(next);
+      pendingSnippetRawRef.current = raw;
+      openPalette(raw);
+    },
+    [openPalette, snippetPayloadToRaw],
+  );
 
   const snippetCommands: MdCommandItem[] = useMemo(
     () => [
@@ -518,21 +525,8 @@ const PanelEditor = ({
     [snippetCommands],
   );
 
-  // ── Snippet overlay — chips visuales sobre el textarea ──
-  const snippetOverlay = useMemo(
-    () =>
-      makeSnippetOverlay({
-        taRef: textareaRef,
-        onChange,
-        onEdit: (raw, replace) => {
-          pendingReplaceRef.current = replace;
-          pendingSnippetRawRef.current = raw;
-          openPalette(raw);
-        },
-      }),
-
-    [textareaRef, onChange, openPalette],
-  );
+  // snippetOverlay eliminado — los chips son nodos Lexical reales,
+  // la edición se maneja via handleSnippetEdit pasado a RichEditor
 
   const insertOrReplace = useCallback((s: string) => {
     if (pendingReplaceRef.current) {
@@ -900,28 +894,18 @@ const PanelEditor = ({
         <div
           ref={scrollRef}
           className={`flex-1 overflow-y-auto relative ${focusMode ? "px-5 sm:px-16 py-8 sm:py-12" : "px-4 sm:px-8 py-4 sm:py-6"}`}
-          style={{
-            WebkitOverflowScrolling: "touch",
-            // Expone el color de fondo real del editor para que el overlay
-            // de snippets (SnippetOverlay) sepa exactamente qué color usar
-            // al tapar el raw text [[...]] detrás de cada chip.
-            // @ts-expect-error: custom property
-            "--editor-bg": "var(--bg-main, var(--background))",
-          }}
+          style={{ WebkitOverflowScrolling: "touch" }}
         >
-          <div ref={caretMirrorRef} aria-hidden="true" />
           <div className={focusMode ? "max-w-3xl mx-auto w-full" : ""}>
-            <MarkdownEditor
-              defaultMode={focusMode ? "edit" : "split"}
-              extraCommands={extraCommands}
+            <RichEditor
+              autoFocus={focusMode}
               insertRef={mdInsertRef}
+              minHeight={focusMode ? "30rem" : "20rem"}
+              mode={focusMode ? "edit" : "split"}
               placeholder="Empieza a escribir…"
-              renderOverlay={snippetOverlay}
-              rows={focusMode ? 30 : 20}
-              textareaRef={textareaRef as React.RefObject<HTMLTextAreaElement>}
               value={contenido}
               onChange={onChange}
-              onSnippetAction={handleSnippetAction}
+              onSnippetEdit={handleSnippetEdit}
             />
           </div>
         </div>
