@@ -29,6 +29,7 @@ import {
   Loader2,
   User,
   ChevronRight as ChevronR,
+  Feather,
 } from "lucide-react";
 import React, { useState, useEffect, useRef } from "react";
 
@@ -49,79 +50,69 @@ export function CitaVisual({ content }: { content: string }) {
   const texto = dashIdx !== -1 ? content.slice(0, dashIdx) : content;
   const fuente = dashIdx !== -1 ? content.slice(dashIdx + 3) : null;
 
+  const featherStyle: React.CSSProperties = {
+    display: "inline",
+    verticalAlign: "middle",
+    color: "var(--color-primary, var(--primary))",
+    opacity: 0.45,
+    flexShrink: 0,
+  };
+
   return (
-    <div className="my-12 mx-0 relative">
+    <div className="my-10 mx-0 text-center">
+      {/* línea superior */}
       <div
-        className="absolute left-0 top-0 bottom-0 w-[2px] rounded-full"
         style={{
+          height: 1,
           background:
-            "linear-gradient(to bottom, transparent, var(--accent), var(--primary), transparent)",
+            "linear-gradient(to right, transparent, color-mix(in srgb, var(--color-primary, var(--primary)) 40%, transparent), transparent)",
+          marginBottom: "1.25rem",
         }}
       />
-      <div
-        className="absolute -top-1 left-[-2.5px] w-[7px] h-[7px] rounded-full border-2"
-        style={{ borderColor: "var(--accent)", background: "var(--bg-main)" }}
-      />
-      <div
-        className="absolute -bottom-1 left-[-2.5px] w-[7px] h-[7px] rounded-full border-2"
-        style={{ borderColor: "var(--primary)", background: "var(--bg-main)" }}
-      />
-      <div
-        className="pl-8 py-3 rounded-r-2xl"
+
+      <p
+        className="font-serif italic leading-[1.95]"
         style={{
-          background:
-            "linear-gradient(to right, color-mix(in srgb, var(--primary) 5%, transparent), transparent)",
+          fontSize: "clamp(1rem, 2.5vw, 1.1rem)",
+          color: "var(--foreground)",
+          opacity: 0.85,
         }}
       >
-        <span
+        <Feather
           aria-hidden
-          className="block font-serif leading-none mb-1 select-none"
+          size={12}
+          style={{ ...featherStyle, marginRight: 10 }}
+        />
+        {texto}
+        <Feather
+          aria-hidden
+          size={12}
+          style={{ ...featherStyle, marginLeft: 10 }}
+        />
+      </p>
+
+      {fuente && (
+        <p
+          className="mt-3 font-sans font-medium uppercase tracking-[0.2em]"
           style={{
-            fontSize: "4rem",
-            color: "var(--accent)",
-            opacity: 0.35,
-            fontStyle: "italic",
-            lineHeight: 1,
+            fontSize: 10,
+            color: "var(--color-primary, var(--primary))",
+            opacity: 0.55,
           }}
         >
-          "
-        </span>
-        <p className="font-serif text-lg md:text-xl italic leading-[1.95] text-primary-dark/80">
-          {texto}
+          — {fuente}
         </p>
-        <span
-          aria-hidden
-          className="block font-serif leading-none mt-1 text-right select-none pr-4"
-          style={{
-            fontSize: "3rem",
-            color: "var(--primary)",
-            opacity: 0.15,
-            fontStyle: "italic",
-            lineHeight: 1,
-          }}
-        >
-          "
-        </span>
-        {fuente && (
-          <div className="flex items-center gap-3 mt-3">
-            <div
-              className="h-px w-6"
-              style={{
-                background:
-                  "color-mix(in srgb, var(--primary) 25%, transparent)",
-              }}
-            />
-            <p
-              className="text-[10px] font-black uppercase tracking-[0.3em]"
-              style={{
-                color: "color-mix(in srgb, var(--primary) 45%, transparent)",
-              }}
-            >
-              {fuente}
-            </p>
-          </div>
-        )}
-      </div>
+      )}
+
+      {/* línea inferior */}
+      <div
+        style={{
+          height: 1,
+          background:
+            "linear-gradient(to right, transparent, color-mix(in srgb, var(--color-primary, var(--primary)) 40%, transparent), transparent)",
+          marginTop: "1.25rem",
+        }}
+      />
     </div>
   );
 }
@@ -390,12 +381,23 @@ interface DropWordProps {
   entidadNombre: string;
 }
 
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export function DropWord({
   word,
   tipo,
   entidadId,
   entidadNombre,
 }: DropWordProps) {
+  // Defensa contra datos viejos: algunos drops guardados antes del fix de
+  // FormDrop tienen el UUID en la posición de "palabra" en vez del texto
+  // legible. En vez de mostrar el UUID crudo, mostramos el nombre real
+  // de la entidad si lo tenemos, o un texto genérico como último recurso.
+  const displayWord = UUID_RE.test(word.trim())
+    ? entidadNombre?.trim() || "esto"
+    : word;
+
   const [state, setState] = useState<DropState>("idle");
   const [open, setOpen] = useState(false);
   // Bug 1 fix: guard para evitar doble inserción por doble click o re-render
@@ -514,22 +516,33 @@ export function DropWord({
       >
         <span
           style={{
-            backgroundImage: `linear-gradient(${state === "success" ? "#10b981" : "#C4A882"}, ${state === "success" ? "#10b981" : "#C4A882"})`,
+            backgroundImage:
+              state === "success"
+                ? "linear-gradient(#10b981, #10b981)"
+                : "linear-gradient(var(--color-primary, var(--primary)), var(--color-primary, var(--primary)))",
             backgroundRepeat: "no-repeat",
             backgroundSize: "100% 1px",
             backgroundPosition: "0 100%",
             paddingBottom: "1px",
+            fontStyle: "italic",
+            opacity: state === "already" ? 0.5 : 1,
           }}
         >
-          {word}
+          {displayWord}
         </span>
         <span
           className={cn(
             "absolute -top-1.5 -right-1.5 w-1.5 h-1.5 rounded-full transition-colors",
-            state === "success"
-              ? "bg-emerald-400"
-              : "bg-[#C4A882]/60 group-hover:bg-[#C4A882] animate-pulse",
+            state === "success" ? "bg-emerald-400" : "animate-pulse",
           )}
+          style={
+            state !== "success"
+              ? {
+                  background:
+                    "color-mix(in srgb, var(--color-primary, var(--primary)) 50%, transparent)",
+                }
+              : {}
+          }
         />
       </button>
 
@@ -547,13 +560,25 @@ export function DropWord({
             />
             <MotionDiv
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              className="fixed z-[81] left-1/2 -translate-x-1/2 top-1/3 w-72 bg-white rounded-3xl shadow-2xl overflow-hidden"
+              className="fixed z-[81] left-1/2 -translate-x-1/2 top-1/3 w-72 rounded-2xl shadow-2xl overflow-hidden"
               exit={{ opacity: 0, scale: 0.9, y: -4 }}
               initial={{ opacity: 0, scale: 0.85, y: -8 }}
-              style={{ boxShadow: "0 24px 64px rgba(44,38,46,0.22)" }}
+              style={{
+                background: "var(--bg-menu, var(--background))",
+                border:
+                  "1px solid color-mix(in srgb, var(--color-primary, var(--primary)) 20%, transparent)",
+                boxShadow: "0 24px 64px rgba(44,38,46,0.22)",
+              }}
               transition={{ type: "spring", damping: 24, stiffness: 340 }}
             >
-              <div className="h-1.5 w-full bg-gradient-to-r from-[#C4A882] via-primary to-[#C4A882]" />
+              <div
+                className="h-1 w-full"
+                style={{
+                  background:
+                    "linear-gradient(to right, transparent, var(--color-primary, var(--primary)), transparent)",
+                  opacity: 0.5,
+                }}
+              />
               <div className="p-6 flex flex-col items-center text-center gap-4">
                 {state === "loading" ? (
                   <div className="w-14 h-14 rounded-2xl bg-primary/5 flex items-center justify-center">
@@ -644,21 +669,31 @@ export function ChoiceButton({
 }) {
   return (
     <MotionButton
-      className="flex items-center justify-between w-full my-3 p-4 rounded-[var(--radius-btn)] border border-primary/20 bg-primary/5 hover:bg-primary text-primary hover:text-white transition-all group"
-      whileHover={{ scale: 1.01 }}
-      whileTap={{ scale: 0.98 }}
+      className="inline-flex items-center justify-between gap-3 my-1 px-4 py-2.5 rounded-[var(--radius-btn)] border transition-all group"
+      style={{
+        background:
+          "color-mix(in srgb, var(--color-primary, var(--primary)) 8%, transparent)",
+        borderColor:
+          "color-mix(in srgb, var(--color-primary, var(--primary)) 20%, transparent)",
+        color: "var(--color-primary, var(--primary))",
+      }}
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.97 }}
       onClick={onSelect}
     >
-      <span className="font-black uppercase text-xs tracking-widest">
-        {label}
-      </span>
+      <span className="font-sans font-medium text-xs">{label}</span>
       <ChevronR
-        className="opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all"
-        size={16}
+        className="opacity-50 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all shrink-0"
+        size={14}
       />
     </MotionButton>
   );
 }
+
+// Wrapper que pone los ChoiceButton lado a lado con wrapping
+// Se usa desde RenderSegmentos agrupando choices consecutivos.
+// Por ahora cada ChoiceButton se renderiza inline-flex y el flujo natural
+// los agrupa en fila gracias al display inline-flex del botón.
 
 // ─────────────────────────────────────────────────────────────────────────────
 // UseWord

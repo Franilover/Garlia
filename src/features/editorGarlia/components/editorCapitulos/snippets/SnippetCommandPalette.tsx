@@ -159,8 +159,10 @@ const S = {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    background: "color-mix(in srgb, var(--color-primary, var(--primary)) 10%, transparent)",
-    border: "0.5px solid color-mix(in srgb, var(--color-primary, var(--primary)) 22%, transparent)",
+    background:
+      "color-mix(in srgb, var(--color-primary, var(--primary)) 10%, transparent)",
+    border:
+      "0.5px solid color-mix(in srgb, var(--color-primary, var(--primary)) 22%, transparent)",
     fontSize: 13,
     color: "var(--color-primary, var(--primary))",
   }),
@@ -173,7 +175,8 @@ const S = {
   sublabel: {
     fontSize: 10,
     fontWeight: 400,
-    color: "color-mix(in srgb, var(--foreground, var(--foreground)) 45%, transparent)",
+    color:
+      "color-mix(in srgb, var(--foreground, var(--foreground)) 45%, transparent)",
   } as React.CSSProperties,
   kbd: {
     fontSize: 9,
@@ -196,8 +199,10 @@ const S = {
   insertBtn: (_color: string): React.CSSProperties => ({
     width: "100%",
     boxSizing: "border-box" as const,
-    background: "color-mix(in srgb, var(--color-primary, var(--primary)) 12%, transparent)",
-    border: "0.5px solid color-mix(in srgb, var(--color-primary, var(--primary)) 30%, transparent)",
+    background:
+      "color-mix(in srgb, var(--color-primary, var(--primary)) 12%, transparent)",
+    border:
+      "0.5px solid color-mix(in srgb, var(--color-primary, var(--primary)) 30%, transparent)",
     borderRadius: 8,
     padding: "8px 12px",
     fontSize: 10,
@@ -235,8 +240,10 @@ const S = {
     display: "flex",
     alignItems: "center",
     gap: 8,
-    background: "color-mix(in srgb, var(--color-primary, var(--primary)) 8%, transparent)",
-    border: "0.5px solid color-mix(in srgb, var(--color-primary, var(--primary)) 20%, transparent)",
+    background:
+      "color-mix(in srgb, var(--color-primary, var(--primary)) 8%, transparent)",
+    border:
+      "0.5px solid color-mix(in srgb, var(--color-primary, var(--primary)) 20%, transparent)",
     borderRadius: 8,
     padding: "6px 10px",
   }),
@@ -376,9 +383,18 @@ function FormDrop({
           })),
         ].sort((a, b) => a.nombre.localeCompare(b.nombre));
         setAll(list);
+        // Si estamos editando un drop existente, preseleccionamos la
+        // entidad real apenas tenemos la lista cargada. Antes initialId
+        // se calculaba pero nunca se usaba, así que el form siempre
+        // arrancaba "sin vínculo" — eso es lo que rompía el snippet
+        // al volver a guardar.
+        if (initialId) {
+          const found = list.find((e) => e.id === initialId);
+          if (found) setSelected(found);
+        }
       })
       .finally(() => setLoading(false));
-  }, []);
+  }, [initialId]);
 
   useEffect(() => {
     inputRef.current?.focus();
