@@ -5,13 +5,7 @@
  * Renderiza chips visuales sobre el textarea. Sin cambios de lógica —
  * solo reemplaza la copia local de KIND_DEFS por la de snippetDefs.ts.
  */
-import React, {
-  useState,
-  useEffect,
-  useCallback,
-  useMemo,
-  useRef,
-} from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 
 import { KIND_DEFS, KIND_FALLBACK } from "./snippetDefs";
 import type { SnippetKind } from "./snippetDefs";
@@ -175,48 +169,37 @@ function SnippetChip({
     (m) => String(Math.min(parseFloat(m) * 2.2, 0.35)) + ")",
   );
 
-  const chipRef = useRef<HTMLDivElement>(null);
-  const [chipWidth, setChipWidth] = useState<number | null>(null);
-
-  useEffect(() => {
-    if (!chipRef.current) return;
-    const ro = new ResizeObserver((entries) => {
-      const w = entries[0]?.contentRect.width;
-      if (w) setChipWidth(Math.ceil(w));
-    });
-    ro.observe(chipRef.current);
-    return () => ro.disconnect();
-  }, [summary]);
-
-  // El fondo que tapa el raw text debe cubrir el ancho real del chip
-  // (icono + label + summary), no el ancho del texto [[...]] medido en el
-  // textarea — el chip casi siempre es más ancho que el raw, así que con
-  // el ancho del raw quedaba parte del texto original asomando al costado.
-  const coverWidth = Math.max(pos.width || 4, (chipWidth ?? 0) + 2);
-
   return (
-    <>
+    <div
+      style={{
+        position: "absolute",
+        top: pos.top,
+        left: pos.left,
+        height: pos.height || 20,
+        width: "fit-content",
+        maxWidth: 240,
+      }}
+    >
+      {/* Fondo que tapa el raw text. Al ser inset:0 dentro de un wrapper
+          fit-content, siempre coincide exactamente con el tamaño real del
+          chip — sin medir nada ni depender de un frame extra de timing. */}
       <div
         style={{
           position: "absolute",
-          top: pos.top,
-          left: pos.left,
-          width: coverWidth,
-          height: pos.height || 20,
-          // Usa la var que el editor expone; si no está definida, cae al fondo
-          // del contenedor más cercano (que ya es transparente sobre el editor)
+          inset: 0,
+          // Si el chip terminara siendo más angosto que el raw text
+          // original (texto corto + summary largo truncado), igual
+          // garantizamos cubrir como mínimo el ancho medido del raw.
+          minWidth: pos.width || 4,
           background: "var(--editor-bg, var(--bg-menu, var(--background)))",
           pointerEvents: "none",
           zIndex: 1,
         }}
       />
       <div
-        ref={chipRef}
         style={{
-          position: "absolute",
-          top: pos.top + 1,
-          left: pos.left,
-          height: (pos.height || 20) - 2,
+          position: "relative",
+          height: "100%",
           width: "fit-content",
           maxWidth: 240,
           pointerEvents: "all",
@@ -310,7 +293,7 @@ function SnippetChip({
           </button>
         )}
       </div>
-    </>
+    </div>
   );
 }
 
