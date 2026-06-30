@@ -86,7 +86,10 @@ export class ChoiceNode extends DecoratorNode<React.ReactNode> {
     this.__payload = payload;
   }
 
-  static importJSON(s: SerializedChoiceNode): ChoiceNode {
+  static importJSON(
+    serialized: SerializedLexicalNode & Record<string, unknown>,
+  ): ChoiceNode {
+    const s = serialized as unknown as SerializedChoiceNode;
     return $createChoiceNode({ label: s.label, target: s.target });
   }
 

@@ -88,7 +88,10 @@ export class UseNode extends DecoratorNode<React.ReactNode> {
     this.__payload = payload;
   }
 
-  static importJSON(s: SerializedUseNode): UseNode {
+  static importJSON(
+    serialized: SerializedLexicalNode & Record<string, unknown>,
+  ): UseNode {
+    const s = serialized as unknown as SerializedUseNode;
     return $createUseNode({
       word: s.word,
       itemId: s.itemId,

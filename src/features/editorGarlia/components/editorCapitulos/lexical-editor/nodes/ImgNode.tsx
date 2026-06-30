@@ -96,8 +96,10 @@ export class ImgNode extends DecoratorNode<React.ReactNode> {
     this.__payload = payload;
   }
 
-  static importJSON(serialized: SerializedImgNode): ImgNode {
-    const { url, caption, float, word } = serialized;
+  static importJSON(
+    serialized: SerializedLexicalNode & Record<string, unknown>,
+  ): ImgNode {
+    const { url, caption, float, word } = serialized as unknown as SerializedImgNode;
     return $createImgNode({ url, caption, float, word });
   }
 

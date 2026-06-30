@@ -87,7 +87,10 @@ export class SectionNode extends DecoratorNode<React.ReactNode> {
     this.__payload = payload;
   }
 
-  static importJSON(s: SerializedSectionNode): SectionNode {
+  static importJSON(
+    serialized: SerializedLexicalNode & Record<string, unknown>,
+  ): SectionNode {
+    const s = serialized as unknown as SerializedSectionNode;
     return $createSectionNode({ id: s.id, label: s.label });
   }
 

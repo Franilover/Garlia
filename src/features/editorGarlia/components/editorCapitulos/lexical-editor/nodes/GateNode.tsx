@@ -90,7 +90,10 @@ export class GateNode extends DecoratorNode<React.ReactNode> {
     this.__payload = payload;
   }
 
-  static importJSON(s: SerializedGateNode): GateNode {
+  static importJSON(
+    serialized: SerializedLexicalNode & Record<string, unknown>,
+  ): GateNode {
+    const s = serialized as unknown as SerializedGateNode;
     return $createGateNode({
       itemId: s.itemId,
       tieneTexto: s.tieneTexto,

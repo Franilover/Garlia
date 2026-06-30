@@ -96,8 +96,11 @@ export class DropNode extends DecoratorNode<React.ReactNode> {
     this.__payload = payload;
   }
 
-  static importJSON(serialized: SerializedDropNode): DropNode {
-    const { word, tipo, entidadId, entidadNombre } = serialized;
+  static importJSON(
+    serialized: SerializedLexicalNode & Record<string, unknown>,
+  ): DropNode {
+    const { word, tipo, entidadId, entidadNombre } =
+      serialized as unknown as SerializedDropNode;
     return $createDropNode({ word, tipo, entidadId, entidadNombre });
   }
 

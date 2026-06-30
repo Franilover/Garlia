@@ -91,8 +91,10 @@ export class SoundNode extends DecoratorNode<React.ReactNode> {
     this.__payload = payload;
   }
 
-  static importJSON(serialized: SerializedSoundNode): SoundNode {
-    const { url, volume } = serialized;
+  static importJSON(
+    serialized: SerializedLexicalNode & Record<string, unknown>,
+  ): SoundNode {
+    const { url, volume } = serialized as unknown as SerializedSoundNode;
     return $createSoundNode({ url, volume });
   }
 
